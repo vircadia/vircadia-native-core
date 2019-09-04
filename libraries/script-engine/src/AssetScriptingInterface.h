@@ -468,66 +468,185 @@ public:
     Q_INVOKABLE void compressData(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc
+     * Initializes the local cache if it isn't already initialized.
      * @function Assets.initializeCache
-     * @returns {boolean}
+     * @returns {boolean} <code>true</code> if the local cache is initialized, <code>false</code> if it isn't.
      */
-
     Q_INVOKABLE bool initializeCache() { return Parent::initializeCache(); }
     
     /**jsdoc
+     * Checks whether the script can write to the local cache.
      * @function Assets.canWriteCacheValue
-     * @param {string} url
-     * @returns {boolean}
+     * @param {string} url - <em>Not used.</em>
+     * @returns {boolean} <code>true</code> if the script is an Interface, avatar, or assignment client script, 
+     *     <code>false</code> if the script is a client entity or server entity script.
+     * @example <caption>Report whether the script can write to the cache.</caption>
+     * print("Can write to cache: " + Assets.canWriteCacheValue(null));
      */
-
     Q_INVOKABLE bool canWriteCacheValue(const QUrl& url);
     
     /**jsdoc
-     * @function Assets.getCacheStatus
-     * @param {} scope
-     * @param {} [callback=undefined]
+     * Called when a {@link Assets.getCacheStatus} call is complete.
+     * @callback Assets~getCacheStatusCallback
+     * @param {string} error - <code>null</code> if the cache status was retrieved without error, otherwise a description of 
+     *     the error.
+     * @param {Assets.GetCacheStatusResult} status - Details of the current cache status.
      */
-
+    /**jsdoc
+     * Gets the current cache status.
+     * @function Assets.getCacheStatus
+     * @param {object|Assets.CallbackDetails|Assets~getCacheStatusCallback} scopeOrCallback - If an object, then the scope that 
+     *     the <code>callback</code> function is defined in. This object is bound to <code>this</code> when the function is 
+     *     called. 
+     *     <p>Otherwise, the function to call upon completion. This may be an inline function or a function identifier.</p>
+     * @param {Assets~getCacheStatusCallback} [callback] - Used if <code>scopeOrCallback</code> specifies the scope.
+     *     <p>The function to call upon completion. May be an inline function, a function identifier, or the name of a function 
+     *     in a string. If the name of a function or a function identifier, it must be a member of the scope specified by 
+     *     <code>scopeOrCallback</code>.</p>
+     * @example <caption>Report the cache status.</caption>
+     * Assets.getCacheStatus(function (error, status) {
+     *     print("Cache status");
+     *     print("- Error: " + error);
+     *     print("- Status: " + JSON.stringify(status));
+     * });
+     */
     Q_INVOKABLE void getCacheStatus(QScriptValue scope, QScriptValue callback = QScriptValue()) {
         jsPromiseReady(Parent::getCacheStatus(), scope, callback);
     }
 
     /**jsdoc
-     * @function Assets.queryCacheMeta
-     * @param {} options
-     * @param {} scope
-     * @param {} [callback=undefined]
+     * Called when {@link Assets.queryCacheMeta} is complete.
+     * @callback Assets~queryCacheMetaCallback
+     * @param {string} error - <code>null</code> if the URL has a valid cache entry, otherwise a description of the error.
+     * @param {Assets.CacheItemMetaData} queryResult - Information on an asset in the cache.
      */
-
+    /**jsdoc
+     * Gets information about the status of an asset in the cache.
+     * @function Assets.queryCacheMeta
+     * @param {string|object} path - The URL of the cached asset to get information on. If an object then <code>path.url</code> 
+     *     is used. Must start with <code>"atp:"</code> or <code>"cache:"</code>.
+     * @param {object|Assets.CallbackDetails|Assets~queryCacheMetaCallback} scopeOrCallback - If an object, then the scope that
+     *     the <code>callback</code> function is defined in. This object is bound to <code>this</code> when the function is
+     *     called.
+     *     <p>Otherwise, the function to call upon completion. This may be an inline function or a function identifier.</p>
+     * @param {Assets~queryCacheMetaCallback} [callback] - Used if <code>scopeOrCallback</code> specifies the scope.
+     *     <p>The function to call upon completion. May be an inline function, a function identifier, or the name of a function
+     *     in a string. If the name of a function or a function identifier, it must be a member of the scope specified by
+     *     <code>scopeOrCallback</code>.</p>
+     * @example <caption>Report details of a string store in the cache.</caption>
+     * Assets.queryCacheMeta(
+     *     "cache:/cacheExample/helloCache.txt",
+     *     function (error, result) {
+     *         if (error) {
+     *             print("Error: " + error);
+     *         } else {
+     *             print("Success:");
+     *             print("- URL: " + result.url);
+     *             print("- isValid: " + result.isValid);
+     *             print("- saveToDisk: " + result.saveToDisk);
+     *             print("- expirationDate: " + result.expirationDate);
+     *         }
+     *     }
+     * );
+     */
     Q_INVOKABLE void queryCacheMeta(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc
-     * @function Assets.loadFromCache
-     * @param {} options
-     * @param {} scope
-     * @param {} [callback=undefined]
+     * Called when an {@link Assets.loadFromCache} call is complete.
+     * @callback Assets~loadFromCacheCallback
+     * @param {string} error - <code>null</code> if the cache item was successfully retrieved, otherwise a description of the 
+     *     error.
+     * @param {Assets.LoadFromCacheResult} result - Information on and the retrieved data.
      */
-
+    /**jsdoc
+     * Retrieves data from the cache directly, without downloading it. 
+     * @function Assets.loadFromCache
+     * @param {string|Assets.LoadFromCacheOptions} options - The URL of the asset to load from the cache if a string, otherwise 
+     *     an object specifying the asset to load from the cache and load options. The URL must start with <code>"atp:"</code> 
+     *     or <code>"cache:"</code>.
+     * @param {object|Assets.CallbackDetails|Assets~loadFromCacheCallback} scopeOrCallback - If an object, then the scope that
+     *     the <code>callback</code> function is defined in. This object is bound to <code>this</code> when the function is
+     *     called.
+     *     <p>Otherwise, the function to call upon completion. This may be an inline function or a function identifier.</p>
+     * @param {Assets~loadFromCacheCallback} [callback] - Used if <code>scopeOrCallback</code> specifies the scope.
+     *     <p>The function to call upon completion. May be an inline function, a function identifier, or the name of a function
+     *     in a string. If the name of a function or a function identifier, it must be a member of the scope specified by
+     *     <code>scopeOrCallback</code>.</p>
+     * @example <caption>Retrieve a string from the cache.</caption>
+     * Assets.loadFromCache(
+     *     "cache:/cacheExample/helloCache.txt",
+     *     function (error, result) {
+     *         if (error) {
+     *             print("Error: " + error);
+     *         } else {
+     *             print("Success:");
+     *             print("- Response: " + result.response);
+     *             print("- Content type: " + result.contentType);
+     *             print("- Number of bytes: " + result.byteLength);
+     *             print("- Bytes: " + [].slice.call(new Uint8Array(result.data), 0, result.byteLength));
+     *             print("- URL: " + result.url);
+     *         }
+     *     }
+     * );
+     */
     Q_INVOKABLE void loadFromCache(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc
-     * @function Assets.saveToCache
-     * @param {} options
-     * @param {} scope
-     * @param {} [callback=undefined]
+     * Called when an {@link Assets.saveToCache} call is complete.
+     * @callback Assets~saveToCacheCallback
+     * @param {string} error - <code>null</code> if the asset data was successfully saved to the cache, otherwise a description 
+     *     of the error.
+     * @param {Assets.SaveToCacheResult} result - Information on the cached data.
      */
-
+    /**jsdoc
+     * Saves asset data to the cache directly, without downloading it from a URL.
+     * <p>Note: Can only be used in Interface, avatar, and assignment client scripts.</p>
+     * @function Assets.saveToCache
+     * @param {Assets.SaveToCacheOptions} options - The data to save to the cache and cache options.
+     * @param {object|Assets.CallbackDetails|Assets~saveToCacheCallback} scopeOrCallback - If an object, then the scope that
+     *     the <code>callback</code> function is defined in. This object is bound to <code>this</code> when the function is
+     *     called.
+     *     <p>Otherwise, the function to call upon completion. This may be an inline function or a function identifier.</p>
+     * @param {Assets~saveToCacheCallback} [callback] - Used if <code>scopeOrCallback</code> specifies the scope.
+     *     <p>The function to call upon completion. May be an inline function, a function identifier, or the name of a function
+     *     in a string. If the name of a function or a function identifier, it must be a member of the scope specified by
+     *     <code>scopeOrCallback</code>.</p>
+     * @example <caption>Save a string in the cache.</caption>
+     * Assets.saveToCache(
+     *     {
+     *         url: "cache:/cacheExample/helloCache.txt",
+     *         data: "Hello cache"
+     *     },
+     *     function (error, result) {
+     *         if (error) {
+     *             print("Error: " + error);
+     *         } else {
+     *             print("Success:");
+     *             print("- Bytes: " + result.byteLength);
+     *             print("- URL: " + result.url);
+     *         }
+     *     }
+     * );
+     */
     Q_INVOKABLE void saveToCache(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc
+     * Saves asset data to the cache directly, without downloading it from a URL.
+     * <p>Note: Can only be used in Interface, avatar, and assignment client scripts.</p>
      * @function Assets.saveToCache
-     * @param {} url
-     * @param {} data
-     * @param {} metadata
-     * @param {} scope
-     * @param {} [callback=undefined]
+     * @param {string} url - The URL to associate with the cache item. Must start with <code>"atp:"</code> or 
+     *     <code>"cache:"</code>.
+     * @param {string|ArrayBuffer} data - The data to save to the cache.
+     * @param {Assets.SaveToCacheHeaders} headers - The last-modified and expiry times for the cache item.
+     * @param {object|Assets.CallbackDetails|Assets~saveToCacheCallback} scopeOrCallback - If an object, then the scope that
+     *     the <code>callback</code> function is defined in. This object is bound to <code>this</code> when the function is
+     *     called.
+     *     <p>Otherwise, the function to call upon completion. This may be an inline function or a function identifier.</p>
+     * @param {Assets~saveToCacheCallback} [callback] - Used if <code>scopeOrCallback</code> specifies the scope.
+     *     <p>The function to call upon completion. May be an inline function, a function identifier, or the name of a function
+     *     in a string. If the name of a function or a function identifier, it must be a member of the scope specified by
+     *     <code>scopeOrCallback</code>.</p>
      */
-
     Q_INVOKABLE void saveToCache(const QUrl& url, const QByteArray& data, const QVariantMap& metadata,
                                  QScriptValue scope, QScriptValue callback = QScriptValue());
 protected:

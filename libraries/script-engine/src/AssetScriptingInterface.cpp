@@ -362,6 +362,15 @@ void AssetScriptingInterface::queryCacheMeta(QScriptValue options, QScriptValue 
     jsPromiseReady(Parent::queryCacheMeta(url), scope, callback);
 }
 
+/**jsdoc
+ * Source and retrieval options for {@link Assets.loadFromCache}.
+ * @typedef {object} Assets.LoadFromCacheOptions
+ * @property {string} url - The URL of the asset to load from cache. Must start with <code>"atp:"</code> or 
+ *     <code>"cache:"</code>.
+ * @property {Assets.ResponseType} [responseType=text] - The desired result type.
+ * @property {boolean} [decompress=false] - <code>true</code> to gunzip decompress the cached data. Synonym: 
+ *     <code>compressed</code>.
+ */
 void AssetScriptingInterface::loadFromCache(QScriptValue options, QScriptValue scope, QScriptValue callback) {
     QString url, responseType;
     bool decompress = false;
@@ -396,6 +405,14 @@ bool AssetScriptingInterface::canWriteCacheValue(const QUrl& url) {
     return true;
 }
 
+/**jsdoc
+ * The data to save to the cache and cache options for {@link Assets.saveToCache}.
+ * @typedef {object} Assets.SaveToCacheOptions
+ * @property {string|ArrayBuffer} data - The data to save to the cache.
+ * @property {Assets.SaveToCacheHeaders} [headers] - The last-modified and expiry times for the cache item.
+ * @property {string} [url] - The URL to associate with the cache item. Must start with <code>"atp:"</code> or
+ *     <code>"cache:"</code>. If not specified, the URL is <code>"atp:"</code> followed by the SHA256 hash of the content.
+ */
 void AssetScriptingInterface::saveToCache(QScriptValue options, QScriptValue scope, QScriptValue callback) {
     JS_VERIFY(options.isObject(), QString("expected options object as first parameter not: %1").arg(options.toVariant().typeName()));
 
