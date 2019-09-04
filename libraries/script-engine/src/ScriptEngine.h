@@ -416,8 +416,10 @@ public:
      * Provides access to methods or objects provided in an external JavaScript or JSON file. 
      * See {@link https://docs.highfidelity.com/script/js-tips.html} for further details.
      * @function Script.require
-     * @param {string} module - The module to use. May be a JavaScript file or the name of a system module such as 
-     *     <code>"sppUi"</code>.
+     * @param {string} module - The module to use. May be a JavaScript file, a JSON file, or the name of a system module such 
+     *     as <code>"appUi"</code> (i.e., the "appUi.js" system module JavaScript file).
+     * @returns {object|array} The value assigned to <code>module.exports</code> in the JavaScript file, or the value defined 
+     *     in the JSON file.
      */
     Q_INVOKABLE QScriptValue require(const QString& moduleId);
 
@@ -842,7 +844,7 @@ signals:
 
     /**jsdoc
      * Triggered when the script starts for the user. See also, {@link Entities.preload}.
-     * <table><tr><th>Available in:</th><td>Client Entity Scripts</td><td>Server Entity Scripts</td></tr></table>
+     * <p class="availableIn"><strong>Supported Script Types:</strong> Client Entity Scripts &bull; Server Entity Scripts</p>
      * @function Script.entityScriptPreloadFinished
      * @param {Uuid} entityID - The ID of the entity that the script is running in.
      * @returns {Signal}
