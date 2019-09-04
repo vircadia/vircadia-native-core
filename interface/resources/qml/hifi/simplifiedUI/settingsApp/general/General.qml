@@ -138,7 +138,6 @@ Flickable {
                     labelTextOn: "Show Emote UI"
                     checked: Settings.getValue("simplifiedUI/showEmoteUI", true)
                     onClicked: {
-                        console.log("CLICKED GENERAL SETTING")
                         var currentSetting = Settings.getValue("simplifiedUI/showEmoteUI", true);
                         Settings.setValue("simplifiedUI/showEmoteUI", !currentSetting);
                     }                    

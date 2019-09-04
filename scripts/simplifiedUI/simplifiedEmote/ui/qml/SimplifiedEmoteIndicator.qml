@@ -21,13 +21,9 @@ Rectangle {
     id: root
     color: simplifiedUI.colors.white
     anchors.fill: parent
-    Component.onCompleted: {
-        console.log("\n\n\n\n\n\n\n COMPLETED @@2 \n\n\n\n\n\n\n\n");
-    }
     property int originalWidth: 48
     property int expandedWidth: mainEmojiContainer.width + drawerContainer.width
     // For the below to work, the Repeater's Item's second child must be the individual button's `MouseArea`
-    // Here
     property int requestedWidth: (
         root.showEmoteUI && (
             drawerContainer.keepDrawerExpanded ||
@@ -46,8 +42,6 @@ Rectangle {
 
 
     onRequestedWidthChanged: {
-        console.log("root.tryDisabled on requested widthChanged", root.showEmoteUI);
-        console.log(root.requestedWidth);
         root.requestNewWidth(root.requestedWidth);
     }
 
@@ -60,9 +54,7 @@ Rectangle {
         target: Settings
 
         onValueChanged: {
-            console.log("in on value changed", setting, value)
             if (setting === "simplifiedUI/showEmoteUI") {
-                console.log("on root tray disabled");
                 root.showEmoteUI = value;
             }
         }

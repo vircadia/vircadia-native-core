@@ -530,16 +530,6 @@ function handleEmoteIndicatorVisibleChanged(shouldBeVisible) {
     }
 }
 
-function handleEmoteIndictaorTrayDisabledChanged(shouldBeDisabled) {
-    emoteAppBarWindow.sendToQml({
-        "source": "simplifiedEmote.js",
-        "method": "updateTrayDisabled",
-        "data": {
-            "shouldBeDisabled": shouldBeDisabled
-        }
-    });
-}
-
 
 function onDisplayModeChanged(isHMDMode) {
     reactionsBegun.forEach(function(react) {
