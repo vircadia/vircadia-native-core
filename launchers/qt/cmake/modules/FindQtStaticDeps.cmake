@@ -5,9 +5,6 @@ set(qt_static_lib_dependices
   "qtfreetype"
   "Qt5AccessibilitySupport"
   "Qt5FbSupport"
-  "Qt5GraphicsSupport"
-  "Qt5CglSupport"
-  "Qt5ClipboardSupport"
   "Qt5OpenGLExtensions"
   "Qt5QuickTemplates2"
   "Qt5FontDatabaseSupport"
@@ -16,6 +13,11 @@ set(qt_static_lib_dependices
 
 if (WIN32)
 elseif(APPLE)
+  set(qt_static_lib_dependices
+    ${qt_static_lib_dependices}
+    "Qt5GraphicsSupport"
+    "Qt5CglSupport"
+    "Qt5ClipboardSupport")
 endif()
 
 set(LIBS_PREFIX "${_qt5Core_install_prefix}/lib/")
