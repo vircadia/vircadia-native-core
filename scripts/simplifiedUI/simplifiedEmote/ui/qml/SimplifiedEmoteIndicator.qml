@@ -21,20 +21,24 @@ Rectangle {
     id: root
     color: simplifiedUI.colors.white
     anchors.fill: parent
-
     property int originalWidth: 48
     property int expandedWidth: mainEmojiContainer.width + drawerContainer.width
     // For the below to work, the Repeater's Item's second child must be the individual button's `MouseArea`
-    property int requestedWidth: (drawerContainer.keepDrawerExpanded ||
-        emoteIndicatorMouseArea.containsMouse ||
-        emoteButtonsRepeater.itemAt(0).hovered ||
-        emoteButtonsRepeater.itemAt(1).hovered ||
-        emoteButtonsRepeater.itemAt(2).hovered ||
-        emoteButtonsRepeater.itemAt(3).hovered ||
-        emoteButtonsRepeater.itemAt(4).hovered ||
-        emoteButtonsRepeater.itemAt(5).hovered) ? expandedWidth : originalWidth;
+    property int requestedWidth: (
+        root.allowEmoteDrawerExpansion && (
+            drawerContainer.keepDrawerExpanded ||
+            emoteIndicatorMouseArea.containsMouse ||
+            emoteButtonsRepeater.itemAt(0).hovered ||
+            emoteButtonsRepeater.itemAt(1).hovered ||
+            emoteButtonsRepeater.itemAt(2).hovered ||
+            emoteButtonsRepeater.itemAt(3).hovered ||
+            emoteButtonsRepeater.itemAt(4).hovered ||
+            emoteButtonsRepeater.itemAt(5).hovered)
+        ) ? expandedWidth : originalWidth;
     readonly property int totalEmojiDurationMS: 7000 // Must match `TOTAL_EMOJI_DURATION_MS` in `simplifiedEmoji.js`
     readonly property string emoteIconSource: "images/emote_Icon.svg"
+    property bool allowEmoteDrawerExpansion: Settings.getValue("simplifiedUI/allowEmoteDrawerExpansion", true)
+
 
     onRequestedWidthChanged: {
         root.requestNewWidth(root.requestedWidth);
@@ -43,6 +47,16 @@ Rectangle {
     Behavior on requestedWidth {
         enabled: true
         SmoothedAnimation { duration: 220 }
+    }
+
+    Connections {
+        target: Settings
+
+        onValueChanged: {
+            if (setting === "simplifiedUI/allowEmoteDrawerExpansion") {
+                root.allowEmoteDrawerExpansion = value;
+            }
+        }
     }
 
     SimplifiedConstants.SimplifiedConstants {
@@ -158,7 +172,7 @@ Rectangle {
             anchors.fill: lockIcon
             source: lockIcon
             color: "#ffffff"
-            visible: drawerContainer.keepDrawerExpanded
+            visible: root.allowEmoteDrawerExpansion && drawerContainer.keepDrawerExpanded
         }
 
         MouseArea {
