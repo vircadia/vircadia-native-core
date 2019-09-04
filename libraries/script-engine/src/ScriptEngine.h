@@ -844,7 +844,7 @@ signals:
 
     /**jsdoc
      * Triggered when the script starts for the user. See also, {@link Entities.preload}.
-     * <table><tr><th>Available in:</th><td>Client Entity Scripts</td><td>Server Entity Scripts</td></tr></table>
+     * <p class="availableIn"><strong>Supported Script Types:</strong> Client Entity Scripts &bull; Server Entity Scripts</p>
      * @function Script.entityScriptPreloadFinished
      * @param {Uuid} entityID - The ID of the entity that the script is running in.
      * @returns {Signal}
