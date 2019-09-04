@@ -25,9 +25,15 @@
 #include <QtNetwork/QNetworkDiskCache>
 
 /**jsdoc
- * The <code>Assets</code> API provides facilities for interacting with the domain's asset server. Assets are stored in the 
- * asset server in files with SHA256 names. These files are mapped to user-friendly URLs of the format: 
- * <code>atp:/path/filename</code>.
+ * The <code>Assets</code> API provides facilities for interacting with the domain's asset server and the client cache. 
+ * cache.
+ * <p>Assets are stored in the asset server in files with SHA256 names. These files are mapped to user-friendly URLs of the 
+ * format: <code>atp:/path/filename</code>. The assets may optionally be baked, in which case a request for the original 
+ * unbaked version of the asset is automatically redirected to the baked version. The asset data may optionally be stored as 
+ * compressed.</p>
+ * <p>The client cache can be access directly, using <code>"atp:"</code> <code>"cache:"</code> URLs. Interface, avatar, and 
+ * assignment client scripts can write to the cache. All script types can read from the cache.</p>
+ *
  * @namespace Assets
  *
  * @hifi-interface
@@ -70,6 +76,12 @@ public:
     Q_INVOKABLE void uploadData(QString data, QScriptValue callback);
 
     /**jsdoc
+     * Called when an {@link Assets.downloadData} call is complete.
+     * @callback Assets~downloadDataCallback
+     * @param {string} data - The content that was downloaded.
+     * @param {Assets.DownloadDataError} error - The success or failure of the download.
+     */
+    /**jsdoc
      * Downloads content from the asset server, form a SHA256-named file.
      * @function Assets.downloadData
      * @param {string} url - The raw URL of asset to download: <code>atp:</code> followed by the assets's SHA256 hash.
@@ -97,19 +109,13 @@ public:
      *     });
      * }, 1000);
      */
-    /**jsdoc
-     * Called when an {@link Assets.downloadData} call is complete.
-     * @callback Assets~downloadDataCallback
-     * @param {string} data - The content that was downloaded.
-     * @param {Assets.DownloadDataError} error - The success or failure of the download.
-     */
-    /**jsdoc
-     * The success or failure of an {@link Assets.downloadData} call.
-     * @typedef {object} Assets.DownloadDataError
-     * @property {string} errorMessage - <code>""</code> if the download was successful, otherwise a description of the error.
-     */
     Q_INVOKABLE void downloadData(QString url, QScriptValue callback);
 
+    /**jsdoc
+     * Called when an {@link Assets.setMapping} call is complete.
+     * @callback Assets~setMappingCallback
+     * @param {string} error - <code>null</code> if the path-to-hash mapping was set, otherwise a description of the error.
+     */
     /**jsdoc
      * Sets a path-to-hash mapping within the asset server.
      * @function Assets.setMapping
@@ -117,13 +123,14 @@ public:
      * @param {string} hash - The hash in the asset server.
      * @param {Assets~setMappingCallback} callback - The function to call upon completion.
      */
-    /**jsdoc
-     * Called when an {@link Assets.setMapping} call is complete.
-     * @callback Assets~setMappingCallback
-     * @param {string} error - <code>null</code> if the path-to-hash mapping was set, otherwise a description of the error.
-     */
     Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
 
+    /**jsdoc
+     * Called when an {@link Assets.getMapping} call is complete.
+     * @callback Assets~getMappingCallback
+     * @param {string} error - <code>null</code> if the path was found, otherwise a description of the error.
+     * @param {string} hash - The hash value if the path was found, <code>""</code> if it wasn't.
+     */
     /**jsdoc
      * Gets the hash for a path within the asset server. The hash is for the unbaked or baked version of the
      * asset, according to the asset server setting for the particular path.
@@ -140,26 +147,20 @@ public:
      *     });
      * }
      */
-    /**jsdoc
-     * Called when an {@link Assets.getMapping} call is complete.
-     * @callback Assets~getMappingCallback
-     * @param {string} error - <code>null</code> if the path was found, otherwise a description of the error.
-     * @param {string} hash - The hash value if the path was found, <code>""</code> if it wasn't.
-     */
     Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
 
+    /**jsdoc
+     * Called when an {@link Assets.setBakingEnabled} call is complete.
+     * @callback Assets~setBakingEnabledCallback
+     * @param {string} error - <code>null</code> if baking was successfully enabled or disabled, otherwise a description of the 
+     * error.
+     */
     /**jsdoc
      * Sets whether or not to bake an asset in the asset server.
      * @function Assets.setBakingEnabled
      * @param {string} path - The path to a file in the asset server.
      * @param {boolean} enabled - <code>true</code> to enable baking of the asset, <code>false</code> to disable.
      * @param {Assets~setBakingEnabledCallback} callback - The function to call upon completion.
-     */
-    /**jsdoc
-     * Called when an {@link Assets.setBakingEnabled} call is complete.
-     * @callback Assets~setBakingEnabledCallback
-     * @param {string} error - <code>null</code> if baking was successfully enabled or disabled, otherwise a description of the 
-     * error.
      */
     // Note: Second callback parameter not documented because it's always {}.
     Q_INVOKABLE void setBakingEnabled(QString path, bool enabled, QScriptValue callback);
@@ -177,20 +178,13 @@ public:
      * @typedef {object} Assets.CallbackDetails
      * @property {object} scope - The scope that the <code>callback</code> function is defined in. This object is bound to 
      *     <code>this</code> when the function is called.
-     * @property {Assets~putAssetCallback|Assets~getAssetCallback|Assets~resolveAssetCallback|Assets~compressDataCallback
-     *     |Assets~decompressDataCallback} 
+     * @property {Assets~compressDataCallback|Assets~decompressDataCallback|Assets~getAssetCallback
+     *     |Assets~getCacheStatusCallback|Assets~loadFromCacheCallback|Assets~putAssetCallback|Assets~queryCacheMetaCallback
+     *     |Assets~resolveAssetCallback|Assets~saveToCacheCallback} 
      *     callback -  The function to call upon completion. May be an inline function or a function identifier. If a function 
      *     identifier, it must be a member of <code>scope</code>.
      */
 
-    /**jsdoc
-     * Source and download options for {@link Assets.getAsset}.
-     * @typedef {object} Assets.GetOptions
-     * @property {string} url - The mapped path or hash to download. May have a leading <code>"atp:"</code>.
-     * @property {Assets.ResponseType} [responseType="text"] - The desired result type.
-     * @property {boolean} [decompress=false] - <code>true</code> to gunzip decompress the downloaded data. Synonym: 
-     *     <code>compressed</code>.
-     */
     /**jsdoc
      * Called when an {@link Assets.getAsset} call is complete.
      * @callback Assets~getAssetCallback
@@ -198,29 +192,18 @@ public:
      * @param {Assets.GetResult} result - Information on and the content downloaded.
      */
     /**jsdoc
-     * Result value returned by {@link Assets.getAsset}. 
-     * @typedef {object} Assets.GetResult
-     * @property {number} [byteLength] - The number of bytes in the downloaded response.
-     * @property {boolean} cached - 
-     * @property {string} [contentType] - Automatically detected MIME type of the content.
-     * @property {boolean} [decompressed] - <code>true</code> if the content was decompressed, <code>false</code> if it wasn't.
-     * @property {string} [hash] - The hash for the downloaded asset.
-     * @property {string} [hashURL] - The ATP URL of the hash file.
-     * @property {string} [path] - The path for the asset, if a path was requested. Otherwise, <code>undefined</code>.
-     * @property {string|ArrayBuffer|object} [response] - The downloaded content.
-     * @property {Assets.ResponseType} [responseType] - The type of the downloaded content.
-     * @property {string} [url] - The URL of the asset requested: the path with leading <code>"atp:"</code> if a path was 
-     *     requested, otherwise the requested URL.
-     * @property {boolean} [wasRedirected] - <code>true</code> if the downloaded data is the baked version of the asset, 
-     *      <code>false</code> if it isn't baked.
-     */
-    /**jsdoc
      * Downloads content from the asset server.
      * @function Assets.getAsset
-     * @param {Assets.GetOptions|string} source - What to download and download options. If a string, the mapped path or hash 
+     * @param {string|Assets.GetOptions} source - What to download and download options. If a string, the mapped path or hash 
      *     to download, optionally including a leading <code>"atp:"</code>.
-     * @param {Assets.CallbackDetails|Assets~getAssetCallback} callback - The function to call upon completion. May be a 
-     *     function identifier or an inline function.
+     * @param {object|Assets.CallbackDetails|Assets~getAssetCallback} scopeOrCallback - If an object, then the scope that
+     *     the <code>callback</code> function is defined in. This object is bound to <code>this</code> when the function is
+     *     called.
+     *     <p>Otherwise, the function to call upon completion. This may be an inline function or a function identifier.</p>
+     * @param {Assets~getAssetCallback} [callback] - Used if <code>scopeOrCallback</code> specifies the scope.
+     *     <p>The function to call upon completion. May be an inline function, a function identifier, or the name of a function
+     *     in a string. If the name of a function or a function identifier, it must be a member of the scope specified by
+     *     <code>scopeOrCallback</code>.</p>
      * @example <caption>Retrieve a string from the asset server.</caption>
      * Assets.getAsset(
      *     {
@@ -236,30 +219,8 @@ public:
      *     }
      * );
      */
-    /**jsdoc
-     * Downloads content from the asset server.
-     * @function Assets.getAsset
-     * @param {Assets.GetOptions|string} source - What to download and download options. If a string, the mapped path or hash
-     *     to download, optionally including a leading <code>"atp:"</code>.
-     * @param {object} scope - The scope that the <code>callback</code> function is defined in. This object is bound to
-     *     <code>this</code> when the function is called.
-     * @param {Assets~getAssetCallback} callback - The function to call upon completion. May be an inline function, a function 
-     *     identifier, or the name of a function in a string. If the name of a function or a function identifier, it must be 
-     *     a member of <code>scope</code>.
-     */
     Q_INVOKABLE void getAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
 
-    /**jsdoc
-     * Content and upload options for {@link Assets.putAsset}.
-     * @typedef {object} Assets.PutOptions
-     * @property {string|ArrayBuffer} data - The content to upload.
-     * @property {string} [path] - A user-friendly path for the file in the asset server. May have a leading 
-     *     <code>"atp:"</code>.
-     *     <p>Note: The asset server destroys any unmapped SHA256-named file at server restart. Either set the mapping path 
-     *     with this property or use {@link Assets.setMapping} to set a path-to-hash mapping for the uploaded file.</p>
-     * @property {boolean} [compress=false] - <code>true</code> to gzip compress the content for upload and storage, 
-     *     <code>false</code> to upload and store the data without gzip compression. Synonym: <code>compressed</code>.
-     */
     /**jsdoc
      * Called when an {@link Assets.putAsset} call is complete.
      * @callback Assets~putAssetCallback
@@ -268,22 +229,18 @@ public:
      * @param {Assets.PutResult} result - Information on the content uploaded.
      */
     /**jsdoc
-     * Result value returned by {@link Assets.putAsset}.
-     * @typedef {object} Assets.PutResult
-     * @property {number} [byteLength] - The number of bytes in the hash file stored on the asset server.
-     * @property {boolean} [compressed] - <code>true</code> if the content stored is gzip compressed.
-     * @property {string} [contentType] - <code>"application/gzip"</code> if the content stored is gzip compressed.
-     * @property {string} [hash] - The SHA256 hash of the content.
-     * @property {string} [url] - The <code>atp:</code> URL of the content: using the path if specified, otherwise the hash.
-     * @property {string} [path] - The uploaded content's mapped path, if specified.
-     */
-    /**jsdoc
      * Uploads content to the assert server and sets a path-to-hash mapping.
      * @function Assets.putAsset
-     * @param {Assets.PutOptions|string} options - The content to upload and upload options. If a string, the value of the
+     * @param {string|Assets.PutOptions} options - The content to upload and upload options. If a string, the value of the
      *     string is uploaded but a path-to-hash mapping is not set.
-     * @param {Assets.CallbackDetails|Assets~putAssetCallback} callback - The function to call upon completion. May be an 
-     *     inline function or a function identifier.
+     * @param {object|Assets.CallbackDetails|Assets~putAssetCallback} scopeOrCallback - If an object, then the scope that
+     *     the <code>callback</code> function is defined in. This object is bound to <code>this</code> when the function is
+     *     called.
+     *     <p>Otherwise, the function to call upon completion. This may be an inline function or a function identifier.</p>
+     * @param {Assets~putAssetCallback} [callback] - Used if <code>scopeOrCallback</code> specifies the scope.
+     *     <p>The function to call upon completion. May be an inline function, a function identifier, or the name of a function
+     *     in a string. If the name of a function or a function identifier, it must be a member of the scope specified by
+     *     <code>scopeOrCallback</code>.</p>
      * @example <caption>Store a string in the asset server.</caption>
      * Assets.putAsset(
      *     {
@@ -298,17 +255,6 @@ public:
      *         }
      *     }
      * );
-     */
-    /**jsdoc
-     * Uploads content to the assert server and sets a path-to-hash mapping.
-     * @function Assets.putAsset
-     * @param {Assets.PutOptions|string} options - The content to upload and upload options. If a string, the value of the 
-     *     string is uploaded but a path-to-hash mapping is not set.
-     * @param {object} scope - The scope that the <code>callback</code> function is defined in. This object is bound to
-     *     <code>this</code> when the function is called.
-     * @param {Assets~getAssetCallback} callback - The function to call upon completion. May be an inline function, a function 
-     *     identifier, or the name of a function in a string. If the name of a function or a function identifier, it must be 
-     *     a member of <code>scope</code>.
      */
     Q_INVOKABLE void putAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
 
@@ -330,34 +276,24 @@ public:
     Q_INVOKABLE void deleteAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
 
     /**jsdoc
-     * Source options for {@link Assets.resolveAsset}.
-     * @typedef {object} Assets.ResolveOptions
-     * @property {string} url - The hash or path to resolve. May have a leading <code>"atp:"</code>.
-     */
-    /**jsdoc
      * Called when an {@link Assets.resolveAsset} call is complete.
      * @callback Assets~resolveAssetCallback
      * @param {string} error - <code>null</code> if the asset hash or path was resolved, otherwise a description of the error. 
      * @param {Assets.ResolveResult} result - Information on the hash or path resolved.
      */
     /**jsdoc
-     * Result value returned by {@link Assets.resolveAsset}.
-     * <p>Note: If resolving a hash, a file of that hash need not be present on the asset server for the hash to resolve.</p>
-     * @typedef {object} Assets.ResolveResult
-     * @property {string} [hash] - The hash of the asset.
-     * @property {string} [hashURL] - The url of the asset's hash file, with leading <code>atp:</code>. 
-     * @property {string} [path] - The path to the asset.
-     * @property {string} [url] - The URL of the asset.
-     * @property {boolean} [wasRedirected] - <code>true</code> if the resolved data is for the baked version of the asset,
-     *      <code>false</code> if it isn't.
-     */
-    /**jsdoc
      * Resolves and returns information on a hash or a path in the asset server.
      * @function Assets.resolveAsset
      * @param {string|Assets.ResolveOptions} source - The hash or path to resolve if a string, otherwise an object specifying 
      *     what to resolve. If a string, it may have a leading <code>"atp:"</code>.
-     * @param {Assets.CallbackDetails|Assets~resolveAssetCallback} callback - The function to call upon completion. May be a 
-     *     function identifier or an inline function.
+     * @param {object|Assets.CallbackDetails|Assets~resolveAssetCallback} scopeOrCallback - If an object, then the scope that
+     *     the <code>callback</code> function is defined in. This object is bound to <code>this</code> when the function is
+     *     called.
+     *     <p>Otherwise, the function to call upon completion. This may be an inline function or a function identifier.</p>
+     * @param {Assets~resolveAssetCallback} [callback] - Used if <code>scopeOrCallback</code> specifies the scope.
+     *     <p>The function to call upon completion. May be an inline function, a function identifier, or the name of a function
+     *     in a string. If the name of a function or a function identifier, it must be a member of the scope specified by
+     *     <code>scopeOrCallback</code>.</p>
      * @example <caption>Get the hash and URL for a path.</caption>
      * Assets.resolveAsset(
      *     "/assetsExamples/helloWorld.txt",
@@ -371,25 +307,8 @@ public:
      *     }
      * );
      */
-    /**jsdoc
-     * Resolves and returns information on a hash or a path in the asset server.
-     * @function Assets.resolveAsset
-     * @param {string|Assets.ResolveOptions} source - The hash or path to resolve if a string, otherwise an object specifying
-     *     what to resolve. If a string, it may have a leading <code>"atp:"</code>.
-     * @param {object} scope - The scope that the <code>callback</code> function is defined in. This object is bound to
-     *     <code>this</code> when the function is called.
-     * @param {Assets~resolveAssetCallback} callback - The function to call upon completion. May be an inline function, a 
-     *     function identifier, or the name of a function in a string. If the name of a function or a function identifier, it 
-     *     must be a member of <code>scope</code>.
-     */
     Q_INVOKABLE void resolveAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
-    /**jsdoc
-     * Content and decompression options for {@link Assets.decompressData}.
-     * @typedef {object} Assets.DecompressOptions
-     * @property {ArrayBuffer} data - The data to decompress.
-     * @property {Assets.ResponseType} [responseType=text] - The type of data to return.
-     */
     /**jsdoc
      * Called when an {@link Assets.decompressData} call is complete.
      * @callback Assets~decompressDataCallback
@@ -397,41 +316,20 @@ public:
      * @param {Assets.DecompressResult} result - Information on and the decompressed data.
      */
     /**jsdoc
-     * Result value returned by {@link Assets.decompressData}.
-     * @typedef {object} Assets.DecompressResult
-     * @property {number} [byteLength] - The number of bytes in the decompressed data.
-     * @property {string} [contentType] - The MIME type of the decompressed data.
-     * @property {boolean} [decompressed] - <code>true</code> if the data is decompressed.
-     * @property {string|ArrayBuffer|object} [response] - The decompressed data.
-     * @property {Assets.ResponseType} [responseType] - The type of the response.
-     */
-    /**jsdoc
      * Decompresses data in memory using gunzip.
      * @function Assets.decompressData
      * @param {Assets.DecompressOptions} source - What to decompress and decompression options.
-     * @param {Assets.CallbackDetails|Assets~decompressDataCallback} callback - The function to call upon completion. May be a 
-     *     function identifier or an inline function.
-     */
-    /**jsdoc
-     * Decompresses data in memory using gunzip.
-     * @function Assets.decompressData
-     * @param {Assets.DecompressOptions} source - What to decompress and decompression options.
-     * @param {object} scope - The scope that the <code>callback</code> function is defined in. This object is bound to
-     *     <code>this</code> when the function is called.
-     * @param {Assets~decompressDataCallback} callback - The function to call upon completion. May be an inline function, a 
-     *     function identifier, or the name of a function in a string. If the name of a function or a function identifier, it 
-     *     must be a member of <code>scope</code>.
+     * @param {object|Assets.CallbackDetails|Assets~decompressDataCallback} scopeOrCallback - If an object, then the scope that
+     *     the <code>callback</code> function is defined in. This object is bound to <code>this</code> when the function is
+     *     called.
+     *     <p>Otherwise, the function to call upon completion. This may be an inline function or a function identifier.</p>
+     * @param {Assets~decompressDataCallback} [callback] - Used if <code>scopeOrCallback</code> specifies the scope.
+     *     <p>The function to call upon completion. May be an inline function, a function identifier, or the name of a function
+     *     in a string. If the name of a function or a function identifier, it must be a member of the scope specified by
+     *     <code>scopeOrCallback</code>.</p>
      */
     Q_INVOKABLE void decompressData(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
-    /**jsdoc
-     * Content and compression options for {@link Assets.compressData}.
-     * @typedef {object} Assets.CompressOptions
-     * @property {ArrayBuffer|string} data - The data to compress.
-     * @property {number} level - The compression level, range <code>-1</code> &ndash; <code>9</code>. <code>-1</code> means 
-     *     use the default gzip compression level, <code>0</code> means no compression, and <code>9</code> means maximum 
-     *     compression.
-     */
     /**jsdoc
      * Called when an {@link Assets.compressData} call is complete.
      * @callback Assets~compressDataCallback
@@ -439,43 +337,30 @@ public:
      * @param {Assets.CompressResult} result - Information on and the compressed data.
      */
     /**jsdoc
-     * Result value returned by {@link Assets.compressData}.
-     * @typedef {object} Assets.CompressResult
-     * @property {boolean} [compressed] - <code>true</code> if the data is compressed.
-     * @property {number} [byteLength] - The number of bytes in the compressed data.
-     * @property {string} [contentType] - The MIME type of the compressed data, i.e., <code>"application/gzip"</code>.
-     * @property {ArrayBuffer} [data] - The compressed data.
-     */
-    /**jsdoc
      * Compresses data in memory using gzip.
      * @function Assets.compressData
-     * @param {Assets.CompressOptions|ArrayBuffer|string} source - What to compress and compression options. If an ArrayBuffer 
-     *     or a string, the data to compress.
-     * @param {Assets.CallbackDetails|Assets~compressDataCallback} callback - The function to call upon completion. May be a 
-     *     function identifier or an inline function.
-     */
-    /**jsdoc
-     * Compresses data in memory using gzip.
-     * @function Assets.compressData
-     * @param {Assets.CompressOptions|ArrayBuffer|string} source - What to compress and compression options. If an ArrayBuffer 
-     *     or a string, the data to compress.
-     * @param {object} scope - The scope that the <code>callback</code> function is defined in. This object is bound to
-     *     <code>this</code> when the function is called.
-     * @param {Assets~compressDataCallback} callback - The function to call upon completion. May be an inline function, a 
-     *     function identifier, or the name of a function in a string. If the name of a function or a function identifier, it 
-     *     must be a member of <code>scope</code>.
+     * @param {string|ArrayBuffer|Assets.CompressOptions} source - What to compress and compression options. If a string or 
+     *     ArrayBuffer, the data to compress.
+     * @param {object|Assets.CallbackDetails|Assets~compressDataCallback} scopeOrCallback - If an object, then the scope that
+     *     the <code>callback</code> function is defined in. This object is bound to <code>this</code> when the function is
+     *     called.
+     *     <p>Otherwise, the function to call upon completion. This may be an inline function or a function identifier.</p>
+     * @param {Assets~compressDataCallback} [callback] - Used if <code>scopeOrCallback</code> specifies the scope.
+     *     <p>The function to call upon completion. May be an inline function, a function identifier, or the name of a function
+     *     in a string. If the name of a function or a function identifier, it must be a member of the scope specified by
+     *     <code>scopeOrCallback</code>.</p>
      */
     Q_INVOKABLE void compressData(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc
-     * Initializes the local cache if it isn't already initialized.
+     * Initializes the cache if it isn't already initialized.
      * @function Assets.initializeCache
-     * @returns {boolean} <code>true</code> if the local cache is initialized, <code>false</code> if it isn't.
+     * @returns {boolean} <code>true</code> if the cache is initialized, <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool initializeCache() { return Parent::initializeCache(); }
     
     /**jsdoc
-     * Checks whether the script can write to the local cache.
+     * Checks whether the script can write to the cache.
      * @function Assets.canWriteCacheValue
      * @param {string} url - <em>Not used.</em>
      * @returns {boolean} <code>true</code> if the script is an Interface, avatar, or assignment client script, 
@@ -490,7 +375,7 @@ public:
      * @callback Assets~getCacheStatusCallback
      * @param {string} error - <code>null</code> if the cache status was retrieved without error, otherwise a description of 
      *     the error.
-     * @param {Assets.GetCacheStatusResult} status - Details of the current cache status.
+     * @param {Assets.GetCacheStatusResult} result - Details of the current cache status.
      */
     /**jsdoc
      * Gets the current cache status.
@@ -518,13 +403,14 @@ public:
      * Called when {@link Assets.queryCacheMeta} is complete.
      * @callback Assets~queryCacheMetaCallback
      * @param {string} error - <code>null</code> if the URL has a valid cache entry, otherwise a description of the error.
-     * @param {Assets.CacheItemMetaData} queryResult - Information on an asset in the cache.
+     * @param {Assets.CacheItemMetaData} result - Information on an asset in the cache.
      */
     /**jsdoc
      * Gets information about the status of an asset in the cache.
      * @function Assets.queryCacheMeta
-     * @param {string|object} path - The URL of the cached asset to get information on. If an object then <code>path.url</code> 
-     *     is used. Must start with <code>"atp:"</code> or <code>"cache:"</code>.
+     * @param {string|Assets.QueryCacheMetaOptions} path - The URL of the cached asset to get information on if a string, 
+     *     otherwise an object specifying the cached asset to get information on. The URL must start with <code>"atp:"</code> 
+     *     or <code>"cache:"</code>.
      * @param {object|Assets.CallbackDetails|Assets~queryCacheMetaCallback} scopeOrCallback - If an object, then the scope that
      *     the <code>callback</code> function is defined in. This object is bound to <code>this</code> when the function is
      *     called.

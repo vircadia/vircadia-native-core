@@ -26,16 +26,16 @@ class BaseAssetScriptingInterface : public QObject {
 public:
 
     /**jsdoc
-     * <p>Types of response that {@link Assets.getAsset}, {@link Assets.loadFromCache}, or {@link Assets.decompressData} may 
+     * <p>Types of response that {@link Assets.decompressData}, {@link Assets.getAsset}, or {@link Assets.loadFromCache} may 
      * provide.</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>Description</th></tr>
      *   </thead>
      *   <tbody>
-     *     <tr><td><code>"text"</code></td><td>UTF-8 decoded <code>string</code> value.</td></tr>
      *     <tr><td><code>"arraybuffer"</code></td><td>A binary <code>ArrayBuffer</code> object.</td></tr>
      *     <tr><td><code>"json"</code></td><td>A parsed <code>JSON</code> object.</td></tr>
+     *     <tr><td><code>"text"</code></td><td>UTF-8 decoded <code>string</code> value.</td></tr>
      *   </tbody>
      * </table>
      * @typedef {string} Assets.ResponseType

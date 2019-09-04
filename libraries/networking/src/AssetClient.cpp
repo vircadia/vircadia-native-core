@@ -226,10 +226,10 @@ namespace {
 /**jsdoc
  * Last-modified and expiry times for a cache item.
  * @typedef {object} Assets.SaveToCacheHeaders
- * @property {string} [last-modified] - The date and time the cache value was last modified, in the format: 
- *     <code>"ddd, dd MMM yyyy HH:mm:ss"</code>. The default value is the current date and time.
- * @property {string} [expires] - The date and time the cache value expires, in the format: 
+ * @property {string} [expires] - The date and time the cache value expires, in the format:
  *     <code>"ddd, dd MMM yyyy HH:mm:ss"</code>. The default value is an invalid date, representing "never expires".
+ * @property {string} [last-modified] - The date and time the cache value was last modified, in the format:
+ *     <code>"ddd, dd MMM yyyy HH:mm:ss"</code>. The default value is the current date and time.
  */
 /**jsdoc
  * Information on saving asset data to the cache with {@link Assets.saveToCache}.
