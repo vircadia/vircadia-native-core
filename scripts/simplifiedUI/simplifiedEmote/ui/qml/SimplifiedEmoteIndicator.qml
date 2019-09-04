@@ -25,7 +25,7 @@ Rectangle {
     property int expandedWidth: mainEmojiContainer.width + drawerContainer.width
     // For the below to work, the Repeater's Item's second child must be the individual button's `MouseArea`
     property int requestedWidth: (
-        root.showEmoteUI && (
+        root.allowEmoteDrawerExpansion && (
             drawerContainer.keepDrawerExpanded ||
             emoteIndicatorMouseArea.containsMouse ||
             emoteButtonsRepeater.itemAt(0).hovered ||
@@ -37,7 +37,7 @@ Rectangle {
         ) ? expandedWidth : originalWidth;
     readonly property int totalEmojiDurationMS: 7000 // Must match `TOTAL_EMOJI_DURATION_MS` in `simplifiedEmoji.js`
     readonly property string emoteIconSource: "images/emote_Icon.svg"
-    property bool showEmoteUI: Settings.getValue("simplifiedUI/showEmoteUI", false)
+    property bool allowEmoteDrawerExpansion: Settings.getValue("simplifiedUI/allowEmoteDrawerExpansion", true)
 
 
     onRequestedWidthChanged: {
@@ -53,8 +53,8 @@ Rectangle {
         target: Settings
 
         onValueChanged: {
-            if (setting === "simplifiedUI/showEmoteUI") {
-                root.showEmoteUI = value;
+            if (setting === "simplifiedUI/allowEmoteDrawerExpansion") {
+                root.allowEmoteDrawerExpansion = value;
             }
         }
     }
@@ -172,7 +172,7 @@ Rectangle {
             anchors.fill: lockIcon
             source: lockIcon
             color: "#ffffff"
-            visible: root.showEmoteUI && drawerContainer.keepDrawerExpanded
+            visible: root.allowEmoteDrawerExpansion && drawerContainer.keepDrawerExpanded
         }
 
         MouseArea {
