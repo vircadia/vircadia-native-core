@@ -136,17 +136,18 @@ Flickable {
                     Layout.preferredHeight: 18
                     Layout.preferredWidth: parent.width
                     labelTextOn: "Show Emote UI"
-                    checked: Settings.getValue("simplifiedUI/emoteIndicatorVisible", true)
+                    checked: Settings.getValue("simplifiedUI/showEmoteUI", true)
                     onClicked: {
-                        var currentSetting = Settings.getValue("simplifiedUI/emoteIndicatorVisible", true);
-                        Settings.setValue("simplifiedUI/emoteIndicatorVisible", !currentSetting);
+                        console.log("CLICKED GENERAL SETTING")
+                        var currentSetting = Settings.getValue("simplifiedUI/showEmoteUI", true);
+                        Settings.setValue("simplifiedUI/showEmoteUI", !currentSetting);
                     }                    
 
                     Connections {
                         target: Settings
 
                         onValueChanged: {
-                            if (setting === "simplifiedUI/emoteIndicatorVisible") {
+                            if (setting === "simplifiedUI/showEmoteUI") {
                                 emoteSwitch.checked = value;
                             }
                         }

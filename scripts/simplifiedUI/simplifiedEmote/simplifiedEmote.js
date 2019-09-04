@@ -425,7 +425,7 @@ function onGeometryChanged(rect) {
 function onWindowMinimizedChanged(isMinimized) {
     if (isMinimized) {
         handleEmoteIndicatorVisibleChanged(false);
-    } else if (!HMD.active && Settings.getValue("simplifiedUI/emoteIndicatorVisible", true)) {
+    } else if (!HMD.active) {
         handleEmoteIndicatorVisibleChanged(true);
     }
 }
@@ -520,8 +520,8 @@ function showEmoteAppBar() {
 }
 
 
-function handleEmoteIndicatorVisibleChanged(newValue) {
-    if (newValue && !emoteAppBarWindow) {
+function handleEmoteIndicatorVisibleChanged(shouldBeVisible) {
+    if (shouldBeVisible && !emoteAppBarWindow) {
         showEmoteAppBar();
     } else if (emoteAppBarWindow) {
         emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
@@ -530,11 +530,14 @@ function handleEmoteIndicatorVisibleChanged(newValue) {
     }
 }
 
-
-function onSettingsValueChanged(settingName, newValue) {
-    if (settingName === "simplifiedUI/emoteIndicatorVisible") {
-        handleEmoteIndicatorVisibleChanged(newValue);
-    }
+function handleEmoteIndictaorTrayDisabledChanged(shouldBeDisabled) {
+    emoteAppBarWindow.sendToQml({
+        "source": "simplifiedEmote.js",
+        "method": "updateTrayDisabled",
+        "data": {
+            "shouldBeDisabled": shouldBeDisabled
+        }
+    });
 }
 
 
@@ -545,7 +548,7 @@ function onDisplayModeChanged(isHMDMode) {
 
     if (isHMDMode) {
         handleEmoteIndicatorVisibleChanged(false);
-    } else if (Settings.getValue("simplifiedUI/emoteIndicatorVisible", true)) {
+    } else {
         handleEmoteIndicatorVisibleChanged(true);
     }
 }
@@ -584,12 +587,11 @@ function init() {
 
     Window.minimizedChanged.connect(onWindowMinimizedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
-    Settings.valueChanged.connect(onSettingsValueChanged);
     HMD.displayModeChanged.connect(onDisplayModeChanged);
     emojiAPI.startup();
 
     getSounds();
-    handleEmoteIndicatorVisibleChanged(Settings.getValue("simplifiedUI/emoteIndicatorVisible", true));
+    handleEmoteIndicatorVisibleChanged(true);
     
     Controller.keyPressEvent.connect(keyPressHandler);
     Controller.keyReleaseEvent.connect(keyReleaseHandler);
@@ -621,7 +623,6 @@ function shutdown() {
 
     Window.minimizedChanged.disconnect(onWindowMinimizedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
-    Settings.valueChanged.disconnect(onSettingsValueChanged);
     HMD.displayModeChanged.disconnect(onDisplayModeChanged);
 
     if (keyPressSignalsConnected) {

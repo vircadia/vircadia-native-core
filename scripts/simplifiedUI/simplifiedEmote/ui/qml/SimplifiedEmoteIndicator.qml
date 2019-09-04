@@ -21,28 +21,51 @@ Rectangle {
     id: root
     color: simplifiedUI.colors.white
     anchors.fill: parent
-
+    Component.onCompleted: {
+        console.log("\n\n\n\n\n\n\n COMPLETED @@2 \n\n\n\n\n\n\n\n");
+    }
     property int originalWidth: 48
     property int expandedWidth: mainEmojiContainer.width + drawerContainer.width
     // For the below to work, the Repeater's Item's second child must be the individual button's `MouseArea`
-    property int requestedWidth: (drawerContainer.keepDrawerExpanded ||
-        emoteIndicatorMouseArea.containsMouse ||
-        emoteButtonsRepeater.itemAt(0).hovered ||
-        emoteButtonsRepeater.itemAt(1).hovered ||
-        emoteButtonsRepeater.itemAt(2).hovered ||
-        emoteButtonsRepeater.itemAt(3).hovered ||
-        emoteButtonsRepeater.itemAt(4).hovered ||
-        emoteButtonsRepeater.itemAt(5).hovered) ? expandedWidth : originalWidth;
+    // Here
+    property int requestedWidth: (
+        root.showEmoteUI && (
+            drawerContainer.keepDrawerExpanded ||
+            emoteIndicatorMouseArea.containsMouse ||
+            emoteButtonsRepeater.itemAt(0).hovered ||
+            emoteButtonsRepeater.itemAt(1).hovered ||
+            emoteButtonsRepeater.itemAt(2).hovered ||
+            emoteButtonsRepeater.itemAt(3).hovered ||
+            emoteButtonsRepeater.itemAt(4).hovered ||
+            emoteButtonsRepeater.itemAt(5).hovered)
+        ) ? expandedWidth : originalWidth;
     readonly property int totalEmojiDurationMS: 7000 // Must match `TOTAL_EMOJI_DURATION_MS` in `simplifiedEmoji.js`
     readonly property string emoteIconSource: "images/emote_Icon.svg"
+    // property bool trayDisabled: Settings.getValue("simplifiedUI/showEmoteUI", false)
+    property bool showEmoteUI: Settings.getValue("simplifiedUI/showEmoteUI", false)
+
 
     onRequestedWidthChanged: {
+        console.log("root.tryDisabled on requested widthChanged", root.showEmoteUI);
+        console.log(root.requestedWidth);
         root.requestNewWidth(root.requestedWidth);
     }
 
     Behavior on requestedWidth {
         enabled: true
         SmoothedAnimation { duration: 220 }
+    }
+
+    Connections {
+        target: Settings
+
+        onValueChanged: {
+            console.log("in on value changed", setting, value)
+            if (setting === "simplifiedUI/showEmoteUI") {
+                console.log("on root tray disabled");
+                root.showEmoteUI = value;
+            }
+        }
     }
 
     SimplifiedConstants.SimplifiedConstants {
@@ -158,7 +181,7 @@ Rectangle {
             anchors.fill: lockIcon
             source: lockIcon
             color: "#ffffff"
-            visible: drawerContainer.keepDrawerExpanded
+            visible: root.showEmoteUI && drawerContainer.keepDrawerExpanded
         }
 
         MouseArea {
