@@ -44,7 +44,6 @@ body
 
 p {
     font-size: 0.95rem;
-    line-height: 20px;
 }
 
 section
@@ -201,6 +200,7 @@ nav {
     padding-left: 20px;
     padding-right: 20px;
     box-sizing: border-box;
+    line-height: 12px;
 }
 
 nav::-webkit-scrollbar {
