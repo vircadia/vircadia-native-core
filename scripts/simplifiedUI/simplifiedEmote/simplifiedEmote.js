@@ -38,7 +38,6 @@ var customEmojiList = Script.require("./emojiApp/resources/modules/customEmojiLi
 // #region EMOTE_UTILITY
 
 
-
 function updateEmoteAppBarPosition() {
     if (!emoteAppBarWindow) {
         return;
@@ -548,7 +547,7 @@ var emojiAPI = Script.require("./emojiApp/simplifiedEmoji.js");
 var keyPressSignalsConnected = false;
 var emojiCodeMap;
 var customEmojiCodeMap;
-function init() {
+function setup() {
     deleteOldReticles();
 
     // make a map of just the utf codes to help with accesing
@@ -755,4 +754,4 @@ function toggleEmojiApp() {
 // END EMOJI
 // *************************************
 
-init();
+setup();

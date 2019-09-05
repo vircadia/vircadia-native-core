@@ -394,7 +394,6 @@ function startup() {
     emojiCodeMap = emojiList.reduce(function (codeMap, currentEmojiInList, index) {
         if (
             currentEmojiInList && 
-            
             currentEmojiInList.code && 
             currentEmojiInList.code.length > 0 && 
             currentEmojiInList.code[UTF_CODE]) {
@@ -423,7 +422,7 @@ function startup() {
 
     function AviMoji() {
         _this = this;
-        this._avimojiQMLWindow;
+        this._avimojiQMLWindow = null;
     }
 
     AviMoji.prototype = {
@@ -435,19 +434,10 @@ function startup() {
 }
 
 
-// #endregion
-// *************************************
-// END main
-// *************************************
-
-// *************************************
-// START API
-// *************************************
-// #region API
-
 function registerAvimojiQMLWindow(avimojiQMLWindow) {
     this._avimojiQMLWindow = avimojiQMLWindow;
 }
+
 
 function addEmojiFromQML(code) {
     var emojiObject = emojiList[emojiCodeMap[code]];
@@ -461,6 +451,7 @@ function addEmojiFromQML(code) {
     handleSelectedEmoji(emojiFilename);
 }
 
+
 function unload() {
     resetEmojis();
     if (signalsConnected) {
@@ -470,11 +461,7 @@ function unload() {
     }
 }
 
+
 var aviMoji = startup();
 
 module.exports = aviMoji;
-
-// #endregion
-// *************************************
-// END API
-// *************************************
