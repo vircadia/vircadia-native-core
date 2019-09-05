@@ -68,8 +68,7 @@ void blendAdd(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha
             delta = -delta;
         }
         delta = glm::lerp(identity, delta, alpha);
-        result[i].rot() = glm::normalize(delta * aPose.rot());
-
+        result[i].rot() = glm::normalize(aPose.rot() * delta);
         result[i].trans() = aPose.trans() + (alpha * bPose.trans());
     }
 }

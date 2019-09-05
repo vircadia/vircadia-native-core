@@ -110,11 +110,9 @@ void AnimBlendLinear::evaluateAndBlendChildren(const AnimVariantMap& animVars, c
                     // copy translation and scale from nextPoses
                     AnimPose pose = nextPoses[i];
 
-                    int parentIndex = _skeleton->getParentIndex((int)i);
-                    if (parentIndex >= 0) {
-                        // but transform nextPoses rot into absPrev parent frame.
-                        pose.rot() = glm::inverse(absPrev[parentIndex].rot()) * pose.rot() * absPrev[parentIndex].rot();
-                    }
+                    // convert from a rotation that happens in the absolute space of the joint
+                    // into a rotation that happens in the relative space of the joint.
+                    pose.rot() = glm::inverse(absPrev[i].rot()) * pose.rot() * absPrev[i].rot();
 
                     relOffsetPoses.push_back(pose);
                 }

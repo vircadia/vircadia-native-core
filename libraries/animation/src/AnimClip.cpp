@@ -56,12 +56,12 @@ static void bakeRelativeDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPose
         // for each joint in animPoses
         for (size_t i = 0; i < animPoses.size(); ++i) {
             // convert this relative AnimPose into a delta animation.
-            animPoses[i] = animPoses[i] * invBasePoses[i];
+            animPoses[i] = invBasePoses[i] * animPoses[i];
         }
     }
 }
 
-void bakeAbsoluteDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& basePoses, AnimSkeleton::ConstPointer skeleton, const QString& url, int baseFrame) {
+void bakeAbsoluteDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& basePoses, AnimSkeleton::ConstPointer skeleton) {
 
     // invert all the basePoses
     AnimPoseVec invBasePoses = basePoses;
@@ -73,7 +73,6 @@ void bakeAbsoluteDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& ba
     skeleton->convertRelativePosesToAbsolute(absBasePoses);
 
     // for each frame of the animation
-    int frame = 0;
     for (auto&& animPoses : anim) {
         ASSERT(animPoses.size() == basePoses.size());
 
@@ -81,15 +80,12 @@ void bakeAbsoluteDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& ba
         for (size_t i = 0; i < animPoses.size(); ++i) {
 
             // scale and translation are relative frame
-            animPoses[i] = animPoses[i] * invBasePoses[i];
+            animPoses[i] = invBasePoses[i] * animPoses[i];
 
-            // but transform the rotation delta into the absolute frame.
-            int parentIndex = skeleton->getParentIndex((int)i);
-            if (parentIndex >= 0) {
-                animPoses[i].rot() = absBasePoses[parentIndex].rot() * animPoses[i].rot() * glm::inverse(absBasePoses[parentIndex].rot());
-            }
+            // convert from a rotation that happens in the relative space of the joint
+            // into a rotation that happens in the absolute space of the joint.
+            animPoses[i].rot() = absBasePoses[i].rot() * animPoses[i].rot() * glm::inverse(absBasePoses[i].rot());
         }
-        frame++;
     }
 }
 
@@ -297,7 +293,7 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const Anim
             auto baseAnim = copyAndRetargetFromNetworkAnim(_baseNetworkAnim, _skeleton);
 
             if (_blendType == AnimBlendType_AddAbsolute) {
-                bakeAbsoluteDeltaAnim(_anim, baseAnim[(int)_baseFrame], _skeleton, _url, _baseFrame);
+                bakeAbsoluteDeltaAnim(_anim, baseAnim[(int)_baseFrame], _skeleton);
             } else {
                 // AnimBlendType_AddRelative
                 bakeRelativeDeltaAnim(_anim, baseAnim[(int)_baseFrame]);
