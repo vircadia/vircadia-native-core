@@ -247,4 +247,6 @@ function SimplifiedStatusIndicator() {
     startup();
 }
 
-module.exports = new SimplifiedStatusIndicator();
+var simplifiedStatusIndicator = new SimplifiedStatusIndicator();
+
+module.exports = simplifiedStatusIndicator;
