@@ -150,6 +150,7 @@ BOOL LauncherUtils::launchApplication(LPCWSTR lpApplicationName, LPTSTR cmdArgs)
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
+   
     // start the program up
     BOOL success = CreateProcess(
         lpApplicationName,   // the path
