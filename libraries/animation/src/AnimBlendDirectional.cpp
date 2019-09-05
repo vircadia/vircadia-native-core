@@ -54,22 +54,22 @@ const AnimPoseVec& AnimBlendDirectional::evaluate(const AnimVariantMap& animVars
         if (_alpha.x > 0.0f) {
             if (_alpha.y > 0.0f) {
                 // quadrant 0
-                indices = { _childIndices[0][2], _childIndices[0][1], _childIndices[1][1], _childIndices[1][2] };
+                indices = {{_childIndices[0][2], _childIndices[0][1], _childIndices[1][1], _childIndices[1][2]}};
             } else {
                 // quadrant 3
-                indices = { _childIndices[1][2], _childIndices[1][1], _childIndices[2][1], _childIndices[2][2] };
+                indices = {{_childIndices[1][2], _childIndices[1][1], _childIndices[2][1], _childIndices[2][2]}};
                 // shift alpha up so both alpha.x and alpha.y are in the (0, 1) range.
                 alpha.y += 1.0f;
             }
         } else {
             if (_alpha.y > 0.0f) {
                 // quadrant 1
-                indices = { _childIndices[0][1], _childIndices[0][0], _childIndices[1][0], _childIndices[1][1] };
+                indices = {{_childIndices[0][1], _childIndices[0][0], _childIndices[1][0], _childIndices[1][1]}};
                 // shift alpha right so both alpha.x and alpha.y are in the (0, 1) range.
                 alpha.x += 1.0f;
             } else {
                 // quadrant 2
-                indices = { _childIndices[1][1], _childIndices[1][0], _childIndices[2][0], _childIndices[2][1] };
+                indices = {{_childIndices[1][1], _childIndices[1][0], _childIndices[2][0], _childIndices[2][1]}};
                 // shift alpha up and right so both alpha.x and alpha.y are in the (0, 1) range.
                 alpha.x += 1.0f;
                 alpha.y += 1.0f;
@@ -97,6 +97,14 @@ const AnimPoseVec& AnimBlendDirectional::evaluate(const AnimVariantMap& animVars
         }
         _poses.resize(minSize);
         blend4(minSize, &poseVecs[0][0], &poseVecs[1][0], &poseVecs[2][0], &poseVecs[3][0], &alphas[0], &_poses[0]);
+
+        // animation stack debug stats
+        for (int i = 0; i < 9; i++) {
+            context.setDebugAlpha(_children[i]->getID(), 0.0f, _children[i]->getType());
+        }
+        for (int i = 0; i < 4; i++) {
+            context.setDebugAlpha(_children[indices[i]]->getID(), alphas[i] * parentDebugAlpha, _children[indices[i]]->getType());
+        }
 
     } else {
         for (auto&& pose : _poses) {
