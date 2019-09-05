@@ -188,7 +188,7 @@
             <h3 class="subsection-title">Members</h3>
 
             <?js members.forEach(function(p) { ?>
-                <?js= self.partial('method.tmpl', p) ?>
+                <?js= self.partial('members.tmpl', p) ?>
             <?js }); ?>
         <?js } ?>
 
@@ -243,7 +243,7 @@
             <?js typedefs.forEach(function(e) {
                     if (e.signature) {
                 ?>
-                    <?js= self.partial('members.tmpl', e) ?>
+                    <?js= self.partial('method.tmpl', e) ?>
                 <?js
                     }
                     else {
