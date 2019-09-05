@@ -67,6 +67,8 @@ CameraMode stringToMode(const QString& mode) {
         return CAMERA_MODE_INDEPENDENT;
     } else if (mode == "entity") {
         return CAMERA_MODE_ENTITY;
+    } else if (mode == "look at") {
+        return CAMERA_MODE_LOOK_AT;
     }
     return CAMERA_MODE_NULL;
 }
@@ -82,6 +84,8 @@ QString modeToString(CameraMode mode) {
         return "independent";
     } else if (mode == CAMERA_MODE_ENTITY) {
         return "entity";
+    } else if (mode == CAMERA_MODE_LOOK_AT) {
+        return "look at";
     }
     return "unknown";
 }

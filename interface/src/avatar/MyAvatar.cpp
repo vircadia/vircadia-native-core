@@ -451,7 +451,7 @@ QByteArray MyAvatar::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropF
     _globalBoundingBoxDimensions.y = _characterController.getCapsuleHalfHeight();
     _globalBoundingBoxDimensions.z = _characterController.getCapsuleRadius();
     _globalBoundingBoxOffset = _characterController.getCapsuleLocalOffset();
-    if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
+    if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT || mode == CAMERA_MODE_LOOK_AT) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = getWorldPosition();
         setWorldPosition(getSkeletonPosition());
@@ -2556,7 +2556,7 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
 
 glm::vec3 MyAvatar::getSkeletonPosition() const {
     CameraMode mode = qApp->getCamera().getMode();
-    if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
+    if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT || mode == CAMERA_MODE_LOOK_AT) {
         // The avatar is rotated PI about the yAxis, so we have to correct for it
         // to get the skeleton offset contribution in the world-frame.
         const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -3322,11 +3322,15 @@ void MyAvatar::setRotationThreshold(float angleRadians) {
 }
 
 void MyAvatar::updateOrientation(float deltaTime) {
-
     //  Smoothly rotate body with arrow keys
     float targetSpeed = getDriveKey(YAW) * _yawSpeed;
+    bool faceForward = false;
+    if (qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT) {
+        targetSpeed = (getDriveKey(YAW) + getDriveKey(STEP_YAW) + getDriveKey(DELTA_YAW)) * _yawSpeed;
+        faceForward = getDriveKey(TRANSLATE_Z) != 0.0f;
+    }
     if (targetSpeed != 0.0f) {
-        const float ROTATION_RAMP_TIMESCALE = 0.1f;
+        const float ROTATION_RAMP_TIMESCALE = 0.5f;
         float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
         if (blend > 1.0f) {
             blend = 1.0f;
@@ -3349,7 +3353,9 @@ void MyAvatar::updateOrientation(float deltaTime) {
     float totalBodyYaw = _bodyYawDelta * deltaTime;
 
     // Rotate directly proportional to delta yaw and delta pitch from right-click mouse movement.
-    totalBodyYaw += getDriveKey(DELTA_YAW) * _yawSpeed / YAW_SPEED_DEFAULT;
+    if (qApp->getCamera().getMode() != CAMERA_MODE_LOOK_AT) {
+        totalBodyYaw += getDriveKey(DELTA_YAW) * _yawSpeed / YAW_SPEED_DEFAULT;
+    }
 
     // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
@@ -3394,7 +3400,19 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     // update body orientation by movement inputs
     glm::quat initialOrientation = getOrientationOutbound();
-    setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
+    if (qApp->getCamera().getMode() != CAMERA_MODE_LOOK_AT) {
+        setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
+    } else {
+        // Set look at vector
+        float pitchIncrement = getDriveKey(PITCH) * _pitchSpeed * deltaTime
+            + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT;
+        _lookAtOffsetYaw = _lookAtOffsetYaw * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f)));
+        _lookAtOffsetPitch = _lookAtOffsetPitch * glm::quat(glm::radians(glm::vec3(pitchIncrement, 0.0f, 0.0f)));
+        if (faceForward) {
+            setWorldOrientation(glm::slerp(getWorldOrientation(), _lookAtOffsetYaw, 0.25f));
+        }
+        
+    }
 
     if (snapTurn) {
         // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
@@ -3417,7 +3435,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseRoll(ROLL(euler));
     } else {
         head->setBaseYaw(0.0f);
-        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime 
+        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime
             + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT);
         head->setBaseRoll(0.0f);
     }
@@ -3486,7 +3504,15 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
         }
     } else {
         // Desktop mode.
-        direction = (zSpeed * forward) + (xSpeed * right);
+        if (qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT) {
+            //glm::vec3 frontVector = getWorldOrientation() * IDENTITY_FORWARD;
+            //glm::vec3 frontVectorXY = glm::normalize(glm::vec3(frontVector.x, frontVector.y, 0.0f));
+            //direction = (zSpeed * forward) + (1.0f - glm::abs(glm::dot(frontVectorXY, forward))) * right;
+            direction = (zSpeed * forward);
+        } else {
+            direction = (zSpeed * forward) + (xSpeed * right);
+        }
+        
         auto length = glm::length(direction);
         if (length > EPSILON) {
             direction /= length;

@@ -1747,6 +1747,8 @@ public:
     glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); }
     void prepareAvatarEntityDataForReload();
 
+    glm::quat getLookAtOffset() { return _lookAtOffsetYaw * _lookAtOffsetPitch; }
+
     /**jsdoc
      * Creates a new grab that grabs an entity.
      * @function MyAvatar.grab
@@ -2617,6 +2619,9 @@ private:
     float _eyeContactTargetTimer { 0.0f };
 
     glm::vec3 _trackedHeadPosition;
+
+    glm::quat _lookAtOffsetPitch;
+    glm::quat _lookAtOffsetYaw;
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;

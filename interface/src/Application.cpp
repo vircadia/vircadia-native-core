@@ -709,6 +709,7 @@ static const QString STATE_CAMERA_FIRST_PERSON = "CameraFirstPerson";
 static const QString STATE_CAMERA_THIRD_PERSON = "CameraThirdPerson";
 static const QString STATE_CAMERA_ENTITY = "CameraEntity";
 static const QString STATE_CAMERA_INDEPENDENT = "CameraIndependent";
+static const QString STATE_CAMERA_LOOK_AT = "CameraLookAt";
 static const QString STATE_SNAP_TURN = "SnapTurn";
 static const QString STATE_ADVANCED_MOVEMENT_CONTROLS = "AdvancedMovement";
 static const QString STATE_GROUNDED = "Grounded";
@@ -925,7 +926,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
     controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
-                    STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT,
+                    STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT, STATE_CAMERA_LOOK_AT,
                     STATE_SNAP_TURN, STATE_ADVANCED_MOVEMENT_CONTROLS, STATE_GROUNDED, STATE_NAV_FOCUSED,
                     STATE_PLATFORM_WINDOWS, STATE_PLATFORM_MAC, STATE_PLATFORM_ANDROID, STATE_LEFT_HAND_DOMINANT, STATE_RIGHT_HAND_DOMINANT, STATE_STRAFE_ENABLED } });
     DependencyManager::set<UserInputMapper>();
@@ -1871,6 +1872,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_THIRD_PERSON, []() -> float {
         return qApp->getCamera().getMode() == CAMERA_MODE_THIRD_PERSON ? 1 : 0;
+    });
+    // Look at camera and third person camera use the same input mapping
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_THIRD_PERSON, []() -> float {
+        return qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_ENTITY, []() -> float {
         return qApp->getCamera().getMode() == CAMERA_MODE_ENTITY ? 1 : 0;
@@ -3607,8 +3612,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
             _myCamera.setPosition(myAvatar->getDefaultEyePosition());
             _myCamera.setOrientation(myAvatar->getMyHead()->getHeadOrientation());
         }
-    }
-    else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+    } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON || _myCamera.getMode() == CAMERA_MODE_LOOK_AT) {
         if (isHMDMode()) {
 
             if (!_thirdPersonHMDCameraBoomValid) {
@@ -3625,22 +3629,24 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
 
             _myCamera.setOrientation(glm::normalize(glmExtractRotation(worldCameraMat)));
             _myCamera.setPosition(extractTranslation(worldCameraMat));
-        }
-        else {
+        } else {
             _thirdPersonHMDCameraBoomValid = false;
-
-            _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
-            if (isOptionChecked(MenuOption::CenterPlayerInView)) {
+            if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+                _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
+                if (isOptionChecked(MenuOption::CenterPlayerInView)) {
+                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                        + _myCamera.getOrientation() * boomOffset);
+                } else {
+                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                        + myAvatar->getWorldOrientation() * boomOffset);
+                }
+            } else {
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                    + _myCamera.getOrientation() * boomOffset);
-            }
-            else {
-                _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                    + myAvatar->getWorldOrientation() * boomOffset);
+                    + myAvatar->getLookAtOffset() * boomOffset);
+                _myCamera.lookAt(myAvatar->getDefaultEyePosition());
             }
         }
-    }
-    else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+    } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _thirdPersonHMDCameraBoomValid= false;
 
         if (isHMDMode()) {
