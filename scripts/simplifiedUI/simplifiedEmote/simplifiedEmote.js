@@ -38,7 +38,6 @@ var customEmojiList = Script.require("./emojiApp/resources/modules/customEmojiLi
 // #region EMOTE_UTILITY
 
 
-
 function updateEmoteAppBarPosition() {
     if (!emoteAppBarWindow) {
         return;
@@ -544,12 +543,11 @@ function onDisplayModeChanged(isHMDMode) {
 }
 
 
-var EmojiAPI = Script.require("./emojiApp/simplifiedEmoji.js");
-var emojiAPI = new EmojiAPI();
+var emojiAPI = Script.require("./emojiApp/simplifiedEmoji.js");
 var keyPressSignalsConnected = false;
 var emojiCodeMap;
 var customEmojiCodeMap;
-function init() {
+function setup() {
     deleteOldReticles();
 
     // make a map of just the utf codes to help with accesing
@@ -578,7 +576,6 @@ function init() {
     Window.minimizedChanged.connect(onWindowMinimizedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
     HMD.displayModeChanged.connect(onDisplayModeChanged);
-    emojiAPI.startup();
 
     getSounds();
     handleEmoteIndicatorVisibleChanged(true);
@@ -586,12 +583,11 @@ function init() {
     Controller.keyPressEvent.connect(keyPressHandler);
     Controller.keyReleaseEvent.connect(keyReleaseHandler);
     keyPressSignalsConnected = true;
-
-    Script.scriptEnding.connect(shutdown);
+    Script.scriptEnding.connect(unload);
 }
 
 
-function shutdown() {
+function unload() {
     if (emoteAppBarWindow) {
         emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
         emoteAppBarWindow.close();
@@ -606,7 +602,6 @@ function shutdown() {
         endReactionWrapper(react);
     });
 
-    emojiAPI.unload();
     maybeClearClapSoundInterval();
     maybeClearReticleUpdateLimiterTimeout();
     maybeDeleteRemoteIndicatorTimeout();
@@ -759,37 +754,4 @@ function toggleEmojiApp() {
 // END EMOJI
 // *************************************
 
-// *************************************
-// START API
-// *************************************
-// #region API
-
-
-function startup() {
-    init();
-}
-
-
-function unload() {
-    shutdown();
-}
-
-var _this;
-function EmoteBar() {
-    _this = this;
-}
-
-
-EmoteBar.prototype = {
-    startup: startup,
-    unload: unload
-};
-
-module.exports = EmoteBar;
-
-
-// #endregion
-// *************************************
-// END API
-// *************************************
-
+setup();

@@ -47,15 +47,24 @@ function onAvatarAdded(uuid) {
 }
 
 
-// Called on init
+// Create a new nametag list manager, connect signals, and return back a new Nametag object.
 var avatarNametagMode;
 function startup() {
     nameTagListManager.create();
     handleAvatarNametagMode(Settings.getValue("simplifiedNametag/avatarNametagMode", "on"));
 
+    Script.scriptEnding.connect(unload);
     Window.domainChanged.connect(onDomainChange);
     AvatarManager.avatarRemovedEvent.connect(onAvatarRemoved);
     AvatarManager.avatarAddedEvent.connect(onAvatarAdded);
+
+    function NameTag() {}
+    
+    NameTag.prototype = {
+        handleAvatarNametagMode: handleAvatarNametagMode
+    };
+
+    return new NameTag();
 }
 
 
@@ -77,23 +86,7 @@ function handleAvatarNametagMode(newAvatarNameTagMode) {
 }
 
 
-// *************************************
-// START api
-// *************************************
-// #region api
+var nameTag = startup();
 
-function NameTag() {}
+module.exports = nameTag;
 
-NameTag.prototype = {
-    startup: startup,
-    unload: unload,
-    handleAvatarNametagMode: handleAvatarNametagMode
-};
-
-module.exports = NameTag;
-
-
-// #endregion
-// *************************************
-// END api
-// *************************************
