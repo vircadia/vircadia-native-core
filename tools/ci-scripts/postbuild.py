@@ -220,7 +220,8 @@ cpackCommand = [
     'cpack', 
     '-G', 'ZIP', 
     '-D', "CPACK_PACKAGE_FILE_NAME={}".format(archiveName), 
-    '-D', "CPACK_INCLUDE_TOPLEVEL_DIRECTORY=OFF"
+    '-D', "CPACK_INCLUDE_TOPLEVEL_DIRECTORY=OFF",
+    '-D', "CPACK_RPM_COMPRESSION_TYPE=lzma"
     ]
 
 print("Create ZIP version of installer archive")
