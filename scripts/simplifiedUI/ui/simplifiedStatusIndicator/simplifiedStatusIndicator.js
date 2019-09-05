@@ -86,6 +86,7 @@ function SimplifiedStatusIndicator() {
         });
     }
 
+
     // Get status from database
     function getStatus(callback) {
         var queryParamString = "type=getStatus";
@@ -135,6 +136,7 @@ function SimplifiedStatusIndicator() {
         });
     }
 
+    
     var currentStatus = "available"; // Default is available
     function toggleStatus() {
         if (currentStatus === "busy") {
