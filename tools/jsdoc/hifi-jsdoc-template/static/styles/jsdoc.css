@@ -129,7 +129,6 @@ table {
 thead {
     border-color: #d8e1d9;
     background:#d8e1d9;
-    text-align: left;    
 }
 
 table tr {
@@ -147,6 +146,7 @@ td {
 article table thead tr th, article table tbody tr td, article table tbody tr td p {
     font-size: .89rem;
     line-height: 20px;
+    text-align: left;
 }
 
 article table thead tr th, article table tbody tr td {
@@ -380,12 +380,12 @@ nav > h2 > a {
 
 tt, code, kbd, samp {
     font-family: Consolas, Monaco, 'Andale Mono', monospace;
-    font-size: 0.9rem;
+    font-size: 1.05em;
 }
 
 .name, .signature {
   font-family: Consolas, Monaco, 'Andale Mono', monospace;
-  font-size: 0.9rem;
+  font-size: 1.05em;
 }
 
 img {
@@ -538,7 +538,7 @@ header {
 
 .prettyprint code
 {
-    font-size: 0.7rem;
+    font-size: 0.9em;
     line-height: 18px;
     display: block;
     padding: 4px 12px;
