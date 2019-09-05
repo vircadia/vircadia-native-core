@@ -48,6 +48,13 @@ public:
     AssetScriptingInterface(QObject* parent = nullptr);
 
     /**jsdoc
+     * Called when an {@link Assets.uploadData} call is complete.
+     * @callback Assets~uploadDataCallback
+     * @param {string} url - The raw URL of the file that the content is stored in, with <code>atp:</code> as the scheme and 
+     *     the SHA256 hash as the filename (with no extension).
+     * @param {string} hash - The SHA256 hash of the content.
+     */
+    /**jsdoc
      * Uploads content to the asset server, storing it in a SHA256-named file.
      * <p>Note: The asset server destroys any unmapped SHA256-named file at server restart. Use {@link Assets.setMapping} to 
      * set a path-to-hash mapping for the new file.</p>
@@ -64,13 +71,6 @@ public:
      *         }
      *     });
      * });
-     */
-    /**jsdoc
-     * Called when an {@link Assets.uploadData} call is complete.
-     * @callback Assets~uploadDataCallback
-     * @param {string} url - The raw URL of the file that the content is stored in, with <code>atp:</code> as the scheme and 
-     *     the SHA256 hash as the filename (with no extension).
-     * @param {string} hash - The SHA256 hash of the content.
      */
     Q_INVOKABLE void uploadData(QString data, QScriptValue callback);
 
