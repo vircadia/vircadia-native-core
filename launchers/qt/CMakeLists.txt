@@ -178,8 +178,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   ${Qt5Core_INCLUDE_DIRS}
   ${Qt5Quick_INCLUDE_DIRS}
   ${Qt5Gui_INCLUDE_DIRS}
-  ${Qt5Qml_INCLUDE_DIRS}
-  )
+  ${Qt5Qml_INCLUDE_DIRS})
+
+add_dependencies(${PROJECT_NAME} resources)
 
 if (APPLE)
   target_include_directories(${PROJECT_NAME} PUBLIC
