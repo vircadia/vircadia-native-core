@@ -26,12 +26,11 @@
 
 /**jsdoc
  * The <code>Assets</code> API provides facilities for interacting with the domain's asset server and the client cache. 
- * cache.
  * <p>Assets are stored in the asset server in files with SHA256 names. These files are mapped to user-friendly URLs of the 
  * format: <code>atp:/path/filename</code>. The assets may optionally be baked, in which case a request for the original 
  * unbaked version of the asset is automatically redirected to the baked version. The asset data may optionally be stored as 
  * compressed.</p>
- * <p>The client cache can be access directly, using <code>"atp:"</code> <code>"cache:"</code> URLs. Interface, avatar, and 
+ * <p>The client cache can be access directly, using <code>"atp:"</code> or <code>"cache:"</code> URLs. Interface, avatar, and 
  * assignment client scripts can write to the cache. All script types can read from the cache.</p>
  *
  * @namespace Assets
@@ -82,7 +81,7 @@ public:
      * @param {Assets.DownloadDataError} error - The success or failure of the download.
      */
     /**jsdoc
-     * Downloads content from the asset server, form a SHA256-named file.
+     * Downloads content from the asset server, from a SHA256-named file.
      * @function Assets.downloadData
      * @param {string} url - The raw URL of asset to download: <code>atp:</code> followed by the assets's SHA256 hash.
      * @param {Assets~downloadDataCallback} callback - The function to call upon completion.
@@ -93,7 +92,7 @@ public:
      * Assets.uploadData("Hello world!", function (url, hash) {
      *     assetURL = url;
      *     print("url: " + assetURL);  // atp:a0g89...
-     *     Assets.setMapping("/assetsExamples/hellowWorld.txt", hash, function (error) {
+     *     Assets.setMapping("/assetsExamples/helloWorld.txt", hash, function (error) {
      *         if (error) {
      *             print("ERROR: Could not set mapping!");
      *             return;
@@ -229,7 +228,7 @@ public:
      * @param {Assets.PutResult} result - Information on the content uploaded.
      */
     /**jsdoc
-     * Uploads content to the assert server and sets a path-to-hash mapping.
+     * Uploads content to the asset server and sets a path-to-hash mapping.
      * @function Assets.putAsset
      * @param {string|Assets.PutOptions} options - The content to upload and upload options. If a string, the value of the
      *     string is uploaded but a path-to-hash mapping is not set.
