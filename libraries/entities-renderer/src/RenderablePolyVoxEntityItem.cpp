@@ -916,7 +916,6 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(const glm::vec3& voxelVolum
         _volData.reset();
         _onCount = 0;
         _updateFromNeighborXEdge = _updateFromNeighborYEdge = _updateFromNeighborZEdge = true;
-        tellNeighborsToRecopyEdges(true);
         startUpdates();
 
         static const PolyVox::Vector3DInt32 lowCorner(0, 0, 0);
