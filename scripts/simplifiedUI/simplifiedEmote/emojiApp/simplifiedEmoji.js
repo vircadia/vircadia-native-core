@@ -388,7 +388,8 @@ function playPopAnimation() {
 var emojiCodeMap;
 var customEmojiCodeMap;
 var signalsConnected = false;
-function init() {
+var _this;
+function startup() {
     // make a map of just the utf codes to help with accesing
     emojiCodeMap = emojiList.reduce(function (codeMap, currentEmojiInList, index) {
         if (
@@ -414,54 +415,29 @@ function init() {
 
     pruneOldAvimojis();
 
+    Script.scriptEnding.connect(unload);
     Window.domainChanged.connect(onDomainChanged);
     MyAvatar.scaleChanged.connect(onScaleChanged);
-    Script.scriptEnding.connect(scriptEnding);
     signalsConnected = true;
-}
 
-
-// #endregion
-// *************************************
-// END main
-// *************************************
-
-// *************************************
-// START cleanup
-// *************************************
-// #region cleanup
-
-
-function scriptEnding() {
-    resetEmojis();
-    if (signalsConnected) {
-        Script.scriptEnding.disconnect(scriptEnding);
-        Window.domainChanged.disconnect(onDomainChanged);
-        MyAvatar.scaleChanged.disconnect(onScaleChanged);
-        signalsConnected = false;
+    function AviMoji() {
+        _this = this;
+        this._avimojiQMLWindow = null;
     }
+
+    AviMoji.prototype = {
+        addEmoji: addEmojiFromQML,
+        registerAvimojiQMLWindow: registerAvimojiQMLWindow
+    };
+
+    return new AviMoji();
 }
 
-
-// #endregion
-// *************************************
-// END cleanup
-// *************************************
-
-// *************************************
-// START API
-// *************************************
-// #region API
-
-var _this;
-function AviMoji() {
-    _this = this;
-    this._avimojiQMLWindow;
-}
 
 function registerAvimojiQMLWindow(avimojiQMLWindow) {
     this._avimojiQMLWindow = avimojiQMLWindow;
 }
+
 
 function addEmojiFromQML(code) {
     var emojiObject = emojiList[emojiCodeMap[code]];
@@ -475,25 +451,17 @@ function addEmojiFromQML(code) {
     handleSelectedEmoji(emojiFilename);
 }
 
+
 function unload() {
-    scriptEnding();
+    resetEmojis();
+    if (signalsConnected) {
+        Window.domainChanged.disconnect(onDomainChanged);
+        MyAvatar.scaleChanged.disconnect(onScaleChanged);
+        signalsConnected = false;
+    }
 }
 
-function startup() {
-    init();
-}
 
-AviMoji.prototype = {
-    startup: startup,
-    addEmoji: addEmojiFromQML,
-    unload: unload,
-    registerAvimojiQMLWindow: registerAvimojiQMLWindow
-};
+var aviMoji = startup();
 
-
-module.exports = AviMoji;
-
-// #endregion
-// *************************************
-// END API
-// *************************************
+module.exports = aviMoji;

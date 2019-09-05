@@ -15,7 +15,6 @@
 
 // TODO: use restrict keyword
 // TODO: excellent candidate for simd vectorization.
-
 void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, AnimPose* result) {
     for (size_t i = 0; i < numPoses; i++) {
         const AnimPose& aPose = a[i];
@@ -24,6 +23,29 @@ void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, A
         result[i].scale() = lerp(aPose.scale(), bPose.scale(), alpha);
         result[i].rot() = safeLerp(aPose.rot(), bPose.rot(), alpha);
         result[i].trans() = lerp(aPose.trans(), bPose.trans(), alpha);
+    }
+}
+
+// additive blend
+void blendAdd(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, AnimPose* result) {
+
+    const glm::quat identity = glm::quat();
+    for (size_t i = 0; i < numPoses; i++) {
+        const AnimPose& aPose = a[i];
+        const AnimPose& bPose = b[i];
+
+        result[i].scale() = lerp(aPose.scale(), bPose.scale(), alpha);
+
+        // ensure that delta has the same "polarity" as the identity quat.
+        // we don't need to do a full dot product, just sign of w is sufficient.
+        glm::quat delta = bPose.rot();
+        if (delta.w < 0.0f) {
+            delta = -delta;
+        }
+        delta = glm::lerp(identity, delta, alpha);
+        result[i].rot() = glm::normalize(delta * aPose.rot());
+
+        result[i].trans() = aPose.trans() + (alpha * bPose.trans());
     }
 }
 
