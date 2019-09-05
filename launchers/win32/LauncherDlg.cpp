@@ -13,6 +13,8 @@
 #include "LauncherApp.h"
 #include "LauncherDlg.h"
 
+#include <propsys.h>
+#include <propkey.h>
 #include <d2d1.h>
 #pragma comment(lib, "d2d1")
 
@@ -84,7 +86,7 @@ END_MESSAGE_MAP()
 
 BOOL CLauncherDlg::OnInitDialog() {
     CDialog::OnInitDialog();
-
+    MarkWindowAsUnpinnable();
     SetIcon(m_hIcon, TRUE);         // Set big icon
     SetIcon(m_hIcon, FALSE);        // Set small icon
 
@@ -127,6 +129,19 @@ BOOL CLauncherDlg::OnInitDialog() {
     SetTimer(1, 2, NULL);
     
     return TRUE;
+}
+
+void CLauncherDlg::MarkWindowAsUnpinnable() {
+    HWND hwnd = AfxGetMainWnd()->m_hWnd;
+    IPropertyStore* pps;
+    HRESULT hr = SHGetPropertyStoreForWindow(hwnd, IID_PPV_ARGS(&pps));
+    if (SUCCEEDED(hr)) {
+        PROPVARIANT var;
+        var.vt = VT_BOOL;
+        var.boolVal = VARIANT_TRUE;
+        hr = pps->SetValue(PKEY_AppUserModel_PreventPinning, var);
+        pps->Release();
+    }
 }
 
 POINT CLauncherDlg::getMouseCoords(MSG* pMsg) {
