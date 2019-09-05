@@ -337,10 +337,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     eyeParams.modelTranslation = getTranslation();
     eyeParams.leftEyeJointIndex = _rig.indexOfJoint("LeftEye");
     eyeParams.rightEyeJointIndex = _rig.indexOfJoint("RightEye");
-
-    if (_owningAvatar->getHasProceduralEyeFaceMovement()) {
-        _rig.updateFromEyeParameters(eyeParams);
-    }
+    _rig.updateFromEyeParameters(eyeParams);
 
     updateFingers();
 }

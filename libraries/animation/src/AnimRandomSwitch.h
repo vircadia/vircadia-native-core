@@ -151,10 +151,11 @@ protected:
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;
+    virtual void setActiveInternal(bool active) override;
 
     AnimPoseVec _poses;
 
-    int _randomSwitchEvaluationCount { 0 };
+    bool _triggerNewRandomState = false;
     // interpolation state
     bool _duringInterp = false;
     InterpType _interpType { InterpType::SnapshotPrev };

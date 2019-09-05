@@ -5,6 +5,7 @@ BoundingBoxes 1.0 BoundingBoxes.qml
 Framebuffer 1.0 Framebuffer.qml
 Antialiasing 1.0 Antialiasing.qml
 Culling 1.0 Culling.qml
+Bloom 1.0 Bloom.qml
 
 Platform 1.0 Platform.qml
 RenderSettings 1.0 RenderSettings.qml

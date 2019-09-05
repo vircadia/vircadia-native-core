@@ -49,7 +49,7 @@ function onAvatarAdded(uuid) {
 
 // Called on init
 var avatarNametagMode;
-function create() {
+function startup() {
     nameTagListManager.create();
     handleAvatarNametagMode(Settings.getValue("simplifiedNametag/avatarNametagMode", "on"));
 
@@ -60,7 +60,7 @@ function create() {
 
 
 // Called when the script is closing
-function destroy() {
+function unload() {
     nameTagListManager.destroy();
     pickRayController.destroy();
     Window.domainChanged.disconnect(onDomainChange);
@@ -82,12 +82,15 @@ function handleAvatarNametagMode(newAvatarNameTagMode) {
 // *************************************
 // #region api
 
+function NameTag() {}
 
-module.exports = {
-    create: create,
-    destroy: destroy,
+NameTag.prototype = {
+    startup: startup,
+    unload: unload,
     handleAvatarNametagMode: handleAvatarNametagMode
 };
+
+module.exports = NameTag;
 
 
 // #endregion

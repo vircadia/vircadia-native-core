@@ -27,13 +27,33 @@
 #include "ClientTraitsHandler.h"
 #include "AvatarLogging.h"
 
-MixerAvatar::~MixerAvatar() {
-    if (_challengeTimeout) {
-        _challengeTimeout->deleteLater();
-    }
+MixerAvatar::MixerAvatar() {
+    static constexpr int CHALLENGE_TIMEOUT_MS = 10 * 1000;  // 10 s
+
+    _challengeTimer.setSingleShot(true);
+    _challengeTimer.setInterval(CHALLENGE_TIMEOUT_MS);
+    
+    _challengeTimer.callOnTimeout(this, [this]() {
+        if (_verifyState == challengeClient) {
+            _pendingEvent = false;
+            _verifyState = verificationFailed;
+            _needsIdentityUpdate = true;
+            qCDebug(avatars) << "Dynamic verification TIMED-OUT for " << getDisplayName() << getSessionUUID();
+        } else {
+            qCDebug(avatars) << "Ignoring timeout of avatar challenge";
+        }
+    });
+
+}
+
+const char* MixerAvatar::stateToName(VerifyState state) {
+    return QMetaEnum::fromType<VerifyState>().valueToKey(state);
 }
 
 void MixerAvatar::fetchAvatarFST() {
+    if (_verifyState >= requestingFST && _verifyState <= challengeClient) {
+        qCDebug(avatars) << "WARNING: Avatar verification restarted; old state:" << stateToName(_verifyState);
+    }
     _verifyState = nonCertified;
 
     _pendingEvent = false;
@@ -80,7 +100,7 @@ void MixerAvatar::fetchAvatarFST() {
 void MixerAvatar::fstRequestComplete() {
     ResourceRequest* fstRequest = static_cast<ResourceRequest*>(QObject::sender());
     QMutexLocker certifyLocker(&_avatarCertifyLock);
-    if (fstRequest == _avatarRequest) {
+    if (_verifyState == requestingFST && fstRequest == _avatarRequest) {
         auto result = fstRequest->getResult();
         if (result != ResourceRequest::Success) {
             _verifyState = error;
@@ -90,11 +110,11 @@ void MixerAvatar::fstRequestComplete() {
             _verifyState = receivedFST;
             _pendingEvent = true;
         }
-        _avatarRequest->deleteLater();
         _avatarRequest = nullptr;
     } else {
-        qCDebug(avatars) << "Incorrect request for" << getDisplayName();
+        qCDebug(avatars) << "Incorrect or outdated FST request for" << getDisplayName();
     }
+    fstRequest->deleteLater();
 }
 
 bool MixerAvatar::generateFSTHash() {
@@ -108,7 +128,7 @@ bool MixerAvatar::generateFSTHash() {
     return true;
 }
 
-bool MixerAvatar::validateFSTHash(const QString& publicKey) {
+bool MixerAvatar::validateFSTHash(const QString& publicKey) const {
     // Guess we should refactor this stuff into a Authorization namespace ...
     return EntityItemProperties::verifySignature(publicKey, _certificateHash,
         QByteArray::fromBase64(_certificateIdFromFST.toUtf8()));
@@ -171,7 +191,9 @@ void MixerAvatar::ownerRequestComplete() {
     QMutexLocker certifyLocker(&_avatarCertifyLock);
     QNetworkReply* networkReply = static_cast<QNetworkReply*>(QObject::sender());
 
-    if (networkReply->error() == QNetworkReply::NoError) {
+    if (_verifyState != requestingOwner) {
+        qCDebug(avatars) << "WARNING: outdated avatar-owner information received in state" << stateToName(_verifyState);
+    } else if (networkReply->error() == QNetworkReply::NoError) {
         _dynamicMarketResponse = networkReply->readAll();
         _verifyState = ownerResponse;
         _pendingEvent = true;
@@ -259,7 +281,6 @@ void MixerAvatar::processCertifyEvents() {
                     }
                     sendOwnerChallenge();
                     _verifyState = challengeClient;
-                    _pendingEvent = true;
                 } else {
                     _verifyState = error;
                     qCDebug(avatars) << "Get owner status - couldn't parse response for" << getSessionUUID()
@@ -273,46 +294,14 @@ void MixerAvatar::processCertifyEvents() {
             break;
         }
 
-        case challengeResponse:
-        {
-            if (_challengeResponse.length() < 8) {
-                _verifyState = error;
-                _pendingEvent = false;
-                break;
-            }
-
-            int avatarIDLength;
-            int signedNonceLength;
-            {
-                QDataStream responseStream(_challengeResponse);
-                responseStream.setByteOrder(QDataStream::LittleEndian);
-                responseStream >> avatarIDLength >> signedNonceLength;
-            }
-            QByteArray avatarID(_challengeResponse.data() + 2 * sizeof(int), avatarIDLength);
-            QByteArray signedNonce(_challengeResponse.data() + 2 * sizeof(int) + avatarIDLength, signedNonceLength);
-
-            bool challengeResult = EntityItemProperties::verifySignature(_ownerPublicKey, _challengeNonceHash,
-                QByteArray::fromBase64(signedNonce));
-            _verifyState = challengeResult ? verificationSucceeded : verificationFailed;
-            _needsIdentityUpdate = true;
-            if (_verifyState == verificationFailed) {
-                qCDebug(avatars) << "Dynamic verification FAILED for " << getDisplayName() << getSessionUUID();
-            } else {
-                qCDebug(avatars) << "Dynamic verification SUCCEEDED for " << getDisplayName() << getSessionUUID();
-            }
-            _pendingEvent = false;
-            break;
-        }
-
         case requestingOwner:
-        case challengeClient:
         {   // Qt networking done on this thread:
             QCoreApplication::processEvents();
             break;
         }
 
         default:
-            qCDebug(avatars) << "Unexpected verify state" << _verifyState;
+            qCDebug(avatars) << "Unexpected verify state" << stateToName(_verifyState);
             break;
 
     }  // close switch
@@ -334,32 +323,45 @@ void MixerAvatar::sendOwnerChallenge() {
     QCryptographicHash nonceHash(QCryptographicHash::Sha256);
     nonceHash.addData(nonce);
     _challengeNonceHash = nonceHash.result();
-
-    static constexpr int CHALLENGE_TIMEOUT_MS = 10 * 1000;  // 10 s
-    if (_challengeTimeout) {
-        _challengeTimeout->deleteLater();
-    }
-    _challengeTimeout = new QTimer();
-    _challengeTimeout->setInterval(CHALLENGE_TIMEOUT_MS);
-    _challengeTimeout->setSingleShot(true);
-    _challengeTimeout->connect(_challengeTimeout, &QTimer::timeout, this, [this]() {
-        if (_verifyState == challengeClient) {
-            _pendingEvent = false;
-            _verifyState = verificationFailed;
-            _needsIdentityUpdate = true;
-            qCDebug(avatars) << "Dynamic verification TIMED-OUT for " << getDisplayName() << getSessionUUID();
-        }
-    });
-    _challengeTimeout->start();
+    _pendingEvent = false;
+    
+    // QTimer::start is a set of overloaded functions.
+    QMetaObject::invokeMethod(&_challengeTimer, static_cast<void(QTimer::*)()>(&QTimer::start));
 }
 
-void MixerAvatar::handleChallengeResponse(ReceivedMessage* response) {
+void MixerAvatar::processChallengeResponse(ReceivedMessage& response) {
     QByteArray avatarID;
-    QByteArray encryptedNonce;
     QMutexLocker certifyLocker(&_avatarCertifyLock);
+    QMetaObject::invokeMethod(&_challengeTimer, &QTimer::stop);
     if (_verifyState == challengeClient) {
-        _challengeResponse = response->readAll();
-        _verifyState = challengeResponse;
-        _pendingEvent = true;
+        QByteArray responseData = response.readAll();
+        if (responseData.length() < 8) {
+            _verifyState = error;
+            qCDebug(avatars) << "Avatar challenge response packet too small, length:" << responseData.length();
+            return;
+        }
+
+        int avatarIDLength;
+        int signedNonceLength;
+        {
+            QDataStream responseStream(responseData);
+            responseStream.setByteOrder(QDataStream::LittleEndian);
+            responseStream >> avatarIDLength >> signedNonceLength;
+        }
+        QByteArray avatarID(responseData.data() + 2 * sizeof(int), avatarIDLength);
+        QByteArray signedNonce(responseData.data() + 2 * sizeof(int) + avatarIDLength, signedNonceLength);
+
+        bool challengeResult = EntityItemProperties::verifySignature(_ownerPublicKey, _challengeNonceHash,
+            QByteArray::fromBase64(signedNonce));
+        _verifyState = challengeResult ? verificationSucceeded : verificationFailed;
+        _needsIdentityUpdate = true;
+        if (_verifyState == verificationFailed) {
+            qCDebug(avatars) << "Dynamic verification FAILED for " << getDisplayName() << getSessionUUID();
+        } else {
+            qCDebug(avatars) << "Dynamic verification SUCCEEDED for" << getDisplayName() << getSessionUUID();
+        }
+
+    } else {
+        qCDebug(avatars) << "WARNING: Unexpected avatar challenge-response in state" << stateToName(_verifyState);
     }
 }

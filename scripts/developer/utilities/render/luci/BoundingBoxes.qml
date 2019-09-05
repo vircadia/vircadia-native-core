@@ -54,7 +54,7 @@ Column {
             Prop.PropCheckBox {
                 text: "Zones"
                 checked: root.mainViewTask.getConfig("DrawZones")["enabled"]
-                onCheckedChanged: { root.mainViewTask.getConfig("ZoneRenderer")["enabled"] = checked; root.mainViewTask.getConfig("DrawZones")["enabled"] = checked; }
+                onCheckedChanged: { root.mainViewTask.getConfig("DrawZones")["enabled"] = checked; }
             }  
         }
         Column {

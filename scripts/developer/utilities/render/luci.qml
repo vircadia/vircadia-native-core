@@ -73,6 +73,12 @@ Rectangle {
                 }
             }
             Prop.PropFolderPanel {
+                label: "Bloom"
+                panelFrameData: Component {
+                    Bloom {}
+                }
+            }
+            Prop.PropFolderPanel {
                 label: "Culling"
                 panelFrameData: Component {
                     Culling {}

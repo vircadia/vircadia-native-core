@@ -3586,6 +3586,8 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         float speedGrowthTimescale  = 2.0f;
         float speedIncreaseFactor = 1.8f * _walkSpeedScalar;
         motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale, 0.0f, 1.0f) * speedIncreaseFactor;
+        // use feedback from CharacterController to prevent tunneling under high motorspeed
+        motorSpeed *= _characterController.getCollisionBrakeAttenuationFactor();
         const float maxBoostSpeed = sensorToWorldScale * MAX_BOOST_SPEED;
 
         if (_isPushing) {
@@ -5863,8 +5865,13 @@ bool MyAvatar::endReaction(QString reactionName) {
     int reactionIndex = beginEndReactionNameToIndex(reactionName);
     if (reactionIndex >= 0 && reactionIndex < (int)NUM_AVATAR_BEGIN_END_REACTIONS) {
         std::lock_guard<std::mutex> guard(_reactionLock);
-        _reactionEnabledRefCounts[reactionIndex]--;
-        return true;
+        if (_reactionEnabledRefCounts[reactionIndex] > 0) {
+            _reactionEnabledRefCounts[reactionIndex]--;
+            return true;
+        } else {
+            _reactionEnabledRefCounts[reactionIndex] = 0;
+            return false;
+        }
     }
     return false;
 }

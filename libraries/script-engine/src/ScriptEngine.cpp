@@ -422,6 +422,12 @@ void ScriptEngine::waitTillDoneRunning() {
             if (isEvaluating()) {
                 qCWarning(scriptengine) << "Script Engine has been running too long, aborting:" << getFilename();
                 abortEvaluation();
+            } else {
+                auto context = currentContext();
+                if (context) {
+                    qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
+                    context->throwError("Timed out during shutdown");
+                }
             }
 
             // Wait for the scripting thread to stop running, as
@@ -444,9 +450,9 @@ void ScriptEngine::waitTillDoneRunning() {
                     qCWarning(scriptengine) << "Script Engine has been running too long, aborting:" << getFilename();
                     abortEvaluation();
                 } else {
-                    qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
                     auto context = currentContext();
                     if (context) {
+                        qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
                         context->throwError("Timed out during shutdown");
                     }
                 }
@@ -2204,7 +2210,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
 /**jsdoc
  * Triggered when the script starts for a user. See also, {@link Script.entityScriptPreloadFinished}.
  * <p>Note: Can only be connected to via <code>this.preload = function (...) { ... }</code> in the entity script.</p>
- * <table><tr><th>Available in:</th><td>Client Entity Scripts</td><td>Server Entity Scripts</td></tr></table>
+ * <p class="availableIn"><strong>Supported Script Types:</strong> Client Entity Scripts &bull; Server Entity Scripts</p>
  * @function Entities.preload
  * @param {Uuid} entityID - The ID of the entity that the script is running in.
  * @returns {Signal}
@@ -2410,7 +2416,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 /**jsdoc
  * Triggered when the script terminates for a user.
  * <p>Note: Can only be connected to via <code>this.unoad = function () { ... }</code> in the entity script.</p>
- * <table><tr><th>Available in:</th><td>Client Entity Scripts</td><td>Server Entity Scripts</td></tr></table>
+ * <p class="availableIn"><strong>Supported Script Types:</strong> Client Entity Scripts &bull; Server Entity Scripts</p>
  * @function Entities.unload
  * @param {Uuid} entityID - The ID of the entity that the script is running in.
  * @returns {Signal}

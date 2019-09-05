@@ -1319,13 +1319,13 @@ void ViveControllerManager::InputDevice::setConfigFromString(const QString& valu
  *     <tr><td><code>RX</code></td><td>number</td><td>number</td><td>Right stick x-axis scale.</td></tr>
  *     <tr><td><code>RY</code></td><td>number</td><td>number</td><td>Right stick y-axis scale.</td></tr>
  *     <tr><td><code>LS</code></td><td>number</td><td>number</td><td>Left touch pad pressed.</td></tr>
- *     <tr><td><code>LS_CENTER</code></td><td>number</td><td>number</td><td>Left touch pad center pressed.</td></tr>
- *     <tr><td><code>LS_X</code></td><td>number</td><td>number</td><td>Left touch pad pressed x-coordinate.</td></tr>
- *     <tr><td><code>LS_Y</code></td><td>number</td><td>number</td><td>Left touch pad pressed y-coordinate.</td></tr>
+ *     <tr><td><code>LSCenter</code></td><td>number</td><td>number</td><td>Left touch pad center pressed.</td></tr>
+ *     <tr><td><code>LSX</code></td><td>number</td><td>number</td><td>Left touch pad pressed x-coordinate.</td></tr>
+ *     <tr><td><code>LSY</code></td><td>number</td><td>number</td><td>Left touch pad pressed y-coordinate.</td></tr>
  *     <tr><td><code>RS</code></td><td>number</td><td>number</td><td>Right touch pad pressed.</td></tr>
- *     <tr><td><code>RS_CENTER</code></td><td>number</td><td>number</td><td>Right touch pad center pressed.</td></tr>
- *     <tr><td><code>RS_X</code></td><td>number</td><td>number</td><td>Right touch pad pressed x-coordinate.</td></tr>
- *     <tr><td><code>RS_Y</code></td><td>number</td><td>number</td><td>Right touch pad pressed y-coordinate.</td></tr>
+ *     <tr><td><code>RSCenter</code></td><td>number</td><td>number</td><td>Right touch pad center pressed.</td></tr>
+ *     <tr><td><code>RSX</code></td><td>number</td><td>number</td><td>Right touch pad pressed x-coordinate.</td></tr>
+ *     <tr><td><code>RSY</code></td><td>number</td><td>number</td><td>Right touch pad pressed y-coordinate.</td></tr>
  *     <tr><td><code>LSTouch</code></td><td>number</td><td>number</td><td>Left touch pad is touched.</td></tr>
  *     <tr><td><code>RSTouch</code></td><td>number</td><td>number</td><td>Right touch pad is touched.</td></tr>
  *     <tr><td colspan="4"><strong>Triggers</strong></td></tr>
