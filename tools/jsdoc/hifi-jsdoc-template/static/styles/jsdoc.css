@@ -23,7 +23,7 @@
 ********************************************************************/
 
 * {
-  box-sizing: border-box
+  box-sizing: border-box;
 }
 
 html
@@ -39,6 +39,7 @@ body
     color: #000000;
     letter-spacing: 0.5px;  
     font-size: 0.95rem;
+    line-height: 20px;    
 }
 
 p {
@@ -423,7 +424,6 @@ header {
     display: block;
     text-align: center;
     font-size: 90%;
-    margin-top: -20px;
 }
 
 .variation {
