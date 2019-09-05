@@ -470,9 +470,9 @@ function unload() {
     }
 }
 
-var AviMoji = startup();
+var aviMoji = startup();
 
-module.exports = AviMoji;
+module.exports = aviMoji;
 
 // #endregion
 // *************************************
