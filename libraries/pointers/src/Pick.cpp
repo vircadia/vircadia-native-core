@@ -56,6 +56,14 @@ QVector<QUuid> PickQuery::getIgnoreItems() const {
     });
 }
 
+void PickQuery::setScriptParameters(const QVariantMap& parameters) {
+    _scriptParameters = parameters;
+}
+
+QVariantMap PickQuery::getScriptParameters() const {
+    return _scriptParameters;
+}
+
 QVector<QUuid> PickQuery::getIncludeItems() const {
     return resultWithReadLock<QVector<QUuid>>([&] {
         return _includeItems;

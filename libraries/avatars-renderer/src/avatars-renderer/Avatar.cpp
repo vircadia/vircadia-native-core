@@ -131,7 +131,7 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
         } else {
             _lastPosition = avatarPosition;
             _status = Status::ABORT_TRANSIT;
-        }        
+        }
     }
     _lastPosition = avatarPosition;
     _status = updatePosition(deltaTime);
@@ -143,11 +143,18 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
     return _status;
 }
 
+void AvatarTransit::slamPosition(const glm::vec3& avatarPosition) {
+    // used to instantly teleport between two points without triggering a change in status.
+    _lastPosition = avatarPosition;
+    _endPosition = avatarPosition;
+}
+
 void AvatarTransit::reset() {
     _lastPosition = _endPosition;
     _currentPosition = _endPosition;
     _isActive = false;
 }
+
 void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const AvatarTransit::TransitConfig& config) {
     _startPosition = startPosition;
     _endPosition = endPosition;
@@ -192,8 +199,8 @@ AvatarTransit::Status AvatarTransit::updatePosition(float deltaTime) {
             status = Status::PRE_TRANSIT;
             if (_currentTime == 0) {
                 status = Status::STARTED;
-            } 
-        } else if (nextTime < _totalTime - _postTransitTime){
+            }
+        } else if (nextTime < _totalTime - _postTransitTime) {
             status = Status::TRANSITING;
             if (_currentTime <= _preTransitTime) {
                 status = Status::START_TRANSIT;
@@ -519,10 +526,10 @@ void Avatar::relayJointDataToChildren() {
  *   <tbody>
  *     <tr><td><code>"avatar" or ""</code></td><td>The rate at which the avatar is updated even if not in view.</td></tr>
  *     <tr><td><code>"avatarInView"</code></td><td>The rate at which the avatar is updated if in view.</td></tr>
- *     <tr><td><code>"skeletonModel"</code></td><td>The rate at which the skeleton model is being updated, even if there are no 
+ *     <tr><td><code>"skeletonModel"</code></td><td>The rate at which the skeleton model is being updated, even if there are no
  *       joint data available.</td></tr>
  *     <tr><td><code>"jointData"</code></td><td>The rate at which joint data are being updated.</td></tr>
- *     <tr><td><code>""</code></td><td>When no rate name is specified, the <code>"avatar"</code> update rate is 
+ *     <tr><td><code>""</code></td><td>When no rate name is specified, the <code>"avatar"</code> update rate is
  *       provided.</td></tr>
  *   </tbody>
  * </table>
@@ -557,6 +564,7 @@ void Avatar::slamPosition(const glm::vec3& newPosition) {
     _positionDeltaAccumulator = glm::vec3(0.0f);
     setWorldVelocity(glm::vec3(0.0f));
     _lastVelocity = glm::vec3(0.0f);
+    _transit.slamPosition(newPosition);
 }
 
 void Avatar::updateAttitude(const glm::quat& orientation) {
@@ -596,26 +604,6 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
     } else {
         setWorldAngularVelocity(glm::vec3(0.0f));
     }
-}
-
-enum TextRendererType {
-    CHAT,
-    DISPLAYNAME
-};
-
-static TextRenderer3D* textRenderer(TextRendererType type) {
-    static TextRenderer3D* chatRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, -1,
-        false, SHADOW_EFFECT);
-    static TextRenderer3D* displayNameRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY);
-
-    switch(type) {
-    case CHAT:
-        return chatRenderer;
-    case DISPLAYNAME:
-        return displayNameRenderer;
-    }
-
-    return displayNameRenderer;
 }
 
 void Avatar::metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
@@ -1050,7 +1038,6 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const
         || (glm::dot(view.getDirection(), getDisplayNamePosition() - view.getPosition()) <= CLIP_DISTANCE)) {
         return;
     }
-    auto renderer = textRenderer(DISPLAYNAME);
 
     // optionally render timing stats for this avatar with the display name
     QString renderedDisplayName = _displayName;
@@ -1065,7 +1052,8 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const
     }
 
     // Compute display name extent/position offset
-    const glm::vec2 extent = renderer->computeExtent(renderedDisplayName);
+    static TextRenderer3D* displayNameRenderer = TextRenderer3D::getInstance(ROBOTO_FONT_FAMILY);
+    const glm::vec2 extent = displayNameRenderer->computeExtent(renderedDisplayName);
     if (!glm::any(glm::isCompNull(extent, EPSILON))) {
         const QRect nameDynamicRect = QRect(0, 0, (int)extent.x, (int)extent.y);
         const int text_x = -nameDynamicRect.width() / 2;
@@ -1104,11 +1092,11 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const
         QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
 
         // Render text slightly in front to avoid z-fighting
-        textTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_IN_FRONT * renderer->getFontSize()));
+        textTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_IN_FRONT * displayNameRenderer->getFontSize()));
         batch.setModelTransform(textTransform);
         {
             PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderText");
-            renderer->draw(batch, text_x, -text_y, nameUTF8.data(), textColor, glm::vec2(-1.0f), true, forward);
+            displayNameRenderer->draw(batch, text_x, -text_y, glm::vec2(-1.0f), nameUTF8.data(), textColor, true, forward);
         }
     }
 }
@@ -1531,7 +1519,7 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     }
     indicateLoadingStatus(LoadingStatus::LoadModel);
 
-    _skeletonModel->setURL(_skeletonModelURL);
+    _skeletonModel->setURL(getSkeletonModelURL());
 }
 
 void Avatar::setModelURLFinished(bool success) {
@@ -1553,7 +1541,7 @@ void Avatar::setModelURLFinished(bool success) {
             QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
                 Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
         } else {
-            qCWarning(avatars_renderer) << "Avatar model failed to load... attempts:" 
+            qCWarning(avatars_renderer) << "Avatar model failed to load... attempts:"
                 << _skeletonModel->getResourceDownloadAttempts() << "out of:" << MAX_SKELETON_DOWNLOAD_ATTEMPTS;
         }
     }

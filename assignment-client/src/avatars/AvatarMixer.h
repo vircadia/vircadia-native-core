@@ -65,7 +65,6 @@ private slots:
     void domainSettingsRequestComplete();
     void handlePacketVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
     void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    void handleChallengeOwnership(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void start();
 
 private:

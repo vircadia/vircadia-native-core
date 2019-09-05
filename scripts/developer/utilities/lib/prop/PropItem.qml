@@ -44,8 +44,8 @@ Item {
     property alias labelControl: labelControl
     property alias label: labelControl.text
     
-    property var labelAreaWidth: root.width * global.splitterRightWidthScale - global.splitterWidth
- 
+    property var labelAreaWidth: root.width * global.splitterLeftWidthScale - global.splitterWidth
+    
     PropText {
         id: labelControl
         text: root.label

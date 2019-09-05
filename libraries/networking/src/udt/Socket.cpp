@@ -263,7 +263,7 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool fi
         if (filterCreate && _connectionCreationFilterOperator && !_connectionCreationFilterOperator(sockAddr)) {
             // the connection creation filter did not allow us to create a new connection
 #ifdef UDT_CONNECTION_DEBUG
-            qCDebug(networking) << "Socket::findOrCreateConnection refusing to create connection for" << sockAddr
+            qCDebug(networking) << "Socket::findOrCreateConnection refusing to create Connection class for" << sockAddr
                 << "due to connection creation filter";
 #endif // UDT_CONNECTION_DEBUG
             return nullptr;
@@ -279,7 +279,7 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool fi
             QObject::connect(connection.get(), &Connection::receiverHandshakeRequestComplete,
                              this, &Socket::clientHandshakeRequestComplete);
 
-            qCDebug(networking) << "Creating new connection to" << sockAddr;
+            qCDebug(networking) << "Creating new Connection class for" << sockAddr;
 
             it = _connectionsHash.insert(it, std::make_pair(sockAddr, std::move(connection)));
         }
@@ -334,12 +334,17 @@ void Socket::checkForReadyReadBackup() {
         qCDebug(networking) << "Socket::checkForReadyReadyBackup() last sequence number"
             << (uint32_t) _lastReceivedSequenceNumber << "from" << _lastPacketSockAddr << "-"
             << _lastPacketSizeRead << "bytes";
-
+#ifdef DEBUG_EVENT_QUEUE
+        qCDebug(networking) << "NodeList event queue size:" << ::hifi::qt::getEventQueueSize(thread());
+#endif
 
         // drop all of the pending datagrams on the floor
+        int droppedCount = 0;
         while (_udpSocket.hasPendingDatagrams()) {
             _udpSocket.readDatagram(nullptr, 0);
+            ++droppedCount;
         }
+        qCDebug(networking) << "Flushed" << droppedCount << "Packets";
     }
 }
 

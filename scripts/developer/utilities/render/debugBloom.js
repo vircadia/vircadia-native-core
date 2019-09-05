@@ -10,11 +10,8 @@
 //
 
 // Set up the qml ui
-var qml = Script.resolvePath('bloom.qml');
-var window = new OverlayWindow({
-    title: 'Bloom',
-    source: qml,
-    width: 285, 
-    height: 40,
+var window = Desktop.createWindow(Script.resolvePath('./luci/Bloom.qml'), {
+    title: "Bloom",
+    presentationMode: Desktop.PresentationMode.NATIVE,
+    size: {x: 285, y: 40}
 });
-window.closed.connect(function() { Script.stop(); });

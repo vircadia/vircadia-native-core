@@ -59,6 +59,7 @@ var DISTANCE_SCALER_ALWAYS_ON = 0.45;
 var distanceScaler = DISTANCE_SCALER_ON;
 var userScaler = 1.0;
 var DEFAULT_LINE_HEIGHT = entityProps.lineHeight;
+var ADDITIONAL_PADDING = 1.06;
 function calculateInitialProperties(uuid) {
     var adjustedScaler = null;
     var distance = null;
@@ -82,7 +83,7 @@ function calculateInitialProperties(uuid) {
     distanceScaler = avatarNametagMode === "on" ? DISTANCE_SCALER_ON : DISTANCE_SCALER_ALWAYS_ON;
     adjustedScaler = distance * distanceScaler;
     // Get the new dimensions from the text helper
-    dimensions = [textHelper.getTotalTextLength(), DEFAULT_LINE_HEIGHT, Z_SIZE];
+    dimensions = [textHelper.getTotalTextLength() * ADDITIONAL_PADDING, DEFAULT_LINE_HEIGHT, Z_SIZE];
     // Adjust the dimensions by the modified distance scaler
     scaledDimensions = Vec3.multiply(dimensions, adjustedScaler);
 

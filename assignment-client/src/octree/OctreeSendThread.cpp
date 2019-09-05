@@ -194,13 +194,13 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
 
             // actually send it
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, *node);
+            DependencyManager::get<NodeList>()->sendPacket(NLPacket::createCopy(statsPacket), *node);
         } else {
             // not enough room in the packet, send two packets
 
             // first packet
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, *node);
+            DependencyManager::get<NodeList>()->sendPacket(NLPacket::createCopy(statsPacket), *node);
 
             int numBytes = statsPacket.getDataSize();
             _totalBytes += numBytes;
@@ -230,7 +230,7 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
 
             // second packet
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(sentPacket, *node);
+            DependencyManager::get<NodeList>()->sendPacket(NLPacket::createCopy(sentPacket), *node);
 
             numBytes = sentPacket.getDataSize();
             _totalBytes += numBytes;
@@ -263,7 +263,8 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             // just send the octree packet
             OctreeServer::didCallWriteDatagram(this);
             NLPacket& sentPacket = nodeData->getPacket();
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(sentPacket, *node);
+
+            DependencyManager::get<NodeList>()->sendPacket(NLPacket::createCopy(sentPacket), *node);
 
             int numBytes = sentPacket.getDataSize();
             _totalBytes += numBytes;

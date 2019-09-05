@@ -49,6 +49,35 @@ void PickManager::removePick(unsigned int uid) {
     });
 }
 
+QVariantMap PickManager::getPickProperties(unsigned int uid) const {
+    auto pick = findPick(uid);
+    if (pick) {
+        return pick->toVariantMap();
+    }
+    return QVariantMap();
+}
+
+QVariantMap PickManager::getPickScriptParameters(unsigned int uid) const {
+    auto pick = findPick(uid);
+    if (pick) {
+        return pick->getScriptParameters();
+    }
+    return QVariantMap();
+}
+
+QVector<unsigned int> PickManager::getPicks() const {
+    QVector<unsigned int> picks;
+    withReadLock([&] {
+        for (auto typeIt = _picks.cbegin(); typeIt != _picks.cend(); ++typeIt) {
+            auto& picksForType = typeIt->second;
+            for (auto pickIt = picksForType.cbegin(); pickIt != picksForType.cend(); ++pickIt) {
+                picks.push_back(pickIt->first);
+            }
+        }
+    });
+    return picks;
+}
+
 PickResultPointer PickManager::getPrevPickResult(unsigned int uid) const {
     auto pick = findPick(uid);
     if (pick) {
@@ -69,6 +98,14 @@ void PickManager::disablePick(unsigned int uid) const {
     if (pick) {
         pick->disable();
     }
+}
+
+bool PickManager::isPickEnabled(unsigned int uid) const {
+    auto pick = findPick(uid);
+    if (pick) {
+        return pick->isEnabled();
+    }
+    return false;
 }
 
 void PickManager::setPrecisionPicking(unsigned int uid, bool precisionPicking) const {

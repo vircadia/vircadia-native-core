@@ -29,7 +29,7 @@ static const QString DEFAULT_STYLUS_MODEL_URL = PathUtils::resourcesUrl() + "/me
 
 StylusPointer::StylusPointer(const QVariant& props, const QUuid& stylus, bool hover, bool enabled,
                              const glm::vec3& modelPositionOffset, const glm::quat& modelRotationOffset, const glm::vec3& modelDimensions) :
-    Pointer(DependencyManager::get<PickScriptingInterface>()->createStylusPick(props), enabled, hover),
+    Pointer(DependencyManager::get<PickScriptingInterface>()->createPick(PickQuery::PickType::Stylus, props), enabled, hover),
     _stylus(stylus),
     _modelPositionOffset(modelPositionOffset),
     _modelDimensions(modelDimensions),
@@ -41,6 +41,10 @@ StylusPointer::~StylusPointer() {
     if (!_stylus.isNull()) {
         DependencyManager::get<EntityScriptingInterface>()->deleteEntity(_stylus);
     }
+}
+
+PickQuery::PickType StylusPointer::getType() const {
+    return PickQuery::PickType::Stylus;
 }
 
 QUuid StylusPointer::buildStylus(const QVariantMap& properties) {
@@ -229,7 +233,7 @@ void StylusPointer::setRenderState(const std::string& state) {
 }
 
 QVariantMap StylusPointer::toVariantMap() const {
-    return QVariantMap();
+    return Parent::toVariantMap();
 }
 
 glm::vec3 StylusPointer::findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction) {

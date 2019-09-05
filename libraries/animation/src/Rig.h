@@ -88,8 +88,8 @@ public:
         AnimPose secondaryControllerPoses[NumSecondaryControllerTypes];  // rig space
         uint8_t secondaryControllerFlags[NumSecondaryControllerTypes];
         bool isTalking;
-        bool reactionEnabledFlags[NUM_AVATAR_REACTIONS];
-        bool reactionTriggers[NUM_AVATAR_REACTIONS];
+        bool reactionEnabledFlags[NUM_AVATAR_BEGIN_END_REACTIONS];
+        bool reactionTriggers[NUM_AVATAR_TRIGGER_REACTIONS];
         HFMJointShapeInfo hipsShapeInfo;
         HFMJointShapeInfo spineShapeInfo;
         HFMJointShapeInfo spine1ShapeInfo;
@@ -109,7 +109,8 @@ public:
         Ground = 0,
         Takeoff,
         InAir,
-        Hover
+        Hover,
+        Seated
     };
 
     Rig();
@@ -339,7 +340,8 @@ protected:
         Move,
         Hover,
         Takeoff,
-        InAir
+        InAir,
+        Seated
     };
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };

@@ -425,7 +425,15 @@ void NodeList::sendDomainServerCheckIn() {
             auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << FingerprintUtils::getMachineFingerprint();
 
-            auto desc = platform::getAll();
+            platform::json all = platform::getAll();
+            platform::json desc;
+            // only pull out those items that will fit within a packet
+            desc[platform::keys::COMPUTER] = all[platform::keys::COMPUTER];
+            desc[platform::keys::MEMORY] = all[platform::keys::MEMORY];
+            desc[platform::keys::CPUS] = all[platform::keys::CPUS];
+            desc[platform::keys::GPUS] = all[platform::keys::GPUS];
+            desc[platform::keys::DISPLAYS] = all[platform::keys::DISPLAYS];
+            desc[platform::keys::NICS] = all[platform::keys::NICS];
 
             QByteArray systemInfo(desc.dump().c_str());
             QByteArray compressedSystemInfo = qCompress(systemInfo);
@@ -1143,6 +1151,10 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
 }
 
 void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
+    if (nodeID.isNull()) {
+        _avatarGain = gain;
+    }
+
     // cannot set gain of yourself
     if (getSessionUUID() != nodeID) {
         auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
@@ -1160,7 +1172,6 @@ void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
                 qCDebug(networking) << "Sending Set MASTER Avatar Gain packet with Gain:" << gain;
 
                 sendPacket(std::move(setAvatarGainPacket), *audioMixer);
-                _avatarGain = gain;
 
             } else {
                 qCDebug(networking) << "Sending Set Avatar Gain packet with UUID:" << uuidStringWithoutCurlyBraces(nodeID) << "Gain:" << gain;
@@ -1192,6 +1203,8 @@ float NodeList::getAvatarGain(const QUuid& nodeID) {
 }
 
 void NodeList::setInjectorGain(float gain) {
+    _injectorGain = gain;
+
     auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
     if (audioMixer) {
         // setup the packet
@@ -1203,7 +1216,6 @@ void NodeList::setInjectorGain(float gain) {
         qCDebug(networking) << "Sending Set Injector Gain packet with Gain:" << gain;
 
         sendPacket(std::move(setInjectorGainPacket), *audioMixer);
-        _injectorGain = gain;
 
     } else {
         qWarning() << "Couldn't find audio mixer to send set gain request";

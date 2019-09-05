@@ -5,7 +5,7 @@ If you are upgrading from previous versions, do a clean uninstall of those versi
 
 Note: The prerequisites will require about 10 GB of space on your drive. You will also need a system with at least 8GB of main memory.
 
-### Step 1. Visual Studio & Python
+### Step 1. Visual Studio & Python 3.x
 
 If you don’t have Community or Professional edition of Visual Studio, download [Visual Studio Community 2019](https://visualstudio.microsoft.com/vs/). If you have Visual Studio 2017, you are not required to download Visual Studio 2019.
 
@@ -21,7 +21,7 @@ When selecting components, check "Desktop development with C++". On the right on
 * MSVC v141 - VS 2017 C++ x64/x86 build tools
 * MSVC v140 - VS 2015 C++ build tools (v14.00)
 
-If you do not already have a Python development environment installed, also check "Python Development" in this screen.
+If you do not already have a Python 3.x development environment installed, also check "Python Development" in this screen.
 
 If you already have Visual Studio installed and need to add Python, open the "Add or remove programs" control panel and find the "Microsoft Visual Studio Installer".  Select it and click "Modify".  In the installer, select "Modify" again, then check "Python Development" and allow the installer to apply the changes.
 
@@ -31,9 +31,10 @@ If you do not wish to use the Python installation bundled with Visual Studio, yo
 
 ### Step 2. Installing CMake
 
-Download and install the latest version of CMake 3.14.
+Download and install the latest version of CMake 3.15. 
+ * Note that earlier versions of CMake will work, but there is a specific bug related to the interaction of Visual Studio 2019 and CMake versions prior to 3.15 that will cause Visual Studio to rebuild far more than it needs to on every build
 
-Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.14 Version page](https://cmake.org/files/v3.14/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
+Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.15 Version page](https://cmake.org/files/v3.15/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
 
 ### Step 3. Create VCPKG environment variable
 In the next step, you will use CMake to build High Fidelity. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
@@ -42,8 +43,17 @@ To create this variable:
 * Naviagte to 'Edit the System Environment Variables' Through the start menu.
 * Click on 'Environment Variables'
 * Select 'New' 
-* Set "Variable name" to HIFI_VCPKG_BASE
+* Set "Variable name" to `HIFI_VCPKG_BASE`
 * Set "Variable value" to any directory that you have control over.
+
+Additionally, if you have Visual Studio 2019 installed and _only_ Visual Studio 2019 (i.e. you do not have Visual Studio 2017 installed) you must add an additional environment variable `HIFI_VCPKG_BOOTSTRAP` that will fix a bug in our `vcpkg` pre-build step.
+
+To create this variable:
+* Naviagte to 'Edit the System Environment Variables' Through the start menu.
+* Click on 'Environment Variables'
+* Select 'New' 
+* Set "Variable name" to `HIFI_VCPKG_BOOTSTRAP`
+* Set "Variable value" to `1`
 
 ### Step 4. Running CMake to Generate Build Files
 

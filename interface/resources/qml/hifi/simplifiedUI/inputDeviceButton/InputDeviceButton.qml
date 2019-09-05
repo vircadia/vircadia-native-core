@@ -33,6 +33,7 @@ Rectangle {
     readonly property string unmutedIcon: "images/mic-unmute-i.svg"
     readonly property string mutedIcon: "images/mic-mute-i.svg"
     readonly property string pushToTalkIcon: "images/mic-ptt-i.svg"
+    readonly property string pushToTalkClippingIcon: "images/mic-ptt-clip-i.svg"
     readonly property string pushToTalkMutedIcon: "images/mic-ptt-mute-i.svg"
     readonly property string clippingIcon: "images/mic-clip-i.svg"
     readonly property string gatedIcon: "images/mic-gate-i.svg"
@@ -107,7 +108,7 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.rightMargin: 2
-        width: pushToTalk ? 16 : (muted ? 20 : 16)
+        width: pushToTalk ? (clipping && pushingToTalk ? 4 : 16) : (muted ? 20 : 16)
         height: 22
 
         Item {
@@ -115,7 +116,7 @@ Rectangle {
             Image {
                 id: image
                 visible: false
-                source: (pushToTalk) ? pushToTalkIcon : muted ? mutedIcon :
+                source: pushToTalk ? (clipping && pushingToTalk ? pushToTalkClippingIcon : pushToTalkIcon) : muted ? mutedIcon :
                     clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon
                 anchors.fill: parent
             }
@@ -170,12 +171,12 @@ Rectangle {
             Image {
                 id: maskImage
                 visible: false
-                source: (pushToTalk) ? pushToTalkIcon : muted ? mutedIcon :
-                    clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon
+                source: image.source
                 anchors.top: parent.top
                 anchors.left: parent.left
                 width: parent.width
                 height: parent.parent.height
+                mipmap: true
             }
             
             ColorOverlay {

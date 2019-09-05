@@ -83,6 +83,7 @@ public:
     
     bool isPartOfMessage() const { return _isPartOfMessage; }
     bool isReliable() const { return _isReliable; }
+    void setReliable(bool reliable) { _isReliable = reliable; }
 
     ObfuscationLevel getObfuscationLevel() const { return _obfuscationLevel; }
     SequenceNumber getSequenceNumber() const { return _sequenceNumber; }

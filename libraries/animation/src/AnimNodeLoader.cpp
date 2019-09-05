@@ -29,6 +29,7 @@
 #include "AnimTwoBoneIK.h"
 #include "AnimSplineIK.h"
 #include "AnimPoleVectorConstraint.h"
+#include "AnimUtil.h"
 
 using NodeLoaderFunc = AnimNode::Pointer (*)(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 using NodeProcessFunc = bool (*)(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
@@ -91,6 +92,8 @@ static AnimStateMachine::InterpType stringToInterpType(const QString& str) {
         return AnimStateMachine::InterpType::SnapshotBoth;
     } else if (str == "snapshotPrev") {
         return AnimStateMachine::InterpType::SnapshotPrev;
+    } else if (str == "evaluateBoth") {
+        return AnimStateMachine::InterpType::EvaluateBoth;
     } else {
         return AnimStateMachine::InterpType::NumTypes;
     }
@@ -101,10 +104,75 @@ static AnimRandomSwitch::InterpType stringToRandomInterpType(const QString& str)
         return AnimRandomSwitch::InterpType::SnapshotBoth;
     } else if (str == "snapshotPrev") {
         return AnimRandomSwitch::InterpType::SnapshotPrev;
+    } else if (str == "evaluateBoth") {
+        return AnimRandomSwitch::InterpType::EvaluateBoth;
     } else {
         return AnimRandomSwitch::InterpType::NumTypes;
     }
 }
+
+static EasingType stringToEasingType(const QString& str) {
+    if (str == "linear") {
+        return EasingType_Linear;
+    } else if (str == "easeInSine") {
+        return EasingType_EaseInSine;
+    } else if (str == "easeOutSine") {
+        return EasingType_EaseOutSine;
+    } else if (str == "easeInOutSine") {
+        return EasingType_EaseInOutSine;
+    } else if (str == "easeInQuad") {
+        return EasingType_EaseInQuad;
+    } else if (str == "easeOutQuad") {
+        return EasingType_EaseOutQuad;
+    } else if (str == "easeInOutQuad") {
+        return EasingType_EaseInOutQuad;
+    } else if (str == "easeInCubic") {
+        return EasingType_EaseInCubic;
+    } else if (str == "easeOutCubic") {
+        return EasingType_EaseOutCubic;
+    } else if (str == "easeInOutCubic") {
+        return EasingType_EaseInOutCubic;
+    } else if (str == "easeInQuart") {
+        return EasingType_EaseInQuart;
+    } else if (str == "easeOutQuart") {
+        return EasingType_EaseOutQuart;
+    } else if (str == "easeInOutQuart") {
+        return EasingType_EaseInOutQuart;
+    } else if (str == "easeInQuint") {
+        return EasingType_EaseInQuint;
+    } else if (str == "easeOutQuint") {
+        return EasingType_EaseOutQuint;
+    } else if (str == "easeInOutQuint") {
+        return EasingType_EaseInOutQuint;
+    } else if (str == "easeInExpo") {
+        return EasingType_EaseInExpo;
+    } else if (str == "easeOutExpo") {
+        return EasingType_EaseOutExpo;
+    } else if (str == "easeInOutExpo") {
+        return EasingType_EaseInOutExpo;
+    } else if (str == "easeInCirc") {
+        return EasingType_EaseInCirc;
+    } else if (str == "easeOutCirc") {
+        return EasingType_EaseOutCirc;
+    } else if (str == "easeInOutCirc") {
+        return EasingType_EaseInOutCirc;
+    } else {
+        return EasingType_NumTypes;
+    }
+}
+
+static AnimBlendType stringToAnimBlendType(const QString& str) {
+    if (str == "normal") {
+        return AnimBlendType_Normal;
+    } else if (str == "addRelative") {
+        return AnimBlendType_AddRelative;
+    } else if (str == "addAbsolute") {
+        return AnimBlendType_AddAbsolute;
+    } else {
+        return AnimBlendType_NumTypes;
+    }
+}
+
 
 static const char* animManipulatorJointVarTypeToString(AnimManipulator::JointVar::Type type) {
     switch (type) {
@@ -319,6 +387,9 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     READ_FLOAT(timeScale, jsonObj, id, jsonUrl, nullptr);
     READ_BOOL(loopFlag, jsonObj, id, jsonUrl, nullptr);
     READ_OPTIONAL_BOOL(mirrorFlag, jsonObj, false);
+    READ_OPTIONAL_STRING(blendType, jsonObj);
+    READ_OPTIONAL_STRING(baseURL, jsonObj);
+    READ_OPTIONAL_FLOAT(baseFrame, jsonObj, 0.0f);
 
     READ_OPTIONAL_STRING(startFrameVar, jsonObj);
     READ_OPTIONAL_STRING(endFrameVar, jsonObj);
@@ -326,11 +397,22 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     READ_OPTIONAL_STRING(loopFlagVar, jsonObj);
     READ_OPTIONAL_STRING(mirrorFlagVar, jsonObj);
 
+
     // animation urls can be relative to the containing url document.
     auto tempUrl = QUrl(url);
     tempUrl = jsonUrl.resolved(tempUrl);
 
-    auto node = std::make_shared<AnimClip>(id, tempUrl.toString(), startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
+    // AJT:
+    AnimBlendType blendTypeEnum = AnimBlendType_Normal;  // default value
+    if (!blendType.isEmpty()) {
+        blendTypeEnum = stringToAnimBlendType(blendType);
+        if (blendTypeEnum == AnimBlendType_NumTypes) {
+            qCCritical(animation) << "AnimNodeLoader, bad blendType on clip, id = " << id;
+            return nullptr;
+        }
+    }
+
+    auto node = std::make_shared<AnimClip>(id, tempUrl.toString(), startFrame, endFrame, timeScale, loopFlag, mirrorFlag, blendTypeEnum, baseURL, baseFrame);
 
     if (!startFrameVar.isEmpty()) {
         node->setStartFrameVar(startFrameVar);
@@ -354,10 +436,19 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
 static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
     READ_FLOAT(alpha, jsonObj, id, jsonUrl, nullptr);
-
+    READ_OPTIONAL_STRING(blendType, jsonObj);
     READ_OPTIONAL_STRING(alphaVar, jsonObj);
 
-    auto node = std::make_shared<AnimBlendLinear>(id, alpha);
+    AnimBlendType blendTypeEnum = AnimBlendType_Normal;  // default value
+    if (!blendType.isEmpty()) {
+        blendTypeEnum = stringToAnimBlendType(blendType);
+        if (blendTypeEnum == AnimBlendType_NumTypes) {
+            qCCritical(animation) << "AnimNodeLoader, bad blendType on blendLinear, id = " << id;
+            return nullptr;
+        }
+    }
+
+    auto node = std::make_shared<AnimBlendLinear>(id, alpha, blendTypeEnum);
 
     if (!alphaVar.isEmpty()) {
         node->setAlphaVar(alphaVar);
@@ -723,6 +814,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
         READ_FLOAT(interpTarget, stateObj, nodeId, jsonUrl, false);
         READ_FLOAT(interpDuration, stateObj, nodeId, jsonUrl, false);
         READ_OPTIONAL_STRING(interpType, stateObj);
+        READ_OPTIONAL_STRING(easingType, stateObj);
 
         READ_OPTIONAL_STRING(interpTargetVar, stateObj);
         READ_OPTIONAL_STRING(interpDurationVar, stateObj);
@@ -743,7 +835,16 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
             }
         }
 
-        auto statePtr = std::make_shared<AnimStateMachine::State>(id, iter->second, interpTarget, interpDuration, interpTypeEnum);
+        EasingType easingTypeEnum = EasingType_Linear;  // default value
+        if (!easingType.isEmpty()) {
+            easingTypeEnum = stringToEasingType(easingType);
+            if (easingTypeEnum == EasingType_NumTypes) {
+                qCCritical(animation) << "AnimNodeLoader, bad easingType on stateMachine state, nodeId = " << nodeId << "stateId =" << id;
+                return false;
+            }
+        }
+
+        auto statePtr = std::make_shared<AnimStateMachine::State>(id, iter->second, interpTarget, interpDuration, interpTypeEnum, easingTypeEnum);
         assert(statePtr);
 
         if (!interpTargetVar.isEmpty()) {
@@ -845,6 +946,7 @@ bool processRandomSwitchStateMachineNode(AnimNode::Pointer node, const QJsonObje
         READ_FLOAT(interpTarget, stateObj, nodeId, jsonUrl, false);
         READ_FLOAT(interpDuration, stateObj, nodeId, jsonUrl, false);
         READ_OPTIONAL_STRING(interpType, stateObj);
+        READ_OPTIONAL_STRING(easingType, stateObj);
         READ_FLOAT(priority, stateObj, nodeId, jsonUrl, false);
         READ_BOOL(resume, stateObj, nodeId, jsonUrl, false);
 
@@ -867,10 +969,16 @@ bool processRandomSwitchStateMachineNode(AnimNode::Pointer node, const QJsonObje
             }
         }
 
-        auto randomStatePtr = std::make_shared<AnimRandomSwitch::RandomSwitchState>(id, iter->second, interpTarget, interpDuration, interpTypeEnum, priority, resume);
-        if (priority > 0.0f) {
-            smNode->addToPrioritySum(priority);
+        EasingType easingTypeEnum = EasingType_Linear;  // default value
+        if (!easingType.isEmpty()) {
+            easingTypeEnum = stringToEasingType(easingType);
+            if (easingTypeEnum == EasingType_NumTypes) {
+                qCCritical(animation) << "AnimNodeLoader, bad easingType on randomSwitch state, nodeId = " << nodeId << "stateId =" << id;
+                return false;
+            }
         }
+
+        auto randomStatePtr = std::make_shared<AnimRandomSwitch::RandomSwitchState>(id, iter->second, interpTarget, interpDuration, interpTypeEnum, easingTypeEnum, priority, resume);
         assert(randomStatePtr);
 
         if (!interpTargetVar.isEmpty()) {

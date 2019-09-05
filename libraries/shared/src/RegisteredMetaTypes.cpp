@@ -26,6 +26,8 @@
 #include <QtScript/QScriptValueIterator>
 #include <QJsonDocument>
 
+int uint32MetaTypeId = qRegisterMetaType<glm::uint32>("uint32");
+int glmUint32MetaTypeId = qRegisterMetaType<glm::uint32>("glm::uint32");
 int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
 int u8vec3MetaTypeId = qRegisterMetaType<u8vec3>();
 int vec3MetaTypeId = qRegisterMetaType<glm::vec3>();
@@ -33,6 +35,7 @@ int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
 int qVectorVec3MetaTypeId = qRegisterMetaType<QVector<glm::vec3>>();
 int qVectorQuatMetaTypeId = qRegisterMetaType<QVector<glm::quat>>();
 int qVectorBoolMetaTypeId = qRegisterMetaType<QVector<bool>>();
+int qVectorGLMUint32MetaTypeId = qRegisterMetaType<QVector<unsigned int>>("QVector<glm::uint32>");
 int quatMetaTypeId = qRegisterMetaType<glm::quat>();
 int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
 int collisionMetaTypeId = qRegisterMetaType<Collision>();
@@ -67,6 +70,8 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, aaCubeToScriptValue, aaCubeFromScriptValue);
 
     qScriptRegisterMetaType(engine, stencilMaskModeToScriptValue, stencilMaskModeFromScriptValue);
+
+    qScriptRegisterSequenceMetaType<QVector<unsigned int>>(engine);
 }
 
 QScriptValue vec2ToScriptValue(QScriptEngine* engine, const glm::vec2& vec2) {
@@ -1229,8 +1234,10 @@ AnimationDetails::AnimationDetails(QString role, QUrl url, float fps, float prio
  * The details of an animation that is playing.
  * @typedef {object} Avatar.AnimationDetails
  * @property {string} role - <em>Not used.</em>
- * @property {string} url - The URL to the animation file. Animation files need to be in .FBX format but only need to contain
-*     the avatar skeleton and animation data.
+ * @property {string} url - The URL to the animation file. Animation files need to be in glTF or FBX format but only need to 
+ *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs 
+ *     respectively).
+ *     <p><strong>Warning:</strong> glTF animations currently do not always animate correctly.</p>
  * @property {number} fps - The frames per second(FPS) rate for the animation playback. 30 FPS is normal speed.
  * @property {number} priority - <em>Not used.</em>
  * @property {boolean} loop - <code>true</code> if the animation should loop, <code>false</code> if it shouldn't.

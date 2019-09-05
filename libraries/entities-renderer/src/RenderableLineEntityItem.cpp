@@ -26,12 +26,7 @@ void LineEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
     }
 }
 
-bool LineEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    return entity->pointsChanged();
-}
-
 void LineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    entity->resetPointsChanged();
     _linePoints = entity->getLinePoints();
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {

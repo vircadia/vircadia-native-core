@@ -58,6 +58,7 @@
 
 #include <shared/FileUtils.h>
 #include <shared/QtHelpers.h>
+#include <shared/PlatformHelper.h>
 #include <shared/GlobalAppProperties.h>
 #include <StatTracker.h>
 #include <Trace.h>
@@ -73,6 +74,7 @@
 #include <Midi.h>
 #include <AudioInjectorManager.h>
 #include <AvatarBookmarks.h>
+#include <CrashHelpers.h>
 #include <CursorManager.h>
 #include <VirtualPadManager.h>
 #include <DebugDraw.h>
@@ -137,6 +139,7 @@
 #include <SoundCacheScriptingInterface.h>
 #include <ui/TabletScriptingInterface.h>
 #include <ui/ToolbarScriptingInterface.h>
+#include <ui/types/ContextAwareProfile.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -257,10 +260,6 @@ extern "C" {
 }
 #endif
 
-#ifdef Q_OS_MAC
-#include "MacHelper.h"
-#endif
-
 #if defined(Q_OS_ANDROID)
 #include <android/log.h>
 #include "AndroidHelper.h"
@@ -292,7 +291,7 @@ static const uint32_t MAX_CONCURRENT_RESOURCE_DOWNLOADS = 4;
 // For processing on QThreadPool, we target a number of threads after reserving some
 // based on how many are being consumed by the application and the display plugin.  However,
 // we will never drop below the 'min' value
-static const int MIN_PROCESSING_THREAD_POOL_SIZE = 1;
+static const int MIN_PROCESSING_THREAD_POOL_SIZE = 2;
 
 static const QString SNAPSHOT_EXTENSION = ".jpg";
 static const QString JPG_EXTENSION = ".jpg";
@@ -550,13 +549,6 @@ public:
                 }
                 qApp->setActiveWindow(applicationWindow);  // Flashes the taskbar icon if not focus.
                 return true;
-            }
-
-            if (message->message == WM_POWERBROADCAST) {
-                if (message->wParam == PBT_APMRESUMEAUTOMATIC) {
-                    qCInfo(interfaceapp) << "Waking up from sleep or hybernation.";
-                    QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
-                }
             }
 
             if (message->message == WM_COPYDATA) {
@@ -964,9 +956,12 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<KeyboardScriptingInterface>();
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
-#ifdef Q_OS_MAC
-    DependencyManager::set<MacHelper>();
-#endif
+    PlatformHelper::setup();
+    
+    QObject::connect(PlatformHelper::instance(), &PlatformHelper::systemWillWake, [] {
+        QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
+    });
+
 
     QString setBookmarkValue = getCmdOption(argc, constArgv, "--setBookmark");
     if (!setBookmarkValue.isEmpty()) {
@@ -1149,7 +1144,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-SemiBold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-Regular.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-Medium.ttf");
-    _window->setWindowTitle("High Fidelity Interface");
+    _window->setWindowTitle("High Fidelity");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
 
@@ -1172,6 +1167,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         deadlockWatchdogThread->setMainThreadID(QThread::currentThreadId());
         deadlockWatchdogThread->start();
 
+        // Pause the deadlock watchdog when we sleep, or it might 
+        // trigger a false positive when we wake back up
+        auto platformHelper = PlatformHelper::instance();
+
+        connect(platformHelper, &PlatformHelper::systemWillSleep, [] {
+            DeadlockWatchdogThread::pause();
+        });
+
+        connect(platformHelper, &PlatformHelper::systemWillWake, [] {
+            DeadlockWatchdogThread::resume();
+        });
 
         // Main thread timer to keep the watchdog updated
         QTimer* watchdogUpdateTimer = new QTimer(this);
@@ -1225,8 +1231,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
 
     bool isStore = property(hifi::properties::OCULUS_STORE).toBool();
-
-    DependencyManager::get<WalletScriptingInterface>()->setLimitedCommerce(isStore);  // Or we could make it a separate arg, or if either arg is set, etc. And should this instead by a hifi::properties?
+    // Or we could make it a separate arg, or if either arg is set, etc. And should this instead by a hifi::properties?
+    DependencyManager::get<WalletScriptingInterface>()->setLimitedCommerce(isStore || property(hifi::properties::STEAM).toBool());
 
     updateHeartbeat();
 
@@ -1659,7 +1665,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
         static const QString TESTER = "HIFI_TESTER";
         auto gpuIdent = GPUIdent::getInstance();
-        auto glContextData = getGLContextData();
+        auto glContextData = gl::ContextInfo::get();
         QJsonObject properties = {
             { "version", applicationVersion() },
             { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) || isTester },
@@ -1676,11 +1682,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             { "gpu_name", gpuIdent->getName() },
             { "gpu_driver", gpuIdent->getDriver() },
             { "gpu_memory", static_cast<qint64>(gpuIdent->getMemory()) },
-            { "gl_version_int", glVersionToInteger(glContextData.value("version").toString()) },
-            { "gl_version", glContextData["version"] },
-            { "gl_vender", glContextData["vendor"] },
-            { "gl_sl_version", glContextData["sl_version"] },
-            { "gl_renderer", glContextData["renderer"] },
+            { "gl_version_int", glVersionToInteger(glContextData.version.c_str()) },
+            { "gl_version", glContextData.version.c_str() },
+            { "gl_vender", glContextData.vendor.c_str() },
+            { "gl_sl_version", glContextData.shadingLanguageVersion.c_str() },
+            { "gl_renderer", glContextData.renderer.c_str() },
             { "ideal_thread_count", QThread::idealThreadCount() }
         };
         auto macVersion = QSysInfo::macVersion();
@@ -2282,8 +2288,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["active_display_plugin"] = getActiveDisplayPlugin()->getName();
         properties["using_hmd"] = isHMDMode();
 
-        auto glInfo = getGLContextData();
-        properties["gl_info"] = glInfo;
+        auto contextInfo = gl::ContextInfo::get();
+        properties["gl_info"] = QJsonObject{
+            { "version", contextInfo.version.c_str() },
+            { "sl_version", contextInfo.shadingLanguageVersion.c_str() },
+            { "vendor", contextInfo.vendor.c_str() },
+            { "renderer", contextInfo.renderer.c_str() },
+        };
         properties["gpu_used_memory"] = (int)BYTES_TO_MB(gpu::Context::getUsedGPUMemSize());
         properties["gpu_free_memory"] = (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemSize());
         properties["gpu_frame_time"] = (float)(qApp->getGPUContext()->getFrameTimerGPUAverage());
@@ -2670,6 +2681,8 @@ void Application::updateHeartbeat() const {
 }
 
 void Application::onAboutToQuit() {
+    setCrashAnnotation("shutdown", "1");
+
     // quickly save AvatarEntityData before the EntityTree is dismantled
     getMyAvatar()->saveAvatarEntityDataToSettings();
 
@@ -2707,6 +2720,11 @@ void Application::onAboutToQuit() {
     _aboutToQuit = true;
 
     cleanupBeforeQuit();
+
+    if (_crashOnShutdown) {
+        // triggered by crash menu
+        crash::nullDeref();
+    }
 
     getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::SHUTDOWN);
 }
@@ -2756,7 +2774,6 @@ void Application::cleanupBeforeQuit() {
     }
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
-    getEntities()->clear();
 
     // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
     QThreadPool::globalInstance()->clear();
@@ -2864,9 +2881,7 @@ Application::~Application() {
     _gameWorkload.shutdown();
 
     DependencyManager::destroy<Preferences>();
-#ifdef Q_OS_MAC
-    DependencyManager::destroy<MacHelper>();
-#endif
+    PlatformHelper::shutdown();
 
     _entityClipboard->eraseAllOctreeElements();
     _entityClipboard.reset();
@@ -2995,6 +3010,9 @@ void Application::initializeGL() {
     if (!_glWidget->makeCurrent()) {
         qCWarning(interfaceapp, "Unable to make window context current");
     }
+
+    // Populate the global OpenGL context based on the information for the primary window GL context
+    gl::ContextInfo::get(true);
 
 #if !defined(DISABLE_QML)
     QStringList chromiumFlags;
@@ -3133,7 +3151,7 @@ void Application::showLoginScreen() {
         QJsonObject loginData = {};
         loginData["action"] = "login dialog popped up";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-        _window->setWindowTitle("High Fidelity Interface");
+        _window->setWindowTitle("High Fidelity");
     } else {
         resumeAfterLoginDialogActionTaken();
     }
@@ -3268,6 +3286,9 @@ void Application::initializeUi() {
         }
         return result.toPoint();
     });
+
+    // BUGZ-1365 - the root context should explicitly default to being unable to load local HTML content
+    ContextAwareProfile::restrictContext(offscreenUi->getSurfaceContext(), true);
     offscreenUi->resume();
 #endif
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
@@ -3555,6 +3576,9 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
         surfaceContext->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
         surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
         surfaceContext->setContextProperty("PlatformInfo", PlatformInfoScriptingInterface::getInstance());
+        // This `module` context property is blank for the QML scripting interface so that we don't get log errors when importing
+        // certain JS files from both scripts (in the JS context) and QML (in the QML context).
+        surfaceContext->setContextProperty("module", "");
     }
 }
 
@@ -4228,12 +4252,43 @@ bool Application::event(QEvent* event) {
 }
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
+    auto eventType = event->type();
 
-    if (_aboutToQuit && event->type() != QEvent::DeferredDelete && event->type() != QEvent::Destroy) {
+    if (_aboutToQuit && eventType != QEvent::DeferredDelete && eventType != QEvent::Destroy) {
         return true;
     }
 
-    auto eventType = event->type();
+#if defined(Q_OS_MAC)
+    // On Mac OS, Cmd+LeftClick is treated as a RightClick (more specifically, it seems to
+    // be Cmd+RightClick without the modifier being dropped). Starting in Qt 5.12, only
+    // on Mac, the MouseButtonRelease event for these mouse presses is sent to the top
+    // level QWidgetWindow, but are not propagated further. This means that the Application
+    // will see a MouseButtonPress, but no MouseButtonRelease, causing the client to get
+    // stuck in "mouse-look." The cause of the problem is in the way QWidgetWindow processes
+    // events where QMouseEvent::button() is not equal to QMouseEvent::buttons(). In this case
+    // QMouseEvent::button() is Qt::RightButton, while QMouseEvent::buttons() is (correctly?)
+    // Qt::LeftButton.
+    //
+    // The change here gets around this problem by capturing these
+    // pseudo-RightClicks, and re-emitting them as "pure" RightClicks, where
+    // QMouseEvent::button() == QMouseEvent::buttons() == Qt::RightButton.
+    //
+    if (eventType == QEvent::MouseButtonPress) {
+        auto mouseEvent = static_cast<QMouseEvent*>(event);
+        if (mouseEvent->button() == Qt::RightButton
+            && mouseEvent->buttons() == Qt::LeftButton
+            && mouseEvent->modifiers() == Qt::MetaModifier) {
+
+            QMouseEvent* newEvent = new QMouseEvent(
+                    QEvent::MouseButtonPress, mouseEvent->localPos(), mouseEvent->windowPos(),
+                    mouseEvent->screenPos(), Qt::RightButton, Qt::MouseButtons(Qt::RightButton),
+                    mouseEvent->modifiers());
+            QApplication::postEvent(object, newEvent);
+            return true;
+        }
+    }
+#endif
+
     if (eventType == QEvent::KeyPress || eventType == QEvent::KeyRelease || eventType == QEvent::MouseMove) {
         getRefreshRateManager().resetInactiveTimer();
     }
@@ -4410,8 +4465,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else if (isMeta) {
                     auto dialogsManager = DependencyManager::get<DialogsManager>();
                     dialogsManager->toggleAddressBar();
-                } else if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::LodTools);
                 }
                 break;
 
@@ -6246,11 +6299,13 @@ void Application::tryToEnablePhysics() {
         // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
         // We keep physics disabled until we've received a full scene and everything near the avatar in that
         // scene is ready to compute its collision shape.
-        if (getMyAvatar()->isReadyForPhysics()) {
+        auto myAvatar = getMyAvatar();
+        if (myAvatar->isReadyForPhysics()) {
+            myAvatar->getCharacterController()->setPhysicsEngine(_physicsEngine);
             _octreeProcessor.resetSafeLanding();
             _physicsEnabled = true;
             setIsInterstitialMode(false);
-            getMyAvatar()->updateMotionBehaviorFromMenu();
+            myAvatar->updateMotionBehaviorFromMenu();
         }
     }
 }
@@ -6541,7 +6596,7 @@ void Application::update(float deltaTime) {
                 avatarManager->handleProcessedPhysicsTransaction(transaction);
 
                 myAvatar->prepareForPhysicsSimulation();
-                _physicsEngine->enableGlobalContactAddedCallback(myAvatar->isFlying());
+                myAvatar->getCharacterController()->preSimulation();
             }
         }
 
@@ -6594,6 +6649,7 @@ void Application::update(float deltaTime) {
 
                         {
                             PROFILE_RANGE(simulation_physics, "MyAvatar");
+                            myAvatar->getCharacterController()->postSimulation();
                             myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
                         }
 
@@ -6809,8 +6865,8 @@ void Application::updateRenderArgs(float deltaTime) {
                 _viewFrustum.setProjection(adjustedProjection);
                 _viewFrustum.calculate();
             }
-            appRenderArgs._renderArgs = RenderArgs(_graphicsEngine.getGPUContext(), lodManager->getOctreeSizeScale(),
-                lodManager->getBoundaryLevelAdjust(), lodManager->getLODAngleHalfTan(), RenderArgs::DEFAULT_RENDER_MODE,
+            appRenderArgs._renderArgs = RenderArgs(_graphicsEngine.getGPUContext(), lodManager->getVisibilityDistance(),
+                lodManager->getBoundaryLevelAdjust(), lodManager->getLODHalfAngleTan(), RenderArgs::DEFAULT_RENDER_MODE,
                 RenderArgs::MONO, RenderArgs::DEFERRED, RenderArgs::RENDER_DEBUG_NONE);
             appRenderArgs._renderArgs._scene = getMain3DScene();
 
@@ -7405,7 +7461,7 @@ void Application::addingEntityWithCertificate(const QString& certificateID, cons
     ledger->updateLocation(certificateID, placeName);
 }
 
-void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) {
+void Application::registerScriptEngineWithApplicationServices(const ScriptEnginePointer& scriptEngine) {
 
     scriptEngine->setEmitScriptUpdatesFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
@@ -7444,9 +7500,19 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     qScriptRegisterMetaType(scriptEngine.data(), RayToOverlayIntersectionResultToScriptValue,
                             RayToOverlayIntersectionResultFromScriptValue);
 
+    bool clientScript = scriptEngine->isClientScript();
+
 #if !defined(DISABLE_QML)
     scriptEngine->registerGlobalObject("OffscreenFlags", getOffscreenUI()->getFlags());
-    scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+    if (clientScript) {
+        scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+    } else {
+        auto desktopScriptingInterface = new DesktopScriptingInterface(nullptr, true);
+        scriptEngine->registerGlobalObject("Desktop", desktopScriptingInterface);
+        if (QThread::currentThread() != thread()) {
+            desktopScriptingInterface->moveToThread(thread());
+        }
+    }
 #endif
 
     qScriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<ToolbarProxy>, wrapperFromScriptValue<ToolbarProxy>);
@@ -7471,7 +7537,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
 
-    bool clientScript = scriptEngine->isClientScript();
     scriptEngine->registerFunction("OverlayWindow", clientScript ? QmlWindowClass::constructor : QmlWindowClass::restricted_constructor);
 #if !defined(Q_OS_ANDROID) && !defined(DISABLE_QML)
     scriptEngine->registerFunction("OverlayWebWindow", clientScript ? QmlWebWindowClass::constructor : QmlWebWindowClass::restricted_constructor);
@@ -7789,9 +7854,15 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     return true;
 }
 
-void Application::replaceDomainContent(const QString& url) {
+static const QString CONTENT_SET_NAME_QUERY_PARAM = "name";
+
+void Application::replaceDomainContent(const QString& url, const QString& itemName) {
     qCDebug(interfaceapp) << "Attempting to replace domain content";
-    QByteArray urlData(url.toUtf8());
+    QUrl msgUrl(url);
+    QUrlQuery urlQuery(msgUrl.query());
+    urlQuery.addQueryItem(CONTENT_SET_NAME_QUERY_PARAM, itemName);
+    msgUrl.setQuery(urlQuery.query(QUrl::QUrl::FullyEncoded));
+    QByteArray urlData(msgUrl.toString(QUrl::QUrl::FullyEncoded).toUtf8());
     auto limitedNodeList = DependencyManager::get<NodeList>();
     const auto& domainHandler = limitedNodeList->getDomainHandler();
 
@@ -7825,7 +7896,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                 QString details;
                 if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
                     // Given confirmation, send request to domain server to replace content
-                    replaceDomainContent(url);
+                    replaceDomainContent(url, QString());
                     details = "SuccessfulRequestToReplaceContent";
                 } else {
                     details = "UserDeclinedToReplaceContent";
@@ -9477,6 +9548,14 @@ void Application::showUrlHandler(const QUrl& url) {
         }
     });
 }
+
+// used to test "shutdown" crash annotation.
+void Application::crashOnShutdown() {
+    qDebug() << "crashOnShutdown(), ON PURPOSE!";
+    _crashOnShutdown = true;
+    quit();
+}
+
 void Application::overrideEntry(){
     _overrideEntry = true;
 }

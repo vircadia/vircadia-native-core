@@ -2,6 +2,7 @@
 #include <CommonCrypto/CommonDigest.h>
 #include <CommonCrypto/CommonHMAC.h>
 #import "Launcher.h"
+#import "Settings.h"
 
 
 static NSString* const organizationURL = @"https://orgs.highfidelity.com/organizations/";
@@ -32,6 +33,7 @@ static NSString* const organizationURL = @"https://orgs.highfidelity.com/organiz
     NSMutableURLRequest *request = [NSMutableURLRequest new];
     [request setURL:[NSURL URLWithString:[organizationURL stringByAppendingString:jsonFile]]];
     [request setHTTPMethod:@"GET"];
+    [request setValue:@USER_AGENT_STRING forHTTPHeaderField:@"User-Agent"];
     [request setValue:@"" forHTTPHeaderField:@"Content-Type"];
 
     NSURLSession * session = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration delegate: self delegateQueue: [NSOperationQueue mainQueue]];
@@ -75,11 +77,16 @@ static NSString* const organizationURL = @"https://orgs.highfidelity.com/organiz
             }
             NSString* domainURL = [json valueForKey:@"domain"];
             NSString* contentSetURL = [json valueForKey:@"content_set_url"];
+            NSString* buildTag = [json valueForKey:@"build_tag"];
+            if (buildTag == nil) {
+                buildTag = @"";
+            }
 
             if (domainURL != nil && contentSetURL != nil) {
                 NSLog(@"Organization: getting org file successful");
                 [sharedLauncher setDomainURLInfo:[json valueForKey:@"domain"] :[json valueForKey:@"content_set_url"] :nil];
                 [sharedLauncher setLoginErrorState: NONE];
+                [[Settings sharedSettings] setOrganizationBuildTag:buildTag];
                 [sharedLauncher organizationRequestFinished:TRUE];
             } else {
                 NSLog(@"Organization: Either domainURL: %@ or contentSetURL: %@ json entries are invalid", domainURL, contentSetURL);

@@ -21,37 +21,53 @@ AnimRandomSwitch::~AnimRandomSwitch() {
 
 }
 
+void AnimRandomSwitch::setActiveInternal(bool active) {
+    _active = active;
+    _triggerNewRandomState = active;
+}
+
 const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
     float parentDebugAlpha = context.getDebugAlpha(_id);
 
     AnimRandomSwitch::RandomSwitchState::Pointer desiredState = _currentState;
-    if (abs(_randomSwitchEvaluationCount - context.getEvaluationCount()) > 1 || animVars.lookup(_triggerRandomSwitchVar, false)) {
-
-        // get a random number and decide which motion to choose.
+    if (_triggerNewRandomState || animVars.lookup(_triggerRandomSwitchVar, false)) {
+        // filter states different to the last random state and with priorities.
         bool currentStateHasPriority = false;
-        float dice = randFloatInRange(0.0f, 1.0f);
-        float lowerBound = 0.0f;
-        for (const RandomSwitchState::Pointer& randState : _randomStates) {
+        std::vector<RandomSwitchState::Pointer> randomStatesToConsider;
+        randomStatesToConsider.reserve(_randomStates.size());
+        float totalPriorities = 0.0f;
+        for (size_t i = 0; i < _randomStates.size(); i++) {
+            auto randState = _randomStates[i];
             if (randState->getPriority() > 0.0f) {
-                float upperBound = lowerBound + (randState->getPriority() / _totalPriorities);
-                if ((dice > lowerBound) && (dice < upperBound)) {
-                    desiredState = randState;
+                bool isRepeatingClip = _children[randState->getChildIndex()]->getID() == _lastPlayedState;
+                if (!isRepeatingClip) {
+                    randomStatesToConsider.push_back(randState);
+                    totalPriorities += randState->getPriority();
                 }
-                lowerBound = upperBound;
-
                 // this indicates if the curent state is one that can be selected randomly, or is one that was transitioned to by the random duration timer.
                 currentStateHasPriority = currentStateHasPriority || (_currentState == randState);
             }
         }
-        if (abs(_randomSwitchEvaluationCount - context.getEvaluationCount()) > 1) {
-            _duringInterp = false;
-            switchRandomState(animVars, context, desiredState, _duringInterp);
+        // get a random number and decide which motion to choose.
+        float dice = randFloatInRange(0.0f, 1.0f);
+        float lowerBound = 0.0f;
+        for (size_t i = 0; i < randomStatesToConsider.size(); i++) {
+            auto randState = randomStatesToConsider[i];
+            float upperBound = lowerBound + (randState->getPriority() / totalPriorities);
+            if ((dice > lowerBound) && (dice < upperBound)) {
+                desiredState = randState;
+                break;
+            }
+            lowerBound = upperBound;
+        }
+        if (_triggerNewRandomState) {
+            switchRandomState(animVars, context, desiredState, false);
+            _triggerNewRandomState = false;
         } else {
             // firing a random switch, be sure that we aren't completing a previously triggered transition
             if (currentStateHasPriority) {
                 if (desiredState->getID() != _currentState->getID()) {
-                    _duringInterp = true;
-                    switchRandomState(animVars, context, desiredState, _duringInterp);
+                    switchRandomState(animVars, context, desiredState, true);
                 } else {
                     _duringInterp = false;
                 }
@@ -59,15 +75,13 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
         }
         _triggerTime = randFloatInRange(_triggerTimeMin, _triggerTimeMax);
         _randomSwitchTime = randFloatInRange(_randomSwitchTimeMin, _randomSwitchTimeMax);
-
     } else {
 
         // here we are checking to see if we want a temporary movement
         // evaluate currentState transitions
         auto transitionState = evaluateTransitions(animVars);
         if (transitionState != _currentState) {
-            _duringInterp = true;
-            switchRandomState(animVars, context, transitionState, _duringInterp);
+            switchRandomState(animVars, context, transitionState, true);
             _triggerTime = randFloatInRange(_triggerTimeMin, _triggerTimeMax);
             _randomSwitchTime = randFloatInRange(_randomSwitchTimeMin, _randomSwitchTimeMax);
         }
@@ -89,6 +103,7 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
 
     assert(_currentState);
     auto currentStateNode = _children[_currentState->getChildIndex()];
+    auto previousStateNode = _children[_previousState->getChildIndex()];
     assert(currentStateNode);
 
     if (_duringInterp) {
@@ -97,6 +112,7 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
             AnimPoseVec* nextPoses = nullptr;
             AnimPoseVec* prevPoses = nullptr;
             AnimPoseVec localNextPoses;
+            AnimPoseVec localPrevPoses;
             if (_interpType == InterpType::SnapshotBoth) {
                 // interp between both snapshots
                 prevPoses = &_prevPoses;
@@ -107,13 +123,18 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
                 localNextPoses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
                 prevPoses = &_prevPoses;
                 nextPoses = &localNextPoses;
+            } else if (_interpType == InterpType::EvaluateBoth) {
+                localPrevPoses = previousStateNode->evaluate(animVars, context, dt, triggersOut);
+                localNextPoses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
+                prevPoses = &localPrevPoses;
+                nextPoses = &localNextPoses;
             } else {
                 assert(false);
             }
             if (_poses.size() > 0 && nextPoses && prevPoses && nextPoses->size() > 0 && prevPoses->size() > 0) {
-                ::blend(_poses.size(), &(prevPoses->at(0)), &(nextPoses->at(0)), _alpha, &_poses[0]);
+                ::blend(_poses.size(), &(prevPoses->at(0)), &(nextPoses->at(0)), easingFunc(_alpha, _easingType), &_poses[0]);
             }
-            context.setDebugAlpha(_currentState->getID(), _alpha * parentDebugAlpha, _children[_currentState->getChildIndex()]->getType());
+            context.setDebugAlpha(_currentState->getID(), easingFunc(_alpha, _easingType) * parentDebugAlpha, _children[_currentState->getChildIndex()]->getType());
         } else {
             _duringInterp = false;
             _prevPoses.clear();
@@ -126,7 +147,6 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
         _poses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
     }
 
-    _randomSwitchEvaluationCount = context.getEvaluationCount();
     processOutputJoints(triggersOut);
 
     context.addStateMachineInfo(_id, _currentState->getID(), _previousState->getID(), _duringInterp, _alpha);
@@ -149,8 +169,19 @@ void AnimRandomSwitch::addState(RandomSwitchState::Pointer randomState) {
 
 void AnimRandomSwitch::switchRandomState(const AnimVariantMap& animVars, const AnimContext& context, RandomSwitchState::Pointer desiredState, bool shouldInterp) {
 
+    auto prevStateNode = _children[_currentState->getChildIndex()];
     auto nextStateNode = _children[desiredState->getChildIndex()];
+
+    // activate/deactivate states
+    prevStateNode->setActive(false);
+    nextStateNode->setActive(true);
+
+    _lastPlayedState = nextStateNode->getID();
+
     if (shouldInterp) {
+
+        bool interpActive = _duringInterp;
+        _duringInterp = true;
 
         const float FRAMES_PER_SECOND = 30.0f;
 
@@ -160,6 +191,7 @@ void AnimRandomSwitch::switchRandomState(const AnimVariantMap& animVars, const A
         float duration = std::max(0.001f, animVars.lookup(desiredState->_interpDurationVar, desiredState->_interpDuration));
         _alphaVel = FRAMES_PER_SECOND / duration;
         _interpType = (InterpType)animVars.lookup(desiredState->_interpTypeVar, (int)desiredState->_interpType);
+        _easingType = desiredState->_easingType;
 
         // because dt is 0, we should not encounter any triggers
         const float dt = 0.0f;
@@ -174,12 +206,20 @@ void AnimRandomSwitch::switchRandomState(const AnimVariantMap& animVars, const A
             }
             _nextPoses = nextStateNode->evaluate(animVars, context, dt, triggers);
         } else if (_interpType == InterpType::SnapshotPrev) {
-            // snapshot previoius pose
+            // snapshot previous pose
             _prevPoses = _poses;
             // no need to evaluate _nextPoses we will do it dynamically during the interp,
             // however we need to set the current frame.
             if (!desiredState->getResume()) {
                 nextStateNode->setCurrentFrame(desiredState->_interpTarget - duration);
+            }
+        } else if (_interpType == InterpType::EvaluateBoth) {
+            // need to set current frame in destination branch.
+            nextStateNode->setCurrentFrame(desiredState->_interpTarget - duration);
+            if (interpActive) {
+                // snapshot previous pose
+                _prevPoses = _poses;
+                _interpType = InterpType::SnapshotPrev;
             }
         } else {
             assert(false);

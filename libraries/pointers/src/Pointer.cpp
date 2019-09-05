@@ -36,8 +36,30 @@ void Pointer::disable() {
     DependencyManager::get<PickManager>()->disablePick(_pickUID);
 }
 
+bool Pointer::isEnabled() {
+    return _enabled;
+}
+
 PickResultPointer Pointer::getPrevPickResult() {
     return DependencyManager::get<PickManager>()->getPrevPickResult(_pickUID);
+}
+
+QVariantMap Pointer::toVariantMap() const {
+    QVariantMap qVariantMap = DependencyManager::get<PickManager>()->getPickProperties(_pickUID);
+
+    qVariantMap["pointerType"] = getType();
+    qVariantMap["pickID"] = _pickUID;
+    qVariantMap["hover"] = _hover;
+
+    return qVariantMap;
+}
+
+void Pointer::setScriptParameters(const QVariantMap& scriptParameters) {
+    _scriptParameters = scriptParameters;
+}
+
+QVariantMap Pointer::getScriptParameters() const {
+    return _scriptParameters;
 }
 
 void Pointer::setPrecisionPicking(bool precisionPicking) {

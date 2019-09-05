@@ -17,7 +17,7 @@
 #include <PickManager.h>
 
 unsigned int RayPickScriptingInterface::createRayPick(const QVariant& properties) {
-    return DependencyManager::get<PickScriptingInterface>()->createRayPick(properties);
+    return DependencyManager::get<PickScriptingInterface>()->createPick(PickQuery::PickType::Ray, properties);
 }
 
 void RayPickScriptingInterface::enableRayPick(unsigned int uid) {

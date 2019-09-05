@@ -128,12 +128,7 @@ std::shared_ptr<T> make_renderer(const EntityItemPointer& entity) {
     return std::shared_ptr<T>(new T(entity), [](T* ptr) { ptr->deleteLater(); });
 }
 
-EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entity->getCreated()), _entity(entity) {
-    connect(entity.get(), &EntityItem::requestRenderUpdate, this, [&] {
-        _needsRenderUpdate = true;
-        emit requestRenderUpdate();
-    });
-}
+EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entity->getCreated()), _entity(entity) {}
 
 EntityRenderer::~EntityRenderer() {}
 
@@ -349,10 +344,6 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
 // Returns true if the item needs to have updateInscene called because of internal rendering 
 // changes (animation, fading, etc)
 bool EntityRenderer::needsRenderUpdate() const {
-    if (_needsRenderUpdate) {
-        return true;
-    }
-
     if (isFading()) {
         return true;
     }
@@ -365,6 +356,14 @@ bool EntityRenderer::needsRenderUpdate() const {
 
 // Returns true if the item in question needs to have updateInScene called because of changes in the entity
 bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity) const {
+    if (entity->needsRenderUpdate()) {
+        return true;
+    }
+
+    if (!entity->isVisuallyReady()) {
+        return true;
+    }
+
     bool success = false;
     auto bound = _entity->getAABox(success);
     if (success && _bound != bound) {
@@ -403,7 +402,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
     withWriteLock([&] {
         auto transparent = isTransparent();
         auto fading = isFading();
-        if (fading || _prevIsTransparent != transparent) {
+        if (fading || _prevIsTransparent != transparent || !entity->isVisuallyReady()) {
             emit requestRenderUpdate();
         }
         if (fading) {
@@ -421,7 +420,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         setPrimitiveMode(entity->getPrimitiveMode());
         _canCastShadow = entity->getCanCastShadow();
         _cauterized = entity->getCauterized();
-        _needsRenderUpdate = false;
+        entity->setNeedsRenderUpdate(false);
     });
 }
 
@@ -479,6 +478,29 @@ glm::vec4 EntityRenderer::calculatePulseColor(const glm::vec4& color, const Puls
         result.a *= pulse;
     } else if (pulseProperties.getAlphaMode() == PulseMode::OUT_PHASE) {
         result.a *= outPulse;
+    }
+
+    return result;
+}
+
+glm::vec3 EntityRenderer::calculatePulseColor(const glm::vec3& color, const PulsePropertyGroup& pulseProperties, quint64 start) {
+    if (pulseProperties.getPeriod() == 0.0f || (pulseProperties.getColorMode() == PulseMode::NONE && pulseProperties.getAlphaMode() == PulseMode::NONE)) {
+        return color;
+    }
+
+    float t = ((float)(usecTimestampNow() - start)) / ((float)USECS_PER_SECOND);
+    float pulse = 0.5f * (cosf(t * (2.0f * (float)M_PI) / pulseProperties.getPeriod()) + 1.0f) * (pulseProperties.getMax() - pulseProperties.getMin()) + pulseProperties.getMin();
+    float outPulse = (1.0f - pulse);
+
+    glm::vec3 result = color;
+    if (pulseProperties.getColorMode() == PulseMode::IN_PHASE) {
+        result.r *= pulse;
+        result.g *= pulse;
+        result.b *= pulse;
+    } else if (pulseProperties.getColorMode() == PulseMode::OUT_PHASE) {
+        result.r *= outPulse;
+        result.g *= outPulse;
+        result.b *= outPulse;
     }
 
     return result;

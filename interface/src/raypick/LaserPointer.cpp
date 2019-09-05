@@ -27,6 +27,10 @@ LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& rende
 {
 }
 
+PickQuery::PickType LaserPointer::getType() const {
+    return PickQuery::PickType::Ray;
+}
+
 void LaserPointer::editRenderStatePath(const std::string& state, const QVariant& pathProps) {
     auto renderState = std::static_pointer_cast<RenderState>(_renderStates[state]);
     if (renderState) {
@@ -47,7 +51,7 @@ PickResultPointer LaserPointer::getPickResultCopy(const PickResultPointer& pickR
 }
 
 QVariantMap LaserPointer::toVariantMap() const {
-    QVariantMap qVariantMap;
+    QVariantMap qVariantMap = Parent::toVariantMap();
 
     QVariantMap qRenderStates;
     for (auto iter = _renderStates.cbegin(); iter != _renderStates.cend(); iter++) {

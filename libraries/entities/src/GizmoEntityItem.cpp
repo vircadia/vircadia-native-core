@@ -46,6 +46,7 @@ bool GizmoEntityItem::setProperties(const EntityItemProperties& properties) {
     withWriteLock([&] {
         bool ringPropertiesChanged = _ringProperties.setProperties(properties);
         somethingChanged |= ringPropertiesChanged;
+        _needsRenderUpdate |= ringPropertiesChanged;
     });
 
     if (somethingChanged) {
@@ -185,6 +186,7 @@ bool GizmoEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
 
 void GizmoEntityItem::setGizmoType(GizmoType value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _gizmoType != value;
         _gizmoType = value;
     });
 }

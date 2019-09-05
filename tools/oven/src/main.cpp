@@ -18,14 +18,19 @@
 int main (int argc, char** argv) {
     setupHifiApplication("Oven");
 
-    // init the settings interface so we can save and load settings
-    Setting::init();
-
     // figure out if we're launching our GUI application or just the simple command line interface
     if (argc > 1) {
+        OvenCLIApplication::parseCommandLine(argc, argv);
+
+        // init the settings interface so we can save and load settings
+        Setting::init();
+
         OvenCLIApplication app { argc, argv };
         return app.exec();
     } else {
+        // init the settings interface so we can save and load settings
+        Setting::init();
+
         OvenGUIApplication app { argc, argv };
         return app.exec();
     }

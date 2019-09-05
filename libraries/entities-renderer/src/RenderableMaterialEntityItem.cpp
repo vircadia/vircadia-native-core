@@ -26,35 +26,13 @@ bool MaterialEntityRenderer::needsRenderUpdate() const {
 
 bool MaterialEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (resultWithReadLock<bool>([&] {
-        if (entity->getMaterialMappingMode() != _materialMappingMode) {
-            return true;
-        }
-        if (entity->getMaterialRepeat() != _materialRepeat) {
-            return true;
-        }
-        if (entity->getMaterialMappingPos() != _materialMappingPos || entity->getMaterialMappingScale() != _materialMappingScale || entity->getMaterialMappingRot() != _materialMappingRot) {
-            return true;
-        }
         if (entity->getTransform() != _transform) {
             return true;
         }
         if (entity->getUnscaledDimensions() != _dimensions) {
             return true;
         }
-
-        if (entity->getMaterialURL() != _materialURL) {
-            return true;
-        }
-        if (entity->getMaterialData() != _materialData) {
-            return true;
-        }
-        if (entity->getParentMaterialName() != _parentMaterialName) {
-            return true;
-        }
         if (entity->getParentID() != _parentID) {
-            return true;
-        }
-        if (entity->getPriority() != _priority) {
             return true;
         }
 

@@ -120,6 +120,7 @@ public:
 
     struct HttpThreadData {
         CString _callerName;
+        bool _useHTTPS;
         CString _mainUrl; 
         CString _dirUrl;
         CString _contentType;
@@ -137,7 +138,7 @@ public:
     };
 
     static BOOL parseJSON(const CString& jsonTxt, Json::Value& jsonObject);
-    static ResponseError makeHTTPCall(const CString& callerName, const CString& mainUrl,
+    static ResponseError makeHTTPCall(const CString& callerName, bool useHTTPS, const CString& mainUrl,
         const CString& dirUrl, const CString& contentType,
         CStringA& postData, CString& response, bool isPost);
     static std::string cStringToStd(CString cstring);
@@ -163,7 +164,7 @@ public:
                                      std::function<void(int, bool)> callback,
                                      std::function<void(float)> progressCallback);
     static BOOL deleteDirectoryOnThread(const CString& dirPath, std::function<void(bool)> callback);
-    static BOOL httpCallOnThread(const CString& callerName, const CString& mainUrl, const CString& dirUrl,
+    static BOOL httpCallOnThread(const CString& callerName, bool useHTTPS, const CString& mainUrl, const CString& dirUrl,
                                  const CString& contentType, CStringA& postData, bool isPost,
                                  std::function<void(CString, int)> callback);
 

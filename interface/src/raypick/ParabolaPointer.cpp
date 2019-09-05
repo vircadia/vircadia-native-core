@@ -30,6 +30,10 @@ ParabolaPointer::ParabolaPointer(const QVariant& rayProps, const RenderStateMap&
 {
 }
 
+PickQuery::PickType ParabolaPointer::getType() const {
+    return PickQuery::PickType::Parabola;
+}
+
 PickResultPointer ParabolaPointer::getPickResultCopy(const PickResultPointer& pickResult) const {
     auto parabolaPickResult = std::dynamic_pointer_cast<ParabolaPickResult>(pickResult);
     if (!parabolaPickResult) {
@@ -72,7 +76,7 @@ void ParabolaPointer::editRenderStatePath(const std::string& state, const QVaria
 }
 
 QVariantMap ParabolaPointer::toVariantMap() const {
-    QVariantMap qVariantMap;
+    QVariantMap qVariantMap = Parent::toVariantMap();
 
     QVariantMap qRenderStates;
     for (auto iter = _renderStates.cbegin(); iter != _renderStates.cend(); iter++) {

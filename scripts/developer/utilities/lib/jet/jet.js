@@ -18,7 +18,7 @@
  // @param depth: the depth of the recurse loop since the initial call.      
 function task_traverse(root, functor, depth) {
     if (root.isTask()) { 
-       depth++;
+        depth++;
         for (var i = 0; i <root.getNumSubs(); i++) {
             var sub = root.getSubConfig(i);
             if (functor(sub, depth, i)) {
@@ -41,15 +41,19 @@ function task_traverseTree(root, functor) {
 function job_propKeys(job) {
     var keys = Object.keys(job)
     var propKeys = [];
+    if (job.isSwitch()) {
+        propKeys.push("branch")
+    }
     for (var k=0; k < keys.length;k++) {
         // Filter for relevant property
         var key = keys[k]
         if ((typeof job[key]) !== "function") {
-            if ((key !== "objectName") && (key !== "cpuRunTime") && (key !== "enabled")) {
+            if ((key !== "objectName") && (key !== "cpuRunTime") && (key !== "enabled")  && (key !== "branch")) {
                 propKeys.push(keys[k]);
             }
         }
     }   
+
     return propKeys; 
 }
 

@@ -2,6 +2,7 @@
 
 #include <QFile>
 #include <QImage>
+#include <QNetworkReply>
 
 #include <ColorUtils.h>
 
@@ -13,6 +14,8 @@
 #include "FontFamilies.h"
 #include "../StencilMaskPass.h"
 
+#include "NetworkAccessManager.h"
+
 static std::mutex fontMutex;
 
 std::map<std::tuple<bool, bool, bool>, gpu::PipelinePointer> Font::_pipelines;
@@ -21,37 +24,48 @@ gpu::Stream::FormatPointer Font::_format;
 struct TextureVertex {
     glm::vec2 pos;
     glm::vec2 tex;
+    glm::vec4 bounds;
     TextureVertex() {}
-    TextureVertex(const glm::vec2& pos, const glm::vec2& tex) : pos(pos), tex(tex) {}
+    TextureVertex(const glm::vec2& pos, const glm::vec2& tex, const glm::vec4& bounds) : pos(pos), tex(tex), bounds(bounds) {}
 };
 
-static const int NUMBER_OF_INDICES_PER_QUAD = 6; // 1 quad = 2 triangles
-static const int VERTICES_PER_QUAD = 4; // 1 quad = 4 vertices
+static const int NUMBER_OF_INDICES_PER_QUAD = 6;  // 1 quad = 2 triangles
+static const int VERTICES_PER_QUAD = 4;           // 1 quad = 4 vertices (must match value in sdf_text3D.slv)
+const float DOUBLE_MAX_OFFSET_PIXELS = 20.0f;     // must match value in sdf_text3D.slh
 
 struct QuadBuilder {
     TextureVertex vertices[VERTICES_PER_QUAD];
 
-    QuadBuilder(const glm::vec2& min, const glm::vec2& size,
-                const glm::vec2& texMin, const glm::vec2& texSize) {
+    QuadBuilder(const Glyph& glyph, const glm::vec2& offset, float scale, bool enlargeForShadows) {
+        glm::vec2 min = offset + glm::vec2(glyph.offset.x, glyph.offset.y - glyph.size.y);
+        glm::vec2 size = glyph.size;
+        glm::vec2 texMin = glyph.texOffset;
+        glm::vec2 texSize = glyph.texSize;
+
+        // We need the pre-adjustment bounds for clamping
+        glm::vec4 bounds = glm::vec4(texMin, texSize);
+        if (enlargeForShadows) {
+            glm::vec2 imageSize = glyph.size / glyph.texSize;
+            glm::vec2 sizeDelta = 0.5f * DOUBLE_MAX_OFFSET_PIXELS * scale * imageSize;
+            glm::vec2 oldSize = size;
+            size += sizeDelta;
+            min.y -= sizeDelta.y;
+
+            texSize = texSize * (size / oldSize);
+        }
+
         // min = bottomLeft
         vertices[0] = TextureVertex(min,
-                                    texMin + glm::vec2(0.0f, texSize.y));
+                                    texMin + glm::vec2(0.0f, texSize.y), bounds);
         vertices[1] = TextureVertex(min + glm::vec2(size.x, 0.0f),
-                                    texMin + texSize);
+                                    texMin + texSize, bounds);
         vertices[2] = TextureVertex(min + glm::vec2(0.0f, size.y),
-                                    texMin);
+                                    texMin, bounds);
         vertices[3] = TextureVertex(min + size,
-                                    texMin + glm::vec2(texSize.x, 0.0f));
+                                    texMin + glm::vec2(texSize.x, 0.0f), bounds);
     }
-    QuadBuilder(const Glyph& glyph, const glm::vec2& offset) :
-    QuadBuilder(offset + glm::vec2(glyph.offset.x, glyph.offset.y - glyph.size.y), glyph.size,
-                    glyph.texOffset, glyph.texSize) {}
 
 };
-
-
-
-static QHash<QString, Font::Pointer> LOADED_FONTS;
 
 Font::Pointer Font::load(QIODevice& fontFile) {
     Pointer font = std::make_shared<Font>();
@@ -59,29 +73,41 @@ Font::Pointer Font::load(QIODevice& fontFile) {
     return font;
 }
 
+static QHash<QString, Font::Pointer> LOADED_FONTS;
+
 Font::Pointer Font::load(const QString& family) {
     std::lock_guard<std::mutex> lock(fontMutex);
     if (!LOADED_FONTS.contains(family)) {
-
-        static const QString SDFF_COURIER_PRIME_FILENAME{ ":/CourierPrime.sdff" };
-        static const QString SDFF_INCONSOLATA_MEDIUM_FILENAME{ ":/InconsolataMedium.sdff" };
-        static const QString SDFF_ROBOTO_FILENAME{ ":/Roboto.sdff" };
-        static const QString SDFF_TIMELESS_FILENAME{ ":/Timeless.sdff" };
-
         QString loadFilename;
 
-        if (family == MONO_FONT_FAMILY) {
-            loadFilename = SDFF_COURIER_PRIME_FILENAME;
+        if (family == ROBOTO_FONT_FAMILY) {
+            loadFilename = ":/Roboto.sdff";
         } else if (family == INCONSOLATA_FONT_FAMILY) {
-            loadFilename = SDFF_INCONSOLATA_MEDIUM_FILENAME;
-        } else if (family == SANS_FONT_FAMILY) {
-            loadFilename = SDFF_ROBOTO_FILENAME;
+            loadFilename = ":/InconsolataMedium.sdff";
+        } else if (family == COURIER_FONT_FAMILY) {
+            loadFilename = ":/CourierPrime.sdff";
+        } else if (family == TIMELESS_FONT_FAMILY) {
+            loadFilename = ":/Timeless.sdff";
+        } else if (family.startsWith("http")) {
+            auto loadingFont = std::make_shared<Font>();
+            loadingFont->setLoaded(false);
+            LOADED_FONTS[family] = loadingFont;
+
+            auto& networkAccessManager = NetworkAccessManager::getInstance();
+
+            QNetworkRequest networkRequest;
+            networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+            networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+            networkRequest.setUrl(family);
+
+            auto networkReply = networkAccessManager.get(networkRequest);
+            connect(networkReply, &QNetworkReply::finished, loadingFont.get(), &Font::handleFontNetworkReply);
+        } else if (!LOADED_FONTS.contains(ROBOTO_FONT_FAMILY)) {
+            // Unrecognized font and we haven't loaded Roboto yet
+            loadFilename = ":/Roboto.sdff";
         } else {
-            if (!LOADED_FONTS.contains(SERIF_FONT_FAMILY)) {
-                loadFilename = SDFF_TIMELESS_FILENAME;
-            } else {
-                LOADED_FONTS[family] = LOADED_FONTS[SERIF_FONT_FAMILY];
-            }
+            // Unrecognized font but we've already loaded Roboto
+            LOADED_FONTS[family] = LOADED_FONTS[ROBOTO_FONT_FAMILY];
         }
 
         if (!loadFilename.isEmpty()) {
@@ -96,12 +122,22 @@ Font::Pointer Font::load(const QString& family) {
     return LOADED_FONTS[family];
 }
 
-Font::Font() {
-    static bool fontResourceInitComplete = false;
-    if (!fontResourceInitComplete) {
-        Q_INIT_RESOURCE(fonts);
-        fontResourceInitComplete = true;
+void Font::handleFontNetworkReply() {
+    auto requestReply = qobject_cast<QNetworkReply*>(sender());
+
+    if (requestReply->error() == QNetworkReply::NoError) {
+        setLoaded(true);
+        read(*requestReply);
+    } else {
+        qDebug() << "Error downloading " << requestReply->url() << " - " << requestReply->errorString();
     }
+}
+
+Font::Font() {
+    static std::once_flag once;
+    std::call_once(once, []{
+        Q_INIT_RESOURCE(fonts);
+    });
 }
 
 // NERD RAGE: why doesn't QHash have a 'const T & operator[] const' member
@@ -139,7 +175,7 @@ glm::vec2 Font::computeTokenExtent(const QString& token) const {
 glm::vec2 Font::computeExtent(const QString& str) const {
     glm::vec2 extent = glm::vec2(0.0f, 0.0f);
 
-    QStringList lines{ splitLines(str) };
+    QStringList lines = splitLines(str);
     if (!lines.empty()) {
         for(const auto& line : lines) {
             glm::vec2 tokenExtent = computeTokenExtent(line);
@@ -154,7 +190,9 @@ void Font::read(QIODevice& in) {
     uint8_t header[4];
     readStream(in, header);
     if (memcmp(header, "SDFF", 4)) {
-        qFatal("Bad SDFF file");
+        qDebug() << "Bad SDFF file";
+        _loaded = false;
+        return;
     }
 
     uint16_t version;
@@ -191,7 +229,9 @@ void Font::read(QIODevice& in) {
     // read image data
     QImage image;
     if (!image.loadFromData(in.readAll(), "PNG")) {
-        qFatal("Failed to read SDFF image");
+        qDebug() << "Failed to read SDFF image";
+        _loaded = false;
+        return;
     }
 
     _glyphs.clear();
@@ -212,6 +252,9 @@ void Font::read(QIODevice& in) {
         formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
         formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::BGRA);
     }
+    // FIXME: We're forcing this to use only one mip, and then manually doing anisotropic filtering in the shader,
+    // and also calling textureLod.  Shouldn't this just use anisotropic filtering and auto-generate mips?
+    // We should also use smoothstep for anti-aliasing, as explained here: https://github.com/libgdx/libgdx/wiki/Distance-field-fonts
     _texture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::SINGLE_MIP,
                                       gpu::Sampler(gpu::Sampler::FILTER_MIN_POINT_MAG_LINEAR));
     _texture->setStoredMipFormat(formatMip);
@@ -244,20 +287,21 @@ void Font::setupGPU() {
         }
 
         // Sanity checks
-        static const int OFFSET = offsetof(TextureVertex, tex);
-        assert(OFFSET == sizeof(glm::vec2));
-        assert(sizeof(glm::vec2) == 2 * sizeof(float));
-        assert(sizeof(TextureVertex) == 2 * sizeof(glm::vec2));
+        static const int TEX_COORD_OFFSET = offsetof(TextureVertex, tex);
+        static const int TEX_BOUNDS_OFFSET = offsetof(TextureVertex, bounds);
+        assert(TEX_COORD_OFFSET == sizeof(glm::vec2));
+        assert(sizeof(TextureVertex) == 2 * sizeof(glm::vec2) + sizeof(glm::vec4));
         assert(sizeof(QuadBuilder) == 4 * sizeof(TextureVertex));
 
         // Setup rendering structures
         _format = std::make_shared<gpu::Stream::Format>();
         _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
-        _format->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), OFFSET);
+        _format->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), TEX_COORD_OFFSET);
+        _format->setAttribute(gpu::Stream::TEXCOORD1, 0, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW), TEX_BOUNDS_OFFSET);
     }
 }
 
-void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm::vec2& origin, const glm::vec2& bounds) {
+void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm::vec2& origin, const glm::vec2& bounds, float scale, bool enlargeForShadows) {
     drawInfo.verticesBuffer = std::make_shared<gpu::Buffer>();
     drawInfo.indicesBuffer = std::make_shared<gpu::Buffer>();
     drawInfo.indexCount = 0;
@@ -267,6 +311,8 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
     drawInfo.bounds = bounds;
     drawInfo.origin = origin;
 
+    float enlargedBoundsX = bounds.x - 0.5f * DOUBLE_MAX_OFFSET_PIXELS * float(enlargeForShadows);
+
     // Top left of text
     glm::vec2 advance = origin;
     foreach(const QString& token, tokenizeForWrapping(str)) {
@@ -274,7 +320,7 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
         bool forceNewLine = false;
 
         // Handle wrapping
-        if (!isNewLine && (bounds.x != -1) && (advance.x + computeExtent(token).x > origin.x + bounds.x)) {
+        if (!isNewLine && (bounds.x != -1) && (advance.x + computeExtent(token).x > origin.x + enlargedBoundsX)) {
             // We are out of the x bound, force new line
             forceNewLine = true;
         }
@@ -285,7 +331,7 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
             if (isNewLine) {
                 // No need to draw anything, go directly to next token
                 continue;
-            } else if (computeExtent(token).x > bounds.x) {
+            } else if (computeExtent(token).x > enlargedBoundsX) {
                 // token will never fit, stop drawing
                 break;
             }
@@ -301,10 +347,10 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
                 auto glyph = _glyphs[c];
                 quint16 verticesOffset = numVertices;
 
-                QuadBuilder qd(glyph, advance - glm::vec2(0.0f, _ascent));
+                QuadBuilder qd(glyph, advance - glm::vec2(0.0f, _ascent), scale, enlargeForShadows);
                 drawInfo.verticesBuffer->append(qd);
-                numVertices += 4;
-                
+                numVertices += VERTICES_PER_QUAD;
+
                 // Sam's recommended triangle slices
                 // Triangle tri1 = { v0, v1, v3 };
                 // Triangle tri2 = { v1, v2, v3 };
@@ -331,7 +377,6 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
                 indices[5] = verticesOffset + 3;
                 drawInfo.indicesBuffer->append(sizeof(indices), (const gpu::Byte*)indices);
                 drawInfo.indexCount += NUMBER_OF_INDICES_PER_QUAD;
-                
 
                 // Advance by glyph size
                 advance.x += glyph.d;
@@ -344,38 +389,49 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
 }
 
 void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString& str, const glm::vec4& color,
-                      EffectType effectType, const glm::vec2& origin, const glm::vec2& bounds, bool unlit, bool forward) {
-    if (str == "") {
+                      const glm::vec3& effectColor, float effectThickness, TextEffect effect,
+                      const glm::vec2& origin, const glm::vec2& bounds, float scale, bool unlit, bool forward) {
+    if (!_loaded || str == "") {
         return;
     }
 
-    if (str != drawInfo.string || bounds != drawInfo.bounds || origin != drawInfo.origin) {
-        buildVertices(drawInfo, str, origin, bounds);
+    int textEffect = (int)effect;
+    const int SHADOW_EFFECT = (int)TextEffect::SHADOW_EFFECT;
+
+    // If we're switching to or from shadow effect mode, we need to rebuild the vertices
+    if (str != drawInfo.string || bounds != drawInfo.bounds || origin != drawInfo.origin ||
+            (drawInfo.params.effect != textEffect && (textEffect == SHADOW_EFFECT || drawInfo.params.effect == SHADOW_EFFECT)) ||
+            (textEffect == SHADOW_EFFECT && scale != _scale)) {
+        _scale = scale;
+        buildVertices(drawInfo, str, origin, bounds, scale, textEffect == SHADOW_EFFECT);
     }
 
     setupGPU();
 
-    struct GpuDrawParams {
-        glm::vec4 color;
-        glm::vec4 outline;
-    };
-
-    if (!drawInfo.paramsBuffer || drawInfo.params.color != color || drawInfo.params.effect != effectType) {
+    if (!drawInfo.paramsBuffer || drawInfo.params.color != color || drawInfo.params.effectColor != effectColor ||
+            drawInfo.params.effectThickness != effectThickness || drawInfo.params.effect != textEffect) {
         drawInfo.params.color = color;
-        drawInfo.params.effect = effectType;
-        GpuDrawParams gpuDrawParams;
+        drawInfo.params.effectColor = effectColor;
+        drawInfo.params.effectThickness = effectThickness;
+        drawInfo.params.effect = textEffect;
+
+        // need the gamma corrected color here
+        DrawParams gpuDrawParams;
         gpuDrawParams.color = ColorUtils::sRGBToLinearVec4(drawInfo.params.color);
-        gpuDrawParams.outline.x = (drawInfo.params.effect == OUTLINE_EFFECT) ? 1 : 0;
-        drawInfo.paramsBuffer = std::make_shared<gpu::Buffer>(sizeof(GpuDrawParams), nullptr);
-        drawInfo.paramsBuffer->setSubData(0, sizeof(GpuDrawParams), (const gpu::Byte*)&gpuDrawParams);
+        gpuDrawParams.effectColor = ColorUtils::sRGBToLinearVec3(drawInfo.params.effectColor);
+        gpuDrawParams.effectThickness = drawInfo.params.effectThickness;
+        gpuDrawParams.effect = drawInfo.params.effect;
+        if (!drawInfo.paramsBuffer) {
+            drawInfo.paramsBuffer = std::make_shared<gpu::Buffer>(sizeof(DrawParams), nullptr);
+        }
+        drawInfo.paramsBuffer->setSubData(0, sizeof(DrawParams), (const gpu::Byte*)&gpuDrawParams);
     }
-    // need the gamma corrected color here
 
     batch.setPipeline(_pipelines[std::make_tuple(color.a < 1.0f, unlit, forward)]);
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, drawInfo.verticesBuffer, 0, _format->getChannels().at(0)._stride);
     batch.setResourceTexture(render_utils::slot::texture::TextFont, _texture);
-    batch.setUniformBuffer(0, drawInfo.paramsBuffer, 0, sizeof(GpuDrawParams));
+    batch.setUniformBuffer(0, drawInfo.paramsBuffer, 0, sizeof(DrawParams));
     batch.setIndexBuffer(gpu::UINT16, drawInfo.indicesBuffer, 0);
     batch.drawIndexed(gpu::TRIANGLES, drawInfo.indexCount, 0);
 }

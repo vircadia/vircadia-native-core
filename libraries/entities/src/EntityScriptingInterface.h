@@ -78,7 +78,7 @@ public:
     bool accurate { true };
     QUuid entityID;
     float distance { 0.0f };
-    BoxFace face;
+    BoxFace face { UNKNOWN_FACE };
     glm::vec3 intersection;
     glm::vec3 surfaceNormal;
     QVariantMap extraInfo;
@@ -94,7 +94,7 @@ public:
     QUuid entityID;
     float distance { 0.0f };
     float parabolicDistance { 0.0f };
-    BoxFace face;
+    BoxFace face { UNKNOWN_FACE };
     glm::vec3 intersection;
     glm::vec3 surfaceNormal;
     QVariantMap extraInfo;
@@ -1294,7 +1294,7 @@ public slots:
     Q_INVOKABLE int getJointParent(const QUuid& entityID, int index);
     
     /**jsdoc
-     * Gets the translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's 
+     * Gets the rotation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's 
      * position and orientation.
      * @function Entities.getAbsoluteJointRotationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.

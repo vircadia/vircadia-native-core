@@ -117,6 +117,7 @@ if (APPLE)
   # configure CMake to use a custom Info.plist
   set_target_properties(${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
 
+  set(MACOSX_BUNDLE_BUNDLE_NAME "High Fidelity")
   if (PRODUCTION_BUILD)
     set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface)
   else ()
@@ -151,7 +152,7 @@ elseif (WIN32)
   set(CONFIGURE_ICON_RC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/Icon.rc")
   configure_file("${HF_CMAKE_DIR}/templates/Icon.rc.in" ${CONFIGURE_ICON_RC_OUTPUT})
 
-  set(APP_FULL_NAME "High Fidelity Interface")
+  set(APP_FULL_NAME "High Fidelity")
   set(CONFIGURE_VERSION_INFO_RC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/VersionInfo.rc")
   configure_file("${HF_CMAKE_DIR}/templates/VersionInfo.rc.in" ${CONFIGURE_VERSION_INFO_RC_OUTPUT})
 

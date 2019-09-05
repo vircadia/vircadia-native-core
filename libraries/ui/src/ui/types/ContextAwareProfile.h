@@ -17,26 +17,40 @@
 #include <QtWebEngine/QQuickWebEngineProfile>
 #include <QtWebEngineCore/QWebEngineUrlRequestInterceptor>
 
+using ContextAwareProfileParent = QQuickWebEngineProfile;
+using RequestInterceptorParent = QWebEngineUrlRequestInterceptor;
+#else
+#include <QtCore/QObject>
+
+using ContextAwareProfileParent = QObject;
+using RequestInterceptorParent = QObject;
+#endif
+
+#include <NumericalConstants.h>
+
 class QQmlContext;
 
-class ContextAwareProfile : public QQuickWebEngineProfile {
+class ContextAwareProfile : public ContextAwareProfileParent {
+    Q_OBJECT
 public:
-    static void restrictContext(QQmlContext* context);
-    static bool isRestricted(QQmlContext* context);
-    QQmlContext* getContext() const { return _context; }
+    static void restrictContext(QQmlContext* context, bool restrict = true);
+    bool isRestricted();
+    Q_INVOKABLE bool isRestrictedInternal();
 protected:
 
-    class RequestInterceptor : public QWebEngineUrlRequestInterceptor {
+    class RequestInterceptor : public RequestInterceptorParent {
     public:
-        RequestInterceptor(ContextAwareProfile* parent) : QWebEngineUrlRequestInterceptor(parent), _profile(parent) {}
-        QQmlContext* getContext() const { return _profile->getContext(); }
+        RequestInterceptor(ContextAwareProfile* parent) : RequestInterceptorParent(parent), _profile(parent) { }
+        bool isRestricted() { return _profile->isRestricted(); }
     protected:
         ContextAwareProfile* _profile;
     };
 
     ContextAwareProfile(QQmlContext* parent);
-    QQmlContext* _context;
+    QQmlContext* _context{ nullptr };
+    bool _cachedValue{ false };
+    quint64 _cacheExpiry{ 0 };
+    constexpr static quint64 MAX_CACHE_AGE = MSECS_PER_SECOND;
 };
-#endif
 
 #endif // hifi_FileTypeProfile_h

@@ -12,7 +12,6 @@
 #include "LODManager.h"
 
 #include <SettingHandle.h>
-#include <OctreeUtils.h>
 #include <Util.h>
 #include <shared/GlobalAppProperties.h>
 
@@ -54,6 +53,7 @@ void LODManager::setRenderTimes(float presentTime, float engineRunTime, float ba
 }
 
 void LODManager::autoAdjustLOD(float realTimeDelta) {
+    std::lock_guard<std::mutex> { _automaticLODLock };
  
     // The "render time" is the worse of:
     // - engineRunTime: Time spent in the render thread in the engine producing the gpu::Frame N
@@ -92,8 +92,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
         return;
     }
 
-    // Previous values for output
-    float oldOctreeSizeScale = getOctreeSizeScale();
+    // Previous value for output
     float oldLODAngle = getLODAngleDeg();
 
     // Target fps is slightly overshooted by 5hz
@@ -164,7 +163,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     // And now add the output of the controller to the LODAngle where we will guarantee it is in the proper range
     setLODAngleDeg(oldLODAngle + output);
 
-    if (oldOctreeSizeScale != _octreeSizeScale) {
+    if (oldLODAngle != getLODAngleDeg()) {
         auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
         if (lodToolsDialog) {
             lodToolsDialog->reloadSliders();
@@ -172,21 +171,32 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     }
 }
 
-float LODManager::getLODAngleHalfTan() const {
-    return getPerspectiveAccuracyAngleTan(_octreeSizeScale, _boundaryLevelAdjust);
+float LODManager::getLODHalfAngleTan() const {
+    return tan(_lodHalfAngle);
 }
 float LODManager::getLODAngle() const {
-    return 2.0f * atanf(getLODAngleHalfTan());
+    return 2.0f * _lodHalfAngle;
 }
 float LODManager::getLODAngleDeg() const {
     return glm::degrees(getLODAngle());
 }
 
+float LODManager::getVisibilityDistance() const {
+    float systemDistance = getVisibilityDistanceFromHalfAngle(_lodHalfAngle);
+    // Maintain behavior with deprecated _boundaryLevelAdjust property
+    return systemDistance * powf(2.0f, _boundaryLevelAdjust);
+}
+
+void LODManager::setVisibilityDistance(float distance) {
+    // Maintain behavior with deprecated _boundaryLevelAdjust property
+    float userDistance = distance / powf(2.0f, _boundaryLevelAdjust);
+    _lodHalfAngle = getHalfAngleFromVisibilityDistance(userDistance);
+}
+
 void LODManager::setLODAngleDeg(float lodAngle) {
-    auto newSolidAngle = std::max(0.5f, std::min(lodAngle, 90.f));
-    auto halTan = glm::tan(glm::radians(newSolidAngle * 0.5f));
-    auto octreeSizeScale = TREE_SCALE * OCTREE_TO_MESH_RATIO / halTan;
-    setOctreeSizeScale(octreeSizeScale);
+    auto newLODAngleDeg = std::max(0.001f, std::min(lodAngle, 90.f));
+    auto newLODHalfAngle = glm::radians(newLODAngleDeg * 0.5f);
+    _lodHalfAngle = newLODHalfAngle;
 }
 
 void LODManager::setSmoothScale(float t) {
@@ -235,6 +245,7 @@ void LODManager::resetLODAdjust() {
 }
 
 void LODManager::setAutomaticLODAdjust(bool value) {
+    std::lock_guard<std::mutex> { _automaticLODLock };
     _automaticLODAdjust = value;
     emit autoLODChanged();
 }
@@ -265,7 +276,11 @@ bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
 };
 
 void LODManager::setOctreeSizeScale(float sizeScale) {
-    _octreeSizeScale = sizeScale;
+    setVisibilityDistance(sizeScale / TREE_SCALE);
+}
+
+float LODManager::getOctreeSizeScale() const {
+    return getVisibilityDistance() * TREE_SCALE;
 }
 
 void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
@@ -291,12 +306,14 @@ QString LODManager::getLODFeedbackText() {
     } break;
     }
     // distance feedback
-    float octreeSizeScale = getOctreeSizeScale();
-    float relativeToDefault = octreeSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
+    float visibilityDistance = getVisibilityDistance();
+    float relativeToDefault = visibilityDistance / DEFAULT_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT;
     int relativeToTwentyTwenty = 20 / relativeToDefault;
 
     QString result;
-    if (relativeToDefault > 1.01f) {
+    if (relativeToTwentyTwenty < 1) {
+        result = QString("%2 times further than average vision%3").arg(relativeToDefault, 0, 'f', 3).arg(granularityFeedback);
+    } else if (relativeToDefault > 1.01f) {
         result = QString("20:%1 or %2 times further than average vision%3").arg(relativeToTwentyTwenty).arg(relativeToDefault, 0, 'f', 2).arg(granularityFeedback);
     } else if (relativeToDefault > 0.99f) {
         result = QString("20:20 or the default distance for average vision%1").arg(granularityFeedback);
@@ -425,7 +442,6 @@ float LODManager::getWorldDetailQuality() const {
 
     return HIGH;
 }
-
 
 void LODManager::setLODQualityLevel(float quality) {
     _lodQualityLevel = quality;

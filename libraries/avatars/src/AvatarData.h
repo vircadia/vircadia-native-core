@@ -117,8 +117,7 @@ const int COLLIDE_WITH_OTHER_AVATARS = 11; // 12th bit
 const int HAS_HERO_PRIORITY = 12; // 13th bit  (be scared)
 
 /**jsdoc
- * <p>The pointing state of the hands is specified by the following values:
- </p>
+ * <p>The pointing state of the hands is specified by the following values:</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Description</th>
@@ -1206,7 +1205,7 @@ public:
     QByteArray identityByteArray(bool setIsReplicated = false) const;
 
     QUrl getWireSafeSkeletonModelURL() const;
-    const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+    virtual const QUrl& getSkeletonModelURL() const;
 
     const QString& getDisplayName() const { return _displayName; }
     const QString& getSessionDisplayName() const { return _sessionDisplayName; }
@@ -1268,12 +1267,11 @@ public:
     /**jsdoc
      * Attaches a model to your avatar. For example, you can give your avatar a hat to wear, a guitar to hold, or a surfboard to
      * stand on.
-     * <p>Note: Attached models are models only; they are not entities and can not be manipulated using the {@link Entities} API. 
-     * Nor can you use this function to attach an entity (such as a sphere or a box) to your avatar.</p>
      * @function Avatar.attach
-     * @param {string} modelURL - The URL of the model to attach. Models can be .FBX or .OBJ format.
-     * @param {string} [jointName=""] - The name of the avatar joint (see {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}) to attach the model 
-     *     to.
+     * @param {string} modelURL - The URL of the glTF, FBX, or OBJ model to attach. glTF models may be in JSON or binary format 
+     *     (".gltf" or ".glb" URLs respectively).
+     * @param {string} [jointName=""] - The name of the avatar joint (see {@link MyAvatar.getJointNames} or 
+     *     {@link Avatar.getJointNames}) to attach the model to.
      * @param {Vec3} [translation=Vec3.ZERO] - The offset to apply to the model relative to the joint position.
      * @param {Quat} [rotation=Quat.IDENTITY] - The rotation to apply to the model relative to the joint orientation.
      * @param {number} [scale=1.0] - The scale to apply to the model.

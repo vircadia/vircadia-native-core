@@ -64,6 +64,9 @@ public slots:
      */
     void setValue(const QString& setting, const QVariant& value);
 
+signals:
+    void valueChanged(const QString& setting, const QVariant& value);
+
 protected:
     SettingsScriptingInterface(QObject* parent = nullptr) : QObject(parent) { };
     bool _restrictPrivateValues { true };

@@ -273,6 +273,7 @@ enum class EntityVersion : PacketVersion {
     PrivateUserData,
     TextUnlit,
     ShadowBiasAndDistance,
+    TextEntityFonts,
 
     // Add new versions above here
     NUM_PACKET_TYPE,
