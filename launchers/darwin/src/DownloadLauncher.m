@@ -1,6 +1,10 @@
 #import "DownloadLauncher.h"
 #import "Launcher.h"
 
+#include <sys/stat.h>
+
+static const __int32_t kMinLauncherSize = 250000;  // 308kb is our smallest launcher
+static const NSString *kIOError = @"IOError";
 
 @implementation DownloadLauncher
 
@@ -22,8 +26,38 @@
 
 }
 
+-(void)validateHQLauncherZipAt:(NSURL *)location {
+    // Does the file look like a valid HQLauncher ZIP?
+    struct stat lStat;
+    const char *cStrLocation = location.fileSystemRepresentation;
+    if (stat(cStrLocation, &lStat) != 0) {
+        NSLog(@"couldn't stat download file: %s", cStrLocation);
+        @throw [NSException exceptionWithName:(NSString *)kIOError
+                                       reason:@"couldn't stat download file"
+                                     userInfo:nil];
+    }
+    if (lStat.st_size <= kMinLauncherSize) {
+        NSLog(@"download is too small: %s is %lld bytes, should be at least %d bytes",
+              cStrLocation, lStat.st_size, kMinLauncherSize);
+        @throw [NSException exceptionWithName:(NSString *)kIOError
+                                       reason:@"download is too small"
+                                     userInfo:nil];
+    }
+}
+
 -(void)URLSession:(NSURLSession*)session downloadTask:(NSURLSessionDownloadTask*)downloadTask didFinishDownloadingToURL:(NSURL*)location {
     NSLog(@"Did finish downloading to url");
+    @try {
+        [self validateHQLauncherZipAt:location];
+    }
+    @catch (NSException *exc) {
+        if ([exc.name isEqualToString:(NSString *)kIOError]) {
+            [[Launcher sharedLauncher] displayErrorPage];
+            return;
+        }
+        @throw;
+    }
+
      NSError* error = nil;
     NSFileManager* fileManager = [NSFileManager defaultManager];
     NSString* destinationFileName = downloadTask.originalRequest.URL.lastPathComponent;
