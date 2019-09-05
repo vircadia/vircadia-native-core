@@ -13,7 +13,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 #set(CMAKE_AUTOUIC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-#add_compile_options(-W -Wall -Wextra -Wpedantic -Werror -std=c++1z)
 
 include("cmake/init.cmake")
 include("cmake/macros/SetPackagingParameters.cmake")
@@ -67,8 +66,8 @@ endif ()
 if (APPLE)
   ExternalProject_Add(
     qtlite
-    URL "https://dantescalves.com/launcher//qt-lite-ssl-mac.zip"
-    URL_HASH MD5=2b073937a7c5dbae6e6ed244d2063398
+    URL "https://dantescalves.com/launcher/qt-lite-clang-8.1.0.zip"
+    URL_HASH MD5=f8462bfcd54e6b05ef888f8b197149c2
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
