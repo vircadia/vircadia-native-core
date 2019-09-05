@@ -408,7 +408,6 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     auto tempUrl = QUrl(url);
     tempUrl = jsonUrl.resolved(tempUrl);
 
-    // AJT:
     AnimBlendType blendTypeEnum = AnimBlendType_Normal;  // default value
     if (!blendType.isEmpty()) {
         blendTypeEnum = stringToAnimBlendType(blendType);
