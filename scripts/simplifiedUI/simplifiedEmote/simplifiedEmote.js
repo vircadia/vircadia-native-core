@@ -38,7 +38,6 @@ var customEmojiList = Script.require("./emojiApp/resources/modules/customEmojiLi
 // #region EMOTE_UTILITY
 
 
-
 function updateEmoteAppBarPosition() {
     if (!emoteAppBarWindow) {
         return;
@@ -425,7 +424,7 @@ function onGeometryChanged(rect) {
 function onWindowMinimizedChanged(isMinimized) {
     if (isMinimized) {
         handleEmoteIndicatorVisibleChanged(false);
-    } else if (!HMD.active && Settings.getValue("simplifiedUI/emoteIndicatorVisible", true)) {
+    } else if (!HMD.active) {
         handleEmoteIndicatorVisibleChanged(true);
     }
 }
@@ -520,20 +519,13 @@ function showEmoteAppBar() {
 }
 
 
-function handleEmoteIndicatorVisibleChanged(newValue) {
-    if (newValue && !emoteAppBarWindow) {
+function handleEmoteIndicatorVisibleChanged(shouldBeVisible) {
+    if (shouldBeVisible && !emoteAppBarWindow) {
         showEmoteAppBar();
     } else if (emoteAppBarWindow) {
         emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
         emoteAppBarWindow.close();
         emoteAppBarWindow = false;
-    }
-}
-
-
-function onSettingsValueChanged(settingName, newValue) {
-    if (settingName === "simplifiedUI/emoteIndicatorVisible") {
-        handleEmoteIndicatorVisibleChanged(newValue);
     }
 }
 
@@ -545,18 +537,17 @@ function onDisplayModeChanged(isHMDMode) {
 
     if (isHMDMode) {
         handleEmoteIndicatorVisibleChanged(false);
-    } else if (Settings.getValue("simplifiedUI/emoteIndicatorVisible", true)) {
+    } else {
         handleEmoteIndicatorVisibleChanged(true);
     }
 }
 
 
-var EmojiAPI = Script.require("./emojiApp/simplifiedEmoji.js");
-var emojiAPI = new EmojiAPI();
+var emojiAPI = Script.require("./emojiApp/simplifiedEmoji.js?" + Date.now());
 var keyPressSignalsConnected = false;
 var emojiCodeMap;
 var customEmojiCodeMap;
-function init() {
+function setup() {
     deleteOldReticles();
 
     // make a map of just the utf codes to help with accesing
@@ -584,22 +575,19 @@ function init() {
 
     Window.minimizedChanged.connect(onWindowMinimizedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
-    Settings.valueChanged.connect(onSettingsValueChanged);
     HMD.displayModeChanged.connect(onDisplayModeChanged);
-    emojiAPI.startup();
 
     getSounds();
-    handleEmoteIndicatorVisibleChanged(Settings.getValue("simplifiedUI/emoteIndicatorVisible", true));
+    handleEmoteIndicatorVisibleChanged(true);
     
     Controller.keyPressEvent.connect(keyPressHandler);
     Controller.keyReleaseEvent.connect(keyReleaseHandler);
     keyPressSignalsConnected = true;
-
-    Script.scriptEnding.connect(shutdown);
+    Script.scriptEnding.connect(unload);
 }
 
 
-function shutdown() {
+function unload() {
     if (emoteAppBarWindow) {
         emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
         emoteAppBarWindow.close();
@@ -614,14 +602,12 @@ function shutdown() {
         endReactionWrapper(react);
     });
 
-    emojiAPI.unload();
     maybeClearClapSoundInterval();
     maybeClearReticleUpdateLimiterTimeout();
     maybeDeleteRemoteIndicatorTimeout();
 
     Window.minimizedChanged.disconnect(onWindowMinimizedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
-    Settings.valueChanged.disconnect(onSettingsValueChanged);
     HMD.displayModeChanged.disconnect(onDisplayModeChanged);
 
     if (keyPressSignalsConnected) {
@@ -768,37 +754,4 @@ function toggleEmojiApp() {
 // END EMOJI
 // *************************************
 
-// *************************************
-// START API
-// *************************************
-// #region API
-
-
-function startup() {
-    init();
-}
-
-
-function unload() {
-    shutdown();
-}
-
-var _this;
-function EmoteBar() {
-    _this = this;
-}
-
-
-EmoteBar.prototype = {
-    startup: startup,
-    unload: unload
-};
-
-module.exports = EmoteBar;
-
-
-// #endregion
-// *************************************
-// END API
-// *************************************
-
+setup();

@@ -33,7 +33,7 @@ MixerAvatar::MixerAvatar() {
     _challengeTimer.setSingleShot(true);
     _challengeTimer.setInterval(CHALLENGE_TIMEOUT_MS);
     
-    _challengeTimer.callOnTimeout([this]() {
+    _challengeTimer.callOnTimeout(this, [this]() {
         if (_verifyState == challengeClient) {
             _pendingEvent = false;
             _verifyState = verificationFailed;
