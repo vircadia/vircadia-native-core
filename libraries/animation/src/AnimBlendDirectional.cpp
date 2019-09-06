@@ -75,12 +75,12 @@ const AnimPoseVec& AnimBlendDirectional::evaluate(const AnimVariantMap& animVars
                 alpha.y += 1.0f;
             }
         }
-        std::array<float, 4> alphas = {
+        std::array<float, 4> alphas = {{
             alpha.x * alpha.y,
             (1.0f - alpha.x) * alpha.y,
             (1.0f - alpha.x) * (1.0f - alpha.y),
             alpha.x * (1.0f - alpha.y)
-        };
+        }};
 
         // evaluate children
         std::array<AnimPoseVec, 4> poseVecs;

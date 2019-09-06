@@ -100,9 +100,9 @@ public:
     }
 
     int findChildIndexByName(const QString& id) {
-        for (int i = 0; i < _children.size(); ++i) {
+        for (size_t i = 0; i < _children.size(); ++i) {
             if (_children[i]->getID() == id) {
-                return i;
+                return (int)i;
             }
         }
         return -1;
