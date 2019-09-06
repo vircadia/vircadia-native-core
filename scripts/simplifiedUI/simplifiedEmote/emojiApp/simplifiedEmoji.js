@@ -406,7 +406,6 @@ var emojiCodeMap;
 var customEmojiCodeMap;
 var signalsConnected = false;
 var _this;
-var startupTimeStamp = Date.now();
 function startup() {
     // make a map of just the utf codes to help with accesing
     emojiCodeMap = emojiList.reduce(function (codeMap, currentEmojiInList, index) {
