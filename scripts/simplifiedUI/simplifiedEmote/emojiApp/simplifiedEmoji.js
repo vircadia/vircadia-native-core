@@ -171,8 +171,6 @@ function onAddingWearable(id) {
     var props = Entities.getEntityProperties(id, ["name"]);
     if (props.name.toLowerCase().indexOf("avimoji") > -1) {
         Entities.deleteEntity(id);
-    } else {
-        return;
     }
 }
 
@@ -235,8 +233,7 @@ function createEmoji(emojiFilename) {
         "billboardMode": "full",
         "ignorePickIntersection": true,
         "alpha": 1,
-        "grab": { "grabbable": false },
-        "userData": JSON.stringify({ timestamp: Date.now() })
+        "grab": { "grabbable": false }
     }, "avatar");
         
     maybePlayPop("in");
