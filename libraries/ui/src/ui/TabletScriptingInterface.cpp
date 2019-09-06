@@ -12,6 +12,7 @@
 #include <QtQml/QQmlProperty>
 
 #include <shared/QtHelpers.h>
+#include <shared/LocalFileAccessGate.h>
 #include <PathUtils.h>
 #include <DependencyManager.h>
 #include <AccountManager.h>
@@ -635,13 +636,24 @@ void TabletProxy::returnToPreviousApp() {
         qCDebug(uiLogging) << "tablet cannot load QML because _qmlTabletRoot is null";
     }
 }
-    
+
 void TabletProxy::loadQMLSource(const QVariant& path, bool resizable) {
+    // Capture whether the current script thread is allowed to load local HTML content, 
+    // pass the information along to the real function
+    bool localSafeContext = hifi::scripting::isLocalAccessSafeThread();
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadQMLSource", Q_ARG(QVariant, path), Q_ARG(bool, resizable));
+        QMetaObject::invokeMethod(this, "loadQMLSourceImpl", Q_ARG(QVariant, path), Q_ARG(bool, resizable), Q_ARG(bool, localSafeContext));
         return;
     }
+    loadQMLSourceImpl(path, resizable, localSafeContext);
+}
 
+void TabletProxy::loadQMLSourceImpl(const QVariant& path, bool resizable, bool localSafeContext) {
+    if (QThread::currentThread() != thread()) {
+        qCWarning(uiLogging) << __FUNCTION__ << "may not be called directly by scripts";
+        return;
+
+    }
     QObject* root = nullptr;
     if (!_toolbarMode && _qmlTabletRoot) {
         root = _qmlTabletRoot;
@@ -650,7 +662,14 @@ void TabletProxy::loadQMLSource(const QVariant& path, bool resizable) {
     }
 
     if (root) {
+        // BUGZ-1398: tablet access to local HTML files from client scripts
+        // Here we TEMPORARILY mark the main thread as allowed to load local file content, 
+        // because the thread that originally made the call is so marked.  
+        if (localSafeContext) {
+            hifi::scripting::setLocalAccessSafeThread(true);
+        }
         QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, path));
+        hifi::scripting::setLocalAccessSafeThread(false);
         _state = State::QML;
         _currentPathLoaded = path;
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
