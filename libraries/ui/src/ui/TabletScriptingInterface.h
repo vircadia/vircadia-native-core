@@ -291,6 +291,13 @@ public:
      *     to have it not resizable.
      */
     Q_INVOKABLE void loadQMLSource(const QVariant& path, bool resizable = false);
+
+    /**jsdoc
+     * Internal function, do not call from scripts
+     * @function TabletProxy#loadQMLSourceImpl
+     */
+    Q_INVOKABLE void loadQMLSourceImpl(const QVariant& path, bool resizable, bool localSafeContext);
+
     // FIXME: This currently relies on a script initializing the tablet (hence the bool denoting success);
     //        it should be initialized internally so it cannot fail
 

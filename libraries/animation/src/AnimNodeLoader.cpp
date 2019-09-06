@@ -29,6 +29,7 @@
 #include "AnimTwoBoneIK.h"
 #include "AnimSplineIK.h"
 #include "AnimPoleVectorConstraint.h"
+#include "AnimBlendDirectional.h"
 #include "AnimUtil.h"
 
 using NodeLoaderFunc = AnimNode::Pointer (*)(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
@@ -47,6 +48,7 @@ static AnimNode::Pointer loadDefaultPoseNode(const QJsonObject& jsonObj, const Q
 static AnimNode::Pointer loadTwoBoneIKNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadSplineIKNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadPoleVectorConstraintNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadBlendDirectionalNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 
 static const float ANIM_GRAPH_LOAD_PRIORITY = 10.0f;
 
@@ -55,6 +57,7 @@ static const float ANIM_GRAPH_LOAD_PRIORITY = 10.0f;
 static bool processDoNothing(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 bool processRandomSwitchStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+bool processBlendDirectionalNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 
 static const char* animNodeTypeToString(AnimNode::Type type) {
     switch (type) {
@@ -70,6 +73,7 @@ static const char* animNodeTypeToString(AnimNode::Type type) {
     case AnimNode::Type::TwoBoneIK: return "twoBoneIK";
     case AnimNode::Type::SplineIK: return "splineIK";
     case AnimNode::Type::PoleVectorConstraint: return "poleVectorConstraint";
+    case AnimNode::Type::BlendDirectional: return "blendDirectional";
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -211,6 +215,7 @@ static NodeLoaderFunc animNodeTypeToLoaderFunc(AnimNode::Type type) {
     case AnimNode::Type::TwoBoneIK: return loadTwoBoneIKNode;
     case AnimNode::Type::SplineIK: return loadSplineIKNode;
     case AnimNode::Type::PoleVectorConstraint: return loadPoleVectorConstraintNode;
+    case AnimNode::Type::BlendDirectional: return loadBlendDirectionalNode;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -230,6 +235,7 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     case AnimNode::Type::TwoBoneIK: return processDoNothing;
     case AnimNode::Type::SplineIK: return processDoNothing;
     case AnimNode::Type::PoleVectorConstraint: return processDoNothing;
+    case AnimNode::Type::BlendDirectional: return processBlendDirectionalNode;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -402,7 +408,6 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     auto tempUrl = QUrl(url);
     tempUrl = jsonUrl.resolved(tempUrl);
 
-    // AJT:
     AnimBlendType blendTypeEnum = AnimBlendType_Normal;  // default value
     if (!blendType.isEmpty()) {
         blendTypeEnum = stringToAnimBlendType(blendType);
@@ -772,6 +777,32 @@ static AnimNode::Pointer loadPoleVectorConstraintNode(const QJsonObject& jsonObj
     return node;
 }
 
+static AnimNode::Pointer loadBlendDirectionalNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
+
+    READ_VEC3(alpha, jsonObj, id, jsonUrl, nullptr);
+    READ_OPTIONAL_STRING(alphaVar, jsonObj);
+
+    READ_OPTIONAL_STRING(centerId, jsonObj);
+    READ_OPTIONAL_STRING(upId, jsonObj);
+    READ_OPTIONAL_STRING(downId, jsonObj);
+    READ_OPTIONAL_STRING(leftId, jsonObj);
+    READ_OPTIONAL_STRING(rightId, jsonObj);
+    READ_OPTIONAL_STRING(upLeftId, jsonObj);
+    READ_OPTIONAL_STRING(upRightId, jsonObj);
+    READ_OPTIONAL_STRING(downLeftId, jsonObj);
+    READ_OPTIONAL_STRING(downRightId, jsonObj);
+
+    auto node = std::make_shared<AnimBlendDirectional>(id, alpha, centerId,
+                                                       upId, downId, leftId, rightId,
+                                                       upLeftId, upRightId, downLeftId, downRightId);
+
+    if (!alphaVar.isEmpty()) {
+        node->setAlphaVar(alphaVar);
+    }
+
+    return node;
+}
+
 void buildChildMap(std::map<QString, int>& map, AnimNode::Pointer node) {
     for (int i = 0; i < (int)node->getChildCount(); ++i) {
         map.insert(std::pair<QString, int>(node->getChild(i)->getID(), i));
@@ -1042,7 +1073,12 @@ bool processRandomSwitchStateMachineNode(AnimNode::Pointer node, const QJsonObje
     return true;
 }
 
+bool processBlendDirectionalNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl) {
+    auto blendNode = std::static_pointer_cast<AnimBlendDirectional>(node);
+    assert(blendNode);
 
+    return blendNode->lookupChildIds();
+}
 
 AnimNodeLoader::AnimNodeLoader(const QUrl& url) :
     _url(url)

@@ -584,7 +584,7 @@ function restoreLODSettings() {
 
 
 var nametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
-var si = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now())
+var si = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
 var emote = Script.require("../simplifiedEmote/simplifiedEmote.js?" + Date.now());
 var oldShowAudioTools;
 var oldShowBubbleTools;
