@@ -3505,7 +3505,7 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
     } else {
         // Desktop mode.
         if (qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT) {
-            direction = (zSpeed * forward);
+            direction = (zSpeed * forward) + (xSpeed * right);
         } else {
             direction = (zSpeed * forward) + (xSpeed * right);
         }

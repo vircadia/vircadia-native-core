@@ -85,6 +85,15 @@
           "when": ["Application.CameraThirdPerson", "!Keyboard.Shift"],
           "to": "Actions.Yaw"
         },
+        
+        { "from": { "makeAxis" : [
+                ["Keyboard.Left"],
+                ["Keyboard.Right"]
+             ]
+          },
+          "when": ["Application.CameraLookAt", "!Keyboard.Shift"],
+          "to": "Actions.Yaw"
+        },
 
         { "from": { "makeAxis" : [
                 ["Keyboard.A"],
@@ -105,6 +114,15 @@
         },
         
         { "from": { "makeAxis" : [
+                ["Keyboard.A"],
+                ["Keyboard.D"]
+            ]
+          },
+          "when": ["Application.CameraLookAt", "!Keyboard.Control"],
+          "to": "Actions.Yaw"
+        },
+        
+        { "from": { "makeAxis" : [
                 ["Keyboard.TouchpadLeft"],
                 ["Keyboard.TouchpadRight"]
             ]
@@ -119,6 +137,15 @@
             ]
           },
           "when": "Application.CameraThirdPerson",
+          "to": "Actions.Yaw"
+        },
+        
+        { "from": { "makeAxis" : [
+                ["Keyboard.TouchpadLeft"],
+                ["Keyboard.TouchpadRight"]
+            ]
+          },
+          "when": "Application.CameraLookAt",
           "to": "Actions.Yaw"
         },
         
@@ -148,8 +175,10 @@
         { "from": "Keyboard.Right", "when": "Keyboard.Shift", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.Up", "when": "Application.CameraFirstPerson", "to": "Actions.LONGITUDINAL_FORWARD" },
         { "from": "Keyboard.Up", "when": "Application.CameraThirdPerson", "to": "Actions.LONGITUDINAL_FORWARD" },
+        { "from": "Keyboard.Up", "when": "Application.CameraLookAt", "to": "Actions.LONGITUDINAL_FORWARD" },
         { "from": "Keyboard.Down", "when": "Application.CameraFirstPerson", "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.Down", "when": "Application.CameraThirdPerson", "to": "Actions.LONGITUDINAL_BACKWARD" },
+        { "from": "Keyboard.Down", "when": "Application.CameraLookAt", "to": "Actions.LONGITUDINAL_BACKWARD" },
 
         { "from": "Keyboard.PgDown", "to": "Actions.VERTICAL_DOWN" },
         { "from": "Keyboard.PgUp", "to": "Actions.VERTICAL_UP" },

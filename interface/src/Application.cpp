@@ -1873,8 +1873,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _applicationStateDevice->setInputVariant(STATE_CAMERA_THIRD_PERSON, []() -> float {
         return qApp->getCamera().getMode() == CAMERA_MODE_THIRD_PERSON ? 1 : 0;
     });
-    // Look at camera and third person camera use the same input mapping
-    _applicationStateDevice->setInputVariant(STATE_CAMERA_THIRD_PERSON, []() -> float {
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_LOOK_AT, []() -> float {
         return qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_ENTITY, []() -> float {
