@@ -590,6 +590,7 @@ var oldShowAudioTools;
 var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);
 function startup() {
+    
     maybeRemoveDesktopMenu();
     modifyLODSettings();
 
