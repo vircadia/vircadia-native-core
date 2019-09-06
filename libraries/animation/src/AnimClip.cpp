@@ -56,7 +56,7 @@ static void bakeRelativeDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPose
         // for each joint in animPoses
         for (size_t i = 0; i < animPoses.size(); ++i) {
             // convert this relative AnimPose into a delta animation.
-            animPoses[i] = animPoses[i] * invBasePoses[i];
+            animPoses[i] = invBasePoses[i] * animPoses[i];
         }
     }
 }
@@ -80,13 +80,11 @@ void bakeAbsoluteDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& ba
         for (size_t i = 0; i < animPoses.size(); ++i) {
 
             // scale and translation are relative frame
-            animPoses[i] = animPoses[i] * invBasePoses[i];
+            animPoses[i] = invBasePoses[i] * animPoses[i];
 
-            // but transform the rotation delta into the absolute frame.
-            int parentIndex = skeleton->getParentIndex((int)i);
-            if (parentIndex >= 0) {
-                animPoses[i].rot() = absBasePoses[parentIndex].rot() * animPoses[i].rot() * glm::inverse(absBasePoses[parentIndex].rot());
-            }
+            // convert from a rotation that happens in the relative space of the joint
+            // into a rotation that happens in the absolute space of the joint.
+            animPoses[i].rot() = absBasePoses[i].rot() * animPoses[i].rot() * glm::inverse(absBasePoses[i].rot());
         }
     }
 }

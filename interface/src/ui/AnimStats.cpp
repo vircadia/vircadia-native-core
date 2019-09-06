@@ -118,7 +118,7 @@ void AnimStats::updateStats(bool force) {
 
         auto prevIter = _prevDebugAlphaMap.find(key);
         if (prevIter != _prevDebugAlphaMap.end()) {
-            float prevAlpha = std::get<0>(iter.second);
+            float prevAlpha = std::get<0>(prevIter->second);
             if (prevAlpha != alpha) {
                 // change detected: reset timer
                 _animAlphaValueChangedTimers[key] = now;

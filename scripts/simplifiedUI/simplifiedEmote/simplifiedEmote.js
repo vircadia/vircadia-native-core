@@ -543,7 +543,7 @@ function onDisplayModeChanged(isHMDMode) {
 }
 
 
-var emojiAPI = Script.require("./emojiApp/simplifiedEmoji.js");
+var emojiAPI = Script.require("./emojiApp/simplifiedEmoji.js?" + Date.now());
 var keyPressSignalsConnected = false;
 var emojiCodeMap;
 var customEmojiCodeMap;

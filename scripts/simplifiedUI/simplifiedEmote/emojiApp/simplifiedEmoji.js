@@ -79,7 +79,6 @@ function pruneOldAvimojis() {
         });
 }
 
-
 function maybeClearTimeoutDelete() {
     if (defaultTimeout) {
         Script.clearTimeout(defaultTimeout);
@@ -157,6 +156,7 @@ function handleSelectedEmoji(emojiFilename) {
     }
 }
 
+
 function onDomainChanged() {
     resetEmojis();
 }
@@ -164,6 +164,14 @@ function onDomainChanged() {
 
 function onScaleChanged() {
     resetEmojis();
+}
+
+
+function onAddingWearable(id) {
+    var props = Entities.getEntityProperties(id, ["name"]);
+    if (props.name.toLowerCase().indexOf("avimoji") > -1) {
+        Entities.deleteEntity(id);
+    }
 }
 
 
@@ -179,7 +187,13 @@ function onScaleChanged() {
 
 
 // what happens when we need to add an emoji over a user
+var firstEmojiMadeOnStartup = false;
 function addEmoji(emojiFilename) {
+    if (!firstEmojiMadeOnStartup) {
+        firstEmojiMadeOnStartup = true;
+        Entities.addingWearable.disconnect(onAddingWearable);
+    }
+
     if (currentEmoji) {
         resetEmojis();
     }
@@ -418,6 +432,7 @@ function startup() {
     Script.scriptEnding.connect(unload);
     Window.domainChanged.connect(onDomainChanged);
     MyAvatar.scaleChanged.connect(onScaleChanged);
+    Entities.addingWearable.connect(onAddingWearable);
     signalsConnected = true;
 
     function AviMoji() {
@@ -457,6 +472,10 @@ function unload() {
     if (signalsConnected) {
         Window.domainChanged.disconnect(onDomainChanged);
         MyAvatar.scaleChanged.disconnect(onScaleChanged);
+        if (!firstEmojiMadeOnStartup) {
+            Entities.addingWearable.disconnect(onAddingWearable);
+        }
+
         signalsConnected = false;
     }
 }
