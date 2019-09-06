@@ -111,7 +111,7 @@ vec3 fetchNormalMap(vec2 uv) {
     // unpack normal, swizzle to get into hifi tangent space with Y axis pointing out
     vec2 t = 2.0 * (texture(normalMap, uv, TAA_TEXTURE_LOD_BIAS).rg - vec2(0.5, 0.5));
     vec2 t2 = t*t;
-    return vec3(t.x, sqrt(1.0 - t2.x - t2.y), t.y);
+    return vec3(t.x, sqrt(max(0.0, 1.0 - t2.x - t2.y)), t.y);
 }
 <@endif@>
 
