@@ -1354,6 +1354,45 @@
                                                                                                         },
                                                                                                         "id": "seatedReactionApplaud02Outro",
                                                                                                         "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 17,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 0,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_clap03_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionApplaud03Intro",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 111,
+                                                                                                            "loopFlag": true,
+                                                                                                            "startFrame": 17,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_clap03_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionApplaud03Loop",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 136,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 111,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_clap03_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionApplaud03Outro",
+                                                                                                        "type": "clip"
                                                                                                     }
                                                                                                 ],
                                                                                                 "data": {
@@ -1447,6 +1486,51 @@
                                                                                                             "transitions": [
                                                                                                                 {
                                                                                                                     "randomSwitchState": "seatedReactionApplaud02Loop",
+                                                                                                                    "var": "reactionApplaudEnabled"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "seatedReactionApplaud03Intro",
+                                                                                                            "interpDuration": 8,
+                                                                                                            "interpTarget": 8,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionApplaud03Loop",
+                                                                                                                    "var": "seatedReactionApplaud03IntroOnDone"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "seatedReactionApplaud03Loop",
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 0,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionApplaud03Outro",
+                                                                                                                    "var": "reactionApplaudDisabled"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "seatedReactionApplaud03Outro",
+                                                                                                            "interpDuration": 12,
+                                                                                                            "interpTarget": 12,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 0,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionApplaud03Loop",
                                                                                                                     "var": "reactionApplaudEnabled"
                                                                                                                 }
                                                                                                             ]
@@ -3118,7 +3202,7 @@
                                                                                                                 "children": [
                                                                                                                 ],
                                                                                                                 "data": {
-                                                                                                                    "endFrame": 18,
+                                                                                                                    "endFrame": 17,
                                                                                                                     "loopFlag": false,
                                                                                                                     "startFrame": 1,
                                                                                                                     "timeScale": 1,
@@ -3131,9 +3215,9 @@
                                                                                                                 "children": [
                                                                                                                 ],
                                                                                                                 "data": {
-                                                                                                                    "endFrame": 97,
+                                                                                                                    "endFrame": 111,
                                                                                                                     "loopFlag": true,
-                                                                                                                    "startFrame": 18,
+                                                                                                                    "startFrame": 17,
                                                                                                                     "timeScale": 1,
                                                                                                                     "url": "qrc:///avatar/animations/emote_clap01_all.fbx"
                                                                                                                 },
@@ -3144,9 +3228,9 @@
                                                                                                                 "children": [
                                                                                                                 ],
                                                                                                                 "data": {
-                                                                                                                    "endFrame": 146,
+                                                                                                                    "endFrame": 160,
                                                                                                                     "loopFlag": false,
-                                                                                                                    "startFrame": 97,
+                                                                                                                    "startFrame": 111,
                                                                                                                     "timeScale": 1,
                                                                                                                     "url": "qrc:///avatar/animations/emote_clap01_all.fbx"
                                                                                                                 },
