@@ -3409,9 +3409,9 @@ void MyAvatar::updateOrientation(float deltaTime) {
         _lookAtOffsetYaw = _lookAtOffsetYaw * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f)));
         _lookAtOffsetPitch = _lookAtOffsetPitch * glm::quat(glm::radians(glm::vec3(pitchIncrement, 0.0f, 0.0f)));
         if (faceForward) {
-            setWorldOrientation(glm::slerp(getWorldOrientation(), _lookAtOffsetYaw, 0.25f));
+            const float FACE_FORWARD_BLEND = 0.25f;
+            setWorldOrientation(glm::slerp(getWorldOrientation(), _lookAtOffsetYaw, FACE_FORWARD_BLEND));
         }
-        
     }
 
     if (snapTurn) {
@@ -3435,7 +3435,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseRoll(ROLL(euler));
     } else {
         head->setBaseYaw(0.0f);
-        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime
+        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime 
             + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT);
         head->setBaseRoll(0.0f);
     }
@@ -3505,9 +3505,6 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
     } else {
         // Desktop mode.
         if (qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT) {
-            //glm::vec3 frontVector = getWorldOrientation() * IDENTITY_FORWARD;
-            //glm::vec3 frontVectorXY = glm::normalize(glm::vec3(frontVector.x, frontVector.y, 0.0f));
-            //direction = (zSpeed * forward) + (1.0f - glm::abs(glm::dot(frontVectorXY, forward))) * right;
             direction = (zSpeed * forward);
         } else {
             direction = (zSpeed * forward) + (xSpeed * right);
