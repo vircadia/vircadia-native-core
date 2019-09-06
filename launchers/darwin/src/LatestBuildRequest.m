@@ -59,7 +59,7 @@
         NSString* defaultBuildTag = [json valueForKey:@"default_tag"];
 
         NSString* launcherVersion = [launcherValues valueForKey:@"version"];
-        NSString* launcherUrl = [[launcherValues valueForKey:@"mac"] valueForKey:@"url"];
+        NSString* launcherUrl = [[[launcherValues valueForKey:@"mac"] valueForKey:@"url"] stringByRemovingPercentEncoding];
 
         BOOL appDirectoryExist = [fileManager fileExistsAtPath:[[sharedLauncher getAppPath] stringByAppendingString:@"interface.app"]];
 
