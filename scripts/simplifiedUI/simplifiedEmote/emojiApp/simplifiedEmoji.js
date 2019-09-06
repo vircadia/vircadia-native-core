@@ -476,7 +476,7 @@ function unload() {
     if (signalsConnected) {
         Window.domainChanged.disconnect(onDomainChanged);
         MyAvatar.scaleChanged.disconnect(onScaleChanged);
-        if (firstEmojiMadeOnStartup) {
+        if (!firstEmojiMadeOnStartup) {
             Entities.addingWearable.disconnect(onAddingWearable);
         }
 
