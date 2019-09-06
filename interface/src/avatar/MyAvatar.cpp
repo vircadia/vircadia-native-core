@@ -3433,11 +3433,32 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseYaw(YAW(euler));
         head->setBasePitch(PITCH(euler));
         head->setBaseRoll(ROLL(euler));
-    } else {
+    } else if (qApp->getCamera().getMode() != CAMERA_MODE_LOOK_AT) {
         head->setBaseYaw(0.0f);
         head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime 
             + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT);
         head->setBaseRoll(0.0f);
+    } else {
+        head->setBaseYaw(0.0f);
+        head->setBasePitch(0.0f);
+        head->setBaseRoll(0.0f);
+        /*
+        if (_rigEnabled) {
+            glm::vec3 avatarXVector = getWorldOrientation() * Vectors::UNIT_X;
+            glm::vec3 avatarZVector = getWorldOrientation() * Vectors::UNIT_Z;
+            glm::vec3 cameraZVector = _lookAtOffsetYaw * Vectors::UNIT_Z;
+            float xOffset = glm::dot(avatarXVector, cameraZVector);
+            float yOffset = glm::dot(avatarZVector, cameraZVector);
+            const QString HEAD_BLENDING_NAME = "lookAroundAlpha";
+            const QString HEAD_ALPHA_NAME = "additiveBlendAlpha";
+            _skeletonModel->getRig().setDirectionalBlending(HEAD_BLENDING_NAME, glm::vec3(-xOffset, -0.2*yOffset, 0.0f), HEAD_ALPHA_NAME, 1.0f);
+        }
+        */
+        glm::vec3 cameraVector = getLookAtOffset() * Vectors::UNIT_Z;
+        glm::vec3 cameraPos = qApp->getCamera().getPosition();
+        float distanceTargetFromCamera = 2.0f * glm::length(cameraPos - getWorldPosition());
+        glm::vec3 targetPoint = qApp->getCamera().getPosition() + distanceTargetFromCamera * cameraVector;
+        QMetaObject::invokeMethod(this, "headLookAt", Q_ARG(const glm::vec3&, targetPoint));
     }
 }
 
@@ -6311,5 +6332,37 @@ void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
             // Enable movement again
             setSitDriveKeysStatus(true);
         });
+    }
+}
+
+void MyAvatar::headLookAt(const glm::vec3& lookAtTarget) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "headLookAt",
+            Q_ARG(const glm::vec3&, lookAtTarget));
+        return;
+    }
+    if (_rigEnabled) {
+        glm::vec3 avatarXVector = getWorldOrientation() * Vectors::UNIT_X;
+        glm::vec3 avatarYVector = getWorldOrientation() * Vectors::UNIT_Y;
+        glm::vec3 headToTargetVector = lookAtTarget - getHead()->getPosition();
+        if (glm::length(headToTargetVector) > EPSILON) {
+            headToTargetVector = glm::normalize(headToTargetVector);
+        } else {
+            return;
+        }
+        float xOffset = -glm::dot(avatarXVector, headToTargetVector);
+        float yOffset = -glm::dot(avatarYVector, headToTargetVector);
+        const QString HEAD_BLENDING_NAME = "lookAroundAlpha";
+        const QString HEAD_ALPHA_NAME = "additiveBlendAlpha";
+        const float HEAD_ALPHA_BLENDING = 1.0f;
+        const float LOOK_UP_ATTENUATION = 0.75f;
+        const float LOOK_DOWN_ATTENUATION = 0.25f;
+        const float LOOK_AT_TAU = 0.2f;
+        yOffset = yOffset > 0 ? LOOK_UP_ATTENUATION * yOffset : LOOK_DOWN_ATTENUATION * yOffset;
+        _lookAtBlend = _lookAtBlend + LOOK_AT_TAU * (glm::vec3(xOffset, yOffset, 0.0f) - _lookAtBlend);
+
+        
+        _skeletonModel->getRig().setDirectionalBlending(HEAD_BLENDING_NAME, _lookAtBlend, 
+                                                        HEAD_ALPHA_NAME, HEAD_ALPHA_BLENDING);
     }
 }

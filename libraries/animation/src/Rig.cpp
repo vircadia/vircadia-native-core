@@ -2632,3 +2632,8 @@ float Rig::getUnscaledEyeHeight() const {
         return DEFAULT_AVATAR_EYE_HEIGHT;
     }
 }
+
+void Rig::setDirectionalBlending(const QString& targetName, const glm::vec3& blendingTarget, const QString& alphaName, float alpha) {
+    _animVars.set(targetName, blendingTarget);
+    _animVars.set(alphaName, alpha);
+}

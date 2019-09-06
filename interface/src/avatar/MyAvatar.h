@@ -1747,6 +1747,13 @@ public:
     glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); }
     void prepareAvatarEntityDataForReload();
 
+    /**jsdoc
+    * Turn the avatar's head until it faces the target point within the 90/-90 degrees range.
+    * @function MyAvatar.headLookAt
+    * @param {Vec3} lookAtTarget - The target 3D point.
+    */
+    Q_INVOKABLE void headLookAt(const glm::vec3& lookAtTarget);
+
     glm::quat getLookAtOffset() { return _lookAtOffsetYaw * _lookAtOffsetPitch; }
 
     /**jsdoc
@@ -2622,6 +2629,7 @@ private:
 
     glm::quat _lookAtOffsetPitch;
     glm::quat _lookAtOffsetYaw;
+    glm::vec3 _lookAtBlend;
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
