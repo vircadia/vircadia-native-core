@@ -3433,32 +3433,45 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseYaw(YAW(euler));
         head->setBasePitch(PITCH(euler));
         head->setBaseRoll(ROLL(euler));
-    } else if (qApp->getCamera().getMode() != CAMERA_MODE_LOOK_AT) {
-        head->setBaseYaw(0.0f);
-        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime 
-            + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT);
-        head->setBaseRoll(0.0f);
-    } else {
+    } else if (qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT) { 
+        // Reset head orientation before applying the blending offset
         head->setBaseYaw(0.0f);
         head->setBasePitch(0.0f);
         head->setBaseRoll(0.0f);
-        /*
-        if (_rigEnabled) {
-            glm::vec3 avatarXVector = getWorldOrientation() * Vectors::UNIT_X;
-            glm::vec3 avatarZVector = getWorldOrientation() * Vectors::UNIT_Z;
-            glm::vec3 cameraZVector = _lookAtOffsetYaw * Vectors::UNIT_Z;
-            float xOffset = glm::dot(avatarXVector, cameraZVector);
-            float yOffset = glm::dot(avatarZVector, cameraZVector);
-            const QString HEAD_BLENDING_NAME = "lookAroundAlpha";
-            const QString HEAD_ALPHA_NAME = "additiveBlendAlpha";
-            _skeletonModel->getRig().setDirectionalBlending(HEAD_BLENDING_NAME, glm::vec3(-xOffset, -0.2*yOffset, 0.0f), HEAD_ALPHA_NAME, 1.0f);
+        // Attenuate head pitch
+        glm::vec3 cameraVector = (faceForward ? _lookAtOffsetPitch * getWorldOrientation() : getLookAtOffset()) * Vectors::UNIT_Z;
+        glm::vec3 cameraYawVector = _lookAtOffsetYaw * Vectors::UNIT_Z;
+        float upDownDirection = glm::dot(cameraVector, Vectors::UNIT_Y);
+        float upDownValue = abs(upDownDirection);
+        const float LOOK_UP_MIN_DOT = 0.25f;
+        const float LOOK_DOWN_MIN_DOT = 0.75f;
+        if (upDownDirection < 0.0f) {
+            float lookUpAttenuation = upDownValue > LOOK_UP_MIN_DOT ? (upDownValue - LOOK_UP_MIN_DOT) / (1.0f - LOOK_UP_MIN_DOT) : 0.0f;
+            cameraVector = glm::mix(cameraVector, cameraYawVector, 1.0f - lookUpAttenuation);
+        } else {
+            float lookDownAttenuation = upDownValue > LOOK_DOWN_MIN_DOT ? (upDownValue - LOOK_DOWN_MIN_DOT) / (1.0f - LOOK_DOWN_MIN_DOT) : 0.0f;
+            cameraVector = glm::mix(cameraVector, cameraYawVector, 1.0f - lookDownAttenuation);
         }
-        */
-        glm::vec3 cameraVector = getLookAtOffset() * Vectors::UNIT_Z;
+        // Calculate the camera target point.
         glm::vec3 cameraPos = qApp->getCamera().getPosition();
         float distanceTargetFromCamera = 2.0f * glm::length(cameraPos - getWorldPosition());
         glm::vec3 targetPoint = qApp->getCamera().getPosition() + distanceTargetFromCamera * cameraVector;
-        QMetaObject::invokeMethod(this, "headLookAt", Q_ARG(const glm::vec3&, targetPoint));
+
+        const float LOOKAT_MIX_ALPHA = 0.05f;
+        const float FPS = 60.0f;
+
+        // Approximate the head's look at vector to the camera look at vector with some delay. 
+        float mixAlpha = LOOKAT_MIX_ALPHA * deltaTime * FPS;
+        mixAlpha = targetSpeed != 0.0f ? mixAlpha * abs(targetSpeed) / _yawSpeed : mixAlpha;
+        _lookAtCameraTarget = glm::mix(_lookAtCameraTarget, targetPoint, mixAlpha);
+
+        // Set the head look at target
+        QMetaObject::invokeMethod(this, "headLookAt", Q_ARG(const glm::vec3&, _lookAtCameraTarget));
+    } else {
+        head->setBaseYaw(0.0f);
+        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime
+            + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT);
+        head->setBaseRoll(0.0f);
     }
 }
 
@@ -6348,6 +6361,7 @@ void MyAvatar::headLookAt(const glm::vec3& lookAtTarget) {
         if (glm::length(headToTargetVector) > EPSILON) {
             headToTargetVector = glm::normalize(headToTargetVector);
         } else {
+            // The target point is the avatar head
             return;
         }
         float xOffset = -glm::dot(avatarXVector, headToTargetVector);
@@ -6355,14 +6369,8 @@ void MyAvatar::headLookAt(const glm::vec3& lookAtTarget) {
         const QString HEAD_BLENDING_NAME = "lookAroundAlpha";
         const QString HEAD_ALPHA_NAME = "additiveBlendAlpha";
         const float HEAD_ALPHA_BLENDING = 1.0f;
-        const float LOOK_UP_ATTENUATION = 0.75f;
-        const float LOOK_DOWN_ATTENUATION = 0.25f;
-        const float LOOK_AT_TAU = 0.2f;
-        yOffset = yOffset > 0 ? LOOK_UP_ATTENUATION * yOffset : LOOK_DOWN_ATTENUATION * yOffset;
-        _lookAtBlend = _lookAtBlend + LOOK_AT_TAU * (glm::vec3(xOffset, yOffset, 0.0f) - _lookAtBlend);
-
-        
-        _skeletonModel->getRig().setDirectionalBlending(HEAD_BLENDING_NAME, _lookAtBlend, 
+        glm::vec3 lookAtBlend = glm::vec3(xOffset, yOffset, 0.0f);
+        _skeletonModel->getRig().setDirectionalBlending(HEAD_BLENDING_NAME, lookAtBlend, 
                                                         HEAD_ALPHA_NAME, HEAD_ALPHA_BLENDING);
     }
 }

@@ -2629,7 +2629,7 @@ private:
 
     glm::quat _lookAtOffsetPitch;
     glm::quat _lookAtOffsetYaw;
-    glm::vec3 _lookAtBlend;
+    glm::vec3 _lookAtCameraTarget;
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
