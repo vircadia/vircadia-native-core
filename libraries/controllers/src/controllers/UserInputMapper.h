@@ -82,13 +82,14 @@ namespace controller {
         QString getActionName(Action action) const;
         QString getStandardPoseName(uint16_t pose);
         float getActionState(Action action) const { return _actionStates[toInt(action)]; }
+        bool getActionStateValid(Action action) const { return _actionStatesValid[toInt(action)]; }
         Pose getPoseState(Action action) const;
         int findAction(const QString& actionName) const;
         QVector<QString> getActionNames() const;
         Input inputFromAction(Action action) const { return getActionInputs()[toInt(action)].first; }
 
-        void setActionState(Action action, float value) { _actionStates[toInt(action)] = value; }
-        void deltaActionState(Action action, float delta) { _actionStates[toInt(action)] += delta; }
+        void setActionState(Action action, float value, bool valid = true);
+        void deltaActionState(Action action, float delta, bool valid = true);
         void setActionState(Action action, const Pose& value) { _poseStates[toInt(action)] = value; }
         bool triggerHapticPulse(float strength, float duration, controller::Hand hand);
         bool triggerHapticPulseOnDevice(uint16 deviceID, float strength, float duration, controller::Hand hand);
@@ -146,6 +147,7 @@ namespace controller {
         std::vector<float> _actionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
         std::vector<float> _actionScales = std::vector<float>(toInt(Action::NUM_ACTIONS), 1.0f);
         std::vector<float> _lastActionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
+        std::vector<bool> _actionStatesValid = std::vector<bool>(toInt(Action::NUM_ACTIONS), false);
         std::vector<Pose> _poseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
         std::vector<AxisValue> _lastStandardStates = std::vector<AxisValue>();
 
@@ -167,7 +169,7 @@ namespace controller {
         ConditionalPointer conditionalFor(const QJSValue& endpoint);
         ConditionalPointer conditionalFor(const QScriptValue& endpoint);
         ConditionalPointer conditionalFor(const Input& endpoint) const;
-        
+
         MappingPointer parseMapping(const QJsonValue& json);
         RoutePointer parseRoute(const QJsonValue& value);
         EndpointPointer parseDestination(const QJsonValue& value);
