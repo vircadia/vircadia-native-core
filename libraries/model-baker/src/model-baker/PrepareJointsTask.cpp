@@ -107,7 +107,6 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
                     glm::quat rotationOffset = itr.value();
                     jointRotationOffsets.insert(jointIndex, rotationOffset);
                     qCDebug(model_baker) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
-                    break;
                 }
             }
         }
