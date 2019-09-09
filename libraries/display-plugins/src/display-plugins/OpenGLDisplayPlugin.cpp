@@ -586,7 +586,7 @@ void OpenGLDisplayPlugin::updateFrameData() {
 std::function<void(gpu::Batch&, const gpu::TexturePointer&)> OpenGLDisplayPlugin::getHUDOperator() {
     auto hudPipeline = _hudPipeline;
     auto hudStereo = isStereo();
-    auto hudCompositeFramebufferSize = _compositeFramebuffer->getSize();
+    auto hudCompositeFramebufferSize = getRecommendedRenderSize();
     std::array<glm::ivec4, 2> hudEyeViewports;
     for_each_eye([&](Eye eye) {
         hudEyeViewports[eye] = eyeViewport(eye);
