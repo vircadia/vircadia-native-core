@@ -14,8 +14,8 @@
 #include <QQmlEngine>
 
 static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_FOR_UI_STATE =
-    { { "qrc:/qml/SplashScreen.qml", "qrc:/qml/Login.qml", "qrc:/qml/DisplayName.qml",
-        "qrc:/qml/Download.qml", "qrc:/qml/DownloadFinshed.qml", "qrc:/qml/Error.qml" } };
+    { { "qrc:/qml/SplashScreen.qml", "qrc:/qml/HFBase/CreateAccountBase.qml", "qrc:/qml/DisplayName.qml",
+        "qrc:/qml/Download.qml", "qrc:/qml/DownloadFinished.qml", "qrc:/qml/HFBase/Error.qml" } };
 
 LauncherState::LauncherState() {
     // TODO Show splash screen until this request is complete
@@ -61,7 +61,7 @@ LauncherState::LauncherState() {
                 }
             }
         }
-        setUIState(LauncherState::LOGIN_SCREEN);
+        //setUIState(LauncherState::LOGIN_SCREEN);
     });
 }
 

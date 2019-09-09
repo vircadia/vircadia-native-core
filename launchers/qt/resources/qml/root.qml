@@ -4,11 +4,11 @@ import QtQuick 2.3
 import QtQuick.Controls 2.1
 import HQLauncher 1.0
 import "HFControls"
-Image {
+Item {
     id: root
     width: 515
-    height: 450
-    source: "../images/hifi_window@2x.png"
+    height: 390
+    //source: "../images/hifi_window@2x.png"
 
     Loader {
         anchors.fill: parent
