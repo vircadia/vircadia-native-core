@@ -740,7 +740,8 @@ bool EntityMotionState::shouldSendBid() const {
         && (_region == workload::Region::R1)
         && _ownershipState != EntityMotionState::OwnershipState::Unownable
         && glm::max(glm::max(VOLUNTEER_SIMULATION_PRIORITY, _bumpedPriority), _entity->getScriptSimulationPriority()) >= _entity->getSimulationPriority()
-        && !_entity->getLocked();
+        && !_entity->getLocked()
+        && (!_body->isStaticOrKinematicObject() || _entity->stillHasMyGrab());
 }
 
 void EntityMotionState::setRigidBody(btRigidBody* body) {
