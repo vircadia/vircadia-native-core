@@ -21,6 +21,7 @@
 #include <EntityEditPacketSender.h>
 #include <plugins/CodecPlugin.h>
 #include <ScriptEngine.h>
+#include <SimpleEntitySimulation.h>
 #include <ThreadedAssignment.h>
 #include "../entities/EntityTreeHeadlessViewer.h"
 
@@ -75,6 +76,7 @@ private:
 
     static int _entitiesScriptEngineCount;
     ScriptEnginePointer _entitiesScriptEngine;
+    SimpleEntitySimulationPointer _entitySimulation;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
 

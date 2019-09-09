@@ -798,7 +798,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     auto lastEdited = lastEditedFromBufferAdjusted;
     bool otherOverwrites = overwriteLocalData && !weOwnSimulation;
     // calculate hasGrab once outside the lambda rather than calling it every time inside
-    bool hasGrab = stillHasGrabAction();
+    bool hasGrab = stillHasGrab();
     auto shouldUpdate = [lastEdited, otherOverwrites, filterRejection, hasGrab](quint64 updatedTimestamp, bool valueChanged) {
         if (hasGrab) {
             return false;
@@ -1444,7 +1444,7 @@ void EntityItem::getTransformAndVelocityProperties(EntityItemProperties& propert
 
 void EntityItem::upgradeScriptSimulationPriority(uint8_t priority) {
     uint8_t newPriority = glm::max(priority, _scriptSimulationPriority);
-    if (newPriority < SCRIPT_GRAB_SIMULATION_PRIORITY && stillHasMyGrabAction()) {
+    if (newPriority < SCRIPT_GRAB_SIMULATION_PRIORITY && stillHasMyGrab()) {
         newPriority = SCRIPT_GRAB_SIMULATION_PRIORITY;
     }
     if (newPriority != _scriptSimulationPriority) {
@@ -1457,7 +1457,7 @@ void EntityItem::upgradeScriptSimulationPriority(uint8_t priority) {
 void EntityItem::clearScriptSimulationPriority() {
     // DO NOT markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY) here, because this
     // is only ever called from the code that actually handles the dirty flags, and it knows best.
-    _scriptSimulationPriority = stillHasMyGrabAction() ? SCRIPT_GRAB_SIMULATION_PRIORITY : 0;
+    _scriptSimulationPriority = stillHasMyGrab() ? SCRIPT_GRAB_SIMULATION_PRIORITY : 0;
 }
 
 void EntityItem::setPendingOwnershipPriority(uint8_t priority) {
@@ -2204,7 +2204,7 @@ void EntityItem::enableNoBootstrap() {
 }
 
 void EntityItem::disableNoBootstrap() {
-    if (!stillHasMyGrabAction()) {
+    if (!stillHasMyGrab()) {
         _flags &= ~Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING;
         _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
 
@@ -2290,33 +2290,25 @@ bool EntityItem::removeAction(EntitySimulationPointer simulation, const QUuid& a
     return success;
 }
 
-bool EntityItem::stillHasGrabAction() const {
-    return !_grabActions.empty();
+bool EntityItem::stillHasGrab() const {
+    return !(_grabs.empty());
 }
 
-// retutrns 'true' if there exists an action that returns 'true' for EntityActionInterface::isMine()
+// returns 'true' if there exists an action that returns 'true' for EntityActionInterface::isMine()
 // (e.g. the action belongs to the MyAvatar instance)
-bool EntityItem::stillHasMyGrabAction() const {
-    QList<EntityDynamicPointer> holdActions = getActionsOfType(DYNAMIC_TYPE_HOLD);
-    QList<EntityDynamicPointer>::const_iterator i = holdActions.begin();
-    while (i != holdActions.end()) {
-        EntityDynamicPointer action = *i;
-        if (action->isMine()) {
-            return true;
-        }
-        i++;
+bool EntityItem::stillHasMyGrab() const {
+    bool foundGrab = false;
+    if (!_grabs.empty()) {
+        _grabsLock.withReadLock([&] {
+            foreach (const GrabPointer &grab, _grabs) {
+                if (grab->getOwnerID() == Physics::getSessionUUID()) {
+                    foundGrab = true;
+                    break;
+                }
+            }
+        });
     }
-    QList<EntityDynamicPointer> farGrabActions = getActionsOfType(DYNAMIC_TYPE_FAR_GRAB);
-    i = farGrabActions.begin();
-    while (i != farGrabActions.end()) {
-        EntityDynamicPointer action = *i;
-        if (action->isMine()) {
-            return true;
-        }
-        i++;
-    }
-
-    return false;
+    return foundGrab;
 }
 
 bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPointer simulation) {
