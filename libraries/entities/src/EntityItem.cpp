@@ -1075,16 +1075,13 @@ void EntityItem::setMass(float mass) {
 
 void EntityItem::setHref(QString value) {
     auto href = value.toLower();
-
-    // If the string has something and doesn't start with with "hifi://" it shouldn't be set
-    // We allow the string to be empty, because that's the initial state of this property
-    if (!value.isEmpty() &&
-        !(value.toLower().startsWith("hifi://")) &&
-        !(value.toLower().startsWith("file://"))
-        // TODO: serverless-domains will eventually support http and https also
-        ) {
-        return;
-    }
+    // Let's let the user set the value of this property to anything, then let consumers of the property
+    // decide what to do with it. Currently, the only in-engine consumers are `EntityTreeRenderer::mousePressEvent()`
+    // and `OtherAvatar::handleChangedAvatarEntityData()` (to remove the href property from others' avatar entities).
+    //
+    // We want this property to be as flexible as possible. The value of this property _should_ only be values that can
+    // be handled by `AddressManager::handleLookupString()`. That function will return `false` and not do
+    // anything if the value of this property isn't something that function can handle.
     withWriteLock([&] {
         _href = value;
     });
