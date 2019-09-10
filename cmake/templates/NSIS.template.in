@@ -1159,9 +1159,11 @@ Section "-Core installation"
   ; 2016-02-25 - The following delete blocks are temporary and can be removed once users who had the initial installer have updated
   ; 2019-09-10 - (3 and a half years later) Sure they are buddy.  Sure they are.
 
-  ;Delete any server executables that might have been installed by bad versions of the client-only installer
-  Delete "$INSTDIR\assignment-client.exe"
-  Delete "$INSTDIR\domain-server.exe"
+  ;Delete any server executables that might have been installed by bad versions of the client-only installer, but ONLY if we are a client-only installer
+  ${If} "@INSTALLER_TYPE@" == "client_only"
+    Delete "$INSTDIR\assignment-client.exe"
+    Delete "$INSTDIR\domain-server.exe"
+  ${EndIf}
 
   ;Delete any server-console files installed before it was placed in sub-folder
   Delete "$INSTDIR\server-console.exe"
