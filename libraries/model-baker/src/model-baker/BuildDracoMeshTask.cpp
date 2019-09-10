@@ -222,21 +222,23 @@ void BuildDracoMeshTask::run(const baker::BakeContextPointer& context, const Inp
     auto& materialLists = output.edit2();
 
     dracoBytesPerMesh.reserve(meshes.size());
-    dracoErrorsPerMesh.reserve(meshes.size());
+    // vector<bool> is an exception to the std::vector conventions as it is a bit field
+    // So a bool reference to an element doesn't work
+    dracoErrorsPerMesh.resize(meshes.size());
     materialLists.reserve(meshes.size());
     for (size_t i = 0; i < meshes.size(); i++) {
         const auto& mesh = meshes[i];
         const auto& normals = baker::safeGet(normalsPerMesh, i);
         const auto& tangents = baker::safeGet(tangentsPerMesh, i);
         dracoBytesPerMesh.emplace_back();
-        dracoErrorsPerMesh.emplace_back();
         auto& dracoBytes = dracoBytesPerMesh.back();
-        auto& dracoError = dracoErrorsPerMesh.back();
         materialLists.push_back(createMaterialList(mesh));
         const auto& materialList = materialLists.back();
 
+        bool dracoError;
         std::unique_ptr<draco::Mesh> dracoMesh;
         std::tie(dracoMesh, dracoError) = createDracoMesh(mesh, normals, tangents, materialList);
+        dracoErrorsPerMesh[dracoErrorsPerMesh.size()-1] = dracoError;
 
         if (dracoMesh) {
             draco::Encoder encoder;

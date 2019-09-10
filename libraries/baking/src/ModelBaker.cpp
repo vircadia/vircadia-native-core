@@ -246,11 +246,10 @@ void ModelBaker::bakeSourceCopy() {
         // Begin hfm baking
         baker.run();
 
-        for (auto error : baker.getDracoErrors()) {
-            if (error) {
-                handleError("Failed to finalize the baking of a draco Geometry node from model " + _modelURL.toString());
-                return;
-            }
+        const auto& errors = baker.getDracoErrors();
+        if (std::find(errors.cbegin(), errors.cend(), true) != errors.cend()) {
+            handleError("Failed to finalize the baking of a draco Geometry node from model " + _modelURL.toString());
+            return;
         }
 
         _hfmModel = baker.getHFMModel();
