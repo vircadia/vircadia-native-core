@@ -16,10 +16,12 @@
 // *************************************
 // #region dependencies
 
+
 // The information needed to properly use the sprite sheets and get the general information
 // about the emojis
 var emojiList = Script.require("./emojiApp/resources/modules/emojiList.js");
 var customEmojiList = Script.require("./emojiApp/resources/modules/customEmojiList.js");
+
 
 // #endregion
 // *************************************
@@ -181,6 +183,7 @@ function maybeClearClapSoundInterval() {
     }
 }
 
+
 // URLs for this fn are relative to SimplifiedEmoteIndicator.qml
 function toggleReaction(reaction) {
     var reactionEnding = reactionsBegun.indexOf(reaction) > -1;
@@ -192,12 +195,14 @@ function toggleReaction(reaction) {
     }
 }
 
+
 function maybeDeleteRemoteIndicatorTimeout() {
     if (restoreEmoteIndicatorTimeout) {
         Script.clearTimeout(restoreEmoteIndicatorTimeout);
         restoreEmoteIndicatorTimeout = null;
     }
 }
+
 
 var reactionsBegun = [];
 var pointReticle = null;
@@ -228,6 +233,7 @@ function beginReactionWrapper(reaction) {
             }
     }
 }
+
 
 // Checks to see if there are any reticle entities already to delete
 function deleteOldReticles() {
@@ -313,6 +319,7 @@ function triggerReactionWrapper(reaction) {
     }, WAIT_TO_RESTORE_EMOTE_INDICATOR_ICON_MS);
 }
 
+
 function maybeClearReticleUpdateLimiterTimeout() {
     if (reticleUpdateRateLimiterTimer) {
         Script.clearTimeout(reticleUpdateRateLimiterTimer);
@@ -393,6 +400,7 @@ function onMessageFromEmoteAppBar(message) {
     }
 }
 
+
 function getEmojiURLFromCode(code) {
     var emojiObject = emojiList[emojiCodeMap[code]];
     var emojiFilename;
@@ -404,6 +412,7 @@ function getEmojiURLFromCode(code) {
     }
     return "../../emojiApp/resources/images/emojis/52px/" + emojiFilename;
 }
+
 
 function updateEmoteIndicatorIcon(iconURL) {
     emoteAppBarWindow.sendToQml({
@@ -451,7 +460,10 @@ function keyPressHandler(event) {
         } else if (event.text === RAISE_HAND_KEY) {
             toggleReaction("raiseHand");
         } else if (event.text === APPLAUD_KEY) {
-            toggleReaction("applaud");
+            // Make sure this doesn't get triggered if you are flying, falling, or jumping
+            if (!MyAvatar.isInAir()) {
+                toggleReaction("applaud");
+            }
         } else if (event.text === POINT_KEY) {
             toggleReaction("point");
         } else if (event.text === EMOTE_WINDOW && !(Settings.getValue("io.highfidelity.isEditing", false))) {
@@ -639,6 +651,7 @@ function unload() {
 // *************************************
 // #region EMOJI_UTILITY
 
+
 var EMOJI_52_BASE_URL = "../../resources/images/emojis/52px/";
 function selectedEmoji(code) {
     emojiAPI.addEmoji(code);
@@ -743,6 +756,7 @@ function toggleEmojiApp() {
     // to update the Selected emoji UI
     emojiAPI.registerAvimojiQMLWindow(emojiAppWindow);
 }
+
 
 // #endregion
 // *************************************
