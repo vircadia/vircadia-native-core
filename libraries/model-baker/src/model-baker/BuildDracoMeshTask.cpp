@@ -51,7 +51,7 @@ std::vector<hifi::ByteArray> createMaterialList(const hfm::Mesh& mesh) {
     return materialList;
 }
 
-std::unique_ptr<draco::Mesh> createDracoMesh(const hfm::Mesh& mesh, const std::vector<glm::vec3>& normals, const std::vector<glm::vec3>& tangents, const std::vector<hifi::ByteArray>& materialList) {
+std::tuple<std::unique_ptr<draco::Mesh>, bool> createDracoMesh(const hfm::Mesh& mesh, const std::vector<glm::vec3>& normals, const std::vector<glm::vec3>& tangents, const std::vector<hifi::ByteArray>& materialList) {
     Q_ASSERT(normals.size() == 0 || (int)normals.size() == mesh.vertices.size());
     Q_ASSERT(mesh.colors.size() == 0 || mesh.colors.size() == mesh.vertices.size());
     Q_ASSERT(mesh.texCoords.size() == 0 || mesh.texCoords.size() == mesh.vertices.size());
@@ -68,7 +68,7 @@ std::unique_ptr<draco::Mesh> createDracoMesh(const hfm::Mesh& mesh, const std::v
     }
 
     if (numTriangles == 0) {
-        return std::unique_ptr<draco::Mesh>();
+        return std::make_tuple(std::unique_ptr<draco::Mesh>(), false);
     }
 
     draco::TriangleSoupMeshBuilder meshBuilder;
@@ -184,7 +184,7 @@ std::unique_ptr<draco::Mesh> createDracoMesh(const hfm::Mesh& mesh, const std::v
 
     if (!dracoMesh) {
         qCWarning(model_baker) << "Failed to finalize the baking of a draco Geometry node";
-        return std::unique_ptr<draco::Mesh>();
+        return std::make_tuple(std::unique_ptr<draco::Mesh>(), true);
     }
 
     // we need to modify unique attribute IDs for custom attributes
@@ -201,7 +201,7 @@ std::unique_ptr<draco::Mesh> createDracoMesh(const hfm::Mesh& mesh, const std::v
         dracoMesh->attribute(originalIndexAttributeID)->set_unique_id(DRACO_ATTRIBUTE_ORIGINAL_INDEX);
     }
     
-    return dracoMesh;
+    return std::make_tuple(std::move(dracoMesh), false);
 }
 #endif // not Q_OS_ANDROID
 
@@ -218,20 +218,25 @@ void BuildDracoMeshTask::run(const baker::BakeContextPointer& context, const Inp
     const auto& normalsPerMesh = input.get1();
     const auto& tangentsPerMesh = input.get2();
     auto& dracoBytesPerMesh = output.edit0();
-    auto& materialLists = output.edit1();
+    auto& dracoErrorsPerMesh = output.edit1();
+    auto& materialLists = output.edit2();
 
     dracoBytesPerMesh.reserve(meshes.size());
+    dracoErrorsPerMesh.reserve(meshes.size());
     materialLists.reserve(meshes.size());
     for (size_t i = 0; i < meshes.size(); i++) {
         const auto& mesh = meshes[i];
         const auto& normals = baker::safeGet(normalsPerMesh, i);
         const auto& tangents = baker::safeGet(tangentsPerMesh, i);
         dracoBytesPerMesh.emplace_back();
+        dracoErrorsPerMesh.emplace_back();
         auto& dracoBytes = dracoBytesPerMesh.back();
+        auto& dracoError = dracoErrorsPerMesh.back();
         materialLists.push_back(createMaterialList(mesh));
         const auto& materialList = materialLists.back();
 
-        auto dracoMesh = createDracoMesh(mesh, normals, tangents, materialList);
+        std::unique_ptr<draco::Mesh> dracoMesh;
+        std::tie(dracoMesh, dracoError) = createDracoMesh(mesh, normals, tangents, materialList);
 
         if (dracoMesh) {
             draco::Encoder encoder;

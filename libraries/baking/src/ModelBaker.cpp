@@ -246,6 +246,13 @@ void ModelBaker::bakeSourceCopy() {
         // Begin hfm baking
         baker.run();
 
+        for (auto error : baker.getDracoErrors()) {
+            if (error) {
+                handleError("Failed to finalize the baking of a draco Geometry node from model " + _modelURL.toString());
+                return;
+            }
+        }
+
         _hfmModel = baker.getHFMModel();
         _materialMapping = baker.getMaterialMapping();
         dracoMeshes = baker.getDracoMeshes();
@@ -437,8 +444,7 @@ void ModelBaker::abort() {
 
 bool ModelBaker::buildDracoMeshNode(FBXNode& dracoMeshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList) {
     if (dracoMeshBytes.isEmpty()) {
-        handleError("Failed to finalize the baking of a draco Geometry node from model " + _modelURL.toString());
-        return false;
+        handleWarning("Empty mesh detected in model: '" + _modelURL.toString() + "'. It will be included in the baked output.");
     }
 
     FBXNode dracoNode;
