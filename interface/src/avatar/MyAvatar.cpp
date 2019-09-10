@@ -349,7 +349,8 @@ MyAvatar::MyAvatar(QThread* thread) :
         }
     });
 
-    connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SIGNAL(onLoadComplete()));
+    connect(&(_skeletonModel->getRig()), &Rig::onLoadComplete, this, &MyAvatar::onLoadComplete);
+    connect(&(_skeletonModel->getRig()), &Rig::onLoadFailed, this, &MyAvatar::onLoadFailed);
 
     _characterController.setDensity(_density);
 }
@@ -2626,6 +2627,8 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
     if (urlString.isEmpty() || (fullAvatarURL != getSkeletonModelURL())) {
         setSkeletonModelURL(fullAvatarURL);
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
+    } else {
+        emit onLoadComplete();
     }
 }
 

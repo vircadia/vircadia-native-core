@@ -2353,6 +2353,7 @@ void Rig::initAnimGraph(const QUrl& url) {
             // abort load if the previous skeleton was deleted.
             auto sharedSkeletonPtr = weakSkeletonPtr.lock();
             if (!sharedSkeletonPtr) {
+                emit onLoadFailed();
                 return;
             }
 
@@ -2386,8 +2387,9 @@ void Rig::initAnimGraph(const QUrl& url) {
             }
             emit onLoadComplete();
         });
-        connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
+        connect(_animLoader.get(), &AnimNodeLoader::error, [this, url](int error, QString str) {
             qCritical(animation) << "Error loading: code = " << error << "str =" << str;
+            emit onLoadFailed();
         });
 
         connect(_networkLoader.get(), &AnimNodeLoader::success, [this, weakSkeletonPtr, networkUrl](AnimNode::Pointer nodeIn) {
@@ -2415,6 +2417,8 @@ void Rig::initAnimGraph(const QUrl& url) {
         connect(_networkLoader.get(), &AnimNodeLoader::error, [networkUrl](int error, QString str) {
             qCritical(animation) << "Error loading: code = " << error << "str =" << str;
         });
+    } else {
+        emit onLoadComplete();
     }
 }
 

@@ -2435,9 +2435,16 @@ signals:
     /**jsdoc
      * Triggered when the avatar's model finishes loading.
      * @function MyAvatar.onLoadComplete
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     void onLoadComplete();
+
+    /**jsdoc
+     * Triggered when the avatar's model has failed to load.
+     * @function MyAvatar.onLoadFailed
+     * @returns {Signal}
+     */
+    void onLoadFailed();
 
     /**jsdoc
      * Triggered when your avatar changes from being active to being away.
