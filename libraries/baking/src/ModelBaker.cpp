@@ -437,7 +437,7 @@ void ModelBaker::abort() {
 
 bool ModelBaker::buildDracoMeshNode(FBXNode& dracoMeshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList) {
     if (dracoMeshBytes.isEmpty()) {
-        handleError("Failed to finalize the baking of a draco Geometry node");
+        handleError("Failed to finalize the baking of a draco Geometry node from model " + _modelURL.toString());
         return false;
     }
 
