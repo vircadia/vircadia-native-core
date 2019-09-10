@@ -585,26 +585,13 @@ void OpenGLDisplayPlugin::updateFrameData() {
 
 std::function<void(gpu::Batch&, const gpu::TexturePointer&)> OpenGLDisplayPlugin::getHUDOperator() {
     auto hudPipeline = _hudPipeline;
-    auto hudStereo = isStereo();
-    auto hudCompositeFramebufferSize = _compositeFramebuffer->getSize();
-    std::array<glm::ivec4, 2> hudEyeViewports;
-    for_each_eye([&](Eye eye) {
-        hudEyeViewports[eye] = eyeViewport(eye);
-    });
+    auto hudCompositeFramebufferSize = getRecommendedRenderSize();
     return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture) {
         if (hudPipeline && hudTexture) {
-            batch.enableStereo(false);
             batch.setPipeline(hudPipeline);
             batch.setResourceTexture(0, hudTexture);
-            if (hudStereo) {
-                for_each_eye([&](Eye eye) {
-                    batch.setViewportTransform(hudEyeViewports[eye]);
-                    batch.draw(gpu::TRIANGLE_STRIP, 4);
-                });
-            } else {
-                batch.setViewportTransform(ivec4(uvec2(0), hudCompositeFramebufferSize));
-                batch.draw(gpu::TRIANGLE_STRIP, 4);
-            }
+            batch.setViewportTransform(ivec4(uvec2(0), hudCompositeFramebufferSize));
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
     };
 }
@@ -614,22 +601,14 @@ void OpenGLDisplayPlugin::compositePointer() {
     const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
     auto cursorTransform = DependencyManager::get<CompositorHelper>()->getReticleTransform(glm::mat4());
     render([&](gpu::Batch& batch) {
-        batch.enableStereo(false);
         batch.setProjectionTransform(mat4());
         batch.setFramebuffer(_compositeFramebuffer);
         batch.setPipeline(_cursorPipeline);
         batch.setResourceTexture(0, cursorData.texture);
         batch.resetViewTransform();
         batch.setModelTransform(cursorTransform);
-        if (isStereo()) {
-            for_each_eye([&](Eye eye) {
-                batch.setViewportTransform(eyeViewport(eye));
-                batch.draw(gpu::TRIANGLE_STRIP, 4);
-            });
-        } else {
-            batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
-        }
+        batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
 }
 
@@ -871,16 +850,6 @@ bool OpenGLDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     return Parent::beginFrameRender(frameIndex);
 }
 
-ivec4 OpenGLDisplayPlugin::eyeViewport(Eye eye) const {
-    uvec2 vpSize = _compositeFramebuffer->getSize();
-    vpSize.x /= 2;
-    uvec2 vpPos;
-    if (eye == Eye::Right) {
-        vpPos.x = vpSize.x;
-    }
-    return ivec4(vpPos, vpSize);
-}
-
 gpu::gl::GLBackend* OpenGLDisplayPlugin::getGLBackend() {
     if (!_gpuContext || !_gpuContext->getBackend()) {
         return nullptr;
@@ -906,7 +875,7 @@ OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 }
 
 void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
-    auto renderSize = glm::uvec2(getRecommendedRenderSize());
+    auto renderSize = getRecommendedRenderSize();
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
         _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_SRGBA_32, renderSize.x, renderSize.y));
     }
