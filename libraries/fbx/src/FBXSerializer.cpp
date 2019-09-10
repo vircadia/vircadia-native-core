@@ -1624,7 +1624,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
         }
 
-        hfmModel.meshes.append(extracted.mesh);
+        hfmModel.meshes.push_back(extracted.mesh);
         int meshIndex = hfmModel.meshes.size() - 1;
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
     }

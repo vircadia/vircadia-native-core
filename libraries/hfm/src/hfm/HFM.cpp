@@ -76,7 +76,7 @@ QStringList HFMModel::getJointNames() const {
 }
 
 bool HFMModel::hasBlendedMeshes() const {
-    if (!meshes.isEmpty()) {
+    if (!meshes.empty()) {
         foreach (const HFMMesh& mesh, meshes) {
             if (!mesh.blendshapes.isEmpty()) {
                 return true;

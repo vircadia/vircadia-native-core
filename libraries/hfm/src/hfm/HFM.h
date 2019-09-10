@@ -228,7 +228,7 @@ public:
 class Mesh {
 public:
 
-    QVector<MeshPart> parts;
+    std::vector<MeshPart> parts;
 
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
@@ -314,11 +314,11 @@ public:
 
     std::vector<Shape> shapes;
 
+    std::vector<Mesh> meshes;
+
     QVector<Joint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
     bool hasSkeletonJoints;
-
-    QVector<Mesh> meshes;
     QVector<QString> scripts;
 
     QHash<QString, Material> materials;

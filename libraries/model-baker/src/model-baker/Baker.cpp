@@ -32,7 +32,7 @@ namespace baker {
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
             const auto& hfmModelIn = input;
-            output.edit0() = hfmModelIn->meshes.toStdVector();
+            output.edit0() = hfmModelIn->meshes;
             output.edit1() = hfmModelIn->originalURL;
             output.edit2() = hfmModelIn->meshIndicesToModelNames;
             auto& blendshapesPerMesh = output.edit3();
@@ -107,7 +107,7 @@ namespace baker {
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
             auto hfmModelOut = input.get0();
-            hfmModelOut->meshes = QVector<hfm::Mesh>::fromStdVector(input.get1());
+            hfmModelOut->meshes = input.get1();
             hfmModelOut->joints = QVector<hfm::Joint>::fromStdVector(input.get2());
             hfmModelOut->jointRotationOffsets = input.get3();
             hfmModelOut->jointIndices = input.get4();
