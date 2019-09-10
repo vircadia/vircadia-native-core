@@ -287,6 +287,21 @@ public:
     bool shouldInitCollisions() const { return _collisionsConfig.size() > 0; }
 };
 
+class ShapeTransform {
+    std::vector<uint32_t> clusters;
+    Extents meshExtents;
+    Transform modelTransform;
+};
+
+// The lightweight model part description.
+class Shape {
+public:
+    uint32_t mesh;
+    uint32_t meshPart;
+    uint32_t material;
+    uint32_t shapeTransform;
+};
+
 /// The runtime model format.
 class Model {
 public:
@@ -296,6 +311,8 @@ public:
     QString originalURL;
     QString author;
     QString applicationName; ///< the name of the application that generated the model
+
+    std::vector<Shape> shapes;
 
     QVector<Joint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
