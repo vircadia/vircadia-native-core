@@ -278,7 +278,7 @@ Rectangle {
                     id: audioLevelSwitch
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
-                    anchors.top: bar.currentIndex === 0 ? parent.top : warnMutedSwitch.bottom
+                    anchors.top: warnMutedSwitch.visible ? warnMutedSwitch.bottom : parent.top
                     anchors.topMargin: bar.currentIndex === 0 ? 0 : 24
                     anchors.left: parent.left
                     labelTextOn: qsTr("Audio Level Meter");
