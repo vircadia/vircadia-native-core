@@ -2633,8 +2633,9 @@ private:
     glm::vec3 _lookAtCameraTarget;
     glm::vec3 _lookAtScriptTarget;
     bool _headLookAtActive { false };
+    bool _lookAtCameraReady { false };
     bool _scriptControlsHeadLookAt { false };
-    float _scriptHeadControlSinceUpdate { 0.0f };
+    float _scriptHeadControlTimer { 0.0f };
 
 
     Setting::Handle<float> _realWorldFieldOfView;
