@@ -19,6 +19,7 @@
 #include <EntityTree.h>
 #include <ResourceCache.h>
 #include <ScriptCache.h>
+#include <plugins/PluginManager.h>
 #include <EntityEditFilters.h>
 #include <NetworkingConstants.h>
 #include <hfm/ModelFormatRegistry.h>
@@ -41,6 +42,7 @@ EntityServer::EntityServer(ReceivedMessage& message) :
     DependencyManager::set<ResourceManager>();
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<ScriptCache>();
+    DependencyManager::set<PluginManager>()->instantiate();
 
     DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
     DependencyManager::set<AssignmentDynamicFactory>();

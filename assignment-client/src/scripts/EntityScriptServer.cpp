@@ -64,7 +64,7 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     DependencyManager::set<ResourceScriptingInterface>();
 
     DependencyManager::set<ResourceManager>();
-    DependencyManager::set<PluginManager>();
+    DependencyManager::set<PluginManager>()->instantiate();
 
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
@@ -462,7 +462,7 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
         _entityViewer.getTree()->update();
     });
 
-
+    scriptEngines->runScriptInitializers(newEngine);
     newEngine->runInThread();
     auto newEngineSP = qSharedPointerCast<EntitiesScriptEngineProvider>(newEngine);
     DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(newEngineSP);
