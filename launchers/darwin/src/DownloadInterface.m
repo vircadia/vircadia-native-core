@@ -50,6 +50,8 @@
                                                      repeats: YES];
     NSError *error = nil;
     NSFileManager *fileManager = [NSFileManager defaultManager];
+    Launcher* sharedLauncher = [Launcher sharedLauncher];
+    NSString* appPath = [sharedLauncher getAppPath];
     NSString *destinationFileName = downloadTask.originalRequest.URL.lastPathComponent;
     NSString* finalFilePath = [[[Launcher sharedLauncher] getAppPath] stringByAppendingPathComponent:destinationFileName];
     NSURL *destinationURL = [NSURL URLWithString: [finalFilePath stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLFragmentAllowedCharacterSet]] relativeToURL: [NSURL URLWithString:@"file://"]];
@@ -59,7 +61,12 @@
     }
     [fileManager moveItemAtURL:location toURL:destinationURL error:&error];
 
-    Launcher* sharedLauncher = [Launcher sharedLauncher];
+    NSURL *oldInterfaceURL = [NSURL URLWithString: [[appPath stringByAppendingString:@"interface.app"] stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLFragmentAllowedCharacterSet]] relativeToURL: [NSURL URLWithString:@"file://"]];
+
+    if([fileManager fileExistsAtPath:[oldInterfaceURL path]])
+    {
+        [fileManager removeItemAtURL:oldInterfaceURL error:nil];
+    }
 
     if (error) {
         NSLog(@"Download Interface: failed to move file to destination -> error: %@", error);
@@ -68,7 +75,6 @@
         return;
     }
     [sharedLauncher setDownloadFilename:destinationFileName];
-    NSString* appPath = [sharedLauncher getAppPath];
     NSString* downloadFileName = [sharedLauncher getDownloadFilename];
 
     NSLog(@"extract interface zip");

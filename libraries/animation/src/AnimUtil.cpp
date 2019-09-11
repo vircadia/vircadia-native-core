@@ -26,6 +26,31 @@ void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, A
     }
 }
 
+void blend3(size_t numPoses, const AnimPose* a, const AnimPose* b, const AnimPose* c, float* alphas, AnimPose* result) {
+    for (size_t i = 0; i < numPoses; i++) {
+        const AnimPose& aPose = a[i];
+        const AnimPose& bPose = b[i];
+        const AnimPose& cPose = c[i];
+
+        result[i].scale() = alphas[0] * aPose.scale() + alphas[1] * bPose.scale() + alphas[2] * cPose.scale();
+        result[i].rot() = safeLinearCombine3(aPose.rot(), bPose.rot(), cPose.rot(), alphas);
+        result[i].trans() = alphas[0] * aPose.trans() + alphas[1] * bPose.trans() + alphas[2] * cPose.trans();
+    }
+}
+
+void blend4(size_t numPoses, const AnimPose* a, const AnimPose* b, const AnimPose* c, const AnimPose* d, float* alphas, AnimPose* result) {
+    for (size_t i = 0; i < numPoses; i++) {
+        const AnimPose& aPose = a[i];
+        const AnimPose& bPose = b[i];
+        const AnimPose& cPose = c[i];
+        const AnimPose& dPose = d[i];
+
+        result[i].scale() = alphas[0] * aPose.scale() + alphas[1] * bPose.scale() + alphas[2] * cPose.scale() + alphas[3] * dPose.scale();
+        result[i].rot() = safeLinearCombine4(aPose.rot(), bPose.rot(), cPose.rot(), dPose.rot(), alphas);
+        result[i].trans() = alphas[0] * aPose.trans() + alphas[1] * bPose.trans() + alphas[2] * cPose.trans() + alphas[3] * dPose.trans();
+    }
+}
+
 // additive blend
 void blendAdd(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, AnimPose* result) {
 
@@ -43,8 +68,7 @@ void blendAdd(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha
             delta = -delta;
         }
         delta = glm::lerp(identity, delta, alpha);
-        result[i].rot() = glm::normalize(delta * aPose.rot());
-
+        result[i].rot() = glm::normalize(aPose.rot() * delta);
         result[i].trans() = aPose.trans() + (alpha * bPose.trans());
     }
 }

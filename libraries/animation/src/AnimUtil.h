@@ -16,6 +16,12 @@
 // this is where the magic happens
 void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, AnimPose* result);
 
+// blend between three sets of poses
+void blend3(size_t numPoses, const AnimPose* a, const AnimPose* b, const AnimPose* c, float* alphas, AnimPose* result);
+
+// blend between four sets of poses
+void blend4(size_t numPoses, const AnimPose* a, const AnimPose* b, const AnimPose* c, const AnimPose* d, float* alphas, AnimPose* result);
+
 // additive blending
 void blendAdd(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, AnimPose* result);
 
@@ -32,6 +38,41 @@ inline glm::quat safeLerp(const glm::quat& a, const glm::quat& b, float alpha) {
         bTemp = -bTemp;
     }
     return glm::normalize(glm::lerp(a, bTemp, alpha));
+}
+
+inline glm::quat safeLinearCombine3(const glm::quat& a, const glm::quat& b, const glm::quat& c, float* alphas) {
+    // adjust signs for b & c if necessary
+    glm::quat bTemp = b;
+    float dot = glm::dot(a, bTemp);
+    if (dot < 0.0f) {
+        bTemp = -bTemp;
+    }
+    glm::quat cTemp = c;
+    dot = glm::dot(a, cTemp);
+    if (dot < 0.0f) {
+        cTemp = -cTemp;
+    }
+    return glm::normalize(alphas[0] * a + alphas[1] * bTemp + alphas[2] * cTemp);
+}
+
+inline glm::quat safeLinearCombine4(const glm::quat& a, const glm::quat& b, const glm::quat& c, const glm::quat& d, float* alphas) {
+    // adjust signs for b, c & d if necessary
+    glm::quat bTemp = b;
+    float dot = glm::dot(a, bTemp);
+    if (dot < 0.0f) {
+        bTemp = -bTemp;
+    }
+    glm::quat cTemp = c;
+    dot = glm::dot(a, cTemp);
+    if (dot < 0.0f) {
+        cTemp = -cTemp;
+    }
+    glm::quat dTemp = d;
+    dot = glm::dot(a, dTemp);
+    if (dot < 0.0f) {
+        dTemp = -dTemp;
+    }
+    return glm::normalize(alphas[0] * a + alphas[1] * bTemp + alphas[2] * cTemp + alphas[3] * dTemp);
 }
 
 AnimPose boneLookAt(const glm::vec3& target, const AnimPose& bone);
