@@ -266,7 +266,7 @@ Rectangle {
                     labelTextSize: 16;
                     backgroundOnColor: "#E3E3E3";
                     checked: AudioScriptingInterface.warnWhenMuted;
-                    visible: bar.currentIndex === 0 ? false : true;
+                    visible: bar.currentIndex !== 0;
                     onClicked: {
                         AudioScriptingInterface.warnWhenMuted = checked;
                         checked = Qt.binding(function() { return AudioScriptingInterface.warnWhenMuted; }); // restore binding
