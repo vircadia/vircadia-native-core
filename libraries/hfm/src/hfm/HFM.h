@@ -315,13 +315,13 @@ public:
     std::vector<Shape> shapes;
 
     std::vector<Mesh> meshes;
+    std::vector<Material> materials;
+    std::vector<ShapeTransform> shapeTransforms;
 
     std::vector<Joint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
     bool hasSkeletonJoints;
     QVector<QString> scripts;
-
-    std::vector<Material> materials;
 
     glm::mat4 offset; // This includes offset, rotation, and scale as specified by the FST file
 
