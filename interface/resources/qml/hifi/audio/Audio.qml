@@ -266,6 +266,7 @@ Rectangle {
                     labelTextSize: 16;
                     backgroundOnColor: "#E3E3E3";
                     checked: AudioScriptingInterface.warnWhenMuted;
+                    visible: bar.currentIndex === 0 ? false : true;
                     onClicked: {
                         AudioScriptingInterface.warnWhenMuted = checked;
                         checked = Qt.binding(function() { return AudioScriptingInterface.warnWhenMuted; }); // restore binding
@@ -277,8 +278,8 @@ Rectangle {
                     id: audioLevelSwitch
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
-                    anchors.top: warnMutedSwitch.bottom
-                    anchors.topMargin: 24
+                    anchors.top: bar.currentIndex === 0 ? parent.top : warnMutedSwitch.bottom
+                    anchors.topMargin: bar.currentIndex === 0 ? 0 : 24
                     anchors.left: parent.left
                     labelTextOn: qsTr("Audio Level Meter");
                     labelTextSize: 16;
