@@ -99,12 +99,12 @@ void AvatarDoctor::startDiagnosing() {
         }
 
         // RIG
-        if (avatarModel.joints.isEmpty()) {
+        if (avatarModel.joints.empty()) {
             addError("Avatar has no rig.", "no-rig");
         } else {
             auto jointNames = avatarModel.getJointNames();
 
-            if (avatarModel.joints.length() > NETWORKED_JOINTS_LIMIT) {
+            if (avatarModel.joints.size() > NETWORKED_JOINTS_LIMIT) {
                 addError(tr( "Avatar has over %n bones.", "", NETWORKED_JOINTS_LIMIT), "maximum-bone-limit");
             }
             // Avatar does not have Hips bone mapped	

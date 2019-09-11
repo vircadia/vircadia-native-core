@@ -40,7 +40,7 @@ namespace baker {
             for (int i = 0; i < hfmModelIn->meshes.size(); i++) {
                 blendshapesPerMesh.push_back(hfmModelIn->meshes[i].blendshapes.toStdVector());
             }
-            output.edit4() = hfmModelIn->joints.toStdVector();
+            output.edit4() = hfmModelIn->joints;
         }
     };
 
@@ -108,7 +108,7 @@ namespace baker {
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
             auto hfmModelOut = input.get0();
             hfmModelOut->meshes = input.get1();
-            hfmModelOut->joints = QVector<hfm::Joint>::fromStdVector(input.get2());
+            hfmModelOut->joints = input.get2();
             hfmModelOut->jointRotationOffsets = input.get3();
             hfmModelOut->jointIndices = input.get4();
             hfmModelOut->flowData = input.get5();

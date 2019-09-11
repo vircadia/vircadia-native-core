@@ -1002,8 +1002,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
     for (int i = 0; i < materialIDs.size(); ++i) {
         QString& matid = materialIDs[i];
-        hfmModel.materials[matid] = HFMMaterial();
-        HFMMaterial& hfmMaterial = hfmModel.materials[matid];
+        hfmModel.materials.emplace_back();
+        HFMMaterial& hfmMaterial = hfmModel.materials.back();
         hfmMaterial._material = std::make_shared<graphics::Material>();
         hfmMaterial.name = hfmMaterial.materialID = matid;
         setHFMMaterial(hfmMaterial, _file.materials[i]);
@@ -2036,7 +2036,7 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
     qCDebug(modelformat) << "  meshExtents.size() = " << hfmModel.meshExtents.size();
 
     qCDebug(modelformat) << "  jointIndices.size() =" << hfmModel.jointIndices.size();
-    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.count();
+    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.size();
     qCDebug(modelformat) << "---------------- Meshes ----------------";
     qCDebug(modelformat) << "  meshes.count() =" << hfmModel.meshes.size();
     qCDebug(modelformat) << "  blendshapeChannelNames = " << hfmModel.blendshapeChannelNames;

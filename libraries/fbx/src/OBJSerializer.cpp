@@ -892,11 +892,12 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
             continue;
         }
 
-        HFMMaterial& hfmMaterial = hfmModel.materials[materialID] = HFMMaterial(objMaterial.diffuseColor,
-                                                                                objMaterial.specularColor,
-                                                                                objMaterial.emissiveColor,
-                                                                                objMaterial.shininess,
-                                                                                objMaterial.opacity);
+        hfmModel.materials.emplace_back(objMaterial.diffuseColor,
+            objMaterial.specularColor,
+            objMaterial.emissiveColor,
+            objMaterial.shininess,
+            objMaterial.opacity);
+        HFMMaterial& hfmMaterial = hfmModel.materials.back();
 
         hfmMaterial.name = materialID;
         hfmMaterial.materialID = materialID;
@@ -1046,7 +1047,7 @@ void hfmDebugDump(const HFMModel& hfmModel) {
     }
 
     qCDebug(modelformat) << "  jointIndices =" << hfmModel.jointIndices;
-    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.count();
+    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.size();
 
     foreach (HFMJoint joint, hfmModel.joints) {
 

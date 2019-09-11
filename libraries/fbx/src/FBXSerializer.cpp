@@ -1357,11 +1357,11 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
 
         }
-        hfmModel.joints.append(joint);
+        hfmModel.joints.push_back(joint);
     }
 
     // NOTE: shapeVertices are in joint-frame
-    hfmModel.shapeVertices.resize(std::max(1, hfmModel.joints.size()) );
+    hfmModel.shapeVertices.resize(std::max((size_t)1, hfmModel.joints.size()) );
 
     hfmModel.bindExtents.reset();
     hfmModel.meshExtents.reset();
@@ -1400,7 +1400,10 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         }
     }
 #endif
-    hfmModel.materials = _hfmMaterials;
+
+    for (auto materialIt = _hfmMaterials.cbegin(); materialIt != _hfmMaterials.cend(); ++materialIt) {
+        hfmModel.materials.push_back(materialIt.value());
+    }
 
     // see if any materials have texture children
     bool materialsHaveTextures = checkMaterialsHaveTextures(_hfmMaterials, _textureFilenames, _connectionChildMap);
