@@ -3463,6 +3463,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         const float MAX_UP_DOWN_DEGREES = 90.0f;
 
         float upDownDot = glm::dot(cameraVector, Vectors::UP);
+        float frontBackDot = glm::dot(cameraVector, Vectors::FRONT);
+        float frontBackSign = frontBackDot / abs(frontBackDot);
         float upDownDegrees = MAX_UP_DOWN_DEGREES - glm::degrees(acosf(abs(upDownDot)));
 
         float lookAttenuation = 0.0f;
@@ -3478,7 +3480,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         cameraVector = glm::mix(cameraVector, cameraYawVector, 1.0f - lookAttenuation);
         // Calculate the camera target point.
         const float TARGET_DISTANCE_FROM_HEAD = 2.0f;
-        glm::vec3 targetPoint = head->getPosition() + TARGET_DISTANCE_FROM_HEAD * glm::normalize(cameraVector);
+        glm::vec3 targetPoint = head->getPosition() + frontBackSign * TARGET_DISTANCE_FROM_HEAD * glm::normalize(cameraVector);
 
         const float LOOKAT_MIX_ALPHA = 0.05f;
         const float FPS = 60.0f;
