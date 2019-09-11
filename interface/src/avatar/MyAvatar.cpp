@@ -3412,9 +3412,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     // update body orientation by movement inputs
     glm::quat initialOrientation = getOrientationOutbound();
+    glm::vec3 eyesPosition = getDefaultEyePosition();
     if (!computeCameraLookAt) {
         setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
-        _lookAtCameraTarget = getHead()->getPosition() + getWorldOrientation() * Vectors::FRONT;
+        _lookAtCameraTarget = eyesPosition + getWorldOrientation() * Vectors::FRONT;
         _lookAtOffsetYaw = getWorldOrientation();
         _lookAtOffsetPitch = Quaternions::IDENTITY;
     } else {
@@ -3422,7 +3423,16 @@ void MyAvatar::updateOrientation(float deltaTime) {
         float pitchIncrement = getDriveKey(PITCH) * _pitchSpeed * deltaTime
             + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT;
         _lookAtOffsetYaw = _lookAtOffsetYaw * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f)));
+
+        glm::quat _previousLookAtOffsetPitch = _lookAtOffsetPitch;
         _lookAtOffsetPitch = _lookAtOffsetPitch * glm::quat(glm::radians(glm::vec3(pitchIncrement, 0.0f, 0.0f)));
+        // Limit the camera horizontal pitch
+        float MAX_LOOK_AT_PITCH_DEGREES = 80.0f;
+        float pitchFromHorizont = glm::degrees(angleBetween(getLookAtOffset() * Vectors::FRONT, _lookAtOffsetYaw * Vectors::FRONT));
+        if (pitchFromHorizont > MAX_LOOK_AT_PITCH_DEGREES || pitchFromHorizont < -MAX_LOOK_AT_PITCH_DEGREES) {
+            _lookAtOffsetPitch = _previousLookAtOffsetPitch;
+        }
+        // Blend the avatar orientation with the camera look at if moving forward.
         if (faceForward) {
             const float FACE_FORWARD_BLEND = 0.25f;
             setWorldOrientation(glm::slerp(getWorldOrientation(), _lookAtOffsetYaw, FACE_FORWARD_BLEND));
@@ -3482,8 +3492,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         float frontBackDot = glm::dot(cameraVector, avatarVectorFront);
         float frontBackSign = frontBackDot / abs(frontBackDot);
 
-        const float TARGET_DISTANCE_FROM_HEAD = 2.0f;
-        glm::vec3 targetPoint = head->getPosition() + frontBackSign * TARGET_DISTANCE_FROM_HEAD * glm::normalize(cameraVector);
+        const float TARGET_DISTANCE_FROM_EYES = 20.0f;
+        glm::vec3 targetPoint = eyesPosition + frontBackSign * TARGET_DISTANCE_FROM_EYES * glm::normalize(cameraVector);
 
         const float LOOKAT_MIX_ALPHA = 0.05f;
         const float FPS = 60.0f;
@@ -6385,7 +6395,7 @@ void MyAvatar::updateHeadLookAt(float deltaTime) {
         glm::vec3 lookAtTarget = _scriptControlsHeadLookAt ? _lookAtScriptTarget : _lookAtCameraTarget;
         glm::vec3 avatarXVector = glm::normalize(getWorldOrientation() * Vectors::UNIT_X);
         glm::vec3 avatarYVector = glm::normalize(getWorldOrientation() * Vectors::UNIT_Y);
-        glm::vec3 headToTargetVector = lookAtTarget - getHead()->getPosition();
+        glm::vec3 headToTargetVector = lookAtTarget - getDefaultEyePosition();
         if (glm::length(headToTargetVector) > EPSILON) {
             headToTargetVector = glm::normalize(headToTargetVector);
         } else {
