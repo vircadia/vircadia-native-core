@@ -22,6 +22,7 @@
 #include <HifiConfigVariantMap.h>
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
+#include <shared/ScriptInitializerMixin.h>
 
 #include "Assignment.h"
 #include "AssignmentClient.h"
@@ -240,6 +241,7 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     QThread::currentThread()->setObjectName("main thread");
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
+    DependencyManager::set<ScriptInitializers>();
 
     if (numForks || minForks || maxForks) {
         AssignmentClientMonitor* monitor =  new AssignmentClientMonitor(numForks, minForks, maxForks,

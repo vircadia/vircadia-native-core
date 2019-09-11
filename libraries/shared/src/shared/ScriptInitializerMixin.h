@@ -9,30 +9,38 @@
 #pragma once
 
 #include <functional>
+#include <mutex>
 #include <QSharedPointer>
 #include "../DependencyManager.h"
 
 class QScriptEngine;
 class ScriptEngine;
 
-class ScriptInitializerMixin : public QObject, public Dependency {
-    Q_OBJECT
+template <typename T> class ScriptInitializerMixin {
+public:
+    using ScriptInitializer = std::function<void(T)>;
+    virtual void registerScriptInitializer(ScriptInitializer initializer) {
+        InitializerLock lock(_scriptInitializerMutex);
+        _scriptInitializers.push_back(initializer);
+    }
+    virtual int runScriptInitializers(T engine) {
+        InitializerLock lock(_scriptInitializerMutex);
+        return std::count_if(_scriptInitializers.begin(), _scriptInitializers.end(),
+            [engine](auto initializer){ initializer(engine); return true; }
+        );
+    }
+    virtual ~ScriptInitializerMixin() {}
+protected:
+    std::mutex _scriptInitializerMutex;
+    using InitializerLock = std::lock_guard<std::mutex>;
+    std::list<ScriptInitializer> _scriptInitializers;
+};
+
+class ScriptInitializers : public ScriptInitializerMixin<QScriptEngine*>, public Dependency {
 public:
     // Lightweight `QScriptEngine*` initializer (only depends on built-in Qt components)
     // example registration:
-    // eg: [&](QScriptEngine* engine) -> bool {
+    // eg: [&](QScriptEngine* engine) {
     //     engine->globalObject().setProperties("API", engine->newQObject(...instance...))
-    //     return true;
-    // }
-    using NativeScriptInitializer = std::function<void(QScriptEngine*)>;
-    virtual bool registerNativeScriptInitializer(NativeScriptInitializer initializer) = 0;
-
-    // Heavyweight `ScriptEngine*` initializer (tightly coupled to Interface and script-engine library internals)
-    // eg: [&](ScriptEnginePointer scriptEngine) -> bool {
-    //     engine->registerGlobalObject("API", ...instance..);
-    //     return true;
-    // }
-    using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
-    using ScriptInitializer = std::function<void(ScriptEnginePointer)>;
-    virtual bool registerScriptInitializer(ScriptInitializer initializer) { return false; };
+    // };
 };

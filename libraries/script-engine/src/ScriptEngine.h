@@ -122,6 +122,8 @@ public:
 class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
     Q_OBJECT
     Q_PROPERTY(QString context READ getContext)
+    Q_PROPERTY(QString type READ getTypeAsString)
+    Q_PROPERTY(QString fileName MEMBER _fileNameString CONSTANT)
 public:
 
     enum Context {
@@ -138,6 +140,7 @@ public:
         AGENT,
         AVATAR
     };
+    Q_ENUM(Type)
 
     static int processLevelMaxRetries;
     ScriptEngine(Context context, const QString& scriptContents = NO_SCRIPT, const QString& fileNameString = QString("about:ScriptEngine"));
@@ -636,6 +639,7 @@ public:
 
     void setType(Type type) { _type = type; };
     Type getType() { return _type; };
+    QString getTypeAsString() const;
 
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget

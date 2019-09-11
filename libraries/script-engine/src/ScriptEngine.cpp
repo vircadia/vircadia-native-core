@@ -237,6 +237,11 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
     }
 }
 
+QString ScriptEngine::getTypeAsString() const {
+    auto value = QVariant::fromValue(_type).toString();
+    return value.isEmpty() ? "unknown" : value.toLower();
+}
+
 QString ScriptEngine::getContext() const {
     switch (_context) {
         case CLIENT_SCRIPT:
