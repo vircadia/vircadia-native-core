@@ -2718,7 +2718,7 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
         QString cookieString = connection->requestHeader(HTTP_COOKIE_HEADER_KEY);
 
         QRegExp cookieUUIDRegex(COOKIE_UUID_REGEX_STRING);
-        
+
         QUuid cookieUUID;
         if (cookieString.indexOf(cookieUUIDRegex) != -1) {
             cookieUUID = cookieUUIDRegex.cap(1);

@@ -1535,7 +1535,6 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
             }
 
             if (!groupKey.isEmpty() && !groupResponseObject.isEmpty()) {
-
                 // set this group's object to the constructed object
                 responseObject[groupKey] = groupResponseObject;
             }
@@ -1728,7 +1727,6 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
     postedObject[OAUTH_ROOT_KEY] = oauthObject;
 
-    qDebug() << postedObject;
     // Iterate on the setting groups
     foreach(const QString& rootKey, postedObject.keys()) {
         const QJsonValue& rootValue = postedObject[rootKey];
@@ -1913,6 +1911,8 @@ void DomainServerSettingsManager::persistToFile() {
         _configMap.loadConfig();
         return; // defend against future code
     }
+
+    QFile(settingsFilename).setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
 }
 
 QStringList DomainServerSettingsManager::getAllKnownGroupNames() {

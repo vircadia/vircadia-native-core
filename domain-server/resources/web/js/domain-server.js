@@ -91,7 +91,6 @@ $(document).ready(function(){
     // make a JSON request to get the dropdown menus for content and settings
     // we don't error handle here because the top level menu is still clickable and usables if this fails
     $.getJSON('/settings-menu-groups.json', function(data){
-
       function makeGroupDropdownElement(group, base) {
         var html_id = group.html_id ? group.html_id : group.name;
         return "<li class='setting-group'><a href='" + settingsGroupAnchor(base, html_id) + "'>" + group.label + "<span class='badge'></span></a></li>";
