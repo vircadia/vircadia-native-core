@@ -3453,7 +3453,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseYaw(0.0f);
         head->setBasePitch(0.0f);
         head->setBaseRoll(0.0f);
-        // Attenuate head pitch
+
         glm::vec3 cameraVector = (faceForward ? _lookAtOffsetPitch * getWorldOrientation() : getLookAtOffset()) * Vectors::FRONT;
         glm::vec3 cameraYawVector = _lookAtOffsetYaw * Vectors::FRONT;
 
@@ -3462,9 +3462,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         const float START_LOOKING_DOWN_DEGREES = 15.0f;
         const float MAX_UP_DOWN_DEGREES = 90.0f;
 
-        float upDownDot = glm::dot(cameraVector, Vectors::UP);
-        float frontBackDot = glm::dot(cameraVector, Vectors::FRONT);
-        float frontBackSign = frontBackDot / abs(frontBackDot);
+        glm::vec3 avatarVectorUp = getWorldOrientation() * Vectors::UP;
+        float upDownDot = glm::dot(cameraVector, avatarVectorUp);
         float upDownDegrees = MAX_UP_DOWN_DEGREES - glm::degrees(acosf(abs(upDownDot)));
 
         float lookAttenuation = 0.0f;
@@ -3479,6 +3478,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
         }
         cameraVector = glm::mix(cameraVector, cameraYawVector, 1.0f - lookAttenuation);
         // Calculate the camera target point.
+        glm::vec3 avatarVectorFront = getWorldOrientation() * Vectors::FRONT;
+        float frontBackDot = glm::dot(cameraVector, avatarVectorFront);
+        float frontBackSign = frontBackDot / abs(frontBackDot);
+
         const float TARGET_DISTANCE_FROM_HEAD = 2.0f;
         glm::vec3 targetPoint = head->getPosition() + frontBackSign * TARGET_DISTANCE_FROM_HEAD * glm::normalize(cameraVector);
 
