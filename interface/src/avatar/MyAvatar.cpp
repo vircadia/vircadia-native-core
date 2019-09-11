@@ -3420,12 +3420,12 @@ void MyAvatar::updateOrientation(float deltaTime) {
         _lookAtOffsetPitch = Quaternions::IDENTITY;
     } else {
         // Compute new look at vectors
-        if (totalBodyYaw > 0.0f) {
+        if (totalBodyYaw != 0.0f) {
             _lookAtOffsetYaw = _lookAtOffsetYaw * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f)));
         }
         float pitchIncrement = getDriveKey(PITCH) * _pitchSpeed * deltaTime
             + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT;
-        if (pitchIncrement > 0.0f) {
+        if (pitchIncrement != 0.0f) {
             glm::quat _previousLookAtOffsetPitch = _lookAtOffsetPitch;
             _lookAtOffsetPitch = _lookAtOffsetPitch * glm::quat(glm::radians(glm::vec3(pitchIncrement, 0.0f, 0.0f)));
             // Limit the camera horizontal pitch
