@@ -48,7 +48,6 @@ var UTF_CODE = 0;
 // Only plays a sound if it is downloaded.
 // Only plays one sound at a time.
 var emojiCreateSound = SoundCache.getSound(Script.resolvePath('resources/sounds/emojiPopSound1.wav'));
-var emojiDestroySound = SoundCache.getSound(Script.resolvePath('resources/sounds/emojiPopSound2.wav'));
 var injector;
 var DEFAULT_VOLUME = 0.01;
 var local = false;
