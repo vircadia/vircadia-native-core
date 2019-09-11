@@ -183,7 +183,7 @@ private:
     void recompose();
     void decompose();
 
-    CameraMode _mode{ CAMERA_MODE_THIRD_PERSON };
+    CameraMode _mode{ CAMERA_MODE_LOOK_AT };
     glm::mat4 _transform;
     glm::mat4 _projection;
 

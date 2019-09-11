@@ -2627,9 +2627,15 @@ private:
 
     glm::vec3 _trackedHeadPosition;
 
+    const float MAX_LOOK_AT_TIME_SCRIPT_CONTROL = 2.0f;
     glm::quat _lookAtOffsetPitch;
     glm::quat _lookAtOffsetYaw;
     glm::vec3 _lookAtCameraTarget;
+    glm::vec3 _lookAtScriptTarget;
+    bool _headLookAtActive { false };
+    bool _scriptControlsHeadLookAt { false };
+    float _scriptHeadControlSinceUpdate { 0.0f };
+
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
@@ -2655,6 +2661,8 @@ private:
     void initHeadBones();
     void initAnimGraph();
     void initFlowFromFST();
+    void updateHeadLookAt(float deltaTime);
+    void resetHeadLookAt();
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;

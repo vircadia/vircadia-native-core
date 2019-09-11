@@ -5527,7 +5527,7 @@ void Application::loadSettings() {
     // dictated that we should be in first person
     Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, isFirstPerson);
     Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !isFirstPerson);
-    _myCamera.setMode((isFirstPerson) ? CAMERA_MODE_FIRST_PERSON : CAMERA_MODE_THIRD_PERSON);
+    _myCamera.setMode((isFirstPerson) ? CAMERA_MODE_FIRST_PERSON : CAMERA_MODE_LOOK_AT);
     cameraMenuChanged();
 
     auto inputs = pluginManager->getInputPlugins();
@@ -5984,7 +5984,7 @@ void Application::cameraModeChanged() {
         case CAMERA_MODE_FIRST_PERSON:
             Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
             break;
-        case CAMERA_MODE_THIRD_PERSON:
+        case CAMERA_MODE_LOOK_AT:
             Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
             break;
         case CAMERA_MODE_MIRROR:
@@ -6006,7 +6006,7 @@ void Application::changeViewAsNeeded(float boomLength) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
         cameraMenuChanged();
-    } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON && !boomLengthGreaterThanMinimum) {
+    } else if (_myCamera.getMode() == CAMERA_MODE_LOOK_AT && !boomLengthGreaterThanMinimum) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, false);
         cameraMenuChanged();
@@ -6028,8 +6028,8 @@ void Application::cameraMenuChanged() {
             getMyAvatar()->setBoomLength(MyAvatar::ZOOM_MIN);
         }
     } else if (menu->isOptionChecked(MenuOption::ThirdPerson)) {
-        if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-            _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+        if (_myCamera.getMode() != CAMERA_MODE_LOOK_AT) {
+            _myCamera.setMode(CAMERA_MODE_LOOK_AT);
             if (getMyAvatar()->getBoomLength() == MyAvatar::ZOOM_MIN) {
                 getMyAvatar()->setBoomLength(MyAvatar::ZOOM_DEFAULT);
             }
