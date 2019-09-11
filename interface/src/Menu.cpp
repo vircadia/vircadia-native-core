@@ -726,8 +726,8 @@ Menu::Menu() {
 
     // Developer > Crash >>>
     bool result = false;
-    const QString HIFI_SHOW_SOURCE_DEVELOPER_CRASH_MENU("HIFI_SHOW_SOURCE_DEVELOPER_CRASH_MENU");
-    result = QProcessEnvironment::systemEnvironment().contains(HIFI_SHOW_SOURCE_DEVELOPER_CRASH_MENU);
+    const QString HIFI_SHOW_DEVELOPER_CRASH_MENU("HIFI_SHOW_DEVELOPER_CRASH_MENU");
+    result = QProcessEnvironment::systemEnvironment().contains(HIFI_SHOW_DEVELOPER_CRASH_MENU);
     if (result) {
         MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
     
