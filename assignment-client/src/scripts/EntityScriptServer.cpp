@@ -64,7 +64,7 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     DependencyManager::set<ResourceScriptingInterface>();
 
     DependencyManager::set<ResourceManager>();
-    DependencyManager::set<PluginManager>();
+    DependencyManager::set<PluginManager>()->instantiate();
 
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
@@ -301,10 +301,17 @@ void EntityScriptServer::run() {
 
     entityScriptingInterface->setEntityTree(_entityViewer.getTree());
 
-    DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
+    auto treePtr = _entityViewer.getTree();
+    DependencyManager::set<AssignmentParentFinder>(treePtr);
 
+    if (!_entitySimulation) {
+        SimpleEntitySimulationPointer simpleSimulation { new SimpleEntitySimulation() };
+        simpleSimulation->setEntityTree(treePtr);
+        treePtr->setSimulation(simpleSimulation);
+        _entitySimulation = simpleSimulation;
+    }
 
-    auto tree = _entityViewer.getTree().get();
+    auto tree = treePtr.get();
     connect(tree, &EntityTree::deletingEntity, this, &EntityScriptServer::deletingEntity, Qt::QueuedConnection);
     connect(tree, &EntityTree::addingEntity, this, &EntityScriptServer::addingEntity, Qt::QueuedConnection);
     connect(tree, &EntityTree::entityServerScriptChanging, this, &EntityScriptServer::entityServerScriptChanging, Qt::QueuedConnection);
@@ -451,10 +458,11 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
 
     connect(newEngine.data(), &ScriptEngine::update, this, [this] {
         _entityViewer.queryOctree();
+        _entityViewer.getTree()->preUpdate();
         _entityViewer.getTree()->update();
     });
 
-
+    scriptEngines->runScriptInitializers(newEngine);
     newEngine->runInThread();
     auto newEngineSP = qSharedPointerCast<EntitiesScriptEngineProvider>(newEngine);
     DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(newEngineSP);

@@ -68,6 +68,16 @@ glm::mat4 HmdDisplayPlugin::getCullingProjection(const glm::mat4& baseProjection
     return _cullingProjection; 
 }
 
+glm::ivec4 HmdDisplayPlugin::eyeViewport(Eye eye) const {
+    uvec2 vpSize = getRecommendedRenderSize();
+    vpSize.x /= 2;
+    uvec2 vpPos;
+    if (eye == Eye::Right) {
+        vpPos.x = vpSize.x;
+    }
+    return ivec4(vpPos, vpSize);
+}
+
 #define DISABLE_PREVIEW_MENU_ITEM_DELAY_MS 500
 
 bool HmdDisplayPlugin::internalActivate() {

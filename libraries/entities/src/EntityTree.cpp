@@ -2246,8 +2246,8 @@ void EntityTree::preUpdate() {
 void EntityTree::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "UpdateTree");
     PerformanceTimer perfTimer("updateTree");
-    withWriteLock([&] {
-        if (simulate && _simulation) {
+    if (simulate && _simulation) {
+        withWriteLock([&] {
             _simulation->updateEntities();
             {
                 PROFILE_RANGE(simulation_physics, "Deletes");
@@ -2265,8 +2265,8 @@ void EntityTree::update(bool simulate) {
                     deleteEntities(idsToDelete, true);
                 }
             }
-        }
-    });
+        });
+    }
 }
 
 quint64 EntityTree::getAdjustedConsiderSince(quint64 sinceTime) {

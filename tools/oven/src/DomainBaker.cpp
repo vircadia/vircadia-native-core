@@ -445,7 +445,7 @@ void DomainBaker::handleFinishedModelBaker() {
 
             // enumerate the QJsonRef values for the URL of this model from our multi hash of
             // entity objects needing a URL re-write
-            for (auto propertyEntityPair : _entitiesNeedingRewrite.values(baker->getModelURL())) {
+            for (auto propertyEntityPair : _entitiesNeedingRewrite.values(baker->getOriginalInputModelURL())) {
                 QString property = propertyEntityPair.first;
                 // convert the entity QJsonValueRef to a QJsonObject so we can modify its URL
                 auto entity = propertyEntityPair.second.toObject();
@@ -485,10 +485,10 @@ void DomainBaker::handleFinishedModelBaker() {
         }
 
         // remove the baked URL from the multi hash of entities needing a re-write
-        _entitiesNeedingRewrite.remove(baker->getModelURL());
+        _entitiesNeedingRewrite.remove(baker->getOriginalInputModelURL());
 
         // drop our shared pointer to this baker so that it gets cleaned up
-        _modelBakers.remove(baker->getModelURL());
+        _modelBakers.remove(baker->getOriginalInputModelURL());
 
         // emit progress to tell listeners how many models we have baked
         emit bakeProgress(++_completedSubBakes, _totalNumberOfSubBakes);

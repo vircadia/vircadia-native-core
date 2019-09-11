@@ -8,6 +8,13 @@ static const NSString *kIOError = @"IOError";
 
 @implementation DownloadLauncher
 
+-(id)init {
+    if ((self = [super init]) != nil) {
+        _didBecomeDownloadTask = false;
+    }
+    return self;
+}
+
 - (void) downloadLauncher:(NSString*)launcherUrl {
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:launcherUrl]
                                                            cachePolicy:NSURLRequestUseProtocolCachePolicy
@@ -16,8 +23,8 @@ static const NSString *kIOError = @"IOError";
 
     NSURLSessionConfiguration *defaultConfigObject = [NSURLSessionConfiguration defaultSessionConfiguration];
     NSURLSession *defaultSession = [NSURLSession sessionWithConfiguration: defaultConfigObject delegate: self delegateQueue: [NSOperationQueue mainQueue]];
-    NSURLSessionDownloadTask *downloadTask = [defaultSession downloadTaskWithRequest:request];
-    [downloadTask resume];
+    NSURLSessionDataTask *task = [defaultSession dataTaskWithRequest:request];
+    [task resume];
 }
 
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite {
@@ -43,6 +50,25 @@ static const NSString *kIOError = @"IOError";
                                        reason:@"download is too small"
                                      userInfo:nil];
     }
+}
+
+-(void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
+                                didReceiveResponse:(NSURLResponse *)response
+                                 completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler
+{
+    NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+    NSURLSessionResponseDisposition disposition = NSURLSessionResponseBecomeDownload;
+    if (httpResponse.statusCode != 200) {
+        NSLog(@"expected statusCode 200, got %ld", (long)httpResponse.statusCode);
+        disposition = NSURLSessionResponseCancel;
+    }
+    completionHandler(disposition);
+}
+
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
+                              didBecomeDownloadTask:(NSURLSessionDownloadTask *)downloadTask
+{
+    _didBecomeDownloadTask = true;
 }
 
 -(void)URLSession:(NSURLSession*)session downloadTask:(NSURLSessionDownloadTask*)downloadTask didFinishDownloadingToURL:(NSURL*)location {
@@ -95,9 +121,14 @@ static const NSString *kIOError = @"IOError";
 }
 
 - (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error {
-    NSLog(@"completed; error: %@", error);
     if (error) {
+        if (_didBecomeDownloadTask && [task class] == [NSURLSessionDataTask class]) {
+            return;
+        }
+        NSLog(@"couldn't complete download: %@", error);
         [[Launcher sharedLauncher] displayErrorPage];
+    } else {
+        NSLog(@"finished downloading Launcher");
     }
 }
 @end

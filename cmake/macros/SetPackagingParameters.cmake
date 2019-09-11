@@ -38,7 +38,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(BUILD_ORGANIZATION "High Fidelity")
     set(HIGH_FIDELITY_PROTOCOL "hifi")
     set(HIGH_FIDELITY_APP_PROTOCOL "hifiapp")
-    set(INTERFACE_BUNDLE_NAME "Interface")
+    set(INTERFACE_BUNDLE_NAME "interface")
     set(INTERFACE_ICON_PREFIX "interface")
 
     # add definition for this release type
@@ -61,7 +61,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(PR_BUILD 1)
     set(BUILD_VERSION "PR${RELEASE_NUMBER}")
     set(BUILD_ORGANIZATION "High Fidelity - PR${RELEASE_NUMBER}")
-    set(INTERFACE_BUNDLE_NAME "Interface")
+    set(INTERFACE_BUNDLE_NAME "interface")
     set(INTERFACE_ICON_PREFIX "interface-beta")
 
     # add definition for this release type
@@ -70,7 +70,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(DEV_BUILD 1)
     set(BUILD_VERSION "dev")
     set(BUILD_ORGANIZATION "High Fidelity - ${BUILD_VERSION}")
-    set(INTERFACE_BUNDLE_NAME "Interface")
+    set(INTERFACE_BUNDLE_NAME "interface")
     set(INTERFACE_ICON_PREFIX "interface-beta")
 
     # add definition for this release type

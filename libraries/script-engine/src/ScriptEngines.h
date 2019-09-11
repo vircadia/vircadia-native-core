@@ -48,13 +48,8 @@ class ScriptEngine;
  *     scripts directory of the Interface installation.
  *     <em>Read-only.</em>
  */
-class NativeScriptInitializers : public ScriptInitializerMixin {
-public:
-    bool registerNativeScriptInitializer(NativeScriptInitializer initializer) override;
-    bool registerScriptInitializer(ScriptInitializer initializer) override;
-};
 
-class ScriptEngines : public QObject, public Dependency {
+class ScriptEngines : public QObject, public Dependency, public ScriptInitializerMixin<ScriptEnginePointer> {
     Q_OBJECT
 
     Q_PROPERTY(ScriptsModel* scriptsModel READ scriptsModel CONSTANT)
@@ -62,11 +57,9 @@ class ScriptEngines : public QObject, public Dependency {
     Q_PROPERTY(QString debugScriptUrl READ getDebugScriptUrl WRITE setDebugScriptUrl)
 
 public:
-    using ScriptInitializer = ScriptInitializerMixin::ScriptInitializer;
-
     ScriptEngines(ScriptEngine::Context context, const QUrl& defaultScriptsOverride = QUrl());
-    void registerScriptInitializer(ScriptInitializer initializer);
-    int runScriptInitializers(ScriptEnginePointer engine);
+    int runScriptInitializers(ScriptEnginePointer engine) override;
+
     void loadScripts();
     void saveScripts();
 
@@ -347,7 +340,6 @@ protected:
     QHash<QUrl, ScriptEnginePointer> _scriptEnginesHash;
     QSet<ScriptEnginePointer> _allKnownScriptEngines;
     QMutex _allScriptsMutex;
-    std::list<ScriptInitializer> _scriptInitializers;
     ScriptsModel _scriptsModel;
     ScriptsModelFilter _scriptsModelFilter;
     std::atomic<bool> _isStopped { false };
