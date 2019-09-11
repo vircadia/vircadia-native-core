@@ -326,9 +326,7 @@ function playPopAnimation() {
         if (popType === "in") {
             currentPopScale = MIN_POP_SCALE;
         } else {
-            // Start with the pop sound on the out
             currentPopScale = finalInPopScale ? finalInPopScale : MAX_POP_SCALE;
-            playSound(emojiDestroySound, DEFAULT_VOLUME, MyAvatar.position, true);
         }
     }
 
