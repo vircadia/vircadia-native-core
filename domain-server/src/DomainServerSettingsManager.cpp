@@ -22,7 +22,9 @@
 #include <QtCore/QThread>
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
+#include <QtNetwork/QSslKey>
 #include <QSaveFile>
+#include <QPair>
 
 #include <AccountManager.h>
 #include <Assignment.h>
@@ -46,10 +48,14 @@ const QString DESCRIPTION_SETTINGS_KEY = "settings";
 const QString SETTING_DEFAULT_KEY = "default";
 const QString DESCRIPTION_NAME_KEY = "name";
 const QString DESCRIPTION_GROUP_LABEL_KEY = "label";
+const QString DESCRIPTION_GROUP_SHOW_ON_ENABLE_KEY = "show_on_enable";
+const QString DESCRIPTION_ENABLE_KEY = "enable";
 const QString DESCRIPTION_BACKUP_FLAG_KEY = "backup";
 const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
 const QString DESCRIPTION_COLUMNS_KEY = "columns";
 const QString CONTENT_SETTING_FLAG_KEY = "content_setting";
+static const QString SPLIT_MENU_GROUPS_DOMAIN_SETTINGS_KEY = "domain_settings";
+static const QString SPLIT_MENU_GROUPS_CONTENT_SETTINGS_KEY = "content_settings";
 
 const QString SETTINGS_VIEWPOINT_KEY = "viewpoint";
 
@@ -136,6 +142,10 @@ void DomainServerSettingsManager::splitSettingsDescription() {
 
                 settingsDropdownGroup[DESCRIPTION_GROUP_LABEL_KEY] = groupObject[DESCRIPTION_GROUP_LABEL_KEY];
 
+                if (groupObject.contains(DESCRIPTION_GROUP_SHOW_ON_ENABLE_KEY)) {
+                    settingsDropdownGroup[DESCRIPTION_GROUP_SHOW_ON_ENABLE_KEY] = groupObject[DESCRIPTION_GROUP_SHOW_ON_ENABLE_KEY];
+                }
+
                 static const QString DESCRIPTION_GROUP_HTML_ID_KEY = "html_id";
                 if (groupObject.contains(DESCRIPTION_GROUP_HTML_ID_KEY)) {
                     settingsDropdownGroup[DESCRIPTION_GROUP_HTML_ID_KEY] = groupObject[DESCRIPTION_GROUP_HTML_ID_KEY];
@@ -169,9 +179,6 @@ void DomainServerSettingsManager::splitSettingsDescription() {
     }
 
     // populate the settings menu groups with what we've collected
-
-    static const QString SPLIT_MENU_GROUPS_DOMAIN_SETTINGS_KEY = "domain_settings";
-    static const QString SPLIT_MENU_GROUPS_CONTENT_SETTINGS_KEY = "content_settings";
 
     _settingsMenuGroups[SPLIT_MENU_GROUPS_DOMAIN_SETTINGS_KEY] = domainSettingsMenuGroups;
     _settingsMenuGroups[SPLIT_MENU_GROUPS_CONTENT_SETTINGS_KEY] = contentSettingsMenuGroups;
@@ -446,6 +453,77 @@ void DomainServerSettingsManager::setupConfigMap(const QString& userConfigFilena
             unpackPermissions();
             _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canGetAndSetPrivateUserData);
             packPermissions();
+        }
+
+        if (oldVersion < 2.4) {
+            // migrate oauth settings to their own group
+            const QString ADMIN_USERS = "admin-users";
+            const QString OAUTH_ADMIN_USERS = "oauth.admin-users";
+            const QString OAUTH_CLIENT_ID = "oauth.client-id";
+            const QString ALT_ADMIN_USERS = "admin.users";
+            const QString ADMIN_ROLES = "admin-roles";
+            const QString OAUTH_ADMIN_ROLES = "oauth.admin-roles";
+            const QString OAUTH_ENABLE = "oauth.enable";
+
+            QVector<QPair<const char*, const char*> > conversionMap = {
+                {"key", "oauth.key"},
+                {"cert", "oauth.cert"},
+                {"hostname", "oauth.hostname"},
+                {"oauth-client-id", "oauth.client-id"},
+                {"oauth-provider", "oauth.provider"}
+            };
+
+            for (auto & conversion : conversionMap) {
+                QVariant* prevValue = _configMap.valueForKeyPath(conversion.first);
+                if (prevValue) {
+                    auto newValue = _configMap.valueForKeyPath(conversion.second, true);
+                    *newValue = *prevValue;
+                }
+            }
+
+            QVariant* client_id = _configMap.valueForKeyPath(OAUTH_CLIENT_ID);
+            if (client_id) {
+                QVariant* oauthEnable = _configMap.valueForKeyPath(OAUTH_ENABLE, true);
+                
+                *oauthEnable = QVariant(true);
+            }
+
+            QVariant* oldAdminUsers = _configMap.valueForKeyPath(ADMIN_USERS);
+            QVariant* newAdminUsers = _configMap.valueForKeyPath(OAUTH_ADMIN_USERS, true);
+            QVariantList adminUsers(newAdminUsers->toList());
+            if (oldAdminUsers) {
+                QStringList adminUsersList = oldAdminUsers->toStringList();
+                for (auto & user : adminUsersList) {
+                    if (!adminUsers.contains(user)) {
+                        adminUsers.append(user);
+                    }
+                }
+            }
+            QVariant* altAdminUsers = _configMap.valueForKeyPath(ALT_ADMIN_USERS);
+            if (altAdminUsers) {
+                QStringList adminUsersList = altAdminUsers->toStringList();
+                for (auto & user : adminUsersList) {
+                    if (!adminUsers.contains(user)) {
+                        adminUsers.append(user);
+                    }
+                }
+            }
+
+            *newAdminUsers = adminUsers;
+
+            QVariant* oldAdminRoles = _configMap.valueForKeyPath(ADMIN_ROLES);
+            QVariant* newAdminRoles = _configMap.valueForKeyPath(OAUTH_ADMIN_ROLES, true);
+            QVariantList adminRoles(newAdminRoles->toList());
+            if (oldAdminRoles) {
+                QStringList adminRoleList = oldAdminRoles->toStringList();
+                for (auto & role : adminRoleList) {
+                    if (!adminRoles.contains(role)) {
+                        adminRoles.append(role);
+                    }
+                }
+            }
+
+            *newAdminRoles = adminRoles;
         }
 
 
@@ -1185,7 +1263,23 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
 
             return true;
         } else if (url.path() == SETTINGS_MENU_GROUPS_PATH) {
-            connection->respond(HTTPConnection::StatusCode200, QJsonDocument(_settingsMenuGroups).toJson(), "application/json");
+
+            QJsonObject settings;
+            for (auto & key : _settingsMenuGroups.keys()) {
+                const QJsonArray& settingGroups = _settingsMenuGroups[key].toArray();
+                QJsonArray groups;
+                foreach (const QJsonValue& group, settingGroups) {
+                    QJsonObject groupObject = group.toObject();
+                    if (!groupObject.contains(DESCRIPTION_GROUP_SHOW_ON_ENABLE_KEY)
+                        || (groupObject[DESCRIPTION_GROUP_SHOW_ON_ENABLE_KEY].toBool()
+                            && _configMap.valueForKeyPath(groupObject[DESCRIPTION_NAME_KEY].toString() + "." + DESCRIPTION_ENABLE_KEY)->toBool() )) {
+                        groups.append(groupObject);
+                    }
+                }
+                settings[key] = groups;
+            }
+
+            connection->respond(HTTPConnection::StatusCode200, QJsonDocument(settings).toJson(), "application/json");
 
             return true;
         } else if (url.path() == SETTINGS_BACKUP_PATH) {
@@ -1440,10 +1534,33 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
             }
 
             if (!groupKey.isEmpty() && !groupResponseObject.isEmpty()) {
+
                 // set this group's object to the constructed object
                 responseObject[groupKey] = groupResponseObject;
             }
         }
+    }
+
+    // add 'derived' values used primarily for UI
+
+    const QString X509_CERTIFICATE_OPTION = "oauth.cert";
+
+    QString certPath = valueForKeyPath(X509_CERTIFICATE_OPTION).toString();
+    if (!certPath.isEmpty()) {
+        // the user wants to use the following cert and key for HTTPS
+        // this is used for Oauth callbacks when authorizing users against a data server
+        // let's make sure we can load the key and certificate
+
+        qDebug() << "Reading certificate file at" << certPath << "for HTTPS.";
+
+        QFile certFile(certPath);
+        certFile.open(QIODevice::ReadOnly);
+
+        QSslCertificate sslCertificate(&certFile);
+        QString digest = sslCertificate.digest().toHex(':');
+        auto groupObject = responseObject["oauth"].toObject();
+        groupObject["cert-fingerprint"] = digest;
+        responseObject["oauth"] = groupObject;
     }
 
     return responseObject;
@@ -1551,23 +1668,66 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
     return QJsonObject();
 }
 
-bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject,
+bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedSettingsObject,
                                                                         SettingsType settingsType) {
 
     // take a write lock since we're about to overwrite settings in the config map
     QWriteLocker locker(&_settingsLock);
+
+    QJsonObject postedObject(postedSettingsObject);
 
     static const QString SECURITY_ROOT_KEY = "security";
     static const QString AC_SUBNET_WHITELIST_KEY = "ac_subnet_whitelist";
     static const QString BROADCASTING_KEY = "broadcasting";
     static const QString WIZARD_KEY = "wizard";
     static const QString DESCRIPTION_ROOT_KEY = "descriptors";
+    static const QString OAUTH_ROOT_KEY = "oauth";
+    static const QString OAUTH_KEY_CONTENTS = "key-contents";
+    static const QString OAUTH_CERT_CONTENTS = "cert-contents";
+    static const QString OAUTH_CERT_PATH = "cert";
+    static const QString OAUTH_KEY_PASSPHRASE = "key-passphrase";
+    static const QString OAUTH_KEY_PATH = "key";
 
     auto& settingsVariant = _configMap.getConfig();
     bool needRestart = false;
 
     auto& filteredDescriptionArray = settingsType == DomainSettings ? _domainSettingsDescription : _contentSettingsDescription;
 
+    auto oauthObject = postedObject[OAUTH_ROOT_KEY].toObject();
+    if (oauthObject.contains(OAUTH_CERT_CONTENTS)) {
+        QSslCertificate cert(oauthObject[OAUTH_CERT_CONTENTS].toString().toUtf8());
+        if (!cert.isNull()) {
+            static const QString CERT_FILE_NAME = "certificate.crt";
+            auto certPath = PathUtils::getAppDataFilePath(CERT_FILE_NAME);
+            QFile file(certPath);
+            if (file.open(QFile::WriteOnly)) {
+                file.write(cert.toPem());
+                file.close();
+            }
+            oauthObject[OAUTH_CERT_PATH] = certPath;
+        }
+        oauthObject.remove(OAUTH_CERT_CONTENTS);
+    }
+    if (oauthObject.contains(OAUTH_KEY_CONTENTS)) {
+        QString keyPassphraseString = oauthObject[OAUTH_KEY_PASSPHRASE].toString();
+        QSslKey key(oauthObject[OAUTH_KEY_CONTENTS].toString().toUtf8(), QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey, keyPassphraseString.toUtf8());
+        if (!key.isNull()) {
+            static const QString KEY_FILE_NAME = "certificate.key";
+            auto keyPath = PathUtils::getAppDataFilePath(KEY_FILE_NAME);
+            QFile file(keyPath);
+            if (file.open(QFile::WriteOnly)) {
+                file.write(key.toPem());
+                file.close();
+                file.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
+            }
+            oauthObject[OAUTH_KEY_PATH] = keyPath;
+        }
+        oauthObject.remove(OAUTH_KEY_CONTENTS);
+    }
+
+    postedObject[OAUTH_ROOT_KEY] = oauthObject;
+
+    qDebug() << postedObject;
     // Iterate on the setting groups
     foreach(const QString& rootKey, postedObject.keys()) {
         const QJsonValue& rootValue = postedObject[rootKey];
