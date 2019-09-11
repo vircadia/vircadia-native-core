@@ -145,13 +145,13 @@ $(document).ready(function(){
       if (private_key != undefined) {
         var pattern = /-+BEGIN PRIVATE KEY-+[A-Za-z0-9+/\n=]*-+END PRIVATE KEY-+/m;
         if (!pattern.test(private_key)) {
-          oauthErrors = "Private key must be in PEM format";
+          oauthErrors += "Private key must be in PEM format<BR/>";
         }
       }
       if (cert != undefined) {
         var pattern = /-+BEGIN CERTIFICATE-+[A-Za-z0-9+/\n=]*-+END CERTIFICATE-+/m;
         if (!pattern.test(cert)) {
-          oauthErrors = "Certificate must be in PEM format";
+          oauthErrors += "Certificate must be in PEM format<BR/>";
         }
       }
       if ($('#oauth.panel').length) {

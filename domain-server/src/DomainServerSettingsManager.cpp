@@ -1270,9 +1270,10 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
                 QJsonArray groups;
                 foreach (const QJsonValue& group, settingGroups) {
                     QJsonObject groupObject = group.toObject();
+                    QVariant* enableKey = _configMap.valueForKeyPath(groupObject[DESCRIPTION_NAME_KEY].toString() + "." + DESCRIPTION_ENABLE_KEY);
+
                     if (!groupObject.contains(DESCRIPTION_GROUP_SHOW_ON_ENABLE_KEY)
-                        || (groupObject[DESCRIPTION_GROUP_SHOW_ON_ENABLE_KEY].toBool()
-                            && _configMap.valueForKeyPath(groupObject[DESCRIPTION_NAME_KEY].toString() + "." + DESCRIPTION_ENABLE_KEY)->toBool() )) {
+                        || (groupObject[DESCRIPTION_GROUP_SHOW_ON_ENABLE_KEY].toBool() && enableKey && enableKey->toBool() )) {
                         groups.append(groupObject);
                     }
                 }
