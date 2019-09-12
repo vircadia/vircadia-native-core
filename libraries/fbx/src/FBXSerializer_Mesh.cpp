@@ -355,7 +355,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
 
             // Check for additional metadata
             unsigned int dracoMeshNodeVersion = 1;
-            std::vector<QString> dracoMaterialList;
+            std::vector<std::string> dracoMaterialList;
             for (const auto& dracoChild : child.children) {
                 if (dracoChild.name == "FBXDracoMeshVersion") {
                     if (!dracoChild.properties.isEmpty()) {
@@ -364,7 +364,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 } else if (dracoChild.name == "MaterialList") {
                     dracoMaterialList.reserve(dracoChild.properties.size());
                     for (const auto& materialID : dracoChild.properties) {
-                        dracoMaterialList.push_back(materialID.toString());
+                        dracoMaterialList.push_back(materialID.toString().toStdString());
                     }
                 }
             }
@@ -467,6 +467,8 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 }
             }
 
+            ExtractedMesh& extracted = data.extracted;
+            extracted.materialIDPerMeshPart.resize(dracoMaterialList.size());
             for (uint32_t i = 0; i < dracoMesh->num_faces(); ++i) {
                 // grab the material ID and texture ID for this face, if we have it
                 auto& dracoFace = dracoMesh->face(draco::FaceIndex(i));
@@ -487,13 +489,13 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 int& partIndexPlusOne = materialTextureParts[materialTexture];
                 if (partIndexPlusOne == 0) {
                     data.extracted.mesh.parts.resize(data.extracted.mesh.parts.size() + 1);
-                    HFMMeshPart& part = data.extracted.mesh.parts.back();
+                    HFMMeshPart& part = extracted.mesh.parts.back();
 
                     // Figure out what material this part is
                     if (dracoMeshNodeVersion >= 2) {
                         // Define the materialID now
                         if (materialID < dracoMaterialList.size()) {
-                            part.materialID = dracoMaterialList[materialID];
+                            extracted.materialIDPerMeshPart[materialID] = dracoMaterialList[materialID];
                         }
                     } else {
                         // Define the materialID later, based on the order of first appearance of the materials in the _connectionChildMap
