@@ -63,6 +63,7 @@ namespace scriptable {
      * @property {Mat4|string} texCoordTransform1
      * @property {string} lightmapParams
      * @property {string} materialParams
+     * @property {string} opacityMode
      * @property {boolean} defaultFallthrough
      */
     class ScriptableMaterial {
@@ -94,7 +95,7 @@ namespace scriptable {
         QString lightMap;
         QString scatteringMap;
         std::array<glm::mat4, graphics::Material::NUM_TEXCOORD_TRANSFORMS> texCoordTransforms;
-
+        QString opacityMode;
         bool defaultFallthrough;
         std::unordered_map<uint, bool> propertyFallthroughs; // not actually exposed to script
 

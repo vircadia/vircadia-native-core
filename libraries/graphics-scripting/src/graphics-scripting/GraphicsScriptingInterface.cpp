@@ -420,6 +420,18 @@ namespace scriptable {
             obj.setProperty("opacityMap", material.opacityMap);
         }
 
+
+        obj.setProperty("keys.isOpaque", material.key.isOpaque());
+        obj.setProperty("keys.isOpacityMaskMap", material.key.isOpacityMaskMap());
+        obj.setProperty("keys.isTexelOpaque", material.key.isTexelOpaque());
+        obj.setProperty("keys.isSurfaceOpaque", material.key.isSurfaceOpaque());
+
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OPACITY_MASK_MAP_BIT)) {
+            obj.setProperty("opacityMapMode", FALLTHROUGH);
+        } else if (material.key.isGlossy()) {
+            obj.setProperty("opacityMapMode", material.opacityMode);
+        }
+
         if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OCCLUSION_MAP_BIT)) {
             obj.setProperty("occlusionMap", FALLTHROUGH);
         } else if (!material.occlusionMap.isEmpty()) {

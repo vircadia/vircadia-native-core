@@ -41,6 +41,8 @@ scriptable::ScriptableMaterial& scriptable::ScriptableMaterial::operator=(const 
     occlusionMap = material.occlusionMap;
     lightMap = material.lightMap;
     scatteringMap = material.scatteringMap;
+    opacityMode = material.opacityMode;
+
 
     defaultFallthrough = material.defaultFallthrough;
     propertyFallthroughs = material.propertyFallthroughs;
@@ -55,6 +57,9 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
         name = material->getName().c_str();
         model = material->getModel().c_str();
         opacity = material->getOpacity();
+
+        opacityMode = (opacity < 1.0f ? "opacityVarAlpha" : "opaque");
+
         roughness = material->getRoughness();
         metallic = material->getMetallic();
         scattering = material->getScattering();
@@ -75,6 +80,8 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
             albedoMap = map->getTextureSource()->getUrl().toString();
             if (map->useAlphaChannel()) {
                 opacityMap = albedoMap;
+                //opacityMode = (material->getKey().isOpacityMaskMap() ? "opacityMapAlphaMask" : "opacityMapAlphaBlend");
+                opacityMode = (material->getKey().isOpacityMaskMap() ? "opacityMapAlphaMask" : "opacityMapAlphaBlend");
             }
         }
 

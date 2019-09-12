@@ -51,6 +51,12 @@ void RenderThread::initialize(QWindow* window) {
     _backend = _gpuContext->getBackend();
     _context.doneCurrent();
     _context.moveToThread(_thread);
+    
+    if (!_presentPipeline) {
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTexture);
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        _presentPipeline = gpu::Pipeline::create(program, state);
+    }
 #else
     auto size = window->size();
     _extent = vk::Extent2D{ (uint32_t)size.width(), (uint32_t)size.height() };
@@ -169,15 +175,26 @@ void RenderThread::renderFrame(gpu::FramePointer& frame) {
     }
 
 #ifdef USE_GL
+    static gpu::BatchPointer batch = nullptr;
+    if (!batch) {
+        batch = std::make_shared<gpu::Batch>();
+        batch->setPipeline(_presentPipeline);
+        batch->setFramebuffer(nullptr);
+        batch->setResourceTexture(0, frame->framebuffer->getRenderBuffer(0));
+        batch->setViewportTransform(ivec4(uvec2(0), ivec2(0.5 * fboSize.x, 0.5*fboSize.y)));
+        batch->draw(gpu::TRIANGLE_STRIP, 4);
+    }
+    _gpuContext->executeBatch(*batch);
+    
     //glDisable(GL_FRAMEBUFFER_SRGB);
     //glClear(GL_COLOR_BUFFER_BIT);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+  /*  glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBlitFramebuffer(
         0, 0, fboSize.x, fboSize.y, 
         0, 0, windowSize.width(), windowSize.height(),
         GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
+*/
     (void)CHECK_GL_ERROR();
     _context.swapBuffers();
     _context.doneCurrent();
