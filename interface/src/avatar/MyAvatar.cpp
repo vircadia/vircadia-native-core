@@ -6257,6 +6257,7 @@ void MyAvatar::beginSit(const glm::vec3& position, const glm::quat& rotation) {
 
     _characterController.setSeated(true);
     setCollisionsEnabled(false);
+    setHMDLeanRecenterEnabled(false);
     // Disable movement
     setSitDriveKeysStatus(false);
     centerBody();
@@ -6275,6 +6276,7 @@ void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
         clearPinOnJoint(getJointIndex("Hips"));
         _characterController.setSeated(false);
         setCollisionsEnabled(true);
+        setHMDLeanRecenterEnabled(true);
         centerBody();
         slamPosition(position);
         setWorldOrientation(rotation);
