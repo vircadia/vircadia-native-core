@@ -14,6 +14,7 @@
 #include <QUrl>
 
 #include <ResourceManager.h>
+#include <shared/ScriptInitializerMixin.h>
 
 QList<EntityItemID> EntityEditFilters::getZonesByPosition(glm::vec3& position) {
     QList<EntityItemID> zones;
@@ -258,7 +259,13 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
         if (hasCorrectSyntax(program)) {
             // create a QScriptEngine for this script
             QScriptEngine* engine = new QScriptEngine();
-            engine->evaluate(scriptContents);
+            engine->setObjectName("filter:" + entityID.toString());
+            engine->setProperty("type", "edit_filter");
+            engine->setProperty("fileName", urlString);
+            engine->setProperty("entityID", entityID);
+            engine->globalObject().setProperty("Script", engine->newQObject(engine));
+            DependencyManager::get<ScriptInitializers>()->runScriptInitializers(engine);
+            engine->evaluate(scriptContents, urlString);
             if (!hadUncaughtExceptions(*engine, urlString)) {
                 // put the engine in the engine map (so we don't leak them, etc...)
                 FilterData filterData;
