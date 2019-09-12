@@ -553,7 +553,7 @@ void Socket::handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAdd
             _connectionsHash.erase(connectionIter);
             connection->setDestinationAddress(currentAddress);
             _connectionsHash[currentAddress] = move(connection);
-            connectionsLock.release();
+            connectionsLock.unlock();
 
             Lock sequenceNumbersLock(_unreliableSequenceNumbersMutex);
             const auto sequenceNumbersIter = _unreliableSequenceNumbers.find(previousAddress);
