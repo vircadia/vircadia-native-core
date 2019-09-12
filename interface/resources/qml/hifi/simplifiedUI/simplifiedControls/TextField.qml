@@ -35,10 +35,8 @@ TextField {
     leftPadding: 0
     rightPadding: root.rightGlyph === "" ? 0 : rightGlyphItem.implicitWidth + simplifiedUI.sizes.controls.textField.rightGlyphPadding
 
-    onFocusChanged: {
-        if (focus) {
-            Tablet.playSound(TabletEnums.ButtonClick);
-        }
+    onPressed: {
+        Tablet.playSound(TabletEnums.ButtonClick);
     }
 
     onHoveredChanged: {

@@ -71,32 +71,44 @@ static QString getTargetDevice(bool hmd, QAudio::Mode mode) {
 Qt::ItemFlags AudioDeviceList::_flags { Qt::ItemIsSelectable | Qt::ItemIsEnabled };
 
 AudioDeviceList::AudioDeviceList(QAudio::Mode mode) : _mode(mode) {
-    auto& setting1 = getSetting(true, QAudio::AudioInput);
-    if (setting1.isSet()) {
-        qDebug() << "Device name in settings for HMD, Input" << setting1.get();
-    } else {
-        qDebug() << "Device name in settings for HMD, Input not set";
+    if (mode == QAudio::AudioInput) {
+        auto& setting1 = getSetting(true, QAudio::AudioInput);
+        if (setting1.isSet()) {
+            qDebug() << "Device name in settings for HMD, Input" << setting1.get();
+            _backupSelectedHMDDeviceName = setting1.get();
+        } else {
+            qDebug() << "Device name in settings for HMD, Input not set";
+        }
     }
 
-    auto& setting2 = getSetting(true, QAudio::AudioOutput);
-    if (setting2.isSet()) {
-        qDebug() << "Device name in settings for HMD, Output" << setting2.get();
-    } else {
-        qDebug() << "Device name in settings for HMD, Output not set";
+    if (mode == QAudio::AudioOutput) {
+        auto& setting2 = getSetting(true, QAudio::AudioOutput);
+        if (setting2.isSet()) {
+            qDebug() << "Device name in settings for HMD, Output" << setting2.get();
+            _backupSelectedHMDDeviceName = setting2.get();
+        } else {
+            qDebug() << "Device name in settings for HMD, Output not set";
+        }
     }
 
-    auto& setting3 = getSetting(false, QAudio::AudioInput);
-    if (setting3.isSet()) {
-        qDebug() << "Device name in settings for Desktop, Input" << setting3.get();
-    } else {
-        qDebug() << "Device name in settings for Desktop, Input not set";
+    if (mode == QAudio::AudioInput) {
+        auto& setting3 = getSetting(false, QAudio::AudioInput);
+        if (setting3.isSet()) {
+            qDebug() << "Device name in settings for Desktop, Input" << setting3.get();
+            _backupSelectedDesktopDeviceName = setting3.get();
+        } else {
+            qDebug() << "Device name in settings for Desktop, Input not set";
+        }
     }
 
-    auto& setting4 = getSetting(false, QAudio::AudioOutput);
-    if (setting4.isSet()) {
-        qDebug() << "Device name in settings for Desktop, Output" << setting4.get();
-    } else {
-        qDebug() << "Device name in settings for Desktop, Output not set";
+    if (mode == QAudio::AudioOutput) {
+        auto& setting4 = getSetting(false, QAudio::AudioOutput);
+        if (setting4.isSet()) {
+            qDebug() << "Device name in settings for Desktop, Output" << setting4.get();
+            _backupSelectedDesktopDeviceName = setting4.get();
+        } else {
+            qDebug() << "Device name in settings for Desktop, Output not set";
+        }
     }
 }
 

@@ -332,7 +332,7 @@ void MixerAvatar::sendOwnerChallenge() {
 void MixerAvatar::processChallengeResponse(ReceivedMessage& response) {
     QByteArray avatarID;
     QMutexLocker certifyLocker(&_avatarCertifyLock);
-    QMetaObject::invokeMethod(&_challengeTimer, &QTimer::stop);
+    stopChallengeTimer();
     if (_verifyState == challengeClient) {
         QByteArray responseData = response.readAll();
         if (responseData.length() < 8) {
@@ -363,5 +363,13 @@ void MixerAvatar::processChallengeResponse(ReceivedMessage& response) {
 
     } else {
         qCDebug(avatars) << "WARNING: Unexpected avatar challenge-response in state" << stateToName(_verifyState);
+    }
+}
+
+void MixerAvatar::stopChallengeTimer() {
+    if (QThread::currentThread() == thread()) {
+        _challengeTimer.stop();
+    } else {
+        QMetaObject::invokeMethod(&_challengeTimer, &QTimer::stop);
     }
 }
