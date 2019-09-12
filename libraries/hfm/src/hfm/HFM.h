@@ -381,15 +381,6 @@ public:
 
 };
 
-class ExtractedMesh {
-public:
-    hfm::Mesh mesh;
-    QMultiHash<int, int> newIndices;
-    QVector<QHash<int, int> > blendshapeIndexMaps;
-    QVector<QPair<int, int> > partMaterialTextures;
-    QHash<QString, size_t> texcoordSetMap;
-};
-
 typedef hfm::Blendshape HFMBlendshape;
 typedef hfm::JointShapeInfo HFMJointShapeInfo;
 typedef hfm::Joint HFMJoint;
