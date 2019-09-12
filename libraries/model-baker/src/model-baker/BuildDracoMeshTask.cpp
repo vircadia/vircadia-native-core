@@ -238,7 +238,7 @@ void BuildDracoMeshTask::run(const baker::BakeContextPointer& context, const Inp
         bool dracoError;
         std::unique_ptr<draco::Mesh> dracoMesh;
         std::tie(dracoMesh, dracoError) = createDracoMesh(mesh, normals, tangents, materialList);
-        dracoErrorsPerMesh[dracoErrorsPerMesh.size()-1] = dracoError;
+        dracoErrorsPerMesh[i] = dracoError;
 
         if (dracoMesh) {
             draco::Encoder encoder;
