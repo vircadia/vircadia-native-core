@@ -97,9 +97,8 @@ signals:
      * @param {string[]} unzipFiles - The paths of the unzipped files in a newly created temporary directory. Includes entries 
      *     for any subdirectories created. An empty array if the <code>zipFile</code> could not be unzipped.
      * @param {boolean} autoAdd - The value that {@link File.runUnzip|runUnzip} was called with.
-     * @param {boolean} isZip - <code>true</code> if {@link File.runUnzip|runUnzip} was called with <code>isZip == true</code> 
-     *     or <code>path</code> containing <code>"vr.google.com/downloads"</code>, unless there is no FBX or OBJ file in the 
-     *     unzipped file(s) in which case the value is <code>false</code>.
+     * @param {boolean} isZip - <code>true</code> if {@link File.runUnzip|runUnzip} was called with <code>isZip == true</code>,  
+     *     unless there is no FBX or OBJ file in the unzipped file(s) in which case the value is <code>false</code>.
      * @param {boolean} isBlocks - The value that {@link File.runUnzip|runUnzip} was called with.
      * @returns {Signal}
      */
