@@ -800,7 +800,7 @@ QUuid EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     EntityItemPointer entity;
     if (rayPickResult.intersects && (entity = getTree()->findEntityByID(rayPickResult.entityID))) {
-        if (!EntityTree::areEntityClicksCaptured()) {
+        if (!EntityTree::areEntityClicksCaptured() && event->button() == Qt::MouseButton::LeftButton) {
             auto properties = entity->getProperties();
             QString urlString = properties.getHref();
             QUrl url = QUrl(urlString, QUrl::StrictMode);
