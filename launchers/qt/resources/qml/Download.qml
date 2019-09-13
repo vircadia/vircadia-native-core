@@ -5,6 +5,17 @@ Item {
     id: root
     anchors.fill: parent
 
+
+    Image {
+        anchors.centerIn: parent
+        width: parent.width
+        height: parent.height
+        mirror: true
+        source: "qrc:/images/hifi_window@2x.png"
+        transformOrigin: Item.Center
+        rotation: 180
+    }
+
     Image {
         id: logo
         width: 150

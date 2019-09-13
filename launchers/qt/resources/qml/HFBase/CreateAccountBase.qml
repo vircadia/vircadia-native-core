@@ -154,6 +154,6 @@ Item {
             topMargin: 15
         }
 
-        onClicked: LauncherState.login(username.text, password.text)
+        onClicked: LauncherState.login(username.text, passwordField.text)
     }
 }
