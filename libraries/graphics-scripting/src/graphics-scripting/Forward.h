@@ -79,6 +79,7 @@ namespace scriptable {
         float roughness;
         float metallic;
         float scattering;
+        float alphaCutoff;
         bool unlit;
         glm::vec3 emissive;
         glm::vec3 albedo;

@@ -104,13 +104,12 @@ void main(void) {
 
     <@if HIFI_USE_TRANSLUCENT@>
         float opacity = getMaterialOpacity(mat) * _color.a;
-    <@else@>
-        float opacity = 1.0;
-    <@endif@>
         <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
-    <@if HIFI_USE_TRANSLUCENT@>
         <$discardInvisible(opacity)$>;
     <@else@>
+        float cutoff = getMaterialAlphaCutoff(mat);
+        float opacity = 1.0;
+        <$evalMaterialOpacityMask(albedoTex.a, cutoff, opacity)$>;
         <$discardTransparent(opacity)$>;
     <@endif@>
 
@@ -156,14 +155,13 @@ void main(void) {
 
     <@if HIFI_USE_TRANSLUCENT@>
         float opacity = getMaterialOpacity(mat) * _color.a;
-    <@else@>
-        float opacity = 1.0;
-    <@endif@>
         <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
-    <@if HIFI_USE_TRANSLUCENT@>
-            <$discardInvisible(opacity)$>;
+        <$discardInvisible(opacity)$>;
     <@else@>
-            <$discardTransparent(opacity)$>;
+        float cutoff = getMaterialAlphaCutoff(mat);
+        float opacity = 1.0;
+        <$evalMaterialOpacityMask(albedoTex.a, cutoff, opacity)$>;
+        <$discardTransparent(opacity)$>;
     <@endif@>
 
         vec3 albedo = getMaterialAlbedo(mat);

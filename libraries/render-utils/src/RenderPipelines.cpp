@@ -486,6 +486,7 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         schemaKey.setAlbedoMap(true);
                         schemaKey.setOpacityMaskMap(material->getKey().isOpacityMaskMap());
                         schemaKey.setTranslucentMap(material->getKey().isTranslucentMap());
+                        schema._alphaCutoff = material->getAlphaCutoff();
                     }
                     break;
                 case graphics::MaterialKey::METALLIC_MAP_BIT:

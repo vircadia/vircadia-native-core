@@ -26,6 +26,7 @@ scriptable::ScriptableMaterial& scriptable::ScriptableMaterial::operator=(const 
     roughness = material.roughness;
     metallic = material.metallic;
     scattering = material.scattering;
+    alphaCutoff = material.alphaCutoff;
     unlit = material.unlit;
     emissive = material.emissive;
     albedo = material.albedo;
@@ -63,6 +64,7 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
         roughness = material->getRoughness();
         metallic = material->getMetallic();
         scattering = material->getScattering();
+        alphaCutoff = material->getAlphaCutoff();
         unlit = material->isUnlit();
         emissive = material->getEmissive();
         albedo = material->getAlbedo();

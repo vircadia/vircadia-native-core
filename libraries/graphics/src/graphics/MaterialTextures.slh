@@ -214,6 +214,13 @@ vec3 fetchLightMap(vec2 uv) {
 }
 <@endfunc@>
 
+<@func evalMaterialOpacityMask(fetchedOpacity, materialAlphaCutoff, opacity)@>
+{
+    <$opacity$> = step(<$materialAlphaCutoff$>, <$fetchedOpacity$>);
+}
+<@endfunc@>
+
+
 <@func evalMaterialOpacity(fetchedOpacity, materialOpacity, matKey, opacity)@>
 {
     const float OPACITY_MASK_THRESHOLD = 0.5;

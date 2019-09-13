@@ -382,7 +382,8 @@ namespace scriptable {
 
         if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::SCATTERING_VAL_BIT)) {
             obj.setProperty("scattering", FALLTHROUGH);
-        } else if (material.key.isScattering()) {
+        }
+        else if (material.key.isScattering()) {
             obj.setProperty("scattering", material.scattering);
         }
 
@@ -428,8 +429,11 @@ namespace scriptable {
 
         if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OPACITY_MASK_MAP_BIT)) {
             obj.setProperty("opacityMapMode", FALLTHROUGH);
+            obj.setProperty("alphaCutoff", FALLTHROUGH);
         } else if (material.key.isGlossy()) {
             obj.setProperty("opacityMapMode", material.opacityMode);
+
+            obj.setProperty("alphaCutoff", material.alphaCutoff);
         }
 
         if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OCCLUSION_MAP_BIT)) {
