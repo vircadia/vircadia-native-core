@@ -3,7 +3,6 @@
 #include <QDir>
 #include <QDebug>
 #include <miniz/miniz.h>
-#include <Shlobj.h>
 
 Unzipper::Unzipper(const QString& zipFilePath, const QDir& outputDirectory) :
     _zipFilePath(zipFilePath), _outputDirectory(outputDirectory) {

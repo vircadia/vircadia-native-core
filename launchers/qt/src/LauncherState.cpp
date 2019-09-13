@@ -1,9 +1,11 @@
 #include "LauncherState.h"
 
+#include "PathUtils.h"
 #include "Unzipper.h"
 
+#ifdef Q_OS_WIN
 #include <Windows.h>
-
+#endif
 #include <array>
 
 #include <QNetworkRequest>
@@ -43,8 +45,8 @@ bool LatestBuilds::getBuild(QString tag, Build* outBuild) {
 }
 
 static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_FOR_UI_STATE =
-    { { "qrc:/qml/SplashScreen.qml", "qrc:/qml/Login.qml", "qrc:/qml/DisplayName.qml",
-        "qrc:/qml/Download.qml", "qrc:/qml/DownloadFinshed.qml", "qrc:/qml/Error.qml" } };
+    { { "SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "DisplayName.qml",
+        "Download.qml", "DownloadFinished.qml", "qml/HFBase/Error.qml" } };
 
 void LauncherState::ASSERT_STATE(LauncherState::ApplicationState state) {
     if (_applicationState != state) {
@@ -61,6 +63,7 @@ void LauncherState::ASSERT_STATE(std::vector<LauncherState::ApplicationState> st
             return;
         }
     }
+
 #ifdef Q_OS_WIN
     __debugbreak();
 #endif
@@ -99,11 +102,15 @@ LauncherState::UIState LauncherState::getUIState() const {
         case ApplicationState::LaunchingHighFidelity:
             return DOWNLOAD_FINSISHED;
         case ApplicationState::UnexpectedError:
+            #ifdef Q_OS_WIN
             __debugbreak();
+            #endif
             return ERROR_SCREEN;
         default:
             qDebug() << "FATAL: No UI for" << _applicationState;
+            #ifdef Q_OS_WIN
             __debugbreak();
+            #endif
             return ERROR_SCREEN;
     }
 }
@@ -477,13 +484,15 @@ void LauncherState::setApplicationState(ApplicationState state) {
     qDebug() << "Changing application state: " << _applicationState << " -> " << state;
 
     if (state == ApplicationState::UnexpectedError) {
+        #ifdef Q_OS_WIN
         __debugbreak();
+        #endif
     }
 
     _applicationState = state;
 
     emit uiStateChanged();
-    emit updateSourceUrl(getCurrentUISource());
+    emit updateSourceUrl(PathUtils::resourcePath(getCurrentUISource()));
 
     emit applicationStateChanged();
 }

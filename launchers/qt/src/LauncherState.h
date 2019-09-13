@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QObject>
 #include <QString>
+#include <QUrl>
 #include <QNetworkAccessManager>
 #include <QFile>
 

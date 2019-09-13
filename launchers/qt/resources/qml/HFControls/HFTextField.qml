@@ -3,7 +3,7 @@ import QtQuick.Controls 2.1
 
 TextField {
     id: control
-    color: "#FFFFFF"
+    //color: "#000000"
     font.family: "Graphik Medium"
     font.pixelSize: 22
     verticalAlignment: TextInput.AlignVCenter
@@ -14,14 +14,8 @@ TextField {
     background: Item {
         anchors.fill: parent
         Rectangle {
-            anchors {
-                bottom: parent.bottom
-                left: parent.left
-                leftMargin: 7
-                right: parent.right
-            }
-            height: 1
-            color: control.seperatorColor
+            color: "#FFFFFF"
+            anchors.fill: parent
         }
     }
 }

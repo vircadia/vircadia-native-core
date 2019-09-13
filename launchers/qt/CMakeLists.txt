@@ -62,7 +62,6 @@ if (WIN32)
 
 endif ()
 
-
 if (APPLE)
   ExternalProject_Add(
     qtlite
@@ -127,6 +126,8 @@ set(src_files
   src/LauncherState.cpp
   src/LauncherWindow.h
   src/LauncherWindow.cpp
+  src/PathUtils.cpp
+  src/PathUtils.h
   src/Unzipper.h
   src/Unzipper.cpp
   deps/miniz/miniz.h
@@ -201,6 +202,13 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
   "${INTERFACE_EXEC_DIR}")
 
 
+if (LAUNCHER_SOURCE_TREE_RESOURCES)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
+  message("Use source tree resources path: file://${CMAKE_CURRENT_SOURCE_DIR}/resources/")
+else()
+  target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="qrc:/")
+  message("Use resource.rcc path: qrc:/")
+endif()
 
 if (APPLE)
   install(
