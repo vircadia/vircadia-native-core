@@ -302,17 +302,19 @@ class DynamicTransform {
     std::vector<uint32_t> deformers;
     std::vector<Cluster> clusters; // affect the deformer of the same index
     std::vector<uint32_t> blendshapes;
-    // There is also the modelTransform, which for now is left in hfm::Mesh
+    // There are also the meshExtents and modelTransform, which for now are left in hfm::Mesh
 };
 
 // The lightweight model part description.
 class Shape {
 public:
-    uint32_t mesh;
-    uint32_t meshPart;
-    uint32_t material;
-    uint32_t transform; // The static transform node when not taking into account rigging/skinning
-    uint32_t dynamicTransform;
+    const static uint32_t UNDEFINED_KEY { (uint32_t)-1 };
+
+    uint32_t mesh { UNDEFINED_KEY };
+    uint32_t meshPart { UNDEFINED_KEY };
+    uint32_t material { UNDEFINED_KEY };
+    uint32_t transform { UNDEFINED_KEY }; // The static transform node when not taking into account rigging/skinning
+    uint32_t dynamicTransform { UNDEFINED_KEY };
 };
 
 /// The runtime model format.
