@@ -28,9 +28,9 @@ struct LoginResponse {
 
 class LauncherState : public QObject {
     Q_OBJECT
+
     Q_PROPERTY(UIState uiState READ getUIState NOTIFY uiStateChanged);
     Q_PROPERTY(ApplicationState applicationState READ getApplicationState NOTIFY applicationStateChanged);
-
     Q_PROPERTY(float downloadProgress READ getDownloadProgress NOTIFY downloadProgressChanged);
 
 public:
@@ -46,7 +46,6 @@ public:
         ERROR_SCREEN,
         UI_STATE_NUM
     };
-    Q_ENUM(UIState);
 
     enum class ApplicationState {
         Init,
@@ -66,7 +65,6 @@ public:
 
         LaunchingHighFidelity
     };
-    Q_ENUM(ApplicationState);
 
     enum LastLoginError {
         NONE = 0,
@@ -74,7 +72,10 @@ public:
         CREDENTIALS,
         LAST_ERROR_NUM
     };
-    Q_ENUM(LastLoginError);
+
+    Q_ENUM(UIState);
+    Q_ENUM(ApplicationState)
+    Q_ENUM(LastLoginError)
 
     Q_INVOKABLE QString getCurrentUISource() const;
 
