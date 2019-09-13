@@ -1845,6 +1845,8 @@ public:
      * @returns {MyAvatar.FlowData}
      */
     Q_INVOKABLE QVariantMap getFlowData();
+    Q_INVOKABLE QVariantMap getLookAtCameraData();
+    Q_INVOKABLE void setLookAtCameraData(const QVariantMap& data);
 
     /**jsdoc
      * Gets the indexes of currently colliding flow joints.
@@ -2637,6 +2639,10 @@ private:
     bool _scriptControlsHeadLookAt { false };
     float _scriptHeadControlTimer { 0.0f };
 
+    // LookAt camera data
+    float _selfieTriggerAngle { 55.0f };
+    float _frontLookAtSpeed { 0.15f };
+    float _backLookAtSpeed { 0.03f };
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;

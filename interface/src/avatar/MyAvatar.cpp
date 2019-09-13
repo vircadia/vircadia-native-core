@@ -3490,21 +3490,36 @@ void MyAvatar::updateOrientation(float deltaTime) {
                 lookAttenuation = (upDownDegrees - START_LOOKING_UP_DEGREES) / (MAX_UP_DOWN_DEGREES - START_LOOKING_UP_DEGREES);
             }
         }
-        cameraVector = glm::mix(cameraVector, cameraYawVector, 1.0f - lookAttenuation);
-        // Calculate the camera target point.
         glm::vec3 avatarVectorFront = getWorldOrientation() * Vectors::FRONT;
         float frontBackDot = glm::dot(cameraVector, avatarVectorFront);
-        float frontBackSign = frontBackDot / abs(frontBackDot);
+
+        glm::vec3 avatarVectorRight = getWorldOrientation() * Vectors::RIGHT;
+        float leftRightDot = glm::dot(cameraVector, avatarVectorRight);
+
+        // const float SELFIE_TRIGGER_ANGLE = 55.0f;
+        float triggerSelfie = false;
+        glm::vec3 ajustedYawVector = cameraYawVector;
+        if (frontBackDot < 0.0f) {
+            if (frontBackDot < -glm::sin(glm::radians(_selfieTriggerAngle))) {
+                triggerSelfie = true;
+            } else {
+                ajustedYawVector = (leftRightDot < 0.0f ? -avatarVectorRight : avatarVectorRight);
+                cameraVector = (ajustedYawVector * _lookAtOffsetPitch) * Vectors::FRONT;
+            }
+        }
+
+        cameraVector = glm::mix(cameraVector, ajustedYawVector, 1.0f - lookAttenuation);
+        // Calculate the camera target point.
 
         const float TARGET_DISTANCE_FROM_EYES = 20.0f;
-        glm::vec3 targetPoint = eyesPosition + frontBackSign * TARGET_DISTANCE_FROM_EYES * glm::normalize(cameraVector);
+        glm::vec3 targetPoint = eyesPosition + (triggerSelfie ? -1.0f : 1.0f) * TARGET_DISTANCE_FROM_EYES * glm::normalize(cameraVector);
 
-        const float LOOKAT_MIX_ALPHA = 0.05f;
+        // const float LOOKAT_MIX_ALPHA = 0.05f;
         const float FPS = 60.0f;
 
         if (getDriveKey(TRANSLATE_Y) == 0.0f) {
             // Approximate the head's look at vector to the camera look at vector with some delay.
-            float mixAlpha = LOOKAT_MIX_ALPHA * deltaTime * FPS;
+            float mixAlpha = (frontBackDot > 0.0f ? _backLookAtSpeed : _frontLookAtSpeed) * deltaTime * FPS;
             _lookAtCameraTarget = glm::mix(_lookAtCameraTarget, targetPoint, mixAlpha);
         } else {
             _lookAtCameraTarget = targetPoint;
@@ -6263,6 +6278,36 @@ QVariantMap MyAvatar::getFlowData() {
     return result;
 }
 
+QVariantMap MyAvatar::getLookAtCameraData() {
+    QVariantMap result;
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "getLookAtCameraData",
+            Q_RETURN_ARG(QVariantMap, result));
+        return result;
+    }
+    result.insert("selfieTriggerAngle", _selfieTriggerAngle);
+    result.insert("backLookAtSpeed", glm::pow(_backLookAtSpeed, 0.25f));
+    result.insert("frontLookAtSpeed", glm::pow(_frontLookAtSpeed, 0.25f));
+    return result;
+}
+
+Q_INVOKABLE void MyAvatar::setLookAtCameraData(const QVariantMap& data) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setLookAtCameraData",
+            Q_ARG(const QVariantMap&, data));
+        return;
+    }
+    if (data.contains("selfieTriggerAngle")) {
+        _selfieTriggerAngle = data["selfieTriggerAngle"].toFloat();
+    }
+    if (data.contains("backLookAtSpeed")) {
+        _backLookAtSpeed = glm::pow(data["backLookAtSpeed"].toFloat(), 4.0f);
+    }
+    if (data.contains("frontLookAtSpeed")) {
+        _frontLookAtSpeed = glm::pow(data["frontLookAtSpeed"].toFloat(), 4.0f);
+    }
+}
+
 QVariantList MyAvatar::getCollidingFlowJoints() {
     QVariantList result;
     if (QThread::currentThread() != thread()) {
@@ -6410,14 +6455,17 @@ void MyAvatar::updateHeadLookAt(float deltaTime) {
         float xDot = glm::dot(avatarXVector, headToTargetVector);
         float yDot = glm::dot(avatarYVector, headToTargetVector);
 
+        // Make sure dot products are in range to avoid acosf returning NaN
+        xDot = glm::min(glm::max(xDot, -1.0f), 1.0f);
+        yDot = glm::min(glm::max(yDot, -1.0f), 1.0f);
+
         float xAngle = acosf(xDot);
         float yAngle = acosf(yDot);
 
         // xBlend and yBlend are the values from -1.0 to 1.0 that set the directional blending.
         // We compute them using the angles (0 to PI/2) => (1.0 to 0.0) and (PI/2 to PI) => (0.0 to -1.0)
         float xBlend = -(xAngle - 0.5f * PI) / (0.5f * PI);
-        float yBlend = -(yAngle - 0.5f * PI) / (0.5f * PI);
-
+        float yBlend = -(yAngle - 0.5f * PI) / (0.5f * PI); 
         glm::vec3 lookAtBlend = glm::vec3(xBlend, yBlend, 0.0f);
         _skeletonModel->getRig().setDirectionalBlending(HEAD_BLENDING_NAME, lookAtBlend,
             HEAD_ALPHA_NAME, HEAD_ALPHA_BLENDING);
