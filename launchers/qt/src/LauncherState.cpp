@@ -41,7 +41,7 @@ bool LatestBuilds::getBuild(QString tag, Build* outBuild) {
 
 static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_FOR_UI_STATE =
     { { "SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "DisplayName.qml",
-        "Download.qml", "DownloadFinished.qml", "qml/HFBase/Error.qml" } };
+        "qml/Download.qml", "qml/DownloadFinished.qml", "qml/HFBase/Error.qml" } };
 
 void LauncherState::ASSERT_STATE(LauncherState::ApplicationState state) {
     if (_applicationState != state) {
