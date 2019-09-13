@@ -1613,7 +1613,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             hfmModel.meshExtents.minimum -= glm::vec3(EPSILON, EPSILON, EPSILON);
             hfmModel.meshExtents.maximum += glm::vec3(EPSILON, EPSILON, EPSILON);
            
-            mesh.meshIndex = hfmModel.meshes.size();
+            mesh.meshIndex = (int)hfmModel.meshes.size();
         }
         ++nodecount;
     }
