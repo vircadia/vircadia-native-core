@@ -752,11 +752,11 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
         }
 
         // clean up old mesh parts.
-        int unmodifiedMeshPartCount = mesh.parts.size();
+        auto unmodifiedMeshPartCount = (uint32_t)mesh.parts.size();
         mesh.parts.clear();
         mesh.parts = hfmMeshParts;
 
-        for (int i = 0, meshPartCount = 0; i < unmodifiedMeshPartCount; i++, meshPartCount++) {
+        for (uint32_t i = 0, meshPartCount = 0; i < unmodifiedMeshPartCount; i++, meshPartCount++) {
             FaceGroup faceGroup = faceGroups[meshPartCount];
 
             // Now that each mesh has been created with its own unique material mappings, fill them with data (vertex data is duplicated, face data is not).

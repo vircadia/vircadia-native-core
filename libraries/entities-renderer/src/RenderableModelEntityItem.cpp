@@ -473,11 +473,11 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // compute meshPart local transforms
         QVector<glm::mat4> localTransforms;
         const HFMModel& hfmModel = model->getHFMModel();
-        int numHFMMeshes = hfmModel.meshes.size();
+        uint32_t numHFMMeshes = (uint32_t)hfmModel.meshes.size();
         int totalNumVertices = 0;
         glm::vec3 dimensions = getScaledDimensions();
         glm::mat4 invRegistraionOffset = glm::translate(dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
-        for (int i = 0; i < numHFMMeshes; i++) {
+        for (uint32_t i = 0; i < numHFMMeshes; i++) {
             const HFMMesh& mesh = hfmModel.meshes.at(i);
             if (mesh.clusters.size() > 0) {
                 const HFMCluster& cluster = mesh.clusters.at(0);

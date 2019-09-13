@@ -490,7 +490,7 @@ void ParticleEffectEntityRenderer::fetchGeometryResource() {
 void ParticleEffectEntityRenderer::computeTriangles(const hfm::Model& hfmModel) {
     PROFILE_RANGE(render, __FUNCTION__);
 
-    int numberOfMeshes = hfmModel.meshes.size();
+    uint32_t numberOfMeshes = (uint32_t)hfmModel.meshes.size();
 
     _hasComputedTriangles = true;
     _triangleInfo.triangles.clear();
@@ -500,11 +500,11 @@ void ParticleEffectEntityRenderer::computeTriangles(const hfm::Model& hfmModel) 
     float minArea = FLT_MAX;
     AABox bounds;
 
-    for (int i = 0; i < numberOfMeshes; i++) {
+    for (uint32_t i = 0; i < numberOfMeshes; i++) {
         const HFMMesh& mesh = hfmModel.meshes.at(i);
 
-        const int numberOfParts = mesh.parts.size();
-        for (int j = 0; j < numberOfParts; j++) {
+        const uint32_t numberOfParts = (uint32_t)mesh.parts.size();
+        for (uint32_t j = 0; j < numberOfParts; j++) {
             const HFMMeshPart& part = mesh.parts.at(j);
 
             const int INDICES_PER_TRIANGLE = 3;

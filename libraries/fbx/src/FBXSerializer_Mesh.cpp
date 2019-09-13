@@ -500,7 +500,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                         data.extracted.partMaterialTextures.append(materialTexture);
                     }
 
-                    partIndexPlusOne = data.extracted.mesh.parts.size();
+                    partIndexPlusOne = (int)data.extracted.mesh.parts.size();
                 }
 
                 // give the mesh part this index
@@ -535,7 +535,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
             if (partIndex == 0) {
                 data.extracted.partMaterialTextures.append(materialTexture);
                 data.extracted.mesh.parts.resize(data.extracted.mesh.parts.size() + 1);
-                partIndex = data.extracted.mesh.parts.size();
+                partIndex = (int)data.extracted.mesh.parts.size();
             }
             HFMMeshPart& part = data.extracted.mesh.parts[partIndex - 1];
 

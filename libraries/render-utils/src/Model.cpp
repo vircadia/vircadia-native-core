@@ -804,7 +804,7 @@ void Model::calculateTriangleSets(const HFMModel& hfmModel) {
     for (uint32_t i = 0; i < numberOfMeshes; i++) {
         const HFMMesh& mesh = hfmModel.meshes.at(i);
 
-        const uint32_t numberOfParts = mesh.parts.size();
+        const uint32_t numberOfParts = (uint32_t)mesh.parts.size();
         auto& meshTriangleSets = _modelSpaceMeshTriangleSets[i];
         meshTriangleSets.resize(numberOfParts);
 

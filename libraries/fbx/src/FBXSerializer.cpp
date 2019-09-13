@@ -1288,7 +1288,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         const FBXModel& fbxModel = fbxModels[modelID];
         HFMJoint joint;
         joint.parentIndex = fbxModel.parentIndex;
-        int jointIndex = hfmModel.joints.size();
+        uint32_t jointIndex = (uint32_t)hfmModel.joints.size();
 
         joint.translation = fbxModel.translation; // these are usually in centimeters
         joint.preTransform = fbxModel.preTransform;
@@ -1613,7 +1613,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             // transform cluster vertices to joint-frame and save for later
             glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
             ShapeVertices& points = hfmModel.shapeVertices.at(jointIndex);
-            foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
+            for (const glm::vec3& vertex : extracted.mesh.vertices) {
                 const glm::mat4 vertexTransform = meshToJoint * glm::translate(vertex);
                 points.push_back(extractTranslation(vertexTransform));
             }
@@ -1628,7 +1628,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         }
 
         hfmModel.meshes.push_back(extracted.mesh);
-        int meshIndex = hfmModel.meshes.size() - 1;
+        uint32_t meshIndex = (uint32_t)hfmModel.meshes.size() - 1;
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
     }
 
