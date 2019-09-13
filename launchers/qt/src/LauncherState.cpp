@@ -223,6 +223,7 @@ Q_INVOKABLE void LauncherState::receivedLoginReply() {
     _loginResponse.tokenType = root["token_type"].toString();
 
     qDebug() << "Got response for login: " << data;
+    _loginTokenResponse = data;
 
     downloadClient();
 }
@@ -420,6 +421,10 @@ void LauncherState::launchClient() {
         + " --defaultScriptsOverride " + QDir::toNativeSeparators(defaultScriptsPath)
         + " --displayName " + displayName
         + " --cache " + contentCachePath;
+
+    if (!_loginTokenResponse.isEmpty()) {
+        params += " --tokens \"" + _loginTokenResponse.replace("\"", "\\\"") + "\"";
+    }
 
 #if defined(Q_OS_WIN)
     STARTUPINFO si;

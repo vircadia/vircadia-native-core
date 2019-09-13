@@ -137,6 +137,7 @@ private:
     LastLoginError _lastLoginError { NONE };
     QString _buildTag { QString::null };
     QString _contentCacheURL{ "https://orgs.highfidelity.com/content-cache/content_cache_small-only_data8.zip" }; // QString::null }; // If null, there is no content cache to download
+    QString _loginTokenResponse;
     QFile _clientZipFile;
     QFile _contentZipFile;
 

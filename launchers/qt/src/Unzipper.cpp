@@ -9,10 +9,6 @@ Unzipper::Unzipper(const QString& zipFilePath, const QDir& outputDirectory) :
     _zipFilePath(zipFilePath), _outputDirectory(outputDirectory) {
 }
 
-//uint64_t extractZip(const QString& zipFile, const std::string& path, 
-                                   //std::vector<std::string>& files) {
-                                   //std::function<void(float)> progressCallback) {
-
 void Unzipper::run() {
     qDebug() << "Reading zip file" << _zipFilePath << ", extracting to" << _outputDirectory.absolutePath();
 
@@ -45,7 +41,6 @@ void Unzipper::run() {
         return;
     }
 
-    // Get root folder
     uint64_t totalSize = 0;
     uint64_t totalCompressedSize = 0;
     bool _shouldFail = false;
