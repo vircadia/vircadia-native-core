@@ -332,6 +332,8 @@ public:
     std::vector<Deformer> deformers;
 
     std::vector<TransformNode> transforms;
+    std::vector<DynamicTransform> dynamicTransforms;
+
     std::vector<Joint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
     bool hasSkeletonJoints;
