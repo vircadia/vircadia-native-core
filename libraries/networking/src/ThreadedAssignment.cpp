@@ -29,6 +29,9 @@ ThreadedAssignment::ThreadedAssignment(ReceivedMessage& message) :
     _domainServerTimer(this),
     _statsTimer(this)
 {
+    // use <mixer-type> as a temporary targetName name until commonInit can be called later
+    LogHandler::getInstance().setTargetName(QString("<%1>").arg(getTypeName()));
+
     static const int STATS_TIMEOUT_MS = 1000;
     _statsTimer.setInterval(STATS_TIMEOUT_MS); // 1s, Qt::CoarseTimer acceptable
     connect(&_statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);

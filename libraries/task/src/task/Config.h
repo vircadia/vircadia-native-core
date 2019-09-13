@@ -90,6 +90,17 @@ public:
     using Config = JobConfig;
 };
 
+/**jsdoc
+ * @namespace Workload
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-avatar
+ *
+ * @property {number} cpuRunTime - <em>Read-only.</em>
+ * @property {boolean} enabled
+ * @property {number} branch
+ */
 // A default Config is always on; to create an enableable Config, use the ctor JobConfig(bool enabled)
 class JobConfig : public QObject {
     Q_OBJECT
@@ -139,7 +150,7 @@ public:
     double getCPURunTime() const { return _msCPURunTime; }
 
     /**jsdoc
-     * @function Render.getConfig
+     * @function Workload.getConfig
      * @param {string} name
      * @returns {object}
      */
@@ -162,19 +173,19 @@ public:
 
     // Describe the node graph data connections of the associated Job/Task
    /**jsdoc
-    * @function JobConfig.isTask
+    * @function Workload.isTask
     * @returns {boolean}
     */
     Q_INVOKABLE bool isTask() const { return _isTask; }
 
     /**jsdoc
-     * @function JobConfig.isSwitch
+     * @function Workload.isSwitch
      * @returns {boolean}
      */
     Q_INVOKABLE bool isSwitch() const { return _isSwitch; }
 
     /**jsdoc
-     * @function JobConfig.getSubConfigs
+     * @function Workload.getSubConfigs
      * @returns {object[]}
      */
     Q_INVOKABLE QObjectList getSubConfigs() const {
@@ -187,13 +198,13 @@ public:
     }
 
     /**jsdoc
-     * @function JobConfig.getNumSubs
+     * @function Workload.getNumSubs
      * @returns {number}
      */
     Q_INVOKABLE int getNumSubs() const { return getSubConfigs().size(); }
 
     /**jsdoc
-     * @function JobConfig.getSubConfig
+     * @function Workload.getSubConfig
      * @param {number} index
      * @returns {object}
      */
@@ -214,7 +225,7 @@ public slots:
 
     /**jsdoc
      * @function Workload.load
-     * @param {object} map
+     * @param {object} json
      */
     void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
 
