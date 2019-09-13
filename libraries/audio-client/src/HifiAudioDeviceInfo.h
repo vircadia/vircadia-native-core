@@ -7,7 +7,7 @@
 #include <QString>
 
 class HifiAudioDeviceInfo : public QObject {
-    QObject
+    Q_OBJECT
     
 public:
     HifiAudioDeviceInfo() {}
@@ -28,11 +28,33 @@ public:
     void setMode(QAudio::Mode mode);
     void setIsDefault(bool isDefault = false);
     void setDeviceName(QString name);
+    void setDevice(QAudioDeviceInfo devInfo) {
+        _audioDeviceInfo = devInfo;
+        setDeviceName();
+    }
 
     QAudioDeviceInfo getDevice() const { return _audioDeviceInfo; }
     QString deviceName() const { return _deviceName; }
-    bool isDefault() const { return isDefault; }
+    bool isDefault() const { return _isDefault; }
     QAudio::Mode getMode() const { return _mode; }
+
+
+    HifiAudioDeviceInfo& operator=(const HifiAudioDeviceInfo& other) { 
+        _audioDeviceInfo = other.getDevice();
+        _deviceName = other.deviceName();
+        _mode = other.getMode();
+        _isDefault = other.isDefault();
+        return *this;
+    }
+
+     bool operator==(const HifiAudioDeviceInfo& rhs) const { 
+         return _audioDeviceInfo == rhs.getDevice(); 
+     }
+    
+     bool operator!=(const HifiAudioDeviceInfo& rhs) const { 
+         return _audioDeviceInfo != rhs.getDevice(); 
+     }
+
 
 private:
     void setDeviceName();

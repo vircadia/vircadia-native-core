@@ -1763,7 +1763,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInf
         _audioInput = NULL;
         _numInputCallbackBytes = 0;
 
-        _inputDeviceInfo = HifiAudioDeviceInfo();  //QAudioDeviceInfo();
+        _inputDeviceInfo = HifiAudioDeviceInfo();
     }
 
     if (_dummyAudioInput) {
