@@ -1958,8 +1958,7 @@ void Rig::updateReactions(const ControllerParameters& params) {
 
         bool isSeated = _state == RigRole::Seated;
         bool hipsEnabled = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Enabled;
-        bool hipsEstimated = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Estimated;
-        bool hmdMode = hipsEnabled && !hipsEstimated;
+        bool hmdMode = hipsEnabled;
 
         if ((reactionPlaying || isSeated) && !hmdMode) {
             // TODO: make this smooth.
