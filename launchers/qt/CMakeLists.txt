@@ -72,7 +72,12 @@ set(src_files
   src/LauncherState.h
   src/LauncherState.cpp
   src/LauncherWindow.h
-  src/LauncherWindow.cpp)
+  src/LauncherWindow.cpp
+  src/Unzipper.h
+  src/Unzipper.cpp
+  deps/miniz/miniz.h
+  deps/miniz/miniz.cpp
+  )
 
 set(TARGET_NAME ${PROJECT_NAME})
 add_executable(${PROJECT_NAME} ${src_files})
@@ -109,6 +114,7 @@ target_link_libraries(${PROJECT_NAME}
   "${_qt5Core_install_prefix}/qml/QtQuick/Templates.2/qtquicktemplates2plugin.lib")
 
 target_include_directories(${PROJECT_NAME} PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/deps/
   ${Qt5Core_INCLUDE_DIRS}
   ${Qt5Quick_INCLUDE_DIRS}
   ${Qt5Gui_INCLUDE_DIRS}
