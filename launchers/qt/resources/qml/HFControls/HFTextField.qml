@@ -10,6 +10,7 @@ TextField {
     horizontalAlignment: TextInput.AlignLeft
     placeholderText: "PlaceHolder"
     property string seperatorColor: "#FFFFFF"
+    selectByMouse: true
     background: Item {
         anchors.fill: parent
         Rectangle {
