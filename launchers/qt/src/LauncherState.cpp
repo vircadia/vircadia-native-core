@@ -1,5 +1,6 @@
 #include "LauncherState.h"
 
+#include "PathUtils.h"
 #include <array>
 
 #include <QNetworkRequest>
@@ -14,8 +15,8 @@
 #include <QQmlEngine>
 
 static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_FOR_UI_STATE =
-    { { "qrc:/qml/SplashScreen.qml", "qrc:/qml/HFBase/CreateAccountBase.qml", "qrc:/qml/DisplayName.qml",
-        "qrc:/qml/Download.qml", "qrc:/qml/DownloadFinished.qml", "qrc:/qml/HFBase/Error.qml" } };
+    { { "SplashScreen.qml", "HFBase/CreateAccountBase.qml", "DisplayName.qml",
+        "Download.qml", "DownloadFinished.qml", "HFBase/Error.qml" } };
 
 LauncherState::LauncherState() {
     // TODO Show splash screen until this request is complete
@@ -75,7 +76,7 @@ void LauncherState::declareQML() {
 
 void LauncherState::setUIState(UIState state) {
     _uiState = state;
-    emit updateSourceUrl(getCurrentUISource());
+    emit updateSourceUrl(PathUtils::resourcePath(getCurrentUISource()));
 }
 
 LauncherState::UIState LauncherState::getUIState() const {

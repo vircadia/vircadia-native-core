@@ -1,5 +1,6 @@
 #include <QObject>
 #include <QString>
+#include <QUrl>
 #include <QNetworkAccessManager>
 
 struct Build {

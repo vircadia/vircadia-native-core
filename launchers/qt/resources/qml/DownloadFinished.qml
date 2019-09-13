@@ -11,7 +11,7 @@ Item {
         width: parent.width
         height: parent.height
         mirror: true
-        source: "qrc:/images/hifi_window@2x.png"
+        source: PathUtils.resourcePath("images/hifi_window@2x.png");
         transformOrigin: Item.Center
         rotation: 0
     }
@@ -21,7 +21,7 @@ Item {
         id: logo
         width: 132
         height: 134
-        source: "qrc:/images/HiFi_Voxel.png"
+         source: PathUtils.resourcePath("images/HiFi_Voxel.png");
 
         anchors {
             top: root.top
