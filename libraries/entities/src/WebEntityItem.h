@@ -74,6 +74,8 @@ public:
     void setScriptURL(const QString& value);
     QString getScriptURL() const;
 
+    bool getLocalSafeContext() const;
+
     static const uint8_t DEFAULT_MAX_FPS;
     void setMaxFPS(uint8_t value);
     uint8_t getMaxFPS() const;
@@ -98,6 +100,7 @@ protected:
     uint8_t _maxFPS;
     WebInputMode _inputMode;
     bool _showKeyboardFocusHighlight;
+    bool _localSafeContext { false };
 };
 
 #endif // hifi_WebEntityItem_h

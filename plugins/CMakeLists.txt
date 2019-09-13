@@ -43,3 +43,7 @@ set(DIR "pcmCodec")
 add_subdirectory(${DIR})
 set(DIR "hifiCodec")
 add_subdirectory(${DIR})
+
+# example plugins
+set(DIR "KasenAPIExample")
+add_subdirectory(${DIR})

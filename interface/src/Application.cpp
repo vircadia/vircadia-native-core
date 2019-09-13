@@ -810,6 +810,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     }
 
     // Tell the plugin manager about our statically linked plugins
+    DependencyManager::set<ScriptInitializers>();
     DependencyManager::set<PluginManager>();
     auto pluginManager = PluginManager::getInstance();
     pluginManager->setInputPluginProvider([] { return getInputPlugins(); });
@@ -859,7 +860,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 #endif
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT, defaultScriptsOverrideOption);
-    DependencyManager::set<ScriptInitializerMixin, NativeScriptInitializers>();
     DependencyManager::set<Preferences>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
@@ -3425,7 +3425,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
     surfaceContext->setContextProperty("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
     surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
-    surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
+    surfaceContext->setContextProperty("Settings", new QMLSettingsScriptingInterface(surfaceContext));
     surfaceContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     surfaceContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
     surfaceContext->setContextProperty("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
@@ -3541,7 +3541,7 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
         surfaceContext->setContextProperty("offscreenFlags", flags);
         surfaceContext->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
 
-        surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
+        surfaceContext->setContextProperty("Settings", new QMLSettingsScriptingInterface(surfaceContext));
         surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
         surfaceContext->setContextProperty("Performance", new PerformanceScriptingInterface());
 
