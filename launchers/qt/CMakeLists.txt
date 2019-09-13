@@ -127,7 +127,12 @@ set(src_files
   src/LauncherWindow.h
   src/LauncherWindow.cpp
   src/PathUtils.cpp
-  src/PathUtils.h)
+  src/PathUtils.h
+  src/Unzipper.h
+  src/Unzipper.cpp
+  deps/miniz/miniz.h
+  deps/miniz/miniz.cpp
+  )
 
 set(TARGET_NAME ${PROJECT_NAME})
 
@@ -176,6 +181,7 @@ elseif (APPLE)
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/deps/
   ${Qt5Core_INCLUDE_DIRS}
   ${Qt5Quick_INCLUDE_DIRS}
   ${Qt5Gui_INCLUDE_DIRS}

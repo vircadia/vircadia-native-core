@@ -62,6 +62,8 @@ Item {
         width: 394
         height: 8
 
+        value: LauncherState.downloadProgress;
+
         anchors {
             top: secondText.bottom
             topMargin: 30
@@ -88,14 +90,14 @@ Item {
         }
 
 
-        PropertyAnimation {
-            target: progressBar;
-            loops: Animation.Infinite
-            property: "value"
-            from: 0;
-            to: 1;
-            duration: 5000
-            running: true
-        }
+        //PropertyAnimation {
+            //target: progressBar;
+            //loops: Animation.Infinite
+            //property: "value"
+            //from: 0;
+            //to: 1;
+            //duration: 5000
+            //running: true
+        //}
     }
 }

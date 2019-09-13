@@ -4,6 +4,7 @@ import QtQuick 2.3
 import QtQuick.Controls 2.1
 import HQLauncher 1.0
 import "HFControls"
+
 Item {
     id: root
     width: 515
@@ -20,5 +21,15 @@ Item {
         LauncherState.updateSourceUrl.connect(function(url) {
             loader.source = url;
         });
+    }
+
+    Text {
+        font.pixelSize: 12
+
+        anchors.right: root.right
+        anchors.bottom: root.bottom
+
+        color: "#FFFFFF"
+        text: LauncherState.uiState.toString() + " - " + LauncherState.applicationState
     }
 }
