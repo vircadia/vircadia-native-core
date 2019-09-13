@@ -21,6 +21,11 @@
 
 #include <QStandardPaths>
 
+QString getCurrentClientVersion() {
+    // TODO Implement client version checking
+    return "";
+}
+
 
 bool LatestBuilds::getBuild(QString tag, Build* outBuild) {
     if (tag.isNull()) {
@@ -246,6 +251,13 @@ void LauncherState::downloadClient() {
         return;
     }
 
+    auto currentVersion = getCurrentClientVersion();
+    if (QString::number(build.latestVersion) == currentVersion) {
+        qDebug() << "Existing client install is up-to-date.";
+        downloadContentCache();
+        return;
+    }
+
     _downloadProgress = 0;
     setApplicationState(ApplicationState::DownloadingClient);
 
@@ -294,8 +306,9 @@ void LauncherState::installClient() {
     ASSERT_STATE(ApplicationState::DownloadingClient);
     setApplicationState(ApplicationState::InstallingClient);
 
-    auto installDir = _launcherDirectory.absoluteFilePath("interface_install");
+    _launcherDirectory.rmpath("interface_install");
     _launcherDirectory.mkpath("interface_install");
+    auto installDir = _launcherDirectory.absoluteFilePath("interface_install");
 
     _downloadProgress = 0;
 
@@ -323,7 +336,7 @@ void LauncherState::installClient() {
 }
 
 void LauncherState::downloadContentCache() {
-    ASSERT_STATE(ApplicationState::InstallingClient);
+    ASSERT_STATE({ ApplicationState::RequestingLogin, ApplicationState::InstallingClient });
 
     // Start content set cache download
     if (shouldDownloadContentCache()) {
@@ -410,12 +423,13 @@ void LauncherState::launchClient() {
     QDir installDirectory = _launcherDirectory.filePath("interface_install");
     auto clientPath = installDirectory.absoluteFilePath("interface.exe");
 
+    // TODO Get correct home path
     QString homePath = "hifi://hq";
-    QString defaultScriptsPath = installDirectory.filePath("scripts/simplifiedUIBootstrapper");
+    QString defaultScriptsPath = installDirectory.filePath("scripts/simplifiedUIBootstrapper.js");
     QString displayName = "fixMe";
     QString contentCachePath = _launcherDirectory.filePath("cache");
 
-    // TODO Fix parameters
+    // TODO Confirm that these params are correct across Windows and OSX
     QString params = "--url " + homePath
         + " --setBookmark hqhome=\"" + homePath + "\""
         + " --defaultScriptsOverride " + QDir::toNativeSeparators(defaultScriptsPath)
@@ -441,12 +455,12 @@ void LauncherState::launchClient() {
         params.toUtf8().data(),
         nullptr,                   // Process handle not inheritable
         nullptr,                   // Thread handle not inheritable
-        FALSE,                  // Set handle inheritance to FALSE
-        CREATE_NEW_CONSOLE,     // Opens file in a separate console
-        nullptr,           // Use parent's environment block
-        nullptr,           // Use parent's starting directory 
-        &si,            // Pointer to STARTUPINFO structure
-        &pi           // Pointer to PROCESS_INFORMATION structure
+        FALSE,                     // Set handle inheritance to FALSE
+        CREATE_NEW_CONSOLE,        // Opens file in a separate console
+        nullptr,                   // Use parent's environment block
+        nullptr,                   // Use parent's starting directory 
+        &si,                       // Pointer to STARTUPINFO structure
+        &pi                        // Pointer to PROCESS_INFORMATION structure
     );
     // Close process and thread handles. 
     CloseHandle(pi.hProcess);
