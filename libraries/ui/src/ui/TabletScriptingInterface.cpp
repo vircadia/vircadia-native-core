@@ -834,32 +834,6 @@ void TabletProxy::loadHTMLSourceImpl(const QVariant& url, const QString& injectJ
         hifi::scripting::setLocalAccessSafeThread(false);
     }
     _state = State::Web;
-    /*QObject* root = nullptr;
-    if (!_toolbarMode && _qmlTabletRoot) {
-        root = _qmlTabletRoot;
-    } else if (_toolbarMode && _desktopWindow) {
-        root = _desktopWindow->asQuickItem();
-    }
-
-    if (root) {
-        // BUGZ-1398: tablet access to local HTML files from client scripts
-        // Here we TEMPORARILY mark the main thread as allowed to load local file content, 
-        // because the thread that originally made the call is so marked.  
-        if (localSafeContext) {
-            hifi::scripting::setLocalAccessSafeThread(true);
-        }
-        QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, path));
-        hifi::scripting::setLocalAccessSafeThread(false);
-        _state = State::QML;
-        _currentPathLoaded = path;
-        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
-        if (_toolbarMode && _desktopWindow) {
-            QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(resizable)));
-        }
-
-    } else {
-        qCDebug(uiLogging) << "tablet cannot load QML because _qmlTabletRoot is null";
-        }*/
 }
 
 void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase) {
