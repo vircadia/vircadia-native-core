@@ -19,6 +19,7 @@
 #include "SettingHandle.h"
 #include "AudioFileWav.h"
 #include <shared/ReadWriteLockable.h>
+#include "HifiAudioDeviceInfo.h"
 
 using MutedGetter = std::function<bool()>;
 using MutedSetter = std::function<void(bool)>;
@@ -158,7 +159,7 @@ public:
      * @param {boolean} isHMD - Is HMD.
      * @deprecated This function is deprecated and will be removed.
      */
-    Q_INVOKABLE void setInputDevice(const QAudioDeviceInfo& device, bool isHMD);
+    Q_INVOKABLE void setInputDevice(const HifiAudioDeviceInfo& device, bool isHMD);
 
     /**jsdoc
      * @function Audio.setOutputDevice
@@ -166,7 +167,7 @@ public:
      * @param {boolean} isHMD - Is HMD.
      * @deprecated This function is deprecated and will be removed.
      */
-    Q_INVOKABLE void setOutputDevice(const QAudioDeviceInfo& device, bool isHMD);
+    Q_INVOKABLE void setOutputDevice(const HifiAudioDeviceInfo& device, bool isHMD);
 
     /**jsdoc
      * Enables or disables reverberation. Reverberation is done by the client on the post-mix audio. The reverberation options
