@@ -287,10 +287,22 @@ public:
     bool shouldInitCollisions() const { return _collisionsConfig.size() > 0; }
 };
 
-class ShapeTransform {
-    std::vector<uint32_t> clusters;
-    Extents meshExtents;
-    Transform modelTransform;
+class TransformNode {
+    uint32_t parent { 0 };
+    Transform transform;
+};
+
+// Formerly contained in hfm::Mesh
+class Deformer {
+    std::vector<uint16_t> indices;
+    std::vector<uint16_t> weights;
+};
+
+class DynamicTransform {
+    std::vector<uint32_t> deformers;
+    std::vector<Cluster> clusters; // affect the deformer of the same index
+    std::vector<uint32_t> blendshapes;
+    // There is also the modelTransform, which for now is left in hfm::Mesh
 };
 
 // The lightweight model part description.
@@ -299,7 +311,8 @@ public:
     uint32_t mesh;
     uint32_t meshPart;
     uint32_t material;
-    uint32_t shapeTransform;
+    uint32_t transform; // The static transform node when not taking into account rigging/skinning
+    uint32_t dynamicTransform;
 };
 
 /// The runtime model format.
@@ -316,8 +329,9 @@ public:
 
     std::vector<Mesh> meshes;
     std::vector<Material> materials;
-    std::vector<ShapeTransform> shapeTransforms;
+    std::vector<Deformer> deformers;
 
+    std::vector<TransformNode> transforms;
     std::vector<Joint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
     bool hasSkeletonJoints;
