@@ -25,6 +25,12 @@ const float Material::DEFAULT_ROUGHNESS { 1.0f };
 const float Material::DEFAULT_SCATTERING{ 0.0f };
 const float Material::DEFAULT_ALPHA_CUTOFF { 0.5f };
 
+
+std::string MaterialKey::getAlphaMapModeName(AlphaMapMode mode) {
+    const std::string names[3] = { "ALPHA_MAP_OPAQUE", "ALPHA_MAP_MASK", "ALPHA_MAP_BLEND" };
+    return names[mode];
+}
+
 Material::Material() {
     for (int i = 0; i < NUM_TOTAL_FLAGS; i++) {
         _propertyFallthroughs[i] = false;

@@ -59,8 +59,7 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
         model = material->getModel().c_str();
         opacity = material->getOpacity();
 
-        opacityMode = (opacity < 1.0f ? "opacityVarAlpha" : "opaque");
-
+        opacityMode = QString(graphics::MaterialKey::getAlphaMapModeName(material->getAlphaMapMode()).c_str());
         roughness = material->getRoughness();
         metallic = material->getMetallic();
         scattering = material->getScattering();
@@ -82,8 +81,6 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
             albedoMap = map->getTextureSource()->getUrl().toString();
             if (map->useAlphaChannel()) {
                 opacityMap = albedoMap;
-                //opacityMode = (material->getKey().isOpacityMaskMap() ? "opacityMapAlphaMask" : "opacityMapAlphaBlend");
-                opacityMode = (material->getKey().isOpacityMaskMap() ? "opacityMapAlphaMask" : "opacityMapAlphaBlend");
             }
         }
 

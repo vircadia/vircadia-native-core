@@ -77,6 +77,7 @@ public:
         ALPHA_MAP_MASK,
         ALPHA_MAP_BLEND,
     };
+    static std::string getAlphaMapModeName(AlphaMapMode mode);
 
     // The signature is the Flags
     Flags _flags;
@@ -210,7 +211,6 @@ public:
         };
     }
     AlphaMapMode getAlphaMapMode() const { return (_flags[OPACITY_MASK_MAP_BIT] ? ALPHA_MAP_MASK : (_flags[OPACITY_TRANSLUCENT_MAP_BIT] ? ALPHA_MAP_BLEND : ALPHA_MAP_OPAQUE)); }
-
 
     bool isTranslucent() const { return isTranslucentFactor() || isTranslucentMap(); }
     bool isOpaque() const { return !isTranslucent(); }
