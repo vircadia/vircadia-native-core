@@ -312,7 +312,7 @@ void SkeletonModel::computeBoundingShape() {
     }
 
     const HFMModel& hfmModel = getHFMModel();
-    if (hfmModel.joints.isEmpty() || _rig.indexOfJoint("Hips") == -1) {
+    if (hfmModel.joints.empty() || _rig.indexOfJoint("Hips") == -1) {
         // rootJointIndex == -1 if the avatar model has no skeleton
         return;
     }

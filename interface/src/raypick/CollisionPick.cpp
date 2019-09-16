@@ -248,9 +248,9 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
         shapeInfo.setParams(type, dimensions, resource->getURL().toString());
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         const HFMModel& hfmModel = resource->getHFMModel();
-        int numHFMMeshes = hfmModel.meshes.size();
+        uint32_t numHFMMeshes = (uint32_t)hfmModel.meshes.size();
         int totalNumVertices = 0;
-        for (int i = 0; i < numHFMMeshes; i++) {
+        for (uint32_t i = 0; i < numHFMMeshes; i++) {
             const HFMMesh& mesh = hfmModel.meshes.at(i);
             totalNumVertices += mesh.vertices.size();
         }

@@ -492,8 +492,8 @@ bool OBJSerializer::parseOBJGroup(OBJTokenizer& tokenizer, const hifi::VariantHa
                               float& scaleGuess, bool combineParts) {
     FaceGroup faces;
     HFMMesh& mesh = hfmModel.meshes[0];
-    mesh.parts.append(HFMMeshPart());
-    HFMMeshPart& meshPart = mesh.parts.last();
+    mesh.parts.push_back(HFMMeshPart());
+    HFMMeshPart& meshPart = mesh.parts.back();
     bool sawG = false;
     bool result = true;
     int originalFaceCountForDebugging = 0;
@@ -501,7 +501,7 @@ bool OBJSerializer::parseOBJGroup(OBJTokenizer& tokenizer, const hifi::VariantHa
     bool anyVertexColor { false };
     int vertexCount { 0 };
 
-    setMeshPartDefaults(meshPart, QString("dontknow") + QString::number(mesh.parts.count()));
+    setMeshPartDefaults(meshPart, QString("dontknow") + QString::number(mesh.parts.size()));
 
     while (true) {
         int tokenType = tokenizer.nextToken();
@@ -676,7 +676,7 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
     _url = url;
     bool combineParts = mapping.value("combineParts").toBool();
     hfmModel.meshExtents.reset();
-    hfmModel.meshes.append(HFMMesh());
+    hfmModel.meshes.push_back(HFMMesh());
 
     try {
         // call parseOBJGroup as long as it's returning true.  Each successful call will
@@ -706,8 +706,8 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
         mesh.clusters.append(cluster);
 
         QMap<QString, int> materialMeshIdMap;
-        QVector<HFMMeshPart> hfmMeshParts;
-        for (int i = 0, meshPartCount = 0; i < mesh.parts.count(); i++, meshPartCount++) {
+        std::vector<HFMMeshPart> hfmMeshParts;
+        for (uint32_t i = 0, meshPartCount = 0; i < (uint32_t)mesh.parts.size(); i++, meshPartCount++) {
             HFMMeshPart& meshPart = mesh.parts[i];
             FaceGroup faceGroup = faceGroups[meshPartCount];
             bool specifiesUV = false;
@@ -718,8 +718,8 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
                     // Create a new HFMMesh for this material mapping.
                     materialMeshIdMap.insert(face.materialName, materialMeshIdMap.count());
 
-                    hfmMeshParts.append(HFMMeshPart());
-                    HFMMeshPart& meshPartNew = hfmMeshParts.last();
+                    hfmMeshParts.push_back(HFMMeshPart());
+                    HFMMeshPart& meshPartNew = hfmMeshParts.back();
                     meshPartNew.quadIndices = QVector<int>(meshPart.quadIndices);                    // Copy over quad indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
                     meshPartNew.quadTrianglesIndices = QVector<int>(meshPart.quadTrianglesIndices); // Copy over quad triangulated indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
                     meshPartNew.triangleIndices = QVector<int>(meshPart.triangleIndices);            // Copy over triangle indices.
@@ -752,11 +752,11 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
         }
 
         // clean up old mesh parts.
-        int unmodifiedMeshPartCount = mesh.parts.count();
+        auto unmodifiedMeshPartCount = (uint32_t)mesh.parts.size();
         mesh.parts.clear();
-        mesh.parts = QVector<HFMMeshPart>(hfmMeshParts);
+        mesh.parts = hfmMeshParts;
 
-        for (int i = 0, meshPartCount = 0; i < unmodifiedMeshPartCount; i++, meshPartCount++) {
+        for (uint32_t i = 0, meshPartCount = 0; i < unmodifiedMeshPartCount; i++, meshPartCount++) {
             FaceGroup faceGroup = faceGroups[meshPartCount];
 
             // Now that each mesh has been created with its own unique material mappings, fill them with data (vertex data is duplicated, face data is not).
@@ -892,11 +892,12 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
             continue;
         }
 
-        HFMMaterial& hfmMaterial = hfmModel.materials[materialID] = HFMMaterial(objMaterial.diffuseColor,
-                                                                                objMaterial.specularColor,
-                                                                                objMaterial.emissiveColor,
-                                                                                objMaterial.shininess,
-                                                                                objMaterial.opacity);
+        hfmModel.materials.emplace_back(objMaterial.diffuseColor,
+            objMaterial.specularColor,
+            objMaterial.emissiveColor,
+            objMaterial.shininess,
+            objMaterial.opacity);
+        HFMMaterial& hfmMaterial = hfmModel.materials.back();
 
         hfmMaterial.name = materialID;
         hfmMaterial.materialID = materialID;
@@ -1003,7 +1004,7 @@ void hfmDebugDump(const HFMModel& hfmModel) {
     qCDebug(modelformat) << "---------------- hfmModel ----------------";
     qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
     qCDebug(modelformat) << "  offset =" << hfmModel.offset;
-    qCDebug(modelformat) << "  meshes.count() =" << hfmModel.meshes.count();
+    qCDebug(modelformat) << "  meshes.count() =" << hfmModel.meshes.size();
     foreach (HFMMesh mesh, hfmModel.meshes) {
         qCDebug(modelformat) << "    vertices.count() =" << mesh.vertices.count();
         qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
@@ -1021,7 +1022,7 @@ void hfmDebugDump(const HFMModel& hfmModel) {
         qCDebug(modelformat) << "    clusterWeights.count() =" << mesh.clusterWeights.count();
         qCDebug(modelformat) << "    meshExtents =" << mesh.meshExtents;
         qCDebug(modelformat) << "    modelTransform =" << mesh.modelTransform;
-        qCDebug(modelformat) << "    parts.count() =" << mesh.parts.count();
+        qCDebug(modelformat) << "    parts.count() =" << mesh.parts.size();
         foreach (HFMMeshPart meshPart, mesh.parts) {
             qCDebug(modelformat) << "        quadIndices.count() =" << meshPart.quadIndices.count();
             qCDebug(modelformat) << "        triangleIndices.count() =" << meshPart.triangleIndices.count();
@@ -1046,7 +1047,7 @@ void hfmDebugDump(const HFMModel& hfmModel) {
     }
 
     qCDebug(modelformat) << "  jointIndices =" << hfmModel.jointIndices;
-    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.count();
+    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.size();
 
     foreach (HFMJoint joint, hfmModel.joints) {
 

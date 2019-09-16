@@ -76,7 +76,7 @@ QStringList HFMModel::getJointNames() const {
 }
 
 bool HFMModel::hasBlendedMeshes() const {
-    if (!meshes.isEmpty()) {
+    if (!meshes.empty()) {
         foreach (const HFMMesh& mesh, meshes) {
             if (!mesh.blendshapes.isEmpty()) {
                 return true;
@@ -166,11 +166,11 @@ void HFMModel::computeKdops() {
         glm::vec3(INV_SQRT_3,  INV_SQRT_3, -INV_SQRT_3),
         glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3)
     };
-    if (joints.size() != (int)shapeVertices.size()) {
+    if (joints.size() != shapeVertices.size()) {
         return;
     }
     // now that all joints have been scanned compute a k-Dop bounding volume of mesh
-    for (int i = 0; i < joints.size(); ++i) {
+    for (size_t i = 0; i < joints.size(); ++i) {
         HFMJoint& joint = joints[i];
 
         // NOTE: points are in joint-frame

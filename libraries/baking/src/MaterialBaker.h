@@ -32,7 +32,7 @@ public:
     bool isURL() const { return _isURL; }
     QString getBakedMaterialData() const { return _bakedMaterialData; }
 
-    void setMaterials(const QHash<QString, hfm::Material>& materials, const QString& baseURL);
+    void setMaterials(const std::vector<hfm::Material>& materials, const QString& baseURL);
     void setMaterials(const NetworkMaterialResourcePointer& materialResource);
 
     NetworkMaterialResourcePointer getNetworkMaterialResource() const { return _materialResource; }

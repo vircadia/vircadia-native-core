@@ -734,7 +734,7 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
             for (int partID = 0; partID < numParts; partID++) {
                 HFMMeshPart part;
                 part.triangleIndices = buffer_helpers::bufferToVector<int>(mesh._mesh->getIndexBuffer(), "part.triangleIndices");
-                mesh.parts << part;
+                mesh.parts.push_back(part);
             }
             {
                 foreach (const glm::vec3& vertex, mesh.vertices) {
@@ -745,7 +745,7 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
                     mesh.meshExtents.maximum = glm::max(mesh.meshExtents.maximum, transformedVertex);
                 }
             }
-            hfmModel.meshes << mesh;
+            hfmModel.meshes.push_back(mesh);
         }
         calculateTriangleSets(hfmModel);
     }
@@ -762,9 +762,9 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
     }
 
     const HFMModel& hfmModel = getHFMModel();
-    int numberOfMeshes = hfmModel.meshes.size();
+    uint32_t numberOfMeshes = (uint32_t)hfmModel.meshes.size();
     int shapeID = 0;
-    for (int i = 0; i < numberOfMeshes; i++) {
+    for (uint32_t i = 0; i < numberOfMeshes; i++) {
         const HFMMesh& hfmMesh = hfmModel.meshes.at(i);
         if (auto mesh = hfmMesh._mesh) {
             result.append(mesh);
@@ -795,20 +795,20 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
 void Model::calculateTriangleSets(const HFMModel& hfmModel) {
     PROFILE_RANGE(render, __FUNCTION__);
 
-    int numberOfMeshes = hfmModel.meshes.size();
+    uint32_t numberOfMeshes = (uint32_t)hfmModel.meshes.size();
 
     _triangleSetsValid = true;
     _modelSpaceMeshTriangleSets.clear();
     _modelSpaceMeshTriangleSets.resize(numberOfMeshes);
 
-    for (int i = 0; i < numberOfMeshes; i++) {
+    for (uint32_t i = 0; i < numberOfMeshes; i++) {
         const HFMMesh& mesh = hfmModel.meshes.at(i);
 
-        const int numberOfParts = mesh.parts.size();
+        const uint32_t numberOfParts = (uint32_t)mesh.parts.size();
         auto& meshTriangleSets = _modelSpaceMeshTriangleSets[i];
         meshTriangleSets.resize(numberOfParts);
 
-        for (int j = 0; j < numberOfParts; j++) {
+        for (uint32_t j = 0; j < numberOfParts; j++) {
             const HFMMeshPart& part = mesh.parts.at(j);
 
             auto& partTriangleSet = meshTriangleSets[j];

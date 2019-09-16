@@ -228,7 +228,7 @@ public:
 class Mesh {
 public:
 
-    QVector<MeshPart> parts;
+    std::vector<MeshPart> parts;
 
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
@@ -287,6 +287,36 @@ public:
     bool shouldInitCollisions() const { return _collisionsConfig.size() > 0; }
 };
 
+class TransformNode {
+    uint32_t parent { 0 };
+    Transform transform;
+};
+
+// Formerly contained in hfm::Mesh
+class Deformer {
+    std::vector<uint16_t> indices;
+    std::vector<uint16_t> weights;
+};
+
+class DynamicTransform {
+    std::vector<uint32_t> deformers;
+    std::vector<Cluster> clusters; // affect the deformer of the same index
+    std::vector<uint32_t> blendshapes;
+    // There are also the meshExtents and modelTransform, which for now are left in hfm::Mesh
+};
+
+// The lightweight model part description.
+class Shape {
+public:
+    const static uint32_t UNDEFINED_KEY { (uint32_t)-1 };
+
+    uint32_t mesh { UNDEFINED_KEY };
+    uint32_t meshPart { UNDEFINED_KEY };
+    uint32_t material { UNDEFINED_KEY };
+    uint32_t transform { UNDEFINED_KEY }; // The static transform node when not taking into account rigging/skinning
+    uint32_t dynamicTransform { UNDEFINED_KEY };
+};
+
 /// The runtime model format.
 class Model {
 public:
@@ -297,14 +327,19 @@ public:
     QString author;
     QString applicationName; ///< the name of the application that generated the model
 
-    QVector<Joint> joints;
+    std::vector<Shape> shapes;
+
+    std::vector<Mesh> meshes;
+    std::vector<Material> materials;
+    std::vector<Deformer> deformers;
+
+    std::vector<TransformNode> transforms;
+    std::vector<DynamicTransform> dynamicTransforms;
+
+    std::vector<Joint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
     bool hasSkeletonJoints;
-
-    QVector<Mesh> meshes;
     QVector<QString> scripts;
-
-    QHash<QString, Material> materials;
 
     glm::mat4 offset; // This includes offset, rotation, and scale as specified by the FST file
 

@@ -1288,7 +1288,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         const FBXModel& fbxModel = fbxModels[modelID];
         HFMJoint joint;
         joint.parentIndex = fbxModel.parentIndex;
-        int jointIndex = hfmModel.joints.size();
+        uint32_t jointIndex = (uint32_t)hfmModel.joints.size();
 
         joint.translation = fbxModel.translation; // these are usually in centimeters
         joint.preTransform = fbxModel.preTransform;
@@ -1357,11 +1357,11 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
 
         }
-        hfmModel.joints.append(joint);
+        hfmModel.joints.push_back(joint);
     }
 
     // NOTE: shapeVertices are in joint-frame
-    hfmModel.shapeVertices.resize(std::max(1, hfmModel.joints.size()) );
+    hfmModel.shapeVertices.resize(std::max((size_t)1, hfmModel.joints.size()) );
 
     hfmModel.bindExtents.reset();
     hfmModel.meshExtents.reset();
@@ -1400,7 +1400,10 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         }
     }
 #endif
-    hfmModel.materials = _hfmMaterials;
+
+    for (auto materialIt = _hfmMaterials.cbegin(); materialIt != _hfmMaterials.cend(); ++materialIt) {
+        hfmModel.materials.push_back(materialIt.value());
+    }
 
     // see if any materials have texture children
     bool materialsHaveTextures = checkMaterialsHaveTextures(_hfmMaterials, _textureFilenames, _connectionChildMap);
@@ -1610,7 +1613,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             // transform cluster vertices to joint-frame and save for later
             glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
             ShapeVertices& points = hfmModel.shapeVertices.at(jointIndex);
-            foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
+            for (const glm::vec3& vertex : extracted.mesh.vertices) {
                 const glm::mat4 vertexTransform = meshToJoint * glm::translate(vertex);
                 points.push_back(extractTranslation(vertexTransform));
             }
@@ -1624,8 +1627,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
         }
 
-        hfmModel.meshes.append(extracted.mesh);
-        int meshIndex = hfmModel.meshes.size() - 1;
+        hfmModel.meshes.push_back(extracted.mesh);
+        uint32_t meshIndex = (uint32_t)hfmModel.meshes.size() - 1;
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
     }
 

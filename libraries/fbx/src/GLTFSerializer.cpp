@@ -1002,8 +1002,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
     for (int i = 0; i < materialIDs.size(); ++i) {
         QString& matid = materialIDs[i];
-        hfmModel.materials[matid] = HFMMaterial();
-        HFMMaterial& hfmMaterial = hfmModel.materials[matid];
+        hfmModel.materials.emplace_back();
+        HFMMaterial& hfmMaterial = hfmModel.materials.back();
         hfmMaterial._material = std::make_shared<graphics::Material>();
         hfmMaterial.name = hfmMaterial.materialID = matid;
         setHFMMaterial(hfmMaterial, _file.materials[i]);
@@ -1018,7 +1018,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
         if (node.defined["mesh"]) {
 
-            hfmModel.meshes.append(HFMMesh());
+            hfmModel.meshes.push_back(HFMMesh());
             HFMMesh& mesh = hfmModel.meshes[hfmModel.meshes.size() - 1];
             if (!hfmModel.hasSkeletonJoints) { 
                 HFMCluster cluster;
@@ -1613,7 +1613,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             hfmModel.meshExtents.minimum -= glm::vec3(EPSILON, EPSILON, EPSILON);
             hfmModel.meshExtents.maximum += glm::vec3(EPSILON, EPSILON, EPSILON);
            
-            mesh.meshIndex = hfmModel.meshes.size();
+            mesh.meshIndex = (int)hfmModel.meshes.size();
         }
         ++nodecount;
     }
@@ -2036,11 +2036,11 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
     qCDebug(modelformat) << "  meshExtents.size() = " << hfmModel.meshExtents.size();
 
     qCDebug(modelformat) << "  jointIndices.size() =" << hfmModel.jointIndices.size();
-    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.count();
+    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.size();
     qCDebug(modelformat) << "---------------- Meshes ----------------";
-    qCDebug(modelformat) << "  meshes.count() =" << hfmModel.meshes.count();
+    qCDebug(modelformat) << "  meshes.count() =" << hfmModel.meshes.size();
     qCDebug(modelformat) << "  blendshapeChannelNames = " << hfmModel.blendshapeChannelNames;
-    foreach(HFMMesh mesh, hfmModel.meshes) {
+    for (const HFMMesh& mesh : hfmModel.meshes) {
         qCDebug(modelformat) << "\n";
         qCDebug(modelformat) << "    meshpointer =" << mesh._mesh.get();
         qCDebug(modelformat) << "    meshindex =" << mesh.meshIndex;
@@ -2054,7 +2054,7 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
         qCDebug(modelformat) << "    clusterIndices.count() =" << mesh.clusterIndices.count();
         qCDebug(modelformat) << "    clusterWeights.count() =" << mesh.clusterWeights.count();
         qCDebug(modelformat) << "    modelTransform =" << mesh.modelTransform;
-        qCDebug(modelformat) << "    parts.count() =" << mesh.parts.count();
+        qCDebug(modelformat) << "    parts.count() =" << mesh.parts.size();
         qCDebug(modelformat) << "---------------- Meshes (blendshapes)--------";
         foreach(HFMBlendshape bshape, mesh.blendshapes) {
             qCDebug(modelformat) << "\n";
