@@ -296,8 +296,8 @@ public:
 // Formerly contained in hfm::Mesh
 class Deformer {
 public:
-    std::vector<uint16_t> indices;
-    std::vector<uint16_t> weights;
+    std::vector<uint32_t> indices;
+    std::vector<float> weights;
 };
 
 class DynamicTransform {
