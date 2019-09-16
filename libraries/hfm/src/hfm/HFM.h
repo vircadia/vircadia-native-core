@@ -288,17 +288,20 @@ public:
 };
 
 class TransformNode {
+public:
     uint32_t parent { 0 };
     Transform transform;
 };
 
 // Formerly contained in hfm::Mesh
 class Deformer {
+public:
     std::vector<uint16_t> indices;
     std::vector<uint16_t> weights;
 };
 
 class DynamicTransform {
+public:
     std::vector<uint32_t> deformers;
     std::vector<Cluster> clusters; // affect the deformer of the same index
     std::vector<uint32_t> blendshapes;
