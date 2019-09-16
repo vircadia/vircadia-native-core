@@ -240,9 +240,96 @@ Rectangle {
             }
         }
 
+        // -- Plugin Permissions --
+        Item {
+            id: kpiContainer;
+            anchors.top: accountContainer.bottom;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            height: childrenRect.height;
+
+            Rectangle {
+                id: kpiHeaderContainer;
+                anchors.top: parent.top;
+                anchors.left: parent.left;
+                anchors.right: parent.right;
+                height: 55;
+                color: hifi.colors.baseGrayHighlight;
+
+                HifiStylesUit.RalewaySemiBold {
+                    text: "Plugin Permissions";
+                    anchors.fill: parent;
+                    anchors.leftMargin: 20;
+                    color: hifi.colors.white;
+                    size: 18;
+                }
+            }
+
+            Item {
+                id: kpiScriptContainer;
+                anchors.top: kpiHeaderContainer.bottom;
+                anchors.left: parent.left;
+                anchors.right: parent.right;
+                height: 80;
+
+                HifiControlsUit.CheckBox {
+                    id: kpiScriptCheckbox;
+                    readonly property string kpiSettingsKey: "private/enableScriptingPlugins"
+                    checked: Settings.getValue(kpiSettingsKey, false);
+                    text: "Enable custom script plugins (requires restart)"
+                    // Anchors
+                    anchors.verticalCenter: parent.verticalCenter;
+                    anchors.left: parent.left;
+                    anchors.leftMargin: 20;
+                    boxSize: 24;
+                    labelFontSize: 18;
+                    colorScheme: hifi.colorSchemes.dark
+                    color: hifi.colors.white;
+                    width: 300;
+                    onCheckedChanged: Settings.setValue(kpiSettingsKey, checked);
+                }
+
+                HifiStylesUit.RalewaySemiBold {
+                    id: kpiScriptHelp;
+                    text: '[?]';
+                    // Anchors
+                    anchors.verticalCenter: parent.verticalCenter;
+                    anchors.left: kpiScriptCheckbox.right;
+                    width: 30;
+                    height: 30;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.blueHighlight;
+
+                    MouseArea {
+                        anchors.fill: parent;
+                        hoverEnabled: true;
+                        onEntered: {
+                            parent.color = hifi.colors.blueAccent;
+                        }
+                        onExited: {
+                            parent.color = hifi.colors.blueHighlight;
+                        }
+                        onClicked: {
+                            lightboxPopup.titleText = "Script Plugin Infrastructure by Kasen";
+                            lightboxPopup.bodyText = "Toggles the activation of scripting plugins in the 'plugins/scripting' folder. \n\n"
+                              + "Created by https://kasen.io/";
+                            lightboxPopup.button1text = "OK";
+                            lightboxPopup.button1method = function() {
+                                lightboxPopup.visible = false;
+                            }
+                            lightboxPopup.visible = true;
+                        }
+                    }
+                }
+            }
+        }
+
+
         Item {
             id: walletContainer;
-            anchors.top: accountContainer.bottom;
+            anchors.top: kpiContainer.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
             height: childrenRect.height;

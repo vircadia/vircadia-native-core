@@ -120,7 +120,7 @@ namespace baker {
     class BakerEngineBuilder {
     public:
         using Input = VaryingSet3<hfm::Model::Pointer, hifi::VariantHash, hifi::URL>;
-        using Output = VaryingSet4<hfm::Model::Pointer, MaterialMapping, std::vector<hifi::ByteArray>, std::vector<std::vector<hifi::ByteArray>>>;
+        using Output = VaryingSet5<hfm::Model::Pointer, MaterialMapping, std::vector<hifi::ByteArray>, std::vector<bool>, std::vector<std::vector<hifi::ByteArray>>>;
         using JobModel = Task::ModelIO<BakerEngineBuilder, Input, Output>;
         void build(JobModel& model, const Varying& input, Varying& output) {
             const auto& hfmModelIn = input.getN<Input>(0);
@@ -168,7 +168,8 @@ namespace baker {
             const auto buildDracoMeshInputs = BuildDracoMeshTask::Input(meshesIn, normalsPerMesh, tangentsPerMesh).asVarying();
             const auto buildDracoMeshOutputs = model.addJob<BuildDracoMeshTask>("BuildDracoMesh", buildDracoMeshInputs);
             const auto dracoMeshes = buildDracoMeshOutputs.getN<BuildDracoMeshTask::Output>(0);
-            const auto materialList = buildDracoMeshOutputs.getN<BuildDracoMeshTask::Output>(1);
+            const auto dracoErrors = buildDracoMeshOutputs.getN<BuildDracoMeshTask::Output>(1);
+            const auto materialList = buildDracoMeshOutputs.getN<BuildDracoMeshTask::Output>(2);
 
             // Parse flow data
             const auto flowData = model.addJob<ParseFlowDataTask>("ParseFlowData", mapping);
@@ -181,7 +182,7 @@ namespace baker {
             const auto buildModelInputs = BuildModelTask::Input(hfmModelIn, meshesOut, jointsOut, jointRotationOffsets, jointIndices, flowData).asVarying();
             const auto hfmModelOut = model.addJob<BuildModelTask>("BuildModel", buildModelInputs);
 
-            output = Output(hfmModelOut, materialMapping, dracoMeshes, materialList);
+            output = Output(hfmModelOut, materialMapping, dracoMeshes, dracoErrors, materialList);
         }
     };
 
@@ -212,7 +213,11 @@ namespace baker {
         return _engine->getOutput().get<BakerEngineBuilder::Output>().get2();
     }
 
-    std::vector<std::vector<hifi::ByteArray>> Baker::getDracoMaterialLists() const {
+    std::vector<bool> Baker::getDracoErrors() const {
         return _engine->getOutput().get<BakerEngineBuilder::Output>().get3();
+    }
+
+    std::vector<std::vector<hifi::ByteArray>> Baker::getDracoMaterialLists() const {
+        return _engine->getOutput().get<BakerEngineBuilder::Output>().get4();
     }
 };

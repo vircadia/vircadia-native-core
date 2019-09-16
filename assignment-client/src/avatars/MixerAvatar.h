@@ -34,6 +34,8 @@ public:
     void processCertifyEvents();
     void processChallengeResponse(ReceivedMessage& response);
 
+    void stopChallengeTimer();
+
     // Avatar certification/verification:
     enum VerifyState {
         nonCertified, requestingFST, receivedFST, staticValidation, requestingOwner, ownerResponse,

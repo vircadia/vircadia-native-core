@@ -85,6 +85,13 @@ namespace {
     const QString& CACHE_ERROR_MESSAGE{ "AssetClient::Error: %1 %2" };
 }
 
+/**jsdoc
+ * Cache status value returned by {@link Assets.getCacheStatus}.
+ * @typedef {object} Assets.GetCacheStatusResult
+ * @property {string} cacheDirectory - The path of the cache directory.
+ * @property {number} cacheSize - The current cache size, in bytes.
+ * @property {number} maximumCacheSize - The maximum cache size, in bytes.
+ */
 MiniPromise::Promise AssetClient::cacheInfoRequestAsync(MiniPromise::Promise deferred) {
     if (!deferred) {
         deferred = makePromise(__FUNCTION__); // create on caller's thread
@@ -106,6 +113,20 @@ MiniPromise::Promise AssetClient::cacheInfoRequestAsync(MiniPromise::Promise def
     return deferred;
 }
 
+/**jsdoc
+ * Information on an asset in the cache. Value returned by {@link Assets.queryCacheMeta} and included in the data returned by 
+ * {@link Assets.loadFromCache}.
+ * @typedef {object} Assets.CacheItemMetaData
+ * @property {object} [attributes] - The attributes that are stored with this cache item. <em>Not used.</em>
+ * @property {Date} [expirationDate] - The date and time when the meta data expires. An invalid date means "never expires".
+ * @property {boolean} isValid - <code>true</code> if the item specified in the URL is in the cache, <code>false</code> if
+ *     it isn't.
+ * @property {Date} [lastModified] - The date and time when the meta data was last modified.
+ * @property {object} [rawHeaders] - The raw headers that are set in the meta data. <em>Not used.</em>
+ * @property {boolean} [saveToDisk] - <code>true</code> if the cache item is allowed to be store on disk,
+ *     <code>false</code> if it isn't.
+ * @property {string} [url|metaDataURL] - The ATP URL of the cached item.
+ */
 MiniPromise::Promise AssetClient::queryCacheMetaAsync(const QUrl& url, MiniPromise::Promise deferred) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "queryCacheMetaAsync", Q_ARG(const QUrl&, url), Q_ARG(MiniPromise::Promise, deferred));
@@ -202,6 +223,24 @@ namespace {
     }
 }
 
+/**jsdoc
+ * Last-modified and expiry times for a cache item.
+ * @typedef {object} Assets.SaveToCacheHeaders
+ * @property {string} [expires] - The date and time the cache value expires, in the format:
+ *     <code>"ddd, dd MMM yyyy HH:mm:ss"</code>. The default value is an invalid date, representing "never expires".
+ * @property {string} [last-modified] - The date and time the cache value was last modified, in the format:
+ *     <code>"ddd, dd MMM yyyy HH:mm:ss"</code>. The default value is the current date and time.
+ */
+/**jsdoc
+ * Information on saving asset data to the cache with {@link Assets.saveToCache}.
+ * @typedef {object} Assets.SaveToCacheResult
+ * @property {number} [byteLength] - The size of the cached data, in bytes.
+ * @property {Date} [expirationDate] - The date and time that the cache item expires. An invalid date means "never expires".
+ * @property {Date} [lastModified] - The date and time that the cache item was last modified.
+ * @property {string} [metaDataURL] - The URL associated with the cache item.
+ * @property {boolean} [success] - <code>true</code> if the save to cache request was successful.
+ * @property {string} [url] - The URL associated with the cache item.
+ */
 MiniPromise::Promise AssetClient::saveToCacheAsync(const QUrl& url, const QByteArray& data, const QVariantMap& headers, MiniPromise::Promise deferred) {
     if (!deferred) {
         deferred = makePromise(__FUNCTION__); // create on caller's thread

@@ -12,20 +12,35 @@ import QtQuick 2.5
 
 import "controls" as Controls
 
-Controls.WebView {
+Item {
+    id: root
+    anchors.fill: parent
+    property string url: ""
+    property string scriptUrl: null
 
-    // This is for JS/QML communication, which is unused in a Web3DOverlay,
-    // but not having this here results in spurious warnings about a
-    // missing signal
-    signal sendToScript(var message);
+    onUrlChanged: {
+        load(root.url, root.scriptUrl);
+    }
 
-    function onWebEventReceived(event) {
-        if (event.slice(0, 17) === "CLARA.IO DOWNLOAD") {
-            ApplicationInterface.addAssetToWorldFromURL(event.slice(18));
+    onScriptUrlChanged: {
+        if (root.item) {
+            root.item.scriptUrl = root.scriptUrl;
+        } else {
+            load(root.url, root.scriptUrl);
         }
     }
 
+    property var item: null
+
+    function load(url, scriptUrl) {
+        QmlSurface.load("./controls/WebView.qml", root, function(newItem) {
+            root.item = newItem
+            root.item.url = url
+            root.item.scriptUrl = scriptUrl
+        })
+    }
+
     Component.onCompleted: {
-        eventBridge.webEventReceived.connect(onWebEventReceived);
+        load(root.url, root.scriptUrl);
     }
 }

@@ -167,7 +167,7 @@ Flickable {
                 Component.onCompleted: {
                     var cpu = JSON.parse(PlatformInfo.getCPU(0));
                     var cpuModel = cpu.model;
-                    if (cpuModel.length === 0) {
+                    if (!cpuModel || cpuModel.length === 0) {
                         cpuModel = "Unknown";
                     }
 
@@ -213,7 +213,7 @@ Flickable {
                 Component.onCompleted: {
                     var gpu = JSON.parse(PlatformInfo.getGPU(PlatformInfo.getMasterGPU()));
                     var gpuModel = gpu.model;
-                    if (gpuModel.length === 0) {
+                    if (!gpuModel || gpuModel.length === 0) {
                         gpuModel = "Unknown";
                     }
 
@@ -327,7 +327,7 @@ Flickable {
 
         var cpu = JSON.parse(PlatformInfo.getCPU(0));
         var cpuModel = cpu.model;
-        if (cpuModel.length === 0) {
+        if (!cpuModel || cpuModel.length === 0) {
             cpuModel = "Unknown";
         }
 
@@ -338,7 +338,7 @@ Flickable {
         
         var gpu = JSON.parse(PlatformInfo.getGPU(PlatformInfo.getMasterGPU()));
         var gpuModel = gpu.model;
-        if (gpuModel.length === 0) {
+        if (!gpuModel || gpuModel.length === 0) {
             gpuModel = "Unknown";
         }
 
