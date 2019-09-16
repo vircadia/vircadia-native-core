@@ -56,13 +56,13 @@
 #include "HifiAudioDeviceInfo.h"
 
 #ifdef _WIN32
-#pragma warning(push)
-#pragma warning(disable : 4273)
-#pragma warning(disable : 4305)
+#pragma warning( push )
+#pragma warning( disable : 4273 )
+#pragma warning( disable : 4305 )
 #endif
 
 #ifdef _WIN32
-#pragma warning(pop)
+#pragma warning( pop )
 #endif
 
 #if defined(Q_OS_ANDROID)
@@ -121,7 +121,7 @@ public:
         AudioClient* _audio;
         int _unfulfilledReads;
     };
-
+    
     void startThread();
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
@@ -132,6 +132,7 @@ public:
     Q_INVOKABLE float getAudioInboundPPS() const { return _audioInbound.rate(); }
     Q_INVOKABLE float getSilentOutboundPPS() const { return _silentOutbound.rate(); }
     Q_INVOKABLE float getAudioOutboundPPS() const { return _audioOutbound.rate(); }
+    Q_INVOKABLE void setDefaultDevice(QList<HifiAudioDeviceInfo>& devices, QAudio::Mode mode);
 
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
@@ -167,7 +168,7 @@ public:
 
     HifiAudioDeviceInfo getActiveAudioDevice(QAudio::Mode mode) const;
     QList<HifiAudioDeviceInfo> getAudioDevices(QAudio::Mode mode) const;
-
+  
     void enablePeakValues(bool enable) { _enablePeakValues = enable; }
     bool peakValuesAvailable() const;
 
@@ -181,6 +182,7 @@ public:
     bool startRecording(const QString& filename);
     void stopRecording();
     void setAudioPaused(bool pause);
+    
 
     AudioSolo& getAudioSolo() override { return _solo; }
 
@@ -355,7 +357,7 @@ private:
     QIODevice* _inputDevice;
     int _numInputCallbackBytes;
     QAudioOutput* _audioOutput;
-    std::atomic<bool> _audioOutputInitialized{ false };
+    std::atomic<bool> _audioOutputInitialized { false };
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
     int _outputFrameSize;
@@ -366,11 +368,11 @@ private:
     LocalInjectorsStream _localInjectorsStream;
     // In order to use _localInjectorsStream as a lock-free pipe,
     // use it with a single producer/consumer, and track available samples and injectors
-    std::atomic<int> _localSamplesAvailable{ 0 };
-    std::atomic<bool> _localInjectorsAvailable{ false };
+    std::atomic<int> _localSamplesAvailable { 0 };
+    std::atomic<bool> _localInjectorsAvailable { false };
     MixedProcessedAudioStream _receivedAudioStream;
     bool _isStereoInput;
-    std::atomic<bool> _enablePeakValues{ false };
+    std::atomic<bool> _enablePeakValues { false };
 
     quint64 _outputStarveDetectionStartTimeMsec;
     int _outputStarveDetectionCount;
@@ -398,9 +400,9 @@ private:
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
     AudioEffectOptions* _reverbOptions;
-    AudioReverb _sourceReverb{ AudioConstants::SAMPLE_RATE };
-    AudioReverb _listenerReverb{ AudioConstants::SAMPLE_RATE };
-    AudioReverb _localReverb{ AudioConstants::SAMPLE_RATE };
+    AudioReverb _sourceReverb { AudioConstants::SAMPLE_RATE };
+    AudioReverb _listenerReverb { AudioConstants::SAMPLE_RATE };
+    AudioReverb _localReverb { AudioConstants::SAMPLE_RATE };
 
     // possible streams needed for resample
     AudioSRC* _inputToNetworkResampler;
@@ -412,18 +414,18 @@ private:
     int16_t _networkScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
 
     // for output audio (used by this thread)
-    int _outputPeriod{ 0 };
-    float* _outputMixBuffer{ NULL };
-    int16_t* _outputScratchBuffer{ NULL };
-    std::atomic<float> _outputGain{ 1.0f };
-    float _lastOutputGain{ 1.0f };
+    int _outputPeriod { 0 };
+    float* _outputMixBuffer { NULL };
+    int16_t* _outputScratchBuffer { NULL };
+    std::atomic<float> _outputGain { 1.0f };
+    float _lastOutputGain { 1.0f };
 
     // for local audio (used by audio injectors thread)
-    std::atomic<float> _localInjectorGain{ 1.0f };
-    std::atomic<float> _systemInjectorGain{ 1.0f };
+    std::atomic<float> _localInjectorGain { 1.0f };
+    std::atomic<float> _systemInjectorGain { 1.0f };
     float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
-    float* _localOutputMixBuffer{ NULL };
+    float* _localOutputMixBuffer { NULL };
     Mutex _localAudioMutex;
     AudioLimiter _audioLimiter;
 
@@ -437,9 +439,9 @@ private:
     static const int WEBRTC_CHANNELS_MAX = 2;
     static const int WEBRTC_FRAMES_MAX = webrtc::AudioProcessing::kChunkSizeMs * WEBRTC_SAMPLE_RATE_MAX / 1000;
 
-    webrtc::AudioProcessing* _apm{ nullptr };
+    webrtc::AudioProcessing* _apm { nullptr };
 
-    int16_t _fifoFarEnd[WEBRTC_CHANNELS_MAX * WEBRTC_FRAMES_MAX]{};
+    int16_t _fifoFarEnd[WEBRTC_CHANNELS_MAX * WEBRTC_FRAMES_MAX] {};
     int _numFifoFarEnd = 0;  // numFrames saved in fifo
 
     void configureWebrtc();
@@ -460,8 +462,8 @@ private:
 
     AudioIOStats _stats;
 
-    AudioGate* _audioGate{ nullptr };
-    bool _audioGateOpen{ true };
+    AudioGate* _audioGate { nullptr };
+    bool _audioGateOpen { true };
 
     AudioPositionGetter _positionGetter;
     AudioOrientationGetter _orientationGetter;
@@ -483,16 +485,16 @@ private:
 
     AudioFileWav _audioFileWav;
 
-    bool _hasReceivedFirstPacket{ false };
+    bool _hasReceivedFirstPacket { false };
 
     QVector<AudioInjectorPointer> _activeLocalAudioInjectors;
 
-    bool _isPlayingBackRecording{ false };
-    bool _audioPaused{ false };
+    bool _isPlayingBackRecording { false };
+    bool _audioPaused { false };
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;
-    Encoder* _encoder{ nullptr };  // for outbound mic stream
+    Encoder* _encoder { nullptr };  // for outbound mic stream
 
     RateCounter<> _silentOutbound;
     RateCounter<> _audioOutbound;
@@ -500,17 +502,17 @@ private:
     RateCounter<> _audioInbound;
 
 #if defined(Q_OS_ANDROID)
-    bool _shouldRestartInputSetup{ true };  // Should we restart the input device because of an unintended stop?
+    bool _shouldRestartInputSetup { true };  // Should we restart the input device because of an unintended stop?
 #endif
 
     AudioSolo _solo;
 
     Mutex _checkDevicesMutex;
-    QTimer* _checkDevicesTimer{ nullptr };
+    QTimer* _checkDevicesTimer { nullptr };
     Mutex _checkPeakValuesMutex;
-    QTimer* _checkPeakValuesTimer{ nullptr };
+    QTimer* _checkPeakValuesTimer { nullptr };
 
-    bool _isRecording{ false };
+    bool _isRecording { false };
 };
 
 #endif  // hifi_AudioClient_h

@@ -89,6 +89,7 @@ using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
 Mutex _deviceMutex;
 Mutex _recordMutex;
+QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode);
 
 // thread-safe
 QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
@@ -97,16 +98,9 @@ QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
     auto devices = QAudioDeviceInfo::availableDevices(mode);
 
     QList<HifiAudioDeviceInfo> newDevices;
-    QAudioDeviceInfo::defaultOutputDevice();
 
     for (auto& device : devices) {
-        bool isDefault = false;
-        if (mode == QAudio::Mode::AudioInput) {
-            isDefault = device == QAudioDeviceInfo::defaultInputDevice();
-        } else {
-            isDefault = device == QAudioDeviceInfo::defaultOutputDevice();
-        }
-        newDevices.push_back(HifiAudioDeviceInfo(device, isDefault, mode));
+        newDevices.push_back(HifiAudioDeviceInfo(device, false, mode));
     }
 
     return newDevices;
@@ -123,6 +117,9 @@ void AudioClient::checkDevices() {
 
     auto inputDevices = getAvailableDevices(QAudio::AudioInput);
     auto outputDevices = getAvailableDevices(QAudio::AudioOutput);
+
+    QMetaObject::invokeMethod(this, "setDefaultDevice", Qt::BlockingQueuedConnection, Q_ARG(QList<HifiAudioDeviceInfo>&, inputDevices), Q_ARG(QAudio::Mode, QAudio::AudioInput));
+    QMetaObject::invokeMethod(this, "setDefaultDevice", Qt::BlockingQueuedConnection, Q_ARG(QList<HifiAudioDeviceInfo>&, outputDevices), Q_ARG(QAudio::Mode, QAudio::AudioOutput));
 
     Lock lock(_deviceMutex);
     if (inputDevices != _inputDevices) {
@@ -405,6 +402,21 @@ void AudioClient::setAudioPaused(bool pause) {
 
         if (!_audioPaused) {
             negotiateAudioFormat();
+        }
+    }
+}
+
+void AudioClient::setDefaultDevice(QList<HifiAudioDeviceInfo>& devices ,QAudio::Mode mode) {
+    QAudioDeviceInfo defDevice = defaultAudioDeviceForMode(mode);
+    for (auto& device : devices) {
+        if (device.getDevice() == defDevice) {
+            if (!device.isDefault()) {
+                device.setIsDefault(true);
+            }
+        } else {
+            if (device.isDefault()) {
+                device.setIsDefault(false);
+            }
         }
     }
 }

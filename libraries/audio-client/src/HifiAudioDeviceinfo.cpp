@@ -6,7 +6,7 @@ void HifiAudioDeviceInfo::setMode(QAudio::Mode mode) {
 }
 
 void HifiAudioDeviceInfo::setIsDefault(bool isDefault) {
-    isDefault = isDefault;
+    _isDefault = isDefault;
     setDeviceName();
 }
 
