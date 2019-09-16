@@ -37,7 +37,7 @@ namespace baker {
             output.edit2() = hfmModelIn->meshIndicesToModelNames;
             auto& blendshapesPerMesh = output.edit3();
             blendshapesPerMesh.reserve(hfmModelIn->meshes.size());
-            for (int i = 0; i < hfmModelIn->meshes.size(); i++) {
+            for (size_t i = 0; i < hfmModelIn->meshes.size(); i++) {
                 blendshapesPerMesh.push_back(hfmModelIn->meshes[i].blendshapes.toStdVector());
             }
             output.edit4() = hfmModelIn->joints;
