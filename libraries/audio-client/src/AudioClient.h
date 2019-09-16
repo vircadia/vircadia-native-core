@@ -80,14 +80,11 @@ class QIODevice;
 class Transform;
 class NLPacket;
 
-
-
 class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
     using LocalInjectorsStream = AudioMixRingBuffer;
-
 public:
     static const int MIN_BUFFER_FRAMES;
     static const int MAX_BUFFER_FRAMES;
@@ -100,21 +97,15 @@ public:
 
     class AudioOutputIODevice : public QIODevice {
     public:
-        AudioOutputIODevice(LocalInjectorsStream& localInjectorsStream,
-                            MixedProcessedAudioStream& receivedAudioStream,
+        AudioOutputIODevice(LocalInjectorsStream& localInjectorsStream, MixedProcessedAudioStream& receivedAudioStream,
                             AudioClient* audio) :
-            _localInjectorsStream(localInjectorsStream),
-            _receivedAudioStream(receivedAudioStream), _audio(audio), _unfulfilledReads(0) {}
+            _localInjectorsStream(localInjectorsStream), _receivedAudioStream(receivedAudioStream),
+            _audio(audio), _unfulfilledReads(0) {}
 
         void start() { open(QIODevice::ReadOnly | QIODevice::Unbuffered); }
         qint64 readData(char* data, qint64 maxSize) override;
         qint64 writeData(const char* data, qint64 maxSize) override { return 0; }
-        int getRecentUnfulfilledReads() {
-            int unfulfilledReads = _unfulfilledReads;
-            _unfulfilledReads = 0;
-            return unfulfilledReads;
-        }
-
+        int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:
         LocalInjectorsStream& _localInjectorsStream;
         MixedProcessedAudioStream& _receivedAudioStream;
@@ -132,7 +123,6 @@ public:
     Q_INVOKABLE float getAudioInboundPPS() const { return _audioInbound.rate(); }
     Q_INVOKABLE float getSilentOutboundPPS() const { return _silentOutbound.rate(); }
     Q_INVOKABLE float getAudioOutboundPPS() const { return _audioOutbound.rate(); }
-    Q_INVOKABLE void setDefaultDevice(QList<HifiAudioDeviceInfo>& devices, QAudio::Mode mode);
 
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
@@ -479,12 +469,6 @@ private:
     QList<HifiAudioDeviceInfo> _inputDevices;
     QList<HifiAudioDeviceInfo> _outputDevices;
 
-    //QAudioDeviceInfo _inputDeviceInfo;
-    // QAudioDeviceInfo _outputDeviceInfo;
-
-    //  QList<QAudioDeviceInfo> _inputDevices;
-    /// QList<QAudioDeviceInfo> _outputDevices;
-
     AudioFileWav _audioFileWav;
 
     bool _hasReceivedFirstPacket { false };
@@ -516,5 +500,6 @@ private:
 
     bool _isRecording { false };
 };
+
 
 #endif  // hifi_AudioClient_h
