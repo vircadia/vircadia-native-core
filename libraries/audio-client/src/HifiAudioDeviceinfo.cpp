@@ -1,25 +1,22 @@
 #include "HifiAudioDeviceInfo.h"
 
-void HifiAudioDeviceInfo::setMode(QAudio::Mode mode) {
-    _mode = mode;
-    setDeviceName();
+void HifiAudioDeviceInfo::setDevice(QAudioDeviceInfo devInfo) {
+    _audioDeviceInfo = devInfo;
 }
 
-void HifiAudioDeviceInfo::setIsDefault(bool isDefault) {
-    _isDefault = isDefault;
-    setDeviceName();
+HifiAudioDeviceInfo& HifiAudioDeviceInfo::operator=(const HifiAudioDeviceInfo& other) {
+    _audioDeviceInfo = other.getDevice();
+    _deviceName = other.deviceName();
+    _mode = other.getMode();
+    _isDefault = other.isDefault();
+    return *this;
 }
 
- void HifiAudioDeviceInfo::setDeviceName() {
-  if (_isDefault) {
-         if (_mode == QAudio::Mode::AudioInput) {
-             _deviceName = "Default microphone (recommended)";
-         } else {
-             _deviceName = "Default audio (recommended)";
-         }
-     } else {
-         _deviceName = _audioDeviceInfo.deviceName();
-     }
- }
+bool HifiAudioDeviceInfo::operator==(const HifiAudioDeviceInfo& rhs) const {
+    return _audioDeviceInfo == rhs.getDevice();
+}
 
- 
+bool HifiAudioDeviceInfo::operator!=(const HifiAudioDeviceInfo& rhs) const {
+    return _audioDeviceInfo != rhs.getDevice();
+}
+

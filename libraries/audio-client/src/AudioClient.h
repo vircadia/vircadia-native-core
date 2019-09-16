@@ -182,7 +182,6 @@ public:
     bool startRecording(const QString& filename);
     void stopRecording();
     void setAudioPaused(bool pause);
-    
 
     AudioSolo& getAudioSolo() override { return _solo; }
 
@@ -473,6 +472,9 @@ private:
 
     HifiAudioDeviceInfo _inputDeviceInfo;
     HifiAudioDeviceInfo _outputDeviceInfo;
+
+    HifiAudioDeviceInfo _defaultInputDevice;
+    HifiAudioDeviceInfo _defaultOutputDevice;
 
     QList<HifiAudioDeviceInfo> _inputDevices;
     QList<HifiAudioDeviceInfo> _outputDevices;

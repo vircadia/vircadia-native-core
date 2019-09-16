@@ -118,8 +118,9 @@ void AudioClient::checkDevices() {
     auto inputDevices = getAvailableDevices(QAudio::AudioInput);
     auto outputDevices = getAvailableDevices(QAudio::AudioOutput);
 
-    QMetaObject::invokeMethod(this, "setDefaultDevice", Qt::BlockingQueuedConnection, Q_ARG(QList<HifiAudioDeviceInfo>&, inputDevices), Q_ARG(QAudio::Mode, QAudio::AudioInput));
-    QMetaObject::invokeMethod(this, "setDefaultDevice", Qt::BlockingQueuedConnection, Q_ARG(QList<HifiAudioDeviceInfo>&, outputDevices), Q_ARG(QAudio::Mode, QAudio::AudioOutput));
+    //add the pseudo device to the list of devices
+    inputDevices.push_front(_defaultInputDevice);
+    outputDevices.push_front(_defaultOutputDevice);
 
     Lock lock(_deviceMutex);
     if (inputDevices != _inputDevices) {
@@ -307,6 +308,21 @@ AudioClient::AudioClient() :
     });
 
     connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioClient::handleMismatchAudioFormat);
+
+
+    _defaultOutputDevice = HifiAudioDeviceInfo();
+    _defaultOutputDevice.setDevice(defaultAudioDeviceForMode(QAudio::AudioOutput));
+    _defaultOutputDevice.setDeviceName("Default audio (recommended)");
+    _defaultOutputDevice.setIsDefault(true);
+    _defaultOutputDevice.setMode(QAudio::AudioOutput);
+ 
+
+    _defaultInputDevice = HifiAudioDeviceInfo();
+    _defaultInputDevice.setDevice(defaultAudioDeviceForMode(QAudio::AudioInput));
+    _defaultInputDevice.setDeviceName("Default microphone (recommended)");
+    _defaultInputDevice.setIsDefault(true);
+    _defaultInputDevice.setMode(QAudio::AudioOutput);
+ 
 
     // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
     getAvailableDevices(QAudio::AudioInput);
