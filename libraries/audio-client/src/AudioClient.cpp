@@ -90,7 +90,7 @@ using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
 Mutex _deviceMutex;
 Mutex _recordMutex;
-QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode);
+HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode);
 
 // thread-safe
 QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
@@ -337,24 +337,22 @@ AudioClient::AudioClient() :
 	         this, &AudioClient::processReceivedSamples, Qt::DirectConnection);
     connect(this, &AudioClient::changeDevice, this, [=](const HifiAudioDeviceInfo& outputDeviceInfo) {
         qCDebug(audioclient)<< "got AudioClient::changeDevice signal, about to call switchOutputToAudioDevice() outputDeviceInfo: ["<< outputDeviceInfo.deviceName() << "]";
-        switchOutputToAudioDevice(outputDeviceInfo.getDevice());
+        switchOutputToAudioDevice(outputDeviceInfo);
     });
 
     connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioClient::handleMismatchAudioFormat);
 
 
-    _defaultOutputDevice = HifiAudioDeviceInfo();
-    _defaultOutputDevice.setDevice(defaultAudioDeviceForMode(QAudio::AudioOutput));
+    _defaultOutputDevice = defaultAudioDeviceForMode(QAudio::AudioOutput);
     _defaultOutputDevice.setDeviceName("Default audio (recommended)");
     _defaultOutputDevice.setIsDefault(true);
     _defaultOutputDevice.setMode(QAudio::AudioOutput);
  
 
-    _defaultInputDevice = HifiAudioDeviceInfo();
-    _defaultInputDevice.setDevice(defaultAudioDeviceForMode(QAudio::AudioInput));
+    _defaultInputDevice = defaultAudioDeviceForMode(QAudio::AudioInput);
     _defaultInputDevice.setDeviceName("Default microphone (recommended)");
     _defaultInputDevice.setIsDefault(true);
-    _defaultInputDevice.setMode(QAudio::AudioOutput);
+    _defaultInputDevice.setMode(QAudio::AudioInput);
  
 
     // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
@@ -459,30 +457,14 @@ void AudioClient::setAudioPaused(bool pause) {
     }
 }
 
-void AudioClient::setDefaultDevice(QList<HifiAudioDeviceInfo>& devices ,QAudio::Mode mode) {
-    QAudioDeviceInfo defDevice = defaultAudioDeviceForMode(mode);
-    for (auto& device : devices) {
-        if (device.getDevice() == defDevice) {
-            if (!device.isDefault()) {
-                device.setIsDefault(true);
-            }
-        } else {
-            if (device.isDefault()) {
-                device.setIsDefault(false);
-            }
-        }
-    }
-}
-
-QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
-    QAudioDeviceInfo result;
+HifiAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
+    HifiAudioDeviceInfo result;
     foreach (HifiAudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
         if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
-            result = audioDevice.getDevice();
+            result = audioDevice;
             break;
         }
     }
-
     return result;
 }
 
@@ -530,7 +512,7 @@ QString AudioClient::getWinDeviceName(wchar_t* guid) {
 
 #endif
 
-QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
+HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 #ifdef __APPLE__
     if (getAvailableDevices(mode).size() > 1) {
         AudioDeviceID defaultDeviceID = 0;
@@ -562,7 +544,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 
             if (!getPropertyError && propertySize) {
                 // find a device in the list that matches the name we have and return it
-                foreach (QAudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
+                foreach (AudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
                     if (audioDevice.deviceName() == CFStringGetCStringPtr(deviceName, kCFStringEncodingMacRoman)) {
                         return audioDevice;
                     }
@@ -634,7 +616,8 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     }
 #endif
     // fallback for failed lookup is the default device
-    return (mode == QAudio::AudioInput) ? QAudioDeviceInfo::defaultInputDevice() : QAudioDeviceInfo::defaultOutputDevice();
+    return (mode == QAudio::AudioInput) ? HifiAudioDeviceInfo(QAudioDeviceInfo::defaultInputDevice(), false, QAudio::AudioInput) : 
+        HifiAudioDeviceInfo(QAudioDeviceInfo::defaultOutputDevice(), false, QAudio::AudioOutput);
 }
 
 bool AudioClient::getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QString& deviceName) {
@@ -801,22 +784,22 @@ void AudioClient::start() {
     _desiredOutputFormat = _desiredInputFormat;
     _desiredOutputFormat.setChannelCount(OUTPUT_CHANNEL_COUNT);
 
-    QAudioDeviceInfo inputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioInput);
+    HifiAudioDeviceInfo inputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioInput);
     qCDebug(audioclient) << "The default audio input device is" << inputDeviceInfo.deviceName();
     bool inputFormatSupported = switchInputToAudioDevice(inputDeviceInfo);
 
-    QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
+    HifiAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
     qCDebug(audioclient) << "The default audio output device is" << outputDeviceInfo.deviceName();
     bool outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo);
 
     if (!inputFormatSupported) {
         qCDebug(audioclient) << "Unable to set up audio input because of a problem with input format.";
-        qCDebug(audioclient) << "The closest format available is" << inputDeviceInfo.nearestFormat(_desiredInputFormat);
+        qCDebug(audioclient) << "The closest format available is" << inputDeviceInfo.getDevice().nearestFormat(_desiredInputFormat);
     }
 
     if (!outputFormatSupported) {
         qCDebug(audioclient) << "Unable to set up audio output because of a problem with output format.";
-        qCDebug(audioclient) << "The closest format available is" << outputDeviceInfo.nearestFormat(_desiredOutputFormat);
+        qCDebug(audioclient) << "The closest format available is" << outputDeviceInfo.getDevice().nearestFormat(_desiredOutputFormat);
     }
 #if defined(Q_OS_ANDROID)
     connect(&_checkInputTimer, &QTimer::timeout, this, &AudioClient::checkInputTimeout);
@@ -826,10 +809,10 @@ void AudioClient::start() {
 
 void AudioClient::stop() {
     qCDebug(audioclient) << "AudioClient::stop(), requesting switchInputToAudioDevice() to shut down";
-    switchInputToAudioDevice(QAudioDeviceInfo(), true);
+    switchInputToAudioDevice(HifiAudioDeviceInfo(), true);
 
     qCDebug(audioclient) << "AudioClient::stop(), requesting switchOutputToAudioDevice() to shut down";
-    switchOutputToAudioDevice(QAudioDeviceInfo(), true);
+    switchOutputToAudioDevice(HifiAudioDeviceInfo(), true);
 
     // Stop triggering the checks
     QObject::disconnect(_checkPeakValuesTimer, &QTimer::timeout, nullptr, nullptr);
@@ -1021,11 +1004,11 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
 
 }
 
-bool AudioClient::switchAudioDevice(QAudio::Mode mode, const QAudioDeviceInfo& deviceInfo) {
+bool AudioClient::switchAudioDevice(QAudio::Mode mode, const HifiAudioDeviceInfo& deviceInfo) {
     auto device = deviceInfo;
 
-    if (device.isNull()) {
-        device = defaultAudioDeviceForMode(mode);
+   if (device.getDevice().isNull()) {
+        device=defaultAudioDeviceForMode(mode);
     }
 
     if (mode == QAudio::AudioInput) {
@@ -1799,7 +1782,7 @@ bool AudioClient::setIsStereoInput(bool isStereoInput) {
         qCDebug(audioclient) << "Reset Codec:" << _selectedCodecName << "isStereoInput:" << _isStereoInput;
 
         // restart the input device
-        switchInputToAudioDevice(_inputDeviceInfo.getDevice());
+        switchInputToAudioDevice(_inputDeviceInfo);
 
         emit isStereoInputChanged(_isStereoInput);
     }
@@ -1841,10 +1824,10 @@ void AudioClient::outputFormatChanged() {
     _receivedAudioStream.outputFormatChanged(_outputFormat.sampleRate(), OUTPUT_CHANNEL_COUNT);
 }
 
-bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest) {
+bool AudioClient::switchInputToAudioDevice(const HifiAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest) {
     Q_ASSERT_X(QThread::currentThread() == thread(), Q_FUNC_INFO, "Function invoked on wrong thread");
 
-    qCDebug(audioclient) << __FUNCTION__ << "inputDeviceInfo: [" << inputDeviceInfo.deviceName() << "]";
+    qCDebug(audioclient) << __FUNCTION__ << "inputDeviceInfo: [" << inputDeviceInfo.getDevice().deviceName() << "]";
     bool supportedFormat = false;
 
     // NOTE: device start() uses the Qt internal device list
@@ -1897,13 +1880,12 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInf
         return true;
     }
 
-    if (!inputDeviceInfo.isNull()) {
+    if (!inputDeviceInfo.getDevice().isNull()) {
         qCDebug(audioclient) << "The audio input device " << inputDeviceInfo.deviceName() << "is available.";
-        _inputDeviceInfo = HifiAudioDeviceInfo();
-        _inputDeviceInfo.setDevice(inputDeviceInfo);
+        _inputDeviceInfo = inputDeviceInfo;
         emit deviceChanged(QAudio::AudioInput, _inputDeviceInfo);
 
-        if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
+        if (adjustedFormatForAudioDevice(inputDeviceInfo.getDevice(), _desiredInputFormat, _inputFormat)) {
             qCDebug(audioclient) << "The format to be used for audio input is" << _inputFormat;
 
             // we've got the best we can get for input
@@ -1928,7 +1910,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInf
 
             // if the user wants stereo but this device can't provide then bail
             if (!_isStereoInput || _inputFormat.channelCount() == 2) {
-                _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
+                _audioInput = new QAudioInput(inputDeviceInfo.getDevice(), _inputFormat, this);
                 _numInputCallbackBytes = calculateNumberOfInputCallbackBytes(_inputFormat);
                 _audioInput->setBufferSize(_numInputCallbackBytes);
                 // different audio input devices may have different volumes
@@ -2070,7 +2052,7 @@ void AudioClient::outputNotify() {
     }
 }
 
-bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest) {
+bool AudioClient::switchOutputToAudioDevice(const HifiAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest) {
     Q_ASSERT_X(QThread::currentThread() == thread(), Q_FUNC_INFO, "Function invoked on wrong thread");
 
     qCDebug(audioclient) << "AudioClient::switchOutputToAudioDevice() outputDeviceInfo: [" << outputDeviceInfo.deviceName() << "]";
@@ -2106,7 +2088,6 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceI
         delete[] _localOutputMixBuffer;
         _localOutputMixBuffer = NULL;
 
-        //ctor call needed?
         _outputDeviceInfo = HifiAudioDeviceInfo();
         _outputDeviceInfo.setDevice(QAudioDeviceInfo());
     }
@@ -2132,12 +2113,12 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceI
         return true;
     }
 
-    if (!outputDeviceInfo.isNull()) {
+    if (!outputDeviceInfo.getDevice().isNull()) {
         qCDebug(audioclient) << "The audio output device " << outputDeviceInfo.deviceName() << "is available.";
-        _outputDeviceInfo.setDevice(outputDeviceInfo);
+        _outputDeviceInfo = outputDeviceInfo;
         emit deviceChanged(QAudio::AudioOutput, _outputDeviceInfo);
 
-        if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
+        if (adjustedFormatForAudioDevice(outputDeviceInfo.getDevice(), _desiredOutputFormat, _outputFormat)) {
             qCDebug(audioclient) << "The format to be used for audio output is" << _outputFormat;
 
             // we've got the best we can get for input
@@ -2159,7 +2140,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceI
             outputFormatChanged();
 
             // setup our general output device for audio-mixer audio
-            _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+            _audioOutput = new QAudioOutput(outputDeviceInfo.getDevice(), _outputFormat, this);
 
             int deviceChannelCount = _outputFormat.channelCount();
             int frameSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * deviceChannelCount * _outputFormat.sampleRate()) / _desiredOutputFormat.sampleRate();
@@ -2211,7 +2192,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceI
             localAudioLock.unlock();
 
             // setup a loopback audio output device
-            _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+            _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo.getDevice(), _outputFormat, this);
 
             _timeSinceLastReceived.start();
 

@@ -200,9 +200,10 @@ void AudioDeviceList::onDeviceChanged(const HifiAudioDeviceInfo& device, bool is
     for (auto i = 0; i < _devices.size(); ++i) {
         std::shared_ptr<AudioDevice> device = _devices[i];
         bool& isSelected = isHMD ? device->selectedHMD : device->selectedDesktop;
-        if (isSelected && device->info != selectedDevice) {
-            isSelected = false;
-        } else if (device->info == selectedDevice) {
+        HifiAudioDeviceInfo devInfo = device->info;
+        isSelected = false;
+
+        if (devInfo == selectedDevice) {
             isSelected = true;
         }
     }
@@ -401,7 +402,7 @@ void AudioDevices::onContextChanged(const QString& context) {
 
 void AudioDevices::onDeviceSelected(QAudio::Mode mode, const HifiAudioDeviceInfo& device,
                                     const HifiAudioDeviceInfo& previousDevice, bool isHMD) {
-    QString deviceName = device.getDevice().isNull() ? QString() : device.deviceName();
+    QString deviceName = device.deviceName();
 
     auto& setting = getSetting(isHMD, mode);
 
@@ -512,7 +513,7 @@ void AudioDevices::chooseInputDevice(const HifiAudioDeviceInfo& device, bool isH
         _requestedInputDevice = device;
         QMetaObject::invokeMethod(client, "switchAudioDevice",
                                   Q_ARG(QAudio::Mode, QAudio::AudioInput),
-                                  Q_ARG(const QAudioDeviceInfo&, device.getDevice()));
+                                  Q_ARG(const HifiAudioDeviceInfo&, device));
     } else {
         //context is different. just save device in settings
         onDeviceSelected(QAudio::AudioInput, device,
@@ -529,7 +530,7 @@ void AudioDevices::chooseOutputDevice(const HifiAudioDeviceInfo& device, bool is
         _requestedOutputDevice = device;
         QMetaObject::invokeMethod(client, "switchAudioDevice",
                                   Q_ARG(QAudio::Mode, QAudio::AudioOutput),
-                                  Q_ARG(const QAudioDeviceInfo&, device.getDevice()));
+                                  Q_ARG(const HifiAudioDeviceInfo&, device));
     } else {
         //context is different. just save device in settings
         onDeviceSelected(QAudio::AudioOutput, device,

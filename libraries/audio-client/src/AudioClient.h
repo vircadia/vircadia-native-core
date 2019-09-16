@@ -236,7 +236,7 @@ public slots:
     bool shouldLoopbackInjectors() override { return _shouldEchoToServer; }
 
     // calling with a null QAudioDevice will use the system default
-    bool switchAudioDevice(QAudio::Mode mode, const QAudioDeviceInfo& deviceInfo = QAudioDeviceInfo());
+    bool switchAudioDevice(QAudio::Mode mode, const HifiAudioDeviceInfo& deviceInfo = HifiAudioDeviceInfo());
     bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName);
 
     // Qt opensles plugin is not able to detect when the headset is plugged in
@@ -438,8 +438,8 @@ private:
     void processWebrtcNearEnd(int16_t* samples, int numFrames, int numChannels, int sampleRate);
 #endif
 
-    bool switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest = false);
-    bool switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest = false);
+    bool switchInputToAudioDevice(const HifiAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest = false);
+    bool switchOutputToAudioDevice(const HifiAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest = false);
 
     // Callback acceleration dependent calculations
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
