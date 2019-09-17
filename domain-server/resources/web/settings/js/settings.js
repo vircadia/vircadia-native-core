@@ -18,7 +18,19 @@ $(document).ready(function(){
   Settings.extraGroupsAtIndex = Settings.extraDomainGroupsAtIndex;
   var METAVERSE_URL = URLs.METAVERSE_URL;
 
-  Settings.afterReloadActions = function() {
+  var SSL_PRIVATE_KEY_FILE_ID = 'ssl-private-key-file';
+  var SSL_PRIVATE_KEY_CONTENTS_ID = 'key-contents';
+  var SSL_PRIVATE_KEY_CONTENTS_NAME = 'oauth.key-contents';
+  var SSL_CERT_UPLOAD_ID = 'ssl-cert-button';
+  var SSL_CERT_FILE_ID = 'ssl-cert-file';
+  var SSL_CERT_FINGERPRINT_ID = 'cert-fingerprint';
+  var SSL_CERT_FINGERPRINT_SPAN_ID = 'cert-fingerprint-span-id';
+  var SSL_CERT_CONTENTS_ID = 'cert-contents';
+  var SSL_CERT_CONTENTS_NAME = 'oauth.cert-contents';
+  var SSL_PRIVATE_KEY_PATH = 'oauth.key';
+  var SSL_CERT_PATH = 'oauth.cert';
+
+  Settings.afterReloadActions = function(data) {
 
     getMetaverseUrl(function(metaverse_url) {
       METAVERSE_URL = metaverse_url;
@@ -31,6 +43,8 @@ $(document).ready(function(){
 
       setupDomainNetworkingSettings();
       // setupDomainLabelSetting();
+
+      setupSettingsOAuth(data);
 
       setupSettingsBackup();
 
@@ -124,6 +138,48 @@ $(document).ready(function(){
       }
     }
 
+    if (formJSON["oauth"]) {
+      var private_key = formJSON["oauth"]["key-contents"];
+      var cert = formJSON["oauth"]["cert-contents"];
+      var oauthErrors = "";
+      if (private_key != undefined) {
+        var pattern = /-+BEGIN PRIVATE KEY-+[A-Za-z0-9+/\n=]*-+END PRIVATE KEY-+/m;
+        if (!pattern.test(private_key)) {
+          oauthErrors += "Private key must be in PEM format<BR/>";
+        }
+      }
+      if (cert != undefined) {
+        var pattern = /-+BEGIN CERTIFICATE-+[A-Za-z0-9+/\n=]*-+END CERTIFICATE-+/m;
+        if (!pattern.test(cert)) {
+          oauthErrors += "Certificate must be in PEM format<BR/>";
+        }
+      }
+      if ($('#oauth.panel').length) {
+        if (!$('input[name="oauth.client-id"]').val()) {
+          oauthErrors += "OAuth requires a client Id.<BR/>";
+        }
+        if (!$('input[name="oauth.provider"]').val()) {
+          oauthErrors += "OAuth requires a provider.<BR/>";
+        }
+        if (!$('input[name="oauth.hostname"]').val()) {
+          oauthErrors += "OAuth requires a hostname.<BR/>";
+        }
+        if (!$('input[name="' + SSL_PRIVATE_KEY_PATH + '"]').val() && !$('input[name="' + SSL_PRIVATE_KEY_CONTENTS_NAME + '"]').val()) {
+          oauthErrors += "OAuth requires an SSL Private Key.<BR/>";
+        }
+        if (!$('input[name="' + SSL_CERT_PATH + '"]').val() && !$('input[name="' + SSL_CERT_CONTENTS_NAME + '"]').val()) {
+          oauthErrors += "OAuth requires an SSL Certificate.<BR/>";
+        }
+        if (!$("table[name='oauth.admin-users'] tr.value-row").length &&
+            !$("table[name='oauth.admin-roles'] tr.value-row").length) {
+          oauthErrors += "OAuth must have at least one admin user or admin role.<BR/>";
+        }
+      }
+      if (oauthErrors) {
+        bootbox.alert({ "message": oauthErrors, "title": "OAuth Configuration Error" });
+        return false;
+      }
+    }
     postSettings(formJSON);
   };
 
@@ -1032,6 +1088,67 @@ $(document).ready(function(){
           }
         });
       }
+    });
+  }
+
+  function setupSettingsOAuth(data) {
+    // construct the HTML needed for the settings backup panel
+    var html = "<div class='form-group undefined'>";
+    html += "<label class='control-label'>SSL Private Key</label><BR/>";
+    html += "<label id='key-path-label'class='control-label'>Path</label>";
+    html += "<input id='" + SSL_PRIVATE_KEY_FILE_ID + "' type='file' accept='.key'/>";
+    html += "<input id='" + SSL_PRIVATE_KEY_CONTENTS_ID + "' name='" + SSL_PRIVATE_KEY_CONTENTS_NAME + "' type='hidden'/>";
+    html += "</div>";
+    html += "<div class='form-group undefined'>";
+    html += "<label class='control-label'>SSL Cert</label>";
+    html += "<div id='cert-fingerprint'><b>Fingerprint:</b><span id='" + SSL_CERT_FINGERPRINT_SPAN_ID + "'>" + data.values.oauth["cert-fingerprint"] + "</span></div>";
+    html += "<label id='cert-path-label' class='control-label'>Path</label>";
+    html += "<input id='" + SSL_CERT_FILE_ID + "' type='file' accept='.cer,.crt'/>";
+    html += "<input id='" + SSL_CERT_CONTENTS_ID + "' name='" + SSL_CERT_CONTENTS_NAME + "' type='hidden'/>";
+    html += "</div>";
+
+    $('#oauth-advanced').append(html);
+
+    $('#key-path-label').after($('[data-keypath="' + SSL_PRIVATE_KEY_PATH + '"]'));
+    $('#cert-path-label').after($('[data-keypath="' + SSL_CERT_PATH + '"]'));
+    $('[name="' + SSL_PRIVATE_KEY_PATH + '"]').val(data.values.oauth.key);
+    $('[name="' + SSL_CERT_PATH + '"]').val(data.values.oauth.cert);
+
+    $('body').on('change input propertychange', '#' + SSL_PRIVATE_KEY_FILE_ID, function(e){
+      var f = e.target.files[0];
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        $('#' + SSL_PRIVATE_KEY_CONTENTS_ID).val(reader.result);
+        $('#' + SSL_PRIVATE_KEY_CONTENTS_ID).attr('data-changed', true);
+        $('[name="' + SSL_PRIVATE_KEY_PATH + '"]').val('');
+        badgeForDifferences($('#' + SSL_PRIVATE_KEY_CONTENTS_ID));
+      }
+      reader.readAsText(f);
+    });
+    $('body').on('change input propertychange', '#' + SSL_CERT_FILE_ID, function(e){
+      var f = e.target.files[0];
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        $('#' + SSL_CERT_CONTENTS_ID).val(reader.result);
+        $('#' + SSL_CERT_CONTENTS_ID).attr('data-changed', true);
+        $('[name="' + SSL_CERT_PATH + '"]').val('');
+        $('#' + SSL_CERT_FINGERPRINT_SPAN_ID).text('');
+        badgeForDifferences($('#' + SSL_CERT_CONTENTS_ID));
+      }
+      reader.readAsText(f);
+    });
+
+    $('body').on('change input propertychange', '[name="' + SSL_PRIVATE_KEY_PATH + '"]', function(e){
+      $('#' + SSL_PRIVATE_KEY_FILE_ID).val('');
+      $('#' + SSL_PRIVATE_KEY_CONTENTS_ID).val('');
+      badgeForDifferences($('[name="' + SSL_PRIVATE_KEY_PATH + '"]').attr('data-changed', true));
+    });
+
+    $('body').on('change input propertychange', '[name="' + SSL_CERT_PATH + '"]', function(e){
+      $('#' + SSL_CERT_FILE_ID).val('');
+      $('#' + SSL_CERT_CONTENTS_ID).val('');
+      $('#' + SSL_CERT_FINGERPRINT_SPAN_ID).text('');
+      badgeForDifferences($('[name="' + SSL_CERT_PATH + '"]').attr('data-changed', true));
     });
   }
 
