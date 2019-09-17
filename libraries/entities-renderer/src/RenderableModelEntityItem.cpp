@@ -1431,12 +1431,13 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
     }
 
-    if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+    bool currentTexturesLoaded = resultWithReadLock<bool>([&] { return _texturesLoaded; });
+    if (!currentTexturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
         withWriteLock([&] {
             _texturesLoaded = true;
         });
         model->updateRenderItems();
-    } else if (!_texturesLoaded) {
+    } else if (!currentTexturesLoaded) {
         emit requestRenderUpdate();
     }
 

@@ -210,7 +210,7 @@ public:
             break;
         };
     }
-    AlphaMapMode getAlphaMapMode() const { return (_flags[OPACITY_MASK_MAP_BIT] ? ALPHA_MAP_MASK : (_flags[OPACITY_TRANSLUCENT_MAP_BIT] ? ALPHA_MAP_BLEND : ALPHA_MAP_OPAQUE)); }
+    AlphaMapMode getAlphaMapMode() const { return (isOpacityMaskMap() ? ALPHA_MAP_MASK : (isTranslucentMap() ? ALPHA_MAP_BLEND : ALPHA_MAP_OPAQUE)); }
 
     bool isTranslucent() const { return isTranslucentFactor() || isTranslucentMap(); }
     bool isOpaque() const { return !isTranslucent(); }

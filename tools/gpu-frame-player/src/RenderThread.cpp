@@ -176,14 +176,16 @@ void RenderThread::renderFrame(gpu::FramePointer& frame) {
 
 #ifdef USE_GL
     static gpu::BatchPointer batch = nullptr;
+    float scale = 1.0;
     if (!batch) {
         batch = std::make_shared<gpu::Batch>();
         batch->setPipeline(_presentPipeline);
         batch->setFramebuffer(nullptr);
         batch->setResourceTexture(0, frame->framebuffer->getRenderBuffer(0));
-        batch->setViewportTransform(ivec4(uvec2(0), ivec2(0.5 * fboSize.x, 0.5*fboSize.y)));
+        batch->setViewportTransform(ivec4(uvec2(0), ivec2(scale * fboSize.x, scale * fboSize.y)));
         batch->draw(gpu::TRIANGLE_STRIP, 4);
     }
+    glDisable(GL_FRAMEBUFFER_SRGB);
     _gpuContext->executeBatch(*batch);
     
     //glDisable(GL_FRAMEBUFFER_SRGB);
