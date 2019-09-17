@@ -24,11 +24,10 @@ class HifiAudioDeviceInfo : public QObject {
     
 public:
     HifiAudioDeviceInfo() : QObject() {}
-    HifiAudioDeviceInfo(const HifiAudioDeviceInfo &deviceInfo){
+    HifiAudioDeviceInfo(const HifiAudioDeviceInfo &deviceInfo) : QObject(){
         _audioDeviceInfo = deviceInfo.getDevice();
         _mode = deviceInfo.getMode();
         _isDefault = deviceInfo.isDefault();
-        
         setDeviceName(deviceInfo.deviceName());
     }
 

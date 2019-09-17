@@ -121,8 +121,6 @@ AudioDeviceList::~AudioDeviceList() {
     // store the selected device
     foreach(std::shared_ptr<AudioDevice> adevice, _devices) {
         if (adevice->selectedDesktop) {
-            qDebug() << "AMER ----> " << adevice->info.getId();
-            qDebug() << " AMER-------------> " << adevice->info.deviceName();
             settingDesktop.set(adevice->info.deviceName());
         }
         if (adevice->selectedHMD) {
