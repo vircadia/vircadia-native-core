@@ -34,7 +34,7 @@
  * A docking location of an <code>InteractiveWindow</code>.
  * <table>
  *   <thead>
- *     <tr><th>Value</th><th>Name</p><th>Description</th>
+ *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
  *     <tr><td><code>0</code></td><td>TOP</td><td>Dock to the top edge of the Interface window.</td></tr>
@@ -76,7 +76,7 @@ int DesktopScriptingInterface::getHeight() {
  * A display mode for an <code>InteractiveWindow</code>.
  * <table>
  *   <thead>
- *     <tr><th>Value</th><th>Name</p><th>Description</th>
+ *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
  *     <tr><td><code>0</code></td><td>VIRTUAL</td><td>The window is displayed inside Interface: in the desktop window in 

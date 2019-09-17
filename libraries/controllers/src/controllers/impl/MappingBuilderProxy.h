@@ -86,7 +86,7 @@ class UserInputMapper;
  * @typedef {object} Controller.MappingJSONRoute
  * @property {string|Controller.MappingJSONAxis} from - The name of a {@link Controller.Hardware} property or an axis made from 
  *     them. If a property name, the leading <code>"Controller.Hardware."</code> can be omitted.
- * @property {boolean} [peek=false] - If <codd>true</code>, then peeking is enabled per {@link RouteObject#peek}.
+ * @property {boolean} [peek=false] - If <code>true</code>, then peeking is enabled per {@link RouteObject#peek}.
  * @property {boolean} [debug=false] - If <code>true</code>, then debug is enabled per {@link RouteObject#debug}.
  * @property {string|string[]} [when=[]] - One or more numeric {@link Controller.Hardware} property names which are evaluated 
  *     as booleans and ANDed together. Prepend a property name with a <code>!</code> to do a logical NOT. The leading 

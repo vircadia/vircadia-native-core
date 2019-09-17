@@ -33,7 +33,7 @@ void StandardController::focusOutEvent() {
  * identifying each output. <em>Read-only.</em></p>
  * <p>These outputs can be mapped to actions or functions in a {@link RouteObject} mapping. The data value provided by each 
  * control is either a number or a {@link Pose}. Numbers are typically normalized to <code>0.0</code> or <code>1.0</code> for 
- * button states, the range <code>0.0</code> &ndash; </code>1.0</code> for unidirectional scales, and the range 
+ * button states, the range <code>0.0</code> &ndash; <code>1.0</code> for unidirectional scales, and the range 
  * <code>-1.0</code> &ndash; <code>1.0</code> for bidirectional scales.</p>
  * <p>Each hardware device has a mapping from its outputs to a subset of <code>Controller.Standard</code> items, specified in a 
  * JSON file. For example, 
@@ -118,8 +118,7 @@ void StandardController::focusOutEvent() {
  *       button.</td></tr>
  *     <tr><td><code>RightThumbUp</code></td><td>number</td><td>number</td><td>Right thumb not touching primary or secondary 
  *       thumb buttons.</td></tr>
- *     <tr><td><code>LeftPrimaryIndex</code></td><td>number</td><td>number</td><td>Left primary index control 
- *       pressed.</em></td></tr>
+ *     <tr><td><code>LeftPrimaryIndex</code></td><td>number</td><td>number</td><td>Left primary index control pressed.</td></tr>
  *     <tr><td><code>LeftSecondaryIndex</code></td><td>number</td><td>number</td><td>Left secondary index control pressed.
  *       </td></tr>
  *     <tr><td><code>RightPrimaryIndex</code></td><td>number</td><td>number</td><td>Right primary index control pressed. 

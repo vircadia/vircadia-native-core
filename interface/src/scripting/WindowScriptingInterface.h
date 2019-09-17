@@ -326,7 +326,7 @@ public slots:
      *     full resolution is used (window dimensions in desktop mode; HMD display dimensions in HMD mode), otherwise one of the
      *     dimensions is adjusted in order to match the aspect ratio.
      * @param {string} [filename=""] - If a filename is not provided, the image is saved as "hifi-snap-by-&lt;user 
-     *     name&gt-on-YYYY-MM-DD_HH-MM-SS".<br />
+     *     name&gt;-on-YYYY-MM-DD_HH-MM-SS".<br />
      *     Still images are saved in JPEG or PNG format according to the extension provided &mdash; <code>".jpg"</code>, 
      *     <code>".jpeg"</code>, or <code>".png"</code> &mdash; or if not provided then in JPEG format with an extension of 
      *     <code>".jpg"</code>. Animated images are saved in GIF format.
@@ -365,7 +365,7 @@ public slots:
      * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
      *     signal.
      * @param {string} [filename=""] - If a filename is not provided, the image is saved as "hifi-snap-by-&lt;user
-     *     name&gt-on-YYYY-MM-DD_HH-MM-SS".<br />
+     *     name&gt;-on-YYYY-MM-DD_HH-MM-SS".<br />
      *     Images are saved in JPEG or PNG format according to the extension provided &mdash; <code>".jpg"</code>,
      *     <code>".jpeg"</code>, or <code>".png"</code> &mdash; or if not provided then in JPEG format with an extension of
      *     <code>".jpg"</code>.
@@ -384,7 +384,7 @@ public slots:
      * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
      *     signal.
      * @param {string} [filename=""] - If a filename is not provided, the image is saved as "hifi-snap-by-&lt;user
-     *     name&gt-on-YYYY-MM-DD_HH-MM-SS".<br />
+     *     name&gt;-on-YYYY-MM-DD_HH-MM-SS".<br />
      *     Images are saved in JPEG or PNG format according to the extension provided &mdash; <code>".jpg"</code>,
      *     <code>".jpeg"</code>, or <code>".png"</code> &mdash; or if not provided then in JPEG format with an extension of
      *     <code>".jpg"</code>.

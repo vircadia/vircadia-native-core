@@ -779,7 +779,7 @@ public:
      * additional properties specified when adding the different handlers.</p>
      * <p>A handler may change a value from <code>animStateDictionaryIn</code> or add different values in the 
      * <code>animStateDictionaryOut</code> returned. Any property values set in <code>animStateDictionaryOut</code> will 
-     * override those of the internal animation machinery.</p.
+     * override those of the internal animation machinery.</p>
      * @function MyAvatar.addAnimationStateHandler
      * @param {function} handler - The animation state handler function to add.
      * @param {Array<string>|null} propertiesList - The list of {@link MyAvatar.AnimStateDictionary|AnimStateDictionary} 

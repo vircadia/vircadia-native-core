@@ -168,7 +168,6 @@ class ScriptEngine;
  *       <td><code>startFarTrigger</code><br /><code>continueFarTrigger</code><br /><code>stopFarTrigger</code></td>
  *       <td>These methods are called when a user is more than 0.3m away from the entity, the entity is triggerable, and the 
  *         user starts, continues, or stops squeezing the trigger.</td>
- *       </td>
  *       <td>A light switch that can be toggled on and off from a distance.</td>
  *     </tr>
  *     <tr>

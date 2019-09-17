@@ -944,7 +944,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} materialMappingRot=0 - How much to rotate the material within the parent's UV-space, in degrees.
  * @property {boolean} materialRepeat=true - <code>true</code> if the material repeats, <code>false</code> if it doesn't. If 
  *     <code>false</code>, fragments outside of texCoord 0 &ndash; 1 will be discarded. Works in both <code>"uv"</code> and 
- *     </code>"projected"</code> modes.
+ *     <code>"projected"</code> modes.
  * @example <caption>Color a sphere using a Material entity.</caption>
  * var entityID = Entities.addEntity({
  *     type: "Sphere",
@@ -1309,7 +1309,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} bottomMargin=0.0 - The bottom margin, in meters.
  * @property {boolean} unlit=false - <code>true</code> if the entity is unaffected by lighting, <code>false</code> if it is lit 
  *     by the key light and local lights.
- * @property {string} font="" - The font to render the text with. It can be one of the following: <code>"Courier"</code,
+ * @property {string} font="" - The font to render the text with. It can be one of the following: <code>"Courier"</code>,
  *     <code>"Inconsolata"</code>, <code>"Roboto"</code>, <code>"Timeless"</code>, or a path to a .sdff file.
  * @property {Entities.TextEffect} textEffect="none" - The effect that is applied to the text.
  * @property {Color} textEffectColor=255,255,255 - The color of the effect.

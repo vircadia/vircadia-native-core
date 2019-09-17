@@ -20,7 +20,7 @@ public:
      * <p>An IK target type.</p>
      * <table>
      *   <thead>
-     *     <tr><th>Value</th><th>Name</p><th>Description</th>
+     *     <tr><th>Value</th><th>Name</th><th>Description</th>
      *   </thead>
      *   <tbody>
      *     <tr><td><code>0</code></td><td>RotationAndPosition</td><td>Attempt to reach the rotation and position end 

@@ -1870,7 +1870,7 @@ public slots:
      /**jsdoc
       * Called when a {@link Entities.getMeshes} call is complete.
       * @callback Entities~getMeshesCallback
-      * @param {MeshProxy[]} meshes - If <code>success<</code> is <code>true</code>, a {@link MeshProxy} per mesh in the 
+      * @param {MeshProxy[]} meshes - If <code>success</code> is <code>true</code>, a {@link MeshProxy} per mesh in the 
       *     <code>Model</code> or <code>PolyVox</code> entity; otherwise <code>undefined</code>. 
       * @param {boolean} success - <code>true</code> if the {@link Entities.getMeshes} call was successful, <code>false</code> 
       *     otherwise. The call may be unsuccessful if the requested entity could not be found.

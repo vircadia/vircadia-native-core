@@ -225,7 +225,7 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
  * 
  * <table>
  *   <thead>
- *     <tr><th>Property</th><th>Type</th><td>Data</th><th>Description</th></tr>
+ *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
  *     <tr><td><code>0</code> &ndash; <code>9</code></td><td>number</td><td>number</td><td>A "0" &ndash; "1" key on the 

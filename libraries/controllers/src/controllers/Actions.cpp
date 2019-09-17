@@ -171,7 +171,7 @@ namespace controller {
      *     <tr><td><code>RightFoot</code></td><td>number</td><td>{@link Pose}</td><td>Set the right foot pose of the user's
      *       avatar.</td></tr>
      *
-     *     <tr><td colSpan=4><strong><strong>Application</strong></td>
+     *     <tr><td colSpan=4><strong>Application</strong></td>
      *     <tr><td><code>BoomIn</code></td><td>number</td><td>number</td><td>Zoom camera in from third person toward first 
      *       person view.</td></tr>
      *     <tr><td><code>BoomOut</code></td><td>number</td><td>number</td><td>Zoom camera out from first person to third 

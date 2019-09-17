@@ -1502,11 +1502,11 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
  *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
  * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  *
@@ -1520,7 +1520,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
  * @property {boolean} isSolid=false - <code>true</code> if the overlay is rendered as a solid, <code>false</code> if it is 
  *     rendered as a wire frame. 
- *     Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Synonyms: <code>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code> 
  *     if they don't. 
@@ -1550,11 +1550,11 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
  *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
  * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  *
@@ -1568,7 +1568,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
  * @property {boolean} isSolid=false - <code>true</code> if the overlay is rendered as a solid, <code>false</code> if it is 
  *     rendered as a wire frame. 
- *     Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Synonyms: <code>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
  *     if they don't.
@@ -1599,11 +1599,11 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
  *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
  * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  *
@@ -1617,7 +1617,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
  * @property {boolean} isSolid=false - <code>true</code> if the overlay is rendered as a solid, <code>false</code> if it is 
  *     rendered as a wire frame. 
- *     Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Synonyms: <code>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
  *     if they don't.
@@ -1641,7 +1641,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <tr><th>Value</th><th>Dimensions</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
- *     <tr><td><code>"Circle"</code></td><td>2D</td><td>A circle oriented in 3D.</td></td></tr>
+ *     <tr><td><code>"Circle"</code></td><td>2D</td><td>A circle oriented in 3D.</td></tr>
  *     <tr><td><code>"Cone"</code></td><td>3D</td><td></td></tr>
  *     <tr><td><code>"Cube"</code></td><td>3D</td><td></td></tr>
  *     <tr><td><code>"Cylinder"</code></td><td>3D</td><td></td></tr>
@@ -1674,11 +1674,11 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
  *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
  * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  *
@@ -1692,7 +1692,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
  * @property {boolean} isSolid=false - <code>true</code> if the overlay is rendered as a solid, <code>false</code> if it is 
  *     rendered as a wire frame. 
- *     Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Synonyms: <code>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
  *     if they don't.
@@ -1761,17 +1761,17 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {Color} color=255,255,255 - The color of the overlay text. Synonym: <code>textColor</code>.
  * @property {number} alpha=0.7 - The opacity of the overlay text, <code>0.0</code> &ndash; <code>1.0</code>.
  *     <p><em>Currently not used; use <code>textAlpha</code> instead.</em></p>
- *     <CURRENTLY BROKEN>
+ *     @comment CURRENTLY BROKEN
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
  *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
  * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  *
@@ -1811,11 +1811,11 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
  *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
  * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  *
@@ -1857,11 +1857,11 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
  *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
  * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  *
@@ -1922,35 +1922,35 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *
  * @property {Uuid} endParentID=null - The avatar, entity, or overlay that the end point of the line is parented to.
  *     <p><em>Currently doesn't work.</em></p>
- *     <CURRENTLY BROKEN>
+ *     @comment CURRENTLY BROKEN
  * @property {number} endParentJointIndex=65535 - Integer value specifying the skeleton joint that the end point of the line is
  *     attached to if <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint". 
  *     <p><em>Currently doesn't work.</em></p>
- *     <CURRENTLY BROKEN>
+ *     @comment CURRENTLY BROKEN
 
  * @property {Vec3} start - The start point of the line. Synonyms: <code>startPoint</code> and <code>p1</code>.
- *     <p><em>If <code>parentID<code> is set, use <code>localStart</code> to set the local position of the start point.</em></p>
- *     <CURRENTLY BROKEN>
+ *     <p><em>If <code>parentID</code> is set, use <code>localStart</code> to set the local position of the start point.</em></p>
+ *     @comment CURRENTLY BROKEN
  * @property {Vec3} end - The end point of the line. Synonyms: <code>endPoint</code> and <code>p2</code>.
- *     <p><em>If <code>parentID<code> is set, use <code>localEnd</code> to set the local position of the end point.</em></p>
- *     <CURRENTLY BROKEN>
+ *     <p><em>If <code>parentID</code> is set, use <code>localEnd</code> to set the local position of the end point.</em></p>
+ *     @comment CURRENTLY BROKEN
 
  * @property {Vec3} localStart - The local position of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>start</code>.
- *     <CURRENTLY BROKEN>
+ *     @comment CURRENTLY BROKEN
  * @property {Vec3} localEnd - The local position of the overlay relative to its parent if the overlay has a
  *     <code>endParentID</code> set, otherwise the same value as <code>end</code>.
- *     <CURRENTLY BROKEN>
+ *     @comment CURRENTLY BROKEN
 
  * @property {number} length - The length of the line, in meters. This can be set after creating a line with start and end
  *     points.
  *     <p><em>Currently doesn't work.</em></p>
- *     <CURRENTLY BROKEN>
+ *     @comment CURRENTLY BROKEN
 
  * @property {number} glow=0 - If <code>glow > 0</code>, the line is rendered with a glow.
  * @property {number} lineWidth=0.02 - Width of the line, in meters.
  *     <p><em>You can set this property's value but currently cannot retrieve its value. Use the <code>strokeWidths</code> 
- *     property to retrieve its value instead.</p>
+ *     property to retrieve its value instead.</em></p>
  */
 
 /**jsdoc
@@ -1967,11 +1967,11 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
  *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
  * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  *
@@ -2010,11 +2010,11 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
  *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
  * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
- *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     current pulse multiplier value each frame. If &gt; 0 the pulse multiplier is applied in phase with the pulse period; if &lt; 0
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  *
@@ -2029,7 +2029,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>. Synonym: <code>localOrientation</code>.
  * @property {boolean} isSolid=false - <code>true</code> if the overlay is rendered as a solid, <code>false</code> if it is 
  *     rendered as a wire frame. 
- *     Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Synonyms: <code>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
  *     if they don't.
