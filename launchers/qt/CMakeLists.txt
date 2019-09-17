@@ -131,6 +131,7 @@ set(src_files
   src/Unzipper.h
   src/Unzipper.cpp
   src/Helper.h
+  src/Helper.cpp
   deps/miniz/miniz.h
   deps/miniz/miniz.cpp
   )
