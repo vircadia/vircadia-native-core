@@ -4347,14 +4347,14 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _keyboardMouseDevice->keyReleaseEvent(event);
         }
 
-        bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
+        bool isControlOrCommand = event->modifiers().testFlag(Qt::ControlModifier);
         bool isOption = event->modifiers().testFlag(Qt::AltModifier);
         switch (event->key()) {
             case Qt::Key_4:
             case Qt::Key_5:
             case Qt::Key_6:
             case Qt::Key_7:
-                if (isMeta || isOption) {
+                if (isControlOrCommand || isOption) {
                     unsigned int index = static_cast<unsigned int>(event->key() - Qt::Key_1);
                     auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
                     if (index < displayPlugins.size()) {
@@ -4375,7 +4375,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
         }
 
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
-        bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
+        bool isControlOrCommand = event->modifiers().testFlag(Qt::ControlModifier);
+        bool isMetaOrMacControl = event->modifiers().testFlag(Qt::MetaModifier);
         bool isOption = event->modifiers().testFlag(Qt::AltModifier);
         switch (event->key()) {
             case Qt::Key_Enter:
@@ -4408,7 +4409,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_5:
             case Qt::Key_6:
             case Qt::Key_7:
-                if (isMeta || isOption) {
+                if (isControlOrCommand || isOption) {
                     unsigned int index = static_cast<unsigned int>(event->key() - Qt::Key_1);
                     auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
                     if (index < displayPlugins.size()) {
@@ -4424,7 +4425,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_G:
-                if (isShifted && isMeta && Menu::getInstance() && Menu::getInstance()->getMenu("Developer")->isVisible()) {
+                if (isShifted && isControlOrCommand && isOption && isMetaOrMacControl) {
                     static const QString HIFI_FRAMES_FOLDER_VAR = "HIFI_FRAMES_FOLDER";
                     static const QString GPU_FRAME_FOLDER = QProcessEnvironment::systemEnvironment().contains(HIFI_FRAMES_FOLDER_VAR)
                         ? QProcessEnvironment::systemEnvironment().value(HIFI_FRAMES_FOLDER_VAR)
@@ -4437,7 +4438,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
             case Qt::Key_X:
-                if (isShifted && isMeta) {
+                if (isShifted && isControlOrCommand) {
                     auto offscreenUi = getOffscreenUI();
                     offscreenUi->togglePinned();
                     //offscreenUi->getSurfaceContext()->engine()->clearComponentCache();
@@ -4447,7 +4448,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_Y:
-                if (isShifted && isMeta) {
+                if (isShifted && isControlOrCommand) {
                     getActiveDisplayPlugin()->cycleDebugOutput();
                 }
                 break;
@@ -4460,16 +4461,16 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_L:
-                if (isShifted && isMeta) {
+                if (isShifted && isControlOrCommand) {
                     Menu::getInstance()->triggerOption(MenuOption::Log);
-                } else if (isMeta) {
+                } else if (isControlOrCommand) {
                     auto dialogsManager = DependencyManager::get<DialogsManager>();
                     dialogsManager->toggleAddressBar();
                 }
                 break;
 
             case Qt::Key_R:
-                if (isMeta && !event->isAutoRepeat()) {
+                if (isControlOrCommand && !event->isAutoRepeat()) {
                     DependencyManager::get<ScriptEngines>()->reloadAllScripts();
                     getOffscreenUI()->clearCache();
                 }
@@ -4480,7 +4481,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_M:
-                if (isMeta) {
+                if (isControlOrCommand) {
                     auto audioClient = DependencyManager::get<AudioClient>();
                     audioClient->setMuted(!audioClient->isMuted());
                     QSharedPointer<scripting::Audio> audioScriptingInterface = qSharedPointerDynamicCast<scripting::Audio>(DependencyManager::get<AudioScriptingInterface>());
@@ -4491,13 +4492,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_S:
-                if (isShifted && isMeta && !isOption) {
+                if (isShifted && isControlOrCommand && !isOption) {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
                 }
                 break;
 
             case Qt::Key_Apostrophe: {
-                if (isMeta) {
+                if (isControlOrCommand) {
                     auto cursor = Cursor::Manager::instance().getCursor();
                     auto curIcon = cursor->getIcon();
                     if (curIcon == Cursor::Icon::DEFAULT) {
@@ -4524,7 +4525,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_Plus: {
-                if (isMeta && event->modifiers().testFlag(Qt::KeypadModifier)) {
+                if (isControlOrCommand && event->modifiers().testFlag(Qt::KeypadModifier)) {
                     auto& cursorManager = Cursor::Manager::instance();
                     cursorManager.setScale(cursorManager.getScale() * 1.1f);
                 } else {
@@ -4534,7 +4535,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             }
 
             case Qt::Key_Minus: {
-                if (isMeta && event->modifiers().testFlag(Qt::KeypadModifier)) {
+                if (isControlOrCommand && event->modifiers().testFlag(Qt::KeypadModifier)) {
                     auto& cursorManager = Cursor::Manager::instance();
                     cursorManager.setScale(cursorManager.getScale() / 1.1f);
                 } else {
