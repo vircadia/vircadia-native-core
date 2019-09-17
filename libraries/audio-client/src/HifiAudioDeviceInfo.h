@@ -36,7 +36,7 @@ public:
     }
     void setDevice(QAudioDeviceInfo devInfo);
     void setId(QString name);
-   
+    QString getAudioDeviceName() { return _audioDeviceInfo.deviceName(); }
     QString getId() const { return _uniqueId; }
     QAudioDeviceInfo getDevice() const { return _audioDeviceInfo; }
     QString deviceName() const { return _deviceName; }

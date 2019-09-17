@@ -119,6 +119,31 @@ void AudioClient::checkDevices() {
     auto inputDevices = getAvailableDevices(QAudio::AudioInput);
     auto outputDevices = getAvailableDevices(QAudio::AudioOutput);
 
+    {
+        Lock lock(_deviceMutex);
+        //is the current device the default selected device?
+        if (_inputDeviceInfo.isDefault() && _inputDeviceInfo == _defaultInputDevice) {
+            auto defInput = defaultAudioDeviceForMode(QAudio::AudioInput);
+            
+            //Has the default device changed
+            if (_defaultInputDevice.getDevice() != defInput.getDevice()) {
+                qDebug() << "Changing Current Default device  " << _defaultInputDevice.getAudioDeviceName();
+                _defaultInputDevice.setDevice(defInput.getDevice());
+                qDebug() << "NEW Default device  " << _defaultInputDevice.getAudioDeviceName();
+                QMetaObject::invokeMethod(this, "switchInputToAudioDevice", Qt::QueuedConnection, Q_ARG(HifiAudioDeviceInfo, _defaultInputDevice));
+            }
+        }
+
+        if (_outputDeviceInfo.isDefault() && _inputDeviceInfo == _defaultInputDevice) {
+            auto defOutput = defaultAudioDeviceForMode(QAudio::AudioOutput);
+
+            if (_defaultOutputDevice.getDevice() != defOutput.getDevice()) {
+                _defaultOutputDevice.setDevice(defOutput.getDevice());
+                QMetaObject::invokeMethod(this, "switchOutputToAudioDevice", Qt::QueuedConnection, Q_ARG(HifiAudioDeviceInfo, _defaultOutputDevice));
+            }
+        }
+    }
+
     //add the pseudo device to the list of devices
     inputDevices.push_front(_defaultInputDevice);
     outputDevices.push_front(_defaultOutputDevice);
@@ -342,19 +367,16 @@ AudioClient::AudioClient() :
 
     connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioClient::handleMismatchAudioFormat);
 
-
     _defaultOutputDevice = defaultAudioDeviceForMode(QAudio::AudioOutput);
     _defaultOutputDevice.setDeviceName("Default audio (recommended)");
     _defaultOutputDevice.setIsDefault(true);
     _defaultOutputDevice.setMode(QAudio::AudioOutput);
- 
 
     _defaultInputDevice = defaultAudioDeviceForMode(QAudio::AudioInput);
     _defaultInputDevice.setDeviceName("Default microphone (recommended)");
     _defaultInputDevice.setIsDefault(true);
     _defaultInputDevice.setMode(QAudio::AudioInput);
  
-
     // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
     getAvailableDevices(QAudio::AudioInput);
     getAvailableDevices(QAudio::AudioOutput);
