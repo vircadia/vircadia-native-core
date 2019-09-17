@@ -130,7 +130,7 @@ void AudioClient::checkDevices() {
                 qDebug() << "Changing Current Default device  " << _defaultInputDevice.getAudioDeviceName();
                 _defaultInputDevice.setDevice(defInput.getDevice());
                 qDebug() << "NEW Default device  " << _defaultInputDevice.getAudioDeviceName();
-                QMetaObject::invokeMethod(this, "switchAudioDevice", Q_ARG(QAudio::Mode, QAudio::AudioInput),   Q_ARG(const HifiAudioDeviceInfo&, _defaultInputDevice));
+                QMetaObject::invokeMethod(this, "switchAudioDevice", Qt::DirectConnection, Q_ARG(QAudio::Mode, QAudio::AudioInput),   Q_ARG(const HifiAudioDeviceInfo&, _defaultInputDevice));
             }
         }
 
@@ -141,7 +141,7 @@ void AudioClient::checkDevices() {
                 qDebug() << "Changing Current Default device  " << _defaultOutputDevice.getAudioDeviceName();
                 _defaultOutputDevice.setDevice(defOutput.getDevice());
                 qDebug() << "NEW Default device  " << _defaultOutputDevice.getAudioDeviceName();
-                QMetaObject::invokeMethod(this, "switchAudioDevice", Q_ARG(QAudio::Mode, QAudio::AudioOutput), Q_ARG(const HifiAudioDeviceInfo&, _defaultOutputDevice));
+                QMetaObject::invokeMethod(this, "switchAudioDevice",Qt::DirectConnection, Q_ARG(QAudio::Mode, QAudio::AudioOutput), Q_ARG(const HifiAudioDeviceInfo&, _defaultOutputDevice));
             }
         }
     }
