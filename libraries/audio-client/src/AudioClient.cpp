@@ -568,7 +568,7 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 
             if (!getPropertyError && propertySize) {
                 // find a device in the list that matches the name we have and return it
-                foreach (AudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
+                foreach (HifiAudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
                     if (audioDevice.deviceName() == CFStringGetCStringPtr(deviceName, kCFStringEncodingMacRoman)) {
                         return audioDevice;
                     }
