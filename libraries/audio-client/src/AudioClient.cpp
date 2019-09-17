@@ -120,7 +120,7 @@ void AudioClient::checkDevices() {
     auto outputDevices = getAvailableDevices(QAudio::AudioOutput);
 
     {
-        Lock lock(_deviceMutex);
+        
         //is the current device the default selected device?
         if (_inputDeviceInfo.isDefault() && _inputDeviceInfo == _defaultInputDevice) {
             auto defInput = defaultAudioDeviceForMode(QAudio::AudioInput);
@@ -130,7 +130,7 @@ void AudioClient::checkDevices() {
                 qDebug() << "Changing Current Default device  " << _defaultInputDevice.getAudioDeviceName();
                 _defaultInputDevice.setDevice(defInput.getDevice());
                 qDebug() << "NEW Default device  " << _defaultInputDevice.getAudioDeviceName();
-                QMetaObject::invokeMethod(this, "switchInputToAudioDevice", Qt::QueuedConnection, Q_ARG(HifiAudioDeviceInfo, _defaultInputDevice));
+                QMetaObject::invokeMethod(this, "switchAudioDevice", Q_ARG(QAudio::Mode, QAudio::AudioInput),   Q_ARG(const HifiAudioDeviceInfo&, _defaultInputDevice));
             }
         }
 
@@ -138,8 +138,10 @@ void AudioClient::checkDevices() {
             auto defOutput = defaultAudioDeviceForMode(QAudio::AudioOutput);
 
             if (_defaultOutputDevice.getDevice() != defOutput.getDevice()) {
+                qDebug() << "Changing Current Default device  " << _defaultOutputDevice.getAudioDeviceName();
                 _defaultOutputDevice.setDevice(defOutput.getDevice());
-                QMetaObject::invokeMethod(this, "switchOutputToAudioDevice", Qt::QueuedConnection, Q_ARG(HifiAudioDeviceInfo, _defaultOutputDevice));
+                qDebug() << "NEW Default device  " << _defaultOutputDevice.getAudioDeviceName();
+                QMetaObject::invokeMethod(this, "switchAudioDevice", Q_ARG(QAudio::Mode, QAudio::AudioOutput), Q_ARG(const HifiAudioDeviceInfo&, _defaultOutputDevice));
             }
         }
     }
