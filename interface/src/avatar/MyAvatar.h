@@ -2635,14 +2635,14 @@ private:
     glm::vec3 _lookAtCameraTarget;
     glm::vec3 _lookAtScriptTarget;
     bool _headLookAtActive { false };
-    bool _lookAtCameraReady { false };
+    bool _shouldTurnToFaceCamera { false };
     bool _scriptControlsHeadLookAt { false };
     float _scriptHeadControlTimer { 0.0f };
 
     // LookAt camera data
     float _selfieTriggerAngle { 55.0f };
     float _frontLookAtSpeed { 0.15f };
-    float _backLookAtSpeed { 0.03f };
+    float _backLookAtSpeed { 0.25f };
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
