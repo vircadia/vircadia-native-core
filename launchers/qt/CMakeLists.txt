@@ -130,10 +130,19 @@ set(src_files
   src/PathUtils.h
   src/Unzipper.h
   src/Unzipper.cpp
+  src/Helper.h
   deps/miniz/miniz.h
   deps/miniz/miniz.cpp
   )
 
+
+if (APPLE)
+  set(src_files ${src_files}
+    src/darwin/Helper.mm
+    src/darwin/NSTask+NSTaskExecveAdditions.h
+    src/darwin/NSTask+NSTaskExecveAdditions.m
+    )
+endif()
 set(TARGET_NAME ${PROJECT_NAME})
 
 

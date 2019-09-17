@@ -2,6 +2,7 @@
 
 #include "PathUtils.h"
 #include "Unzipper.h"
+#include "Helper.h"
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
@@ -415,14 +416,15 @@ void LauncherState::launchClient() {
     setApplicationState(ApplicationState::LaunchingHighFidelity);
 
     QDir installDirectory = _launcherDirectory.filePath("interface_install");
-    auto clientPath = installDirectory.absoluteFilePath("interface.exe");
+    auto clientPath = installDirectory.absoluteFilePath("interface.app/Contents/MacOS/interface");
 
     QString homePath = "hifi://hq";
     QString defaultScriptsPath = installDirectory.filePath("scripts/simplifiedUIBootstrapper");
     QString displayName = "fixMe";
     QString contentCachePath = _launcherDirectory.filePath("cache");
 
-    // TODO Fix parameters
+    //::launchClient(clientPath, homePath, defaultScriptsPath, displayName, contentCachePath, _loginTokenResponse);
+    /*  // TODO Fix parameters
     QString params = "--url " + homePath
         + " --setBookmark hqhome=\"" + homePath + "\""
         + " --defaultScriptsOverride " + QDir::toNativeSeparators(defaultScriptsPath)
@@ -463,7 +465,7 @@ void LauncherState::launchClient() {
     // TODO Implement launching of client
 #else
 #error UNSUPPORTED PLATFORM
-#endif
+#endif*/
 }
 
 void LauncherState::setApplicationState(ApplicationState state) {
