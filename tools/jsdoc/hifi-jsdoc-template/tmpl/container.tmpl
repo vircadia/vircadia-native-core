@@ -63,11 +63,12 @@
 
     <section>
     <article>
+
         <div class="container-overview">
             <?js if (doc.kind === 'module' && doc.modules) { ?>
                 <?js if (doc.description) { ?>
                     <h3>Description</h3>
-                    <p><?js= doc.description ?></p>
+                    <div><?js= doc.description ?></div>
                 <?js } ?>
 
                 <?js doc.modules.forEach(function(module) { ?>
@@ -75,7 +76,7 @@
                 <?js }) ?>
             <?js } else if (doc.kind === 'class' || (doc.kind === 'namespace' && doc.signature)) { ?>
                 <h3>Description</h3>
-                <p><?js= doc.description ?></p>
+                <div><?js= doc.description ?></div>
                 <table>
                     <thead>
                         <tr>
@@ -84,11 +85,12 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td><code><?js= (doc.kind === 'class' ? 'new ' : '') + doc.name + (doc.signature || '') ?></code><p />
+                            <td><code><?js= (doc.kind === 'class' ? 'new ' : '') + doc.name + (doc.signature || '') ?></code>
                             <?js if (doc.params) { ?>
                                 <h3 class="paramHeading">Parameters</h3>
                                     <?js= self.partial('params.tmpl', doc.params) ?>
                             <?js } ?>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -101,7 +103,7 @@
             <?js } else { ?>
                 <h3>Description</h3>
                 <?js if (doc.description) { ?>
-                    <p><?js= doc.description ?></p>
+                    <div><?js= doc.description ?></div>
                 <?js } ?>
 
                 <?js if (doc.examples && doc.examples.length) { ?>
@@ -264,6 +266,7 @@
             <?js methods.forEach(function(m) { ?>
                 <?js= self.partial('method.tmpl', m) ?>
             <?js }); ?>
+            </div>
         <?js } ?>
 
         <?js
@@ -276,12 +279,10 @@
             <?js signals.forEach(function(s) { ?>
                 <?js= self.partial('signal.tmpl', s) ?>
             <?js }); ?>
+            </div>
         <?js } ?>
         
-
-        </article>
-
-
+    </article>
     </section>
     <?js } ?>
 <?js }); ?>

@@ -25,23 +25,23 @@ var self = this;
             <tr>
                 <td>
                     <?js if (data.kind !== 'module' && !data.hideconstructor) { ?>
-                        <p>
+                        <div>
                             <?js= data.description ?>
                             <?js= this.partial('details.tmpl', data) ?>
-                        </p>
+                        </div>
                     <?js } else { ?>
                         <p style="color:red;">&nbsp;</p>
                     <?js } ?>                    
 
                     <?js if (data.exceptions && exceptions.length) { ?>
-                    <h3 class="subHeading">Throws:</h3>
+                    <h3 class="subHeading">Throws</h3>
                     <?js if (exceptions.length > 1) { ?><ul><?js
                     exceptions.forEach(function(r) { ?>
                         <li><?js= self.partial('exceptions.tmpl', r) ?></li>
                     <?js });
                     ?></ul><?js } else {
                     exceptions.forEach(function(r) { ?>
-                        <p><?js= self.partial('exceptions.tmpl', r) ?></p>
+                        <?js= self.partial('exceptions.tmpl', r) ?>
                     <?js });
                     } } ?>
 
