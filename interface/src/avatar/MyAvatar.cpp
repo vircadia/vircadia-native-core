@@ -4374,8 +4374,15 @@ float MyAvatar::getRawDriveKey(DriveKeys key) const {
 }
 
 void MyAvatar::relayDriveKeysToCharacterController() {
-    if (getDriveKey(TRANSLATE_Y) > 0.0f && (!qApp->isHMDMode() || (useAdvancedMovementControls() && getFlyingHMDPref()))) {
-        _characterController.jump();
+    if (_endSitKeyPressComplete) {
+        if (getDriveKey(TRANSLATE_Y) > 0.0f && (!qApp->isHMDMode() || (useAdvancedMovementControls() && getFlyingHMDPref()))) {
+            _characterController.jump();
+        }
+    } else {
+        // used to prevent character from jumping after endSit is called.
+        if (getDriveKey(TRANSLATE_Y) == 0.0f) {
+            _endSitKeyPressComplete = true;
+        }
     }
 }
 
@@ -6255,15 +6262,17 @@ void MyAvatar::beginSit(const glm::vec3& position, const glm::quat& rotation) {
         return;
     }
 
-    _characterController.setSeated(true);
-    setCollisionsEnabled(false);
-    setHMDLeanRecenterEnabled(false);
-    // Disable movement
-    setSitDriveKeysStatus(false);
-    centerBody();
-    int hipIndex = getJointIndex("Hips");
-    clearPinOnJoint(hipIndex);
-    pinJoint(hipIndex, position, rotation);
+    if (!_characterController.getSeated()) {
+        _characterController.setSeated(true);
+        setCollisionsEnabled(false);
+        setHMDLeanRecenterEnabled(false);
+        // Disable movement
+        setSitDriveKeysStatus(false);
+        centerBody();
+        int hipIndex = getJointIndex("Hips");
+        clearPinOnJoint(hipIndex);
+        pinJoint(hipIndex, position, rotation);
+    }
 }
 
 void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
@@ -6281,12 +6290,9 @@ void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
         slamPosition(position);
         setWorldOrientation(rotation);
 
-        // the jump key is used to exit the chair.  We add a delay here to prevent
-        // the avatar from jumping right as they exit the chair.
-        float TIME_BEFORE_DRIVE_ENABLED_MS = 150.0f;
-        QTimer::singleShot(TIME_BEFORE_DRIVE_ENABLED_MS, [this]() {
-            // Enable movement again
-            setSitDriveKeysStatus(true);
-        });
+        // used to prevent character from jumping after endSit is called.
+        _endSitKeyPressComplete = false;
+
+        setSitDriveKeysStatus(true);
     }
 }

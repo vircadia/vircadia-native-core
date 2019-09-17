@@ -2903,6 +2903,9 @@ private:
     int _reactionEnabledRefCounts[NUM_AVATAR_BEGIN_END_REACTIONS] { 0, 0, 0 };
 
     mutable std::mutex _reactionLock;
+
+    // used to prevent character from jumping after endSit is called.
+    bool _endSitKeyPressComplete { false };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

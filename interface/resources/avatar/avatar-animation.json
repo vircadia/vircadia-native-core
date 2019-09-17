@@ -4598,6 +4598,10 @@
                                                                                                 {
                                                                                                     "state": "strafeLeftHmd",
                                                                                                     "var": "isMovingLeftHmd"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "idle",
+                                                                                                    "var": "isNotSeated"
                                                                                                 }
                                                                                             ]
                                                                                         },
