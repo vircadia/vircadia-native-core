@@ -2,41 +2,34 @@ import QtQuick 2.3
 import QtQuick 2.1
 import "../HFControls"
 
-
 Item {
     id: root
-    anchors.centerIn: parent
-    property string titleText: "Sign-in and pick a password"
-    property string usernamePlaceholder: "User name"
-    property string passwordPlaceholder: "Set a password"
-    property int marginLeft: root.width * 0.15
+    anchors.fill: parent
 
     Image {
         anchors.centerIn: parent
         width: parent.width
         height: parent.height
-        mirror: true
+        mirror: false
         source: PathUtils.resourcePath("images/hifi_window@2x.png");
         transformOrigin: Item.Center
-        rotation: 180
+        rotation: 0
     }
-
     Text {
         id: title
-        width: 481
-        height: 27
+        width: 325
+        height: 26
         font.family: "Graphik"
+        font.pixelSize: 28
         font.bold: true
-        font.pixelSize: 29
-        lineHeight: 35
-        lineHeightMode: Text.FixedHeight
         color: "#FFFFFF"
-        text: root.titleText
+        text: "Please Log in"
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
         anchors {
             top: root.top
-            topMargin: 29
-            left: root.left
-            leftMargin: root.marginLeft
+            topMargin: 40
+            horizontalCenter: root.horizontalCenter
         }
     }
 
@@ -46,126 +39,107 @@ Item {
         height: 22
         font.family: "Graphik"
         font.pixelSize: 14
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
         color: "#C4C4C4"
-        text: "Use the email address that you regisetered with."
+        text: "Use the account credentials you created at sign-up"
         anchors {
             left: root.left
-            leftMargin: root.marginLeft
+            right: root.right
             top: title.bottom
             topMargin: 18
         }
     }
 
     HFTextField {
-        id: organization
-        width: 430
+        id: username
+        width: 353
         height: 50
         font.family: "Graphik"
         font.pixelSize: 18
-        placeholderText: "Email Address"
-        color: "#7e8c81"
+        placeholderText: "Username"
+        color: "#7E8C81"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
             top: instruction.bottom
-            left: root.left
-            leftMargin: root.marginLeft
-            topMargin: 18
+            horizontalCenter: instruction.horizontalCenter
+            topMargin: 24
         }
     }
 
     HFTextField {
-        id: username
-        width: 430
+        id: password
+        width: 353
         height: 50
         font.family: "Graphik"
         font.pixelSize: 18
-        placeholderText: root.usernamePlaceholder
-        color: "#7e8c81"
-        seperatorColor: Qt.rgba(1, 1, 1, 0.3)
-        anchors {
-            top: organization.bottom
-            left: root.left
-            leftMargin: root.marginLeft
-            topMargin: 18
-        }
-    }
-
-    HFTextField {
-        id: passwordField
-        width: 430
-        height: 50
-        font.family: "Graphik"
-        font.pixelSize: 18
-        placeholderText: root.passwordPlaceholder
-        color: "#7e8c81"
-        seperatorColor: Qt.rgba(1, 1, 1, 0.3)
+        placeholderText: "Password"
+        color: "#7E8C81"
         togglePasswordField: true
         echoMode: TextInput.Password
+        seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
             top: username.bottom
-            left: root.left
-            leftMargin: root.marginLeft
-            topMargin: 18
+            horizontalCenter: instruction.horizontalCenter
+            topMargin: 25
         }
     }
 
 
     Text {
-        id: displayNameText
-        text: "You can change this at anytime from you Profile"
-        font.family: "Graphik"
-        font.pixelSize: 10
+        id: displayText
+
+        text: "You can change this at anytime from your profile"
         color: "#C4C4C4"
+        font.pixelSize: 14
+
         anchors {
-            top: passwordField.bottom
-            left: root.left
-            leftMargin: root.marginLeft
-            topMargin: 22
+            top: password.bottom
+            topMargin: 50
+            left: password.left
         }
     }
 
-     HFTextField {
+    HFTextField {
         id: displayName
-        width: 430
+        width: 353
         height: 50
         font.family: "Graphik"
         font.pixelSize: 18
-        placeholderText: "Display Name"
-        color: "#7e8c81"
+        placeholderText: "Display name"
+        color: "#7E8C81"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
+        echoMode: TextInput.Password
         anchors {
-            top: displayNameText.bottom
-            left: root.left
-            leftMargin: root.marginLeft
+            top: displayText.bottom
+            horizontalCenter: instruction.horizontalCenter
             topMargin: 4
         }
     }
 
     HFButton {
         id: button
-        width: 134
+        width: 110
         height: 50
 
         font.family: "Graphik"
-        font.pixelSize: 14
+        font.pixelSize: 18
         text: "NEXT"
 
         anchors {
             top: displayName.bottom
-            left: root.left
-            leftMargin: root.marginLeft
-            topMargin: 21
+            left: displayName.left
+            topMargin: 25
         }
 
-        onClicked: LauncherState.login(username.text, passwordField.text)
+        onClicked: LauncherState.login(username.text, password.text)
     }
-
 
     Text {
         width: 214
         height: 12
 
-        text: "Already have an account?"
+        text: "Create New Account"
         font.family: "Graphik"
         font.pixelSize: 14
         color: "#009EE0"
@@ -193,7 +167,7 @@ Item {
         text: "High Fidelity"
         font.bold: true
         font.family: "Graphik"
-        font.pixelSize: 24
+        font.pixelSize: 18
         font.letterSpacing: -1
         color: "#FFFFFF"
         horizontalAlignment: Text.AlignHCenter
@@ -201,9 +175,9 @@ Item {
 
         anchors {
             bottom: root.bottom
-            bottomMargin: 46
-            right: displayName.right
-            rightMargin: 30
+            bottomMargin: 58
+            right: root.right
+            rightMargin: 136
         }
     }
 }

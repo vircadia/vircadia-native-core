@@ -7,10 +7,8 @@ import "HFControls"
 
 Item {
     id: root
-    width: 515
-    height: 390
-    //source: "../images/hifi_window@2x.png"
-
+    width: 627
+    height: 540
     Loader {
         anchors.fill: parent
         id: loader
@@ -23,7 +21,13 @@ Item {
         });
     }
 
+
+    function loadPage(url) {
+        loader.source = url;
+    }
+
     Text {
+        id: stateInfo
         font.pixelSize: 12
 
         anchors.right: root.right

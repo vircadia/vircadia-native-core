@@ -2,6 +2,7 @@
 
 #include "PathUtils.h"
 #include "Unzipper.h"
+#include "Helper.h"
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
@@ -428,56 +429,27 @@ void LauncherState::launchClient() {
     setApplicationState(ApplicationState::LaunchingHighFidelity);
 
     QDir installDirectory = _launcherDirectory.filePath("interface_install");
-    auto clientPath = installDirectory.absoluteFilePath("interface.exe");
+    QString clientPath;
+#if defined(Q_OS_WIN)
+    clientPath = installDirectory.absoluteFilePath("interface.exe");
+#elif defined(Q_OS_MACOS)
+    clientPath = installDirectory.absoluteFilePath("interface.app/Contents/MacOS/interface");
+#endif
 
     // TODO Get correct home path
     QString homePath = "hifi://hq";
-    QString defaultScriptsPath = installDirectory.filePath("scripts/simplifiedUIBootstrapper.js");
+    QString defaultScriptsPath;
+#if defined(Q_OS_WIN)
+    defaultScriptsPath = installDirectory.filePath("scripts/simplifiedUIBootstrapper.js");
+#elif defined(Q_OS_MACOS)
+    defaultScriptsPath = installDirectory.filePath("interface.app/Contents/Resources/scripts/simplifiedUIBootstrapper.js");
+#endif
+
+    qDebug() << "------> " << defaultScriptsPath;
     QString displayName = "fixMe";
     QString contentCachePath = _launcherDirectory.filePath("cache");
 
-    // TODO Confirm that these params are correct across Windows and OSX
-    QString params = "--url " + homePath
-        + " --setBookmark hqhome=\"" + homePath + "\""
-        + " --defaultScriptsOverride " + QDir::toNativeSeparators(defaultScriptsPath)
-        + " --displayName " + displayName
-        + " --cache " + contentCachePath;
-
-    if (!_loginTokenResponse.isEmpty()) {
-        params += " --tokens \"" + _loginTokenResponse.replace("\"", "\\\"") + "\"";
-    }
-
-#if defined(Q_OS_WIN)
-    STARTUPINFO si;
-    PROCESS_INFORMATION pi;
-
-    // set the size of the structures
-    ZeroMemory(&si, sizeof(si));
-    si.cb = sizeof(si);
-    ZeroMemory(&pi, sizeof(pi));
-
-    // start the program up
-    BOOL success = CreateProcess(
-        clientPath.toUtf8().data(),
-        params.toUtf8().data(),
-        nullptr,                   // Process handle not inheritable
-        nullptr,                   // Thread handle not inheritable
-        FALSE,                     // Set handle inheritance to FALSE
-        CREATE_NEW_CONSOLE,        // Opens file in a separate console
-        nullptr,                   // Use parent's environment block
-        nullptr,                   // Use parent's starting directory 
-        &si,                       // Pointer to STARTUPINFO structure
-        &pi                        // Pointer to PROCESS_INFORMATION structure
-    );
-    // Close process and thread handles. 
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
-    exit(0);
-#elif defined(Q_OS_MACOS)
-    // TODO Implement launching of client
-#else
-#error UNSUPPORTED PLATFORM
-#endif
+    ::launchClient(clientPath, homePath, QDir::toNativeSeparators(defaultScriptsPath), displayName, contentCachePath, _loginTokenResponse);
 }
 
 void LauncherState::setApplicationState(ApplicationState state) {

@@ -4,6 +4,11 @@
 #include <QDebug>
 #include <miniz/miniz.h>
 
+#ifdef Q_OS_MACOS
+#include <unistd.h>
+#include <sys/stat.h>
+#endif
+
 Unzipper::Unzipper(const QString& zipFilePath, const QDir& outputDirectory) :
     _zipFilePath(zipFilePath), _outputDirectory(outputDirectory) {
 }
@@ -56,7 +61,27 @@ void Unzipper::run() {
             }
             continue;
         }
-        if (mz_zip_reader_extract_to_file(&zip_archive, i, fullFilename.toUtf8().data(), 0)) {
+
+        constexpr uint16_t FILE_PERMISSIONS_MASK { 0777 };
+
+        uint16_t mod_attr = (file_stat.m_external_attr >> 16) & FILE_PERMISSIONS_MASK;
+        uint16_t filetype_attr = (file_stat.m_external_attr >> 16) & S_IFMT;
+        bool is_symlink = filetype_attr == S_IFLNK;
+
+        if (is_symlink) {
+#ifdef Q_OS_MACOS
+            size_t size;
+            auto data = mz_zip_reader_extract_to_heap(&zip_archive, i, &size, 0);
+            auto target = QString::fromUtf8((char*)data, size);
+
+            qDebug() << "Extracted symlink: " << size << target;
+
+            symlink(target.toUtf8().data(), fullFilename.toUtf8().data());
+#else
+            emit finished(true, "Error unzipping symlink");
+            return;
+#endif
+        } else if (mz_zip_reader_extract_to_file(&zip_archive, i, fullFilename.toUtf8().data(), 0)) {
             totalCompressedSize += (uint64_t)file_stat.m_comp_size;
             totalSize += (uint64_t)file_stat.m_uncomp_size;
             emit progress((float)totalCompressedSize / (float)zip_archive.m_archive_size);
@@ -64,6 +89,9 @@ void Unzipper::run() {
             emit finished(true, "Unzipping error unzipping file: " + fullFilename);
             return;
         }
+#ifdef Q_OS_MACOS
+        chmod(fullFilename.toUtf8().data(), mod_attr);
+#endif
     }
 
     qDebug() << "Done unzipping archive, total size:" << totalSize;
