@@ -19,7 +19,7 @@
 #include <QAbstractListModel>
 #include <QAudioDeviceInfo>
 
-#include "HifiAudioDeviceInfo.h"
+#include <HifiAudioDeviceInfo.h>
 
 namespace scripting {
 

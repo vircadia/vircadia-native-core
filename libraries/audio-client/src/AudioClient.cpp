@@ -634,7 +634,7 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         for (auto inputDevice : inputDevices) {
             if (((headsetOn || !aecEnabled) && inputDevice.deviceName() == VOICE_RECOGNITION) ||
                 ((!headsetOn && aecEnabled) && inputDevice.deviceName() == VOICE_COMMUNICATION)) {
-                return inputDevice;
+                return HifiAudioDeviceInfo(inputDevice,false,QAudio::AudioInput);
             }
         }
     }
@@ -2025,11 +2025,11 @@ void AudioClient::checkInputTimeout() {
 
 void AudioClient::setHeadsetPluggedIn(bool pluggedIn) {
 #if defined(Q_OS_ANDROID)
-    if (pluggedIn == !_isHeadsetPluggedIn && !_inputDeviceInfo.isNull()) {
+    if (pluggedIn == !_isHeadsetPluggedIn && !_inputDeviceInfo.getDevice().isNull()) {
         QAndroidJniObject brand = QAndroidJniObject::getStaticObjectField<jstring>("android/os/Build", "BRAND");
         // some samsung phones needs more time to shutdown the previous input device
         if (brand.toString().contains("samsung", Qt::CaseInsensitive)) {
-            switchInputToAudioDevice(QAudioDeviceInfo(), true);
+            switchInputToAudioDevice(HifiAudioDeviceInfo(), true);
             QThread::msleep(200);
         }
 

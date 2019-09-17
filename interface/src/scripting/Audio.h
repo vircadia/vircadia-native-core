@@ -19,7 +19,7 @@
 #include "SettingHandle.h"
 #include "AudioFileWav.h"
 #include <shared/ReadWriteLockable.h>
-#include "HifiAudioDeviceInfo.h"
+#include <HifiAudioDeviceInfo.h>
 
 using MutedGetter = std::function<bool()>;
 using MutedSetter = std::function<void(bool)>;

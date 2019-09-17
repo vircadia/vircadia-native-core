@@ -33,10 +33,9 @@ public:
     }
 
     HifiAudioDeviceInfo(QAudioDeviceInfo deviceInfo, bool isDefault, QAudio::Mode mode) :
+        _audioDeviceInfo(deviceInfo),
         _isDefault(isDefault),
-        _mode(mode),
-        _audioDeviceInfo(deviceInfo){
-        
+        _mode(mode){
         setDeviceName(deviceInfo.deviceName());
     }
 
