@@ -122,8 +122,7 @@ public:
 /// A single binding to a joint.
 class Cluster {
 public:
-
-    int jointIndex;
+    uint32_t jointIndex;
     glm::mat4 inverseBindMatrix;
     Transform inverseBindTransform;
 };
