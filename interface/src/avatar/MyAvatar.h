@@ -1749,10 +1749,17 @@ public:
 
     /**jsdoc
     * Turn the avatar's head until it faces the target point within the 90/-90 degrees range.
-    * @function MyAvatar.headLookAt
+    * @function MyAvatar.setHeadLookAt
     * @param {Vec3} lookAtTarget - The target 3D point.
     */
-    Q_INVOKABLE void headLookAt(const glm::vec3& lookAtTarget);
+    Q_INVOKABLE void setHeadLookAt(const glm::vec3& lookAtTarget);
+
+    /**jsdoc
+    * Returns the current head look at target point in world coordenates.
+    * @function MyAvatar.getHeadLookAt
+    * @returns {Vec3} Default position between your avatar's eyes in world coordinates.
+    */
+    Q_INVOKABLE glm::vec3 getHeadLookAt() { return _lookAtCameraTarget; }
 
     glm::quat getLookAtOffset() { return _lookAtOffsetYaw * _lookAtOffsetPitch; }
 

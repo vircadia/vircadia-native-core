@@ -129,6 +129,7 @@ namespace MenuOption {
     const QString Login = "Login/Sign Up";
     const QString Log = "Log";
     const QString LogExtraTimings = "Log Extra Timing Details";
+    const QString LookAtScreen = "Look At";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString MeshVisible = "Draw Mesh";
     const QString MuteEnvironment = "Mute Environment";
@@ -181,6 +182,7 @@ namespace MenuOption {
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
     const QString ShowTrackedObjects = "Show Tracked Objects";
+    const QString SelfieScreen = "Selfie";
     const QString SendWrongDSConnectVersion = "Send wrong DS connect version";
     const QString SendWrongProtocolVersion = "Send wrong protocol version";
     const QString SetHomeLocation = "Set Home Location";

@@ -69,6 +69,8 @@ CameraMode stringToMode(const QString& mode) {
         return CAMERA_MODE_ENTITY;
     } else if (mode == "look at") {
         return CAMERA_MODE_LOOK_AT;
+    } else if (mode == "selfie") {
+        return CAMERA_MODE_SELFIE;
     }
     return CAMERA_MODE_NULL;
 }
@@ -86,6 +88,8 @@ QString modeToString(CameraMode mode) {
         return "entity";
     } else if (mode == CAMERA_MODE_LOOK_AT) {
         return "look at";
+    } else if (mode == CAMERA_MODE_SELFIE) {
+        return "selfie";
     }
     return "unknown";
 }

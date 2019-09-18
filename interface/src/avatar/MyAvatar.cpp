@@ -455,7 +455,7 @@ QByteArray MyAvatar::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropF
     _globalBoundingBoxDimensions.y = _characterController.getCapsuleHalfHeight();
     _globalBoundingBoxDimensions.z = _characterController.getCapsuleRadius();
     _globalBoundingBoxOffset = _characterController.getCapsuleLocalOffset();
-    if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT || mode == CAMERA_MODE_LOOK_AT) {
+    if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = getWorldPosition();
         setWorldPosition(getSkeletonPosition());
@@ -940,7 +940,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         head->setPosition(headPosition);
         head->setScale(getModelScale());
         head->simulate(deltaTime);
-        if (_scriptControlsHeadLookAt || qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT) {
+        if (_scriptControlsHeadLookAt || qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT || qApp->getCamera().getMode() == CAMERA_MODE_SELFIE) {
             updateHeadLookAt(deltaTime);
         } else if (_headLookAtActive){
             resetHeadLookAt();
@@ -2566,7 +2566,7 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
 
 glm::vec3 MyAvatar::getSkeletonPosition() const {
     CameraMode mode = qApp->getCamera().getMode();
-    if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT || mode == CAMERA_MODE_LOOK_AT) {
+    if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
         // The avatar is rotated PI about the yAxis, so we have to correct for it
         // to get the skeleton offset contribution in the world-frame.
         const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -3333,13 +3333,15 @@ void MyAvatar::setRotationThreshold(float angleRadians) {
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
     float targetSpeed = getDriveKey(YAW) * _yawSpeed;
-    bool faceForward = false;
-    const float FPS = 60.0f;
-    if (qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT) {
-        float TIMESCALE_SPEED_CORRECTOR = deltaTime != 0.0f ? 1.0f / (FPS * deltaTime) : 1.0f;
-        targetSpeed = (getDriveKey(YAW) + getDriveKey(STEP_YAW) + getDriveKey(DELTA_YAW)) * _yawSpeed * TIMESCALE_SPEED_CORRECTOR;
-        faceForward = getDriveKey(TRANSLATE_Z) != 0.0f || getDriveKey(TRANSLATE_X) != 0.0f;
+    bool computeCameraLookAt = (qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT ||
+        qApp->getCamera().getMode() == CAMERA_MODE_SELFIE) && isReadyForPhysics();
+    if (computeCameraLookAt) {
+        // Rotate directly proportional to delta yaw and delta pitch from right-click mouse movement.
+        float speedFromDeltaYaw = deltaTime > FLT_EPSILON ? getDriveKey(DELTA_YAW) / deltaTime : 0.0f;
+        speedFromDeltaYaw *= _yawSpeed / YAW_SPEED_DEFAULT;
+        targetSpeed += speedFromDeltaYaw;
     }
+
     if (targetSpeed != 0.0f) {
         const float ROTATION_RAMP_TIMESCALE = 0.5f;
         float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
@@ -3362,13 +3364,9 @@ void MyAvatar::updateOrientation(float deltaTime) {
         }
     }
     float totalBodyYaw = _bodyYawDelta * deltaTime;
-
-    // Rotate directly proportional to delta yaw and delta pitch from right-click mouse movement.
-    bool computeCameraLookAt = qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT && isReadyForPhysics();
     if (!computeCameraLookAt) {
         totalBodyYaw += getDriveKey(DELTA_YAW) * _yawSpeed / YAW_SPEED_DEFAULT;
     }
-
     // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
     // snap turn every half second.
@@ -3377,7 +3375,6 @@ void MyAvatar::updateOrientation(float deltaTime) {
         totalBodyYaw += getDriveKey(STEP_YAW);
         snapTurn = true;
     }
-
     // Use head/HMD roll to turn while flying, but not when standing still.
     if (qApp->isHMDMode() && getCharacterController()->getState() == CharacterController::State::Hover && _hmdRollControlEnabled && hasDriveInput()) {
 
@@ -3413,6 +3410,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // update body orientation by movement inputs
     glm::quat initialOrientation = getOrientationOutbound();
     glm::vec3 eyesPosition = getDefaultEyePosition();
+    const float FPS = 60.0f;
+    float timeScale = deltaTime * FPS;
+
+    bool faceForward = false;
     if (!computeCameraLookAt) {
         setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
         _lookAtCameraTarget = eyesPosition + getWorldOrientation() * Vectors::FRONT;
@@ -3423,8 +3424,9 @@ void MyAvatar::updateOrientation(float deltaTime) {
         if (totalBodyYaw != 0.0f) {
             _lookAtOffsetYaw = _lookAtOffsetYaw * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f)));
         }
+        float deltalPitchSign = 1.0f;// qApp->getCamera().getMode() == CAMERA_MODE_SELFIE ? -1.0f : 1.0f;
         float pitchIncrement = getDriveKey(PITCH) * _pitchSpeed * deltaTime
-            + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT;
+            + deltalPitchSign * getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT;
         if (pitchIncrement != 0.0f) {
             glm::quat _previousLookAtOffsetPitch = _lookAtOffsetPitch;
             _lookAtOffsetPitch = _lookAtOffsetPitch * glm::quat(glm::radians(glm::vec3(pitchIncrement, 0.0f, 0.0f)));
@@ -3435,15 +3437,21 @@ void MyAvatar::updateOrientation(float deltaTime) {
                 _lookAtOffsetPitch = _previousLookAtOffsetPitch;
             }
         }
-        
+        bool isMovingFwdBwd = getDriveKey(TRANSLATE_Z) != 0.0f;
+        bool isMovingSideways = getDriveKey(TRANSLATE_X) != 0.0f;
+        faceForward = computeCameraLookAt && (isMovingFwdBwd || isMovingSideways);
         // Blend the avatar orientation with the camera look at if moving forward.
-        if (faceForward || _shouldTurnToFaceCamera != 0) {
-            const float FACE_FORWARD_BLEND = 0.25f;
-            const float FACE_TURN_BLEND = 0.03f;
+        if (faceForward || _shouldTurnToFaceCamera) {
+            const float REORIENT_FORWARD_BLEND = 0.25f;
+            const float REORIENT_TURN_BLEND = 0.03f;
             const float DIAGONAL_TURN_BLEND = 0.02f;
-            float blend = _shouldTurnToFaceCamera ? FACE_TURN_BLEND : FACE_FORWARD_BLEND;
+            float blend = (_shouldTurnToFaceCamera ? REORIENT_TURN_BLEND : REORIENT_FORWARD_BLEND) * timeScale;
+            if (blend > 1.0f) {
+                blend = 1.0f;
+            }
             glm::quat faceRotation = _lookAtOffsetYaw;
-            if (getDriveKey(TRANSLATE_Z) != 0.0f && getDriveKey(TRANSLATE_X) != 0.0f) {
+            if (isMovingFwdBwd && isMovingSideways) {
+                // Reorient avatar to face camera diagonal
                 blend = DIAGONAL_TURN_BLEND;
                 if (getDriveKey(TRANSLATE_X) > 0.0f) {
                     faceRotation = _lookAtOffsetYaw * glm::angleAxis(-0.25f * PI, Vectors::UP);
@@ -3451,7 +3459,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
                     faceRotation = _lookAtOffsetYaw * glm::angleAxis(0.25f * PI, Vectors::UP);
                 }
             }
-            setWorldOrientation(glm::slerp(getWorldOrientation(), faceRotation, blend * deltaTime * FPS));
+            setWorldOrientation(glm::slerp(getWorldOrientation(), faceRotation, blend));
         }
     }
 
@@ -3527,11 +3535,14 @@ void MyAvatar::updateOrientation(float deltaTime) {
         const float TARGET_DISTANCE_FROM_EYES = 20.0f;
         glm::vec3 targetPoint = eyesPosition + TARGET_DISTANCE_FROM_EYES * glm::normalize(cameraVector);
 
-        // const float LOOKAT_MIX_ALPHA = 0.05f;
+        // const float LOOKAT_MIX_ALPHA = 0.25f;
 
         if (getDriveKey(TRANSLATE_Y) == 0.0f) {
             // Approximate the head's look at vector to the camera look at vector with some delay.
-            float mixAlpha = (frontBackDot > 0.0f ? _backLookAtSpeed : _frontLookAtSpeed) * deltaTime * FPS;
+            float mixAlpha = (frontBackDot > 0.0f ? _backLookAtSpeed : _frontLookAtSpeed) * timeScale;
+            if (mixAlpha > 1.0f) {
+                mixAlpha = 1.0f;
+            }
             _lookAtCameraTarget = glm::mix(_lookAtCameraTarget, targetPoint, mixAlpha);
         } else {
             _lookAtCameraTarget = targetPoint;
@@ -6459,6 +6470,7 @@ void MyAvatar::updateHeadLookAt(float deltaTime) {
         glm::vec3 lookAtTarget = _scriptControlsHeadLookAt ? _lookAtScriptTarget : _lookAtCameraTarget;
         glm::vec3 avatarXVector = glm::normalize(getWorldOrientation() * Vectors::UNIT_X);
         glm::vec3 avatarYVector = glm::normalize(getWorldOrientation() * Vectors::UNIT_Y);
+        glm::vec3 avatarZVector = glm::normalize(getWorldOrientation() * Vectors::UNIT_Z);
         glm::vec3 headToTargetVector = lookAtTarget - getDefaultEyePosition();
         if (glm::length(headToTargetVector) > EPSILON) {
             headToTargetVector = glm::normalize(headToTargetVector);
@@ -6469,6 +6481,11 @@ void MyAvatar::updateHeadLookAt(float deltaTime) {
 
         float xDot = glm::dot(avatarXVector, headToTargetVector);
         float yDot = glm::dot(avatarYVector, headToTargetVector);
+        float zDot = glm::dot(avatarZVector, headToTargetVector);
+        // Force the head to look at one of the sides when the look at point is behind the avatar 
+        if (zDot > 0.0f && xDot != 0.0f) {
+            //xDot /= fabsf(xDot);
+        }
 
         // Make sure dot products are in range to avoid acosf returning NaN
         xDot = glm::min(glm::max(xDot, -1.0f), 1.0f);
@@ -6496,9 +6513,9 @@ void MyAvatar::updateHeadLookAt(float deltaTime) {
     }
 }
 
-void MyAvatar::headLookAt(const glm::vec3& lookAtTarget) {
+void MyAvatar::setHeadLookAt(const glm::vec3& lookAtTarget) {
     if (QThread::currentThread() != thread()) {
-        BLOCKING_INVOKE_METHOD(this, "headLookAt",
+        BLOCKING_INVOKE_METHOD(this, "setHeadLookAt",
             Q_ARG(const glm::vec3&, lookAtTarget));
         return;
     }

@@ -177,12 +177,19 @@ Menu::Menu() {
 
     firstPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
-    // View > Third Person
-    auto thirdPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::ThirdPerson, 0,
+    // View > Look At
+    auto lookAtAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
+                                   viewMenu, MenuOption::LookAtScreen, 0,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
-    thirdPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
+    lookAtAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
+
+    // View > Selfie
+    auto selfieAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
+        viewMenu, MenuOption::SelfieScreen, 0,
+        false, qApp, SLOT(cameraMenuChanged())));
+
+    selfieAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Mirror
     auto viewMirrorAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
