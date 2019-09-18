@@ -65,7 +65,7 @@
 #pragma warning( pop )
 #endif
 
-#if defined(Q_OS_ANDROID)
+#if defined (Q_OS_ANDROID)
 #define VOICE_RECOGNITION "voicerecognition"
 #define VOICE_COMMUNICATION "voicecommunication"
 
@@ -98,7 +98,7 @@ public:
     class AudioOutputIODevice : public QIODevice {
     public:
         AudioOutputIODevice(LocalInjectorsStream& localInjectorsStream, MixedProcessedAudioStream& receivedAudioStream,
-                            AudioClient* audio) :
+                AudioClient* audio) :
             _localInjectorsStream(localInjectorsStream), _receivedAudioStream(receivedAudioStream),
             _audio(audio), _unfulfilledReads(0) {}
 
@@ -374,9 +374,9 @@ private:
 
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
-    float _lastRawInputLoudness;  // before mute/gate
+    float _lastRawInputLoudness;    // before mute/gate
     float _lastSmoothedRawInputLoudness;
-    float _lastInputLoudness;  // after mute/gate
+    float _lastInputLoudness;       // after mute/gate
     float _timeSinceLastClip;
     int _totalInputAudioSamples;
 
@@ -433,7 +433,7 @@ private:
     webrtc::AudioProcessing* _apm { nullptr };
 
     int16_t _fifoFarEnd[WEBRTC_CHANNELS_MAX * WEBRTC_FRAMES_MAX] {};
-    int _numFifoFarEnd = 0;  // numFrames saved in fifo
+    int _numFifoFarEnd = 0; // numFrames saved in fifo
 
     void configureWebrtc();
     void processWebrtcFarEnd(const int16_t* samples, int numFrames, int numChannels, int sampleRate);
@@ -504,4 +504,4 @@ private:
 };
 
 
-#endif  // hifi_AudioClient_h
+#endif // hifi_AudioClient_h
