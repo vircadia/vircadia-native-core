@@ -41,6 +41,7 @@ void ModelEntityWrapper::setModel(const ModelPointer& model) {
             if (_model) {
                 _needsInitialSimulation = true;
             }
+   
         }
     });
 }
