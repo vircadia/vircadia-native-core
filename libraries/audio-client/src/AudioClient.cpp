@@ -481,6 +481,19 @@ void AudioClient::setAudioPaused(bool pause) {
     }
 }
 
+
+HifiAudioDeviceInfo AudioClient::getNamedAudioDevice(QAudio::Mode mode, const QString& deviceName) {
+    HifiAudioDeviceInfo result;
+
+    foreach(HifiAudioDeviceInfo audioDevice, getAudioDevices(mode)) {
+        if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
+            result = audioDevice;
+            break;
+        }
+    }
+    return result;
+}
+
 HifiAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
     HifiAudioDeviceInfo result;
     foreach (HifiAudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
@@ -1043,7 +1056,7 @@ bool AudioClient::switchAudioDevice(QAudio::Mode mode, const HifiAudioDeviceInfo
 }
 
 bool AudioClient::switchAudioDevice(QAudio::Mode mode, const QString& deviceName) {
-    return switchAudioDevice(mode, getNamedAudioDeviceForMode(mode, deviceName));
+    return switchAudioDevice(mode, getNamedAudioDevice(mode, deviceName));
 }
 
 void AudioClient::configureReverb() {

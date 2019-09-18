@@ -126,6 +126,8 @@ public:
 
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
+    
+    HifiAudioDeviceInfo getNamedAudioDevice(QAudio::Mode mode, const QString& deviceName);
 
     const QAudioFormat& getOutputFormat() const { return _outputFormat; }
 
