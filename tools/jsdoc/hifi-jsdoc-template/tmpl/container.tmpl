@@ -78,6 +78,7 @@
             <?js } else if (doc.kind === 'class' || (doc.kind === 'namespace' && doc.signature)) { ?>
                 <h3>Description</h3>
                 <div><?js= doc.description ?></div>
+                <?js= self.partial('details.tmpl', doc) ?>
                 <table>
                     <thead>
                         <tr>
@@ -95,7 +96,6 @@
                         </tr>
                     </tbody>
                 </table>
-                <?js= self.partial('details.tmpl', doc) ?>
 
                 <?js if (doc.examples && doc.examples.length) { ?>
                     <h3>Example<?js= doc.examples.length > 1? 's':'' ?></h3>
