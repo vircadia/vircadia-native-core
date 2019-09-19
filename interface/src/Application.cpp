@@ -1060,6 +1060,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
 
+    LogHandler::getInstance().setParent(this);
+    LogHandler::getInstance().setupRepeatedMessageFlusher();
+
     {
         const QStringList args = arguments();
 
