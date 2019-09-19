@@ -122,7 +122,7 @@ void AudioClient::checkDevices() {
 
     {
         
-        //is the current device the default selected device?
+        //is the current device the default?, if so has the underlying QAudioDeviceInfo changed from the os call
         if (_inputDeviceInfo.isDefault() && _inputDeviceInfo == _defaultInputDevice) {
             auto defInput = defaultAudioDeviceForMode(QAudio::AudioInput);
             
@@ -134,8 +134,9 @@ void AudioClient::checkDevices() {
                 QMetaObject::invokeMethod(this, "switchAudioDevice", Qt::DirectConnection, Q_ARG(QAudio::Mode, QAudio::AudioInput),   Q_ARG(const HifiAudioDeviceInfo&, _defaultInputDevice));
             }
         }
-
-        if (_outputDeviceInfo.isDefault() && _inputDeviceInfo == _defaultInputDevice) {
+        
+        //is the current device the default?, if so has the underlying QAudioDeviceInfo changed from the os call
+        if (_outputDeviceInfo.isDefault() && _outputDeviceInfo == _defaultOutputDevice) {
             auto defOutput = defaultAudioDeviceForMode(QAudio::AudioOutput);
 
             if (_defaultOutputDevice.getDevice() != defOutput.getDevice()) {
