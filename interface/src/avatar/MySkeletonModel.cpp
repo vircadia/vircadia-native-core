@@ -114,13 +114,12 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     Head* head = _owningAvatar->getHead();
 
-    // make sure lookAt is not too close to face (avoid crosseyes)
-    glm::vec3 lookAt = head->getLookAtPosition();
-    glm::vec3 focusOffset = lookAt - _owningAvatar->getHead()->getEyePosition();
-    float focusDistance = glm::length(focusOffset);
-    const float MIN_LOOK_AT_FOCUS_DISTANCE = 1.0f;
-    if (focusDistance < MIN_LOOK_AT_FOCUS_DISTANCE && focusDistance > EPSILON) {
-        lookAt = _owningAvatar->getHead()->getEyePosition() + (MIN_LOOK_AT_FOCUS_DISTANCE / focusDistance) * focusOffset;
+    bool eyePosesValid = !head->getHasProceduralEyeMovement();
+    glm::vec3 lookAt;
+    if (eyePosesValid) {
+        lookAt = head->getLookAtPosition(); // don't apply no-crosseyes code when eyes are being tracked
+    } else {
+        lookAt = avoidCrossedEyes(head->getLookAtPosition());
     }
 
     MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);

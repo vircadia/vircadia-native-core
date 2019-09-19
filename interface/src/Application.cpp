@@ -60,6 +60,7 @@
 #include <shared/QtHelpers.h>
 #include <shared/PlatformHelper.h>
 #include <shared/GlobalAppProperties.h>
+#include <GeometryUtil.h>
 #include <StatTracker.h>
 #include <Trace.h>
 #include <ResourceScriptingInterface.h>
@@ -154,7 +155,6 @@
 #include <display-plugins/CompositorHelper.h>
 #include <display-plugins/hmd/HmdDisplayPlugin.h>
 #include <display-plugins/RefreshRateController.h>
-#include <trackers/EyeTracker.h>
 #include <avatars-renderer/ScriptAvatar.h>
 #include <RenderableEntityItem.h>
 #include <RenderableTextEntityItem.h>
@@ -878,7 +878,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<DdeFaceTracker>();
 #endif
     
-    DependencyManager::set<EyeTracker>();
     DependencyManager::set<AudioClient>();
     DependencyManager::set<AudioScope>();
     DependencyManager::set<DeferredLightingEffect>();
@@ -1998,12 +1997,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #endif
 
-#ifdef HAVE_IVIEWHMD
-    auto eyeTracker = DependencyManager::get<EyeTracker>();
-    eyeTracker->init();
-    setActiveEyeTracker();
-#endif
-
     // If launched from Steam, let it handle updates
     const QString HIFI_NO_UPDATER_COMMAND_LINE_KEY = "--no-updater";
     bool noUpdater = arguments().indexOf(HIFI_NO_UPDATER_COMMAND_LINE_KEY) != -1;
@@ -2748,9 +2741,6 @@ void Application::cleanupBeforeQuit() {
 #ifdef HAVE_DDE
     DependencyManager::get<DdeFaceTracker>()->setEnabled(false);
 #endif
-#ifdef HAVE_IVIEWHMD
-    DependencyManager::get<EyeTracker>()->setEnabled(false, true);
-#endif
     AnimDebugDraw::getInstance().shutdown();
 
     // FIXME: once we move to shared pointer for the INputDevice we shoud remove this naked delete:
@@ -2824,9 +2814,6 @@ void Application::cleanupBeforeQuit() {
 #ifdef HAVE_DDE
     DependencyManager::destroy<DdeFaceTracker>();
 #endif
-#ifdef HAVE_IVIEWHMD
-    DependencyManager::destroy<EyeTracker>();
-#endif
 
     DependencyManager::destroy<ContextOverlayInterface>(); // Must be destroyed before TabletScriptingInterface
 
@@ -2835,7 +2822,7 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<TabletScriptingInterface>();
     DependencyManager::destroy<ToolbarScriptingInterface>();
     DependencyManager::destroy<OffscreenUi>();
-    
+
     DependencyManager::destroy<OffscreenQmlSurfaceCache>();
 
     _snapshotSoundInjector = nullptr;
@@ -5332,35 +5319,6 @@ void Application::setActiveFaceTracker() const {
 #endif
 }
 
-#ifdef HAVE_IVIEWHMD
-void Application::setActiveEyeTracker() {
-    auto eyeTracker = DependencyManager::get<EyeTracker>();
-    if (!eyeTracker->isInitialized()) {
-        return;
-    }
-
-    bool isEyeTracking = Menu::getInstance()->isOptionChecked(MenuOption::SMIEyeTracking);
-    bool isSimulating = Menu::getInstance()->isOptionChecked(MenuOption::SimulateEyeTracking);
-    eyeTracker->setEnabled(isEyeTracking, isSimulating);
-
-    Menu::getInstance()->getActionForOption(MenuOption::OnePointCalibration)->setEnabled(isEyeTracking && !isSimulating);
-    Menu::getInstance()->getActionForOption(MenuOption::ThreePointCalibration)->setEnabled(isEyeTracking && !isSimulating);
-    Menu::getInstance()->getActionForOption(MenuOption::FivePointCalibration)->setEnabled(isEyeTracking && !isSimulating);
-}
-
-void Application::calibrateEyeTracker1Point() {
-    DependencyManager::get<EyeTracker>()->calibrate(1);
-}
-
-void Application::calibrateEyeTracker3Points() {
-    DependencyManager::get<EyeTracker>()->calibrate(3);
-}
-
-void Application::calibrateEyeTracker5Points() {
-    DependencyManager::get<EyeTracker>()->calibrate(5);
-}
-#endif
-
 bool Application::exportEntities(const QString& filename,
                                  const QVector<QUuid>& entityIDs,
                                  const glm::vec3* givenOffset) {
@@ -5834,8 +5792,8 @@ void Application::pushPostUpdateLambda(void* key, const std::function<void()>& f
     _postUpdateLambdas[key] = func;
 }
 
-// Called during Application::update immediately before AvatarManager::updateMyAvatar, updating my data that is then sent to everyone.
-// (Maybe this code should be moved there?)
+// Called during Application::update immediately before AvatarManager::updateMyAvatar, updating my data that is then sent
+// to everyone.
 // The principal result is to call updateLookAtTargetAvatar() and then setLookAtPosition().
 // Note that it is called BEFORE we update position or joints based on sensors, etc.
 void Application::updateMyAvatarLookAtPosition() {
@@ -5844,91 +5802,8 @@ void Application::updateMyAvatarLookAtPosition() {
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
 
     auto myAvatar = getMyAvatar();
-    myAvatar->updateLookAtTargetAvatar();
     FaceTracker* faceTracker = getActiveFaceTracker();
-    auto eyeTracker = DependencyManager::get<EyeTracker>();
-
-    bool isLookingAtSomeone = false;
-    bool isHMD = qApp->isHMDMode();
-    glm::vec3 lookAtSpot;
-    if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
-        //  Look at the point that the user is looking at.
-        glm::vec3 lookAtPosition = eyeTracker->getLookAtPosition();
-        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            lookAtPosition.x = -lookAtPosition.x;
-        }
-        if (isHMD) {
-            // TODO -- this code is probably wrong, getHeadPose() returns something in sensor frame, not avatar
-            glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose();
-            glm::quat hmdRotation = glm::quat_cast(headPose);
-            lookAtSpot = _myCamera.getPosition() + myAvatar->getWorldOrientation() * (hmdRotation * lookAtPosition);
-        } else {
-            lookAtSpot = myAvatar->getHead()->getEyePosition()
-                + (myAvatar->getHead()->getFinalOrientationInWorldFrame() * lookAtPosition);
-        }
-    } else {
-        AvatarSharedPointer lookingAt = myAvatar->getLookAtTargetAvatar().lock();
-        bool haveLookAtCandidate = lookingAt && myAvatar.get() != lookingAt.get();
-        auto avatar = static_pointer_cast<Avatar>(lookingAt);
-        bool mutualLookAtSnappingEnabled = avatar && avatar->getLookAtSnappingEnabled() && myAvatar->getLookAtSnappingEnabled();
-        if (haveLookAtCandidate && mutualLookAtSnappingEnabled) {
-            //  If I am looking at someone else, look directly at one of their eyes
-            isLookingAtSomeone = true;
-            auto lookingAtHead = avatar->getHead();
-
-            const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
-            glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
-            glm::vec3 fromLookingAtToMe = glm::normalize(myAvatar->getHead()->getEyePosition()
-                - lookingAtHead->getEyePosition());
-            float faceAngle = glm::angle(lookingAtFaceOrientation, fromLookingAtToMe);
-
-            if (faceAngle < MAXIMUM_FACE_ANGLE) {
-                // Randomly look back and forth between look targets
-                eyeContactTarget target = Menu::getInstance()->isOptionChecked(MenuOption::FixGaze) ?
-                    LEFT_EYE : myAvatar->getEyeContactTarget();
-                switch (target) {
-                    case LEFT_EYE:
-                        lookAtSpot = lookingAtHead->getLeftEyePosition();
-                        break;
-                    case RIGHT_EYE:
-                        lookAtSpot = lookingAtHead->getRightEyePosition();
-                        break;
-                    case MOUTH:
-                        lookAtSpot = lookingAtHead->getMouthPosition();
-                        break;
-                }
-            } else {
-                // Just look at their head (mid point between eyes)
-                lookAtSpot = lookingAtHead->getEyePosition();
-            }
-        } else {
-            //  I am not looking at anyone else, so just look forward
-            auto headPose = myAvatar->getControllerPoseInWorldFrame(controller::Action::HEAD);
-            if (headPose.isValid()) {
-                lookAtSpot = transformPoint(headPose.getMatrix(), glm::vec3(0.0f, 0.0f, TREE_SCALE));
-            } else {
-                lookAtSpot = myAvatar->getHead()->getEyePosition() +
-                    (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
-            }
-        }
-
-        // Deflect the eyes a bit to match the detected gaze from the face tracker if active.
-        if (faceTracker && !faceTracker->isMuted()) {
-            float eyePitch = faceTracker->getEstimatedEyePitch();
-            float eyeYaw = faceTracker->getEstimatedEyeYaw();
-            const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
-            glm::vec3 origin = myAvatar->getHead()->getEyePosition();
-            float deflection = faceTracker->getEyeDeflection();
-            if (isLookingAtSomeone) {
-                deflection *= GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT;
-            }
-            lookAtSpot = origin + _myCamera.getOrientation() * glm::quat(glm::radians(glm::vec3(
-                eyePitch * deflection, eyeYaw * deflection, 0.0f))) *
-                glm::inverse(_myCamera.getOrientation()) * (lookAtSpot - origin);
-        }
-    }
-
-    myAvatar->getHead()->setLookAtPosition(lookAtSpot);
+    myAvatar->updateLookAtPosition(faceTracker, _myCamera);
 }
 
 void Application::updateThreads(float deltaTime) {
@@ -6500,7 +6375,10 @@ void Application::update(float deltaTime) {
             controller::Action::LEFT_UP_LEG,
             controller::Action::RIGHT_UP_LEG,
             controller::Action::LEFT_TOE_BASE,
-            controller::Action::RIGHT_TOE_BASE
+            controller::Action::RIGHT_TOE_BASE,
+            controller::Action::LEFT_EYE,
+            controller::Action::RIGHT_EYE
+
         };
 
         // copy controller poses from userInputMapper to myAvatar.
@@ -7175,8 +7053,7 @@ void Application::resetSensors(bool andReload) {
 #ifdef HAVE_DDE
     DependencyManager::get<DdeFaceTracker>()->reset();
 #endif
-    
-    DependencyManager::get<EyeTracker>()->reset();
+
     _overlayConductor.centerUI();
     getActiveDisplayPlugin()->resetSensors();
     getMyAvatar()->reset(true, andReload);

@@ -32,7 +32,7 @@ public:
     virtual void reset() override;
 
 private:
-    AxisValue _currentValue { 0.0f, 0 };
+    AxisValue _currentValue { 0.0f, 0, false };
     Pose _currentPose{};
 };
 

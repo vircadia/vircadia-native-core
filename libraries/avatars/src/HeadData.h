@@ -72,23 +72,17 @@ public:
     }
     bool lookAtPositionChangedSince(quint64 time) { return _lookAtPositionChanged >= time; }
 
-    bool getHasProceduralEyeFaceMovement() const { return _hasProceduralEyeFaceMovement; }
+    bool getHasProceduralEyeFaceMovement() const;
+    void setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement);
+    bool getHasProceduralBlinkFaceMovement() const;
+    void setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement);
+    bool getHasAudioEnabledFaceMovement() const;
+    void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
+    bool getHasProceduralEyeMovement() const;
+    void setHasProceduralEyeMovement(bool hasProceduralEyeMovement);
 
-    void setHasProceduralEyeFaceMovement(const bool hasProceduralEyeFaceMovement) {
-        _hasProceduralEyeFaceMovement = hasProceduralEyeFaceMovement;
-    }
-
-    bool getHasProceduralBlinkFaceMovement() const { return _hasProceduralBlinkFaceMovement; }
-
-    void setHasProceduralBlinkFaceMovement(const bool hasProceduralBlinkFaceMovement) {
-        _hasProceduralBlinkFaceMovement = hasProceduralBlinkFaceMovement;
-    }
-
-    bool getHasAudioEnabledFaceMovement() const { return _hasAudioEnabledFaceMovement; }
-
-    void setHasAudioEnabledFaceMovement(const bool hasAudioEnabledFaceMovement) {
-        _hasAudioEnabledFaceMovement = hasAudioEnabledFaceMovement;
-    }
+    void setFaceTrackerConnected(bool value);
+    bool getFaceTrackerConnected() const { return _isFaceTrackerConnected; }
 
     friend class AvatarData;
 
@@ -107,8 +101,10 @@ protected:
     bool _hasAudioEnabledFaceMovement { true };
     bool _hasProceduralBlinkFaceMovement { true };
     bool _hasProceduralEyeFaceMovement { true };
+    bool _hasProceduralEyeMovement { true };
+
     bool _isFaceTrackerConnected { false };
-    bool _isEyeTrackerConnected { false };
+
     float _leftEyeBlink { 0.0f };
     float _rightEyeBlink { 0.0f };
     float _averageLoudness { 0.0f };

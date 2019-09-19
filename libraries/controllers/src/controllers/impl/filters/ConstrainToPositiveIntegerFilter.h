@@ -20,7 +20,7 @@ public:
     ConstrainToPositiveIntegerFilter() = default;
 
     virtual AxisValue apply(AxisValue value) const override {
-        return { (value.value <= 0.0f) ? 0.0f : 1.0f, value.timestamp };
+        return { (value.value <= 0.0f) ? 0.0f : 1.0f, value.timestamp, value.valid };
     }
 
     virtual Pose apply(Pose value) const override { return value; }

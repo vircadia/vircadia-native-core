@@ -122,6 +122,12 @@ void EntityMotionState::handleDeactivation() {
         _body->setWorldTransform(worldTrans);
         // no need to update velocities... should already be zero
     }
+    if (!isLocallyOwned()) {
+        // HACK: To allow the ESS to move entities around in a kinematic way we had to remove the requirement that
+        // every moving+simulated entity has an authoritative simulation owner.  As a result, we cannot rely
+        // on a simulation owner to update the QueryAACube on the entity-server.
+        _entity->updateQueryAACube();
+    }
 }
 
 // virtual

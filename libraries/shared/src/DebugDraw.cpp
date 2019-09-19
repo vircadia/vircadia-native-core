@@ -31,9 +31,10 @@ void DebugDraw::drawRay(const glm::vec3& start, const glm::vec3& end, const glm:
     _rays.push_back(Ray(start, end, color));
 }
 
-void DebugDraw::addMarker(const QString& key, const glm::quat& rotation, const glm::vec3& position, const glm::vec4& color) {
+void DebugDraw::addMarker(const QString& key, const glm::quat& rotation, const glm::vec3& position,
+                          const glm::vec4& color, float size) {
     Lock lock(_mapMutex);
-    _markers[key] = MarkerInfo(rotation, position, color);
+    _markers[key] = MarkerInfo(rotation, position, color, size);
 }
 
 void DebugDraw::removeMarker(const QString& key) {
@@ -41,9 +42,10 @@ void DebugDraw::removeMarker(const QString& key) {
     _markers.erase(key);
 }
 
-void DebugDraw::addMyAvatarMarker(const QString& key, const glm::quat& rotation, const glm::vec3& position, const glm::vec4& color) {
+void DebugDraw::addMyAvatarMarker(const QString& key, const glm::quat& rotation, const glm::vec3& position,
+                                  const glm::vec4& color, float size) {
     Lock lock(_mapMutex);
-    _myAvatarMarkers[key] = MarkerInfo(rotation, position, color);
+    _myAvatarMarkers[key] = MarkerInfo(rotation, position, color, size);
 }
 
 void DebugDraw::removeMyAvatarMarker(const QString& key) {
