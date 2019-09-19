@@ -56,8 +56,8 @@ namespace InteractiveWindowEnums {
     Q_NAMESPACE
 
     /**jsdoc
-     * A set of  flags controlling <code>InteractiveWindow</code> behavior. The value is constructed by using the 
-     * <code>|</code> (bitwise OR) operator on the individual flag values.<br />
+     * <p>A set of  flags controlling <code>InteractiveWindow</code> behavior. The value is constructed by using the 
+     * <code>|</code> (bitwise OR) operator on the individual flag values.</p>
      * <table>
      *   <thead>
      *     <tr><th>Flag Name</th><th>Value</th><th>Description</th></tr>

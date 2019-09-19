@@ -1217,10 +1217,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>dimensions / voxelVolumesize</code>.
  * @property {string} voxelData="ABAAEAAQAAAAHgAAEAB42u3BAQ0AAADCoPdPbQ8HFAAAAPBuEAAAAQ==" - Base-64 encoded compressed dump of 
  *     the PolyVox data. This property is typically not used in scripts directly; rather, functions that manipulate a PolyVox 
- *     entity update it.<br />
- *     The size of this property increases with the size and complexity of the PolyVox entity, with the size depending on how 
+ *     entity update it.
+ *     <p>The size of this property increases with the size and complexity of the PolyVox entity, with the size depending on how 
  *     the particular entity's voxels compress. Because this property value has to fit within a High Fidelity datagram packet, 
- *     there is a limit to the size and complexity of a PolyVox entity; edits which would result in an overflow are rejected.
+ *     there is a limit to the size and complexity of a PolyVox entity; edits which would result in an overflow are rejected.</p>
  * @property {Entities.PolyVoxSurfaceStyle} voxelSurfaceStyle=2 - The style of rendering the voxels' surface and how 
  *     neighboring PolyVox entities are joined.
  * @property {string} xTextureURL="" - The URL of the texture to map to surfaces perpendicular to the entity's local x-axis. 

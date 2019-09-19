@@ -1346,49 +1346,48 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *       <td>Some text.</td>
  *       <td>{@link Overlays.OverlayProperties-Text|OverlayProperties-Text}</td></tr>
  *     <tr><td><code>"cube"</code></td><td>3D</td>
- *       <td>A cube. A <code>"shape"</code> overlay can also be used to create a cube.<br/>
- *       <span class="important">Deprecated.</span>
- *       </td>
+ *       <td><p>A cube. A <code>"shape"</code> overlay can also be used to create a cube.</p>
+ *       <p class="important">Deprecated.</p></td>
  *       <td>{@link Overlays.OverlayProperties-Cube|OverlayProperties-Cube}</td></tr>
  *     <tr><td><code>"sphere"</code></td><td>3D</td>
- *       <td>A sphere. A <code>"shape"</code> overlay can also be used to create a sphere.<br/>
- *       <span class="important">Deprecated.</span></td>
+ *       <td><p>A sphere. A <code>"shape"</code> overlay can also be used to create a sphere.</p>
+ *       <p class="important">Deprecated.</p></td>
  *       <td>{@link Overlays.OverlayProperties-Sphere|OverlayProperties-Sphere}</td></tr>
  *     <tr><td><code>"shape"</code></td><td>3D</td>
- *       <td>A geometric shape, such as a cube, sphere, or cylinder.<br/>
- *       <span class="important">Deprecated.</span></td>
+ *       <td><p>A geometric shape, such as a cube, sphere, or cylinder.</p>
+ *       <p class="important">Deprecated.</p></td>
  *       <td>{@link Overlays.OverlayProperties-Shape|OverlayProperties-Shape}</td></tr>
  *     <tr><td><code>"model"</code></td><td>3D</td>
- *       <td>A model.<br/>
- *       <span class="important">Deprecated.</span></td>
+ *       <td><p>A model.</p>
+ *       <p class="important">Deprecated.</p></td>
  *       <td>{@link Overlays.OverlayProperties-Model|OverlayProperties-Model}</td></tr>
  *     <tr><td><code>"image3d"</code></td><td>3D</td>
- *       <td>An image. Synonym: <code>"billboard"</code>.<br/>
- *       <span class="important">Deprecated.</span></td>
+ *       <td><p>An image. Synonym: <code>"billboard"</code>.</p>
+ *       <p class="important">Deprecated.</p></td>
  *       <td>{@link Overlays.OverlayProperties-Image3D|OverlayProperties-Image3D}</td></tr>
  *     <tr><td><code>"rectangle3d"</code></td><td>3D</td>
- *       <td>A rectangle.<br/>
- *       <span class="important">Deprecated.</span></td>
+ *       <td><p>A rectangle.</p>
+ *       <p class="important">Deprecated.</p></td>
  *       <td>{@link Overlays.OverlayProperties-Rectangle3D|OverlayProperties-Rectangle3D}</td></tr>
  *     <tr><td><code>"text3d"</code></td><td>3D</td>
- *       <td>Some text.<br/>
- *       <span class="important">Deprecated.</span></td>
+ *       <td><p>Some text.</p>
+ *       <p class="important">Deprecated.</p></td>
  *       <td>{@link Overlays.OverlayProperties-Text3D|OverlayProperties-Text3D}</td></tr>
  *     <tr><td><code>"web3d"</code></td><td>3D</td>
- *       <td>Web content.<br/>
- *       <span class="important">Deprecated.</span></td>
+ *       <td><p>Web content.</p>
+ *       <p class="important">Deprecated.</p></td>
  *       <td>{@link Overlays.OverlayProperties-Web3D|OverlayProperties-Web3D}</td></tr>
  *     <tr><td><code>"line3d"</code></td><td>3D</td>
- *       <td>A line.<br/>
- *       <span class="important">Deprecated.</span></td>
+ *       <td><p>A line.</p>
+ *       <p class="important">Deprecated.</p></td>
  *       <td>{@link Overlays.OverlayProperties-Line3D|OverlayProperties-Line3D}</td></tr>
  *     <tr><td><code>"grid"</code></td><td>3D</td>
- *       <td>A grid of lines in a plane.<br/>
- *       <span class="important">Deprecated.</span></td>
+ *       <td><p>A grid of lines in a plane.</p>
+ *       <p class="important">Deprecated.</p></td>
  *       <td>{@link Overlays.OverlayProperties-Grid|OverlayProperties-Grid}</td></tr>
  *     <tr><td><code>"circle3d"</code></td><td>3D</td>
- *       <td>A circle.<br/>
- *       <span class="important">Deprecated.</span></td>
+ *       <td><p>A circle.</p>
+ *       <p class="important">Deprecated.</p></td>
  *       <td>{@link Overlays.OverlayProperties-Circle3D|OverlayProperties-Circle3D}</td></tr>
  *   </tbody>
  * </table>
@@ -1410,17 +1409,17 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @see {@link Overlays.OverlayProperties-Rectangle|OverlayProperties-Rectangle}
  * @see {@link Overlays.OverlayProperties-Image|OverlayProperties-Image}
  * @see {@link Overlays.OverlayProperties-Text|OverlayProperties-Text}
- * @see {@link Overlays.OverlayProperties-Cube|OverlayProperties-Cube} <span class="important">Deprecated.</span>
- * @see {@link Overlays.OverlayProperties-Sphere|OverlayProperties-Sphere} <span class="important">Deprecated.</span>
- * @see {@link Overlays.OverlayProperties-Shape|OverlayProperties-Shape} <span class="important">Deprecated.</span>
- * @see {@link Overlays.OverlayProperties-Model|OverlayProperties-Model} <span class="important">Deprecated.</span>
- * @see {@link Overlays.OverlayProperties-Rectangle3D|OverlayProperties-Rectangle3D} <span class="important">Deprecated.</span>
- * @see {@link Overlays.OverlayProperties-Image3D|OverlayProperties-Image3D} <span class="important">Deprecated.</span>
- * @see {@link Overlays.OverlayProperties-Text3D|OverlayProperties-Text3D} <span class="important">Deprecated.</span>
- * @see {@link Overlays.OverlayProperties-Web3D|OverlayProperties-Web3D} <span class="important">Deprecated.</span>
- * @see {@link Overlays.OverlayProperties-Line3D|OverlayProperties-Line3D} <span class="important">Deprecated.</span>
- * @see {@link Overlays.OverlayProperties-Grid|OverlayProperties-Grid} <span class="important">Deprecated.</span>
- * @see {@link Overlays.OverlayProperties-Circle3D|OverlayProperties-Circle3D} <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Cube|OverlayProperties-Cube} &mdash; <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Sphere|OverlayProperties-Sphere} &mdash; <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Shape|OverlayProperties-Shape} &mdash; <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Model|OverlayProperties-Model} &mdash; <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Rectangle3D|OverlayProperties-Rectangle3D} &mdash; <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Image3D|OverlayProperties-Image3D} &mdash; <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Text3D|OverlayProperties-Text3D} &mdash; <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Web3D|OverlayProperties-Web3D} &mdash; <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Line3D|OverlayProperties-Line3D} &mdash; <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Grid|OverlayProperties-Grid} &mdash; <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Circle3D|OverlayProperties-Circle3D} &mdash; <span class="important">Deprecated.</span>
  */
 
 /**jsdoc

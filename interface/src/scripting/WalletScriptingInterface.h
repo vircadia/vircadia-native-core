@@ -73,9 +73,9 @@ public:
     /**jsdoc
      * Check that a certified avatar entity is owned by the avatar whose entity it is. The result of the check is provided via 
      * the {@link WalletScriptingInterface.ownershipVerificationSuccess|ownershipVerificationSuccess} and 
-     * {@link WalletScriptingInterface.ownershipVerificationFailed|ownershipVerificationFailed} signals.<br />
-     * <strong>Warning:</strong> Neither of these signals are triggered if the entity is not an avatar entity or is not 
-     * certified.
+     * {@link WalletScriptingInterface.ownershipVerificationFailed|ownershipVerificationFailed} signals.
+     * <p><strong>Warning:</strong> Neither of these signals are triggered if the entity is not an avatar entity or is not 
+     * certified.</p>
      * @function WalletScriptingInterface.proveAvatarEntityOwnershipVerification
      * @param {Uuid} entityID - The avatar entity's ID.
      * @example <caption>Check the ownership of all nearby certified avatar entities.</caption>

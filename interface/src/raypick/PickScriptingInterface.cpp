@@ -83,12 +83,12 @@ PickFilter getPickFilter(unsigned int filter) {
  *     means no maximum.
  * @property {Uuid} [parentID] - The ID of the parent: an avatar, an entity, or another pick.
  * @property {number} [parentJointIndex=0] - The joint of the parent to parent to, for example, an avatar joint. 
- *     A value of <code>0</code> means no joint.<br />
- *     <em>Used only if <code>parentID</code> is specified.</em>
+ *     A value of <code>0</code> means no joint.
+ *     <p><em>Used only if <code>parentID</code> is specified.</em></p>
  * @property {string} [joint] - <code>"Mouse"</code> parents the pick to the mouse; <code>"Avatar"</code> parents the pick to 
  *     the user's avatar head; a joint name parents to the joint in the user's avatar; otherwise, the pick is "static", not 
- *     parented to anything.<br />
- *     <em>Used only if <code>parentID</code> is not specified.</em>
+ *     parented to anything.
+ *     <p><em>Used only if <code>parentID</code> is not specified.</em></p>
  * @property {Vec3} [position=Vec3.ZERO] - The offset of the ray origin from its parent if parented, otherwise the ray origin 
  *     in world coordinates.
  * @property {Vec3} [posOffset] - Synonym for <code>position</code>.
@@ -217,12 +217,12 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildStylusPick(const QVarian
  *     means no maximum.
  * @property {Uuid} [parentID] - The ID of the parent: an avatar, an entity, or another pick.
  * @property {number} [parentJointIndex=0] - The joint of the parent to parent to, for example, an avatar joint.
- *     A value of <code>0</code> means no joint.<br />
- *     <em>Used only if <code>parentID</code> is specified.</em>
+ *     A value of <code>0</code> means no joint.
+ *     <p><em>Used only if <code>parentID</code> is specified.</em></p>
  * @property {string} [joint] - <code>"Mouse"</code> parents the pick to the mouse; <code>"Avatar"</code> parents the pick to 
  *     the user's avatar head; a joint name parents to the joint in the user's avatar; otherwise, the pick is "static", not 
  *     parented to anything.
- *     <em>Used only if <code>parentID</code> is not specified.</em>
+ *     <p><em>Used only if <code>parentID</code> is not specified.</em></p>
  * @property {Vec3} [position=Vec3.ZERO] - The offset of the parabola origin from its parent if parented, otherwise the 
  *     parabola origin in world coordinates.
  * @property {Vec3} [posOffset] - Synonym for <code>position</code>.
@@ -327,12 +327,12 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildParabolaPick(const QVari
  *     means no maximum.
  * @property {Uuid} [parentID] - The ID of the parent: an avatar, an entity, or another pick.
  * @property {number} [parentJointIndex=0] - The joint of the parent to parent to, for example, an avatar joint.
- *     A value of <code>0</code> means no joint.<br />
- *     <em>Used only if <code>parentID</code> is specified.</em>
+ *     A value of <code>0</code> means no joint.
+ *     <p><em>Used only if <code>parentID</code> is specified.</em></p>
  * @property {string} [joint] - <code>"Mouse"</code> parents the pick to the mouse; <code>"Avatar"</code> parents the pick to
  *     the user's avatar head; a joint name parents to the joint in the user's avatar; otherwise, the pick is "static", not
- *     parented to anything.<br />
- *     <em>Used only if <code>parentID</code> is not specified.</em>
+ *     parented to anything.
+ *     <p><em>Used only if <code>parentID</code> is not specified.</em></p>
  * @property {boolean} [scaleWithParent=true] - <code>true</code> to scale the pick's dimensions and threshold according to the 
  *     scale of the parent.
  *

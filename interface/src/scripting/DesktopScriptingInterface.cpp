@@ -31,7 +31,7 @@
  * @property {InteractiveWindow.DockArea} RIGHT - Dock to the right edge of the Interface window.
  */
 /**jsdoc
- * A docking location of an <code>InteractiveWindow</code>.
+ * <p>A docking location of an <code>InteractiveWindow</code>.</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
@@ -73,7 +73,7 @@ int DesktopScriptingInterface::getHeight() {
  *     own separate window.
  */
 /**jsdoc
- * A display mode for an <code>InteractiveWindow</code>.
+ * <p>A display mode for an <code>InteractiveWindow</code>.</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>

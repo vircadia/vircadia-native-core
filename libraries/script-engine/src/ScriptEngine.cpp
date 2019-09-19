@@ -1027,8 +1027,8 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         };
 
         /**jsdoc
-         * The name of an entity event. When the entity event occurs, any function that has been registered for that event via 
-         * {@link Script.addEventHandler} is called with parameters per the entity event.
+         * <p>The name of an entity event. When the entity event occurs, any function that has been registered for that event via 
+         * {@link Script.addEventHandler} is called with parameters per the entity event.</p>
          * <table>
          *   <thead>
          *     <tr><th>Event Name</th><th>Entity Event</th></tr>

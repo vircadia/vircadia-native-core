@@ -26,8 +26,8 @@ public:
      *     <tr><td><code>0</code></td><td>RotationAndPosition</td><td>Attempt to reach the rotation and position end 
      *       effector.</td></tr>
      *     <tr><td><code>1</code></td><td>RotationOnly</td><td>Attempt to reach the end effector rotation only.</td></tr>
-     *     <tr><td><code>2</code></td><td>HmdHead</td><td>A special mode of IK that would attempt to prevent unnecessary 
-     *       bending of the spine.<br />
+     *     <tr><td><code>2</code></td><td>HmdHead</td><td>
+     *       <p>A special mode of IK that would attempt to prevent unnecessary bending of the spine.</p>
      *       <p class="important">Deprecated: This target type is deprecated and will be removed.</p></td></tr>
      *     <tr><td><code>3</code></td><td>HipsRelativeRotationAndPosition</td><td>Attempt to reach a rotation and position end 
      *       effector that is not in absolute rig coordinates but is offset by the avatar hips translation.</td></tr>
