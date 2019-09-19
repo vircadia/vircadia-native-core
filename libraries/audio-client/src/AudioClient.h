@@ -126,8 +126,6 @@ public:
 
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
-    
-    HifiAudioDeviceInfo getNamedAudioDevice(QAudio::Mode mode, const QString& deviceName);
 
     const QAudioFormat& getOutputFormat() const { return _outputFormat; }
 
@@ -236,10 +234,10 @@ public slots:
     int setOutputBufferSize(int numFrames, bool persist = true);
 
     bool shouldLoopbackInjectors() override { return _shouldEchoToServer; }
+    Q_INVOKABLE void changeDefault(HifiAudioDeviceInfo newDefault, QAudio::Mode mode);
 
     // calling with a null QAudioDevice will use the system default
     bool switchAudioDevice(QAudio::Mode mode, const HifiAudioDeviceInfo& deviceInfo = HifiAudioDeviceInfo());
-    bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName);
 
     // Qt opensles plugin is not able to detect when the headset is plugged in
     void setHeadsetPluggedIn(bool pluggedIn);
@@ -464,9 +462,6 @@ private:
 
     HifiAudioDeviceInfo _inputDeviceInfo;
     HifiAudioDeviceInfo _outputDeviceInfo;
-
-    HifiAudioDeviceInfo _defaultInputDevice;
-    HifiAudioDeviceInfo _defaultOutputDevice;
 
     QList<HifiAudioDeviceInfo> _inputDevices;
     QList<HifiAudioDeviceInfo> _outputDevices;
