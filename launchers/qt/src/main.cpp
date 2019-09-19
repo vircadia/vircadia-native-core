@@ -2,7 +2,9 @@
 
 #include "LauncherWindow.h"
 #include "Launcher.h"
-
+#include <iostream>
+#include <string>
+#include "Helper.h"
 
 #ifdef Q_OS_WIN
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
@@ -14,7 +16,29 @@ Q_IMPORT_PLUGIN(QtQuick2Plugin);
 Q_IMPORT_PLUGIN(QtQuickControls2Plugin);
 Q_IMPORT_PLUGIN(QtQuickTemplates2Plugin);
 
+
+
+bool hasSuffix(const std::string path, const std::string suffix) {
+    if (path.substr(path.find_last_of(".") + 1) == suffix) {
+        return true;
+    }
+
+    return false;
+}
+
 int main(int argc, char *argv[]) {
+
+#ifdef Q_OS_MAC
+    // auto updater
+    if (argc == 3) {
+        if (hasSuffix(argv[1], "app") && hasSuffix(argv[2], "app")) {
+            std::cout << "swapping launcher \n";
+            swapLaunchers(argv[1], argv[2]);
+        } else {
+            std::cout << "not swapping launcher \n";
+        }
+    }
+#endif
     QString name { "High Fidelity" };
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QCoreApplication::setOrganizationName(name);

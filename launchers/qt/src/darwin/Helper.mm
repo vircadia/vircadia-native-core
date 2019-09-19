@@ -40,3 +40,33 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
     [task replaceThisProcess];
 
 }
+
+
+void launchAutoUpdater(const QString& autoUpdaterPath) {
+    NSTask* task = [[NSTask alloc] init]; 
+    task.launchPath = [autoUpdaterPath.toNSString() stringByAppendingString:@"/Contents/Resources/updater"];
+    task.arguments = @[[[NSBundle mainBundle] bundlePath], autoUpdaterPath.toNSString()];
+    [task launch];
+
+    exit(0);
+}
+
+
+@interface UpdaterHelper : NSObject
++(NSURL*) NSStringToNSURL: (NSString*) path;
+@end
+
+@implementation UpdaterHelper
++(NSURL*) NSStringToNSURL: (NSString*) path
+{
+    return [NSURL URLWithString: [path stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLFragmentAllowedCharacterSet]] relativeToURL: [NSURL URLWithString:@"file://"]];
+}
+@end
+
+
+bool replaceDirectory(const QString& orginalDirectory, const QString& newDirectory) {
+    NSFileManager* fileManager = [NSFileManager defaultManager];
+    NSURL* destinationUrl = [UpdaterHelper NSStringToNSURL:newDirectory.toNSString()];
+    return (bool) [fileManager replaceItemAtURL:[UpdaterHelper NSStringToNSURL:orginalDirectory.toNSString()] withItemAtURL:[UpdaterHelper NSStringToNSURL:newDirectory.toNSString()]
+                                 backupItemName:nil options:NSFileManagerItemReplacementUsingNewMetadataOnly resultingItemURL:&destinationUrl error:nil];
+}
