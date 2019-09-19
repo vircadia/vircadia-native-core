@@ -172,7 +172,7 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
     ReweightedDeformers reweightedDeformers = getReweightedDeformers(hfmMesh.vertices.size(), dynamicTransform, meshDeformers, NUM_CLUSTERS_PER_VERT);
     // Cluster indices and weights must be the same sizes
     if (reweightedDeformers.trimmedToMatch) {
-        HIFI_FCDEBUG_ID(model_baker(), repeatMessageID, "BuildGraphicsMeshTask -- The number of indices and weights for a blendshape had different sizes and have been trimmed to match");
+        HIFI_FCDEBUG_ID(model_baker(), repeatMessageID, "BuildGraphicsMeshTask -- The number of indices and weights for a deformer had different sizes and have been trimmed to match");
     }
     // Record cluster sizes
     const int numVertClusters = reweightedDeformers.indices.size() / NUM_CLUSTERS_PER_VERT;
