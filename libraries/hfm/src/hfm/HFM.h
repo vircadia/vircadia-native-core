@@ -66,6 +66,8 @@ static const int DRACO_ATTRIBUTE_ORIGINAL_INDEX = DRACO_BEGIN_CUSTOM_HIFI_ATTRIB
 // High Fidelity Model namespace
 namespace hfm {
 
+static const uint32_t UNDEFINED_KEY = (uint32_t)-1;
+
 /// A single blendshape.
 class Blendshape {
 public:
@@ -301,7 +303,7 @@ public:
 
 class DynamicTransform {
 public:
-    std::vector<uint32_t> deformers;
+    std::vector<uint16_t> deformers;
     std::vector<Cluster> clusters; // affect the deformer of the same index
     std::vector<uint32_t> blendshapes;
     // There are also the meshExtents and modelTransform, which for now are left in hfm::Mesh
@@ -310,8 +312,6 @@ public:
 // The lightweight model part description.
 class Shape {
 public:
-    const static uint32_t UNDEFINED_KEY { (uint32_t)-1 };
-
     uint32_t mesh { UNDEFINED_KEY };
     uint32_t meshPart { UNDEFINED_KEY };
     uint32_t material { UNDEFINED_KEY };
