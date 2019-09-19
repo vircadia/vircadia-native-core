@@ -65,7 +65,8 @@
     <article>
 
         <div class="container-overview">
-            <?js if (doc.kind === 'module' && doc.modules) { ?>
+            <?js if (isGlobalPage) { ?>
+            <?js } else if (doc.kind === 'module' && doc.modules) { ?>
                 <?js if (doc.description) { ?>
                     <h3>Description</h3>
                     <div><?js= doc.description ?></div>
