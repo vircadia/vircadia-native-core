@@ -71,7 +71,7 @@ Flickable {
         ColumnLayout {
             id: controlsContainer
             Layout.preferredWidth: parent.width
-        Layout.topMargin: 24
+            Layout.topMargin: 24
             spacing: 0
 
             HifiStylesUit.GraphikSemiBold {
@@ -150,6 +150,45 @@ Flickable {
                                 MyAvatar.analogPlusWalkSpeed = controlsAdvancedMovementSpeed.value;
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        ColumnLayout {
+            Layout.preferredWidth: parent.width
+            spacing: 0
+
+            HifiStylesUit.GraphikSemiBold {
+                text: "VR Rotation Mode"
+                Layout.preferredWidth: parent.width
+                height: paintedHeight
+                size: 22
+                color: simplifiedUI.colors.text.white
+            }
+
+            ColumnLayout {
+                width: parent.width
+                Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
+
+                ButtonGroup { id: rotationButtonGroup }
+
+                SimplifiedControls.RadioButton {
+                    text: "Snap Turn"
+                    ButtonGroup.group: rotationButtonGroup
+                    checked: MyAvatar.getSnapTurn() === true
+                    onClicked: {
+                        MyAvatar.setSnapTurn(true);
+                    }
+                }
+
+                SimplifiedControls.RadioButton {
+                    text: "Smooth Turn"
+                    ButtonGroup.group: rotationButtonGroup
+                    checked: MyAvatar.getSnapTurn() === false
+                    onClicked: {
+                        MyAvatar.setSnapTurn(false);
                     }
                 }
             }
