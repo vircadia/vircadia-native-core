@@ -776,6 +776,18 @@ void MyAvatar::update(float deltaTime) {
     emit energyChanged(currentEnergy);
 
     updateEyeContactTarget(deltaTime);
+
+    // if we're getting eye rotations from a tracker, disable observer-side procedural eye motions
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    bool eyesTracked =
+        userInputMapper->getPoseState(controller::Action::LEFT_EYE).valid &&
+        userInputMapper->getPoseState(controller::Action::RIGHT_EYE).valid;
+
+    int leftEyeJointIndex = getJointIndex("LeftEye");
+    int rightEyeJointIndex = getJointIndex("RightEye");
+    bool eyesAreOverridden = getIsJointOverridden(leftEyeJointIndex) || getIsJointOverridden(rightEyeJointIndex);
+
+    _headData->setHasProceduralEyeMovement(!(eyesTracked || eyesAreOverridden));
 }
 
 void MyAvatar::updateEyeContactTarget(float deltaTime) {
@@ -1465,8 +1477,50 @@ void MyAvatar::setEnableDebugDrawHandControllers(bool isEnabled) {
     _enableDebugDrawHandControllers = isEnabled;
 
     if (!isEnabled) {
-        DebugDraw::getInstance().removeMarker("leftHandController");
-        DebugDraw::getInstance().removeMarker("rightHandController");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND");
+
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_THUMB1");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_THUMB2");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_THUMB3");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_THUMB4");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_INDEX1");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_INDEX2");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_INDEX3");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_INDEX4");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_MIDDLE1");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_MIDDLE2");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_MIDDLE3");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_MIDDLE4");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_RING1");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_RING2");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_RING3");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_RING4");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_PINKY1");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_PINKY2");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_PINKY3");
+        DebugDraw::getInstance().removeMarker("LEFT_HAND_PINKY4");
+
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_THUMB1");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_THUMB2");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_THUMB3");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_THUMB4");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_INDEX1");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_INDEX2");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_INDEX3");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_INDEX4");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_MIDDLE1");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_MIDDLE2");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_MIDDLE3");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_MIDDLE4");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_RING1");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_RING2");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_RING3");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_RING4");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_PINKY1");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_PINKY2");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_PINKY3");
+        DebugDraw::getInstance().removeMarker("RIGHT_HAND_PINKY4");
     }
 }
 
@@ -3107,6 +3161,16 @@ void MyAvatar::animGraphLoaded() {
     disconnect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
 }
 
+void MyAvatar::debugDrawPose(controller::Action action, const char* channelName, float size) {
+    auto pose = getControllerPoseInWorldFrame(action);
+    if (pose.isValid()) {
+        DebugDraw::getInstance().addMarker(channelName, pose.getRotation(), pose.getTranslation(), glm::vec4(1), size);
+    } else {
+        DebugDraw::getInstance().removeMarker(channelName);
+    }
+}
+
+
 void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
     Avatar::postUpdate(deltaTime, scene);
@@ -3147,20 +3211,50 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
     }
 
     if (_enableDebugDrawHandControllers) {
-        auto leftHandPose = getControllerPoseInWorldFrame(controller::Action::LEFT_HAND);
-        auto rightHandPose = getControllerPoseInWorldFrame(controller::Action::RIGHT_HAND);
+        debugDrawPose(controller::Action::LEFT_HAND, "LEFT_HAND", 1.0);
+        debugDrawPose(controller::Action::RIGHT_HAND, "RIGHT_HAND", 1.0);
 
-        if (leftHandPose.isValid()) {
-            DebugDraw::getInstance().addMarker("leftHandController", leftHandPose.getRotation(), leftHandPose.getTranslation(), glm::vec4(1));
-        } else {
-            DebugDraw::getInstance().removeMarker("leftHandController");
-        }
+        debugDrawPose(controller::Action::LEFT_HAND_THUMB1, "LEFT_HAND_THUMB1", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_THUMB2, "LEFT_HAND_THUMB2", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_THUMB3, "LEFT_HAND_THUMB3", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_THUMB4, "LEFT_HAND_THUMB4", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_INDEX1, "LEFT_HAND_INDEX1", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_INDEX2, "LEFT_HAND_INDEX2", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_INDEX3, "LEFT_HAND_INDEX3", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_INDEX4, "LEFT_HAND_INDEX4", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_MIDDLE1, "LEFT_HAND_MIDDLE1", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_MIDDLE2, "LEFT_HAND_MIDDLE2", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_MIDDLE3, "LEFT_HAND_MIDDLE3", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_MIDDLE4, "LEFT_HAND_MIDDLE4", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_RING1, "LEFT_HAND_RING1", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_RING2, "LEFT_HAND_RING2", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_RING3, "LEFT_HAND_RING3", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_RING4, "LEFT_HAND_RING4", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_PINKY1, "LEFT_HAND_PINKY1", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_PINKY2, "LEFT_HAND_PINKY2", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_PINKY3, "LEFT_HAND_PINKY3", 0.1f);
+        debugDrawPose(controller::Action::LEFT_HAND_PINKY4, "LEFT_HAND_PINKY4", 0.1f);
 
-        if (rightHandPose.isValid()) {
-            DebugDraw::getInstance().addMarker("rightHandController", rightHandPose.getRotation(), rightHandPose.getTranslation(), glm::vec4(1));
-        } else {
-            DebugDraw::getInstance().removeMarker("rightHandController");
-        }
+        debugDrawPose(controller::Action::RIGHT_HAND_THUMB1, "RIGHT_HAND_THUMB1", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_THUMB2, "RIGHT_HAND_THUMB2", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_THUMB3, "RIGHT_HAND_THUMB3", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_THUMB4, "RIGHT_HAND_THUMB4", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_INDEX1, "RIGHT_HAND_INDEX1", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_INDEX2, "RIGHT_HAND_INDEX2", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_INDEX3, "RIGHT_HAND_INDEX3", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_INDEX4, "RIGHT_HAND_INDEX4", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_MIDDLE1, "RIGHT_HAND_MIDDLE1", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_MIDDLE2, "RIGHT_HAND_MIDDLE2", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_MIDDLE3, "RIGHT_HAND_MIDDLE3", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_MIDDLE4, "RIGHT_HAND_MIDDLE4", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_RING1, "RIGHT_HAND_RING1", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_RING2, "RIGHT_HAND_RING2", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_RING3, "RIGHT_HAND_RING3", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_RING4, "RIGHT_HAND_RING4", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_PINKY1, "RIGHT_HAND_PINKY1", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_PINKY2, "RIGHT_HAND_PINKY2", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_PINKY3, "RIGHT_HAND_PINKY3", 0.1f);
+        debugDrawPose(controller::Action::RIGHT_HAND_PINKY4, "RIGHT_HAND_PINKY4", 0.1f);
     }
 
     DebugDraw::getInstance().updateMyAvatarPos(getWorldPosition());
@@ -4513,8 +4607,15 @@ float MyAvatar::getRawDriveKey(DriveKeys key) const {
 }
 
 void MyAvatar::relayDriveKeysToCharacterController() {
-    if (getDriveKey(TRANSLATE_Y) > 0.0f && (!qApp->isHMDMode() || (useAdvancedMovementControls() && getFlyingHMDPref()))) {
-        _characterController.jump();
+    if (_endSitKeyPressComplete) {
+        if (getDriveKey(TRANSLATE_Y) > 0.0f && (!qApp->isHMDMode() || (useAdvancedMovementControls() && getFlyingHMDPref()))) {
+            _characterController.jump();
+        }
+    } else {
+        // used to prevent character from jumping after endSit is called.
+        if (getDriveKey(TRANSLATE_Y) == 0.0f) {
+            _endSitKeyPressComplete = true;
+        }
     }
 }
 
@@ -6397,15 +6498,17 @@ void MyAvatar::beginSit(const glm::vec3& position, const glm::quat& rotation) {
         return;
     }
 
-    _characterController.setSeated(true);
-    setCollisionsEnabled(false);
-    setHMDLeanRecenterEnabled(false);
-    // Disable movement
-    setSitDriveKeysStatus(false);
-    centerBody();
-    int hipIndex = getJointIndex("Hips");
-    clearPinOnJoint(hipIndex);
-    pinJoint(hipIndex, position, rotation);
+    if (!_characterController.getSeated()) {
+        _characterController.setSeated(true);
+        setCollisionsEnabled(false);
+        setHMDLeanRecenterEnabled(false);
+        // Disable movement
+        setSitDriveKeysStatus(false);
+        centerBody();
+        int hipIndex = getJointIndex("Hips");
+        clearPinOnJoint(hipIndex);
+        pinJoint(hipIndex, position, rotation);
+    }
 }
 
 void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
@@ -6423,14 +6526,133 @@ void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
         slamPosition(position);
         setWorldOrientation(rotation);
 
-        // the jump key is used to exit the chair.  We add a delay here to prevent
-        // the avatar from jumping right as they exit the chair.
-        float TIME_BEFORE_DRIVE_ENABLED_MS = 150.0f;
-        QTimer::singleShot(TIME_BEFORE_DRIVE_ENABLED_MS, [this]() {
-            // Enable movement again
-            setSitDriveKeysStatus(true);
-        });
+        // used to prevent character from jumping after endSit is called.
+        _endSitKeyPressComplete = false;
+
+        setSitDriveKeysStatus(true);
     }
+}
+
+bool MyAvatar::getIsJointOverridden(int jointIndex) const {
+    // has this joint been set by a script?
+    return _skeletonModel->getIsJointOverridden(jointIndex);
+}
+
+void MyAvatar::updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera) {
+
+    updateLookAtTargetAvatar();
+
+    bool isLookingAtSomeone = false;
+    glm::vec3 lookAtSpot;
+
+    const MyHead* myHead = getMyHead();
+
+    int leftEyeJointIndex = getJointIndex("LeftEye");
+    int rightEyeJointIndex = getJointIndex("RightEye");
+    bool eyesAreOverridden = getIsJointOverridden(leftEyeJointIndex) ||
+        getIsJointOverridden(rightEyeJointIndex);
+    if (eyesAreOverridden) {
+        // A script has set the eye rotations, so use these to set lookAtSpot
+        glm::quat leftEyeRotation = getAbsoluteJointRotationInObjectFrame(leftEyeJointIndex);
+        glm::quat rightEyeRotation = getAbsoluteJointRotationInObjectFrame(rightEyeJointIndex);
+        glm::vec3 leftVec = getWorldOrientation() * leftEyeRotation * IDENTITY_FORWARD;
+        glm::vec3 rightVec = getWorldOrientation() * rightEyeRotation * IDENTITY_FORWARD;
+        glm::vec3 leftEyePosition = myHead->getLeftEyePosition();
+        glm::vec3 rightEyePosition = myHead->getRightEyePosition();
+        float t1, t2;
+        bool success = findClosestApproachOfLines(leftEyePosition, leftVec, rightEyePosition, rightVec, t1, t2);
+        if (success) {
+            glm::vec3 leftFocus = leftEyePosition + leftVec * t1;
+            glm::vec3 rightFocus = rightEyePosition + rightVec * t2;
+            lookAtSpot = (leftFocus + rightFocus) / 2.0f; // average
+        } else {
+            lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * 1000.0f;
+        }
+    } else {
+        controller::Pose leftEyePose = getControllerPoseInAvatarFrame(controller::Action::LEFT_EYE);
+        controller::Pose rightEyePose = getControllerPoseInAvatarFrame(controller::Action::RIGHT_EYE);
+        if (leftEyePose.isValid() && rightEyePose.isValid()) {
+            // an eye tracker is in use, set lookAtSpot from this
+            glm::vec3 leftVec = getWorldOrientation() * leftEyePose.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
+            glm::vec3 rightVec = getWorldOrientation() * rightEyePose.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
+
+            glm::vec3 leftEyePosition = myHead->getLeftEyePosition();
+            glm::vec3 rightEyePosition = myHead->getRightEyePosition();
+            float t1, t2;
+            bool success = findClosestApproachOfLines(leftEyePosition, leftVec, rightEyePosition, rightVec, t1, t2);
+            if (success) {
+                glm::vec3 leftFocus = leftEyePosition + leftVec * t1;
+                glm::vec3 rightFocus = rightEyePosition + rightVec * t2;
+                lookAtSpot = (leftFocus + rightFocus) / 2.0f; // average
+            } else {
+                lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * 1000.0f;
+            }
+        } else {
+            // no script override, no eye tracker, so do procedural eye motion
+            AvatarSharedPointer lookingAt = getLookAtTargetAvatar().lock();
+            bool haveLookAtCandidate = lookingAt && this != lookingAt.get();
+            auto avatar = static_pointer_cast<Avatar>(lookingAt);
+            bool mutualLookAtSnappingEnabled =
+                avatar && avatar->getLookAtSnappingEnabled() && getLookAtSnappingEnabled();
+            if (haveLookAtCandidate && mutualLookAtSnappingEnabled) {
+                //  If I am looking at someone else, look directly at one of their eyes
+                isLookingAtSomeone = true;
+                auto lookingAtHead = avatar->getHead();
+
+                const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
+                glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
+                glm::vec3 fromLookingAtToMe = glm::normalize(getHead()->getEyePosition()
+                                                             - lookingAtHead->getEyePosition());
+                float faceAngle = glm::angle(lookingAtFaceOrientation, fromLookingAtToMe);
+
+                if (faceAngle < MAXIMUM_FACE_ANGLE) {
+                    // Randomly look back and forth between look targets
+                    eyeContactTarget target = Menu::getInstance()->isOptionChecked(MenuOption::FixGaze) ?
+                        LEFT_EYE : getEyeContactTarget();
+                    switch (target) {
+                        case LEFT_EYE:
+                            lookAtSpot = lookingAtHead->getLeftEyePosition();
+                            break;
+                        case RIGHT_EYE:
+                            lookAtSpot = lookingAtHead->getRightEyePosition();
+                            break;
+                        case MOUTH:
+                            lookAtSpot = lookingAtHead->getMouthPosition();
+                            break;
+                    }
+                } else {
+                    // Just look at their head (mid point between eyes)
+                    lookAtSpot = lookingAtHead->getEyePosition();
+                }
+            } else {
+                //  I am not looking at anyone else, so just look forward
+                auto headPose = getControllerPoseInWorldFrame(controller::Action::HEAD);
+                if (headPose.isValid()) {
+                    lookAtSpot = transformPoint(headPose.getMatrix(), glm::vec3(0.0f, 0.0f, TREE_SCALE));
+                } else {
+                    lookAtSpot = myHead->getEyePosition() +
+                        (getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
+                }
+            }
+
+            // Deflect the eyes a bit to match the detected gaze from the face tracker if active.
+            if (faceTracker && !faceTracker->isMuted()) {
+                float eyePitch = faceTracker->getEstimatedEyePitch();
+                float eyeYaw = faceTracker->getEstimatedEyeYaw();
+                const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
+                glm::vec3 origin = myHead->getEyePosition();
+                float deflection = faceTracker->getEyeDeflection();
+                if (isLookingAtSomeone) {
+                    deflection *= GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT;
+                }
+                lookAtSpot = origin + myCamera.getOrientation() * glm::quat(glm::radians(glm::vec3(
+                    eyePitch * deflection, eyeYaw * deflection, 0.0f))) *
+                    glm::inverse(myCamera.getOrientation()) * (lookAtSpot - origin);
+            }
+        }
+    }
+
+    getHead()->setLookAtPosition(lookAtSpot);
 }
 
 void MyAvatar::resetHeadLookAt() {

@@ -190,7 +190,9 @@ namespace MenuOption {
     const QString ShowBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowMyLookAtVectors = "Show My Eye Vectors";
+    const QString ShowMyLookAtTarget = "Show My Look-At Target";
     const QString ShowOtherLookAtVectors = "Show Other Eye Vectors";
+    const QString ShowOtherLookAtTarget = "Show Other Look-At Target";
     const QString EnableLookAtSnapping = "Enable LookAt Snapping";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString SimulateEyeTracking = "Simulate";

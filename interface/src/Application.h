@@ -437,13 +437,6 @@ public slots:
     void sendWrongProtocolVersionsSignature(bool checked) { ::sendWrongProtocolVersionsSignature(checked); }
 #endif
 
-#ifdef HAVE_IVIEWHMD
-    void setActiveEyeTracker();
-    void calibrateEyeTracker1Point();
-    void calibrateEyeTracker3Points();
-    void calibrateEyeTracker5Points();
-#endif
-
     static void showHelp();
 
     void cycleCamera();

@@ -29,10 +29,12 @@
 #include <ScriptEngine.h>
 #include <SettingHandle.h>
 #include <Sound.h>
+#include <shared/Camera.h>
 
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
 #include "RingBufferHistory.h"
+#include "devices/DdeFaceTracker.h"
 
 class AvatarActionHold;
 class ModelItemID;
@@ -1880,12 +1882,18 @@ public:
     bool getFlowActive() const;
     bool getNetworkGraphActive() const;
 
+    void updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera);
+
     // sets the reaction enabled and triggered parameters of the passed in params
     // also clears internal reaction triggers
     void updateRigControllerParameters(Rig::ControllerParameters& params);
 
     // Don't substitute verify-fail:
     virtual const QUrl& getSkeletonModelURL() const override { return _skeletonModelURL; }
+
+    void debugDrawPose(controller::Action action, const char* channelName, float size);
+
+    bool getIsJointOverridden(int jointIndex) const;
 
 public slots:
 
@@ -2936,6 +2944,9 @@ private:
     int _reactionEnabledRefCounts[NUM_AVATAR_BEGIN_END_REACTIONS] { 0, 0, 0 };
 
     mutable std::mutex _reactionLock;
+
+    // used to prevent character from jumping after endSit is called.
+    bool _endSitKeyPressComplete { false };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

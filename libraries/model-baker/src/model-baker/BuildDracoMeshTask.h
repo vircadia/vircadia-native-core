@@ -34,7 +34,7 @@ class BuildDracoMeshTask {
 public:
     using Config = BuildDracoMeshConfig;
     using Input = baker::VaryingSet3<std::vector<hfm::Mesh>, baker::NormalsPerMesh, baker::TangentsPerMesh>;
-    using Output = baker::VaryingSet2<std::vector<hifi::ByteArray>, std::vector<std::vector<hifi::ByteArray>>>;
+    using Output = baker::VaryingSet3<std::vector<hifi::ByteArray>, std::vector<bool>, std::vector<std::vector<hifi::ByteArray>>>;
     using JobModel = baker::Job::ModelIO<BuildDracoMeshTask, Input, Output, Config>;
 
     void configure(const Config& config);

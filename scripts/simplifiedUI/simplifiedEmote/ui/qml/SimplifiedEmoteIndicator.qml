@@ -45,7 +45,8 @@ Rectangle {
     }
 
     Behavior on requestedWidth {
-        enabled: true
+        enabled: false // Set this to `true` once we have a different windowing system that better supports on-screen widgets
+                       // like the Emote Indicator.
         SmoothedAnimation { duration: 220 }
     }
 

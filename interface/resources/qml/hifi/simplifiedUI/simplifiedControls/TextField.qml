@@ -22,6 +22,8 @@ TextField {
     }
 
     property string rightGlyph: ""
+    property alias bottomBorderVisible: bottomRectangle.visible
+    property alias backgroundColor: textFieldBackground.color
 
     color: simplifiedUI.colors.text.white
     font.family: "Graphik Medium"
@@ -45,7 +47,9 @@ TextField {
         }
     }
 
-    background: Item {
+    background: Rectangle {
+        id: textFieldBackground
+        color: Qt.rgba(0, 0, 0, 0);
         anchors.fill: parent
 
         Rectangle {
