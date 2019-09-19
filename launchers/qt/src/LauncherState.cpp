@@ -179,8 +179,24 @@ void LauncherState::receivedBuildsReply() {
 #endif
                 _latestBuilds.builds.push_back(build);
             }
+
+            auto launcherResults = root["launcher"].toObject();
+
+            Build launcherBuild;
+            launcherBuild.latestVersion = launcherResults["version"].toInt();
+
+#ifdef Q_OS_WIN
+            launcherBuild.installerZipURL = launcherResults["windows"].toObject()["url"].toString();
+#elif defined(Q_OS_MACOS)
+            launcherBuild.installerZipURL = launcherResults["mac"].toObject()["url"].toString();
+#else
+            #error "Launcher is only supported on Windows and Mac OS"
+#endif
+            _latestBuilds.launcherBuild = launcherBuild;
         }
     }
+
+    //downloadLauncher();
     setApplicationState(ApplicationState::WaitingForLogin);
 }
 
@@ -302,6 +318,11 @@ void LauncherState::downloadClient() {
     }
 }
 
+void LauncherState::launcherDownloadComplete() {
+    _launcherZipFile.close();
+    installLauncher();
+}
+
 void LauncherState::clientDownloadComplete() {
     ASSERT_STATE(ApplicationState::DownloadingClient);
 
@@ -341,6 +362,61 @@ void LauncherState::installClient() {
     QThreadPool::globalInstance()->start(unzipper);
 
     //launchClient();
+}
+
+void LauncherState::downloadLauncher() {
+    auto request = new QNetworkRequest(QUrl(_latestBuilds.launcherBuild.installerZipURL));
+    auto reply = _networkAccessManager.get(*request);
+
+    _launcherZipFile.setFileName(_launcherDirectory.absoluteFilePath("launcher.zip"));
+
+    qDebug() << "opening " << _launcherZipFile.fileName();
+
+    if (!_launcherZipFile.open(QIODevice::WriteOnly)) {
+        setApplicationState(ApplicationState::UnexpectedError);
+        return;
+    }
+
+    connect(reply, &QNetworkReply::finished, this, &LauncherState::launcherDownloadComplete);
+    connect(reply, &QNetworkReply::readyRead, this, [this, reply]() {
+        char buf[4096];
+        while (reply->bytesAvailable() > 0) {
+            qint64 size;
+            size = reply->read(buf, (qint64)sizeof(buf));
+            if (size == 0) {
+                break;
+            }
+            _launcherZipFile.write(buf, size);
+        }
+    });
+}
+
+void LauncherState::installLauncher() {
+    auto installDir = _launcherDirectory.absoluteFilePath("launcher_install");
+    _launcherDirectory.mkpath("launcher_install");
+
+    qDebug() << "Uzipping " << _launcherZipFile.fileName() << " to " << installDir;
+
+    auto unzipper = new Unzipper(_launcherZipFile.fileName(), QDir(installDir));
+    unzipper->setAutoDelete(true);
+    connect(unzipper, &Unzipper::finished, this, [this](bool error, QString errorMessage) {
+        if (error) {
+            qDebug() << "Unzipper finished with error: " << errorMessage;
+        } else {
+            qDebug() << "Unzipper finished without error";
+
+            QDir installDirectory = _launcherDirectory.filePath("launcher_install");
+            QString launcherPath;
+#if defined(Q_OS_WIN)
+            launcherPath = installDirectory.absoluteFilePath("HQ Launcher.exe");
+#elif defined(Q_OS_MACOS)
+            launcherPath = installDirectory.absoluteFilePath("HQ Launcher.app");
+#endif
+            //::launchAutoUpdater(launcherPath);
+        }
+    });
+
+    QThreadPool::globalInstance()->start(unzipper);
 }
 
 void LauncherState::downloadContentCache() {
@@ -445,7 +521,6 @@ void LauncherState::launchClient() {
     defaultScriptsPath = installDirectory.filePath("interface.app/Contents/Resources/scripts/simplifiedUIBootstrapper.js");
 #endif
 
-    qDebug() << "------> " << defaultScriptsPath;
     QString displayName = "fixMe";
     QString contentCachePath = _launcherDirectory.filePath("cache");
 

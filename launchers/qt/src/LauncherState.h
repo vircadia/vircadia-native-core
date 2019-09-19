@@ -19,6 +19,7 @@ struct LatestBuilds {
 
     QString defaultTag;
     std::vector<Build> builds;
+    Build launcherBuild;
 };
 
 struct LoginResponse {
@@ -59,9 +60,11 @@ public:
         RequestingLogin,
 
         DownloadingClient,
+        DownloadingLauncher,
         DownloadingContentCache,
 
         InstallingClient,
+        InstallingLauncher,
         InstallingContentCache,
 
         LaunchingHighFidelity
@@ -101,6 +104,10 @@ public:
     Q_INVOKABLE void login(QString username, QString password);
     Q_INVOKABLE void receivedLoginReply();
 
+    // Launcher
+    void downloadLauncher();
+    void installLauncher();
+
     // Client
     void downloadClient();
     void installClient();
@@ -123,6 +130,7 @@ signals:
 private slots:
     void clientDownloadComplete();
     void contentCacheDownloadComplete();
+    void launcherDownloadComplete();
 
 private:
     bool shouldDownloadContentCache() const;
@@ -140,6 +148,7 @@ private:
     QString _contentCacheURL{ "https://orgs.highfidelity.com/content-cache/content_cache_small-only_data8.zip" }; // QString::null }; // If null, there is no content cache to download
     QString _loginTokenResponse;
     QFile _clientZipFile;
+    QFile _launcherZipFile;
     QFile _contentZipFile;
 
     float _downloadProgress { 0 };
