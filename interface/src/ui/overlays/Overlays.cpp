@@ -1915,6 +1915,8 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     HUD surface.
  * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ *     <p><em>Currently doesn't work.</em></p>
+ *     @comment CURRENTLY BROKEN
  * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
  *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parent's position and orientation rather
  *     than a joint.
@@ -1928,17 +1930,19 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     @comment CURRENTLY BROKEN
 
  * @property {Vec3} start - The start point of the line. Synonyms: <code>startPoint</code> and <code>p1</code>.
- *     <p><em>If <code>parentID</code> is set, use <code>localStart</code> to set the local position of the start point.</em></p>
- *     @comment CURRENTLY BROKEN
+ *     <p><strong>Note:</strong> If <code>parentID</code> is set, use <code>localStart</code> to set the local position of the 
+ *     start point.</p>
  * @property {Vec3} end - The end point of the line. Synonyms: <code>endPoint</code> and <code>p2</code>.
- *     <p><em>If <code>parentID</code> is set, use <code>localEnd</code> to set the local position of the end point.</em></p>
- *     @comment CURRENTLY BROKEN
+ *     <p><strong>Note:</strong> If <code>parentID</code> is set, use <code>localEnd</code> to set the local position of the 
+ *     end point.</em></p>
 
  * @property {Vec3} localStart - The local position of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>start</code>.
+ *     <p><em>Currently doesn't work.</em></p>
  *     @comment CURRENTLY BROKEN
  * @property {Vec3} localEnd - The local position of the overlay relative to its parent if the overlay has a
  *     <code>endParentID</code> set, otherwise the same value as <code>end</code>.
+ *     <p><em>Currently doesn't work.</em></p>
  *     @comment CURRENTLY BROKEN
 
  * @property {number} length - The length of the line, in meters. This can be set after creating a line with start and end
