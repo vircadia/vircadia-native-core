@@ -372,12 +372,13 @@ Rectangle {
             readonly property string shortPlaceholderText: "Jump to..."
             readonly property string longPlaceholderText: "Type the name of a location to quickly jump there..."
             anchors.centerIn: parent
-            width: Math.min(parent.width, 600)
-            height: parent.height - 11
+            width: Math.min(parent.width, 445)
+            height: 35
             leftPadding: 8
             rightPadding: 8
             bottomBorderVisible: false
-            backgroundColor: "#313131"
+            backgroundColor: "#1D1D1D"
+            font.pixelSize: 14
             placeholderText: width - leftPadding - rightPadding < goToTextFieldMetrics.width ? shortPlaceholderText : longPlaceholderText
             clip: true
             selectByMouse: true
@@ -386,8 +387,8 @@ Rectangle {
                 if (goToTextField.length > 0) {
                     AddressManager.handleLookupString(goToTextField.text);
                     goToTextField.text = "";
-                    parent.forceActiveFocus();
                 }
+                parent.forceActiveFocus();
             }
         }
     }
