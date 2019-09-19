@@ -4418,11 +4418,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 menu->triggerOption(MenuOption::LookAtScreen);
                 break;
             }
-            case Qt::Key_4: {
-                Menu* menu = Menu::getInstance();
-                menu->triggerOption(MenuOption::FullscreenMirror);
-                break;
-            }
+            case Qt::Key_4:
             case Qt::Key_5:
             case Qt::Key_6:
             case Qt::Key_7:
@@ -6008,9 +6004,6 @@ void Application::cameraModeChanged() {
         case CAMERA_MODE_SELFIE:
             Menu::getInstance()->setIsOptionChecked(MenuOption::SelfieScreen, true);
             break;
-        case CAMERA_MODE_MIRROR:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
-            break;
         default:
             // we don't have menu items for the others, so just leave it alone.
             return;
@@ -6025,25 +6018,18 @@ void Application::changeViewAsNeeded(float boomLength) {
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON && boomLengthGreaterThanMinimum) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::LookAtScreen, true);
         cameraMenuChanged();
     } else if (_myCamera.getMode() == CAMERA_MODE_LOOK_AT && !boomLengthGreaterThanMinimum) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, false);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::LookAtScreen, false);
         cameraMenuChanged();
     }
 }
 
 void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
-    if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
-        if (!isHMDMode() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
-            _mirrorYawOffset = 0.0f;
-            _myCamera.setMode(CAMERA_MODE_MIRROR);
-            getMyAvatar()->reset(false, false, false); // to reset any active MyAvatar::FollowHelpers
-            getMyAvatar()->setBoomLength(MyAvatar::ZOOM_DEFAULT);
-        }
-    } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
+    if (menu->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
             _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
             getMyAvatar()->setBoomLength(MyAvatar::ZOOM_MIN);
@@ -9145,9 +9131,7 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
             cameraMenuChanged();
         }
 
-        // Remove the mirror and selfie camera options from menu if in HMD mode
-        auto mirrorAction = menu->getActionForOption(MenuOption::FullscreenMirror);
-        mirrorAction->setVisible(!isHmd);
+        // Remove the selfie camera options from menu if in HMD mode
         auto selfieAction = menu->getActionForOption(MenuOption::SelfieScreen);
         selfieAction->setVisible(!isHmd);
     }

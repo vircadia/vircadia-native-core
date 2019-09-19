@@ -191,13 +191,6 @@ Menu::Menu() {
 
     selfieAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
-    // View > Mirror
-    auto viewMirrorAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::FullscreenMirror, 0,
-                                   false, qApp, SLOT(cameraMenuChanged())));
-
-    viewMirrorAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
-
     viewMenu->addSeparator();
 
     // View > Center Player In View

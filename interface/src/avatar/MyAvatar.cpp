@@ -3333,10 +3333,10 @@ void MyAvatar::setRotationThreshold(float angleRadians) {
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
     float targetSpeed = getDriveKey(YAW) * _yawSpeed;
-    bool computeCameraLookAt = (qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT ||
-        qApp->getCamera().getMode() == CAMERA_MODE_SELFIE) && isReadyForPhysics();
-    if (computeCameraLookAt) {
-        // Rotate directly proportional to delta yaw and delta pitch from right-click mouse movement.
+    bool computeLookAt = (qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT ||
+                          qApp->getCamera().getMode() == CAMERA_MODE_SELFIE) && isReadyForPhysics();
+    if (computeLookAt) {
+        // For "Look At" and "Selfie" camera modes we also smooth the yaw rotation from right-click mouse movement.
         float speedFromDeltaYaw = deltaTime > FLT_EPSILON ? getDriveKey(DELTA_YAW) / deltaTime : 0.0f;
         speedFromDeltaYaw *= _yawSpeed / YAW_SPEED_DEFAULT;
         targetSpeed += speedFromDeltaYaw;
@@ -3364,7 +3364,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         }
     }
     float totalBodyYaw = _bodyYawDelta * deltaTime;
-    if (!computeCameraLookAt) {
+    if (!computeLookAt) {
+        // Rotate directly proportional to delta yaw and delta pitch from right-click mouse movement.
         totalBodyYaw += getDriveKey(DELTA_YAW) * _yawSpeed / YAW_SPEED_DEFAULT;
     }
     // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
@@ -3414,7 +3415,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     float timeScale = deltaTime * FPS;
 
     bool faceForward = false;
-    if (!computeCameraLookAt) {
+    if (!computeLookAt) {
         setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
         _lookAtCameraTarget = eyesPosition + getWorldOrientation() * Vectors::FRONT;
         _lookAtOffsetYaw = getWorldOrientation();
@@ -3439,7 +3440,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         }
         bool isMovingFwdBwd = getDriveKey(TRANSLATE_Z) != 0.0f;
         bool isMovingSideways = getDriveKey(TRANSLATE_X) != 0.0f;
-        faceForward = computeCameraLookAt && (isMovingFwdBwd || isMovingSideways);
+        bool isRotatingWhileSeated = isMovingSideways && _characterController.getSeated();
+        faceForward = isMovingFwdBwd || (isMovingSideways && !isRotatingWhileSeated);
         // Blend the avatar orientation with the camera look at if moving forward.
         if (faceForward || _shouldTurnToFaceCamera) {
             const float REORIENT_FORWARD_BLEND = 0.25f;
@@ -3453,13 +3455,14 @@ void MyAvatar::updateOrientation(float deltaTime) {
             if (isMovingFwdBwd && isMovingSideways) {
                 // Reorient avatar to face camera diagonal
                 blend = DIAGONAL_TURN_BLEND;
-                if (getDriveKey(TRANSLATE_X) > 0.0f) {
-                    faceRotation = _lookAtOffsetYaw * glm::angleAxis(-0.25f * PI, Vectors::UP);
-                } else if (getDriveKey(TRANSLATE_X) < 0.0f) {
-                    faceRotation = _lookAtOffsetYaw * glm::angleAxis(0.25f * PI, Vectors::UP);
-                }
+                float turnSign = getDriveKey(TRANSLATE_Z) < 0.0f ? -1.0f : 1.0f;
+                turnSign = getDriveKey(TRANSLATE_X) > 0.0f ? -turnSign : turnSign;
+                faceRotation = _lookAtOffsetYaw * glm::angleAxis(turnSign * 0.25f * PI, Vectors::UP);
             }
             setWorldOrientation(glm::slerp(getWorldOrientation(), faceRotation, blend));
+        } else if (isRotatingWhileSeated) {
+            float rotatingWhileSeatedYaw = -getDriveKey(TRANSLATE_X) * _yawSpeed * deltaTime;
+            setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, rotatingWhileSeatedYaw, 0.0f))));
         }
     }
 
@@ -3482,7 +3485,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseYaw(YAW(euler));
         head->setBasePitch(PITCH(euler));
         head->setBaseRoll(ROLL(euler));
-    } else if (computeCameraLookAt) {
+    } else if (computeLookAt) {
         // Reset head orientation before applying the blending offset
         head->setBaseYaw(0.0f);
         head->setBasePitch(0.0f);
@@ -3582,7 +3585,7 @@ float MyAvatar::calculateGearedSpeed(const float driveKey) {
 glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 right) {
     float stickFullOn = 0.85f;
     auto zSpeed = getDriveKey(TRANSLATE_Z);
-    auto xSpeed = getDriveKey(TRANSLATE_X);
+    auto xSpeed = !_characterController.getSeated() ? getDriveKey(TRANSLATE_X) : 0.0f;
     glm::vec3 direction;
     if (!useAdvancedMovementControls() && qApp->isHMDMode()) {
         // Walking disabled in settings.
@@ -5272,9 +5275,13 @@ glm::quat MyAvatar::getOrientationForAudio() {
     glm::quat result;
 
     switch (_audioListenerMode) {
-        case AudioListenerMode::FROM_HEAD:
-            result = getHead()->getFinalOrientationInWorldFrame();
+        case AudioListenerMode::FROM_HEAD: {
+            // Compute the head orientation if we are using the look at blending
+            CameraMode mode = qApp->getCamera().getMode();
+            bool headFollowsCamera = mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE;
+            result = headFollowsCamera ? qApp->getCamera().getOrientation() : getHead()->getFinalOrientationInWorldFrame();
             break;
+        }
         case AudioListenerMode::FROM_CAMERA:
             result = qApp->getCamera().getOrientation();
             break;
@@ -6400,7 +6407,6 @@ void MyAvatar::sendPacket(const QUuid& entityID) const {
 
 void MyAvatar::setSitDriveKeysStatus(bool enabled) {
     const std::vector<DriveKeys> DISABLED_DRIVE_KEYS_DURING_SIT = {
-        DriveKeys::TRANSLATE_X,
         DriveKeys::TRANSLATE_Y,
         DriveKeys::TRANSLATE_Z,
         DriveKeys::STEP_TRANSLATE_X,
