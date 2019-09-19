@@ -7,7 +7,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or https://www.apache.org/licenses/LICENSE-2.0.html
 //
-import QtQuick 2.7
+import QtQuick 2.12
 import QtQuick.Controls 2.5
 import QtQuick.Layouts 1.3
 
@@ -36,17 +36,38 @@ Item {
         if (cache !== undefined) {
             theList = cache.getResourceList();
         } else {
-            theList = [{"name": "ResourceCacheInspector.cache is undefined"}];
+            theList = ["ResourceCacheInspector.cache is undefined"];
         }
-        return theList;
+        var theListString = new Array(theList.length)
+        for (var i in theList) {
+            theListString[i] = (theList[i].toString())
+        }
+        return theListString;
     }
 
     function resetItemListFromCache() {  
-        resourceItemsModel.resetItemList(fetchItemsList())
+        resetItemList(fetchItemsList())
     }
-    function updateItemListFromCache() {  
-        resourceItemsModel.updateItemList(fetchItemsList())
+
+    property var needFreshList : false
+
+    function updateItemListFromCache() { 
+        needFreshList = true
     }
+
+    Timer {
+        interval: 1000; running: true; repeat: true
+        onTriggered: pullFreshValues()
+    }
+
+    function pullFreshValues() {
+        if (needFreshList) {
+            console.log("Updating " + cacheResourceName + "cache list")
+            updateItemList(fetchItemsList())
+            needFreshList = false
+        }
+    }
+   
 
     Column {
         id: header
@@ -77,7 +98,7 @@ Item {
                 property: "numTotal" 
                 integral: true
                 readOnly: true
-                onSourceValueVarChanged: { console.log( root.cacheResourceName + " NumResource Value Changed!!!!") ;updateItemListFromCache() }
+                onSourceValueVarChanged: { /*console.log( root.cacheResourceName + " NumResource Value Changed!!!!") ;*/updateItemListFromCache() }
             }
             Prop.PropScalar {
                 id: cachedCount
@@ -88,7 +109,7 @@ Item {
                 property: "numCached" 
                 integral: true
                 readOnly: true
-                onSourceValueVarChanged: { console.log( root.cacheResourceName + " NumResource Value Changed!!!!") ;updateItemListFromCache() }
+                onSourceValueVarChanged: { /*console.log( root.cacheResourceName + " NumCached Value Changed!!!!");*/updateItemListFromCache() }
             }
             height: totalCount.height
         }
@@ -97,26 +118,81 @@ Item {
 
     ListModel {
         id: resourceItemsModel
-
-        function packItemEntry(item) {
-            var some_uri = Qt.resolvedUrl(item)
-
-            return { "name": item, "url": some_uri}
+    }
+    property var currentItemsList: new Array();
+  
+    function packItemEntry(item) {
+        var entry = { "name": "", "root": "", "path": "", "base": "", "url": item}
+        if (item.length > 0) {
+            var rootPos = item.search("://")
+            entry.root = item.substring(0, rootPos)
+            if (rootPos >= 0) rootPos += 3
+            entry.path = item.substring(rootPos, item.length)     
+            var splitted = entry.path.split('/')
+            entry.name = splitted[splitted.length - 1] 
+            entry.base = splitted[0] 
         }
- 
-        function resetItemList(itemList) {
-            resourceItemsModel.clear()
-            for (var i in itemList) {
-                resourceItemsModel.append(packItemEntry(itemList[i]))
-            }   
+        return entry
+    }
+
+    function resetItemList(itemList) {
+        currentItemsList = []
+        resourceItemsModel.clear()
+        for (var i in itemList) {
+            var item = itemList[i]
+            currentItemsList.push(item)
+            resourceItemsModel.append(packItemEntry(item))
+        }   
+    }
+
+    function updateItemList(newItemList) {
+        resetItemList(newItemList)
+/*
+        var nextListLength = (currentItemList.length < newItemList.length ? newItemList.length : currentItemList.length )
+        var nextList = new Array(nextListLength)
+
+        var addedList = []
+        var removedList = []
+        var movedList = []
+
+        for (var i in currentItemList) {
+            var item = currentItemList[i]
+            var foundPos = newItemList.findIndex(item)
+            if (foundPos == i) {
+                newList[i] = item
+                newItemList[i] = 0
+            } else if (foundPos == -1) {
+                removedList.push(i)
+            } else {
+                movedList.push([i,foundPos])
+            }
         }
 
-        function updateItemList(itemList) {
-            resourceItemsModel.clear()
-            for (var i in itemList) {
-                resourceItemsModel.append(packItemEntry(itemList[i]))
-            }   
+        for (var i in newItemList) {
+            var item = newItemList[i]
+            if (item != 0) {
+                var foundPos = currentItemList.findIndex(item)
+                if (foundPos == -1) {
+                    addedList.push(item)
+                }
+            }
         }
+
+
+        for (var i in itemList) {
+            newList[i] = itemList[i]
+        }
+
+
+
+
+*/
+        /*currentItemsList.clear()
+        resourceItemsModel.clear()
+        for (var i in itemList) {
+            currentItemsList.append(itemList[i].toString())
+            resourceItemsModel.append(packItemEntry(currentItemsList[i]))
+        } */   
     }
 
     Component {
@@ -131,24 +207,35 @@ Item {
                 size:8
             }
             Prop.PropLabel {
-                text: JSON.stringify(model.url)
+                text: model.root
+                width: 30
             }
-           /* Prop.PropLabel {
-                text: model.url
-            }*/
+            Prop.PropSplitter {
+                size:8
+            }
+            Prop.PropLabel {
+                text: model.base
+                width: 60
+            }
+            Prop.PropSplitter {
+                size:8
+            }
+            Prop.PropLabel {
+                text: model.name
+            }
+
         }
     }
 
-    ScrollView {
+    ListView {
         anchors.top: header.bottom 
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         clip: true
-        ListView {
-            id: listView
-            model: resourceItemsModel
-            delegate: resouceItemDelegate
-        }
+    
+        id: listView
+        model: resourceItemsModel
+        delegate: resouceItemDelegate
     }
 }

@@ -201,6 +201,7 @@ class ResourceCache : public QObject {
     Q_PROPERTY(size_t sizeCached READ getSizeCachedResources NOTIFY dirty)
 
     Q_PROPERTY(size_t numLoading READ getNumLoadingResources NOTIFY dirty)
+    Q_PROPERTY(size_t numPending READ getNumPendingResources NOTIFY dirty)
 
 public:
 
@@ -208,9 +209,12 @@ public:
     size_t getSizeTotalResources() const { return _totalResourcesSize; }
     size_t getNumCachedResources() const { return _numUnusedResources; }
     size_t getSizeCachedResources() const { return _unusedResourcesSize; }
-    size_t getSizeCachedResources() const { return _unusedResourcesSize; }
+    size_t getNumPendingResources() const { return _numPendingResources; }
+    size_t getNumLoadingResources() const { return _numLoadingResources; }
 
     Q_INVOKABLE QVariantList getResourceList();
+
+    Q_INVOKABLE void decreaseNumLoading();
 
     static void setRequestLimit(uint32_t limit);
     static uint32_t getRequestLimit() { return DependencyManager::get<ResourceCacheSharedItems>()->getRequestLimit(); }
@@ -292,6 +296,8 @@ private:
 
     std::atomic<size_t> _numTotalResources { 0 };
     std::atomic<qint64> _totalResourcesSize { 0 };
+    std::atomic<size_t> _numPendingResources{ 0 };
+    std::atomic<size_t> _numLoadingResources{ 0 };
 
     // Cached resources
     QMap<int, QSharedPointer<Resource>> _unusedResources;
@@ -319,6 +325,12 @@ class ScriptableResourceCache : public QObject {
     Q_PROPERTY(size_t numCached READ getNumCachedResources NOTIFY dirty)
     Q_PROPERTY(size_t sizeTotal READ getSizeTotalResources NOTIFY dirty)
     Q_PROPERTY(size_t sizeCached READ getSizeCachedResources NOTIFY dirty)
+
+    Q_PROPERTY(size_t numPending READ getNumPendingResources NOTIFY dirty)
+    Q_PROPERTY(size_t numLoading READ getNumLoadingResources NOTIFY dirty)
+
+    Q_PROPERTY(size_t numGlobalQueriesPending READ getNumGlobalQueriesPending NOTIFY dirty)
+    Q_PROPERTY(size_t numGlobalQueriesLoading READ getNumGlobalQueriesLoading NOTIFY dirty)
 
 public:
     ScriptableResourceCache(QSharedPointer<ResourceCache> resourceCache);
@@ -393,6 +405,11 @@ private:
     size_t getSizeTotalResources() const { return _resourceCache->getSizeTotalResources(); }
     size_t getNumCachedResources() const { return _resourceCache->getNumCachedResources(); }
     size_t getSizeCachedResources() const { return _resourceCache->getSizeCachedResources(); }
+    size_t getNumPendingResources() const { return _resourceCache->getNumPendingResources(); }
+    size_t getNumLoadingResources() const { return _resourceCache->getNumLoadingResources(); }
+
+    size_t getNumGlobalQueriesPending() const { return ResourceCache::getLoadingRequestCount(); }
+    size_t getNumGlobalQueriesLoading() const { return ResourceCache::getPendingRequestCount(); }
 };
 
 /// Base class for resources.

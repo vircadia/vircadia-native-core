@@ -35,6 +35,99 @@ Rectangle {
             width: parent.width
 
             Prop.PropFolderPanel {
+                label: "Resource Queries Inspector"
+                isUnfold: true
+                panelFrameData: Component {
+                    Column {
+                        PlotPerf {
+                        title: "Global Queries"
+                        height: 80
+                        valueScale: 1
+                        valueUnit: ""
+                        plots: [
+                        {
+                            object: ModelCache,
+                            prop: "numGlobalQueriesPending",
+                            label: "Pending",
+                            color: "#1AC567"
+                        },
+                        {
+                            object: ModelCache,
+                            prop: "numGlobalQueriesLoading",
+                            label: "Loading",
+                            color: "#FEC567"
+                        },
+                        {
+                            object: ModelCache,
+                            prop: "numLoading",
+                            label: "Model Loading",
+                            color: "#C5FE67"
+                        }
+                        ]
+                        }
+                    }
+                }
+            }
+
+            Prop.PropFolderPanel {
+                label: "Cache Inspectors"
+                isUnfold: true
+                panelFrameData: Component {
+                    Column {
+                        Prop.PropButton {
+                            text: "Model"
+                            onClicked: {
+                                sendToScript({method: "openModelCacheInspector"}); 
+                            }
+                            width:column.width
+                        }
+                        Prop.PropButton {
+                            text: "Material"
+                            onClicked: {
+                                sendToScript({method: "openMaterialCacheInspector"}); 
+                            }
+                            width:column.width
+                        }
+                        Prop.PropButton {
+                            text: "Texture"
+                            onClicked: {
+                                sendToScript({method: "openTextureCacheInspector"}); 
+                            }
+                            width:column.width
+                        }
+                        Prop.PropButton {
+                            text: "Animation"
+                            onClicked: {
+                                sendToScript({method: "openAnimationCacheInspector"}); 
+                            }
+                            width:column.width
+                        }
+                        Prop.PropButton {
+                            text: "Sound"
+                            onClicked: {
+                                sendToScript({method: "openSoundCacheInspector"}); 
+                            }
+                            width:column.width
+                        }
+                        
+                        Prop.PropScalar {
+                            label: "Texture Loading"
+                            object: TextureCache
+                            property: "numLoading" 
+                            integral: true
+                            readOnly: true
+                        }
+                        Prop.PropScalar {
+                            label: "Model Loading"
+                            object: ModelCache
+                            property: "numLoading" 
+                            integral: true
+                            readOnly: true
+                        }
+                    }
+                }
+            }
+            Prop.PropFolderPanel {
                 label: "Stats"
                 isUnfold: true
                 panelFrameData: Component { Column {
@@ -81,51 +174,7 @@ Rectangle {
                             color: "#FFB4EF"
                         }
                         ]
-                    }
-                }}
-            }
-
-            Prop.PropFolderPanel {
-                label: "Cache Inspectors"
-                isUnfold: true
-                panelFrameData: Component {
-                    Column {
-                        Prop.PropButton {
-                            text: "Model"
-                            onClicked: {
-                                sendToScript({method: "openModelCacheInspector"}); 
-                            }
-                            width:column.width
-                        }
-                        Prop.PropButton {
-                            text: "Material"
-                            onClicked: {
-                                sendToScript({method: "openMaterialCacheInspector"}); 
-                            }
-                            width:column.width
-                        }
-                        Prop.PropButton {
-                            text: "Texture"
-                            onClicked: {
-                                sendToScript({method: "openTextureCacheInspector"}); 
-                            }
-                            width:column.width
-                        }
-                        Prop.PropButton {
-                            text: "Animation"
-                            onClicked: {
-                                sendToScript({method: "openAnimationCacheInspector"}); 
-                            }
-                            width:column.width
-                        }
-                        Prop.PropButton {
-                            text: "Sound"
-                            onClicked: {
-                                sendToScript({method: "openSoundCacheInspector"}); 
-                            }
-                            width:column.width
-                        }
-                    }
+                    }}
                 }
             }
         }

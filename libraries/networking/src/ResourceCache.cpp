@@ -325,7 +325,11 @@ QVariantList ResourceCache::getResourceList() {
         BLOCKING_INVOKE_METHOD(this, "getResourceList",
             Q_RETURN_ARG(QVariantList, list));
     } else {
-        auto resources = _resources.uniqueKeys();
+        QList<QUrl> resources;
+        {
+            QReadLocker locker(&_resourcesLock);
+            resources = _resources.uniqueKeys();
+        }
         list.reserve(resources.size());
         for (auto& resource : resources) {
             list << resource;
@@ -379,6 +383,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
     }
 
     if (!resource) {
+        _numLoadingResources++;
         resource = createResource(url);
         resource->setExtra(extra);
         resource->setExtraHash(extraHash);
@@ -386,6 +391,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
         resource->setCache(this);
         resource->moveToThread(qApp->thread());
         connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
+        connect(resource.data(), &Resource::finished, this, &ResourceCache::decreaseNumLoading);
         {
             QWriteLocker locker(&_resourcesLock);
             _resources[url].insert(extraHash, resource);
@@ -513,6 +519,11 @@ void ResourceCache::updateTotalSize(const qint64& deltaSize) {
     emit dirty();
 }
  
+void ResourceCache::decreaseNumLoading() {
+    _numLoadingResources--;
+    emit dirty();
+}
+
 QList<QSharedPointer<Resource>> ResourceCache::getLoadingRequests() {
     return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequests();
 }
@@ -530,7 +541,7 @@ bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {
 
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     if (sharedItems->appendRequest(resource)) {
-        resource->makeRequest();
+         resource->makeRequest();
         return true;
     }
     return false;
