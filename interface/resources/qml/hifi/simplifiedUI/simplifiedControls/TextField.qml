@@ -24,6 +24,8 @@ TextField {
     property string rightGlyph: ""
     property alias bottomBorderVisible: bottomRectangle.visible
     property alias backgroundColor: textFieldBackground.color
+    property string unfocusedPlaceholderText
+    property bool blankPlaceholderTextOnFocus: true
 
     color: simplifiedUI.colors.text.white
     font.family: "Graphik Medium"
@@ -44,6 +46,19 @@ TextField {
     onHoveredChanged: {
         if (hovered) {
             Tablet.playSound(TabletEnums.ButtonHover);
+        }
+    }
+
+    onFocusChanged: {
+        if (!root.blankPlaceholderTextOnFocus) {
+            return;
+        }
+
+        if (focus) {
+            root.unfocusedPlaceholderText = root.placeholderText;
+            root.placeholderText = "";
+        } else {
+            root.placeholderText = root.unfocusedPlaceholderText;
         }
     }
 
