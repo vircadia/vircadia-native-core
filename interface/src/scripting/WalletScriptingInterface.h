@@ -42,7 +42,7 @@ public:
  * @property {WalletScriptingInterface.WalletStatus} walletStatus - The status of the user's wallet. <em>Read-only.</em>
  * @property {boolean} limitedCommerce - <code>true</code> if Interface is running in limited commerce mode. In limited commerce 
  *     mode, certain Interface functionalities are disabled, e.g., users can't buy items that are not free from the Marketplace. 
- *     The Oculus Store version of Interface runs in limited commerce mode. <em>Read-only.</em>
+ *     The Oculus Store and Steam versions of Interface run in limited commerce mode. <em>Read-only.</em>
  */
 class WalletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
