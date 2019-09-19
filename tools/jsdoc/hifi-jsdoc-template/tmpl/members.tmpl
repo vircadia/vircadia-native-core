@@ -16,7 +16,7 @@ var self = this;
         <tr>
             <td>
                 <?js if (data.description) { ?>
-                    <div><?js= data.description ?></div>
+                    <?js= self.partial('description.tmpl', data.description) ?>
                 <?js } else { ?>
                     <p style="color:red;">&nbsp;</p>
                 <?js } ?>                    

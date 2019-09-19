@@ -143,6 +143,14 @@ td {
     border: solid #c7cccb 1px;
 }
 
+td > p:first-child, td > ul:first-child {
+    margin-top: 0;
+}
+
+td > p:last-child, td > ul:last-child {
+    margin-bottom: 0;
+}
+
 article table thead tr th, article table tbody tr td, article table tbody tr td p {
     font-size: .89rem;
     line-height: 20px;
@@ -594,11 +602,6 @@ header {
    color: #4D4E53;
    font-family: Consolas, Monaco, 'Andale Mono', monospace;
    font-size: 100%;
-}
-
-.params td.description > p:first-child, .props td.description > p:first-child {
-   margin-top: 0;
-   padding-top: 0;
 }
 
 span.param-type, .params td .param-type, .param-type dd {
