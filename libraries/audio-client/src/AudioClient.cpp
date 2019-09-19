@@ -121,10 +121,7 @@ void AudioClient::checkDevices() {
     auto outputDevices = getAvailableDevices(QAudio::AudioOutput);
   
     auto defInput = defaultAudioDeviceForMode(QAudio::AudioInput);
-    defInput.setIsDefault(true);
-
     auto defOutput = defaultAudioDeviceForMode(QAudio::AudioOutput);
-    defOutput.setIsDefault(true);
    
     //add the pseudo device to the list of devices
     inputDevices.push_front(defInput);
@@ -613,8 +610,8 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     }
 #endif
     // fallback for failed lookup is the default device
-    return (mode == QAudio::AudioInput) ? HifiAudioDeviceInfo(QAudioDeviceInfo::defaultInputDevice(), false, QAudio::AudioInput) : 
-        HifiAudioDeviceInfo(QAudioDeviceInfo::defaultOutputDevice(), false, QAudio::AudioOutput);
+    return (mode == QAudio::AudioInput) ? HifiAudioDeviceInfo(QAudioDeviceInfo::defaultInputDevice(), true, QAudio::AudioInput) : 
+        HifiAudioDeviceInfo(QAudioDeviceInfo::defaultOutputDevice(), true, QAudio::AudioOutput);
 }
 
 bool AudioClient::getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QString& deviceName) {
@@ -1015,6 +1012,10 @@ bool AudioClient::switchAudioDevice(QAudio::Mode mode, const HifiAudioDeviceInfo
     } else {
         return switchOutputToAudioDevice(device);
     }
+}
+
+bool AudioClient::switchAudioDevice(QAudio::Mode mode, const QString& deviceName) {
+    return switchAudioDevice(mode, getNamedAudioDeviceForMode(mode, deviceName));
 }
 
 void AudioClient::configureReverb() {

@@ -40,10 +40,12 @@ public:
     void setIsDefault(bool isDefault = false) { _isDefault = isDefault; }
     void setDevice(QAudioDeviceInfo devInfo);
     QString deviceName() const {
+#if defined(Q_OS_ANDROID)
+        return _audioDeviceInfo.deviceName();
+#endif
         if (_isDefault) {
             return "default";
-        }
-        else {
+        } else {
             return _audioDeviceInfo.deviceName();
         }
     }
