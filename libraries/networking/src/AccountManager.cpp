@@ -95,12 +95,14 @@ AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
     connect(this, SIGNAL(loginComplete(QUrl)), _postSettingsTimer, SLOT(start()));
     connect(this, &AccountManager::logoutComplete, _postSettingsTimer, &QTimer::stop);
     connect(_postSettingsTimer, &QTimer::timeout, this, &AccountManager::postAccountSettings);
+    connect(qApp, &QCoreApplication::aboutToQuit, this, &AccountManager::postAccountSettings);
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
 const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
 
 void AccountManager::logout() {
+    postAccountSettings();
 
     // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
     _accountInfo = DataServerAccountInfo();
