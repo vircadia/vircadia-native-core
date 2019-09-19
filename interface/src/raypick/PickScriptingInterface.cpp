@@ -78,7 +78,7 @@ PickFilter getPickFilter(unsigned int filter) {
  * @property {boolean} [enabled=false] - <code>true</code> if this pick should start enabled, <code>false</code> if it should 
  *     start disabled. Disabled picks do not update their pick results.
  * @property {FilterFlags} [filter=0] - The filter for this pick to use. Construct using {@link Picks} FilterFlags property 
- *     values (e.g., <code>Picks.PICK_DOMAIN_ENTTITIES</code>) combined with <code>|</code> (bitwise OR) operators.
+ *     values (e.g., <code>Picks.PICK_DOMAIN_ENTITIES</code>) combined with <code>|</code> (bitwise OR) operators.
  * @property {number} [maxDistance=0.0] - The maximum distance at which this pick will intersect. A value of <code>0.0</code> 
  *     means no maximum.
  * @property {Uuid} [parentID] - The ID of the parent: an avatar, an entity, or another pick.
@@ -164,7 +164,7 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildRayPick(const QVariantMa
  * @property {boolean} [enabled=false] - <code>true</code> if this pick should start enabled, <code>false</code> if it should
  *     start disabled. Disabled picks do not update their pick results.
  * @property {number} [filter=0] - The filter for this pick to use. Construct using {@link Picks} FilterFlags property
- *     values (e.g., <code>Picks.PICK_DOMAIN_ENTTITIES</code>) combined with <code>|</code> (bitwise OR) operators.
+ *     values (e.g., <code>Picks.PICK_DOMAIN_ENTITIES</code>) combined with <code>|</code> (bitwise OR) operators.
  *     <p><strong>Note:</strong> Stylus picks do not intersect avatars or the HUD.</p>
  * @property {number} [maxDistance=0.0] - The maximum distance at which this pick will intersect. A value of <code>0.0</code>
  *     means no maximum.
@@ -212,7 +212,7 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildStylusPick(const QVarian
  * @property {boolean} [enabled=false] - <code>true</code> if this pick should start enabled, <code>false</code> if it should 
  *     start disabled. Disabled picks do not update their pick results.
  * @property {number} [filter=0] - The filter for this pick to use. Construct using {@link Picks} FilterFlags property 
- *     values (e.g., <code>Picks.PICK_DOMAIN_ENTTITIES</code>) combined with <code>|</code> (bitwise OR) operators.
+ *     values (e.g., <code>Picks.PICK_DOMAIN_ENTITIES</code>) combined with <code>|</code> (bitwise OR) operators.
  * @property {number} [maxDistance=0.0] - The maximum distance at which this pick will intersect. A value of <code>0.0</code> 
  *     means no maximum.
  * @property {Uuid} [parentID] - The ID of the parent: an avatar, an entity, or another pick.
@@ -321,7 +321,7 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildParabolaPick(const QVari
  * @property {boolean} [enabled=false] - <code>true</code> if this pick should start enabled, <code>false</code> if it should
  *     start disabled. Disabled picks do not update their pick results.
  * @property {FilterFlags} [filter=0] - The filter for this pick to use. Construct using {@link Picks} FilterFlags property
- *     values (e.g., <code>Picks.PICK_DOMAIN_ENTTITIES</code>) combined with <code>|</code> (bitwise OR) operators.
+ *     values (e.g., <code>Picks.PICK_DOMAIN_ENTITIES</code>) combined with <code>|</code> (bitwise OR) operators.
  *     <p><strong>Note:</strong> Collision picks do not intersect the HUD.</p>
  * @property {number} [maxDistance=0.0] - The maximum distance at which this pick will intersect. A value of <code>0.0</code>
  *     means no maximum.
@@ -344,9 +344,11 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildParabolaPick(const QVari
  *     the collision region. The depth is in world coordinates but scales with the parent if defined.
  * @property {CollisionMask} [collisionGroup=8] - The type of objects the collision region collides as. Objects whose collision
  *     masks overlap with the region's collision group are considered to be colliding with the region.
- * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties} or {@link Picks.getPickScriptParameters}. A collision pick's type is {@link PickType.Collision}.
- * @property {Vec3} baseScale - Returned from {@link Picks.getPickProperties} when the pick has a parent with varying scale (usually an avatar or an entity).
- *     Its value is the original scale of the parent at the moment the pick was created, and is used to rescale the pick, and/or the pointer which owns this pick, if any.
+ * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties} or 
+ *     {@link Picks.getPickScriptParameters}. A collision pick's type is {@link PickType.Collision}.
+ * @property {Vec3} baseScale - Returned from {@link Picks.getPickProperties} when the pick has a parent with varying scale 
+ *     (usually an avatar or an entity). Its value is the original scale of the parent at the moment the pick was created, and 
+ *     is used to rescale the pick, and/or the pointer which owns this pick, if any.
  */
 std::shared_ptr<PickQuery> PickScriptingInterface::buildCollisionPick(const QVariantMap& propMap) {
     bool enabled = false;
