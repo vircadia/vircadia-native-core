@@ -168,10 +168,12 @@ class MyAvatar : public Avatar {
      *     collision. It can be a mono or stereo 16-bit WAV file running at either 24kHz or 48kHz. The latter is down-sampled 
      *     by the audio mixer, so all audio effectively plays back at a 24khz. 48kHz RAW files are also supported.
      * @property {number} audioListenerMode=0 - Specifies the listening position when hearing spatialized audio. Must be one 
-     *     of the following property values:<br />
-     *     <code>Myavatar.audioListenerModeHead</code><br />
-     *     <code>Myavatar.audioListenerModeCamera</code><br />
-     *     <code>Myavatar.audioListenerModeCustom</code>
+     *     of the following property values:
+     *     <ul>
+     *         <li><code>MyAvatar.audioListenerModeHead</code></li>
+     *         <li><code>MyAvatar.audioListenerModeCamera</code></li>
+     *         <li><code>MyAvatar.audioListenerModeCustom</code></li>
+     *     </ul>
      * @property {number} audioListenerModeHead=0 - The audio listening position is at the avatar's head. <em>Read-only.</em>
      * @property {number} audioListenerModeCamera=1 - The audio listening position is at the camera. <em>Read-only.</em>
      * @property {number} audioListenerModeCustom=2 - The audio listening position is at a the position specified by set by the 
