@@ -226,11 +226,11 @@
         { "from": "Keyboard.Up", "when": "Application.CameraFirstPerson", "to": "Actions.LONGITUDINAL_FORWARD" },
         { "from": "Keyboard.Up", "when": "Application.CameraThirdPerson", "to": "Actions.LONGITUDINAL_FORWARD" },
         { "from": "Keyboard.Up", "when": "Application.CameraLookAt", "to": "Actions.LONGITUDINAL_FORWARD" },
-        { "from": "Keyboard.Up", "when": "Application.CameraSelfie", "to": "Actions.LONGITUDINAL_FORWARD" },
+        { "from": "Keyboard.Up", "when": "Application.CameraSelfie", "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.Down", "when": "Application.CameraFirstPerson", "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.Down", "when": "Application.CameraThirdPerson", "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.Down", "when": "Application.CameraLookAt", "to": "Actions.LONGITUDINAL_BACKWARD" },
-        { "from": "Keyboard.Down", "when": "Application.CameraSelfie", "to": "Actions.LONGITUDINAL_BACKWARD" },
+        { "from": "Keyboard.Down", "when": "Application.CameraSelfie", "to": "Actions.LONGITUDINAL_FORWARD" },
 
         { "from": "Keyboard.PgDown", "to": "Actions.VERTICAL_DOWN" },
         { "from": "Keyboard.PgUp", "to": "Actions.VERTICAL_UP" },
