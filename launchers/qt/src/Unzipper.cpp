@@ -66,7 +66,11 @@ void Unzipper::run() {
 
         uint16_t mod_attr = (file_stat.m_external_attr >> 16) & FILE_PERMISSIONS_MASK;
         uint16_t filetype_attr = (file_stat.m_external_attr >> 16) & S_IFMT;
+#ifdef Q_OS_MACOS
         bool is_symlink = filetype_attr == S_IFLNK;
+#else
+        bool is_symlink = false;
+#endif
 
         if (is_symlink) {
 #ifdef Q_OS_MACOS

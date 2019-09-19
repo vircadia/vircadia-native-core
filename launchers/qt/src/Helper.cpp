@@ -1,12 +1,13 @@
 #include "Helper.h"
-#ifdef Q_OS_WIN
-#include <Windows.h>
-#endif
 
+#include <QCoreApplication>
 
 #if defined(Q_OS_WIN)
-void launchClient(const QString& homePath, const QString& defaultScriptOverride, const QString& displayName,
-                  const QString& contentCachePath, const QString& loginResponseToken) {
+
+#include <Windows.h>
+
+void launchClient(const QString& clientPath, const QString& homePath, const QString& defaultScriptsPath,
+                  const QString& displayName, const QString& contentCachePath, QString loginResponseToken) {
 
     // TODO Fix parameters
     QString params = "--url " + homePath
@@ -15,8 +16,8 @@ void launchClient(const QString& homePath, const QString& defaultScriptOverride,
         + " --displayName " + displayName
         + " --cache " + contentCachePath;
 
-    if (!_loginTokenResponse.isEmpty()) {
-        params += " --tokens \"" + _loginTokenResponse.replace("\"", "\\\"") + "\"";
+    if (!loginResponseToken.isEmpty()) {
+        params += " --tokens \"" + loginResponseToken.replace("\"", "\\\"") + "\"";
     }
 
     STARTUPINFO si;
@@ -31,19 +32,21 @@ void launchClient(const QString& homePath, const QString& defaultScriptOverride,
     BOOL success = CreateProcess(
         clientPath.toUtf8().data(),
         params.toUtf8().data(),
-        nullptr,                   // Process handle not inheritable
-        nullptr,                   // Thread handle not inheritable
-        FALSE,                  // Set handle inheritance to FALSE
-        CREATE_NEW_CONSOLE,     // Opens file in a separate console
-        nullptr,           // Use parent's environment block
-        nullptr,           // Use parent's starting directory 
-        &si,            // Pointer to STARTUPINFO structure
-        &pi           // Pointer to PROCESS_INFORMATION structure
+        nullptr,                 // Process handle not inheritable
+        nullptr,                 // Thread handle not inheritable
+        FALSE,                   // Set handle inheritance to FALSE
+        CREATE_NEW_CONSOLE,      // Opens file in a separate console
+        nullptr,                 // Use parent's environment block
+        nullptr,                 // Use parent's starting directory 
+        &si,                     // Pointer to STARTUPINFO structure
+        &pi                      // Pointer to PROCESS_INFORMATION structure
     );
+
     // Close process and thread handles. 
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
-    exit(0);
+
+    QCoreApplication::instance()->quit();
 }
 
 #endif
