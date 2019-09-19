@@ -148,6 +148,8 @@ void ResourceCacheSharedItems::clear() {
 
 ScriptableResourceCache::ScriptableResourceCache(QSharedPointer<ResourceCache> resourceCache) {
     _resourceCache = resourceCache;
+    connect(&(*_resourceCache), &ResourceCache::dirty,
+        this, &ScriptableResourceCache::dirty, Qt::DirectConnection);
 }
 
 QVariantList ScriptableResourceCache::getResourceList() {

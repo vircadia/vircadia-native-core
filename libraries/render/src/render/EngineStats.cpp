@@ -63,4 +63,5 @@ void EngineStats::run(const RenderContextPointer& renderContext) {
 
     config->frameSetPipelineCount = _gpuStats._PSNumSetPipelines;
     config->frameSetInputFormatCount = _gpuStats._ISNumFormatChanges;
+    config->emitDirty();
 }

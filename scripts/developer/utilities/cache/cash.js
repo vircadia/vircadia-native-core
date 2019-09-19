@@ -49,7 +49,7 @@ function openView() {
         pages.clear();
     }
 
-    pages.addPage('Cash', 'Cash', "../cash.qml", 300, 420, openCashWindow, closeCashWindow);
+    pages.addPage('Cash', 'Cash', "../cash.qml", 300, 500, openCashWindow, closeCashWindow);
     pages.addPage('openModelCacheInspector', 'Model Cache Inspector', "./ModelCacheInspector.qml", 300, 500);
     pages.addPage('openMaterialCacheInspector', 'Material Cache Inspector', "./MaterialCacheInspector.qml", 300, 500);
     pages.addPage('openTextureCacheInspector', 'Texture Cache Inspector', "./TextureCacheInspector.qml", 300, 500);

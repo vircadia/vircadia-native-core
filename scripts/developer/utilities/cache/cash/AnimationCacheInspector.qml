@@ -17,4 +17,5 @@ ResourceCacheInspector {
     id: root;
     anchors.fill: parent.fill
     cache: AnimationCache
+    cacheResourceName: "Animation"
 }

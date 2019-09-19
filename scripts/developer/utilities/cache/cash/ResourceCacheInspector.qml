@@ -17,41 +17,104 @@ Item {
     id: root;
     anchors.fill: parent.fill
     property var cache: {}
+    property string cacheResourceName: "" 
 
     function fromScript(message) {
         switch (message.method) {
-        case "setJSON":
-           // jsonText.items = message.params.items;
-            break;
-        case "setItemList":   
-            //console.log(message.params.items)
-            resouceItemsModel.resetItemList(message.params.items)
-            break;
         case "resetItemList":
-            resetItemList()
+            resetItemListFromCache()
             break;
         }
     }
 
     Component.onCompleted: {
-       // if (cache !== undefined) {
-            resetItemList();
-       // }
+        resetItemListFromCache();
     }
 
-    function resetItemList() {
-        var theList = cache.getResourceList();
-        resouceItemsModel.resetItemList(theList)
+    function fetchItemsList() {
+        var theList;
+        if (cache !== undefined) {
+            theList = cache.getResourceList();
+        } else {
+            theList = [{"name": "ResourceCacheInspector.cache is undefined"}];
+        }
+        return theList;
     }
+
+    function resetItemListFromCache() {  
+        resourceItemsModel.resetItemList(fetchItemsList())
+    }
+    function updateItemListFromCache() {  
+        resourceItemsModel.updateItemList(fetchItemsList())
+    }
+
+    Column {
+        id: header
+
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+
+
+        /*Prop.PropButton {
+            anchors.left: parent.left
+            id: refresh
+                text: "Refresh"
+            onClicked: {
+                resetItemListFromCache()
+            }
+        }*/
+        Item {
+            anchors.left: parent.left
+            anchors.right: parent.right
+
+            Prop.PropScalar {
+                id: totalCount
+                anchors.left: parent.left
+                anchors.right: parent.horizontalCenter
+                label: "Count"
+                object: root.cache
+                property: "numTotal" 
+                integral: true
+                readOnly: true
+                onSourceValueVarChanged: { console.log( root.cacheResourceName + " NumResource Value Changed!!!!") ;updateItemListFromCache() }
+            }
+            Prop.PropScalar {
+                id: cachedCount
+                anchors.left: parent.horizontalCenter
+                anchors.right: parent.right
+                label: "Cached"
+                object: root.cache
+                property: "numCached" 
+                integral: true
+                readOnly: true
+                onSourceValueVarChanged: { console.log( root.cacheResourceName + " NumResource Value Changed!!!!") ;updateItemListFromCache() }
+            }
+            height: totalCount.height
+        }
+    }
+
 
     ListModel {
-        id: resouceItemsModel
+        id: resourceItemsModel
 
+        function packItemEntry(item) {
+            var some_uri = Qt.resolvedUrl(item)
+
+            return { "name": item, "url": some_uri}
+        }
+ 
         function resetItemList(itemList) {
-            resouceItemsModel.clear()
+            resourceItemsModel.clear()
             for (var i in itemList) {
-                //resouceItemsModel.append({ "name": itemList[i]})
-                resouceItemsModel.append({ "name": itemList[i].toString()})
+                resourceItemsModel.append(packItemEntry(itemList[i]))
+            }   
+        }
+
+        function updateItemList(itemList) {
+            resourceItemsModel.clear()
+            for (var i in itemList) {
+                resourceItemsModel.append(packItemEntry(itemList[i]))
             }   
         }
     }
@@ -60,52 +123,21 @@ Item {
         id: resouceItemDelegate
         Row {
             id: itemRow
-            Prop.PropLabel {
-                text: model.name
+            Prop.PropText {
+                text: model.index
+                width: 30
             }
+            Prop.PropSplitter {
+                size:8
+            }
+            Prop.PropLabel {
+                text: JSON.stringify(model.url)
+            }
+           /* Prop.PropLabel {
+                text: model.url
+            }*/
         }
     }
-
-
-    Item {
-        id: header
-
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-
-
-            Prop.PropButton {
-                
-                anchors.left: parent.left
-                id: refresh
-                 text: "Refresh"
-                onClicked: {
-                    resetItemList()
-                }
-            }
-
-            Prop.PropScalar {
-                id: totalCount
-                anchors.right: parent.right
-                label: "Count" 
-                sourceValueVar: resouceItemsModel.count
-                integral: true
-                readOnly: true
-            }
-            
-            Prop.PropScalar {
-                id: totalCount
-                anchors.right: parent.right
-                label: "Count" 
-                sourceValueVar: resouceItemsModel.count
-                integral: true
-                readOnly: true
-            }
-
-        height: refresh.height
-    }
-
 
     ScrollView {
         anchors.top: header.bottom 
@@ -115,7 +147,7 @@ Item {
         clip: true
         ListView {
             id: listView
-            model: resouceItemsModel
+            model: resourceItemsModel
             delegate: resouceItemDelegate
         }
     }

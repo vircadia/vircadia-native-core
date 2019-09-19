@@ -15,6 +15,7 @@ import controlsUit 1.0 as HifiControls
 
 import "../lib/prop" as Prop
 import "cash"
+import "../lib/plotperf"
 
 Rectangle {
     anchors.fill: parent 
@@ -32,6 +33,58 @@ Rectangle {
         Column {
             id: column
             width: parent.width
+
+            Prop.PropFolderPanel {
+                label: "Stats"
+                isUnfold: true
+                panelFrameData: Component { Column {
+                    PlotPerf {
+                        title: "Resources"
+                        height: 200
+                        valueScale: 1
+                        valueUnit: ""
+                        plots: [
+                        {
+                            object: TextureCache,
+                            prop: "numTotal",
+                            label: "Textures",
+                            color: "#1AC567"
+                        },
+                        {
+                            object: TextureCache,
+                            prop: "numCached",
+                            label: "Textures Cached",
+                            color: "#FEC567"
+                        },
+                        {
+                            object: ModelCache,
+                            prop: "numTotal",
+                            label: "Models",
+                            color: "#FED959"
+                        },
+                        {
+                            object: ModelCache,
+                            prop: "numCached",
+                            label: "Models Cached",
+                            color: "#FEFE59"
+                        },
+                        {
+                            object: MaterialCache,
+                            prop: "numTotal",
+                            label: "Materials",
+                            color: "#00B4EF"
+                        },
+                        {
+                            object: MaterialCache,
+                            prop: "numCached",
+                            label: "Materials Cached",
+                            color: "#FFB4EF"
+                        }
+                        ]
+                    }
+                }}
+            }
+
             Prop.PropFolderPanel {
                 label: "Cache Inspectors"
                 isUnfold: true

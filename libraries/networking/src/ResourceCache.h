@@ -200,11 +200,14 @@ class ResourceCache : public QObject {
     Q_PROPERTY(size_t sizeTotal READ getSizeTotalResources NOTIFY dirty)
     Q_PROPERTY(size_t sizeCached READ getSizeCachedResources NOTIFY dirty)
 
+    Q_PROPERTY(size_t numLoading READ getNumLoadingResources NOTIFY dirty)
+
 public:
 
     size_t getNumTotalResources() const { return _numTotalResources; }
     size_t getSizeTotalResources() const { return _totalResourcesSize; }
     size_t getNumCachedResources() const { return _numUnusedResources; }
+    size_t getSizeCachedResources() const { return _unusedResourcesSize; }
     size_t getSizeCachedResources() const { return _unusedResourcesSize; }
 
     Q_INVOKABLE QVariantList getResourceList();

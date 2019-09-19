@@ -24,11 +24,11 @@ Item {
     // By default, these just go get or set the value from the object[property]
     // 
     function defaultGet() { var v = root.object[root.property]; return v; }
+ //   function defaultGet() { return root.object[root.property]; }
     function defaultSet(value) { root.object[root.property] = value; }  
-   // function defaultSetReadOnly(value) { log ( "read only " + property + ", NOT setting to " + value); }  
- //   function defaultSetReadOnly(value) {}  
-  //  property var valueVarSetter: (root.readOnly ? defaultSetReadOnly : defaultSet)
-    property var valueVarSetter: defaultSet
+    function defaultSetReadOnly(value) {}   
+
+    property var valueVarSetter: (readOnly ? defaultSetReadOnly : defaultSet)
     property var valueVarGetter: defaultGet
 
     // PropItem is stretching horizontally accross its parent
