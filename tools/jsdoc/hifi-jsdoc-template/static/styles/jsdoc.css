@@ -96,7 +96,7 @@ h6
 
 .paramHeading, .typeDef h3.propsHeading, h3.subHeading
 {
-    font-size: .9rem;
+    font-size: 1rem;
     font-family: "Proxima Nova";
     font-weight: bold;
     border-bottom: solid 1px #ddd;
@@ -108,9 +108,9 @@ h4.name
     padding-bottom: 0px;
 }
 
-h5, .container-overview .subsection-title
-{
-    font-size: 13px;
+h5, .container-overview .subsection-title {
+    font-size: 1rem;
+    font-family: "Proxima Nova";
     font-weight: bold;
     margin-bottom: 5px;
 }
@@ -546,7 +546,7 @@ header {
 
 .prettyprint code
 {
-    font-size: 0.9em;
+    font-size: .95em;
     line-height: 18px;
     display: block;
     padding: 4px 12px;
