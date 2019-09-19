@@ -1852,8 +1852,6 @@ public:
      * @returns {MyAvatar.FlowData}
      */
     Q_INVOKABLE QVariantMap getFlowData();
-    Q_INVOKABLE QVariantMap getLookAtCameraData();
-    Q_INVOKABLE void setLookAtCameraData(const QVariantMap& data);
 
     /**jsdoc
      * Gets the indexes of currently colliding flow joints.

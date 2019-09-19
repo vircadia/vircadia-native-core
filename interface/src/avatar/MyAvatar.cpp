@@ -940,7 +940,8 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         head->setPosition(headPosition);
         head->setScale(getModelScale());
         head->simulate(deltaTime);
-        if (_scriptControlsHeadLookAt || qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT || qApp->getCamera().getMode() == CAMERA_MODE_SELFIE) {
+        CameraMode mode = qApp->getCamera().getMode();
+        if (_scriptControlsHeadLookAt || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
             updateHeadLookAt(deltaTime);
         } else if (_headLookAtActive){
             resetHeadLookAt();
@@ -3333,8 +3334,8 @@ void MyAvatar::setRotationThreshold(float angleRadians) {
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
     float targetSpeed = getDriveKey(YAW) * _yawSpeed;
-    bool computeLookAt = (qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT ||
-                          qApp->getCamera().getMode() == CAMERA_MODE_SELFIE) && isReadyForPhysics();
+    CameraMode mode = qApp->getCamera().getMode();
+    bool computeLookAt = (mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) && isReadyForPhysics() && !qApp->isHMDMode();
     if (computeLookAt) {
         // For "Look At" and "Selfie" camera modes we also smooth the yaw rotation from right-click mouse movement.
         float speedFromDeltaYaw = deltaTime > FLT_EPSILON ? getDriveKey(DELTA_YAW) / deltaTime : 0.0f;
@@ -3425,9 +3426,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         if (totalBodyYaw != 0.0f) {
             _lookAtOffsetYaw = _lookAtOffsetYaw * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f)));
         }
-        float deltalPitchSign = 1.0f;// qApp->getCamera().getMode() == CAMERA_MODE_SELFIE ? -1.0f : 1.0f;
         float pitchIncrement = getDriveKey(PITCH) * _pitchSpeed * deltaTime
-            + deltalPitchSign * getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT;
+            + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT;
         if (pitchIncrement != 0.0f) {
             glm::quat _previousLookAtOffsetPitch = _lookAtOffsetPitch;
             _lookAtOffsetPitch = _lookAtOffsetPitch * glm::quat(glm::radians(glm::vec3(pitchIncrement, 0.0f, 0.0f)));
@@ -3535,14 +3535,13 @@ void MyAvatar::updateOrientation(float deltaTime) {
         cameraVector = glm::mix(cameraVector, ajustedYawVector, 1.0f - lookAttenuation);
         // Calculate the camera target point.
 
-        const float TARGET_DISTANCE_FROM_EYES = 20.0f;
-        glm::vec3 targetPoint = eyesPosition + TARGET_DISTANCE_FROM_EYES * glm::normalize(cameraVector);
+        glm::vec3 targetPoint = eyesPosition + glm::normalize(cameraVector);
 
-        // const float LOOKAT_MIX_ALPHA = 0.25f;
+        const float LOOKAT_MIX_ALPHA = 0.25f;
 
         if (getDriveKey(TRANSLATE_Y) == 0.0f) {
             // Approximate the head's look at vector to the camera look at vector with some delay.
-            float mixAlpha = (frontBackDot > 0.0f ? _backLookAtSpeed : _frontLookAtSpeed) * timeScale;
+            float mixAlpha = LOOKAT_MIX_ALPHA * timeScale;
             if (mixAlpha > 1.0f) {
                 mixAlpha = 1.0f;
             }
@@ -5276,7 +5275,7 @@ glm::quat MyAvatar::getOrientationForAudio() {
 
     switch (_audioListenerMode) {
         case AudioListenerMode::FROM_HEAD: {
-            // Compute the head orientation if we are using the look at blending
+            // Using the camera's orientation instead, when the current mode is controlling the avatar's head.
             CameraMode mode = qApp->getCamera().getMode();
             bool headFollowsCamera = mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE;
             result = headFollowsCamera ? qApp->getCamera().getOrientation() : getHead()->getFinalOrientationInWorldFrame();
@@ -6309,36 +6308,6 @@ QVariantMap MyAvatar::getFlowData() {
         result.insert("threads", threadData);
     }
     return result;
-}
-
-QVariantMap MyAvatar::getLookAtCameraData() {
-    QVariantMap result;
-    if (QThread::currentThread() != thread()) {
-        BLOCKING_INVOKE_METHOD(this, "getLookAtCameraData",
-            Q_RETURN_ARG(QVariantMap, result));
-        return result;
-    }
-    result.insert("selfieTriggerAngle", _selfieTriggerAngle);
-    result.insert("backLookAtSpeed", glm::pow(_backLookAtSpeed, 0.25f));
-    result.insert("frontLookAtSpeed", glm::pow(_frontLookAtSpeed, 0.25f));
-    return result;
-}
-
-Q_INVOKABLE void MyAvatar::setLookAtCameraData(const QVariantMap& data) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setLookAtCameraData",
-            Q_ARG(const QVariantMap&, data));
-        return;
-    }
-    if (data.contains("selfieTriggerAngle")) {
-        _selfieTriggerAngle = data["selfieTriggerAngle"].toFloat();
-    }
-    if (data.contains("backLookAtSpeed")) {
-        _backLookAtSpeed = glm::pow(data["backLookAtSpeed"].toFloat(), 4.0f);
-    }
-    if (data.contains("frontLookAtSpeed")) {
-        _frontLookAtSpeed = glm::pow(data["frontLookAtSpeed"].toFloat(), 4.0f);
-    }
 }
 
 QVariantList MyAvatar::getCollidingFlowJoints() {

@@ -179,14 +179,14 @@ Menu::Menu() {
 
     // View > Look At
     auto lookAtAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::LookAtScreen, 0,
+                                   viewMenu, MenuOption::LookAtCamera, 0,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
     lookAtAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Selfie
     auto selfieAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-        viewMenu, MenuOption::SelfieScreen, 0,
+        viewMenu, MenuOption::SelfieCamera, 0,
         false, qApp, SLOT(cameraMenuChanged())));
 
     selfieAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
