@@ -11,7 +11,6 @@
 
 
 #include "HifiAudioDeviceInfo.h"
-#include <QCryptographicHash>
 
 void HifiAudioDeviceInfo::setDevice(QAudioDeviceInfo devInfo) {
     _audioDeviceInfo = devInfo;
@@ -19,21 +18,16 @@ void HifiAudioDeviceInfo::setDevice(QAudioDeviceInfo devInfo) {
 
 HifiAudioDeviceInfo& HifiAudioDeviceInfo::operator=(const HifiAudioDeviceInfo& other) {
     _audioDeviceInfo = other.getDevice();
-    _deviceName = other.deviceName();
     _mode = other.getMode();
     _isDefault = other.isDefault();
-    _uniqueId = other.getId();
     return *this;
 }
 
+
 bool HifiAudioDeviceInfo::operator==(const HifiAudioDeviceInfo& rhs) const {
-    return _audioDeviceInfo == rhs.getDevice() && getId() == rhs.getId();
+    return  getDevice() == rhs.getDevice() && isDefault() == rhs.isDefault();
 }
-
 bool HifiAudioDeviceInfo::operator!=(const HifiAudioDeviceInfo& rhs) const {
-    return _audioDeviceInfo != rhs.getDevice() && getId() != rhs.getId();
+    return  getDevice() != rhs.getDevice() && isDefault() != rhs.isDefault();
 }
 
-void HifiAudioDeviceInfo::setId(QString name) {
-   _uniqueId=QString(QCryptographicHash::hash(name.toUtf8().constData(), QCryptographicHash::Md5).toHex());
-}

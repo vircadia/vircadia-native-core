@@ -283,10 +283,19 @@ void AudioDeviceList::onDevicesChanged(const QList<HifiAudioDeviceInfo>& devices
     foreach(const HifiAudioDeviceInfo& deviceInfo, devices) {
         AudioDevice device;
         device.info = deviceInfo;
-        device.display = device.info.deviceName()
-            .replace("High Definition", "HD")
-            .remove("Device")
-            .replace(" )", ")");
+
+        if (deviceInfo.isDefault()) {
+            if (deviceInfo.getMode() == QAudio::AudioInput) {
+                device.display = "Default microphone (recommended)";
+            } else {
+                device.display = "Default audio (recommended)";
+            }
+        } else {
+            device.display = device.info.deviceName()
+                .replace("High Definition", "HD")
+                .remove("Device")
+                .replace(" )", ")");
+        }
 
         for (bool isHMD : {false, true}) {
             HifiAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
