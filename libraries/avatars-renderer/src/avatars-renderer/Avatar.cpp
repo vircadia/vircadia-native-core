@@ -108,9 +108,19 @@ void Avatar::setShowMyLookAtVectors(bool showMine) {
     showMyLookAtVectors = showMine;
 }
 
+static bool showMyLookAtTarget = false;
+void Avatar::setShowMyLookAtTarget(bool showMine) {
+    showMyLookAtTarget = showMine;
+}
+
 static bool showOtherLookAtVectors = false;
 void Avatar::setShowOtherLookAtVectors(bool showOthers) {
     showOtherLookAtVectors = showOthers;
+}
+
+static bool showOtherLookAtTarget = false;
+void Avatar::setShowOtherLookAtTarget(bool showOthers) {
+    showOtherLookAtTarget = showOthers;
 }
 
 static bool showCollisionShapes = false;
@@ -710,6 +720,14 @@ void Avatar::updateRenderItem(render::Transaction& transaction) {
 }
 
 void Avatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
+
+    if (isMyAvatar() ? showMyLookAtTarget : showOtherLookAtTarget) {
+        glm::vec3 lookAtTarget = getHead()->getLookAtPosition();
+        DebugDraw::getInstance().addMarker(QString("look-at-") + getID().toString(),
+                                           glm::quat(), lookAtTarget, glm::vec4(1), 1.0f);
+    } else {
+        DebugDraw::getInstance().removeMarker(QString("look-at-") + getID().toString());
+    }
 
     if (isMyAvatar() ? showMyLookAtVectors : showOtherLookAtVectors) {
         const float EYE_RAY_LENGTH = 10.0;

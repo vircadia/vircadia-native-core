@@ -196,3 +196,40 @@ void HeadData::fromJson(const QJsonObject& json) {
         setHeadOrientation(quatFromJsonValue(json[JSON_AVATAR_HEAD_ROTATION]));
     }
 }
+
+bool HeadData::getHasProceduralEyeFaceMovement() const {
+    return _hasProceduralEyeFaceMovement;
+}
+
+void HeadData::setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement) {
+    _hasProceduralEyeFaceMovement = hasProceduralEyeFaceMovement;
+}
+
+bool HeadData::getHasProceduralBlinkFaceMovement() const {
+    // return _hasProceduralBlinkFaceMovement;
+    return _hasProceduralBlinkFaceMovement && !_isFaceTrackerConnected;
+}
+
+void HeadData::setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement) {
+    _hasProceduralBlinkFaceMovement = hasProceduralBlinkFaceMovement;
+}
+
+bool HeadData::getHasAudioEnabledFaceMovement() const {
+    return _hasAudioEnabledFaceMovement;
+}
+
+void HeadData::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) {
+    _hasAudioEnabledFaceMovement = hasAudioEnabledFaceMovement;
+}
+
+bool HeadData::getHasProceduralEyeMovement() const {
+    return _hasProceduralEyeMovement;
+}
+
+void HeadData::setHasProceduralEyeMovement(bool hasProceduralEyeMovement) {
+    _hasProceduralEyeMovement = hasProceduralEyeMovement;
+}
+
+void HeadData::setFaceTrackerConnected(bool value) {
+    _isFaceTrackerConnected = value;
+}

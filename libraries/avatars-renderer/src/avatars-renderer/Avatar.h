@@ -140,7 +140,9 @@ public:
     static void setShowAvatars(bool render);
     static void setShowReceiveStats(bool receiveStats);
     static void setShowMyLookAtVectors(bool showMine);
+    static void setShowMyLookAtTarget(bool showMine);
     static void setShowOtherLookAtVectors(bool showOthers);
+    static void setShowOtherLookAtTarget(bool showOthers);
     static void setShowCollisionShapes(bool render);
     static void setShowNamesAboveHeads(bool show);
 

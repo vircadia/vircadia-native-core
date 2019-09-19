@@ -27,7 +27,9 @@ bool CompositeEndpoint::readable() const {
 AxisValue CompositeEndpoint::peek() const {
     auto negative = first->peek();
     auto positive = second->peek();
-    auto result = AxisValue(positive.value - negative.value, std::max(positive.timestamp, negative.timestamp));
+    auto result = AxisValue(positive.value - negative.value,
+                            std::max(positive.timestamp, negative.timestamp),
+                            negative.valid && positive.valid);
     return result;
 }
 
@@ -35,7 +37,9 @@ AxisValue CompositeEndpoint::peek() const {
 AxisValue CompositeEndpoint::value() {
     auto negative = first->value();
     auto positive = second->value();
-    auto result = AxisValue(positive.value - negative.value, std::max(positive.timestamp, negative.timestamp));
+    auto result = AxisValue(positive.value - negative.value,
+                            std::max(positive.timestamp, negative.timestamp),
+                            negative.valid && positive.valid);
     return result;
 }
 

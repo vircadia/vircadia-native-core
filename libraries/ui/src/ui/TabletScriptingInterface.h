@@ -298,6 +298,10 @@ public:
      */
     Q_INVOKABLE void loadQMLSourceImpl(const QVariant& path, bool resizable, bool localSafeContext);
 
+    Q_INVOKABLE void loadHTMLSourceImpl(const QVariant& url, const QString& injectJavaScriptUrl, bool localSafeContext);
+
+    Q_INVOKABLE void loadHTMLSourceImpl(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase, bool localSafeContext);
+
     // FIXME: This currently relies on a script initializing the tablet (hence the bool denoting success);
     //        it should be initialized internally so it cannot fail
 

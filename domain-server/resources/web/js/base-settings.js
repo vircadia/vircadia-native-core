@@ -2,6 +2,9 @@ var DomainInfo = null;
 
 var viewHelpers = {
   getFormGroup: function(keypath, setting, values, isAdvanced) {
+    if (setting.hidden) {
+        return "";
+    }
     form_group = "<div class='form-group " +
         (isAdvanced ? Settings.ADVANCED_CLASS : "") + " " +
         (setting.deprecated ? Settings.DEPRECATED_CLASS : "" ) + "' " +
@@ -82,8 +85,9 @@ var viewHelpers = {
             "placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") +
             "' value='" + (_.has(setting, 'password_placeholder') ? setting.password_placeholder : setting_value) + "'/>"
         }
-
-        form_group += "<span class='help-block'>" + setting.help + "</span>"
+        if (setting.help) {
+          form_group += "<span class='help-block'>" + setting.help + "</span>"
+        }
       }
     }
 
@@ -114,12 +118,17 @@ function reloadSettings(callback) {
       data.descriptions.push(Settings.extraGroupsAtEnd[endGroupIndex]);
     }
 
+    data.descriptions = data.descriptions.map(function(x) {
+      x.hidden = x.hidden || (x.show_on_enable && data.values[x.name] && !data.values[x.name].enable);
+      return x;
+    });
+
     $('#panels').html(Settings.panelsTemplate(data));
 
     Settings.data = data;
     Settings.initialValues = form2js('settings-form', ".", false, cleanupFormValues, true);
 
-    Settings.afterReloadActions();
+    Settings.afterReloadActions(data);
 
     // setup any bootstrap switches
     $('.toggle-checkbox').bootstrapSwitch();
@@ -129,10 +138,14 @@ function reloadSettings(callback) {
     Settings.pendingChanges = 0;
 
     // call the callback now that settings are loaded
-    callback(true);
+    if (callback) { 
+      callback(true);
+    }
   }).fail(function() {
     // call the failure object since settings load faild
-    callback(false)
+    if (callback) {
+      callback(false);
+    }
   });
 }
 

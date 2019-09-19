@@ -19,7 +19,6 @@ HysteresisFilter::HysteresisFilter(float min, float max) : _min(min), _max(max) 
     }
 };
 
-
 AxisValue HysteresisFilter::apply(AxisValue value) const {
     if (_signaled) {
         if (value.value <= _min) {
@@ -30,7 +29,7 @@ AxisValue HysteresisFilter::apply(AxisValue value) const {
             _signaled = true;
         }
     }
-    return { _signaled ? 1.0f : 0.0f, value.timestamp };
+    return { _signaled ? 1.0f : 0.0f, value.timestamp, value.valid };
 }
 
 bool HysteresisFilter::parseParameters(const QJsonValue& parameters) {
