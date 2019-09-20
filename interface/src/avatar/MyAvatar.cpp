@@ -3513,23 +3513,23 @@ void MyAvatar::updateOrientation(float deltaTime) {
     if (!computeLookAt) {
         setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
         _lookAtCameraTarget = eyesPosition + getWorldOrientation() * Vectors::FRONT;
-        _lookAtOffsetYaw = getWorldOrientation();
-        _lookAtOffsetPitch = Quaternions::IDENTITY;
+        _lookAtYaw = getWorldOrientation();
+        _lookAtPitch = Quaternions::IDENTITY;
     } else {
         // Compute new look at vectors
         if (totalBodyYaw != 0.0f) {
-            _lookAtOffsetYaw = _lookAtOffsetYaw * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f)));
+            _lookAtYaw = _lookAtYaw * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f)));
         }
         float pitchIncrement = getDriveKey(PITCH) * _pitchSpeed * deltaTime
             + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT;
         if (pitchIncrement != 0.0f) {
-            glm::quat _previousLookAtOffsetPitch = _lookAtOffsetPitch;
-            _lookAtOffsetPitch = _lookAtOffsetPitch * glm::quat(glm::radians(glm::vec3(pitchIncrement, 0.0f, 0.0f)));
+            glm::quat _previousLookAtPitch = _lookAtPitch;
+            _lookAtPitch = _lookAtPitch * glm::quat(glm::radians(glm::vec3(pitchIncrement, 0.0f, 0.0f)));
             // Limit the camera horizontal pitch
             float MAX_LOOK_AT_PITCH_DEGREES = 80.0f;
-            float pitchFromHorizont = glm::degrees(angleBetween(getLookAtOffset() * Vectors::FRONT, _lookAtOffsetYaw * Vectors::FRONT));
-            if (pitchFromHorizont > MAX_LOOK_AT_PITCH_DEGREES || pitchFromHorizont < -MAX_LOOK_AT_PITCH_DEGREES) {
-                _lookAtOffsetPitch = _previousLookAtOffsetPitch;
+            float pitchFromHorizont = glm::degrees(angleBetween(getLookAtRotation() * Vectors::FRONT, _lookAtYaw * Vectors::FRONT));
+            if (pitchFromHorizont > MAX_LOOK_AT_PITCH_DEGREES) {
+                _lookAtPitch = _previousLookAtPitch;
             }
         }
         bool isMovingFwdBwd = getDriveKey(TRANSLATE_Z) != 0.0f;
@@ -3545,13 +3545,13 @@ void MyAvatar::updateOrientation(float deltaTime) {
             if (blend > 1.0f) {
                 blend = 1.0f;
             }
-            glm::quat faceRotation = _lookAtOffsetYaw;
+            glm::quat faceRotation = _lookAtYaw;
             if (isMovingFwdBwd && isMovingSideways) {
                 // Reorient avatar to face camera diagonal
                 blend = DIAGONAL_TURN_BLEND;
                 float turnSign = getDriveKey(TRANSLATE_Z) < 0.0f ? -1.0f : 1.0f;
                 turnSign = getDriveKey(TRANSLATE_X) > 0.0f ? -turnSign : turnSign;
-                faceRotation = _lookAtOffsetYaw * glm::angleAxis(turnSign * 0.25f * PI, Vectors::UP);
+                faceRotation = _lookAtYaw * glm::angleAxis(turnSign * 0.25f * PI, Vectors::UP);
             }
             setWorldOrientation(glm::slerp(getWorldOrientation(), faceRotation, blend));
         } else if (isRotatingWhileSeated) {
@@ -3585,8 +3585,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBasePitch(0.0f);
         head->setBaseRoll(0.0f);
 
-        glm::vec3 cameraVector = (faceForward ? _lookAtOffsetPitch * getWorldOrientation() : getLookAtOffset()) * Vectors::FRONT;
-        glm::vec3 cameraYawVector = _lookAtOffsetYaw * Vectors::FRONT;
+        glm::vec3 cameraVector = (faceForward ? _lookAtPitch * getWorldOrientation() : getLookAtRotation()) * Vectors::FRONT;
+        glm::vec3 cameraYawVector = _lookAtYaw * Vectors::FRONT;
 
         // Cap and attenuate head's lookat pitch angle
         const float START_LOOKING_UP_DEGREES = 5.0f;
@@ -3608,17 +3608,17 @@ void MyAvatar::updateOrientation(float deltaTime) {
             }
         }
         glm::vec3 avatarVectorFront = getWorldOrientation() * Vectors::FRONT;
-        float frontBackDot = glm::dot(cameraVector, avatarVectorFront);
+        float frontBackDot = glm::dot(cameraYawVector, avatarVectorFront);
 
         glm::vec3 avatarVectorRight = getWorldOrientation() * Vectors::RIGHT;
-        float leftRightDot = glm::dot(cameraVector, avatarVectorRight);
+        float leftRightDot = glm::dot(cameraYawVector, avatarVectorRight);
 
         const float REORIENT_ANGLE = 65.0f;
         const float TRIGGER_REORIENT_ANGLE = 45.0f;
         glm::vec3 ajustedYawVector = cameraYawVector;
         if (frontBackDot < 0.0f) {
             ajustedYawVector = (leftRightDot < 0.0f ? -avatarVectorRight : avatarVectorRight);
-            cameraVector = (ajustedYawVector * _lookAtOffsetPitch) * Vectors::FRONT;
+            cameraVector = (ajustedYawVector * _lookAtPitch) * Vectors::FRONT;
             if (frontBackDot < -glm::sin(glm::radians(TRIGGER_REORIENT_ANGLE))) {
                 _shouldTurnToFaceCamera = true;
             }

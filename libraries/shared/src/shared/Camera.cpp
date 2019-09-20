@@ -35,6 +35,18 @@
  *       your avatar.</td>
  *     </tr>
  *     <tr>
+ *       <td><strong>Look&nbsp;At</strong></td>
+ *       <td><code>"look&nbsp;at"</code></td>
+ *       <td>The camera is positioned behind your avatar. The camera moves and rotates independently from your avatar.
+ *       The avatar's head always faces the camera look at point.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><strong>Selfie</strong></td>
+ *       <td><code>"selfie"</code></td>
+ *       <td>The camera is positioned in front of your avatar. The camera moves and rotates independently from your avatar.
+ *       Your avatar's head is always facing the camera.</td>
+ *     </tr>
+ *     <tr>
  *       <td><strong>Mirror</strong></td>
  *       <td><code>"mirror"</code></td>
  *       <td>The camera is positioned such that you are looking directly at your avatar. The camera moves and rotates with your 

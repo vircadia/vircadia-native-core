@@ -1763,7 +1763,7 @@ public:
     */
     Q_INVOKABLE glm::vec3 getHeadLookAt() { return _lookAtCameraTarget; }
 
-    glm::quat getLookAtOffset() { return _lookAtOffsetYaw * _lookAtOffsetPitch; }
+    glm::quat getLookAtRotation() { return _lookAtYaw * _lookAtPitch; }
 
     /**jsdoc
      * Creates a new grab that grabs an entity.
@@ -2643,8 +2643,8 @@ private:
     glm::vec3 _trackedHeadPosition;
 
     const float MAX_LOOK_AT_TIME_SCRIPT_CONTROL = 2.0f;
-    glm::quat _lookAtOffsetPitch;
-    glm::quat _lookAtOffsetYaw;
+    glm::quat _lookAtPitch;
+    glm::quat _lookAtYaw;
     glm::vec3 _lookAtCameraTarget;
     glm::vec3 _lookAtScriptTarget;
     bool _headLookAtActive { false };

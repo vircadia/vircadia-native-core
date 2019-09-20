@@ -3631,12 +3631,12 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                         + myAvatar->getWorldOrientation() * boomOffset);
                 }
             } else {
-                glm::quat lookAtOffset = myAvatar->getLookAtOffset();
+                glm::quat lookAtRotation = myAvatar->getLookAtRotation();
                 if (mode == CAMERA_MODE_SELFIE) {
-                    lookAtOffset = lookAtOffset * glm::angleAxis(PI, myAvatar->getWorldOrientation() * Vectors::UP);
+                    lookAtRotation = lookAtRotation * glm::angleAxis(PI, myAvatar->getWorldOrientation() * Vectors::UP);
                 }
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                    + lookAtOffset * boomOffset);
+                    + lookAtRotation * boomOffset);
                 _myCamera.lookAt(myAvatar->getDefaultEyePosition());
             }
         }
