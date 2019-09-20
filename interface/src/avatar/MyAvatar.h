@@ -1750,14 +1750,16 @@ public:
     void prepareAvatarEntityDataForReload();
 
     /**jsdoc
-    * Turn the avatar's head until it faces the target point within the 90/-90 degrees range.
+    * Turn the avatar's head until it faces the target point within the 90/-90 degree range.
+    * Once this method is called, API calls will have full control of the head for a limited time.
+    * If this method is not called for two seconds, the engine will regain control of the head.
     * @function MyAvatar.setHeadLookAt
-    * @param {Vec3} lookAtTarget - The target 3D point.
+    * @param {Vec3} lookAtTarget - The target point in world coordinates.
     */
     Q_INVOKABLE void setHeadLookAt(const glm::vec3& lookAtTarget);
 
     /**jsdoc
-    * Returns the current head look at target point in world coordenates.
+    * Returns the current head look at target point in world coordinates.
     * @function MyAvatar.getHeadLookAt
     * @returns {Vec3} Default position between your avatar's eyes in world coordinates.
     */
