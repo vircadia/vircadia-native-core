@@ -35,6 +35,18 @@
  *       your avatar.</td>
  *     </tr>
  *     <tr>
+ *       <td><strong>Look&nbsp;At</strong></td>
+ *       <td><code>"look&nbsp;at"</code></td>
+ *       <td>The camera is positioned behind your avatar. The camera moves and rotates independently from your avatar.
+ *       The avatar's head always faces the camera look at point.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><strong>Selfie</strong></td>
+ *       <td><code>"selfie"</code></td>
+ *       <td>The camera is positioned in front of your avatar. The camera moves and rotates independently from your avatar.
+ *       Your avatar's head is always facing the camera.</td>
+ *     </tr>
+ *     <tr>
  *       <td><strong>Mirror</strong></td>
  *       <td><code>"mirror"</code></td>
  *       <td>The camera is positioned such that you are looking directly at your avatar. The camera moves and rotates with your 
@@ -67,6 +79,10 @@ CameraMode stringToMode(const QString& mode) {
         return CAMERA_MODE_INDEPENDENT;
     } else if (mode == "entity") {
         return CAMERA_MODE_ENTITY;
+    } else if (mode == "look at") {
+        return CAMERA_MODE_LOOK_AT;
+    } else if (mode == "selfie") {
+        return CAMERA_MODE_SELFIE;
     }
     return CAMERA_MODE_NULL;
 }
@@ -82,6 +98,10 @@ QString modeToString(CameraMode mode) {
         return "independent";
     } else if (mode == CAMERA_MODE_ENTITY) {
         return "entity";
+    } else if (mode == CAMERA_MODE_LOOK_AT) {
+        return "look at";
+    } else if (mode == CAMERA_MODE_SELFIE) {
+        return "selfie";
     }
     return "unknown";
 }

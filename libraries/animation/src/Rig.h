@@ -254,6 +254,7 @@ public:
     int getOverrideJointCount() const;
     bool getFlowActive() const;
     bool getNetworkGraphActive() const;
+    void setDirectionalBlending(const QString& targetName, const glm::vec3& blendingTarget, const QString& alphaName, float alpha);
 
 signals:
     void onLoadComplete();
