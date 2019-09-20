@@ -47,6 +47,9 @@ Q_DECLARE_METATYPE(JSONCallbackParameters)
 
 const QString ACCOUNTS_GROUP = "accounts";
 
+const int POST_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND;
+const int PULL_SETTINGS_RETRY_INTERVAL = 1 * MSECS_PER_SECOND;
+
 JSONCallbackParameters::JSONCallbackParameters(QObject* callbackReceiver,
                                                const QString& jsonCallbackMethod,
                                                const QString& errorCallbackMethod) :
@@ -89,7 +92,6 @@ AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
     connect(this, &AccountManager::loginComplete, this, &AccountManager::uploadPublicKey);
     connect(this, &AccountManager::loginComplete, this, &AccountManager::requestAccountSettings);
 
-    static int POST_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND;
     _postSettingsTimer = new QTimer(this);
     _postSettingsTimer->setInterval(POST_SETTINGS_INTERVAL);
     connect(this, SIGNAL(loginComplete(QUrl)), _postSettingsTimer, SLOT(start()));
@@ -98,7 +100,6 @@ AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
     connect(qApp, &QCoreApplication::aboutToQuit, this, &AccountManager::postAccountSettings);
 }
 
-const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
 const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
 
 void AccountManager::logout() {
@@ -114,6 +115,8 @@ void AccountManager::logout() {
     emit logoutComplete();
     // the username has changed to blank
     emit usernameChanged(QString());
+
+    _settings.loggedOut();
 }
 
 QString accountFileDir() {
@@ -806,6 +809,8 @@ void AccountManager::requestAccountSettings() {
     QNetworkReply* lockerReply = networkAccessManager.get(lockerRequest);
     connect(lockerReply, &QNetworkReply::finished, this, &AccountManager::requestAccountSettingsFinished);
     connect(lockerReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestAccountSettingsError(QNetworkReply::NetworkError)));
+
+    _settings.startedLoading();
 }
 
 void AccountManager::requestAccountSettingsFinished() {
@@ -821,25 +826,27 @@ void AccountManager::requestAccountSettingsFinished() {
             emit accountSettingsLoaded();
         } else {
             qCDebug(networking) << "Error in response for account settings: no data object";
+            QTimer::singleShot(PULL_SETTINGS_RETRY_INTERVAL, this, &AccountManager::requestAccountSettings);
         }
     } else {
-        // TODO: error handling
         qCDebug(networking) << "Error in response for account settings" << lockerReply->errorString();
+        QTimer::singleShot(PULL_SETTINGS_RETRY_INTERVAL, this, &AccountManager::requestAccountSettings);
     }
 }
 
 void AccountManager::requestAccountSettingsError(QNetworkReply::NetworkError error) {
-    // TODO: error handling
     qCWarning(networking) << "Account settings request encountered an error" << error;
+    QTimer::singleShot(PULL_SETTINGS_RETRY_INTERVAL, this, &AccountManager::requestAccountSettings);
 }
 
 void AccountManager::postAccountSettings() {
-    if (!_settings.somethingChanged()) {
+    if (_settings.lastChangeTimestamp() <= _lastSuccessfulSyncTimestamp && _lastSuccessfulSyncTimestamp != 0) {
         // Nothing changed, skipping settings post
         return;
     }
     if (!isLoggedIn()) {
         qCWarning(networking) << "Can't post account settings: Not logged in";
+        return;
     }
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
@@ -853,6 +860,7 @@ void AccountManager::postAccountSettings() {
     lockerRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     lockerRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER, _accountInfo.getAccessToken().authorizationHeaderValue());
 
+    _currentSyncTimestamp = _settings.lastChangeTimestamp();
     QJsonObject dataObj;
     dataObj.insert("locker", _settings.pack());
 
@@ -869,14 +877,14 @@ void AccountManager::postAccountSettingsFinished() {
     QJsonDocument jsonResponse = QJsonDocument::fromJson(lockerReply->readAll());
     const QJsonObject& rootObject = jsonResponse.object();
 
-    if (!rootObject.contains("status") || rootObject["status"].toString() != "success") {
-        // TODO: error handling
+    if (rootObject.contains("status") && rootObject["status"].toString() == "success") {
+        _lastSuccessfulSyncTimestamp = _currentSyncTimestamp;
+    } else {
         qCDebug(networking) << "Error in response for account settings post" << lockerReply->errorString();
     }
 }
 
 void AccountManager::postAccountSettingsError(QNetworkReply::NetworkError error) {
-    // TODO: error handling
     qCWarning(networking) << "Post encountered an error" << error;
 }
 

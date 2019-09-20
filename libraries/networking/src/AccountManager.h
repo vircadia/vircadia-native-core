@@ -183,7 +183,9 @@ private:
     QString _configFileURL;
 
     AccountSettings _settings;
-    QTimer* _postSettingsTimer;
+    quint64 _currentSyncTimestamp { 0 };
+    quint64 _lastSuccessfulSyncTimestamp { 0 };
+    QTimer* _postSettingsTimer { nullptr };
 };
 
 #endif  // hifi_AccountManager_h
