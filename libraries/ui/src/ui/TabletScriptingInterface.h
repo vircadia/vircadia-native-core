@@ -298,9 +298,25 @@ public:
      */
     Q_INVOKABLE void loadQMLSourceImpl(const QVariant& path, bool resizable, bool localSafeContext);
 
+     /**jsdoc
+     * Internal function, do not call from scripts
+     * @function TabletProxy#loadHTMLSourceImpl
+     */
     Q_INVOKABLE void loadHTMLSourceImpl(const QVariant& url, const QString& injectJavaScriptUrl, bool localSafeContext);
 
+     /**jsdoc
+     * Internal function, do not call from scripts
+     * @function TabletProxy#loadHTMLSourceImpl
+     */
     Q_INVOKABLE void loadHTMLSourceImpl(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase, bool localSafeContext);
+
+     /**jsdoc
+     * Internal function, do not call from scripts
+     * @function TabletProxy#returnToPreviousAppImpl
+     */
+    Q_INVOKABLE void returnToPreviousAppImpl(bool localSafeContext);
+
+    Q_INVOKABLE void loadQMLOnTopImpl(const QVariant& path, bool localSafeContext);
 
     // FIXME: This currently relies on a script initializing the tablet (hence the bool denoting success);
     //        it should be initialized internally so it cannot fail
