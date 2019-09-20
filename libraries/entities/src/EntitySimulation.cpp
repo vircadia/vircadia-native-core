@@ -62,7 +62,6 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
     assert(entity->isDead());
     if (entity->isSimulated()) {
         QMutexLocker lock(&_mutex);
-        entity->clearActions(getThisPointer());
         removeEntityInternal(entity);
         if (entity->getElement()) {
             _deadEntities.insert(entity);
@@ -152,7 +151,6 @@ void EntitySimulation::sortEntitiesThatMoved() {
 void EntitySimulation::addEntity(EntityItemPointer entity) {
     QMutexLocker lock(&_mutex);
     assert(entity);
-    entity->deserializeActions();
     if (entity->isMortal()) {
         _mortalEntities.insert(entity);
         uint64_t expiry = entity->getExpiry();
