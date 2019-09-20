@@ -30,6 +30,7 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
     property bool gotoPreviousApp: false
+    property bool gotoPreviousAppFromScript: false
 
     property var tablet;
   
@@ -72,7 +73,9 @@ Item {
     function closeDialog() {
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
-        if (gotoPreviousApp) {
+        if (gotoPreviousAppFromScript) {
+            dialog.parent.sendToScript("returnToPreviousApp");
+        } else if (gotoPreviousApp) {
             tablet.returnToPreviousApp();
         } else {
             tablet.gotoHomeScreen();
