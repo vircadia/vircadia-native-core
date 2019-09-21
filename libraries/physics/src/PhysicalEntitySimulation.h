@@ -61,7 +61,6 @@ public:
 
     void addDynamic(EntityDynamicPointer dynamic) override;
     void removeDynamic(const QUuid dynamicID) override;
-    //void removeDynamics(QList<QUuid> dynamicIDsToRemove);
     void applyDynamicChanges() override;
 
     virtual void takeDeadEntities(SetOfEntities& deadEntities) override;

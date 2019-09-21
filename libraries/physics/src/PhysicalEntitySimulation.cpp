@@ -658,15 +658,6 @@ void PhysicalEntitySimulation::removeDynamic(const QUuid dynamicID) {
     _dynamicsToRemove += dynamicID;
 }
 
-/*
-void PhysicalEntitySimulation::removeDynamics(QList<QUuid> dynamicIDsToRemove) {
-    QMutexLocker lock(&_dynamicsMutex);
-    foreach(QUuid uuid, dynamicIDsToRemove) {
-        _dynamicsToRemove.insert(uuid);
-    }
-}
-*/
-
 void PhysicalEntitySimulation::applyDynamicChanges() {
     QList<EntityDynamicPointer> dynamicsFailedToAdd;
     if (_physicsEngine) {
