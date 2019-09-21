@@ -240,6 +240,9 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 
     QThread::currentThread()->setObjectName("main thread");
 
+    LogHandler::getInstance().setParent(this);
+    LogHandler::getInstance().setupRepeatedMessageFlusher();
+
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::set<ScriptInitializers>();
 

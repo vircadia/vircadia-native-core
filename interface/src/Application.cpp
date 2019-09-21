@@ -709,6 +709,8 @@ static const QString STATE_CAMERA_FIRST_PERSON = "CameraFirstPerson";
 static const QString STATE_CAMERA_THIRD_PERSON = "CameraThirdPerson";
 static const QString STATE_CAMERA_ENTITY = "CameraEntity";
 static const QString STATE_CAMERA_INDEPENDENT = "CameraIndependent";
+static const QString STATE_CAMERA_LOOK_AT = "CameraLookAt";
+static const QString STATE_CAMERA_SELFIE = "CameraSelfie";
 static const QString STATE_SNAP_TURN = "SnapTurn";
 static const QString STATE_ADVANCED_MOVEMENT_CONTROLS = "AdvancedMovement";
 static const QString STATE_GROUNDED = "Grounded";
@@ -925,7 +927,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
     controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
-                    STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT,
+                    STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT, STATE_CAMERA_LOOK_AT, STATE_CAMERA_SELFIE,
                     STATE_SNAP_TURN, STATE_ADVANCED_MOVEMENT_CONTROLS, STATE_GROUNDED, STATE_NAV_FOCUSED,
                     STATE_PLATFORM_WINDOWS, STATE_PLATFORM_MAC, STATE_PLATFORM_ANDROID, STATE_LEFT_HAND_DOMINANT, STATE_RIGHT_HAND_DOMINANT, STATE_STRAFE_ENABLED } });
     DependencyManager::set<UserInputMapper>();
@@ -1060,6 +1062,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
+
+    LogHandler::getInstance().setParent(this);
+    LogHandler::getInstance().setupRepeatedMessageFlusher();
 
     {
         const QStringList args = arguments();
@@ -1871,6 +1876,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_THIRD_PERSON, []() -> float {
         return qApp->getCamera().getMode() == CAMERA_MODE_THIRD_PERSON ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_LOOK_AT, []() -> float {
+        return qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_SELFIE, []() -> float {
+        return qApp->getCamera().getMode() == CAMERA_MODE_SELFIE ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_ENTITY, []() -> float {
         return qApp->getCamera().getMode() == CAMERA_MODE_ENTITY ? 1 : 0;
@@ -3586,7 +3597,8 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
     // Always use the default eye position, not the actual head eye position.
     // Using the latter will cause the camera to wobble with idle animations,
     // or with changes from the face tracker
-    if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+    CameraMode mode = _myCamera.getMode();
+    if (mode == CAMERA_MODE_FIRST_PERSON) {
         _thirdPersonHMDCameraBoomValid= false;
         if (isHMDMode()) {
             mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
@@ -3597,10 +3609,8 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
             _myCamera.setPosition(myAvatar->getDefaultEyePosition());
             _myCamera.setOrientation(myAvatar->getMyHead()->getHeadOrientation());
         }
-    }
-    else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+    } else if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
         if (isHMDMode()) {
-
             if (!_thirdPersonHMDCameraBoomValid) {
                 const glm::vec3 CAMERA_OFFSET = glm::vec3(0.0f, 0.0f, 0.7f);
                 _thirdPersonHMDCameraBoom = cancelOutRollAndPitch(myAvatar->getHMDSensorOrientation()) * CAMERA_OFFSET;
@@ -3615,22 +3625,28 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
 
             _myCamera.setOrientation(glm::normalize(glmExtractRotation(worldCameraMat)));
             _myCamera.setPosition(extractTranslation(worldCameraMat));
-        }
-        else {
+        } else {
             _thirdPersonHMDCameraBoomValid = false;
-
-            _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
-            if (isOptionChecked(MenuOption::CenterPlayerInView)) {
+            if (mode == CAMERA_MODE_THIRD_PERSON) {
+                _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
+                if (isOptionChecked(MenuOption::CenterPlayerInView)) {
+                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                        + _myCamera.getOrientation() * boomOffset);
+                } else {
+                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                        + myAvatar->getWorldOrientation() * boomOffset);
+                }
+            } else {
+                glm::quat lookAtRotation = myAvatar->getLookAtRotation();
+                if (mode == CAMERA_MODE_SELFIE) {
+                    lookAtRotation = lookAtRotation * glm::angleAxis(PI, myAvatar->getWorldOrientation() * Vectors::UP);
+                }
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                    + _myCamera.getOrientation() * boomOffset);
-            }
-            else {
-                _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                    + myAvatar->getWorldOrientation() * boomOffset);
+                    + lookAtRotation * boomOffset);
+                _myCamera.lookAt(myAvatar->getDefaultEyePosition());
             }
         }
-    }
-    else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+    } else if (mode == CAMERA_MODE_MIRROR) {
         _thirdPersonHMDCameraBoomValid= false;
 
         if (isHMDMode()) {
@@ -3668,8 +3684,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                 glm::vec3(0.0f, 0.0f, -1.0f) * myAvatar->getBoomLength() * _scaleMirror);
         }
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-    }
-    else if (_myCamera.getMode() == CAMERA_MODE_ENTITY) {
+    } else if (mode == CAMERA_MODE_ENTITY) {
         _thirdPersonHMDCameraBoomValid= false;
         EntityItemPointer cameraEntity = _myCamera.getCameraEntityPointer();
         if (cameraEntity != nullptr) {
@@ -4387,12 +4402,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
             }
             case Qt::Key_2: {
                 Menu* menu = Menu::getInstance();
-                menu->triggerOption(MenuOption::FullscreenMirror);
+                menu->triggerOption(MenuOption::SelfieCamera);
                 break;
             }
             case Qt::Key_3: {
                 Menu* menu = Menu::getInstance();
-                menu->triggerOption(MenuOption::ThirdPerson);
+                menu->triggerOption(MenuOption::LookAtCamera);
                 break;
             }
             case Qt::Key_4:
@@ -5484,7 +5499,7 @@ void Application::loadSettings() {
     // dictated that we should be in first person
     Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, isFirstPerson);
     Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !isFirstPerson);
-    _myCamera.setMode((isFirstPerson) ? CAMERA_MODE_FIRST_PERSON : CAMERA_MODE_THIRD_PERSON);
+    _myCamera.setMode((isFirstPerson) ? CAMERA_MODE_FIRST_PERSON : CAMERA_MODE_LOOK_AT);
     cameraMenuChanged();
 
     auto inputs = pluginManager->getInputPlugins();
@@ -5842,11 +5857,16 @@ void Application::cycleCamera() {
     } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
 
         menu->setIsOptionChecked(MenuOption::FirstPerson, false);
-        menu->setIsOptionChecked(MenuOption::ThirdPerson, true);
+        menu->setIsOptionChecked(MenuOption::LookAtCamera, true);
 
-    } else if (menu->isOptionChecked(MenuOption::ThirdPerson)) {
+    } else if (menu->isOptionChecked(MenuOption::LookAtCamera)) {
 
-        menu->setIsOptionChecked(MenuOption::ThirdPerson, false);
+        menu->setIsOptionChecked(MenuOption::LookAtCamera, false);
+        menu->setIsOptionChecked(MenuOption::SelfieCamera, true);
+
+    } else if (menu->isOptionChecked(MenuOption::SelfieCamera)) {
+
+        menu->setIsOptionChecked(MenuOption::SelfieCamera, false);
         menu->setIsOptionChecked(MenuOption::FullscreenMirror, true);
 
     }
@@ -5858,11 +5878,11 @@ void Application::cameraModeChanged() {
         case CAMERA_MODE_FIRST_PERSON:
             Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
             break;
-        case CAMERA_MODE_THIRD_PERSON:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
+        case CAMERA_MODE_LOOK_AT:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::LookAtCamera, true);
             break;
-        case CAMERA_MODE_MIRROR:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
+        case CAMERA_MODE_SELFIE:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::SelfieCamera, true);
             break;
         default:
             // we don't have menu items for the others, so just leave it alone.
@@ -5878,32 +5898,32 @@ void Application::changeViewAsNeeded(float boomLength) {
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON && boomLengthGreaterThanMinimum) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::LookAtCamera, true);
         cameraMenuChanged();
-    } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON && !boomLengthGreaterThanMinimum) {
+    } else if (_myCamera.getMode() == CAMERA_MODE_LOOK_AT && !boomLengthGreaterThanMinimum) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, false);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::LookAtCamera, false);
         cameraMenuChanged();
     }
 }
 
 void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
-    if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
-        if (!isHMDMode() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
-            _mirrorYawOffset = 0.0f;
-            _myCamera.setMode(CAMERA_MODE_MIRROR);
-            getMyAvatar()->reset(false, false, false); // to reset any active MyAvatar::FollowHelpers
-            getMyAvatar()->setBoomLength(MyAvatar::ZOOM_DEFAULT);
-        }
-    } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
+    if (menu->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
             _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
             getMyAvatar()->setBoomLength(MyAvatar::ZOOM_MIN);
         }
-    } else if (menu->isOptionChecked(MenuOption::ThirdPerson)) {
-        if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-            _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+    } else if (menu->isOptionChecked(MenuOption::LookAtCamera)) {
+        if (_myCamera.getMode() != CAMERA_MODE_LOOK_AT) {
+            _myCamera.setMode(CAMERA_MODE_LOOK_AT);
+            if (getMyAvatar()->getBoomLength() == MyAvatar::ZOOM_MIN) {
+                getMyAvatar()->setBoomLength(MyAvatar::ZOOM_DEFAULT);
+            }
+        }
+    } else if (menu->isOptionChecked(MenuOption::SelfieCamera)) {
+        if (_myCamera.getMode() != CAMERA_MODE_SELFIE) {
+            _myCamera.setMode(CAMERA_MODE_SELFIE);
             if (getMyAvatar()->getBoomLength() == MyAvatar::ZOOM_MIN) {
                 getMyAvatar()->setBoomLength(MyAvatar::ZOOM_DEFAULT);
             }
@@ -8994,9 +9014,9 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
             cameraMenuChanged();
         }
 
-        // Remove the mirror camera option from menu if in HMD mode
-        auto mirrorAction = menu->getActionForOption(MenuOption::FullscreenMirror);
-        mirrorAction->setVisible(!isHmd);
+        // Remove the selfie camera options from menu if in HMD mode
+        auto selfieAction = menu->getActionForOption(MenuOption::SelfieCamera);
+        selfieAction->setVisible(!isHmd);
     }
 
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
