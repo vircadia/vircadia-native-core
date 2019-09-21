@@ -21,7 +21,6 @@
 
 #include <PerfStat.h>
 
-#include "EntityDynamicInterface.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
 
@@ -59,10 +58,10 @@ public:
 
     void updateEntities();
 
-    virtual void addDynamic(EntityDynamicPointer dynamic);
-    virtual void removeDynamic(const QUuid dynamicID);
-    virtual void removeDynamics(QList<QUuid> dynamicIDsToRemove);
-    virtual void applyDynamicChanges();
+    // FIXME: remove these
+    virtual void addDynamic(EntityDynamicPointer dynamic) {}
+    virtual void removeDynamic(const QUuid dynamicID) {}
+    virtual void applyDynamicChanges() {};
 
     /// \param entity pointer to EntityItem to be added
     /// \sideeffect sets relevant backpointers in entity, but maybe later when appropriate data structures are locked
@@ -102,9 +101,6 @@ protected:
 
     SetOfEntities _entitiesToSort; // entities moved by simulation (and might need resort in EntityTree)
     SetOfEntities _simpleKinematicEntities; // entities undergoing non-colliding kinematic motion
-    QList<EntityDynamicPointer> _dynamicsToAdd;
-    QSet<QUuid> _dynamicsToRemove;
-    QMutex _dynamicsMutex { QMutex::Recursive };
 
 protected:
     SetOfEntities _deadEntities; // dead entities that might still be in the _entityTree

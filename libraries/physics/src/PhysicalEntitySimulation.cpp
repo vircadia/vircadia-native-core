@@ -648,9 +648,24 @@ void PhysicalEntitySimulation::addDynamic(EntityDynamicPointer dynamic) {
                     "dynamic that was already in _physicsEngine";
             }
         }
-        EntitySimulation::addDynamic(dynamic);
+        QMutexLocker lock(&_dynamicsMutex);
+        _dynamicsToAdd += dynamic;
     }
 }
+
+void PhysicalEntitySimulation::removeDynamic(const QUuid dynamicID) {
+    QMutexLocker lock(&_dynamicsMutex);
+    _dynamicsToRemove += dynamicID;
+}
+
+/*
+void PhysicalEntitySimulation::removeDynamics(QList<QUuid> dynamicIDsToRemove) {
+    QMutexLocker lock(&_dynamicsMutex);
+    foreach(QUuid uuid, dynamicIDsToRemove) {
+        _dynamicsToRemove.insert(uuid);
+    }
+}
+*/
 
 void PhysicalEntitySimulation::applyDynamicChanges() {
     QList<EntityDynamicPointer> dynamicsFailedToAdd;
@@ -666,8 +681,8 @@ void PhysicalEntitySimulation::applyDynamicChanges() {
                 }
             }
         }
-        // applyDynamicChanges will clear _dynamicsToRemove and _dynamicsToAdd
-        EntitySimulation::applyDynamicChanges();
+        _dynamicsToAdd.clear();
+        _dynamicsToRemove.clear();
     }
 
     // put back the ones that couldn't yet be added

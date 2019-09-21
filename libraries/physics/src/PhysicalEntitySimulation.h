@@ -19,6 +19,7 @@
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 
+#include <EntityDynamicInterface.h>
 #include <EntityItem.h>
 #include <EntitySimulation.h>
 #include <workload/Space.h>
@@ -58,8 +59,10 @@ public:
     void init(EntityTreePointer tree, PhysicsEnginePointer engine, EntityEditPacketSender* packetSender);
     void setWorkloadSpace(const workload::SpacePointer space) { _space = space; }
 
-    virtual void addDynamic(EntityDynamicPointer dynamic) override;
-    virtual void applyDynamicChanges() override;
+    void addDynamic(EntityDynamicPointer dynamic) override;
+    void removeDynamic(const QUuid dynamicID) override;
+    //void removeDynamics(QList<QUuid> dynamicIDsToRemove);
+    void applyDynamicChanges() override;
 
     virtual void takeDeadEntities(SetOfEntities& deadEntities) override;
     void takeDeadAvatarEntities(SetOfEntities& deadEntities);
@@ -123,6 +126,11 @@ private:
     VectorOfEntityMotionStates _bids;
     SetOfEntities _deadAvatarEntities;
     std::vector<EntityItemPointer> _entitiesToDeleteLater;
+
+    QList<EntityDynamicPointer> _dynamicsToAdd;
+    QSet<QUuid> _dynamicsToRemove;
+    QMutex _dynamicsMutex { QMutex::Recursive };
+
     workload::SpacePointer _space;
     uint64_t _nextBidExpiry;
     uint32_t _lastStepSendPackets { 0 };
