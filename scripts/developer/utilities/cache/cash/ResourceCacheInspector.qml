@@ -10,11 +10,14 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.5
 import QtQuick.Layouts 1.3
+import QtQml.Models 2.12
 
 import "../../lib/prop" as Prop
 
 Item {
     id: root;
+    Prop.Global { id: global }
+
     anchors.fill: parent.fill
     property var cache: {}
     property string cacheResourceName: "" 
@@ -68,6 +71,9 @@ Item {
         }
     }
    
+    property var itemFields: ['name', 'root', 'base', 'path', 'index']
+    property var itemFieldsVisibility: {'name': true, 'root': false, 'base':false, 'path':false, 'index':false}
+
 
     Column {
         id: header
@@ -88,6 +94,7 @@ Item {
         Item {
             anchors.left: parent.left
             anchors.right: parent.right
+            height: totalCount.height
 
             Prop.PropScalar {
                 id: totalCount
@@ -111,14 +118,150 @@ Item {
                 readOnly: true
                 onSourceValueVarChanged: { /*console.log( root.cacheResourceName + " NumCached Value Changed!!!!");*/updateItemListFromCache() }
             }
-            height: totalCount.height
+        }
+
+        RowLayout {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: orderSelector.height
+            
+            Prop.PropComboBox {
+                anchors.left: parent.left
+                id: orderSelector
+                model: [ "name", "base", "root" ]
+                property var selectedIndex: currentIndex
+            }
+
+            Prop.PropCheckBox {
+                id: showName
+                text: 'name'
+                checked: itemFieldsVisibility['name']
+            }
+            Prop.PropCheckBox {
+                id: showRoot
+                text: 'root'
+                checked: itemFieldsVisibility['root']
+            }
+            Prop.PropCheckBox {
+                id: showBase
+                text: 'base'
+                checked: itemFieldsVisibility['base']
+            }            
         }
     }
 
 
-    ListModel {
-        id: resourceItemsModel
+    Component {
+        id: resouceItemDelegate
+        MouseArea {
+            id: dragArea
+            property bool held: false
+            anchors { left: parent.left; right: parent.right }
+            height: item.height
+            onPressed: {held = true}
+            onReleased: {held = false}
+
+            Rectangle {
+                id: item
+                width: parent.width
+                height: global.slimHeight
+                color: dragArea.held ? global.colorBackHighlight : (model.index % 2 ? global.colorBackShadow : global.colorBack)              
+                Row {
+                    id: itemRow
+                    anchors.verticalCenter : parent.verticalCenter
+                    Prop.PropText {
+                        id: itemIndex
+                        text: model.index
+                        width: 30
+                    }
+                    Prop.PropSplitter {
+                        visible: showRoot.checked
+                        size:8
+                    }
+                    Prop.PropLabel {
+                        visible: showRoot.checked
+                        text: model.root
+                        width: 30
+                    }
+                    Prop.PropSplitter {
+                        visible: showBase.checked
+                        size:8
+                    }
+                    Prop.PropLabel {
+                        visible: showBase.checked
+                        text: model.base
+                        width: 60
+                    }
+                    Prop.PropSplitter {
+                        visible: showName.checked
+                        size:8
+                    }
+                    Prop.PropLabel {
+                        visible: showName.checked
+                        text: model.name
+                    }
+                }
+            }
+            
+        }
     }
+    DelegateModel {
+        id: visualModel
+
+        model: ListModel {}
+
+        property var lessThan: [
+            function(left, right) { return left.name < right.name },
+            function(left, right) { return left.base < right.base },
+            function(left, right) { return left.root < right.root }
+        ]
+
+        property int sortOrder: orderSelector.selectedIndex
+        onSortOrderChanged: items.setGroups(0, items.count, "unsorted")
+
+        function insertPosition(lessThan, item) {
+            var lower = 0
+            var upper = items.count
+            while (lower < upper) {
+                var middle = Math.floor(lower + (upper - lower) / 2)
+                var result = lessThan(item.model, items.get(middle).model);
+                if (result) {
+                    upper = middle
+                } else {
+                    lower = middle + 1
+                }
+            }
+            return lower
+        }
+
+        function sort(lessThan) {
+            while (unsortedItems.count > 0) {
+                var item = unsortedItems.get(0)
+                var index = insertPosition(lessThan, item)
+
+                item.groups = "items"
+                items.move(item.itemsIndex, index)
+            }
+        }
+
+        items.includeByDefault: false
+        groups: DelegateModelGroup {
+            id: unsortedItems
+            name: "unsorted"
+
+            includeByDefault: true
+            onChanged: {
+                if (visualModel.sortOrder == visualModel.lessThan.length)
+                    setGroups(0, count, "items")
+                else
+                    visualModel.sort(visualModel.lessThan[visualModel.sortOrder])
+            }
+        }
+
+
+        delegate: resouceItemDelegate
+    }
+    property alias resourceItemsModel: visualModel.model  
     property var currentItemsList: new Array();
   
     function packItemEntry(item) {
@@ -135,6 +278,7 @@ Item {
         return entry
     }
 
+
     function resetItemList(itemList) {
         currentItemsList = []
         resourceItemsModel.clear()
@@ -146,86 +290,11 @@ Item {
     }
 
     function updateItemList(newItemList) {
-        resetItemList(newItemList)
-/*
-        var nextListLength = (currentItemList.length < newItemList.length ? newItemList.length : currentItemList.length )
-        var nextList = new Array(nextListLength)
-
-        var addedList = []
-        var removedList = []
-        var movedList = []
-
-        for (var i in currentItemList) {
-            var item = currentItemList[i]
-            var foundPos = newItemList.findIndex(item)
-            if (foundPos == i) {
-                newList[i] = item
-                newItemList[i] = 0
-            } else if (foundPos == -1) {
-                removedList.push(i)
-            } else {
-                movedList.push([i,foundPos])
-            }
-        }
-
-        for (var i in newItemList) {
-            var item = newItemList[i]
-            if (item != 0) {
-                var foundPos = currentItemList.findIndex(item)
-                if (foundPos == -1) {
-                    addedList.push(item)
-                }
-            }
-        }
-
-
-        for (var i in itemList) {
-            newList[i] = itemList[i]
-        }
-
-
-
-
-*/
-        /*currentItemsList.clear()
-        resourceItemsModel.clear()
-        for (var i in itemList) {
-            currentItemsList.append(itemList[i].toString())
-            resourceItemsModel.append(packItemEntry(currentItemsList[i]))
-        } */   
+        resetItemList(newItemList) 
     }
 
-    Component {
-        id: resouceItemDelegate
-        Row {
-            id: itemRow
-            Prop.PropText {
-                text: model.index
-                width: 30
-            }
-            Prop.PropSplitter {
-                size:8
-            }
-            Prop.PropLabel {
-                text: model.root
-                width: 30
-            }
-            Prop.PropSplitter {
-                size:8
-            }
-            Prop.PropLabel {
-                text: model.base
-                width: 60
-            }
-            Prop.PropSplitter {
-                size:8
-            }
-            Prop.PropLabel {
-                text: model.name
-            }
 
-        }
-    }
+
 
     ListView {
         anchors.top: header.bottom 
@@ -235,7 +304,6 @@ Item {
         clip: true
     
         id: listView
-        model: resourceItemsModel
-        delegate: resouceItemDelegate
+        model: visualModel
     }
 }

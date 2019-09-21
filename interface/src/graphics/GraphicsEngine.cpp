@@ -240,7 +240,7 @@ void GraphicsEngine::render_performFrame() {
             renderArgs._context->setStereoViews(stereoEyeOffsets);
         }
     }
-
+    bool renderScene = true;
     gpu::FramebufferPointer finalFramebuffer;
     QSize finalFramebufferSize;
     {
@@ -277,13 +277,32 @@ void GraphicsEngine::render_performFrame() {
             qApp->getApplicationCompositor().setFrameInfo(_renderFrameCount, eyeToWorld, sensorToWorld);
         }
 
-        {
+        
+        if (renderScene) {
             PROFILE_RANGE(render, "/runRenderFrame");
             renderArgs._hudOperator = displayPlugin->getHUDOperator();
             renderArgs._hudTexture = qApp->getApplicationOverlay().getOverlayTexture();
             renderArgs._takingSnapshot = qApp->takeSnapshotOperators(snapshotOperators);
             renderArgs._blitFramebuffer = finalFramebuffer;
             render_runRenderFrame(&renderArgs);
+        } else {
+            // Instead of clearing, drawing the splash screen background (that looks like the default skybox)         
+            gpu::doInBatch("splashFrame", _gpuContext, [&](gpu::Batch& batch) {
+                batch.setFramebuffer(finalFramebuffer);
+                batch.enableSkybox(true);
+                batch.enableStereo(isStereo);
+                batch.clearDepthStencilFramebuffer(1.0, 0);
+                batch.setViewportTransform({ 0, 0, finalFramebuffer->getSize() });
+                _splashScreen->render(batch, viewFrustum, renderArgs._renderMethod == RenderArgs::RenderMethod::FORWARD);
+            });
+
+            // THen just use the HUD operator of thedisplay plugin
+            gpu::doInBatch("drawHUD", renderArgs._context, [&](gpu::Batch& batch) {
+               batch.setFramebuffer(finalFramebuffer);
+               // TODO we should do more transform setup here just like in "REnderHUDLayerTask.cpp CompositeHUD job if we wanted to support stereo
+               displayPlugin->getHUDOperator()(batch, qApp->getApplicationOverlay().getOverlayTexture());
+            });
+            // And voila
         }
     }
 

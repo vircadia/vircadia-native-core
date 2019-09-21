@@ -383,7 +383,6 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
     }
 
     if (!resource) {
-        _numLoadingResources++;
         resource = createResource(url);
         resource->setExtra(extra);
         resource->setExtraHash(extraHash);
@@ -391,7 +390,6 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
         resource->setCache(this);
         resource->moveToThread(qApp->thread());
         connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
-        connect(resource.data(), &Resource::finished, this, &ResourceCache::decreaseNumLoading);
         {
             QWriteLocker locker(&_resourcesLock);
             _resources[url].insert(extraHash, resource);
@@ -518,10 +516,12 @@ void ResourceCache::updateTotalSize(const qint64& deltaSize) {
 
     emit dirty();
 }
- 
-void ResourceCache::decreaseNumLoading() {
+
+void ResourceCache::incrementNumLoading() {
+    _numLoadingResources++;
+}
+void ResourceCache::decrementNumLoading() {
     _numLoadingResources--;
-    emit dirty();
 }
 
 QList<QSharedPointer<Resource>> ResourceCache::getLoadingRequests() {
