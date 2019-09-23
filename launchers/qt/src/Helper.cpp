@@ -5,6 +5,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QFile>
+#include <QProcess>
 
 #if defined(Q_OS_WIN)
 

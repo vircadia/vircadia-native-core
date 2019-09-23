@@ -37,8 +37,8 @@ if (WIN32)
 
     ExternalProject_Add(
         qtlite
-        URL "https://hifi-public.s3.amazonaws.com/huffman/launcher/qt-lite-ssl.zip"
-        URL_HASH MD5=83eeba1565e5727aef11655acf893c15
+        URL "https://hifi-public.s3.amazonaws.com/huffman/launcher/qt-lite-ssl_2019-9-19.zip"
+        URL_HASH MD5=8b7a0b8fb772a014a3276274f40a9d14 #83eeba1565e5727aef11655acf893c15
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""

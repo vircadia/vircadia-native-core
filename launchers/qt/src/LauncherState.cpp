@@ -9,6 +9,8 @@
 #endif
 #include <array>
 
+#include <QProcess>
+
 #include <QNetworkRequest>
 #include <QNetworkReply>
 
@@ -23,10 +25,30 @@
 #include <QThreadPool>
 
 #include <QStandardPaths>
+#include <QEventLoop>
 
-QString getCurrentClientVersion() {
-    // TODO Implement client version checking
-    return "";
+#include <qregularexpression.h>
+
+QString LauncherState::getCurrentClientVersion() {
+    QProcess client;
+
+    client.start(getClientExecutablePath(), { "--version" });
+
+    QEventLoop loop;
+    connect(&client, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), &loop, &QEventLoop::exit);
+    loop.exec();
+
+    auto output = client.readAllStandardOutput();
+
+    QRegularExpression regex { "Interface (?<version>\\d+)(-.*)?" };
+
+    auto match = regex.match(output);
+
+    if (match.hasMatch()) {
+        return match.captured("version");
+    }
+
+    return QString::null;
 }
 
 
@@ -259,6 +281,19 @@ Q_INVOKABLE void LauncherState::receivedLoginReply() {
 
 QString LauncherState::getContentCachePath() const {
     return _launcherDirectory.filePath("cache");
+}
+
+QString LauncherState::getClientDirectory() const {
+    return _launcherDirectory.filePath("interface_install");
+}
+
+QString LauncherState::getClientExecutablePath() const {
+    QDir clientDirectory = getClientDirectory();
+#if defined(Q_OS_WIN)
+    return clientDirectory.absoluteFilePath("interface.exe");
+#elif defined(Q_OS_MACOS)
+    return clientDirectory.absoluteFilePath("interface.app/Contents/MacOS/interface");
+#endif
 }
 
 bool LauncherState::shouldDownloadContentCache() const {
@@ -500,7 +535,11 @@ void LauncherState::installContentCache() {
 }
 
 void LauncherState::launchClient() {
-    ASSERT_STATE({ ApplicationState::InstallingClient, ApplicationState::InstallingContentCache });
+    ASSERT_STATE({
+        ApplicationState::RequestingLogin,
+        ApplicationState::InstallingClient,
+        ApplicationState::InstallingContentCache
+    });
 
     setApplicationState(ApplicationState::LaunchingHighFidelity);
 

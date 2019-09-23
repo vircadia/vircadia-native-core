@@ -134,7 +134,11 @@ private slots:
 
 private:
     bool shouldDownloadContentCache() const;
+    QString getCurrentClientVersion();
+
     QString getContentCachePath() const;
+    QString getClientDirectory() const;
+    QString getClientExecutablePath() const;
 
     QNetworkAccessManager _networkAccessManager;
     LatestBuilds _latestBuilds;
