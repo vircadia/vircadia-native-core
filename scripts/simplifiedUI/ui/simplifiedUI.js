@@ -532,6 +532,11 @@ function onGeometryChanged(rect) {
     }
 }
 
+function onWindowMinimizedChanged() {
+    // prerequisite placeholder for Reduce Friction of Customer Acquisition sub task: https://highfidelity.atlassian.net/browse/DEV-585
+    print("WINDOW MINIMIZED CHANGED SIGNAL");
+}
+
 function onDisplayModeChanged(isHMDMode) {
     if (isHMDMode) {
         Camera.setModeString("first person");
@@ -612,6 +617,7 @@ function startup() {
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
     Audio.mutedHMDChanged.connect(onHMDInputDeviceMutedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
+    Window.minimizedChanged.connect(onWindowMinimizedChanged);
     HMD.displayModeChanged.connect(onDisplayModeChanged);
     Audio.avatarGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.localInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
@@ -657,6 +663,7 @@ function shutdown() {
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
     Audio.mutedHMDChanged.disconnect(onHMDInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
+    Window.minimizedChanged.disconnect(onWindowMinimizedChanged);
     HMD.displayModeChanged.disconnect(onDisplayModeChanged);
     Audio.avatarGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.localInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
