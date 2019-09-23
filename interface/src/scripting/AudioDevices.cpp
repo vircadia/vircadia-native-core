@@ -66,6 +66,8 @@ static QString getTargetDevice(bool hmd, QAudio::Mode mode) {
         } else { // if (_mode == QAudio::AudioOutput)
             deviceName = qApp->getActiveDisplayPlugin()->getPreferredAudioOutDevice();
         }
+    } else if (!setting.isSet()) {
+        deviceName = "default";
     }
     return deviceName;
 }
@@ -99,6 +101,7 @@ AudioDeviceList::AudioDeviceList(QAudio::Mode mode) : _mode(mode) {
             qDebug() << "Device name in settings for Desktop, Input" << setting3.get();
             _backupSelectedDesktopDeviceName = setting3.get();
         } else {
+            _backupSelectedDesktopDeviceName = "default";
             qDebug() << "Device name in settings for Desktop, Input not set";
         }
     }
