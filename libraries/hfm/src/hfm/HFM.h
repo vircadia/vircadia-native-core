@@ -122,7 +122,8 @@ public:
 /// A single binding to a joint.
 class Cluster {
 public:
-    uint32_t jointIndex;
+    static const uint32_t INVALID_JOINT_INDEX{ (uint32_t)-1 };
+    uint32_t jointIndex{ INVALID_JOINT_INDEX };
     glm::mat4 inverseBindMatrix;
     Transform inverseBindTransform;
 };

@@ -1002,22 +1002,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     }
     
 
-    // Build transforms
-    for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
-        auto& gltfNode = _file.nodes[nodeIndex];
-        //gltfNode.transforms.push_back(getModelTransform(gltfNode));
-        gltf::ParentIndexMap::const_iterator parentItr;
-        int curNode = nodeIndex;
-        while (parentsEnd != (parentItr = parentIndices.find(curNode))) {
-            curNode = parentItr->second;
-            auto& ancestorNode = _file.nodes[curNode];
-            //gltfNode.transforms.push_back(getModelTransform(ancestorNode));
-        }
-    }
-
     // Build joints
     HFMJoint joint;
-    joint.distanceToParent = 0;
     hfmModel.jointIndices["x"] = numNodes;
     QVector<glm::mat4> globalTransforms;
     globalTransforms.resize(numNodes);
@@ -1104,7 +1090,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         hfmModel.materials.emplace_back();
         HFMMaterial& hfmMaterial = hfmModel.materials.back();
         hfmMaterial._material = std::make_shared<graphics::Material>();
-        hfmMaterial.materialID =  hfmMaterial.name;
+        hfmMaterial.materialID =  matid;
         setHFMMaterial(hfmMaterial, material);
     }
 
@@ -1228,6 +1214,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     case GLTFVertexAttribute::WEIGHTS_0:
                         success = addArrayFromAttribute(vertexAttribute, accessor, colors);
                         weightStride = GLTFAccessorType::count((GLTFAccessorType::Value)accessor.type);
+                        break;
+
+                    default:
+                        success = false;
                         break;
                 }
                 if (!success) {
@@ -2031,9 +2021,15 @@ bool GLTFSerializer::addArrayFromAttribute(GLTFVertexAttribute::Value vertexAttr
 
         if (!addArrayFromAccessor(accessor, outarray)) {
             qWarning(modelformat) << "There was a problem reading glTF WEIGHTS_0 data for model " << _url;
+            return false;
         }
+
+    default:
+        qWarning(modelformat) << "Unexpected attribute type" << _url;
+        return false;
     }
 
+    
     return true;
 }
 
