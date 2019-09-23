@@ -15,11 +15,11 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
                   const QString& displayName, const QString& contentCachePath, QString loginResponseToken) {
 
     // TODO Fix parameters
-    QString params = "--url " + homePath
-        + " --setBookmark hqhome=\"" + homePath + "\""
-        + " --defaultScriptsOverride " + defaultScriptsPath
-        + " --displayName " + displayName
-        + " --cache " + contentCachePath;
+    QString params = "--url \"" + homePath + "\""
+        + " --setBookmark \"hqhome=" + homePath + "\""
+        + " --defaultScriptsOverride \"" + defaultScriptsPath + "\""
+        + " --displayName \"" + displayName + "\""
+        + " --cache \"" + contentCachePath + "\"";
 
     if (!loginResponseToken.isEmpty()) {
         params += " --tokens \"" + loginResponseToken.replace("\"", "\\\"") + "\"";

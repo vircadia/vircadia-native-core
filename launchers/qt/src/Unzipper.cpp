@@ -16,6 +16,8 @@ Unzipper::Unzipper(const QString& zipFilePath, const QDir& outputDirectory) :
 void Unzipper::run() {
     qDebug() << "Reading zip file" << _zipFilePath << ", extracting to" << _outputDirectory.absolutePath();
 
+    _outputDirectory.mkpath(_outputDirectory.absolutePath());
+
     mz_zip_archive zip_archive;
     memset(&zip_archive, 0, sizeof(zip_archive));
 

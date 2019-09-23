@@ -55,6 +55,7 @@ public:
         UnexpectedError,
 
         RequestingBuilds,
+        GettingCurrentClientVersion,
 
         WaitingForLogin,
         RequestingLogin,
@@ -93,6 +94,7 @@ public:
     void setLastLoginError(LastLoginError lastLoginError);
     LastLoginError getLastLoginError() const;
 
+    void setApplicationStateError(QString errorMessage);
     void setApplicationState(ApplicationState state);
     ApplicationState getApplicationState() const;
 
@@ -100,9 +102,13 @@ public:
     void requestBuilds();
     Q_INVOKABLE void receivedBuildsReply();
 
+
     // Login
     Q_INVOKABLE void login(QString username, QString password);
     Q_INVOKABLE void receivedLoginReply();
+
+    void requestSettings();
+    Q_INVOKABLE void receivedSettingsReply();
 
     // Launcher
     void downloadLauncher();
@@ -134,7 +140,7 @@ private slots:
 
 private:
     bool shouldDownloadContentCache() const;
-    QString getCurrentClientVersion();
+    void getCurrentClientVersion();
 
     QString getContentCachePath() const;
     QString getClientDirectory() const;
@@ -148,9 +154,12 @@ private:
     ApplicationState _applicationState { ApplicationState::Init };
     LoginResponse _loginResponse;
     LastLoginError _lastLoginError { NONE };
+    QString _applicationErrorMessage;
+    QString _currentClientVersion;
     QString _buildTag { QString::null };
     QString _contentCacheURL{ "https://orgs.highfidelity.com/content-cache/content_cache_small-only_data8.zip" }; // QString::null }; // If null, there is no content cache to download
     QString _loginTokenResponse;
+    QString _homeLocation;
     QFile _clientZipFile;
     QFile _launcherZipFile;
     QFile _contentZipFile;

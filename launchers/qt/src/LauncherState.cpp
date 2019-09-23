@@ -29,28 +29,29 @@
 
 #include <qregularexpression.h>
 
-QString LauncherState::getCurrentClientVersion() {
-    QProcess client;
+const QString METAVERSE_API_URL{ "https://metaverse.highfidelity.com" };
+const QByteArray ACCESS_TOKEN_AUTHORIZATION_HEADER = "Authorization";
 
-    client.start(getClientExecutablePath(), { "--version" });
-
-    QEventLoop loop;
-    connect(&client, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), &loop, &QEventLoop::exit);
-    loop.exec();
-
-    auto output = client.readAllStandardOutput();
-
-    QRegularExpression regex { "Interface (?<version>\\d+)(-.*)?" };
-
-    auto match = regex.match(output);
-
-    if (match.hasMatch()) {
-        return match.captured("version");
-    }
-
-    return QString::null;
+QString LauncherState::getContentCachePath() const {
+    return _launcherDirectory.filePath("cache");
 }
 
+QString LauncherState::getClientDirectory() const {
+    return _launcherDirectory.filePath("interface_install");
+}
+
+QString LauncherState::getClientExecutablePath() const {
+    QDir clientDirectory = getClientDirectory();
+#if defined(Q_OS_WIN)
+    return clientDirectory.absoluteFilePath("interface.exe");
+#elif defined(Q_OS_MACOS)
+    return clientDirectory.absoluteFilePath("interface.app/Contents/MacOS/interface");
+#endif
+}
+
+bool LauncherState::shouldDownloadContentCache() const {
+    return !_contentCacheURL.isNull() && !QFile::exists(getContentCachePath());
+}
 
 bool LatestBuilds::getBuild(QString tag, Build* outBuild) {
     if (tag.isNull()) {
@@ -68,7 +69,7 @@ bool LatestBuilds::getBuild(QString tag, Build* outBuild) {
 }
 
 static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_FOR_UI_STATE =
-    { { "SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "DisplayName.qml",
+    { { "qml/SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "DisplayName.qml",
         "qml/Download.qml", "qml/DownloadFinished.qml", "qml/HFBase/Error.qml" } };
 
 void LauncherState::ASSERT_STATE(LauncherState::ApplicationState state) {
@@ -113,6 +114,7 @@ LauncherState::UIState LauncherState::getUIState() const {
     switch (_applicationState) {
         case ApplicationState::Init:
         case ApplicationState::RequestingBuilds:
+        case ApplicationState::GettingCurrentClientVersion:
             return SPLASH_SCREEN;
         case ApplicationState::WaitingForLogin:
         case ApplicationState::RequestingLogin:
@@ -197,7 +199,7 @@ void LauncherState::receivedBuildsReply() {
 #elif defined(Q_OS_MACOS)
                 build.installerZipURL = entry["installers"].toObject()["mac"].toObject()["zip_url"].toString();
 #else
-                #error "Launcher is only supported on Windows and Mac OS"
+#error "Launcher is only supported on Windows and Mac OS"
 #endif
                 _latestBuilds.builds.push_back(build);
             }
@@ -212,14 +214,76 @@ void LauncherState::receivedBuildsReply() {
 #elif defined(Q_OS_MACOS)
             launcherBuild.installerZipURL = launcherResults["mac"].toObject()["url"].toString();
 #else
-            #error "Launcher is only supported on Windows and Mac OS"
+#error "Launcher is only supported on Windows and Mac OS"
 #endif
             _latestBuilds.launcherBuild = launcherBuild;
         }
     }
 
-    //downloadLauncher();
+    getCurrentClientVersion();
+}
+
+void LauncherState::getCurrentClientVersion() {
+    ASSERT_STATE(ApplicationState::RequestingBuilds);
+
+    setApplicationState(ApplicationState::GettingCurrentClientVersion);
+
+    QProcess client;
+    QEventLoop loop;
+
+    //connect(&client, &QProcess::errorOccurred, &loop, &QEventLoop::exit);
+    connect(&client, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), &loop, &QEventLoop::exit);
+    /*
+    connect(&client, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), [&]() {
+        qDebug() << "Finished";
+    });
+    connect(&client, &QProcess::errorOccurred, [&](QProcess::ProcessError err) {
+        qDebug() << "Error occurred" << err << client.error();
+    });
+    connect(&client, &QProcess::started, [&]() {
+        qDebug() << "Started";
+    });
+    connect(&client, &QProcess::stateChanged, [&]() {
+        qDebug() << "State changed " << client.state();
+    });
+    */
+
+    //qDebug() << "Starting client";
+    client.start(getClientExecutablePath(), { "--version" });
+    //qDebug() << "Started" << client.error();
+
+    if (client.state() != QProcess::NotRunning) {
+        //qDebug() << "Starting loop";
+        loop.exec();
+    } else {
+        qDebug() << "Not waiting for client, there was an error starting it: " << client.error();
+    }
+
+    // TODO Handle errors
+    auto output = client.readAllStandardOutput();
+
+    QRegularExpression regex { "Interface (?<version>\\d+)(-.*)?" };
+
+    auto match = regex.match(output);
+
+    if (match.hasMatch()) {
+        _currentClientVersion = match.captured("version");
+    } else {
+        _currentClientVersion = QString::null;
+    }
+    qDebug() << "Current client version is: " << _currentClientVersion;
+
     setApplicationState(ApplicationState::WaitingForLogin);
+}
+
+QString getUserAgent() {
+#if defined(Q_OS_WIN)
+    return "HQLauncher/fixme (Windows)";
+#elif defined(Q_OS_MACOS)
+    return "HQLauncher/fixme (MacOS)";
+#else
+#error Unsupported platform
+#endif
 }
 
 void LauncherState::login(QString username, QString password) {
@@ -229,8 +293,9 @@ void LauncherState::login(QString username, QString password) {
 
     qDebug() << "Got login: " << username << password;
 
-    auto request = new QNetworkRequest(QUrl("https://metaverse.highfidelity.com/oauth/token"));
+    auto request = new QNetworkRequest(QUrl(METAVERSE_API_URL + "/oauth/token"));
 
+    request->setHeader(QNetworkRequest::UserAgentHeader, getUserAgent());
     request->setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
     QUrlQuery query;
     query.addQueryItem("grant_type", "password");
@@ -276,28 +341,62 @@ Q_INVOKABLE void LauncherState::receivedLoginReply() {
     qDebug() << "Got response for login: " << data;
     _loginTokenResponse = data;
 
+    requestSettings();
+}
+
+void LauncherState::requestSettings() {
+    QUrl lockerURL = METAVERSE_API_URL;
+    lockerURL.setPath("/api/v1/user/locker");
+
+    auto lockerRequest = new QNetworkRequest(lockerURL);
+    lockerRequest->setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    lockerRequest->setHeader(QNetworkRequest::UserAgentHeader, getUserAgent());
+    lockerRequest->setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER, QString("Bearer %1").arg(_loginResponse.accessToken).toUtf8());
+
+    QNetworkReply* lockerReply = _networkAccessManager.get(*lockerRequest);
+    connect(lockerReply, &QNetworkReply::finished, this, &LauncherState::receivedSettingsReply);
+}
+
+void LauncherState::receivedSettingsReply() {
+    auto reply = static_cast<QNetworkReply*>(sender());
+    qDebug() << "Got reply: " << reply->error();
+    if (reply->error()) {
+        setApplicationState(ApplicationState::UnexpectedError);
+        return;
+    }
+    auto data = reply->readAll();
+    qDebug() << "Settings: " << data;
+    QJsonParseError parseError;
+    auto doc = QJsonDocument::fromJson(data, &parseError);
+
+    if (parseError.error != QJsonParseError::NoError) {
+        qDebug() << "Error parsing settings";
+        setApplicationStateError("Error retreiving settings");
+        return;
+    }
+
+    auto root = doc.object();
+    if (root["status"] != "success") {
+        qDebug() << "Status is not \"success\"";
+        setApplicationStateError("Error retreiving settings");
+        return;
+    }
+
+    _homeLocation = "hifi://hq";
+    if (root["data"].toObject().contains("home_location")) {
+        auto homeLocation = root["data"].toObject()["home_location"];
+        if (homeLocation.isString()) {
+            _homeLocation = homeLocation.toString();
+            auto host = QUrl(_homeLocation).host();
+            _contentCacheURL = "http://orgs.highfidelity.com/host-content-cache/" +  host + ".zip";
+            qDebug() << "Home location is: " << _homeLocation;
+            qDebug() << "Content cache url is: " << _contentCacheURL;
+        }
+    }
+
+    //qDebug() << "Home:" << _homeLocation << QUrl(_homeLocation).host();
+
     downloadClient();
-}
-
-QString LauncherState::getContentCachePath() const {
-    return _launcherDirectory.filePath("cache");
-}
-
-QString LauncherState::getClientDirectory() const {
-    return _launcherDirectory.filePath("interface_install");
-}
-
-QString LauncherState::getClientExecutablePath() const {
-    QDir clientDirectory = getClientDirectory();
-#if defined(Q_OS_WIN)
-    return clientDirectory.absoluteFilePath("interface.exe");
-#elif defined(Q_OS_MACOS)
-    return clientDirectory.absoluteFilePath("interface.app/Contents/MacOS/interface");
-#endif
-}
-
-bool LauncherState::shouldDownloadContentCache() const {
-    return !_contentCacheURL.isNull() && !QFile::exists(getContentCachePath());
 }
 
 void LauncherState::downloadClient() {
@@ -310,8 +409,7 @@ void LauncherState::downloadClient() {
         return;
     }
 
-    auto currentVersion = getCurrentClientVersion();
-    if (QString::number(build.latestVersion) == currentVersion) {
+    if (QString::number(build.latestVersion) == _currentClientVersion) {
         qDebug() << "Existing client install is up-to-date.";
         downloadContentCache();
         return;
@@ -381,7 +479,7 @@ void LauncherState::installClient() {
     auto unzipper = new Unzipper(_clientZipFile.fileName(), QDir(installDir));
     unzipper->setAutoDelete(true);
     connect(unzipper, &Unzipper::progress, this, [this](float progress) {
-        qDebug() << "Unzipper progress: " << progress;
+        //qDebug() << "Unzipper progress: " << progress;
         _downloadProgress = progress;
         emit downloadProgressChanged();
     });
@@ -463,8 +561,9 @@ void LauncherState::downloadContentCache() {
 
         _downloadProgress = 0;
 
-        auto request = new QNetworkRequest(QUrl(_contentCacheURL));
-        auto reply = _networkAccessManager.get(*request);
+        QNetworkRequest request{ QUrl(_contentCacheURL) };
+        request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+        auto reply = _networkAccessManager.get(request);
 
         _contentZipFile.setFileName(_launcherDirectory.absoluteFilePath("content_cache.zip"));
 
@@ -475,17 +574,6 @@ void LauncherState::downloadContentCache() {
         }
 
         connect(reply, &QNetworkReply::finished, this, &LauncherState::contentCacheDownloadComplete);
-        connect(reply, &QNetworkReply::readyRead, this, [this, reply]() {
-            char buf[4096];
-            while (reply->bytesAvailable() > 0) {
-                qint64 size;
-                size = reply->read(buf, (qint64)sizeof(buf));
-                if (size == 0) {
-                    break;
-                }
-                _contentZipFile.write(buf, size);
-            }
-        });
         connect(reply, &QNetworkReply::downloadProgress, this, [this](qint64 received, qint64 total) {
             _downloadProgress = (float)received / (float)total;
             emit downloadProgressChanged();
@@ -497,6 +585,21 @@ void LauncherState::downloadContentCache() {
 
 void LauncherState::contentCacheDownloadComplete() {
     ASSERT_STATE(ApplicationState::DownloadingContentCache);
+
+    auto reply = static_cast<QNetworkReply*>(sender());
+
+    if (reply->error()) {
+        qDebug() << "Error: " << reply->error() << reply->readAll();
+        setApplicationStateError("Failed to retrieve content cache");
+        return;
+    }
+
+    char buf[4096];
+    while (reply->bytesAvailable() > 0) {
+        qint64 size;
+        size = reply->read(buf, (qint64)sizeof(buf));
+        _contentZipFile.write(buf, size);
+    }
 
     _contentZipFile.close();
 
@@ -552,7 +655,6 @@ void LauncherState::launchClient() {
 #endif
 
     // TODO Get correct home path
-    QString homePath = "hifi://hq";
     QString defaultScriptsPath;
 #if defined(Q_OS_WIN)
     defaultScriptsPath = installDirectory.filePath("scripts/simplifiedUIBootstrapper.js");
@@ -563,7 +665,12 @@ void LauncherState::launchClient() {
     QString displayName = "fixMe";
     QString contentCachePath = _launcherDirectory.filePath("cache");
 
-    ::launchClient(clientPath, homePath, QDir::toNativeSeparators(defaultScriptsPath), displayName, contentCachePath, _loginTokenResponse);
+    ::launchClient(clientPath, _homeLocation, QDir::toNativeSeparators(defaultScriptsPath), displayName, contentCachePath, _loginTokenResponse);
+}
+
+void LauncherState::setApplicationStateError(QString errorMessage) {
+    _applicationErrorMessage = errorMessage;
+    setApplicationState(ApplicationState::UnexpectedError);
 }
 
 void LauncherState::setApplicationState(ApplicationState state) {
