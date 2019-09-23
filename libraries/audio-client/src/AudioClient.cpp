@@ -1535,7 +1535,7 @@ void AudioClient::prepareLocalAudioInjectors(std::unique_ptr<Lock> localAudioLoc
         if (_localToOutputResampler) {
             // resample to output sample rate
             int frames = _localToOutputResampler->render(_localMixBuffer, _localOutputMixBuffer,
-                         AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
             // write to local injectors' ring buffer
             samples = frames * AudioConstants::STEREO;

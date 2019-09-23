@@ -101,7 +101,6 @@ AudioDeviceList::AudioDeviceList(QAudio::Mode mode) : _mode(mode) {
             qDebug() << "Device name in settings for Desktop, Input" << setting3.get();
             _backupSelectedDesktopDeviceName = setting3.get();
         } else {
-            _backupSelectedDesktopDeviceName = "default";
             qDebug() << "Device name in settings for Desktop, Input not set";
         }
     }
