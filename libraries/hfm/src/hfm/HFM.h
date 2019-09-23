@@ -122,8 +122,7 @@ public:
 /// A single binding to a joint.
 class Cluster {
 public:
-
-    int jointIndex;
+    uint32_t jointIndex;
     glm::mat4 inverseBindMatrix;
     Transform inverseBindTransform;
 };
@@ -289,7 +288,8 @@ public:
 
 class TransformNode {
 public:
-    uint32_t parent { 0 };
+    static const uint32_t INVALID_PARENT_INDEX{ (uint32_t)-1 };
+    uint32_t parent { INVALID_PARENT_INDEX };
     Transform transform;
 };
 
