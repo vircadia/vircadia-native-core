@@ -7,7 +7,7 @@
 #include <QDebug>
 
 void launchClient(const QString& clientPath, const QString& homePath, const QString& defaultScriptOverride,
-                  const QString& displayName, const QString& contentCachePath, const QString& loginTokenResponse) {
+                  const QString& displayName, const QString& contentCachePath, QString& loginTokenResponse) {
 
     NSString* homeBookmark = [[NSString stringWithFormat:@"hqhome="] stringByAppendingString:homePath.toNSString()];
     NSArray* arguments;
