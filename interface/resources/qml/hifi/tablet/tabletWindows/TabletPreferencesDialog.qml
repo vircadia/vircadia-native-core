@@ -43,7 +43,9 @@ Item {
         }
 
         if (HMD.active) {
-            if (gotoPreviousApp) {
+            if (gotoPreviousAppFromScript) {
+                dialog.parent.sendToScript("returnToPreviousApp");
+            } else if (gotoPreviousApp) {
                 tablet.returnToPreviousApp();
             } else {
                 tablet.popFromStack();
@@ -60,7 +62,9 @@ Item {
         }
 
         if (HMD.active) {
-            if (gotoPreviousApp) {
+            if (gotoPreviousAppFromScript) {
+                dialog.parent.sendToScript("returnToPreviousApp");
+            } else if (gotoPreviousApp) {
                 tablet.returnToPreviousApp();
             } else {
                 tablet.popFromStack();
