@@ -174,7 +174,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     LogUtils::init();
 
-    LogHandler::getInstance().setParent(this);
+    LogHandler::getInstance().moveToThread(thread());
     LogHandler::getInstance().setupRepeatedMessageFlusher();
 
     qDebug() << "Setting up domain-server";
