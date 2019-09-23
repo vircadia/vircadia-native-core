@@ -9,6 +9,7 @@
 //
 
 import QtQuick 2.10
+import hifi.simplifiedUI.simplifiedControls 1.0 as SimplifiedControls
 import "../simplifiedConstants" as SimplifiedConstants
 import "../inputDeviceButton" as InputDeviceButton
 import stylesUit 1.0 as HifiStylesUit
@@ -157,7 +158,7 @@ Rectangle {
 
         Image {
             id: avatarButtonImage
-            source: "./images/defaultAvatar.svg"
+            source: "../images/defaultAvatar.svg"
             anchors.centerIn: parent
             width: 32
             height: width
@@ -345,6 +346,50 @@ Rectangle {
                     "source": "SimplifiedTopBar.qml",
                     "method": "toggleStatus"
                 });
+            }
+        }
+    }
+
+
+    TextMetrics {
+        id: goToTextFieldMetrics
+        font: goToTextField.font
+        text: goToTextField.longPlaceholderText
+    }
+
+
+    Item {
+        id: goToTextFieldContainer
+        anchors.left: statusButtonContainer.right
+        anchors.leftMargin: 12
+        anchors.right: (hmdButtonContainer.visible ? hmdButtonContainer.left : helpButtonContainer.left)
+        anchors.rightMargin: 12
+        anchors.verticalCenter: parent.verticalCenter
+        height: parent.height
+
+        SimplifiedControls.TextField {
+            id: goToTextField
+            readonly property string shortPlaceholderText: "Jump to..."
+            readonly property string longPlaceholderText: "Type the name of a location to quickly jump there..."
+            anchors.centerIn: parent
+            width: Math.min(parent.width, 445)
+            height: 35
+            leftPadding: 8
+            rightPadding: 8
+            bottomBorderVisible: false
+            backgroundColor: "#1D1D1D"
+            placeholderTextColor: "#8E8E8E"
+            font.pixelSize: 14
+            placeholderText: width - leftPadding - rightPadding < goToTextFieldMetrics.width ? shortPlaceholderText : longPlaceholderText
+            clip: true
+            selectByMouse: true
+            autoScroll: true
+            onAccepted: {
+                if (goToTextField.length > 0) {
+                    AddressManager.handleLookupString(goToTextField.text);
+                    goToTextField.text = "";
+                }
+                parent.forceActiveFocus();
             }
         }
     }

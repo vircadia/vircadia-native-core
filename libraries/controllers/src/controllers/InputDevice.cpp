@@ -77,13 +77,13 @@ namespace controller {
                 return { getButton(channel), 0 };
 
             case ChannelType::POSE:
-                return { getPose(channel).valid ? 1.0f : 0.0f, 0 };
+                return { getPose(channel).valid ? 1.0f : 0.0f, 0, getPose(channel).valid };
 
             default:
                 break;
         }
 
-        return { 0.0f, 0 };
+        return { 0.0f, 0, false };
     }
 
     AxisValue InputDevice::getValue(const Input& input) const {

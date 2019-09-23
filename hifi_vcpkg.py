@@ -257,26 +257,27 @@ endif()
 
     def installQt(self):
         qt5InstallPath = self.getQt5InstallPath()
-        if not os.path.isdir(qt5InstallPath):
-            print ('Downloading Qt from AWS')
-            dest, tail = os.path.split(qt5InstallPath)
+        if os.getenv('QT_CMAKE_PREFIX_PATH') == None:
+            if not os.path.isdir(qt5InstallPath):
+                print ('Downloading Qt from AWS')
+                dest, tail = os.path.split(qt5InstallPath)
 
-            url = 'NOT DEFINED'
-            if platform.system() == 'Windows':
-                url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-windows3.tar.gz'
-            elif platform.system() == 'Darwin':
-                url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-macos3.tar.gz'
-            elif platform.system() == 'Linux':
-                if platform.linux_distribution()[1][:3] == '16.':
-                    url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
-                elif platform.linux_distribution()[1][:3] == '18.':
-                    url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
+                url = 'NOT DEFINED'
+                if platform.system() == 'Windows':
+                    url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-windows3.tar.gz'
+                elif platform.system() == 'Darwin':
+                    url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-macos3.tar.gz'
+                elif platform.system() == 'Linux':
+                    if platform.linux_distribution()[1][:3] == '16.':
+                        url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
+                    elif platform.linux_distribution()[1][:3] == '18.':
+                        url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
+                    else:
+                        print('UNKNOWN LINUX VERSION!!!')
                 else:
-                    print('UNKNOWN LINUX VERSION!!!')
-            else:
-                print('UNKNOWN OPERATING SYSTEM!!!')
+                    print('UNKNOWN OPERATING SYSTEM!!!')
 
-            print('Extracting ' + url + ' to ' + dest)
-            hifi_utils.downloadAndExtract(url, dest)
-        else:
-            print ('Qt has already been downloaded')
+                print('Extracting ' + url + ' to ' + dest)
+                hifi_utils.downloadAndExtract(url, dest)
+            else:
+                print ('Qt has already been downloaded')

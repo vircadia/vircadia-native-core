@@ -47,6 +47,9 @@ Q_DECLARE_METATYPE(JSONCallbackParameters)
 
 const QString ACCOUNTS_GROUP = "accounts";
 
+const int POST_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND;
+const int PULL_SETTINGS_RETRY_INTERVAL = 1 * MSECS_PER_SECOND;
+
 JSONCallbackParameters::JSONCallbackParameters(QObject* callbackReceiver,
                                                const QString& jsonCallbackMethod,
                                                const QString& errorCallbackMethod) :
@@ -87,12 +90,20 @@ AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
 
     qRegisterMetaType<AccountManagerAuth::Type>();
     connect(this, &AccountManager::loginComplete, this, &AccountManager::uploadPublicKey);
+    connect(this, &AccountManager::loginComplete, this, &AccountManager::requestAccountSettings);
+
+    _postSettingsTimer = new QTimer(this);
+    _postSettingsTimer->setInterval(POST_SETTINGS_INTERVAL);
+    connect(this, SIGNAL(loginComplete(QUrl)), _postSettingsTimer, SLOT(start()));
+    connect(this, &AccountManager::logoutComplete, _postSettingsTimer, &QTimer::stop);
+    connect(_postSettingsTimer, &QTimer::timeout, this, &AccountManager::postAccountSettings);
+    connect(qApp, &QCoreApplication::aboutToQuit, this, &AccountManager::postAccountSettings);
 }
 
-const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
 const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
 
 void AccountManager::logout() {
+    postAccountSettings();
 
     // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
     _accountInfo = DataServerAccountInfo();
@@ -104,6 +115,8 @@ void AccountManager::logout() {
     emit logoutComplete();
     // the username has changed to blank
     emit usernameChanged(QString());
+
+    _settings.loggedOut();
 }
 
 QString accountFileDir() {
@@ -160,33 +173,7 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
 
             qCDebug(networking) << "Found metaverse API account information for" << qPrintable(_authURL.toString());
         } else {
-            // we didn't have a file - see if we can migrate old settings and store them in the new file
-
-            // check if there are existing access tokens to load from settings
-            Settings settings;
-            settings.beginGroup(ACCOUNTS_GROUP);
-
-            foreach(const QString& key, settings.allKeys()) {
-                // take a key copy to perform the double slash replacement
-                QString keyCopy(key);
-                QUrl keyURL(keyCopy.replace(DOUBLE_SLASH_SUBSTITUTE, "//"));
-
-                if (keyURL == _authURL) {
-                    // pull out the stored access token and store it in memory
-                    _accountInfo = settings.value(key).value<DataServerAccountInfo>();
-
-                    qCDebug(networking) << "Migrated an access token for" << qPrintable(keyURL.toString())
-                        <<  "from previous settings file";
-                }
-            }
-            settings.endGroup();
-
-            if (_accountInfo.getAccessToken().token.isEmpty()) {
-                qCWarning(networking) << "Unable to load account file. No existing account settings will be loaded.";
-            } else {
-                // persist the migrated settings to file
-                persistAccountToFile();
-            }
+            qCWarning(networking) << "Unable to load account file. No existing account settings will be loaded.";
         }
 
         if (_isAgent && !_accountInfo.getAccessToken().token.isEmpty() && !_accountInfo.hasProfile()) {
@@ -197,6 +184,10 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
         // prepare to refresh our token if it is about to expire
         if (needsToRefreshToken()) {
             refreshAccessToken();
+        }
+
+        if (isLoggedIn()) {
+            emit loginComplete(_authURL);
         }
 
         // tell listeners that the auth endpoint has changed
@@ -802,6 +793,99 @@ void AccountManager::requestProfileFinished() {
 void AccountManager::requestProfileError(QNetworkReply::NetworkError error) {
     // TODO: error handling
     qCDebug(networking) << "AccountManager requestProfileError - " << error;
+}
+
+void AccountManager::requestAccountSettings() {
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+
+    QUrl lockerURL = _authURL;
+    lockerURL.setPath("/api/v1/user/locker");
+
+    QNetworkRequest lockerRequest(lockerURL);
+    lockerRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    lockerRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+    lockerRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER, _accountInfo.getAccessToken().authorizationHeaderValue());
+
+    QNetworkReply* lockerReply = networkAccessManager.get(lockerRequest);
+    connect(lockerReply, &QNetworkReply::finished, this, &AccountManager::requestAccountSettingsFinished);
+    connect(lockerReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestAccountSettingsError(QNetworkReply::NetworkError)));
+
+    _settings.startedLoading();
+}
+
+void AccountManager::requestAccountSettingsFinished() {
+    QNetworkReply* lockerReply = reinterpret_cast<QNetworkReply*>(sender());
+
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(lockerReply->readAll());
+    const QJsonObject& rootObject = jsonResponse.object();
+
+    if (rootObject.contains("status") && rootObject["status"].toString() == "success") {
+        if (rootObject.contains("data") && rootObject["data"].isObject()) {
+            _settings.unpack(rootObject["data"].toObject());
+
+            emit accountSettingsLoaded();
+        } else {
+            qCDebug(networking) << "Error in response for account settings: no data object";
+            QTimer::singleShot(PULL_SETTINGS_RETRY_INTERVAL, this, &AccountManager::requestAccountSettings);
+        }
+    } else {
+        qCDebug(networking) << "Error in response for account settings" << lockerReply->errorString();
+        QTimer::singleShot(PULL_SETTINGS_RETRY_INTERVAL, this, &AccountManager::requestAccountSettings);
+    }
+}
+
+void AccountManager::requestAccountSettingsError(QNetworkReply::NetworkError error) {
+    qCWarning(networking) << "Account settings request encountered an error" << error;
+    QTimer::singleShot(PULL_SETTINGS_RETRY_INTERVAL, this, &AccountManager::requestAccountSettings);
+}
+
+void AccountManager::postAccountSettings() {
+    if (_settings.lastChangeTimestamp() <= _lastSuccessfulSyncTimestamp && _lastSuccessfulSyncTimestamp != 0) {
+        // Nothing changed, skipping settings post
+        return;
+    }
+    if (!isLoggedIn()) {
+        qCWarning(networking) << "Can't post account settings: Not logged in";
+        return;
+    }
+
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+
+    QUrl lockerURL = _authURL;
+    lockerURL.setPath("/api/v1/user/locker");
+
+    QNetworkRequest lockerRequest(lockerURL);
+    lockerRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    lockerRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+    lockerRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    lockerRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER, _accountInfo.getAccessToken().authorizationHeaderValue());
+
+    _currentSyncTimestamp = _settings.lastChangeTimestamp();
+    QJsonObject dataObj;
+    dataObj.insert("locker", _settings.pack());
+
+    auto postData = QJsonDocument(dataObj).toJson(QJsonDocument::Compact);
+
+    QNetworkReply* lockerReply = networkAccessManager.put(lockerRequest, postData);
+    connect(lockerReply, &QNetworkReply::finished, this, &AccountManager::postAccountSettingsFinished);
+    connect(lockerReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(postAccountSettingsError(QNetworkReply::NetworkError)));
+}
+
+void AccountManager::postAccountSettingsFinished() {
+    QNetworkReply* lockerReply = reinterpret_cast<QNetworkReply*>(sender());
+
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(lockerReply->readAll());
+    const QJsonObject& rootObject = jsonResponse.object();
+
+    if (rootObject.contains("status") && rootObject["status"].toString() == "success") {
+        _lastSuccessfulSyncTimestamp = _currentSyncTimestamp;
+    } else {
+        qCDebug(networking) << "Error in response for account settings post" << lockerReply->errorString();
+    }
+}
+
+void AccountManager::postAccountSettingsError(QNetworkReply::NetworkError error) {
+    qCWarning(networking) << "Post encountered an error" << error;
 }
 
 void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainID) {

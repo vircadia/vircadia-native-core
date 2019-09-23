@@ -528,6 +528,8 @@ void PhysicalEntitySimulation::handleChangedMotionStates(const VectorOfMotionSta
                     addOwnership(entityState);
                 } else if (entityState->shouldSendBid()) {
                     addOwnershipBid(entityState);
+                } else {
+                    entityState->getEntity()->updateQueryAACube();
                 }
             }
         }

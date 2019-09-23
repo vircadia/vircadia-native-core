@@ -76,6 +76,8 @@ public:
                                   int visionSqueezePerEye, float visionSqueezeGroundPlaneY,
                                   float visionSqueezeSpotlightSize) override;
 
+    glm::mat4 getSensorResetMatrix() const { return _sensorResetMat; }
+
 protected:
     bool internalActivate() override;
     void internalDeactivate() override;

@@ -29,10 +29,12 @@
 #include <ScriptEngine.h>
 #include <SettingHandle.h>
 #include <Sound.h>
+#include <shared/Camera.h>
 
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
 #include "RingBufferHistory.h"
+#include "devices/DdeFaceTracker.h"
 
 class AvatarActionHold;
 class ModelItemID;
@@ -1748,6 +1750,24 @@ public:
     void prepareAvatarEntityDataForReload();
 
     /**jsdoc
+    * Turn the avatar's head until it faces the target point within the 90/-90 degree range.
+    * Once this method is called, API calls will have full control of the head for a limited time.
+    * If this method is not called for two seconds, the engine will regain control of the head.
+    * @function MyAvatar.setHeadLookAt
+    * @param {Vec3} lookAtTarget - The target point in world coordinates.
+    */
+    Q_INVOKABLE void setHeadLookAt(const glm::vec3& lookAtTarget);
+
+    /**jsdoc
+    * Returns the current head look at target point in world coordinates.
+    * @function MyAvatar.getHeadLookAt
+    * @returns {Vec3} Default position between your avatar's eyes in world coordinates.
+    */
+    Q_INVOKABLE glm::vec3 getHeadLookAt() { return _lookAtCameraTarget; }
+
+    glm::quat getLookAtRotation() { return _lookAtYaw * _lookAtPitch; }
+
+    /**jsdoc
      * Creates a new grab that grabs an entity.
      * @function MyAvatar.grab
      * @param {Uuid} targetID - The ID of the entity to grab.
@@ -1864,12 +1884,18 @@ public:
     bool getFlowActive() const;
     bool getNetworkGraphActive() const;
 
+    void updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera);
+
     // sets the reaction enabled and triggered parameters of the passed in params
     // also clears internal reaction triggers
     void updateRigControllerParameters(Rig::ControllerParameters& params);
 
     // Don't substitute verify-fail:
     virtual const QUrl& getSkeletonModelURL() const override { return _skeletonModelURL; }
+
+    void debugDrawPose(controller::Action action, const char* channelName, float size);
+
+    bool getIsJointOverridden(int jointIndex) const;
 
 public slots:
 
@@ -2618,6 +2644,21 @@ private:
 
     glm::vec3 _trackedHeadPosition;
 
+    const float MAX_LOOK_AT_TIME_SCRIPT_CONTROL = 2.0f;
+    glm::quat _lookAtPitch;
+    glm::quat _lookAtYaw;
+    glm::vec3 _lookAtCameraTarget;
+    glm::vec3 _lookAtScriptTarget;
+    bool _headLookAtActive { false };
+    bool _shouldTurnToFaceCamera { false };
+    bool _scriptControlsHeadLookAt { false };
+    float _scriptHeadControlTimer { 0.0f };
+
+    // LookAt camera data
+    float _selfieTriggerAngle { 55.0f };
+    float _frontLookAtSpeed { 0.15f };
+    float _backLookAtSpeed { 0.25f };
+
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
     Setting::Handle<bool> _showPlayArea;
@@ -2642,6 +2683,8 @@ private:
     void initHeadBones();
     void initAnimGraph();
     void initFlowFromFST();
+    void updateHeadLookAt(float deltaTime);
+    void resetHeadLookAt();
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
@@ -2903,6 +2946,9 @@ private:
     int _reactionEnabledRefCounts[NUM_AVATAR_BEGIN_END_REACTIONS] { 0, 0, 0 };
 
     mutable std::mutex _reactionLock;
+
+    // used to prevent character from jumping after endSit is called.
+    bool _endSitKeyPressComplete { false };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
