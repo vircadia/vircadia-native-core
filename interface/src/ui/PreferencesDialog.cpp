@@ -223,13 +223,11 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
 
-    /*
-    // FIXME: Remove setting completely or make available through JavaScript API?
     {
         auto getter = []()->bool { return qApp->getPreferAvatarFingerOverStylus(); };
         auto setter = [](bool value) { qApp->setPreferAvatarFingerOverStylus(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Avatar Finger Over Stylus", getter, setter));
-        }*/
+    }
 
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
