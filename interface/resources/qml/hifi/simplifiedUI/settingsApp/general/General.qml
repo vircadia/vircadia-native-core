@@ -267,10 +267,8 @@ Flickable {
                 Connections {
                     target: HMD
 
-                    onDisplayModeChanged {
-                        if (isHMDMode) {
-                            selfie.visible = false;
-                        }
+                    onDisplayModeChanged: {
+                        selfie.visible = isHMDMode ? false : true
                     }
                 }
             }
