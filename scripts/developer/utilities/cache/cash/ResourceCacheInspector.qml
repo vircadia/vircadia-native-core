@@ -59,7 +59,7 @@ Item {
     }
 
     Timer {
-        interval: 1000; running: true; repeat: true
+        interval: 2000; running: true; repeat: true
         onTriggered: pullFreshValues()
     }
 
@@ -70,7 +70,65 @@ Item {
             needFreshList = false
         }
     }
-   
+    
+    property alias resourceItemsModel: visualModel.model  
+    property var currentItemsList: new Array();
+  
+    function packItemEntry(item, index) {
+        var entry = { "index": index, "name": "", "scheme": "", "host": "", "pathDir": "", "url": item}
+        if (item.length > 0) {
+            // Detect scheme:
+            var schemePos = item.search(":") 
+            entry.scheme = item.substring(0, schemePos)
+            if (schemePos < 0) schemePos = 0
+            else schemePos += 1
+
+            // path pos is probably after schemePos
+            var pathPos = schemePos
+            
+            // try to detect //userinfo@host:port
+            var token = item.substr(schemePos, 2);
+            if (token.search("//") == 0) {
+                pathPos += 2
+            }
+            item = item.substring(pathPos, item.length)
+            // item is now everything after scheme:[//]
+            var splitted = item.split('/')
+
+            // odd ball, the rest of the url has no other'/' ?
+            // in theory this means it s just the host info ?
+            // we are assuming that path ALWAYS starts with a slash
+            entry.host = splitted[0]
+            
+            if (splitted.length > 1) {           
+                entry.name = splitted[splitted.length - 1] 
+
+                // if splitted is longer than 2 then there should be a path dir
+                if (splitted.length > 2) {  
+                    for (var i = 1; i < splitted.length - 1; i++) {
+                        entry.pathDir += '/' +   splitted[i]   
+                    }
+                }
+            }
+        }
+        return entry
+    }
+
+
+    function resetItemList(itemList) {
+        currentItemsList = []
+        resourceItemsModel.clear()
+        for (var i in itemList) {
+            var item = itemList[i]
+            currentItemsList.push(item)
+            resourceItemsModel.append(packItemEntry(item, currentItemsList.length -1))
+        }   
+    }
+
+    function updateItemList(newItemList) {
+        resetItemList(newItemList) 
+    }
+
     property var itemFields: ['index', 'name', 'scheme', 'host', 'pathDir', 'url']
  
 
@@ -81,15 +139,6 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
 
-
-        /*Prop.PropButton {
-            anchors.left: parent.left
-            id: refresh
-                text: "Refresh"
-            onClicked: {
-                resetItemListFromCache()
-            }
-        }*/
         Item {
             anchors.left: parent.left
             anchors.right: parent.right
@@ -104,7 +153,7 @@ Item {
                 property: "numTotal" 
                 integral: true
                 readOnly: true
-                onSourceValueVarChanged: { /*console.log( root.cacheResourceName + " NumResource Value Changed!!!!") ;*/updateItemListFromCache() }
+                onSourceValueVarChanged: { updateItemListFromCache() }
             }
             Prop.PropScalar {
                 id: cachedCount
@@ -115,7 +164,7 @@ Item {
                 property: "numCached" 
                 integral: true
                 readOnly: true
-                onSourceValueVarChanged: { /*console.log( root.cacheResourceName + " NumCached Value Changed!!!!");*/updateItemListFromCache() }
+                onSourceValueVarChanged: { updateItemListFromCache() }
             }
         }
 
@@ -128,6 +177,7 @@ Item {
                 anchors.left: parent.left
                 id: orderSelector
                 model: itemFields
+                currentIndex: 1
                 property var selectedIndex: currentIndex
 
                 property var isSchemeVisible: (currentIndex == 2)
@@ -136,12 +186,19 @@ Item {
                 property var isURLVisible: (currentIndex == 5)
             }
 
-        /*    Prop.PropCheckBox {
+            Prop.PropCheckBox {
                 anchors.left: orderSelector.right
                 id: listQRC
-                checked: true
+                checked: false
                 text: "list qrc"
-            }*/
+            }
+
+            TextField {
+                anchors.left: listQRC.right
+                id: nameFilter
+                placeholderText: qsTr("Search by name...")
+                Layout.fillWidth: true
+            }
 
         }
     }
@@ -212,139 +269,35 @@ Item {
         }
     }
 
-    // ['index', 'name', 'scheme', 'host', 'pathDir', 'url']
-    DelegateModel {
+    SortFilterModel {
         id: visualModel
-
         model: ListModel {}
 
-        property var filterQRC: function(item) { return item.scheme == "qrc" }
-        property var lessThan: [
+        property int sortOrder: orderSelector.selectedIndex
+
+        property var lessThanArray: [
             function(left, right) { return left.index < right.index },
             function(left, right) { return left.name < right.name },
             function(left, right) { return left.scheme < right.scheme },
             function(left, right) { return left.host < right.host },
             function(left, right) { return left.pathDir < right.pathDir },
             function(left, right) { return left.url < right.url }
-        ]
+        ];
+        lessThan: lessThanArray[sortOrder]
 
-        property int sortOrder: orderSelector.selectedIndex
-        onSortOrderChanged: items.setGroups(0, items.count, "unsorted")
-
-        property bool listQRCChecked: listQRC.checked
-        onListQRCCheckedChanged: items.setGroups(0, items.count, "unsorted")
-
-        function insertPosition(lessThan, item) {
-            var lower = 0
-            var upper = items.count
-            while (lower < upper) {
-                var middle = Math.floor(lower + (upper - lower) / 2)
-                var result = lessThan(item.model, items.get(middle).model);
-                if (result) {
-                    upper = middle
-                } else {
-                    lower = middle + 1
-                }
-            }
-            return lower
-        }
-
-        function sort(lessThan) {
-            while (unsortedItems.count > 0) {
-                var item = unsortedItems.get(0)
-              //  var doHide = (!listQRCChecked && filterQRC(item.model))
-                
-                var index = insertPosition(lessThan, item)
-
-                item.groups = "items"
-             //   if (doHide) {
-             //       item.inItems = false;
-             //   } else {
-              //      item.inItems = true;
-                    items.move(item.itemsIndex, index)
-              //  }
-            }
-        }
-
-        items.includeByDefault: false
-        groups:
-            DelegateModelGroup {
-                id: unsortedItems
-                name: "unsorted"
-
-                includeByDefault: true
-                onChanged: {
-                    if (visualModel.sortOrder == visualModel.lessThan.length)
-                        setGroups(0, count, "items")
-                    else
-                        visualModel.sort(visualModel.lessThan[visualModel.sortOrder])
-                }
-            }
+        property int listQRCChecked: listQRC.checked
+        property int textFilter: nameFilter.text
         
+        property var acceptItemArray: [
+            function(item) { return item.scheme != "qrc" },
+           // function(item) { return true }
+            function(item) { return (item.name.search(textFilter) >= 0) }
+        ]
+        acceptItem: acceptItemArray[0 + listQRCChecked]
 
 
         delegate: resouceItemDelegate
     }
-    property alias resourceItemsModel: visualModel.model  
-    property var currentItemsList: new Array();
-  
-    function packItemEntry(item, index) {
-        var entry = { "index": index, "name": "", "scheme": "", "host": "", "pathDir": "", "url": item}
-        if (item.length > 0) {
-            // Detect scheme:
-            var schemePos = item.search(":") 
-            entry.scheme = item.substring(0, schemePos)
-            if (schemePos < 0) schemePos = 0
-            else schemePos += 1
-
-            // path pos is probably after schemePos
-            var pathPos = schemePos
-            
-            // try to detect //userinfo@host:port
-            var token = item.substr(schemePos, 2);
-            if (token.search("//") == 0) {
-                pathPos += 2
-            }
-            item = item.substring(pathPos, item.length)
-            // item is now everything after scheme:[//]
-            var splitted = item.split('/')
-
-            // odd ball, the rest of the url has no other'/' ?
-            // in theory this means it s just the host info ?
-            // we are assuming that path ALWAYS starts with a slash
-            entry.host = splitted[0]
-            
-            if (splitted.length > 1) {           
-                entry.name = splitted[splitted.length - 1] 
-
-                // if splitted is longer than 2 then there should be a path dir
-                if (splitted.length > 2) {  
-                    for (var i = 1; i < splitted.length - 1; i++) {
-                        entry.pathDir += '/' +   splitted[i]   
-                    }
-                }
-            }
-        }
-        return entry
-    }
-
-
-    function resetItemList(itemList) {
-        currentItemsList = []
-        resourceItemsModel.clear()
-        for (var i in itemList) {
-            var item = itemList[i]
-            currentItemsList.push(item)
-            resourceItemsModel.append(packItemEntry(item, currentItemsList.length -1))
-        }   
-    }
-
-    function updateItemList(newItemList) {
-        resetItemList(newItemList) 
-    }
-
-
-
 
     ListView {
         anchors.top: header.bottom 
