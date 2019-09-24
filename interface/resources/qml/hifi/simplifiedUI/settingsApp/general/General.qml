@@ -239,6 +239,16 @@ Flickable {
                         Camera.mode = "third person"
                     }
                 }
+
+                SimplifiedControls.RadioButton {
+                    id: selfie
+                    text: "Selfie"
+                    checked: Camera.mode === "mirror"
+                    visible: true
+                    onClicked: {
+                        Camera.mode = "mirror"
+                    }
+                }
                 
                 Connections {
                     target: Camera
@@ -248,6 +258,18 @@ Flickable {
                             firstPerson.checked = true
                         } else if (Camera.mode === "third person") {
                             thirdPerson.checked = true
+                        } else if (Camera.mode === "mirror" && HMD.active) {
+                            selfie.checked = true
+                        }
+                    }
+                }
+
+                Connections {
+                    target: HMD
+
+                    onDisplayModeChanged {
+                        if (isHMDMode) {
+                            selfie.visible = false;
                         }
                     }
                 }
