@@ -261,7 +261,7 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool fi
         // we did not have a matching connection, time to see if we should make one
 
         if (filterCreate && _connectionCreationFilterOperator && !_connectionCreationFilterOperator(sockAddr)) {
-            // the connection creation filter did not allow us to create a new connection
+            // the connection creation filter did not allow us to create a new connectionclientHandshakeRequestComplete
 #ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "Socket::findOrCreateConnection refusing to create Connection class for" << sockAddr
                 << "due to connection creation filter";
@@ -548,12 +548,14 @@ void Socket::handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAdd
         Lock connectionsLock(_connectionsHashMutex);
 
         const auto connectionIter = _connectionsHash.find(previousAddress);
-        if (connectionIter != _connectionsHash.end()) {
+        // Don't move classes that are unused so far.
+        if (connectionIter != _connectionsHash.end() && connectionIter->second->hasReceivedHandshake()) {
             auto connection = move(connectionIter->second);
             _connectionsHash.erase(connectionIter);
             connection->setDestinationAddress(currentAddress);
             _connectionsHash[currentAddress] = move(connection);
             connectionsLock.unlock();
+            qCDebug(networking) << "Moved Connection class from" << previousAddress << "to" << currentAddress;
 
             Lock sequenceNumbersLock(_unreliableSequenceNumbersMutex);
             const auto sequenceNumbersIter = _unreliableSequenceNumbers.find(previousAddress);
