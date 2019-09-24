@@ -3799,8 +3799,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "reactionPoint",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 10,
+                                                                                                            "interpTarget": 10,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "transitions": [
                                                                                                                 {
@@ -4610,9 +4610,9 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "idle",
-                                                                                                    "interpDuration": 30,
-                                                                                                    "interpTarget": 30,
-                                                                                                    "interpType": "evaluateBoth",
+                                                                                                    "interpDuration": 10,
+                                                                                                    "interpTarget": 10,
+                                                                                                    "interpType": "snapshotPrev",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "WALKFWD",
@@ -4742,13 +4742,33 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "idleSettle",
-                                                                                                    "interpDuration": 12,
-                                                                                                    "interpTarget": 12,
-                                                                                                    "interpType": "evaluateBoth",
+                                                                                                    "interpDuration": 15,
+                                                                                                    "interpTarget": 15,
+                                                                                                    "interpType": "snapshotPrev",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idle",
                                                                                                             "var": "idleSettleOnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "reactionPositiveTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "reactionNegativeTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "reactionRaiseHandEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "reactionApplaudEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "reactionPointEnabled"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
@@ -4810,7 +4830,7 @@
                                                                                                 },
                                                                                                 {
                                                                                                     "id": "WALKFWD",
-                                                                                                    "interpDuration": 10,
+                                                                                                    "interpDuration": 15,
                                                                                                     "interpTarget": 35,
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
@@ -4874,7 +4894,7 @@
                                                                                                 },
                                                                                                 {
                                                                                                     "id": "WALKBWD",
-                                                                                                    "interpDuration": 10,
+                                                                                                    "interpDuration": 15,
                                                                                                     "interpTarget": 35,
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
@@ -4938,7 +4958,7 @@
                                                                                                 },
                                                                                                 {
                                                                                                     "id": "STRAFERIGHT",
-                                                                                                    "interpDuration": 8,
+                                                                                                    "interpDuration": 15,
                                                                                                     "interpTarget": 25,
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
@@ -5002,7 +5022,7 @@
                                                                                                 },
                                                                                                 {
                                                                                                     "id": "STRAFELEFT",
-                                                                                                    "interpDuration": 8,
+                                                                                                    "interpDuration": 15,
                                                                                                     "interpTarget": 25,
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
@@ -5873,7 +5893,6 @@
         },
         "id": "userAnimStateMachine",
         "type": "stateMachine"
-        
     },
     "version": "1.1"
 }
