@@ -442,21 +442,19 @@ void Agent::executeScript() {
 
             QByteArray audio(frame->data);
 
+            int16_t* samples = reinterpret_cast<int16_t*>(audio.data());
+            int numSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+
             auto volume = player->getVolume();
-            if (volume != 1.0f || _isNoiseGateEnabled) {
-                int16_t* samples = reinterpret_cast<int16_t*>(audio.data());
-                int numSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
-
-                if (volume != 1.0f) {
-                    int32_t fract = (int32_t)(volume * 65536.0f);   // Q16
-                    for (int i = 0; i < numSamples; i++) {
-                        samples[i] = (fract * (int32_t)samples[i]) >> 16;
-                    }
+            if (volume >= 0.0f && volume < 1.0f) {
+                int32_t fract = (int32_t)(volume * (float)(1 << 16));   // Q16
+                for (int i = 0; i < numSamples; i++) {
+                    samples[i] = (fract * (int32_t)samples[i]) >> 16;
                 }
+            }
 
-                if (_isNoiseGateEnabled) {
-                    _audioGate.render(samples, samples, numSamples);
-                }
+            if (_isNoiseGateEnabled) {
+                _audioGate.render(samples, samples, numSamples);
             }
 
             computeLoudness(&audio, scriptedAvatar);

@@ -57,7 +57,7 @@ public:
     float position() const;
     void seek(float position);
 
-    float getVolume() { return _volume; }
+    float getVolume() const { return _volume; }
     void setVolume(float volume);
 
 signals:
