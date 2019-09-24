@@ -175,7 +175,7 @@ void HFMModel::computeKdops() {
 
         // NOTE: points are in joint-frame
         ShapeVertices& points = shapeVertices.at(i);
-        glm::quat rotOffset = jointRotationOffsets.contains((int)i) ? glm::inverse(jointRotationOffsets[i]) : quat();
+        glm::quat rotOffset = jointRotationOffsets.contains((int)i) ? glm::inverse(jointRotationOffsets[(int)i]) : quat();
         if (points.size() > 0) {
             // compute average point
             glm::vec3 avgPoint = glm::vec3(0.0f);
