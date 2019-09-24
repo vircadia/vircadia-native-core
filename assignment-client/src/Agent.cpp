@@ -433,7 +433,7 @@ void Agent::executeScript() {
 
         using namespace recording;
         static const FrameType AUDIO_FRAME_TYPE = Frame::registerFrameType(AudioConstants::getAudioFrameName());
-        Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [this, &scriptedAvatar](Frame::ConstPointer frame) {
+        Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [this, &player, &scriptedAvatar](Frame::ConstPointer frame) {
             if (_shouldMuteRecordingAudio) {
                 return;
             }
@@ -442,10 +442,21 @@ void Agent::executeScript() {
 
             QByteArray audio(frame->data);
 
-            if (_isNoiseGateEnabled) {
+            auto volume = player->getVolume();
+            if (volume != 1.0f || _isNoiseGateEnabled) {
                 int16_t* samples = reinterpret_cast<int16_t*>(audio.data());
                 int numSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
-                _audioGate.render(samples, samples, numSamples);
+
+                if (volume != 1.0f) {
+                    int32_t fract = (int32_t)(volume * 65536.0f);   // Q16
+                    for (int i = 0; i < numSamples; i++) {  // #######: i++ instead of ++i?
+                        samples[i] = (fract * (int32_t)samples[i]) >> 16;
+                    }
+                }
+
+                if (_isNoiseGateEnabled) {
+                    _audioGate.render(samples, samples, numSamples);
+                }
             }
 
             computeLoudness(&audio, scriptedAvatar);
