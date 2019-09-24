@@ -16,10 +16,13 @@ Button {
     id: control
     text: ""
     spacing: 0
+    property alias color: theContentItem.color
 
     contentItem: PiText {
+        id: theContentItem
         text: control.text
         horizontalAlignment: Text.AlignHCenter
+        color: global.fontColor
     }
 
     background: Rectangle {

@@ -58,10 +58,11 @@ Item {
         needFreshList = true
     }
 
-    Timer {
+
+   /* Timer {
         interval: 2000; running: true; repeat: true
         onTriggered: pullFreshValues()
-    }
+    }*/
 
     function pullFreshValues() {
         if (needFreshList) {
@@ -138,34 +139,46 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        margin: global.horizontalMargin
-
+        
         Item {
             anchors.left: parent.left
             anchors.right: parent.right
             height: totalCount.height
 
-            Prop.PropScalar {
-                id: totalCount
+            Prop.PropButton {
+                id: refreshButton
                 anchors.left: parent.left
-                anchors.right: parent.horizontalCenter
-                label: "Count"
-                object: root.cache
-                property: "numTotal" 
-                integral: true
-                readOnly: true
-                onSourceValueVarChanged: { updateItemListFromCache() }
+                anchors.verticalCenter: parent.verticalCenter
+                text: "Refresh"
+                color: needFreshList ? global.colorOrangeAccent : global.fontColor 
+                onPressed: { pullFreshValues() }
             }
-            Prop.PropScalar {
-                id: cachedCount
-                anchors.left: parent.horizontalCenter
+
+            Item {
+                anchors.left: refreshButton.right
                 anchors.right: parent.right
-                label: "Cached"
-                object: root.cache
-                property: "numCached" 
-                integral: true
-                readOnly: true
-                onSourceValueVarChanged: { updateItemListFromCache() }
+                Prop.PropScalar {
+                    id: totalCount
+                    anchors.left: parent.left
+                    anchors.right: parent.horizontalCenter
+                    label: "Count"
+                    object: root.cache
+                    property: "numTotal" 
+                    integral: true
+                    readOnly: true
+                    onSourceValueVarChanged: { updateItemListFromCache() }
+                }
+                Prop.PropScalar {
+                    id: cachedCount
+                    anchors.left: parent.horizontalCenter
+                    anchors.right: parent.right
+                    label: "Cached"
+                    object: root.cache
+                    property: "numCached" 
+                    integral: true
+                    readOnly: true
+                    onSourceValueVarChanged: { updateItemListFromCache() }
+                }
             }
         }
         Item {
@@ -210,7 +223,6 @@ Item {
                 opacity: (nameFilter.text.length > 0) ? 1.0 : 0.5
             }
         }
-        Prop.Prop
     }
 
     Component {
