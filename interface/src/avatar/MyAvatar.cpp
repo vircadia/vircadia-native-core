@@ -4144,6 +4144,7 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
         _goToOrientation = quatOrientation;
     }
 
+    resetLookAtRotation(_goToPosition, _goToOrientation);
     emit transformChanged();
 }
 
@@ -5996,6 +5997,7 @@ bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& o
     }
 
     slamPosition(position);
+    resetLookAtRotation(position, orientation);
     setWorldOrientation(orientation);
 
     auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
@@ -6660,6 +6662,15 @@ void MyAvatar::resetHeadLookAt() {
         _skeletonModel->getRig().setDirectionalBlending(HEAD_BLENDING_NAME, glm::vec3(),
             HEAD_ALPHA_NAME, HEAD_ALPHA_BLENDING);
     }
+}
+
+void MyAvatar::resetLookAtRotation(const glm::vec3& avatarPosition, const glm::quat& avatarOrientation) {
+    // Align the look at values to the given avatar orientation
+    float yaw = safeEulerAngles(avatarOrientation).y;
+    _lookAtYaw = glm::angleAxis(yaw, avatarOrientation * Vectors::UP);
+    _lookAtPitch = Quaternions::IDENTITY;
+    _lookAtCameraTarget =  avatarPosition + avatarOrientation * Vectors::FRONT;
+    resetHeadLookAt();
 }
 
 void MyAvatar::updateHeadLookAt(float deltaTime) {    
