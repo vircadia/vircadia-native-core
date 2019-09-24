@@ -229,7 +229,11 @@ void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
         for (const auto& entry :  _entitiesInScene) {
             const auto& renderer = entry.second;
             const EntityItemPointer& entityItem = renderer->getEntity();
-            if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == sessionUUID))) {
+            auto parentID = entityItem->getParentID();
+            auto parent = getTree()->findEntityByEntityItemID(parentID);
+            if ((!entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == sessionUUID))) {
+                fadeOutRenderable(renderer);
+            } else if (entityItem->isLocalEntity() && parent && parent->getNestableType() == NestableType::Entity) {
                 fadeOutRenderable(renderer);
             } else {
                 savedEntities[entry.first] = entry.second;
