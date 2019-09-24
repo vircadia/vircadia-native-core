@@ -449,7 +449,7 @@ void Agent::executeScript() {
 
                 if (volume != 1.0f) {
                     int32_t fract = (int32_t)(volume * 65536.0f);   // Q16
-                    for (int i = 0; i < numSamples; i++) {  // #######: i++ instead of ++i?
+                    for (int i = 0; i < numSamples; i++) {
                         samples[i] = (fract * (int32_t)samples[i]) >> 16;
                     }
                 }
