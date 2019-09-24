@@ -50,9 +50,6 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_OWNING_AVATAR_ID;
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
-    /* REMOVING THIS AS AN EMERGENCY FIX. We will be returning to modify the code so that MP inspection is not intrusive in domains with a lot of certified content.
-    Jira bug to remove inspection temporarily: https://highfidelity.atlassian.net/browse/DEV-639
-    Jira bug to modify it and bring it back: https://highfidelity.atlassian.net/browse/DEV-645
     connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity, this, &ContextOverlayInterface::clickDownOnEntity);
     connect(entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity, this, &ContextOverlayInterface::mouseReleaseOnEntity);
     connect(entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity, this, &ContextOverlayInterface::contextOverlays_hoverEnterEntity);
@@ -60,7 +57,6 @@ ContextOverlayInterface::ContextOverlayInterface() {
 
     connect(&qApp->getOverlays(), &Overlays::hoverEnterOverlay, this, &ContextOverlayInterface::contextOverlays_hoverEnterOverlay);
     connect(&qApp->getOverlays(), &Overlays::hoverLeaveOverlay, this, &ContextOverlayInterface::contextOverlays_hoverLeaveOverlay);
-    */
 
     connect(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"), &TabletProxy::tabletShownChanged, this, [&]() {
         if (_contextOverlayJustClicked && _hmdScriptingInterface->isMounted()) {
