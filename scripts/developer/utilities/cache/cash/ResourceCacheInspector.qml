@@ -74,8 +74,8 @@ Item {
     property alias resourceItemsModel: visualModel.model  
     property var currentItemsList: new Array();
   
-    function packItemEntry(item, index) {
-        var entry = { "index": index, "name": "", "scheme": "", "host": "", "pathDir": "", "url": item}
+    function packItemEntry(item, identifier) {
+        var entry = { "identifier": identifier, "name": "", "scheme": "", "host": "", "pathDir": "", "url": item}
         if (item.length > 0) {
             // Detect scheme:
             var schemePos = item.search(":") 
@@ -129,7 +129,7 @@ Item {
         resetItemList(newItemList) 
     }
 
-    property var itemFields: ['index', 'name', 'scheme', 'host', 'pathDir', 'url']
+    property var itemFields: ['identifier', 'name', 'scheme', 'host', 'pathDir', 'url']
  
 
     Column {
@@ -138,6 +138,7 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
+        margin: global.horizontalMargin
 
         Item {
             anchors.left: parent.left
@@ -167,40 +168,49 @@ Item {
                 onSourceValueVarChanged: { updateItemListFromCache() }
             }
         }
-
         Item {
             anchors.left: parent.left
             anchors.right: parent.right
             height: orderSelector.height
             
-            Prop.PropComboBox {
+            Prop.PropText {
                 anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                width: 50
+                id: orderSelectorLabel
+                text: "Sort by"
+                horizontalAlignment: Text.AlignHCenter
+            }  
+            Prop.PropComboBox {
+                anchors.left: orderSelectorLabel.right
+                width: 80
                 id: orderSelector
                 model: itemFields
                 currentIndex: 1
-                property var selectedIndex: currentIndex
-
-                property var isSchemeVisible: (currentIndex == 2)
-                property var isHostVisible: (currentIndex == 3)
-                property var isPathDirVisible: (currentIndex == 4)
-                property var isURLVisible: (currentIndex == 5)
+                
+                property var isSchemeVisible: (currentIndex == 2 || filterFieldSelector.currentIndex == 2)
+                property var isHostVisible: (currentIndex == 3 || filterFieldSelector.currentIndex == 3)
+                property var isPathDirVisible: (currentIndex == 4 || filterFieldSelector.currentIndex == 4)
+                property var isURLVisible: (currentIndex == 5 || filterFieldSelector.currentIndex == 5)
             }
 
-            Prop.PropCheckBox {
+            Prop.PropTextField {
                 anchors.left: orderSelector.right
-                id: listQRC
-                checked: false
-                text: "list qrc"
-            }
-
-            TextField {
-                anchors.left: listQRC.right
+                anchors.right: filterFieldSelector.left
                 id: nameFilter
-                placeholderText: qsTr("Search by name...")
+                placeholderText: qsTr("Filter by " + itemFields[filterFieldSelector.currentIndex] + "...")
                 Layout.fillWidth: true
             }
-
+            Prop.PropComboBox {
+                anchors.right: parent.right
+                id: filterFieldSelector
+                model: itemFields
+                currentIndex: 1
+                width: 80
+                opacity: (nameFilter.text.length > 0) ? 1.0 : 0.5
+            }
         }
+        Prop.Prop
     }
 
     Component {
@@ -217,13 +227,13 @@ Item {
                 id: item
                 width: parent.width
                 height: global.slimHeight
-                color: dragArea.held ? global.colorBackHighlight : (model.index % 2 ? global.colorBackShadow : global.colorBack)              
+                color: dragArea.held ? global.colorBackHighlight : (model.identifier % 2 ? global.colorBackShadow : global.colorBack)              
                 Row {
                     id: itemRow
                     anchors.verticalCenter : parent.verticalCenter
                     Prop.PropText {
-                        id: itemIndex
-                        text: model.index
+                        id: itemIdentifier
+                        text: model.identifier
                         width: 30
                     }
                     Prop.PropSplitter {
@@ -273,7 +283,7 @@ Item {
         id: visualModel
         model: ListModel {}
 
-        property int sortOrder: orderSelector.selectedIndex
+        property int sortOrder: orderSelector.currentIndex
 
         property var lessThanArray: [
             function(left, right) { return left.index < right.index },
@@ -285,17 +295,27 @@ Item {
         ];
         lessThan: lessThanArray[sortOrder]
 
-        property int listQRCChecked: listQRC.checked
-        property int textFilter: nameFilter.text
+        property int filterField: filterFieldSelector.currentIndex
+        onFilterFieldChanged: { refreshFilter() }
+        property var textFilter: nameFilter.text
+        onTextFilterChanged: { refreshFilter() }
         
+        function filterToken(itemWord, token) { return  (itemWord.search(token) > -1) }
         property var acceptItemArray: [
-            function(item) { return item.scheme != "qrc" },
-           // function(item) { return true }
-            function(item) { return (item.name.search(textFilter) >= 0) }
+            function(item) { return true },
+            function(item) { return filterToken(item.identifier.toString(), textFilter) },
+            function(item) { return filterToken(item.name, textFilter) },
+            function(item) { return filterToken(item.scheme, textFilter) },
+            function(item) { return filterToken(item.host, textFilter) },
+            function(item) { return filterToken(item.pathDir, textFilter) },
+            function(item) { return filterToken(item.url, textFilter) }
         ]
-        acceptItem: acceptItemArray[0 + listQRCChecked]
 
-
+        function refreshFilter() {
+            console.log("refreshFilter! token = " + textFilter + " field = " + filterField)
+            acceptItem = acceptItemArray[(textFilter.length != 0) * + (1 + filterField)]
+        }
+  
         delegate: resouceItemDelegate
     }
 
