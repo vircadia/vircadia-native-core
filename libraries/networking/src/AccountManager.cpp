@@ -73,9 +73,10 @@ QJsonObject AccountManager::dataObjectFromResponse(QNetworkReply* requestReply) 
     }
 }
 
-AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
+AccountManager::AccountManager(bool accountSettingsEnabled, UserAgentGetter userAgentGetter) :
     _userAgentGetter(userAgentGetter),
-    _authURL()
+    _authURL(),
+    _accountSettingsEnabled(accountSettingsEnabled)
 {
     qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
     qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");
@@ -796,6 +797,10 @@ void AccountManager::requestProfileError(QNetworkReply::NetworkError error) {
 }
 
 void AccountManager::requestAccountSettings() {
+    if (!_accountSettingsEnabled) {
+        return;
+    }
+
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QUrl lockerURL = _authURL;
@@ -840,6 +845,10 @@ void AccountManager::requestAccountSettingsError(QNetworkReply::NetworkError err
 }
 
 void AccountManager::postAccountSettings() {
+    if (!_accountSettingsEnabled) {
+        return;
+    }
+
     if (_settings.lastChangeTimestamp() <= _lastSuccessfulSyncTimestamp && _lastSuccessfulSyncTimestamp != 0) {
         // Nothing changed, skipping settings post
         return;
