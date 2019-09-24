@@ -27,7 +27,7 @@ namespace baker {
     class GetModelPartsTask {
     public:
         using Input = hfm::Model::Pointer;
-        using Output = VaryingSet5<std::vector<hfm::Mesh>, hifi::URL, baker::MeshIndicesToModelNames, baker::BlendshapesPerMesh, std::vector<hfm::Joint>>;
+        using Output = VaryingSet8<std::vector<hfm::Mesh>, hifi::URL, baker::MeshIndicesToModelNames, baker::BlendshapesPerMesh, std::vector<hfm::Joint>, std::vector<hfm::Shape>, std::vector<hfm::DynamicTransform>, std::vector<hfm::Deformer>>;
         using JobModel = Job::ModelIO<GetModelPartsTask, Input, Output>;
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
@@ -41,6 +41,9 @@ namespace baker {
                 blendshapesPerMesh.push_back(hfmModelIn->meshes[i].blendshapes.toStdVector());
             }
             output.edit4() = hfmModelIn->joints;
+            output.edit5() = hfmModelIn->shapes;
+            output.edit6() = hfmModelIn->dynamicTransforms;
+            output.edit7() = hfmModelIn->deformers;
         }
     };
 
@@ -134,6 +137,9 @@ namespace baker {
             const auto meshIndicesToModelNames = modelPartsIn.getN<GetModelPartsTask::Output>(2);
             const auto blendshapesPerMeshIn = modelPartsIn.getN<GetModelPartsTask::Output>(3);
             const auto jointsIn = modelPartsIn.getN<GetModelPartsTask::Output>(4);
+            const auto shapesIn = modelPartsIn.getN<GetModelPartsTask::Output>(5);
+            const auto dynamicTransformsIn = modelPartsIn.getN<GetModelPartsTask::Output>(6);
+            const auto deformersIn = modelPartsIn.getN<GetModelPartsTask::Output>(7);
 
             // Calculate normals and tangents for meshes and blendshapes if they do not exist
             // Note: Normals are never calculated here for OBJ models. OBJ files optionally define normals on a per-face basis, so for consistency normals are calculated beforehand in OBJSerializer.
@@ -146,7 +152,7 @@ namespace baker {
             const auto tangentsPerBlendshapePerMesh = model.addJob<CalculateBlendshapeTangentsTask>("CalculateBlendshapeTangents", calculateBlendshapeTangentsInputs);
 
             // Build the graphics::MeshPointer for each hfm::Mesh
-            const auto buildGraphicsMeshInputs = BuildGraphicsMeshTask::Input(meshesIn, url, meshIndicesToModelNames, normalsPerMesh, tangentsPerMesh).asVarying();
+            const auto buildGraphicsMeshInputs = BuildGraphicsMeshTask::Input(meshesIn, url, meshIndicesToModelNames, normalsPerMesh, tangentsPerMesh, shapesIn, dynamicTransformsIn, deformersIn).asVarying();
             const auto graphicsMeshes = model.addJob<BuildGraphicsMeshTask>("BuildGraphicsMesh", buildGraphicsMeshInputs);
 
             // Prepare joint information
