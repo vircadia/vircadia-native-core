@@ -1480,7 +1480,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 // of skinning information in FBX
                 QString jointID = _connectionChildMap.value(clusterID);
                 hfmCluster.jointIndex = modelIDs.indexOf(jointID);
-                if (hfmCluster.jointIndex == -1) {
+                if (hfmCluster.jointIndex == hfm::Cluster::INVALID_JOINT_INDEX) {
                     qCDebug(modelformat) << "Joint not in model list: " << jointID;
                     hfmCluster.jointIndex = 0;
                 }
@@ -1514,7 +1514,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         {
             HFMCluster cluster;
             cluster.jointIndex = modelIDs.indexOf(modelID);
-            if (cluster.jointIndex == -1) {
+            if (cluster.jointIndex == hfm::Cluster::INVALID_JOINT_INDEX) {
                 qCDebug(modelformat) << "Model not in model list: " << modelID;
                 cluster.jointIndex = 0;
             }

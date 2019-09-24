@@ -45,7 +45,6 @@ ReweightedDeformers getReweightedDeformers(size_t numMeshVertices, const hfm::Dy
     weightAccumulators.resize(numClusterIndices, 0.0f);
     for (uint16_t i = 0; i < (uint16_t)deformers.size(); ++i) {
         const hfm::Deformer& deformer = *deformers[i];
-        const hfm::Cluster& cluster = dynamicTransform->clusters[i];
 
         if (deformer.indices.size() != deformer.weights.size()) {
             reweightedDeformers.trimmedToMatch = true;
