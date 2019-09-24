@@ -1472,8 +1472,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
             // Build weights (adapted from FBXSerializer.cpp)
             if (hfmModel.hasSkeletonJoints) {
-                int prevMeshClusterIndexCount = mesh.clusterIndices.count();
-                int prevMeshClusterWeightCount = mesh.clusterWeights.count();
                 const int WEIGHTS_PER_VERTEX = 4;
                 const float ALMOST_HALF = 0.499f;
                 int numVertices = mesh.vertices.size() - prevMeshVerticesCount;
@@ -1485,6 +1483,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 }
 
 #if 0
+                int prevMeshClusterIndexCount = mesh.clusterIndices.count();
                 for (int c = 0; c < clusterJoints.size(); ++c) {
                     mesh.clusterIndices[prevMeshClusterIndexCount + c] =
                         originalToNewNodeIndexMap[_file.skins[node.skin].joints[clusterJoints[c]]];
@@ -1492,6 +1491,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 #endif
 
                 // normalize and compress to 16-bits
+                int prevMeshClusterWeightCount = mesh.clusterWeights.count();
                 for (int i = 0; i < numVertices; ++i) {
                     int j = i * WEIGHTS_PER_VERTEX;
 
@@ -1506,20 +1506,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         }
                     } else {
                         mesh.clusterWeights[prevMeshClusterWeightCount + j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
-                    }
-                    for (int clusterIndex = 0; clusterIndex < mesh.clusters.size() - 1; ++clusterIndex) {
-                        ShapeVertices& points = hfmModel.shapeVertices.at(clusterIndex);
-                        glm::vec3 globalMeshScale = extractScale(globalTransforms[nodeIndex]);
-                        const glm::mat4 meshToJoint = glm::scale(glm::mat4(), globalMeshScale) * jointInverseBindTransforms[clusterIndex];
-
-                        const float EXPANSION_WEIGHT_THRESHOLD = 0.25f;
-                        if (mesh.clusterWeights[j] >= EXPANSION_WEIGHT_THRESHOLD) {
-                            // TODO: fix transformed vertices being pushed back
-                            auto& vertex = mesh.vertices[i];
-                            const glm::mat4 vertexTransform = meshToJoint * (glm::translate(glm::mat4(), vertex));
-                            glm::vec3 transformedVertex = hfmModel.joints[clusterIndex].translation * (extractTranslation(vertexTransform));
-                            points.push_back(transformedVertex);
-                        }
                     }
                 }
             }
