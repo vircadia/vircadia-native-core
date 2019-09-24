@@ -1094,20 +1094,25 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         setHFMMaterial(hfmMaterial, material);
     }
 
+
+    for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
+    }
+
+
     int meshCount = _file.meshes.size();
     hfmModel.meshes.resize(meshCount);
     hfmModel.meshExtents.reset();
-
-
     hfmModel.meshes.resize(meshCount);
     for (int meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
         const auto& gltfMesh = _file.meshes[meshIndex];
         auto& mesh = hfmModel.meshes[meshIndex];
         mesh.meshIndex = meshIndex;
-#if 0
+
         if (!hfmModel.hasSkeletonJoints) { 
             HFMCluster cluster;
+#if 0
             cluster.jointIndex = nodeIndex;
+#endif
             cluster.inverseBindMatrix = glm::mat4();
             cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
             mesh.clusters.append(cluster);
@@ -1125,7 +1130,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         root.inverseBindMatrix = jointInverseBindTransforms[root.jointIndex];
         root.inverseBindTransform = Transform(root.inverseBindMatrix);
         mesh.clusters.append(root);
-#endif
 
         QSet<QString> meshAttributes;
         for(const auto &primitive : gltfMesh.primitives) {
@@ -1466,7 +1470,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 }
             }
 
-#if 0
             // Build weights (adapted from FBXSerializer.cpp)
             if (hfmModel.hasSkeletonJoints) {
                 int prevMeshClusterIndexCount = mesh.clusterIndices.count();
@@ -1481,10 +1484,12 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     mesh.clusterWeights.push_back(0);
                 }
 
+#if 0
                 for (int c = 0; c < clusterJoints.size(); ++c) {
                     mesh.clusterIndices[prevMeshClusterIndexCount + c] =
                         originalToNewNodeIndexMap[_file.skins[node.skin].joints[clusterJoints[c]]];
                 }
+#endif
 
                 // normalize and compress to 16-bits
                 for (int i = 0; i < numVertices; ++i) {
@@ -1518,7 +1523,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
                 }
             }
-#endif
 
 #if 0 
             if (primitive.defined["material"]) {
@@ -1622,8 +1626,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         mesh.meshExtents.maximum += glm::vec3(EPSILON, EPSILON, EPSILON);
         hfmModel.meshExtents.minimum -= glm::vec3(EPSILON, EPSILON, EPSILON);
         hfmModel.meshExtents.maximum += glm::vec3(EPSILON, EPSILON, EPSILON);
-           
     }
+
 
     for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
         const auto& node = _file.nodes[nodeIndex];
