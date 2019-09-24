@@ -150,6 +150,7 @@ int clipTriangleWithPlane(const Triangle& triangle, const Plane& plane, Triangle
 int clipTriangleWithPlanes(const Triangle& triangle, const Plane* planes, int planeCount, Triangle* clippedTriangles, int maxClippedTriangleCount);
 
 bool doLineSegmentsIntersect(glm::vec2 r1p1, glm::vec2 r1p2, glm::vec2 r2p1, glm::vec2 r2p2);
+bool findClosestApproachOfLines(glm::vec3 p1, glm::vec3 d1, glm::vec3 p2, glm::vec3 d2, float& t1, float& t2);
 bool isOnSegment(float xi, float yi, float xj, float yj, float xk, float yk);
 int computeDirection(float xi, float yi, float xj, float yj, float xk, float yk);
 

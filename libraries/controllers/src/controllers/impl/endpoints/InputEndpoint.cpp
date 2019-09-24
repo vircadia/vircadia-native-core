@@ -16,7 +16,7 @@ using namespace controller;
 
 AxisValue InputEndpoint::peek() const {
     if (isPose()) {
-        return peekPose().valid ? AxisValue(1.0f, 0) : AxisValue(0.0f, 0);
+        return peekPose().valid ? AxisValue(1.0f, 0) : AxisValue(0.0f, 0, false);
     }
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     auto deviceProxy = userInputMapper->getDevice(_input);

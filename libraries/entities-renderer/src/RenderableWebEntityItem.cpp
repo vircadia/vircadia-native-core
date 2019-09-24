@@ -24,6 +24,7 @@
 #include <ui/OffscreenQmlSurface.h>
 #include <ui/TabletScriptingInterface.h>
 #include <EntityScriptingInterface.h>
+#include <shared/LocalFileAccessGate.h>
 
 #include "EntitiesRendererLogging.h"
 #include <NetworkingConstants.h>
@@ -180,14 +181,23 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         }
 
         // This work must be done on the main thread
+        bool localSafeContext = entity->getLocalSafeContext();
         if (!_webSurface) {
+            if (localSafeContext) {
+                ::hifi::scripting::setLocalAccessSafeThread(true);
+            }
             buildWebSurface(entity, newSourceURL);
+            ::hifi::scripting::setLocalAccessSafeThread(false);
         }
 
         if (_webSurface) {
             if (_webSurface->getRootItem()) {
                 if (_contentType == ContentType::HtmlContent && _sourceURL != newSourceURL) {
+                    if (localSafeContext) {
+                        ::hifi::scripting::setLocalAccessSafeThread(true);
+                    }
                     _webSurface->getRootItem()->setProperty(URL_PROPERTY, newSourceURL);
+                    ::hifi::scripting::setLocalAccessSafeThread(false);
                     _sourceURL = newSourceURL;
                 } else if (_contentType != ContentType::HtmlContent) {
                     _sourceURL = newSourceURL;

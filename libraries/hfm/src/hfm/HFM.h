@@ -56,7 +56,7 @@ const int MAX_NUM_PIXELS_FOR_FBX_TEXTURE = 2048 * 2048;
 
 using ShapeVertices = std::vector<glm::vec3>;
 // The version of the Draco mesh binary data itself. See also: FBX_DRACO_MESH_VERSION in FBX.h
-static const int DRACO_MESH_VERSION = 2;
+static const int DRACO_MESH_VERSION = 3;
 
 static const int DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES = 1000;
 static const int DRACO_ATTRIBUTE_MATERIAL_ID = DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES;

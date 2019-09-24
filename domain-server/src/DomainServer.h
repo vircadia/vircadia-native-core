@@ -236,6 +236,7 @@ private:
 
     bool _isUsingDTLS { false };
 
+    bool _oauthEnable { false };
     QUrl _oauthProviderURL;
     QString _oauthClientID;
     QString _oauthClientSecret;

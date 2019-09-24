@@ -19,6 +19,7 @@ StackView {
     objectName: "stack"
     property string title: "General Settings"
     property alias gotoPreviousApp: root.gotoPreviousApp;
+    property alias gotoPreviousAppFromScript: root.gotoPreviousAppFromScript;
     signal sendToScript(var message);
 
     function pushSource(path) {
@@ -28,6 +29,10 @@ StackView {
 
     function popSource() {
         profileRoot.pop();
+    }
+
+    function emitSendToScript(message) {
+        profileRoot.sendToScript(message);
     }
 
     TabletPreferencesDialog {

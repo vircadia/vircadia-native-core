@@ -256,6 +256,9 @@ void UserInputMapper::update(float deltaTime) {
     for (auto& channel : _actionStates) {
         channel = 0.0f;
     }
+    for (unsigned int i = 0; i < _actionStatesValid.size(); i++) {
+        _actionStatesValid[i] = true;
+    }
 
     for (auto& channel : _poseStates) {
         channel = Pose();
@@ -1232,6 +1235,18 @@ void UserInputMapper::disableMapping(const Mapping::Pointer& mapping) {
         debuggableRoutes = hasDebuggableRoute(_deviceRoutes) || hasDebuggableRoute(_standardRoutes);
     }
 }
+
+void UserInputMapper::setActionState(Action action, float value, bool valid) {
+    _actionStates[toInt(action)] = value;
+    _actionStatesValid[toInt(action)] = valid;
+}
+
+void UserInputMapper::deltaActionState(Action action, float delta, bool valid) {
+    _actionStates[toInt(action)] += delta;
+    bool wasValid = _actionStatesValid[toInt(action)];
+    _actionStatesValid[toInt(action)] = wasValid & valid;
+}
+
 
 }
 

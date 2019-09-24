@@ -29,7 +29,7 @@ AxisValue PulseFilter::apply(AxisValue value) const {
         _lastEmitTime = DEFAULT_LAST_EMIT_TIME;
     }
 
-    return { result, value.timestamp };
+    return { result, value.timestamp, value.valid };
 }
 
 bool PulseFilter::parseParameters(const QJsonValue& parameters) {

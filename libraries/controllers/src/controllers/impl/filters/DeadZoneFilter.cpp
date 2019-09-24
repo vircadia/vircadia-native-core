@@ -18,7 +18,7 @@ AxisValue DeadZoneFilter::apply(AxisValue value) const {
     if (magnitude < _min) {
         return { 0.0f, value.timestamp };
     }
-    return { (magnitude - _min) * scale, value.timestamp };
+    return { (magnitude - _min) * scale, value.timestamp, value.valid };
 }
 
 bool DeadZoneFilter::parseParameters(const QJsonValue& parameters) {

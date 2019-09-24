@@ -10,6 +10,8 @@
 //
 #include "ViewTask.h"
 
+#include <Profile.h>
+
 using namespace workload;
 
 
@@ -181,8 +183,11 @@ void ControlViews::regulateViews(workload::Views& outViews, const workload::Timi
 
     auto loopDuration = timings[5];
     regionBackFronts[workload::Region::R1] = regionRegulators[workload::Region::R1].run(loopDuration, timings[2] + timings[3], regionBackFronts[workload::Region::R1]);
+    PROFILE_COUNTER(workload, "R1Front", { { "R1", regionBackFronts[workload::Region::R1].y} } );
     regionBackFronts[workload::Region::R2] = regionRegulators[workload::Region::R2].run(loopDuration, timings[2] + timings[3], regionBackFronts[workload::Region::R2]);
+    PROFILE_COUNTER(workload, "R2Front", { { "R2", regionBackFronts[workload::Region::R2].y } } );
     regionBackFronts[workload::Region::R3] = regionRegulators[workload::Region::R3].run(loopDuration, timings[4], regionBackFronts[workload::Region::R3]);
+    PROFILE_COUNTER(workload, "R3Front", { { "R3", regionBackFronts[workload::Region::R3].y } } );
 
     enforceRegionContainment();
     for (auto& outView : outViews) {
