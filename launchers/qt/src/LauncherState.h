@@ -157,7 +157,7 @@ private:
     QString _applicationErrorMessage;
     QString _currentClientVersion;
     QString _buildTag { QString::null };
-    QString _contentCacheURL{ "https://orgs.highfidelity.com/content-cache/content_cache_small-only_data8.zip" }; // QString::null }; // If null, there is no content cache to download
+    QString _contentCacheURL;
     QString _loginTokenResponse;
     QString _homeLocation;
     QFile _clientZipFile;

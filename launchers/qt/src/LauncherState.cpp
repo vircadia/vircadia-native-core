@@ -345,6 +345,8 @@ Q_INVOKABLE void LauncherState::receivedLoginReply() {
 }
 
 void LauncherState::requestSettings() {
+    // TODO Request settings if already logged in
+
     QUrl lockerURL = METAVERSE_API_URL;
     lockerURL.setPath("/api/v1/user/locker");
 
@@ -561,6 +563,7 @@ void LauncherState::downloadContentCache() {
 
         _downloadProgress = 0;
 
+        qDebug() << "Downloading content cache from: " << _contentCacheURL;
         QNetworkRequest request{ QUrl(_contentCacheURL) };
         request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         auto reply = _networkAccessManager.get(request);
@@ -589,8 +592,9 @@ void LauncherState::contentCacheDownloadComplete() {
     auto reply = static_cast<QNetworkReply*>(sender());
 
     if (reply->error()) {
-        qDebug() << "Error: " << reply->error() << reply->readAll();
-        setApplicationStateError("Failed to retrieve content cache");
+        qDebug() << "Error downloading content cache: " << reply->error() << reply->readAll();
+        qDebug() << "Continuing to launch client";
+        launchClient();
         return;
     }
 
