@@ -95,8 +95,9 @@ public slots:
 
 
     /**jsdoc
+     * Sets the playback audio volume.
      * @function Recording.setPlayerVolume
-     * @param {number} volume
+     * @param {number} volume - The playback audio volume, range <code>0.0</code> &ndash; <code>1.0</code>.
      */
     void setPlayerVolume(float volume);
 
