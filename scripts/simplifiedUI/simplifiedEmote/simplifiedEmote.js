@@ -236,6 +236,7 @@ function beginReactionWrapper(reaction) {
             break;
         case ("point"):
             deleteOldReticles();
+            pointAtTarget = MyAvatar.getHeadLookAt();
             if (!mouseMoveEventsConnected) {
                 Controller.mouseMoveEvent.connect(mouseMoveEvent);
                 mouseMoveEventsConnected = true;

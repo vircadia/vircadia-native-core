@@ -1652,7 +1652,7 @@
                                                                                                                     "alphaVar": "seatedPointBlendAlpha",
                                                                                                                     "blendType": "addAbsolute"
                                                                                                                 },
-                                                                                                                "id": "seatedReactionPoint",
+                                                                                                                "id": "seatedReactionPointBase",
                                                                                                                 "type": "blendLinear" 
                                                                                                             },
                                                                                                             {
@@ -1808,7 +1808,7 @@
                                                                                                                         0,
                                                                                                                         0
                                                                                                                     ],
-                                                                                                                    "alphaVar": "seatedPointAroundAlpha",
+                                                                                                                    "alphaVar": "pointAroundAlpha",
                                                                                                                     "centerId": "seatedPointCenter",
                                                                                                                     "downId": "seatedPointDown",
                                                                                                                     "downLeftId": "seatedPointDownLeft",
@@ -1825,7 +1825,7 @@
                                                                                                         ],
                                                                                                         "data": {
                                                                                                             "alpha": 0,
-                                                                                                            "alphaVar": "seatedPointBlendAlpha",
+                                                                                                            "alphaVar": "pointBlendAlpha",
                                                                                                             "blendType": "addAbsolute"
                                                                                                         },
                                                                                                         "id": "seatedReactionPoint",
@@ -3967,7 +3967,7 @@
                                                                                                                         0,
                                                                                                                         0
                                                                                                                     ],
-                                                                                                                    "alphaVar": "idlePointAroundAlpha",
+                                                                                                                    "alphaVar": "pointAroundAlpha",
                                                                                                                     "centerId": "idlePointCenter",
                                                                                                                     "downId": "idlePointDown",
                                                                                                                     "downLeftId": "idlePointDownLeft",
@@ -3984,7 +3984,7 @@
                                                                                                         ],
                                                                                                         "data": {
                                                                                                             "alpha": 0,
-                                                                                                            "alphaVar": "idlePointBlendAlpha",
+                                                                                                            "alphaVar": "pointBlendAlpha",
                                                                                                             "blendType": "addAbsolute"
                                                                                                         },
                                                                                                         "id": "reactionPoint",
@@ -6050,16 +6050,16 @@
                                                                                             "upLeftId": "lookUpLeft",
                                                                                             "upRightId": "lookUpRight"
                                                                                         },
-                                                                                        "id": "lookAround",
+                                                                                        "id": "lookAroundBlend",
                                                                                         "type": "blendDirectional"
                                                                                     }
                                                                                 ],
                                                                                 "data": {
                                                                                     "alpha": 0,
-                                                                                    "alphaVar": "additiveBlendAlpha",
+                                                                                    "alphaVar": "lookBlendAlpha",
                                                                                     "blendType": "addAbsolute"
                                                                                 },
-                                                                                "id": "additiveBlend",
+                                                                                "id": "lookAround",
                                                                                 "type": "blendLinear"
                                                                             }
                                                                         ],

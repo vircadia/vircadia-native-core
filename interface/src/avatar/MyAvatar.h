@@ -1769,7 +1769,7 @@ public:
     * Aims the pointing directional blending towards the provided target point.
     * The "point" reaction should be triggered before using this method. 
     * <code>MyAvatar.beginReaction("point")</code>
-    * @function MyAvatar.startPointingAt
+    * @function MyAvatar.setPointingAt
     * @param {Vec3} pointAtTarget - The target point in world coordinates.
     */
     Q_INVOKABLE void setPointAt(const glm::vec3& pointAtTarget);
@@ -2662,6 +2662,7 @@ private:
     bool _shouldTurnToFaceCamera { false };
     bool _scriptControlsHeadLookAt { false };
     float _scriptHeadControlTimer { 0.0f };
+    bool _pointAtActive{ false };
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
