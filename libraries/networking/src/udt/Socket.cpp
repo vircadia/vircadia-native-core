@@ -261,7 +261,7 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool fi
         // we did not have a matching connection, time to see if we should make one
 
         if (filterCreate && _connectionCreationFilterOperator && !_connectionCreationFilterOperator(sockAddr)) {
-            // the connection creation filter did not allow us to create a new connectionclientHandshakeRequestComplete
+            // the connection creation filter did not allow us to create a new connection
 #ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "Socket::findOrCreateConnection refusing to create Connection class for" << sockAddr
                 << "due to connection creation filter";
