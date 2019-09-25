@@ -88,8 +88,8 @@ protected:
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
     // calls them in the right places.
     virtual void updateEntitiesInternal(uint64_t now) = 0;
-    virtual void addEntityInternal(EntityItemPointer entity) = 0;
-    virtual void removeEntityInternal(EntityItemPointer entity);
+    virtual void addEntityToInternalLists(EntityItemPointer entity);
+    virtual void removeEntityFromInternalLists(EntityItemPointer entity);
     virtual void processChangedEntity(const EntityItemPointer& entity);
     virtual void clearEntitiesInternal() = 0;
 

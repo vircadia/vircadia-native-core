@@ -44,11 +44,9 @@ void PhysicalEntitySimulation::updateEntitiesInternal(uint64_t now) {
     // Do nothing here because the "internal" update the PhysicsEngine::stepSimulation() which is done elsewhere.
 }
 
-void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
-    QMutexLocker lock(&_mutex);
-    assert(entity);
-    assert(!entity->isDead());
-    entity->deserializeActions();
+void PhysicalEntitySimulation::addEntityToInternalLists(EntityItemPointer entity) {
+    EntitySimulation::addEntityToInternalLists(entity);
+    entity->deserializeActions(); // TODO: do this elsewhere
     uint8_t region = _space->getRegion(entity->getSpaceIndex());
     bool maybeShouldBePhysical = (region < workload::Region::R3 || region == workload::Region::UNKNOWN) && entity->shouldBePhysical();
     bool canBeKinematic = region <= workload::Region::R3;
@@ -67,23 +65,19 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     }
 }
 
-void PhysicalEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
-    if (entity->isSimulated()) {
-        EntitySimulation::removeEntityInternal(entity);
-        _entitiesToAddToPhysics.remove(entity);
-
-        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        if (motionState) {
-            removeOwnershipData(motionState);
-            _entitiesToRemoveFromPhysics.insert(entity);
-        }
-        if (entity->isDead() && entity->getElement()) {
-            _deadEntities.insert(entity);
-        }
+void PhysicalEntitySimulation::removeEntityFromInternalLists(EntityItemPointer entity) {
+    _entitiesToAddToPhysics.remove(entity);
+    EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+    if (motionState) {
+        removeOwnershipData(motionState);
+        _entitiesToRemoveFromPhysics.insert(entity);
+    } else if (entity->isDead() && entity->getElement()) {
+        _deadEntities.insert(entity);
     }
     if (entity->isAvatarEntity()) {
         _deadAvatarEntities.insert(entity);
     }
+    EntitySimulation::removeEntityFromInternalLists(entity);
 }
 
 void PhysicalEntitySimulation::removeOwnershipData(EntityMotionState* motionState) {
@@ -233,7 +227,9 @@ void PhysicalEntitySimulation::removeDeadEntities() {
     QMutexLocker lock(&_mutex);
     for (auto& entity : _entitiesToDeleteLater) {
         entity->clearActions(getThisPointer());
-        removeEntityInternal(entity);
+        if (entity->isSimulated()) {
+            removeEntityFromInternalLists(entity);
+        }
     }
     _entitiesToDeleteLater.clear();
 }

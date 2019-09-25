@@ -52,9 +52,9 @@ void SimpleEntitySimulation::updateEntitiesInternal(uint64_t now) {
     stopOwnerlessEntities(now);
 }
 
-void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
+void SimpleEntitySimulation::addEntityToInternalLists(EntityItemPointer entity) {
+    EntitySimulation::addEntityToInternalLists(entity);
     if (entity->getSimulatorID().isNull()) {
-        QMutexLocker lock(&_mutex);
         if (entity->getDynamic()) {
             // we don't allow dynamic objects to move without an owner so nothing to do here
         } else if (entity->isMovingRelativeToParent()) {
@@ -65,7 +65,6 @@ void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
             }
         }
     } else {
-        QMutexLocker lock(&_mutex);
         _entitiesWithSimulationOwner.insert(entity);
         _nextStaleOwnershipExpiry = glm::min(_nextStaleOwnershipExpiry, entity->getSimulationOwnershipExpiry());
 
@@ -79,10 +78,10 @@ void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     }
 }
 
-void SimpleEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
-    EntitySimulation::removeEntityInternal(entity);
+void SimpleEntitySimulation::removeEntityFromInternalLists(EntityItemPointer entity) {
     _entitiesWithSimulationOwner.remove(entity);
     _entitiesThatNeedSimulationOwner.remove(entity);
+    EntitySimulation::removeEntityFromInternalLists(entity);
 }
 
 void SimpleEntitySimulation::processChangedEntity(const EntityItemPointer& entity) {

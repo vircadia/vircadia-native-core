@@ -72,8 +72,8 @@ signals:
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
     virtual void updateEntitiesInternal(uint64_t now) override;
-    virtual void addEntityInternal(EntityItemPointer entity) override;
-    virtual void removeEntityInternal(EntityItemPointer entity) override;
+    virtual void addEntityToInternalLists(EntityItemPointer entity) override;
+    virtual void removeEntityFromInternalLists(EntityItemPointer entity) override;
     void processChangedEntity(const EntityItemPointer& entity) override;
     virtual void clearEntitiesInternal() override;
 

@@ -47,7 +47,7 @@ void EntitySimulation::takeDeadEntities(SetOfEntities& entitiesToDelete) {
     _deadEntities.clear();
 }
 
-void EntitySimulation::removeEntityInternal(EntityItemPointer entity) {
+void EntitySimulation::removeEntityFromInternalLists(EntityItemPointer entity) {
     // remove from all internal lists except _deadEntities
     _mortalEntities.remove(entity);
     _entitiesToUpdate.remove(entity);
@@ -62,7 +62,7 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
     assert(entity->isDead());
     if (entity->isSimulated()) {
         QMutexLocker lock(&_mutex);
-        removeEntityInternal(entity);
+        removeEntityFromInternalLists(entity);
         if (entity->getElement()) {
             _deadEntities.insert(entity);
             _entityTree->cleanupCloneIDs(entity->getEntityItemID());
@@ -148,9 +148,7 @@ void EntitySimulation::sortEntitiesThatMoved() {
     _entitiesToSort.clear();
 }
 
-void EntitySimulation::addEntity(EntityItemPointer entity) {
-    QMutexLocker lock(&_mutex);
-    assert(entity);
+void EntitySimulation::addEntityToInternalLists(EntityItemPointer entity) {
     if (entity->isMortal()) {
         _mortalEntities.insert(entity);
         uint64_t expiry = entity->getExpiry();
@@ -161,10 +159,14 @@ void EntitySimulation::addEntity(EntityItemPointer entity) {
     if (entity->needsToCallUpdate()) {
         _entitiesToUpdate.insert(entity);
     }
-    addEntityInternal(entity);
-
     _allEntities.insert(entity);
     entity->setSimulated(true);
+}
+
+void EntitySimulation::addEntity(EntityItemPointer entity) {
+    QMutexLocker lock(&_mutex);
+    assert(entity);
+    addEntityToInternalLists(entity);
 
     // DirtyFlags are used to signal changes to entities that have already been added,
     // so we can clear them for this entity which has just been added.
