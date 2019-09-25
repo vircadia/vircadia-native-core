@@ -320,11 +320,11 @@ void ResourceCache::refreshAll() {
 
 QVariantList ResourceCache::getResourceList() {
     QVariantList list;
-    if (QThread::currentThread() != thread()) {
+    /*if (QThread::currentThread() != thread()) {
         // NOTE: invokeMethod does not allow a const QObject*
         BLOCKING_INVOKE_METHOD(this, "getResourceList",
             Q_RETURN_ARG(QVariantList, list));
-    } else {
+    } else {*/
         QList<QUrl> resources;
         {
             QReadLocker locker(&_resourcesLock);
@@ -334,7 +334,7 @@ QVariantList ResourceCache::getResourceList() {
         for (auto& resource : resources) {
             list << resource;
         }
-    }
+   /* }*/
 
     return list;
 }

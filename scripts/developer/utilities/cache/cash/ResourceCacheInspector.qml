@@ -30,6 +30,10 @@ Item {
         }
     }
 
+    function requestResourceDetails(resourceURL) {
+        sendToScript({method: "inspectResource", params: {url: resourceURL, semantic: cacheResourceName}}); 
+    }
+
     Component.onCompleted: {
         resetItemListFromCache();
     }
@@ -66,7 +70,7 @@ Item {
 
     function pullFreshValues() {
         if (needFreshList) {
-            console.log("Updating " + cacheResourceName + "cache list")
+            //console.log("Updating " + cacheResourceName + "cache list")
             updateItemList(fetchItemsList())
             needFreshList = false
         }
@@ -234,12 +238,12 @@ Item {
             height: item.height
             onPressed: {held = true}
             onReleased: {held = false}
-
+            onDoubleClicked: { requestResourceDetails(model.url) }
             Rectangle {
                 id: item
                 width: parent.width
                 height: global.slimHeight
-                color: dragArea.held ? global.colorBackHighlight : (model.identifier % 2 ? global.colorBackShadow : global.colorBack)              
+                color: dragArea.held ? global.colorBackHighlight : (index % 2 ? global.colorBackShadow : global.colorBack)              
                 Row {
                     id: itemRow
                     anchors.verticalCenter : parent.verticalCenter
@@ -324,7 +328,7 @@ Item {
         ]
 
         function refreshFilter() {
-            console.log("refreshFilter! token = " + textFilter + " field = " + filterField)
+            //console.log("refreshFilter! token = " + textFilter + " field = " + filterField)
             acceptItem = acceptItemArray[(textFilter.length != 0) * + (1 + filterField)]
         }
   
