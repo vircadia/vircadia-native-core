@@ -103,6 +103,10 @@ float Deck::position() const {
     return Frame::frameTimeToSeconds(currentPosition);
 }
 
+void Deck::setVolume(float volume) { 
+    _volume = std::min(std::max(volume, 0.0f), 1.0f);
+}
+
 static const Frame::Time MIN_FRAME_WAIT_INTERVAL = Frame::secondsToFrameTime(0.001f);
 static const Frame::Time MAX_FRAME_PROCESSING_TIME = Frame::secondsToFrameTime(0.004f);
 
