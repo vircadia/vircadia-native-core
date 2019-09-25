@@ -146,6 +146,8 @@ private:
     QString getClientDirectory() const;
     QString getClientExecutablePath() const;
 
+    bool shouldDownloadLauncher();
+
     QNetworkAccessManager _networkAccessManager;
     LatestBuilds _latestBuilds;
     QDir _launcherDirectory;

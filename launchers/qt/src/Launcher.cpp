@@ -9,6 +9,7 @@
 #include "PathUtils.h"
 
 Launcher::Launcher(int& argc, char**argv) : QGuiApplication(argc, argv) {
+    Q_INIT_RESOURCE(resources);
     QString resourceBinaryLocation =  QGuiApplication::applicationDirPath() + "/resources.rcc";
     qDebug() << "resources.rcc path:  " << resourceBinaryLocation;
     QResource::registerResource(resourceBinaryLocation);

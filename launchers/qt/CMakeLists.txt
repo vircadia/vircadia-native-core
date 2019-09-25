@@ -11,7 +11,6 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-#set(CMAKE_AUTOUIC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 include("cmake/init.cmake")
@@ -110,6 +109,8 @@ add_custom_command(
   COMMAND "${_qt5Core_install_prefix}/bin/rcc"
   ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC})
 
+QT5_ADD_RESOURCES(RES_SOURCES ${RESOURCES_QRC})
+
 list(APPEND GENERATE_QRC_DEPENDS ${RESOURCES_RCC})
 add_custom_target(resources ALL DEPENDS ${GENERATE_QRC_DEPENDS})
 
@@ -134,14 +135,23 @@ set(src_files
   src/Helper.cpp
   deps/miniz/miniz.h
   deps/miniz/miniz.cpp
+  ${RES_SOURCES}
   )
 
 
 if (APPLE)
   set(src_files ${src_files}
-    src/darwin/Helper.mm
-    src/darwin/NSTask+NSTaskExecveAdditions.h
-    src/darwin/NSTask+NSTaskExecveAdditions.m
+    src/Helper_darwin.mm
+    src/NSTask+NSTaskExecveAdditions.h
+    src/NSTask+NSTaskExecveAdditions.m
+    )
+endif()
+
+if (WIN32)
+  set(src_files ${src_files}
+    src/Helper_windows.cpp
+    src/LauncherInstaller_windows.h
+    src/LauncherInstaller_windows.cpp
     )
 endif()
 set(TARGET_NAME ${PROJECT_NAME})
@@ -149,7 +159,7 @@ set(TARGET_NAME ${PROJECT_NAME})
 
 set_packaging_parameters()
 if (WIN32)
-  add_executable(${PROJECT_NAME} ${src_files})
+  add_executable(${PROJECT_NAME} ${src_files} build/resources.qrc)
 elseif (APPLE)
   set_target_properties(${this_target} PROPERTIES
     MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
@@ -219,6 +229,8 @@ else()
   target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="qrc:/")
   message("Use resource.rcc path: qrc:/")
 endif()
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
 
 if (APPLE)
   install(
