@@ -710,7 +710,7 @@ Item {
                 }
 
                 HifiStylesUit.GraphikRegular {
-                    text: "See your own avatar"
+                    text: "Look at self"
                     width: parent.width - selfieText.width - parent.spacing - controlsTableRoot.rowPadding
                     height: parent.height
                     horizontalAlignment: Text.AlignLeft
