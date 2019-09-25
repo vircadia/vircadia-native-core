@@ -250,14 +250,14 @@ $(document).ready(function(){
 
             // set focus to the first input in the new row
             $target.closest('table').find('tr.inputs input:first').focus();
-          }
+          } else {
+              var tableRows = sibling.parent();
+              var tableBody = tableRows.parent();
 
-          var tableRows = sibling.parent();
-          var tableBody = tableRows.parent();
-
-          // if theres no more siblings, we should jump to a new row
-          if (sibling.next().length == 0 && tableRows.nextAll().length == 1) {
-              tableBody.find("." + Settings.ADD_ROW_BUTTON_CLASS).click();
+              // if theres no more siblings, we should jump to a new row
+              if (sibling.next().length == 0 && tableRows.nextAll().length == 1) {
+                  tableBody.find("." + Settings.ADD_ROW_BUTTON_CLASS).click();
+              }
           }
         }
 
