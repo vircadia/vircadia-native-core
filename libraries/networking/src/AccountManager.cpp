@@ -48,7 +48,8 @@ Q_DECLARE_METATYPE(JSONCallbackParameters)
 const QString ACCOUNTS_GROUP = "accounts";
 
 const int POST_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND;
-const int PULL_SETTINGS_RETRY_INTERVAL = 1 * MSECS_PER_SECOND;
+const int PULL_SETTINGS_RETRY_INTERVAL = 2 * MSECS_PER_SECOND;
+const int MAX_PULL_RETRIES = 10;
 
 JSONCallbackParameters::JSONCallbackParameters(QObject* callbackReceiver,
                                                const QString& jsonCallbackMethod,
@@ -93,9 +94,14 @@ AccountManager::AccountManager(bool accountSettingsEnabled, UserAgentGetter user
     connect(this, &AccountManager::loginComplete, this, &AccountManager::uploadPublicKey);
     connect(this, &AccountManager::loginComplete, this, &AccountManager::requestAccountSettings);
 
+    _pullSettingsRetryTimer = new QTimer(this);
+    _pullSettingsRetryTimer->setSingleShot(true);
+    _pullSettingsRetryTimer->setInterval(PULL_SETTINGS_RETRY_INTERVAL);
+    connect(_pullSettingsRetryTimer, &QTimer::timeout, this, &AccountManager::requestAccountSettings);
+
     _postSettingsTimer = new QTimer(this);
     _postSettingsTimer->setInterval(POST_SETTINGS_INTERVAL);
-    connect(this, SIGNAL(loginComplete(QUrl)), _postSettingsTimer, SLOT(start()));
+    connect(this, SIGNAL(accountSettingsLoaded()), _postSettingsTimer, SLOT(start()));
     connect(this, &AccountManager::logoutComplete, _postSettingsTimer, &QTimer::stop);
     connect(_postSettingsTimer, &QTimer::timeout, this, &AccountManager::postAccountSettings);
     connect(qApp, &QCoreApplication::aboutToQuit, this, &AccountManager::postAccountSettings);
@@ -105,6 +111,7 @@ const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
 
 void AccountManager::logout() {
     postAccountSettings();
+    _numPullRetries = 0;
 
     // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
     _accountInfo = DataServerAccountInfo();
@@ -831,17 +838,26 @@ void AccountManager::requestAccountSettingsFinished() {
             emit accountSettingsLoaded();
         } else {
             qCDebug(networking) << "Error in response for account settings: no data object";
-            QTimer::singleShot(PULL_SETTINGS_RETRY_INTERVAL, this, &AccountManager::requestAccountSettings);
+            if (!_pullSettingsRetryTimer->isActive() && _numPullRetries < MAX_PULL_RETRIES) {
+                ++_numPullRetries;
+                _pullSettingsRetryTimer->start();
+            }
         }
     } else {
         qCDebug(networking) << "Error in response for account settings" << lockerReply->errorString();
-        QTimer::singleShot(PULL_SETTINGS_RETRY_INTERVAL, this, &AccountManager::requestAccountSettings);
+        if (!_pullSettingsRetryTimer->isActive() && _numPullRetries < MAX_PULL_RETRIES) {
+            ++_numPullRetries;
+            _pullSettingsRetryTimer->start();
+        }
     }
 }
 
 void AccountManager::requestAccountSettingsError(QNetworkReply::NetworkError error) {
     qCWarning(networking) << "Account settings request encountered an error" << error;
-    QTimer::singleShot(PULL_SETTINGS_RETRY_INTERVAL, this, &AccountManager::requestAccountSettings);
+    if (!_pullSettingsRetryTimer->isActive() && _numPullRetries < MAX_PULL_RETRIES) {
+        ++_numPullRetries;
+        _pullSettingsRetryTimer->start();
+    }
 }
 
 void AccountManager::postAccountSettings() {
