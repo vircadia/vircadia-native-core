@@ -8,6 +8,7 @@
 #include <Windows.h>
 #endif
 #include <array>
+#include <cstdlib>
 
 #include <QProcess>
 
@@ -69,7 +70,7 @@ bool LatestBuilds::getBuild(QString tag, Build* outBuild) {
 }
 
 static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_FOR_UI_STATE =
-    { { "qml/SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "DisplayName.qml",
+    { { "SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "DisplayName.qml",
         "qml/Download.qml", "qml/DownloadFinished.qml", "qml/HFBase/Error.qml" } };
 
 void LauncherState::ASSERT_STATE(LauncherState::ApplicationState state) {
@@ -220,7 +221,15 @@ void LauncherState::receivedBuildsReply() {
         }
     }
 
+    if (shouldDownloadLauncher()) {
+        downloadLauncher();
+    }
     getCurrentClientVersion();
+}
+
+
+bool LauncherState::shouldDownloadLauncher() {
+    return _latestBuilds.launcherBuild.latestVersion != atoi(LAUNCHER_BUILD_VERSION);
 }
 
 void LauncherState::getCurrentClientVersion() {
@@ -455,14 +464,17 @@ void LauncherState::downloadClient() {
 
 void LauncherState::launcherDownloadComplete() {
     _launcherZipFile.close();
+
+#ifdef Q_OS_MAC
     installLauncher();
+#elif defined(Q_OS_WIN)
+    //launchAutoUpdater(_launcherZipFile.fileName());
+#endif
 }
 
 void LauncherState::clientDownloadComplete() {
     ASSERT_STATE(ApplicationState::DownloadingClient);
-
     _clientZipFile.close();
-
     installClient();
 }
 
@@ -503,7 +515,11 @@ void LauncherState::downloadLauncher() {
     auto request = new QNetworkRequest(QUrl(_latestBuilds.launcherBuild.installerZipURL));
     auto reply = _networkAccessManager.get(*request);
 
+#ifdef Q_OS_MAC
     _launcherZipFile.setFileName(_launcherDirectory.absoluteFilePath("launcher.zip"));
+#elif defined(Q_OS_WIN)
+    _launcherZipFile.setFileName(_launcherDirectory.absoluteFilePath("launcher.exe"));
+#endif
 
     qDebug() << "opening " << _launcherZipFile.fileName();
 
@@ -527,8 +543,9 @@ void LauncherState::downloadLauncher() {
 }
 
 void LauncherState::installLauncher() {
-    auto installDir = _launcherDirectory.absoluteFilePath("launcher_install");
+    _launcherDirectory.rmpath("launcher_install");
     _launcherDirectory.mkpath("launcher_install");
+     auto installDir = _launcherDirectory.absoluteFilePath("launcher_install");
 
     qDebug() << "Uzipping " << _launcherZipFile.fileName() << " to " << installDir;
 

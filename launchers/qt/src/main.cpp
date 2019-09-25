@@ -7,6 +7,7 @@
 #include "Helper.h"
 
 #ifdef Q_OS_WIN
+#include "LauncherInstaller_windows.h"
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
 #elif defined(Q_OS_MACOS)
 Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
@@ -26,8 +27,18 @@ bool hasSuffix(const std::string path, const std::string suffix) {
     return false;
 }
 
+bool containsOption(int argc, char* argv[], const std::string& option) {
+    for (int index = 0; index < argc; index++) {
+        if (option.compare(argv[index]) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 int main(int argc, char *argv[]) {
 
+    //std::cout << "Launcher version: " << LAUNCHER_BUILD_VERSION;
 #ifdef Q_OS_MAC
     // auto updater
     if (argc == 3) {
@@ -37,6 +48,13 @@ int main(int argc, char *argv[]) {
         } else {
             std::cout << "not swapping launcher \n";
         }
+    }
+#elif defined(Q_OS_WIN)
+    // try-install
+
+    if (containsOption(argc, argv, "--restart")) {
+        LauncherInstaller launcherInstaller(argv[0]);
+        launcherInstaller.install();
     }
 #endif
     QString name { "High Fidelity" };
