@@ -40,6 +40,9 @@ Rectangle {
     property bool inventoryFullyReceived: false
 
     Component.onCompleted: {
+        var numTimesRun = Settings.getValue("simplifiedUI/SUIScriptExecutionCount", 0);
+        numTimesRun++;
+        Settings.setValue("simplifiedUI/SUIScriptExecutionCount", numTimesRun);
         Commerce.getLoginStatus();
     }
 
@@ -52,7 +55,7 @@ Rectangle {
             if ((MyAvatar.skeletonModelURL.indexOf("defaultAvatar") > -1 || MyAvatar.skeletonModelURL.indexOf("fst") === -1) &&
                 topBarInventoryModel.count > 0) {
                 Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatar", true);
-                MyAvatar.skeletonModelURL = topBarInventoryModel.get(0).download_url;
+                MyAvatar.useFullAvatarURL = topBarInventoryModel.get(0).download_url;
             }
         }
     }
