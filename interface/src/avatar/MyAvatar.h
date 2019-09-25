@@ -1765,6 +1765,15 @@ public:
     */
     Q_INVOKABLE glm::vec3 getHeadLookAt() { return _lookAtCameraTarget; }
 
+    /**jsdoc
+    * Aims the pointing directional blending towards the provided target point.
+    * The "point" reaction should be triggered before using this method. 
+    * <code>MyAvatar.beginReaction("point")</code>
+    * @function MyAvatar.startPointingAt
+    * @param {Vec3} pointAtTarget - The target point in world coordinates.
+    */
+    Q_INVOKABLE void setPointAt(const glm::vec3& pointAtTarget);
+
     glm::quat getLookAtRotation() { return _lookAtYaw * _lookAtPitch; }
 
     /**jsdoc
@@ -2681,6 +2690,8 @@ private:
     void updateHeadLookAt(float deltaTime);
     void resetHeadLookAt();
     void resetLookAtRotation(const glm::vec3& avatarPosition, const glm::quat& avatarOrientation);
+    void resetPointAt();
+    glm::vec3 aimToBlendValues(const glm::vec3& aimVector, const glm::quat& frameOrientation);
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;

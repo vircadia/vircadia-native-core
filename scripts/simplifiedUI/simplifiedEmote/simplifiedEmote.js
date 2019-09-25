@@ -203,10 +203,19 @@ function maybeDeleteRemoteIndicatorTimeout() {
     }
 }
 
-
 var reactionsBegun = [];
 var pointReticle = null;
 var mouseMoveEventsConnected = false;
+var targetPointInterpolateConnected = false;
+var pointAtTarget = Vec3.ZERO;
+
+function targetPointInterpolate() {
+    if (reticlePosition) {
+        pointAtTarget = Vec3.mix(pointAtTarget, reticlePosition, POINT_AT_MIX_ALPHA);
+        MyAvatar.setPointAt(pointAtTarget);
+    }
+}
+
 function beginReactionWrapper(reaction) {
     maybeDeleteRemoteIndicatorTimeout();
 
@@ -231,9 +240,12 @@ function beginReactionWrapper(reaction) {
                 Controller.mouseMoveEvent.connect(mouseMoveEvent);
                 mouseMoveEventsConnected = true;
             }
+            if (!targetPointInterpolateConnected) {
+                Script.update.connect(targetPointInterpolate);
+                targetPointInterpolateConnected = true;
+            }
     }
 }
-
 
 // Checks to see if there are any reticle entities already to delete
 function deleteOldReticles() {
@@ -250,6 +262,8 @@ function deleteOldReticles() {
 var MAX_INTERSECTION_DISTANCE_M = 50;
 var reticleUpdateRateLimiterTimer = false;
 var RETICLE_UPDATE_RATE_LIMITER_TIMER_MS = 75;
+var POINT_AT_MIX_ALPHA = 0.15;
+var reticlePosition = Vec3.ZERO;
 function mouseMoveEvent(event) {
     if (!reticleUpdateRateLimiterTimer) {
         reticleUpdateRateLimiterTimer = Script.setTimeout(function() {
@@ -261,11 +275,10 @@ function mouseMoveEvent(event) {
 
 
     var pickRay = Camera.computePickRay(event.x, event.y);
-    var avatarIntersectionData = AvatarManager.findRayIntersection(pickRay);
+    var avatarIntersectionData = AvatarManager.findRayIntersection(pickRay, [], [MyAvatar.sessionUUID], false);
     var entityIntersectionData = Entities.findRayIntersection(pickRay, true);
     var avatarIntersectionDistanceM = avatarIntersectionData.intersects && avatarIntersectionData.distance < MAX_INTERSECTION_DISTANCE_M ? avatarIntersectionData.distance : null;
     var entityIntersectionDistanceM = entityIntersectionData.intersects && entityIntersectionData.distance < MAX_INTERSECTION_DISTANCE_M ? entityIntersectionData.distance : null;
-    var reticlePosition;
 
     if (avatarIntersectionDistanceM && entityIntersectionDistanceM) {
         if (avatarIntersectionDistanceM < entityIntersectionDistanceM) {
@@ -348,6 +361,10 @@ function endReactionWrapper(reaction) {
             if (mouseMoveEventsConnected) {
                 Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
                 mouseMoveEventsConnected = false;
+            }
+            if (targetPointInterpolateConnected) {
+                Script.update.disconnect(targetPointInterpolate);
+                targetPointInterpolateConnected = false;
             }
             maybeClearReticleUpdateLimiterTimeout();
             deleteOldReticles();
@@ -756,7 +773,6 @@ function toggleEmojiApp() {
     // to update the Selected emoji UI
     emojiAPI.registerAvimojiQMLWindow(emojiAppWindow);
 }
-
 
 // #endregion
 // *************************************

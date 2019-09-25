@@ -103,6 +103,13 @@ const QString HEAD_BLENDING_NAME = "lookAroundAlpha";
 const QString HEAD_ALPHA_NAME = "additiveBlendAlpha";
 const float HEAD_ALPHA_BLENDING = 1.0f;
 
+const QString SEATED_POINT_BLENDING_NAME = "seatedPointAroundAlpha";
+const QString SEATED_POINT_ALPHA_NAME = "seatedPointBlendAlpha";
+const QString IDLE_POINT_BLENDING_NAME = "idlePointAroundAlpha";
+const QString IDLE_POINT_ALPHA_NAME = "idlePointBlendAlpha";
+const QString POINT_REF_JOINT_NAME = "RightShoulder";
+const float POINT_ALPHA_BLENDING = 1.0f;
+
 MyAvatar::SitStandModelType stringToUserRecenterModel(const QString& str) {
     if (str == USER_RECENTER_MODEL_FORCE_SIT) {
         return MyAvatar::ForceSit;
@@ -6108,6 +6115,9 @@ bool MyAvatar::beginReaction(QString reactionName) {
 }
 
 bool MyAvatar::endReaction(QString reactionName) {
+    if (reactionName == "point") {
+        resetPointAt();
+    }
     int reactionIndex = beginEndReactionNameToIndex(reactionName);
     if (reactionIndex >= 0 && reactionIndex < (int)NUM_AVATAR_BEGIN_END_REACTIONS) {
         std::lock_guard<std::mutex> guard(_reactionLock);
@@ -6657,6 +6667,39 @@ void MyAvatar::updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera) 
     getHead()->setLookAtPosition(lookAtSpot);
 }
 
+glm::vec3 MyAvatar::aimToBlendValues(const glm::vec3& aimVector, const glm::quat& frameOrientation) {
+    // This method computes the values for the directional blending animation node
+
+    glm::vec3 uVector = glm::normalize(frameOrientation * Vectors::UNIT_X);
+    glm::vec3 vVector = glm::normalize(frameOrientation * Vectors::UNIT_Y);
+
+    glm::vec3 aimDirection;
+    if (glm::length(aimVector) > EPSILON) {
+        aimDirection = glm::normalize(aimVector);
+    }
+    else {
+        // aim vector is zero
+        return glm::vec3();
+    }
+
+    float xDot = glm::dot(uVector, aimDirection);
+    float yDot = glm::dot(vVector, aimDirection);
+
+    // Make sure dot products are in range to avoid acosf returning NaN
+    xDot = glm::min(glm::max(xDot, -1.0f), 1.0f);
+    yDot = glm::min(glm::max(yDot, -1.0f), 1.0f);
+
+    float xAngle = acosf(xDot);
+    float yAngle = acosf(yDot);
+
+    // xBlend and yBlend are the values from -1.0 to 1.0 that set the directional blending.
+    // We compute them using the angles (0 to PI/2) => (1.0 to 0.0) and (PI/2 to PI) => (0.0 to -1.0)
+    float xBlend = -(xAngle - 0.5f * PI) / (0.5f * PI);
+    float yBlend = -(yAngle - 0.5f * PI) / (0.5f * PI);
+    glm::vec3 blendValues = glm::vec3(xBlend, yBlend, 0.0f);
+    return blendValues;
+}
+
 void MyAvatar::resetHeadLookAt() {
     if (_skeletonModelLoaded) {
         _skeletonModel->getRig().setDirectionalBlending(HEAD_BLENDING_NAME, glm::vec3(),
@@ -6676,39 +6719,10 @@ void MyAvatar::resetLookAtRotation(const glm::vec3& avatarPosition, const glm::q
 void MyAvatar::updateHeadLookAt(float deltaTime) {    
     if (_skeletonModelLoaded) {
         glm::vec3 lookAtTarget = _scriptControlsHeadLookAt ? _lookAtScriptTarget : _lookAtCameraTarget;
-        glm::vec3 avatarXVector = glm::normalize(getWorldOrientation() * Vectors::UNIT_X);
-        glm::vec3 avatarYVector = glm::normalize(getWorldOrientation() * Vectors::UNIT_Y);
-        glm::vec3 avatarZVector = glm::normalize(getWorldOrientation() * Vectors::UNIT_Z);
-        glm::vec3 headToTargetVector = lookAtTarget - getDefaultEyePosition();
-        if (glm::length(headToTargetVector) > EPSILON) {
-            headToTargetVector = glm::normalize(headToTargetVector);
-        } else {
-            // The target point is the avatar head
-            return;
-        }
-
-        float xDot = glm::dot(avatarXVector, headToTargetVector);
-        float yDot = glm::dot(avatarYVector, headToTargetVector);
-        float zDot = glm::dot(avatarZVector, headToTargetVector);
-        // Force the head to look at one of the sides when the look at point is behind the avatar 
-        if (zDot > 0.0f && xDot != 0.0f) {
-            //xDot /= fabsf(xDot);
-        }
-
-        // Make sure dot products are in range to avoid acosf returning NaN
-        xDot = glm::min(glm::max(xDot, -1.0f), 1.0f);
-        yDot = glm::min(glm::max(yDot, -1.0f), 1.0f);
-
-        float xAngle = acosf(xDot);
-        float yAngle = acosf(yDot);
-
-        // xBlend and yBlend are the values from -1.0 to 1.0 that set the directional blending.
-        // We compute them using the angles (0 to PI/2) => (1.0 to 0.0) and (PI/2 to PI) => (0.0 to -1.0)
-        float xBlend = -(xAngle - 0.5f * PI) / (0.5f * PI);
-        float yBlend = -(yAngle - 0.5f * PI) / (0.5f * PI); 
-        glm::vec3 lookAtBlend = glm::vec3(xBlend, yBlend, 0.0f);
+        glm::vec3 aimVector = lookAtTarget - getDefaultEyePosition();
+        glm::vec3 lookAtBlend = aimToBlendValues(aimVector, getWorldOrientation());
         _skeletonModel->getRig().setDirectionalBlending(HEAD_BLENDING_NAME, lookAtBlend,
-            HEAD_ALPHA_NAME, HEAD_ALPHA_BLENDING);
+                                                        HEAD_ALPHA_NAME, HEAD_ALPHA_BLENDING);
 
         if (_scriptControlsHeadLookAt) {
             _scriptHeadControlTimer += deltaTime;
@@ -6731,4 +6745,29 @@ void MyAvatar::setHeadLookAt(const glm::vec3& lookAtTarget) {
     _scriptControlsHeadLookAt = true;
     _scriptHeadControlTimer = 0.0f;
     _lookAtScriptTarget = lookAtTarget;
+}
+
+void MyAvatar::setPointAt(const glm::vec3& pointAtTarget) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "setPointAt",
+            Q_ARG(const glm::vec3&, pointAtTarget));
+        return;
+    }
+    if (_skeletonModelLoaded) {
+        glm::vec3 aimVector = pointAtTarget - getJointPosition(POINT_REF_JOINT_NAME);
+        glm::vec3 pointAtBlend = aimToBlendValues(aimVector, getWorldOrientation());
+        _skeletonModel->getRig().setDirectionalBlending(IDLE_POINT_BLENDING_NAME, pointAtBlend,
+                                                        IDLE_POINT_ALPHA_NAME, POINT_ALPHA_BLENDING);
+        _skeletonModel->getRig().setDirectionalBlending(SEATED_POINT_BLENDING_NAME, pointAtBlend,
+                                                        SEATED_POINT_ALPHA_NAME, POINT_ALPHA_BLENDING);
+    }
+}
+
+void MyAvatar::resetPointAt() {
+    if (_skeletonModelLoaded) {
+        _skeletonModel->getRig().setDirectionalBlending(IDLE_POINT_BLENDING_NAME, glm::vec3(),
+            IDLE_POINT_ALPHA_NAME, POINT_ALPHA_BLENDING);
+        _skeletonModel->getRig().setDirectionalBlending(SEATED_POINT_BLENDING_NAME, glm::vec3(),
+            SEATED_POINT_ALPHA_NAME, POINT_ALPHA_BLENDING);
+    }
 }
