@@ -1769,7 +1769,7 @@ public:
     * Aims the pointing directional blending towards the provided target point.
     * The "point" reaction should be triggered before using this method. 
     * <code>MyAvatar.beginReaction("point")</code>
-    * @function MyAvatar.setPointingAt
+    * @function MyAvatar.setPointAt
     * @param {Vec3} pointAtTarget - The target point in world coordinates.
     */
     Q_INVOKABLE void setPointAt(const glm::vec3& pointAtTarget);
