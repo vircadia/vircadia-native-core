@@ -1544,103 +1544,292 @@
                                                                                                         "type": "randomSwitchStateMachine"
                                                                                                     },
                                                                                                     {
-                                                                                                        "children": [
+                                                                                                        "children": [ 
                                                                                                             {
-                                                                                                                "children": [
+                                                                                                                "children": [                                                                                                            
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                            {
+                                                                                                                                "children": [
+                                                                                                                                ],
+                                                                                                                                "data": {
+                                                                                                                                    "endFrame": 21,
+                                                                                                                                    "loopFlag": false,
+                                                                                                                                    "startFrame": 1,
+                                                                                                                                    "timeScale": 1,
+                                                                                                                                    "url": "qrc:///avatar/animations/sitting_emote_point_all.fbx"
+                                                                                                                                },
+                                                                                                                                "id": "seatedReactionPointIntro",
+                                                                                                                                "type": "clip"
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "children": [
+                                                                                                                                ],
+                                                                                                                                "data": {
+                                                                                                                                    "endFrame": 100,
+                                                                                                                                    "loopFlag": true,
+                                                                                                                                    "startFrame": 21,
+                                                                                                                                    "timeScale": 1,
+                                                                                                                                    "url": "qrc:///avatar/animations/sitting_emote_point_all.fbx"
+                                                                                                                                },
+                                                                                                                                "id": "seatedReactionPointLoop",
+                                                                                                                                "type": "clip"
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "children": [
+                                                                                                                                ],
+                                                                                                                                "data": {
+                                                                                                                                    "endFrame": 134,
+                                                                                                                                    "loopFlag": false,
+                                                                                                                                    "mirrorFlag": false,
+                                                                                                                                    "startFrame": 100,
+                                                                                                                                    "timeScale": 1,
+                                                                                                                                    "url": "qrc:///avatar/animations/sitting_emote_point_all.fbx"
+                                                                                                                                },
+                                                                                                                                "id": "seatedReactionPointOutro",
+                                                                                                                                "type": "clip"
+                                                                                                                            }
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "currentState": "seatedReactionPointIntro",
+                                                                                                                            "randomSwitchTimeMax": 10,
+                                                                                                                            "randomSwitchTimeMin": 1,
+                                                                                                                            "states": [
+                                                                                                                                {
+                                                                                                                                    "easingType": "easeInOutQuad",
+                                                                                                                                    "id": "seatedReactionPointIntro",
+                                                                                                                                    "interpDuration": 18,
+                                                                                                                                    "interpTarget": 18,
+                                                                                                                                    "interpType": "evaluateBoth",
+                                                                                                                                    "priority": 1,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": [
+                                                                                                                                        {
+                                                                                                                                            "randomSwitchState": "seatedReactionPointLoop",
+                                                                                                                                            "var": "seatedReactionPointIntroOnDone"
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "easingType": "easeInOutQuad",
+                                                                                                                                    "id": "seatedReactionPointLoop",
+                                                                                                                                    "interpDuration": 18,
+                                                                                                                                    "interpTarget": 18,
+                                                                                                                                    "interpType": "evaluateBoth",
+                                                                                                                                    "priority": 0,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": [
+                                                                                                                                        {
+                                                                                                                                            "randomSwitchState": "seatedReactionPointOutro",
+                                                                                                                                            "var": "reactionPointDisabled"
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "easingType": "easeInOutQuad",
+                                                                                                                                    "id": "seatedReactionPointOutro",
+                                                                                                                                    "interpDuration": 18,
+                                                                                                                                    "interpTarget": 18,
+                                                                                                                                    "interpType": "evaluateBoth",
+                                                                                                                                    "priority": 0,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": [
+                                                                                                                                        {
+                                                                                                                                            "randomSwitchState": "seatedReactionPointLoop",
+                                                                                                                                            "var": "reactionPointEnabled"
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                }
+                                                                                                                            ],
+                                                                                                                            "triggerRandomSwitch": ""
+                                                                                                                        },
+                                                                                                                        "id": "seatedReactionPoint",
+                                                                                                                        "type": "randomSwitchStateMachine"
+                                                                                                                    }
                                                                                                                 ],
                                                                                                                 "data": {
-                                                                                                                    "endFrame": 21,
-                                                                                                                    "loopFlag": false,
-                                                                                                                    "startFrame": 1,
-                                                                                                                    "timeScale": 1,
-                                                                                                                    "url": "qrc:///avatar/animations/sitting_emote_point_all.fbx"
+                                                                                                                    "alpha": 0,
+                                                                                                                    "alphaVar": "seatedPointBlendAlpha",
+                                                                                                                    "blendType": "addAbsolute"
                                                                                                                 },
-                                                                                                                "id": "seatedReactionPointIntro",
-                                                                                                                "type": "clip"
+                                                                                                                "id": "seatedReactionPoint",
+                                                                                                                "type": "blendLinear" 
                                                                                                             },
                                                                                                             {
                                                                                                                 "children": [
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 11,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 11,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "seatedPointLeft",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 30,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 30,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "seatedPointRight",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 50,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 50,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "seatedPointUp",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 70,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 70,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "seatedPointDown",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 90,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 90,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "seatedPointUpLeft",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 110,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 110,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "seatedPointUpRight",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 130,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 130,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "seatedPointDownLeft",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 150,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 150,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "seatedPointDownRight",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 3,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 3,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_point_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "seatedPointCenter",
+                                                                                                                        "type": "clip"
+                                                                                                                    }
                                                                                                                 ],
                                                                                                                 "data": {
-                                                                                                                    "endFrame": 100,
-                                                                                                                    "loopFlag": true,
-                                                                                                                    "startFrame": 21,
-                                                                                                                    "timeScale": 1,
-                                                                                                                    "url": "qrc:///avatar/animations/sitting_emote_point_all.fbx"
+                                                                                                                    "alpha": [
+                                                                                                                        0,
+                                                                                                                        0,
+                                                                                                                        0
+                                                                                                                    ],
+                                                                                                                    "alphaVar": "seatedPointAroundAlpha",
+                                                                                                                    "centerId": "seatedPointCenter",
+                                                                                                                    "downId": "seatedPointDown",
+                                                                                                                    "downLeftId": "seatedPointDownLeft",
+                                                                                                                    "downRightId": "seatedPointDownRight",
+                                                                                                                    "leftId": "seatedPointLeft",
+                                                                                                                    "rightId": "seatedPointRight",
+                                                                                                                    "upId": "seatedPointUp",
+                                                                                                                    "upLeftId": "seatedPointUpLeft",
+                                                                                                                    "upRightId": "seatedPointUpRight"
                                                                                                                 },
-                                                                                                                "id": "seatedReactionPointLoop",
-                                                                                                                "type": "clip"
-                                                                                                            },
-                                                                                                            {
-                                                                                                                "children": [
-                                                                                                                ],
-                                                                                                                "data": {
-                                                                                                                    "endFrame": 134,
-                                                                                                                    "loopFlag": false,
-                                                                                                                    "mirrorFlag": false,
-                                                                                                                    "startFrame": 100,
-                                                                                                                    "timeScale": 1,
-                                                                                                                    "url": "qrc:///avatar/animations/sitting_emote_point_all.fbx"
-                                                                                                                },
-                                                                                                                "id": "seatedReactionPointOutro",
-                                                                                                                "type": "clip"
+                                                                                                                "id": "seatedPointAround",
+                                                                                                                "type": "blendDirectional"
                                                                                                             }
                                                                                                         ],
                                                                                                         "data": {
-                                                                                                            "currentState": "seatedReactionPointIntro",
-                                                                                                            "randomSwitchTimeMax": 10,
-                                                                                                            "randomSwitchTimeMin": 1,
-                                                                                                            "states": [
-                                                                                                                {
-                                                                                                                    "easingType": "easeInOutQuad",
-                                                                                                                    "id": "seatedReactionPointIntro",
-                                                                                                                    "interpDuration": 18,
-                                                                                                                    "interpTarget": 18,
-                                                                                                                    "interpType": "evaluateBoth",
-                                                                                                                    "priority": 1,
-                                                                                                                    "resume": false,
-                                                                                                                    "transitions": [
-                                                                                                                        {
-                                                                                                                            "randomSwitchState": "seatedReactionPointLoop",
-                                                                                                                            "var": "seatedReactionPointIntroOnDone"
-                                                                                                                        }
-                                                                                                                    ]
-                                                                                                                },
-                                                                                                                {
-                                                                                                                    "easingType": "easeInOutQuad",
-                                                                                                                    "id": "seatedReactionPointLoop",
-                                                                                                                    "interpDuration": 18,
-                                                                                                                    "interpTarget": 18,
-                                                                                                                    "interpType": "evaluateBoth",
-                                                                                                                    "priority": 0,
-                                                                                                                    "resume": false,
-                                                                                                                    "transitions": [
-                                                                                                                        {
-                                                                                                                            "randomSwitchState": "seatedReactionPointOutro",
-                                                                                                                            "var": "reactionPointDisabled"
-                                                                                                                        }
-                                                                                                                    ]
-                                                                                                                },
-                                                                                                                {
-                                                                                                                    "easingType": "easeInOutQuad",
-                                                                                                                    "id": "seatedReactionPointOutro",
-                                                                                                                    "interpDuration": 18,
-                                                                                                                    "interpTarget": 18,
-                                                                                                                    "interpType": "evaluateBoth",
-                                                                                                                    "priority": 0,
-                                                                                                                    "resume": false,
-                                                                                                                    "transitions": [
-                                                                                                                        {
-                                                                                                                            "randomSwitchState": "seatedReactionPointLoop",
-                                                                                                                            "var": "reactionPointEnabled"
-                                                                                                                        }
-                                                                                                                    ]
-                                                                                                                }
-                                                                                                            ],
-                                                                                                            "triggerRandomSwitch": ""
+                                                                                                            "alpha": 0,
+                                                                                                            "alphaVar": "seatedPointBlendAlpha",
+                                                                                                            "blendType": "addAbsolute"
                                                                                                         },
                                                                                                         "id": "seatedReactionPoint",
-                                                                                                        "type": "randomSwitchStateMachine"
+                                                                                                        "type": "blendLinear"
                                                                                                     }
                                                                                                 ],
                                                                                                 "data": {
@@ -3531,97 +3720,275 @@
                                                                                                         "children": [
                                                                                                             {
                                                                                                                 "children": [
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "endFrame": 21,
+                                                                                                                            "loopFlag": false,
+                                                                                                                            "startFrame": 1,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/emote_point01_all.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "reactionPointIntro",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "endFrame": 100,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 21,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/emote_point01_all.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "reactionPointLoop",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "endFrame": 134,
+                                                                                                                            "loopFlag": false,
+                                                                                                                            "startFrame": 100,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/emote_point01_all.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "reactionPointOutro",
+                                                                                                                        "type": "clip"
+                                                                                                                    }
                                                                                                                 ],
                                                                                                                 "data": {
-                                                                                                                    "endFrame": 21,
-                                                                                                                    "loopFlag": false,
-                                                                                                                    "startFrame": 1,
-                                                                                                                    "timeScale": 1,
-                                                                                                                    "url": "qrc:///avatar/animations/emote_point01_all.fbx"
+                                                                                                                    "currentState": "reactionPointIntro",
+                                                                                                                    "randomSwitchTimeMax": 10,
+                                                                                                                    "randomSwitchTimeMin": 1,
+                                                                                                                    "states": [
+                                                                                                                        {
+                                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                                            "id": "reactionPointIntro",
+                                                                                                                            "interpDuration": 1,
+                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpType": "evaluateBoth",
+                                                                                                                            "priority": 1,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": [
+                                                                                                                                {
+                                                                                                                                    "randomSwitchState": "reactionPointLoop",
+                                                                                                                                    "var": "reactionPointIntroOnDone"
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "id": "reactionPointLoop",
+                                                                                                                            "interpDuration": 1,
+                                                                                                                            "interpTarget": 1,
+                                                                                                                            "priority": 0,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": [
+                                                                                                                                {
+                                                                                                                                    "randomSwitchState": "reactionPointOutro",
+                                                                                                                                    "var": "reactionPointDisabled"
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                                            "id": "reactionPointOutro",
+                                                                                                                            "interpDuration": 6,
+                                                                                                                            "interpTarget": 6,
+                                                                                                                            "interpType": "evaluateBoth",
+                                                                                                                            "priority": 0,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": [
+                                                                                                                                {
+                                                                                                                                    "randomSwitchState": "reactionPointLoop",
+                                                                                                                                    "var": "reactionPointEnabled"
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        }
+                                                                                                                    ],
+                                                                                                                    "triggerRandomSwitch": ""
                                                                                                                 },
-                                                                                                                "id": "reactionPointIntro",
-                                                                                                                "type": "clip"
+                                                                                                                "id": "reactionPoint",
+                                                                                                                "type": "randomSwitchStateMachine"
                                                                                                             },
                                                                                                             {
                                                                                                                 "children": [
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 11,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 11,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "idlePointLeft",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 30,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 30,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "idlePointRight",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 50,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 50,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "idlePointUp",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 70,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 70,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "idlePointDown",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 90,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 90,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "idlePointUpLeft",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 110,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 110,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "idlePointUpRight",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 130,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 130,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "idlePointDownLeft",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 150,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 150,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "idlePointDownRight",
+                                                                                                                        "type": "clip"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "children": [
+                                                                                                                        ],
+                                                                                                                        "data": {
+                                                                                                                            "baseFrame": 1,
+                                                                                                                            "baseURL": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx",
+                                                                                                                            "blendType": "addAbsolute",
+                                                                                                                            "endFrame": 3,
+                                                                                                                            "loopFlag": true,
+                                                                                                                            "startFrame": 3,
+                                                                                                                            "timeScale": 1,
+                                                                                                                            "url": "qrc:///avatar/animations/emote_point01_aimoffsets.fbx"
+                                                                                                                        },
+                                                                                                                        "id": "idlePointCenter",
+                                                                                                                        "type": "clip"
+                                                                                                                    }
                                                                                                                 ],
                                                                                                                 "data": {
-                                                                                                                    "endFrame": 100,
-                                                                                                                    "loopFlag": true,
-                                                                                                                    "startFrame": 21,
-                                                                                                                    "timeScale": 1,
-                                                                                                                    "url": "qrc:///avatar/animations/emote_point01_all.fbx"
+                                                                                                                    "alpha": [
+                                                                                                                        0,
+                                                                                                                        0,
+                                                                                                                        0
+                                                                                                                    ],
+                                                                                                                    "alphaVar": "idlePointAroundAlpha",
+                                                                                                                    "centerId": "idlePointCenter",
+                                                                                                                    "downId": "idlePointDown",
+                                                                                                                    "downLeftId": "idlePointDownLeft",
+                                                                                                                    "downRightId": "idlePointDownRight",
+                                                                                                                    "leftId": "idlePointLeft",
+                                                                                                                    "rightId": "idlePointRight",
+                                                                                                                    "upId": "idlePointUp",
+                                                                                                                    "upLeftId": "idlePointUpLeft",
+                                                                                                                    "upRightId": "idlePointUpRight"
                                                                                                                 },
-                                                                                                                "id": "reactionPointLoop",
-                                                                                                                "type": "clip"
-                                                                                                            },
-                                                                                                            {
-                                                                                                                "children": [
-                                                                                                                ],
-                                                                                                                "data": {
-                                                                                                                    "endFrame": 134,
-                                                                                                                    "loopFlag": false,
-                                                                                                                    "startFrame": 100,
-                                                                                                                    "timeScale": 1,
-                                                                                                                    "url": "qrc:///avatar/animations/emote_point01_all.fbx"
-                                                                                                                },
-                                                                                                                "id": "reactionPointOutro",
-                                                                                                                "type": "clip"
+                                                                                                                "id": "idlePointAround",
+                                                                                                                "type": "blendDirectional"
                                                                                                             }
                                                                                                         ],
                                                                                                         "data": {
-                                                                                                            "currentState": "reactionPointIntro",
-                                                                                                            "randomSwitchTimeMax": 10,
-                                                                                                            "randomSwitchTimeMin": 1,
-                                                                                                            "states": [
-                                                                                                                {
-                                                                                                                    "easingType": "easeInOutQuad",
-                                                                                                                    "id": "reactionPointIntro",
-                                                                                                                    "interpDuration": 1,
-                                                                                                                    "interpTarget": 1,
-                                                                                                                    "interpType": "evaluateBoth",
-                                                                                                                    "priority": 1,
-                                                                                                                    "resume": false,
-                                                                                                                    "transitions": [
-                                                                                                                        {
-                                                                                                                            "randomSwitchState": "reactionPointLoop",
-                                                                                                                            "var": "reactionPointIntroOnDone"
-                                                                                                                        }
-                                                                                                                    ]
-                                                                                                                },
-                                                                                                                {
-                                                                                                                    "id": "reactionPointLoop",
-                                                                                                                    "interpDuration": 1,
-                                                                                                                    "interpTarget": 1,
-                                                                                                                    "priority": 0,
-                                                                                                                    "resume": false,
-                                                                                                                    "transitions": [
-                                                                                                                        {
-                                                                                                                            "randomSwitchState": "reactionPointOutro",
-                                                                                                                            "var": "reactionPointDisabled"
-                                                                                                                        }
-                                                                                                                    ]
-                                                                                                                },
-                                                                                                                {
-                                                                                                                    "easingType": "easeInOutQuad",
-                                                                                                                    "id": "reactionPointOutro",
-                                                                                                                    "interpDuration": 6,
-                                                                                                                    "interpTarget": 6,
-                                                                                                                    "interpType": "evaluateBoth",
-                                                                                                                    "priority": 0,
-                                                                                                                    "resume": false,
-                                                                                                                    "transitions": [
-                                                                                                                        {
-                                                                                                                            "randomSwitchState": "reactionPointLoop",
-                                                                                                                            "var": "reactionPointEnabled"
-                                                                                                                        }
-                                                                                                                    ]
-                                                                                                                }
-                                                                                                            ],
-                                                                                                            "triggerRandomSwitch": ""
+                                                                                                            "alpha": 0,
+                                                                                                            "alphaVar": "idlePointBlendAlpha",
+                                                                                                            "blendType": "addAbsolute"
                                                                                                         },
                                                                                                         "id": "reactionPoint",
-                                                                                                        "type": "randomSwitchStateMachine"
+                                                                                                        "type": "blendLinear"
                                                                                                     }
                                                                                                 ],
                                                                                                 "data": {
