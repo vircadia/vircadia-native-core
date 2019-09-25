@@ -66,8 +66,8 @@ static QString getTargetDevice(bool hmd, QAudio::Mode mode) {
         } else { // if (_mode == QAudio::AudioOutput)
             deviceName = qApp->getActiveDisplayPlugin()->getPreferredAudioOutDevice();
         }
-    } else if (!setting.isSet()) {
-        deviceName = "default";
+    } else {
+        deviceName = HifiAudioDeviceInfo::DEFAULT_DEVICE_NAME;
     }
     return deviceName;
 }
@@ -198,16 +198,10 @@ void AudioDeviceList::resetDevice(bool contextIsHMD) {
 void AudioDeviceList::onDeviceChanged(const HifiAudioDeviceInfo& device, bool isHMD) {
     HifiAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
     selectedDevice = device;
-
     for (auto i = 0; i < _devices.size(); ++i) {
         std::shared_ptr<AudioDevice> device = _devices[i];
         bool& isSelected = isHMD ? device->selectedHMD : device->selectedDesktop;
-        HifiAudioDeviceInfo devInfo = device->info;
-        isSelected = false;
-
-        if (devInfo == selectedDevice) {
-            isSelected = true;
-        }
+        isSelected = device->info == selectedDevice;
     }
 
     emit deviceChanged(selectedDevice);

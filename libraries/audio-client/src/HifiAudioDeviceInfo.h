@@ -37,14 +37,14 @@ public:
     }
 
     void setMode(QAudio::Mode mode) { _mode = mode; }
-    void setIsDefault(bool isDefault = false) { _isDefault = isDefault; }
+    void setIsDefault() { _isDefault = true; }
     void setDevice(QAudioDeviceInfo devInfo);
     QString deviceName() const {
 #if defined(Q_OS_ANDROID)
         return _audioDeviceInfo.deviceName();
 #endif
         if (_isDefault) {
-            return "default";
+            return DEFAULT_DEVICE_NAME;
         } else {
             return _audioDeviceInfo.deviceName();
         }
@@ -61,6 +61,9 @@ private:
     QAudioDeviceInfo _audioDeviceInfo;
     bool _isDefault { false };
     QAudio::Mode _mode { QAudio::AudioInput };
+
+public:
+    static const QString DEFAULT_DEVICE_NAME;
 };
 
 #endif
