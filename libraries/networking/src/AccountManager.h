@@ -60,7 +60,7 @@ const auto DEFAULT_USER_AGENT_GETTER = []() -> QString { return HIGH_FIDELITY_US
 class AccountManager : public QObject, public Dependency {
     Q_OBJECT
 public:
-    AccountManager(UserAgentGetter userAgentGetter = DEFAULT_USER_AGENT_GETTER);
+    AccountManager(bool accountSettingsEnabled = false, UserAgentGetter userAgentGetter = DEFAULT_USER_AGENT_GETTER);
 
     QNetworkRequest createRequest(QString path, AccountManagerAuth::Type authType);
     Q_INVOKABLE void sendRequest(const QString& path,
@@ -182,6 +182,7 @@ private:
     bool _limitedCommerce { false };
     QString _configFileURL;
 
+    bool _accountSettingsEnabled { false };
     AccountSettings _settings;
     quint64 _currentSyncTimestamp { 0 };
     quint64 _lastSuccessfulSyncTimestamp { 0 };
