@@ -186,6 +186,8 @@ private:
     AccountSettings _settings;
     quint64 _currentSyncTimestamp { 0 };
     quint64 _lastSuccessfulSyncTimestamp { 0 };
+    int _numPullRetries { 0 };
+    QTimer* _pullSettingsRetryTimer { nullptr };
     QTimer* _postSettingsTimer { nullptr };
 };
 
