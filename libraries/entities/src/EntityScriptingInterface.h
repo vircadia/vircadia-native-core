@@ -728,7 +728,8 @@ public slots:
      * Finds all domain and avatar entities whose axis-aligned boxes intersect a search frustum.
      * @function Entities.findEntitiesInFrustum
      * @param {ViewFrustum} frustum - The frustum to search in. The <code>position</code>, <code>orientation</code>, 
-     *     <code>projection</code>, and <code>centerRadius</code> properties must be specified.
+     *     <code>projection</code>, and <code>centerRadius</code> properties must be specified. The <code>fieldOfView</code> 
+     *     and <code>aspectRatio</code> properties are not used; these values are specified by the <code>projection</code>.
      * @returns {Uuid[]} An array of entity IDs whose axis-aligned boxes intersect the search frustum. The array is empty if no 
      *     entities could be found.
      * @example <caption>Report the number of entities in view.</caption>
