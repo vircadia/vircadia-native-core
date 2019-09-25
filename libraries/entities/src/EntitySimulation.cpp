@@ -19,11 +19,11 @@
 
 void EntitySimulation::setEntityTree(EntityTreePointer tree) {
     if (_entityTree && _entityTree != tree) {
-        _mortalEntities.clear();
-        _nextExpiry = std::numeric_limits<uint64_t>::max();
-        _entitiesToUpdate.clear();
         _entitiesToSort.clear();
         _simpleKinematicEntities.clear();
+        _entitiesToUpdate.clear();
+        _mortalEntities.clear();
+        _nextExpiry = std::numeric_limits<uint64_t>::max();
     }
     _entityTree = tree;
 }
@@ -49,11 +49,11 @@ void EntitySimulation::takeDeadEntities(SetOfEntities& entitiesToDelete) {
 
 void EntitySimulation::removeEntityFromInternalLists(EntityItemPointer entity) {
     // remove from all internal lists except _deadEntities
-    _mortalEntities.remove(entity);
-    _entitiesToUpdate.remove(entity);
     _entitiesToSort.remove(entity);
     _simpleKinematicEntities.remove(entity);
     _allEntities.remove(entity);
+    _entitiesToUpdate.remove(entity);
+    _mortalEntities.remove(entity);
     entity->setSimulated(false);
 }
 
@@ -218,11 +218,11 @@ void EntitySimulation::processChangedEntity(const EntityItemPointer& entity) {
 
 void EntitySimulation::clearEntities() {
     QMutexLocker lock(&_mutex);
-    _mortalEntities.clear();
-    _nextExpiry = std::numeric_limits<uint64_t>::max();
-    _entitiesToUpdate.clear();
     _entitiesToSort.clear();
     _simpleKinematicEntities.clear();
+    _entitiesToUpdate.clear();
+    _mortalEntities.clear();
+    _nextExpiry = std::numeric_limits<uint64_t>::max();
 
     clearEntitiesInternal();
 

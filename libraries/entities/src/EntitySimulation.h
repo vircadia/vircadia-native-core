@@ -115,10 +115,9 @@ private:
     // An entity may be in more than one list.
     std::unordered_set<EntityItemPointer> _changedEntities; // all changes this frame
     SetOfEntities _allEntities; // tracks all entities added the simulation
+    SetOfEntities _entitiesToUpdate; // entities that need to call EntityItem::update()
     SetOfEntities _mortalEntities; // entities that have an expiry
     uint64_t _nextExpiry;
-
-    SetOfEntities _entitiesToUpdate; // entities that need to call EntityItem::update()
 };
 
 #endif // hifi_EntitySimulation_h

@@ -71,7 +71,8 @@ void PhysicalEntitySimulation::removeEntityFromInternalLists(EntityItemPointer e
     if (motionState) {
         removeOwnershipData(motionState);
         _entitiesToRemoveFromPhysics.insert(entity);
-    } else if (entity->isDead() && entity->getElement()) {
+    }
+    if (entity->isDead() && entity->getElement()) {
         _deadEntities.insert(entity);
     }
     if (entity->isAvatarEntity()) {
@@ -215,7 +216,8 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
 
 // virtual
 void PhysicalEntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
-    // this can be called on any thread
+    // DANGER! this can be called on any thread
+    // do no dirty deeds here --> assemble list for later
     assert(entity);
     assert(entity->isDead());
     QMutexLocker lock(&_mutex);
@@ -223,13 +225,11 @@ void PhysicalEntitySimulation::prepareEntityForDelete(EntityItemPointer entity) 
 }
 
 void PhysicalEntitySimulation::removeDeadEntities() {
-    // only ever call this on the main thread
+    // DANGER! only ever call this on the main thread
     QMutexLocker lock(&_mutex);
     for (auto& entity : _entitiesToDeleteLater) {
         entity->clearActions(getThisPointer());
-        if (entity->isSimulated()) {
-            removeEntityFromInternalLists(entity);
-        }
+        EntitySimulation::prepareEntityForDelete(entity);
     }
     _entitiesToDeleteLater.clear();
 }
