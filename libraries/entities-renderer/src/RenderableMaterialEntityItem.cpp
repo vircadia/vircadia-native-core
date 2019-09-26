@@ -11,9 +11,6 @@
 #include "RenderPipelines.h"
 #include "GeometryCache.h"
 
-#include "EntitiesRendererLogging.h"
-
-
 using namespace render;
 using namespace render::entities;
 
@@ -198,10 +195,7 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
             auto material = getMaterial();
             bool newTexturesLoaded = material ? !material->isMissingTexture() : false;
             if (!_texturesLoaded && newTexturesLoaded) {
-                bool changed = material->checkResetOpacityMap();
-                if (changed) {
-                    qCWarning(entitiesrenderer) << "opacity change detected for material " << material->getName().c_str();
-                }
+                material->checkResetOpacityMap();
             }
             _texturesLoaded = newTexturesLoaded;
         }

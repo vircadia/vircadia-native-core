@@ -43,6 +43,7 @@ public:
         OPACITY_VAL_BIT,
         OPACITY_MASK_MAP_BIT,           // Opacity Map and Opacity MASK map are mutually exclusive
         OPACITY_TRANSLUCENT_MAP_BIT,
+        ALPHA_CUTOFF_VAL_BIT,
         SCATTERING_VAL_BIT,
 
         // THe map bits must be in the same sequence as the enum names for the map channels
@@ -100,6 +101,8 @@ public:
         Builder& withGlossy() { _flags.set(GLOSSY_VAL_BIT); return (*this); }
 
         Builder& withTranslucentFactor() { _flags.set(OPACITY_VAL_BIT); return (*this); }
+
+        Builder& withAlphaCutoff() { _flags.set(ALPHA_CUTOFF_VAL_BIT); return (*this); }
 
         Builder& withScattering() { _flags.set(SCATTERING_VAL_BIT); return (*this); }
 
@@ -167,6 +170,9 @@ public:
 
     void setTranslucentFactor(bool value) { _flags.set(OPACITY_VAL_BIT, value); }
     bool isTranslucentFactor() const { return _flags[OPACITY_VAL_BIT]; }
+
+    void setAlphaCutoff(bool value) { _flags.set(ALPHA_CUTOFF_VAL_BIT, value); }
+    bool isAlphaCutoff() const { return _flags[ALPHA_CUTOFF_VAL_BIT]; }
 
     void setTranslucentMap(bool value) { _flags.set(OPACITY_TRANSLUCENT_MAP_BIT, value); }
     bool isTranslucentMap() const { return _flags[OPACITY_TRANSLUCENT_MAP_BIT]; }
@@ -264,6 +270,9 @@ public:
         Builder& withoutTranslucentFactor()       { _value.reset(MaterialKey::OPACITY_VAL_BIT); _mask.set(MaterialKey::OPACITY_VAL_BIT); return (*this); }
         Builder& withTranslucentFactor()        { _value.set(MaterialKey::OPACITY_VAL_BIT);  _mask.set(MaterialKey::OPACITY_VAL_BIT); return (*this); }
 
+        Builder& withoutAlphaCutoff() { _value.reset(MaterialKey::ALPHA_CUTOFF_VAL_BIT); _mask.set(MaterialKey::ALPHA_CUTOFF_VAL_BIT); return (*this); }
+        Builder& withAlphaCutoff() { _value.set(MaterialKey::ALPHA_CUTOFF_VAL_BIT);  _mask.set(MaterialKey::ALPHA_CUTOFF_VAL_BIT); return (*this); }
+
         Builder& withoutTranslucentMap()       { _value.reset(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT); _mask.set(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
         Builder& withTranslucentMap()        { _value.set(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT);  _mask.set(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
 
@@ -324,6 +333,7 @@ public:
     void setOpacity(float opacity);
     float getOpacity() const { return _opacity; }
 
+    static const MaterialKey::AlphaMapMode DEFAULT_ALPHA_MAP_MODE;
     void setAlphaMapMode(MaterialKey::AlphaMapMode alphaMode);
     MaterialKey::AlphaMapMode getAlphaMapMode() const;
 

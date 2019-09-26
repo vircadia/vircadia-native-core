@@ -461,6 +461,13 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         wasSet = true;
                     }
                     break;
+                case graphics::MaterialKey::ALPHA_CUTOFF_VAL_BIT:
+                    if (materialKey.isAlphaCutoff()) {
+                        schema._alphaCutoff = material->getAlphaCutoff();
+                        schemaKey.setAlphaCutoff(true);
+                        wasSet = true;
+                    }
+                    break;
                 case graphics::MaterialKey::SCATTERING_VAL_BIT:
                     if (materialKey.isScattering()) {
                         schema._scattering = material->getScattering();
@@ -486,7 +493,6 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         schemaKey.setAlbedoMap(true);
                         schemaKey.setOpacityMaskMap(material->getKey().isOpacityMaskMap());
                         schemaKey.setTranslucentMap(material->getKey().isTranslucentMap());
-                        schema._alphaCutoff = material->getAlphaCutoff();
                     }
                     break;
                 case graphics::MaterialKey::METALLIC_MAP_BIT:

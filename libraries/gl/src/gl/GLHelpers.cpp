@@ -287,7 +287,6 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(DEFAULT_GL_DEPTH_BUFFER_BITS);
         format.setStencilBufferSize(DEFAULT_GL_STENCIL_BUFFER_BITS);
-        format.setColorSpace(QSurfaceFormat::ColorSpace::sRGBColorSpace);
         auto glversion = ::gl::getTargetVersion();
         format.setMajorVersion(GL_GET_MAJOR_VERSION(glversion));
         format.setMinorVersion(GL_GET_MINOR_VERSION(glversion));

@@ -41,7 +41,6 @@ void ModelEntityWrapper::setModel(const ModelPointer& model) {
             if (_model) {
                 _needsInitialSimulation = true;
             }
-   
         }
     });
 }
@@ -1432,13 +1431,12 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
     }
 
-    bool currentTexturesLoaded = resultWithReadLock<bool>([&] { return _texturesLoaded; });
-    if (!currentTexturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+    if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
         withWriteLock([&] {
             _texturesLoaded = true;
         });
         model->updateRenderItems();
-    } else if (!currentTexturesLoaded) {
+    } else if (!_texturesLoaded) {
         emit requestRenderUpdate();
     }
 

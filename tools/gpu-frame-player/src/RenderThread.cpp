@@ -188,6 +188,7 @@ void RenderThread::renderFrame(gpu::FramePointer& frame) {
     glDisable(GL_FRAMEBUFFER_SRGB);
     _gpuContext->executeBatch(*batch);
     
+    // Keep this raw gl code here for reference
     //glDisable(GL_FRAMEBUFFER_SRGB);
     //glClear(GL_COLOR_BUFFER_BIT);
   /*  glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);

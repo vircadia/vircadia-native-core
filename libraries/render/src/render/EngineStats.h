@@ -101,11 +101,6 @@ namespace render {
         quint32 frameSetPipelineCount{ 0 };
 
         quint32 frameSetInputFormatCount{ 0 };
-
-
-
-        void emitDirty() { emit newStats(); }
-
     };
 
     class EngineStats {

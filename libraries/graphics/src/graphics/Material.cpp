@@ -122,7 +122,7 @@ void Material::setScattering(float scattering) {
 
 void Material::setAlphaCutoff(float alphaCutoff) {
     alphaCutoff = glm::clamp(alphaCutoff, 0.0f, 1.0f);
-  //  _key.setAlphaCutoff(alphaCutoff != DEFAULT_ALPHA_CUTOFF);
+    _key.setAlphaCutoff(alphaCutoff != DEFAULT_ALPHA_CUTOFF);
     _alphaCutoff = alphaCutoff;
 }
 
@@ -191,7 +191,7 @@ bool Material::resetOpacityMap() const {
     }
     auto newious = _key.getAlphaMapMode();
     if (previous != newious) {
-        qCWarning(graphicsLog) << "opacity change detected for material " << _name.c_str();
+        //opacity change detected for this material
         return true;
     }
     return false;
