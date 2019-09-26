@@ -293,29 +293,38 @@ public:
     Q_INVOKABLE void loadQMLSource(const QVariant& path, bool resizable = false);
 
     /**jsdoc
-     * Internal function, do not call from scripts
      * @function TabletProxy#loadQMLSourceImpl
+     * @deprecated This function is deprecated and will be removed.
      */
+    // Internal function, do not call from scripts.
     Q_INVOKABLE void loadQMLSourceImpl(const QVariant& path, bool resizable, bool localSafeContext);
 
-     /**jsdoc
-     * Internal function, do not call from scripts
+    /**jsdoc
      * @function TabletProxy#loadHTMLSourceImpl
+     * @deprecated This function is deprecated and will be removed.
      */
+    // Internal function, do not call from scripts.
     Q_INVOKABLE void loadHTMLSourceImpl(const QVariant& url, const QString& injectJavaScriptUrl, bool localSafeContext);
 
-     /**jsdoc
-     * Internal function, do not call from scripts
+    /**jsdoc
      * @function TabletProxy#loadHTMLSourceImpl
+     * @deprecated This function is deprecated and will be removed.
      */
+    // Internal function, do not call from scripts.
     Q_INVOKABLE void loadHTMLSourceImpl(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase, bool localSafeContext);
 
-     /**jsdoc
-     * Internal function, do not call from scripts
+    /**jsdoc
      * @function TabletProxy#returnToPreviousAppImpl
+     * @deprecated This function is deprecated and will be removed.
      */
+    // Internal function, do not call from scripts.
     Q_INVOKABLE void returnToPreviousAppImpl(bool localSafeContext);
 
+    /**jsdoc
+     *@function TabletProxy#loadQMLOnTopImpl
+     * @deprecated This function is deprecated and will be removed.
+     */
+    // Internal function, do not call from scripts.
     Q_INVOKABLE void loadQMLOnTopImpl(const QVariant& path, bool localSafeContext);
 
     // FIXME: This currently relies on a script initializing the tablet (hence the bool denoting success);
