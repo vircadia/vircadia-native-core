@@ -250,14 +250,13 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 
         if (previousWsaError.exchange(wsaError) != wsaError) {
             qCDebug(networking).noquote() << errorString;
+#ifdef DEBUG_EVENT_QUEUE
+            int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
+            qCDebug(networking) << "Networking queue size - " << nodeListQueueSize << "writing datagram to" << sockAddr;
+#endif  // DEBUG_EVENT_QUEUE
         } else {
             HIFI_FCDEBUG(networking(), errorString.toLatin1().constData());
         }
-
-#ifdef DEBUG_EVENT_QUEUE
-        int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
-        qCDebug(networking) << "Networking queue size - " << nodeListQueueSize << "writing datagram to" << sockAddr;
-#endif // DEBUG_EVENT_QUEUE    
     }
 
     return bytesWritten;
@@ -547,14 +546,13 @@ void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
 
     if (previousWsaError.exchange(wsaError) != wsaError) {
         qCDebug(networking).noquote() << errorString;
+#ifdef DEBUG_EVENT_QUEUE
+        int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
+        qCDebug(networking) << "Networking queue size - " << nodeListQueueSize;
+#endif  // DEBUG_EVENT_QUEUE
     } else {
         HIFI_FCDEBUG(networking(), errorString.toLatin1().constData());
     }
-
-#ifdef DEBUG_EVENT_QUEUE
-    int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
-    qCDebug(networking) << "Networking queue size - " << nodeListQueueSize;
-#endif // DEBUG_EVENT_QUEUE
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
