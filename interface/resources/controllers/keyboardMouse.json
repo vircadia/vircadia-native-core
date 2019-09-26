@@ -4,7 +4,7 @@
         { "from": "Keyboard.A", "when": ["Keyboard.RightMouseButton", "!Keyboard.Control"], "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.D", "when": ["Keyboard.RightMouseButton", "!Keyboard.Control"], "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.E", "when": ["!Application.CameraSelfie", "!Application.CameraLookAt", "!Keyboard.Control"], "to": "Actions.LATERAL_RIGHT" },
-        { "from": "Keyboard.Q", "when": ["!Application.CameraSelfie"," !Application.CameraLookAt", "!Keyboard.Control"], "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.Q", "when": ["!Application.CameraSelfie", "!Application.CameraLookAt", "!Keyboard.Control"], "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.T", "when": "!Keyboard.Control", "to": "Actions.TogglePushToTalk" },
 
         { "comment" : "Mouse turn need to be small continuous increments",

@@ -2709,7 +2709,11 @@ void MyAvatar::updateMotors() {
     if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
         if (_characterController.getState() == CharacterController::State::Hover ||
                 _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
-            motorRotation = getMyHead()->getHeadOrientation();
+            if (qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT || qApp->getCamera().getMode() == CAMERA_MODE_SELFIE) {
+                motorRotation = getLookAtRotation();
+            } else {
+                motorRotation = getMyHead()->getHeadOrientation();
+            }
         } else {
             // non-hovering = walking: follow camera twist about vertical but not lift
             // we decompose camera's rotation and store the twist part in motorRotation
@@ -3632,8 +3636,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         glm::vec3 targetPoint = eyesPosition + glm::normalize(cameraVector);
 
         const float LOOKAT_MIX_ALPHA = 0.25f;
-
-        if (getDriveKey(TRANSLATE_Y) == 0.0f) {
+        if (!isFlying() || !hasDriveInput()) {
             // Approximate the head's look at vector to the camera look at vector with some delay.
             float mixAlpha = LOOKAT_MIX_ALPHA * timeScale;
             if (mixAlpha > 1.0f) {
