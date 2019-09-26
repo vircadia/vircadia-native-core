@@ -151,10 +151,23 @@ void LauncherState::requestBuilds() {
     setApplicationState(ApplicationState::RequestingBuilds);
 
     // TODO Show splash screen until this request is complete
-    auto request = new QNetworkRequest(QUrl("https://thunder.highfidelity.com/builds/api/tags/latest/?format=json"));
+
+    QString latestBuildRequestUrl { "https://thunder.highfidelity.com/builds/api/tags/latest/?format=json" };
+    QProcessEnvironment processEnvironment =QProcessEnvironment::systemEnvironment();
+
+    if (processEnvironment.contains("HQ_LAUNCHER_BUILDS_URL")) {
+        latestBuildRequestUrl = processEnvironment.value("HQ_LAUNCHER_BUILDS_URL");
+    }
+
+    auto request = new QNetworkRequest(QUrl(latestBuildRequestUrl));
     auto reply = _networkAccessManager.get(*request);
 
     QObject::connect(reply, &QNetworkReply::finished, this, &LauncherState::receivedBuildsReply);
+}
+
+void LauncherState::restart() {
+    setApplicationState(ApplicationState::Init);
+    requestBuilds();
 }
 
 void LauncherState::receivedBuildsReply() {
@@ -219,7 +232,7 @@ void LauncherState::receivedBuildsReply() {
     }
 
     if (shouldDownloadLauncher()) {
-        downloadLauncher();
+        //downloadLauncher();
     }
     getCurrentClientVersion();
 }
@@ -239,27 +252,12 @@ void LauncherState::getCurrentClientVersion() {
 
     //connect(&client, &QProcess::errorOccurred, &loop, &QEventLoop::exit);
     connect(&client, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), &loop, &QEventLoop::exit);
-    /*
-    connect(&client, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), [&]() {
-        qDebug() << "Finished";
-    });
-    connect(&client, &QProcess::errorOccurred, [&](QProcess::ProcessError err) {
-        qDebug() << "Error occurred" << err << client.error();
-    });
-    connect(&client, &QProcess::started, [&]() {
-        qDebug() << "Started";
-    });
-    connect(&client, &QProcess::stateChanged, [&]() {
-        qDebug() << "State changed " << client.state();
-    });
-    */
+    connect(&client, &QProcess::errorOccurred, &loop, &QEventLoop::exit, Qt::QueuedConnection);
 
-    //qDebug() << "Starting client";
     client.start(getClientExecutablePath(), { "--version" });
-    //qDebug() << "Started" << client.error();
 
     if (client.state() != QProcess::NotRunning) {
-        //qDebug() << "Starting loop";
+
         loop.exec();
     } else {
         qDebug() << "Not waiting for client, there was an error starting it: " << client.error();
@@ -389,12 +387,13 @@ void LauncherState::receivedSettingsReply() {
     }
 
     _homeLocation = "hifi://hq";
+    _contentCacheURL = "http://orgs.highfidelity.com/host-content-cache/" +  QUrl(_homeLocation).host() + ".zip";
     if (root["data"].toObject().contains("home_location")) {
         auto homeLocation = root["data"].toObject()["home_location"];
         if (homeLocation.isString()) {
             _homeLocation = homeLocation.toString();
             auto host = QUrl(_homeLocation).host();
-            _contentCacheURL = "http://orgs.highfidelity.com/host-content-cache/" +  host + ".zip";
+            //_contentCacheURL = "http://orgs.highfidelity.com/host-content-cache/" +  host + ".zip";
             qDebug() << "Home location is: " << _homeLocation;
             qDebug() << "Content cache url is: " << _contentCacheURL;
         }

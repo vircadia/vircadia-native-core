@@ -110,6 +110,8 @@ public:
     void requestSettings();
     Q_INVOKABLE void receivedSettingsReply();
 
+    Q_INVOKABLE void restart();
+
     // Launcher
     void downloadLauncher();
     void installLauncher();

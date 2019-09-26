@@ -139,6 +139,8 @@ set(src_files
   src/Unzipper.cpp
   src/Helper.h
   src/Helper.cpp
+  src/CommandlineOptions.h
+  src/CommandlineOptions.cpp
   deps/miniz/miniz.h
   deps/miniz/miniz.cpp
   #${RES_SOURCES}

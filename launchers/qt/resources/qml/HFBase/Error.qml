@@ -78,6 +78,10 @@ Item {
             topMargin: 15
             horizontalCenter: description.horizontalCenter
         }
+
+        onClicked: {
+            LauncherState.restart();
+        }
     }
 
 
