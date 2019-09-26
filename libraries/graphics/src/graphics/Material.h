@@ -358,7 +358,8 @@ public:
 
     // Albedo maps cannot have opacity detected until they are loaded
     // This method allows const changing of the key/schemaBuffer without touching the map
-    void resetOpacityMap() const;
+    // return true if the opacity changed, flase otherwise
+    bool resetOpacityMap() const;
 
     // conversion from legacy material properties to PBR equivalent
     static float shininessToRoughness(float shininess) { return 1.0f - shininess / 100.0f; }

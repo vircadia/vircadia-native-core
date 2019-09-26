@@ -63,14 +63,13 @@ Item {
     }
 
 
-   /* Timer {
+    Timer {
         interval: 2000; running: true; repeat: true
         onTriggered: pullFreshValues()
-    }*/
+    }
 
     function pullFreshValues() {
         if (needFreshList) {
-            //console.log("Updating " + cacheResourceName + "cache list")
             updateItemList(fetchItemsList())
             needFreshList = false
         }
@@ -127,7 +126,9 @@ Item {
             var item = itemList[i]
             currentItemsList.push(item)
             resourceItemsModel.append(packItemEntry(item, currentItemsList.length -1))
-        }   
+        }
+        // At the end of it, force an update
+        visualModel.forceUpdate()   
     }
 
     function updateItemList(newItemList) {
@@ -148,6 +149,7 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             height: totalCount.height
+            id: headerTop
 
             Prop.PropButton {
                 id: refreshButton
@@ -158,30 +160,46 @@ Item {
                 onPressed: { pullFreshValues() }
             }
 
-            Item {
+            GridLayout {
                 anchors.left: refreshButton.right
                 anchors.right: parent.right
-                Prop.PropScalar {
-                    id: totalCount
-                    anchors.left: parent.left
-                    anchors.right: parent.horizontalCenter
-                    label: "Count"
-                    object: root.cache
-                    property: "numTotal" 
-                    integral: true
-                    readOnly: true
-                    onSourceValueVarChanged: { updateItemListFromCache() }
+                id: headerCountLane
+                columns: 3
+
+                Item {
+                    Layout.fillWidth: true
+                    Prop.PropScalar {
+                        id: itemCount
+                        label: "Count"
+                        object: root.cache
+                        property: "numTotal" 
+                        integral: true
+                        readOnly: true
+                    }
                 }
-                Prop.PropScalar {
-                    id: cachedCount
-                    anchors.left: parent.horizontalCenter
-                    anchors.right: parent.right
-                    label: "Cached"
-                    object: root.cache
-                    property: "numCached" 
-                    integral: true
-                    readOnly: true
-                    onSourceValueVarChanged: { updateItemListFromCache() }
+                Item {
+                    Layout.fillWidth: true
+                    Prop.PropScalar {
+                        id: totalCount
+                        label: "Count"
+                        object: root.cache
+                        property: "numTotal" 
+                        integral: true
+                        readOnly: true
+                        onSourceValueVarChanged: { updateItemListFromCache() }
+                    }
+                }
+                Item {
+                    Layout.fillWidth: true
+                    Prop.PropScalar {
+                        id: cachedCount
+                        label: "Cached"
+                        object: root.cache
+                        property: "numCached" 
+                        integral: true
+                        readOnly: true
+                        onSourceValueVarChanged: { updateItemListFromCache() }
+                    }
                 }
             }
         }
@@ -331,7 +349,7 @@ Item {
             //console.log("refreshFilter! token = " + textFilter + " field = " + filterField)
             acceptItem = acceptItemArray[(textFilter.length != 0) * + (1 + filterField)]
         }
-  
+
         delegate: resouceItemDelegate
     }
 

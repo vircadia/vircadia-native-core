@@ -109,21 +109,6 @@ Rectangle {
                             }
                             width:column.width
                         }
-                        
-                        Prop.PropScalar {
-                            label: "Texture Loading"
-                            object: TextureCache
-                            property: "numLoading" 
-                            integral: true
-                            readOnly: true
-                        }
-                        Prop.PropScalar {
-                            label: "Model Loading"
-                            object: ModelCache
-                            property: "numLoading" 
-                            integral: true
-                            readOnly: true
-                        }
                     }
                 }
             }

@@ -14,6 +14,8 @@
 
 #include <Transform.h>
 
+#include "GraphicsLogging.h"
+
 using namespace graphics;
 using namespace gpu;
 
@@ -162,7 +164,8 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
 
 }
 
-void Material::resetOpacityMap() const {
+bool Material::resetOpacityMap() const {
+    auto previous = _key.getAlphaMapMode();
     // Clear the previous flags
     _key.setOpacityMaskMap(false);
     _key.setTranslucentMap(false);
@@ -186,6 +189,12 @@ void Material::resetOpacityMap() const {
             }
         }
     }
+    auto newious = _key.getAlphaMapMode();
+    if (previous != newious) {
+        qCWarning(graphicsLog) << "opacity change detected for material " << _name.c_str();
+        return true;
+    }
+    return false;
 }
 
 const TextureMapPointer Material::getTextureMap(MapChannel channel) const {

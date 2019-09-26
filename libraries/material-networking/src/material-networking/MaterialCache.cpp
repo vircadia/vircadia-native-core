@@ -748,13 +748,14 @@ bool NetworkMaterial::isMissingTexture() {
     return false;
 }
 
-void NetworkMaterial::checkResetOpacityMap() {
+bool NetworkMaterial::checkResetOpacityMap() {
     // If material textures are loaded, check the material translucency
     // FIXME: This should not be done here.  The opacity map should already be reset in Material::setTextureMap.
     // However, currently that code can be called before the albedo map is defined, so resetOpacityMap will fail.
     // Geometry::areTexturesLoaded() is called repeatedly until it returns true, so we do the check here for now
     const auto& albedoTexture = _textures[NetworkMaterial::MapChannel::ALBEDO_MAP];
     if (albedoTexture.texture) {
-        resetOpacityMap();
+        return resetOpacityMap();
     }
+    return false;
 }
