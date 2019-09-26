@@ -35,7 +35,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     var DEBUG = false;
     var SHOW_GRAB_SPHERE = false;
 
-
     if (typeof Test !== "undefined") {
         PROFILE = true;
     }
@@ -97,11 +96,15 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.runningPluginNames = {};
+
         this.leftTriggerValue = 0;
         this.leftTriggerClicked = 0;
+        this.leftTrackerClicked = false; // is leftTriggerClicked == 1 because a hand tracker set it?
+        this.leftSecondaryValue = 0;
+
         this.rightTriggerValue = 0;
         this.rightTriggerClicked = 0;
-        this.leftSecondaryValue = 0;
+        this.rightTrackerClicked = false; // is rightTriggerClicked == 1 because a hand tracker set it?
         this.rightSecondaryValue = 0;
 
         this.leftTriggerPress = function (value) {
@@ -159,6 +162,34 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 this.tabletID = HMD.tabletID;
                 Pointers.setIgnoreItems(_this.leftPointer, _this.blacklist);
                 Pointers.setIgnoreItems(_this.rightPointer, _this.blacklist);
+            }
+        };
+
+        this.checkForHandTrackingClick = function() {
+
+            var pinchOnBelowDistance = 0.016;
+            var pinchOffAboveDistance = 0.04;
+
+            var leftIndexPose = Controller.getPoseValue(Controller.Standard.LeftHandIndex4);
+            var leftThumbPose = Controller.getPoseValue(Controller.Standard.LeftHandThumb4);
+            var leftThumbToIndexDistance = Vec3.distance(leftIndexPose.translation, leftThumbPose.translation);
+            if (leftIndexPose.valid && leftThumbPose.valid && leftThumbToIndexDistance < pinchOnBelowDistance) {
+                _this.leftTriggerClicked = 1;
+                _this.leftTrackerClicked = true;
+            } else if (_this.leftTrackerClicked && leftThumbToIndexDistance > pinchOffAboveDistance) {
+                _this.leftTriggerClicked = 0;
+                _this.leftTrackerClicked = false;
+            }
+
+            var rightIndexPose = Controller.getPoseValue(Controller.Standard.RightHandIndex4);
+            var rightThumbPose = Controller.getPoseValue(Controller.Standard.RightHandThumb4);
+            var rightThumbToIndexDistance = Vec3.distance(rightIndexPose.translation, rightThumbPose.translation);
+            if (rightIndexPose.valid && rightThumbPose.valid && rightThumbToIndexDistance < pinchOnBelowDistance) {
+                _this.rightTriggerClicked = 1;
+                _this.rightTrackerClicked = true;
+            } else if (_this.rightTrackerClicked && rightThumbToIndexDistance > pinchOffAboveDistance) {
+                _this.rightTriggerClicked = 0;
+                _this.rightTrackerClicked = false;
             }
         };
 
@@ -368,6 +399,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                     }
                 }
             }
+
+            // check for hand-tracking "click"
+            _this.checkForHandTrackingClick();
 
             // bundle up all the data about the current situation
             var controllerData = {

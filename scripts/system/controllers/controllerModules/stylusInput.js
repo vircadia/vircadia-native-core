@@ -67,7 +67,7 @@ Script.include("/~/system/libraries/controllers.js");
             var nearTabletHighlightModuleReady = nearTabletHighlightModule
                 ? nearTabletHighlightModule.isReady(controllerData) : makeRunningValues(false, [], []);
             return grabOverlayModuleReady.active || farGrabModuleReady.active || grabEntityModuleReady.active
-                || nearTabletHighlightModuleReady.active;
+                /* || nearTabletHighlightModuleReady.active */ ;
         };
 
         this.overlayLaserActive = function(controllerData) {
