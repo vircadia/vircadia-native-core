@@ -440,13 +440,13 @@ void Audio::handlePushedToTalk(bool enabled) {
     }
 }
 
-void Audio::setInputDevice(const QAudioDeviceInfo& device, bool isHMD) {
+void Audio::setInputDevice(const HifiAudioDeviceInfo& device, bool isHMD) {
     withWriteLock([&] {
         _devices.chooseInputDevice(device, isHMD);
     });
 }
 
-void Audio::setOutputDevice(const QAudioDeviceInfo& device, bool isHMD) {
+void Audio::setOutputDevice(const HifiAudioDeviceInfo& device, bool isHMD) {
     withWriteLock([&] {
         _devices.chooseOutputDevice(device, isHMD);
     });

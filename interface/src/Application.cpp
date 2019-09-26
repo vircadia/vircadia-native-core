@@ -856,9 +856,9 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<VirtualPad::Manager>();
     DependencyManager::set<DesktopPreviewProvider>();
 #if defined(Q_OS_ANDROID)
-    DependencyManager::set<AccountManager>(); // use the default user agent getter
+    DependencyManager::set<AccountManager>(true); // use the default user agent getter
 #else
-    DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
+    DependencyManager::set<AccountManager>(true, std::bind(&Application::getUserAgent, qApp));
 #endif
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT, defaultScriptsOverrideOption);
