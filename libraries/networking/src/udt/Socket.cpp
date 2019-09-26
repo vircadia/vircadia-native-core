@@ -548,12 +548,14 @@ void Socket::handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAdd
         Lock connectionsLock(_connectionsHashMutex);
 
         const auto connectionIter = _connectionsHash.find(previousAddress);
-        if (connectionIter != _connectionsHash.end()) {
+        // Don't move classes that are unused so far.
+        if (connectionIter != _connectionsHash.end() && connectionIter->second->hasReceivedHandshake()) {
             auto connection = move(connectionIter->second);
             _connectionsHash.erase(connectionIter);
             connection->setDestinationAddress(currentAddress);
             _connectionsHash[currentAddress] = move(connection);
             connectionsLock.unlock();
+            qCDebug(networking) << "Moved Connection class from" << previousAddress << "to" << currentAddress;
 
             Lock sequenceNumbersLock(_unreliableSequenceNumbersMutex);
             const auto sequenceNumbersIter = _unreliableSequenceNumbers.find(previousAddress);

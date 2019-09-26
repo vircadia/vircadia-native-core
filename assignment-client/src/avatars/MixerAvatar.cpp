@@ -38,7 +38,7 @@ MixerAvatar::MixerAvatar() {
             _pendingEvent = false;
             _verifyState = verificationFailed;
             _needsIdentityUpdate = true;
-            qCDebug(avatars) << "Dynamic verification TIMED-OUT for " << getDisplayName() << getSessionUUID();
+            qCDebug(avatars) << "Dynamic verification TIMED-OUT for" << getDisplayName() << getSessionUUID();
         } else {
             qCDebug(avatars) << "Ignoring timeout of avatar challenge";
         }
@@ -287,7 +287,7 @@ void MixerAvatar::processCertifyEvents() {
                         << ":" << _dynamicMarketResponse;
                 }
             } else {
-                qCDebug(avatars) << "Get owner status failed for " << getDisplayName() << _marketplaceIdFromURL <<
+                qCDebug(avatars) << "Get owner status failed for" << getDisplayName() << _marketplaceIdFromURL <<
                     "message:" << responseJson["message"].toString();
                 _verifyState = error;
             }
@@ -356,7 +356,7 @@ void MixerAvatar::processChallengeResponse(ReceivedMessage& response) {
         _verifyState = challengeResult ? verificationSucceeded : verificationFailed;
         _needsIdentityUpdate = true;
         if (_verifyState == verificationFailed) {
-            qCDebug(avatars) << "Dynamic verification FAILED for " << getDisplayName() << getSessionUUID();
+            qCDebug(avatars) << "Dynamic verification FAILED for" << getDisplayName() << getSessionUUID();
         } else {
             qCDebug(avatars) << "Dynamic verification SUCCEEDED for" << getDisplayName() << getSessionUUID();
         }
