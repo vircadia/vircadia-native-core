@@ -68,8 +68,8 @@ endif ()
 if (APPLE)
   ExternalProject_Add(
     qtlite
-    URL "https://dantescalves.com/launcher/qt-lite-clang-8.1.0.zip"
-    URL_HASH MD5=f8462bfcd54e6b05ef888f8b197149c2
+    URL "https://dantescalves.com/launcher/qt-lite-5.9.9-mac.zip"
+    URL_HASH MD5=0cd78d40e5f539a7e314cf99b6cae0d0
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
