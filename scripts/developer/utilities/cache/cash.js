@@ -1,11 +1,11 @@
 "use strict";
-var Page = Script.require('./cash/Page.js');
+var Page = Script.require('../lib/skit/Page.js');
 
 function openView() {
     //window.closed.connect(function() { Script.stop(); });
 
 
-    var pages = new Pages();  
+    var pages = new Pages(Script.resolvePath("."));  
     function fromQml(message) {
         console.log(JSON.stringify(message))
         if (message.method == "inspectResource") {
@@ -40,13 +40,13 @@ function openView() {
     }
  
 
-    pages.addPage('Cash', 'Cash', "../cash.qml", 300, 500, fromQml, openCashWindow, closeCashWindow);
-    pages.addPage('openModelCacheInspector', 'Model Cache Inspector', "./ModelCacheInspector.qml", 300, 500, fromQml);
-    pages.addPage('openMaterialCacheInspector', 'Material Cache Inspector', "./MaterialCacheInspector.qml", 300, 500, fromQml);
-    pages.addPage('openTextureCacheInspector', 'Texture Cache Inspector', "./TextureCacheInspector.qml", 300, 500, fromQml);
-    pages.addPage('openAnimationCacheInspector', 'Animation Cache Inspector', "./AnimationCacheInspector.qml", 300, 500);
-    pages.addPage('openSoundCacheInspector', 'Sound Cache Inspector', "./SoundCacheInspector.qml", 300, 500);
-    pages.addPage('openResourceInspector', 'Resource Inspector', "./ResourceInspector.qml", 300, 500);
+    pages.addPage('Cash', 'Cash', "cash.qml", 300, 500, fromQml, openCashWindow, closeCashWindow);
+    pages.addPage('openModelCacheInspector', 'Model Cache Inspector', "cash/ModelCacheInspector.qml", 300, 500, fromQml);
+    pages.addPage('openMaterialCacheInspector', 'Material Cache Inspector', "cash/MaterialCacheInspector.qml", 300, 500, fromQml);
+    pages.addPage('openTextureCacheInspector', 'Texture Cache Inspector', "cash/TextureCacheInspector.qml", 300, 500, fromQml);
+    pages.addPage('openAnimationCacheInspector', 'Animation Cache Inspector', "cash/AnimationCacheInspector.qml", 300, 500);
+    pages.addPage('openSoundCacheInspector', 'Sound Cache Inspector', "cash/SoundCacheInspector.qml", 300, 500);
+    pages.addPage('openResourceInspector', 'Resource Inspector', "cash/ResourceInspector.qml", 300, 500);
 
 
     pages.open('Cash');

@@ -165,7 +165,7 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
 }
 
 bool Material::resetOpacityMap() const {
-    auto previous = _key.getAlphaMapMode();
+    auto previous = _key.getOpacityMapMode();
     // Clear the previous flags
     _key.setOpacityMaskMap(false);
     _key.setTranslucentMap(false);
@@ -189,7 +189,7 @@ bool Material::resetOpacityMap() const {
             }
         }
     }
-    auto newious = _key.getAlphaMapMode();
+    auto newious = _key.getOpacityMapMode();
     if (previous != newious) {
         //opacity change detected for this material
         return true;

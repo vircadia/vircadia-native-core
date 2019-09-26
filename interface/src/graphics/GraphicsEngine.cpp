@@ -240,6 +240,7 @@ void GraphicsEngine::render_performFrame() {
             renderArgs._context->setStereoViews(stereoEyeOffsets);
         }
     }
+
     gpu::FramebufferPointer finalFramebuffer;
     QSize finalFramebufferSize;
     {

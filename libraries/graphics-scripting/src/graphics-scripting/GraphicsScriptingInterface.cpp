@@ -420,18 +420,16 @@ namespace scriptable {
             obj.setProperty("opacityMap", material.opacityMap);
         }
 
-
-        obj.setProperty("keys.isOpaque", material.key.isOpaque());
-        obj.setProperty("keys.isOpacityMaskMap", material.key.isOpacityMaskMap());
-        obj.setProperty("keys.isTexelOpaque", material.key.isTexelOpaque());
-        obj.setProperty("keys.isSurfaceOpaque", material.key.isSurfaceOpaque());
-
-        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT | graphics::MaterialKey::OPACITY_MASK_MAP_BIT)) {
             obj.setProperty("opacityMapMode", FALLTHROUGH);
-            obj.setProperty("alphaCutoff", FALLTHROUGH);
-        } else if (material.key.isGlossy()) {
-            obj.setProperty("opacityMapMode", material.opacityMode);
-            obj.setProperty("alphaCutoff", material.alphaCutoff);
+        } else if (material.key.getOpacityMapMode() != graphics::Material::DEFAULT_OPACITY_MAP_MODE) {
+            obj.setProperty("opacityMapMode", material.opacityMapMode);
+        }
+
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OPACITY_CUTOFF_VAL_BIT)) {
+            obj.setProperty("opacityCutoff", FALLTHROUGH);
+        } else if (!material.key.isOpacityCutoff()) {
+            obj.setProperty("opacityCutoff", material.opacityCutoff);
         }
 
         if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OCCLUSION_MAP_BIT)) {

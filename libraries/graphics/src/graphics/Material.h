@@ -43,7 +43,7 @@ public:
         OPACITY_VAL_BIT,
         OPACITY_MASK_MAP_BIT,           // Opacity Map and Opacity MASK map are mutually exclusive
         OPACITY_TRANSLUCENT_MAP_BIT,
-        ALPHA_CUTOFF_VAL_BIT,
+        OPACITY_CUTOFF_VAL_BIT,
         SCATTERING_VAL_BIT,
 
         // THe map bits must be in the same sequence as the enum names for the map channels
@@ -73,12 +73,12 @@ public:
         NUM_MAP_CHANNELS,
     };
 
-    enum AlphaMapMode {
-        ALPHA_MAP_OPAQUE = 0,
-        ALPHA_MAP_MASK,
-        ALPHA_MAP_BLEND,
+    enum OpacityMapMode {
+        OPACITY_MAP_OPAQUE = 0,
+        OPACITY_MAP_MASK,
+        OPACITY_MAP_BLEND,
     };
-    static std::string getAlphaMapModeName(AlphaMapMode mode);
+    static std::string getOpacityMapModeName(OpacityMapMode mode);
 
     // The signature is the Flags
     Flags _flags;
@@ -101,8 +101,26 @@ public:
         Builder& withGlossy() { _flags.set(GLOSSY_VAL_BIT); return (*this); }
 
         Builder& withTranslucentFactor() { _flags.set(OPACITY_VAL_BIT); return (*this); }
-
-        Builder& withAlphaCutoff() { _flags.set(ALPHA_CUTOFF_VAL_BIT); return (*this); }
+        Builder& withTranslucentMap() { _flags.set(OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
+        Builder& withMaskMap() { _flags.set(OPACITY_MASK_MAP_BIT); return (*this); }
+        Builder& withOpacityMapMode(OpacityMapMode mode) {
+            switch (mode) {
+            case OPACITY_MAP_OPAQUE:
+                _flags.reset(OPACITY_TRANSLUCENT_MAP_BIT);
+                _flags.reset(OPACITY_MASK_MAP_BIT);
+                break;
+            case OPACITY_MAP_MASK:
+                _flags.reset(OPACITY_TRANSLUCENT_MAP_BIT);
+                _flags.set(OPACITY_MASK_MAP_BIT);
+                break;
+            case OPACITY_MAP_BLEND:
+                _flags.set(OPACITY_TRANSLUCENT_MAP_BIT);
+                _flags.reset(OPACITY_MASK_MAP_BIT);
+                break;
+            };
+            return (*this);
+        }
+        Builder& withOpacityCutoff() { _flags.set(OPACITY_CUTOFF_VAL_BIT); return (*this); }
 
         Builder& withScattering() { _flags.set(SCATTERING_VAL_BIT); return (*this); }
 
@@ -110,26 +128,6 @@ public:
         Builder& withAlbedoMap() { _flags.set(ALBEDO_MAP_BIT); return (*this); }
         Builder& withMetallicMap() { _flags.set(METALLIC_MAP_BIT); return (*this); }
         Builder& withRoughnessMap() { _flags.set(ROUGHNESS_MAP_BIT); return (*this); }
-
-        Builder& withTranslucentMap() { _flags.set(OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
-        Builder& withMaskMap() { _flags.set(OPACITY_MASK_MAP_BIT); return (*this); }
-        Builder& withAlphaMapMode(AlphaMapMode mode) {
-            switch (mode) {
-                case ALPHA_MAP_OPAQUE:
-                    _flags.reset(OPACITY_TRANSLUCENT_MAP_BIT);
-                    _flags.reset(OPACITY_MASK_MAP_BIT);
-                    break;
-                case ALPHA_MAP_MASK:
-                    _flags.reset(OPACITY_TRANSLUCENT_MAP_BIT);
-                    _flags.set(OPACITY_MASK_MAP_BIT);
-                    break;
-                case ALPHA_MAP_BLEND:
-                    _flags.set(OPACITY_TRANSLUCENT_MAP_BIT);
-                    _flags.reset(OPACITY_MASK_MAP_BIT);
-                    break;
-            };
-            return (*this);
-        }
 
         Builder& withNormalMap() { _flags.set(NORMAL_MAP_BIT); return (*this); }
         Builder& withOcclusionMap() { _flags.set(OCCLUSION_MAP_BIT); return (*this); }
@@ -171,14 +169,14 @@ public:
     void setTranslucentFactor(bool value) { _flags.set(OPACITY_VAL_BIT, value); }
     bool isTranslucentFactor() const { return _flags[OPACITY_VAL_BIT]; }
 
-    void setAlphaCutoff(bool value) { _flags.set(ALPHA_CUTOFF_VAL_BIT, value); }
-    bool isAlphaCutoff() const { return _flags[ALPHA_CUTOFF_VAL_BIT]; }
-
     void setTranslucentMap(bool value) { _flags.set(OPACITY_TRANSLUCENT_MAP_BIT, value); }
     bool isTranslucentMap() const { return _flags[OPACITY_TRANSLUCENT_MAP_BIT]; }
 
     void setOpacityMaskMap(bool value) { _flags.set(OPACITY_MASK_MAP_BIT, value); }
     bool isOpacityMaskMap() const { return _flags[OPACITY_MASK_MAP_BIT]; }
+
+    void setOpacityCutoff(bool value) { _flags.set(OPACITY_CUTOFF_VAL_BIT, value); }
+    bool isOpacityCutoff() const { return _flags[OPACITY_CUTOFF_VAL_BIT]; }
 
     void setNormalMap(bool value) { _flags.set(NORMAL_MAP_BIT, value); }
     bool isNormalMap() const { return _flags[NORMAL_MAP_BIT]; }
@@ -200,23 +198,23 @@ public:
 
 
     // Translucency and Opacity Heuristics are combining several flags:
-    void setAlphaMapMode(AlphaMapMode mode) {
+    void setOpacityMapMode(OpacityMapMode mode) {
         switch (mode) {
-        case ALPHA_MAP_OPAQUE:
+        case OPACITY_MAP_OPAQUE:
             _flags.reset(OPACITY_TRANSLUCENT_MAP_BIT);
             _flags.reset(OPACITY_MASK_MAP_BIT);
             break;
-        case ALPHA_MAP_MASK:
+        case OPACITY_MAP_MASK:
             _flags.reset(OPACITY_TRANSLUCENT_MAP_BIT);
             _flags.set(OPACITY_MASK_MAP_BIT);
             break;
-        case ALPHA_MAP_BLEND:
+        case OPACITY_MAP_BLEND:
             _flags.set(OPACITY_TRANSLUCENT_MAP_BIT);
             _flags.reset(OPACITY_MASK_MAP_BIT);
             break;
         };
     }
-    AlphaMapMode getAlphaMapMode() const { return (isOpacityMaskMap() ? ALPHA_MAP_MASK : (isTranslucentMap() ? ALPHA_MAP_BLEND : ALPHA_MAP_OPAQUE)); }
+    OpacityMapMode getOpacityMapMode() const { return (isOpacityMaskMap() ? OPACITY_MAP_MASK : (isTranslucentMap() ? OPACITY_MAP_BLEND : OPACITY_MAP_OPAQUE)); }
 
     bool isTranslucent() const { return isTranslucentFactor() || isTranslucentMap(); }
     bool isOpaque() const { return !isTranslucent(); }
@@ -270,14 +268,14 @@ public:
         Builder& withoutTranslucentFactor()       { _value.reset(MaterialKey::OPACITY_VAL_BIT); _mask.set(MaterialKey::OPACITY_VAL_BIT); return (*this); }
         Builder& withTranslucentFactor()        { _value.set(MaterialKey::OPACITY_VAL_BIT);  _mask.set(MaterialKey::OPACITY_VAL_BIT); return (*this); }
 
-        Builder& withoutAlphaCutoff() { _value.reset(MaterialKey::ALPHA_CUTOFF_VAL_BIT); _mask.set(MaterialKey::ALPHA_CUTOFF_VAL_BIT); return (*this); }
-        Builder& withAlphaCutoff() { _value.set(MaterialKey::ALPHA_CUTOFF_VAL_BIT);  _mask.set(MaterialKey::ALPHA_CUTOFF_VAL_BIT); return (*this); }
-
         Builder& withoutTranslucentMap()       { _value.reset(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT); _mask.set(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
         Builder& withTranslucentMap()        { _value.set(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT);  _mask.set(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
 
         Builder& withoutMaskMap()       { _value.reset(MaterialKey::OPACITY_MASK_MAP_BIT); _mask.set(MaterialKey::OPACITY_MASK_MAP_BIT); return (*this); }
         Builder& withMaskMap()        { _value.set(MaterialKey::OPACITY_MASK_MAP_BIT);  _mask.set(MaterialKey::OPACITY_MASK_MAP_BIT); return (*this); }
+
+        Builder& withoutOpacityCutoff() { _value.reset(MaterialKey::OPACITY_CUTOFF_VAL_BIT); _mask.set(MaterialKey::OPACITY_CUTOFF_VAL_BIT); return (*this); }
+        Builder& withOpacityCutoff() { _value.set(MaterialKey::OPACITY_CUTOFF_VAL_BIT);  _mask.set(MaterialKey::OPACITY_CUTOFF_VAL_BIT); return (*this); }
 
         Builder& withoutNormalMap()       { _value.reset(MaterialKey::NORMAL_MAP_BIT); _mask.set(MaterialKey::NORMAL_MAP_BIT); return (*this); }
         Builder& withNormalMap()        { _value.set(MaterialKey::NORMAL_MAP_BIT);  _mask.set(MaterialKey::NORMAL_MAP_BIT); return (*this); }
@@ -333,13 +331,13 @@ public:
     void setOpacity(float opacity);
     float getOpacity() const { return _opacity; }
 
-    static const MaterialKey::AlphaMapMode DEFAULT_ALPHA_MAP_MODE;
-    void setAlphaMapMode(MaterialKey::AlphaMapMode alphaMode);
-    MaterialKey::AlphaMapMode getAlphaMapMode() const;
+    static const MaterialKey::OpacityMapMode DEFAULT_OPACITY_MAP_MODE;
+    void setOpacityMapMode(MaterialKey::OpacityMapMode alphaMode);
+    MaterialKey::OpacityMapMode getOpacityMapMode() const;
 
-    static const float DEFAULT_ALPHA_CUTOFF;
-    void setAlphaCutoff(float alphaCutoff);
-    float getAlphaCutoff() const { return _alphaCutoff; }
+    static const float DEFAULT_OPACITY_CUTOFF;
+    void setOpacityCutoff(float opacityCutoff);
+    float getOpacityCutoff() const { return _opacityCutoff; }
 
     void setUnlit(bool value);
     bool isUnlit() const { return _key.isUnlit(); }
@@ -416,7 +414,7 @@ private:
     float _roughness { DEFAULT_ROUGHNESS };
     float _metallic { DEFAULT_METALLIC };
     float _scattering { DEFAULT_SCATTERING };
-    float _alphaCutoff { DEFAULT_ALPHA_CUTOFF };
+    float _opacityCutoff { DEFAULT_OPACITY_CUTOFF };
     std::array<glm::mat4, NUM_TEXCOORD_TRANSFORMS> _texcoordTransforms;
     glm::vec2 _lightmapParams { 0.0, 1.0 };
     glm::vec2 _materialParams { 0.0, 1.0 };
@@ -485,7 +483,7 @@ public:
 
         float _metallic { Material::DEFAULT_METALLIC }; // Not Metallic
         float _scattering { Material::DEFAULT_SCATTERING }; // Scattering info
-        float _alphaCutoff { Material::DEFAULT_ALPHA_CUTOFF }; // Alpha cutoff applyed when using alphaMa as Mask 
+        float _opacityCutoff { Material::DEFAULT_OPACITY_CUTOFF }; // Opacity cutoff applyed when using opacityMap as Mask 
         uint32_t _key { 0 }; // a copy of the materialKey
 
         // Texture Coord Transform Array

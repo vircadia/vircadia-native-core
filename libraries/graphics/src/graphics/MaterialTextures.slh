@@ -214,21 +214,22 @@ vec3 fetchLightMap(vec2 uv) {
 }
 <@endfunc@>
 
-<@func evalMaterialOpacityMask(fetchedOpacity, materialAlphaCutoff, opacity)@>
+<@func evalMaterialOpacityMask(fetchedOpacity, materialOpacityCutoff, opacity)@>
 {
-    <$opacity$> = step(<$materialAlphaCutoff$>, <$fetchedOpacity$>);
+    // This path only valid for opaque or texel opaque material 
+    <$opacity$> = step(<$materialOpacityCutoff$>, <$fetchedOpacity$>);
 }
 <@endfunc@>
 
 
-<@func evalMaterialOpacity(fetchedOpacity, materialOpacity, matKey, opacity)@>
+<@func evalMaterialOpacity(fetchedOpacity, materialOpacityCutoff, materialOpacity, matKey, opacity)@>
 {
-    const float OPACITY_MASK_THRESHOLD = 0.5;
-    <$opacity$> = mix(1.0,
-                      mix(<$fetchedOpacity$>,
-                          step(OPACITY_MASK_THRESHOLD, <$fetchedOpacity$>),
-                          float((<$matKey$> & OPACITY_MASK_MAP_BIT) != 0)),
-                      float((<$matKey$> & (OPACITY_TRANSLUCENT_MAP_BIT | OPACITY_MASK_MAP_BIT)) != 0)) * <$materialOpacity$>;
+    // This path only valid for transparent material
+    // Assert that float((<$matKey$> & (OPACITY_TRANSLUCENT_MAP_BIT | OPACITY_MASK_MAP_BIT)) != 0)) == 1.0
+    <$opacity$> = mix(<$fetchedOpacity$>,
+                          step(<$materialOpacityCutoff$>, <$fetchedOpacity$>),
+                          float((<$matKey$> & OPACITY_MASK_MAP_BIT) != 0))
+                       * <$materialOpacity$>;
 }
 <@endfunc@>
 

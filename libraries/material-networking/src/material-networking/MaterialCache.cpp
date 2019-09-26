@@ -258,6 +258,22 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                 } else if (value.isDouble()) {
                     material->setMetallic(value.toDouble());
                 }
+            } else if (key == "opacityCuttoff") {
+                auto value = materialJSON.value(key);
+                if (value.isString() && value.toString() == FALLTHROUGH) {
+                    material->setPropertyDoesFallthrough(graphics::MaterialKey::FlagBit::OPACITY_CUTOFF_VAL_BIT);
+                }
+                else if (value.isDouble()) {
+                    material->setOpacityCutoff(value.toDouble());
+                }
+           /* SG TODO: Implement the set opacityMapMOde intentionaly } else if (key == "opacityMapMode") {
+                auto value = materialJSON.value(key);
+                if (value.isString() && value.toString() == FALLTHROUGH) {
+                    material->setPropertyDoesFallthrough(graphics::MaterialKey::FlagBit::OPACITY_MAP_MODE_BIT);
+                }
+                else if (value.isDouble()) {
+                    material->setOpacityCutoff(value.toDouble());
+                }**/
             } else if (key == "scattering") {
                 auto value = materialJSON.value(key);
                 if (value.isString() && value.toString() == FALLTHROUGH) {
