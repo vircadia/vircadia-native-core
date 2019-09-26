@@ -40,10 +40,6 @@ void PhysicalEntitySimulation::init(
 }
 
 // begin EntitySimulation overrides
-void PhysicalEntitySimulation::updateEntitiesInternal(uint64_t now) {
-    // Do nothing here because the "internal" update the PhysicsEngine::stepSimulation() which is done elsewhere.
-}
-
 void PhysicalEntitySimulation::addEntityToInternalLists(EntityItemPointer entity) {
     EntitySimulation::addEntityToInternalLists(entity);
     entity->deserializeActions(); // TODO: do this elsewhere
@@ -186,11 +182,12 @@ void PhysicalEntitySimulation::processChangedEntity(const EntityItemPointer& ent
     }
 }
 
-void PhysicalEntitySimulation::clearEntitiesInternal() {
+void PhysicalEntitySimulation::clearEntities() {
     // TODO: we should probably wait to lock the _physicsEngine so we don't mess up data structures
     // while it is in the middle of a simulation step.  As it is, we're probably in shutdown mode
     // anyway, so maybe the simulation was already properly shutdown?  Cross our fingers...
 
+    QMutexLocker lock(&_mutex);
     // remove the objects (aka MotionStates) from physics
     _physicsEngine->removeSetOfObjects(_physicalObjects);
 
@@ -212,6 +209,8 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     _entitiesToAddToPhysics.clear();
     _incomingChanges.clear();
     _entitiesToDeleteLater.clear();
+
+    EntitySimulation::clearEntities();
 }
 
 // virtual

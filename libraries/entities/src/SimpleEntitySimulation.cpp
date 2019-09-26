@@ -47,7 +47,10 @@ void SimpleEntitySimulation::clearOwnership(const QUuid& ownerID) {
     }
 }
 
-void SimpleEntitySimulation::updateEntitiesInternal(uint64_t now) {
+void SimpleEntitySimulation::updateEntities() {
+    EntitySimulation::updateEntities();
+    QMutexLocker lock(&_mutex);
+    uint64_t now = usecTimestampNow();
     expireStaleOwnerships(now);
     stopOwnerlessEntities(now);
 }
@@ -134,10 +137,11 @@ void SimpleEntitySimulation::processChangedEntity(const EntityItemPointer& entit
     entity->clearDirtyFlags();
 }
 
-void SimpleEntitySimulation::clearEntitiesInternal() {
+void SimpleEntitySimulation::clearEntities() {
     QMutexLocker lock(&_mutex);
     _entitiesWithSimulationOwner.clear();
     _entitiesThatNeedSimulationOwner.clear();
+    EntitySimulation::clearEntities();
 }
 
 void SimpleEntitySimulation::sortEntitiesThatMoved() {

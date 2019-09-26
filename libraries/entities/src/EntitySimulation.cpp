@@ -21,6 +21,7 @@ void EntitySimulation::setEntityTree(EntityTreePointer tree) {
     if (_entityTree && _entityTree != tree) {
         _entitiesToSort.clear();
         _simpleKinematicEntities.clear();
+        _changedEntities.clear();
         _entitiesToUpdate.clear();
         _mortalEntities.clear();
         _nextExpiry = std::numeric_limits<uint64_t>::max();
@@ -29,15 +30,14 @@ void EntitySimulation::setEntityTree(EntityTreePointer tree) {
 }
 
 void EntitySimulation::updateEntities() {
+    PerformanceTimer perfTimer("EntitySimulation::updateEntities");
     QMutexLocker lock(&_mutex);
     uint64_t now = usecTimestampNow();
-    PerformanceTimer perfTimer("EntitySimulation::updateEntities");
 
     // these methods may accumulate entries in _entitiesToBeDeleted
     expireMortalEntities(now);
     callUpdateOnEntitiesThatNeedIt(now);
     moveSimpleKinematics(now);
-    updateEntitiesInternal(now);
     sortEntitiesThatMoved();
 }
 
@@ -220,14 +220,12 @@ void EntitySimulation::clearEntities() {
     QMutexLocker lock(&_mutex);
     _entitiesToSort.clear();
     _simpleKinematicEntities.clear();
+    _changedEntities.clear();
+    _allEntities.clear();
+    _deadEntities.clear();
     _entitiesToUpdate.clear();
     _mortalEntities.clear();
     _nextExpiry = std::numeric_limits<uint64_t>::max();
-
-    clearEntitiesInternal();
-
-    _allEntities.clear();
-    _deadEntities.clear();
 }
 
 void EntitySimulation::moveSimpleKinematics(uint64_t now) {
