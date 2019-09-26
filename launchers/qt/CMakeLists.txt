@@ -16,6 +16,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include("cmake/init.cmake")
 include("cmake/macros/SetPackagingParameters.cmake")
 
+if (WIN32)
+  set(CMAKE_MFC_FLAG 1)
+endif()
+
 
 function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
   if (NOT DEFINED ${_RESULT_NAME})
@@ -119,6 +123,8 @@ foreach(plugin ${Qt5Gui_PLUGINS})
   set(plugin_libs ${plugin_libs} ${_loc})
 endforeach()
 
+qt5_add_resources(EXAMPLE_RCC_SRC build/resources.qrc)
+
 set(src_files
   src/main.cpp
   src/Launcher.h
@@ -135,7 +141,7 @@ set(src_files
   src/Helper.cpp
   deps/miniz/miniz.h
   deps/miniz/miniz.cpp
-  ${RES_SOURCES}
+  #${RES_SOURCES}
   )
 
 
@@ -159,7 +165,7 @@ set(TARGET_NAME ${PROJECT_NAME})
 
 set_packaging_parameters()
 if (WIN32)
-  add_executable(${PROJECT_NAME} ${src_files} build/resources.qrc)
+  add_executable(${PROJECT_NAME} ${src_files})#build/resources.qrc ${EXAMPLE_RCC_SRC})
 elseif (APPLE)
   set_target_properties(${this_target} PROPERTIES
     MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)

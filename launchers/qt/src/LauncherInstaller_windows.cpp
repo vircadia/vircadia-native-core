@@ -1,6 +1,7 @@
 #include "LauncherInstaller_windows.h"
+#include "Helper.h"
 
-#include <Windows.h>
+#include <string>
 
 #include <QStandardPaths>
 #include <QFileInfo>
@@ -37,6 +38,15 @@ void LauncherInstaller::install() {
         } else {
             qDebug() << "not successful";
         }
+
+        qDebug() << "LauncherInstaller: create uninstall link";
+        QString uninstallLinkPath = _launcherInstallDir.absolutePath() + "/Uninstall HQ.link";
+        if (QFile::exists(uninstallLinkPath)) {
+            QFile::remove(uninstallLinkPath);
+        }
+
+        createSymbolicLink((LPCSTR)oldLauncherPath.toStdString().c_str(), (LPCSTR)uninstallLinkPath.toStdString().c_str(),
+                           (LPCSTR)("Click to Uninstall HQ"), (LPCSTR)("--uninstall"));
     }
 }
 

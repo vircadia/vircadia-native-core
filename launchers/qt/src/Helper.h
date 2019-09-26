@@ -1,6 +1,10 @@
 #include <QString>
 #include <string>
 
+#ifdef Q_OS_WIN
+#include "Windows.h"
+#endif
+
 void launchClient(const QString& clientPath, const QString& homePath, const QString& defaultScriptOverride,
                   const QString& displayName, const QString& contentCachePath, QString loginResponseToken = QString());
 
@@ -10,4 +14,8 @@ void swapLaunchers(const QString& oldLauncherPath = QString(), const QString& ne
 
 #ifdef Q_OS_MAC
 bool replaceDirectory(const QString& orginalDirectory, const QString& newDirectory);
+#endif
+
+#ifdef Q_OS_WIN
+HRESULT createSymbolicLink(LPCSTR lpszPathObj, LPCSTR lpszPathLink, LPCSTR lpszDesc, LPCSTR lpszArgs);
 #endif

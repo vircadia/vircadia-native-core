@@ -37,7 +37,6 @@ bool containsOption(int argc, char* argv[], const std::string& option) {
 }
 
 int main(int argc, char *argv[]) {
-
     //std::cout << "Launcher version: " << LAUNCHER_BUILD_VERSION;
 #ifdef Q_OS_MAC
     // auto updater
@@ -60,7 +59,6 @@ int main(int argc, char *argv[]) {
     QString name { "High Fidelity" };
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QCoreApplication::setOrganizationName(name);
-
     Launcher launcher(argc, argv);
 
     return launcher.exec();
