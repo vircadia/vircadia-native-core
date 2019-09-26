@@ -198,7 +198,7 @@
           "to": "Actions.DeltaPitch",
           "filters":
             [
-                { "type": "scale", "scale": 0.3 }
+                { "type": "scale", "scale": 0.2 }
             ]
         },
 
@@ -207,7 +207,7 @@
           "to": "Actions.DeltaPitch",
           "filters":
             [
-                { "type": "scale", "scale": 0.3 }
+                { "type": "scale", "scale": 0.2 }
             ]
         },
 
