@@ -30,8 +30,18 @@ const float Material::DEFAULT_OPACITY_CUTOFF { 0.5f };
 
 
 std::string MaterialKey::getOpacityMapModeName(OpacityMapMode mode) {
-    const std::string names[3] = { "OPACITY_MAP_OPAQUE", "OAPCITY_MAP_MASK", "OPACITY_MAP_BLEND" };
+    const std::string names[3] = { "OPACITY_MAP_OPAQUE", "OPACITY_MAP_MASK", "OPACITY_MAP_BLEND" };
     return names[mode];
+}
+
+
+bool MaterialKey::getOpacityMapModeFromName(const std::string& modeName, MaterialKey::OpacityMapMode& mode) {
+    for (mode = OPACITY_MAP_OPAQUE; mode <= OPACITY_MAP_BLEND; mode + 1) {
+        if (modeName == getOpacityMapModeName(mode)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 Material::Material() {
@@ -166,6 +176,12 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
 }
 
 bool Material::resetOpacityMap() const {
+    // If OpacityMapMode explicit then nothing need to change here.
+    if (_key.isOpacityMapMode()) {
+        return false;
+    }
+
+    // Else, the legacy behavior is to interpret the albedo texture assigned to tune the opacity map mode value
     auto previous = _key.getOpacityMapMode();
     // Clear the previous flags
     _key.setOpacityMaskMap(false);

@@ -24,7 +24,6 @@ Item {
     // By default, these just go get or set the value from the object[property]
     // 
     function defaultGet() { var v = root.object[root.property]; return v; }
- //   function defaultGet() { return root.object[root.property]; }
     function defaultSet(value) { root.object[root.property] = value; }  
     function defaultSetReadOnly(value) {}   
 
@@ -36,8 +35,6 @@ Item {
     height: global.lineHeight
     anchors.left: parent.left
     anchors.right: parent.right    
-   // anchors.leftMargin: global.horizontalMargin
-   // anchors.rightMargin: global.horizontalMargin
 
     // LabelControl And SplitterControl are on the left side of the PropItem
     property bool showLabel: true  

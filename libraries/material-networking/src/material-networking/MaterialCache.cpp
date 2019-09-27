@@ -139,6 +139,14 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  * @property {string} opacityMap - The URL of the opacity texture image. Set the value the same as the <code>albedoMap</code> 
  *     value for transparency. 
  *     <code>"hifi_pbr"</code> model only.
+ * @property {number|string} opacityMapMode - The mode defining the interpretation of the opacity map. Values can be:
+ *     <code>"OPACITY_MAP_OPAQUE"</code> for ignoring the opacity map information.
+ *     <code>"OPACITY_MAP_MASK"</code> for using the opacity map as a mask, where only the texel greater than opacityCutoff are visible and rendered opaque.
+ *     <code>"OPACITY_MAP_BLEND"</code> for using the opacity map for alpha blending the material surface with the background.
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {number|string} opacityCutoff - The opacity cutoff threshold used to determine the opaque texels of the Opacity map
+ *     when opacityMapMode is "OPACITY_MAP_MASK", range <code>0.0</code> &ndash; <code>1.0</code>.
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {string} roughnessMap - The URL of the roughness texture image. You can use this or <code>glossMap</code>, but not 
  *     both. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
@@ -258,22 +266,24 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                 } else if (value.isDouble()) {
                     material->setMetallic(value.toDouble());
                 }
-            } else if (key == "opacityCuttoff") {
+           } else if (key == "opacityMapMode") {
+                auto value = materialJSON.value(key);
+                auto valueString = (value.isString() ? value.toString() : "");
+                if (valueString == FALLTHROUGH) {
+                    material->setPropertyDoesFallthrough(graphics::MaterialKey::FlagBit::OPACITY_MAP_MODE_BIT);
+                } else {
+                    graphics::MaterialKey::OpacityMapMode mode;
+                    if (graphics::MaterialKey::getOpacityMapModeFromName(valueString.toStdString(), mode)) {
+                        material->setOpacityMapMode(mode);
+                    }
+                }
+           } else if (key == "opacityCutoff") {
                 auto value = materialJSON.value(key);
                 if (value.isString() && value.toString() == FALLTHROUGH) {
                     material->setPropertyDoesFallthrough(graphics::MaterialKey::FlagBit::OPACITY_CUTOFF_VAL_BIT);
-                }
-                else if (value.isDouble()) {
+                } else if (value.isDouble()) {
                     material->setOpacityCutoff(value.toDouble());
                 }
-           /* SG TODO: Implement the set opacityMapMOde intentionaly } else if (key == "opacityMapMode") {
-                auto value = materialJSON.value(key);
-                if (value.isString() && value.toString() == FALLTHROUGH) {
-                    material->setPropertyDoesFallthrough(graphics::MaterialKey::FlagBit::OPACITY_MAP_MODE_BIT);
-                }
-                else if (value.isDouble()) {
-                    material->setOpacityCutoff(value.toDouble());
-                }**/
             } else if (key == "scattering") {
                 auto value = materialJSON.value(key);
                 if (value.isString() && value.toString() == FALLTHROUGH) {
