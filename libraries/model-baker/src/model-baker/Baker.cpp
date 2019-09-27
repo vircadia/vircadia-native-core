@@ -13,6 +13,7 @@
 
 #include "BakerTypes.h"
 #include "ModelMath.h"
+#include "ReweightDeformersTask.h"
 #include "BuildGraphicsMeshTask.h"
 #include "CalculateMeshNormalsTask.h"
 #include "CalculateMeshTangentsTask.h"
@@ -151,8 +152,13 @@ namespace baker {
             const auto calculateBlendshapeTangentsInputs = CalculateBlendshapeTangentsTask::Input(normalsPerBlendshapePerMesh, blendshapesPerMeshIn, meshesIn).asVarying();
             const auto tangentsPerBlendshapePerMesh = model.addJob<CalculateBlendshapeTangentsTask>("CalculateBlendshapeTangents", calculateBlendshapeTangentsInputs);
 
+            // Skinning weight calculations
+            // NOTE: Due to limitations in the current graphics::MeshPointer representation, the output list of ReweightedDeformers is per-mesh. An element is empty if there are no deformers for the mesh of the same index.
+            const auto reweightDeformersInputs = ReweightDeformersTask::Input(meshesIn, shapesIn, dynamicTransformsIn, deformersIn).asVarying();
+            const auto reweightedDeformers = model.addJob<ReweightDeformersTask>("ReweightDeformers", reweightDeformersInputs);
+
             // Build the graphics::MeshPointer for each hfm::Mesh
-            const auto buildGraphicsMeshInputs = BuildGraphicsMeshTask::Input(meshesIn, url, meshIndicesToModelNames, normalsPerMesh, tangentsPerMesh, shapesIn, dynamicTransformsIn, deformersIn).asVarying();
+            const auto buildGraphicsMeshInputs = BuildGraphicsMeshTask::Input(meshesIn, url, meshIndicesToModelNames, normalsPerMesh, tangentsPerMesh, shapesIn, dynamicTransformsIn, reweightedDeformers).asVarying();
             const auto graphicsMeshes = model.addJob<BuildGraphicsMeshTask>("BuildGraphicsMesh", buildGraphicsMeshInputs);
 
             // Prepare joint information
