@@ -53,6 +53,7 @@
 
 #include "AudioIOStats.h"
 #include "AudioFileWav.h"
+#include "HifiAudioDeviceInfo.h"
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -102,8 +103,8 @@ public:
             _audio(audio), _unfulfilledReads(0) {}
 
         void start() { open(QIODevice::ReadOnly | QIODevice::Unbuffered); }
-        qint64 readData(char * data, qint64 maxSize) override;
-        qint64 writeData(const char * data, qint64 maxSize) override { return 0; }
+        qint64 readData(char* data, qint64 maxSize) override;
+        qint64 writeData(const char* data, qint64 maxSize) override { return 0; }
         int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:
         LocalInjectorsStream& _localInjectorsStream;
@@ -111,7 +112,7 @@ public:
         AudioClient* _audio;
         int _unfulfilledReads;
     };
-
+    
     void startThread();
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
@@ -152,12 +153,12 @@ public:
     void setIsPlayingBackRecording(bool isPlayingBackRecording) { _isPlayingBackRecording = isPlayingBackRecording; }
 
     Q_INVOKABLE void setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale);
-    
+
     bool outputLocalInjector(const AudioInjectorPointer& injector) override;
 
-    QAudioDeviceInfo getActiveAudioDevice(QAudio::Mode mode) const;
-    QList<QAudioDeviceInfo> getAudioDevices(QAudio::Mode mode) const;
-
+    HifiAudioDeviceInfo getActiveAudioDevice(QAudio::Mode mode) const;
+    QList<HifiAudioDeviceInfo> getAudioDevices(QAudio::Mode mode) const;
+  
     void enablePeakValues(bool enable) { _enablePeakValues = enable; }
     bool peakValuesAvailable() const;
 
@@ -233,11 +234,11 @@ public slots:
     int setOutputBufferSize(int numFrames, bool persist = true);
 
     bool shouldLoopbackInjectors() override { return _shouldEchoToServer; }
+    Q_INVOKABLE void changeDefault(HifiAudioDeviceInfo newDefault, QAudio::Mode mode);
 
     // calling with a null QAudioDevice will use the system default
-    bool switchAudioDevice(QAudio::Mode mode, const QAudioDeviceInfo& deviceInfo = QAudioDeviceInfo());
+    bool switchAudioDevice(QAudio::Mode mode, const HifiAudioDeviceInfo& deviceInfo = HifiAudioDeviceInfo());
     bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName);
-
     // Qt opensles plugin is not able to detect when the headset is plugged in
     void setHeadsetPluggedIn(bool pluggedIn);
 
@@ -269,10 +270,10 @@ signals:
     void noiseGateOpened();
     void noiseGateClosed();
 
-    void changeDevice(const QAudioDeviceInfo& outputDeviceInfo);
+    void changeDevice(const HifiAudioDeviceInfo& outputDeviceInfo);
 
-    void deviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& device);
-    void devicesChanged(QAudio::Mode mode, const QList<QAudioDeviceInfo>& devices);
+    void deviceChanged(QAudio::Mode mode, const HifiAudioDeviceInfo& device);
+    void devicesChanged(QAudio::Mode mode, const QList<HifiAudioDeviceInfo>& devices);
     void peakValueListChanged(const QList<float> peakValueList);
 
     void receivedFirstPacket();
@@ -416,7 +417,7 @@ private:
     float* _localOutputMixBuffer { NULL };
     Mutex _localAudioMutex;
     AudioLimiter _audioLimiter;
-    
+
     // Adds Reverb
     void configureReverb();
     void updateReverbOptions();
@@ -437,8 +438,8 @@ private:
     void processWebrtcNearEnd(int16_t* samples, int numFrames, int numChannels, int sampleRate);
 #endif
 
-    bool switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest = false);
-    bool switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest = false);
+    bool switchInputToAudioDevice(const HifiAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest = false);
+    bool switchOutputToAudioDevice(const HifiAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest = false);
 
     // Callback acceleration dependent calculations
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
@@ -459,11 +460,11 @@ private:
     glm::vec3 avatarBoundingBoxCorner;
     glm::vec3 avatarBoundingBoxScale;
 
-    QAudioDeviceInfo _inputDeviceInfo;
-    QAudioDeviceInfo _outputDeviceInfo;
+    HifiAudioDeviceInfo _inputDeviceInfo;
+    HifiAudioDeviceInfo _outputDeviceInfo;
 
-    QList<QAudioDeviceInfo> _inputDevices;
-    QList<QAudioDeviceInfo> _outputDevices;
+    QList<HifiAudioDeviceInfo> _inputDevices;
+    QList<HifiAudioDeviceInfo> _outputDevices;
 
     AudioFileWav _audioFileWav;
 
@@ -476,7 +477,7 @@ private:
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;
-    Encoder* _encoder { nullptr }; // for outbound mic stream
+    Encoder* _encoder { nullptr };  // for outbound mic stream
 
     RateCounter<> _silentOutbound;
     RateCounter<> _audioOutbound;
@@ -484,11 +485,11 @@ private:
     RateCounter<> _audioInbound;
 
 #if defined(Q_OS_ANDROID)
-    bool _shouldRestartInputSetup { true }; // Should we restart the input device because of an unintended stop?
+    bool _shouldRestartInputSetup { true };  // Should we restart the input device because of an unintended stop?
 #endif
 
     AudioSolo _solo;
-    
+
     Mutex _checkDevicesMutex;
     QTimer* _checkDevicesTimer { nullptr };
     Mutex _checkPeakValuesMutex;

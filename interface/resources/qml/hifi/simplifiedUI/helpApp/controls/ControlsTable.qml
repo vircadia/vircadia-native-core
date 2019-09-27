@@ -699,8 +699,8 @@ Item {
                 spacing: controlsTableRoot.rowPadding
 
                 HifiStylesUit.GraphikRegular {
-                    id: mirrorText
-                    text: "Mirror Mode"
+                    id: selfieText
+                    text: "Selfie"
                     width: paintedWidth
                     height: parent.height
                     horizontalAlignment: Text.AlignLeft
@@ -710,8 +710,8 @@ Item {
                 }
 
                 HifiStylesUit.GraphikRegular {
-                    text: "See your own avatar"
-                    width: parent.width - mirrorText.width - parent.spacing - controlsTableRoot.rowPadding
+                    text: "Look at self"
+                    width: parent.width - selfieText.width - parent.spacing - controlsTableRoot.rowPadding
                     height: parent.height
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
