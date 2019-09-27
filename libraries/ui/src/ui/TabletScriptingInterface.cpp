@@ -869,16 +869,14 @@ void TabletProxy::loadHTMLSourceImpl(const QVariant& url, const QString& injectJ
 void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase) {
     bool localSafeContext = hifi::scripting::isLocalAccessSafeThread();
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadHTMLSourceImpl", Q_ARG(QString, url), Q_ARG(QString, injectedJavaScriptUrl), Q_ARG(bool, loadOtherBase), Q_ARG(bool, localSafeContext));
+        QMetaObject::invokeMethod(this, "loadHTMLSourceOnTopImpl", Q_ARG(QString, url), Q_ARG(QString, injectedJavaScriptUrl), Q_ARG(bool, loadOtherBase), Q_ARG(bool, localSafeContext));
         return;
     }
 
-
-    loadHTMLSourceImpl(url, injectedJavaScriptUrl, loadOtherBase, localSafeContext);
+    loadHTMLSourceOnTopImpl(url, injectedJavaScriptUrl, loadOtherBase, localSafeContext);
 }
 
-void TabletProxy::loadHTMLSourceImpl(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase, bool localSafeContext) {
-
+void TabletProxy::loadHTMLSourceOnTopImpl(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase, bool localSafeContext) {
     QObject* root = nullptr;
     if (!_toolbarMode && _qmlTabletRoot) {
         root = _qmlTabletRoot;
@@ -911,7 +909,6 @@ void TabletProxy::loadHTMLSourceImpl(const QString& url, const QString& injected
         _initialWebPathParams.first = injectedJavaScriptUrl;
         _initialWebPathParams.second = loadOtherBase;
         _initialScreen = true;
-
     }
 }
 

@@ -307,11 +307,11 @@ public:
     Q_INVOKABLE void loadHTMLSourceImpl(const QVariant& url, const QString& injectJavaScriptUrl, bool localSafeContext);
 
     /**jsdoc
-     * @function TabletProxy#loadHTMLSourceImpl
+     * @function TabletProxy#loadHTMLSourceOnTopImpl
      * @deprecated This function is deprecated and will be removed.
      */
     // Internal function, do not call from scripts.
-    Q_INVOKABLE void loadHTMLSourceImpl(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase, bool localSafeContext);
+    Q_INVOKABLE void loadHTMLSourceOnTopImpl(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase, bool localSafeContext);
 
     /**jsdoc
      * @function TabletProxy#returnToPreviousAppImpl
