@@ -330,7 +330,6 @@ QObject* TabletScriptingInterface::getFlags() {
 //
 
 static const char* TABLET_HOME_SOURCE_URL = "hifi/tablet/TabletHome.qml";
-static const char* WEB_VIEW_SOURCE_URL = "hifi/tablet/TabletWebView.qml";
 static const char* VRMENU_SOURCE_URL = "hifi/tablet/TabletMenu.qml";
 
 class TabletRootWindow : public QmlWindowClass {
