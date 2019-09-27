@@ -40,9 +40,12 @@ int main(int argc, char *argv[]) {
     CommandlineOptions* options = CommandlineOptions::getInstance();
     options->parse(argc, argv);
 #ifdef Q_OS_WIN
-    if (options->contains("--restart")) {
-        LauncherInstaller launcherInstaller(argv[0]);
+    LauncherInstaller launcherInstaller(argv[0]);
+    if (options->contains("--restart") || launcherInstaller.runningOutsideOfInstallDir()) {
         launcherInstaller.install();
+    } else if (options->contains("--uninstall")) {
+        launcherInstaller.uninstall();
+        return 0;
     }
 #endif
     QString name { "High Fidelity" };

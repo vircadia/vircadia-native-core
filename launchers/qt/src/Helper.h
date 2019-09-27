@@ -17,5 +17,5 @@ bool replaceDirectory(const QString& orginalDirectory, const QString& newDirecto
 #endif
 
 #ifdef Q_OS_WIN
-HRESULT createSymbolicLink(LPCSTR lpszPathObj, LPCSTR lpszPathLink, LPCSTR lpszDesc, LPCSTR lpszArgs);
+HRESULT createSymbolicLink(LPCSTR lpszPathObj, LPCSTR lpszPathLink, LPCSTR lpszDesc, LPCSTR lpszArgs = (LPCSTR)"");
 #endif

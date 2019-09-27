@@ -8,9 +8,13 @@ public:
 
     void install();
     void uninstall();
-private:
     bool runningOutsideOfInstallDir();
+private:
+    void createShortcuts();
+    void deleteShortcuts();
+
     QDir _launcherInstallDir;
+    QDir _launcherApplicationsDir;
     QString _launcherRunningFilePath;
     QString _launcherRunningDirPath;
 };
