@@ -36,7 +36,8 @@ std::string MaterialKey::getOpacityMapModeName(OpacityMapMode mode) {
 
 
 bool MaterialKey::getOpacityMapModeFromName(const std::string& modeName, MaterialKey::OpacityMapMode& mode) {
-    for (mode = OPACITY_MAP_OPAQUE; mode <= OPACITY_MAP_BLEND; mode + 1) {
+    for (int i = OPACITY_MAP_OPAQUE; i <= OPACITY_MAP_BLEND; i++) {
+        mode = (MaterialKey::OpacityMapMode) i;
         if (modeName == getOpacityMapModeName(mode)) {
             return true;
         }

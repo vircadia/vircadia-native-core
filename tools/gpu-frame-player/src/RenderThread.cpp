@@ -182,7 +182,7 @@ void RenderThread::renderFrame(gpu::FramePointer& frame) {
         batch->setPipeline(_presentPipeline);
         batch->setFramebuffer(nullptr);
         batch->setResourceTexture(0, frame->framebuffer->getRenderBuffer(0));
-        batch->setViewportTransform(ivec4(uvec2(0), ivec2(scale * fboSize.x, scale * fboSize.y)));
+        batch->setViewportTransform(ivec4(uvec2(0), ivec2(windowSize.width(), windowSize.height())));
         batch->draw(gpu::TRIANGLE_STRIP, 4);
     }
     glDisable(GL_FRAMEBUFFER_SRGB);
