@@ -14,6 +14,7 @@
 #include "BakerTypes.h"
 #include "ModelMath.h"
 #include "ReweightDeformersTask.h"
+#include "CollectShapeVerticesTask.h"
 #include "BuildGraphicsMeshTask.h"
 #include "CalculateMeshNormalsTask.h"
 #include "CalculateMeshTangentsTask.h"
@@ -105,7 +106,7 @@ namespace baker {
 
     class BuildModelTask {
     public:
-        using Input = VaryingSet6<hfm::Model::Pointer, std::vector<hfm::Mesh>, std::vector<hfm::Joint>, QMap<int, glm::quat>, QHash<QString, int>, FlowData>;
+        using Input = VaryingSet7<hfm::Model::Pointer, std::vector<hfm::Mesh>, std::vector<hfm::Joint>, QMap<int, glm::quat>, QHash<QString, int>, FlowData, std::vector<ShapeVertices>>;
         using Output = hfm::Model::Pointer;
         using JobModel = Job::ModelIO<BuildModelTask, Input, Output>;
 
@@ -116,6 +117,9 @@ namespace baker {
             hfmModelOut->jointRotationOffsets = input.get3();
             hfmModelOut->jointIndices = input.get4();
             hfmModelOut->flowData = input.get5();
+            hfmModelOut->shapeVertices = input.get6();
+            // These depend on the ShapeVertices
+            // TODO: Create a task for this rather than calculating it here
             hfmModelOut->computeKdops();
             output = hfmModelOut;
         }
@@ -156,6 +160,9 @@ namespace baker {
             // NOTE: Due to limitations in the current graphics::MeshPointer representation, the output list of ReweightedDeformers is per-mesh. An element is empty if there are no deformers for the mesh of the same index.
             const auto reweightDeformersInputs = ReweightDeformersTask::Input(meshesIn, shapesIn, dynamicTransformsIn, deformersIn).asVarying();
             const auto reweightedDeformers = model.addJob<ReweightDeformersTask>("ReweightDeformers", reweightDeformersInputs);
+            // Shape vertices are included/rejected based on skinning weight, and thus must use the reweighted deformers.
+            const auto collectShapeVerticesInputs = CollectShapeVerticesTask::Input(meshesIn, shapesIn, jointsIn, dynamicTransformsIn, reweightedDeformers).asVarying();
+            const auto shapeVerticesPerJoint = model.addJob<CollectShapeVerticesTask>("CollectShapeVertices", collectShapeVerticesInputs);
 
             // Build the graphics::MeshPointer for each hfm::Mesh
             const auto buildGraphicsMeshInputs = BuildGraphicsMeshTask::Input(meshesIn, url, meshIndicesToModelNames, normalsPerMesh, tangentsPerMesh, shapesIn, dynamicTransformsIn, reweightedDeformers).asVarying();
@@ -191,7 +198,7 @@ namespace baker {
             const auto blendshapesPerMeshOut = model.addJob<BuildBlendshapesTask>("BuildBlendshapes", buildBlendshapesInputs);
             const auto buildMeshesInputs = BuildMeshesTask::Input(meshesIn, graphicsMeshes, normalsPerMesh, tangentsPerMesh, blendshapesPerMeshOut).asVarying();
             const auto meshesOut = model.addJob<BuildMeshesTask>("BuildMeshes", buildMeshesInputs);
-            const auto buildModelInputs = BuildModelTask::Input(hfmModelIn, meshesOut, jointsOut, jointRotationOffsets, jointIndices, flowData).asVarying();
+            const auto buildModelInputs = BuildModelTask::Input(hfmModelIn, meshesOut, jointsOut, jointRotationOffsets, jointIndices, flowData, shapeVerticesPerJoint).asVarying();
             const auto hfmModelOut = model.addJob<BuildModelTask>("BuildModel", buildModelInputs);
 
             output = Output(hfmModelOut, materialMapping, dracoMeshes, dracoErrors, materialList);
