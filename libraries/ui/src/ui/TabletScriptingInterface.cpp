@@ -827,11 +827,11 @@ void TabletProxy::loadWebScreenOnTop(const QVariant& url) {
 void TabletProxy::loadWebScreenOnTop(const QVariant& url, const QString& injectJavaScriptUrl) {
     bool localSafeContext = hifi::scripting::isLocalAccessSafeThread();
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadHTMLSourceImpl", Q_ARG(QVariant, url), Q_ARG(QString, injectJavaScriptUrl), Q_ARG(bool, localSafeContext));
+        QMetaObject::invokeMethod(this, "loadHTMLSourceOnTopImpl", Q_ARG(QString, url.toString()), Q_ARG(QString, injectJavaScriptUrl), Q_ARG(bool, false), Q_ARG(bool, localSafeContext));
         return;
     }
 
-    loadHTMLSourceImpl(url, injectJavaScriptUrl, localSafeContext);
+    loadHTMLSourceOnTopImpl(url.toString(), injectJavaScriptUrl, false, localSafeContext);
 }
 
 
