@@ -55,7 +55,7 @@ Rectangle {
             if ((MyAvatar.skeletonModelURL.indexOf("defaultAvatar") > -1 || MyAvatar.skeletonModelURL.indexOf("fst") === -1) &&
                 topBarInventoryModel.count > 0) {
                 Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatar", true);
-                MyAvatar.useFullAvatarURL = topBarInventoryModel.get(0).download_url;
+                MyAvatar.useFullAvatarURL(topBarInventoryModel.get(0).download_url);
             }
         }
     }
@@ -113,12 +113,68 @@ Rectangle {
                 topBarInventoryModel.getNextPage();
             } else {
                 inventoryFullyReceived = true;
+                var scriptExecutionCount = Settings.getValue("simplifiedUI/SUIScriptExecutionCount");
+                var currentAvatarURL = MyAvatar.skeletonModelURL;
+                var userIsWearingDefaultAvatar = currentAvatarURL.indexOf("DefaultAvatar") > -1;
+                var currentAvatarIsValid = MyAvatar.skeletonModelURL.indexOf("fst") === -1;
+                var avatarHasBeenAutoSelectedBefore = Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatar", false);
+                var userHasValidAvatarInInventory = topBarInventoryModel.count > 0 && 
+                    topBarInventoryModel.get(0).download_url.indexOf(".fst") > -1 &&
+                    topBarInventoryModel.get(0).download_url.indexOf("mannequin.fst") === -1;
+                var userHasOldDefaultAvatar = MyAvatar.skeletonModelURL.indexOf("mannequin.fst") === -1;
+                var defaultAvatarURLPrefixPart1 = "http://hifi-content.s3-us-west-1.amazonaws.com/Experiences/Releases/simplifiedUI/simplifiedFTUE/avatarModels/DefaultAvatar_";
+                var defaultAvatarURLPrefixPart2 = "/avatar.fst";
+                var defaultAvatarColors = ["Blue", "Cyan", "Green", "Pink", "Red", "Yellow"];
+                var avatarColor;
 
-                // If we have an avatar in our inventory AND we haven't already auto-selected an avatar...
-                if ((!Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatar", false) ||
-                    MyAvatar.skeletonModelURL.indexOf("defaultAvatar") > -1 || MyAvatar.skeletonModelURL.indexOf("fst") === -1) && topBarInventoryModel.count > 0) {
+                // FOR TESTING__________REMOVE
+                userHasValidAvatarInInventory = false;
+
+                // If we have never auto-selected and the user is still using a default avatar or if the current avatar is not valid (fst), or if 
+                // the current avatar is the old default (Woody), use top avatar from inventory or one of the new defaults.
+                if (!currentAvatarIsValid || userHasOldDefaultAvatar || (!avatarHasBeenAutoSelectedBefore && userIsWearingDefaultAvatar)) {
+                    if (userHasValidAvatarInInventory) {
+                        MyAvatar.useFullAvatarURL(topBarInventoryModel.get(0).download_url);
+                        userIsWearingDefaultAvatar = false;
+                    } else {
+                        if (!userIsWearingDefaultAvatar) { // assign a random color default avatar
+                            avatarColor = defaultAvatarColors[Math.floor(Math.random() * defaultAvatarColors.length)];
+                            var avatarModelURL = defaultAvatarURLPrefixPart1 + avatarColor + defaultAvatarURLPrefixPart2;
+                            MyAvatar.useFullAvatarURL(avatarModelURL);
+                            userIsWearingDefaultAvatar = true;
+                        }
+                    }
+                }
+
+                // If the user is not wearing a default avatar at this point, we do not need to check inventory again. This check ensures the setting is changed if the 
+                // user came in on their first run using a valid non-wolf avatar (in this case we will never auto-select) or if we selected the top inventory item for them.
+                if (!userIsWearingDefaultAvatar) {
                     Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatar", true);
-                    MyAvatar.skeletonModelURL = topBarInventoryModel.get(0).download_url;
+                    avatarHasBeenAutoSelectedBefore = true;
+                }
+
+                if (scriptExecutionCount === 1) {
+                    if (userIsWearingDefaultAvatar) {
+                        if (!avatarColor) { // get the color of the default avatar they are using
+                            var indexOfDefaultAvatarColor = 123;
+                            var numberCharsAfterDefaultColorName = 11;
+                            avatarColor = currentAvatarURL.substring(indexOfDefaultAvatarColor , MyAvatar.skeletonModelURL.length - numberCharsAfterDefaultColorName)
+                        }
+                        // There could be a race condition here. We are changing the setting and then calling simplifiedUI.js to check that setting shortly after. 
+                        // We can send the page we want to display instead of reading the setting to avoid this.
+                        sendToScript({
+                            "source": "SimplifiedTopBar.qml",
+                            "method": "displayInitialLaunchWindow",
+                            "data": {
+                                "avatarColor": avatarColor
+                            }
+                        });
+                    }
+                } else if (scriptExecutionCount === 2 && userIsWearingDefaultAvatar) {
+                    sendToScript({
+                        "source": "SimplifiedTopBar.qml",
+                        "method": "displaySecondLaunchWindow"
+                    });
                 }
             }
         }
@@ -149,7 +205,6 @@ Rectangle {
             return data.assets;
         }
     }
-
 
     Item {
         id: avatarButtonContainer

@@ -358,6 +358,132 @@ function setOutputMuted(outputMuted) {
     }
 }
 
+var INITIAL_LAUNCH_QML_PATH = Script.resolvePath("simplifiedFTUE/InitialLaunchWindow.qml");
+var INITIAL_LAUNCH_WINDOW_TITLE = "Initial Launch";
+var INITIAL_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
+var INITIAL_LAUNCH_WIDTH_PX = Window.innerWidth;
+var INITIAL_LAUNCH_HEIGHT_PX = Window.innerHeight + TOP_BAR_HEIGHT_PX;
+var INITIAL_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+0x00000008 | // Qt::Popup
+0x00000800 | // Qt::FramelessWindowHint
+0x40000000; // Qt::NoDropShadowWindowHint
+var initialLaunchWindow = false;
+function displayInitialLaunchWindow() {
+    print("DISPLAY INITIAL LAUNCH WINDOW.");
+    if (initialLaunchWindow) {
+        initialLaunchWindow.close();
+        // This really shouldn't be necessary.
+        // This signal really should automatically be called by the signal handler set up below.
+        // But fixing that requires an engine change, so this workaround will do.
+        return;
+    }
+
+    initialLaunchWindow = Desktop.createWindow(INITIAL_LAUNCH_QML_PATH, {
+        title: INITIAL_LAUNCH_WINDOW_TITLE,
+        presentationMode: INITIAL_LAUNCH_PRESENTATION_MODE,
+        size: {
+            x: INITIAL_LAUNCH_WIDTH_PX,
+            y: INITIAL_LAUNCH_HEIGHT_PX
+        },
+        position: {
+            x: Window.x,
+            y: Window.y
+        },
+        overrideFlags: INITIAL_WINDOW_FLAGS
+    });
+
+    initialLaunchWindow.fromQml.connect(onMessageFromInitialLaunchWindow);
+
+    Window.location = "file:///~serverless/tutorial.json";
+}
+
+var SECOND_LAUNCH_QML_PATH = Script.resolvePath("simplifiedFTUE/SecondLaunchWindow.qml");
+var SECOND_LAUNCH_WINDOW_TITLE = "Second Launch";
+var SECOND_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
+var SECOND_LAUNCH_WIDTH_PX = Window.innerWidth;
+var SECOND_LAUNCH_HEIGHT_PX = Window.innerHeight + TOP_BAR_HEIGHT_PX;
+var SECOND_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+0x00000008 | // Qt::Popup
+0x00000800 | // Qt::FramelessWindowHint
+0x40000000; // Qt::NoDropShadowWindowHint
+var secondLaunchWindow = false;
+function displaySecondLaunchWindow() {
+    print("DISPLAY SECOND LAUNCH WINDOW.");
+    if (secondLaunchWindow) {
+        secondLaunchWindow.close();
+        // This really shouldn't be necessary.
+        // This signal really should automatically be called by the signal handler set up below.
+        // But fixing that requires an engine change, so this workaround will do.
+        return;
+    }
+
+    secondLaunchWindow = Desktop.createWindow(INITIAL_LAUNCH_QML_PATH, {
+        title: SECOND_LAUNCH_WINDOW_TITLE,
+        presentationMode: SECOND_LAUNCH_PRESENTATION_MODE,
+        size: {
+            x: SECOND_LAUNCH_WIDTH_PX,
+            y: SECOND_LAUNCH_HEIGHT_PX
+        },
+        position: {
+            x: Window.x,
+            y: Window.y
+        },
+        overrideFlags: SECOND_WINDOW_FLAGS
+    });
+
+    secondLaunchWindow.fromQml.connect(onMessageFromSecondLaunchWindow);
+
+    Window.location = "file:///~serverless/tutorial.json";
+}
+
+function closeInitialLaunchWindow() {
+    initialLaunchWindow.fromQml.disconnect(onMessageFromInitialLaunchWindow);
+    // TODO make this go to bookmark
+    // Window.location = "hqhome";
+    initialLaunchWindow.close();
+}
+
+function closeSecondLaunchWindow() {
+    secondLaunchWindow.fromQml.disconnect(onMessageFromSecondLaunchWindow);
+    // TODO make this go to bookmark
+    // Window.location = "hqhome";
+    secondLaunchWindow.close();
+}
+
+var INITIAL_LAUNCH_WINDOW_MESSAGE_SOURCE = "InitialLaunchWindow.qml";
+function onMessageFromInitialLaunchWindow(message) {
+    if (message.source !== INITIAL_LAUNCH_WINDOW_MESSAGE_SOURCE) {
+        return;
+    }
+
+    switch (message.method) {
+        case "closeInitialLaunchWindow":
+            closeInitialLaunchWindow();
+            break;
+
+        default:
+            console.log("Unrecognized message from " + INITIAL_LAUNCH_WINDOW_MESSAGE_SOURCE + ": " + JSON.stringify(message));
+            break;
+    }
+}
+
+var SECOND_LAUNCH_WINDOW_MESSAGE_SOURCE = "SecondLaunchWindow.qml";
+function onMessageFromSecondLaunchWindow(message) {
+    if (message.source !== SECOND_LAUNCH_WINDOW_MESSAGE_SOURCE) {
+        return;
+    }
+
+    switch (message.method) {
+        case "closeSecondLaunchWindow":
+            closeSecondLaunchWindow();
+            break;
+
+        default:
+            console.log("Unrecognized message from " + SECOND_LAUNCH_WINDOW_MESSAGE_SOURCE + ": " + JSON.stringify(message));
+            break;
+    }
+}
+
 
 var WAIT_FOR_TOP_BAR_MS = 1000;
 function sendLocalStatusToQml() {
@@ -401,6 +527,15 @@ function onMessageFromTopBar(message) {
 
         case "toggleStatus":
             si.toggleStatus();
+            break;
+
+        case "displayInitialLaunchWindow":
+            displayInitialLaunchWindow();
+            break;
+
+        case "displaySecondLaunchWindow":
+            displaySecondLaunchWindow();
+            print("DISPLAY SECOND LAUNCH WINDOW");
             break;
 
         default:
@@ -530,11 +665,24 @@ function onGeometryChanged(rect) {
             "y": rect.y
         };
     }
+    if (initialLaunchWindow) {
+        initialLaunchWindow.size = {
+            "x": rect.width,
+            "y": rect.height
+        };
+        initialLaunchWindow.position = {
+            "x": rect.x,
+            "y": rect.y
+        };
+    }
 }
 
-function onWindowMinimizedChanged() {
-    // prerequisite placeholder for Reduce Friction of Customer Acquisition sub task: https://highfidelity.atlassian.net/browse/DEV-585
-    print("WINDOW MINIMIZED CHANGED SIGNAL");
+function onWindowMinimizedChanged(isMinimized) {
+    if (isMinimized) {
+        initialLaunchWindow.setVisible(false);
+    } else {
+        initialLaunchWindow.show();
+    }
 }
 
 function onDisplayModeChanged(isHMDMode) {
@@ -655,6 +803,10 @@ function shutdown() {
 
     if (settingsAppWindow) {
         settingsAppWindow.close();
+    }
+
+    if (initialLaunchWindow) {
+        closeInitialLaunchWindow();
     }
 
     maybeDeleteInputDeviceMutedOverlay();
