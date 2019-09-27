@@ -1482,14 +1482,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     mesh.clusterWeights.push_back(0);
                 }
 
-#if 0
-                int prevMeshClusterIndexCount = mesh.clusterIndices.count();
-                for (int c = 0; c < clusterJoints.size(); ++c) {
-                    mesh.clusterIndices[prevMeshClusterIndexCount + c] =
-                        originalToNewNodeIndexMap[_file.skins[node.skin].joints[clusterJoints[c]]];
-                }
-#endif
-
                 // normalize and compress to 16-bits
                 int prevMeshClusterWeightCount = mesh.clusterWeights.count();
                 for (int i = 0; i < numVertices; ++i) {
@@ -1509,12 +1501,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
                 }
             }
-
-#if 0 
-            if (primitive.defined["material"]) {
-                part.materialID = materialIDs[primitive.material];
-            }
-#endif
 
             mesh.parts.push_back(part);
 
