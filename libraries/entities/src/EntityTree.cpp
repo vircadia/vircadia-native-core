@@ -99,7 +99,7 @@ void EntityTree::eraseDomainAndNonOwnedEntities() {
                 element->cleanupDomainAndNonOwnedEntities();
             }
 
-            if (entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getMyAvatarSessionUUID())) {
+            if (entity->isLocalEntity() || entity->isMyAvatarEntity()) {
                 savedEntities[entity->getEntityItemID()] = entity;
             } else {
                 int32_t spaceIndex = entity->getSpaceIndex();
@@ -121,7 +121,7 @@ void EntityTree::eraseDomainAndNonOwnedEntities() {
 
         foreach (EntityItemWeakPointer entityItem, _needsParentFixup) {
             auto entity = entityItem.lock();
-            if (entity && (entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getMyAvatarSessionUUID()))) {
+            if (entity && (entity->isLocalEntity() || entity->isMyAvatarEntity())) {
                 needParentFixup.push_back(entityItem);
             }
         }
@@ -688,6 +688,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(getThisPointer());
     foreach(const EntityItemID& entityID, entityIDs) {
+        // ANDREW TODO: rejigger this logic to FIRST get entity THEN get element
         EntityTreeElementPointer containingElement = getContainingElement(entityID);
         if (!containingElement) {
             if (!ignoreWarnings) {

@@ -514,7 +514,8 @@ public:
 
     // if this entity is an avatar entity, which avatar is it associated with?
     QUuid getOwningAvatarID() const { return _owningAvatarID; }
-    virtual void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
+    QUuid getOwningAvatarIDForProperties() const;
+    void setOwningAvatarID(const QUuid& owningAvatarID);
 
     virtual bool wantsHandControllerPointerEvents() const { return false; }
     virtual bool wantsKeyboardFocus() const { return false; }

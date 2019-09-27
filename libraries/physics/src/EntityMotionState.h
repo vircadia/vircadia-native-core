@@ -107,7 +107,7 @@ protected:
     uint64_t getNextBidExpiry() const { return _nextBidExpiry; }
     void initForBid();
     void initForOwned();
-    void clearOwnershipState() { _ownershipState = OwnershipState::NotLocallyOwned; }
+    void clearOwnershipState();
     void updateServerPhysicsVariables();
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
 

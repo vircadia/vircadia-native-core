@@ -480,17 +480,11 @@ QUuid EntityScriptingInterface::addEntityInternal(const EntityItemProperties& pr
 
     _activityTracking.addedEntityCount++;
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    auto sessionID = nodeList->getSessionUUID();
-
     EntityItemProperties propertiesWithSimID = properties;
     propertiesWithSimID.setEntityHostType(entityHostType);
     if (entityHostType == entity::HostType::AVATAR) {
-        if (sessionID.isNull()) {
-            // null sessionID is unacceptable in this case
-            sessionID = AVATAR_SELF_ID;
-        }
-        propertiesWithSimID.setOwningAvatarID(sessionID);
+        // only allow adding our own avatar entities from script
+        propertiesWithSimID.setOwningAvatarID(AVATAR_SELF_ID);
     } else if (entityHostType == entity::HostType::LOCAL) {
         // For now, local entities are always collisionless
         // TODO: create a separate, local physics simulation that just handles local entities (and MyAvatar?)
@@ -498,6 +492,8 @@ QUuid EntityScriptingInterface::addEntityInternal(const EntityItemProperties& pr
     }
 
     // the created time will be set in EntityTree::addEntity by recordCreationTime()
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto sessionID = nodeList->getSessionUUID();
     propertiesWithSimID.setLastEditedBy(sessionID);
 
     bool scalesWithParent = propertiesWithSimID.getScalesWithParent();
@@ -805,7 +801,7 @@ QUuid EntityScriptingInterface::editEntity(const QUuid& id, const EntityItemProp
             return;
         }
 
-        if (entity->isAvatarEntity() && entity->getOwningAvatarID() != sessionID && entity->getOwningAvatarID() != AVATAR_SELF_ID) {
+        if (entity->isAvatarEntity() && !entity->isMyAvatarEntity()) {
             // don't edit other avatar's avatarEntities
             properties = EntityItemProperties();
             return;
@@ -978,10 +974,9 @@ void EntityScriptingInterface::deleteEntity(const QUuid& id) {
         _entityTree->withWriteLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
-
                 auto nodeList = DependencyManager::get<NodeList>();
                 const QUuid myNodeID = nodeList->getSessionUUID();
-                if (entity->isAvatarEntity() && entity->getOwningAvatarID() != myNodeID) {
+                if (entity->isAvatarEntity() && !entity->isMyAvatarEntity()) {
                     // don't delete other avatar's avatarEntities
                     shouldSendDeleteToServer = false;
                     return;
@@ -990,7 +985,7 @@ void EntityScriptingInterface::deleteEntity(const QUuid& id) {
                 if (entity->getLocked()) {
                     shouldSendDeleteToServer = false;
                 } else {
-                    // only delete local entities, server entities will round trip through the server filters
+                    // only delete non-domain entities, domain entities will round trip through the server filters
                     if (!entity->isDomainEntity() || _entityTree->isServerlessMode()) {
                         shouldSendDeleteToServer = false;
                         _entityTree->deleteEntity(entityID);
@@ -1671,7 +1666,7 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
             return;
         }
 
-        if (entity->isAvatarEntity() && entity->getOwningAvatarID() != myNodeID) {
+        if (entity->isAvatarEntity() && !entity->isMyAvatarEntity()) {
             return;
         }
 

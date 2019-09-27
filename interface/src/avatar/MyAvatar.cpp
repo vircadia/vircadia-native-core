@@ -1585,7 +1585,12 @@ void MyAvatar::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFrom
 
 void MyAvatar::sanitizeAvatarEntityProperties(EntityItemProperties& properties) const {
     properties.setEntityHostType(entity::HostType::AVATAR);
-    properties.setOwningAvatarID(getID());
+
+    // Note: we store AVATAR_SELF_ID in EntityItem::_owningAvatarID and we usually
+    // store the actual sessionUUID in EntityItemProperties::_owningAvatarID (for JS
+    // consumption, for example).  However at this context we are preparing properties
+    // for outgoing packet, in which case we use AVATAR_SELF_ID.
+    properties.setOwningAvatarID(AVATAR_SELF_ID);
 
     // there's no entity-server to tell us we're the simulation owner, so always set the
     // simulationOwner to the owningAvatarID and a high priority.
@@ -4000,6 +4005,10 @@ float MyAvatar::getGravity() {
 void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
     QUuid oldSessionID = getSessionUUID();
     Avatar::setSessionUUID(sessionUUID);
+    bool sendPackets = !DependencyManager::get<NodeList>()->getSessionUUID().isNull();
+    if (!sendPackets) {
+        return;
+    }
     QUuid newSessionID = getSessionUUID();
     if (newSessionID != oldSessionID) {
         auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
@@ -4009,7 +4018,6 @@ void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
             _avatarEntitiesLock.withReadLock([&] {
                 avatarEntityIDs = _packedAvatarEntityData.keys();
             });
-            bool sendPackets = !DependencyManager::get<NodeList>()->getSessionUUID().isNull();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
             entityTree->withWriteLock([&] {
                 for (const auto& entityID : avatarEntityIDs) {
@@ -4017,11 +4025,9 @@ void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
                     if (!entity) {
                         continue;
                     }
-                    // update OwningAvatarID so entity can be identified as "ours" later
-                    entity->setOwningAvatarID(newSessionID);
                     // NOTE: each attached AvatarEntity already have the correct updated parentID
                     // via magic in SpatiallyNestable, hence we check against newSessionID
-                    if (sendPackets && entity->getParentID() == newSessionID) {
+                    if (entity->getParentID() == newSessionID) {
                         // but when we have a real session and the AvatarEntity is parented to MyAvatar
                         // we need to update the "packedAvatarEntityData" sent to the avatar-mixer
                         // because it contains a stale parentID somewhere deep inside

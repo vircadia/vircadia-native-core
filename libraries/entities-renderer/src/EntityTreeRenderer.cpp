@@ -221,7 +221,7 @@ void EntityTreeRenderer::stopDomainAndNonOwnedEntities() {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
 
             if (entityItem && !entityItem->getScript().isEmpty()) {
-                if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
+                if (!(entityItem->isLocalEntity() || entityItem->isMyAvatarEntity())) {
                     if (_currentEntitiesInside.contains(entityID)) {
                         _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
                     }
@@ -235,7 +235,6 @@ void EntityTreeRenderer::stopDomainAndNonOwnedEntities() {
 void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
     stopDomainAndNonOwnedEntities();
 
-    auto sessionUUID = getTree()->getMyAvatarSessionUUID();
     std::unordered_map<EntityItemID, EntityRendererPointer> savedEntities;
     std::unordered_set<EntityRendererPointer> savedRenderables;
     // remove all entities from the scene
@@ -244,7 +243,7 @@ void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
         for (const auto& entry :  _entitiesInScene) {
             const auto& renderer = entry.second;
             const EntityItemPointer& entityItem = renderer->getEntity();
-            if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == sessionUUID))) {
+            if (!(entityItem->isLocalEntity() || entityItem->isMyAvatarEntity())) {
                 fadeOutRenderable(renderer);
             } else {
                 savedEntities[entry.first] = entry.second;
@@ -256,6 +255,7 @@ void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
     _renderablesToUpdate = savedRenderables;
     _entitiesInScene = savedEntities;
 
+    auto sessionUUID = getTree()->getMyAvatarSessionUUID();
     if (_layeredZones.clearDomainAndNonOwnedZones(sessionUUID)) {
         applyLayeredZones();
     }
@@ -678,7 +678,7 @@ void EntityTreeRenderer::leaveDomainAndNonOwnedEntities() {
         QSet<EntityItemID> currentEntitiesInsideToSave;
         foreach (const EntityItemID& entityID, _currentEntitiesInside) {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
-            if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
+            if (!(entityItem->isLocalEntity() || entityItem->isMyAvatarEntity())) {
                 emit leaveEntity(entityID);
                 if (_entitiesScriptEngine) {
                     _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
@@ -1216,7 +1216,7 @@ bool EntityTreeRenderer::LayeredZones::clearDomainAndNonOwnedZones(const QUuid& 
     auto it = begin();
     while (it != end()) {
         auto zone = it->zone.lock();
-        if (!zone || !(zone->isLocalEntity() || (zone->isAvatarEntity() && zone->getOwningAvatarID() == sessionUUID))) {
+        if (!zone || !(zone->isLocalEntity() || zone->isMyAvatarEntity())) {
             zonesChanged = true;
             it = erase(it);
         } else {
