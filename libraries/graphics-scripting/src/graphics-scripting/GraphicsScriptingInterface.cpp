@@ -428,7 +428,7 @@ namespace scriptable {
 
         if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OPACITY_CUTOFF_VAL_BIT)) {
             obj.setProperty("opacityCutoff", FALLTHROUGH);
-        } else if (!material.key.isOpacityCutoff()) {
+        } else if (material.key.isOpacityCutoff()) {
             obj.setProperty("opacityCutoff", material.opacityCutoff);
         }
 

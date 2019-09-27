@@ -157,10 +157,10 @@ void main(void) {
     <@if HIFI_USE_TRANSLUCENT@>
         float cutoff = getMaterialOpacityCutoff(mat);
         float opacity = getMaterialOpacity(mat) * _color.a;
-        <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
+        <$evalMaterialOpacity(albedoTex.a, cutoff, opacity, matKey, opacity)$>;
         <$discardInvisible(opacity)$>;
     <@else@>
-        float cutoff = getMaterialAlphaCutoff(mat);
+        float cutoff = getMaterialOpacityCutoff(mat);
         float opacity = 1.0;
         <$evalMaterialOpacityMask(albedoTex.a, cutoff, opacity)$>;
         <$discardTransparent(opacity)$>;

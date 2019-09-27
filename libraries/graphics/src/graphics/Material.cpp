@@ -25,11 +25,12 @@ const float Material::DEFAULT_ALBEDO { 0.5f };
 const float Material::DEFAULT_METALLIC { 0.0f };
 const float Material::DEFAULT_ROUGHNESS { 1.0f };
 const float Material::DEFAULT_SCATTERING{ 0.0f };
-const float Material::DEFAULT_ALPHA_CUTOFF { 0.5f };
+const MaterialKey::OpacityMapMode Material::DEFAULT_OPACITY_MAP_MODE{ MaterialKey::OPACITY_MAP_OPAQUE };
+const float Material::DEFAULT_OPACITY_CUTOFF { 0.5f };
 
 
-std::string MaterialKey::getAlphaMapModeName(AlphaMapMode mode) {
-    const std::string names[3] = { "ALPHA_MAP_OPAQUE", "ALPHA_MAP_MASK", "ALPHA_MAP_BLEND" };
+std::string MaterialKey::getOpacityMapModeName(OpacityMapMode mode) {
+    const std::string names[3] = { "OPACITY_MAP_OPAQUE", "OAPCITY_MAP_MASK", "OPACITY_MAP_BLEND" };
     return names[mode];
 }
 
@@ -49,7 +50,7 @@ Material::Material(const Material& material) :
     _roughness(material._roughness),
     _metallic(material._metallic),
     _scattering(material._scattering),
-    _alphaCutoff(material._alphaCutoff),
+    _opacityCutoff(material._opacityCutoff),
     _texcoordTransforms(material._texcoordTransforms),
     _lightmapParams(material._lightmapParams),
     _materialParams(material._materialParams),
@@ -71,7 +72,7 @@ Material& Material::operator=(const Material& material) {
     _roughness = material._roughness;
     _metallic = material._metallic;
     _scattering = material._scattering;
-    _alphaCutoff = material._alphaCutoff;
+    _opacityCutoff = material._opacityCutoff;
     _texcoordTransforms = material._texcoordTransforms;
     _lightmapParams = material._lightmapParams;
     _materialParams = material._materialParams;
@@ -120,18 +121,18 @@ void Material::setScattering(float scattering) {
     _scattering = scattering;
 }
 
-void Material::setAlphaCutoff(float alphaCutoff) {
-    alphaCutoff = glm::clamp(alphaCutoff, 0.0f, 1.0f);
-    _key.setAlphaCutoff(alphaCutoff != DEFAULT_ALPHA_CUTOFF);
-    _alphaCutoff = alphaCutoff;
+void Material::setOpacityCutoff(float opacityCutoff) {
+    opacityCutoff = glm::clamp(opacityCutoff, 0.0f, 1.0f);
+    _key.setOpacityCutoff(opacityCutoff != DEFAULT_OPACITY_CUTOFF);
+    _opacityCutoff = opacityCutoff;
 }
 
-void Material::setAlphaMapMode(MaterialKey::AlphaMapMode alphaMode) {
-    _key.setAlphaMapMode(alphaMode);
+void Material::setOpacityMapMode(MaterialKey::OpacityMapMode opacityMapMode) {
+    _key.setOpacityMapMode(opacityMapMode);
 }
 
-MaterialKey::AlphaMapMode  Material::getAlphaMapMode() const {
-    return _key.getAlphaMapMode();
+MaterialKey::OpacityMapMode  Material::getOpacityMapMode() const {
+    return _key.getOpacityMapMode();
 }
 
 void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
