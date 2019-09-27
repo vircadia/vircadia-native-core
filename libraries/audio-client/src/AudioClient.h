@@ -80,6 +80,9 @@ class QIODevice;
 class Transform;
 class NLPacket;
 
+#define DEFAULT_STARVE_DETECTION_ENABLED true
+#define DEFAULT_BUFFER_FRAMES 1
+
 class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -296,13 +299,11 @@ private:
     // OUTPUT_CHANNEL_COUNT is audio pipeline output format, which is always 2 channel.
     // _outputFormat.channelCount() is device output format, which may be 1 or multichannel.
     static const int OUTPUT_CHANNEL_COUNT{ 2 };
-    static const bool DEFAULT_STARVE_DETECTION_ENABLED{ true };
     static const int STARVE_DETECTION_THRESHOLD{ 3 };
     static const int STARVE_DETECTION_PERIOD{ 10 * 1000 }; // 10 Seconds
 
     static const AudioPositionGetter DEFAULT_POSITION_GETTER;
     static const AudioOrientationGetter DEFAULT_ORIENTATION_GETTER;
-    static const int DEFAULT_BUFFER_FRAMES{ 1 };
 
     friend class CheckDevicesThread;
     friend class LocalInjectorsThread;
