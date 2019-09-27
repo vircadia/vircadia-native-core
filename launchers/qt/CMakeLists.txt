@@ -123,8 +123,6 @@ foreach(plugin ${Qt5Gui_PLUGINS})
   set(plugin_libs ${plugin_libs} ${_loc})
 endforeach()
 
-qt5_add_resources(EXAMPLE_RCC_SRC build/resources.qrc)
-
 set(src_files
   src/main.cpp
   src/Launcher.h
@@ -143,7 +141,6 @@ set(src_files
   src/CommandlineOptions.cpp
   deps/miniz/miniz.h
   deps/miniz/miniz.cpp
-  #${RES_SOURCES}
   )
 
 
@@ -167,13 +164,13 @@ set(TARGET_NAME ${PROJECT_NAME})
 
 set_packaging_parameters()
 if (WIN32)
-  add_executable(${PROJECT_NAME} ${src_files})#build/resources.qrc ${EXAMPLE_RCC_SRC})
+  add_executable(${PROJECT_NAME} ${src_files} ${RES_SOURCES})
 elseif (APPLE)
   set_target_properties(${this_target} PROPERTIES
     MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
 
   set(MACOSX_BUNDLE_ICON_FILE "interface.icns")
-  add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files})
+  add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files} ${RES_SOURCES})
   set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
 endif()
 
@@ -222,21 +219,14 @@ if (APPLE)
     ${OPENSSL_INCLUDE_DIR})
 endif()
 
-set(INTERFACE_EXEC_DIR "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
-set(RESOURCES_DEV_DIR "${INTERFACE_EXEC_DIR}/resources")
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-  "${RESOURCES_RCC}"
-  "${INTERFACE_EXEC_DIR}")
 
-
-if (LAUNCHER_SOURCE_TREE_RESOURCES)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
-  message("Use source tree resources path: file://${CMAKE_CURRENT_SOURCE_DIR}/resources/")
-else()
-  target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="qrc:/")
-  message("Use resource.rcc path: qrc:/")
-endif()
+  if (LAUNCHER_SOURCE_TREE_RESOURCES)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
+    message("Use source tree resources path: file://${CMAKE_CURRENT_SOURCE_DIR}/resources/")
+  else()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="qrc:/")
+    message("Use resource.rcc path: qrc:/")
+  endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
 

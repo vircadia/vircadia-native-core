@@ -130,7 +130,7 @@ public:
     Q_INVOKABLE float getDownloadProgress() const { return _downloadProgress; }
 
 signals:
-    void updateSourceUrl(QString sourceUrl);
+    void updateSourceUrl(QUrl sourceUrl);
     void uiStateChanged();
     void applicationStateChanged();
     void downloadProgressChanged();

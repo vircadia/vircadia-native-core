@@ -29,6 +29,7 @@ bool hasSuffix(const std::string path, const std::string suffix) {
 }
 
 int main(int argc, char *argv[]) {
+    Q_INIT_RESOURCE(resources);
 #ifdef Q_OS_MAC
     // auto updater
     if (argc == 3) {
