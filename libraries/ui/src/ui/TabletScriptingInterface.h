@@ -273,7 +273,9 @@ public:
     Q_INVOKABLE void gotoHomeScreen();
 
     /**jsdoc
-     * Opens a web page or app on the tablet.
+     * Opens a web app or page in addition to any current app. In tablet mode, the app or page is displayed over the top of the
+     * current app; in toolbar mode, the app is opened in a new window that replaces any current window open. If in tablet
+     * mode, the app or page can be closed using {@link TabletProxy#returnToPreviousApp}.
      * @function TabletProxy#gotoWebScreen
      * @param {string} url - The URL of the web page or app.
      * @param {string} [injectedJavaScriptUrl=""] - The URL of JavaScript to inject into the web page.
@@ -356,8 +358,8 @@ public:
 
     /**jsdoc
      * Opens a web app or page in addition to any current app. In tablet mode, the app or page is displayed over the top of the
-     * current app; in toolbar mode, the app is opened in a new window. If in tablet mode, the app or page can be closed using
-     * {@link TabletProxy#returnToPreviousApp}.
+     * current app; in toolbar mode, the app is opened in a new window that replaces any current window open. If in tablet 
+     * mode, the app or page can be closed using {@link TabletProxy#returnToPreviousApp}.
      * @function TabletProxy#loadWebScreenOnTop
      * @param {string} path - The URL of the web page or HTML app.
      * @param {string} [injectedJavaScriptURL=""] - The URL of JavaScript to inject into the web page.
