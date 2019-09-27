@@ -300,13 +300,6 @@ public:
     Q_INVOKABLE void loadQMLSourceImpl(const QVariant& path, bool resizable, bool localSafeContext);
 
     /**jsdoc
-     * @function TabletProxy#loadHTMLSourceImpl
-     * @deprecated This function is deprecated and will be removed.
-     */
-    // Internal function, do not call from scripts.
-    Q_INVOKABLE void loadHTMLSourceImpl(const QVariant& url, const QString& injectJavaScriptUrl, bool localSafeContext);
-
-    /**jsdoc
      * @function TabletProxy#loadHTMLSourceOnTopImpl
      * @deprecated This function is deprecated and will be removed.
      */
