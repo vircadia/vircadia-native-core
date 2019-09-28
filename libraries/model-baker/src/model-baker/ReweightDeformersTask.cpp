@@ -11,7 +11,7 @@
 
 #include "ReweightDeformersTask.h"
 
-baker::ReweightedDeformers getReweightedDeformers(size_t numMeshVertices, const hfm::DynamicTransform* dynamicTransform, const std::vector<const hfm::Deformer*> deformers, const uint16_t weightsPerVertex) {
+baker::ReweightedDeformers getReweightedDeformers(size_t numMeshVertices, const std::vector<const hfm::Deformer*> deformers, const uint16_t weightsPerVertex) {
     size_t numClusterIndices = numMeshVertices * weightsPerVertex;
     baker::ReweightedDeformers reweightedDeformers;
     reweightedDeformers.weightsPerVertex = weightsPerVertex;
@@ -114,6 +114,6 @@ void ReweightDeformersTask::run(const baker::BakeContextPointer& context, const 
             }
         }
 
-        reweightedDeformers.push_back(getReweightedDeformers((size_t)mesh.vertices.size(), dynamicTransform, meshDeformers, NUM_WEIGHTS_PER_VERTEX));
+        reweightedDeformers.push_back(getReweightedDeformers((size_t)mesh.vertices.size(), meshDeformers, NUM_WEIGHTS_PER_VERTEX));
     }
 }
