@@ -32,6 +32,7 @@
 #include <AccountManager.h>
 #include <AssetClient.h>
 #include <BuildInfo.h>
+#include <CrashAnnotations.h>
 #include <DependencyManager.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
@@ -430,6 +431,10 @@ DomainServer::~DomainServer() {
 
     // destroy the LimitedNodeList before the DomainServer QCoreApplication is down
     DependencyManager::destroy<LimitedNodeList>();
+}
+
+void DomainServer::aboutToQuit() {
+    crash::annotations::setShutdownState(true);
 }
 
 void DomainServer::queuedQuit(QString quitMessage, int exitCode) {
