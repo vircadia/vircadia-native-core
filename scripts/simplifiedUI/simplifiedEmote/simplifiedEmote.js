@@ -208,11 +208,12 @@ var pointReticle = null;
 var mouseMoveEventsConnected = false;
 var targetPointInterpolateConnected = false;
 var pointAtTarget = Vec3.ZERO;
+var isReticleVisible = true;
 
 function targetPointInterpolate() {
     if (reticlePosition) {
         pointAtTarget = Vec3.mix(pointAtTarget, reticlePosition, POINT_AT_MIX_ALPHA);
-        MyAvatar.setPointAt(pointAtTarget);
+        isReticleVisible = MyAvatar.setPointAt(pointAtTarget);
     }
 }
 
@@ -297,7 +298,7 @@ function mouseMoveEvent(event) {
     }
 
     if (pointReticle && reticlePosition) {
-        Entities.editEntity(pointReticle, { position: reticlePosition });
+        Entities.editEntity(pointReticle, { position: reticlePosition, visible: isReticleVisible });
     } else if (reticlePosition) {
         pointReticle = Entities.addEntity({
             type: "Box",

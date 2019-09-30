@@ -959,7 +959,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         head->simulate(deltaTime);
         CameraMode mode = qApp->getCamera().getMode();
         if (_scriptControlsHeadLookAt || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
-            if (!_pointAtActive) {
+            if (!_pointAtActive || !_isPointTargetValid) {
                 updateHeadLookAt(deltaTime);
             } else {
                 resetHeadLookAt();
@@ -6113,6 +6113,7 @@ bool MyAvatar::beginReaction(QString reactionName) {
         _reactionEnabledRefCounts[reactionIndex]++;
         if (reactionName == POINT_REACTION_NAME) {
             _pointAtActive = true;
+            _isPointTargetValid = true;
         }
         return true;
     }
@@ -6145,10 +6146,13 @@ void MyAvatar::updateRigControllerParameters(Rig::ControllerParameters& params) 
     for (int i = 0; i < TRIGGER_REACTION_NAMES.size(); i++) {
         params.reactionTriggers[i] = _reactionTriggers[i];
     }
-
+    int pointReactionIndex = beginEndReactionNameToIndex("point");
     for (int i = 0; i < BEGIN_END_REACTION_NAMES.size(); i++) {
         // copy current state into params.
         params.reactionEnabledFlags[i] = _reactionEnabledRefCounts[i] > 0;
+        if (params.reactionEnabledFlags[i] && i == pointReactionIndex) {
+            params.reactionEnabledFlags[i] = _isPointTargetValid;
+        }
     }
 
     for (int i = 0; i < TRIGGER_REACTION_NAMES.size(); i++) {
@@ -6753,18 +6757,24 @@ void MyAvatar::setHeadLookAt(const glm::vec3& lookAtTarget) {
     _lookAtScriptTarget = lookAtTarget;
 }
 
-void MyAvatar::setPointAt(const glm::vec3& pointAtTarget) {
+bool MyAvatar::setPointAt(const glm::vec3& pointAtTarget) {
     if (QThread::currentThread() != thread()) {
-        BLOCKING_INVOKE_METHOD(this, "setPointAt",
+        bool result = false;
+        BLOCKING_INVOKE_METHOD(this, "setPointAt", Q_RETURN_ARG(bool, result),
             Q_ARG(const glm::vec3&, pointAtTarget));
-        return;
+        return result;
     }
-    if (_skeletonModelLoaded) {
+    if (_skeletonModelLoaded && _pointAtActive) {
         glm::vec3 aimVector = pointAtTarget - getJointPosition(POINT_REF_JOINT_NAME);
-        glm::vec3 pointAtBlend = aimToBlendValues(aimVector, getWorldOrientation());
-        _skeletonModel->getRig().setDirectionalBlending(POINT_BLEND_DIRECTIONAL_ALPHA_NAME, pointAtBlend,
-                                                        POINT_BLEND_LINEAR_ALPHA_NAME, POINT_ALPHA_BLENDING);
+        _isPointTargetValid = glm::dot(aimVector, getWorldOrientation() * Vectors::FRONT) > 0.0f;
+        if (_isPointTargetValid) {
+            glm::vec3 pointAtBlend = aimToBlendValues(aimVector, getWorldOrientation());
+            _skeletonModel->getRig().setDirectionalBlending(POINT_BLEND_DIRECTIONAL_ALPHA_NAME, pointAtBlend,
+                POINT_BLEND_LINEAR_ALPHA_NAME, POINT_ALPHA_BLENDING);
+        }
+        return _isPointTargetValid;
     }
+    return false;
 }
 
 void MyAvatar::resetPointAt() {

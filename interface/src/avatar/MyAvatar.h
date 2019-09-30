@@ -1769,10 +1769,11 @@ public:
     * Aims the pointing directional blending towards the provided target point.
     * The "point" reaction should be triggered before using this method. 
     * <code>MyAvatar.beginReaction("point")</code>
+    * Returns <code>true</code> if the target point lays in front of the avatar.
     * @function MyAvatar.setPointAt
     * @param {Vec3} pointAtTarget - The target point in world coordinates.
     */
-    Q_INVOKABLE void setPointAt(const glm::vec3& pointAtTarget);
+    Q_INVOKABLE bool setPointAt(const glm::vec3& pointAtTarget);
 
     glm::quat getLookAtRotation() { return _lookAtYaw * _lookAtPitch; }
 
@@ -2662,7 +2663,8 @@ private:
     bool _shouldTurnToFaceCamera { false };
     bool _scriptControlsHeadLookAt { false };
     float _scriptHeadControlTimer { 0.0f };
-    bool _pointAtActive{ false };
+    bool _pointAtActive { false };
+    bool _isPointTargetValid { true };
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
