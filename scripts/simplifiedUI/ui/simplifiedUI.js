@@ -471,6 +471,10 @@ function onMessageFromInitialLaunchWindow(message) {
             closeInitialLaunchWindow();
             break;
 
+        case "closeSecondLaunchWindow":
+            closeSecondLaunchWindow();
+            break;
+
         default:
             console.log("Unrecognized message from " + INITIAL_LAUNCH_WINDOW_MESSAGE_SOURCE + ": " + JSON.stringify(message));
             break;
