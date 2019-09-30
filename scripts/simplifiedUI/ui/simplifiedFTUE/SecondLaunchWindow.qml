@@ -18,7 +18,7 @@ import hifi.simplifiedUI.simplifiedControls 1.0 as SimplifiedControls
 
 Rectangle {
     id: root
-    color: simplifiedUI.colors.white
+    color: "#ffffff"
     anchors.fill: parent
 
     Image {
@@ -57,7 +57,7 @@ Rectangle {
                     anchors.fill: parent
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
-                    color: simplifiedUI.colors.text.darkGrey
+                    color: "#000000"
                     size: 36
                 }
 
@@ -70,7 +70,7 @@ Rectangle {
                     anchors.top: headerText.bottom
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
-                    color: simplifiedUI.colors.text.darkGrey
+                    color: "#000000"
                     size: 24
                 }
 
@@ -81,7 +81,7 @@ Rectangle {
                         id: avatarAppQRCodeImage
                         width: 200
                         height: 200
-                        source: "images/qrCode.png"
+                        source: "images/qrCode.jpg"
                     }
 
                     HifiStylesUit.GraphikSemiBold {
@@ -91,7 +91,7 @@ Rectangle {
                         anchors.top: avatarAppQRCodeImage.bottom
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        color: simplifiedUI.colors.text.darkGrey
+                        color: "#000000"
                         size: 24
                     }
                 }
@@ -101,7 +101,7 @@ Rectangle {
                     anchors.fill: parent
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
-                    color: simplifiedUI.colors.text.lightBlue
+                    color: "#000000"
                     opacity: noThanksMouseArea.containsMouse ? 1.0 : 0.8
                     size: 12
 

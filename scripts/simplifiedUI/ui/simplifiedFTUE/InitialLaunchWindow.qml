@@ -18,8 +18,11 @@ import hifi.simplifiedUI.simplifiedControls 1.0 as SimplifiedControls
 
 Rectangle {
     id: root
-    color: simplifiedUI.colors.white
+    // cannot get anything from SimplifiedConstants to work: simplifiedUI.colors.white 
+    // TODO figure out why and fix
+    color: "#ffffff"
     anchors.fill: parent
+    z: 1
 
     Component.onCompleted: {
         if (Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatar", false)) {
@@ -30,20 +33,22 @@ Rectangle {
 
     Image {
         id: topLeftAccentImage
-        width: 60
-        height: 150
+        width: 400
+        height: 180
         anchors.left: parent.left
         anchors.top: parent.top
         source: "images/defaultTopLeft.png"
+        z: 3
     }
 
     Image {
         id: bottomRightAccentImage
-        width: 30
-        height: 100
+        width: 80
+        height: 250
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         source: "images/defaultBottomRight.png"
+        z: 3
     }
 
     Item {
@@ -53,82 +58,86 @@ Rectangle {
         GridLayout {
             id: tempAvatarPageGrid
             anchors.fill: parent
-            flow: root.width < root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
+            columns: root.width > root.height ? 2 : 1
+            rows: root.width > root.height ? 1 : 2
+            anchors.leftMargin: 180
+            anchors.topMargin: 50
+            anchors.bottomMargin: 50
+            anchors.rightMargin: 100
+            flow: root.width > root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
 
             Item {
                 id: textAndQRContainer
+                width: 650
+                Layout.topMargin: 80
 
-                HifiStylesUit.GraphikSemiBold {
+                HifiStylesUit.RalewayBold {
                     id: headerText
-                    width: 700
-                    height: 120
                     text: "We know this isn't you..."
-                    anchors.fill: parent
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    color: simplifiedUI.colors.text.darkGrey
-                    size: 36
+                    color: "#000000"
+                    size: 48
+                    z: 2
                 }
 
-                HifiStylesUit.GraphikSemiBold {
-                    width: 700
-                    height: 500
+                HifiStylesUit.RalewaySemiBold {
+                    id: descriptionText
+                    anchors.top: headerText.bottom
+                    anchors.topMargin: 20
                     text: "But, we've given you this <b>temporary avatar</b> to use<br></br>
                     for today. If you see this avatar in-world, walk up and<br></br>
                     say hello to other new users!<br></br><br></br>
                     <b>We want you to be you</b> so we've built an Avatar Creator<br></br>
                     App that's as easy as taking a selfie and picking your<br></br>
                     outfits! Available now on iOS and Android Platforms."
-                    anchors.top: headerText.bottom
-                    horizontalAlignment: Text.AlignHLeft
-                    verticalAlignment: Text.AlignVCenter
-                    color: simplifiedUI.colors.text.darkGrey
+                    color: "#000000"
                     size: 24
+                    z: 2
                 }
 
                 Item {
                     id: qrAndInstructionsContainer
+                    anchors.top: descriptionText.bottom
+                    height: avatarAppQRCodeImage.height
+                    width: parent.width
+                    anchors.topMargin: 50
+                    z: 2
 
                     Image {
                         id: avatarAppQRCodeImage
-                        width: 200
+                        source: "images/qrCode.jpg"
                         height: 200
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        source: "images/qrCode.png"
+                        width: 200
                     }
 
-                    HifiStylesUit.GraphikSemiBold {
-                        width: 600
-                        height: 80
+                    HifiStylesUit.RalewayBold {
+                        id: instructionText
                         text: "Use your mobile phone to scan this QR code."
                         anchors.left: avatarAppQRCodeImage.right
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        color: simplifiedUI.colors.text.darkGrey
+                        anchors.verticalCenter: avatarAppQRCodeImage.verticalCenter
+                        anchors.leftMargin: 50
+                        color: "#000000"
                         size: 24
                     }
                 }
 
-                HifiStylesUit.GraphikSemiBold {
-                    width: 250
-                    height: 120
+                HifiStylesUit.RalewayBold {
                     text: "Continue"
-                    anchors.fill: parent
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    color: simplifiedUI.colors.text.lightBlue
-                    opacity: continueMouseArea.containsMouse ? 1.0 : 0.8
-                    size: 30
+                    anchors.top: qrAndInstructionsContainer.bottom
+                    anchors.topMargin: 50
+                    anchors.horizontalCenter: qrAndInstructionsContainer.horizontalCenter
+                    color: "#000000"
+                    opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
+                    size: 36
+                    z: 2
 
                     MouseArea {
                         id: continueMouseArea
-                        hoverEnabled: false
+                        hoverEnabled: true
                         anchors.fill: parent
 
                         onClicked: {
                             Tablet.playSound(TabletEnums.ButtonClick);
-                            Print("CONTINUE CLICKED");
+                            print("CONTINUE CLICKED");
                             tempAvatarPageContainer.visible = false;
                             controlsContainer.visible = true;
                         }
@@ -138,10 +147,18 @@ Rectangle {
 
             Item {
                 id: tempAvatarImageContainer
+                Layout.leftMargin: 50
+                // these don't change when the window resizes
+                width: tempAvatarImage.width
+                height: tempAvatarImage.height
+                z: 1
+
+
                 Image {
                     id: tempAvatarImage
-                    width: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 250 : 500
-                    height: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 500 : 1000
+                    // if I use preferred width and height, the image does not update when window changes size
+                    width: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 400 : 100
+                    height: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 748 : 187
                     source: "images/DefaultAvatar_" + MyAvatar.skeletonModelURL.substring(123, MyAvatar.skeletonModelURL.length - 11) + ".png"
                 }
             }
@@ -151,73 +168,67 @@ Rectangle {
     Item {
         id: controlsContainer
         visible: false
+        anchors.fill: parent
 
-        HifiStylesUit.GraphikSemiBold {
+        HifiStylesUit.RalewaySemiBold {
+            id: controlsDescriptionText
             text: "These are your avatar controls to<br></br>
             <b>Interact with and move around in your new HQ.</b>"
-            anchors.fill: parent
+            anchors.top: parent.top
+            anchors.topMargin: 100
+            anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            color: simplifiedUI.colors.text.darkGrey
-            size: 34
+            height: 100
+            color: "#000000"
+            size: 36
         }
 
         GridLayout {
-            Item {
-                id: controlsImagesContainer
-                Item {
-                    Image {
-                        id: walkingControls
-                        width: 500
-                        height: 350
-                        source: "images/walkingControls.png"
-                    }
-                }
+            id: controlsPageGrid
+            anchors.top: controlsDescriptionText.bottom
+            anchors.topMargin: 100
+            anchors.bottomMargin: 100
+            anchors.horizontalCenter: parent.horizontalCenter
+            columns: 2
+            rows: 2
+            flow: root.width > root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
+          
+            Image {
+                id: walkingControls
+                source: "images/walkingControls.png"
+            }
+              
+            Image {
+                id: mouseControls
+                source: "images/mouseControls.png"
+            }
 
-                Item {
-                    Image {
-                        id: mouseControls
-                        width: 600
-                        height: 350
-                        source: "images/mouseControls.png"
-                    }
-                }
+            Image {
+                id: runJumpControls
+                source: "images/runJumpControls.png"
+            }
 
-                Item {
-                    Image {
-                        id: runJumpControls
-                        width: 300
-                        height: 250
-                        source: "images/runJumpControls.png"
-                    }
-                }
-
-                Item {
-                    Image {
-                        id: cameraControls
-                        width: 500
-                        height: 50
-                        source: "images/cameraControls.png"
-                    }
-                }
+            Image {
+                id: cameraControls
+                source: "images/cameraControls.png"
             }
         }
 
-        HifiStylesUit.GraphikSemiBold {
+        HifiStylesUit.RalewayBold {
             text: "Learn more about our controls."
             anchors.bottom: parent.bottom
             anchors.left: parent.left
-            width: 200
-            height: 50
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            color: simplifiedUI.colors.text.lightBlue
-            opacity: learnMoreAboutControlsMouseArea.containsMouse ? 1.0 : 0.8
-            size: 12
+            anchors.leftMargin: 50
+            anchors.bottomMargin: 50
+            width: 100
+            height: 25
+            color: "#000000"
+            opacity: learnMoreAboutControlsMouseArea.containsMouse ? 1.0 : 0.7
+            size: 14
 
             MouseArea {
                 id: learnMoreAboutControlsMouseArea
-                hoverEnabled: false
+                hoverEnabled: true
                 anchors.fill: parent
 
                 onClicked: {
@@ -228,20 +239,20 @@ Rectangle {
             }
         }
 
-        HifiStylesUit.GraphikSemiBold {
+        HifiStylesUit.RalewayBold {
             text: "I've got a good grip on the controls."
             anchors.bottom: parent.bottom
-            width: 700
-            height: 120
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            color: simplifiedUI.colors.text.lightBlue
-            opacity: goodGripMouseArea.containsMouse ? 1.0 : 0.8
-            size: 30
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottomMargin: 50
+            width: 350
+            height: 60
+            color: "#000000"
+            opacity: goodGripMouseArea.containsMouse ? 1.0 : 0.7
+            size: 36
 
             MouseArea {
                 id: goodGripMouseArea
-                hoverEnabled: false
+                hoverEnabled: true
                 anchors.fill: parent
 
                 onClicked: {

@@ -358,17 +358,20 @@ function setOutputMuted(outputMuted) {
     }
 }
 
-var INITIAL_LAUNCH_QML_PATH = Script.resolvePath("simplifiedFTUE/InitialLaunchWindow.qml");
+var INITIAL_LAUNCH_QML_PATH = Script.resolvePath("./simplifiedFTUE/InitialLaunchWindow.qml");
 var INITIAL_LAUNCH_WINDOW_TITLE = "Initial Launch";
 var INITIAL_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var INITIAL_LAUNCH_WIDTH_PX = Window.innerWidth;
-var INITIAL_LAUNCH_HEIGHT_PX = Window.innerHeight + TOP_BAR_HEIGHT_PX;
+// TODO use TOP_BAR_HEIGHT_PX instead of 48. Why is this not working?
+var INITIAL_LAUNCH_HEIGHT_PX = Window.innerHeight + 48;
 var INITIAL_WINDOW_FLAGS = 0x00000001 | // Qt::Window
 0x00000008 | // Qt::Popup
 0x00000800 | // Qt::FramelessWindowHint
 0x40000000; // Qt::NoDropShadowWindowHint
 var initialLaunchWindow = false;
 function displayInitialLaunchWindow() {
+    //TODO REMOVE ME
+    print("MILAD TESTING 3");
     print("DISPLAY INITIAL LAUNCH WINDOW.");
     if (initialLaunchWindow) {
         initialLaunchWindow.close();
@@ -394,14 +397,15 @@ function displayInitialLaunchWindow() {
 
     initialLaunchWindow.fromQml.connect(onMessageFromInitialLaunchWindow);
 
-    Window.location = "file:///~serverless/tutorial.json";
+    Window.location = "file:///~/serverless/tutorial.json";
 }
 
 var SECOND_LAUNCH_QML_PATH = Script.resolvePath("simplifiedFTUE/SecondLaunchWindow.qml");
 var SECOND_LAUNCH_WINDOW_TITLE = "Second Launch";
 var SECOND_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var SECOND_LAUNCH_WIDTH_PX = Window.innerWidth;
-var SECOND_LAUNCH_HEIGHT_PX = Window.innerHeight + TOP_BAR_HEIGHT_PX;
+// TODO use TOP_BAR_HEIGHT_PX instead of 48. Why is this not working?
+var SECOND_LAUNCH_HEIGHT_PX = Window.innerHeight + 48;
 var SECOND_WINDOW_FLAGS = 0x00000001 | // Qt::Window
 0x00000008 | // Qt::Popup
 0x00000800 | // Qt::FramelessWindowHint
@@ -433,20 +437,24 @@ function displaySecondLaunchWindow() {
 
     secondLaunchWindow.fromQml.connect(onMessageFromSecondLaunchWindow);
 
-    Window.location = "file:///~serverless/tutorial.json";
+    Window.location = "file:///~/serverless/tutorial.json";
 }
 
 function closeInitialLaunchWindow() {
     initialLaunchWindow.fromQml.disconnect(onMessageFromInitialLaunchWindow);
-    // TODO make this go to bookmark
-    // Window.location = "hqhome";
+    var homeLocation = LocationBookmarks.getAddress("hqhome");
+    if (homeLocation) {
+        Window.location = "hqhome";
+    }
     initialLaunchWindow.close();
 }
 
 function closeSecondLaunchWindow() {
     secondLaunchWindow.fromQml.disconnect(onMessageFromSecondLaunchWindow);
-    // TODO make this go to bookmark
-    // Window.location = "hqhome";
+    var homeLocation = LocationBookmarks.getAddress("hqhome");
+    if (homeLocation) {
+        Window.location = "hqhome";
+    }
     secondLaunchWindow.close();
 }
 
@@ -535,7 +543,6 @@ function onMessageFromTopBar(message) {
 
         case "displaySecondLaunchWindow":
             displaySecondLaunchWindow();
-            print("DISPLAY SECOND LAUNCH WINDOW");
             break;
 
         default:
@@ -675,13 +682,33 @@ function onGeometryChanged(rect) {
             "y": rect.y
         };
     }
+    if (secondLaunchWindow) {
+        secondLaunchWindow.size = {
+            "x": rect.width,
+            "y": rect.height
+        };
+        secondLaunchWindow.position = {
+            "x": rect.x,
+            "y": rect.y
+        };
+    }
 }
 
 function onWindowMinimizedChanged(isMinimized) {
     if (isMinimized) {
-        initialLaunchWindow.setVisible(false);
+        if (initialLaunchWindow) {
+            initialLaunchWindow.setVisible(false);
+        }
+        if (secondLaunchWindow) {
+            secondLaunchWindow.setVisible(false);
+        }
     } else {
-        initialLaunchWindow.show();
+        if (initialLaunchWindow) {
+            initialLaunchWindow.show();
+        }
+        if (secondLaunchWindow) {
+            secondLaunchWindow.show();
+        }
     }
 }
 
