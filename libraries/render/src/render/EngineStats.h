@@ -24,42 +24,42 @@ namespace render {
     class EngineStatsConfig : public Job::Config{
         Q_OBJECT
 
-        Q_PROPERTY(quint32 bufferCPUCount MEMBER bufferCPUCount NOTIFY dirty)
-        Q_PROPERTY(quint32 bufferGPUCount MEMBER bufferGPUCount NOTIFY dirty)
-        Q_PROPERTY(qint64 bufferCPUMemSize MEMBER bufferCPUMemSize NOTIFY dirty)
-        Q_PROPERTY(qint64 bufferGPUMemSize MEMBER bufferGPUMemSize NOTIFY dirty)
+        Q_PROPERTY(quint32 bufferCPUCount MEMBER bufferCPUCount NOTIFY newStats)
+        Q_PROPERTY(quint32 bufferGPUCount MEMBER bufferGPUCount NOTIFY newStats)
+        Q_PROPERTY(qint64 bufferCPUMemSize MEMBER bufferCPUMemSize NOTIFY newStats)
+        Q_PROPERTY(qint64 bufferGPUMemSize MEMBER bufferGPUMemSize NOTIFY newStats)
 
-        Q_PROPERTY(quint32 textureCPUCount MEMBER textureCPUCount NOTIFY dirty)
-        Q_PROPERTY(quint32 textureGPUCount MEMBER textureGPUCount NOTIFY dirty)
-        Q_PROPERTY(quint32 textureResidentGPUCount MEMBER textureResidentGPUCount NOTIFY dirty)
-        Q_PROPERTY(quint32 textureFramebufferGPUCount MEMBER textureFramebufferGPUCount NOTIFY dirty)
-        Q_PROPERTY(quint32 textureResourceGPUCount MEMBER textureResourceGPUCount NOTIFY dirty)
-        Q_PROPERTY(quint32 textureExternalGPUCount MEMBER textureExternalGPUCount NOTIFY dirty)
+        Q_PROPERTY(quint32 textureCPUCount MEMBER textureCPUCount NOTIFY newStats)
+        Q_PROPERTY(quint32 textureGPUCount MEMBER textureGPUCount NOTIFY newStats)
+        Q_PROPERTY(quint32 textureResidentGPUCount MEMBER textureResidentGPUCount NOTIFY newStats)
+        Q_PROPERTY(quint32 textureFramebufferGPUCount MEMBER textureFramebufferGPUCount NOTIFY newStats)
+        Q_PROPERTY(quint32 textureResourceGPUCount MEMBER textureResourceGPUCount NOTIFY newStats)
+        Q_PROPERTY(quint32 textureExternalGPUCount MEMBER textureExternalGPUCount NOTIFY newStats)
 
-        Q_PROPERTY(qint64 textureCPUMemSize MEMBER textureCPUMemSize NOTIFY dirty)
-        Q_PROPERTY(qint64 textureGPUMemSize MEMBER textureGPUMemSize NOTIFY dirty)
-        Q_PROPERTY(qint64 textureResidentGPUMemSize MEMBER textureResidentGPUMemSize NOTIFY dirty)
-        Q_PROPERTY(qint64 textureFramebufferGPUMemSize MEMBER textureFramebufferGPUMemSize NOTIFY dirty)
-        Q_PROPERTY(qint64 textureResourceGPUMemSize MEMBER textureResourceGPUMemSize NOTIFY dirty)
-        Q_PROPERTY(qint64 textureExternalGPUMemSize MEMBER textureExternalGPUMemSize NOTIFY dirty)
+        Q_PROPERTY(qint64 textureCPUMemSize MEMBER textureCPUMemSize NOTIFY newStats)
+        Q_PROPERTY(qint64 textureGPUMemSize MEMBER textureGPUMemSize NOTIFY newStats)
+        Q_PROPERTY(qint64 textureResidentGPUMemSize MEMBER textureResidentGPUMemSize NOTIFY newStats)
+        Q_PROPERTY(qint64 textureFramebufferGPUMemSize MEMBER textureFramebufferGPUMemSize NOTIFY newStats)
+        Q_PROPERTY(qint64 textureResourceGPUMemSize MEMBER textureResourceGPUMemSize NOTIFY newStats)
+        Q_PROPERTY(qint64 textureExternalGPUMemSize MEMBER textureExternalGPUMemSize NOTIFY newStats)
 
-        Q_PROPERTY(quint32 texturePendingGPUTransferCount MEMBER texturePendingGPUTransferCount NOTIFY dirty)
-        Q_PROPERTY(qint64 texturePendingGPUTransferSize MEMBER texturePendingGPUTransferSize NOTIFY dirty)
-        Q_PROPERTY(qint64 textureResourcePopulatedGPUMemSize MEMBER textureResourcePopulatedGPUMemSize NOTIFY dirty)
+        Q_PROPERTY(quint32 texturePendingGPUTransferCount MEMBER texturePendingGPUTransferCount NOTIFY newStats)
+        Q_PROPERTY(qint64 texturePendingGPUTransferSize MEMBER texturePendingGPUTransferSize NOTIFY newStats)
+        Q_PROPERTY(qint64 textureResourcePopulatedGPUMemSize MEMBER textureResourcePopulatedGPUMemSize NOTIFY newStats)
 
-        Q_PROPERTY(quint32 frameAPIDrawcallCount MEMBER frameAPIDrawcallCount NOTIFY dirty)
-        Q_PROPERTY(quint32 frameDrawcallCount MEMBER frameDrawcallCount NOTIFY dirty)
-        Q_PROPERTY(quint32 frameDrawcallRate MEMBER frameDrawcallRate NOTIFY dirty)
+        Q_PROPERTY(quint32 frameAPIDrawcallCount MEMBER frameAPIDrawcallCount NOTIFY newStats)
+        Q_PROPERTY(quint32 frameDrawcallCount MEMBER frameDrawcallCount NOTIFY newStats)
+        Q_PROPERTY(quint32 frameDrawcallRate MEMBER frameDrawcallRate NOTIFY newStats)
 
-        Q_PROPERTY(quint32 frameTriangleCount MEMBER frameTriangleCount NOTIFY dirty)
-        Q_PROPERTY(quint32 frameTriangleRate MEMBER frameTriangleRate NOTIFY dirty)
+        Q_PROPERTY(quint32 frameTriangleCount MEMBER frameTriangleCount NOTIFY newStats)
+        Q_PROPERTY(quint32 frameTriangleRate MEMBER frameTriangleRate NOTIFY newStats)
 
-        Q_PROPERTY(quint32 frameTextureCount MEMBER frameTextureCount NOTIFY dirty)
-        Q_PROPERTY(quint32 frameTextureRate MEMBER frameTextureRate NOTIFY dirty)
-        Q_PROPERTY(quint64 frameTextureMemoryUsage MEMBER frameTextureMemoryUsage NOTIFY dirty)
+        Q_PROPERTY(quint32 frameTextureCount MEMBER frameTextureCount NOTIFY newStats)
+        Q_PROPERTY(quint32 frameTextureRate MEMBER frameTextureRate NOTIFY newStats)
+        Q_PROPERTY(quint64 frameTextureMemoryUsage MEMBER frameTextureMemoryUsage NOTIFY newStats)
 
-        Q_PROPERTY(quint32 frameSetPipelineCount MEMBER frameSetPipelineCount NOTIFY dirty)
-        Q_PROPERTY(quint32 frameSetInputFormatCount MEMBER frameSetInputFormatCount NOTIFY dirty)
+        Q_PROPERTY(quint32 frameSetPipelineCount MEMBER frameSetPipelineCount NOTIFY newStats)
+        Q_PROPERTY(quint32 frameSetInputFormatCount MEMBER frameSetInputFormatCount NOTIFY newStats)
 
 
     public:
@@ -101,13 +101,6 @@ namespace render {
         quint32 frameSetPipelineCount{ 0 };
 
         quint32 frameSetInputFormatCount{ 0 };
-
-
-
-        void emitDirty() { emit dirty(); }
-
-    signals:
-        void dirty();
     };
 
     class EngineStats {

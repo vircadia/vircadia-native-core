@@ -16,6 +16,7 @@ PropItem {
     id: root
 
     property alias enums : valueCombo.model
+    property alias currentIndex : valueCombo.currentIndex
 
     PropComboBox {
         id: valueCombo
