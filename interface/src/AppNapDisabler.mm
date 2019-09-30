@@ -16,7 +16,7 @@
 #import <AppKit/AppKit.h>
 
 AppNapDisabler::AppNapDisabler() {
-    _activity = [[NSProcessInfo processInfo] beginActivityWithOptions:NSActivityBackground reason:@"Audio is in use"];
+    _activity = [[NSProcessInfo processInfo] beginActivityWithOptions:NSActivityUserInitiated reason:@"Audio is in use"];
     [_activity retain];
 }
 
