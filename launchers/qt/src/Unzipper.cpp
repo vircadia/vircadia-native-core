@@ -49,7 +49,7 @@ void Unzipper::run() {
 
     uint64_t totalSize = 0;
     uint64_t totalCompressedSize = 0;
-    bool _shouldFail = false;
+    //bool _shouldFail = false;
     for (int i = 0; i < fileCount; i++) {
         if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat)) continue;
 

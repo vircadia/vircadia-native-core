@@ -70,3 +70,43 @@ bool replaceDirectory(const QString& orginalDirectory, const QString& newDirecto
     return (bool) [fileManager replaceItemAtURL:[UpdaterHelper NSStringToNSURL:orginalDirectory.toNSString()] withItemAtURL:[UpdaterHelper NSStringToNSURL:newDirectory.toNSString()]
                                  backupItemName:nil options:NSFileManagerItemReplacementUsingNewMetadataOnly resultingItemURL:&destinationUrl error:nil];
 }
+
+
+void waitForInterfaceToClose() {
+    bool interfaceRunning = true;
+
+    while (interfaceRunning) {
+        interfaceRunning = false;
+        NSWorkspace* workspace = [NSWorkspace sharedWorkspace];
+        NSArray* apps = [workspace runningApplications];
+        for (NSRunningApplication* app in apps) {
+            if ([[app bundleIdentifier] isEqualToString:@"com.highfidelity.interface"] ||
+                [[app bundleIdentifier] isEqualToString:@"com.highfidelity.interface-pr"]) {
+                interfaceRunning = true;
+                break;
+            }
+        }
+    }
+}
+
+bool isLauncherAlreadyRunning() {
+    NSArray* apps = [NSRunningApplication runningApplicationsWithBundleIdentifier:@"com.highfidelity.launcher"];
+    NSLog(@"Count: %lu", [apps count]);
+    if ([apps count] > 1) {
+        NSLog(@"launcher is already running");
+        return true;
+    }
+
+    return false;
+}
+
+void closeInterfaceIfRunning() {
+    NSWorkspace* workspace = [NSWorkspace sharedWorkspace];
+    NSArray* apps = [workspace runningApplications];
+    for (NSRunningApplication* app in apps) {
+        if ([[app bundleIdentifier] isEqualToString:@"com.highfidelity.interface"] ||
+            [[app bundleIdentifier] isEqualToString:@"com.highfidelity.interface-pr"]) {
+            [app terminate];
+        }
+    }
+}

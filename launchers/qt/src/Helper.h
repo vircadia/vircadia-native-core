@@ -14,6 +14,9 @@ void swapLaunchers(const QString& oldLauncherPath = QString(), const QString& ne
 
 #ifdef Q_OS_MAC
 bool replaceDirectory(const QString& orginalDirectory, const QString& newDirectory);
+void closeInterfaceIfRunning();
+void waitForInterfaceToClose();
+bool isLauncherAlreadyRunning();
 #endif
 
 #ifdef Q_OS_WIN

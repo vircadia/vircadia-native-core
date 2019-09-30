@@ -31,6 +31,11 @@ bool hasSuffix(const std::string path, const std::string suffix) {
 int main(int argc, char *argv[]) {
     Q_INIT_RESOURCE(resources);
 #ifdef Q_OS_MAC
+    if (isLauncherAlreadyRunning()) {
+        return 0;
+    }
+    closeInterfaceIfRunning();
+    // waitForInterfaceToClose();
     // auto updater
     if (argc == 3) {
         if (hasSuffix(argv[1], "app") && hasSuffix(argv[2], "app")) {

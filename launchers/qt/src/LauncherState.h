@@ -31,9 +31,9 @@ struct LoginResponse {
 class LauncherState : public QObject {
     Q_OBJECT
 
-    Q_PROPERTY(UIState uiState READ getUIState NOTIFY uiStateChanged);
-    Q_PROPERTY(ApplicationState applicationState READ getApplicationState NOTIFY applicationStateChanged);
-    Q_PROPERTY(float downloadProgress READ getDownloadProgress NOTIFY downloadProgressChanged);
+    Q_PROPERTY(UIState uiState READ getUIState NOTIFY uiStateChanged)
+    Q_PROPERTY(ApplicationState applicationState READ getApplicationState NOTIFY applicationStateChanged)
+    Q_PROPERTY(float downloadProgress READ getDownloadProgress NOTIFY downloadProgressChanged)
 
 public:
     LauncherState();

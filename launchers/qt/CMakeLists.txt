@@ -35,6 +35,7 @@ include(ExternalProject)
 
 if (APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "-framework Cocoa -framework CoreServices -framework Carbon -framework IOKit -framework Security -framework SystemConfiguration")
+  add_compile_options(-W -Wall -Wextra -Wpedantic)
 endif()
 if (WIN32)
 
