@@ -57,7 +57,6 @@ void CollectShapeVerticesTask::run(const baker::BakeContextPointer& context, con
                 vertexSources.push_back(vertexSource);
                 auto& shapeVertices = shapeVerticesPerJoint[jointIndex];
 
-                const uint16_t deformerIndex = dynamicTransform.deformers[j];
                 const auto& mesh = meshes[shape.mesh];
                 const auto& vertices = mesh.vertices;
                 const auto& reweightedDeformer = reweightedDeformers[shape.mesh];
