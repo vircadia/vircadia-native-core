@@ -109,7 +109,6 @@ Item {
         placeholderText: "Display name"
         color: "#7E8C81"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
-        echoMode: TextInput.Password
         anchors {
             top: displayText.bottom
             horizontalCenter: instruction.horizontalCenter
@@ -132,7 +131,7 @@ Item {
             topMargin: 25
         }
 
-        onClicked: LauncherState.login(username.text, password.text)
+        onClicked: LauncherState.login(username.text, password.text, displayName.text)
     }
 
     Text {
@@ -155,7 +154,7 @@ Item {
 
             onClicked: {
                 console.log("clicked");
-                root.parent.source = PathUtils.resourcePath("qml/Login.qml");
+                LauncherState.gotoSignup();
             }
         }
     }

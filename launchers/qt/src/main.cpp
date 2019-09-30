@@ -1,5 +1,7 @@
 #include <QtPlugin>
 
+#include <qsharedmemory.h>
+
 #include "LauncherWindow.h"
 #include "Launcher.h"
 #include <iostream>
@@ -19,7 +21,7 @@ Q_IMPORT_PLUGIN(QtQuickTemplates2Plugin);
 
 
 
-bool hasSuffix(const std::string path, const std::string suffix) {
+bool hasSuffix(const std::string& path, const std::string& suffix) {
     if (path.substr(path.find_last_of(".") + 1) == suffix) {
         return true;
     }
@@ -60,6 +62,12 @@ int main(int argc, char *argv[]) {
     QString name { "High Fidelity" };
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QCoreApplication::setOrganizationName(name);
+
+
+#ifdef Q_OS_WIN
+    //QSharedMemory sharedMemory{ applicationName };
+    //instanceMightBeRunning = !sharedMemory.create(1, QSharedMemory::ReadOnly);
+#endif
 
     Launcher launcher(argc, argv);
 

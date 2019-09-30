@@ -7,6 +7,10 @@
 #include <QNetworkAccessManager>
 #include <QFile>
 
+#include "LoginRequest.h"
+#include "SignupRequest.h"
+#include "UserSettingsRequest.h"
+
 struct Build {
     QString tag;
     int latestVersion;
@@ -22,18 +26,13 @@ struct LatestBuilds {
     Build launcherBuild;
 };
 
-struct LoginResponse {
-    QString accessToken;
-    QString tokenType;
-    QString refreshToken;
-};
-
 class LauncherState : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(UIState uiState READ getUIState NOTIFY uiStateChanged);
     Q_PROPERTY(ApplicationState applicationState READ getApplicationState NOTIFY applicationStateChanged);
     Q_PROPERTY(float downloadProgress READ getDownloadProgress NOTIFY downloadProgressChanged);
+    Q_PROPERTY(SignupRequest::Error lastSignupError MEMBER _lastSignupError NOTIFY lastSignupErrorChanged);
 
 public:
     LauncherState();
@@ -41,6 +40,7 @@ public:
 
     enum UIState {
         SPLASH_SCREEN = 0,
+        SIGNUP_SCREEN,
         LOGIN_SCREEN,
         DISPLAY_NAME_SCREEN,
         DOWNLOAD_SCREEN,
@@ -59,6 +59,10 @@ public:
 
         WaitingForLogin,
         RequestingLogin,
+
+        WaitingForSignup,
+        RequestingSignup,
+        RequestingLoginAfterSignup,
 
         DownloadingClient,
         DownloadingLauncher,
@@ -85,7 +89,7 @@ public:
     Q_INVOKABLE QString getCurrentUISource() const;
 
     void ASSERT_STATE(LauncherState::ApplicationState state);
-    void ASSERT_STATE(std::vector<LauncherState::ApplicationState> states);
+    void ASSERT_STATE(const std::vector<LauncherState::ApplicationState>& states);
 
     static void declareQML();
 
@@ -98,17 +102,21 @@ public:
     void setApplicationState(ApplicationState state);
     ApplicationState getApplicationState() const;
 
+    Q_INVOKABLE void gotoSignup();
+    Q_INVOKABLE void gotoLogin();
+
     // Request builds
     void requestBuilds();
     Q_INVOKABLE void receivedBuildsReply();
 
+    // Signup
+    Q_INVOKABLE void signup(QString email, QString username, QString password, QString displayName);
 
     // Login
-    Q_INVOKABLE void login(QString username, QString password);
-    Q_INVOKABLE void receivedLoginReply();
+    Q_INVOKABLE void login(QString username, QString password, QString displayName);
 
+    // Request Settings
     void requestSettings();
-    Q_INVOKABLE void receivedSettingsReply();
 
     // Launcher
     void downloadLauncher();
@@ -132,6 +140,7 @@ signals:
     void uiStateChanged();
     void applicationStateChanged();
     void downloadProgressChanged();
+    void lastSignupErrorChanged();
 
 private slots:
     void clientDownloadComplete();
@@ -154,8 +163,10 @@ private:
 
     // Application State
     ApplicationState _applicationState { ApplicationState::Init };
-    LoginResponse _loginResponse;
+    LoginToken _loginResponse;
     LastLoginError _lastLoginError { NONE };
+    SignupRequest::Error _lastSignupError{ SignupRequest::Error::None };
+    QString _displayName;
     QString _applicationErrorMessage;
     QString _currentClientVersion;
     QString _buildTag { QString::null };
@@ -165,6 +176,9 @@ private:
     QFile _clientZipFile;
     QFile _launcherZipFile;
     QFile _contentZipFile;
+
+    QString _username;
+    QString _password;
 
     float _downloadProgress { 0 };
 };

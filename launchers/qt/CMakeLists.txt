@@ -127,8 +127,14 @@ set(src_files
   src/LauncherState.cpp
   src/LauncherWindow.h
   src/LauncherWindow.cpp
-  src/PathUtils.cpp
+  src/LoginRequest.h
+  src/LoginRequest.cpp
+  src/SignupRequest.h
+  src/SignupRequest.cpp
+  src/UserSettingsRequest.h
+  src/UserSettingsRequest.cpp
   src/PathUtils.h
+  src/PathUtils.cpp
   src/Unzipper.h
   src/Unzipper.cpp
   src/Helper.h
@@ -159,7 +165,7 @@ set(TARGET_NAME ${PROJECT_NAME})
 
 set_packaging_parameters()
 if (WIN32)
-  add_executable(${PROJECT_NAME} ${src_files} build/resources.qrc)
+  add_executable(${PROJECT_NAME} ${src_files} ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
 elseif (APPLE)
   set_target_properties(${this_target} PROPERTIES
     MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)

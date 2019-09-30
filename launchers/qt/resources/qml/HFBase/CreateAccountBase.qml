@@ -47,7 +47,7 @@ Item {
         font.family: "Graphik"
         font.pixelSize: 14
         color: "#C4C4C4"
-        text: "Use the email address that you regisetered with."
+        text: "Use the email address that you regisetered with. " + LauncherState.lastSignupError
         anchors {
             left: root.left
             leftMargin: root.marginLeft
@@ -57,7 +57,7 @@ Item {
     }
 
     HFTextField {
-        id: organization
+        id: email
         width: 430
         height: 50
         font.family: "Graphik"
@@ -83,7 +83,7 @@ Item {
         color: "#7e8c81"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
-            top: organization.bottom
+            top: email.bottom
             left: root.left
             leftMargin: root.marginLeft
             topMargin: 18
@@ -157,7 +157,7 @@ Item {
             topMargin: 21
         }
 
-        onClicked: LauncherState.login(username.text, passwordField.text)
+        onClicked: LauncherState.signup(email.text, username.text, passwordField.text, displayName.text)
     }
 
 
@@ -181,7 +181,7 @@ Item {
 
             onClicked: {
                 console.log("clicked");
-                root.parent.source = PathUtils.resourcePath("qml/Login.qml");
+                LauncherState.gotoLogin();
             }
         }
     }

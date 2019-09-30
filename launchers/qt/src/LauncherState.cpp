@@ -30,8 +30,6 @@
 
 #include <qregularexpression.h>
 
-const QString METAVERSE_API_URL{ "https://metaverse.highfidelity.com" };
-const QByteArray ACCESS_TOKEN_AUTHORIZATION_HEADER = "Authorization";
 
 QString LauncherState::getContentCachePath() const {
     return _launcherDirectory.filePath("cache");
@@ -70,7 +68,7 @@ bool LatestBuilds::getBuild(QString tag, Build* outBuild) {
 }
 
 static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_FOR_UI_STATE =
-    { { "SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "DisplayName.qml",
+    { { "SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "qml/HFBase/LoginBase.qml", "DisplayName.qml",
         "qml/Download.qml", "qml/DownloadFinished.qml", "qml/HFBase/Error.qml" } };
 
 void LauncherState::ASSERT_STATE(LauncherState::ApplicationState state) {
@@ -82,7 +80,7 @@ void LauncherState::ASSERT_STATE(LauncherState::ApplicationState state) {
     }
 }
 
-void LauncherState::ASSERT_STATE(std::vector<LauncherState::ApplicationState> states) {
+void LauncherState::ASSERT_STATE(const std::vector<LauncherState::ApplicationState>& states) {
     for (auto state : states) {
         if (_applicationState == state) {
             return;
@@ -120,6 +118,9 @@ LauncherState::UIState LauncherState::getUIState() const {
         case ApplicationState::WaitingForLogin:
         case ApplicationState::RequestingLogin:
             return LOGIN_SCREEN;
+        case ApplicationState::WaitingForSignup:
+        case ApplicationState::RequestingSignup:
+            return SIGNUP_SCREEN;
         case ApplicationState::DownloadingClient:
         case ApplicationState::InstallingClient:
         case ApplicationState::DownloadingContentCache:
@@ -240,33 +241,11 @@ void LauncherState::getCurrentClientVersion() {
     QProcess client;
     QEventLoop loop;
 
-    //connect(&client, &QProcess::errorOccurred, &loop, &QEventLoop::exit);
-    connect(&client, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), &loop, &QEventLoop::exit);
-    /*
-    connect(&client, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), [&]() {
-        qDebug() << "Finished";
-    });
-    connect(&client, &QProcess::errorOccurred, [&](QProcess::ProcessError err) {
-        qDebug() << "Error occurred" << err << client.error();
-    });
-    connect(&client, &QProcess::started, [&]() {
-        qDebug() << "Started";
-    });
-    connect(&client, &QProcess::stateChanged, [&]() {
-        qDebug() << "State changed " << client.state();
-    });
-    */
+    connect(&client, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), &loop, &QEventLoop::exit, Qt::QueuedConnection);
+    connect(&client, &QProcess::errorOccurred, &loop, &QEventLoop::exit, Qt::QueuedConnection);
 
-    //qDebug() << "Starting client";
     client.start(getClientExecutablePath(), { "--version" });
-    //qDebug() << "Started" << client.error();
-
-    if (client.state() != QProcess::NotRunning) {
-        //qDebug() << "Starting loop";
-        loop.exec();
-    } else {
-        qDebug() << "Not waiting for client, there was an error starting it: " << client.error();
-    }
+    loop.exec();
 
     // TODO Handle errors
     auto output = client.readAllStandardOutput();
@@ -282,132 +261,140 @@ void LauncherState::getCurrentClientVersion() {
     }
     qDebug() << "Current client version is: " << _currentClientVersion;
 
-    setApplicationState(ApplicationState::WaitingForLogin);
+    setApplicationState(ApplicationState::WaitingForSignup);
 }
 
-QString getUserAgent() {
-#if defined(Q_OS_WIN)
-    return "HQLauncher/fixme (Windows)";
-#elif defined(Q_OS_MACOS)
-    return "HQLauncher/fixme (MacOS)";
-#else
-#error Unsupported platform
-#endif
+
+void LauncherState::gotoSignup() {
+    if (_applicationState == ApplicationState::WaitingForLogin) {
+        setApplicationState(ApplicationState::WaitingForSignup);
+    } else {
+        qDebug() << "Error, can't switch to signup page, current state is: " << _applicationState;
+    }
 }
 
-void LauncherState::login(QString username, QString password) {
+void LauncherState::gotoLogin() {
+    if (_applicationState == ApplicationState::WaitingForSignup) {
+        setApplicationState(ApplicationState::WaitingForLogin);
+    } else {
+        qDebug() << "Error, can't switch to signup page, current state is: " << _applicationState;
+    }
+}
+
+void LauncherState::signup(QString email, QString username, QString password, QString displayName) {
+    ASSERT_STATE(ApplicationState::WaitingForSignup);
+
+    _username = username;
+    _password = password;
+
+    setApplicationState(ApplicationState::RequestingSignup);
+
+    auto signupRequest = new SignupRequest();
+
+    _displayName = displayName;
+
+    {
+        _lastSignupError = SignupRequest::Error::None;
+        emit lastSignupErrorChanged();
+    }
+
+    QObject::connect(signupRequest, &SignupRequest::finished, this, [this, signupRequest] {
+        signupRequest->deleteLater();
+
+
+        _lastSignupError = signupRequest->getError();
+        emit lastSignupErrorChanged();
+
+        if (_lastSignupError != SignupRequest::Error::None) {
+            setApplicationStateError("Failed to sign up");
+            return;
+        }
+
+        setApplicationState(ApplicationState::RequestingLoginAfterSignup);
+
+        // After successfully signing up, attempt to login
+        auto loginRequest = new LoginRequest();
+
+        connect(loginRequest, &LoginRequest::finished, this, [this, loginRequest]() {
+            ASSERT_STATE(ApplicationState::RequestingLoginAfterSignup);
+
+            loginRequest->deleteLater();
+
+            auto err = loginRequest->getError();
+            if (err != LoginRequest::Error::None) {
+                setApplicationStateError("Failed to login");
+                return;
+            }
+
+
+            _loginResponse = loginRequest->getToken();
+            _loginTokenResponse = loginRequest->getRawToken();
+
+            requestSettings();
+        });
+
+        setApplicationState(ApplicationState::RequestingLoginAfterSignup);
+        loginRequest->send(_networkAccessManager, _username, _password);
+    });
+    signupRequest->send(_networkAccessManager, email, username, password);
+}
+
+
+void LauncherState::login(QString username, QString password, QString displayName) {
     ASSERT_STATE(ApplicationState::WaitingForLogin);
 
     setApplicationState(ApplicationState::RequestingLogin);
 
+    _displayName = displayName;
+
     qDebug() << "Got login: " << username << password;
 
-    auto request = new QNetworkRequest(QUrl(METAVERSE_API_URL + "/oauth/token"));
+    auto request = new LoginRequest();
 
-    request->setHeader(QNetworkRequest::UserAgentHeader, getUserAgent());
-    request->setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-    QUrlQuery query;
-    query.addQueryItem("grant_type", "password");
-    query.addQueryItem("username", username);
-    query.addQueryItem("password", password);
-    query.addQueryItem("scope", "owner");
+    connect(request, &LoginRequest::finished, this, [this, request]() {
+        ASSERT_STATE(ApplicationState::RequestingLogin);
 
-    auto reply = _networkAccessManager.post(*request, query.toString().toUtf8());
-    QObject::connect(reply, &QNetworkReply::finished, this, &LauncherState::receivedLoginReply);
-}
+        request->deleteLater();
 
-Q_INVOKABLE void LauncherState::receivedLoginReply() {
-    ASSERT_STATE(ApplicationState::RequestingLogin);
+        auto err = request->getError();
+        if (err != LoginRequest::Error::None) {
+            setApplicationStateError("Failed to login");
+            return;
+        }
 
-    // TODO Check for errors
-    auto reply = static_cast<QNetworkReply*>(sender());
+        _loginResponse = request->getToken();
+        _loginTokenResponse = request->getRawToken();
 
-    if (reply->error()) {
-        setApplicationState(ApplicationState::UnexpectedError);
-        return;
-    }
+        requestSettings();
+    });
 
-    auto data = reply->readAll();
-    QJsonParseError parseError;
-    auto doc = QJsonDocument::fromJson(data, &parseError);
-    auto root = doc.object();
-
-    if (!root.contains("access_token")
-        || !root.contains("token_type")
-        || !root.contains("expires_in")
-        || !root.contains("refresh_token")
-        || !root.contains("scope")
-        || !root.contains("created_at")) {
-
-        setApplicationState(ApplicationState::UnexpectedError);
-        return;
-    }
-
-    _loginResponse.accessToken = root["access_token"].toString();
-    _loginResponse.refreshToken = root["refresh_token"].toString();
-    _loginResponse.tokenType = root["token_type"].toString();
-
-    qDebug() << "Got response for login: " << data;
-    _loginTokenResponse = data;
-
-    requestSettings();
+    request->send(_networkAccessManager, username, password);
 }
 
 void LauncherState::requestSettings() {
     // TODO Request settings if already logged in
+    qDebug() << "Requesting settings";
 
-    QUrl lockerURL = METAVERSE_API_URL;
-    lockerURL.setPath("/api/v1/user/locker");
+    auto request = new UserSettingsRequest();
 
-    auto lockerRequest = new QNetworkRequest(lockerURL);
-    lockerRequest->setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    lockerRequest->setHeader(QNetworkRequest::UserAgentHeader, getUserAgent());
-    lockerRequest->setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER, QString("Bearer %1").arg(_loginResponse.accessToken).toUtf8());
-
-    QNetworkReply* lockerReply = _networkAccessManager.get(*lockerRequest);
-    connect(lockerReply, &QNetworkReply::finished, this, &LauncherState::receivedSettingsReply);
-}
-
-void LauncherState::receivedSettingsReply() {
-    auto reply = static_cast<QNetworkReply*>(sender());
-    qDebug() << "Got reply: " << reply->error();
-    if (reply->error()) {
-        setApplicationState(ApplicationState::UnexpectedError);
-        return;
-    }
-    auto data = reply->readAll();
-    qDebug() << "Settings: " << data;
-    QJsonParseError parseError;
-    auto doc = QJsonDocument::fromJson(data, &parseError);
-
-    if (parseError.error != QJsonParseError::NoError) {
-        qDebug() << "Error parsing settings";
-        setApplicationStateError("Error retreiving settings");
-        return;
-    }
-
-    auto root = doc.object();
-    if (root["status"] != "success") {
-        qDebug() << "Status is not \"success\"";
-        setApplicationStateError("Error retreiving settings");
-        return;
-    }
-
-    _homeLocation = "hifi://hq";
-    if (root["data"].toObject().contains("home_location")) {
-        auto homeLocation = root["data"].toObject()["home_location"];
-        if (homeLocation.isString()) {
-            _homeLocation = homeLocation.toString();
+    connect(request, &UserSettingsRequest::finished, this, [this, request]() {
+        auto userSettings = request->getUserSettings();
+        if (userSettings.homeLocation.isEmpty()) {
+            _homeLocation = "hifi://hq";
+            _contentCacheURL = "";
+        } else {
+            _homeLocation = userSettings.homeLocation;
             auto host = QUrl(_homeLocation).host();
             _contentCacheURL = "http://orgs.highfidelity.com/host-content-cache/" +  host + ".zip";
-            qDebug() << "Home location is: " << _homeLocation;
-            qDebug() << "Content cache url is: " << _contentCacheURL;
         }
-    }
 
-    //qDebug() << "Home:" << _homeLocation << QUrl(_homeLocation).host();
+        qDebug() << "Home location is: " << _homeLocation;
+        qDebug() << "Content cache url is: " << _contentCacheURL;
 
-    downloadClient();
+        downloadClient();
+    });
+
+    request->send(_networkAccessManager, _loginResponse);
 }
 
 void LauncherState::downloadClient() {
@@ -683,10 +670,9 @@ void LauncherState::launchClient() {
     defaultScriptsPath = installDirectory.filePath("interface.app/Contents/Resources/scripts/simplifiedUIBootstrapper.js");
 #endif
 
-    QString displayName = "fixMe";
     QString contentCachePath = _launcherDirectory.filePath("cache");
 
-    ::launchClient(clientPath, _homeLocation, QDir::toNativeSeparators(defaultScriptsPath), displayName, contentCachePath, _loginTokenResponse);
+    ::launchClient(clientPath, _homeLocation, defaultScriptsPath, _displayName, contentCachePath, _loginTokenResponse);
 }
 
 void LauncherState::setApplicationStateError(QString errorMessage) {
