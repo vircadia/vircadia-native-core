@@ -20,7 +20,7 @@ Rectangle {
     id: root
     // cannot get anything from SimplifiedConstants to work: simplifiedUI.colors.white 
     // TODO figure out why and fix
-    color: "#ffffff"
+    color: simplifiedUI.colors.white
     anchors.fill: parent
 
     Component.onCompleted: {
