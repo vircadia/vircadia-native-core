@@ -60,25 +60,13 @@ const int AudioClient::MIN_BUFFER_FRAMES = 1;
 
 const int AudioClient::MAX_BUFFER_FRAMES = 20;
 
-static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
-
 #if defined(Q_OS_ANDROID)
 static const int CHECK_INPUT_READS_MSECS = 2000;
 static const int MIN_READS_TO_CONSIDER_INPUT_ALIVE = 10;
 #endif
 
-static const auto DEFAULT_POSITION_GETTER = []{ return Vectors::ZERO; };
-static const auto DEFAULT_ORIENTATION_GETTER = [] { return Quaternions::IDENTITY; };
-
-static const int DEFAULT_BUFFER_FRAMES = 1;
-
-// OUTPUT_CHANNEL_COUNT is audio pipeline output format, which is always 2 channel.
-// _outputFormat.channelCount() is device output format, which may be 1 or multichannel.
-static const int OUTPUT_CHANNEL_COUNT = 2;
-
-static const bool DEFAULT_STARVE_DETECTION_ENABLED = true;
-static const int STARVE_DETECTION_THRESHOLD = 3;
-static const int STARVE_DETECTION_PERIOD = 10 * 1000; // 10 Seconds
+const AudioClient::AudioPositionGetter  AudioClient::DEFAULT_POSITION_GETTER = []{ return Vectors::ZERO; };
+const AudioClient::AudioOrientationGetter AudioClient::DEFAULT_ORIENTATION_GETTER = [] { return Quaternions::IDENTITY; };
 
 Setting::Handle<bool> dynamicJitterBufferEnabled("dynamicJitterBuffersEnabled",
     InboundAudioStream::DEFAULT_DYNAMIC_JITTER_BUFFER_ENABLED);
@@ -272,55 +260,7 @@ static inline float convertToFloat(int16_t sample) {
     return (float)sample * (1 / 32768.0f);
 }
 
-AudioClient::AudioClient() :
-    AbstractAudioInterface(),
-    _gate(this),
-    _audioInput(NULL),
-    _dummyAudioInput(NULL),
-    _desiredInputFormat(),
-    _inputFormat(),
-    _numInputCallbackBytes(0),
-    _audioOutput(NULL),
-    _desiredOutputFormat(),
-    _outputFormat(),
-    _outputFrameSize(0),
-    _numOutputCallbackBytes(0),
-    _loopbackAudioOutput(NULL),
-    _loopbackOutputDevice(NULL),
-    _inputRingBuffer(0),
-    _localInjectorsStream(0, 1),
-    _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES),
-    _isStereoInput(false),
-    _outputStarveDetectionStartTimeMsec(0),
-    _outputStarveDetectionCount(0),
-    _outputBufferSizeFrames("audioOutputBufferFrames", DEFAULT_BUFFER_FRAMES),
-    _sessionOutputBufferSizeFrames(_outputBufferSizeFrames.get()),
-    _outputStarveDetectionEnabled("audioOutputStarveDetectionEnabled", DEFAULT_STARVE_DETECTION_ENABLED),
-    _lastRawInputLoudness(0.0f),
-    _lastSmoothedRawInputLoudness(0.0f),
-    _lastInputLoudness(0.0f),
-    _timeSinceLastClip(-1.0f),
-    _muted(false),
-    _shouldEchoLocally(false),
-    _shouldEchoToServer(false),
-    _isNoiseGateEnabled(true),
-    _isAECEnabled(true),
-    _reverb(false),
-    _reverbOptions(&_scriptReverbOptions),
-    _inputToNetworkResampler(NULL),
-    _networkToOutputResampler(NULL),
-    _localToOutputResampler(NULL),
-    _loopbackResampler(NULL),
-    _audioLimiter(AudioConstants::SAMPLE_RATE, OUTPUT_CHANNEL_COUNT),
-    _outgoingAvatarAudioSequenceNumber(0),
-    _audioOutputIODevice(_localInjectorsStream, _receivedAudioStream, this),
-    _stats(&_receivedAudioStream),
-    _positionGetter(DEFAULT_POSITION_GETTER),
-#if defined(Q_OS_ANDROID)
-    _checkInputTimer(this),
-    _isHeadsetPluggedIn(false),
-#endif
-    _orientationGetter(DEFAULT_ORIENTATION_GETTER) {
+AudioClient::AudioClient() {
 
     // avoid putting a lock in the device callback
     assert(_localSamplesAvailable.is_lock_free());

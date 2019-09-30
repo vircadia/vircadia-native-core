@@ -8494,6 +8494,8 @@ void Application::toggleLogDialog() {
             Qt::WindowFlags flags = _logDialog->windowFlags() | Qt::Tool;
             _logDialog->setWindowFlags(flags);
         }
+#else
+        Q_UNUSED(keepOnTop)
 #endif
     }
 
