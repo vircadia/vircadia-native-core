@@ -23,20 +23,22 @@ Rectangle {
 
     Image {
         id: topLeftAccentImage
-        width: 400
-        height: 180
+        width: 180
+        height: 400
         anchors.left: parent.left
         anchors.top: parent.top
         source: "images/standOutTopLeft.png"
+        z: 1
     }
 
     Image {
         id: bottomRightAccentImage
-        width: 80
-        height: 250
+        width: 250
+        height: 80
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         source: "images/standOutBottomRight.png"
+        z: 1
     }
 
     Item {
@@ -45,71 +47,83 @@ Rectangle {
         GridLayout {
             id: tempAvatarPageGrid
             anchors.fill: parent
-            flow: root.width < root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
-            columns: root.width > root.height ? 2 : 1
-            rows: root.width > root.height ? 1 : 2
             anchors.leftMargin: 180
             anchors.topMargin: 50
             anchors.bottomMargin: 50
             anchors.rightMargin: 100
+            columns: 2
+            // flow: root.width < root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
 
             Item {
                 id: textAndQRContainer
-                width: 650
+                Layout.preferredWidth: 650
+                Layout.preferredHeight: 670
+                Layout.minimumWidth: 200
+                Layout.maximumWidth: 800
                 Layout.topMargin: 80
 
-                HifiStylesUit.GraphikSemiBold {
+                HifiStylesUit.RalewayBold {
                     id: headerText
                     text: "Stand out from the crowd!"
                     color: "#000000"
                     size: 48
+                    wrapMode: Text.WordWrap
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 80
                 }
 
-                HifiStylesUit.GraphikSemiBold {
+                HifiStylesUit.RalewaySemiBold {
                     id: descriptionText
                     anchors.top: headerText.bottom
-                    anchors.topMargin: 20
-                    text: "You can create and upload custom avatars from our<br></br>
-                        Avatar Creator App. It's as easy as taking a selfie.<br></br>
-                        Available now on iOS and Android Platforms."
+                    text: "You can create and upload custom avatars from our Avatar Creator App. It's as easy as taking a selfie. Available now on iOS and Android Platforms."
                     color: "#000000"
                     size: 24
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 100
+                    wrapMode: Text.WordWrap
                 }
 
                 Item {
                     id: qrAndInstructionsContainer
                     anchors.top: descriptionText.bottom
-                    height: avatarAppQRCodeImage.height
+                    height: avatarAppQRCodeImage.height + instructionText.height + 50
                     width: parent.width
                     anchors.topMargin: 50
 
                     Image {
                         id: avatarAppQRCodeImage
+                        anchors.horizontalCenter: parent.horizontalCenter
                         source: "images/qrCode.jpg"
                         height: 200
                         width: 200
                     }
 
-                    HifiStylesUit.GraphikSemiBold {
+                    HifiStylesUit.RalewayBold {
                         id: instructionText
+                        anchors.left: parent.left
+                        anchors.right: parent.right
                         anchors.top: avatarAppQRCodeImage.bottom
                         anchors.horizontalCenter: avatarAppQRCodeImage.horizontalCenter
-                        anchors.topMargin: 50
                         text: "Use your mobile phone to scan this QR code."
                         color: "#000000"
                         size: 24
+                        height: 60
+                        wrapMode: Text.WordWrap
                     }
                 }
 
                 HifiStylesUit.RalewayBold {
-                    text: "No thanks, I'll keep using my default avatar."
                     anchors.top: qrAndInstructionsContainer.bottom
                     anchors.topMargin: 50
                     anchors.horizontalCenter: qrAndInstructionsContainer.horizontalCenter
+                    text: "No thanks, I'll keep using my default avatar."
                     color: "#000000"
-                    opacity: continueMouseArea.containsMouse ? 1.0 : 0.8
+                    opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
                     size: 20
                     z: 1
+                    wrapMode: Text.WordWrap
 
                     MouseArea {
                         id: continueMouseArea
@@ -127,21 +141,23 @@ Rectangle {
                     }
                 }
             }
-        }
 
-        Item {
-            id: heroImageContainer
-            Layout.leftMargin: 50
-            // these don't change when the window resizes
-            width: tempAvatarImage.width
-            height: tempAvatarImage.height
+            Item {
+                id: heroImageContainer
+                Layout.leftMargin: 50
+                // these don't change when the window resizes
+                Layout.preferredWidth: heroImage.width
+                Layout.preferredHeight: heroImage.height
 
-            Image {
-                id: heroImage
-                // if I use preferred width and height, the image does not update when window changes size
-                width: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 400 : 100
-                height: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 748 : 187
-                source: "images/hero.png"
+                Image {
+                    id: heroImage
+                    // if I use preferred width and height, the image does not update when window changes size
+                    // width: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 400 : 100
+                    // height: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 748 : 187
+                    width: 400
+                    height: 748
+                    source: "images/hero.png"
+                }
             }
         }
     }

@@ -57,22 +57,20 @@ Rectangle {
         GridLayout {
             id: tempAvatarPageGrid
             anchors.fill: parent
-            columns: root.width > root.height ? 2 : 1
-            rows: root.width > root.height ? 1 : 2
             anchors.leftMargin: 180
             anchors.topMargin: 50
             anchors.bottomMargin: 50
             anchors.rightMargin: 100
-            flow: root.width > root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
+            columns: 2
+            // flow: root.width > root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
 
             Item {
                 id: textAndQRContainer
                 Layout.preferredWidth: 600
-                Layout.preferredHeight: 650
+                Layout.preferredHeight: 670
                 Layout.minimumWidth: 200
                 Layout.maximumWidth: 800
                 Layout.topMargin: 80
-                Layout.fillWidth: true
 
                 HifiStylesUit.RalewayBold {
                     id: headerText
@@ -80,7 +78,9 @@ Rectangle {
                     color: "#000000"
                     size: 48
                     wrapMode: Text.WordWrap
-                    width: parent.width
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 100
                 }
 
                 HifiStylesUit.RalewaySemiBold {
@@ -95,7 +95,9 @@ Rectangle {
                     outfits! Available now on iOS and Android Platforms."
                     color: "#000000"
                     size: 24
-                    width: parent.width
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 300
                     wrapMode: Text.WordWrap
                 }
 
@@ -116,6 +118,9 @@ Rectangle {
                     HifiStylesUit.RalewayBold {
                         id: instructionText
                         anchors.left: avatarAppQRCodeImage.right
+                        anchors.top: avatarAppQRCodeImage.top
+                        anchors.bottom: avatarAppQRCodeImage.bottom
+                        anchors.right: parent.right
                         anchors.verticalCenter: avatarAppQRCodeImage.verticalCenter
                         anchors.leftMargin: 50
                         text: "Use your mobile phone to scan this QR code."
@@ -126,7 +131,7 @@ Rectangle {
                 }
 
                 HifiStylesUit.RalewayBold {
-                anchors.top: qrAndInstructionsContainer.bottom
+                    anchors.top: qrAndInstructionsContainer.bottom
                     anchors.topMargin: 50
                     anchors.horizontalCenter: qrAndInstructionsContainer.horizontalCenter
                     text: "Continue"
@@ -160,8 +165,10 @@ Rectangle {
                 Image {
                     id: tempAvatarImage
                     // if I use preferred width and height, the image does not update when window changes size
-                    width: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 400 : 100
-                    height: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 748 : 187
+                    // width: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 400 : 100
+                    // height: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 748 : 187
+                    width: 400
+                    height: 748
                     source: "images/DefaultAvatar_" + MyAvatar.skeletonModelURL.substring(123, MyAvatar.skeletonModelURL.length - 11) + ".png"
                 }
             }
@@ -175,13 +182,14 @@ Rectangle {
 
         HifiStylesUit.RalewaySemiBold {
             id: controlsDescriptionText
-            text: "These are your avatar controls to 
-            <b>interact with and move around in your new HQ.</b>"
+            text: "These are your avatar controls to <br></br>
+                <b>interact with and move around in your new HQ.</b>"
             anchors.top: parent.top
             anchors.topMargin: 100
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
             height: 100
+            width: 850
             color: "#000000"
             size: 36
             wrapMode: Text.WordWrap
@@ -190,37 +198,41 @@ Rectangle {
         GridLayout {
             id: controlsPageGrid
             anchors.top: controlsDescriptionText.bottom
-            anchors.topMargin: 100
-            anchors.bottomMargin: 100
+            anchors.topMargin: 60
+            anchors.bottomMargin: 80
             anchors.horizontalCenter: parent.horizontalCenter
             columns: 2
-            rows: 2
-            flow: root.width > root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
+            columnSpacing: 50
+            rowSpacing: 40
+            // flow: root.width > root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
           
             Image {
-                Layout.preferredWidth: 650
-                Layout.preferredHeight: 400
+                Layout.preferredWidth: 450
+                Layout.preferredHeight: 280
                 id: walkingControls
                 source: "images/walkingControls.png"
             }
               
             Image {
-                Layout.preferredWidth: 400
-                Layout.preferredHeight: 300
+                Layout.preferredWidth: 450
+                Layout.preferredHeight: 240
                 id: mouseControls
                 source: "images/mouseControls.png"
             }
 
             Image {
-                Layout.preferredWidth: 400
-                Layout.preferredHeight: 300
+                Layout.preferredWidth: 300
+                Layout.preferredHeight: 200
+                // TODO Why is this not aligning correctly? (Same at line 235)
+                Layout.alignment: AlignHCenter
                 id: runJumpControls
                 source: "images/runJumpControls.png"
             }
 
             Image {
-                Layout.preferredWidth: 400
-                Layout.preferredHeight: 300
+                Layout.preferredWidth: 200
+                Layout.preferredHeight: 120
+                Layout.alignment: AlignHCenter
                 id: cameraControls
                 source: "images/cameraControls.png"
             }
@@ -232,7 +244,7 @@ Rectangle {
             anchors.leftMargin: 50
             anchors.bottomMargin: 50
             text: "Learn more about our controls."
-            width: 100
+            width: 200
             height: 25
             color: "#000000"
             opacity: learnMoreAboutControlsMouseArea.containsMouse ? 1.0 : 0.7
@@ -257,7 +269,7 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottomMargin: 50
             text: "I've got a good grip on the controls."
-            width: 350
+            width: 650
             height: 60
             color: "#000000"
             opacity: goodGripMouseArea.containsMouse ? 1.0 : 0.7
