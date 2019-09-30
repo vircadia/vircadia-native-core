@@ -176,7 +176,6 @@ void RenderThread::renderFrame(gpu::FramePointer& frame) {
 
 #ifdef USE_GL
     static gpu::BatchPointer batch = nullptr;
-    float scale = 1.0;
     if (!batch) {
         batch = std::make_shared<gpu::Batch>();
         batch->setPipeline(_presentPipeline);
