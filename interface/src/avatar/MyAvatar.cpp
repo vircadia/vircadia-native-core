@@ -953,7 +953,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         head->setScale(getModelScale());
         head->simulate(deltaTime);
         CameraMode mode = qApp->getCamera().getMode();
-        if (_scriptControlsHeadLookAt || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
+        if (_scriptControlsHeadLookAt || mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
             updateHeadLookAt(deltaTime);
         } else if (_headLookAtActive){
             resetHeadLookAt();
@@ -3429,8 +3429,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
     float targetSpeed = getDriveKey(YAW) * _yawSpeed;
     CameraMode mode = qApp->getCamera().getMode();
-    bool computeLookAt = (mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) && isReadyForPhysics() && !qApp->isHMDMode();
-    if (computeLookAt) {
+    bool computeLookAt = isReadyForPhysics() && !qApp->isHMDMode() && 
+                        (mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE);
+    bool smoothCameraYaw = computeLookAt && mode != CAMERA_MODE_FIRST_PERSON;
+    if (smoothCameraYaw) {
         // For "Look At" and "Selfie" camera modes we also smooth the yaw rotation from right-click mouse movement.
         float speedFromDeltaYaw = deltaTime > FLT_EPSILON ? getDriveKey(DELTA_YAW) / deltaTime : 0.0f;
         speedFromDeltaYaw *= _yawSpeed / YAW_SPEED_DEFAULT;
@@ -3459,7 +3461,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         }
     }
     float totalBodyYaw = _bodyYawDelta * deltaTime;
-    if (!computeLookAt) {
+    if (!smoothCameraYaw) {
         // Rotate directly proportional to delta yaw and delta pitch from right-click mouse movement.
         totalBodyYaw += getDriveKey(DELTA_YAW) * _yawSpeed / YAW_SPEED_DEFAULT;
     }
@@ -3546,12 +3548,16 @@ void MyAvatar::updateOrientation(float deltaTime) {
                 blend = 1.0f;
             }
             glm::quat faceRotation = _lookAtYaw;
-            if (isMovingFwdBwd && isMovingSideways) {
-                // Reorient avatar to face camera diagonal
-                blend = DIAGONAL_TURN_BLEND;
-                float turnSign = getDriveKey(TRANSLATE_Z) < 0.0f ? -1.0f : 1.0f;
-                turnSign = getDriveKey(TRANSLATE_X) > 0.0f ? -turnSign : turnSign;
-                faceRotation = _lookAtYaw * glm::angleAxis(turnSign * 0.25f * PI, Vectors::UP);
+            if (isMovingFwdBwd) {
+                if (isMovingSideways) {
+                    // Reorient avatar to face camera diagonal
+                    blend = mode == CAMERA_MODE_FIRST_PERSON ? 1.0f : DIAGONAL_TURN_BLEND;
+                    float turnSign = getDriveKey(TRANSLATE_Z) < 0.0f ? -1.0f : 1.0f;
+                    turnSign = getDriveKey(TRANSLATE_X) > 0.0f ? -turnSign : turnSign;
+                    faceRotation = _lookAtYaw * glm::angleAxis(turnSign * 0.25f * PI, Vectors::UP);
+                } else if (mode == CAMERA_MODE_FIRST_PERSON) {
+                    blend = 1.0f;
+                }
             }
             setWorldOrientation(glm::slerp(getWorldOrientation(), faceRotation, blend));
         } else if (isRotatingWhileSeated) {
@@ -3615,11 +3621,21 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
         const float REORIENT_ANGLE = 65.0f;
         const float TRIGGER_REORIENT_ANGLE = 45.0f;
+        const float FIRST_PERSON_TRIGGER_REORIENT_ANGLE = 45.0f;
         glm::vec3 ajustedYawVector = cameraYawVector;
-        if (frontBackDot < 0.0f) {
-            ajustedYawVector = (leftRightDot < 0.0f ? -avatarVectorRight : avatarVectorRight);
-            cameraVector = (ajustedYawVector * _lookAtPitch) * Vectors::FRONT;
-            if (frontBackDot < -glm::sin(glm::radians(TRIGGER_REORIENT_ANGLE))) {
+        float limitAngle = 0.0f;
+        float triggerAngle = -glm::sin(glm::radians(TRIGGER_REORIENT_ANGLE));
+        if (mode == CAMERA_MODE_FIRST_PERSON) {
+            limitAngle = glm::sin(glm::radians(FIRST_PERSON_TRIGGER_REORIENT_ANGLE));
+            triggerAngle = limitAngle;
+        }
+        
+        if (frontBackDot < limitAngle) {
+            if (frontBackDot < 0.0f) {
+                ajustedYawVector = (leftRightDot < 0.0f ? -avatarVectorRight : avatarVectorRight);
+                cameraVector = (ajustedYawVector * _lookAtPitch) * Vectors::FRONT;
+            }
+            if (frontBackDot < triggerAngle) {
                 _shouldTurnToFaceCamera = true;
             }
         } else if (frontBackDot > glm::sin(glm::radians(REORIENT_ANGLE))) {
@@ -3716,7 +3732,8 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
     } else {
         // Desktop mode.
         direction = (zSpeed * forward) + (xSpeed * right);
-        if (qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT && zSpeed != 0.0f && xSpeed != 0.0f){
+        CameraMode mode = qApp->getCamera().getMode();
+        if ((mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_SELFIE) && zSpeed != 0.0f && xSpeed != 0.0f){
             direction = (zSpeed * forward);
         }
         
@@ -6731,4 +6748,10 @@ void MyAvatar::setHeadLookAt(const glm::vec3& lookAtTarget) {
     _scriptControlsHeadLookAt = true;
     _scriptHeadControlTimer = 0.0f;
     _lookAtScriptTarget = lookAtTarget;
+}
+
+glm::vec3 MyAvatar::getLookAtPivotPoint() {
+    glm::vec3 avatarUp = getWorldOrientation() * Vectors::UP;
+    glm::vec3 yAxisEyePosition = getWorldPosition() + avatarUp * glm::dot(avatarUp, _skeletonModel->getDefaultEyeModelPosition());
+    return yAxisEyePosition;
 }

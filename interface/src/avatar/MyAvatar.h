@@ -1896,6 +1896,7 @@ public:
     void debugDrawPose(controller::Action action, const char* channelName, float size);
 
     bool getIsJointOverridden(int jointIndex) const;
+    glm::vec3 getLookAtPivotPoint();
 
 public slots:
 

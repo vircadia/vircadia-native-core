@@ -3601,10 +3601,9 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
             mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
             _myCamera.setPosition(extractTranslation(camMat));
             _myCamera.setOrientation(glmExtractRotation(camMat));
-        }
-        else {
-            _myCamera.setPosition(myAvatar->getDefaultEyePosition());
-            _myCamera.setOrientation(myAvatar->getMyHead()->getHeadOrientation());
+        } else {
+            _myCamera.setPosition(myAvatar->getLookAtPivotPoint());
+            _myCamera.setOrientation(myAvatar->getLookAtRotation());
         }
     } else if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
         if (isHMDMode()) {
@@ -3638,9 +3637,9 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                 if (mode == CAMERA_MODE_SELFIE) {
                     lookAtRotation = lookAtRotation * glm::angleAxis(PI, myAvatar->getWorldOrientation() * Vectors::UP);
                 }
-                _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                _myCamera.setPosition(myAvatar->getLookAtPivotPoint()
                     + lookAtRotation * boomOffset);
-                _myCamera.lookAt(myAvatar->getDefaultEyePosition());
+                _myCamera.lookAt(myAvatar->getLookAtPivotPoint());
             }
         }
     } else if (mode == CAMERA_MODE_MIRROR) {
@@ -3668,8 +3667,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                 + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
                 + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
                 + mirrorBodyOrientation * hmdOffset);
-        }
-        else {
+        } else {
             auto userInputMapper = DependencyManager::get<UserInputMapper>();
             const float YAW_SPEED = TWO_PI / 5.0f;
             float deltaYaw = userInputMapper->getActionState(controller::Action::YAW) * YAW_SPEED * deltaTime;
@@ -3690,8 +3688,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                 _myCamera.setOrientation(cameraEntity->getWorldOrientation() * hmdRotation);
                 glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
                 _myCamera.setPosition(cameraEntity->getWorldPosition() + (hmdRotation * hmdOffset));
-            }
-            else {
+            } else {
                 _myCamera.setOrientation(cameraEntity->getWorldOrientation());
                 _myCamera.setPosition(cameraEntity->getWorldPosition());
             }
