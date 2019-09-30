@@ -279,6 +279,7 @@ public:
      * @param {string} [injectedJavaScriptUrl=""] - The URL of JavaScript to inject into the web page.
      * @param {boolean} [loadOtherBase=false] - If <code>true</code>, the web page or app is displayed in a frame with "back" 
      * and "close" buttons.
+     * <p class="important">Deprecated: This parameter is deprecated and will be removed.</p>
      */
     Q_INVOKABLE void gotoWebScreen(const QString& url);
     Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase = false);
