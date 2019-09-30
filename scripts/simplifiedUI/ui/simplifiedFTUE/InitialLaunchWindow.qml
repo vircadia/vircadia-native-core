@@ -22,7 +22,6 @@ Rectangle {
     // TODO figure out why and fix
     color: "#ffffff"
     anchors.fill: parent
-    z: 1
 
     Component.onCompleted: {
         if (Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatar", false)) {
@@ -38,7 +37,6 @@ Rectangle {
         anchors.left: parent.left
         anchors.top: parent.top
         source: "images/defaultTopLeft.png"
-        z: 3
     }
 
     Image {
@@ -48,7 +46,6 @@ Rectangle {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         source: "images/defaultBottomRight.png"
-        z: 3
     }
 
     Item {
@@ -76,7 +73,6 @@ Rectangle {
                     text: "We know this isn't you..."
                     color: "#000000"
                     size: 48
-                    z: 2
                 }
 
                 HifiStylesUit.RalewaySemiBold {
@@ -91,7 +87,6 @@ Rectangle {
                     outfits! Available now on iOS and Android Platforms."
                     color: "#000000"
                     size: 24
-                    z: 2
                 }
 
                 Item {
@@ -100,7 +95,6 @@ Rectangle {
                     height: avatarAppQRCodeImage.height
                     width: parent.width
                     anchors.topMargin: 50
-                    z: 2
 
                     Image {
                         id: avatarAppQRCodeImage
@@ -128,7 +122,7 @@ Rectangle {
                     color: "#000000"
                     opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
                     size: 36
-                    z: 2
+                    z: 1
 
                     MouseArea {
                         id: continueMouseArea
@@ -151,8 +145,6 @@ Rectangle {
                 // these don't change when the window resizes
                 width: tempAvatarImage.width
                 height: tempAvatarImage.height
-                z: 1
-
 
                 Image {
                     id: tempAvatarImage
@@ -257,7 +249,7 @@ Rectangle {
 
                 onClicked: {
                     Tablet.playSound(TabletEnums.ButtonClick);
-                    Print("GOOD GRIP CLICKED");
+                    print("GOOD GRIP CLICKED");
                     sendToScript({
                         "source": "InitialLaunchWindow.qml",
                         "method": "closeInitialLaunchWindow"

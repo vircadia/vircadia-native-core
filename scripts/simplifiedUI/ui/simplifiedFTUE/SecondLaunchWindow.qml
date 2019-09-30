@@ -23,8 +23,8 @@ Rectangle {
 
     Image {
         id: topLeftAccentImage
-        width: 60
-        height: 150
+        width: 400
+        height: 180
         anchors.left: parent.left
         anchors.top: parent.top
         source: "images/standOutTopLeft.png"
@@ -32,87 +32,93 @@ Rectangle {
 
     Image {
         id: bottomRightAccentImage
-        width: 30
-        height: 100
+        width: 80
+        height: 250
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         source: "images/standOutBottomRight.png"
     }
 
     Item {
+        id: tempAvatarPageContainer
 
         GridLayout {
-            id: controlsPageGrid
+            id: tempAvatarPageGrid
             anchors.fill: parent
             flow: root.width < root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
+            columns: root.width > root.height ? 2 : 1
+            rows: root.width > root.height ? 1 : 2
+            anchors.leftMargin: 180
+            anchors.topMargin: 50
+            anchors.bottomMargin: 50
+            anchors.rightMargin: 100
 
             Item {
                 id: textAndQRContainer
+                width: 650
+                Layout.topMargin: 80
 
                 HifiStylesUit.GraphikSemiBold {
                     id: headerText
-                    width: 700
-                    height: 120
                     text: "Stand out from the crowd!"
-                    anchors.fill: parent
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
                     color: "#000000"
-                    size: 36
+                    size: 48
                 }
 
                 HifiStylesUit.GraphikSemiBold {
-                    width: 700
-                    height: 250
+                    id: descriptionText
+                    anchors.top: headerText.bottom
+                    anchors.topMargin: 20
                     text: "You can create and upload custom avatars from our<br></br>
                         Avatar Creator App. It's as easy as taking a selfie.<br></br>
                         Available now on iOS and Android Platforms."
-                    anchors.top: headerText.bottom
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
                     color: "#000000"
                     size: 24
                 }
 
                 Item {
                     id: qrAndInstructionsContainer
+                    anchors.top: descriptionText.bottom
+                    height: avatarAppQRCodeImage.height
+                    width: parent.width
+                    anchors.topMargin: 50
 
                     Image {
                         id: avatarAppQRCodeImage
-                        width: 200
-                        height: 200
                         source: "images/qrCode.jpg"
+                        height: 200
+                        width: 200
                     }
 
                     HifiStylesUit.GraphikSemiBold {
-                        width: 600
-                        height: 80
-                        text: "Use your mobile phone to scan this QR code."
+                        id: instructionText
                         anchors.top: avatarAppQRCodeImage.bottom
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
+                        anchors.horizontalCenter: avatarAppQRCodeImage.horizontalCenter
+                        anchors.topMargin: 50
+                        text: "Use your mobile phone to scan this QR code."
                         color: "#000000"
                         size: 24
                     }
                 }
 
-                HifiStylesUit.GraphikSemiBold {
+                HifiStylesUit.RalewayBold {
                     text: "No thanks, I'll keep using my default avatar."
-                    anchors.fill: parent
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                    anchors.top: qrAndInstructionsContainer.bottom
+                    anchors.topMargin: 50
+                    anchors.horizontalCenter: qrAndInstructionsContainer.horizontalCenter
                     color: "#000000"
-                    opacity: noThanksMouseArea.containsMouse ? 1.0 : 0.8
-                    size: 12
+                    opacity: continueMouseArea.containsMouse ? 1.0 : 0.8
+                    size: 20
+                    z: 1
 
                     MouseArea {
-                        id: noThanksMouseArea
-                        hoverEnabled: false
+                        id: continueMouseArea
+                        hoverEnabled: true
                         anchors.fill: parent
 
                         onClicked: {
                             Tablet.playSound(TabletEnums.ButtonClick);
-                            Print("NO THANKS CLICKED");
+                            print("NO THANKS CLICKED");
                             sendToScript({
                                 "source": "SecondLaunchWindow.qml",
                                 "method": "closeInitialLaunchWindow"
@@ -125,10 +131,16 @@ Rectangle {
 
         Item {
             id: heroImageContainer
+            Layout.leftMargin: 50
+            // these don't change when the window resizes
+            width: tempAvatarImage.width
+            height: tempAvatarImage.height
+
             Image {
                 id: heroImage
-                width: 600
-                height: 350
+                // if I use preferred width and height, the image does not update when window changes size
+                width: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 400 : 100
+                height: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 748 : 187
                 source: "images/hero.png"
             }
         }

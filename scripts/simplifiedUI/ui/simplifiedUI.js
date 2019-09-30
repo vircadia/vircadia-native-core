@@ -421,7 +421,7 @@ function displaySecondLaunchWindow() {
         return;
     }
 
-    secondLaunchWindow = Desktop.createWindow(INITIAL_LAUNCH_QML_PATH, {
+    secondLaunchWindow = Desktop.createWindow(SECOND_LAUNCH_QML_PATH, {
         title: SECOND_LAUNCH_WINDOW_TITLE,
         presentationMode: SECOND_LAUNCH_PRESENTATION_MODE,
         size: {
@@ -442,19 +442,21 @@ function displaySecondLaunchWindow() {
 
 function closeInitialLaunchWindow() {
     initialLaunchWindow.fromQml.disconnect(onMessageFromInitialLaunchWindow);
-    var homeLocation = LocationBookmarks.getAddress("hqhome");
-    if (homeLocation) {
-        Window.location = "hqhome";
-    }
+    // TODO Add this bookmark? Then uncomment this code
+    //var homeLocation = LocationBookmarks.getAddress("hqhome");
+    //if (homeLocation) {
+    //    Window.location = "hqhome";
+    //}
     initialLaunchWindow.close();
 }
 
 function closeSecondLaunchWindow() {
     secondLaunchWindow.fromQml.disconnect(onMessageFromSecondLaunchWindow);
-    var homeLocation = LocationBookmarks.getAddress("hqhome");
-    if (homeLocation) {
-        Window.location = "hqhome";
-    }
+    // TODO Add this bookmark? Then uncomment this code
+    //var homeLocation = LocationBookmarks.getAddress("hqhome");
+    //if (homeLocation) {
+    //    Window.location = "hqhome";
+    //}
     secondLaunchWindow.close();
 }
 
