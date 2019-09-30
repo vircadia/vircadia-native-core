@@ -239,15 +239,24 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     int pending = _udpSocket.bytesToWrite();
     if (bytesWritten < 0 || pending) {
         int wsaError = 0;
+        static std::atomic<int> previousWsaError (0);
 #ifdef WIN32
         wsaError = WSAGetLastError();
 #endif
-        qCDebug(networking) << "udt::writeDatagram (" << _udpSocket.state() << sockAddr << ") error - " << wsaError << _udpSocket.error() << "(" << _udpSocket.errorString() << ")"
+        QString errorString;
+        QDebug(&errorString) << "udt::writeDatagram (" << _udpSocket.state() << sockAddr << ") error - "
+            << wsaError << _udpSocket.error() << "(" << _udpSocket.errorString() << ")"
             << (pending ? "pending bytes:" : "pending:") << pending;
+
+        if (previousWsaError.exchange(wsaError) != wsaError) {
+            qCDebug(networking).noquote() << errorString;
 #ifdef DEBUG_EVENT_QUEUE
-        int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
-        qCDebug(networking) << "Networking queue size - " << nodeListQueueSize << "writing datagram to" << sockAddr;
-#endif // DEBUG_EVENT_QUEUE    
+            int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
+            qCDebug(networking) << "Networking queue size - " << nodeListQueueSize << "writing datagram to" << sockAddr;
+#endif  // DEBUG_EVENT_QUEUE
+        } else {
+            HIFI_FCDEBUG(networking(), errorString.toLatin1().constData());
+        }
     }
 
     return bytesWritten;
@@ -525,16 +534,25 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
     int wsaError = 0;
+    static std::atomic<int> previousWsaError(0);
 #ifdef WIN32
     wsaError = WSAGetLastError();
 #endif
     int pending = _udpSocket.bytesToWrite();
-    qCDebug(networking) << "udt::Socket (" << _udpSocket.state() << ") error - " << wsaError << socketError << "(" << _udpSocket.errorString() << ")"
-        << (pending ? "pending bytes:" : "pending:") << pending;
+    QString errorString;
+    QDebug(&errorString) << "udt::Socket (" << _udpSocket.state() << ") error - " << wsaError << socketError <<
+        "(" << _udpSocket.errorString() << ")" << (pending ? "pending bytes:" : "pending:")
+        << pending;
+
+    if (previousWsaError.exchange(wsaError) != wsaError) {
+        qCDebug(networking).noquote() << errorString;
 #ifdef DEBUG_EVENT_QUEUE
-    int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
-    qCDebug(networking) << "Networking queue size - " << nodeListQueueSize;
-#endif // DEBUG_EVENT_QUEUE
+        int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
+        qCDebug(networking) << "Networking queue size - " << nodeListQueueSize;
+#endif  // DEBUG_EVENT_QUEUE
+    } else {
+        HIFI_FCDEBUG(networking(), errorString.toLatin1().constData());
+    }
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
@@ -548,12 +566,14 @@ void Socket::handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAdd
         Lock connectionsLock(_connectionsHashMutex);
 
         const auto connectionIter = _connectionsHash.find(previousAddress);
-        if (connectionIter != _connectionsHash.end()) {
+        // Don't move classes that are unused so far.
+        if (connectionIter != _connectionsHash.end() && connectionIter->second->hasReceivedHandshake()) {
             auto connection = move(connectionIter->second);
             _connectionsHash.erase(connectionIter);
             connection->setDestinationAddress(currentAddress);
             _connectionsHash[currentAddress] = move(connection);
             connectionsLock.unlock();
+            qCDebug(networking) << "Moved Connection class from" << previousAddress << "to" << currentAddress;
 
             Lock sequenceNumbersLock(_unreliableSequenceNumbersMutex);
             const auto sequenceNumbersIter = _unreliableSequenceNumbers.find(previousAddress);
