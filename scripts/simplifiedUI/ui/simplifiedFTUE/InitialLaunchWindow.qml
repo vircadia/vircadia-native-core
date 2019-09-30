@@ -37,6 +37,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.top: parent.top
         source: "images/defaultTopLeft.png"
+        z: 1
     }
 
     Image {
@@ -46,6 +47,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         source: "images/defaultBottomRight.png"
+        z: 1
     }
 
     Item {
@@ -65,28 +67,36 @@ Rectangle {
 
             Item {
                 id: textAndQRContainer
-                width: 650
+                Layout.preferredWidth: 600
+                Layout.preferredHeight: 650
+                Layout.minimumWidth: 200
+                Layout.maximumWidth: 800
                 Layout.topMargin: 80
+                Layout.fillWidth: true
 
                 HifiStylesUit.RalewayBold {
                     id: headerText
                     text: "We know this isn't you..."
                     color: "#000000"
                     size: 48
+                    wrapMode: Text.WordWrap
+                    width: parent.width
                 }
 
                 HifiStylesUit.RalewaySemiBold {
                     id: descriptionText
                     anchors.top: headerText.bottom
                     anchors.topMargin: 20
-                    text: "But, we've given you this <b>temporary avatar</b> to use<br></br>
-                    for today. If you see this avatar in-world, walk up and<br></br>
+                    text: "but, we've given you this <b>temporary avatar</b> to use
+                    for today. If you see this avatar in-world, walk up and
                     say hello to other new users!<br></br><br></br>
-                    <b>We want you to be you</b> so we've built an Avatar Creator<br></br>
-                    App that's as easy as taking a selfie and picking your<br></br>
+                    <b>We want you to be you</b> so we've built an Avatar Creator
+                    App that's as easy as taking a selfie and picking your
                     outfits! Available now on iOS and Android Platforms."
                     color: "#000000"
                     size: 24
+                    width: parent.width
+                    wrapMode: Text.WordWrap
                 }
 
                 Item {
@@ -105,24 +115,26 @@ Rectangle {
 
                     HifiStylesUit.RalewayBold {
                         id: instructionText
-                        text: "Use your mobile phone to scan this QR code."
                         anchors.left: avatarAppQRCodeImage.right
                         anchors.verticalCenter: avatarAppQRCodeImage.verticalCenter
                         anchors.leftMargin: 50
+                        text: "Use your mobile phone to scan this QR code."
                         color: "#000000"
                         size: 24
+                        wrapMode: Text.WordWrap
                     }
                 }
 
                 HifiStylesUit.RalewayBold {
-                    text: "Continue"
-                    anchors.top: qrAndInstructionsContainer.bottom
+                anchors.top: qrAndInstructionsContainer.bottom
                     anchors.topMargin: 50
                     anchors.horizontalCenter: qrAndInstructionsContainer.horizontalCenter
+                    text: "Continue"
                     color: "#000000"
                     opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
                     size: 36
                     z: 1
+                    wrapMode: Text.WordWrap
 
                     MouseArea {
                         id: continueMouseArea
@@ -131,7 +143,6 @@ Rectangle {
 
                         onClicked: {
                             Tablet.playSound(TabletEnums.ButtonClick);
-                            print("CONTINUE CLICKED");
                             tempAvatarPageContainer.visible = false;
                             controlsContainer.visible = true;
                         }
@@ -142,9 +153,9 @@ Rectangle {
             Item {
                 id: tempAvatarImageContainer
                 Layout.leftMargin: 50
-                // these don't change when the window resizes
-                width: tempAvatarImage.width
-                height: tempAvatarImage.height
+                // TODO these don't change when the window resizes...still true?
+                Layout.preferredWidth: tempAvatarImage.width
+                Layout.preferredHeight: tempAvatarImage.height
 
                 Image {
                     id: tempAvatarImage
@@ -164,8 +175,8 @@ Rectangle {
 
         HifiStylesUit.RalewaySemiBold {
             id: controlsDescriptionText
-            text: "These are your avatar controls to<br></br>
-            <b>Interact with and move around in your new HQ.</b>"
+            text: "These are your avatar controls to 
+            <b>interact with and move around in your new HQ.</b>"
             anchors.top: parent.top
             anchors.topMargin: 100
             anchors.horizontalCenter: parent.horizontalCenter
@@ -173,6 +184,7 @@ Rectangle {
             height: 100
             color: "#000000"
             size: 36
+            wrapMode: Text.WordWrap
         }
 
         GridLayout {
@@ -186,37 +198,46 @@ Rectangle {
             flow: root.width > root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
           
             Image {
+                Layout.preferredWidth: 650
+                Layout.preferredHeight: 400
                 id: walkingControls
                 source: "images/walkingControls.png"
             }
               
             Image {
+                Layout.preferredWidth: 400
+                Layout.preferredHeight: 300
                 id: mouseControls
                 source: "images/mouseControls.png"
             }
 
             Image {
+                Layout.preferredWidth: 400
+                Layout.preferredHeight: 300
                 id: runJumpControls
                 source: "images/runJumpControls.png"
             }
 
             Image {
+                Layout.preferredWidth: 400
+                Layout.preferredHeight: 300
                 id: cameraControls
                 source: "images/cameraControls.png"
             }
         }
 
         HifiStylesUit.RalewayBold {
-            text: "Learn more about our controls."
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.leftMargin: 50
             anchors.bottomMargin: 50
+            text: "Learn more about our controls."
             width: 100
             height: 25
             color: "#000000"
             opacity: learnMoreAboutControlsMouseArea.containsMouse ? 1.0 : 0.7
             size: 14
+            wrapMode: Text.WordWrap
 
             MouseArea {
                 id: learnMoreAboutControlsMouseArea
@@ -232,15 +253,16 @@ Rectangle {
         }
 
         HifiStylesUit.RalewayBold {
-            text: "I've got a good grip on the controls."
             anchors.bottom: parent.bottom
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottomMargin: 50
+            text: "I've got a good grip on the controls."
             width: 350
             height: 60
             color: "#000000"
             opacity: goodGripMouseArea.containsMouse ? 1.0 : 0.7
             size: 36
+            wrapMode: Text.WordWrap
 
             MouseArea {
                 id: goodGripMouseArea

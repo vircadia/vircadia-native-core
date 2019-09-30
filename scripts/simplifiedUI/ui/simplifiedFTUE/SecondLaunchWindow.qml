@@ -121,7 +121,7 @@ Rectangle {
                             print("NO THANKS CLICKED");
                             sendToScript({
                                 "source": "SecondLaunchWindow.qml",
-                                "method": "closeInitialLaunchWindow"
+                                "method": "closeSecondLaunchWindow"
                             });
                         }
                     }

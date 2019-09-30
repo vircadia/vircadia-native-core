@@ -442,21 +442,19 @@ function displaySecondLaunchWindow() {
 
 function closeInitialLaunchWindow() {
     initialLaunchWindow.fromQml.disconnect(onMessageFromInitialLaunchWindow);
-    // TODO Add this bookmark? Then uncomment this code
-    //var homeLocation = LocationBookmarks.getAddress("hqhome");
-    //if (homeLocation) {
-    //    Window.location = "hqhome";
-    //}
+    var homeLocation = LocationBookmarks.getAddress("hqhome");
+    if (homeLocation) {
+        Window.location = homeLocation;
+    }
     initialLaunchWindow.close();
 }
 
 function closeSecondLaunchWindow() {
     secondLaunchWindow.fromQml.disconnect(onMessageFromSecondLaunchWindow);
-    // TODO Add this bookmark? Then uncomment this code
-    //var homeLocation = LocationBookmarks.getAddress("hqhome");
-    //if (homeLocation) {
-    //    Window.location = "hqhome";
-    //}
+    var homeLocation = LocationBookmarks.getAddress("hqhome");
+    if (homeLocation) {
+        Window.location = homeLocation;
+    }
     secondLaunchWindow.close();
 }
 
