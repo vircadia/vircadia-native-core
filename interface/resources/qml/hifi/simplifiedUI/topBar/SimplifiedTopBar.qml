@@ -71,7 +71,7 @@ Rectangle {
             if (isLoggedIn) {
                 Commerce.getWalletStatus();
             } else {
-                // Show some error to the user
+                console.log('WARNING: SimplifiedTopBar.qml Error getting wallet status.');
             }
         }
 
@@ -127,9 +127,6 @@ Rectangle {
                 var defaultAvatarColors = ["Blue", "Cyan", "Green", "Pink", "Red", "Yellow"];
                 var avatarColor;
 
-                // FOR TESTING__________REMOVE
-                userHasValidAvatarInInventory = false;
-
                 // If we have never auto-selected and the user is still using a default avatar or if the current avatar is not valid (fst), or if 
                 // the current avatar is the old default (Woody), use top avatar from inventory or one of the new defaults.
                 if (!currentAvatarIsValid || userHasOldDefaultAvatar || (!avatarHasBeenAutoSelectedBefore && userIsWearingDefaultAvatar)) {
@@ -160,7 +157,7 @@ Rectangle {
                             var numberCharsAfterDefaultColorName = 11;
                             avatarColor = currentAvatarURL.substring(indexOfDefaultAvatarColor , MyAvatar.skeletonModelURL.length - numberCharsAfterDefaultColorName)
                         }
-                        // There could be a race condition here. We are changing the setting and then calling simplifiedUI.js to check that setting shortly after. 
+
                         // We can send the page we want to display instead of reading the setting to avoid this.
                         sendToScript({
                             "source": "SimplifiedTopBar.qml",

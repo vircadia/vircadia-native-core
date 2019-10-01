@@ -362,17 +362,13 @@ var INITIAL_LAUNCH_QML_PATH = Script.resolvePath("./simplifiedFTUE/InitialLaunch
 var INITIAL_LAUNCH_WINDOW_TITLE = "Initial Launch";
 var INITIAL_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var INITIAL_LAUNCH_WIDTH_PX = Window.innerWidth;
-// TODO use TOP_BAR_HEIGHT_PX instead of 48. Why is this not working?
-var INITIAL_LAUNCH_HEIGHT_PX = Window.innerHeight + 48;
+var INITIAL_LAUNCH_HEIGHT_PX = Window.innerHeight + TOP_BAR_HEIGHT_PX;
 var INITIAL_WINDOW_FLAGS = 0x00000001 | // Qt::Window
 0x00000008 | // Qt::Popup
 0x00000800 | // Qt::FramelessWindowHint
 0x40000000; // Qt::NoDropShadowWindowHint
 var initialLaunchWindow = false;
 function displayInitialLaunchWindow() {
-    //TODO REMOVE ME
-    print("MILAD TESTING 3");
-    print("DISPLAY INITIAL LAUNCH WINDOW.");
     if (initialLaunchWindow) {
         initialLaunchWindow.close();
         // This really shouldn't be necessary.
@@ -404,15 +400,13 @@ var SECOND_LAUNCH_QML_PATH = Script.resolvePath("simplifiedFTUE/SecondLaunchWind
 var SECOND_LAUNCH_WINDOW_TITLE = "Second Launch";
 var SECOND_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var SECOND_LAUNCH_WIDTH_PX = Window.innerWidth;
-// TODO use TOP_BAR_HEIGHT_PX instead of 48. Why is this not working?
-var SECOND_LAUNCH_HEIGHT_PX = Window.innerHeight + 48;
+var SECOND_LAUNCH_HEIGHT_PX = Window.innerHeight + TOP_BAR_HEIGHT_PX;
 var SECOND_WINDOW_FLAGS = 0x00000001 | // Qt::Window
 0x00000008 | // Qt::Popup
 0x00000800 | // Qt::FramelessWindowHint
 0x40000000; // Qt::NoDropShadowWindowHint
 var secondLaunchWindow = false;
 function displaySecondLaunchWindow() {
-    print("DISPLAY SECOND LAUNCH WINDOW.");
     if (secondLaunchWindow) {
         secondLaunchWindow.close();
         // This really shouldn't be necessary.
@@ -573,7 +567,6 @@ var TOP_BAR_QML_PATH = Script.resourcesPath() + "qml/hifi/simplifiedUI/topBar/Si
 var TOP_BAR_WINDOW_TITLE = "Simplified Top Bar";
 var TOP_BAR_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var TOP_BAR_WIDTH_PX = Window.innerWidth;
-var TOP_BAR_HEIGHT_PX = 48;
 var topBarWindow = false;
 function loadSimplifiedTopBar() {
     var windowProps = {

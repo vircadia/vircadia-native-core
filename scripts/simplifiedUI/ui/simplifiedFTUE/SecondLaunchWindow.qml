@@ -18,13 +18,17 @@ import hifi.simplifiedUI.simplifiedControls 1.0 as SimplifiedControls
 
 Rectangle {
     id: root
-    color: "#ffffff"
+    color: simplifiedUI.colors.white
     anchors.fill: parent
+
+    SimplifiedConstants.SimplifiedConstants {
+        id: simplifiedUI
+    }
 
     Image {
         id: topLeftAccentImage
         width: 180
-        height: 400
+        height: 450
         anchors.left: parent.left
         anchors.top: parent.top
         source: "images/standOutTopLeft.png"
@@ -48,11 +52,9 @@ Rectangle {
             id: tempAvatarPageGrid
             anchors.fill: parent
             anchors.leftMargin: 180
-            anchors.topMargin: 50
             anchors.bottomMargin: 50
             anchors.rightMargin: 100
             columns: 2
-            // flow: root.width < root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
 
             Item {
                 id: textAndQRContainer
@@ -60,56 +62,58 @@ Rectangle {
                 Layout.preferredHeight: 670
                 Layout.minimumWidth: 200
                 Layout.maximumWidth: 800
-                Layout.topMargin: 80
+                Layout.topMargin: 180
 
                 HifiStylesUit.RalewayBold {
                     id: headerText
                     text: "Stand out from the crowd!"
-                    color: "#000000"
+                    color: simplifiedUI.colors.darkGray
                     size: 48
                     wrapMode: Text.WordWrap
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    height: 80
+                    height: 60
                 }
 
-                HifiStylesUit.RalewaySemiBold {
+                HifiStylesUit.RalewayRegular {
                     id: descriptionText
+                    width: 600
                     anchors.top: headerText.bottom
+                    anchors.topMargin: 10
                     text: "You can create and upload custom avatars from our Avatar Creator App. It's as easy as taking a selfie. Available now on iOS and Android Platforms."
-                    color: "#000000"
+                    color: simplifiedUI.colors.darkGray
                     size: 24
                     anchors.left: parent.left
-                    anchors.right: parent.right
-                    height: 100
+                    height: 80
                     wrapMode: Text.WordWrap
                 }
 
                 Item {
                     id: qrAndInstructionsContainer
                     anchors.top: descriptionText.bottom
+                    anchors.left: parent.left
                     height: avatarAppQRCodeImage.height + instructionText.height + 50
-                    width: parent.width
-                    anchors.topMargin: 50
+                    width: descriptionText.width
+                    anchors.topMargin: 60
 
                     Image {
                         id: avatarAppQRCodeImage
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.horizontalCenter: instructionText.horizontalCenter
                         source: "images/qrCode.jpg"
-                        height: 200
-                        width: 200
+                        height: 220
+                        width: 220
                     }
 
                     HifiStylesUit.RalewayBold {
                         id: instructionText
                         anchors.left: parent.left
-                        anchors.right: parent.right
+                        anchors.topMargin: 10
+                        width: 515
                         anchors.top: avatarAppQRCodeImage.bottom
-                        anchors.horizontalCenter: avatarAppQRCodeImage.horizontalCenter
                         text: "Use your mobile phone to scan this QR code."
-                        color: "#000000"
+                        color: simplifiedUI.colors.darkGray
                         size: 24
-                        height: 60
+                        height: 30
                         wrapMode: Text.WordWrap
                     }
                 }
@@ -119,9 +123,9 @@ Rectangle {
                     anchors.topMargin: 50
                     anchors.horizontalCenter: qrAndInstructionsContainer.horizontalCenter
                     text: "No thanks, I'll keep using my default avatar."
-                    color: "#000000"
+                    color: simplifiedUI.colors.text.lightBlue
                     opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
-                    size: 20
+                    size: 14
                     z: 1
                     wrapMode: Text.WordWrap
 
@@ -132,7 +136,6 @@ Rectangle {
 
                         onClicked: {
                             Tablet.playSound(TabletEnums.ButtonClick);
-                            print("NO THANKS CLICKED");
                             sendToScript({
                                 "source": "SecondLaunchWindow.qml",
                                 "method": "closeSecondLaunchWindow"
@@ -144,18 +147,14 @@ Rectangle {
 
             Item {
                 id: heroImageContainer
-                Layout.leftMargin: 50
-                // these don't change when the window resizes
+                Layout.leftMargin: 30
                 Layout.preferredWidth: heroImage.width
                 Layout.preferredHeight: heroImage.height
 
                 Image {
                     id: heroImage
-                    // if I use preferred width and height, the image does not update when window changes size
-                    // width: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 400 : 100
-                    // height: tempAvatarPageGrid.flow === GridLayout.LeftToRight ? 748 : 187
-                    width: 400
-                    height: 748
+                    width: 428
+                    height: 800
                     source: "images/hero.png"
                 }
             }
