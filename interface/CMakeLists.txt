@@ -70,12 +70,16 @@ file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
 GroupSources("src")
 list(APPEND INTERFACE_SRCS ${RESOURCES_RCC})
 
+# grab the Objective-C sources on OS X
+if (APPLE)
+  file(GLOB_RECURSE INTERFACE_OBJCPP_SRCS "src/*.m" "src/*.mm")
+  list(APPEND INTERFACE_SRCS ${INTERFACE_OBJCPP_SRCS})
+endif ()
+
 # Add SpeechRecognizer if on Windows or OS X, otherwise remove
 if (WIN32)
   # Use .cpp and .h files as is.
 elseif (APPLE)
-  file(GLOB INTERFACE_OBJCPP_SRCS "src/SpeechRecognizer.mm")
-  set(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_OBJCPP_SRCS})
   get_filename_component(SPEECHRECOGNIZER_CPP "src/SpeechRecognizer.cpp" ABSOLUTE)
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 else ()

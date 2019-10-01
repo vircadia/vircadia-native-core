@@ -265,6 +265,12 @@ extern "C" {
 #include "AndroidHelper.h"
 #endif
 
+#if defined(Q_OS_MAC)
+// On Mac OS, disable App Nap to prevent audio glitches while running in the background
+#include "AppNapDisabler.h"
+static AppNapDisabler appNapDisabler;   // disabled, while in scope
+#endif
+
 #include "graphics/RenderEventHandler.h"
 
 Q_LOGGING_CATEGORY(trace_app_input_mouse, "trace.app.input.mouse")
