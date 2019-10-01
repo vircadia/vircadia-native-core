@@ -472,7 +472,10 @@ bool Geometry::areTexturesLoaded() const {
                 return false;
             }
 
-            material->checkResetOpacityMap();
+            bool changed = material->checkResetOpacityMap();
+            if (changed) {
+                qCWarning(modelnetworking) << "Material list: opacity change detected for material " << material->getName().c_str();
+            }
         }
 
         for (auto& materialMapping : _materialMapping) {
@@ -483,7 +486,10 @@ bool Geometry::areTexturesLoaded() const {
                             return false;
                         }
 
-                        materialPair.second->checkResetOpacityMap();
+                       bool changed =  materialPair.second->checkResetOpacityMap();
+                       if (changed) {
+                           qCWarning(modelnetworking) << "Mapping list: opacity change detected for material " << materialPair.first.c_str();
+                       }
                     }
                 }
             }
