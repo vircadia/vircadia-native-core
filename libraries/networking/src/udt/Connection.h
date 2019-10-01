@@ -73,6 +73,7 @@ public:
     void setMaxBandwidth(int maxBandwidth);
 
     void sendHandshakeRequest();
+    bool hasReceivedHandshake() const { return _hasReceivedHandshake; }
     
     void recordSentUnreliablePackets(int wireSize, int payloadSize);
     void recordReceivedUnreliablePackets(int wireSize, int payloadSize);

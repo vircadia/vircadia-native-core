@@ -32,9 +32,7 @@ PropItem {
     property var sourceValueVar: root.valueVarGetter()
 
     function applyValueVarFromWidgets(value) {
-        if (!root.readOnly) { 
-           root.valueVarSetter(value)
-        }
+        root.valueVarSetter(value)
     }
 
     PropLabel {
@@ -58,6 +56,7 @@ PropItem {
 
         MouseArea{
             id: mousearea
+            enabled: !root.readOnly
             anchors.fill: parent
             onDoubleClicked: { sliderControl.visible = !sliderControl.visible }
         }

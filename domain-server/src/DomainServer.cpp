@@ -32,6 +32,7 @@
 #include <AccountManager.h>
 #include <AssetClient.h>
 #include <BuildInfo.h>
+#include <CrashAnnotations.h>
 #include <DependencyManager.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
@@ -174,6 +175,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     LogUtils::init();
 
+    LogHandler::getInstance().moveToThread(thread());
+    LogHandler::getInstance().setupRepeatedMessageFlusher();
+
     qDebug() << "Setting up domain-server";
     qDebug() << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
     qDebug() << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
@@ -182,6 +186,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     qDebug() << "[VERSION] BUILD_GLOBAL_SERVICES:" << BuildInfo::BUILD_GLOBAL_SERVICES;
     qDebug() << "[VERSION] We will be using this name to find ICE servers:" << _iceServerAddr;
 
+    connect(this, &QCoreApplication::aboutToQuit, this, &DomainServer::aboutToQuit);
 
     // make sure we have a fresh AccountManager instance
     // (need this since domain-server can restart itself and maintain static variables)
@@ -226,9 +231,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     setupGroupCacheRefresh();
 
-    // if we were given a certificate/private key or oauth credentials they must succeed
-    if (!(optionallyReadX509KeyAndCertificate() && optionallySetupOAuth())) {
-        return;
+    optionallySetupOAuth();
+
+    if (_oauthEnable) {
+        _oauthEnable = optionallyReadX509KeyAndCertificate();
     }
 
     _settingsManager.apiRefreshGroupInformation();
@@ -319,7 +325,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     connect(_contentManager.get(), &DomainContentBackupManager::recoveryCompleted, this, &DomainServer::restart);
 
-static const int NODE_PING_MONITOR_INTERVAL_MSECS = 1 * MSECS_PER_SECOND;
+    static const int NODE_PING_MONITOR_INTERVAL_MSECS = 1 * MSECS_PER_SECOND;
     _nodePingMonitorTimer = new QTimer{ this };
     connect(_nodePingMonitorTimer, &QTimer::timeout, this, &DomainServer::nodePingMonitor);
     _nodePingMonitorTimer->start(NODE_PING_MONITOR_INTERVAL_MSECS);
@@ -428,6 +434,10 @@ DomainServer::~DomainServer() {
     DependencyManager::destroy<LimitedNodeList>();
 }
 
+void DomainServer::aboutToQuit() {
+    crash::annotations::setShutdownState(true);
+}
+
 void DomainServer::queuedQuit(QString quitMessage, int exitCode) {
     if (!quitMessage.isEmpty()) {
         qWarning() << qPrintable(quitMessage);
@@ -447,8 +457,9 @@ QUuid DomainServer::getID() {
 }
 
 bool DomainServer::optionallyReadX509KeyAndCertificate() {
-    const QString X509_CERTIFICATE_OPTION = "cert";
-    const QString X509_PRIVATE_KEY_OPTION = "key";
+    const QString X509_CERTIFICATE_OPTION = "oauth.cert";
+    const QString X509_PRIVATE_KEY_OPTION = "oauth.key";
+    const QString X509_PRIVATE_KEY_PASSPHRASE_OPTION = "oauth.key-passphrase";
     const QString X509_KEY_PASSPHRASE_ENV = "DOMAIN_SERVER_KEY_PASSPHRASE";
 
     QString certPath = _settingsManager.valueForKeyPath(X509_CERTIFICATE_OPTION).toString();
@@ -459,7 +470,12 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
         // this is used for Oauth callbacks when authorizing users against a data server
         // let's make sure we can load the key and certificate
 
-        QString keyPassphraseString = QProcessEnvironment::systemEnvironment().value(X509_KEY_PASSPHRASE_ENV);
+        QString keyPassphraseEnv = QProcessEnvironment::systemEnvironment().value(X509_KEY_PASSPHRASE_ENV);
+        QString keyPassphraseString = _settingsManager.valueForKeyPath(X509_PRIVATE_KEY_PASSPHRASE_OPTION).toString();
+
+        if (!keyPassphraseEnv.isEmpty()) {
+            keyPassphraseString = keyPassphraseEnv;
+        }
 
         qDebug() << "Reading certificate file at" << certPath << "for HTTPS.";
         qDebug() << "Reading key file at" << keyPath << "for HTTPS.";
@@ -473,16 +489,15 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
         QSslCertificate sslCertificate(&certFile);
         QSslKey privateKey(&keyFile, QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey, keyPassphraseString.toUtf8());
 
+        if (privateKey.isNull()) {
+            qCritical() << "SSL Private Key Not Loading.  Bad password or key format?";
+        }
+
         _httpsManager.reset(new HTTPSManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTPS_PORT, sslCertificate, privateKey, QString(), this));
 
         qDebug() << "TCP server listening for HTTPS connections on" << DOMAIN_SERVER_HTTPS_PORT;
 
     } else if (!certPath.isEmpty() || !keyPath.isEmpty()) {
-        static const QString MISSING_CERT_ERROR_MSG = "Missing certificate or private key. domain-server will now quit.";
-        static const int MISSING_CERT_ERROR_CODE = 3;
-
-        QMetaObject::invokeMethod(this, "queuedQuit", Qt::QueuedConnection,
-                                  Q_ARG(QString, MISSING_CERT_ERROR_MSG), Q_ARG(int, MISSING_CERT_ERROR_CODE));
         return false;
     }
 
@@ -490,10 +505,12 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
 }
 
 bool DomainServer::optionallySetupOAuth() {
-    const QString OAUTH_PROVIDER_URL_OPTION = "oauth-provider";
-    const QString OAUTH_CLIENT_ID_OPTION = "oauth-client-id";
+    const QString OAUTH_ENABLE_OPTION = "oauth.enable";
+    const QString OAUTH_PROVIDER_URL_OPTION = "oauth.provider";
+    const QString OAUTH_CLIENT_ID_OPTION = "oauth.client-id";
     const QString OAUTH_CLIENT_SECRET_ENV = "DOMAIN_SERVER_CLIENT_SECRET";
-    const QString REDIRECT_HOSTNAME_OPTION = "hostname";
+    const QString OAUTH_CLIENT_SECRET_OPTION = "oauth.client-secret";
+    const QString REDIRECT_HOSTNAME_OPTION = "oauth.hostname";
 
     _oauthProviderURL = QUrl(_settingsManager.valueForKeyPath(OAUTH_PROVIDER_URL_OPTION).toString());
 
@@ -502,22 +519,24 @@ bool DomainServer::optionallySetupOAuth() {
         _oauthProviderURL = NetworkingConstants::METAVERSE_SERVER_URL();
     }
 
+    _oauthClientSecret = QProcessEnvironment::systemEnvironment().value(OAUTH_CLIENT_SECRET_ENV);
+    if (_oauthClientSecret.isEmpty()) {
+        _oauthClientSecret = _settingsManager.valueForKeyPath(OAUTH_CLIENT_SECRET_OPTION).toString();
+    }
     auto accountManager = DependencyManager::get<AccountManager>();
     accountManager->setAuthURL(_oauthProviderURL);
 
     _oauthClientID = _settingsManager.valueForKeyPath(OAUTH_CLIENT_ID_OPTION).toString();
-    _oauthClientSecret = QProcessEnvironment::systemEnvironment().value(OAUTH_CLIENT_SECRET_ENV);
     _hostname = _settingsManager.valueForKeyPath(REDIRECT_HOSTNAME_OPTION).toString();
 
-    if (!_oauthClientID.isEmpty()) {
+    _oauthEnable = _settingsManager.valueForKeyPath(OAUTH_ENABLE_OPTION).toBool();
+
+    if (_oauthEnable) {
         if (_oauthProviderURL.isEmpty()
             || _hostname.isEmpty()
             || _oauthClientID.isEmpty()
             || _oauthClientSecret.isEmpty()) {
-            static const QString MISSING_OAUTH_INFO_MSG = "Missing OAuth provider URL, hostname, client ID, or client secret. domain-server will now quit.";
-            static const int MISSING_OAUTH_INFO_ERROR_CODE = 4;
-            QMetaObject::invokeMethod(this, "queuedQuit", Qt::QueuedConnection,
-                                      Q_ARG(QString, MISSING_OAUTH_INFO_MSG), Q_ARG(int, MISSING_OAUTH_INFO_ERROR_CODE));
+            _oauthEnable = false;
             return false;
         } else {
             qDebug() << "OAuth will be used to identify clients using provider at" << _oauthProviderURL.toString();
@@ -2693,8 +2712,8 @@ void DomainServer::profileRequestFinished() {
 std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* connection) {
 
     static const QByteArray HTTP_COOKIE_HEADER_KEY = "Cookie";
-    static const QString ADMIN_USERS_CONFIG_KEY = "admin-users";
-    static const QString ADMIN_ROLES_CONFIG_KEY = "admin-roles";
+    static const QString ADMIN_USERS_CONFIG_KEY = "oauth.admin-users";
+    static const QString ADMIN_ROLES_CONFIG_KEY = "oauth.admin-roles";
     static const QString BASIC_AUTH_USERNAME_KEY_PATH = "security.http_username";
     static const QString BASIC_AUTH_PASSWORD_KEY_PATH = "security.http_password";
     const QString COOKIE_UUID_REGEX_STRING = HIFI_SESSION_COOKIE_KEY + "=([\\d\\w-]+)($|;)";
@@ -2704,8 +2723,7 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
     QVariant adminUsersVariant = _settingsManager.valueForKeyPath(ADMIN_USERS_CONFIG_KEY);
     QVariant adminRolesVariant = _settingsManager.valueForKeyPath(ADMIN_ROLES_CONFIG_KEY);
 
-    if (!_oauthProviderURL.isEmpty()
-        && (adminUsersVariant.isValid() || adminRolesVariant.isValid())) {
+    if (_oauthEnable) {
         QString cookieString = connection->requestHeader(HTTP_COOKIE_HEADER_KEY);
 
         QRegExp cookieUUIDRegex(COOKIE_UUID_REGEX_STRING);

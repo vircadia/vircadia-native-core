@@ -242,11 +242,21 @@ void EntitySimulation::moveSimpleKinematics(uint64_t now) {
         entity->getMaximumAACube(ancestryIsKnown);
         bool hasAvatarAncestor = entity->hasAncestorOfType(NestableType::Avatar);
 
-        if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo() && ancestryIsKnown && !hasAvatarAncestor) {
+        bool isMoving = entity->isMovingRelativeToParent();
+        if (isMoving && !entity->getPhysicsInfo() && ancestryIsKnown && !hasAvatarAncestor) {
             entity->simulate(now);
+            if (ancestryIsKnown && !hasAvatarAncestor) {
+                entity->updateQueryAACube();
+            }
             _entitiesToSort.insert(entity);
             ++itemItr;
         } else {
+            if (!isMoving && ancestryIsKnown && !hasAvatarAncestor) {
+                // HACK: This catches most cases where the entity's QueryAACube (and spatial sorting in the EntityTree)
+                // would otherwise be out of date at conclusion of its "unowned" simpleKinematicMotion.
+                entity->updateQueryAACube();
+                _entitiesToSort.insert(entity);
+            }
             // the entity is no longer non-physical-kinematic
             itemItr = _simpleKinematicEntities.erase(itemItr);
         }

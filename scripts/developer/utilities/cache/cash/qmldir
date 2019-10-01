@@ -1,0 +1,6 @@
+ResourceCacheInspector  1.0 ResourceCacheInspector.qml
+TextureCacheInspector  1.0 TextureCacheInspector.qml
+MaterialCacheInspector  1.0 MaterialCacheInspector.qml
+ModelCacheInspector  1.0 ModelCacheInspector.qml
+AnimationCacheInspector  1.0 AnimationCacheInspector.qml
+SoundCacheInspector  1.0 SoundCacheInspector.qml

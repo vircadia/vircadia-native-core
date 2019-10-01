@@ -106,7 +106,7 @@ Rectangle {
         }
         RalewayRegular {
             color: "white"
-            text: "© 2018 High Fidelity. All rights reserved."
+            text: "© 2012 - 2019 High Fidelity, Inc.. All rights reserved."
             size: 14
         }
         RalewayRegular {

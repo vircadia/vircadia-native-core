@@ -1,5 +1,5 @@
 {
-  "version": 2.3,
+  "version": 2.4,
   "settings": [
     {
       "name": "metaverse",
@@ -1702,6 +1702,114 @@
               ]
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "oauth",
+      "label": "OAuth",
+      "show_on_enable": true,
+      "settings": [
+        {
+          "name": "enable",
+          "type": "checkbox",
+          "default": false,
+          "hidden": true
+        },
+        {
+          "name": "admin-users",
+          "label": "Admin Users",
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "Any of these users can administer the domain.",
+          "numbered": false,
+          "backup": false,
+          "advanced": false,
+          "columns": [
+            {
+              "name": "username",
+              "label": "Username",
+              "can_set": true
+            }
+          ]
+        },
+        {
+          "name": "admin-roles",
+          "label": "Admin Roles",
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "Any user with any of these metaverse roles can administer the domain.",
+          "numbered": false,
+          "backup": false,
+          "advanced": true,
+          "columns": [
+            {
+              "name": "role",
+              "label": "Role",
+              "can_set": true
+            }
+          ]
+        },
+        {
+          "name": "client-id",
+          "label": "Client ID",
+          "help": "OAuth client ID.",
+          "default": "",
+          "advanced":  true,
+          "backup": false
+        },
+        {
+          "name": "client-secret",
+          "label": "Client Secret",
+          "help": "OAuth client secret.",
+          "type": "password",
+          "password_placeholder": "******",
+          "value-hidden": true,
+          "advanced":  true,
+          "backup": false
+        },
+        {
+          "name": "provider",
+          "label": "Provider",
+          "help": "OAuth provider URL.",
+          "default": "https://metaverse.highfidelity.com",
+          "advanced":  true,
+          "backup": false
+        },
+        {
+          "name": "hostname",
+          "label": "Hostname",
+          "help": "OAuth hostname.",
+          "default": "",
+          "advanced":  true,
+          "backup": false
+        },
+        {
+          "name": "key-passphrase",
+          "label": "SSL Private Key Passphrase",
+          "help": "SSL Private Key Passphrase",
+          "type": "password",
+          "password_placeholder": "******",
+          "value-hidden": true,
+          "advanced":  true,
+          "backup": false
+        },
+        {
+          "name": "cert-fingerprint",
+          "type": "hidden",
+          "readonly": true,
+          "advanced":  true,
+          "backup": false
+        },
+        {
+          "name": "cert",
+          "advanced":  true,
+          "backup": false
+        },
+        {
+          "name": "key",
+          "advanced":  true,
+          "backup": false
         }
       ]
     },

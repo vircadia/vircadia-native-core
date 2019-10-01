@@ -135,7 +135,7 @@ public:
 
     void initJointStates(const HFMModel& hfmModel, const glm::mat4& modelOffset);
     void reset(const HFMModel& hfmModel);
-    bool jointStatesEmpty();
+    bool jointStatesEmpty() const;
     int getJointStateCount() const;
     int indexOfJoint(const QString& jointName) const;
     QString nameOfJoint(int jointIndex) const;
@@ -162,6 +162,8 @@ public:
     // geometry space
     void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
     void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
+
+    bool getIsJointOverridden(int jointIndex) const;
 
     // if translation and rotation is identity, position will be in rig space
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
@@ -252,6 +254,7 @@ public:
     int getOverrideJointCount() const;
     bool getFlowActive() const;
     bool getNetworkGraphActive() const;
+    void setDirectionalBlending(const QString& targetName, const glm::vec3& blendingTarget, const QString& alphaName, float alpha);
 
 signals:
     void onLoadComplete();

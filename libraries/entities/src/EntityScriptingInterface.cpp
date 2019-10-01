@@ -481,11 +481,15 @@ QUuid EntityScriptingInterface::addEntityInternal(const EntityItemProperties& pr
     _activityTracking.addedEntityCount++;
 
     auto nodeList = DependencyManager::get<NodeList>();
-    const auto sessionID = nodeList->getSessionUUID();
+    auto sessionID = nodeList->getSessionUUID();
 
     EntityItemProperties propertiesWithSimID = properties;
     propertiesWithSimID.setEntityHostType(entityHostType);
     if (entityHostType == entity::HostType::AVATAR) {
+        if (sessionID.isNull()) {
+            // null sessionID is unacceptable in this case
+            sessionID = AVATAR_SELF_ID;
+        }
         propertiesWithSimID.setOwningAvatarID(sessionID);
     } else if (entityHostType == entity::HostType::LOCAL) {
         // For now, local entities are always collisionless
@@ -801,7 +805,7 @@ QUuid EntityScriptingInterface::editEntity(const QUuid& id, const EntityItemProp
             return;
         }
 
-        if (entity->isAvatarEntity() && entity->getOwningAvatarID() != sessionID) {
+        if (entity->isAvatarEntity() && entity->getOwningAvatarID() != sessionID && entity->getOwningAvatarID() != AVATAR_SELF_ID) {
             // don't edit other avatar's avatarEntities
             properties = EntityItemProperties();
             return;

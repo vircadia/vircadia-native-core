@@ -100,7 +100,7 @@ namespace controller {
             _currentPose = value;
         }
     protected:
-        AxisValue _currentValue { 0.0f, 0 };
+        AxisValue _currentValue { 0.0f, 0, false };
         Pose _currentPose {};
     };
 

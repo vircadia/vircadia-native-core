@@ -129,6 +129,7 @@ namespace MenuOption {
     const QString Login = "Login/Sign Up";
     const QString Log = "Log";
     const QString LogExtraTimings = "Log Extra Timing Details";
+    const QString LookAtCamera = "Third Person";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString MeshVisible = "Draw Mesh";
     const QString MuteEnvironment = "Mute Environment";
@@ -181,6 +182,7 @@ namespace MenuOption {
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
     const QString ShowTrackedObjects = "Show Tracked Objects";
+    const QString SelfieCamera = "Selfie";
     const QString SendWrongDSConnectVersion = "Send wrong DS connect version";
     const QString SendWrongProtocolVersion = "Send wrong protocol version";
     const QString SetHomeLocation = "Set Home Location";
@@ -188,7 +190,9 @@ namespace MenuOption {
     const QString ShowBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowMyLookAtVectors = "Show My Eye Vectors";
+    const QString ShowMyLookAtTarget = "Show My Look-At Target";
     const QString ShowOtherLookAtVectors = "Show Other Eye Vectors";
+    const QString ShowOtherLookAtTarget = "Show Other Look-At Target";
     const QString EnableLookAtSnapping = "Enable LookAt Snapping";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString SimulateEyeTracking = "Simulate";
@@ -199,7 +203,7 @@ namespace MenuOption {
     const QString AnimStats = "Show Animation Stats";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
-    const QString ThirdPerson = "Third Person";
+    const QString ThirdPerson = "Third Person Legacy";
     const QString ThreePointCalibration = "3 Point Calibration";
     const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus"; // FIXME - this value duplicated in Basic2DWindowOpenGLDisplayPlugin.cpp
     const QString ToggleHipsFollowing = "Toggle Hips Following";
