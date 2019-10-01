@@ -29,6 +29,8 @@
 #include <shared/QtHelpers.h>
 #include <Gzip.h>
 
+#include <future>
+
 using Promise = MiniPromise::Promise;
 
 AssetScriptingInterface::AssetScriptingInterface(QObject* parent) : BaseAssetScriptingInterface(parent) {
