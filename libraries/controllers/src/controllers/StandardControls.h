@@ -90,6 +90,8 @@ namespace controller {
         // Grips
         LEFT_GRIP,
         RIGHT_GRIP,
+        LEFT_EYE_BLINK,
+        RIGHT_EYE_BLINK,
         NUM_STANDARD_AXES,
         LZ = LT,
         RZ = RT
@@ -174,6 +176,8 @@ namespace controller {
         TRACKED_OBJECT_13,
         TRACKED_OBJECT_14,
         TRACKED_OBJECT_15,
+        LEFT_EYE,
+        RIGHT_EYE,
         NUM_STANDARD_POSES
     };
 

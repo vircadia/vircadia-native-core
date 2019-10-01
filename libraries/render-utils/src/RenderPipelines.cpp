@@ -461,6 +461,13 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         wasSet = true;
                     }
                     break;
+                case graphics::MaterialKey::OPACITY_CUTOFF_VAL_BIT:
+                    if (materialKey.isOpacityCutoff()) {
+                        schema._opacityCutoff = material->getOpacityCutoff();
+                        schemaKey.setOpacityCutoff(true);
+                        wasSet = true;
+                    }
+                    break;
                 case graphics::MaterialKey::SCATTERING_VAL_BIT:
                     if (materialKey.isScattering()) {
                         schema._scattering = material->getScattering();
@@ -752,7 +759,7 @@ bool RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
 
     // For shadows, we only need opacity mask information
     auto key = multiMaterial.getMaterialKey();
-    if (renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE || key.isOpacityMaskMap()) {
+    if (renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE || (key.isOpacityMaskMap() || key.isTranslucentMap())) {
         auto& schemaBuffer = multiMaterial.getSchemaBuffer();
         batch.setUniformBuffer(gr::Buffer::Material, schemaBuffer);
         if (enableTextures) {

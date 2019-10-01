@@ -54,12 +54,11 @@ public:
     int newRepeatedMessageID();
     void printRepeatedMessage(int messageID, LogMsgType type, const QMessageLogContext& context, const QString &message);
 
-private slots:
     void setupRepeatedMessageFlusher();
 
 private:
-    LogHandler();
-    ~LogHandler();
+    LogHandler() = default;
+    ~LogHandler() = default;
 
     void flushRepeatedMessages();
 

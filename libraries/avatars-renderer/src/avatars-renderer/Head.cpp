@@ -17,7 +17,6 @@
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <trackers/FaceTracker.h>
-#include <trackers/EyeTracker.h>
 #include <Rig.h>
 #include "Logging.h"
 
@@ -58,7 +57,7 @@ void Head::simulate(float deltaTime) {
         _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
     }
 
-    if (!_isEyeTrackerConnected) {
+    if (getHasProceduralEyeMovement()) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 1.0f;
         const float AVERAGE_SACCADE_INTERVAL = 6.0f;
@@ -82,6 +81,7 @@ void Head::simulate(float deltaTime) {
     const float FULLY_OPEN = 0.0f;
     const float FULLY_CLOSED = 1.0f;
     if (getHasProceduralBlinkFaceMovement()) {
+        // handle automatic blinks
         // Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
         const float TALKING_LOUDNESS = 150.0f;
@@ -129,7 +129,7 @@ void Head::simulate(float deltaTime) {
         _leftEyeBlink = FULLY_OPEN;
     }
 
-        // use data to update fake Faceshift blendshape coefficients
+    // use data to update fake Faceshift blendshape coefficients
     if (getHasAudioEnabledFaceMovement()) {
         // Update audio attack data for facial animation (eyebrows and mouth)
         float audioAttackAveragingRate = (10.0f - deltaTime * NORMAL_HZ) / 10.0f; // --> 0.9 at 60 Hz
@@ -152,7 +152,8 @@ void Head::simulate(float deltaTime) {
         _mouthTime = 0.0f;
     }
 
-    FaceTracker::updateFakeCoefficients(_leftEyeBlink,
+    FaceTracker::updateFakeCoefficients(
+        _leftEyeBlink,
         _rightEyeBlink,
         _browAudioLift,
         _audioJawOpen,
@@ -162,6 +163,8 @@ void Head::simulate(float deltaTime) {
         _transientBlendshapeCoefficients);
 
     if (getHasProceduralEyeFaceMovement()) {
+        // This controls two things, the eye brow and the upper eye lid, it is driven by the vertical up/down angle of the
+        // eyes relative to the head.  This is to try to help prevent sleepy eyes/crazy eyes.
         applyEyelidOffset(getOrientation());
     }
 
@@ -292,7 +295,7 @@ glm::quat Head::getFinalOrientationInLocalFrame() const {
 }
 
 // Everyone else's head keeps track of a lookAtPosition that everybody sees the same, and refers to where that head
-// is looking in model space -- e.g., at someone's eyeball, or between their eyes, or mouth, etc. Everyon's Interface
+// is looking in model space -- e.g., at someone's eyeball, or between their eyes, or mouth, etc. Everyone's Interface
 // will have the same value for the lookAtPosition of any given head.
 //
 // Everyone else's head also keeps track of a correctedLookAtPosition that may be different for the same head within
