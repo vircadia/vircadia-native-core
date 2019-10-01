@@ -7,7 +7,7 @@
 
 /* global Script, MyAvatar, Controller, Uuid, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule,
    makeRunningValues, Vec3, makeDispatcherModuleParameters, Overlays, HMD, Settings, getEnabledModuleByName, Pointers,
-   Picks, PickType
+   Picks, PickType, Keyboard
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -64,8 +64,8 @@ Script.include("/~/system/libraries/controllers.js");
             var nearTabletHighlightModuleName =
                 this.hand === RIGHT_HAND ? "RightNearTabletHighlight" : "LeftNearTabletHighlight";
             var nearTabletHighlightModule = getEnabledModuleByName(nearTabletHighlightModuleName);
-            var nearTabletHighlightModuleReady = nearTabletHighlightModule
-                ? nearTabletHighlightModule.isReady(controllerData) : makeRunningValues(false, [], []);
+            var nearTabletHighlightModuleReady = nearTabletHighlightModule ?
+                nearTabletHighlightModule.isReady(controllerData) : makeRunningValues(false, [], []);
             return grabOverlayModuleReady.active || farGrabModuleReady.active || grabEntityModuleReady.active
                 /* || nearTabletHighlightModuleReady.active */ ;
         };
@@ -129,7 +129,7 @@ Script.include("/~/system/libraries/controllers.js");
                 }
             }
 
-            const WEB_DISPLAY_STYLUS_DISTANCE = (Keyboard.raised && Keyboard.preferMalletsOverLasers) ? 0.2 : 0.5;
+            var WEB_DISPLAY_STYLUS_DISTANCE = (Keyboard.raised && Keyboard.preferMalletsOverLasers) ? 0.2 : 0.5;
             var nearStylusTarget = isNearStylusTarget(stylusTargets, WEB_DISPLAY_STYLUS_DISTANCE * sensorScaleFactor);
 
             if (nearStylusTarget.length !== 0) {
