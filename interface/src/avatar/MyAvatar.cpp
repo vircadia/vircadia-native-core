@@ -3514,6 +3514,12 @@ void MyAvatar::updateOrientation(float deltaTime) {
     float timeScale = deltaTime * FPS;
 
     bool faceForward = false;
+    bool isMovingFwdBwd = getDriveKey(TRANSLATE_Z) != 0.0f;
+    bool isMovingSideways = getDriveKey(TRANSLATE_X) != 0.0f;
+    bool isCameraYawing = getDriveKey(DELTA_YAW) + getDriveKey(STEP_YAW) + getDriveKey(YAW) != 0.0f;
+    bool isRotatingWhileSeated = !isCameraYawing && isMovingSideways && _characterController.getSeated();
+    glm::quat previousOrientation = getWorldOrientation();
+
     if (!computeLookAt) {
         setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
         _lookAtCameraTarget = eyesPosition + getWorldOrientation() * Vectors::FRONT;
@@ -3536,9 +3542,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
                 _lookAtPitch = _previousLookAtPitch;
             }
         }
-        bool isMovingFwdBwd = getDriveKey(TRANSLATE_Z) != 0.0f;
-        bool isMovingSideways = getDriveKey(TRANSLATE_X) != 0.0f;
-        bool isRotatingWhileSeated = isMovingSideways && _characterController.getSeated();
+
         faceForward = isMovingFwdBwd || (isMovingSideways && !isRotatingWhileSeated);
         // Blend the avatar orientation with the camera look at if moving forward.
         if (faceForward || _shouldTurnToFaceCamera) {
@@ -3623,8 +3627,12 @@ void MyAvatar::updateOrientation(float deltaTime) {
         if (frontBackDot < 0.0f) {
             ajustedYawVector = (leftRightDot < 0.0f ? -avatarVectorRight : avatarVectorRight);
             cameraVector = (ajustedYawVector * _lookAtPitch) * Vectors::FRONT;
-            if (frontBackDot < -glm::sin(glm::radians(TRIGGER_REORIENT_ANGLE))) {
-                _shouldTurnToFaceCamera = true;
+            if (!isRotatingWhileSeated) {
+                if (frontBackDot < -glm::sin(glm::radians(TRIGGER_REORIENT_ANGLE))) {
+                    _shouldTurnToFaceCamera = true;
+                }
+            } else {
+                setWorldOrientation(previousOrientation);
             }
         } else if (frontBackDot > glm::sin(glm::radians(REORIENT_ANGLE))) {
             _shouldTurnToFaceCamera = false;
