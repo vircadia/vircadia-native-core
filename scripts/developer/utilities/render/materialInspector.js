@@ -128,7 +128,7 @@ function fromQml(message) {
 
 var SELECT_LIST = "luci_materialInspector_SelectionList";
 Selection.enableListHighlight(SELECT_LIST, {
-    outlineUnoccludedColor: { red: 255, green: 255, blue: 255 }
+    outlineUnoccludedColor: { red: 125, green: 255, blue: 225 }
 });
 function setSelectedObject(id, type) {
     Selection.clearSelectedItemsList(SELECT_LIST);
