@@ -29,6 +29,9 @@ bool isLauncherAlreadyRunning();
 
 #ifdef Q_OS_WIN
 HRESULT createSymbolicLink(LPCSTR lpszPathObj, LPCSTR lpszPathLink, LPCSTR lpszDesc, LPCSTR lpszArgs = (LPCSTR)"");
+bool insertRegistryKey(const std::string& regPath, const std::string& name, const std::string& value);
+bool insertRegistryKey(const std::string& regPath, const std::string& name, DWORD value);
+bool deleteRegistryKey(const std::string& regPath);
 #endif
 
 QString getHTTPUserAgent();

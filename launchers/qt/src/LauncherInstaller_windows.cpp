@@ -70,6 +70,8 @@ void LauncherInstaller::install() {
 
         createSymbolicLink((LPCSTR)oldLauncherPath.toStdString().c_str(), (LPCSTR)appStartLinkPath.toStdString().c_str(),
                            (LPCSTR)("Click to Setup and Launch HQ"));
+
+        createApplicationRegistryKeys();
     } else {
         qDebug() << "FAILED!!!!!!!";
     }
@@ -99,4 +101,27 @@ void LauncherInstaller::uninstall() {
     if (QFile::exists(desktopAppLinkPath)) {
         QFile::remove(desktopAppLinkPath);
     }
+}
+
+
+void LauncherInstaller::createApplicationRegistryKeys() {
+    const std::string REGISTRY_PATH = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\HQ";
+    bool success = insertRegistryKey(REGISTRY_PATH, "DisplayName", "HQ");
+    std::string installPath = _launcherInstallDir.absolutePath().toStdString();
+    success = insertRegistryKey(REGISTRY_PATH, "InstallLocation", installPath);
+    std::string applicationExe = installPath + "/HQ Launcher.exe";
+    std::string uninstallPath = '"' + applicationExe + '"' + " --uninstall";
+    success = insertRegistryKey(REGISTRY_PATH, "UninstallString", uninstallPath);
+    success = insertRegistryKey(REGISTRY_PATH, "DisplayVersion", "DEV");
+    success = insertRegistryKey(REGISTRY_PATH, "DisplayIcon", applicationExe);
+    success = insertRegistryKey(REGISTRY_PATH, "Publisher", "High Fidelity");
+    //success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "InstallDate", LauncherUtils::cStringToStd(CTime::GetCurrentTime().Format("%Y%m%d")));
+    //success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "EstimatedSize", (DWORD)size);
+    success = insertRegistryKey(REGISTRY_PATH, "NoModify", (DWORD)1);
+    success = insertRegistryKey(REGISTRY_PATH, "NoRepair", (DWORD)1);
+
+    qDebug() << "--------: " << success;
+}
+
+void LauncherInstaller::deleteApplicationRegistryKeys() {
 }

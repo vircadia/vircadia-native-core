@@ -11,7 +11,9 @@ public:
     bool runningOutsideOfInstallDir();
 private:
     void createShortcuts();
+    void createApplicationRegistryKeys();
     void deleteShortcuts();
+    void deleteApplicationRegistryKeys();
 
     QDir _launcherInstallDir;
     QDir _launcherApplicationsDir;
