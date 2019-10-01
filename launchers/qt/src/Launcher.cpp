@@ -13,7 +13,7 @@ Launcher::Launcher(int& argc, char**argv) : QGuiApplication(argc, argv) {
     _launcherWindow = std::make_unique<LauncherWindow>();
     _launcherWindow->rootContext()->setContextProperty("LauncherState", _launcherState.get());
     _launcherWindow->rootContext()->setContextProperty("PathUtils", new PathUtils());
-    _launcherWindow->setFlags(Qt::FramelessWindowHint);
+    _launcherWindow->setFlags(Qt::FramelessWindowHint | Qt::Window);
     LauncherState::declareQML();
     _launcherWindow->setSource(QUrl(PathUtils::resourcePath("qml/root.qml")));
     _launcherWindow->setResizeMode(QQuickView::SizeRootObjectToView);

@@ -165,7 +165,11 @@ set(TARGET_NAME ${PROJECT_NAME})
 
 set_packaging_parameters()
 if (WIN32)
-  add_executable(${PROJECT_NAME} ${src_files} ${RES_SOURCES})
+  set(CONFIGURE_ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/resources/images/interface.ico")
+  message(${CONFIGURE_ICON_PATH})
+  set(CONFIGURE_ICON_RC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/Icon.rc")
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/Icon.rc.in" ${CONFIGURE_ICON_RC_OUTPUT})
+  add_executable(${PROJECT_NAME} WIN32 ${src_files} ${RES_SOURCES} ${CONFIGURE_ICON_RC_OUTPUT})
 elseif (APPLE)
   set_target_properties(${this_target} PROPERTIES
     MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)

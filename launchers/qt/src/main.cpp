@@ -35,8 +35,6 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     closeInterfaceIfRunning();
-    // waitForInterfaceToClose();
-    // auto updater
     if (argc == 3) {
         if (hasSuffix(argv[1], "app") && hasSuffix(argv[2], "app")) {
             swapLaunchers(argv[1], argv[2]);

@@ -6,6 +6,8 @@
 #include "objbase.h"
 #include "objidl.h"
 #include "shlguid.h"
+#include <tlhelp32.h>
+#include <strsafe.h>
 #include <QCoreApplication>
 
 void launchClient(const QString& clientPath, const QString& homePath, const QString& defaultScriptsPath,
@@ -112,4 +114,36 @@ HRESULT createSymbolicLink(LPCSTR lpszPathObj, LPCSTR lpszPathLink, LPCSTR lpszD
     }
     CoUninitialize();
     return SUCCEEDED(hres);
+}
+
+bool insertRegistryKey(const std::string& regPath, const std::string& name, const std::string& value) {
+    HKEY key;
+    auto status = RegCreateKeyExA(HKEY_CURRENT_USER, regPath.c_str(), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_QUERY_VALUE, NULL, &key, NULL);
+    if (status == ERROR_SUCCESS) {
+        status = RegSetValueExA(key, name.c_str(), 0, REG_SZ, (const BYTE*)value.c_str(), (DWORD)(value.size() + 1));
+        return (bool) (status == ERROR_SUCCESS);
+    }
+    RegCloseKey(key);
+    return false;
+}
+
+bool insertRegistryKey(const std::string& regPath, const std::string& name, DWORD value) {
+    HKEY key;
+    auto status = RegCreateKeyExA(HKEY_CURRENT_USER, regPath.c_str(), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_QUERY_VALUE, NULL, &key, NULL);
+    if (status == ERROR_SUCCESS) {
+        status = RegSetValueExA(key, name.c_str(), 0, REG_DWORD, (const BYTE*)&value, sizeof(value));
+        return (bool) TRUE;
+    }
+    RegCloseKey(key);
+    return false;
+}
+
+bool deleteRegistryKey(const std::string& regPath) {
+    TCHAR szDelKey[MAX_PATH * 2];
+    StringCchCopy(szDelKey, MAX_PATH * 2, regPath.c_str());
+    auto status = RegDeleteKey(HKEY_CURRENT_USER, szDelKey);
+    if (status == ERROR_SUCCESS) {
+        return (bool) TRUE;
+    }
+    return false;
 }
