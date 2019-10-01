@@ -113,7 +113,7 @@ def downloadFile(url, hash=None, hasher=hashlib.sha512(), retries=3):
 
 def downloadAndExtract(url, destPath, hash=None, hasher=hashlib.sha512(), isZip=False):
     tempFileName = downloadFile(url, hash, hasher)
-    if isZip:
+    if isZip or ".zip" in url:
         with zipfile.ZipFile(tempFileName) as zip:
             zip.extractall(destPath)
     else:

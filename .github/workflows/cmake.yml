@@ -1,0 +1,248 @@
+name: CMake CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  push:
+    branches:
+      - master
+      - stable
+
+env:
+  CI_BUILD: Github
+  BUILD_TYPE: Release
+  RELEASE_TYPE: PR
+  RELEASE_NUMBER: ${{ github.event.number }}
+  VERSION_CODE: ${{ github.event.number }}
+  GIT_PR_COMMIT: ${{ github.sha }}
+  # FIXME should be a shortened version of the SHA
+  GIT_PR_COMMIT_SHORT: ${{ github.sha }}
+  HIFI_VCPKG_BOOTSTRAP: true
+
+  AWS_ACCESS_KEY_ID: AKIAJOF5R5WQWQL6C7UQ
+
+  # Settings for uploading 
+  APP_NAME: interface
+  #APP_NAME: gpu-frame-player
+  BUCKET_NAME: hifi-public
+  UPLOAD_PREFIX: austin/builds
+
+  # OSX specific variables
+  DEVELOPER_DIR: /Applications/Xcode_11.2.app/Contents/Developer
+  MACOSX_DEPLOYMENT_TARGET: '10.11'
+  # WIN32 specific variables
+  PreferredToolArchitecture: X64
+
+  BS_USERNAME: gustavo@highfidelity.io
+  BS_PASSWORD: ${MASKED_BUGSPLAT_PASSWORD}
+  CMAKE_BACKTRACE_URL: https://highfidelity.sp.backtrace.io:6098
+  GA_TRACKING_ID: UA-39558647-8
+  OCULUS_APP_ID: '1255907384473836'
+  # CMAKE_BACKTRACE_TOKEN: ${MASKED_CMAKE_BACKTRACE_TOKEN}
+  # CMAKE_BACKTRACE_SYMBOLS_TOKEN: ${MASKED_BACKTRACE_UPLOAD_TOKEN}
+
+# Mac OS
+#PLATFORM_CMAKE_GENERATOR=Xcode
+#PLATFORM_BUILD_ARGUMENTS=--config Release --target package
+#ARTIFACT_EXPRESSION=build/*.dmg,build/*.zip
+
+# Windows 
+#PLATFORM_CMAKE_GENERATOR=Visual Studio 15 2017 Win64
+#PLATFORM_BUILD_ARGUMENTS=--target package --config release
+#ARTIFACT_EXPRESSION=build/*.exe,build/*.zip,*-symbols.zip
+
+# Ubuntu 
+#PLATFORM_CMAKE_GENERATOR=Unix Makefiles
+#PLATFORM_BUILD_ARGUMENTS=--target all -- -j4
+#ARTIFACT_EXPRESSION=build/assignment-client/**,build/domain-server/**,build/ice-server/ice-server,build/tools/ice-client/ice-client,build/tools/ac-client/ac-client,build/tools/oven,build/ext/makefiles/nvtt/project/lib/**,build/ext/makefiles/quazip/project/lib/**
+
+# Android
+#OAUTH_CLIENT_SECRET=${MASKED_ANDROID_OAUTH_CLIENT_SECRET_NIGHTLY}
+#OAUTH_CLIENT_ID=6c7d2349c0614640150db37457a1f75dce98a28ffe8f14d47f6cfae4de5b262a
+#OAUTH_REDIRECT_URI=https://dev-android-interface.highfidelity.com/auth
+#ARTIFACT_EXPRESSION=android/*.apk
+#SHA7=${GIT_PR_COMMIT_SHORT}
+#ANDROID_APK_NAME=HighFidelity-Beta-PR${RELEASE_NUMBER}-${GIT_PR_COMMIT_SHORT}.apk
+#ANDROID_BUILT_APK_NAME=interface-debug.apk	
+#ANDROID_APP=interface
+#ANDROID_BUILD_DIR=debug
+#ANDROID_BUILD_TARGET=assembleDebug
+#STABLE_BUILD=0
+
+jobs:
+  unlabel:
+    runs-on: ubuntu-latest
+    if: github.event.action == 'labeled'
+    steps:
+    - name: Install python modules
+      run: pip install PyGithub
+    - uses: actions/checkout@v1
+      with: 
+        submodules: true
+        fetch-depth: 1
+    - name: Remove Trigger Labels
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_REPO_TOKEN }}
+        LABEL_PREFIX: rebuild
+      run: python "$GITHUB_WORKSPACE/tools/ci-scripts/remove-labels.py" 
+
+
+  build_client_mac:
+    runs-on: macOS-latest
+    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild'
+    steps:
+    - uses: actions/checkout@v1
+      with: 
+        submodules: true
+        fetch-depth: 1
+    - name: Install python modules
+      run: pip3 install awscli boto3 PyGithub
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+    - name: Configure CMake
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DCLIENT_ONLY:BOOLEAN=TRUE -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode -DVCPKG_APPLOCAL_DEPS=OFF
+    - name: Build Console
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+    - name: Build Application
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+    - name: Build Installer
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target package
+    - name: Upload Artifact
+      working-directory: ${{runner.workspace}}/build
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_REPO_TOKEN }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+        ARTIFACT_PATTERN: HighFidelity-Beta-Interface-PR${{ github.event.number }}-*.dmg
+      run: python3 "$GITHUB_WORKSPACE/tools/ci-scripts/upload.py" 
+
+
+  build_full_mac:
+    runs-on: macOS-latest
+    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild'
+    steps:
+    - uses: actions/checkout@v1
+      with: 
+        submodules: true
+        fetch-depth: 1
+    - name: Install python modules
+      run: pip3 install awscli boto3 PyGithub
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+    - name: Configure CMake
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode -DVCPKG_APPLOCAL_DEPS=OFF
+    - name: Build Console
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+    - name: Build Application
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+    - name: Build Domain Server
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target domain-server
+    - name: Build Assignment Client
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target assignment-client
+    - name: Build Installer
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target package
+    - name: Upload Artifact
+      working-directory: ${{runner.workspace}}/build
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_REPO_TOKEN }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+        ARTIFACT_PATTERN: HighFidelity-Beta-PR${{ github.event.number }}-*.dmg
+      run: python3 "$GITHUB_WORKSPACE/tools/ci-scripts/upload.py" 
+
+  build_client_win32:
+    runs-on: windows-latest
+    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild'
+    steps:
+    - uses: actions/checkout@v1
+      with: 
+        submodules: true
+        fetch-depth: 1
+    - name: Install python modules
+      run: pip install awscli boto3 PyGithub
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCLIENT_ONLY:BOOLEAN=TRUE -A x64 
+    - name: Build Console
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+    - name: Build Application
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+    - name: Build Installer
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target package
+    - name: Upload Artifact
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_REPO_TOKEN }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+        ARTIFACT_PATTERN: HighFidelity-Beta-Interface-PR${{ github.event.number }}-*.exe
+      run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload.py" 
+          
+  build_full_win32:
+    runs-on: windows-latest
+    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild'
+    steps:
+    - uses: actions/checkout@v1
+      with: 
+        submodules: true
+        fetch-depth: 1
+    - name: Install python modules
+      run: pip install awscli boto3 PyGithub
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -A x64 
+    - name: Build Console
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+    - name: Build Application
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+    - name: Build Domain Server
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target domain-server
+    - name: Build Assignment Client
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target assignment-client
+    - name: Build Installer
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target package
+    - name: Upload Artifact
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_REPO_TOKEN }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+        ARTIFACT_PATTERN: HighFidelity-Beta-PR${{ github.event.number }}-*.exe
+      run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload.py"

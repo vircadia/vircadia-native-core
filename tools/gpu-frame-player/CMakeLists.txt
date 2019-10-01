@@ -1,9 +1,17 @@
 
 set(TARGET_NAME gpu-frame-player)
- 
+
 setup_memory_debugger()
+
+if (APPLE)
+    set(CMAKE_MACOSX_BUNDLE TRUE)
+endif()
+
 setup_hifi_project(Gui Widgets)
 
+if (APPLE)
+    unset(CMAKE_MACOSX_BUNDLE)
+endif()
 
 # link in the shared libraries
 link_hifi_libraries(
