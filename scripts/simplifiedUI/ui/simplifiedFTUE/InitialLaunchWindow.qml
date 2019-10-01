@@ -56,13 +56,19 @@ Rectangle {
         id: tempAvatarPageContainer
         visible: true
 
+        SimplifiedControls.VerticalScrollBar {
+            parent: tempAvatarPageContainer
+        }
+
         GridLayout {
             id: tempAvatarPageGrid
             anchors.fill: parent
             anchors.leftMargin: 180
             anchors.topMargin: 50
             anchors.rightMargin: 100
-            columns: 2
+            columns: root.width > root.height ? 2 : 1
+            rows: root.width > root.height ? 1 : 2
+            flow: root.width > root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
 
             Item {
                 id: textAndQRContainer
@@ -75,7 +81,7 @@ Rectangle {
                 HifiStylesUit.RalewayBold {
                     id: headerText
                     text: "We know this isn't you..."
-                    color: simplifiedUI.colors.darkGray
+                    color: simplifiedUI.colors.text.darkGray
                     size: 48
                     wrapMode: Text.WordWrap
                     anchors.left: parent.left
@@ -93,7 +99,7 @@ Rectangle {
                     <b>We want you to be you</b> so we've built an Avatar Creator
                     App that's as easy as taking a selfie and picking your
                     outfits! Available now on iOS and Android Platforms."
-                    color: simplifiedUI.colors.darkGray
+                    color: simplifiedUI.colors.text.darkGray
                     size: 22
                     anchors.left: parent.left
                     anchors.right: parent.right
@@ -111,7 +117,7 @@ Rectangle {
 
                     Image {
                         id: avatarAppQRCodeImage
-                        source: "images/qrCode.jpg"
+                        source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/qrCode.jpg"
                         height: 190
                         width: 190
                     }
@@ -122,10 +128,9 @@ Rectangle {
                         anchors.top: avatarAppQRCodeImage.top
                         anchors.bottom: avatarAppQRCodeImage.bottom
                         anchors.right: parent.right
-                        anchors.verticalCenter: avatarAppQRCodeImage.verticalCenter
                         anchors.leftMargin: 30
                         text: "Use your mobile phone to scan this QR code."
-                        color: simplifiedUI.colors.darkGray
+                        color: simplifiedUI.colors.text.darkGray
                         size: 22
                         wrapMode: Text.WordWrap
                     }
@@ -151,6 +156,7 @@ Rectangle {
 
                         onClicked: {
                             Tablet.playSound(TabletEnums.ButtonClick);
+                            print("_____________________________________", bottomRightAccentImage.source);
                             tempAvatarPageContainer.visible = false;
                             controlsContainer.visible = true;
                         }
@@ -166,10 +172,12 @@ Rectangle {
 
                 Image {
                     id: tempAvatarImage
-                    width: 428
-                    height: 800
-                    source: "images/DefaultAvatar_" + MyAvatar.skeletonModelURL.substring(123, MyAvatar.skeletonModelURL.length - 11) + ".png"
+                    width: root.width > root.height ? 428 : 320
+                    height: root.width > root.height ? 800 : 598
+                    source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/DefaultAvatar_" +
+                        MyAvatar.skeletonModelURL.substring(123, MyAvatar.skeletonModelURL.length - 11) + ".png"
                 }
+                // TODO move this to be above the rest of the grid layout stuff in landscape mode
             }
         }
     }
@@ -178,6 +186,10 @@ Rectangle {
         id: controlsContainer
         visible: false
         anchors.fill: parent
+
+        SimplifiedControls.VerticalScrollBar {
+            parent: tempAvatarPageContainer
+        }
 
         HifiStylesUit.RalewayRegular {
             id: controlsDescriptionText

@@ -129,6 +129,10 @@ Rectangle {
 
                 // If we have never auto-selected and the user is still using a default avatar or if the current avatar is not valid (fst), or if 
                 // the current avatar is the old default (Woody), use top avatar from inventory or one of the new defaults.
+
+                // FOR TESTING__________REMOVE
+                userHasValidAvatarInInventory = false;
+
                 if (!currentAvatarIsValid || userHasOldDefaultAvatar || (!avatarHasBeenAutoSelectedBefore && userIsWearingDefaultAvatar)) {
                     if (userHasValidAvatarInInventory) {
                         MyAvatar.useFullAvatarURL(topBarInventoryModel.get(0).download_url);

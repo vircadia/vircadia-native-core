@@ -358,6 +358,7 @@ function setOutputMuted(outputMuted) {
     }
 }
 
+var TOP_BAR_HEIGHT_PX = 48;
 var INITIAL_LAUNCH_QML_PATH = Script.resolvePath("./simplifiedFTUE/InitialLaunchWindow.qml");
 var INITIAL_LAUNCH_WINDOW_TITLE = "Initial Launch";
 var INITIAL_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;

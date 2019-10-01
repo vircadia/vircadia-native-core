@@ -99,7 +99,7 @@ Rectangle {
                     Image {
                         id: avatarAppQRCodeImage
                         anchors.horizontalCenter: instructionText.horizontalCenter
-                        source: "images/qrCode.jpg"
+                        source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/qrCode.jpg"
                         height: 220
                         width: 220
                     }
@@ -155,9 +155,14 @@ Rectangle {
                     id: heroImage
                     width: 428
                     height: 800
-                    source: "images/hero.png"
+                    source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/hero.png"
                 }
+                // TODO move this to be above the rest of the grid layout stuff in landscape mode
             }
+        }
+
+        SimplifiedControls.VerticalScrollBar {
+            parent: root
         }
     }
 
