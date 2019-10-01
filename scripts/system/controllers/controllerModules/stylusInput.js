@@ -121,7 +121,8 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             // Add the mini tablet.
-            if (HMD.miniTabletScreenID && Overlays.getProperty(HMD.miniTabletScreenID, "visible")) {
+            if (HMD.miniTabletScreenID && Overlays.getProperty(HMD.miniTabletScreenID, "visible") &&
+                this.hand != HMD.miniTabletHand) {
                 stylusTarget = getOverlayDistance(controllerPosition, HMD.miniTabletScreenID);
                 if (stylusTarget) {
                     stylusTargets.push(stylusTarget);
