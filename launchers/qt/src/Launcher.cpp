@@ -9,12 +9,7 @@
 #include "PathUtils.h"
 
 Launcher::Launcher(int& argc, char**argv) : QGuiApplication(argc, argv) {
-    Q_INIT_RESOURCE(resources);
-    QString resourceBinaryLocation =  QGuiApplication::applicationDirPath() + "/resources.rcc";
-    qDebug() << "resources.rcc path:  " << resourceBinaryLocation;
-    QResource::registerResource(resourceBinaryLocation);
     _launcherState = std::make_shared<LauncherState>();
-    //_launcherState->setUIState(LauncherState::SPLASH_SCREEN);
     _launcherWindow = std::make_unique<LauncherWindow>();
     _launcherWindow->rootContext()->setContextProperty("LauncherState", _launcherState.get());
     _launcherWindow->rootContext()->setContextProperty("PathUtils", new PathUtils());

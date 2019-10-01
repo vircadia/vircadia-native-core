@@ -15,7 +15,7 @@ Item {
     }
 
     Component.onCompleted: {
-        loader.source = LauncherState.getCurrentUISource();
+        loader.source = "./SplashScreen.qml";
         LauncherState.updateSourceUrl.connect(function(url) {
             loader.source = url;
         });

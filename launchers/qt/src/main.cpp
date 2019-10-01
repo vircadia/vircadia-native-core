@@ -4,6 +4,7 @@
 
 #include "LauncherWindow.h"
 #include "Launcher.h"
+#include "CommandlineOptions.h"
 #include <iostream>
 #include <string>
 #include "Helper.h"
@@ -29,45 +30,35 @@ bool hasSuffix(const std::string& path, const std::string& suffix) {
     return false;
 }
 
-bool containsOption(int argc, char* argv[], const std::string& option) {
-    for (int index = 0; index < argc; index++) {
-        if (option.compare(argv[index]) == 0) {
-            return true;
-        }
-    }
-    return false;
-}
-
 int main(int argc, char *argv[]) {
-
-    //std::cout << "Launcher version: " << LAUNCHER_BUILD_VERSION;
+    Q_INIT_RESOURCE(resources);
 #ifdef Q_OS_MAC
+    if (isLauncherAlreadyRunning()) {
+        return 0;
+    }
+    closeInterfaceIfRunning();
+    // waitForInterfaceToClose();
     // auto updater
     if (argc == 3) {
         if (hasSuffix(argv[1], "app") && hasSuffix(argv[2], "app")) {
-            std::cout << "swapping launcher \n";
             swapLaunchers(argv[1], argv[2]);
-        } else {
-            std::cout << "not swapping launcher \n";
         }
     }
-#elif defined(Q_OS_WIN)
-    // try-install
-
-    if (containsOption(argc, argv, "--restart")) {
-        LauncherInstaller launcherInstaller(argv[0]);
+#endif
+    CommandlineOptions* options = CommandlineOptions::getInstance();
+    options->parse(argc, argv);
+#ifdef Q_OS_WIN
+    LauncherInstaller launcherInstaller(argv[0]);
+    if (options->contains("--restart") || launcherInstaller.runningOutsideOfInstallDir()) {
         launcherInstaller.install();
+    } else if (options->contains("--uninstall")) {
+        launcherInstaller.uninstall();
+        return 0;
     }
 #endif
     QString name { "High Fidelity" };
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QCoreApplication::setOrganizationName(name);
-
-
-#ifdef Q_OS_WIN
-    //QSharedMemory sharedMemory{ applicationName };
-    //instanceMightBeRunning = !sharedMemory.create(1, QSharedMemory::ReadOnly);
-#endif
 
     Launcher launcher(argc, argv);
 

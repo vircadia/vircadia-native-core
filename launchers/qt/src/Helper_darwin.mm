@@ -1,4 +1,4 @@
-#include "../Helper.h"
+#include "Helper.h"
 
 #import "NSTask+NSTaskExecveAdditions.h"
 
@@ -7,7 +7,7 @@
 #include <QDebug>
 
 void launchClient(const QString& clientPath, const QString& homePath, const QString& defaultScriptOverride,
-                  const QString& displayName, const QString& contentCachePath, QString& loginTokenResponse) {
+                  const QString& displayName, const QString& contentCachePath, QString loginTokenResponse) {
 
     NSString* homeBookmark = [[NSString stringWithFormat:@"hqhome="] stringByAppendingString:homePath.toNSString()];
     NSArray* arguments;
@@ -69,4 +69,44 @@ bool replaceDirectory(const QString& orginalDirectory, const QString& newDirecto
     NSURL* destinationUrl = [UpdaterHelper NSStringToNSURL:newDirectory.toNSString()];
     return (bool) [fileManager replaceItemAtURL:[UpdaterHelper NSStringToNSURL:orginalDirectory.toNSString()] withItemAtURL:[UpdaterHelper NSStringToNSURL:newDirectory.toNSString()]
                                  backupItemName:nil options:NSFileManagerItemReplacementUsingNewMetadataOnly resultingItemURL:&destinationUrl error:nil];
+}
+
+
+void waitForInterfaceToClose() {
+    bool interfaceRunning = true;
+
+    while (interfaceRunning) {
+        interfaceRunning = false;
+        NSWorkspace* workspace = [NSWorkspace sharedWorkspace];
+        NSArray* apps = [workspace runningApplications];
+        for (NSRunningApplication* app in apps) {
+            if ([[app bundleIdentifier] isEqualToString:@"com.highfidelity.interface"] ||
+                [[app bundleIdentifier] isEqualToString:@"com.highfidelity.interface-pr"]) {
+                interfaceRunning = true;
+                break;
+            }
+        }
+    }
+}
+
+bool isLauncherAlreadyRunning() {
+    NSArray* apps = [NSRunningApplication runningApplicationsWithBundleIdentifier:@"com.highfidelity.launcher"];
+    NSLog(@"Count: %lu", [apps count]);
+    if ([apps count] > 1) {
+        NSLog(@"launcher is already running");
+        return true;
+    }
+
+    return false;
+}
+
+void closeInterfaceIfRunning() {
+    NSWorkspace* workspace = [NSWorkspace sharedWorkspace];
+    NSArray* apps = [workspace runningApplications];
+    for (NSRunningApplication* app in apps) {
+        if ([[app bundleIdentifier] isEqualToString:@"com.highfidelity.interface"] ||
+            [[app bundleIdentifier] isEqualToString:@"com.highfidelity.interface-pr"]) {
+            [app terminate];
+        }
+    }
 }

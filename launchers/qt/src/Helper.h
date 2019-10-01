@@ -1,6 +1,10 @@
 #include <QString>
 #include <string>
 
+#ifdef Q_OS_WIN
+#include "Windows.h"
+#endif
+
 //#define USE_STAGING
 
 #ifdef USE_STAGING
@@ -18,6 +22,13 @@ void swapLaunchers(const QString& oldLauncherPath = QString(), const QString& ne
 
 #ifdef Q_OS_MAC
 bool replaceDirectory(const QString& orginalDirectory, const QString& newDirectory);
+void closeInterfaceIfRunning();
+void waitForInterfaceToClose();
+bool isLauncherAlreadyRunning();
+#endif
+
+#ifdef Q_OS_WIN
+HRESULT createSymbolicLink(LPCSTR lpszPathObj, LPCSTR lpszPathLink, LPCSTR lpszDesc, LPCSTR lpszArgs = (LPCSTR)"");
 #endif
 
 QString getHTTPUserAgent();

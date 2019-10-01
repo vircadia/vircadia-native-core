@@ -4,9 +4,6 @@
 #include "Unzipper.h"
 #include "Helper.h"
 
-#ifdef Q_OS_WIN
-#include <Windows.h>
-#endif
 #include <array>
 #include <cstdlib>
 
@@ -68,7 +65,7 @@ bool LatestBuilds::getBuild(QString tag, Build* outBuild) {
 }
 
 static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_FOR_UI_STATE =
-    { { "SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "qml/HFBase/LoginBase.qml", "DisplayName.qml",
+    { { "qml/SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "qml/HFBase/LoginBase.qml", "DisplayName.qml",
         "qml/Download.qml", "qml/DownloadFinished.qml", "qml/HFBase/Error.qml" } };
 
 void LauncherState::ASSERT_STATE(LauncherState::ApplicationState state) {
@@ -155,10 +152,23 @@ void LauncherState::requestBuilds() {
     setApplicationState(ApplicationState::RequestingBuilds);
 
     // TODO Show splash screen until this request is complete
-    auto request = new QNetworkRequest(QUrl("https://thunder.highfidelity.com/builds/api/tags/latest/?format=json"));
+
+    QString latestBuildRequestUrl { "https://thunder.highfidelity.com/builds/api/tags/latest/?format=json" };
+    QProcessEnvironment processEnvironment =QProcessEnvironment::systemEnvironment();
+
+    if (processEnvironment.contains("HQ_LAUNCHER_BUILDS_URL")) {
+        latestBuildRequestUrl = processEnvironment.value("HQ_LAUNCHER_BUILDS_URL");
+    }
+
+    auto request = new QNetworkRequest(QUrl(latestBuildRequestUrl));
     auto reply = _networkAccessManager.get(*request);
 
     QObject::connect(reply, &QNetworkReply::finished, this, &LauncherState::receivedBuildsReply);
+}
+
+void LauncherState::restart() {
+    setApplicationState(ApplicationState::Init);
+    requestBuilds();
 }
 
 void LauncherState::receivedBuildsReply() {
@@ -223,7 +233,7 @@ void LauncherState::receivedBuildsReply() {
     }
 
     if (shouldDownloadLauncher()) {
-        downloadLauncher();
+        //downloadLauncher();
     }
     getCurrentClientVersion();
 }

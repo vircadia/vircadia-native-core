@@ -29,9 +29,9 @@ struct LatestBuilds {
 class LauncherState : public QObject {
     Q_OBJECT
 
-    Q_PROPERTY(UIState uiState READ getUIState NOTIFY uiStateChanged);
-    Q_PROPERTY(ApplicationState applicationState READ getApplicationState NOTIFY applicationStateChanged);
-    Q_PROPERTY(float downloadProgress READ getDownloadProgress NOTIFY downloadProgressChanged);
+    Q_PROPERTY(UIState uiState READ getUIState NOTIFY uiStateChanged)
+    Q_PROPERTY(ApplicationState applicationState READ getApplicationState NOTIFY applicationStateChanged)
+    Q_PROPERTY(float downloadProgress READ getDownloadProgress NOTIFY downloadProgressChanged)
     Q_PROPERTY(SignupRequest::Error lastSignupError MEMBER _lastSignupError NOTIFY lastSignupErrorChanged);
 
 public:
@@ -118,6 +118,8 @@ public:
     // Request Settings
     void requestSettings();
 
+    Q_INVOKABLE void restart();
+
     // Launcher
     void downloadLauncher();
     void installLauncher();
@@ -136,7 +138,7 @@ public:
     Q_INVOKABLE float getDownloadProgress() const { return _downloadProgress; }
 
 signals:
-    void updateSourceUrl(QString sourceUrl);
+    void updateSourceUrl(QUrl sourceUrl);
     void uiStateChanged();
     void applicationStateChanged();
     void downloadProgressChanged();

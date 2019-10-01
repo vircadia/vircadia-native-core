@@ -16,6 +16,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include("cmake/init.cmake")
 include("cmake/macros/SetPackagingParameters.cmake")
 
+if (WIN32)
+  set(CMAKE_MFC_FLAG 1)
+endif()
+
 
 function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
   if (NOT DEFINED ${_RESULT_NAME})
@@ -31,6 +35,7 @@ include(ExternalProject)
 
 if (APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "-framework Cocoa -framework CoreServices -framework Carbon -framework IOKit -framework Security -framework SystemConfiguration")
+  add_compile_options(-W -Wall -Wextra -Wpedantic)
 endif()
 if (WIN32)
 
@@ -64,8 +69,8 @@ endif ()
 if (APPLE)
   ExternalProject_Add(
     qtlite
-    URL "https://dantescalves.com/launcher/qt-lite-clang-8.1.0.zip"
-    URL_HASH MD5=f8462bfcd54e6b05ef888f8b197149c2
+    URL "https://dantescalves.com/launcher/qt-lite-5.9.9-mac.zip"
+    URL_HASH MD5=0cd78d40e5f539a7e314cf99b6cae0d0
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
@@ -139,9 +144,10 @@ set(src_files
   src/Unzipper.cpp
   src/Helper.h
   src/Helper.cpp
+  src/CommandlineOptions.h
+  src/CommandlineOptions.cpp
   deps/miniz/miniz.h
   deps/miniz/miniz.cpp
-  ${RES_SOURCES}
   )
 
 
@@ -165,13 +171,13 @@ set(TARGET_NAME ${PROJECT_NAME})
 
 set_packaging_parameters()
 if (WIN32)
-  add_executable(${PROJECT_NAME} ${src_files} ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
+  add_executable(${PROJECT_NAME} ${src_files} ${RES_SOURCES})
 elseif (APPLE)
   set_target_properties(${this_target} PROPERTIES
     MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
 
   set(MACOSX_BUNDLE_ICON_FILE "interface.icns")
-  add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files})
+  add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files} ${RES_SOURCES})
   set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
 endif()
 
@@ -220,21 +226,14 @@ if (APPLE)
     ${OPENSSL_INCLUDE_DIR})
 endif()
 
-set(INTERFACE_EXEC_DIR "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
-set(RESOURCES_DEV_DIR "${INTERFACE_EXEC_DIR}/resources")
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-  "${RESOURCES_RCC}"
-  "${INTERFACE_EXEC_DIR}")
 
-
-if (LAUNCHER_SOURCE_TREE_RESOURCES)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
-  message("Use source tree resources path: file://${CMAKE_CURRENT_SOURCE_DIR}/resources/")
-else()
-  target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="qrc:/")
-  message("Use resource.rcc path: qrc:/")
-endif()
+  if (LAUNCHER_SOURCE_TREE_RESOURCES)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
+    message("Use source tree resources path: file://${CMAKE_CURRENT_SOURCE_DIR}/resources/")
+  else()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="qrc:/")
+    message("Use resource.rcc path: qrc:/")
+  endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
 
