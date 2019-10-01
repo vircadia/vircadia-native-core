@@ -6730,7 +6730,7 @@ void MyAvatar::updateHeadLookAt(float deltaTime) {
     if (_skeletonModelLoaded) {
         glm::vec3 lookAtTarget = _scriptControlsHeadLookAt ? _lookAtScriptTarget : _lookAtCameraTarget;
         glm::vec3 aimVector = lookAtTarget - getDefaultEyePosition();
-        glm::vec3 lookAtBlend = aimToBlendValues(aimVector, getWorldOrientation());
+        glm::vec3 lookAtBlend = MyAvatar::aimToBlendValues(aimVector, getWorldOrientation());
         _skeletonModel->getRig().setDirectionalBlending(HEAD_BLEND_DIRECTIONAL_ALPHA_NAME, lookAtBlend,
                                                         HEAD_BLEND_LINEAR_ALPHA_NAME, HEAD_ALPHA_BLENDING);
 
@@ -6768,7 +6768,7 @@ bool MyAvatar::setPointAt(const glm::vec3& pointAtTarget) {
         glm::vec3 aimVector = pointAtTarget - getJointPosition(POINT_REF_JOINT_NAME);
         _isPointTargetValid = glm::dot(aimVector, getWorldOrientation() * Vectors::FRONT) > 0.0f;
         if (_isPointTargetValid) {
-            glm::vec3 pointAtBlend = aimToBlendValues(aimVector, getWorldOrientation());
+            glm::vec3 pointAtBlend = MyAvatar::aimToBlendValues(aimVector, getWorldOrientation());
             _skeletonModel->getRig().setDirectionalBlending(POINT_BLEND_DIRECTIONAL_ALPHA_NAME, pointAtBlend,
                 POINT_BLEND_LINEAR_ALPHA_NAME, POINT_ALPHA_BLENDING);
         }

@@ -2694,7 +2694,7 @@ private:
     void resetHeadLookAt();
     void resetLookAtRotation(const glm::vec3& avatarPosition, const glm::quat& avatarOrientation);
     void resetPointAt();
-    glm::vec3 aimToBlendValues(const glm::vec3& aimVector, const glm::quat& frameOrientation);
+    static glm::vec3 aimToBlendValues(const glm::vec3& aimVector, const glm::quat& frameOrientation);
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
