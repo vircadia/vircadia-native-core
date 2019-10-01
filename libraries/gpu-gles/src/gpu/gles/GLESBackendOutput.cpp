@@ -17,34 +17,6 @@
 
 namespace gpu { namespace gles { 
 
-
-// returns the FOV from the projection matrix
-static inline vec4 extractFov( const glm::mat4& m) {
-    static const std::array<vec4, 4> CLIPS{ {
-                                                { 1, 0, 0, 1 },
-                                                { -1, 0, 0, 1 },
-                                                { 0, 1, 0, 1 },
-                                                { 0, -1, 0, 1 }
-                                            } };
-
-    glm::mat4 mt = glm::transpose(m);
-    vec4 v, result;
-    // Left
-    v = mt * CLIPS[0];
-    result.x = -atanf(v.z / v.x);
-    // Right
-    v = mt * CLIPS[1];
-    result.y = atanf(v.z / v.x);
-    // Down
-    v = mt * CLIPS[2];
-    result.z = -atanf(v.z / v.y);
-    // Up
-    v = mt * CLIPS[3];
-    result.w = atanf(v.z / v.y);
-    return result;
-}
-
-
 class GLESFramebuffer : public gl::GLFramebuffer {
     using Parent = gl::GLFramebuffer;
     static GLuint allocate() {

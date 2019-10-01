@@ -2802,7 +2802,7 @@
                                                                                                                 "children": [
                                                                                                                 ],
                                                                                                                 "data": {
-                                                                                                                    "endFrame": 92,
+                                                                                                                    "endFrame": 84,
                                                                                                                     "loopFlag": false,
                                                                                                                     "startFrame": 1,
                                                                                                                     "timeScale": 1,
@@ -2815,7 +2815,7 @@
                                                                                                                 "children": [
                                                                                                                 ],
                                                                                                                 "data": {
-                                                                                                                    "endFrame": 158,
+                                                                                                                    "endFrame": 100,
                                                                                                                     "loopFlag": false,
                                                                                                                     "startFrame": 1,
                                                                                                                     "timeScale": 1,
@@ -4610,9 +4610,9 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "idle",
-                                                                                                    "interpDuration": 10,
-                                                                                                    "interpTarget": 10,
-                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "interpDuration": 20,
+                                                                                                    "interpTarget": 20,
+                                                                                                    "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "WALKFWD",
