@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global getTabletWidthFromSettings, TRIGGER_OFF_VALUE, Controller, Script, Camera, Tablet, MyAvatar,
+/* global getTabletWidthFromSettings, handsAreTracked, TRIGGER_OFF_VALUE, Controller, Script, Camera, Tablet, MyAvatar,
    Quat, SoundCache, HMD, Overlays, Vec3, Uuid, Messages */
 
 (function () {
@@ -79,11 +79,6 @@
 
     function otherHand(hand) {
         return hand === LEFT_HAND ? RIGHT_HAND : LEFT_HAND;
-    }
-
-    function handsAreTracked() {
-        return Controller.getPoseValue(Controller.Standard.LeftHandIndex3).valid ||
-            Controller.getPoseValue(Controller.Standard.RightHandIndex3).valid;
     }
 
     UI = function () {

@@ -63,7 +63,8 @@
    clearHighlightedEntities:true,
    unhighlightTargetEntity:true,
    distanceBetweenEntityLocalPositionAndBoundingBox: true,
-   worldPositionToRegistrationFrameMatrix: true
+   worldPositionToRegistrationFrameMatrix: true,
+   handsAreTracked: true
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -600,6 +601,10 @@ worldPositionToRegistrationFrameMatrix = function(wptrProps, pos) {
     return offsetMat;
 };
 
+handsAreTracked = function () {
+    return Controller.getPoseValue(Controller.Standard.LeftHandIndex3).valid ||
+        Controller.getPoseValue(Controller.Standard.RightHandIndex3).valid;
+}
 
 if (typeof module !== 'undefined') {
     module.exports = {
@@ -624,6 +629,7 @@ if (typeof module !== 'undefined') {
         TRIGGER_OFF_VALUE: TRIGGER_OFF_VALUE,
         TRIGGER_ON_VALUE: TRIGGER_ON_VALUE,
         DISPATCHER_HOVERING_LIST: DISPATCHER_HOVERING_LIST,
-        worldPositionToRegistrationFrameMatrix: worldPositionToRegistrationFrameMatrix
+        worldPositionToRegistrationFrameMatrix: worldPositionToRegistrationFrameMatrix,
+        handsAreTracked: handsAreTracked
     };
 }
