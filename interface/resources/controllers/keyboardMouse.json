@@ -3,8 +3,10 @@
     "channels": [
         { "from": "Keyboard.A", "when": ["Keyboard.RightMouseButton", "!Keyboard.Control"], "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.D", "when": ["Keyboard.RightMouseButton", "!Keyboard.Control"], "to": "Actions.LATERAL_RIGHT" },
-        { "from": "Keyboard.E", "when": ["!Application.CameraSelfie", "!Application.CameraLookAt", "!Keyboard.Control"], "to": "Actions.LATERAL_RIGHT" },
-        { "from": "Keyboard.Q", "when": ["!Application.CameraSelfie", "!Application.CameraLookAt", "!Keyboard.Control"], "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.E", "when": ["!Application.CameraSelfie", "!Keyboard.Control"], "to": "Actions.LATERAL_RIGHT" },
+        { "from": "Keyboard.Q", "when": ["!Application.CameraSelfie", "!Keyboard.Control"], "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.Q", "when": ["Application.CameraSelfie", "!Keyboard.Control"], "to": "Actions.LATERAL_RIGHT" },
+        { "from": "Keyboard.E", "when": ["Application.CameraSelfie", "!Keyboard.Control"], "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.T", "when": "!Keyboard.Control", "to": "Actions.TogglePushToTalk" },
 
         { "comment" : "Mouse turn need to be small continuous increments",
@@ -122,18 +124,18 @@
         },
         
         { "from": { "makeAxis" : [
-                ["Keyboard.Q"],
-                ["Keyboard.E"]
-            ]
+                ["Keyboard.A"],
+                ["Keyboard.D"]
+             ]
           },
           "when": ["Application.CameraLookAt", "!Keyboard.Control"],
           "to": "Actions.Yaw"
         },
 
         { "from": { "makeAxis" : [
-                ["Keyboard.E"],
-                ["Keyboard.Q"]
-            ]
+                ["Keyboard.A"],
+                ["Keyboard.D"]
+             ]
           },
           "when": ["Application.CameraSelfie", "!Keyboard.Control"],
           "to": "Actions.Yaw"
@@ -215,10 +217,6 @@
         { "from": "Keyboard.S", "when": ["!Application.CameraSelfie", "!Keyboard.Control"], "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.S", "when": ["Application.CameraSelfie", "!Keyboard.Control"], "to": "Actions.LONGITUDINAL_FORWARD" },
         { "from": "Keyboard.W", "when": ["Application.CameraSelfie", "!Keyboard.Control"], "to": "Actions.LONGITUDINAL_BACKWARD" },
-        { "from": "Keyboard.A", "when": "Application.CameraLookAt", "to": "Actions.LATERAL_LEFT" },
-        { "from": "Keyboard.D", "when": "Application.CameraLookAt", "to": "Actions.LATERAL_RIGHT" },
-        { "from": "Keyboard.A", "when": "Application.CameraSelfie", "to": "Actions.LATERAL_RIGHT" },
-        { "from": "Keyboard.D", "when": "Application.CameraSelfie", "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.Shift", "when": ["!Keyboard.Left", "!Keyboard.Right"], "to": "Actions.SPRINT" },
         { "from": "Keyboard.C", "when": "!Keyboard.Control", "to": "Actions.VERTICAL_DOWN" },
         { "from": "Keyboard.Left", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },
