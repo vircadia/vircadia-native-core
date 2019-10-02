@@ -33,12 +33,12 @@ MixerAvatar::MixerAvatar() {
     _challengeTimer.setSingleShot(true);
     _challengeTimer.setInterval(CHALLENGE_TIMEOUT_MS);
     
-    _challengeTimer.callOnTimeout([this]() {
+    _challengeTimer.callOnTimeout(this, [this]() {
         if (_verifyState == challengeClient) {
             _pendingEvent = false;
             _verifyState = verificationFailed;
             _needsIdentityUpdate = true;
-            qCDebug(avatars) << "Dynamic verification TIMED-OUT for " << getDisplayName() << getSessionUUID();
+            qCDebug(avatars) << "Dynamic verification TIMED-OUT for" << getDisplayName() << getSessionUUID();
         } else {
             qCDebug(avatars) << "Ignoring timeout of avatar challenge";
         }
@@ -287,7 +287,7 @@ void MixerAvatar::processCertifyEvents() {
                         << ":" << _dynamicMarketResponse;
                 }
             } else {
-                qCDebug(avatars) << "Get owner status failed for " << getDisplayName() << _marketplaceIdFromURL <<
+                qCDebug(avatars) << "Get owner status failed for" << getDisplayName() << _marketplaceIdFromURL <<
                     "message:" << responseJson["message"].toString();
                 _verifyState = error;
             }
@@ -332,7 +332,7 @@ void MixerAvatar::sendOwnerChallenge() {
 void MixerAvatar::processChallengeResponse(ReceivedMessage& response) {
     QByteArray avatarID;
     QMutexLocker certifyLocker(&_avatarCertifyLock);
-    QMetaObject::invokeMethod(&_challengeTimer, &QTimer::stop);
+    stopChallengeTimer();
     if (_verifyState == challengeClient) {
         QByteArray responseData = response.readAll();
         if (responseData.length() < 8) {
@@ -356,12 +356,20 @@ void MixerAvatar::processChallengeResponse(ReceivedMessage& response) {
         _verifyState = challengeResult ? verificationSucceeded : verificationFailed;
         _needsIdentityUpdate = true;
         if (_verifyState == verificationFailed) {
-            qCDebug(avatars) << "Dynamic verification FAILED for " << getDisplayName() << getSessionUUID();
+            qCDebug(avatars) << "Dynamic verification FAILED for" << getDisplayName() << getSessionUUID();
         } else {
             qCDebug(avatars) << "Dynamic verification SUCCEEDED for" << getDisplayName() << getSessionUUID();
         }
 
     } else {
         qCDebug(avatars) << "WARNING: Unexpected avatar challenge-response in state" << stateToName(_verifyState);
+    }
+}
+
+void MixerAvatar::stopChallengeTimer() {
+    if (QThread::currentThread() == thread()) {
+        _challengeTimer.stop();
+    } else {
+        QMetaObject::invokeMethod(&_challengeTimer, &QTimer::stop);
     }
 }

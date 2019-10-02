@@ -92,29 +92,33 @@
                         </tr>
                     </tbody>
                 </table>
-                 <?js= self.partial('details.tmpl', doc) ?>
-
-            <?js } else { ?>
-                <h3>Description</h3>
-                <?js if (doc.description) { ?>
-                    <p><?js= doc.description ?></p>
-                <?js } ?>
-            <?js
-                var classes = self.find({kind: 'class', memberof: doc.longname});
-                if (!isGlobalPage && classes && classes.length) {
-            ?>
-                <h3 id="#class">Classes</h3>
-                <?js classes.forEach(function(c) { ?>
-                    <p><?js= self.linkto(c.longname, c.name) ?></p>
-                <?js }); ?>
-            <?js } ?>
-
                 <?js= self.partial('details.tmpl', doc) ?>
 
                 <?js if (doc.examples && doc.examples.length) { ?>
                     <h3>Example<?js= doc.examples.length > 1? 's':'' ?></h3>
                     <?js= self.partial('examples.tmpl', doc.examples) ?>
+                <?js } ?>                
+            <?js } else { ?>
+                <h3>Description</h3>
+                <?js if (doc.description) { ?>
+                    <p><?js= doc.description ?></p>
                 <?js } ?>
+
+                <?js if (doc.examples && doc.examples.length) { ?>
+                    <h3>Example<?js= doc.examples.length > 1? 's':'' ?></h3>
+                    <?js= self.partial('examples.tmpl', doc.examples) ?>
+                <?js } ?>
+                <?js
+                    var classes = self.find({kind: 'class', memberof: doc.longname});
+                    if (!isGlobalPage && classes && classes.length) {
+                ?>
+                    <h3 id="#class">Classes</h3>
+                    <?js classes.forEach(function(c) { ?>
+                        <p><?js= self.linkto(c.longname, c.name) ?></p>
+                        <?js }); ?>
+                    <?js } ?>
+
+                    <?js= self.partial('details.tmpl', doc) ?>
             <?js } ?>
         </div>
 

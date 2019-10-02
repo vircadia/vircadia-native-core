@@ -48,7 +48,6 @@ var UTF_CODE = 0;
 // Only plays a sound if it is downloaded.
 // Only plays one sound at a time.
 var emojiCreateSound = SoundCache.getSound(Script.resolvePath('resources/sounds/emojiPopSound1.wav'));
-var emojiDestroySound = SoundCache.getSound(Script.resolvePath('resources/sounds/emojiPopSound2.wav'));
 var injector;
 var DEFAULT_VOLUME = 0.01;
 var local = false;
@@ -78,7 +77,6 @@ function pruneOldAvimojis() {
             }
         });
 }
-
 
 function maybeClearTimeoutDelete() {
     if (defaultTimeout) {
@@ -157,6 +155,7 @@ function handleSelectedEmoji(emojiFilename) {
     }
 }
 
+
 function onDomainChanged() {
     resetEmojis();
 }
@@ -164,6 +163,14 @@ function onDomainChanged() {
 
 function onScaleChanged() {
     resetEmojis();
+}
+
+
+function onAddingWearable(id) {
+    var props = Entities.getEntityProperties(id, ["name"]);
+    if (props.name.toLowerCase().indexOf("avimoji") > -1) {
+        Entities.deleteEntity(id);
+    }
 }
 
 
@@ -179,7 +186,13 @@ function onScaleChanged() {
 
 
 // what happens when we need to add an emoji over a user
+var firstEmojiMadeOnStartup = false;
 function addEmoji(emojiFilename) {
+    if (!firstEmojiMadeOnStartup) {
+        firstEmojiMadeOnStartup = true;
+        Entities.addingWearable.disconnect(onAddingWearable);
+    }
+
     if (currentEmoji) {
         resetEmojis();
     }
@@ -312,9 +325,7 @@ function playPopAnimation() {
         if (popType === "in") {
             currentPopScale = MIN_POP_SCALE;
         } else {
-            // Start with the pop sound on the out
             currentPopScale = finalInPopScale ? finalInPopScale : MAX_POP_SCALE;
-            playSound(emojiDestroySound, DEFAULT_VOLUME, MyAvatar.position, true);
         }
     }
 
@@ -388,7 +399,8 @@ function playPopAnimation() {
 var emojiCodeMap;
 var customEmojiCodeMap;
 var signalsConnected = false;
-function init() {
+var _this;
+function startup() {
     // make a map of just the utf codes to help with accesing
     emojiCodeMap = emojiList.reduce(function (codeMap, currentEmojiInList, index) {
         if (
@@ -414,54 +426,30 @@ function init() {
 
     pruneOldAvimojis();
 
+    Script.scriptEnding.connect(unload);
     Window.domainChanged.connect(onDomainChanged);
     MyAvatar.scaleChanged.connect(onScaleChanged);
-    Script.scriptEnding.connect(scriptEnding);
+    Entities.addingWearable.connect(onAddingWearable);
     signalsConnected = true;
-}
 
-
-// #endregion
-// *************************************
-// END main
-// *************************************
-
-// *************************************
-// START cleanup
-// *************************************
-// #region cleanup
-
-
-function scriptEnding() {
-    resetEmojis();
-    if (signalsConnected) {
-        Script.scriptEnding.disconnect(scriptEnding);
-        Window.domainChanged.disconnect(onDomainChanged);
-        MyAvatar.scaleChanged.disconnect(onScaleChanged);
-        signalsConnected = false;
+    function AviMoji() {
+        _this = this;
+        this._avimojiQMLWindow = null;
     }
+
+    AviMoji.prototype = {
+        addEmoji: addEmojiFromQML,
+        registerAvimojiQMLWindow: registerAvimojiQMLWindow
+    };
+
+    return new AviMoji();
 }
 
-
-// #endregion
-// *************************************
-// END cleanup
-// *************************************
-
-// *************************************
-// START API
-// *************************************
-// #region API
-
-var _this;
-function AviMoji() {
-    _this = this;
-    this._avimojiQMLWindow;
-}
 
 function registerAvimojiQMLWindow(avimojiQMLWindow) {
     this._avimojiQMLWindow = avimojiQMLWindow;
 }
+
 
 function addEmojiFromQML(code) {
     var emojiObject = emojiList[emojiCodeMap[code]];
@@ -475,25 +463,21 @@ function addEmojiFromQML(code) {
     handleSelectedEmoji(emojiFilename);
 }
 
+
 function unload() {
-    scriptEnding();
+    resetEmojis();
+    if (signalsConnected) {
+        Window.domainChanged.disconnect(onDomainChanged);
+        MyAvatar.scaleChanged.disconnect(onScaleChanged);
+        if (!firstEmojiMadeOnStartup) {
+            Entities.addingWearable.disconnect(onAddingWearable);
+        }
+
+        signalsConnected = false;
+    }
 }
 
-function startup() {
-    init();
-}
 
-AviMoji.prototype = {
-    startup: startup,
-    addEmoji: addEmojiFromQML,
-    unload: unload,
-    registerAvimojiQMLWindow: registerAvimojiQMLWindow
-};
+var aviMoji = startup();
 
-
-module.exports = AviMoji;
-
-// #endregion
-// *************************************
-// END API
-// *************************************
+module.exports = aviMoji;

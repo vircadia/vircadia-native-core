@@ -199,4 +199,9 @@ Item {
             rightMargin: 136
         }
     }
+
+    Component.onCompleted: {
+        root.parent.setStateInfoState("left");
+        root.parent.setBuildInfoState("right");
+    }
 }

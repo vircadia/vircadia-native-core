@@ -35,7 +35,7 @@
 
 	function onClicked() {
 	    if (!shown) {
-	        tablet.gotoWebScreen(APP_URL, "", true);
+	        tablet.gotoWebScreen(APP_URL, "");
 	    } else {
 	        tablet.gotoHomeScreen();
 	    }

@@ -12,6 +12,7 @@
 #include <QtQml/QQmlProperty>
 
 #include <shared/QtHelpers.h>
+#include <shared/LocalFileAccessGate.h>
 #include <PathUtils.h>
 #include <DependencyManager.h>
 #include <AccountManager.h>
@@ -591,10 +592,49 @@ void TabletProxy::gotoMenuScreen(const QString& submenu) {
     }
 }
 
-void TabletProxy::loadQMLOnTop(const QVariant& path) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadQMLOnTop", Q_ARG(QVariant, path));
+void TabletProxy::loadQMLOnTopImpl(const QVariant& path, bool localSafeContext) {
+     if (QThread::currentThread() != thread()) {
+        qCWarning(uiLogging) << __FUNCTION__ << "may not be called directly by scripts";
         return;
+    }
+
+     QObject* root = nullptr;
+     if (!_toolbarMode && _qmlTabletRoot) {
+         root = _qmlTabletRoot;
+     } else if (_toolbarMode && _desktopWindow) {
+         root = _desktopWindow->asQuickItem();
+     }
+
+     if (root) {
+         if (localSafeContext) {
+             hifi::scripting::setLocalAccessSafeThread(true);
+         }
+         QMetaObject::invokeMethod(root, "loadQMLOnTop", Q_ARG(const QVariant&, path));
+         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+         if (_toolbarMode && _desktopWindow) {
+             QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(false)));
+         }
+         hifi::scripting::setLocalAccessSafeThread(false);
+     } else {
+         qCDebug(uiLogging) << "tablet cannot load QML because _qmlTabletRoot is null";
+     }
+}
+
+void TabletProxy::loadQMLOnTop(const QVariant& path) {
+    bool localSafeContext = hifi::scripting::isLocalAccessSafeThread();
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "loadQMLOnTopImpl", Q_ARG(QVariant, path), Q_ARG(bool, localSafeContext));
+        return;
+    }
+
+    loadQMLOnTopImpl(path, localSafeContext);
+}
+
+void TabletProxy::returnToPreviousAppImpl(bool localSafeContext) {
+    if (QThread::currentThread() != thread()) {
+        qCWarning(uiLogging) << __FUNCTION__ << "may not be called directly by scripts";
+        return;
+
     }
 
     QObject* root = nullptr;
@@ -605,43 +645,45 @@ void TabletProxy::loadQMLOnTop(const QVariant& path) {
     }
 
     if (root) {
-        QMetaObject::invokeMethod(root, "loadQMLOnTop", Q_ARG(const QVariant&, path));
-        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
-        if (_toolbarMode && _desktopWindow) {
-            QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(false)));
+        if (localSafeContext) {
+            hifi::scripting::setLocalAccessSafeThread(true);
         }
+        QMetaObject::invokeMethod(root, "returnToPreviousApp");
+        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+        hifi::scripting::setLocalAccessSafeThread(false);
     } else {
         qCDebug(uiLogging) << "tablet cannot load QML because _qmlTabletRoot is null";
     }
 }
 
 void TabletProxy::returnToPreviousApp() {
+    bool localSafeContext = hifi::scripting::isLocalAccessSafeThread();
+    qDebug() << "TabletProxy::returnToPreviousApp -> localSafeContext: " << localSafeContext;
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "returnToPreviousApp");
+        QMetaObject::invokeMethod(this, "returnToPreviousAppImpl", Q_ARG(bool, localSafeContext));
         return;
     }
 
-    QObject* root = nullptr;
-    if (!_toolbarMode && _qmlTabletRoot) {
-        root = _qmlTabletRoot;
-    } else if (_toolbarMode && _desktopWindow) {
-        root = _desktopWindow->asQuickItem();
-    }
-
-    if (root) {
-        QMetaObject::invokeMethod(root, "returnToPreviousApp");
-        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
-    } else {
-        qCDebug(uiLogging) << "tablet cannot load QML because _qmlTabletRoot is null";
-    }
+    returnToPreviousAppImpl(localSafeContext);
 }
-    
+
 void TabletProxy::loadQMLSource(const QVariant& path, bool resizable) {
+    // Capture whether the current script thread is allowed to load local HTML content, 
+    // pass the information along to the real function
+    bool localSafeContext = hifi::scripting::isLocalAccessSafeThread();
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadQMLSource", Q_ARG(QVariant, path), Q_ARG(bool, resizable));
+        QMetaObject::invokeMethod(this, "loadQMLSourceImpl", Q_ARG(QVariant, path), Q_ARG(bool, resizable), Q_ARG(bool, localSafeContext));
         return;
     }
+    loadQMLSourceImpl(path, resizable, localSafeContext);
+}
 
+void TabletProxy::loadQMLSourceImpl(const QVariant& path, bool resizable, bool localSafeContext) {
+    if (QThread::currentThread() != thread()) {
+        qCWarning(uiLogging) << __FUNCTION__ << "may not be called directly by scripts";
+        return;
+
+    }
     QObject* root = nullptr;
     if (!_toolbarMode && _qmlTabletRoot) {
         root = _qmlTabletRoot;
@@ -650,7 +692,14 @@ void TabletProxy::loadQMLSource(const QVariant& path, bool resizable) {
     }
 
     if (root) {
+        // BUGZ-1398: tablet access to local HTML files from client scripts
+        // Here we TEMPORARILY mark the main thread as allowed to load local file content, 
+        // because the thread that originally made the call is so marked.  
+        if (localSafeContext) {
+            hifi::scripting::setLocalAccessSafeThread(true);
+        }
         QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, path));
+        hifi::scripting::setLocalAccessSafeThread(false);
         _state = State::QML;
         _currentPathLoaded = path;
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
@@ -776,10 +825,24 @@ void TabletProxy::loadWebScreenOnTop(const QVariant& url) {
 }
 
 void TabletProxy::loadWebScreenOnTop(const QVariant& url, const QString& injectJavaScriptUrl) {
+    bool localSafeContext = hifi::scripting::isLocalAccessSafeThread();
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadWebScreenOnTop", Q_ARG(QVariant, url), Q_ARG(QString, injectJavaScriptUrl));
+        QMetaObject::invokeMethod(this, "loadHTMLSourceImpl", Q_ARG(QVariant, url), Q_ARG(QString, injectJavaScriptUrl), Q_ARG(bool, localSafeContext));
         return;
     }
+
+    loadHTMLSourceImpl(url, injectJavaScriptUrl, localSafeContext);
+}
+
+
+
+void TabletProxy::loadHTMLSourceImpl(const QVariant& url, const QString& injectJavaScriptUrl, bool localSafeContext) {
+    if (QThread::currentThread() != thread()) {
+        qCWarning(uiLogging) << __FUNCTION__ << "may not be called directly by scripts";
+        return;
+
+    }
+
 
     QObject* root = nullptr;
     if (!_toolbarMode && _qmlTabletRoot) {
@@ -789,21 +852,32 @@ void TabletProxy::loadWebScreenOnTop(const QVariant& url, const QString& injectJ
     }
 
     if (root) {
+        if (localSafeContext) {
+            hifi::scripting::setLocalAccessSafeThread(true);
+        }
         QMetaObject::invokeMethod(root, "loadQMLOnTop", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         if (_toolbarMode && _desktopWindow) {
             QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(false)));
         }
         QMetaObject::invokeMethod(root, "loadWebOnTop", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectJavaScriptUrl)));
+        hifi::scripting::setLocalAccessSafeThread(false);
     }
     _state = State::Web;
 }
 
 void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase) {
+    bool localSafeContext = hifi::scripting::isLocalAccessSafeThread();
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "gotoWebScreen", Q_ARG(QString, url), Q_ARG(QString, injectedJavaScriptUrl), Q_ARG(bool, loadOtherBase));
+        QMetaObject::invokeMethod(this, "loadHTMLSourceImpl", Q_ARG(QString, url), Q_ARG(QString, injectedJavaScriptUrl), Q_ARG(bool, loadOtherBase), Q_ARG(bool, localSafeContext));
         return;
     }
+
+
+    loadHTMLSourceImpl(url, injectedJavaScriptUrl, loadOtherBase, localSafeContext);
+}
+
+void TabletProxy::loadHTMLSourceImpl(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase, bool localSafeContext) {
 
     QObject* root = nullptr;
     if (!_toolbarMode && _qmlTabletRoot) {
@@ -813,6 +887,9 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
     }
 
     if (root) {
+        if (localSafeContext) {
+            hifi::scripting::setLocalAccessSafeThread(true);
+        }
         if (loadOtherBase) {
             QMetaObject::invokeMethod(root, "loadTabletWebBase", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
         } else {
@@ -822,6 +899,8 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
         if (_toolbarMode && _desktopWindow) {
             QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(false)));
         }
+
+        hifi::scripting::setLocalAccessSafeThread(false);
         _state = State::Web;
         _currentPathLoaded = QVariant(url);
     } else {
@@ -890,8 +969,6 @@ void TabletProxy::sendToQml(const QVariant& msg) {
         QMetaObject::invokeMethod(_desktopWindow, "sendToQml", Qt::AutoConnection, Q_ARG(QVariant, msg));
     }
 }
-
-
 
 OffscreenQmlSurface* TabletProxy::getTabletSurface() {
     if (QThread::currentThread() != thread()) {

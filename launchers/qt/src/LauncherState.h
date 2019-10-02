@@ -24,8 +24,9 @@ class LauncherState : public QObject {
     Q_PROPERTY(UIState uiState READ getUIState NOTIFY uiStateChanged)
     Q_PROPERTY(ApplicationState applicationState READ getApplicationState NOTIFY applicationStateChanged)
     Q_PROPERTY(float downloadProgress READ getDownloadProgress NOTIFY downloadProgressChanged)
-    Q_PROPERTY(SignupRequest::Error lastSignupError MEMBER _lastSignupError NOTIFY lastSignupErrorChanged);
+    Q_PROPERTY(SignupRequest::Error lastSignupError MEMBER _lastSignupError NOTIFY lastSignupErrorChanged)
     Q_PROPERTY(QString lastLoginErrorMessage READ getLastLoginErrorMessage NOTIFY lastLoginErrorMessageChanged);
+    Q_PROPERTY(QString buildVersion READ getBuildVersion)
 
 public:
     LauncherState();
@@ -83,6 +84,8 @@ public:
     void setLastLoginErrorMessage(const QString& msg);
     QString getLastLoginErrorMessage() const { return _lastLoginErrorMessage; }
 
+    QString getBuildVersion() { return QString(LAUNCHER_BUILD_VERSION); }
+
     void setApplicationStateError(QString errorMessage);
     void setApplicationState(ApplicationState state);
     ApplicationState getApplicationState() const;
@@ -119,7 +122,7 @@ public:
     // Launching
     void launchClient();
 
-    Q_INVOKABLE float getDownloadProgress() const { return _downloadProgress; }
+    Q_INVOKABLE float getDownloadProgress() const { return calculateDownloadProgress(); }
 
 signals:
     void updateSourceUrl(QUrl sourceUrl);
@@ -144,6 +147,8 @@ private:
     QString getConfigFilePath() const;
     QString getLauncherFilePath() const;
 
+    float calculateDownloadProgress() const;
+
     bool shouldDownloadLauncher();
 
     QNetworkAccessManager _networkAccessManager;
@@ -154,6 +159,7 @@ private:
 
     // Application State
     ApplicationState _applicationState { ApplicationState::Init };
+    UIState _uiState { UIState::SPLASH_SCREEN };
     LoginToken _loginResponse;
     SignupRequest::Error _lastSignupError{ SignupRequest::Error::None };
     QString _lastLoginErrorMessage{ "" };
@@ -171,4 +177,8 @@ private:
     QString _password;
 
     float _downloadProgress { 0 };
+    float _contentDownloadProgress { 0 };
+    float _contentInstallProgress { 0 };
+    float _interfaceDownloadProgress { 0 };
+    float _interfaceInstallProgress { 0 };
 };

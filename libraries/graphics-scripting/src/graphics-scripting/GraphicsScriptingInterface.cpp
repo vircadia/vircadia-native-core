@@ -420,6 +420,18 @@ namespace scriptable {
             obj.setProperty("opacityMap", material.opacityMap);
         }
 
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT | graphics::MaterialKey::OPACITY_MASK_MAP_BIT)) {
+            obj.setProperty("opacityMapMode", FALLTHROUGH);
+        } else if (material.key.getOpacityMapMode() != graphics::Material::DEFAULT_OPACITY_MAP_MODE) {
+            obj.setProperty("opacityMapMode", material.opacityMapMode);
+        }
+
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OPACITY_CUTOFF_VAL_BIT)) {
+            obj.setProperty("opacityCutoff", FALLTHROUGH);
+        } else if (material.key.isOpacityCutoff()) {
+            obj.setProperty("opacityCutoff", material.opacityCutoff);
+        }
+
         if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OCCLUSION_MAP_BIT)) {
             obj.setProperty("occlusionMap", FALLTHROUGH);
         } else if (!material.occlusionMap.isEmpty()) {

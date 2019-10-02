@@ -45,6 +45,8 @@ set(src_files
   src/CustomUI.m
   src/NSTask+NSTaskExecveAdditions.h
   src/NSTask+NSTaskExecveAdditions.m
+  src/HQDefaults.h
+  src/HQDefaults.m
   src/main.mm
   nib/Window.xib
   nib/SplashScreen.xib
@@ -118,9 +120,16 @@ add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   ${CMAKE_SOURCE_DIR}/images "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/")
 
+add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_SOURCE_DIR}/data/HQDefaults.plist "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/")
+
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
   COMMAND updater
-  COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/updater" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/")
+  COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/updater" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/MacOS/"
+  # Older versions of Launcher put updater in `/Contents/Resources/updater`.
+  COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources" ln -sf ../MacOS/updater updater
+)
 
 install(
   TARGETS HQLauncher
@@ -146,3 +155,17 @@ set(DMG_SUBFOLDER_ICON "${CMAKE_SOURCE_DIR}/cmake/installer/install-folder.rsrc"
 
 set(CPACK_GENERATOR "DragNDrop")
 include(CPack)
+
+include(FindXCTest)
+
+include_directories(${CMAKE_SOURCE_DIR}/src)
+
+xctest_add_bundle(HQLauncherTests HQLauncher
+    ${CMAKE_SOURCE_DIR}/src/HQDefaults.m
+    ${CMAKE_SOURCE_DIR}/tests/HQDefaultsTests.m
+    ${CMAKE_SOURCE_DIR}/tests/Info.plist
+)
+
+set_target_properties(HQLauncherTests PROPERTIES
+  MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/tests/Info.plist
+  )

@@ -108,9 +108,19 @@ void Avatar::setShowMyLookAtVectors(bool showMine) {
     showMyLookAtVectors = showMine;
 }
 
+static bool showMyLookAtTarget = false;
+void Avatar::setShowMyLookAtTarget(bool showMine) {
+    showMyLookAtTarget = showMine;
+}
+
 static bool showOtherLookAtVectors = false;
 void Avatar::setShowOtherLookAtVectors(bool showOthers) {
     showOtherLookAtVectors = showOthers;
+}
+
+static bool showOtherLookAtTarget = false;
+void Avatar::setShowOtherLookAtTarget(bool showOthers) {
+    showOtherLookAtTarget = showOthers;
 }
 
 static bool showCollisionShapes = false;
@@ -123,7 +133,21 @@ void Avatar::setShowNamesAboveHeads(bool show) {
     showNamesAboveHeads = show;
 }
 
+static const char* avatarTransitStatusToStringMap[] = {
+    "IDLE",
+    "STARTED",
+    "PRE_TRANSIT",
+    "START_TRANSIT",
+    "TRANSITING",
+    "END_TRANSIT",
+    "POST_TRANSIT",
+    "ENDED",
+    "ABORT_TRANSIT"
+};
+
 AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
+    AvatarTransit::Status previousStatus = _status;
+
     float oneFrameDistance = _isActive ? glm::length(avatarPosition - _endPosition) : glm::length(avatarPosition - _lastPosition);
     if (oneFrameDistance > (config._minTriggerDistance * _scale)) {
         if (oneFrameDistance < (config._maxTriggerDistance * _scale)) {
@@ -139,6 +163,10 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
     if (_isActive && oneFrameDistance > (config._abortDistance * _scale) && _status == Status::POST_TRANSIT) {
         reset();
         _status = Status::ENDED;
+    }
+
+    if (previousStatus != _status) {
+        qDebug(avatars_renderer) << "AvatarTransit " << avatarTransitStatusToStringMap[(int)previousStatus] << "->" << avatarTransitStatusToStringMap[_status];
     }
     return _status;
 }
@@ -710,6 +738,14 @@ void Avatar::updateRenderItem(render::Transaction& transaction) {
 }
 
 void Avatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
+
+    if (isMyAvatar() ? showMyLookAtTarget : showOtherLookAtTarget) {
+        glm::vec3 lookAtTarget = getHead()->getLookAtPosition();
+        DebugDraw::getInstance().addMarker(QString("look-at-") + getID().toString(),
+                                           glm::quat(), lookAtTarget, glm::vec4(1), 1.0f);
+    } else {
+        DebugDraw::getInstance().removeMarker(QString("look-at-") + getID().toString());
+    }
 
     if (isMyAvatar() ? showMyLookAtVectors : showOtherLookAtVectors) {
         const float EYE_RAY_LENGTH = 10.0;

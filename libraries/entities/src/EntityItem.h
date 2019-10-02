@@ -569,7 +569,7 @@ public:
     static void setPrimaryViewFrustumPositionOperator(std::function<glm::vec3()> getPrimaryViewFrustumPositionOperator) { _getPrimaryViewFrustumPositionOperator = getPrimaryViewFrustumPositionOperator; }
     static glm::vec3 getPrimaryViewFrustumPosition() { return _getPrimaryViewFrustumPositionOperator(); }
 
-    bool stillHasMyGrabAction() const;
+    bool stillHasMyGrab() const;
 
     bool needsRenderUpdate() const { return resultWithReadLock<bool>([&] { return _needsRenderUpdate; }); }
     void setNeedsRenderUpdate(bool needsRenderUpdate) { withWriteLock([&] { _needsRenderUpdate = needsRenderUpdate; }); }
@@ -585,7 +585,7 @@ protected:
     void setSimulated(bool simulated) { _simulated = simulated; }
 
     const QByteArray getDynamicDataInternal() const;
-    bool stillHasGrabAction() const;
+    bool stillHasGrab() const;
     void setDynamicDataInternal(QByteArray dynamicData);
 
     virtual void dimensionsChanged() override;

@@ -16,6 +16,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include("cmake/init.cmake")
 include("cmake/macros/SetPackagingParameters.cmake")
 
+ if(MSVC)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+  endif()
+
 if (WIN32)
   set(CMAKE_MFC_FLAG 1)
 endif()
@@ -232,17 +236,16 @@ if (APPLE)
     ${OPENSSL_INCLUDE_DIR})
 endif()
 
+  if (LAUNCHER_SOURCE_TREE_RESOURCES)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE HIFI_USE_LOCAL_FILE)
+    message("Use source tree resources path: file://${CMAKE_CURRENT_SOURCE_DIR}/resources/")
+  else()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="qrc:/")
+    message("Use resource.rcc path: qrc:/")
+  endif()
 
-
-if (LAUNCHER_SOURCE_TREE_RESOURCES)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
-  message("Use source tree resources path: file://${CMAKE_CURRENT_SOURCE_DIR}/resources/")
-else()
-  target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="qrc:/")
-  message("Use resource.rcc path: qrc:/")
-endif()
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
 
 if (APPLE)
   install(

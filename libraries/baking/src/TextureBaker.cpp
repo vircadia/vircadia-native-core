@@ -250,6 +250,7 @@ void TextureBaker::processTexture() {
         QFile file { _metaTextureFileName };
         if (!file.open(QIODevice::WriteOnly) || file.write(data) == -1) {
             handleError("Could not write meta texture for " + _textureURL.toString());
+            return;
         } else {
             _outputFiles.push_back(_metaTextureFileName);
         }

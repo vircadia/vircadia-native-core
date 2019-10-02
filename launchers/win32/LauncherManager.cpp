@@ -511,7 +511,15 @@ void LauncherManager::getMostRecentBuilds(CString& launcherUrlOut, CString& laun
         addToLog(_T("Using overridden builds domain: ") + domainName);
         useHTTPS = false;
     } else {
-        domainName = L"thunder.highfidelity.com";
+        // We have 2 ways to adjust the domain, one of which forces http (HQ_LAUNCHER_BUILDS_DOMAIN),
+        // the other (HIFI_THUNDER_URL) of which uses https. They represent different use-cases, but
+        // would ideally be combined by including the protocol in the url, but because
+        // code is going to be replaced soon, we will leave it like this for now.
+        if (domainName.GetEnvironmentVariable(L"HIFI_THUNDER_URL")) {
+            addToLog(_T("Using overridden thunder url: ") + domainName);
+        } else {
+            domainName = L"thunder.highfidelity.com";
+        }
     }
 
     CString pathName;

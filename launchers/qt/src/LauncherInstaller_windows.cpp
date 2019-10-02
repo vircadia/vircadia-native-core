@@ -2,6 +2,10 @@
 #include "Helper.h"
 
 #include <string>
+#include <chrono>
+#include <iomanip>
+#include <ctime>
+#include <sstream>
 
 #include <QStandardPaths>
 #include <QFileInfo>
@@ -101,6 +105,8 @@ void LauncherInstaller::uninstall() {
     if (QFile::exists(desktopAppLinkPath)) {
         QFile::remove(desktopAppLinkPath);
     }
+
+    deleteApplicationRegistryKeys();
 }
 
 
@@ -115,13 +121,22 @@ void LauncherInstaller::createApplicationRegistryKeys() {
     success = insertRegistryKey(REGISTRY_PATH, "DisplayVersion", "DEV");
     success = insertRegistryKey(REGISTRY_PATH, "DisplayIcon", applicationExe);
     success = insertRegistryKey(REGISTRY_PATH, "Publisher", "High Fidelity");
-    //success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "InstallDate", LauncherUtils::cStringToStd(CTime::GetCurrentTime().Format("%Y%m%d")));
+
+    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+    std::stringstream date;
+    date << std::put_time(std::localtime(&now), "%Y-%m-%d") ;
+    success = insertRegistryKey(REGISTRY_PATH, "InstallDate", date.str());
     //success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "EstimatedSize", (DWORD)size);
     success = insertRegistryKey(REGISTRY_PATH, "NoModify", (DWORD)1);
     success = insertRegistryKey(REGISTRY_PATH, "NoRepair", (DWORD)1);
 
-    qDebug() << "--------: " << success;
+    qDebug() << "Did succcessfully insertRegistyKeys: " << success;
 }
 
 void LauncherInstaller::deleteApplicationRegistryKeys() {
+    const std::string regPath= "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\HQ";
+    if (!deleteRegistryKey(regPath.c_str())) {
+        qDebug() << "Failed to delete registryKeys";
+    }
 }

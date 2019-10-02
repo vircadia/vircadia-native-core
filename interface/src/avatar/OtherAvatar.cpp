@@ -512,13 +512,13 @@ void OtherAvatar::handleChangedAvatarEntityData() {
                 entity->setParentID(NULL_ID);
                 entity->setParentID(oldParentID);
 
-                if (entity->stillHasMyGrabAction()) {
+                if (entity->stillHasMyGrab()) {
                     // For this case: we want to ignore transform+velocities coming from authoritative OtherAvatar
                     // because the MyAvatar is grabbing and we expect the local grab state
                     // to have enough information to prevent simulation drift.
                     //
                     // Clever readers might realize this could cause problems.  For example,
-                    // if an ignored OtherAvagtar were to simultanously grab the object then there would be
+                    // if an ignored OtherAvatar were to simultanously grab the object then there would be
                     // a noticeable discrepancy between participants in the distributed physics simulation,
                     // however the difference would be stable and would not drift.
                     properties.clearTransformOrVelocityChanges();

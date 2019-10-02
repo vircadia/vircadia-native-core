@@ -99,16 +99,32 @@ Item {
                 color: "#01B2ED"
             }
         }
+    }
 
 
-        //PropertyAnimation {
-            //target: progressBar;
-            //loops: Animation.Infinite
-            //property: "value"
-            //from: 0;
-            //to: 1;
-            //duration: 5000
-            //running: true
-        //}
+    Text {
+        width: 100
+        height: 17
+
+        text: "High Fidelity"
+        font.bold: true
+        font.family: "Graphik"
+        font.pixelSize: 24
+        font.letterSpacing: -1
+        color: "#FFFFFF"
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
+
+        anchors {
+            bottom: root.bottom
+            bottomMargin: 15
+            left: root.left
+            leftMargin: 30
+        }
+    }
+
+    Component.onCompleted: {
+        root.parent.setStateInfoState("right");
+        root.parent.setBuildInfoState("left");
     }
 }

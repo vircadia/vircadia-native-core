@@ -16,6 +16,8 @@
 #include <QtCore/QRegularExpression>
 #include <QProgressBar>
 
+#include <platform/Profiler.h>
+
 #include "AWSInterface.h"
 #include "ImageComparer.h"
 #include "Downloader.h"
@@ -29,6 +31,20 @@ public:
 };
 
 using StepList = std::vector<Step*>;
+
+class TestFilter {
+public:
+    TestFilter(const QString& filterString);
+    bool isValid() const;
+    QString getError() const;
+
+    std::vector<QString> allowedTiers;
+    std::vector<QString> allowedOperatingSystems;
+    std::vector<QString> allowedGPUs;
+
+protected:
+    QString error;
+};
 
 class ExtractedText {
 public:

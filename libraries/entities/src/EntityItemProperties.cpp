@@ -965,7 +965,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *             // Value overrides entity's "color" property.
  *             albedo: [1.0, 1.0, 0]  // Yellow
  *         }
- *     }),
+ *     })
  * });
  */
 

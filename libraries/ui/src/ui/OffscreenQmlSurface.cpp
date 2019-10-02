@@ -42,6 +42,7 @@
 #include <NetworkAccessManager.h>
 #include <GLMHelpers.h>
 #include <AudioClient.h>
+#include <shared/LocalFileAccessGate.h>
 
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/GLHelpers.h>
@@ -355,7 +356,7 @@ void OffscreenQmlSurface::onRootCreated() {
     getSurfaceContext()->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
 
     // Connect with the audio client and listen for audio device changes
-    connect(DependencyManager::get<AudioClient>().data(), &AudioClient::deviceChanged, this, [this](QAudio::Mode mode, const QAudioDeviceInfo& device) {
+    connect(DependencyManager::get<AudioClient>().data(), &AudioClient::deviceChanged, this, [this](QAudio::Mode mode, const HifiAudioDeviceInfo& device) {
         if (mode == QAudio::Mode::AudioOutput) {
             QMetaObject::invokeMethod(this, "changeAudioOutputDevice", Qt::QueuedConnection, Q_ARG(QString, device.deviceName()));
         }
@@ -812,6 +813,26 @@ void OffscreenQmlSurface::forceQmlAudioOutputDeviceUpdate() {
         _audioOutputUpdateTimer.start();
     }
 #endif
+}
+
+void OffscreenQmlSurface::loadFromQml(const QUrl& qmlSource, QQuickItem* parent, const QJSValue& callback) {
+    auto objectCallback = [callback](QQmlContext* context, QQuickItem* newItem) {
+        QJSValue(callback).call(QJSValueList() << context->engine()->newQObject(newItem));
+    };
+
+    if (hifi::scripting::isLocalAccessSafeThread()) {
+        // If this is a 
+        auto contextCallback = [callback](QQmlContext* context) {
+            ContextAwareProfile::restrictContext(context, false);
+#if !defined(Q_OS_ANDROID)
+            FileTypeProfile::registerWithContext(context);
+            HFWebEngineProfile::registerWithContext(context);
+#endif
+        };
+        loadInternal(qmlSource, true, parent, objectCallback, contextCallback);
+    } else {
+        loadInternal(qmlSource, false, parent, objectCallback);
+    }
 }
 
 #include "OffscreenQmlSurface.moc"

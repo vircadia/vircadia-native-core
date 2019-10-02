@@ -214,6 +214,8 @@ bool OffscreenSurface::eventFilter(QObject* originalDestination, QEvent* event) 
                     fakeMouseEventType = QEvent::MouseButtonRelease;
                     fakeMouseButtons = Qt::NoButton;
                     break;
+                default:
+                    Q_UNREACHABLE();
             }
             // Same case as OffscreenUi.cpp::eventFilter: touch events are always being accepted so we now use mouse events and consider one touch, touchPoints()[0].
             QMouseEvent fakeMouseEvent(fakeMouseEventType, originalEvent->touchPoints()[0].pos(), fakeMouseButton, fakeMouseButtons, Qt::NoModifier);
@@ -291,6 +293,10 @@ void OffscreenSurface::setMaxFps(uint8_t maxFps) {
 }
 
 void OffscreenSurface::load(const QUrl& qmlSource, QQuickItem* parent, const QJSValue& callback) {
+    loadFromQml(qmlSource, parent, callback);
+}
+
+void OffscreenSurface::loadFromQml(const QUrl& qmlSource, QQuickItem* parent, const QJSValue& callback) {
     loadInternal(qmlSource, false, parent, [callback](QQmlContext* context, QQuickItem* newItem) {
         QJSValue(callback).call(QJSValueList() << context->engine()->newQObject(newItem));
     });

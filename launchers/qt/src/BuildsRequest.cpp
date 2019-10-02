@@ -32,6 +32,8 @@ void BuildsRequest::send(QNetworkAccessManager& nam) {
         latestBuildRequestUrl = processEnvironment.value("HQ_LAUNCHER_BUILDS_URL");
     }
 
+    qDebug() << latestBuildRequestUrl;
+
     QNetworkRequest request{ QUrl(latestBuildRequestUrl) };
     auto reply = nam.get(request);
 

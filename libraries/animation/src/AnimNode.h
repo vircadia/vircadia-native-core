@@ -73,6 +73,7 @@ public:
     }
 
     void setCurrentFrame(float frame);
+    void setActive(bool active);
 
     template <typename F>
     bool traverse(F func) {
@@ -98,12 +99,22 @@ public:
         return result;
     }
 
+    int findChildIndexByName(const QString& id) {
+        for (size_t i = 0; i < _children.size(); ++i) {
+            if (_children[i]->getID() == id) {
+                return (int)i;
+            }
+        }
+        return -1;
+    }
+
     const AnimPoseVec& getPoses() const { return getPosesInternal(); }
 
 protected:
 
     virtual void setCurrentFrameInternal(float frame) {}
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) { _skeleton = skeleton; }
+    virtual void setActiveInternal(bool active) {}
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const = 0;
@@ -116,6 +127,7 @@ protected:
     AnimSkeleton::ConstPointer _skeleton;
     std::weak_ptr<AnimNode> _parent;
     std::vector<QString> _outputJointNames;
+    bool _active { false };
 
     // no copies
     AnimNode(const AnimNode&) = delete;

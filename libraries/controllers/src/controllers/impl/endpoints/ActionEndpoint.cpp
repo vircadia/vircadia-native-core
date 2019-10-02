@@ -26,7 +26,7 @@ void ActionEndpoint::apply(AxisValue newValue, const Pointer& source) {
     _currentValue.value += newValue.value;
 
     if (_input != Input::INVALID_INPUT) {
-        userInputMapper->deltaActionState(Action(_input.getChannel()), newValue.value);
+        userInputMapper->deltaActionState(Action(_input.getChannel()), newValue.value, newValue.valid);
     }
 }
 

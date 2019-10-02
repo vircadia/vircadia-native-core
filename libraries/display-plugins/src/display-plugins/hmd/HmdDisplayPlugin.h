@@ -34,6 +34,8 @@ public:
     glm::uvec2 getRecommendedRenderSize() const override final { return _renderTargetSize; }
     bool isDisplayVisible() const override { return isHmdMounted(); }
 
+    ivec4 eyeViewport(Eye eye) const;
+
     QRect getRecommendedHUDRect() const override final;
 
     virtual glm::mat4 getHeadPose() const override;

@@ -252,7 +252,7 @@ public:
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
-    virtual void registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) override;
+    virtual void registerScriptEngineWithApplicationServices(const ScriptEnginePointer& scriptEngine) override;
 
     virtual void copyCurrentViewFrustum(ViewFrustum& viewOut) const override { copyDisplayViewFrustum(viewOut); }
     virtual QThread* getMainThread() override { return thread(); }
@@ -437,13 +437,6 @@ public slots:
     void sendWrongProtocolVersionsSignature(bool checked) { ::sendWrongProtocolVersionsSignature(checked); }
 #endif
 
-#ifdef HAVE_IVIEWHMD
-    void setActiveEyeTracker();
-    void calibrateEyeTracker1Point();
-    void calibrateEyeTracker3Points();
-    void calibrateEyeTracker5Points();
-#endif
-
     static void showHelp();
 
     void cycleCamera();
@@ -496,6 +489,9 @@ public slots:
 
     bool gpuTextureMemSizeStable();
     void showUrlHandler(const QUrl& url);
+
+    // used to test "shutdown" crash annotation.
+    void crashOnShutdown();
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
@@ -844,5 +840,7 @@ private:
     bool _overrideEntry { false };
 
     VisionSqueeze _visionSqueeze;
+
+    bool _crashOnShutdown { false };
 };
 #endif // hifi_Application_h

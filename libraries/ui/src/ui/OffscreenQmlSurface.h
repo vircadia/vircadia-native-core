@@ -37,8 +37,8 @@ public:
     Q_INVOKABLE void lowerKeyboard();
     PointerEvent::EventType choosePointerEventType(QEvent::Type type);
     Q_INVOKABLE unsigned int deviceIdByTouchPoint(qreal x, qreal y);
-    
-    
+   
+
 signals:
     void focusObjectChanged(QObject* newFocus);
     void focusTextChanged(bool focusText);
@@ -61,6 +61,7 @@ public slots:
     void sendToQml(const QVariant& message);
 
 protected:
+    void loadFromQml(const QUrl& qmlSource, QQuickItem* parent, const QJSValue& callback) override;
     void clearFocusItem();
     void setFocusText(bool newFocusText);
     void initializeEngine(QQmlEngine* engine) override;

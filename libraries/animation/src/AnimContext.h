@@ -31,7 +31,15 @@ enum class AnimNodeType {
     TwoBoneIK,
     SplineIK,
     PoleVectorConstraint,
+    BlendDirectional,
     NumTypes
+};
+
+enum AnimBlendType {
+    AnimBlendType_Normal,
+    AnimBlendType_AddRelative,
+    AnimBlendType_AddAbsolute,
+    AnimBlendType_NumTypes
 };
 
 class AnimContext {
