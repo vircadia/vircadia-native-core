@@ -487,7 +487,6 @@ function onMessageFromSecondLaunchWindow(message) {
     }
 }
 
-
 var WAIT_FOR_TOP_BAR_MS = 1000;
 function sendLocalStatusToQml() {
     var currentStatus = si.getLocalStatus();

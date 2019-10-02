@@ -156,7 +156,6 @@ Rectangle {
 
                         onClicked: {
                             Tablet.playSound(TabletEnums.ButtonClick);
-                            print("_____________________________________", bottomRightAccentImage.source);
                             tempAvatarPageContainer.visible = false;
                             controlsContainer.visible = true;
                         }
