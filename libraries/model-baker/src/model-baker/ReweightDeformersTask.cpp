@@ -12,8 +12,12 @@
 #include "ReweightDeformersTask.h"
 
 baker::ReweightedDeformers getReweightedDeformers(size_t numMeshVertices, const std::vector<const hfm::Deformer*> deformers, const uint16_t weightsPerVertex) {
-    size_t numClusterIndices = numMeshVertices * weightsPerVertex;
     baker::ReweightedDeformers reweightedDeformers;
+    if (deformers.size() == 0) {
+        return reweightedDeformers;
+    }
+
+    size_t numClusterIndices = numMeshVertices * weightsPerVertex;
     reweightedDeformers.weightsPerVertex = weightsPerVertex;
     // TODO: Consider having a rootCluster property in the DynamicTransform rather than appending the root to the end of the cluster list.
     reweightedDeformers.indices.resize(numClusterIndices, (uint16_t)(deformers.size() - 1));
