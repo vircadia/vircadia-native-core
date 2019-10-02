@@ -133,7 +133,21 @@ void Avatar::setShowNamesAboveHeads(bool show) {
     showNamesAboveHeads = show;
 }
 
+static const char* avatarTransitStatusToStringMap[] = {
+    "IDLE",
+    "STARTED",
+    "PRE_TRANSIT",
+    "START_TRANSIT",
+    "TRANSITING",
+    "END_TRANSIT",
+    "POST_TRANSIT",
+    "ENDED",
+    "ABORT_TRANSIT"
+};
+
 AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
+    AvatarTransit::Status previousStatus = _status;
+
     float oneFrameDistance = _isActive ? glm::length(avatarPosition - _endPosition) : glm::length(avatarPosition - _lastPosition);
     if (oneFrameDistance > (config._minTriggerDistance * _scale)) {
         if (oneFrameDistance < (config._maxTriggerDistance * _scale)) {
@@ -149,6 +163,10 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
     if (_isActive && oneFrameDistance > (config._abortDistance * _scale) && _status == Status::POST_TRANSIT) {
         reset();
         _status = Status::ENDED;
+    }
+
+    if (previousStatus != _status) {
+        qDebug(avatars_renderer) << "AvatarTransit " << avatarTransitStatusToStringMap[(int)previousStatus] << "->" << avatarTransitStatusToStringMap[_status];
     }
     return _status;
 }
