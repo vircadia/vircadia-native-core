@@ -57,6 +57,9 @@ public:
     float position() const;
     void seek(float position);
 
+    float getVolume() const { return _volume; }
+    void setVolume(float volume);
+
 signals:
     void playbackStateChanged();
     void looped();
@@ -76,6 +79,7 @@ private:
     bool _pause { true };
     bool _loop { false };
     float _length { 0 };
+    float _volume { 1.0f };
 };
 
 }

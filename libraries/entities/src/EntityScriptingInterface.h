@@ -1294,7 +1294,7 @@ public slots:
     Q_INVOKABLE int getJointParent(const QUuid& entityID, int index);
     
     /**jsdoc
-     * Gets the translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's 
+     * Gets the rotation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's 
      * position and orientation.
      * @function Entities.getAbsoluteJointRotationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.

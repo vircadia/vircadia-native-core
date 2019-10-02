@@ -136,17 +136,17 @@ Flickable {
                     Layout.preferredHeight: 18
                     Layout.preferredWidth: parent.width
                     labelTextOn: "Show Emote UI"
-                    checked: Settings.getValue("simplifiedUI/emoteIndicatorVisible", true)
+                    checked: Settings.getValue("simplifiedUI/allowEmoteDrawerExpansion", true)
                     onClicked: {
-                        var currentSetting = Settings.getValue("simplifiedUI/emoteIndicatorVisible", true);
-                        Settings.setValue("simplifiedUI/emoteIndicatorVisible", !currentSetting);
+                        var currentSetting = Settings.getValue("simplifiedUI/allowEmoteDrawerExpansion", true);
+                        Settings.setValue("simplifiedUI/allowEmoteDrawerExpansion", !currentSetting);
                     }                    
 
                     Connections {
                         target: Settings
 
                         onValueChanged: {
-                            if (setting === "simplifiedUI/emoteIndicatorVisible") {
+                            if (setting === "simplifiedUI/allowEmoteDrawerExpansion") {
                                 emoteSwitch.checked = value;
                             }
                         }
@@ -234,9 +234,19 @@ Flickable {
                 SimplifiedControls.RadioButton {
                     id: thirdPerson
                     text: "Third Person View"
-                    checked: Camera.mode === "third person"
+                    checked: Camera.mode === "look at"
                     onClicked: {
-                        Camera.mode = "third person"
+                        Camera.mode = "look at"
+                    }
+                }
+
+                SimplifiedControls.RadioButton {
+                    id: selfie
+                    text: "Selfie"
+                    checked: Camera.mode === "selfie"
+                    visible: true
+                    onClicked: {
+                        Camera.mode = "selfie"
                     }
                 }
                 
@@ -246,9 +256,19 @@ Flickable {
                     onModeUpdated: {
                         if (Camera.mode === "first person") {
                             firstPerson.checked = true
-                        } else if (Camera.mode === "third person") {
+                        } else if (Camera.mode === "look at") {
                             thirdPerson.checked = true
+                        } else if (Camera.mode === "selfie" && HMD.active) {
+                            selfie.checked = true
                         }
+                    }
+                }
+
+                Connections {
+                    target: HMD
+
+                    onDisplayModeChanged: {
+                        selfie.visible = isHMDMode ? false : true
                     }
                 }
             }

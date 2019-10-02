@@ -14,9 +14,10 @@
 #include "AnimUtil.h"
 #include "AnimClip.h"
 
-AnimBlendLinear::AnimBlendLinear(const QString& id, float alpha) :
+AnimBlendLinear::AnimBlendLinear(const QString& id, float alpha, AnimBlendType blendType) :
     AnimNode(AnimNode::Type::BlendLinear, id),
-    _alpha(alpha) {
+    _alpha(alpha),
+    _blendType(blendType) {
 
 }
 
@@ -36,6 +37,19 @@ const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, con
     } else if (_children.size() == 1) {
         _poses = _children[0]->evaluate(animVars, context, dt, triggersOut);
         context.setDebugAlpha(_children[0]->getID(), parentDebugAlpha, _children[0]->getType());
+    } else if (_children.size() == 2 && _blendType != AnimBlendType_Normal) {
+        // special case for additive blending
+        float alpha = glm::clamp(_alpha, 0.0f, 1.0f);
+        const size_t prevPoseIndex = 0;
+        const size_t nextPoseIndex = 1;
+        evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, dt);
+
+        // for animation stack debugging
+        float weight2 = alpha;
+        float weight1 = 1.0f - weight2;
+        context.setDebugAlpha(_children[prevPoseIndex]->getID(), weight1 * parentDebugAlpha, _children[prevPoseIndex]->getType());
+        context.setDebugAlpha(_children[nextPoseIndex]->getID(), weight2 * parentDebugAlpha, _children[nextPoseIndex]->getType());
+
     } else {
         float clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));
         size_t prevPoseIndex = glm::floor(clampedAlpha);
@@ -79,7 +93,33 @@ void AnimBlendLinear::evaluateAndBlendChildren(const AnimVariantMap& animVars, c
         if (prevPoses.size() > 0 && prevPoses.size() == nextPoses.size()) {
             _poses.resize(prevPoses.size());
 
-            ::blend(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
+            if (_blendType == AnimBlendType_Normal) {
+                ::blend(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
+            } else if (_blendType == AnimBlendType_AddRelative) {
+                ::blendAdd(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
+            } else if (_blendType == AnimBlendType_AddAbsolute) {
+                // convert prev from relative to absolute
+                AnimPoseVec absPrev = prevPoses;
+                _skeleton->convertRelativePosesToAbsolute(absPrev);
+
+                // rotate the offset rotations from next into the parent relative frame of each joint.
+                AnimPoseVec relOffsetPoses;
+                relOffsetPoses.reserve(nextPoses.size());
+                for (size_t i = 0; i < nextPoses.size(); ++i) {
+
+                    // copy translation and scale from nextPoses
+                    AnimPose pose = nextPoses[i];
+
+                    // convert from a rotation that happens in the absolute space of the joint
+                    // into a rotation that happens in the relative space of the joint.
+                    pose.rot() = glm::inverse(absPrev[i].rot()) * pose.rot() * absPrev[i].rot();
+
+                    relOffsetPoses.push_back(pose);
+                }
+
+                // then blend
+                ::blendAdd(_poses.size(), &prevPoses[0], &relOffsetPoses[0], alpha, &_poses[0]);
+            }
         }
     }
 }

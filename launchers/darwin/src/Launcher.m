@@ -9,6 +9,7 @@
 #import "Settings.h"
 #import "NSTask+NSTaskExecveAdditions.h"
 #import "Interface.h"
+#import "HQDefaults.h"
 
 @interface Launcher ()
 
@@ -382,6 +383,13 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
     [self updateLatestBuildInfo];
 
+    NSString *kLauncherUrl = @"LAUNCHER_URL";
+    NSString *envLauncherUrl = [[NSProcessInfo processInfo] environment][kLauncherUrl];
+    if (envLauncherUrl != nil) {
+        NSLog(@"Using launcherUrl from environment: %@ = %@", kLauncherUrl, envLauncherUrl);
+        launcherUrl = envLauncherUrl;
+    }
+
     NSDictionary* launcherArguments = [LauncherCommandlineArgs arguments];
     if (newLauncherAvailable && ![launcherArguments valueForKey: @"--noUpdate"]) {
         [self.downloadLauncher downloadLauncher: launcherUrl];
@@ -459,11 +467,36 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 -(void)runAutoupdater
 {
-    NSTask* task = [[NSTask alloc] init]; 
+    NSException *exception;
+    bool launched = false;
     NSString* newLauncher =  [[[Launcher sharedLauncher] getDownloadPathForContentAndScripts] stringByAppendingPathComponent: @"HQ Launcher.app"];
-    task.launchPath = [newLauncher stringByAppendingString:@"/Contents/Resources/updater"];
-    task.arguments = @[[[NSBundle mainBundle] bundlePath], newLauncher];
-    [task launch];
+
+    // Older versions of Launcher put updater in `/Contents/Resources/updater`.
+    for (NSString *bundlePath in @[@"/Contents/MacOS/updater",
+                                   @"/Contents/Resources/updater",
+                                   ]) {
+        NSTask* task = [[NSTask alloc] init];
+        task.launchPath = [newLauncher stringByAppendingString: bundlePath];
+        task.arguments = @[[[NSBundle mainBundle] bundlePath], newLauncher];
+
+        NSLog(@"launching updater: %@ %@", task.launchPath, task.arguments);
+
+        @try {
+            [task launch];
+        }
+        @catch (NSException *e) {
+            NSLog(@"couldn't launch updater: %@, %@", e.name, e.reason);
+            exception = e;
+            continue;
+        }
+
+        launched = true;
+        break;
+    }
+
+    if (!launched) {
+        @throw exception;
+    }
 
     [NSApp terminate:self];
 }
@@ -481,6 +514,17 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 - (void)applicationWillFinishLaunching:(NSNotification *)notification
 {
     [self.window makeKeyAndOrderFront:self];
+}
+
+-(void)applicationDidFinishLaunching:(NSNotification *)notification
+{
+    // Sanity check the HQDefaults so we fail early if there's an issue.
+    HQDefaults *defaults = [HQDefaults sharedDefaults];
+    if ([defaults defaultNamed:@"thunderURL"] == nil) {
+        @throw [NSException exceptionWithName:@"DefaultsNotConfigured"
+                                       reason:@"thunderURL is not configured"
+                                     userInfo:nil];
+    }
 }
 
 - (void) setDownloadFilename:(NSString *)aFilename

@@ -27,7 +27,6 @@
 
 class SettingsScriptingInterface : public QObject {
     Q_OBJECT
-    SettingsScriptingInterface() { };
 public:
     static SettingsScriptingInterface* getInstance();
 
@@ -67,6 +66,16 @@ public slots:
 
 signals:
     void valueChanged(const QString& setting, const QVariant& value);
+
+protected:
+    SettingsScriptingInterface(QObject* parent = nullptr) : QObject(parent) { };
+    bool _restrictPrivateValues { true };
+};
+
+class QMLSettingsScriptingInterface : public SettingsScriptingInterface {
+    Q_OBJECT
+public:
+    QMLSettingsScriptingInterface(QObject* parent) : SettingsScriptingInterface(parent) { _restrictPrivateValues = false; }
 };
 
 #endif // hifi_SettingsScriptingInterface_h

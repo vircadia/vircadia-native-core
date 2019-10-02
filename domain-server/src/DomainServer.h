@@ -136,6 +136,8 @@ private slots:
     void tokenGrantFinished();
     void profileRequestFinished();
 
+    void aboutToQuit();
+
 signals:
     void iceServerChanged();
     void userConnected();
@@ -236,6 +238,7 @@ private:
 
     bool _isUsingDTLS { false };
 
+    bool _oauthEnable { false };
     QUrl _oauthProviderURL;
     QString _oauthClientID;
     QString _oauthClientSecret;

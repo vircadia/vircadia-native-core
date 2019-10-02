@@ -71,9 +71,13 @@ RUN mkdir "$HIFI_BASE" && \
     mkdir "$HIFI_VCPKG_BASE" && \ 
     mkdir "$HIFI_ANDROID_PRECOMPILED"
 
-RUN git clone https://github.com/jherico/hifi.git && \
+# Checkout a relatively recent commit from the main repository and use it to cache the 
+# gradle and vcpkg dependencies
+# This commit ID should be updated whenever someone changes the dependency list
+# in cmake/ports
+RUN git clone https://github.com/highfidelity/hifi.git && \
     cd ~/hifi && \
-    git checkout quest/build
+    git checkout 796bfb5d6715ff14c2e60f3ee8fac1465b7578c6
 
 WORKDIR /home/jenkins/hifi
 

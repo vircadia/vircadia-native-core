@@ -51,6 +51,7 @@ public:
     virtual void setWasAborted(bool wasAborted) override;
 
     QUrl getModelURL() const { return _modelURL; }
+    QUrl getOriginalInputModelURL() const { return _originalInputModelURL; }
     virtual QUrl getFullOutputMappingURL() const;
     QUrl getBakedModelURL() const { return _bakedModelURL; }
 
@@ -67,6 +68,7 @@ protected:
     void exportScene();
 
     FBXNode _rootNode;
+    QUrl _originalInputModelURL;
     QUrl _modelURL;
     QUrl _outputURLSuffix;
     QUrl _mappingURL;

@@ -16,100 +16,6 @@
 #include "AnimationLogging.h"
 #include "AnimUtil.h"
 
-
-AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag) :
-    AnimNode(AnimNode::Type::Clip, id),
-    _startFrame(startFrame),
-    _endFrame(endFrame),
-    _timeScale(timeScale),
-    _loopFlag(loopFlag),
-    _mirrorFlag(mirrorFlag),
-    _frame(startFrame)
-{
-    loadURL(url);
-}
-
-AnimClip::~AnimClip() {
-
-}
-
-const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
-
-    // lookup parameters from animVars, using current instance variables as defaults.
-    _startFrame = animVars.lookup(_startFrameVar, _startFrame);
-    _endFrame = animVars.lookup(_endFrameVar, _endFrame);
-    _timeScale = animVars.lookup(_timeScaleVar, _timeScale);
-    _loopFlag = animVars.lookup(_loopFlagVar, _loopFlag);
-    _mirrorFlag = animVars.lookup(_mirrorFlagVar, _mirrorFlag);
-    float frame = animVars.lookup(_frameVar, _frame);
-
-    _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame, dt, _loopFlag, _id, triggersOut);
-
-    // poll network anim to see if it's finished loading yet.
-    if (_networkAnim && _networkAnim->isLoaded() && _skeleton) {
-        // loading is complete, copy animation frames from network animation, then throw it away.
-        copyFromNetworkAnim();
-        _networkAnim.reset();
-    }
-
-    if (_anim.size()) {
-
-        // lazy creation of mirrored animation frames.
-        if (_mirrorFlag && _anim.size() != _mirrorAnim.size()) {
-            buildMirrorAnim();
-        }
-
-        int prevIndex = (int)glm::floor(_frame);
-        int nextIndex;
-        if (_loopFlag && _frame >= _endFrame) {
-            nextIndex = (int)glm::ceil(_startFrame);
-        } else {
-            nextIndex = (int)glm::ceil(_frame);
-        }
-
-        // It can be quite possible for the user to set _startFrame and _endFrame to
-        // values before or past valid ranges.  We clamp the frames here.
-        int frameCount = (int)_anim.size();
-        prevIndex = std::min(std::max(0, prevIndex), frameCount - 1);
-        nextIndex = std::min(std::max(0, nextIndex), frameCount - 1);
-
-        const AnimPoseVec& prevFrame = _mirrorFlag ? _mirrorAnim[prevIndex] : _anim[prevIndex];
-        const AnimPoseVec& nextFrame = _mirrorFlag ? _mirrorAnim[nextIndex] : _anim[nextIndex];
-        float alpha = glm::fract(_frame);
-
-        ::blend(_poses.size(), &prevFrame[0], &nextFrame[0], alpha, &_poses[0]);
-    }
-
-    processOutputJoints(triggersOut);
-
-    return _poses;
-}
-
-void AnimClip::loadURL(const QString& url) {
-    auto animCache = DependencyManager::get<AnimationCache>();
-    _networkAnim = animCache->getAnimation(url);
-    _url = url;
-}
-
-void AnimClip::setCurrentFrameInternal(float frame) {
-    // because dt is 0, we should not encounter any triggers
-    const float dt = 0.0f;
-    AnimVariantMap triggers;
-    _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame + _startFrame, dt, _loopFlag, _id, triggers);
-}
-
-static std::vector<int> buildJointIndexMap(const AnimSkeleton& dstSkeleton, const AnimSkeleton& srcSkeleton) {
-    std::vector<int> jointIndexMap;
-    int srcJointCount = srcSkeleton.getNumJoints();
-    jointIndexMap.reserve(srcJointCount);
-    for (int srcJointIndex = 0; srcJointIndex < srcJointCount; srcJointIndex++) {
-        QString srcJointName = srcSkeleton.getJointName(srcJointIndex);
-        int dstJointIndex = dstSkeleton.nameToJointIndex(srcJointName);
-        jointIndexMap.push_back(dstJointIndex);
-    }
-    return jointIndexMap;
-}
-
 #ifdef USE_CUSTOM_ASSERT
 #undef ASSERT
 #define ASSERT(x)                     \
@@ -123,12 +29,71 @@ static std::vector<int> buildJointIndexMap(const AnimSkeleton& dstSkeleton, cons
 #define ASSERT assert
 #endif
 
-void AnimClip::copyFromNetworkAnim() {
-    assert(_networkAnim && _networkAnim->isLoaded() && _skeleton);
-    _anim.clear();
+static std::vector<int> buildJointIndexMap(const AnimSkeleton& dstSkeleton, const AnimSkeleton& srcSkeleton) {
+    std::vector<int> jointIndexMap;
+    int srcJointCount = srcSkeleton.getNumJoints();
+    jointIndexMap.reserve(srcJointCount);
+    for (int srcJointIndex = 0; srcJointIndex < srcJointCount; srcJointIndex++) {
+        QString srcJointName = srcSkeleton.getJointName(srcJointIndex);
+        int dstJointIndex = dstSkeleton.nameToJointIndex(srcJointName);
+        jointIndexMap.push_back(dstJointIndex);
+    }
+    return jointIndexMap;
+}
 
-    auto avatarSkeleton = getSkeleton();
-    const HFMModel& animModel = _networkAnim->getHFMModel();
+static void bakeRelativeDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& basePoses) {
+
+    // invert all the basePoses
+    AnimPoseVec invBasePoses = basePoses;
+    for (auto&& invBasePose : invBasePoses) {
+        invBasePose = invBasePose.inverse();
+    }
+
+    // for each frame of the animation
+    for (auto&& animPoses : anim) {
+        ASSERT(animPoses.size() == basePoses.size());
+
+        // for each joint in animPoses
+        for (size_t i = 0; i < animPoses.size(); ++i) {
+            // convert this relative AnimPose into a delta animation.
+            animPoses[i] = invBasePoses[i] * animPoses[i];
+        }
+    }
+}
+
+void bakeAbsoluteDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& basePoses, AnimSkeleton::ConstPointer skeleton) {
+
+    // invert all the basePoses
+    AnimPoseVec invBasePoses = basePoses;
+    for (auto&& invBasePose : invBasePoses) {
+        invBasePose = invBasePose.inverse();
+    }
+
+    AnimPoseVec absBasePoses = basePoses;
+    skeleton->convertRelativePosesToAbsolute(absBasePoses);
+
+    // for each frame of the animation
+    for (auto&& animPoses : anim) {
+        ASSERT(animPoses.size() == basePoses.size());
+
+        // for each joint in animPoses
+        for (size_t i = 0; i < animPoses.size(); ++i) {
+
+            // scale and translation are relative frame
+            animPoses[i] = invBasePoses[i] * animPoses[i];
+
+            // convert from a rotation that happens in the relative space of the joint
+            // into a rotation that happens in the absolute space of the joint.
+            animPoses[i].rot() = absBasePoses[i].rot() * animPoses[i].rot() * glm::inverse(absBasePoses[i].rot());
+        }
+    }
+}
+
+static std::vector<AnimPoseVec> copyAndRetargetFromNetworkAnim(AnimationPointer networkAnim, AnimSkeleton::ConstPointer avatarSkeleton) {
+    ASSERT(networkAnim && networkAnim->isLoaded() && avatarSkeleton);
+    std::vector<AnimPoseVec> anim;
+
+    const HFMModel& animModel = networkAnim->getHFMModel();
     AnimSkeleton animSkeleton(animModel);
     const int animJointCount = animSkeleton.getNumJoints();
     const int avatarJointCount = avatarSkeleton->getNumJoints();
@@ -137,7 +102,7 @@ void AnimClip::copyFromNetworkAnim() {
     std::vector<int> avatarToAnimJointIndexMap = buildJointIndexMap(animSkeleton, *avatarSkeleton);
 
     const int animFrameCount = animModel.animationFrames.size();
-    _anim.resize(animFrameCount);
+    anim.resize(animFrameCount);
 
     // find the size scale factor for translation in the animation.
     float boneLengthScale = 1.0f;
@@ -223,8 +188,8 @@ void AnimClip::copyFromNetworkAnim() {
         // convert avatar rotations into relative frame
         avatarSkeleton->convertAbsoluteRotationsToRelative(avatarRotations);
 
-        ASSERT(frame >= 0 && frame < (int)_anim.size());
-        _anim[frame].reserve(avatarJointCount);
+        ASSERT(frame >= 0 && frame < (int)anim.size());
+        anim[frame].reserve(avatarJointCount);
         for (int avatarJointIndex = 0; avatarJointIndex < avatarJointCount; avatarJointIndex++) {
             const AnimPose& avatarDefaultPose = avatarSkeleton->getRelativeDefaultPose(avatarJointIndex);
 
@@ -251,14 +216,129 @@ void AnimClip::copyFromNetworkAnim() {
 
             // build the final pose
             ASSERT(avatarJointIndex >= 0 && avatarJointIndex < (int)avatarRotations.size());
-            _anim[frame].push_back(AnimPose(relativeScale, avatarRotations[avatarJointIndex], relativeTranslation));
+            anim[frame].push_back(AnimPose(relativeScale, avatarRotations[avatarJointIndex], relativeTranslation));
         }
     }
 
-    // mirrorAnim will be re-built on demand, if needed.
-    _mirrorAnim.clear();
+    return anim;
+}
 
-    _poses.resize(avatarJointCount);
+AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag,
+                   AnimBlendType blendType, const QString& baseURL, float baseFrame) :
+    AnimNode(AnimNode::Type::Clip, id),
+    _startFrame(startFrame),
+    _endFrame(endFrame),
+    _timeScale(timeScale),
+    _loopFlag(loopFlag),
+    _mirrorFlag(mirrorFlag),
+    _frame(startFrame),
+    _blendType(blendType),
+    _baseFrame(baseFrame)
+{
+    loadURL(url);
+
+    if (blendType != AnimBlendType_Normal) {
+        auto animCache = DependencyManager::get<AnimationCache>();
+        _baseNetworkAnim = animCache->getAnimation(baseURL);
+        _baseURL = baseURL;
+    }
+}
+
+AnimClip::~AnimClip() {
+
+}
+
+const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
+
+    // lookup parameters from animVars, using current instance variables as defaults.
+    _startFrame = animVars.lookup(_startFrameVar, _startFrame);
+    _endFrame = animVars.lookup(_endFrameVar, _endFrame);
+    _timeScale = animVars.lookup(_timeScaleVar, _timeScale);
+    _loopFlag = animVars.lookup(_loopFlagVar, _loopFlag);
+    _mirrorFlag = animVars.lookup(_mirrorFlagVar, _mirrorFlag);
+    float frame = animVars.lookup(_frameVar, _frame);
+
+    _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame, dt, _loopFlag, _id, triggersOut);
+
+    // poll network anim to see if it's finished loading yet.
+    if (_blendType == AnimBlendType_Normal) {
+        if (_networkAnim && _networkAnim->isLoaded() && _skeleton) {
+            // loading is complete, copy & retarget animation.
+            _anim = copyAndRetargetFromNetworkAnim(_networkAnim, _skeleton);
+
+            // we no longer need the actual animation resource anymore.
+            _networkAnim.reset();
+
+            // mirrorAnim will be re-built on demand, if needed.
+            _mirrorAnim.clear();
+
+            _poses.resize(_skeleton->getNumJoints());
+        }
+    } else {
+        // an additive blend type
+        if (_networkAnim && _networkAnim->isLoaded() && _baseNetworkAnim && _baseNetworkAnim->isLoaded() && _skeleton) {
+            // loading is complete, copy & retarget animation.
+            _anim = copyAndRetargetFromNetworkAnim(_networkAnim, _skeleton);
+
+            // we no longer need the actual animation resource anymore.
+            _networkAnim.reset();
+
+            // mirrorAnim will be re-built on demand, if needed.
+            // TODO: handle mirrored relative animations.
+            _mirrorAnim.clear();
+
+            _poses.resize(_skeleton->getNumJoints());
+
+            // copy & retarget baseAnim!
+            auto baseAnim = copyAndRetargetFromNetworkAnim(_baseNetworkAnim, _skeleton);
+
+            if (_blendType == AnimBlendType_AddAbsolute) {
+                bakeAbsoluteDeltaAnim(_anim, baseAnim[(int)_baseFrame], _skeleton);
+            } else {
+                // AnimBlendType_AddRelative
+                bakeRelativeDeltaAnim(_anim, baseAnim[(int)_baseFrame]);
+            }
+        }
+    }
+
+    if (_anim.size()) {
+
+        // lazy creation of mirrored animation frames.
+        if (_mirrorFlag && _anim.size() != _mirrorAnim.size()) {
+            buildMirrorAnim();
+        }
+
+        int prevIndex = (int)glm::floor(_frame);
+        int nextIndex;
+        if (_loopFlag && _frame >= _endFrame) {
+            nextIndex = (int)glm::ceil(_startFrame);
+        } else {
+            nextIndex = (int)glm::ceil(_frame);
+        }
+
+        // It can be quite possible for the user to set _startFrame and _endFrame to
+        // values before or past valid ranges.  We clamp the frames here.
+        int frameCount = (int)_anim.size();
+        prevIndex = std::min(std::max(0, prevIndex), frameCount - 1);
+        nextIndex = std::min(std::max(0, nextIndex), frameCount - 1);
+
+        const AnimPoseVec& prevFrame = _mirrorFlag ? _mirrorAnim[prevIndex] : _anim[prevIndex];
+        const AnimPoseVec& nextFrame = _mirrorFlag ? _mirrorAnim[nextIndex] : _anim[nextIndex];
+        float alpha = glm::fract(_frame);
+
+        ::blend(_poses.size(), &prevFrame[0], &nextFrame[0], alpha, &_poses[0]);
+    }
+
+    processOutputJoints(triggersOut);
+
+    return _poses;
+}
+
+void AnimClip::setCurrentFrameInternal(float frame) {
+    // because dt is 0, we should not encounter any triggers
+    const float dt = 0.0f;
+    AnimVariantMap triggers;
+    _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame + _startFrame, dt, _loopFlag, _id, triggers);
 }
 
 void AnimClip::buildMirrorAnim() {
@@ -274,4 +354,10 @@ void AnimClip::buildMirrorAnim() {
 
 const AnimPoseVec& AnimClip::getPosesInternal() const {
     return _poses;
+}
+
+void AnimClip::loadURL(const QString& url) {
+    auto animCache = DependencyManager::get<AnimationCache>();
+    _networkAnim = animCache->getAnimation(url);
+    _url = url;
 }

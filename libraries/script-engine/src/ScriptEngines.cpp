@@ -136,24 +136,6 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
 
 QObject* scriptsModel();
 
-bool NativeScriptInitializers::registerNativeScriptInitializer(NativeScriptInitializer initializer) {
-    return registerScriptInitializer([initializer](ScriptEnginePointer engine) {
-        initializer(qobject_cast<QScriptEngine*>(engine.data()));
-    });
-}
-
-bool NativeScriptInitializers::registerScriptInitializer(ScriptInitializer initializer) {
-    if (auto scriptEngines = DependencyManager::get<ScriptEngines>().data()) {
-        scriptEngines->registerScriptInitializer(initializer);
-        return true;
-    }
-    return false;
-}
-
-void ScriptEngines::registerScriptInitializer(ScriptInitializer initializer) {
-    _scriptInitializers.push_back(initializer);
-}
-
 void ScriptEngines::addScriptEngine(ScriptEnginePointer engine) {
     if (!_isStopped) {
         QMutexLocker locker(&_allScriptsMutex);
@@ -209,6 +191,18 @@ void ScriptEngines::shutdownScripting() {
     qCDebug(scriptengine) << "DONE Stopping all scripts....";
 }
 
+/**jsdoc
+ * Information on a public script, i.e., a script that's included in the Interface installation.
+ * @typedef {object} ScriptDiscoveryService.PublicScript
+ * @property {string} name - The script's file name.
+ * @property {string} type - <code>"script"</code> or <code>"folder"</code>.
+ *     <p class="important">Deprecated: This property is deprecated and will be removed. It currently always has the value, 
+ *     <code>"script"</code>.</p>
+ * @property {ScriptDiscoveryService.PublicScript[]} [children] - Only present if <code>type == "folder"</code>.
+ *     <p class="important">Deprecated: This property is deprecated and will be removed. It currently is never present.
+ * @property {string} [url] - The full URL of the script &mdash; including the <code>"file:///"</code> scheme at the start.
+ *     <p>Only present if <code>type == "script"</code>.</p>
+ */
 QVariantList getPublicChildNodes(TreeNodeFolder* parent) {
     QVariantList result;
     QList<TreeNodeBase*> treeNodes = getScriptsModel().getFolderNodes(parent);
@@ -240,6 +234,13 @@ QVariantList ScriptEngines::getPublic() {
     return getPublicChildNodes(NULL);
 }
 
+/**jsdoc
+ * Information on a local script.
+ * @typedef {object} ScriptDiscoveryService.LocalScript
+ * @property {string} name - The script's file name.
+ * @property {string} path - The script's path.
+ * @deprecated This type is deprecated and will be removed.
+ */
 QVariantList ScriptEngines::getLocal() {
     QVariantList result;
     QList<TreeNodeBase*> treeNodes = getScriptsModel().getFolderNodes(NULL);
@@ -260,6 +261,15 @@ QVariantList ScriptEngines::getLocal() {
     return result;
 }
 
+/**jsdoc
+ * Information on a running script.
+ * @typedef {object} ScriptDiscoveryService.RunningScript
+ * @property {boolean} local - <code>true</code> if the script is a local file (i.e., the scheme is "file"), <code>false</code> 
+ *     if it isn't (e.g., the scheme is "http").
+ * @property {string} name - The script's file name.
+ * @property {string} path - The script's path and file name &mdash; excluding the scheme if a local file.
+ * @property {string} url - The full URL of the script &mdash; including the scheme if a local file.
+ */
 QVariantList ScriptEngines::getRunning() {
     QVariantList result;
     auto runningScripts = getRunningScripts();
@@ -562,12 +572,8 @@ void ScriptEngines::quitWhenFinished() {
 }
 
 int ScriptEngines::runScriptInitializers(ScriptEnginePointer scriptEngine) {
-    int ii=0;
-    for (auto initializer : _scriptInitializers) {
-        ii++;
-        initializer(scriptEngine);
-    }
-    return ii;
+    auto nativeCount = DependencyManager::get<ScriptInitializers>()->runScriptInitializers(scriptEngine.data());
+    return nativeCount + ScriptInitializerMixin<ScriptEnginePointer>::runScriptInitializers(scriptEngine);
 }
 
 void ScriptEngines::launchScriptEngine(ScriptEnginePointer scriptEngine) {

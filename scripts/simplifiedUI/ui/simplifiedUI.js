@@ -296,7 +296,7 @@ function updateOutputDeviceMutedOverlay(isMuted) {
         props.y = Window.innerHeight / 2 - overlayDims / 2;
 
         var outputDeviceMutedOverlayBottomY = props.y + overlayDims;
-        var inputDeviceMutedOverlayTopY = getInputDeviceMutedOverlayTopY();
+        var inputDeviceMutedOverlayTopY = INPUT_DEVICE_MUTED_MARGIN_TOP_PX;
         if (outputDeviceMutedOverlayBottomY + OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX > inputDeviceMutedOverlayTopY) {
             overlayDims = 2 * (inputDeviceMutedOverlayTopY - Window.innerHeight / 2 - OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX);
         }
@@ -473,15 +473,11 @@ function maybeDeleteInputDeviceMutedOverlay() {
 }
 
 
-function getInputDeviceMutedOverlayTopY() {
-    return (Window.innerHeight - INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX - INPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX);
-}
-
-
 var inputDeviceMutedOverlay = false;
-var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX = 353;
-var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX = 95;
-var INPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX = 20 + TOP_BAR_HEIGHT_PX;
+var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX = 237;
+var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX = 64;
+var INPUT_DEVICE_MUTED_MARGIN_LEFT_PX = 20;
+var INPUT_DEVICE_MUTED_MARGIN_TOP_PX = 20;
 function updateInputDeviceMutedOverlay(isMuted) {
     if (isMuted) {
         var props = {
@@ -490,8 +486,8 @@ function updateInputDeviceMutedOverlay(isMuted) {
         };
         props.width = INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX;
         props.height = INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX;
-        props.x = Window.innerWidth / 2 - INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX / 2;
-        props.y = getInputDeviceMutedOverlayTopY();
+        props.x = INPUT_DEVICE_MUTED_MARGIN_LEFT_PX;
+        props.y = INPUT_DEVICE_MUTED_MARGIN_TOP_PX;
         if (inputDeviceMutedOverlay) {
             Overlays.editOverlay(inputDeviceMutedOverlay, props);
         } else {
@@ -530,6 +526,11 @@ function onGeometryChanged(rect) {
             "y": rect.y
         };
     }
+}
+
+function onWindowMinimizedChanged() {
+    // prerequisite placeholder for Reduce Friction of Customer Acquisition sub task: https://highfidelity.atlassian.net/browse/DEV-585
+    print("WINDOW MINIMIZED CHANGED SIGNAL");
 }
 
 function onDisplayModeChanged(isHMDMode) {
@@ -583,12 +584,9 @@ function restoreLODSettings() {
 }
 
 
-var SimplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
-var SimplifiedStatusIndicator = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
-var SimplifiedEmote = Script.require("../simplifiedEmote/simplifiedEmote.js?" + Date.now());
-var si;
-var nametag;
-var emote;
+var nametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
+var si = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
+var emote = Script.require("../simplifiedEmote/simplifiedEmote.js?" + Date.now());
 var oldShowAudioTools;
 var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);
@@ -607,22 +605,15 @@ function startup() {
 
     loadSimplifiedTopBar();
 
-    si = new SimplifiedStatusIndicator({
-        statusChanged: onStatusChanged
-    });
-    si.startup();
     
-    nametag = new SimplifiedNametag();
-    nametag.startup();
-
-    emote = new SimplifiedEmote();
-    emote.startup();
+    si.updateProperties({ statusChanged: onStatusChanged });
 
     updateInputDeviceMutedOverlay(Audio.muted);
     updateOutputDeviceMutedOverlay(isOutputMuted());
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
     Audio.mutedHMDChanged.connect(onHMDInputDeviceMutedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
+    Window.minimizedChanged.connect(onWindowMinimizedChanged);
     HMD.displayModeChanged.connect(onDisplayModeChanged);
     Audio.avatarGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.localInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
@@ -665,13 +656,10 @@ function shutdown() {
     maybeDeleteInputDeviceMutedOverlay();
     maybeDeleteOutputDeviceMutedOverlay();
 
-    nametag.unload();
-    si.unload();
-    emote.unload();
-
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
     Audio.mutedHMDChanged.disconnect(onHMDInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
+    Window.minimizedChanged.disconnect(onWindowMinimizedChanged);
     HMD.displayModeChanged.disconnect(onDisplayModeChanged);
     Audio.avatarGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.localInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);

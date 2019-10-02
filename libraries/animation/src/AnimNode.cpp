@@ -60,6 +60,13 @@ void AnimNode::setCurrentFrame(float frame) {
     }
 }
 
+void AnimNode::setActive(bool active) {
+    setActiveInternal(active);
+    for (auto&& child : _children) {
+        child->setActiveInternal(active);
+    }
+}
+
 void AnimNode::processOutputJoints(AnimVariantMap& triggersOut) const {
     if (!_skeleton) {
         return;

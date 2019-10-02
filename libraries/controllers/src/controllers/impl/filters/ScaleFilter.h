@@ -23,7 +23,7 @@ public:
     ScaleFilter(float scale) : _scale(scale) {}
 
     virtual AxisValue apply(AxisValue value) const override {
-        return { value.value * _scale, value.timestamp };
+        return { value.value * _scale, value.timestamp, value.valid };
     }
 
     virtual Pose apply(Pose value) const override {

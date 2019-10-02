@@ -21,28 +21,43 @@ Rectangle {
     id: root
     color: simplifiedUI.colors.white
     anchors.fill: parent
-
     property int originalWidth: 48
     property int expandedWidth: mainEmojiContainer.width + drawerContainer.width
     // For the below to work, the Repeater's Item's second child must be the individual button's `MouseArea`
-    property int requestedWidth: (drawerContainer.keepDrawerExpanded ||
-        emoteIndicatorMouseArea.containsMouse ||
-        emoteButtonsRepeater.itemAt(0).hovered ||
-        emoteButtonsRepeater.itemAt(1).hovered ||
-        emoteButtonsRepeater.itemAt(2).hovered ||
-        emoteButtonsRepeater.itemAt(3).hovered ||
-        emoteButtonsRepeater.itemAt(4).hovered ||
-        emoteButtonsRepeater.itemAt(5).hovered) ? expandedWidth : originalWidth;
+    property int requestedWidth: (
+        root.allowEmoteDrawerExpansion && (
+            drawerContainer.keepDrawerExpanded ||
+            emoteIndicatorMouseArea.containsMouse ||
+            emoteButtonsRepeater.itemAt(0).hovered ||
+            emoteButtonsRepeater.itemAt(1).hovered ||
+            emoteButtonsRepeater.itemAt(2).hovered ||
+            emoteButtonsRepeater.itemAt(3).hovered ||
+            emoteButtonsRepeater.itemAt(4).hovered ||
+            emoteButtonsRepeater.itemAt(5).hovered)
+        ) ? expandedWidth : originalWidth;
     readonly property int totalEmojiDurationMS: 7000 // Must match `TOTAL_EMOJI_DURATION_MS` in `simplifiedEmoji.js`
     readonly property string emoteIconSource: "images/emote_Icon.svg"
+    property bool allowEmoteDrawerExpansion: Settings.getValue("simplifiedUI/allowEmoteDrawerExpansion", true)
+
 
     onRequestedWidthChanged: {
         root.requestNewWidth(root.requestedWidth);
     }
 
     Behavior on requestedWidth {
-        enabled: true
+        enabled: false // Set this to `true` once we have a different windowing system that better supports on-screen widgets
+                       // like the Emote Indicator.
         SmoothedAnimation { duration: 220 }
+    }
+
+    Connections {
+        target: Settings
+
+        onValueChanged: {
+            if (setting === "simplifiedUI/allowEmoteDrawerExpansion") {
+                root.allowEmoteDrawerExpansion = value;
+            }
+        }
     }
 
     SimplifiedConstants.SimplifiedConstants {
@@ -139,6 +154,28 @@ Rectangle {
             opacity: emoteIndicator.source.toString().indexOf("Icon.svg") > -1 ? 1.0 : 0.0
         }
 
+        Image {
+            id: lockIcon
+            width: 12
+            height: 12
+            anchors.top: parent.top
+            anchors.topMargin: 2
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            source: "images/lock_Icon.svg"
+            fillMode: Image.PreserveAspectFit
+            mipmap: true
+            visible: false
+        }
+
+        ColorOverlay {
+            id: lockIconColorOverlay
+            anchors.fill: lockIcon
+            source: lockIcon
+            color: "#ffffff"
+            visible: root.allowEmoteDrawerExpansion && drawerContainer.keepDrawerExpanded
+        }
+
         MouseArea {
             id: emoteIndicatorMouseArea
             anchors.fill: parent
@@ -147,14 +184,21 @@ Rectangle {
             onClicked: {
                 Tablet.playSound(TabletEnums.ButtonClick);
                 drawerContainer.keepDrawerExpanded = !drawerContainer.keepDrawerExpanded;
+                // If the drawer is no longer expanded, disable this MouseArea (which will close
+                // the emote tray) until the user's cursor leaves the MouseArea (see `onExited()` below).
+                if (!drawerContainer.keepDrawerExpanded) {
+                    emoteIndicatorMouseArea.enabled = false;
+                }
             }
 
             onEntered: {
                 Tablet.playSound(TabletEnums.ButtonHover);
             }
-        }
 
-        
+            onExited: {
+                emoteIndicatorMouseArea.enabled = true;
+            }
+        }
     }
 
     Row {

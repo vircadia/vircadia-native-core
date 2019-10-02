@@ -37,7 +37,11 @@ OctreeEditPacketSender::~OctreeEditPacketSender() {
 
 
 bool OctreeEditPacketSender::serversExist() const {
-    auto node = DependencyManager::get<NodeList>()->soloNodeOfType(getMyNodeType());
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (!nodeList) {
+        return false;
+    }
+    auto node = nodeList->soloNodeOfType(getMyNodeType());
     return node && node->getActiveSocket();
 }
 

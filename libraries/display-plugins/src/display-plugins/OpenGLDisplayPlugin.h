@@ -137,7 +137,6 @@ protected:
 
     void present(const std::shared_ptr<RefreshRateController>& refreshRateController);
     virtual void swapBuffers();
-    ivec4 eyeViewport(Eye eye) const;
 
     void render(std::function<void(gpu::Batch& batch)> f);
 

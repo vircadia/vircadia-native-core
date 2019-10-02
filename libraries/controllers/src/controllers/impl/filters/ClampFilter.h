@@ -19,7 +19,7 @@ class ClampFilter : public Filter {
 public:
     ClampFilter(float min = 0.0, float max = 1.0) : _min(min), _max(max) {};
     virtual AxisValue apply(AxisValue value) const override {
-        return { glm::clamp(value.value, _min, _max), value.timestamp };
+        return { glm::clamp(value.value, _min, _max), value.timestamp, value.valid };
     }
 
     virtual Pose apply(Pose value) const override { return value; }

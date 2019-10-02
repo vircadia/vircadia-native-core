@@ -26,6 +26,7 @@ scriptable::ScriptableMaterial& scriptable::ScriptableMaterial::operator=(const 
     roughness = material.roughness;
     metallic = material.metallic;
     scattering = material.scattering;
+    opacityCutoff = material.opacityCutoff;
     unlit = material.unlit;
     emissive = material.emissive;
     albedo = material.albedo;
@@ -41,6 +42,8 @@ scriptable::ScriptableMaterial& scriptable::ScriptableMaterial::operator=(const 
     occlusionMap = material.occlusionMap;
     lightMap = material.lightMap;
     scatteringMap = material.scatteringMap;
+    opacityMapMode = material.opacityMapMode;
+
 
     defaultFallthrough = material.defaultFallthrough;
     propertyFallthroughs = material.propertyFallthroughs;
@@ -55,9 +58,12 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
         name = material->getName().c_str();
         model = material->getModel().c_str();
         opacity = material->getOpacity();
+
+        opacityMapMode = QString(graphics::MaterialKey::getOpacityMapModeName(material->getOpacityMapMode()).c_str());
         roughness = material->getRoughness();
         metallic = material->getMetallic();
         scattering = material->getScattering();
+        opacityCutoff = material->getOpacityCutoff();
         unlit = material->isUnlit();
         emissive = material->getEmissive();
         albedo = material->getAlbedo();

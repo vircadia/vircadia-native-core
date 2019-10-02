@@ -41,7 +41,7 @@ protected:
 private:
     QScriptValue _callable;
     float _lastValueRead { 0.0f };
-    AxisValue _lastValueWritten { 0.0f, 0 };
+    AxisValue _lastValueWritten { 0.0f, 0, false };
 
     bool _returnPose { false };
     Pose _lastPoseRead;

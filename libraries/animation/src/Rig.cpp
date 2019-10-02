@@ -564,7 +564,7 @@ void Rig::overrideRoleAnimation(const QString& role, const QString& url, float f
             _origRoleAnimations[role] = node;
             const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
             float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
-            auto clipNode = std::make_shared<AnimClip>(role, url, firstFrame, lastFrame, timeScale, loop, false);
+            auto clipNode = std::make_shared<AnimClip>(role, url, firstFrame, lastFrame, timeScale, loop, false, AnimBlendType_Normal, "", 0.0f);
             _roleAnimStates[role] = { role, url, fps, loop, firstFrame, lastFrame };
             AnimNode::Pointer parent = node->getParent();
             parent->replaceChild(node, clipNode);
@@ -715,7 +715,7 @@ void Rig::reset(const HFMModel& hfmModel) {
     }
 }
 
-bool Rig::jointStatesEmpty() {
+bool Rig::jointStatesEmpty() const {
     return _internalPoseSet._relativePoses.empty();
 }
 
@@ -876,6 +876,20 @@ void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, flo
             _internalPoseSet._overridePoses[index].rot() = rotation;
         }
     }
+}
+
+bool Rig::getIsJointOverridden(int jointIndex) const {
+    if (QThread::currentThread() == thread()) {
+        if (isIndexValid(jointIndex)) {
+            return _internalPoseSet._overrideFlags[jointIndex];
+        }
+    } else {
+        QReadLocker readLock(&_externalPoseSetLock);
+        if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._overrideFlags.size()) {
+            return _externalPoseSet._overrideFlags[jointIndex];
+        }
+    }
+    return false;
 }
 
 bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm::vec3 translation, glm::quat rotation) const {
@@ -1644,7 +1658,7 @@ void Rig::updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headPos
             _animVars.set("splineIKEnabled", false);
             _animVars.unset("headPosition");
             _animVars.set("headRotation", headPose.rot());
-            _animVars.set("headType", (int)IKTarget::Type::RotationOnly);
+            _animVars.set("headType", (int)IKTarget::Type::Unknown);
         }
     }
 }
@@ -1958,8 +1972,7 @@ void Rig::updateReactions(const ControllerParameters& params) {
 
         bool isSeated = _state == RigRole::Seated;
         bool hipsEnabled = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Enabled;
-        bool hipsEstimated = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Estimated;
-        bool hmdMode = hipsEnabled && !hipsEstimated;
+        bool hmdMode = hipsEnabled;
 
         if ((reactionPlaying || isSeated) && !hmdMode) {
             // TODO: make this smooth.
@@ -1973,7 +1986,7 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
     // TODO: does not properly handle avatar scale.
 
-    if (isIndexValid(index)) {
+    if (isIndexValid(index) && !_internalPoseSet._overrideFlags[index]) {
         const glm::mat4 rigToWorld = createMatFromQuatAndPos(modelRotation, modelTranslation);
         const glm::mat4 worldToRig = glm::inverse(rigToWorld);
         const glm::vec3 lookAtVector = glm::normalize(transformPoint(worldToRig, lookAtSpot) - _internalPoseSet._absolutePoses[index].trans());
@@ -2117,7 +2130,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     _previousIsTalking = params.isTalking;
 
     const float TOTAL_EASE_IN_TIME = 0.75f;
-    const float TOTAL_EASE_OUT_TIME = 1.5f;
+    const float TOTAL_EASE_OUT_TIME = 0.75f;
     if (params.isTalking) {
         if (_talkIdleInterpTime < 1.0f) {
             _talkIdleInterpTime += dt / TOTAL_EASE_IN_TIME;
@@ -2631,4 +2644,9 @@ float Rig::getUnscaledEyeHeight() const {
     } else {
         return DEFAULT_AVATAR_EYE_HEIGHT;
     }
+}
+
+void Rig::setDirectionalBlending(const QString& targetName, const glm::vec3& blendingTarget, const QString& alphaName, float alpha) {
+    _animVars.set(targetName, blendingTarget);
+    _animVars.set(alphaName, alpha);
 }

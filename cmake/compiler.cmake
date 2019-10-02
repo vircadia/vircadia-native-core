@@ -34,7 +34,7 @@ if (WIN32)
   list(APPEND CMAKE_PREFIX_PATH "${WINDOW_SDK_PATH}")
 
   # /wd4351 disables warning C4351: new behavior: elements of array will be default initialized
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /wd4351")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP${HIFI_MAX_BUILD_CORES} /wd4351")
   # /LARGEADDRESSAWARE enables 32-bit apps to use more than 2GB of memory.
   # Caveats: http://stackoverflow.com/questions/2288728/drawbacks-of-using-largeaddressaware-for-32-bit-windows-executables
   # TODO: Remove when building 64-bit.

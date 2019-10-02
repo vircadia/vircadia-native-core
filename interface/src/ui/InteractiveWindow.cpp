@@ -18,6 +18,9 @@
 #include <QtQuick/QQuickWindow>
 #include <QQuickView>
 
+#include <ui/types/ContextAwareProfile.h>
+#include <ui/types/HFWebEngineProfile.h>
+#include <ui/types/FileTypeProfile.h>
 #include <DependencyManager.h>
 #include <DockWidget.h>
 #include <RegisteredMetaTypes.h>
@@ -134,7 +137,7 @@ void InteractiveWindow::emitMainWindowResizeEvent() {
  *     Set at window creation. Possible flag values are provided as {@link Desktop|Desktop.ALWAYS_ON_TOP} and {@link Desktop|Desktop.CLOSE_BUTTON_HIDES}.
  *     Additional flag values can be found on Qt's website at https://doc.qt.io/qt-5/qt.html#WindowType-enum.
  */
-InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap& properties) {
+InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap& properties, bool restricted) {
     InteractiveWindowPresentationMode presentationMode = InteractiveWindowPresentationMode::Native;
 
     if (properties.contains(PRESENTATION_MODE_PROPERTY)) {
@@ -228,9 +231,16 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         _dockWidget->setObjectName("DockedWidget");
         mainWindow->addDockWidget(dockArea, _dockWidget.get());
     } else {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        // Build the event bridge and wrapper on the main thread
-        offscreenUi->loadInNewContext(CONTENT_WINDOW_QML, [&](QQmlContext* context, QObject* object) {
+        auto contextInitLambda = [&](QQmlContext* context) {
+            // If the restricted flag is on, the web content will not be able to access local files
+            ContextAwareProfile::restrictContext(context, restricted);
+#if !defined(Q_OS_ANDROID)
+            FileTypeProfile::registerWithContext(context);
+            HFWebEngineProfile::registerWithContext(context);
+#endif
+        };
+
+        auto objectInitLambda = [&](QQmlContext* context, QObject* object) {
             _qmlWindowProxy = std::shared_ptr<QmlWindowProxy>(new QmlWindowProxy(object, nullptr), qmlWindowProxyDeleter);
             context->setContextProperty(EVENT_BRIDGE_PROPERTY, _interactiveWindowProxy.get());
             if (properties.contains(ADDITIONAL_FLAGS_PROPERTY)) {
@@ -286,7 +296,11 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
             }
             object->setObjectName("InteractiveWindow");
             object->setProperty(SOURCE_PROPERTY, sourceURL);
-        });
+        };
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+
+        // Build the event bridge and wrapper on the main thread
+        offscreenUi->loadInNewContext(CONTENT_WINDOW_QML, objectInitLambda, contextInitLambda);
     }
 }
 

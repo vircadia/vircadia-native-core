@@ -14,6 +14,7 @@
 #include <QtCore/QProcess>
 #include <QDebug>
 #include <QDir>
+#include <QFileInfo>
 #include <QLocalSocket>
 #include <QLocalServer>
 #include <QSharedMemory>
@@ -70,7 +71,7 @@ int main(int argc, const char* argv[]) {
     }
 
     QCommandLineParser parser;
-    parser.setApplicationDescription("High Fidelity Interface");
+    parser.setApplicationDescription("High Fidelity");
     QCommandLineOption versionOption = parser.addVersionOption();
     QCommandLineOption helpOption = parser.addHelpOption();
 
@@ -117,21 +118,27 @@ int main(int argc, const char* argv[]) {
     }
 
     QString applicationPath;
+    // A temporary application instance is needed to get the location of the running executable
+    // Tests using high_resolution_clock show that this takes about 30-50 microseconds (on my machine, YMMV)
+    // If we wanted to avoid the QCoreApplication, we would need to write our own
+    // cross-platform implementation.
     {
-        // A temporary application instance is needed to get the location of the running executable
-        // Tests using high_resolution_clock show that this takes about 30-50 microseconds (on my machine, YMMV)
-        // If we wanted to avoid the QCoreApplication, we would need to write our own
-        // cross-platform implementation.
         QCoreApplication tempApp(argc, const_cast<char**>(argv));
+#ifdef Q_OS_OSX
+        if (QFileInfo::exists(QCoreApplication::applicationDirPath() + "/../../../config.json")) {
+            applicationPath = QCoreApplication::applicationDirPath() + "/../../../";
+        } else {
+            applicationPath = QCoreApplication::applicationDirPath();
+        }
+#else
         applicationPath = QCoreApplication::applicationDirPath();
+#endif
     }
-
     static const QString APPLICATION_CONFIG_FILENAME = "config.json";
     QDir applicationDir(applicationPath);
     QString configFileName = applicationDir.filePath(APPLICATION_CONFIG_FILENAME);
     QFile configFile(configFileName);
     QString launcherPath;
-    
     if (configFile.exists()) {
         if (!configFile.open(QIODevice::ReadOnly)) {
             qWarning() << "Found application config, but could not open it";

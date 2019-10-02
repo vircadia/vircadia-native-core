@@ -81,6 +81,11 @@ void AssetScriptingInterface::setMapping(QString path, QString hash, QScriptValu
     setMappingRequest->start();
 }
 
+/**jsdoc
+ * The success or failure of an {@link Assets.downloadData} call.
+ * @typedef {object} Assets.DownloadDataError
+ * @property {string} errorMessage - <code>""</code> if the download was successful, otherwise a description of the error.
+ */
 void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callback) {
     // FIXME: historically this API method failed silently when given a non-atp prefixed
     //   urlString (or if the AssetRequest failed).
@@ -127,6 +132,9 @@ void AssetScriptingInterface::setBakingEnabled(QString path, bool enabled, QScri
     auto setBakingEnabledRequest = DependencyManager::get<AssetClient>()->createSetBakingEnabledRequest({ path }, enabled);
 
     Promise deferred = jsPromiseReady(makePromise(__FUNCTION__), thisObject(), callback);
+    if (!deferred) {
+        return;
+    }
 
     connect(setBakingEnabledRequest, &SetBakingEnabledRequest::finished, setBakingEnabledRequest, [deferred](SetBakingEnabledRequest* request) {
         Q_ASSERT(QThread::currentThread() == request->thread());
@@ -216,20 +224,31 @@ void AssetScriptingInterface::deleteAsset(QScriptValue options, QScriptValue sco
 }
 
 /**jsdoc
- * @typedef {string} Assets.GetOptions.ResponseType
- * <p>Available <code>responseType</code> values for use with @{link Assets.getAsset} and @{link Assets.loadFromCache} configuration option. </p>
- * <table>
- *   <thead>
- *     <tr><th>responseType</th><th>typeof response value</th></tr>
- *   </thead>
- *   <tbody>
- *     <tr><td><code>"text"</code></td><td>contents returned as utf-8 decoded <code>String</code> value</td></tr>
- *     <tr><td><code>"arraybuffer"</code></td><td>contents as a binary <code>ArrayBuffer</code> object</td></tr>
- *     <tr><td><code>"json"</code></td><td>contents as a parsed <code>JSON</code> object</td></tr>
- *   </tbody>
- * </table>
+ * Source and download options for {@link Assets.getAsset}.
+ * @typedef {object} Assets.GetOptions
+ * @property {boolean} [decompress=false] - <code>true</code> to gunzip decompress the downloaded data. Synonym:
+ *     <code>compressed</code>.
+ * @property {Assets.ResponseType} [responseType="text"] - The desired result type.
+ * @property {string} url - The mapped path or hash to download. May have a leading <code>"atp:"</code>.
  */
-
+/**jsdoc
+ * Result value returned by {@link Assets.getAsset}. 
+ * @typedef {object} Assets.GetResult
+ * @property {number} [byteLength] - The number of bytes in the downloaded content in <code>response</code>.
+ * @property {boolean} cached - <code>true</code> if the item was retrieved from the cache, <code>false</code> if it was 
+ *     downloaded.
+ * @property {string} [contentType] - The automatically detected MIME type of the content.
+ * @property {boolean} [decompressed] - <code>true</code> if the content was decompressed, <code>false</code> if it wasn't.
+ * @property {string} [hash] - The hash for the downloaded asset.
+ * @property {string} [hashURL] - The ATP URL of the hash file.
+ * @property {string} [path] - The path for the asset, if a path was requested. Otherwise, <code>undefined</code>.
+ * @property {string|object|ArrayBuffer} [response] - The downloaded content.
+ * @property {Assets.ResponseType} [responseType] - The type of the downloaded content in <code>response</code>.
+ * @property {string} [url] - The URL of the asset requested: the path with leading <code>"atp:"</code> if a path was 
+ *     requested, otherwise the requested URL.
+ * @property {boolean} [wasRedirected] - <code>true</code> if the downloaded data is the baked version of the asset, 
+ *      <code>false</code> if it isn't baked.
+ */
 void AssetScriptingInterface::getAsset(QScriptValue options, QScriptValue scope, QScriptValue callback) {
     JS_VERIFY(options.isObject() || options.isString(), "expected request options Object or URL as first parameter");
 
@@ -249,8 +268,11 @@ void AssetScriptingInterface::getAsset(QScriptValue options, QScriptValue scope,
               QString("Invalid responseType: '%1' (expected: %2)").arg(responseType).arg(RESPONSE_TYPES.join(" | ")));
 
     Promise fetched = jsPromiseReady(makePromise("fetched"), scope, callback);
-    Promise mapped = makePromise("mapped");
+    if (!fetched) {
+        return;
+    }
 
+    Promise mapped = makePromise("mapped");
     mapped->fail(fetched);
     mapped->then([=](QVariantMap result) {
         QString hash = result.value("hash").toString();
@@ -277,6 +299,22 @@ void AssetScriptingInterface::getAsset(QScriptValue options, QScriptValue scope,
     }
 }
 
+/**jsdoc
+ * Source options for {@link Assets.resolveAsset}.
+ * @typedef {object} Assets.ResolveOptions
+ * @property {string} url - The hash or path to resolve. May have a leading <code>"atp:"</code>.
+ */
+/**jsdoc
+ * Result value returned by {@link Assets.resolveAsset}.
+ * <p>Note: If resolving a hash, a file of that hash need not be present on the asset server for the hash to resolve.</p>
+ * @typedef {object} Assets.ResolveResult
+ * @property {string} [hash] - The hash of the asset.
+ * @property {string} [hashURL] - The url of the asset's hash file, with leading <code>atp:</code>. 
+ * @property {string} [path] - The path to the asset.
+ * @property {string} [url] - The URL of the asset.
+ * @property {boolean} [wasRedirected] - <code>true</code> if the resolved data is for the baked version of the asset,
+ *      <code>false</code> if it isn't.
+ */
 void AssetScriptingInterface::resolveAsset(QScriptValue options, QScriptValue scope, QScriptValue callback) {
     const QString& URL{ "url" };
 
@@ -289,6 +327,21 @@ void AssetScriptingInterface::resolveAsset(QScriptValue options, QScriptValue sc
     jsPromiseReady(getAssetInfo(asset), scope, callback);
 }
 
+/**jsdoc
+ * Content and decompression options for {@link Assets.decompressData}.
+ * @typedef {object} Assets.DecompressOptions
+ * @property {ArrayBuffer} data - The data to decompress.
+ * @property {Assets.ResponseType} [responseType=text] - The type of decompressed data to return.
+ */
+/**jsdoc
+ * Result value returned by {@link Assets.decompressData}.
+ * @typedef {object} Assets.DecompressResult
+ * @property {number} [byteLength] - The number of bytes in the decompressed data.
+ * @property {string} [contentType] - The MIME type of the decompressed data.
+ * @property {boolean} [decompressed] - <code>true</code> if the data is decompressed.
+ * @property {string|object|ArrayBuffer} [response] - The decompressed data.
+ * @property {Assets.ResponseType} [responseType] - The type of the decompressed data in <code>response</code>.
+ */
 void AssetScriptingInterface::decompressData(QScriptValue options, QScriptValue scope, QScriptValue callback) {
     auto data = options.property("data");
     QByteArray dataByteArray = qscriptvalue_cast<QByteArray>(data);
@@ -313,6 +366,23 @@ namespace {
     const int32_t DEFAULT_GZIP_COMPRESSION_LEVEL = -1;
     const int32_t MAX_GZIP_COMPRESSION_LEVEL = 9;
 }
+
+/**jsdoc
+ * Content and compression options for {@link Assets.compressData}.
+ * @typedef {object} Assets.CompressOptions
+ * @property {string|ArrayBuffer} data - The data to compress.
+ * @property {number} level - The compression level, range <code>-1</code> &ndash; <code>9</code>. <code>-1</code> means 
+ *     use the default gzip compression level, <code>0</code> means no compression, and <code>9</code> means maximum 
+ *     compression.
+ */
+/**jsdoc
+ * Result value returned by {@link Assets.compressData}.
+ * @typedef {object} Assets.CompressResult
+ * @property {number} [byteLength] - The number of bytes in the compressed data.
+ * @property {boolean} [compressed] - <code>true</code> if the data is compressed.
+ * @property {string} [contentType] - The MIME type of the compressed data, i.e., <code>"application/gzip"</code>.
+ * @property {ArrayBuffer} [data] - The compressed data.
+ */
 void AssetScriptingInterface::compressData(QScriptValue options, QScriptValue scope, QScriptValue callback) {
     auto data = options.property("data").isValid() ? options.property("data") : options;
     QByteArray dataByteArray = data.isString() ? data.toString().toUtf8() : qscriptvalue_cast<QByteArray>(data);
@@ -321,6 +391,27 @@ void AssetScriptingInterface::compressData(QScriptValue options, QScriptValue sc
     jsPromiseReady(compressBytes(dataByteArray, level), scope, callback);
 }
 
+/**jsdoc
+ * Content and upload options for {@link Assets.putAsset}.
+ * @typedef {object} Assets.PutOptions
+ * @property {boolean} [compress=false] - <code>true</code> to gzip compress the content for upload and storage,
+ *     <code>false</code> to upload and store the data without gzip compression. Synonym: <code>compressed</code>.
+ * @property {string|ArrayBuffer} data - The content to upload.
+ * @property {string} [path] - A user-friendly path for the file in the asset server. May have a leading 
+ *     <code>"atp:"</code>. IF not specified, no path-to-hash mapping is set.
+ *     <p>Note: The asset server destroys any unmapped SHA256-named file at server restart. Either set the mapping path 
+ *     with this property or use {@link Assets.setMapping} to set a path-to-hash mapping for the uploaded file.</p>
+ */
+/**jsdoc
+ * Result value returned by {@link Assets.putAsset}.
+ * @typedef {object} Assets.PutResult
+ * @property {number} [byteLength] - The number of bytes in the hash file stored on the asset server.
+ * @property {boolean} [compressed] - <code>true</code> if the content stored is gzip compressed.
+ * @property {string} [contentType] - <code>"application/gzip"</code> if the content stored is gzip compressed.
+ * @property {string} [hash] - The SHA256 hash of the content.
+ * @property {string} [url] - The <code>atp:</code> URL of the content: using the path if specified, otherwise the hash.
+ * @property {string} [path] - The uploaded content's mapped path, if specified.
+ */
 void AssetScriptingInterface::putAsset(QScriptValue options, QScriptValue scope, QScriptValue callback) {
     auto compress = options.property("compress").toBool() || options.property("compressed").toBool();
     auto data = options.isObject() ? options.property("data") : options;
@@ -371,12 +462,27 @@ void AssetScriptingInterface::putAsset(QScriptValue options, QScriptValue scope,
     }
 }
 
+/**jsdoc
+ * Source for {@link Assets.queryCacheMeta}.
+ * @typedef {object} Assets.QueryCacheMetaOptions
+ * @property {string} url - The URL of the cached asset to get information on. Must start with <code>"atp:"</code> or 
+ *     <code>"cache:"</code>.
+ */
 void AssetScriptingInterface::queryCacheMeta(QScriptValue options, QScriptValue scope, QScriptValue callback) {
     QString url = options.isString() ? options.toString() : options.property("url").toString();
     JS_VERIFY(QUrl(url).isValid(), QString("Invalid URL '%1'").arg(url));
     jsPromiseReady(Parent::queryCacheMeta(url), scope, callback);
 }
 
+/**jsdoc
+ * Source and retrieval options for {@link Assets.loadFromCache}.
+ * @typedef {object} Assets.LoadFromCacheOptions
+ * @property {boolean} [decompress=false] - <code>true</code> to gunzip decompress the cached data. Synonym:
+ *     <code>compressed</code>.
+ * @property {Assets.ResponseType} [responseType=text] - The desired result type.
+ * @property {string} url - The URL of the asset to load from cache. Must start with <code>"atp:"</code> or
+ *     <code>"cache:"</code>.
+ */
 void AssetScriptingInterface::loadFromCache(QScriptValue options, QScriptValue scope, QScriptValue callback) {
     QString url, responseType;
     bool decompress = false;
@@ -411,6 +517,14 @@ bool AssetScriptingInterface::canWriteCacheValue(const QUrl& url) {
     return true;
 }
 
+/**jsdoc
+ * The data to save to the cache and cache options for {@link Assets.saveToCache}.
+ * @typedef {object} Assets.SaveToCacheOptions
+ * @property {string|ArrayBuffer} data - The data to save to the cache.
+ * @property {Assets.SaveToCacheHeaders} [headers] - The last-modified and expiry times for the cache item.
+ * @property {string} [url] - The URL to associate with the cache item. Must start with <code>"atp:"</code> or
+ *     <code>"cache:"</code>. If not specified, the URL is <code>"atp:"</code> followed by the SHA256 hash of the content.
+ */
 void AssetScriptingInterface::saveToCache(QScriptValue options, QScriptValue scope, QScriptValue callback) {
     JS_VERIFY(options.isObject(), QString("expected options object as first parameter not: %1").arg(options.toVariant().typeName()));
 
