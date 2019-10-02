@@ -26,7 +26,7 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        if (Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatar", false)) {
+        if (Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatarFromInventory", false)) {
             tempAvatarPageContainer.visible = false;
             controlsContainer.visible = true;
         }
@@ -174,8 +174,8 @@ Rectangle {
                     id: tempAvatarImage
                     width: root.width > root.height ? 428 : 320
                     height: root.width > root.height ? 800 : 598
-                    source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/DefaultAvatar_" +
-                        MyAvatar.skeletonModelURL.substring(123, MyAvatar.skeletonModelURL.length - 11) + ".png"
+                    source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/" +
+                        MyAvatar.skeletonModelURL.substring(MyAvatar.skeletonModelURL.indexOf("simplifiedAvatar"), MyAvatar.skeletonModelURL.lastIndexOf("/")) + ".png"
                 }
                 // TODO move this to be above the rest of the grid layout stuff in landscape mode
             }
