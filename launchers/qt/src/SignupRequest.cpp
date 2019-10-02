@@ -15,7 +15,7 @@ void SignupRequest::send(QNetworkAccessManager& nam, QString email, QString user
 
     _state = State::Sending;
 
-    QUrl signupURL { METAVERSE_API_DOMAIN };
+    QUrl signupURL { getMetaverseAPIDomain() };
     signupURL.setPath("/api/v1/user/channel_user");
     QNetworkRequest request(signupURL);
 
@@ -27,7 +27,7 @@ void SignupRequest::send(QNetworkAccessManager& nam, QString email, QString user
     query.addQueryItem("username", username);
     query.addQueryItem("password", password);
 
-    auto reply = nam.post(request, query.toString().toUtf8());
+    auto reply = nam.put(request, query.toString().toUtf8());
     QObject::connect(reply, &QNetworkReply::finished, this, &SignupRequest::receivedResponse);
 }
 

@@ -6,7 +6,16 @@
 #include <QDir>
 #include <QFile>
 #include <QProcess>
+#include <QProcessEnvironment>
 
+
+QString getMetaverseAPIDomain() {
+    QProcessEnvironment processEnvironment = QProcessEnvironment::systemEnvironment();
+    if (processEnvironment.contains("HIFI_METAVERSE_URL")) {
+        return processEnvironment.value("HIFI_METAVERSE_URL");
+    }
+    return "https://metaverse.highfidelity.com";
+}
 
 void swapLaunchers(const QString& oldLauncherPath, const QString& newLauncherPath) {
     if (!(QFileInfo::exists(oldLauncherPath) && QFileInfo::exists(newLauncherPath))) {
