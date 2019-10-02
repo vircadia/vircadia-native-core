@@ -10,20 +10,12 @@
 #include "LoginRequest.h"
 #include "SignupRequest.h"
 #include "UserSettingsRequest.h"
+#include "BuildsRequest.h"
 
-struct Build {
-    QString tag;
-    int latestVersion;
-    int buildNumber;
-    QString installerZipURL;
-};
-
-struct LatestBuilds {
-    bool getBuild(QString tag, Build* outBuild);
-
-    QString defaultTag;
-    std::vector<Build> builds;
-    Build launcherBuild;
+struct LauncherConfig {
+    QString launcherPath{ "" };
+    bool loggedIn{ false };
+    QString homeLocation{ "" };
 };
 
 class LauncherState : public QObject {
@@ -110,7 +102,6 @@ public:
 
     // Request builds
     void requestBuilds();
-    Q_INVOKABLE void receivedBuildsReply();
 
     // Signup
     Q_INVOKABLE void signup(QString email, QString username, QString password, QString displayName);
@@ -159,14 +150,18 @@ private:
     QString getContentCachePath() const;
     QString getClientDirectory() const;
     QString getClientExecutablePath() const;
+    QString getConfigFilePath() const;
+    QString getLauncherFilePath() const;
 
     float calculateDownloadProgress() const;
 
     bool shouldDownloadLauncher();
 
     QNetworkAccessManager _networkAccessManager;
-    LatestBuilds _latestBuilds;
+    Builds _latestBuilds;
     QDir _launcherDirectory;
+
+    LauncherConfig _config;
 
     // Application State
     ApplicationState _applicationState { ApplicationState::Init };
@@ -180,7 +175,6 @@ private:
     QString _buildTag { QString::null };
     QString _contentCacheURL;
     QString _loginTokenResponse;
-    QString _homeLocation;
     QFile _clientZipFile;
     QFile _launcherZipFile;
     QFile _contentZipFile;

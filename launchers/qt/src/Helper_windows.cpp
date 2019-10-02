@@ -18,7 +18,8 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
         + " --setBookmark \"hqhome=" + homePath + "\""
         + " --defaultScriptsOverride \"file:///" + defaultScriptsPath + "\""
         + " --displayName \"" + displayName + "\""
-        + " --cache \"" + contentCachePath + "\"";
+        + " --cache \"" + contentCachePath + "\""
+        + " --suppress-settings-reset --no-launcher --no-updater";
 
     if (!loginResponseToken.isEmpty()) {
         params += " --tokens \"" + loginResponseToken.replace("\"", "\\\"") + "\"";
@@ -146,4 +147,37 @@ bool deleteRegistryKey(const std::string& regPath) {
         return (bool) TRUE;
     }
     return false;
+}
+
+
+BOOL isProcessRunning(const char* processName, int& processID) {
+    bool exists = false;
+    PROCESSENTRY32 entry;
+    entry.dwSize = sizeof(PROCESSENTRY32);
+
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+
+    if (Process32First(snapshot, &entry)) {
+        while (Process32Next(snapshot, &entry)) {
+            if (!_stricmp(entry.szExeFile, processName)) {
+                exists = true;
+                processID = entry.th32ProcessID;
+                break;
+            }
+        }
+    }
+    CloseHandle(snapshot);
+    return exists;
+}
+
+BOOL shutdownProcess(DWORD dwProcessId, UINT uExitCode) {
+    DWORD dwDesiredAccess = PROCESS_TERMINATE;
+    BOOL  bInheritHandle = FALSE;
+    HANDLE hProcess = OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId);
+    if (hProcess == NULL) {
+        return FALSE;
+    }
+    BOOL result = TerminateProcess(hProcess, uExitCode);
+    CloseHandle(hProcess);
+    return result;
 }

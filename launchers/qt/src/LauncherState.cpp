@@ -27,6 +27,11 @@
 
 #include <qregularexpression.h>
 
+//#define BREAK_ON_ERROR
+
+const QString configHomeLocationKey { "homeLocation" };
+const QString configLoggedInKey{ "loggedIn" };
+const QString configLauncherPathKey{ "launcherPath" };
 
 QString LauncherState::getContentCachePath() const {
     return _launcherDirectory.filePath("cache");
@@ -45,23 +50,22 @@ QString LauncherState::getClientExecutablePath() const {
 #endif
 }
 
-bool LauncherState::shouldDownloadContentCache() const {
-    return !_contentCacheURL.isEmpty() && !QFile::exists(getContentCachePath());
+
+QString LauncherState::getConfigFilePath() const {
+    QDir clientDirectory = getClientDirectory();
+    return clientDirectory.absoluteFilePath("config.json");
 }
 
-bool LatestBuilds::getBuild(QString tag, Build* outBuild) {
-    if (tag.isNull()) {
-        tag = defaultTag;
-    }
+QString LauncherState::getLauncherFilePath() const {
+#if defined(Q_OS_WIN)
+    return _launcherDirectory.absoluteFilePath("launcher.exe");
+#elif defined(Q_OS_MACOS)
+    return _launcherDirectory.absoluteFilePath("launcher.app");
+#endif
+}
 
-    for (auto& build : builds) {
-        if (build.tag == tag) {
-            *outBuild = build;
-            return true;
-        }
-    }
-
-    return false;
+bool LauncherState::shouldDownloadContentCache() const {
+    return !_contentCacheURL.isEmpty() && !QFile::exists(getContentCachePath());
 }
 
 static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_FOR_UI_STATE =
@@ -70,7 +74,7 @@ static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_
 
 void LauncherState::ASSERT_STATE(LauncherState::ApplicationState state) {
     if (_applicationState != state) {
-#ifdef Q_OS_WIN
+#ifdef BREAK_ON_ERROR
         __debugbreak();
 #endif
         setApplicationState(ApplicationState::UnexpectedError);
@@ -84,8 +88,8 @@ void LauncherState::ASSERT_STATE(const std::vector<LauncherState::ApplicationSta
         }
     }
 
-#ifdef Q_OS_WIN
-    __debugbreak();
+#ifdef BREAK_ON_ERROR
+        __debugbreak();
 #endif
     setApplicationState(ApplicationState::UnexpectedError);
 }
@@ -126,15 +130,15 @@ LauncherState::UIState LauncherState::getUIState() const {
         case ApplicationState::LaunchingHighFidelity:
             return DOWNLOAD_FINSISHED;
         case ApplicationState::UnexpectedError:
-            #ifdef Q_OS_WIN
+#ifdef BREAK_ON_ERROR
             __debugbreak();
-            #endif
+#endif
             return ERROR_SCREEN;
         default:
             qDebug() << "FATAL: No UI for" << _applicationState;
-            #ifdef Q_OS_WIN
+#ifdef BREAK_ON_ERROR
             __debugbreak();
-            #endif
+#endif
             return ERROR_SCREEN;
     }
 }
@@ -147,97 +151,34 @@ LauncherState::LastLoginError LauncherState::getLastLoginError() const {
     return _lastLoginError;
 }
 
-void LauncherState::requestBuilds() {
-    ASSERT_STATE(ApplicationState::Init);
-    setApplicationState(ApplicationState::RequestingBuilds);
-
-    // TODO Show splash screen until this request is complete
-
-    QString latestBuildRequestUrl { "https://thunder.highfidelity.com/builds/api/tags/latest/?format=json" };
-    QProcessEnvironment processEnvironment =QProcessEnvironment::systemEnvironment();
-
-    if (processEnvironment.contains("HQ_LAUNCHER_BUILDS_URL")) {
-        latestBuildRequestUrl = processEnvironment.value("HQ_LAUNCHER_BUILDS_URL");
-    }
-
-    auto request = new QNetworkRequest(QUrl(latestBuildRequestUrl));
-    auto reply = _networkAccessManager.get(*request);
-
-    QObject::connect(reply, &QNetworkReply::finished, this, &LauncherState::receivedBuildsReply);
-}
-
 void LauncherState::restart() {
     setApplicationState(ApplicationState::Init);
     requestBuilds();
 }
 
-void LauncherState::receivedBuildsReply() {
-    auto reply = static_cast<QNetworkReply*>(sender());
+void LauncherState::requestBuilds() {
+    ASSERT_STATE(ApplicationState::Init);
+    setApplicationState(ApplicationState::RequestingBuilds);
 
-    ASSERT_STATE(ApplicationState::RequestingBuilds);
+    auto request = new BuildsRequest();
 
-    if (reply->error()) {
-        qDebug() << "Error getting builds from thunder: " << reply->errorString();
-    } else {
-        qDebug() << "Builds reply has been received";
-        auto data = reply->readAll();
-        QJsonParseError parseError;
-        auto doc = QJsonDocument::fromJson(data, &parseError);
-        if (parseError.error) {
-            qDebug() << "Error parsing response from thunder: " << data;
-        } else {
-            auto root = doc.object();
-            if (!root.contains("default_tag")) {
-                setApplicationState(ApplicationState::UnexpectedError);
-                return;
-            }
-
-            _latestBuilds.defaultTag = root["default_tag"].toString();
-
-            auto results = root["results"];
-            if (!results.isArray()) {
-                setApplicationState(ApplicationState::UnexpectedError);
-                return;
-            }
-
-            for (auto result : results.toArray()) {
-                auto entry = result.toObject();
-                Build build;
-                build.tag = entry["name"].toString();
-                build.latestVersion = entry["latest_version"].toInt();
-                build.buildNumber = entry["build_number"].toInt();
-#ifdef Q_OS_WIN
-                build.installerZipURL = entry["installers"].toObject()["windows"].toObject()["zip_url"].toString();
-#elif defined(Q_OS_MACOS)
-                build.installerZipURL = entry["installers"].toObject()["mac"].toObject()["zip_url"].toString();
-#else
-#error "Launcher is only supported on Windows and Mac OS"
-#endif
-                _latestBuilds.builds.push_back(build);
-            }
-
-            auto launcherResults = root["launcher"].toObject();
-
-            Build launcherBuild;
-            launcherBuild.latestVersion = launcherResults["version"].toInt();
-
-#ifdef Q_OS_WIN
-            launcherBuild.installerZipURL = launcherResults["windows"].toObject()["url"].toString();
-#elif defined(Q_OS_MACOS)
-            launcherBuild.installerZipURL = launcherResults["mac"].toObject()["url"].toString();
-#else
-#error "Launcher is only supported on Windows and Mac OS"
-#endif
-            _latestBuilds.launcherBuild = launcherBuild;
+    QObject::connect(request, &BuildsRequest::finished, this, [=] {
+        ASSERT_STATE(ApplicationState::RequestingBuilds);
+        if (request->getError() != BuildsRequest::Error::None) {
+            setApplicationStateError("Could not retrieve latest builds");
+            return;
         }
-    }
 
-    if (shouldDownloadLauncher()) {
-        downloadLauncher();
-    }
-    getCurrentClientVersion();
+        _latestBuilds = request->getLatestBuilds();
+
+        if (shouldDownloadLauncher()) {
+            downloadLauncher();
+        }
+        getCurrentClientVersion();
+    });
+
+    request->send(_networkAccessManager);
 }
-
 
 bool LauncherState::shouldDownloadLauncher() {
     return _latestBuilds.launcherBuild.latestVersion != atoi(LAUNCHER_BUILD_VERSION);
@@ -271,7 +212,32 @@ void LauncherState::getCurrentClientVersion() {
     }
     qDebug() << "Current client version is: " << _currentClientVersion;
 
-    setApplicationState(ApplicationState::WaitingForSignup);
+    {
+        auto path = getConfigFilePath();
+        QFile configFile{ path };
+
+        if (configFile.open(QIODevice::ReadOnly)) {
+            QJsonDocument doc = QJsonDocument::fromJson(configFile.readAll());
+            auto root = doc.object();
+
+            _config.launcherPath = getLauncherFilePath();
+            _config.loggedIn = false;
+            if (root.contains(configLoggedInKey)) {
+                _config.loggedIn = root["loggedIn"].toBool();
+            }
+            if (root.contains(configHomeLocationKey)) {
+                _config.homeLocation = root["homeLocation"].toString();
+            }
+        } else {
+            qDebug() << "Failed to open config.json";
+        }
+    }
+
+    if (_config.loggedIn) {
+        downloadClient();
+    } else {
+        setApplicationState(ApplicationState::WaitingForSignup);
+    }
 }
 
 
@@ -337,6 +303,7 @@ void LauncherState::signup(QString email, QString username, QString password, QS
             }
 
 
+            _config.loggedIn = true;
             _loginResponse = loginRequest->getToken();
             _loginTokenResponse = loginRequest->getRawToken();
 
@@ -372,6 +339,7 @@ void LauncherState::login(QString username, QString password, QString displayNam
             return;
         }
 
+        _config.loggedIn = true;
         _loginResponse = request->getToken();
         _loginTokenResponse = request->getRawToken();
 
@@ -390,18 +358,17 @@ void LauncherState::requestSettings() {
     connect(request, &UserSettingsRequest::finished, this, [this, request]() {
         auto userSettings = request->getUserSettings();
         if (userSettings.homeLocation.isEmpty()) {
-            qDebug() << "UserSettings is empty";
-            _homeLocation = "hifi://hq";
+            _config.homeLocation = "hifi://hq";
             _contentCacheURL = "";
         } else {
-            _homeLocation = userSettings.homeLocation;
-            auto host = QUrl(_homeLocation).host();
+            _config.homeLocation = userSettings.homeLocation;
+            auto host = QUrl(_config.homeLocation).host();
             _contentCacheURL = "http://orgs.highfidelity.com/host-content-cache/" +  host + ".zip";
 
             qDebug() << "Content cache url: " << _contentCacheURL;
         }
 
-        qDebug() << "Home location is: " << _homeLocation;
+        qDebug() << "Home location is: " << _config.homeLocation;
         qDebug() << "Content cache url is: " << _contentCacheURL;
 
         downloadClient();
@@ -685,7 +652,18 @@ void LauncherState::launchClient() {
     clientPath = installDirectory.absoluteFilePath("interface.app/Contents/MacOS/interface");
 #endif
 
-    // TODO Get correct home path
+    auto path = getConfigFilePath();
+    QFile configFile{ path };
+    if (configFile.open(QIODevice::WriteOnly)) {
+        QJsonDocument doc = QJsonDocument::fromJson(configFile.readAll());
+        doc.setObject({
+            { configHomeLocationKey, _config.homeLocation },
+            { configLoggedInKey, _config.loggedIn },
+            { configLauncherPathKey, _config.launcherPath },
+        });
+        configFile.write(doc.toJson());
+    }
+
     QString defaultScriptsPath;
 #if defined(Q_OS_WIN)
     defaultScriptsPath = installDirectory.filePath("scripts/simplifiedUIBootstrapper.js");
@@ -695,7 +673,7 @@ void LauncherState::launchClient() {
 
     QString contentCachePath = _launcherDirectory.filePath("cache");
 
-    ::launchClient(clientPath, _homeLocation, defaultScriptsPath, _displayName, contentCachePath, _loginTokenResponse);
+    ::launchClient(clientPath, _config.homeLocation, defaultScriptsPath, _displayName, contentCachePath, _loginTokenResponse);
 }
 
 void LauncherState::setApplicationStateError(QString errorMessage) {
@@ -707,9 +685,9 @@ void LauncherState::setApplicationState(ApplicationState state) {
     qDebug() << "Changing application state: " << _applicationState << " -> " << state;
 
     if (state == ApplicationState::UnexpectedError) {
-        #ifdef Q_OS_WIN
+#ifdef BREAK_ON_ERROR
         __debugbreak();
-        #endif
+#endif
     }
 
     _applicationState = state;

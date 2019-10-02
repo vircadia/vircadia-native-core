@@ -20,8 +20,6 @@ Q_IMPORT_PLUGIN(QtQuick2Plugin);
 Q_IMPORT_PLUGIN(QtQuickControls2Plugin);
 Q_IMPORT_PLUGIN(QtQuickTemplates2Plugin);
 
-
-
 bool hasSuffix(const std::string& path, const std::string& suffix) {
     if (path.substr(path.find_last_of(".") + 1) == suffix) {
         return true;
@@ -53,6 +51,12 @@ int main(int argc, char *argv[]) {
         launcherInstaller.uninstall();
         return 0;
     }
+
+    int interfacePID = -1;
+    if (isProcessRunning("interface.exe", interfacePID)) {
+        shutdownProcess(interfacePID, 0);
+    }
+
 #endif
     QString name { "High Fidelity" };
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
