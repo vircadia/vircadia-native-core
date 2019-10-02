@@ -296,7 +296,7 @@ function updateOutputDeviceMutedOverlay(isMuted) {
         props.y = Window.innerHeight / 2 - overlayDims / 2;
 
         var outputDeviceMutedOverlayBottomY = props.y + overlayDims;
-        var inputDeviceMutedOverlayTopY = getInputDeviceMutedOverlayTopY();
+        var inputDeviceMutedOverlayTopY = INPUT_DEVICE_MUTED_MARGIN_TOP_PX;
         if (outputDeviceMutedOverlayBottomY + OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX > inputDeviceMutedOverlayTopY) {
             overlayDims = 2 * (inputDeviceMutedOverlayTopY - Window.innerHeight / 2 - OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX);
         }
@@ -609,15 +609,11 @@ function maybeDeleteInputDeviceMutedOverlay() {
 }
 
 
-function getInputDeviceMutedOverlayTopY() {
-    return (Window.innerHeight - INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX - INPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX);
-}
-
-
 var inputDeviceMutedOverlay = false;
-var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX = 353;
-var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX = 95;
-var INPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX = 20 + TOP_BAR_HEIGHT_PX;
+var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX = 237;
+var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX = 64;
+var INPUT_DEVICE_MUTED_MARGIN_LEFT_PX = 20;
+var INPUT_DEVICE_MUTED_MARGIN_TOP_PX = 20;
 function updateInputDeviceMutedOverlay(isMuted) {
     if (isMuted) {
         var props = {
@@ -626,8 +622,8 @@ function updateInputDeviceMutedOverlay(isMuted) {
         };
         props.width = INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX;
         props.height = INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX;
-        props.x = Window.innerWidth / 2 - INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX / 2;
-        props.y = getInputDeviceMutedOverlayTopY();
+        props.x = INPUT_DEVICE_MUTED_MARGIN_LEFT_PX;
+        props.y = INPUT_DEVICE_MUTED_MARGIN_TOP_PX;
         if (inputDeviceMutedOverlay) {
             Overlays.editOverlay(inputDeviceMutedOverlay, props);
         } else {

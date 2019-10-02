@@ -359,7 +359,7 @@ protected:
             A,
             B
         };
-        NetworkAnimState() : clipNodeEnum(NetworkAnimState::None) {}
+        NetworkAnimState() : clipNodeEnum(NetworkAnimState::None), fps(30.0f), loop(false), firstFrame(0.0f), lastFrame(0.0f), blendTime(FLT_MAX) {}
         NetworkAnimState(ClipNodeEnum clipNodeEnumIn, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
             clipNodeEnum(clipNodeEnumIn), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {}
 

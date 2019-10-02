@@ -282,9 +282,9 @@ void AudioDeviceList::onDevicesChanged(const QList<HifiAudioDeviceInfo>& devices
 
         if (deviceInfo.isDefault()) {
             if (deviceInfo.getMode() == QAudio::AudioInput) {
-                device.display = "Default microphone (recommended)";
+                device.display = "Computer's default microphone (recommended)";
             } else {
-                device.display = "Default audio (recommended)";
+                device.display = "Computer's default audio (recommended)";
             }
         } else {
             device.display = device.info.deviceName()
