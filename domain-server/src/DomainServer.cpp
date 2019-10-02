@@ -32,6 +32,7 @@
 #include <AccountManager.h>
 #include <AssetClient.h>
 #include <BuildInfo.h>
+#include <CrashAnnotations.h>
 #include <DependencyManager.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
@@ -185,6 +186,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     qDebug() << "[VERSION] BUILD_GLOBAL_SERVICES:" << BuildInfo::BUILD_GLOBAL_SERVICES;
     qDebug() << "[VERSION] We will be using this name to find ICE servers:" << _iceServerAddr;
 
+    connect(this, &QCoreApplication::aboutToQuit, this, &DomainServer::aboutToQuit);
 
     // make sure we have a fresh AccountManager instance
     // (need this since domain-server can restart itself and maintain static variables)
@@ -430,6 +432,10 @@ DomainServer::~DomainServer() {
 
     // destroy the LimitedNodeList before the DomainServer QCoreApplication is down
     DependencyManager::destroy<LimitedNodeList>();
+}
+
+void DomainServer::aboutToQuit() {
+    crash::annotations::setShutdownState(true);
 }
 
 void DomainServer::queuedQuit(QString quitMessage, int exitCode) {
