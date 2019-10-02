@@ -250,7 +250,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger) {
         lookupUrl.setScheme(URL_SCHEME_HIFI);
     }
 
-    static const QRegExp PORT_REGEX = QRegExp("\\d{1,5}");
+    static const QRegExp PORT_REGEX = QRegExp("\\d{1,5}(\\/.*)?");
     if(!lookupUrl.scheme().isEmpty() && lookupUrl.host().isEmpty() && PORT_REGEX.exactMatch(lookupUrl.path())) {
         // this is in the form somewhere:<port>, convert it to hifi://somewhere:<port>
         lookupUrl = QUrl(URL_SCHEME_HIFI + "://" + lookupUrl.toString());
