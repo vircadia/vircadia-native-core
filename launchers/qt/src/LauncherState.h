@@ -10,20 +10,11 @@
 #include "LoginRequest.h"
 #include "SignupRequest.h"
 #include "UserSettingsRequest.h"
+#include "BuildsRequest.h"
 
-struct Build {
-    QString tag;
-    int latestVersion;
-    int buildNumber;
-    QString installerZipURL;
-};
-
-struct LatestBuilds {
-    bool getBuild(QString tag, Build* outBuild);
-
-    QString defaultTag;
-    std::vector<Build> builds;
-    Build launcherBuild;
+struct LauncherConfig {
+    QString launcherPath{ QString::null };
+    bool loggedIn{ false };
 };
 
 class LauncherState : public QObject {
@@ -107,7 +98,6 @@ public:
 
     // Request builds
     void requestBuilds();
-    Q_INVOKABLE void receivedBuildsReply();
 
     // Signup
     Q_INVOKABLE void signup(QString email, QString username, QString password, QString displayName);
@@ -156,12 +146,16 @@ private:
     QString getContentCachePath() const;
     QString getClientDirectory() const;
     QString getClientExecutablePath() const;
+    QString getConfigFilePath() const;
+    QString getLauncherFilePath() const;
 
     bool shouldDownloadLauncher();
 
     QNetworkAccessManager _networkAccessManager;
-    LatestBuilds _latestBuilds;
+    Builds _latestBuilds;
     QDir _launcherDirectory;
+
+    LauncherConfig _config;
 
     // Application State
     ApplicationState _applicationState { ApplicationState::Init };

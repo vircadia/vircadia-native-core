@@ -20,8 +20,6 @@ Q_IMPORT_PLUGIN(QtQuick2Plugin);
 Q_IMPORT_PLUGIN(QtQuickControls2Plugin);
 Q_IMPORT_PLUGIN(QtQuickTemplates2Plugin);
 
-
-
 bool hasSuffix(const std::string& path, const std::string& suffix) {
     if (path.substr(path.find_last_of(".") + 1) == suffix) {
         return true;

@@ -136,6 +136,8 @@ set(src_files
   src/LoginRequest.cpp
   src/SignupRequest.h
   src/SignupRequest.cpp
+  src/BuildsRequest.h
+  src/BuildsRequest.cpp
   src/UserSettingsRequest.h
   src/UserSettingsRequest.cpp
   src/PathUtils.h
@@ -231,13 +233,14 @@ if (APPLE)
 endif()
 
 
-  if (LAUNCHER_SOURCE_TREE_RESOURCES)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
-    message("Use source tree resources path: file://${CMAKE_CURRENT_SOURCE_DIR}/resources/")
-  else()
-    target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="qrc:/")
-    message("Use resource.rcc path: qrc:/")
-  endif()
+
+if (LAUNCHER_SOURCE_TREE_RESOURCES)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
+  message("Use source tree resources path: file://${CMAKE_CURRENT_SOURCE_DIR}/resources/")
+else()
+  target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_PREFIX_URL="qrc:/")
+  message("Use resource.rcc path: qrc:/")
+endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
 
