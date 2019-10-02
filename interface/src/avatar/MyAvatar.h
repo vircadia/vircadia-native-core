@@ -1857,9 +1857,6 @@ public:
      */
     Q_INVOKABLE QVariantMap getFlowData();
 
-    Q_INVOKABLE QVariantMap getLookAtCameraData();
-    Q_INVOKABLE void setLookAtCameraData(const QVariantMap& data);
-
     /**jsdoc
      * Gets the indexes of currently colliding flow joints.
      * @function MyAvatar.getCollidingFlowJoints
@@ -2658,9 +2655,6 @@ private:
     bool _scriptControlsHeadLookAt { false };
     float _scriptHeadControlTimer { 0.0f };
     float _firstPersonSteadyHeadTimer { 0.0f };
-
-    float _recenterSeconds { 5.0f };
-    float _recenterAngle { 45.0f };
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;

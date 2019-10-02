@@ -3622,12 +3622,12 @@ void MyAvatar::updateOrientation(float deltaTime) {
         const float DEFAULT_REORIENT_ANGLE = 65.0f;
         const float FIRST_PERSON_REORIENT_ANGLE = 95.0f;
         const float TRIGGER_REORIENT_ANGLE = 45.0f;
-        // const float FIRST_PERSON_TRIGGER_REORIENT_ANGLE = 45.0f;
+        const float FIRST_PERSON_TRIGGER_REORIENT_ANGLE = 65.0f;
         glm::vec3 ajustedYawVector = cameraYawVector;
         float limitAngle = 0.0f;
         float triggerAngle = -glm::sin(glm::radians(TRIGGER_REORIENT_ANGLE));
         if (mode == CAMERA_MODE_FIRST_PERSON) {
-            limitAngle = glm::sin(glm::radians(90.0f - _recenterAngle));
+            limitAngle = glm::sin(glm::radians(90.0f - FIRST_PERSON_TRIGGER_REORIENT_ANGLE));
             triggerAngle = limitAngle;
         }
         float reorientAngle = mode == CAMERA_MODE_FIRST_PERSON ? FIRST_PERSON_REORIENT_ANGLE : DEFAULT_REORIENT_ANGLE;
@@ -3662,10 +3662,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
             _lookAtCameraTarget = targetPoint;
         }
         _headLookAtActive = true;
-        // const float FIRST_PERSON_RECENTER_SECONDS = 5.0f;
+        const float FIRST_PERSON_RECENTER_SECONDS = 15.0f;
         if (mode == CAMERA_MODE_FIRST_PERSON) {
             if (getDriveKey(YAW) + getDriveKey(STEP_YAW) + getDriveKey(DELTA_YAW) == 0.0f) {
-                if (_firstPersonSteadyHeadTimer < _recenterSeconds) {
+                if (_firstPersonSteadyHeadTimer < FIRST_PERSON_RECENTER_SECONDS) {
                     if (_firstPersonSteadyHeadTimer > 0.0f) {
                         _firstPersonSteadyHeadTimer += deltaTime;
                     }                    
@@ -6774,28 +6774,3 @@ glm::vec3 MyAvatar::getLookAtPivotPoint() {
     return yAxisEyePosition;
 }
 
-QVariantMap MyAvatar::getLookAtCameraData() {
-    QVariantMap result;
-    if (QThread::currentThread() != thread()) {
-        BLOCKING_INVOKE_METHOD(this, "getLookAtCameraData",
-            Q_RETURN_ARG(QVariantMap, result));
-        return result;
-    }
-    result.insert("recenterSeconds", _recenterSeconds);
-    result.insert("recenterAngle", _recenterAngle);
-    return result;
-}
-
-Q_INVOKABLE void MyAvatar::setLookAtCameraData(const QVariantMap& data) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setLookAtCameraData",
-            Q_ARG(const QVariantMap&, data));
-        return;
-    }
-    if (data.contains("recenterSeconds")) {
-        _recenterSeconds = data["recenterSeconds"].toFloat();
-    }
-    if (data.contains("recenterAngle")) {
-        _recenterAngle = data["recenterAngle"].toFloat();
-    }
-}
