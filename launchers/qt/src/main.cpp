@@ -51,6 +51,12 @@ int main(int argc, char *argv[]) {
         launcherInstaller.uninstall();
         return 0;
     }
+
+    int interfacePID = -1;
+    if (isProcessRunning("interface.exe", interfacePID)) {
+        shutdownProcess(interfacePID, 0);
+    }
+
 #endif
     QString name { "High Fidelity" };
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);

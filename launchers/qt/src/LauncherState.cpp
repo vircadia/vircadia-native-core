@@ -29,6 +29,7 @@
 
 //#define BREAK_ON_ERROR
 
+const QString configHomeLocationKey { "homeLocation" };
 const QString configLoggedInKey{ "loggedIn" };
 const QString configLauncherPathKey{ "launcherPath" };
 
@@ -223,6 +224,9 @@ void LauncherState::getCurrentClientVersion() {
             if (root.contains(configLoggedInKey)) {
                 _config.loggedIn = root["loggedIn"].toBool();
             }
+            if (root.contains(configHomeLocationKey)) {
+                _config.homeLocation = root["homeLocation"].toString();
+            }
         } else {
             qDebug() << "Failed to open config.json";
         }
@@ -353,15 +357,15 @@ void LauncherState::requestSettings() {
     connect(request, &UserSettingsRequest::finished, this, [this, request]() {
         auto userSettings = request->getUserSettings();
         if (userSettings.homeLocation.isEmpty()) {
-            _homeLocation = "hifi://hq";
+            _config.homeLocation = "hifi://hq";
             _contentCacheURL = "";
         } else {
-            _homeLocation = userSettings.homeLocation;
-            auto host = QUrl(_homeLocation).host();
+            _config.homeLocation = userSettings.homeLocation;
+            auto host = QUrl(_config.homeLocation).host();
             _contentCacheURL = "http://orgs.highfidelity.com/host-content-cache/" +  host + ".zip";
         }
 
-        qDebug() << "Home location is: " << _homeLocation;
+        qDebug() << "Home location is: " << _config.homeLocation;
         qDebug() << "Content cache url is: " << _contentCacheURL;
 
         downloadClient();
@@ -640,6 +644,7 @@ void LauncherState::launchClient() {
     if (configFile.open(QIODevice::WriteOnly)) {
         QJsonDocument doc = QJsonDocument::fromJson(configFile.readAll());
         doc.setObject({
+            { configHomeLocationKey, _config.homeLocation },
             { configLoggedInKey, _config.loggedIn },
             { configLauncherPathKey, _config.launcherPath },
         });
@@ -655,7 +660,7 @@ void LauncherState::launchClient() {
 
     QString contentCachePath = _launcherDirectory.filePath("cache");
 
-    ::launchClient(clientPath, _homeLocation, defaultScriptsPath, _displayName, contentCachePath, _loginTokenResponse);
+    ::launchClient(clientPath, _config.homeLocation, defaultScriptsPath, _displayName, contentCachePath, _loginTokenResponse);
 }
 
 void LauncherState::setApplicationStateError(QString errorMessage) {

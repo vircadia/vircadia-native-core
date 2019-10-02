@@ -32,6 +32,9 @@ HRESULT createSymbolicLink(LPCSTR lpszPathObj, LPCSTR lpszPathLink, LPCSTR lpszD
 bool insertRegistryKey(const std::string& regPath, const std::string& name, const std::string& value);
 bool insertRegistryKey(const std::string& regPath, const std::string& name, DWORD value);
 bool deleteRegistryKey(const std::string& regPath);
+
+BOOL isProcessRunning(const char* processName, int& processID);
+BOOL shutdownProcess(DWORD dwProcessId, UINT uExitCode);
 #endif
 
 QString getHTTPUserAgent();

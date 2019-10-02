@@ -13,8 +13,9 @@
 #include "BuildsRequest.h"
 
 struct LauncherConfig {
-    QString launcherPath{ QString::null };
+    QString launcherPath{ "" };
     bool loggedIn{ false };
+    QString homeLocation{ "" };
 };
 
 class LauncherState : public QObject {
@@ -168,7 +169,6 @@ private:
     QString _buildTag { QString::null };
     QString _contentCacheURL;
     QString _loginTokenResponse;
-    QString _homeLocation;
     QFile _clientZipFile;
     QFile _launcherZipFile;
     QFile _contentZipFile;
