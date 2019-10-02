@@ -2718,7 +2718,8 @@ void MyAvatar::updateMotors() {
     if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
         if (_characterController.getState() == CharacterController::State::Hover ||
                 _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
-            if (qApp->getCamera().getMode() == CAMERA_MODE_LOOK_AT || qApp->getCamera().getMode() == CAMERA_MODE_SELFIE) {
+            CameraMode mode = qApp->getCamera().getMode();
+            if (mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
                 motorRotation = getLookAtRotation();
             } else {
                 motorRotation = getMyHead()->getHeadOrientation();
@@ -5434,7 +5435,7 @@ glm::quat MyAvatar::getOrientationForAudio() {
         case AudioListenerMode::FROM_HEAD: {
             // Using the camera's orientation instead, when the current mode is controlling the avatar's head.
             CameraMode mode = qApp->getCamera().getMode();
-            bool headFollowsCamera = mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE;
+            bool headFollowsCamera = mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE;
             result = headFollowsCamera ? qApp->getCamera().getOrientation() : getHead()->getFinalOrientationInWorldFrame();
             break;
         }
