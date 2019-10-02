@@ -36,6 +36,14 @@ namespace baker {
     using TangentsPerBlendshape = std::vector<std::vector<glm::vec3>>;
 
     using MeshIndicesToModelNames = QHash<int, QString>;
+
+    class ReweightedDeformers {
+    public:
+        std::vector<uint16_t> indices;
+        std::vector<uint16_t> weights;
+        uint16_t weightsPerVertex { 0 };
+        bool trimmedToMatch { false };
+    };
 };
 
 #endif // hifi_BakerTypes_h
