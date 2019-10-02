@@ -53,6 +53,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.pointerManager = new PointerManager();
         this.grabSphereOverlays = [null, null];
         this.targetIDs = {};
+        this.debugPanelID = null;
+        this.debugLines = [];
 
         // a module can occupy one or more "activity" slots while it's running.  If all the required slots for a module are
         // not set to false (not in use), a module cannot start.  When a module is using a slot, that module's name
@@ -206,6 +208,18 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             Script.setTimeout(_this.update, BASIC_TIMER_INTERVAL_MS);
         };
 
+        this.addDebugLine = function(line) {
+            if (this.debugLines.length > 8) {
+                this.debugLines.shift();
+            }
+            this.debugLines.push(line);
+            var debugPanelText = "";
+            this.debugLines.forEach(function(debugLine) {
+                debugPanelText += debugLine + "\n";
+            });
+            Entities.editEntity(this.debugPanelID, { text: debugPanelText });
+        };
+
         this.updateInternal = function () {
             if (PROFILE) {
                 Script.beginProfileRange("dispatch.pre");
@@ -309,6 +323,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                     }
 
                     var nearbyEntityIDs = Entities.findEntities(controllerPosition, findRadius);
+                    nearbyEntityIDs = nearbyEntityIDs.concat(nearbyOverlayIDs[h]); // overlays are now entities
+
                     for (var j = 0; j < nearbyEntityIDs.length; j++) {
                         var entityID = nearbyEntityIDs[j];
                         var props = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
@@ -444,7 +460,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         _this.markSlots(candidatePlugin, orderedPluginName);
                         _this.pointerManager.makePointerVisible(candidatePlugin.parameters.handLaser);
                         if (DEBUG) {
-                            print("controllerDispatcher running " + orderedPluginName);
+                            _this.addDebugLine("running " + orderedPluginName);
                         }
                     }
                     if (PROFILE) {
@@ -476,8 +492,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
                         if (DEBUG) {
                             if (JSON.stringify(_this.targetIDs[runningPluginName]) != JSON.stringify(runningness.targets)) {
-                                print("controllerDispatcher targetIDs[" + runningPluginName + "] = " +
-                                      JSON.stringify(runningness.targets));
+                                _this.addDebugLine("targetIDs[" + runningPluginName + "] = " +
+                                                  JSON.stringify(runningness.targets));
                             }
                         }
 
@@ -488,12 +504,12 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                             delete _this.runningPluginNames[runningPluginName];
                             delete _this.targetIDs[runningPluginName];
                             if (DEBUG) {
-                                print("controllerDispatcher deleted targetIDs[" + runningPluginName + "]");
+                                _this.addDebugLine("deleted targetIDs[" + runningPluginName + "]");
                             }
                             _this.markSlots(plugin, false);
                             _this.pointerManager.makePointerInvisible(plugin.parameters.handLaser);
                             if (DEBUG) {
-                                print("controllerDispatcher stopping " + runningPluginName);
+                                _this.addDebugLine("stopping " + runningPluginName);
                             }
                         }
                         _this.pointerManager.lockPointerEnd(plugin.parameters.handLaser, runningness.laserLockInfo);
@@ -637,7 +653,33 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             Overlays.mousePressOnOverlay.disconnect(mousePress);
             Entities.mousePressOnEntity.disconnect(mousePress);
             Messages.messageReceived.disconnect(controllerDispatcher.handleMessage);
+            if (_this.debugPanelID) {
+                Entities.deleteEntity(_this.debugPanelID);
+                _this.debugPanelID = null;
+            }
         };
+
+        if (DEBUG) {
+            this.debugPanelID = Entities.addEntity({
+                name: "controllerDispatcher debug panel",
+                type: "Text",
+                dimensions: { x: 1.0, y: 0.3, z: 0.01 },
+                parentID: MyAvatar.sessionUUID,
+                // parentJointIndex: MyAvatar.getJointIndex("_CAMERA_MATRIX"),
+                parentJointIndex: -1,
+                localPosition: { x: -0.25, y: 0.8, z: -1.2 },
+                textColor: { red: 255, green: 255, blue: 255},
+                backgroundColor: { red: 0, green: 0, blue: 0},
+                text: "",
+                lineHeight: 0.03,
+                leftMargin: 0.015,
+                topMargin: 0.01,
+                backgroundAlpha: 0.7,
+                textAlpha: 1.0,
+                unlit: true,
+                ignorePickIntersection: true
+            }, "local");
+        }
     }
 
     function mouseReleaseOnOverlay(overlayID, event) {
@@ -667,6 +709,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
     Messages.messageReceived.connect(controllerDispatcher.handleMessage);
 
-    Script.scriptEnding.connect(controllerDispatcher.cleanup);
+    Script.scriptEnding.connect(function () {
+        controllerDispatcher.cleanup();
+    });
     Script.setTimeout(controllerDispatcher.update, BASIC_TIMER_INTERVAL_MS);
 }());

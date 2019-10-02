@@ -52,21 +52,25 @@ Script.include("/~/system/libraries/controllers.js");
         this.disable = false;
 
         this.otherModuleNeedsToRun = function(controllerData) {
-            var grabOverlayModuleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
-            var grabOverlayModule = getEnabledModuleByName(grabOverlayModuleName);
-            var grabEntityModuleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabEntity" : "LeftNearParentingGrabEntity";
+            // var grabOverlayModuleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
+            // var grabOverlayModule = getEnabledModuleByName(grabOverlayModuleName);
+            // var grabOverlayModuleReady = grabOverlayModule ? grabOverlayModule.isReady(controllerData) : makeRunningValues(false, [], []);
+
+            var grabEntityModuleName = this.hand === RIGHT_HAND ? "RightNearGrabEntity" : "LeftNearGrabEntity";
             var grabEntityModule = getEnabledModuleByName(grabEntityModuleName);
-            var grabOverlayModuleReady = grabOverlayModule ? grabOverlayModule.isReady(controllerData) : makeRunningValues(false, [], []);
             var grabEntityModuleReady = grabEntityModule ? grabEntityModule.isReady(controllerData) : makeRunningValues(false, [], []);
-            var farGrabModuleName = this.hand === RIGHT_HAND ? "RightFarActionGrabEntity" : "LeftFarActionGrabEntity";
+
+            var farGrabModuleName = this.hand === RIGHT_HAND ? "RightFarGrabEntity" : "LeftFarGrabEntity";
             var farGrabModule = getEnabledModuleByName(farGrabModuleName);
             var farGrabModuleReady = farGrabModule ? farGrabModule.isReady(controllerData) : makeRunningValues(false, [], []);
+
             var nearTabletHighlightModuleName =
                 this.hand === RIGHT_HAND ? "RightNearTabletHighlight" : "LeftNearTabletHighlight";
             var nearTabletHighlightModule = getEnabledModuleByName(nearTabletHighlightModuleName);
             var nearTabletHighlightModuleReady = nearTabletHighlightModule ?
                 nearTabletHighlightModule.isReady(controllerData) : makeRunningValues(false, [], []);
-            return grabOverlayModuleReady.active || farGrabModuleReady.active || grabEntityModuleReady.active
+
+            return /* grabOverlayModuleReady.active || */ farGrabModuleReady.active || grabEntityModuleReady.active
                 /* || nearTabletHighlightModuleReady.active */ ;
         };
 

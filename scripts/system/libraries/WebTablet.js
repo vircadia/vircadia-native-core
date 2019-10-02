@@ -164,6 +164,7 @@ WebTablet = function (url, width, dpi, hand, location, visible) {
         parentID: this.tabletEntityID,
         parentJointIndex: -1,
         showKeyboardFocusHighlight: false,
+        grabbable: false,
         visible: visible
     });
 
