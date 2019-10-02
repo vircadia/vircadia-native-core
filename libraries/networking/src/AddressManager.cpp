@@ -250,6 +250,11 @@ bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger) {
         lookupUrl.setScheme(URL_SCHEME_HIFI);
     }
 
+    static const QRegExp PORT_REGEX = QRegExp("\\d{1,5}");
+    if(!lookupUrl.scheme().isEmpty() && lookupUrl.host().isEmpty() && PORT_REGEX.exactMatch(lookupUrl.path())) {
+        // this is in the form somewhere:<port>, convert it to hifi://somewhere:<port>
+        lookupUrl = QUrl(URL_SCHEME_HIFI + "://" + lookupUrl.toString());
+    }
     // it should be noted that url's in the form
     // somewhere:<port> are not valid, as that
     // would indicate that the scheme is 'somewhere'
@@ -258,7 +263,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger) {
     if (lookupUrl.scheme() == URL_SCHEME_HIFI) {
         if (lookupUrl.host().isEmpty()) {
             // this was in the form hifi:/somewhere or hifi:somewhere.  Fix it by making it hifi://somewhere
-            const QRegExp HIFI_SCHEME_REGEX = QRegExp(URL_SCHEME_HIFI + ":\\/?", Qt::CaseInsensitive);
+            static const QRegExp HIFI_SCHEME_REGEX = QRegExp(URL_SCHEME_HIFI + ":\\/?", Qt::CaseInsensitive);
             lookupUrl = QUrl(lookupUrl.toString().replace(HIFI_SCHEME_REGEX, URL_SCHEME_HIFI + "://"));
         }
 
