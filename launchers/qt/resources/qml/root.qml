@@ -12,6 +12,15 @@ Item {
     Loader {
         anchors.fill: parent
         id: loader
+
+
+        function setBuildInfoState(state) {
+            buildInfo.state = state;
+        }
+
+        function setStateInfoState(state) {
+            stateInfo.state = state;
+        }
     }
 
     Component.onCompleted: {
@@ -31,9 +40,61 @@ Item {
         font.pixelSize: 12
 
         anchors.right: root.right
-        anchors.bottom: root.bottom
+        anchors.top: root.top
 
         color: "#FFFFFF"
         text: LauncherState.uiState.toString() + " - " + LauncherState.applicationState
+
+         states: [
+             State {
+                 name: "left"
+                 AnchorChanges {
+                     target: stateInfo
+                     anchors.left: root.left
+                     anchors.right: undefined
+                 }
+             },
+
+             State {
+                 name: "right"
+                 AnchorChanges {
+                     target: stateInfo
+                     anchors.right: root.right
+                     anchors.left: undefined
+                 }
+             }
+         ]
+    }
+
+    Text {
+        id: buildInfo
+
+        font.pixelSize: 12
+
+        anchors.right: root.right
+        anchors.bottom: root.bottom
+
+        color: "#FFFFFF"
+        text: "v." + LauncherState.buildVersion;
+
+        states: [
+            State {
+                name: "left"
+                AnchorChanges {
+                    target: buildInfo
+                    anchors.left: root.left
+                    anchors.right: undefined
+                }
+            },
+
+            State {
+                name: "right"
+                AnchorChanges {
+                    target: buildInfo
+                    anchors.right: root.right
+                    anchors.left: undefined
+                }
+            }
+        ]
     }
 }

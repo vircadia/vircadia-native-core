@@ -206,4 +206,9 @@ Item {
             rightMargin: 30
         }
     }
+
+    Component.onCompleted: {
+        root.parent.setStateInfoState("right");
+        root.parent.setBuildInfoState("left");
+    }
 }

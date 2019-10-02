@@ -46,7 +46,7 @@ QString LauncherState::getClientExecutablePath() const {
 }
 
 bool LauncherState::shouldDownloadContentCache() const {
-    return !_contentCacheURL.isNull() && !QFile::exists(getContentCachePath());
+    return !_contentCacheURL.isEmpty() && !QFile::exists(getContentCachePath());
 }
 
 bool LatestBuilds::getBuild(QString tag, Build* outBuild) {
@@ -233,7 +233,7 @@ void LauncherState::receivedBuildsReply() {
     }
 
     if (shouldDownloadLauncher()) {
-        //downloadLauncher();
+        downloadLauncher();
     }
     getCurrentClientVersion();
 }
@@ -390,12 +390,15 @@ void LauncherState::requestSettings() {
     connect(request, &UserSettingsRequest::finished, this, [this, request]() {
         auto userSettings = request->getUserSettings();
         if (userSettings.homeLocation.isEmpty()) {
+            qDebug() << "UserSettings is empty";
             _homeLocation = "hifi://hq";
             _contentCacheURL = "";
         } else {
             _homeLocation = userSettings.homeLocation;
             auto host = QUrl(_homeLocation).host();
             _contentCacheURL = "http://orgs.highfidelity.com/host-content-cache/" +  host + ".zip";
+
+            qDebug() << "Content cache url: " << _contentCacheURL;
         }
 
         qDebug() << "Home location is: " << _homeLocation;
@@ -423,7 +426,7 @@ void LauncherState::downloadClient() {
         return;
     }
 
-    _downloadProgress = 0;
+    _interfaceDownloadProgress = 0;
     setApplicationState(ApplicationState::DownloadingClient);
 
     // Start client download
@@ -453,7 +456,7 @@ void LauncherState::downloadClient() {
             }
         });
         connect(reply, &QNetworkReply::downloadProgress, this, [this](qint64 received, qint64 total) {
-            _downloadProgress = (float)received / (float)total;
+            _interfaceDownloadProgress = (float)received / (float)total;
             emit downloadProgressChanged();
         });
     }
@@ -465,7 +468,7 @@ void LauncherState::launcherDownloadComplete() {
 #ifdef Q_OS_MAC
     installLauncher();
 #elif defined(Q_OS_WIN)
-    //launchAutoUpdater(_launcherZipFile.fileName());
+    launchAutoUpdater(_launcherZipFile.fileName());
 #endif
 }
 
@@ -473,6 +476,16 @@ void LauncherState::clientDownloadComplete() {
     ASSERT_STATE(ApplicationState::DownloadingClient);
     _clientZipFile.close();
     installClient();
+}
+
+
+float LauncherState::calculateDownloadProgress() const{
+    if (shouldDownloadContentCache()) {
+        return (_interfaceDownloadProgress * 0.40f) + (_interfaceInstallProgress * 0.10f) +
+            (_contentInstallProgress * 0.40f) + (_contentDownloadProgress * 0.10f);
+    }
+
+    return (_interfaceDownloadProgress * 0.80f) + (_interfaceInstallProgress * 0.20f);
 }
 
 void LauncherState::installClient() {
@@ -483,7 +496,7 @@ void LauncherState::installClient() {
     _launcherDirectory.mkpath("interface_install");
     auto installDir = _launcherDirectory.absoluteFilePath("interface_install");
 
-    _downloadProgress = 0;
+    _interfaceInstallProgress = 0;
 
     qDebug() << "Unzipping " << _clientZipFile.fileName() << " to " << installDir;
 
@@ -491,7 +504,7 @@ void LauncherState::installClient() {
     unzipper->setAutoDelete(true);
     connect(unzipper, &Unzipper::progress, this, [this](float progress) {
         //qDebug() << "Unzipper progress: " << progress;
-        _downloadProgress = progress;
+        _interfaceInstallProgress = progress;
         emit downloadProgressChanged();
     });
     connect(unzipper, &Unzipper::finished, this, [this](bool error, QString errorMessage) {
@@ -575,7 +588,7 @@ void LauncherState::downloadContentCache() {
     if (shouldDownloadContentCache()) {
         setApplicationState(ApplicationState::DownloadingContentCache);
 
-        _downloadProgress = 0;
+        _contentDownloadProgress = 0;
 
         qDebug() << "Downloading content cache from: " << _contentCacheURL;
         QNetworkRequest request{ QUrl(_contentCacheURL) };
@@ -592,7 +605,7 @@ void LauncherState::downloadContentCache() {
 
         connect(reply, &QNetworkReply::finished, this, &LauncherState::contentCacheDownloadComplete);
         connect(reply, &QNetworkReply::downloadProgress, this, [this](qint64 received, qint64 total) {
-            _downloadProgress = (float)received / (float)total;
+            _contentDownloadProgress = (float)received / (float)total;
             emit downloadProgressChanged();
         });
     } else {
@@ -633,13 +646,13 @@ void LauncherState::installContentCache() {
 
     qDebug() << "Unzipping " << _contentZipFile.fileName() << " to " << installDir;
 
-    _downloadProgress = 0;
+    _contentInstallProgress = 0;
 
     auto unzipper = new Unzipper(_contentZipFile.fileName(), QDir(installDir));
     unzipper->setAutoDelete(true);
     connect(unzipper, &Unzipper::progress, this, [this](float progress) {
         qDebug() << "Unzipper progress (content cache): " << progress;
-        _downloadProgress = progress;
+        _contentInstallProgress = progress;
         emit downloadProgressChanged();
     });
     connect(unzipper, &Unzipper::finished, this, [this](bool error, QString errorMessage) {
@@ -700,9 +713,12 @@ void LauncherState::setApplicationState(ApplicationState state) {
     }
 
     _applicationState = state;
-
-    emit uiStateChanged();
-    emit updateSourceUrl(PathUtils::resourcePath(getCurrentUISource()));
+    UIState updatedUIState = getUIState();
+    if (_uiState != updatedUIState) {
+        emit uiStateChanged();
+        emit updateSourceUrl(PathUtils::resourcePath(getCurrentUISource()));
+        _uiState = getUIState();
+    }
 
     emit applicationStateChanged();
 }
