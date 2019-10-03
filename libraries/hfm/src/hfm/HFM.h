@@ -118,6 +118,9 @@ public:
     glm::vec3 geometricTranslation;
     glm::quat geometricRotation;
     glm::vec3 geometricScaling;
+
+    // globalTransform is the transform of the joint with all parent transforms applied, plus the geometric offset
+    glm::mat4 globalTransform;
 };
 
 
@@ -245,7 +248,7 @@ public:
     QVector<Cluster> clusters; // DEPRECATED (see hfm::Shape::dynamicTransform, hfm::DynamicTransform::clusters)
 
     Extents meshExtents; // DEPRECATED (see hfm::Shape::transformedExtents)
-    glm::mat4 modelTransform; // DEPRECATED (see hfm::Shape::transform, hfm::TransformNode, hfm::Model::transforms)
+    glm::mat4 modelTransform; // DEPRECATED (see hfm::Joint::globalTransform, hfm::Shape::transform, hfm::Model::joints)
 
     QVector<Blendshape> blendshapes;
 
@@ -289,6 +292,7 @@ public:
     bool shouldInitCollisions() const { return _collisionsConfig.size() > 0; }
 };
 
+// DEPRECATED in favor of using hfm::Joint
 class TransformNode {
 public:
     uint32_t parent { 0 };
@@ -316,9 +320,9 @@ public:
     uint32_t mesh { UNDEFINED_KEY };
     uint32_t meshPart { UNDEFINED_KEY };
     uint32_t material { UNDEFINED_KEY };
-    uint32_t transform { UNDEFINED_KEY }; // The static transform node when not taking into account rigging/skinning
+    uint32_t transform { UNDEFINED_KEY }; // The hfm::Joint associated with this shape, containing transform information
     // TODO: Have all serializers calculate hfm::Shape::transformedExtents in world space where they previously calculated hfm::Mesh::meshExtents. Change all code that uses hfm::Mesh::meshExtents to use this instead.
-    Extents transformedExtents; // The precise extents of the meshPart vertices in world space, after the transform node and parent transform nodes are applied, while not taking into account rigging/skinning
+    Extents transformedExtents; // The precise extents of the meshPart vertices in world space, after transform information is applied, while not taking into account rigging/skinning
     uint32_t dynamicTransform { UNDEFINED_KEY };
 };
 
@@ -379,15 +383,6 @@ public:
     FlowData flowData;
 };
 
-};
-
-class ExtractedMesh {
-public:
-    hfm::Mesh mesh;
-    QMultiHash<int, int> newIndices;
-    QVector<QHash<int, int> > blendshapeIndexMaps;
-    QVector<QPair<int, int> > partMaterialTextures;
-    QHash<QString, size_t> texcoordSetMap;
 };
 
 typedef hfm::Blendshape HFMBlendshape;
