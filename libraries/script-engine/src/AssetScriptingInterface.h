@@ -356,7 +356,7 @@ public:
      * @function Assets.initializeCache
      * @returns {boolean} <code>true</code> if the cache is initialized, <code>false</code> if it isn't.
      */
-    Q_INVOKABLE bool initializeCache() { return Parent::initializeCache(); }
+    Q_INVOKABLE bool initializeCache();
     
     /**jsdoc
      * Checks whether the script can write to the cache.
