@@ -125,7 +125,6 @@ Item {
     HFButton {
         id: button
         width: 110
-        height: 50
 
         text: "NEXT"
 

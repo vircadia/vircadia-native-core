@@ -3,6 +3,9 @@ import QtQuick.Controls 2.1
 
 Button {
     id: control
+
+    height: 50
+
     property string backgroundColor: "#00000000"
     property string borderColor: "#FFFFFF"
     property string textColor: "#FFFFFF"

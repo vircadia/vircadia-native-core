@@ -36,37 +36,6 @@ Item {
     }
 
     HFTextRegular {
-        id: stateInfo
-        font.pixelSize: 12
-
-        anchors.right: root.right
-        anchors.top: root.top
-
-        color: "#FFFFFF"
-        text: LauncherState.uiState.toString() + " - " + LauncherState.applicationState
-
-         states: [
-             State {
-                 name: "left"
-                 AnchorChanges {
-                     target: stateInfo
-                     anchors.left: root.left
-                     anchors.right: undefined
-                 }
-             },
-
-             State {
-                 name: "right"
-                 AnchorChanges {
-                     target: stateInfo
-                     anchors.right: root.right
-                     anchors.left: undefined
-                 }
-             }
-         ]
-    }
-
-    HFTextRegular {
         id: buildInfo
 
         font.pixelSize: 12

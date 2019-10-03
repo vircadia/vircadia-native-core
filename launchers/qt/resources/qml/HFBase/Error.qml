@@ -68,30 +68,17 @@ Item {
     HFButton {
         id: button
         width: 166
-        height: 35
 
-        text: "Restart"
+        text: "RESTART"
 
         anchors {
             top: description.bottom
-            topMargin: 15
+            topMargin: 60
             horizontalCenter: description.horizontalCenter
         }
 
         onClicked: {
             LauncherState.restart();
-        }
-    }
-
-
-    HFTextLogo {
-        id: hifilogo
-
-        anchors {
-            right: root.right
-            rightMargin: 17
-            bottom: root.bottom
-            bottomMargin: 17
         }
     }
 
