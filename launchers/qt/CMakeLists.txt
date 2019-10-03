@@ -191,7 +191,6 @@ elseif (APPLE)
   add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files} ${RES_SOURCES})
   set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_NAME}
     MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME})
-  set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
 
 
   add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

@@ -19,7 +19,7 @@ Item {
         }
 
         function setStateInfoState(state) {
-            stateInfo.state = state;
+            //stateInfo.state = state;
         }
     }
 
