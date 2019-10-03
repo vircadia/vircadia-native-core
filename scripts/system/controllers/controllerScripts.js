@@ -18,7 +18,6 @@ var CONTOLLER_SCRIPTS = [
     //"toggleAdvancedMovementForHandControllers.js",
     "handTouch.js",
     "controllerDispatcher.js",
-    // "controllerModules/nearParentGrabOverlay.js",
     "controllerModules/stylusInput.js",
     "controllerModules/equipEntity.js",
     "controllerModules/nearTrigger.js",
@@ -34,7 +33,8 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/nearTabletHighlight.js",
     "controllerModules/nearGrabEntity.js",
     "controllerModules/farGrabEntity.js",
-    "controllerModules/pushToTalk.js"
+    "controllerModules/pushToTalk.js",
+    "controllerModules/trackedHandWalk.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";
