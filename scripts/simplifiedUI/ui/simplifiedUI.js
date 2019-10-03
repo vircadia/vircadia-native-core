@@ -438,22 +438,16 @@ function displaySecondLaunchWindow() {
 function closeInitialLaunchWindow() {
     if (initialLaunchWindow) {
         initialLaunchWindow.fromQml.disconnect(onMessageFromInitialLaunchWindow);
-        var homeLocation = LocationBookmarks.getAddress("hqhome");
-        if (homeLocation) {
-            Window.location = homeLocation;
-        }
         initialLaunchWindow.close();
+        initialLaunchWindow = null;
     }
 }
 
 function closeSecondLaunchWindow() {
     if (secondLaunchWindow) {
         secondLaunchWindow.fromQml.disconnect(onMessageFromSecondLaunchWindow);
-        var homeLocation = LocationBookmarks.getAddress("hqhome");
-        if (homeLocation) {
-            Window.location = homeLocation;
-        }
         secondLaunchWindow.close();
+        secondLaunchWindow = null;
     }
 }
 
@@ -466,6 +460,10 @@ function onMessageFromInitialLaunchWindow(message) {
     switch (message.method) {
         case "closeInitialLaunchWindow":
             closeInitialLaunchWindow();
+            var homeLocation = LocationBookmarks.getAddress("hqhome");
+            if (homeLocation) {
+                Window.location = homeLocation;
+            }
             break;
 
         default:
@@ -483,6 +481,10 @@ function onMessageFromSecondLaunchWindow(message) {
     switch (message.method) {
         case "closeSecondLaunchWindow":
             closeSecondLaunchWindow();
+            var homeLocation = LocationBookmarks.getAddress("hqhome");
+            if (homeLocation) {
+                Window.location = homeLocation;
+            }
             break;
 
         default:
@@ -666,6 +668,7 @@ function onGeometryChanged(rect) {
         };
     }
     if (initialLaunchWindow) {
+        print("GEOMETRY CHANGED, INITIAL WINDOW. rect.width: ", rect.width, " AND rect.height: ", rect.height, " AND rect.x: ", rect.x, " AND rect.y: ", rect.y);
         initialLaunchWindow.size = {
             "x": rect.width,
             "y": rect.height
@@ -674,8 +677,10 @@ function onGeometryChanged(rect) {
             "x": rect.x,
             "y": rect.y
         };
+        print("NOW THE INITIAL WINDOW size IS: ", JSON.stringify(initialLaunchWindow.size), " AND position IS: ", JSON.stringify(initialLaunchWindow.position));
     }
     if (secondLaunchWindow) {
+        print("GEOMETRY CHANGED, SECOND WINDOW. rect.width: ", rect.width, " AND rect.height: ", rect.height, " AND rect.x: ", rect.x, " AND rect.y: ", rect.y);
         secondLaunchWindow.size = {
             "x": rect.width,
             "y": rect.height
@@ -684,24 +689,39 @@ function onGeometryChanged(rect) {
             "x": rect.x,
             "y": rect.y
         };
+        print("NOW THE SECOND WINDOW size IS: ", JSON.stringify(secondLaunchWindow.size), " AND position IS: ", JSON.stringify(secondLaunchWindow.position));
     }
 }
 
+var initialLaunchWindowIsMinimized = false;
+var secondLaunchWindowIsMinimized = false;
 function onWindowMinimizedChanged(isMinimized) {
     if (isMinimized) {
-        if (initialLaunchWindow) {
-            initialLaunchWindow.setVisible(false);
-        }
-        if (secondLaunchWindow) {
-            secondLaunchWindow.setVisible(false);
-        }
-    } else {
-        if (initialLaunchWindow) {
-            initialLaunchWindow.show();
-        }
-        if (secondLaunchWindow) {
-            secondLaunchWindow.show();
-        }
+        handleInitialLaunchWindowVisibleChanged(false);
+        handleSecondLaunchWindowVisibleChanged(false);
+    } else if (!HMD.active) {
+        handleInitialLaunchWindowVisibleChanged(true);
+        handleSecondLaunchWindowVisibleChanged(true);
+    }
+}
+
+function handleInitialLaunchWindowVisibleChanged(shouldBeVisible) {
+    if (shouldBeVisible && !initialLaunchWindow && initialLaunchWindowIsMinimized) {
+        displayInitialLaunchWindow();
+        initialLaunchWindowIsMinimized = false;
+    } else if (!shouldBeVisible && initialLaunchWindow) {
+        closeInitialLaunchWindow();
+        initialLaunchWindowIsMinimized = true;
+    }
+}
+
+function handleSecondLaunchWindowVisibleChanged(shouldBeVisible) {
+    if (shouldBeVisible && !secondLaunchWindow && secondLaunchWindowIsMinimized) {
+        displaySecondLaunchWindow();
+        secondLaunchWindowIsMinimized = false;
+    } else if (!shouldBeVisible && secondLaunchWindow) {
+        closeSecondLaunchWindow();
+        secondLaunchWindowIsMinimized = true;
     }
 }
 
@@ -712,8 +732,12 @@ function onDisplayModeChanged(isHMDMode) {
 
     if (isHMDMode) {
         onHMDInputDeviceMutedChanged(Audio.mutedHMD);
+        handleInitialLaunchWindowVisibleChanged(false);
+        handleSecondLaunchWindowVisibleChanged(false);
     } else {
         onDesktopInputDeviceMutedChanged(Audio.mutedDesktop);
+        handleInitialLaunchWindowVisibleChanged(true);
+        handleSecondLaunchWindowVisibleChanged(true);
     }
 }
 

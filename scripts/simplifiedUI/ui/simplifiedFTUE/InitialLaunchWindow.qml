@@ -27,7 +27,8 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        if (Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatarFromInventory", false)) {
+        if (Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatarFromInventory", false) || 
+            Settings.getValue("simplifiedUI/closedAvatarPageOfInitialLaunchWindow", false)) {
             tempAvatarPageContainer.visible = false;
             controlsContainer.visible = true;
         }
@@ -165,6 +166,7 @@ Rectangle {
                         onClicked: {
                             Tablet.playSound(TabletEnums.ButtonClick);
                             tempAvatarPageContainer.visible = false;
+                            Settings.setValue("simplifiedUI/closedAvatarPageOfInitialLaunchWindow", true);
                             controlsContainer.visible = true;
                         }
                     }
