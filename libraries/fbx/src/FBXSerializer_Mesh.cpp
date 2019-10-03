@@ -369,6 +369,11 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 }
             }
 
+            if (dracoMeshNodeVersion >= 2) {
+                // Define the materialIDs now
+                data.extracted.materialIDPerMeshPart = dracoMaterialList;
+            }
+
             // load the draco mesh from the FBX and create a draco::Mesh
             draco::Decoder decoder;
             draco::DecoderBuffer decodedBuffer;
@@ -467,8 +472,6 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 }
             }
 
-            ExtractedMesh& extracted = data.extracted;
-            extracted.materialIDPerMeshPart.resize(dracoMaterialList.size());
             for (uint32_t i = 0; i < dracoMesh->num_faces(); ++i) {
                 // grab the material ID and texture ID for this face, if we have it
                 auto& dracoFace = dracoMesh->face(draco::FaceIndex(i));
@@ -489,18 +492,14 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 int& partIndexPlusOne = materialTextureParts[materialTexture];
                 if (partIndexPlusOne == 0) {
                     data.extracted.mesh.parts.resize(data.extracted.mesh.parts.size() + 1);
-                    HFMMeshPart& part = extracted.mesh.parts.back();
+                    HFMMeshPart& part = data.extracted.mesh.parts.back();
 
-                    // Figure out what material this part is
-                    if (dracoMeshNodeVersion >= 2) {
-                        // Define the materialID now
-                        if (materialID < dracoMaterialList.size()) {
-                            extracted.materialIDPerMeshPart[materialID] = dracoMaterialList[materialID];
-                        }
-                    } else {
+                    // Figure out if this is the older way of defining the per-part material for baked FBX
+                    if (dracoMeshNodeVersion < 2) {
                         // Define the materialID later, based on the order of first appearance of the materials in the _connectionChildMap
                         data.extracted.partMaterialTextures.append(materialTexture);
                     }
+                    // in dracoMeshNodeVersion >= 2, fbx meshes have their per-part materials already defined in data.extracted.materialIDPerMeshPart
 
                     partIndexPlusOne = (int)data.extracted.mesh.parts.size();
                 }

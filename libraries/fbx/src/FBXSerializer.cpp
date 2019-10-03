@@ -1263,13 +1263,11 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
     // convert the models to joints
     hfmModel.hasSkeletonJoints = false;
     
-    // Note that these transform nodes are initially defined in world space
     bool needMixamoHack = hfmModel.applicationName == "mixamo.com";
     hfmModel.transforms.reserve(modelIDs.size());
     std::vector<glm::mat4> globalTransforms;
     globalTransforms.reserve(modelIDs.size());
 
-    int jointIndex = 0;
     for (const QString& modelID : modelIDs) {
         const FBXModel& fbxModel = fbxModels[modelID];
         HFMJoint joint;
@@ -1378,12 +1376,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         transformNode.transform = Transform(localTransform);
         globalTransforms.push_back(globalTransform);
         hfmModel.transforms.push_back(transformNode);
-
-        ++jointIndex;
     }
-
-    // NOTE: shapeVertices are in joint-frame
-    hfmModel.shapeVertices.resize(std::max((size_t)1, hfmModel.joints.size()) );
 
     hfmModel.bindExtents.reset();
     hfmModel.meshExtents.reset();
@@ -1482,35 +1475,37 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
 
             // For FBX_DRACO_MESH_VERSION < 2, or unbaked models, get materials from the partMaterialTextures
-            int materialIndex = 0;
-            int textureIndex = 0;
-            QList<QString> children = _connectionChildMap.values(modelID);
-            for (int i = children.size() - 1; i >= 0; i--) {
-                const QString& childID = children.at(i);
-                if (_hfmMaterials.contains(childID)) {
-                    // the pure material associated with this part
-                    const HFMMaterial& material = _hfmMaterials.value(childID);
-                    for (int j = 0; j < partMaterialTextures.size(); j++) {
-                        if (partMaterialTextures.at(j).first == materialIndex) {
-                            hfm::Shape& shape = partShapes[j];
-                            shape.material = materialNameToID[material.materialID.toStdString()];
+            if (!partMaterialTextures.empty()) {
+                int materialIndex = 0;
+                int textureIndex = 0;
+                QList<QString> children = _connectionChildMap.values(modelID);
+                for (int i = children.size() - 1; i >= 0; i--) {
+                    const QString& childID = children.at(i);
+                    if (_hfmMaterials.contains(childID)) {
+                        // the pure material associated with this part
+                        const HFMMaterial& material = _hfmMaterials.value(childID);
+                        for (int j = 0; j < partMaterialTextures.size(); j++) {
+                            if (partMaterialTextures.at(j).first == materialIndex) {
+                                hfm::Shape& shape = partShapes[j];
+                                shape.material = materialNameToID[material.materialID.toStdString()];
+                            }
                         }
-                    }
-                    materialIndex++;
-                } else if (_textureFilenames.contains(childID)) {
-                    // NOTE (Sabrina 2019/01/11): getTextures now takes in the materialID as a second parameter, because FBX material nodes can sometimes have uv transform information (ex: "Maya|uv_scale")
-                    // I'm leaving the second parameter blank right now as this code may never be used.
-                    HFMTexture texture = getTexture(childID, "");
-                    for (int j = 0; j < partMaterialTextures.size(); j++) {
-                        int partTexture = partMaterialTextures.at(j).second;
-                        if (partTexture == textureIndex && !(partTexture == 0 && materialsHaveTextures)) {
-                            // TODO: DO something here that replaces this legacy code
-                            // Maybe create a material just for this part with the correct textures?
-                            // material.albedoTexture = texture;
-                            // partShapes[j].material = materialIndex;
+                        materialIndex++;
+                    } else if (_textureFilenames.contains(childID)) {
+                        // NOTE (Sabrina 2019/01/11): getTextures now takes in the materialID as a second parameter, because FBX material nodes can sometimes have uv transform information (ex: "Maya|uv_scale")
+                        // I'm leaving the second parameter blank right now as this code may never be used.
+                        HFMTexture texture = getTexture(childID, "");
+                        for (int j = 0; j < partMaterialTextures.size(); j++) {
+                            int partTexture = partMaterialTextures.at(j).second;
+                            if (partTexture == textureIndex && !(partTexture == 0 && materialsHaveTextures)) {
+                                // TODO: DO something here that replaces this legacy code
+                                // Maybe create a material just for this part with the correct textures?
+                                // material.albedoTexture = texture;
+                                // partShapes[j].material = materialIndex;
+                            }
                         }
+                        textureIndex++;
                     }
-                    textureIndex++;
                 }
             }
             // For baked models with FBX_DRACO_MESH_VERSION >= 2, get materials from extracted.materialIDPerMeshPart
