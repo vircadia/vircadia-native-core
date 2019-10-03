@@ -1416,7 +1416,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         const QString& meshID = it.key();
         const ExtractedMesh& extracted = it.value();
         const auto& partMaterialTextures = extracted.partMaterialTextures;
-        const auto& newIndices = extracted.newIndices;
 
         uint32_t meshIndex = (uint32_t)hfmModel.meshes.size();
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
@@ -1515,7 +1514,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
 
             auto rootJointIndex = modelIDs.indexOf(modelID);
-            if (rootJointIndex == hfm::Cluster::INVALID_JOINT_INDEX) {
+            if (rootJointIndex == -1) {
                 qCDebug(modelformat) << "Model not in model list: " << modelID;
                 rootJointIndex = 0;
             }
@@ -1533,7 +1532,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                     // of skinning information in FBX
                     QString jointID = _connectionChildMap.value(clusterID);
                     hfmCluster.jointIndex = modelIDs.indexOf(jointID);
-                    if (hfmCluster.jointIndex == hfm::Cluster::INVALID_JOINT_INDEX) {
+                    if (hfmCluster.jointIndex == -1) {
                         qCDebug(modelformat) << "Joint not in model list: " << jointID;
                         hfmCluster.jointIndex = 0;
                     }

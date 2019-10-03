@@ -492,7 +492,6 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 int& partIndexPlusOne = materialTextureParts[materialTexture];
                 if (partIndexPlusOne == 0) {
                     data.extracted.mesh.parts.resize(data.extracted.mesh.parts.size() + 1);
-                    HFMMeshPart& part = data.extracted.mesh.parts.back();
 
                     // Figure out if this is the older way of defining the per-part material for baked FBX
                     if (dracoMeshNodeVersion < 2) {
