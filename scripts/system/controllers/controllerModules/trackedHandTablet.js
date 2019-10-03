@@ -4,7 +4,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global Script, makeRunningValues, enableDispatcherModule, disableDispatcherModule,
-   makeDispatcherModuleParameters, handsAreTracked, Controller, Vec3
+   makeDispatcherModuleParameters, handsAreTracked, Controller, Vec3, Tablet, HMD, MyAvatar
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -12,8 +12,8 @@ Script.include("/~/system/libraries/controllers.js");
 
 (function() {
 
-    function TrackedHandWalk() {
-        this.mappingName = 'hand-track-walk-' + Math.random();
+    function TrackedHandTablet() {
+        this.mappingName = 'hand-track-tablet-' + Math.random();
         this.inputMapping = Controller.newMapping(this.mappingName);
         this.leftIndexPos = null;
         this.leftThumbPos = null;
@@ -21,39 +21,40 @@ Script.include("/~/system/libraries/controllers.js");
         this.rightThumbPos = null;
         this.touchOnBelowDistance = 0.016;
         this.touchOffAboveDistance = 0.045;
-        this.walkingForward = false;
-        this.walkingBackward = false;
+
+        this.gestureCompleted = false;
+        this.previousGestureCompleted = false;
 
         this.parameters = makeDispatcherModuleParameters(
-            80,
+            70,
             ["rightHand", "leftHand"],
             [],
             100);
 
-        this.getControlPoint = function () {
-            return Vec3.multiply(Vec3.sum(this.leftIndexPos, this.rightIndexPos), 0.5);
-        };
+        this.checkForGesture = function () {
+            if (this.leftThumbPos && this.leftIndexPos && this.rightThumbPos && this.rightIndexPos) {
+                var leftTipDistance = Vec3.distance(this.leftThumbPos, this.leftIndexPos);
+                var rightTipDistance = Vec3.distance(this.rightThumbPos, this.rightIndexPos);
+                if (leftTipDistance < this.touchOnBelowDistance && rightTipDistance < this.touchOnBelowDistance) {
+                    this.gestureCompleted = true;
+                } else if (leftTipDistance > this.touchOffAboveDistance || rightTipDistance > this.touchOffAboveDistance) {
+                    this.gestureCompleted = false;
+                }
+            } else {
+                this.gestureCompleted = false;
+            }
 
-        this.updateWalking = function () {
-            if (this.leftIndexPos && this.rightIndexPos) {
-                var indexTipDistance = Vec3.distance(this.leftIndexPos, this.rightIndexPos);
-                if (indexTipDistance < this.touchOnBelowDistance) {
-                    this.walkingForward = true;
-                    this.controlPoint = this.getControlPoint();
-                } else if (this.walkingForward && indexTipDistance > this.touchOffAboveDistance) {
-                    this.walkingForward = false;
+            if (this.gestureCompleted && !this.previousGestureCompleted) {
+                var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+                if (HMD.showTablet) {
+                    HMD.closeTablet(false);
+                } else if (!HMD.showTablet && !tablet.toolbarMode && !MyAvatar.isAway) {
+                    tablet.gotoHomeScreen();
+                    HMD.openTablet(false);
                 }
             }
 
-            if (this.leftThumbPos && this.rightThumbPos) {
-                var thumbTipDistance = Vec3.distance(this.leftThumbPos, this.rightThumbPos);
-                if (thumbTipDistance < this.touchOnBelowDistance) {
-                    this.walkingBackward = true;
-                    this.controlPoint = this.getControlPoint();
-                } else if (this.walkingBackward && thumbTipDistance > this.touchOffAboveDistance) {
-                    this.walkingBackward = false;
-                }
-            }
+            this.previousGestureCompleted = this.gestureCompleted;
         };
 
         this.leftIndexChanged = function (pose) {
@@ -62,7 +63,7 @@ Script.include("/~/system/libraries/controllers.js");
             } else {
                 this.leftIndexPos = null;
             }
-            this.updateWalking();
+            this.checkForGesture();
         };
 
         this.leftThumbChanged = function (pose) {
@@ -71,7 +72,7 @@ Script.include("/~/system/libraries/controllers.js");
             } else {
                 this.leftThumbPos = null;
             }
-            this.updateWalking();
+            this.checkForGesture();
         };
 
         this.rightIndexChanged = function (pose) {
@@ -80,7 +81,7 @@ Script.include("/~/system/libraries/controllers.js");
             } else {
                 this.rightIndexPos = null;
             }
-            this.updateWalking();
+            this.checkForGesture();
         };
 
         this.rightThumbChanged = function (pose) {
@@ -89,13 +90,13 @@ Script.include("/~/system/libraries/controllers.js");
             } else {
                 this.rightThumbPos = null;
             }
-            this.updateWalking();
+            this.checkForGesture();
         };
 
         this.isReady = function (controllerData) {
             if (!handsAreTracked()) {
                 return makeRunningValues(false, [], []);
-            } else if (this.walkingForward || this.walkingBackward) {
+            } else if (this.gestureCompleted) {
                 return makeRunningValues(true, [], []);
             } else {
                 return makeRunningValues(false, [], []);
@@ -121,29 +122,6 @@ Script.include("/~/system/libraries/controllers.js");
                 _this.rightThumbChanged(pose);
             });
 
-            this.inputMapping.from(function() {
-                if (_this.walkingForward) {
-                    // var currentPoint = _this.getControlPoint();
-                    // return currentPoint.z - _this.controlPoint.z;
-                    return -0.5;
-                } else if (_this.walkingBackward) {
-                    // var currentPoint = _this.getControlPoint();
-                    // return currentPoint.z - _this.controlPoint.z;
-                    return 0.5;
-                } else {
-                    return Controller.getActionValue(Controller.Standard.TranslateZ);
-                }
-            }).to(Controller.Actions.TranslateZ);
-
-            // this.inputMapping.from(function() {
-            //     if (_this.walkingForward) {
-            //         var currentPoint = _this.getControlPoint();
-            //         return currentPoint.x - _this.controlPoint.x;
-            //     } else {
-            //         return Controller.getActionValue(Controller.Standard.Yaw);
-            //     }
-            // }).to(Controller.Actions.Yaw);
-
             Controller.enableMapping(this.mappingName);
         };
 
@@ -152,13 +130,13 @@ Script.include("/~/system/libraries/controllers.js");
         };
     }
 
-    var trackedHandWalk = new TrackedHandWalk();
+    var trackedHandWalk = new TrackedHandTablet();
     trackedHandWalk.setup();
-    enableDispatcherModule("TrackedHandWalk", trackedHandWalk);
+    enableDispatcherModule("TrackedHandTablet", trackedHandWalk);
 
     function cleanup() {
         trackedHandWalk.cleanUp();
-        disableDispatcherModule("TrackedHandWalk");
+        disableDispatcherModule("TrackedHandTablet");
     }
     Script.scriptEnding.connect(cleanup);
 }());
