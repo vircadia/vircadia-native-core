@@ -2,8 +2,8 @@
 //  BuildGraphicsMeshTask.h
 //  model-baker/src/model-baker
 //
-//  Created by Sabrina Shanman on 2018/12/06.
-//  Copyright 2018 High Fidelity, Inc.
+//  Created by Sabrina Shanman on 2019/09/16.
+//  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -27,83 +27,7 @@ glm::vec3 normalizeDirForPacking(const glm::vec3& dir) {
     return dir;
 }
 
-class ReweightedDeformers {
-public:
-    std::vector<uint16_t> indices;
-    std::vector<uint16_t> weights;
-    bool trimmedToMatch { false };
-};
-
-ReweightedDeformers getReweightedDeformers(size_t numMeshVertices, const hfm::DynamicTransform* dynamicTransform, const std::vector<const hfm::Deformer*> deformers, const uint16_t weightsPerVertex) {
-    size_t numClusterIndices = numMeshVertices * weightsPerVertex;
-    ReweightedDeformers reweightedDeformers;
-    // TODO: Consider having a rootCluster property in the DynamicTransform rather than appending the root to the end of the cluster list.
-    reweightedDeformers.indices.resize(numClusterIndices, (uint16_t)(deformers.size() - 1));
-    reweightedDeformers.weights.resize(numClusterIndices, 0);
-
-    std::vector<float> weightAccumulators;
-    weightAccumulators.resize(numClusterIndices, 0.0f);
-    for (uint16_t i = 0; i < (uint16_t)deformers.size(); ++i) {
-        const hfm::Deformer& deformer = *deformers[i];
-
-        if (deformer.indices.size() != deformer.weights.size()) {
-            reweightedDeformers.trimmedToMatch = true;
-        }
-        size_t numIndicesOrWeights = std::min(deformer.indices.size(), deformer.weights.size());
-        for (size_t j = 0; j < numIndicesOrWeights; ++j) {
-            uint32_t index = deformer.indices[j];
-            float weight = deformer.weights[j];
-
-            // look for an unused slot in the weights vector
-            uint32_t weightIndex = index * weightsPerVertex;
-            uint32_t lowestIndex = -1;
-            float lowestWeight = FLT_MAX;
-            uint16_t k = 0;
-            for (; k < weightsPerVertex; k++) {
-                if (weightAccumulators[weightIndex + k] == 0.0f) {
-                    reweightedDeformers.indices[weightIndex + k] = i;
-                    weightAccumulators[weightIndex + k] = weight;
-                    break;
-                }
-                if (weightAccumulators[weightIndex + k] < lowestWeight) {
-                    lowestIndex = k;
-                    lowestWeight = weightAccumulators[weightIndex + k];
-                }
-            }
-            if (k == weightsPerVertex && weight > lowestWeight) {
-                // no space for an additional weight; we must replace the lowest
-                weightAccumulators[weightIndex + lowestIndex] = weight;
-                reweightedDeformers.indices[weightIndex + lowestIndex] = i;
-            }
-        }
-    }
-
-    // now that we've accumulated the most relevant weights for each vertex
-    // normalize and compress to 16-bits
-    for (size_t i = 0; i < numMeshVertices; ++i) {
-        size_t j = i * weightsPerVertex;
-
-        // normalize weights into uint16_t
-        float totalWeight = 0.0f;
-        for (size_t k = j; k < j + weightsPerVertex; ++k) {
-            totalWeight += weightAccumulators[k];
-        }
-
-        const float ALMOST_HALF = 0.499f;
-        if (totalWeight > 0.0f) {
-            float weightScalingFactor = (float)(UINT16_MAX) / totalWeight;
-            for (size_t k = j; k < j + weightsPerVertex; ++k) {
-                reweightedDeformers.weights[k] = (uint16_t)(weightScalingFactor * weightAccumulators[k] + ALMOST_HALF);
-            }
-        } else {
-            reweightedDeformers.weights[j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
-        }
-    }
-
-    return reweightedDeformers;
-}
-
-void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphicsMeshPointer, const baker::MeshNormals& meshNormals, const baker::MeshTangents& meshTangentsIn, const hfm::DynamicTransform* dynamicTransform, const std::vector<const hfm::Deformer*> meshDeformers) {
+void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphicsMeshPointer, const baker::MeshNormals& meshNormals, const baker::MeshTangents& meshTangentsIn, uint16_t numDeformerControllers, const baker::ReweightedDeformers reweightedDeformers) {
     auto graphicsMesh = std::make_shared<graphics::Mesh>();
 
     // Fill tangents with a dummy value to force tangents to be present if there are normals
@@ -162,19 +86,16 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
 
     // Support for 4 skinning clusters:
     // 4 Indices are uint8 ideally, uint16 if more than 256.
-    const auto clusterIndiceElement = ((meshDeformers.size() < (size_t)UINT8_MAX) ? gpu::Element(gpu::VEC4, gpu::UINT8, gpu::XYZW) : gpu::Element(gpu::VEC4, gpu::UINT16, gpu::XYZW));
+    const auto clusterIndiceElement = ((numDeformerControllers < (uint16_t)UINT8_MAX) ? gpu::Element(gpu::VEC4, gpu::UINT8, gpu::XYZW) : gpu::Element(gpu::VEC4, gpu::UINT16, gpu::XYZW));
     // 4 Weights are normalized 16bits
     const auto clusterWeightElement = gpu::Element(gpu::VEC4, gpu::NUINT16, gpu::XYZW);
 
-    // Calculate a more condensed view of all the deformer weights
-    const uint16_t NUM_CLUSTERS_PER_VERT = 4;
-    ReweightedDeformers reweightedDeformers = getReweightedDeformers(hfmMesh.vertices.size(), dynamicTransform, meshDeformers, NUM_CLUSTERS_PER_VERT);
     // Cluster indices and weights must be the same sizes
     if (reweightedDeformers.trimmedToMatch) {
         HIFI_FCDEBUG_ID(model_baker(), repeatMessageID, "BuildGraphicsMeshTask -- The number of indices and weights for a deformer had different sizes and have been trimmed to match");
     }
     // Record cluster sizes
-    const size_t numVertClusters = reweightedDeformers.indices.size() / NUM_CLUSTERS_PER_VERT;
+    const size_t numVertClusters = (reweightedDeformers.weightsPerVertex ? hfmMesh.clusterIndices.size() / reweightedDeformers.weightsPerVertex : 0);
     const size_t clusterIndicesSize = numVertClusters * clusterIndiceElement.getSize();
     const size_t clusterWeightsSize = numVertClusters * clusterWeightElement.getSize();
 
@@ -263,7 +184,7 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
 
     // Clusters data
     if (clusterIndicesSize > 0) {
-        if (meshDeformers.size() < UINT8_MAX) {
+        if (numDeformerControllers < (uint16_t)UINT8_MAX) {
             // yay! we can fit the clusterIndices within 8-bits
             int32_t numIndices = (int32_t)reweightedDeformers.indices.size();
             std::vector<uint8_t> packedDeformerIndices;
@@ -461,7 +382,7 @@ void BuildGraphicsMeshTask::run(const baker::BakeContextPointer& context, const 
     const auto& tangentsPerMesh = input.get4();
     const auto& shapes = input.get5();
     const auto& dynamicTransforms = input.get6();
-    const auto& deformers = input.get7();
+    const auto& reweightedDeformersPerMesh = input.get7();
 
     // Currently, there is only (at most) one dynamicTransform per mesh
     // An undefined shape.dynamicTransform has the value hfm::UNDEFINED_KEY
@@ -478,20 +399,19 @@ void BuildGraphicsMeshTask::run(const baker::BakeContextPointer& context, const 
     for (int i = 0; i < n; i++) {
         graphicsMeshes.emplace_back();
         auto& graphicsMesh = graphicsMeshes[i];
+        const auto& reweightedDeformers = reweightedDeformersPerMesh[i];
 
-        auto dynamicTransformIndex = dynamicTransformPerMesh[i];
-        const hfm::DynamicTransform* dynamicTransform = nullptr;
-        std::vector<const hfm::Deformer*> meshDeformers;
-        if (dynamicTransformIndex != hfm::UNDEFINED_KEY) {
-            dynamicTransform = &dynamicTransforms[dynamicTransformIndex];
-            for (const auto& deformerIndex : dynamicTransform->deformers) {
-                const auto& deformer = deformers[deformerIndex];
-                meshDeformers.push_back(&deformer);
+        uint16_t numDeformerControllers = 0;
+        if (reweightedDeformers.weightsPerVertex != 0) {
+            uint32_t dynamicTransformIndex = dynamicTransformPerMesh[i];
+            if (dynamicTransformIndex != hfm::UNDEFINED_KEY) {
+                const hfm::DynamicTransform& dynamicTransform = dynamicTransforms[dynamicTransformIndex];
+                numDeformerControllers = (uint16_t)dynamicTransform.deformers.size();
             }
         }
 
         // Try to create the graphics::Mesh
-        buildGraphicsMesh(meshes[i], graphicsMesh, baker::safeGet(normalsPerMesh, i), baker::safeGet(tangentsPerMesh, i), dynamicTransform, meshDeformers);
+        buildGraphicsMesh(meshes[i], graphicsMesh, baker::safeGet(normalsPerMesh, i), baker::safeGet(tangentsPerMesh, i), numDeformerControllers, reweightedDeformers);
 
         // Choose a name for the mesh
         if (graphicsMesh) {
