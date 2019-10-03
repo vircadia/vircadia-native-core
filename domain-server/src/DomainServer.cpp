@@ -385,7 +385,7 @@ void DomainServer::parseCommandLine(int argc, char* argv[]) {
         }
 
         if (_iceServerAddr.isEmpty()) {
-            qCWarning(domain_server_ice) << "Could not parse an IP address and port combination from" << hostnamePortString;
+            qCWarning(domain_server_ice) << "ALERT: Could not parse an IP address and port combination from" << hostnamePortString;
             ::exit(0);
         }
     }
@@ -876,7 +876,7 @@ void DomainServer::setupAutomaticNetworking() {
                     nodeList->startSTUNPublicSocketUpdate();
                 }
             } else {
-                qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
+                qCCritical(domain_server) << "PAGE: Cannot enable domain-server automatic networking without a domain ID."
                 << "Please add an ID to your config file or via the web interface.";
                 return;
             }

@@ -1155,7 +1155,7 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
 void LimitedNodeList::possiblyTimeoutSTUNAddressLookup() {
     if (_stunSockAddr.getAddress().isNull()) {
         // our stun address is still NULL, but we've been waiting for long enough - time to force a fail
-        qCWarning(networking) << "PAGE: Failed to lookup address of STUN server" << STUN_SERVER_HOSTNAME;
+        qCCritical(networking) << "PAGE: Failed to lookup address of STUN server" << STUN_SERVER_HOSTNAME;
         stopInitialSTUNUpdate(false);
     }
 }
@@ -1244,7 +1244,7 @@ void LimitedNodeList::errorTestingLocalSocket() {
         // then use our possibly updated guessed local address as fallback
         if (!_hasTCPCheckedLocalSocket) {
             setLocalSocket(HifiSockAddr { getGuessedLocalAddress(), _nodeSocket.localPort() });
-            qCWarning(networking) << "PAGE: Can't connect to Google DNS service, falling back to guessed local address"
+            qCCritical(networking) << "PAGE: Can't connect to Google DNS service via TCP, falling back to guessed local address"
                 << getLocalSockAddr();
         }
 
