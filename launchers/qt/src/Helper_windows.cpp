@@ -1,5 +1,7 @@
 #include "Helper.h"
 
+#include <QCoreApplication>
+
 #include "windows.h"
 #include "winnls.h"
 #include "shobjidl.h"
@@ -8,7 +10,6 @@
 #include "shlguid.h"
 #include <tlhelp32.h>
 #include <strsafe.h>
-#include <QCoreApplication>
 
 void launchClient(const QString& clientPath, const QString& homePath, const QString& defaultScriptsPath,
                   const QString& displayName, const QString& contentCachePath, QString loginResponseToken) {
@@ -50,8 +51,6 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
     // Close process and thread handles.
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
-
-    QCoreApplication::instance()->quit();
 }
 
 void launchAutoUpdater(const QString& autoUpdaterPath) {

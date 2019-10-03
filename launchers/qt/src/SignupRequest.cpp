@@ -44,6 +44,7 @@ void SignupRequest::receivedResponse() {
     }
 
     auto data = reply->readAll();
+    qDebug() << "Signup response: " << data;
     QJsonParseError parseError;
     auto doc = QJsonDocument::fromJson(data, &parseError);
 

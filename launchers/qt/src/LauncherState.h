@@ -26,6 +26,7 @@ class LauncherState : public QObject {
     Q_PROPERTY(float downloadProgress READ getDownloadProgress NOTIFY downloadProgressChanged)
     Q_PROPERTY(SignupRequest::Error lastSignupError MEMBER _lastSignupError NOTIFY lastSignupErrorChanged)
     Q_PROPERTY(QString lastLoginErrorMessage READ getLastLoginErrorMessage NOTIFY lastLoginErrorMessageChanged);
+    Q_PROPERTY(QString lastSignupErrorMessage READ getLastSignupErrorMessage NOTIFY lastSignupErrorMessageChanged);
     Q_PROPERTY(QString buildVersion READ getBuildVersion)
 
 public:
@@ -90,6 +91,9 @@ public:
     void setLastLoginErrorMessage(const QString& msg);
     QString getLastLoginErrorMessage() const { return _lastLoginErrorMessage; }
 
+    void setLastSignupErrorMessage(const QString& msg);
+    QString getLastSignupErrorMessage() const { return _lastSignupErrorMessage; }
+
     QString getBuildVersion() { return QString(LAUNCHER_BUILD_VERSION); }
 
     void setApplicationStateError(QString errorMessage);
@@ -136,6 +140,7 @@ signals:
     void applicationStateChanged();
     void downloadProgressChanged();
     void lastSignupErrorChanged();
+    void lastSignupErrorMessageChanged();
     void lastLoginErrorMessageChanged();
 
 private slots:
@@ -169,6 +174,7 @@ private:
     LoginToken _loginResponse;
     SignupRequest::Error _lastSignupError{ SignupRequest::Error::None };
     QString _lastLoginErrorMessage{ "" };
+    QString _lastSignupErrorMessage{ "" };
     QString _displayName;
     QString _applicationErrorMessage;
     QString _currentClientVersion;

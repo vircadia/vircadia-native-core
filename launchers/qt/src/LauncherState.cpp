@@ -97,6 +97,11 @@ bool LauncherState::shouldDownloadContentCache() const {
     return !_contentCacheURL.isEmpty() && !QFile::exists(getContentCachePath());
 }
 
+void LauncherState::setLastSignupErrorMessage(const QString& msg) {
+    _lastSignupErrorMessage = msg;
+    emit lastSignupErrorMessageChanged();
+}
+
 void LauncherState::setLastLoginErrorMessage(const QString& msg) {
     _lastLoginErrorMessage = msg;
     emit lastLoginErrorMessageChanged();
@@ -108,10 +113,10 @@ static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_
 
 void LauncherState::ASSERT_STATE(LauncherState::ApplicationState state) {
     if (_applicationState != state) {
+        qDebug() << "Unexpected state, current: " << _applicationState << ", expected: " << state;
 #ifdef BREAK_ON_ERROR
         __debugbreak();
 #endif
-        setApplicationState(ApplicationState::UnexpectedError);
     }
 }
 
@@ -122,10 +127,10 @@ void LauncherState::ASSERT_STATE(const std::vector<LauncherState::ApplicationSta
         }
     }
 
+    qDebug() << "Unexpected state, current: " << _applicationState << ", expected: " << states;
 #ifdef BREAK_ON_ERROR
         __debugbreak();
 #endif
-    setApplicationState(ApplicationState::UnexpectedError);
 }
 
 LauncherState::LauncherState() {
@@ -159,6 +164,7 @@ LauncherState::UIState LauncherState::getUIState() const {
             return UIState::LoginScreen;
         case ApplicationState::WaitingForSignup:
         case ApplicationState::RequestingSignup:
+        case ApplicationState::RequestingLoginAfterSignup:
             return UIState::SignupScreen;
         case ApplicationState::DownloadingClient:
         case ApplicationState::InstallingClient:
@@ -313,7 +319,24 @@ void LauncherState::signup(QString email, QString username, QString password, QS
         _lastSignupError = signupRequest->getError();
         emit lastSignupErrorChanged();
 
-        if (_lastSignupError != SignupRequest::Error::None) {
+        auto err = signupRequest->getError();
+        if (err == SignupRequest::Error::ExistingUsername) {
+            setLastSignupErrorMessage(_username + " is already taken - please try a different username.");
+            setApplicationState(ApplicationState::WaitingForSignup);
+            return;
+        } else if (err == SignupRequest::Error::BadPassword) {
+            setLastSignupErrorMessage("That's an invalid password - please try another password.");
+            setApplicationState(ApplicationState::WaitingForSignup);
+            return;
+        } else if (err == SignupRequest::Error::BadUsername) {
+            setLastSignupErrorMessage("That's an invalid username - please try another username.");
+            setApplicationState(ApplicationState::WaitingForSignup);
+            return;
+        } else if (err == SignupRequest::Error::UserProfileAlreadyCompleted || err == SignupRequest::Error::NoSuchEmail) {
+            setLastSignupErrorMessage("That email does not have an account setup for it, or it was previously completed.");
+            setApplicationState(ApplicationState::WaitingForSignup);
+            return;
+        } else if (err != SignupRequest::Error::None) {
             setApplicationStateError("Failed to sign up");
             return;
         }
@@ -418,7 +441,7 @@ void LauncherState::requestSettings() {
 }
 
 void LauncherState::downloadClient() {
-    ASSERT_STATE(ApplicationState::RequestingLogin);
+    ASSERT_STATE({ ApplicationState::RequestingLogin, ApplicationState::RequestingLoginAfterSignup });
 
     Build build;
     if (!_latestBuilds.getBuild(_buildTag, &build)) {
@@ -675,6 +698,8 @@ void LauncherState::installContentCache() {
 
 }
 
+#include <QTimer>
+#include <QCoreApplication>
 void LauncherState::launchClient() {
     ASSERT_STATE({
         ApplicationState::RequestingLogin,
@@ -714,6 +739,7 @@ void LauncherState::launchClient() {
     QString contentCachePath = _launcherDirectory.filePath("cache");
 
     ::launchClient(clientPath, _config.homeLocation, defaultScriptsPath, _displayName, contentCachePath, _loginTokenResponse);
+    QTimer::singleShot(3000, QCoreApplication::instance(), &QCoreApplication::quit);
 }
 
 void LauncherState::setApplicationStateError(QString errorMessage) {

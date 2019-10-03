@@ -28,6 +28,7 @@ Item {
         lineHeight: 35
         lineHeightMode: Text.FixedHeight
         text: root.titleText
+        visible: LauncherState.lastSignupErrorMessage.length == 0 ? root.titleText : "Uh oh."
         anchors {
             top: root.top
             topMargin: 29
@@ -42,9 +43,31 @@ Item {
         height: 22
 
         text: "Use the email address that you registered with."
+        visible: LauncherState.lastSignupErrorMessage.length == 0
+
         anchors {
             left: root.left
             leftMargin: root.marginLeft
+            top: title.bottom
+            topMargin: 18
+        }
+    }
+
+    HFTextRegular {
+        id: error
+        width: 425
+        height: 22
+
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
+
+        color: "#FF9999"
+
+        visible: LauncherState.lastSignupErrorMessage.length > 0
+        text: LauncherState.lastSignupErrorMessage
+        anchors {
+            left: root.left
+            right: root.right
             top: title.bottom
             topMargin: 18
         }
