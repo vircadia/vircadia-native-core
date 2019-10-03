@@ -31,4 +31,11 @@ Button {
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }
+
+    MouseArea {
+        id: mouseArea
+        cursorShape: Qt.PointingHandCursor
+        anchors.fill: parent
+        onPressed:  mouse.accepted = false
+    }
 }

@@ -48,15 +48,13 @@ Item {
         }
     }
 
-    HFTextRegular {
+    HFTextError {
         id: error
         width: 425
         height: 22
 
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-
-        color: "#FF9999"
 
         visible: LauncherState.lastLoginErrorMessage.length > 0
         text: LauncherState.lastLoginErrorMessage
@@ -141,9 +139,6 @@ Item {
     }
 
     Text {
-        width: 214
-        height: 12
-
         text: "Create New Account"
         font.family: "Graphik"
         font.pixelSize: 14
@@ -151,12 +146,14 @@ Item {
 
         anchors {
             top: button.bottom
-            topMargin: 19
+            topMargin: 16
             left: button.left
         }
 
         MouseArea {
             anchors.fill: parent
+
+            cursorShape: Qt.PointingHandCursor
 
             onClicked: {
                 console.log("clicked");

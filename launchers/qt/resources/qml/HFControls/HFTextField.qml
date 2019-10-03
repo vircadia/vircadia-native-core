@@ -41,6 +41,7 @@ TextField {
 
                 MouseArea {
                     anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         if (control.echoMode === TextInput.Password) {
                             control.echoMode = TextInput.Normal;
