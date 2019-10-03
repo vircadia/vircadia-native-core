@@ -1264,9 +1264,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
     hfmModel.hasSkeletonJoints = false;
     
     bool needMixamoHack = hfmModel.applicationName == "mixamo.com";
-    hfmModel.transforms.reserve(modelIDs.size());
-    std::vector<glm::mat4> globalTransforms;
-    globalTransforms.reserve(modelIDs.size());
 
     for (const QString& modelID : modelIDs) {
         const FBXModel& fbxModel = fbxModels[modelID];
@@ -1341,41 +1338,28 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
 
         }
-        hfmModel.joints.push_back(joint);
 
         // Now that we've initialized the joint, we can define the transform
         // modelIDs is ordered from parent to children, so we can safely get parent transforms from earlier joints as we iterate
-        glm::mat4 localTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation * joint.postRotation) * joint.postTransform;
+        joint.globalTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation * joint.postRotation) * joint.postTransform;
+        if (joint.parentIndex != -1 && joint.parentIndex < (int)jointIndex && !needMixamoHack) {
+            hfm::Joint& parentJoint = hfmModel.joints[joint.parentIndex];
+            joint.globalTransform = joint.globalTransform * parentJoint.globalTransform;
+            if (parentJoint.hasGeometricOffset) {
+                // Per the FBX standard, geometric offset should not propagate to children.
+                // However, we must be careful when modifying the behavior of FBXSerializer.
+                // So, we leave this here, as a breakpoint for debugging, or stub for implementation.
+                // qCDebug(modelformat) << "Geometric offset encountered on non-leaf node. jointIndex: " << jointIndex << ", modelURL: " << url;
+                // glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(parentJoint.geometricScaling, parentJoint.geometricRotation, parentJoint.geometricTranslation);
+                // globalTransform = globalTransform * glm::inverse(geometricOffset);
+            }
+        }
         if (joint.hasGeometricOffset) {
             glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(joint.geometricScaling, joint.geometricRotation, joint.geometricTranslation);
-            localTransform = localTransform * geometricOffset;
+            joint.globalTransform = joint.globalTransform * geometricOffset;
         }
-        glm::mat4 globalTransform;
-        if (joint.parentIndex != -1 && joint.parentIndex < jointIndex) {
-            hfm::Joint& parentJoint = hfmModel.joints[joint.parentIndex];
-            glm::mat4& parentGlobalTransform = globalTransforms[joint.parentIndex];
-            if (needMixamoHack) {
-                // there's something weird about the models from Mixamo Fuse; they don't skin right with the full transform
-                globalTransform = localTransform;
-                localTransform = globalTransform * glm::inverse(parentGlobalTransform);
-            } else {
-                if (parentJoint.hasGeometricOffset) {
-                    // Per the FBX standard, geometric offsets should not propagate to children
-                    glm::mat4 parentGeometricOffset = createMatFromScaleQuatAndPos(parentJoint.geometricScaling, parentJoint.geometricRotation, parentJoint.geometricTranslation);
-                    globalTransform = localTransform * parentGlobalTransform * glm::inverse(parentGeometricOffset);
-                    localTransform = globalTransform * glm::inverse(parentGlobalTransform);
-                } else {
-                    globalTransform = localTransform * parentGlobalTransform;
-                }
-            }
-        } else {
-            globalTransform = localTransform;
-        }
-        hfm::TransformNode transformNode;
-        transformNode.parent = joint.parentIndex == -1 ? hfm::UNDEFINED_KEY : joint.parentIndex;
-        transformNode.transform = Transform(localTransform);
-        globalTransforms.push_back(globalTransform);
-        hfmModel.transforms.push_back(transformNode);
+
+        hfmModel.joints.push_back(joint);
     }
 
     hfmModel.bindExtents.reset();
@@ -1418,7 +1402,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
 
     std::unordered_map<std::string, uint32_t> materialNameToID; 
     for (auto materialIt = _hfmMaterials.cbegin(); materialIt != _hfmMaterials.cend(); ++materialIt) {
-        materialNameToID[materialIt.key().toStdString()] = hfmModel.materials.size();
+        materialNameToID[materialIt.key().toStdString()] = (uint32_t)hfmModel.materials.size();
         hfmModel.materials.push_back(materialIt.value());
     }
 
@@ -1445,13 +1429,13 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         meshShapes.reserve(instanceModelIDs.size() * mesh.parts.size());
         for (const QString& modelID : instanceModelIDs) {
             // The transform node has the same indexing order as the joints
-            const uint32_t transformNodeIndex = (uint32_t)modelIDs.indexOf(modelID);
+            const uint32_t transformIndex = (uint32_t)modelIDs.indexOf(modelID);
 
             // accumulate local transforms
-            glm::mat4 modelTransform = globalTransforms[transformNodeIndex];
+            glm::mat4 globalTransform = hfmModel.joints[transformIndex].globalTransform;
             // compute the mesh extents from the transformed vertices
             for (const glm::vec3& vertex : mesh.vertices) {
-                glm::vec3 transformedVertex = glm::vec3(modelTransform * glm::vec4(vertex, 1.0f));
+                glm::vec3 transformedVertex = glm::vec3(globalTransform * glm::vec4(vertex, 1.0f));
                 hfmModel.meshExtents.minimum = glm::min(hfmModel.meshExtents.minimum, transformedVertex);
                 hfmModel.meshExtents.maximum = glm::max(hfmModel.meshExtents.maximum, transformedVertex);
             }
@@ -1462,13 +1446,12 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 hfm::Shape& shape = partShapes[i];
                 shape.mesh = meshIndex;
                 shape.meshPart = i;
-                shape.transform = transformNodeIndex;
-                glm::mat4 shapeGlobalTransform = globalTransforms[transformNodeIndex];
+                shape.transform = transformIndex;
 
                 shape.transformedExtents.reset();
                 // compute the shape extents from the transformed vertices
                 for (const glm::vec3& vertex : mesh.vertices) {
-                    glm::vec3 transformedVertex = glm::vec3(shapeGlobalTransform * glm::vec4(vertex, 1.0f));
+                    glm::vec3 transformedVertex = glm::vec3(globalTransform * glm::vec4(vertex, 1.0f));
                     shape.transformedExtents.minimum = glm::min(shape.transformedExtents.minimum, transformedVertex);
                     shape.transformedExtents.maximum = glm::max(shape.transformedExtents.maximum, transformedVertex);
                 }
@@ -1555,7 +1538,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                         hfmCluster.jointIndex = 0;
                     }
 
-                    hfmCluster.inverseBindMatrix = glm::inverse(fbxCluster.transformLink) * modelTransform;
+                    hfmCluster.inverseBindMatrix = glm::inverse(fbxCluster.transformLink) * globalTransform;
 
                     // slam bottom row to (0, 0, 0, 1), we KNOW this is not a perspective matrix and
                     // sometimes floating point fuzz can be introduced after the inverse.
@@ -1577,12 +1560,12 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                     // update the bind pose extents
                     glm::vec3 bindTranslation = extractTranslation(hfmModel.offset * joint.bindTransform);
                     hfmModel.bindExtents.addPoint(bindTranslation);
-
-                    // the last cluster is the root cluster
-                    HFMCluster cluster;
-                    cluster.jointIndex = rootJointIndex;
-                    clusters.push_back(cluster);
                 }
+
+                // the last cluster is the root cluster
+                HFMCluster cluster;
+                cluster.jointIndex = rootJointIndex;
+                clusters.push_back(cluster);
 
                 // Skinned mesh instances have a dynamic transform
                 dynamicTransform.deformers.reserve(clusterIDs.size());
@@ -1595,7 +1578,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                     size_t indexWeightPairs = (size_t)std::min(fbxCluster.indices.size(), fbxCluster.weights.size());
                     deformer.indices.reserve(indexWeightPairs);
                     deformer.weights.reserve(indexWeightPairs);
-                    for (size_t i = 0; i < indexWeightPairs; i++) {
+                    for (int i = 0; i < (int)indexWeightPairs; i++) {
                         int oldIndex = fbxCluster.indices[i];
                         uint32_t newIndex = (uint32_t)extracted.newIndices.value(oldIndex);
                         deformer.indices.push_back(newIndex);
@@ -1655,11 +1638,11 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
     if (applyUpAxisZRotation) {
         hfmModelPtr->meshExtents.transform(glm::mat4_cast(upAxisZRotation));
         hfmModelPtr->bindExtents.transform(glm::mat4_cast(upAxisZRotation));
-        for (auto &shape : hfmModelPtr->shapes) {
-            auto transformIndex = shape.transform;
-            auto& transformNode = hfmModelPtr->transforms[transformIndex];
-            transformNode.transform.postRotate(upAxisZRotation);
+        for (auto& shape : hfmModelPtr->shapes) {
             shape.transformedExtents.transform(glm::mat4_cast(upAxisZRotation));
+        }
+        for (auto& joint : hfmModelPtr->joints) {
+            joint.globalTransform = joint.globalTransform * glm::mat4_cast(upAxisZRotation);
         }
     }
     return hfmModelPtr;
