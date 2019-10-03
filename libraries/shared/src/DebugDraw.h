@@ -95,19 +95,22 @@ public:
      * @param {Quat} rotation - The orientation of the marker in world coordinates.
      * @param {Vec3} position - The position of the market in world coordinates.
      * @param {Vec4} color - The color of the marker.
+     * @param {float} size - A float between 0.0 and 1.0 (10 cm) to control the size of the marker.
      * @example <caption>Briefly draw a debug marker in front of your avatar, in world coordinates.</caption>
      * var MARKER_NAME = "my marker";
      * DebugDraw.addMarker(
      *     MARKER_NAME,
      *     Quat.ZERO,
      *     Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5})),
-     *     { red: 255, green: 0, blue: 0 }
+     *     { red: 255, green: 0, blue: 0 },
+     *     1.0
      * );
      * Script.setTimeout(function () {
      *     DebugDraw.removeMarker(MARKER_NAME);
      * }, 5000);
      */
-    Q_INVOKABLE void addMarker(const QString& key, const glm::quat& rotation, const glm::vec3& position, const glm::vec4& color);
+    Q_INVOKABLE void addMarker(const QString& key, const glm::quat& rotation, const glm::vec3& position,
+                               const glm::vec4& color, float size = 1.0f);
 
     /**jsdoc
      * Removes a debug marker that was added in world coordinates.
@@ -125,19 +128,22 @@ public:
      * @param {Quat} rotation - The orientation of the marker in avatar coordinates.
      * @param {Vec3} position - The position of the market in avatar coordinates.
      * @param {Vec4} color - color of the marker.
+     * @param {float} size - A float between 0.0 and 1.0 (10 cm) to control the size of the marker.
      * @example <caption>Briefly draw a debug marker in front of your avatar, in avatar coordinates.</caption>
      * var MARKER_NAME = "My avatar marker";
      * DebugDraw.addMyAvatarMarker(
      *     MARKER_NAME,
      *     Quat.ZERO,
      *     { x: 0, y: 0, z: -5 },
-     *     { red: 255, green: 0, blue: 0 }
+     *     { red: 255, green: 0, blue: 0 },
+     *     1.0
      * );
      * Script.setTimeout(function () {
      *     DebugDraw.removeMyAvatarMarker(MARKER_NAME);
      * }, 5000);
      */
-    Q_INVOKABLE void addMyAvatarMarker(const QString& key, const glm::quat& rotation, const glm::vec3& position, const glm::vec4& color);
+    Q_INVOKABLE void addMyAvatarMarker(const QString& key, const glm::quat& rotation, const glm::vec3& position,
+                                       const glm::vec4& color, float size = 1.0f);
 
     /**jsdoc
      * Removes a debug marker that was added in avatar coordinates.
@@ -146,7 +152,7 @@ public:
      */
     Q_INVOKABLE void removeMyAvatarMarker(const QString& key);
 
-    using MarkerInfo = std::tuple<glm::quat, glm::vec3, glm::vec4>;
+    using MarkerInfo = std::tuple<glm::quat, glm::vec3, glm::vec4, float>;
     using MarkerMap = std::map<QString, MarkerInfo>;
     using Ray = std::tuple<glm::vec3, glm::vec3, glm::vec4>;
     using Rays = std::vector<Ray>;

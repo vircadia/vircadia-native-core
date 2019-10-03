@@ -16,7 +16,9 @@ ComboBox {
     id: valueCombo
 
     height: global.slimHeight
-
+    width: 120
+    implicitHeight: global.slimHeight
+       
 
     // look
     flat: true
@@ -51,8 +53,6 @@ ComboBox {
     }
 
     background: Rectangle {
-        implicitWidth: 120
-        implicitHeight: 40
         color: global.colorBack
         border.color: valueCombo.popup.visible ? global.colorBorderLighter : global.colorBorderLight
         border.width: global.valueBorderWidth

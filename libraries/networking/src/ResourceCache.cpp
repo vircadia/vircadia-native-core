@@ -148,6 +148,8 @@ void ResourceCacheSharedItems::clear() {
 
 ScriptableResourceCache::ScriptableResourceCache(QSharedPointer<ResourceCache> resourceCache) {
     _resourceCache = resourceCache;
+    connect(&(*_resourceCache), &ResourceCache::dirty,
+        this, &ScriptableResourceCache::dirty, Qt::DirectConnection);
 }
 
 QVariantList ScriptableResourceCache::getResourceList() {
@@ -323,7 +325,11 @@ QVariantList ResourceCache::getResourceList() {
         BLOCKING_INVOKE_METHOD(this, "getResourceList",
             Q_RETURN_ARG(QVariantList, list));
     } else {
-        auto resources = _resources.uniqueKeys();
+        QList<QUrl> resources;
+        {
+            QReadLocker locker(&_resourcesLock);
+            resources = _resources.uniqueKeys();
+        }
         list.reserve(resources.size());
         for (auto& resource : resources) {
             list << resource;
@@ -510,7 +516,7 @@ void ResourceCache::updateTotalSize(const qint64& deltaSize) {
 
     emit dirty();
 }
- 
+
 QList<QSharedPointer<Resource>> ResourceCache::getLoadingRequests() {
     return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequests();
 }

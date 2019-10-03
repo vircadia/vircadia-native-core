@@ -22,6 +22,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <Assignment.h>
+#include <CrashAnnotations.h>
 #include <LogHandler.h>
 #include <LogUtils.h>
 #include <LimitedNodeList.h>
@@ -144,6 +145,7 @@ AssignmentClient::~AssignmentClient() {
 }
 
 void AssignmentClient::aboutToQuit() {
+    crash::annotations::setShutdownState(true);
     stopAssignmentClient();
 }
 
@@ -173,6 +175,7 @@ void AssignmentClient::sendStatusPacketToACM() {
 
 void AssignmentClient::sendAssignmentRequest() {
     if (!_currentAssignment && !_isAssigned) {
+        crash::annotations::setShutdownState(false);
 
         auto nodeList = DependencyManager::get<NodeList>();
 
@@ -289,6 +292,8 @@ void AssignmentClient::handleAuthenticationRequest() {
 }
 
 void AssignmentClient::assignmentCompleted() {
+    crash::annotations::setShutdownState(true);
+    
     // we expect that to be here the previous assignment has completely cleaned up
     assert(_currentAssignment.isNull());
 

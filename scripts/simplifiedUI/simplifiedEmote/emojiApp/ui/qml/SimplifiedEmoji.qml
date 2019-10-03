@@ -66,6 +66,7 @@ Rectangle {
             .forEach(function(item, index){
                 item.code = { utf: item.code[0] }
                 item.keywords = { keywords: item.keywords }
+                item.shortName = item.shortName
                 mainModel.append(item);
                 filteredModel.append(item);
             });
@@ -73,6 +74,7 @@ Rectangle {
             .forEach(function(item, index){
                 item.code = { utf: item.name }
                 item.keywords = { keywords: item.keywords }
+                item.shortName = item.name
                 mainModel.append(item);
                 filteredModel.append(item);
             });
@@ -230,7 +232,7 @@ Rectangle {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 200
+        height: 160
         clip: true
         color: simplifiedUI.colors.darkBackground
 
@@ -248,8 +250,8 @@ Rectangle {
 
         Image {
             id: mainEmojiImage
-            width: 180
-            height: 180
+            width: emojiIndicatorContainer.width - 20
+            height: emojiIndicatorContainer.height - 20
             anchors.centerIn: parent
             source: ""
             fillMode: Image.PreserveAspectFit
@@ -281,6 +283,64 @@ Rectangle {
     }
 
 
+    Item {
+        id: searchBarContainer
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: emojiIndicatorContainer.bottom
+        width: Math.min(parent.width, 420)
+        height: 48
+
+        SimplifiedControls.TextField {
+            id: emojiSearchTextField
+            readonly property string defaultPlaceholderText: "Search Emojis"
+            bottomBorderVisible: false
+            backgroundColor: "#313131"
+            placeholderText: emojiSearchTextField.defaultPlaceholderText
+            maximumLength: 100
+            clip: true
+            selectByMouse: true
+            autoScroll: true
+            horizontalAlignment: TextInput.AlignHCenter
+            anchors.left: parent.left
+            anchors.leftMargin: 16
+            anchors.right: parent.right
+            anchors.rightMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
+            onTextChanged: {
+                if (text.length === 0) {
+                    root.filterEmoji(emojiSearchTextField.text);
+                } else {
+                    waitForMoreInputTimer.restart();
+                }
+            }
+            onAccepted: {
+                root.filterEmoji(emojiSearchTextField.text);
+                waitForMoreInputTimer.stop();
+                if (filteredModel.count === 1) {
+                    root.selectEmoji(filteredModel.get(0).code.utf);
+                } else {
+                    grid.forceActiveFocus();
+                }
+            }
+
+            KeyNavigation.backtab: grid
+            KeyNavigation.tab: grid
+        }
+
+        Timer {
+            id: waitForMoreInputTimer
+            repeat: false
+            running: false
+            triggeredOnStart: false
+            interval: 300
+
+            onTriggered: {
+                root.filterEmoji(emojiSearchTextField.text);
+            }
+        }
+    }
+
+
     function selectEmoji(code) {
         sendToScript({
             "source": "SimplifiedEmoji.qml",
@@ -294,12 +354,44 @@ Rectangle {
 
     Rectangle {
         id: emojiIconListContainer
-        anchors.top: emojiIndicatorContainer.bottom
+        anchors.top: searchBarContainer.bottom
+        anchors.topMargin: 10
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: bottomContainer.top
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 8
         clip: true
         color: simplifiedUI.colors.darkBackground
+
+        Item {
+            id: helpGlyphContainer
+            anchors.left: parent.left
+            anchors.leftMargin: 4
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 2
+            width: 22
+            height: width
+
+            HifiStylesUit.GraphikRegular {
+                text: "?"
+                anchors.fill: parent
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                color: simplifiedUI.colors.text.darkGrey
+                opacity: attributionMouseArea.containsMouse ? 1.0 : 0.8
+                size: 22
+            }
+        
+            MouseArea {
+                id: attributionMouseArea
+                hoverEnabled: enabled
+                anchors.fill: parent
+                propagateComposedEvents: false
+                onClicked: {
+                    popupContainer.visible = true;
+                }
+            }
+        }
 
         GridView {
             id: grid
@@ -319,13 +411,18 @@ Rectangle {
                         anchors.fill: parent
                         propagateComposedEvents: false
                         onEntered: {
-                            grid.currentIndex = index
+                            grid.currentIndex = index;
                             // don't allow a hover image change of the main emoji image 
                             if (root.isSelected) {
                                 return;
                             }
                             // Updates the selected image
                             root.currentCode = model.code.utf;
+                            // Ensures that the placeholder text is visible and updated
+                            if (emojiSearchTextField.text === "") {
+                                grid.forceActiveFocus();
+                            }
+                            emojiSearchTextField.placeholderText = "::" + model.shortName + "::";
                         }
                         onClicked: {
                             root.selectEmoji(model.code.utf);
@@ -376,88 +473,6 @@ Rectangle {
             verticalAlignment: Text.AlignVCenter
             color: simplifiedUI.colors.text.darkGrey
             size: 22
-        }
-    }
-
-
-    Item {
-        id: bottomContainer
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 40
-
-        SimplifiedControls.TextField {
-            id: emojiSearchTextField
-            placeholderText: "Search"
-            maximumLength: 100
-            clip: true
-            selectByMouse: true
-            autoScroll: true
-            anchors.left: parent.left
-            anchors.leftMargin: 16
-            anchors.right: helpGlyphContainer.left
-            anchors.rightMargin: 16
-            anchors.verticalCenter: parent.verticalCenter
-            onTextChanged: {
-                if (text.length === 0) {
-                    root.filterEmoji(emojiSearchTextField.text);
-                } else {
-                    waitForMoreInputTimer.restart();
-                }
-            }
-            onAccepted: {
-                root.filterEmoji(emojiSearchTextField.text);
-                waitForMoreInputTimer.stop();
-                if (filteredModel.count === 1) {
-                    root.selectEmoji(filteredModel.get(0).code.utf);
-                } else {
-                    grid.forceActiveFocus();
-                }
-            }
-
-            KeyNavigation.backtab: grid
-            KeyNavigation.tab: grid
-        }
-
-        Timer {
-            id: waitForMoreInputTimer
-            repeat: false
-            running: false
-            triggeredOnStart: false
-            interval: 300
-
-            onTriggered: {
-                root.filterEmoji(emojiSearchTextField.text);
-            }
-        }
-
-        Item {
-            id: helpGlyphContainer
-            anchors.right: parent.right
-            anchors.rightMargin: 8
-            width: height
-            height: parent.height
-
-            HifiStylesUit.GraphikRegular {
-                text: "?"
-                anchors.fill: parent
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                color: simplifiedUI.colors.text.darkGrey
-                opacity: attributionMouseArea.containsMouse ? 1.0 : 0.8
-                size: 22
-            }
-        
-            MouseArea {
-                id: attributionMouseArea
-                hoverEnabled: enabled
-                anchors.fill: parent
-                propagateComposedEvents: false
-                onClicked: {
-                    popupContainer.visible = true;
-                }
-            }
         }
     }
 
