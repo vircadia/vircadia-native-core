@@ -33,13 +33,13 @@ public:
     ~LauncherState() = default;
 
     enum UIState {
-        SPLASH_SCREEN = 0,
-        SIGNUP_SCREEN,
-        LOGIN_SCREEN,
-        DISPLAY_NAME_SCREEN,
-        DOWNLOAD_SCREEN,
-        DOWNLOAD_FINSISHED,
-        ERROR_SCREEN,
+        SplashScreen = 0,
+        SignupScreen,
+        LoginScreen,
+        DownloadScreen,
+        DownloadFinishedScreen,
+        ErrorScreen,
+
         UI_STATE_NUM
     };
 
@@ -66,8 +66,14 @@ public:
         InstallingLauncher,
         InstallingContentCache,
 
-        LaunchingHighFidelity
+        LaunchingHighFidelity,
     };
+
+    bool _isDebuggingScreens{ false };
+    UIState _currentDebugScreen{ UIState::SplashScreen };
+    void toggleDebugState();
+    void gotoNextDebugScreen();
+    void gotoPreviousDebugScreen();
 
     Q_ENUM(UIState);
     Q_ENUM(ApplicationState)
@@ -159,7 +165,7 @@ private:
 
     // Application State
     ApplicationState _applicationState { ApplicationState::Init };
-    UIState _uiState { UIState::SPLASH_SCREEN };
+    UIState _uiState { UIState::SplashScreen };
     LoginToken _loginResponse;
     SignupRequest::Error _lastSignupError{ SignupRequest::Error::None };
     QString _lastLoginErrorMessage{ "" };

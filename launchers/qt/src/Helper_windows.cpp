@@ -156,7 +156,7 @@ BOOL isProcessRunning(const char* processName, int& processID) {
     entry.dwSize = sizeof(PROCESSENTRY32);
 
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-
+    
     if (Process32First(snapshot, &entry)) {
         while (Process32Next(snapshot, &entry)) {
             if (!_stricmp(entry.szExeFile, processName)) {

@@ -9,6 +9,10 @@ Button {
     property int backgroundOpacity: 1
     property int backgroundRadius: 1
     property int backgroundWidth: 2
+
+    font.family: "Graphik Semibold"
+    font.pointSize: 12
+
     background: Rectangle {
         implicitWidth: 100
         implicitHeight: 40

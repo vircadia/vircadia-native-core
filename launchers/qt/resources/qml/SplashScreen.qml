@@ -18,8 +18,8 @@ Item {
 
     Image {
         anchors.centerIn: parent
-        width: 225
-        height: 205
+        width: 240
+        height: 180
         source: PathUtils.resourcePath("images/hifi_logo_large@2x.png");
     }
 

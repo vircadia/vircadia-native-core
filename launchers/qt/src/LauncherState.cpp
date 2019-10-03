@@ -33,6 +33,34 @@ const QString configHomeLocationKey { "homeLocation" };
 const QString configLoggedInKey{ "loggedIn" };
 const QString configLauncherPathKey{ "launcherPath" };
 
+void LauncherState::toggleDebugState() {
+    _isDebuggingScreens = !_isDebuggingScreens;
+
+    UIState updatedUIState = getUIState();
+    if (_uiState != updatedUIState) {
+        emit uiStateChanged();
+        emit updateSourceUrl(PathUtils::resourcePath(getCurrentUISource()));
+        _uiState = getUIState();
+    }
+}
+void LauncherState::gotoNextDebugScreen() {
+    if (_currentDebugScreen < (UIState::UI_STATE_NUM - 1)) {
+        _currentDebugScreen = (UIState)(_currentDebugScreen + 1);
+        UIState updatedUIState = getUIState();
+        emit uiStateChanged();
+        emit updateSourceUrl(PathUtils::resourcePath(getCurrentUISource()));
+        _uiState = getUIState();
+    }
+}
+void LauncherState::gotoPreviousDebugScreen() {
+    if (_currentDebugScreen > 0) {
+        _currentDebugScreen = (UIState)(_currentDebugScreen - 1);
+        emit uiStateChanged();
+        emit updateSourceUrl(PathUtils::resourcePath(getCurrentUISource()));
+        _uiState = getUIState();
+    }
+}
+
 QString LauncherState::getContentCachePath() const {
     return _launcherDirectory.filePath("cache");
 }
@@ -116,35 +144,39 @@ void LauncherState::declareQML() {
 }
 
 LauncherState::UIState LauncherState::getUIState() const {
+    if (_isDebuggingScreens) {
+        return _currentDebugScreen;
+    }
+
     switch (_applicationState) {
         case ApplicationState::Init:
         case ApplicationState::RequestingBuilds:
         case ApplicationState::GettingCurrentClientVersion:
-            return SPLASH_SCREEN;
+            return UIState::SplashScreen;
         case ApplicationState::WaitingForLogin:
         case ApplicationState::RequestingLogin:
-            return LOGIN_SCREEN;
+            return UIState::LoginScreen;
         case ApplicationState::WaitingForSignup:
         case ApplicationState::RequestingSignup:
-            return SIGNUP_SCREEN;
+            return UIState::SignupScreen;
         case ApplicationState::DownloadingClient:
         case ApplicationState::InstallingClient:
         case ApplicationState::DownloadingContentCache:
         case ApplicationState::InstallingContentCache:
-            return DOWNLOAD_SCREEN;
+            return UIState::DownloadScreen;
         case ApplicationState::LaunchingHighFidelity:
-            return DOWNLOAD_FINSISHED;
+            return UIState::DownloadFinishedScreen;
         case ApplicationState::UnexpectedError:
 #ifdef BREAK_ON_ERROR
             __debugbreak();
 #endif
-            return ERROR_SCREEN;
+            return UIState::ErrorScreen;
         default:
             qDebug() << "FATAL: No UI for" << _applicationState;
 #ifdef BREAK_ON_ERROR
             __debugbreak();
 #endif
-            return ERROR_SCREEN;
+            return UIState::ErrorScreen;
     }
 }
 

@@ -10,4 +10,5 @@ public:
     PathUtils() = default;
     ~PathUtils() = default;
     Q_INVOKABLE static QUrl resourcePath(const QString& source);
+    QString static fontPath(const QString& fontName);
 };

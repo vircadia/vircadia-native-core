@@ -71,10 +71,16 @@ Item {
 
         font.pixelSize: 12
 
-        anchors.right: root.right
-        anchors.bottom: root.bottom
+        anchors {
+            leftMargin: 10
+            rightMargin: 10
+            bottomMargin: 10
 
-        color: "#FFFFFF"
+            right: root.right
+            bottom: root.bottom
+        }
+
+        color: "#777"
         text: "v." + LauncherState.buildVersion;
 
         states: [

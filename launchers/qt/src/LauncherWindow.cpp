@@ -9,6 +9,12 @@ void LauncherWindow::keyPressEvent(QKeyEvent* event) {
     if (!event->isAccepted()) {
         if (event->key() == Qt::Key_Escape) {
             exit(0);
+        } else if (event->key() == Qt::Key_Up) {
+            _launcherState->toggleDebugState();
+        } else if (event->key() == Qt::Key_Left) {
+            _launcherState->gotoPreviousDebugScreen();
+        } else if (event->key() == Qt::Key_Right) {
+            _launcherState->gotoNextDebugScreen();
         }
     }
 }

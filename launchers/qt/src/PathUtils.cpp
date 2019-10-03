@@ -10,3 +10,11 @@ QUrl PathUtils::resourcePath(const QString& source) {
     return QUrl(filePath);
 #endif
 }
+
+QString PathUtils::fontPath(const QString& fontName) {
+#ifdef HIFI_USE_LOCAL_FILE
+    return resourcePath("/fonts/" + fontName).toString(QUrl::PreferLocalFile);
+#else
+    return ":/fonts/" + fontName;
+#endif
+}

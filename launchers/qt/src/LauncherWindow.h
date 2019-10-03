@@ -12,6 +12,7 @@ public:
     void mouseReleaseEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void setLauncherStatePtr(std::shared_ptr<LauncherState> launcherState) { _launcherState = launcherState; }
+
 private:
     bool _drag { false };
     QPoint _previousMousePos;

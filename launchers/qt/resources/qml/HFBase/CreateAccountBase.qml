@@ -21,16 +21,12 @@ Item {
         rotation: 180
     }
 
-    Text {
+    HFTextHeader {
         id: title
         width: 481
         height: 27
-        font.family: "Graphik"
-        font.bold: true
-        font.pixelSize: 29
         lineHeight: 35
         lineHeightMode: Text.FixedHeight
-        color: "#FFFFFF"
         text: root.titleText
         anchors {
             top: root.top
@@ -40,14 +36,12 @@ Item {
         }
     }
 
-    Text {
+    HFTextRegular {
         id: instruction
         width: 425
         height: 22
-        font.family: "Graphik"
-        font.pixelSize: 14
-        color: "#C4C4C4"
-        text: "Use the email address that you regisetered with. " + LauncherState.lastSignupError
+
+        text: "Use the email address that you registered with."
         anchors {
             left: root.left
             leftMargin: root.marginLeft
@@ -60,10 +54,7 @@ Item {
         id: email
         width: 430
         height: 50
-        font.family: "Graphik"
-        font.pixelSize: 18
         placeholderText: "Email Address"
-        color: "#7e8c81"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
             top: instruction.bottom
@@ -77,10 +68,7 @@ Item {
         id: username
         width: 430
         height: 50
-        font.family: "Graphik"
-        font.pixelSize: 18
         placeholderText: root.usernamePlaceholder
-        color: "#7e8c81"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
             top: email.bottom
@@ -94,10 +82,7 @@ Item {
         id: passwordField
         width: 430
         height: 50
-        font.family: "Graphik"
-        font.pixelSize: 18
         placeholderText: root.passwordPlaceholder
-        color: "#7e8c81"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         togglePasswordField: true
         echoMode: TextInput.Password
@@ -110,12 +95,14 @@ Item {
     }
 
 
-    Text {
+    HFTextRegular {
         id: displayNameText
-        text: "You can change this at anytime from you Profile"
-        font.family: "Graphik"
-        font.pixelSize: 10
-        color: "#C4C4C4"
+
+        text: "This is the display name other people see in world, it can be changed at anytime, from your profile."
+        wrapMode: Text.Wrap
+
+        width: 430
+
         anchors {
             top: passwordField.bottom
             left: root.left
@@ -128,10 +115,7 @@ Item {
         id: displayName
         width: 430
         height: 50
-        font.family: "Graphik"
-        font.pixelSize: 18
         placeholderText: "Display Name"
-        color: "#7e8c81"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
             top: displayNameText.bottom
@@ -146,8 +130,6 @@ Item {
         width: 134
         height: 50
 
-        font.family: "Graphik"
-        font.pixelSize: 14
         text: "NEXT"
 
         anchors {

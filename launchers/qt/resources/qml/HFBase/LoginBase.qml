@@ -15,14 +15,11 @@ Item {
         transformOrigin: Item.Center
         rotation: 0
     }
-    Text {
+    HFTextHeader {
         id: title
         width: 325
         height: 26
-        font.family: "Graphik"
-        font.pixelSize: 28
         font.bold: true
-        color: "#FFFFFF"
         text: "Please Log in"
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
@@ -33,15 +30,14 @@ Item {
         }
     }
 
-    Text {
+    HFTextRegular {
         id: instruction
         width: 425
         height: 22
-        font.family: "Graphik"
-        font.pixelSize: 14
+
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-        color: "#C4C4C4"
+
         visible: LauncherState.lastLoginErrorMessage.length == 0
         text: "Use the account credentials you created at sign-up"
         anchors {
@@ -52,15 +48,16 @@ Item {
         }
     }
 
-    Text {
+    HFTextRegular {
         id: error
         width: 425
         height: 22
-        font.family: "Graphik"
-        font.pixelSize: 14
+
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
+
         color: "#FF9999"
+
         visible: LauncherState.lastLoginErrorMessage.length > 0
         text: LauncherState.lastLoginErrorMessage
         anchors {
@@ -75,10 +72,9 @@ Item {
         id: username
         width: 353
         height: 50
-        font.family: "Graphik"
-        font.pixelSize: 18
+
         placeholderText: "Username"
-        color: "#7E8C81"
+
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
             top: error.bottom
@@ -91,10 +87,7 @@ Item {
         id: password
         width: 353
         height: 50
-        font.family: "Graphik"
-        font.pixelSize: 18
         placeholderText: "Password"
-        color: "#7E8C81"
         togglePasswordField: true
         echoMode: TextInput.Password
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
@@ -106,12 +99,10 @@ Item {
     }
 
 
-    Text {
+    HFTextRegular {
         id: displayText
 
-        text: "You can change this at anytime from your profile"
-        color: "#C4C4C4"
-        font.pixelSize: 14
+        text: "You can change this at anytime from your profile."
 
         anchors {
             top: password.bottom
@@ -124,10 +115,7 @@ Item {
         id: displayName
         width: 353
         height: 50
-        font.family: "Graphik"
-        font.pixelSize: 18
         placeholderText: "Display name"
-        color: "#7E8C81"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
             top: displayText.bottom
@@ -141,8 +129,6 @@ Item {
         width: 110
         height: 50
 
-        font.family: "Graphik"
-        font.pixelSize: 18
         text: "NEXT"
 
         anchors {

@@ -3,15 +3,18 @@ import QtQuick.Controls 2.1
 
 TextField {
     id: control
-    //color: "#000000"
-    font.family: "Graphik Medium"
-    font.pixelSize: 22
+
+    font.family: "Graphik Regular"
+    font.pointSize: 10.5
+    color: "#7e8c81"
+
     property bool togglePasswordField: false
     verticalAlignment: TextInput.AlignVCenter
     horizontalAlignment: TextInput.AlignLeft
     placeholderText: "PlaceHolder"
     property string seperatorColor: "#FFFFFF"
     selectByMouse: true
+
     background: Item {
         anchors.fill: parent
         Rectangle {
@@ -24,8 +27,9 @@ TextField {
                 visible: control.togglePasswordField
                 source: (control.echoMode == TextInput.Password) ? PathUtils.resourcePath("images/showPass.png") :
                     PathUtils.resourcePath("images/hidePass.png");
-                width: 21
-                height: 14
+                fillMode: Image.PreserveAspectFit 
+                width: 24
+                smooth: true
                 anchors {
                     top: parent.top
                     topMargin: 18
