@@ -20,6 +20,7 @@ Rectangle {
     id: root
     color: simplifiedUI.colors.white
     anchors.fill: parent
+    property bool landscapeOrientation: root.width > root.height
 
     SimplifiedConstants.SimplifiedConstants {
         id: simplifiedUI
@@ -56,55 +57,59 @@ Rectangle {
         id: tempAvatarPageContainer
         visible: true
 
-        SimplifiedControls.VerticalScrollBar {
-            parent: tempAvatarPageContainer
-        }
-
         GridLayout {
             id: tempAvatarPageGrid
             anchors.fill: parent
-            anchors.leftMargin: 180
+            anchors.leftMargin: 50
             anchors.topMargin: 50
             anchors.rightMargin: 100
-            columns: root.width > root.height ? 2 : 1
-            rows: root.width > root.height ? 1 : 2
-            flow: root.width > root.height ? GridLayout.LeftToRight : GridLayout.TopToBottom
+            columns: landscapeOrientation ? 2 : 1
+            rows: landscapeOrientation ? 1 : 2
+
+            Item {
+                id: tempAvatarImageContainer
+                Layout.preferredWidth: tempAvatarImage.width
+                Layout.preferredHeight: tempAvatarImage.height
+
+                Image {
+                    id: tempAvatarImage
+                    width: landscapeOrientation ? 428 : 320
+                    height: landscapeOrientation ? 800 : 598
+                    source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/" +
+                        MyAvatar.skeletonModelURL.substring(MyAvatar.skeletonModelURL.indexOf("simplifiedAvatar"), MyAvatar.skeletonModelURL.lastIndexOf("/")) + ".png"
+                }
+            }
 
             Item {
                 id: textAndQRContainer
-                Layout.preferredWidth: 550
-                Layout.preferredHeight: 670
-                Layout.minimumWidth: 200
-                Layout.maximumWidth: 800
-                Layout.topMargin: 130
+                Layout.preferredWidth: 680
+                Layout.preferredHeight: childrenRect.height
+                Layout.topMargin: landscapeOrientation ? 130 : 0
 
                 HifiStylesUit.RalewayBold {
                     id: headerText
                     text: "We know this isn't you..."
-                    color: simplifiedUI.colors.text.darkGray
+                    color: simplifiedUI.colors.text.black
                     size: 48
                     wrapMode: Text.WordWrap
                     anchors.left: parent.left
-                    height: 60
-                    width: 550
+                    anchors.right: parent.right
                 }
 
                 HifiStylesUit.RalewayRegular {
                     id: descriptionText
                     anchors.top: headerText.bottom
-                    anchors.topMargin: 30
+                    anchors.topMargin: 10
                     text: "but, we've given you this <b>temporary avatar</b> to use
                     for today. If you see this avatar in-world, walk up and
                     say hello to other new users!<br></br><br></br>
                     <b>We want you to be you</b> so we've built an Avatar Creator
                     App that's as easy as taking a selfie and picking your
                     outfits! Available now on iOS and Android Platforms."
-                    color: simplifiedUI.colors.text.darkGray
+                    color: simplifiedUI.colors.text.black
                     size: 22
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    height: 180
-                    width: 550
                     wrapMode: Text.WordWrap
                 }
 
@@ -112,7 +117,8 @@ Rectangle {
                     id: qrAndInstructionsContainer
                     anchors.top: descriptionText.bottom
                     height: avatarAppQRCodeImage.height
-                    width: parent.width
+                    anchors.left: parent.left
+                    anchors.right: parent.right
                     anchors.topMargin: 50
 
                     Image {
@@ -130,7 +136,7 @@ Rectangle {
                         anchors.right: parent.right
                         anchors.leftMargin: 30
                         text: "Use your mobile phone to scan this QR code."
-                        color: simplifiedUI.colors.text.darkGray
+                        color: simplifiedUI.colors.text.black
                         size: 22
                         wrapMode: Text.WordWrap
                     }
@@ -141,7 +147,7 @@ Rectangle {
                     anchors.topMargin: 50
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    horizontalAlignment: Text.AlignRight
+                    horizontalAlignment: Text.AlignLeft
                     text: "Continue >"
                     color: simplifiedUI.colors.text.lightBlue
                     opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
@@ -162,22 +168,10 @@ Rectangle {
                     }
                 }
             }
+        }
 
-            Item {
-                id: tempAvatarImageContainer
-                Layout.leftMargin: 30
-                Layout.preferredWidth: tempAvatarImage.width
-                Layout.preferredHeight: tempAvatarImage.height
-
-                Image {
-                    id: tempAvatarImage
-                    width: root.width > root.height ? 428 : 320
-                    height: root.width > root.height ? 800 : 598
-                    source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/" +
-                        MyAvatar.skeletonModelURL.substring(MyAvatar.skeletonModelURL.indexOf("simplifiedAvatar"), MyAvatar.skeletonModelURL.lastIndexOf("/")) + ".png"
-                }
-                // TODO move this to be above the rest of the grid layout stuff in landscape mode
-            }
+        SimplifiedControls.VerticalScrollBar {
+            parent: tempAvatarPageContainer
         }
     }
 
@@ -200,7 +194,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter
             height: 100
             width: 850
-            color: simplifiedUI.colors.darkGray
+            color: simplifiedUI.colors.text.black
             size: 36
             wrapMode: Text.WordWrap
         }
@@ -211,9 +205,10 @@ Rectangle {
             anchors.topMargin: 60
             anchors.bottomMargin: 80
             anchors.horizontalCenter: parent.horizontalCenter
-            columns: 2
             columnSpacing: 50
             rowSpacing: 40
+            columns: 2
+            rows: 2
           
             Image {
                 Layout.preferredWidth: 360

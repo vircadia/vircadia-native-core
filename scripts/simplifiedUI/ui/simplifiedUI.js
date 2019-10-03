@@ -436,21 +436,25 @@ function displaySecondLaunchWindow() {
 }
 
 function closeInitialLaunchWindow() {
-    initialLaunchWindow.fromQml.disconnect(onMessageFromInitialLaunchWindow);
-    var homeLocation = LocationBookmarks.getAddress("hqhome");
-    if (homeLocation) {
-        Window.location = homeLocation;
+    if (initialLaunchWindow) {
+        initialLaunchWindow.fromQml.disconnect(onMessageFromInitialLaunchWindow);
+        var homeLocation = LocationBookmarks.getAddress("hqhome");
+        if (homeLocation) {
+            Window.location = homeLocation;
+        }
+        initialLaunchWindow.close();
     }
-    initialLaunchWindow.close();
 }
 
 function closeSecondLaunchWindow() {
-    secondLaunchWindow.fromQml.disconnect(onMessageFromSecondLaunchWindow);
-    var homeLocation = LocationBookmarks.getAddress("hqhome");
-    if (homeLocation) {
-        Window.location = homeLocation;
+    if (secondLaunchWindow) {
+        secondLaunchWindow.fromQml.disconnect(onMessageFromSecondLaunchWindow);
+        var homeLocation = LocationBookmarks.getAddress("hqhome");
+        if (homeLocation) {
+            Window.location = homeLocation;
+        }
+        secondLaunchWindow.close();
     }
-    secondLaunchWindow.close();
 }
 
 var INITIAL_LAUNCH_WINDOW_MESSAGE_SOURCE = "InitialLaunchWindow.qml";

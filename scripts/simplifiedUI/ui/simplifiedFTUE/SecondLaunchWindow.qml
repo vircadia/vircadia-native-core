@@ -20,6 +20,7 @@ Rectangle {
     id: root
     color: simplifiedUI.colors.white
     anchors.fill: parent
+    property bool landscapeOrientation: root.width > root.height
 
     SimplifiedConstants.SimplifiedConstants {
         id: simplifiedUI
@@ -51,28 +52,39 @@ Rectangle {
         GridLayout {
             id: tempAvatarPageGrid
             anchors.fill: parent
-            anchors.leftMargin: 180
+            anchors.leftMargin: 50
             anchors.bottomMargin: 50
-            anchors.rightMargin: 100
-            columns: 2
+            anchors.rightMargin: 50
+            columns: landscapeOrientation ? 2 : 1
+            rows: landscapeOrientation ? 1 : 2
+
+            Item {
+                id: heroImageContainer
+                Layout.preferredWidth: heroImage.width
+                Layout.preferredHeight: heroImage.height
+
+                Image {
+                    id: heroImage
+                    width: 428
+                    height: 800
+                    source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/hero.png"
+                }
+            }
 
             Item {
                 id: textAndQRContainer
-                Layout.preferredWidth: 650
-                Layout.preferredHeight: 670
-                Layout.minimumWidth: 200
-                Layout.maximumWidth: 800
-                Layout.topMargin: 180
+                Layout.preferredWidth: 720
+                Layout.preferredHeight: childrenRect.height
+                Layout.topMargin: 150
 
                 HifiStylesUit.RalewayBold {
                     id: headerText
                     text: "Stand out from the crowd!"
-                    color: simplifiedUI.colors.darkGray
+                    color: simplifiedUI.colors.text.black
                     size: 48
                     wrapMode: Text.WordWrap
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    height: 60
                 }
 
                 HifiStylesUit.RalewayRegular {
@@ -81,10 +93,9 @@ Rectangle {
                     anchors.top: headerText.bottom
                     anchors.topMargin: 10
                     text: "You can create and upload custom avatars from our Avatar Creator App. It's as easy as taking a selfie. Available now on iOS and Android Platforms."
-                    color: simplifiedUI.colors.darkGray
+                    color: simplifiedUI.colors.text.black
                     size: 24
                     anchors.left: parent.left
-                    height: 80
                     wrapMode: Text.WordWrap
                 }
 
@@ -92,40 +103,42 @@ Rectangle {
                     id: qrAndInstructionsContainer
                     anchors.top: descriptionText.bottom
                     anchors.left: parent.left
-                    height: avatarAppQRCodeImage.height + instructionText.height + 50
-                    width: descriptionText.width
-                    anchors.topMargin: 60
+                    height: avatarAppQRCodeImage.height
+                    width: parent.width
+                    anchors.topMargin: 150
 
                     Image {
                         id: avatarAppQRCodeImage
-                        anchors.horizontalCenter: instructionText.horizontalCenter
+                        anchors.left: parent.left
                         source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/qrCode.jpg"
-                        height: 220
-                        width: 220
+                        height: 180
+                        width: 180
                     }
 
                     HifiStylesUit.RalewayBold {
                         id: instructionText
-                        anchors.left: parent.left
-                        anchors.topMargin: 10
-                        width: 515
+                        anchors.left: avatarAppQRCodeImage.right
+                        anchors.leftMargin: 20
+                        anchors.verticalCenter: avatarAppQRCodeImage.verticalCenter
+                        anchors.right: parent.right
                         anchors.top: avatarAppQRCodeImage.bottom
                         text: "Use your mobile phone to scan this QR code."
-                        color: simplifiedUI.colors.darkGray
+                        color: simplifiedUI.colors.text.black
                         size: 24
-                        height: 30
                         wrapMode: Text.WordWrap
                     }
                 }
 
                 HifiStylesUit.RalewayBold {
                     anchors.top: qrAndInstructionsContainer.bottom
-                    anchors.topMargin: 50
-                    anchors.horizontalCenter: qrAndInstructionsContainer.horizontalCenter
-                    text: "No thanks, I'll keep using my default avatar."
+                    anchors.topMargin: 150
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    horizontalAlignment: Text.AlignLeft
+                    text: "Continue >"
                     color: simplifiedUI.colors.text.lightBlue
                     opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
-                    size: 14
+                    size: 36
                     z: 1
                     wrapMode: Text.WordWrap
 
@@ -143,21 +156,6 @@ Rectangle {
                         }
                     }
                 }
-            }
-
-            Item {
-                id: heroImageContainer
-                Layout.leftMargin: 30
-                Layout.preferredWidth: heroImage.width
-                Layout.preferredHeight: heroImage.height
-
-                Image {
-                    id: heroImage
-                    width: 428
-                    height: 800
-                    source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/hero.png"
-                }
-                // TODO move this to be above the rest of the grid layout stuff in landscape mode
             }
         }
 
