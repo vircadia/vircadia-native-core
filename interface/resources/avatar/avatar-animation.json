@@ -640,8 +640,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "seatedTalk02",
-                                                                                                                            "interpDuration": 15,
-                                                                                                                            "interpTarget": 15,
+                                                                                                                            "interpDuration": 30,
+                                                                                                                            "interpTarget": 30,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 1,
                                                                                                                             "resume": true,
@@ -651,8 +651,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "seatedTalk03",
-                                                                                                                            "interpDuration": 15,
-                                                                                                                            "interpTarget": 15,
+                                                                                                                            "interpDuration": 30,
+                                                                                                                            "interpTarget": 30,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 1,
                                                                                                                             "resume": true,
@@ -662,8 +662,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "seatedTalk04",
-                                                                                                                            "interpDuration": 15,
-                                                                                                                            "interpTarget": 15,
+                                                                                                                            "interpDuration": 30,
+                                                                                                                            "interpTarget": 30,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 1,
                                                                                                                             "resume": true,
@@ -749,15 +749,15 @@
                                                                                                                         "data": {
                                                                                                                             "currentState": "seatedIdle01",
                                                                                                                             "endFrame": 30,
-                                                                                                                            "randomSwitchTimeMax": 20,
+                                                                                                                            "randomSwitchTimeMax": 40,
                                                                                                                             "randomSwitchTimeMin": 10,
                                                                                                                             "startFrame": 10,
                                                                                                                             "states": [
                                                                                                                                 {
                                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                                     "id": "seatedIdle01",
-                                                                                                                                    "interpDuration": 20,
-                                                                                                                                    "interpTarget": 20,
+                                                                                                                                    "interpDuration": 30,
+                                                                                                                                    "interpTarget": 30,
                                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                                     "priority": 1,
                                                                                                                                     "resume": true,
@@ -767,8 +767,8 @@
                                                                                                                                 {
                                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                                     "id": "seatedIdle02",
-                                                                                                                                    "interpDuration": 20,
-                                                                                                                                    "interpTarget": 20,
+                                                                                                                                    "interpDuration": 30,
+                                                                                                                                    "interpTarget": 30,
                                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                                     "priority": 1,
                                                                                                                                     "resume": true,
@@ -778,8 +778,8 @@
                                                                                                                                 {
                                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                                     "id": "seatedIdle03",
-                                                                                                                                    "interpDuration": 20,
-                                                                                                                                    "interpTarget": 20,
+                                                                                                                                    "interpDuration": 30,
+                                                                                                                                    "interpTarget": 30,
                                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                                     "priority": 1,
                                                                                                                                     "resume": true,
@@ -789,8 +789,8 @@
                                                                                                                                 {
                                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                                     "id": "seatedIdle04",
-                                                                                                                                    "interpDuration": 20,
-                                                                                                                                    "interpTarget": 20,
+                                                                                                                                    "interpDuration": 30,
+                                                                                                                                    "interpTarget": 30,
                                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                                     "priority": 1,
                                                                                                                                     "resume": true,
@@ -800,8 +800,8 @@
                                                                                                                                 {
                                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                                     "id": "seatedIdle05",
-                                                                                                                                    "interpDuration": 20,
-                                                                                                                                    "interpTarget": 20,
+                                                                                                                                    "interpDuration": 30,
+                                                                                                                                    "interpTarget": 30,
                                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                                     "priority": 1,
                                                                                                                                     "resume": true,
@@ -810,7 +810,8 @@
                                                                                                                                 }
                                                                                                                             ],
                                                                                                                             "timeScale": 1,
-                                                                                                                            "triggerRandomSwitch": "seatedIdleSwitch"
+                                                                                                                            "triggerRandomSwitch": "seatedIdleSwitch",
+                                                                                                                            "triggerTimeMax": 10
                                                                                                                         },
                                                                                                                         "id": "masterSeatedIdle",
                                                                                                                         "type": "randomSwitchStateMachine"
@@ -928,8 +929,8 @@
                                                                                                                                 {
                                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                                     "id": "seatedFidgetShifting",
-                                                                                                                                    "interpDuration": 15,
-                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpDuration": 1,
+                                                                                                                                    "interpTarget": 1,
                                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                                     "priority": 1,
                                                                                                                                     "resume": false,
@@ -939,8 +940,8 @@
                                                                                                                                 {
                                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                                     "id": "seatedFidgetLookFidget",
-                                                                                                                                    "interpDuration": 15,
-                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpDuration": 1,
+                                                                                                                                    "interpTarget": 1,
                                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                                     "priority": 1,
                                                                                                                                     "resume": false,
@@ -950,8 +951,8 @@
                                                                                                                                 {
                                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                                     "id": "seatedFidgetShiftWeight",
-                                                                                                                                    "interpDuration": 15,
-                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpDuration": 1,
+                                                                                                                                    "interpTarget": 1,
                                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                                     "priority": 1,
                                                                                                                                     "resume": false,
@@ -961,8 +962,8 @@
                                                                                                                                 {
                                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                                     "id": "seatedFidgeting",
-                                                                                                                                    "interpDuration": 15,
-                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpDuration": 1,
+                                                                                                                                    "interpTarget": 1,
                                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                                     "priority": 1,
                                                                                                                                     "resume": false,
@@ -972,8 +973,8 @@
                                                                                                                                 {
                                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                                     "id": "seatedFidgetLookAround",
-                                                                                                                                    "interpDuration": 15,
-                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpDuration": 1,
+                                                                                                                                    "interpTarget": 1,
                                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                                     "priority": 1,
                                                                                                                                     "resume": false,
@@ -983,8 +984,8 @@
                                                                                                                                 {
                                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                                     "id": "seatedFidgetLookLeftRight",
-                                                                                                                                    "interpDuration": 15,
-                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpDuration": 1,
+                                                                                                                                    "interpTarget": 1,
                                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                                     "priority": 1,
                                                                                                                                     "resume": false,
@@ -994,8 +995,8 @@
                                                                                                                                 {
                                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                                     "id": "seatedFidgetLeanForward",
-                                                                                                                                    "interpDuration": 15,
-                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpDuration": 1,
+                                                                                                                                    "interpTarget": 1,
                                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                                     "priority": 1,
                                                                                                                                     "resume": false,
@@ -1005,8 +1006,8 @@
                                                                                                                                 {
                                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                                     "id": "seatedFidgetShakeLegs",
-                                                                                                                                    "interpDuration": 15,
-                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpDuration": 1,
+                                                                                                                                    "interpTarget": 1,
                                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                                     "priority": 1,
                                                                                                                                     "resume": false,
@@ -1085,8 +1086,8 @@
                                                                                                                     ],
                                                                                                                     "transitionVar": "timeToSeatedFidget",
                                                                                                                     "triggerRandomSwitch": "",
-                                                                                                                    "triggerTimeMax": 20,
-                                                                                                                    "triggerTimeMin": 2
+                                                                                                                    "triggerTimeMax": 45,
+                                                                                                                    "triggerTimeMin": 10
                                                                                                                 },
                                                                                                                 "id": "seatedIdle",
                                                                                                                 "type": "randomSwitchStateMachine"
@@ -1873,9 +1874,9 @@
                                                                                                         "type": "randomSwitchStateMachine"
                                                                                                     },
                                                                                                     {
-                                                                                                        "children": [ 
+                                                                                                        "children": [
                                                                                                             {
-                                                                                                                "children": [                                                                                                            
+                                                                                                                "children": [
                                                                                                                     {
                                                                                                                         "children": [
                                                                                                                             {
@@ -1982,7 +1983,7 @@
                                                                                                                     "blendType": "addAbsolute"
                                                                                                                 },
                                                                                                                 "id": "seatedReactionPointBase",
-                                                                                                                "type": "blendLinear" 
+                                                                                                                "type": "blendLinear"
                                                                                                             },
                                                                                                             {
                                                                                                                 "children": [
@@ -2477,8 +2478,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk",
-                                                                                                                            "interpDuration": 15,
-                                                                                                                            "interpTarget": 15,
+                                                                                                                            "interpDuration": 1,
+                                                                                                                            "interpTarget": 1,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2488,8 +2489,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk02",
-                                                                                                                            "interpDuration": 15,
-                                                                                                                            "interpTarget": 15,
+                                                                                                                            "interpDuration": 1,
+                                                                                                                            "interpTarget": 1,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2499,8 +2500,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk03",
-                                                                                                                            "interpDuration": 15,
-                                                                                                                            "interpTarget": 15,
+                                                                                                                            "interpDuration": 1,
+                                                                                                                            "interpTarget": 1,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2510,8 +2511,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk04",
-                                                                                                                            "interpDuration": 15,
-                                                                                                                            "interpTarget": 15,
+                                                                                                                            "interpDuration": 1,
+                                                                                                                            "interpTarget": 1,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2521,8 +2522,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk_armsdown",
-                                                                                                                            "interpDuration": 15,
-                                                                                                                            "interpTarget": 15,
+                                                                                                                            "interpDuration": 1,
+                                                                                                                            "interpTarget": 1,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2532,8 +2533,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk_lefthand",
-                                                                                                                            "interpDuration": 15,
-                                                                                                                            "interpTarget": 15,
+                                                                                                                            "interpDuration": 1,
+                                                                                                                            "interpTarget": 1,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2543,8 +2544,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk_righthand",
-                                                                                                                            "interpDuration": 15,
-                                                                                                                            "interpTarget": 15,
+                                                                                                                            "interpDuration": 1,
+                                                                                                                            "interpTarget": 1,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -3102,8 +3103,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "fidget",
-                                                                                                                            "interpDuration": 15,
-                                                                                                                            "interpTarget": 15,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": -1,
                                                                                                                             "resume": false,
@@ -4326,8 +4327,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "idleTalkOverlay",
-                                                                                                            "interpDuration": 20,
-                                                                                                            "interpTarget": 20,
+                                                                                                            "interpDuration": 25,
+                                                                                                            "interpTarget": 25,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "transitions": [
                                                                                                                 {
