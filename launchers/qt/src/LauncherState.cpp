@@ -103,7 +103,7 @@ void LauncherState::setLastLoginErrorMessage(const QString& msg) {
 }
 
 static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_FOR_UI_STATE =
-    { { "qml/SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "qml/HFBase/LoginBase.qml", "DisplayName.qml",
+    { { "qml/SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "qml/HFBase/LoginBase.qml",
         "qml/Download.qml", "qml/DownloadFinished.qml", "qml/HFBase/Error.qml" } };
 
 void LauncherState::ASSERT_STATE(LauncherState::ApplicationState state) {
