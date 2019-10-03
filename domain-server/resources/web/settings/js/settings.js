@@ -77,6 +77,10 @@ $(document).ready(function(){
         appendDomainIDButtons();
       }
 
+      if (getCurrentDomainIDType() === DOMAIN_ID_TYPE_TEMP) {
+        $(Settings.DOMAIN_ID_SELECTOR).siblings('span').append("</br><b>This is a temporary domain and will not be visible in your domain list.  You can create a new Domain ID to register your domain.</b>");
+      }
+
       handleAction();
     });
   }
