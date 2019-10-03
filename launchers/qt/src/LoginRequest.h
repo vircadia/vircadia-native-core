@@ -21,6 +21,7 @@ public:
     enum class Error {
         None = 0,
         Unknown,
+        ServerError,
         BadResponse,
         BadUsernameOrPassword
     };

@@ -5,13 +5,7 @@
 #include "Windows.h"
 #endif
 
-//#define USE_STAGING
-
-#ifdef USE_STAGING
-const QString METAVERSE_API_DOMAIN{ "https://staging.highfidelity.com" };
-#else
-const QString METAVERSE_API_DOMAIN{ "https://metaverse.highfidelity.com" };
-#endif
+QString getMetaverseAPIDomain();
 
 void launchClient(const QString& clientPath, const QString& homePath, const QString& defaultScriptOverride,
                   const QString& displayName, const QString& contentCachePath, QString loginResponseToken = QString());

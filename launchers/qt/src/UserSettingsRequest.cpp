@@ -12,7 +12,7 @@ const QByteArray ACCESS_TOKEN_AUTHORIZATION_HEADER = "Authorization";
 void UserSettingsRequest::send(QNetworkAccessManager& nam, const LoginToken& token) {
     _state = State::Sending;
 
-    QUrl lockerURL = METAVERSE_API_DOMAIN;
+    QUrl lockerURL{ getMetaverseAPIDomain() };
     lockerURL.setPath("/api/v1/user/locker");
 
     QNetworkRequest lockerRequest(lockerURL);

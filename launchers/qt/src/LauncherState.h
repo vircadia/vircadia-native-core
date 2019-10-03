@@ -25,6 +25,7 @@ class LauncherState : public QObject {
     Q_PROPERTY(ApplicationState applicationState READ getApplicationState NOTIFY applicationStateChanged)
     Q_PROPERTY(float downloadProgress READ getDownloadProgress NOTIFY downloadProgressChanged)
     Q_PROPERTY(SignupRequest::Error lastSignupError MEMBER _lastSignupError NOTIFY lastSignupErrorChanged)
+    Q_PROPERTY(QString lastLoginErrorMessage READ getLastLoginErrorMessage NOTIFY lastLoginErrorMessageChanged);
     Q_PROPERTY(QString buildVersion READ getBuildVersion)
 
 public:
@@ -68,16 +69,8 @@ public:
         LaunchingHighFidelity
     };
 
-    enum LastLoginError {
-        NONE = 0,
-        ORGINIZATION,
-        CREDENTIALS,
-        LAST_ERROR_NUM
-    };
-
     Q_ENUM(UIState);
     Q_ENUM(ApplicationState)
-    Q_ENUM(LastLoginError)
 
     Q_INVOKABLE QString getCurrentUISource() const;
 
@@ -88,10 +81,10 @@ public:
 
     UIState getUIState() const;
 
-    QString getBuildVersion() { return QString(LAUNCHER_BUILD_VERSION); }
+    void setLastLoginErrorMessage(const QString& msg);
+    QString getLastLoginErrorMessage() const { return _lastLoginErrorMessage; }
 
-    void setLastLoginError(LastLoginError lastLoginError);
-    LastLoginError getLastLoginError() const;
+    QString getBuildVersion() { return QString(LAUNCHER_BUILD_VERSION); }
 
     void setApplicationStateError(QString errorMessage);
     void setApplicationState(ApplicationState state);
@@ -137,6 +130,7 @@ signals:
     void applicationStateChanged();
     void downloadProgressChanged();
     void lastSignupErrorChanged();
+    void lastLoginErrorMessageChanged();
 
 private slots:
     void clientDownloadComplete();
@@ -167,8 +161,8 @@ private:
     ApplicationState _applicationState { ApplicationState::Init };
     UIState _uiState { UIState::SPLASH_SCREEN };
     LoginToken _loginResponse;
-    LastLoginError _lastLoginError { NONE };
     SignupRequest::Error _lastSignupError{ SignupRequest::Error::None };
+    QString _lastLoginErrorMessage{ "" };
     QString _displayName;
     QString _applicationErrorMessage;
     QString _currentClientVersion;

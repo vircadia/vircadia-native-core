@@ -69,6 +69,11 @@ bool LauncherState::shouldDownloadContentCache() const {
     return !_contentCacheURL.isEmpty() && !QFile::exists(getContentCachePath());
 }
 
+void LauncherState::setLastLoginErrorMessage(const QString& msg) {
+    _lastLoginErrorMessage = msg;
+    emit lastLoginErrorMessageChanged();
+}
+
 static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_FOR_UI_STATE =
     { { "qml/SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "qml/HFBase/LoginBase.qml", "DisplayName.qml",
         "qml/Download.qml", "qml/DownloadFinished.qml", "qml/HFBase/Error.qml" } };
@@ -142,14 +147,6 @@ LauncherState::UIState LauncherState::getUIState() const {
 #endif
             return ERROR_SCREEN;
     }
-}
-
-void LauncherState::setLastLoginError(LastLoginError lastLoginError) {
-    _lastLoginError = lastLoginError;
-}
-
-LauncherState::LastLoginError LauncherState::getLastLoginError() const {
-    return _lastLoginError;
 }
 
 void LauncherState::restart() {
@@ -300,7 +297,11 @@ void LauncherState::signup(QString email, QString username, QString password, QS
             loginRequest->deleteLater();
 
             auto err = loginRequest->getError();
-            if (err != LoginRequest::Error::None) {
+            if (err == LoginRequest::Error::BadUsernameOrPassword) {
+                setLastLoginErrorMessage("Bad username or password");
+                setApplicationState(ApplicationState::WaitingForLogin);
+                return;
+            } else if (err != LoginRequest::Error::None) {
                 setApplicationStateError("Failed to login");
                 return;
             }
@@ -337,7 +338,11 @@ void LauncherState::login(QString username, QString password, QString displayNam
         request->deleteLater();
 
         auto err = request->getError();
-        if (err != LoginRequest::Error::None) {
+        if (err == LoginRequest::Error::BadUsernameOrPassword) {
+            setLastLoginErrorMessage("Bad username or password");
+            setApplicationState(ApplicationState::WaitingForLogin);
+            return;
+        } else if (err != LoginRequest::Error::None) {
             setApplicationStateError("Failed to login");
             return;
         }

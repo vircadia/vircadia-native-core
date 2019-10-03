@@ -42,7 +42,27 @@ Item {
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         color: "#C4C4C4"
+        visible: LauncherState.lastLoginErrorMessage.length == 0
         text: "Use the account credentials you created at sign-up"
+        anchors {
+            left: root.left
+            right: root.right
+            top: title.bottom
+            topMargin: 18
+        }
+    }
+
+    Text {
+        id: error
+        width: 425
+        height: 22
+        font.family: "Graphik"
+        font.pixelSize: 14
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
+        color: "#FF9999"
+        visible: LauncherState.lastLoginErrorMessage.length > 0
+        text: LauncherState.lastLoginErrorMessage
         anchors {
             left: root.left
             right: root.right
@@ -61,8 +81,8 @@ Item {
         color: "#7E8C81"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
-            top: instruction.bottom
-            horizontalCenter: instruction.horizontalCenter
+            top: error.bottom
+            horizontalCenter: error.horizontalCenter
             topMargin: 24
         }
     }

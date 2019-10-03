@@ -8,7 +8,7 @@
 #include <QJsonObject>
 
 void LoginRequest::send(QNetworkAccessManager& nam, QString username, QString password) {
-    QNetworkRequest request(QUrl(METAVERSE_API_DOMAIN + "/oauth/token"));
+    QNetworkRequest request(QUrl(getMetaverseAPIDomain() + "/oauth/token"));
 
     request.setHeader(QNetworkRequest::UserAgentHeader, getHTTPUserAgent());
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
@@ -28,11 +28,19 @@ void LoginRequest::receivedResponse() {
 
     auto reply = static_cast<QNetworkReply*>(sender());
 
-    if (reply->error()) {
+    auto statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+
+    if (statusCode < 100) {
         qDebug() << "Error logging in: " << reply->readAll();
         _error = Error::Unknown;
         emit finished();
-        //setApplicationState(ApplicationState::UnexpectedError);
+        return;
+    }
+
+    if (statusCode >= 500 && statusCode < 600) {
+        qDebug() << "Error logging in: " << reply->readAll();
+        _error = Error::ServerError;
+        emit finished();
         return;
     }
 
@@ -44,7 +52,6 @@ void LoginRequest::receivedResponse() {
         qDebug() << "Error parsing response for login" << data;
         _error = Error::BadResponse;
         emit finished();
-        //setApplicationStateError("Failed to login");
         return;
     }
 
