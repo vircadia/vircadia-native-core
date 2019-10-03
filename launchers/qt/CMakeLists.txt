@@ -45,8 +45,8 @@ if (WIN32)
 
     ExternalProject_Add(
         qtlite
-        URL "https://hifi-public.s3.amazonaws.com/huffman/launcher/qt-lite-ssl_2019-9-19.zip"
-        URL_HASH MD5=8b7a0b8fb772a014a3276274f40a9d14 #83eeba1565e5727aef11655acf893c15
+        URL "https://public.highfidelity.com/dependencies/qtlite/qt-lite-5.9.9-win.zip"
+        URL_HASH MD5=8b7a0b8fb772a014a3276274f40a9d14
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""
@@ -73,7 +73,7 @@ endif ()
 if (APPLE)
   ExternalProject_Add(
     qtlite
-    URL "https://dantescalves.com/launcher/qt-lite-5.9.9-mac.zip"
+    URL "https://public.highfidelity.com/dependencies/qtlite/qt-lite-5.9.9-mac.zip"
     URL_HASH MD5=0cd78d40e5f539a7e314cf99b6cae0d0
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
