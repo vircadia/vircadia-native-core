@@ -52,7 +52,7 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     _nodeSocket.bind(QHostAddress::AnyIPv4, port);
     quint16 assignedPort = _nodeSocket.localPort();
     if (socketListenPort != INVALID_PORT && socketListenPort != 0 && socketListenPort != assignedPort) {
-        qCCritical(networking) << "NodeList is unable to assign requested port of" << socketListenPort;
+        qCCritical(networking) << "PAGE: NodeList is unable to assign requested port of" << socketListenPort;
     }
     qCDebug(networking) << "NodeList socket is listening on" << assignedPort;
 
@@ -1155,6 +1155,7 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
 void LimitedNodeList::possiblyTimeoutSTUNAddressLookup() {
     if (_stunSockAddr.getAddress().isNull()) {
         // our stun address is still NULL, but we've been waiting for long enough - time to force a fail
+        qCWarning(networking) << "PAGE: Failed to lookup address of STUN server" << STUN_SERVER_HOSTNAME;
         stopInitialSTUNUpdate(false);
     }
 }
@@ -1170,7 +1171,7 @@ void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
     if (!success) {
         // if we're here this was the last failed STUN request
         // use our DS as our stun server
-        qCDebug(networking, "Failed to lookup public address via STUN server at %s:%hu.",
+        qCWarning(networking, "PAGE: Failed to lookup public address via STUN server at %s:%hu.",
                 STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
         qCDebug(networking) << "LimitedNodeList public socket will be set with local port and null QHostAddress.";
 
@@ -1206,13 +1207,14 @@ void LimitedNodeList::updateLocalSocket() {
     }
 
     // attempt to use Google's DNS to confirm that local IP
-    static const QHostAddress RELIABLE_LOCAL_IP_CHECK_HOST = QHostAddress { "8.8.8.8" };
+    static const QHostAddress RELIABLE_LOCAL_IP_CHECK_HOST = QHostAddress{ "8.8.8.8" };
     static const int RELIABLE_LOCAL_IP_CHECK_PORT = 53;
 
     QTcpSocket* localIPTestSocket = new QTcpSocket;
 
     connect(localIPTestSocket, &QTcpSocket::connected, this, &LimitedNodeList::connectedForLocalSocketTest);
-    connect(localIPTestSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(errorTestingLocalSocket()));
+    connect(localIPTestSocket, static_cast<void(QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),
+        this, &LimitedNodeList::errorTestingLocalSocket);
 
     // attempt to connect to our reliable host
     localIPTestSocket->connectToHost(RELIABLE_LOCAL_IP_CHECK_HOST, RELIABLE_LOCAL_IP_CHECK_PORT);
@@ -1242,6 +1244,8 @@ void LimitedNodeList::errorTestingLocalSocket() {
         // then use our possibly updated guessed local address as fallback
         if (!_hasTCPCheckedLocalSocket) {
             setLocalSocket(HifiSockAddr { getGuessedLocalAddress(), _nodeSocket.localPort() });
+            qCWarning(networking) << "PAGE: Can't connect to Google DNS service, falling back to guessed local address"
+                << getLocalSockAddr();
         }
 
         localIPTestSocket->deleteLater();
@@ -1325,7 +1329,7 @@ void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* p
 
         qCDebug(networking) << "Wrote local listening port" << localPort << "to shared memory at key" << key;
     } else {
-        qWarning() << "Failed to create and attach to shared memory to share local port with assignment-client children.";
+        qWarning() << "ALERT: Failed to create and attach to shared memory to share local port with assignment-client children.";
     }
 }
 

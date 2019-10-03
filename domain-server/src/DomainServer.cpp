@@ -3450,8 +3450,9 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
         // we ended up with an empty list since everything we've tried has failed
         // so clear the set of failed addresses and start going through them again
 
-        qCWarning(domain_server_ice) << "All current ice-server addresses have failed - re-attempting all current addresses for"
-                   << _iceServerAddr;
+        qCWarning(domain_server_ice) <<
+            "PAGE: All current ice-server addresses have failed - re-attempting all current addresses for"
+            << _iceServerAddr;
 
         _failedIceServerAddresses.clear();
         candidateICEAddresses = _iceServerAddresses;
