@@ -9,6 +9,7 @@
 //
 
 import QtQuick 2.10
+import QtQuick.Layouts 1.3
 import "../simplifiedConstants" as SimplifiedConstants
 import "../simplifiedControls" as SimplifiedControls
 import "./components" as AvatarAppComponents
@@ -79,7 +80,7 @@ Rectangle {
                 errorText.text = "There was a problem while retrieving your inventory. " +
                     "Please try closing and re-opening the Avatar app.\n\nInventory status: " + result.status + "\nMessage: " + result.message;
             } else if (result.data && result.data.assets && result.data.assets.length === 0 && avatarAppInventoryModel.count === 0) {
-                errorText.text = "You have not created any avatars yet! Create an avatar with the Avatar Creator, then close and re-open the Avatar App."
+                emptyInventoryContainer.visible = true;
             }
 
             avatarAppInventoryModel.handlePage(result.status !== "success" && result.message, result);
@@ -140,8 +141,95 @@ Rectangle {
         anchors.rightMargin: 24
     }
 
+
+    Item {
+        id: emptyInventoryContainer
+        visible: false
+        anchors.top: displayNameHeader.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+
+        Flickable {
+            id: emptyInventoryFlickable
+            anchors.fill: parent
+            contentWidth: parent.width
+            contentHeight: emptyInventoryLayout.height
+            clip: true
+
+            ColumnLayout {
+                id: emptyInventoryLayout
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.leftMargin: 26
+                anchors.right: parent.right
+                anchors.rightMargin: 26
+                spacing: 0
+
+                HifiStylesUit.GraphikSemiBold {
+                    text: "Stand out from the crowd!"
+                    Layout.preferredWidth: parent.width
+                    Layout.preferredHeight: paintedHeight
+                    Layout.topMargin: 16
+                    size: 28
+                    color: simplifiedUI.colors.text.white
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                }
+
+                HifiStylesUit.GraphikRegular {
+                    text: "Create your custom avatar."
+                    Layout.preferredWidth: parent.width
+                    Layout.preferredHeight: paintedHeight
+                    Layout.topMargin: 2
+                    size: 18
+                    wrapMode: Text.Wrap
+                    color: simplifiedUI.colors.text.white
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                Image {
+                    id: avatarImage;
+                    source: "images/avatarProfilePic.png"
+                    Layout.preferredWidth: parent.width
+                    Layout.preferredHeight: 450
+                    Layout.alignment: Qt.AlignHCenter
+                    mipmap: true
+                    fillMode: Image.PreserveAspectFit
+                }
+
+                Image {
+                    source: "images/qrCode.jpg"
+                    Layout.preferredWidth: 190
+                    Layout.preferredHeight: 190
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: -160
+                    mipmap: true
+                    fillMode: Image.PreserveAspectFit
+                }
+
+                HifiStylesUit.GraphikSemiBold {
+                    text: "Scan for Mobile App"
+                    Layout.preferredWidth: parent.width
+                    Layout.preferredHeight: paintedHeight
+                    Layout.topMargin: 12
+                    size: 28
+                    color: simplifiedUI.colors.text.white
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                }
+            }
+        }
+
+        SimplifiedControls.VerticalScrollBar {
+            parent: emptyInventoryFlickable
+        }
+    }
+
+
     Item {
         id: avatarInfoTextContainer
+        visible: !emptyInventoryContainer.visible
         width: parent.implicitWidth
         height: childrenRect.height
         anchors.top: displayNameHeader.bottom
@@ -164,7 +252,7 @@ Rectangle {
             id: yourAvatarsSubtitle
             text: "These are the avatars that you've created and uploaded via the Avatar Creator."
             width: parent.width
-            wrapMode: Text.WordWrap
+            wrapMode: Text.Wrap
             anchors.top: yourAvatarsTitle.bottom
             anchors.topMargin: 6
             verticalAlignment: TextInput.AlignVCenter
@@ -208,9 +296,10 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
+        visible: !emptyInventoryContainer.visible
             
         AnimatedImage {
-            visible: !inventoryContentsList.visible && !errorText.visible
+            visible: !(inventoryContentsList.visible || errorText.visible)
             anchors.centerIn: parent
             width: 72
             height: width

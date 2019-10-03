@@ -120,6 +120,8 @@ Rectangle {
                         source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/qrCode.jpg"
                         height: 190
                         width: 190
+                        mipmap: true
+                        fillMode: Image.PreserveAspectFit
                     }
 
                     HifiStylesUit.RalewayBold {
