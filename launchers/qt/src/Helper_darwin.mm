@@ -33,7 +33,6 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
 
     NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
     NSURL *url = [NSURL fileURLWithPath:[workspace fullPathForApplication:clientPath.toNSString()]];
-    NSLog(@"------> path %@: ", [url path]);
     NSTask *task = [[NSTask alloc] init];
     task.launchPath = [url path];
     task.arguments = arguments;
