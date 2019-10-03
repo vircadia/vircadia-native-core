@@ -75,6 +75,8 @@ void launchAutoUpdater(const QString& autoUpdaterPath) {
         &si,                    // Pointer to STARTUPINFO structure
         &pi                     // Pointer to PROCESS_INFORMATION structure
     );
+
+    QCoreApplication::instance()->quit();
 }
 
 

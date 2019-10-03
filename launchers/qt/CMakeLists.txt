@@ -183,12 +183,23 @@ if (WIN32)
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/Icon.rc.in" ${CONFIGURE_ICON_RC_OUTPUT})
   add_executable(${PROJECT_NAME} WIN32 ${src_files} ${RES_SOURCES} ${CONFIGURE_ICON_RC_OUTPUT})
 elseif (APPLE)
+  set(APP_NAME "HQ Launcher")
   set_target_properties(${this_target} PROPERTIES
     MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
 
   set(MACOSX_BUNDLE_ICON_FILE "interface.icns")
   add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files} ${RES_SOURCES})
+  set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_NAME}
+    MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME})
   set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
+
+
+  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources"
+    COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/MacOS/" ln -sf ./HQ\ Launcher updater
+    # Older versions of Launcher put updater in `/Contents/Resources/updater`.
+    COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources" ln -sf ../MacOS/HQ\ Launcher updater
+    )
 endif()
 
 target_link_libraries(${PROJECT_NAME}

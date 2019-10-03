@@ -1,5 +1,6 @@
 #include "LauncherState.h"
 
+#include "CommandlineOptions.h"
 #include "PathUtils.h"
 #include "Unzipper.h"
 #include "Helper.h"
@@ -200,8 +201,10 @@ void LauncherState::requestBuilds() {
 
         _latestBuilds = request->getLatestBuilds();
 
-        if (shouldDownloadLauncher()) {
+        CommandlineOptions* options = CommandlineOptions::getInstance();
+        if (shouldDownloadLauncher() && !options->contains("--noUpdate")) {
             downloadLauncher();
+            return;
         }
         getCurrentClientVersion();
     });
@@ -578,7 +581,7 @@ void LauncherState::installLauncher() {
 #elif defined(Q_OS_MACOS)
             launcherPath = installDirectory.absoluteFilePath("HQ Launcher.app");
 #endif
-            //::launchAutoUpdater(launcherPath);
+            ::launchAutoUpdater(launcherPath);
         }
     });
 
