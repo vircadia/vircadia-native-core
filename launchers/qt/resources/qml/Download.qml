@@ -1,5 +1,6 @@
 import QtQuick 2.3
 import QtQuick.Controls 2.1
+import "HFControls"
 
 Item {
     id: root
@@ -24,7 +25,7 @@ Item {
 
         anchors {
             top: root.top
-            topMargin: 48
+            topMargin: 98
             horizontalCenter: root.horizontalCenter
         }
 
@@ -38,14 +39,10 @@ Item {
         }
     }
 
-    Text {
+    HFTextHeader {
         id: firstText
-        width: 300
-        height: 41
-        font.family: "Graphik"
-        font.pixelSize: 28
+
         text: "Setup will take a moment"
-        color: "#FFFFFF"
 
         anchors {
             top: logo.bottom
@@ -54,16 +51,14 @@ Item {
         }
     }
 
-    Text {
+    HFTextRegular {
         id: secondText
-        font.family: "Graphik"
-        font.pixelSize: 14
-        text: "We're getting your headquaters ready"
-        color: "#FFFFFF"
+
+        text: "We're getting everything setup for you."
 
         anchors {
             top: firstText.bottom
-            topMargin: 14
+            topMargin: 8
             horizontalCenter: logo.horizontalCenter
         }
     }
@@ -98,28 +93,6 @@ Item {
                 radius: 6
                 color: "#01B2ED"
             }
-        }
-    }
-
-
-    Text {
-        width: 100
-        height: 17
-
-        text: "High Fidelity"
-        font.bold: true
-        font.family: "Graphik"
-        font.pixelSize: 24
-        font.letterSpacing: -1
-        color: "#FFFFFF"
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-
-        anchors {
-            bottom: root.bottom
-            bottomMargin: 15
-            left: root.left
-            leftMargin: 30
         }
     }
 

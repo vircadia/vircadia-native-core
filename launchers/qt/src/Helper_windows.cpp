@@ -18,9 +18,12 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
     QString params = "--url \"" + homePath + "\""
         + " --setBookmark \"hqhome=" + homePath + "\""
         + " --defaultScriptsOverride \"file:///" + defaultScriptsPath + "\""
-        + " --displayName \"" + displayName + "\""
         + " --cache \"" + contentCachePath + "\""
         + " --suppress-settings-reset --no-launcher --no-updater";
+
+    if (!displayName.isEmpty()) {
+        params += " --displayName \"" + displayName + "\"";
+    }
 
     if (!loginResponseToken.isEmpty()) {
         params += " --tokens \"" + loginResponseToken.replace("\"", "\\\"") + "\"";

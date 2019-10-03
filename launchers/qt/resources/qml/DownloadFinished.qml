@@ -4,6 +4,7 @@ import "HFControls"
 
 Item {
     id: root
+
     anchors.centerIn: parent
 
     Image {
@@ -17,7 +18,7 @@ Item {
     }
 
 
-     Image {
+    Image {
         id: logo
         width: 132
         height: 134
@@ -25,21 +26,15 @@ Item {
 
         anchors {
             top: root.top
-            topMargin: 84
+            topMargin: 144
             horizontalCenter: root.horizontalCenter
         }
     }
 
-    Text {
+    HFTextHeader {
         id: header
-        width: 87
-        height: 31
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-        font.family: "Graphik"
-        font.bold: true
-        font.pixelSize: 28
-        color: "#FFFFFF"
         text: "You're all set!"
         anchors {
             top: logo.bottom
@@ -48,13 +43,8 @@ Item {
         }
     }
 
-    Text {
+    HFTextRegular {
         id: description
-        width: 100
-        height: 40
-        font.family: "Graphik"
-        font.pixelSize: 14
-        color: "#FFFFFF"
         text: "We will see you in world."
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter

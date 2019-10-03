@@ -165,19 +165,7 @@ Item {
         }
     }
 
-    Text {
-        width: 100
-        height: 17
-
-        text: "High Fidelity"
-        font.bold: true
-        font.family: "Graphik"
-        font.pixelSize: 18
-        font.letterSpacing: -1
-        color: "#FFFFFF"
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-
+    HFTextLogo {
         anchors {
             bottom: root.bottom
             bottomMargin: 58

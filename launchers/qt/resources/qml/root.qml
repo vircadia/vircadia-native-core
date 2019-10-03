@@ -35,7 +35,7 @@ Item {
         loader.source = url;
     }
 
-    Text {
+    HFTextRegular {
         id: stateInfo
         font.pixelSize: 12
 
@@ -66,7 +66,7 @@ Item {
          ]
     }
 
-    Text {
+    HFTextRegular {
         id: buildInfo
 
         font.pixelSize: 12
@@ -80,8 +80,8 @@ Item {
             bottom: root.bottom
         }
 
-        color: "#777"
-        text: "v." + LauncherState.buildVersion;
+        color: "#666"
+        text: "V." + LauncherState.buildVersion;
 
         states: [
             State {

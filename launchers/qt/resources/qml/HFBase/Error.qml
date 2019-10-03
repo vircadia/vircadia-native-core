@@ -26,20 +26,19 @@ Item {
 
         anchors {
             top: root.top
-            topMargin: 84
+            topMargin: 98
             horizontalCenter: root.horizontalCenter
         }
     }
 
-    Text {
+    HFTextHeader {
         id: header
+
         width: 87
         height: 31
-        font.family: "Graphik"
-        font.bold: true
-        font.pixelSize: 28
-        color: "#FFFFFF"
+
         text: "Uh oh."
+
         anchors {
             top: logo.bottom
             topMargin: 26
@@ -47,16 +46,17 @@ Item {
         }
     }
 
-    Text {
+    HFTextRegular {
         id: description
+
         width: 100
         height: 40
-        font.family: "Graphik"
-        font.pixelSize: 14
-        color: "#FFFFFF"
+
         text: "We seem to have a problem.\n Please restart HQ Launcher"
+
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
+
         anchors {
             top: header.bottom
             topMargin: 8
@@ -69,8 +69,7 @@ Item {
         id: button
         width: 166
         height: 35
-        font.family: "Graphik"
-        font.pixelSize: 18
+
         text: "Restart"
 
         anchors {
@@ -85,19 +84,9 @@ Item {
     }
 
 
-    Text {
+    HFTextLogo {
         id: hifilogo
-        width: 100
-        height: 18
 
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        font.family: "Graphik"
-        font.pixelSize: 18
-        font.bold: true
-        color: "#FFFFFF"
-
-        text: "High Fidelity"
         anchors {
             right: root.right
             rightMargin: 17
