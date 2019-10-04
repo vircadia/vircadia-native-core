@@ -370,10 +370,6 @@ var INITIAL_WINDOW_FLAGS = 0x00000001 | // Qt::Window
 var initialLaunchWindow = false;
 function displayInitialLaunchWindow() {
     if (initialLaunchWindow) {
-        initialLaunchWindow.close();
-        // This really shouldn't be necessary.
-        // This signal really should automatically be called by the signal handler set up below.
-        // But fixing that requires an engine change, so this workaround will do.
         return;
     }
 
@@ -407,10 +403,6 @@ var SECOND_WINDOW_FLAGS = 0x00000001 | // Qt::Window
 var secondLaunchWindow = false;
 function displaySecondLaunchWindow() {
     if (secondLaunchWindow) {
-        secondLaunchWindow.close();
-        // This really shouldn't be necessary.
-        // This signal really should automatically be called by the signal handler set up below.
-        // But fixing that requires an engine change, so this workaround will do.
         return;
     }
 
@@ -845,6 +837,10 @@ function shutdown() {
 
     if (initialLaunchWindow) {
         closeInitialLaunchWindow();
+    }
+
+    if (secondLaunchWindow) {
+        closesecondLaunchWindow();
     }
 
     maybeDeleteInputDeviceMutedOverlay();
