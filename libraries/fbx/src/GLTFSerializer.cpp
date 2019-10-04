@@ -1005,8 +1005,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     // Build joints
     HFMJoint joint;
     hfmModel.jointIndices["x"] = numNodes;
-    QVector<glm::mat4> globalTransforms;
-    globalTransforms.resize(numNodes);
 
     for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
         auto& node = _file.nodes[nodeIndex];
@@ -1022,10 +1020,12 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         joint.rotation = glmExtractRotation(joint.transform);
         glm::vec3 scale = extractScale(joint.transform);
         joint.postTransform = glm::scale(glm::mat4(), scale);
-        globalTransforms[nodeIndex] = joint.transform;
 
-        if (joint.parentIndex != -1) {
-            globalTransforms[nodeIndex] = globalTransforms[joint.parentIndex] * globalTransforms[nodeIndex];
+        joint.globalTransform = joint.transform;
+        // Nodes are sorted, so we can apply the full transform just by getting the global transform of the already defined parent
+        if (joint.parentIndex != -1 && joint.parentIndex != nodeIndex) {
+            const auto& parentJoint = hfmModel.joints[(size_t)nodeIndex];
+            joint.globalTransform = parentJoint.globalTransform * joint.globalTransform;
         }
 
         joint.name = node.name;
@@ -1368,7 +1368,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
             }
 
-            // TODO: add correct tangent generation
             if (tangents.size() == partVerticesCount * tangentStride) {
                 mesh.tangents.reserve(partVerticesCount);
                 for (int n = 0; n < tangents.size(); n += tangentStride) {
@@ -1582,22 +1581,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         }
                     }
                 }
-            }
-
-#if 0 
-            for(const glm::vec3& vertex : mesh.vertices) {
-                glm::vec3 transformedVertex = glm::vec3(globalTransforms[nodeIndex] * glm::vec4(vertex, 1.0f));
-                mesh.meshExtents.addPoint(transformedVertex);
-                hfmModel.meshExtents.addPoint(transformedVertex);
-            }               
-#endif
+            }         
         }
-
-        // Add epsilon to mesh extents to compensate for planar meshes
-        mesh.meshExtents.minimum -= glm::vec3(EPSILON, EPSILON, EPSILON);
-        mesh.meshExtents.maximum += glm::vec3(EPSILON, EPSILON, EPSILON);
-        hfmModel.meshExtents.minimum -= glm::vec3(EPSILON, EPSILON, EPSILON);
-        hfmModel.meshExtents.maximum += glm::vec3(EPSILON, EPSILON, EPSILON);
     }
 
 
@@ -1611,7 +1596,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         int primCount = (int)mesh.primitives.size();
         for (int primIndex = 0; primIndex < primCount; ++primIndex) {
             const auto& primitive = mesh.primitives[primIndex];
-            hfmModel.shapes.push_back({});
+            hfmModel.shapes.emplace_back();
             auto& hfmShape = hfmModel.shapes.back();
             hfmShape.transform = nodeIndex;
             hfmShape.mesh = node.mesh;
