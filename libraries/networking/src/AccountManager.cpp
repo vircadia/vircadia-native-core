@@ -1035,7 +1035,7 @@ void AccountManager::publicKeyUploadSucceeded(QNetworkReply* reply) {
 
 void AccountManager::publicKeyUploadFailed(QNetworkReply* reply) {
     // the public key upload has failed
-    qWarning() << "PAGE: Public key upload failed from AccountManager to" << reply->url() << reply->errorString();
+    qCritical() << "PAGE: Public key upload failed from AccountManager to" << reply->url() << reply->errorString();
 
     // we aren't waiting for a response any longer
     _isWaitingForKeypairResponse = false;

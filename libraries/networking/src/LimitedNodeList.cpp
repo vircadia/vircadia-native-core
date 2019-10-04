@@ -1171,7 +1171,7 @@ void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
     if (!success) {
         // if we're here this was the last failed STUN request
         // use our DS as our stun server
-        qCWarning(networking, "PAGE: Failed to lookup public address via STUN server at %s:%hu.",
+        qCWarning(networking, "PAGE: Failed to lookup public address via STUN server at %s:%hu (likely a critical error for auto-networking).",
                 STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
         qCDebug(networking) << "LimitedNodeList public socket will be set with local port and null QHostAddress.";
 
@@ -1207,7 +1207,7 @@ void LimitedNodeList::updateLocalSocket() {
     }
 
     // attempt to use Google's DNS to confirm that local IP
-    static const QHostAddress RELIABLE_LOCAL_IP_CHECK_HOST = QHostAddress{ "8.8.8.8" };
+    static const QHostAddress RELIABLE_LOCAL_IP_CHECK_HOST = QHostAddress { "8.8.8.8" };
     static const int RELIABLE_LOCAL_IP_CHECK_PORT = 53;
 
     QTcpSocket* localIPTestSocket = new QTcpSocket;
