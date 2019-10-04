@@ -363,9 +363,8 @@ var INITIAL_LAUNCH_QML_PATH = Script.resolvePath("./simplifiedFTUE/InitialLaunch
 var INITIAL_LAUNCH_WINDOW_TITLE = "Initial Launch";
 var INITIAL_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var INITIAL_LAUNCH_WIDTH_PX = Window.innerWidth;
-var INITIAL_LAUNCH_HEIGHT_PX = Window.innerHeight + TOP_BAR_HEIGHT_PX;
+var INITIAL_LAUNCH_HEIGHT_PX = Window.innerHeight - TOP_BAR_HEIGHT_PX;
 var INITIAL_WINDOW_FLAGS = 0x00000001 | // Qt::Window
-0x00000008 | // Qt::Popup
 0x00000800 | // Qt::FramelessWindowHint
 0x40000000; // Qt::NoDropShadowWindowHint
 var initialLaunchWindow = false;
@@ -387,7 +386,7 @@ function displayInitialLaunchWindow() {
         },
         position: {
             x: Window.x,
-            y: Window.y
+            y: Window.y + TOP_BAR_HEIGHT_PX
         },
         overrideFlags: INITIAL_WINDOW_FLAGS
     });
@@ -401,9 +400,8 @@ var SECOND_LAUNCH_QML_PATH = Script.resolvePath("simplifiedFTUE/SecondLaunchWind
 var SECOND_LAUNCH_WINDOW_TITLE = "Second Launch";
 var SECOND_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var SECOND_LAUNCH_WIDTH_PX = Window.innerWidth;
-var SECOND_LAUNCH_HEIGHT_PX = Window.innerHeight + TOP_BAR_HEIGHT_PX;
+var SECOND_LAUNCH_HEIGHT_PX = Window.innerHeight - TOP_BAR_HEIGHT_PX;
 var SECOND_WINDOW_FLAGS = 0x00000001 | // Qt::Window
-0x00000008 | // Qt::Popup
 0x00000800 | // Qt::FramelessWindowHint
 0x40000000; // Qt::NoDropShadowWindowHint
 var secondLaunchWindow = false;
@@ -425,7 +423,7 @@ function displaySecondLaunchWindow() {
         },
         position: {
             x: Window.x,
-            y: Window.y
+            y: Window.y + TOP_BAR_HEIGHT_PX
         },
         overrideFlags: SECOND_WINDOW_FLAGS
     });
@@ -664,32 +662,28 @@ function onGeometryChanged(rect) {
         };
         topBarWindow.position = {
             "x": rect.x,
-            "y": rect.y
+            "y": rect.y 
         };
     }
     if (initialLaunchWindow) {
-        print("GEOMETRY CHANGED, INITIAL WINDOW. rect.width: ", rect.width, " AND rect.height: ", rect.height, " AND rect.x: ", rect.x, " AND rect.y: ", rect.y);
         initialLaunchWindow.size = {
             "x": rect.width,
             "y": rect.height
         };
         initialLaunchWindow.position = {
             "x": rect.x,
-            "y": rect.y
+            "y": rect.y + TOP_BAR_HEIGHT_PX
         };
-        print("NOW THE INITIAL WINDOW size IS: ", JSON.stringify(initialLaunchWindow.size), " AND position IS: ", JSON.stringify(initialLaunchWindow.position));
     }
     if (secondLaunchWindow) {
-        print("GEOMETRY CHANGED, SECOND WINDOW. rect.width: ", rect.width, " AND rect.height: ", rect.height, " AND rect.x: ", rect.x, " AND rect.y: ", rect.y);
         secondLaunchWindow.size = {
             "x": rect.width,
             "y": rect.height
         };
         secondLaunchWindow.position = {
             "x": rect.x,
-            "y": rect.y
+            "y": rect.y + TOP_BAR_HEIGHT_PX
         };
-        print("NOW THE SECOND WINDOW size IS: ", JSON.stringify(secondLaunchWindow.size), " AND position IS: ", JSON.stringify(secondLaunchWindow.position));
     }
 }
 

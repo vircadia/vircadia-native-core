@@ -41,7 +41,6 @@ Rectangle {
         anchors.left: parent.left
         anchors.top: parent.top
         source: "images/defaultTopLeft.png"
-        z: 1
     }
 
     Image {
@@ -51,266 +50,253 @@ Rectangle {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         source: "images/defaultBottomRight.png"
-        z: 1
     }
 
-    Item {
+    Flickable {
         id: tempAvatarPageContainer
         visible: true
+        anchors.fill: parent
+        clip: true
+        contentWidth: parent.width
+        contentHeight: tempAvatarPageGrid.height
 
-        Flickable {
-            anchors.fill: parent
-            anchors.leftMargin: 50
-            anchors.topMargin: 50
-            anchors.rightMargin: 100
-            clip: true
-            contentWidth: parent.width
-            contentHeight: childrenRect.height
+        GridLayout {
+            id: tempAvatarPageGrid
+            width: parent.width
+            columns: 2
+            rows: 1
 
-            GridLayout {
-                id: tempAvatarPageGrid
-                anchors.fill: parent
-                columns: landscapeOrientation ? 2 : 1
-                rows: landscapeOrientation ? 1 : 2
+            Image {
+                Layout.preferredWidth: 428
+                Layout.minimumHeight: 240
+                Layout.maximumHeight: 800
+                Layout.fillHeight: true
+                source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/" +
+                    MyAvatar.skeletonModelURL.substring(MyAvatar.skeletonModelURL.indexOf("simplifiedAvatar"), MyAvatar.skeletonModelURL.lastIndexOf("/")) + ".png"
+                mipmap: true
+                fillMode: Image.PreserveAspectFit
+            }
 
-                Item {
-                    id: tempAvatarImageContainer
-                    Layout.preferredWidth: tempAvatarImage.width
-                    Layout.preferredHeight: tempAvatarImage.height
+            Item {
+                id: textAndQRContainer
+                Layout.minimumWidth: 300
+                Layout.maximumWidth: 1680
+                Layout.fillWidth: true
+                Layout.preferredHeight: childrenRect.height
 
-                    Image {
-                        id: tempAvatarImage
-                        width: landscapeOrientation ? 428 : 320
-                        height: landscapeOrientation ? 800 : 598
-                        source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/" +
-                            MyAvatar.skeletonModelURL.substring(MyAvatar.skeletonModelURL.indexOf("simplifiedAvatar"), MyAvatar.skeletonModelURL.lastIndexOf("/")) + ".png"
-                    }
+                HifiStylesUit.RalewayBold {
+                    id: headerText
+                    text: "We know this isn't you..."
+                    color: simplifiedUI.colors.text.black
+                    size: 48
+                    height: paintedHeight
+                    wrapMode: Text.Wrap
+                    anchors.top: parent.top
+                    anchors.topMargin: 120
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                }
+
+                HifiStylesUit.RalewayRegular {
+                    id: descriptionText
+                    anchors.top: headerText.bottom
+                    anchors.topMargin: 10
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: paintedHeight
+                    text: "but we've given you this <b>temporary avatar</b> to use " +
+                        "for today. If you see this avatar in-world, walk up and " +
+                        "say hello to other new users!<br><br>" +
+                        "<b>We want you to be you</b> so we've built an Avatar Creator " +
+                        "App that's as easy as taking a selfie and picking your " +
+                        "outfits! Available now on iOS and Android."
+                    color: simplifiedUI.colors.text.black
+                    size: 22
+                    wrapMode: Text.Wrap
                 }
 
                 Item {
-                    id: textAndQRContainer
-                    Layout.preferredWidth: 680
-                    Layout.preferredHeight: childrenRect.height
-                    Layout.topMargin: landscapeOrientation ? 130 : 0
+                    id: qrAndInstructionsContainer
+                    anchors.top: descriptionText.bottom
+                    anchors.topMargin: 50
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: avatarAppQRCodeImage.height
 
-                    HifiStylesUit.RalewayBold {
-                        id: headerText
-                        text: "We know this isn't you..."
-                        color: simplifiedUI.colors.text.black
-                        size: 48
-                        wrapMode: Text.WordWrap
-                        anchors.left: parent.left
-                        anchors.right: parent.right
+                    Image {
+                        id: avatarAppQRCodeImage
+                        source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/qrCode.jpg"
+                        height: 190
+                        width: 190
+                        mipmap: true
+                        fillMode: Image.PreserveAspectFit
                     }
 
-                    HifiStylesUit.RalewayRegular {
-                        id: descriptionText
-                        anchors.top: headerText.bottom
-                        anchors.topMargin: 10
-                        text: "but, we've given you this <b>temporary avatar</b> to use
-                        for today. If you see this avatar in-world, walk up and
-                        say hello to other new users!<br></br><br></br>
-                        <b>We want you to be you</b> so we've built an Avatar Creator
-                        App that's as easy as taking a selfie and picking your
-                        outfits! Available now on iOS and Android Platforms."
+                    HifiStylesUit.RalewayBold {
+                        id: instructionText
+                        anchors.top: avatarAppQRCodeImage.top
+                        anchors.bottom: avatarAppQRCodeImage.bottom
+                        anchors.left: avatarAppQRCodeImage.right
+                        anchors.leftMargin: 30
+                        anchors.right: parent.right
+                        text: "Use your mobile phone to scan this QR code."
                         color: simplifiedUI.colors.text.black
                         size: 22
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        wrapMode: Text.WordWrap
+                        wrapMode: Text.Wrap
                     }
+                }
 
-                    Item {
-                        id: qrAndInstructionsContainer
-                        anchors.top: descriptionText.bottom
-                        height: avatarAppQRCodeImage.height
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.topMargin: 50
+                HifiStylesUit.RalewayBold {
+                    anchors.top: qrAndInstructionsContainer.bottom
+                    anchors.topMargin: 50
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    horizontalAlignment: Text.AlignLeft
+                    text: "Continue >"
+                    color: simplifiedUI.colors.text.lightBlue
+                    opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
+                    size: 36
+                    height: paintedHeight
+                    z: 1
 
-                        Image {
-                            id: avatarAppQRCodeImage
-                            source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/qrCode.jpg"
-                            height: 190
-                            width: 190
-                            mipmap: true
-                            fillMode: Image.PreserveAspectFit
-                        }
+                    MouseArea {
+                        id: continueMouseArea
+                        hoverEnabled: true
+                        anchors.fill: parent
 
-                        HifiStylesUit.RalewayBold {
-                            id: instructionText
-                            anchors.left: avatarAppQRCodeImage.right
-                            anchors.top: avatarAppQRCodeImage.top
-                            anchors.bottom: avatarAppQRCodeImage.bottom
-                            anchors.right: parent.right
-                            anchors.leftMargin: 30
-                            text: "Use your mobile phone to scan this QR code."
-                            color: simplifiedUI.colors.text.black
-                            size: 22
-                            wrapMode: Text.WordWrap
-                        }
-                    }
-
-                    HifiStylesUit.RalewayBold {
-                        anchors.top: qrAndInstructionsContainer.bottom
-                        anchors.topMargin: 50
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        horizontalAlignment: Text.AlignLeft
-                        text: "Continue >"
-                        color: simplifiedUI.colors.text.lightBlue
-                        opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
-                        size: 36
-                        z: 1
-                        wrapMode: Text.WordWrap
-
-                        MouseArea {
-                            id: continueMouseArea
-                            hoverEnabled: true
-                            anchors.fill: parent
-
-                            onClicked: {
-                                Tablet.playSound(TabletEnums.ButtonClick);
-                                tempAvatarPageContainer.visible = false;
-                                Settings.setValue("simplifiedUI/closedAvatarPageOfInitialLaunchWindow", true);
-                                controlsContainer.visible = true;
-                            }
+                        onClicked: {
+                            Tablet.playSound(TabletEnums.ButtonClick);
+                            tempAvatarPageContainer.visible = false;
+                            Settings.setValue("simplifiedUI/closedAvatarPageOfInitialLaunchWindow", true);
+                            controlsContainer.visible = true;
                         }
                     }
                 }
             }
         }
-
-        SimplifiedControls.VerticalScrollBar {
-            parent: tempAvatarPageContainer
-        }
     }
 
-    Item {
+    Flickable {
         id: controlsContainer
         visible: false
         anchors.fill: parent
+        clip: true
+        contentWidth: parent.width
+        contentHeight: contentItem.childrenRect.height
 
-        Flickable {
-            anchors.fill: parent
-            clip: true
-            contentWidth: parent.width
-            contentHeight: childrenRect.height
+        HifiStylesUit.RalewayRegular {
+            id: controlsDescriptionText
+            text: "These are your avatar controls to <b>interact with and move around in your new HQ.</b>"
+            anchors.top: parent.top
+            anchors.topMargin: 100
+            anchors.horizontalCenter: parent.horizontalCenter
+            horizontalAlignment: Text.AlignHCenter
+            height: paintedHeight
+            width: 850
+            color: simplifiedUI.colors.text.black
+            size: 36
+            wrapMode: Text.Wrap
+        }
 
-            HifiStylesUit.RalewayRegular {
-                id: controlsDescriptionText
-                text: "These are your avatar controls to <br></br>
-                    <b>interact with and move around in your new HQ.</b>"
-                anchors.top: parent.top
-                anchors.topMargin: 100
-                anchors.horizontalCenter: parent.horizontalCenter
-                horizontalAlignment: Text.AlignHCenter
-                height: 100
-                width: 850
-                color: simplifiedUI.colors.text.black
-                size: 36
-                wrapMode: Text.WordWrap
-            }
-
-            GridLayout {
-                id: controlsPageGrid
-                anchors.top: controlsDescriptionText.bottom
-                anchors.topMargin: 60
-                anchors.bottomMargin: 80
-                anchors.horizontalCenter: parent.horizontalCenter
-                columnSpacing: 50
-                rowSpacing: 40
-                columns: 2
-                rows: 2
+        GridLayout {
+            id: controlsPageGrid
+            anchors.top: controlsDescriptionText.bottom
+            anchors.topMargin: 60
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: controlsDescriptionText.width
+            columnSpacing: 50
+            rowSpacing: 40
+            columns: 2
+            rows: 2
             
-                Image {
-                    Layout.preferredWidth: 360
-                    Layout.preferredHeight: 225
-                    id: walkingControls
-                    source: "images/walkingControls.png"
-                }
+            Image {
+                Layout.preferredWidth: 360
+                Layout.preferredHeight: 225
+                id: walkingControls
+                source: "images/walkingControls.png"
+            }
                 
-                Image {
-                    Layout.preferredWidth: 360
-                    Layout.preferredHeight: 200
-                    id: mouseControls
-                    source: "images/mouseControls.png"
-                }
-
-                Image {
-                    Layout.preferredWidth: 240
-                    Layout.preferredHeight: 160
-                    Layout.alignment: Qt.AlignHCenter
-                    id: runJumpControls
-                    source: "images/runJumpControls.png"
-                }
-
-                Image {
-                    Layout.preferredWidth: 160
-                    Layout.preferredHeight: 100
-                    Layout.alignment: Qt.AlignHCenter
-                    id: cameraControls
-                    source: "images/cameraControls.png"
-                }
+            Image {
+                Layout.preferredWidth: 360
+                Layout.preferredHeight: 200
+                id: mouseControls
+                source: "images/mouseControls.png"
             }
 
-            HifiStylesUit.RalewayBold {
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.leftMargin: 50
-                anchors.bottomMargin: 50
-                text: "Learn more about our controls."
-                width: 200
-                height: 25
-                color: simplifiedUI.colors.text.lightBlue
-                opacity: learnMoreAboutControlsMouseArea.containsMouse ? 1.0 : 0.7
-                size: 14
-                wrapMode: Text.WordWrap
-
-                MouseArea {
-                    id: learnMoreAboutControlsMouseArea
-                    hoverEnabled: true
-                    anchors.fill: parent
-
-                    onClicked: {
-                        Tablet.playSound(TabletEnums.ButtonClick);
-                        Qt.openUrlExternally("https://www.highfidelity.com/knowledge/get-around");
-                    }
-                }
+            Image {
+                Layout.preferredWidth: 240
+                Layout.preferredHeight: 160
+                Layout.alignment: Qt.AlignHCenter
+                id: runJumpControls
+                source: "images/runJumpControls.png"
             }
 
-            HifiStylesUit.RalewayBold {
-                anchors.top: controlsPageGrid.bottom
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.topMargin: 50
-                text: "I've got a good grip on the controls."
-                width: 650
-                height: 60
-                color: simplifiedUI.colors.text.lightBlue
-                opacity: goodGripMouseArea.containsMouse ? 1.0 : 0.7
-                size: 36
-                wrapMode: Text.WordWrap
-
-                MouseArea {
-                    id: goodGripMouseArea
-                    hoverEnabled: true
-                    anchors.fill: parent
-
-                    onClicked: {
-                        Tablet.playSound(TabletEnums.ButtonClick);
-                        sendToScript({
-                            "source": "InitialLaunchWindow.qml",
-                            "method": "closeInitialLaunchWindow"
-                        });
-                    }
-                }
+            Image {
+                Layout.preferredWidth: 160
+                Layout.preferredHeight: 100
+                Layout.alignment: Qt.AlignHCenter
+                id: cameraControls
+                source: "images/cameraControls.png"
             }
-            
         }
 
-        SimplifiedControls.VerticalScrollBar {
-            parent: controlsContainer
+        HifiStylesUit.RalewayBold {
+            id: iHaveAGoodGrip
+            anchors.top: controlsPageGrid.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.topMargin: 50
+            text: "I've got a good grip on the controls."
+            width: 650
+            height: paintedHeight
+            color: simplifiedUI.colors.text.lightBlue
+            opacity: goodGripMouseArea.containsMouse ? 1.0 : 0.7
+            size: 36
+            wrapMode: Text.Wrap
+
+            MouseArea {
+                id: goodGripMouseArea
+                hoverEnabled: true
+                anchors.fill: parent
+
+                onClicked: {
+                    Tablet.playSound(TabletEnums.ButtonClick);
+                    sendToScript({
+                        "source": "InitialLaunchWindow.qml",
+                        "method": "closeInitialLaunchWindow"
+                    });
+                }
+            }
         }
+        
+        HifiStylesUit.RalewayBold {
+            anchors.top: iHaveAGoodGrip.bottom
+            anchors.topMargin: 50
+            anchors.left: parent.left
+            anchors.leftMargin: 50
+            text: "Learn more about our controls."
+            width: 200
+            height: paintedHeight
+            color: simplifiedUI.colors.text.lightBlue
+            opacity: learnMoreAboutControlsMouseArea.containsMouse ? 1.0 : 0.7
+            size: 14
+            wrapMode: Text.Wrap
+
+            MouseArea {
+                id: learnMoreAboutControlsMouseArea
+                hoverEnabled: true
+                anchors.fill: parent
+
+                onClicked: {
+                    Tablet.playSound(TabletEnums.ButtonClick);
+                    Qt.openUrlExternally("https://www.highfidelity.com/knowledge/get-around");
+                }
+            }
+        }
+    }
+
+    SimplifiedControls.VerticalScrollBar {
+        parent: controlsContainer.visible ? controlsContainer : tempAvatarPageContainer
+        z: 2
     }
 
     signal sendToScript(var message);
