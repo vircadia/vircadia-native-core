@@ -42,10 +42,35 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
 
 
 void launchAutoUpdater(const QString& autoUpdaterPath) {
-    NSTask* task = [[NSTask alloc] init]; 
-    task.launchPath = [autoUpdaterPath.toNSString() stringByAppendingString:@"/Contents/Resources/updater"];
-    task.arguments = @[[[NSBundle mainBundle] bundlePath], autoUpdaterPath.toNSString()];
-    [task launch];
+    NSException *exception;
+    bool launched = false;
+    // Older versions of Launcher put updater in `/Contents/Resources/updater`.
+    NSString* newLauncher = autoUpdaterPath.toNSString();
+    for (NSString *bundlePath in @[@"/Contents/MacOS/updater",
+                                   @"/Contents/Resources/updater",
+                                   ]) {
+        NSTask* task = [[NSTask alloc] init];
+        task.launchPath = [newLauncher stringByAppendingString: bundlePath];
+        task.arguments = @[[[NSBundle mainBundle] bundlePath], newLauncher];
+
+        NSLog(@"launching updater: %@ %@", task.launchPath, task.arguments);
+
+        @try {
+            [task launch];
+        }
+        @catch (NSException *e) {
+            NSLog(@"couldn't launch updater: %@, %@", e.name, e.reason);
+            exception = e;
+            continue;
+        }
+
+        launched = true;
+        break;
+    }
+
+    if (!launched) {
+        @throw exception;
+    }
 
     exit(0);
 }

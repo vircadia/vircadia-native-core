@@ -84,6 +84,11 @@ void LauncherInstaller::createShortcuts() {
 void LauncherInstaller::uninstall() {
     qDebug() << "Uninstall Launcher";
     deleteShortcuts();
+
+    QString launcherPath = _launcherInstallDir.absolutePath() + "/HQ Launcher.exe";
+    if (QFile::exists(launcherPath)) {
+        QFile::remove(launcherPath);
+    }
     deleteApplicationRegistryKeys();
 }
 

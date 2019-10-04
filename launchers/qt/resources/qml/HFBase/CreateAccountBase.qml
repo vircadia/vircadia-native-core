@@ -141,6 +141,8 @@ Item {
             leftMargin: root.marginLeft
             topMargin: 4
         }
+
+         onAccepted: LauncherState.signup(email.text, username.text, passwordField.text, displayName.text)
     }
 
     HFButton {
