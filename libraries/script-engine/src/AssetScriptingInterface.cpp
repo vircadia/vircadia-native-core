@@ -29,6 +29,8 @@
 #include <shared/QtHelpers.h>
 #include <Gzip.h>
 
+#include <future>
+
 using Promise = MiniPromise::Promise;
 
 AssetScriptingInterface::AssetScriptingInterface(QObject* parent) : BaseAssetScriptingInterface(parent) {
@@ -37,6 +39,25 @@ AssetScriptingInterface::AssetScriptingInterface(QObject* parent) : BaseAssetScr
 }
 
 #define JS_VERIFY(cond, error) { if (!this->jsVerify(cond, error)) { return; } }
+
+bool AssetScriptingInterface::initializeCache() {
+    if (!Parent::initializeCache()) {
+        if (assetClient()) {
+            std::promise<bool> cacheStatusResult;
+            Promise assetClientPromise(makePromise(__func__));
+            assetClientPromise->moveToThread(qApp->thread());  // To ensure the finally() is processed.
+
+            assetClient()->cacheInfoRequestAsync(assetClientPromise);
+            assetClientPromise->finally([&](QString, QVariantMap result)
+                { cacheStatusResult.set_value(!result.isEmpty()); });
+            return cacheStatusResult.get_future().get();
+        } else {
+            return false;
+        }
+    } else {
+        return true;
+    }
+}
 
 void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
     auto handler = jsBindCallback(thisObject(), callback);
