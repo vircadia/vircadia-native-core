@@ -325,15 +325,19 @@ void LauncherState::signup(QString email, QString username, QString password, QS
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err == SignupRequest::Error::BadPassword) {
-            setLastSignupErrorMessage("That's an invalid password - please try another password.");
+            setLastSignupErrorMessage("That's an invalid password - passwords must be at least 6 characters.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err == SignupRequest::Error::BadUsername) {
             setLastSignupErrorMessage("That's an invalid username - please try another username.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
-        } else if (err == SignupRequest::Error::UserProfileAlreadyCompleted || err == SignupRequest::Error::NoSuchEmail) {
-            setLastSignupErrorMessage("That email does not have an account setup for it, or it was previously completed.");
+        } else if (err == SignupRequest::Error::UserProfileAlreadyCompleted) {
+            setLastSignupErrorMessage("That email has already been completed.");
+            setApplicationState(ApplicationState::WaitingForSignup);
+            return;
+        } else if (err == SignupRequest::Error::NoSuchEmail) {
+            setLastSignupErrorMessage("That email does not have an account setup for it.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err != SignupRequest::Error::None) {
@@ -382,8 +386,6 @@ void LauncherState::login(QString username, QString password, QString displayNam
     setApplicationState(ApplicationState::RequestingLogin);
 
     _displayName = displayName;
-
-    qDebug() << "Got login: " << username << password;
 
     auto request = new LoginRequest();
 

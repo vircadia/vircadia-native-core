@@ -39,8 +39,8 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
 
     // start the program up
     BOOL success = CreateProcess(
-        clientPath.toUtf8().data(),
-        params.toUtf8().data(),
+        clientPath.toLatin1().data(),
+        params.toLatin1().data(),
         nullptr,                 // Process handle not inheritable
         nullptr,                 // Thread handle not inheritable
         FALSE,                   // Set handle inheritance to FALSE

@@ -15,163 +15,172 @@ Item {
         transformOrigin: Item.Center
         rotation: 0
     }
-    HFTextHeader {
-        id: title
-        width: 325
-        height: 26
-        font.bold: true
-        text: "Please Log in"
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
+
+    Item {
+        width: 353
+        height: root.height
+
+
         anchors {
             top: root.top
-            topMargin: 40
             horizontalCenter: root.horizontalCenter
         }
-    }
 
-    HFTextRegular {
-        id: instruction
-        width: 425
-        height: 22
+        HFTextHeader {
+            id: title
 
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
+            font.bold: true
 
-        visible: LauncherState.lastLoginErrorMessage.length == 0
-        text: "Use the account credentials you created at sign-up"
-        anchors {
-            left: root.left
-            right: root.right
-            top: title.bottom
-            topMargin: 18
-        }
-    }
+            text: "Please Log in"
 
-    HFTextError {
-        id: error
-        width: 425
-        height: 22
+            anchors {
+                top: parent.top
+                topMargin: 40
 
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-
-        visible: LauncherState.lastLoginErrorMessage.length > 0
-        text: LauncherState.lastLoginErrorMessage
-        anchors {
-            left: root.left
-            right: root.right
-            top: title.bottom
-            topMargin: 18
-        }
-    }
-
-    HFTextField {
-        id: username
-        width: 353
-        height: 50
-
-        placeholderText: "Username"
-
-        seperatorColor: Qt.rgba(1, 1, 1, 0.3)
-        anchors {
-            top: error.bottom
-            horizontalCenter: error.horizontalCenter
-            topMargin: 24
-        }
-    }
-
-    HFTextField {
-        id: password
-        width: 353
-        height: 50
-        placeholderText: "Password"
-        togglePasswordField: true
-        echoMode: TextInput.Password
-        seperatorColor: Qt.rgba(1, 1, 1, 0.3)
-        anchors {
-            top: username.bottom
-            horizontalCenter: instruction.horizontalCenter
-            topMargin: 25
-        }
-    }
-
-
-    HFTextRegular {
-        id: displayText
-
-        text: "You can change this at anytime from your profile."
-
-        anchors {
-            top: password.bottom
-            topMargin: 50
-            left: password.left
-        }
-    }
-
-    HFTextField {
-        id: displayName
-        width: 353
-        height: 50
-        placeholderText: "Display name"
-        seperatorColor: Qt.rgba(1, 1, 1, 0.3)
-        anchors {
-            top: displayText.bottom
-            horizontalCenter: instruction.horizontalCenter
-            topMargin: 4
-        }
-    }
-
-    HFButton {
-        id: button
-        width: 110
-
-        text: "NEXT"
-
-        anchors {
-            top: displayName.bottom
-            left: displayName.left
-            topMargin: 25
+                horizontalCenter: parent.horizontalCenter
+            }
         }
 
-        onClicked: LauncherState.login(username.text, password.text, displayName.text)
-    }
+        HFTextRegular {
+            id: instruction
 
-    Text {
-        text: "Create New Account"
-        font.family: "Graphik"
-        font.pixelSize: 14
-        color: "#009EE0"
+            visible: LauncherState.lastLoginErrorMessage.length == 0
+            text: "Use the account credentials you created at sign-up"
+            anchors {
+                left: parent.left
+                right: parent.right;
 
-        anchors {
-            top: button.bottom
-            topMargin: 16
-            left: button.left
+                top: title.bottom
+                topMargin: 18
+            }
         }
 
-        MouseArea {
-            anchors.fill: parent
+        HFTextError {
+            id: error
 
-            cursorShape: Qt.PointingHandCursor
+            visible: LauncherState.lastLoginErrorMessage.length > 0
+            text: LauncherState.lastLoginErrorMessage
+            anchors {
+                top: title.bottom
+                topMargin: 18
 
-            onClicked: {
-                console.log("clicked");
-                LauncherState.gotoSignup();
+                left: parent.left
+                right: parent.right;
+            }
+        }
+
+        HFTextField {
+            id: username
+
+            placeholderText: "Username"
+
+            seperatorColor: Qt.rgba(1, 1, 1, 0.3)
+            anchors {
+                top: error.bottom
+                topMargin: 24
+
+                left: parent.left
+                right: parent.right;
+            }
+        }
+
+        HFTextField {
+            id: password
+
+            placeholderText: "Password"
+            togglePasswordField: true
+            echoMode: TextInput.Password
+            seperatorColor: Qt.rgba(1, 1, 1, 0.3)
+            anchors {
+                top: username.bottom
+                topMargin: 25
+
+                left: parent.left
+                right: parent.right;
+            }
+        }
+
+
+        HFTextRegular {
+            id: displayText
+
+            text: "You can change this at anytime from your profile."
+
+            anchors {
+                top: password.bottom
+                topMargin: 50
+
+                left: parent.left
+                right: parent.right;
+            }
+        }
+
+        HFTextField {
+            id: displayName
+
+            placeholderText: "Display name"
+            seperatorColor: Qt.rgba(1, 1, 1, 0.3)
+            anchors {
+                top: displayText.bottom
+                topMargin: 4
+
+                left: parent.left
+                right: parent.right;
+            }
+        }
+
+        HFButton {
+            id: button
+            width: 110
+
+            text: "NEXT"
+
+            anchors {
+                top: displayName.bottom
+                topMargin: 25
+
+                left: parent.left
+            }
+
+            onClicked: LauncherState.login(username.text, password.text, displayName.text)
+        }
+
+        Text {
+            id: createAccountLink
+
+            text: "Create New Account"
+            font.family: "Graphik"
+            font.pixelSize: 14
+            color: "#009EE0"
+
+            anchors {
+                top: button.bottom
+                topMargin: 16
+                left: parent.left
+            }
+
+            MouseArea {
+                anchors.fill: parent
+
+                cursorShape: Qt.PointingHandCursor
+
+                onClicked: {
+                    console.log("clicked");
+                    LauncherState.gotoSignup();
+                }
+            }
+        }
+
+        HFTextLogo {
+            anchors {
+                bottom: createAccountLink.bottom
+
+                right: parent.right
             }
         }
     }
 
-    HFTextLogo {
-        anchors {
-            bottom: root.bottom
-            bottomMargin: 58
-            right: root.right
-            rightMargin: 136
-        }
-    }
-
     Component.onCompleted: {
-        root.parent.setStateInfoState("left");
         root.parent.setBuildInfoState("right");
     }
 }

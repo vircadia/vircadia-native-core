@@ -24,7 +24,6 @@ Item {
     HFTextHeader {
         id: title
         width: 481
-        height: 27
         lineHeight: 35
         lineHeightMode: Text.FixedHeight
         text: root.titleText
@@ -40,7 +39,6 @@ Item {
     HFTextRegular {
         id: instruction
         width: 425
-        height: 22
 
         text: "Use the email address that you registered with."
         visible: LauncherState.lastSignupErrorMessage.length == 0
@@ -57,16 +55,15 @@ Item {
         id: error
 
         width: 425
-        height: 22
 
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
+        wrapMode: Text.Wrap
 
         visible: LauncherState.lastSignupErrorMessage.length > 0
         text: LauncherState.lastSignupErrorMessage
+
         anchors {
             left: root.left
-            right: root.right
+            leftMargin: root.marginLeft
             top: title.bottom
             topMargin: 18
         }
@@ -75,7 +72,7 @@ Item {
     HFTextField {
         id: email
         width: 430
-        height: 50
+
         placeholderText: "Email Address"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
@@ -89,7 +86,7 @@ Item {
     HFTextField {
         id: username
         width: 430
-        height: 50
+
         placeholderText: root.usernamePlaceholder
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
@@ -103,7 +100,7 @@ Item {
     HFTextField {
         id: passwordField
         width: 430
-        height: 50
+
         placeholderText: root.passwordPlaceholder
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         togglePasswordField: true
@@ -136,7 +133,6 @@ Item {
      HFTextField {
         id: displayName
         width: 430
-        height: 50
         placeholderText: "Display Name"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
@@ -150,7 +146,6 @@ Item {
     HFButton {
         id: button
         width: 134
-        height: 50
 
         text: "NEXT"
 
@@ -199,7 +194,6 @@ Item {
     }
 
     Component.onCompleted: {
-        root.parent.setStateInfoState("right");
         root.parent.setBuildInfoState("left");
     }
 }

@@ -61,6 +61,7 @@ int main(int argc, char *argv[]) {
     QString name { "High Fidelity" };
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QCoreApplication::setOrganizationName(name);
+    QCoreApplication::setApplicationName(name);
 
     Launcher launcher(argc, argv);
 

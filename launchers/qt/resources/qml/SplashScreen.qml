@@ -24,7 +24,6 @@ Item {
     }
 
     Component.onCompleted: {
-        root.parent.setStateInfoState("left");
         root.parent.setBuildInfoState("right");
     }
 }

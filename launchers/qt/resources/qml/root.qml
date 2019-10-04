@@ -17,10 +17,6 @@ Item {
         function setBuildInfoState(state) {
             buildInfo.state = state;
         }
-
-        function setStateInfoState(state) {
-            stateInfo.state = state;
-        }
     }
 
     Component.onCompleted: {
