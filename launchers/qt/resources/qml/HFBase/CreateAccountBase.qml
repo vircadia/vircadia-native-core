@@ -1,6 +1,8 @@
 import QtQuick 2.3
 import QtQuick 2.1
+
 import "../HFControls"
+import HQLauncher 1.0
 
 
 Item {
@@ -10,6 +12,8 @@ Item {
     property string usernamePlaceholder: "User name"
     property string passwordPlaceholder: "Set a password"
     property int marginLeft: root.width * 0.15
+
+    property bool enabled: LauncherState.applicationState == ApplicationState.WaitingForSignup
 
     Image {
         anchors.centerIn: parent
@@ -26,7 +30,7 @@ Item {
         width: 481
         lineHeight: 35
         lineHeightMode: Text.FixedHeight
-        text: root.titleText
+        text: root.titleText + " " + LauncherState.applicationState
         visible: LauncherState.lastSignupErrorMessage.length == 0 ? root.titleText : "Uh oh."
         anchors {
             top: root.top
@@ -73,6 +77,8 @@ Item {
         id: email
         width: 430
 
+        enabled: root.enabled
+
         placeholderText: "Email Address"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
@@ -87,6 +93,8 @@ Item {
         id: username
         width: 430
 
+        enabled: root.enabled
+
         placeholderText: root.usernamePlaceholder
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
@@ -100,6 +108,8 @@ Item {
     HFTextField {
         id: passwordField
         width: 430
+
+        enabled: root.enabled
 
         placeholderText: root.passwordPlaceholder
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
@@ -133,6 +143,9 @@ Item {
      HFTextField {
         id: displayName
         width: 430
+
+        enabled: root.enabled
+
         placeholderText: "Display Name"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
@@ -148,6 +161,8 @@ Item {
     HFButton {
         id: button
         width: 134
+
+        enabled: root.enabled
 
         text: "NEXT"
 

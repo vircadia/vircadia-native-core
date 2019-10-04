@@ -7,8 +7,8 @@ Button {
     height: 50
 
     property string backgroundColor: "#00000000"
-    property string borderColor: "#FFFFFF"
-    property string textColor: "#FFFFFF"
+    property string borderColor: enabled ? "#FFFFFF" : "#7e8c81"
+    property string textColor: borderColor
     property int backgroundOpacity: 1
     property int backgroundRadius: 1
     property int backgroundWidth: 2

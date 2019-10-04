@@ -5,7 +5,6 @@ Item {
     id: root
     anchors.fill: parent
 
-
     Image {
         anchors.centerIn: parent
         width: parent.width

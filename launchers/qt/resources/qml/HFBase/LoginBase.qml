@@ -1,10 +1,14 @@
 import QtQuick 2.3
 import QtQuick 2.1
+
 import "../HFControls"
+import HQLauncher 1.0
 
 Item {
     id: root
     anchors.fill: parent
+
+    property bool enabled: LauncherState.applicationState == ApplicationState.WaitingForLogin
 
     Image {
         anchors.centerIn: parent
@@ -72,6 +76,8 @@ Item {
         HFTextField {
             id: username
 
+            enabled: root.enabled
+
             placeholderText: "Username"
 
             seperatorColor: Qt.rgba(1, 1, 1, 0.3)
@@ -86,6 +92,8 @@ Item {
 
         HFTextField {
             id: password
+
+            enabled: root.enabled
 
             placeholderText: "Password"
             togglePasswordField: true
@@ -118,6 +126,8 @@ Item {
         HFTextField {
             id: displayName
 
+            enabled: root.enabled
+
             placeholderText: "Display name"
             seperatorColor: Qt.rgba(1, 1, 1, 0.3)
             anchors {
@@ -133,6 +143,8 @@ Item {
         HFButton {
             id: button
             width: 110
+
+            enabled: root.enabled
 
             text: "NEXT"
 
