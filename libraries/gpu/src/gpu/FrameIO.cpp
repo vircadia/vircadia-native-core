@@ -37,7 +37,7 @@ Descriptor Descriptor::parse(const uint8_t* const data, size_t size) {
     if (!read(ptr, remaining, result.header)) {
         return {};
     }
-    if (!result.header.length == size) {
+    if (result.header.length != size) {
         return {};
     }
 
@@ -124,6 +124,5 @@ void gpu::hfb::writeFrame(const std::string& filename,
     for (const auto& png : pngBuffers) {
         writeChunk(ptr, gpu::hfb::CHUNK_TYPE_PNG, png);
     }
-    auto writeSize = ptr - output->data();
-    assert(writeSize == size);
+    assert((ptr - output->data()) == size);
 }

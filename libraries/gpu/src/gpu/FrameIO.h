@@ -23,7 +23,7 @@ FramePointer readFrame(const std::string& filename, uint32_t externalTexture, co
 
 namespace hfb {
 
-constexpr char* EXTENSION{ ".hfb" };
+constexpr char* const EXTENSION{ ".hfb" };
 constexpr uint32_t HEADER_SIZE{ sizeof(uint32_t) * 3 };
 constexpr uint32_t CHUNK_HEADER_SIZE = sizeof(uint32_t) * 2;
 constexpr uint32_t MAGIC{ 0x49464948 };

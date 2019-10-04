@@ -22,7 +22,6 @@ if (BUILD_TOOLS)
     set(ALL_TOOLS 
         udt-test
         vhacd-util
-        frame-optimizer
         gpu-frame-player
         gpu-frame-converter
         ice-client
