@@ -606,6 +606,9 @@ $(document).ready(function(){
       var address = DomainInfo.network_address === null ? '' : DomainInfo.network_address;
       var port = DomainInfo.network_port === null ? '' : DomainInfo.network_port;
       var modal_body = "<div class='form-group'>";
+      if (isCloudDomain()) {
+        modal_body += '<div style="color:red;font-weight: bold">Changing the network settings may actually break your domain.</div>';
+      }
       if (includeAddress) {
         modal_body += "<label class='control-label'>Address</label>";
         modal_body += "<input type='text' id='network-address-input' class='form-control' value='" + address + "'>";
