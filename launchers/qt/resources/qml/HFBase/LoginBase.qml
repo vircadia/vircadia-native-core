@@ -120,6 +120,8 @@ Item {
             horizontalCenter: instruction.horizontalCenter
             topMargin: 4
         }
+
+        onAccepted: LauncherState.login(username.text, password.text, displayName.text)
     }
 
     HFButton {

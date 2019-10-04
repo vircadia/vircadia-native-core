@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 #ifdef Q_OS_WIN
     LauncherInstaller launcherInstaller(argv[0]);
     if (options->contains("--restart") || launcherInstaller.runningOutsideOfInstallDir()) {
-        launcherInstaller.install();
+      launcherInstaller.install();
     } else if (options->contains("--uninstall")) {
         launcherInstaller.uninstall();
         return 0;

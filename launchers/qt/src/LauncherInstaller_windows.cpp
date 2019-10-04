@@ -47,42 +47,47 @@ void LauncherInstaller::install() {
             qDebug() << "not successful";
         }
 
-        qDebug() << "LauncherInstaller: create uninstall link";
-        QString uninstallLinkPath = _launcherInstallDir.absolutePath() + "/Uninstall HQ.lnk";
-        if (QFile::exists(uninstallLinkPath)) {
-            QFile::remove(uninstallLinkPath);
-        }
-
-
-
-        QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-        QString applicationPath = _launcherApplicationsDir.absolutePath();
-
-        QString appStartLinkPath = applicationPath + "/HQ.lnk";
-        QString uninstallAppStartLinkPath = applicationPath + "/Uninstall HQ.lnk";
-        QString desktopAppLinkPath = desktopPath  + "/HQ.lnk";
-
-
-        createSymbolicLink((LPCSTR)oldLauncherPath.toStdString().c_str(), (LPCSTR)uninstallLinkPath.toStdString().c_str(),
-                           (LPCSTR)("Click to Uninstall HQ"), (LPCSTR)("--uninstall"));
-
-        createSymbolicLink((LPCSTR)oldLauncherPath.toStdString().c_str(), (LPCSTR)uninstallAppStartLinkPath.toStdString().c_str(),
-                           (LPCSTR)("Click to Uninstall HQ"), (LPCSTR)("--uninstall"));
-
-        createSymbolicLink((LPCSTR)oldLauncherPath.toStdString().c_str(), (LPCSTR)desktopAppLinkPath.toStdString().c_str(),
-                           (LPCSTR)("Click to Setup and Launch HQ"));
-
-        createSymbolicLink((LPCSTR)oldLauncherPath.toStdString().c_str(), (LPCSTR)appStartLinkPath.toStdString().c_str(),
-                           (LPCSTR)("Click to Setup and Launch HQ"));
+        deleteShortcuts();
+        createShortcuts();
 
         createApplicationRegistryKeys();
     } else {
-        qDebug() << "FAILED!!!!!!!";
+        qDebug() << "Failed to install HQ Launcher";
     }
+}
+
+void LauncherInstaller::createShortcuts() {
+    QString launcherPath = _launcherInstallDir.absolutePath() + "/HQ Launcher.exe";
+
+    QString uninstallLinkPath = _launcherInstallDir.absolutePath() + "/Uninstall HQ.lnk";
+    QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    QString applicationPath = _launcherApplicationsDir.absolutePath();
+
+    QString appStartLinkPath = applicationPath + "/HQ Launcher.lnk";
+    QString uninstallAppStartLinkPath = applicationPath + "/Uninstall HQ.lnk";
+    QString desktopAppLinkPath = desktopPath  + "/HQ Launcher.lnk";
+
+
+    createSymbolicLink((LPCSTR)launcherPath.toStdString().c_str(), (LPCSTR)uninstallLinkPath.toStdString().c_str(),
+                       (LPCSTR)("Click to Uninstall HQ"), (LPCSTR)("--uninstall"));
+
+    createSymbolicLink((LPCSTR)launcherPath.toStdString().c_str(), (LPCSTR)uninstallAppStartLinkPath.toStdString().c_str(),
+                       (LPCSTR)("Click to Uninstall HQ"), (LPCSTR)("--uninstall"));
+
+    createSymbolicLink((LPCSTR)launcherPath.toStdString().c_str(), (LPCSTR)desktopAppLinkPath.toStdString().c_str(),
+                       (LPCSTR)("Click to Setup and Launch HQ"));
+
+    createSymbolicLink((LPCSTR)launcherPath.toStdString().c_str(), (LPCSTR)appStartLinkPath.toStdString().c_str(),
+                           (LPCSTR)("Click to Setup and Launch HQ"));
 }
 
 void LauncherInstaller::uninstall() {
     qDebug() << "Uninstall Launcher";
+    deleteShortcuts();
+    deleteApplicationRegistryKeys();
+}
+
+void LauncherInstaller::deleteShortcuts() {
     QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString applicationPath = _launcherApplicationsDir.absolutePath();
 
@@ -91,7 +96,7 @@ void LauncherInstaller::uninstall() {
         QFile::remove(uninstallLinkPath);
     }
 
-    QString appStartLinkPath = applicationPath + "/HQ.lnk";
+    QString appStartLinkPath = applicationPath + "/HQ Launcher.lnk";
     if (QFile::exists(appStartLinkPath)) {
         QFile::remove(appStartLinkPath);
     }
@@ -101,12 +106,10 @@ void LauncherInstaller::uninstall() {
         QFile::remove(uninstallAppStartLinkPath);
     }
 
-    QString desktopAppLinkPath = desktopPath  + "/HQ.lnk";
+    QString desktopAppLinkPath = desktopPath  + "/HQ Launcher.lnk";
     if (QFile::exists(desktopAppLinkPath)) {
         QFile::remove(desktopAppLinkPath);
     }
-
-    deleteApplicationRegistryKeys();
 }
 
 
