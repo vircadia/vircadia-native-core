@@ -37,6 +37,7 @@
 #include <shaders/Shaders.h>
 #include <gpu/gl/GLShared.h>
 #include <gpu/gl/GLBackend.h>
+#include <gpu/gl/GLTexelFormat.h>
 #include <GeometryCache.h>
 
 #include <CursorManager.h>
@@ -476,34 +477,50 @@ void OpenGLDisplayPlugin::submitFrame(const gpu::FramePointer& newFrame) {
     });
 }
 
+ktx::StoragePointer textureToKtx(const gpu::Texture& texture) {
+    ktx::Header header;
+    {
+        auto gpuDims = texture.getDimensions();
+        header.pixelWidth = gpuDims.x;
+        header.pixelHeight = gpuDims.y;
+        header.pixelDepth = 0;
+    }
+
+    {
+        auto gltexelformat = gpu::gl::GLTexelFormat::evalGLTexelFormat(texture.getStoredMipFormat());
+        header.glInternalFormat = gltexelformat.internalFormat;
+        header.glFormat = gltexelformat.format;
+        header.glBaseInternalFormat = gltexelformat.format;
+        header.glType = gltexelformat.type;
+        header.glTypeSize = 1;
+        header.numberOfMipmapLevels = 1 + texture.getMaxMip();
+    }
+
+    auto memKtx = ktx::KTX::createBare(header);
+    auto storage = memKtx->_storage;
+    uint32_t faceCount = std::max(header.numberOfFaces, 1u);
+    uint32_t mipCount = std::max(header.numberOfMipmapLevels, 1u);
+    for (uint32_t mip = 0; mip < mipCount; ++mip) {
+        for (uint32_t face = 0; face < faceCount; ++face) {
+            const auto& image = memKtx->_images[mip];
+            auto& faceBytes = const_cast<gpu::Byte*&>(image._faceBytes[face]);
+            if (texture.isStoredMipFaceAvailable(mip, face)) {
+                auto storedImage = texture.accessStoredMipFace(mip, face);
+                auto storedSize = storedImage->size();
+                memcpy(faceBytes, storedImage->data(), storedSize);
+            }
+        }
+    }
+    return storage;
+}
+
 void OpenGLDisplayPlugin::captureFrame(const std::string& filename) const {
     withOtherThreadContext([&] {
         using namespace gpu;
         auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
         FramebufferPointer framebuffer{ Framebuffer::create("captureFramebuffer") };
-        TextureCapturer captureLambda = [&](std::vector<uint8_t>& outputBuffer, const gpu::TexturePointer& texture, uint16 layer) {
-            QImage image;
-            if (texture->getUsageType() == TextureUsageType::STRICT_RESOURCE) {
-                image = QImage{ 1, 1, QImage::Format_ARGB32 };
-                auto storedImage = texture->accessStoredMipFace(0, 0);
-                memcpy(image.bits(), storedImage->data(), image.sizeInBytes());
-            //if (texture == textureCache->getWhiteTexture()) {
-            //} else if (texture == textureCache->getBlackTexture()) {
-            //} else if (texture == textureCache->getBlueTexture()) {
-            //} else if (texture == textureCache->getGrayTexture()) {
-            } else {
-                ivec4 rect = { 0, 0, texture->getWidth(), texture->getHeight() };
-                framebuffer->setRenderBuffer(0, texture, layer);
-                glBackend->syncGPUObject(*framebuffer);
-
-                image = QImage{ rect.z, rect.w, QImage::Format_ARGB32 };
-                glBackend->downloadFramebuffer(framebuffer, rect, image);
-            }
-            QBuffer buffer;
-            QImageWriter(&buffer, "png").write(image);
-            const auto& data = buffer.data();
-            outputBuffer.resize(data.size());
-            memcpy(outputBuffer.data(), data.constData(), data.size());
+        TextureCapturer captureLambda = [&](const gpu::TexturePointer& texture)->storage::StoragePointer {
+            return textureToKtx(*texture);
         };
 
         if (_currentFrame) {

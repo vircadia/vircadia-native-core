@@ -34,7 +34,7 @@ public:
     std::unordered_map<QueryPointer, uint32_t> queryMap;
     std::unordered_set<TexturePointer> captureTextures;
     hfb::Buffer binaryBuffer;
-    hfb::Buffers pngBuffers;
+    hfb::StorageBuilders ktxBuilders;
 
     Serializer(const std::string& basename, const TextureCapturer& capturer) : filename(basename + hfb::EXTENSION), textureCapturer(capturer) {}
 
@@ -392,13 +392,17 @@ json Serializer::writeTexture(const TexturePointer& texturePointer) {
         const auto* storage = texture._storage.get();
         const auto* ktxStorage = dynamic_cast<const Texture::KtxStorage*>(storage);
         if (ktxStorage) {
-            result[keys::ktxFile] = ktxStorage->_filename;
+            result[keys::chunk] = 2 + ktxBuilders.size();
+            auto filename = ktxStorage->_filename;
+            ktxBuilders.push_back([=] {
+                return std::make_shared<storage::FileStorage>(filename.c_str());
+            });
         } else if (textureCapturer && captureTextures.count(texturePointer) != 0) {
-            auto layers = std::max<uint16>(texture.getNumSlices(), 1);
-            result[keys::chunk] = 2 + pngBuffers.size();
-            pngBuffers.push_back({});
-            hfb::Buffer& pngBuffer = pngBuffers.back();
-            textureCapturer(pngBuffer, texturePointer, 0);
+            result[keys::chunk] = 2 + ktxBuilders.size();
+            auto storage = textureCapturer(texturePointer);
+            ktxBuilders.push_back([=] {
+                return storage;
+            });
         }
     }
     return result;
@@ -790,7 +794,7 @@ void Serializer::writeFrame(const Frame& frame) {
 
     writeBinaryBlob();
 
-    hfb::writeFrame(filename, frameNode.dump(), binaryBuffer, pngBuffers);
+    hfb::writeFrame(filename, frameNode.dump(), binaryBuffer, ktxBuilders);
 }
 
 void Serializer::writeBinaryBlob() {

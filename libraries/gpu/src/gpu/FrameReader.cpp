@@ -10,9 +10,7 @@
 #include <nlohmann/json.hpp>
 #include <unordered_map>
 
-#include <QtCore/QFileInfo>
-#include <QtCore/QDir>
-
+#include <shared/FileUtils.h>
 #include <ktx/KTX.h>
 #include "Frame.h"
 #include "Batch.h"
@@ -33,7 +31,7 @@ public:
             auto lastSlash = filename.rfind('/');
             result = filename.substr(0, lastSlash + 1);
         } else {
-            result = QFileInfo(filename.c_str()).absoluteDir().canonicalPath().toStdString();
+            result = FileUtils::getParentPath(filename.c_str()).toStdString();
             if (*result.rbegin() != '/') {
                 result += '/';
             }
@@ -41,18 +39,17 @@ public:
         return result;
     }
 
-    Deserializer(const std::string& filename_, uint32_t externalTexture = 0, const TextureLoader& loader = {}) :
+    Deserializer(const std::string& filename_, uint32_t externalTexture = 0) :
         filename(filename_), basedir(getBaseDir(filename_)), mappedFile(std::make_shared<FileStorage>(filename.c_str())),
-        externalTexture(externalTexture), textureLoader(loader) {
-        descriptor = hfb::Descriptor::parse(mappedFile->data(), (uint32_t)mappedFile->size());
+        externalTexture(externalTexture) {
+        descriptor = std::make_shared<hfb::Descriptor>(mappedFile);
     }
 
     const std::string filename;
     const std::string basedir;
     const StoragePointer mappedFile;
     const uint32_t externalTexture;
-    hfb::Descriptor descriptor;
-    TextureLoader textureLoader;
+    hfb::Descriptor::Pointer descriptor;
     std::vector<ShaderPointer> shaders;
     std::vector<ShaderPointer> programs;
     std::vector<TexturePointer> textures;
@@ -70,19 +67,8 @@ public:
     FramePointer deserializeFrame();
 
     std::string getStringChunk(size_t chunkIndex) {
-        std::string result;
-        if (!descriptor.getChunkString(result, chunkIndex, mappedFile->data(), mappedFile->size())) {
-            return {};
-        }
-        return result;
-    }
-
-    hfb::Buffer getBufferChunk(size_t chunkIndex) {
-        hfb::Buffer result;
-        if (!descriptor.getChunkBuffer(result, chunkIndex, mappedFile->data(), mappedFile->size())) {
-            return {};
-        }
-        return result;
+        auto storage = descriptor->getChunk((uint32_t)chunkIndex);
+        return std::string{ (const char*)storage->data(), storage->size() };
     }
 
     void readBuffers(const json& node);
@@ -240,8 +226,8 @@ public:
     static void readCommand(const json& node, Batch& batch);
 };
 
-FramePointer readFrame(const std::string& filename, uint32_t externalTexture, const TextureLoader& loader) {
-    return Deserializer(filename, externalTexture, loader).readFrame();
+FramePointer readFrame(const std::string& filename, uint32_t externalTexture) {
+    return Deserializer(filename, externalTexture).readFrame();
 }
 
 }  // namespace gpu
@@ -249,7 +235,7 @@ FramePointer readFrame(const std::string& filename, uint32_t externalTexture, co
 using namespace gpu;
 
 void Deserializer::readBuffers(const json& buffersNode) {
-    const auto& binaryChunk = descriptor.chunks[1];
+    const auto& binaryChunk = descriptor->chunks[1];
     const auto* mapped = mappedFile->data() + binaryChunk.offset;
     const auto mappedSize = binaryChunk.length;
     size_t bufferCount = buffersNode.size();
@@ -333,7 +319,7 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
     std::string ktxFile;
     readOptional(ktxFile, node, keys::ktxFile);
     if (!ktxFile.empty()) {
-        if (!QFileInfo(ktxFile.c_str()).exists()) {
+        if (!FileUtils::exists(ktxFile.c_str())) {
             qDebug() << "Warning" << ktxFile.c_str() << " not found, ignoring";
             ktxFile = {};
         }
@@ -347,8 +333,8 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
             frameReaderPath.replace("libraries/gpu/src/gpu/framereader.cpp", "interface/resources", Qt::CaseInsensitive);
             ktxFile.replace(0, 1, frameReaderPath.toStdString());
         }
-        if (QFileInfo(ktxFile.c_str()).isRelative()) {
-            ktxFile = basedir + ktxFile;
+        if (FileUtils::isRelative(ktxFile.c_str())) {
+            ktxFile = basedir + "/" + ktxFile;
         }
         ktx::StoragePointer ktxStorage{ new storage::FileStorage(ktxFile.c_str()) };
         auto ktxObject = ktx::KTX::create(ktxStorage);
@@ -381,19 +367,14 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
     auto& texture = *result;
     readOptional(texture._source, node, keys::source);
 
-    if (!ktxFile.empty()) {
-        if (QFileInfo(ktxFile.c_str()).isRelative()) {
-            ktxFile = basedir + "/" + ktxFile;
-        }
+
+    if (chunkIndex != INVALID_CHUNK_INDEX) {
+        auto ktxChunk = descriptor->getChunk(chunkIndex);
+        texture.setKtxBacking(ktxChunk);
+    } else if (!ktxFile.empty()) {
         texture.setSource(ktxFile);
         texture.setKtxBacking(ktxFile);
-    } else if (chunkIndex != INVALID_CHUNK_INDEX) {
-        if (textureLoader) {
-            texture.setSource("Chunk " + std::to_string(chunkIndex));
-            textureLoader(getBufferChunk(chunkIndex), result, 0);
-        }
-    }
-
+    } 
     return result;
 }
 

@@ -8,6 +8,7 @@
 
 #include "FrameIO.h"
 #include <shared/Storage.h>
+#include <stdexcept>
 
 using namespace gpu::hfb;
 
@@ -30,30 +31,44 @@ static bool read(const uint8_t*& ptr, size_t& remaining, T& output) {
     return skip(ptr, remaining, readSize);
 }
 
-Descriptor Descriptor::parse(const uint8_t* const data, size_t size) {
-    const auto* ptr = data;
-    auto remaining = size;
-    Descriptor result;
-    if (!read(ptr, remaining, result.header)) {
-        return {};
-    }
-    if (result.header.length != size) {
-        return {};
-    }
+Descriptor::Descriptor(const StoragePointer& storage) : storage(storage) {
+    const auto* const start = storage->data();
+    const auto* ptr = storage->data();
+    auto remaining = storage->size();
 
-    while (remaining != 0) {
-        result.chunks.emplace_back();
-        auto& chunk = result.chunks.back();
-        ChunkHeader& chunkHeader = chunk;
-        if (!read(ptr, remaining, chunkHeader)) {
-            return {};
+    try {
+        // Can't parse files more than 4GB
+        if (remaining > UINT32_MAX) {
+            throw std::runtime_error("File too large");
         }
-        chunk.offset = ptr - data;
-        if (!skip(ptr, remaining, chunk.length)) {
-            return {};
+
+        if (!read(ptr, remaining, header)) {
+            throw std::runtime_error("Couldn't read binary header");
         }
+
+        if (header.length != storage->size()) {
+            throw std::runtime_error("Header/Actual size mismatch");
+        }
+
+        while (remaining != 0) {
+            chunks.emplace_back();
+            auto& chunk = chunks.back();
+            ChunkHeader& chunkHeader = chunk;
+            if (!read(ptr, remaining, chunkHeader)) {
+                throw std::runtime_error("Coulnd't read chunk header");
+            }
+            chunk.offset = (uint32_t)(ptr - start);
+            if (chunk.end() > storage->size()) {
+                throw std::runtime_error("Chunk too large for file");
+            }
+            if (!skip(ptr, remaining, chunk.length)) {
+                throw std::runtime_error("Skip chunk data failed");
+            }
+        }
+    } catch (const std::runtime_error&) {
+        // LOG somnething
+        header.magic = 0;
     }
-    return result;
 }
 
 size_t Chunk::end() const {
@@ -62,30 +77,15 @@ size_t Chunk::end() const {
     return result;
 }
 
-
-bool Descriptor::getChunkString(std::string& output, size_t chunkIndex, const uint8_t* const data, size_t size) {
+StoragePointer Descriptor::getChunk(uint32_t chunkIndex) const {
     if (chunkIndex >= chunks.size()) {
-        return false;
+        return {};
     }
     const auto& chunk = chunks[chunkIndex];
-    if (chunk.end() > size) {
-        return false;
+    if (chunk.end() > storage->size()) {
+        return {};
     }
-    output = std::string{ (const char*)(data + chunk.offset), chunk.length };
-    return true;
-}
-
-bool Descriptor::getChunkBuffer(Buffer& output, size_t chunkIndex, const uint8_t* const data, size_t size) {
-    if (chunkIndex >= chunks.size()) {
-        return false;
-    }
-    const auto& chunk = chunks[chunkIndex];
-    if (chunk.end() > size) {
-        return false;
-    }
-    output.resize(chunk.length);
-    memcpy(output.data(), data + chunk.offset, chunk.length);
-    return true;
+    return storage->createView(chunk.length, chunk.offset);
 }
 
 static void writeUint(uint8_t*& dest, uint32_t value) {
@@ -105,12 +105,15 @@ static void writeChunk(uint8_t*& dest, uint32_t chunkType, const T& chunkData) {
 void gpu::hfb::writeFrame(const std::string& filename,
                           const std::string& json,
                           const Buffer& binaryBuffer,
-                          const Buffers& pngBuffers) {
+                          const StorageBuilders& ktxBuilders) {
     uint32_t strLen = (uint32_t)json.size();
     uint32_t size = gpu::hfb::HEADER_SIZE + gpu::hfb::CHUNK_HEADER_SIZE + strLen;
     size += gpu::hfb::CHUNK_HEADER_SIZE + (uint32_t)binaryBuffer.size();
-    for (const auto& pngBuffer : pngBuffers) {
-        size += gpu::hfb::CHUNK_HEADER_SIZE + (uint32_t)pngBuffer.size();
+    for (const auto& builder : ktxBuilders) {
+        auto storage = builder();
+        if (storage) {
+            size += gpu::hfb::CHUNK_HEADER_SIZE + (uint32_t)storage->size();
+        }
     }
 
     auto outputConst = storage::FileStorage::create(filename.c_str(), size, nullptr);
@@ -121,8 +124,13 @@ void gpu::hfb::writeFrame(const std::string& filename,
     writeUint(ptr, size);
     writeChunk(ptr, gpu::hfb::CHUNK_TYPE_JSON, json);
     writeChunk(ptr, gpu::hfb::CHUNK_TYPE_BIN, binaryBuffer);
-    for (const auto& png : pngBuffers) {
-        writeChunk(ptr, gpu::hfb::CHUNK_TYPE_PNG, png);
+    for (const auto& builder : ktxBuilders) {
+        static StoragePointer EMPTY_STORAGE{ std::make_shared<storage::MemoryStorage>(0, nullptr) };
+        auto storage = builder();
+        if (!storage) {
+            storage = EMPTY_STORAGE;
+        }
+        writeChunk(ptr, gpu::hfb::CHUNK_TYPE_KTX, *storage);
     }
     assert((ptr - output->data()) == size);
 }

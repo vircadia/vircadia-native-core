@@ -106,19 +106,8 @@ void PlayerWindow::resizeEvent(QResizeEvent* ev) {
     _renderThread.resize(ev->size());
 }
 
-void PlayerWindow::textureLoader(const std::vector<uint8_t>& imageBytes, const gpu::TexturePointer& texture, uint16_t layer) {
-    QImage image;
-    QByteArray bytes{ (const char*)imageBytes.data(), (int)imageBytes.size() };
-    QBuffer bytesBuffer(&bytes);
-    QImageReader(&bytesBuffer).read(&image);
-    if (layer > 0) {
-        return;
-    }
-    texture->assignStoredMip(0, image.byteCount(), image.constBits());
-}
-
 void PlayerWindow::loadFrame(const QString& path) {
-    auto frame = gpu::readFrame(path.toStdString(), _renderThread._externalTexture, &PlayerWindow::textureLoader);
+    auto frame = gpu::readFrame(path.toStdString(), _renderThread._externalTexture);
     if (frame) {
         _renderThread.submitFrame(frame);
         if (!_renderThread.isThreaded()) {
