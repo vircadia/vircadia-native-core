@@ -272,12 +272,13 @@ class MyAvatar : public Avatar {
      *     the value.</p>
      * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
-     * @property {number} isInSittingState - <code>true</code> if, while in HMD, your avatar is determined to be sitting  
-     *     (avatar leaning is disabled, recenntering is enabled), <code>false</code> if your avatar is determined to be standing
-     *     (avatar leaning is enabled, and avatar recenters if it leans too far). If <code>userRecenterModel == 2</code>  
-     *     (i.e., auto) the property value automatically updates as the user sits or stands, unless 
-     *     <code>isSitStandStateLocked == true</code>. Setting the property value overrides the current siting / standing state, 
-     *     which is updated when the user next sits or stands unless <code>isSitStandStateLocked == true</code>.
+     * @property {number} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting
+     *     (avatar leaning is disabled, recenntering is enabled), <code>false</code> if the user wearing the HMD is
+     *     determined to be standing (avatar leaning is enabled, and avatar recenters if it leans too far).
+     *     If <code>userRecenterModel == 2</code> (i.e., auto) the property value automatically updates as the user sits
+     *     or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the current
+     *     siting / standing state, which is updated when the user next sits or stands unless
+     *     <code>isSitStandStateLocked == true</code>.
      * @property {boolean} isSitStandStateLocked - <code>true</code> to lock the avatar sitting/standing state, i.e., use this 
      *     to disable automatically changing state.
      * @property {boolean} allowTeleporting - <code>true</code> if teleporting is enabled in the Interface settings, 
