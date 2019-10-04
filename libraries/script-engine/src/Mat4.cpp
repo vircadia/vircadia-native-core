@@ -70,15 +70,16 @@ glm::mat4 Mat4::inverse(const glm::mat4& m) const {
 }
 
 glm::vec3 Mat4::getForward(const glm::mat4& m) const {
-    return -glm::vec3(m[2]);
+    // -z is forward
+    return -glm::normalize(glm::vec3(m[2]));
 }
 
 glm::vec3 Mat4::getRight(const glm::mat4& m) const {
-    return glm::vec3(m[0]);
+    return glm::normalize(glm::vec3(m[0]));
 }
 
 glm::vec3 Mat4::getUp(const glm::mat4& m) const {
-    return glm::vec3(m[1]);
+    return glm::normalize(glm::vec3(m[1]));
 }
 
 void Mat4::print(const QString& label, const glm::mat4& m, bool transpose) const {
