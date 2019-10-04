@@ -8,6 +8,7 @@
 #include "objbase.h"
 #include "objidl.h"
 #include "shlguid.h"
+#include <atlstr.h>
 #include <tlhelp32.h>
 #include <strsafe.h>
 

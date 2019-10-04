@@ -127,6 +127,7 @@ Item {
                 left: parent.left
                 right: parent.right;
             }
+            onAccepted: LauncherState.login(username.text, password.text, displayName.text)
         }
 
         HFButton {
