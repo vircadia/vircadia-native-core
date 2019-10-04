@@ -34,9 +34,8 @@ Rectangle {
         case "setMaterialJSON":
             materialJSONText.text = message.params.materialJSONText;
             
-            theObject = JSON.parse(message.params.materialJSONText)
-            theMaterialAttributes = theObject.materials
-            console.log(JSON.stringify(theOtheMaterialAttributesbject))
+            theMaterial = JSON.parse(message.params.materialJSONText)
+            theMaterialAttributes = theMaterial.materials
             hasMaterial = (theMaterial !== undefined)
             break;
         }
@@ -62,6 +61,81 @@ Rectangle {
             }
         }
     
+        Prop.PropString {
+            visible: hasMaterial && ("name" in theMaterialAttributes)
+            label: "name"
+            object: theMaterialAttributes
+            property: "name"
+            readOnly: isReadOnly
+        } 
+        Prop.PropString {
+            visible: hasMaterial && ("model" in theMaterialAttributes)
+            label: "model"
+            object: theMaterialAttributes
+            property: "model"
+            readOnly: isReadOnly
+        } 
+
+        Prop.PropColor {
+            visible: hasMaterial && ("albedo" in theMaterialAttributes)
+            label: "albedo"
+            object: theMaterialAttributes
+            property: "albedo"
+            readOnly: isReadOnly
+        }       
+        Prop.PropString {
+            visible: hasMaterial && ("albedoMap" in theMaterialAttributes)
+            label: "albedoMap"
+            object: theMaterialAttributes
+            property: "albedoMap"
+            readOnly: isReadOnly
+        }
+    
+        Prop.PropScalar {
+            visible: hasMaterial && ("opacity" in theMaterialAttributes)
+            label: "opacity"
+            object: theMaterialAttributes
+            property: "opacity"
+            readOnly: isReadOnly
+        }
+        Prop.PropEnum {
+            visible: hasMaterial && ("opacityMapMode" in theMaterialAttributes)
+            label: "opacityMapMode"
+            object: theMaterialAttributes
+            property: "opacityMapMode"
+            readOnly: isReadOnly
+            enums: ["None", "Mask", "Blend"]
+        } 
+        Prop.PropScalar {
+            visible: hasMaterial && ("opacityCutoff" in theMaterialAttributes)
+            label: "opacity Cutoff"
+            object: theMaterialAttributes
+            property: "opacityCutoff"
+            readOnly: isReadOnly
+        }
+        
+        Prop.PropString {
+            visible: hasMaterial && ("occlusionMap" in theMaterialAttributes)
+            label: "occlusionMap"
+            object: theMaterialAttributes
+            property: "occlusionMap"
+            readOnly: isReadOnly
+        }        
+        Prop.PropString {
+            visible: hasMaterial && ("normalMap" in theMaterialAttributes)
+            label: "normalMap"
+            object: theMaterialAttributes
+            property: "normalMap"
+            readOnly: isReadOnly
+        }
+        Prop.PropString {
+            visible: hasMaterial && ("bumpMap" in theMaterialAttributes)
+            label: "normalMap from bumpMap"
+            object: theMaterialAttributes
+            property: "bumpMap"
+            readOnly: isReadOnly
+        } 
+
         Prop.PropScalar {
             visible: hasMaterial && ("roughness" in theMaterialAttributes)
             label: "roughness"
@@ -70,18 +144,69 @@ Rectangle {
             readOnly: isReadOnly
         }
         Prop.PropScalar {
-            visible: hasMaterial && ("opacity" in theMaterialAttributes)
-            label: "opacity"
+            visible: hasMaterial && ("metallic" in theMaterialAttributes)
+            label: "metallic"
             object: theMaterialAttributes
-            property: "opacity"
+            property: "metallic"
+            readOnly: isReadOnly
+        }           
+        Prop.PropString {
+            visible: hasMaterial && ("roughnessMap" in theMaterialAttributes)
+            label: "roughnessMap"
+            object: theMaterialAttributes
+            property: "roughnessMap"
+            readOnly: isReadOnly
+        }
+        Prop.PropString {
+            visible: hasMaterial && ("glossMap" in theMaterialAttributes)
+            label: "roughnessMap from glossMap"
+            object: theMaterialAttributes
+            property: "glossMap"
+            readOnly: isReadOnly
+        }
+        Prop.PropString {
+            visible: hasMaterial && ("metallicMap" in theMaterialAttributes)
+            label: "metallicMap"
+            object: theMaterialAttributes
+            property: "metallicMap"
+            readOnly: isReadOnly
+        }
+        Prop.PropString {
+            visible: hasMaterial && ("specularMap" in theMaterialAttributes)
+            label: "metallicMap from specularMap"
+            object: theMaterialAttributes
+            property: "specularMap"
             readOnly: isReadOnly
         }
 
-        Prop.PropString {
-            visible: hasMaterial && ("albedoMap" in theMaterialAttributes)
-            label: "roughness"
+        Prop.PropScalar {
+            visible: hasMaterial && ("scattering" in theMaterialAttributes)
+            label: "scattering"
             object: theMaterialAttributes
-            property: "roughness"
+            property: "scattering"
+            readOnly: isReadOnly
+        }
+        Prop.PropString {
+            visible: hasMaterial && ("scatteringMap" in theMaterialAttributes)
+            label: "scatteringMap"
+            object: theMaterialAttributes
+            property: "scatteringMap"
+            readOnly: isReadOnly
+        }
+
+
+        Prop.PropColor {
+            visible: hasMaterial && ("emissive" in theMaterialAttributes)
+            label: "emissive"
+            object: theMaterialAttributes
+            property: "emissive"
+            readOnly: isReadOnly
+        }
+        Prop.PropString {
+            visible: hasMaterial && ("emissiveMap" in theMaterialAttributes)
+            label: "emissiveMap"
+            object: theMaterialAttributes
+            property: "emissiveMap"
             readOnly: isReadOnly
         }
 
