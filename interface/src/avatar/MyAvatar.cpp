@@ -4387,7 +4387,8 @@ bool MyAvatar::isFlying() {
 
 bool MyAvatar::isInAir() {
     // If Avatar is Hover, Falling, or Taking off, they are in Air.
-    return _characterController.getState() != CharacterController::State::Ground;
+    return _characterController.getState() != CharacterController::State::Ground &&
+           _characterController.getState() != CharacterController::State::Seated;
 }
 
 bool MyAvatar::getFlyingEnabled() {
