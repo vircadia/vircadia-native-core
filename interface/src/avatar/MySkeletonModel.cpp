@@ -315,6 +315,10 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     const float TALKING_TIME_THRESHOLD = 0.75f;
     params.isTalking = head->getTimeWithoutTalking() <= TALKING_TIME_THRESHOLD;
 
+    //pass X and Z input key floats (-1 to 1) to rig
+    params.inputX = myAvatar->getDriveKey(MyAvatar::TRANSLATE_X);
+    params.inputZ = myAvatar->getDriveKey(MyAvatar::TRANSLATE_Z);
+
     myAvatar->updateRigControllerParameters(params);
 
     _rig.updateFromControllerParameters(params, deltaTime);

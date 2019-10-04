@@ -2160,6 +2160,48 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
         }
     }
 
+    //TODO: how to handle multiple inputs?  Is there a trick to prioritize fwd/bwd with order of operations?
+    if (params.inputX) {
+        if (params.inputX > 0.0f) {
+            // left
+            _animVars.set("isInputForward", false);
+            _animVars.set("isInputBackward", false);
+            _animVars.set("isInputRight", true);
+            _animVars.set("isInputLeft", false);
+            _animVars.set("isNotInput", false);
+        } else {
+            // right
+            _animVars.set("isInputForward", false);
+            _animVars.set("isInputBackward", false);
+            _animVars.set("isInputRight", false);
+            _animVars.set("isInputLeft", true);
+            _animVars.set("isNotInput", false);
+        }
+    } else if (params.inputZ) {
+        if (params.inputZ > 0.0f) {
+            // forward
+            _animVars.set("isInputForward", true);
+            _animVars.set("isInputBackward", false);
+            _animVars.set("isInputRight", false);
+            _animVars.set("isInputLeft", false);
+            _animVars.set("isNotInput", false);
+        } else {
+            // backward
+            _animVars.set("isInputForward", false);
+            _animVars.set("isInputBackward", true);
+            _animVars.set("isInputRight", false);
+            _animVars.set("isInputLeft", false);
+            _animVars.set("isNotInput", false);
+        }
+    } else if (params.inputX == 0.0f && params.inputZ == 0.0f) {
+        // no WASD input
+        _animVars.set("isInputForward", false);
+        _animVars.set("isInputBackward", false);
+        _animVars.set("isInputRight", false);
+        _animVars.set("isInputLeft", false);
+        _animVars.set("isNotInput", true);
+    }
+
     _headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
     bool leftHandEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftHand] & (uint8_t)ControllerFlags::Enabled;
     bool rightHandEnabled = params.primaryControllerFlags[PrimaryControllerType_RightHand] & (uint8_t)ControllerFlags::Enabled;
