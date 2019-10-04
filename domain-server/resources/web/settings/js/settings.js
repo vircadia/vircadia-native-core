@@ -867,6 +867,10 @@ $(document).ready(function(){
           }
         }
 
+        if (getCurrentDomainIDType() === DOMAIN_ID_TYPE_TEMP) {
+          $(Settings.DOMAIN_ID_SELECTOR).siblings('span').append("  <b>This is a temporary domain and will not be visible in your domain list.</b>");
+        }
+
         if (accessTokenIsSet()) {
           appendAddButtonToPlacesTable();
         }
