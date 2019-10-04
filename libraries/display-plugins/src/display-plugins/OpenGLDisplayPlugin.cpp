@@ -13,6 +13,7 @@
 #include <gl/Config.h>
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QBuffer>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 #include <QtCore/QFileInfo>
@@ -480,7 +481,7 @@ void OpenGLDisplayPlugin::captureFrame(const std::string& filename) const {
         using namespace gpu;
         auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
         FramebufferPointer framebuffer{ Framebuffer::create("captureFramebuffer") };
-        TextureCapturer captureLambda = [&](const std::string& filename, const gpu::TexturePointer& texture, uint16 layer) {
+        TextureCapturer captureLambda = [&](std::vector<uint8_t>& outputBuffer, const gpu::TexturePointer& texture, uint16 layer) {
             QImage image;
             if (texture->getUsageType() == TextureUsageType::STRICT_RESOURCE) {
                 image = QImage{ 1, 1, QImage::Format_ARGB32 };
@@ -498,7 +499,11 @@ void OpenGLDisplayPlugin::captureFrame(const std::string& filename) const {
                 image = QImage{ rect.z, rect.w, QImage::Format_ARGB32 };
                 glBackend->downloadFramebuffer(framebuffer, rect, image);
             }
-            QImageWriter(filename.c_str()).write(image);
+            QBuffer buffer;
+            QImageWriter(&buffer, "png").write(image);
+            const auto& data = buffer.data();
+            outputBuffer.resize(data.size());
+            memcpy(outputBuffer.data(), data.constData(), data.size());
         };
 
         if (_currentFrame) {

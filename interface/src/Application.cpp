@@ -4441,7 +4441,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     static const QString GPU_FRAME_FOLDER = QProcessEnvironment::systemEnvironment().contains(HIFI_FRAMES_FOLDER_VAR)
                         ? QProcessEnvironment::systemEnvironment().value(HIFI_FRAMES_FOLDER_VAR)
                         : "hifiFrames";
-                    static QString GPU_FRAME_TEMPLATE = GPU_FRAME_FOLDER + "/{DATE}_{TIME}";
+                    static QString GPU_FRAME_TEMPLATE = GPU_FRAME_FOLDER + "/{DATE}_{TIME}.hfb";
                     QString fullPath = FileUtils::computeDocumentPath(FileUtils::replaceDateTimeTokens(GPU_FRAME_TEMPLATE));
                     if (FileUtils::canCreateFile(fullPath)) {
                         getActiveDisplayPlugin()->captureFrame(fullPath.toStdString());

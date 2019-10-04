@@ -28,7 +28,7 @@ protected:
     void loadFrame(const QString& path);
 
 private:
-    static void textureLoader(const std::string& filename, const gpu::TexturePointer& texture, uint16_t layer);
+    static void textureLoader(const std::vector<uint8_t>& filename, const gpu::TexturePointer& texture, uint16_t layer);
     QSettings _settings;
     RenderThread _renderThread;
 };
