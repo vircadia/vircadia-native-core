@@ -1,9 +1,8 @@
-cmake_minimum_required(VERSION 3.10)
-project(HQLauncher)
-
+cmake_minimum_required(VERSION 3.0)
 if (APPLE)
-  set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.9)
+  set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.10)
 endif()
+project(HQLauncher)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 include("cmake/macros/SetPackagingParameters.cmake")
@@ -195,6 +194,8 @@ elseif (APPLE)
 
   add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/resources/images "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/"
     COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/MacOS/" ln -sf ./HQ\ Launcher updater
     # Older versions of Launcher put updater in `/Contents/Resources/updater`.
     COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources" ln -sf ../MacOS/HQ\ Launcher updater
