@@ -13,12 +13,19 @@ import QtQuick.Layouts 1.3
 
 import stylesUit 1.0
 import controlsUit 1.0 as HifiControls
+import "../lib/prop" as Prop
 
 Rectangle {
     HifiConstants { id: hifi;}
     color: Qt.rgba(hifi.colors.baseGray.r, hifi.colors.baseGray.g, hifi.colors.baseGray.b, 0.8);
     id: root;
     
+    property var theMaterial: {}
+    property var theMaterialAttributes: {}
+    property var hasMaterial: false
+
+    property var isReadOnly: true
+
     function fromScript(message) {
         switch (message.method) {
         case "setObjectInfo":
@@ -26,40 +33,74 @@ Rectangle {
             break;
         case "setMaterialJSON":
             materialJSONText.text = message.params.materialJSONText;
+            
+            theObject = JSON.parse(message.params.materialJSONText)
+            theMaterialAttributes = theObject.materials
+            console.log(JSON.stringify(theOtheMaterialAttributesbject))
+            hasMaterial = (theMaterial !== undefined)
             break;
         }
     }
-    
-    Rectangle {
-        id: entityIDContainer
-        height: 52
-        width: root.width
-        color: Qt.rgba(root.color.r * 0.7, root.color.g * 0.7, root.color.b * 0.7, 0.8);
-        TextEdit {
-            id: entityIDInfo
-            text: "Type: Unknown\nID: None\nMesh Part: Unknown"
-            font.pointSize: 9
-            color: "#FFFFFF"
-            readOnly: true
-            selectByMouse: true
-        }
-    }
-    
-    Original.ScrollView {
-        anchors.top: entityIDContainer.bottom
-        height: root.height - entityIDContainer.height
-        width: root.width
-        clip: true
-        Original.ScrollBar.horizontal.policy: Original.ScrollBar.AlwaysOff
-        TextEdit {
-            id: materialJSONText
-            text: "Click an object to get material JSON"
+  
+    Column {  
+        
+        anchors.left: parent.left 
+        anchors.right: parent.right 
+
+        Rectangle {
+            id: entityIDContainer
+            height: 52
             width: root.width
-            font.pointSize: 10
-            color: "#FFFFFF"
-            readOnly: true
-            selectByMouse: true
-            wrapMode: Text.WordWrap
+            color: Qt.rgba(root.color.r * 0.7, root.color.g * 0.7, root.color.b * 0.7, 0.8);
+            TextEdit {
+                id: entityIDInfo
+                text: "Type: Unknown\nID: None\nMesh Part: Unknown"
+                font.pointSize: 9
+                color: "#FFFFFF"
+                readOnly: true
+                selectByMouse: true
+            }
+        }
+    
+        Prop.PropScalar {
+            visible: hasMaterial && ("roughness" in theMaterialAttributes)
+            label: "roughness"
+            object: theMaterialAttributes
+            property: "roughness"
+            readOnly: isReadOnly
+        }
+        Prop.PropScalar {
+            visible: hasMaterial && ("opacity" in theMaterialAttributes)
+            label: "opacity"
+            object: theMaterialAttributes
+            property: "opacity"
+            readOnly: isReadOnly
+        }
+
+        Prop.PropString {
+            visible: hasMaterial && ("albedoMap" in theMaterialAttributes)
+            label: "roughness"
+            object: theMaterialAttributes
+            property: "roughness"
+            readOnly: isReadOnly
+        }
+
+        Original.ScrollView {
+           // anchors.top: entityIDContainer.bottom
+            height: root.height - entityIDContainer.height
+            width: root.width
+            clip: true
+            Original.ScrollBar.horizontal.policy: Original.ScrollBar.AlwaysOff
+            TextEdit {
+                id: materialJSONText
+                text: "Click an object to get material JSON"
+                width: root.width
+                font.pointSize: 10
+                color: "#FFFFFF"
+                readOnly: true
+                selectByMouse: true
+                wrapMode: Text.WordWrap
+            }
         }
     }
 }

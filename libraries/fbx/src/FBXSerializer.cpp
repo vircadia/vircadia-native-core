@@ -177,6 +177,10 @@ glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParen
                 break;
             }
         }
+        if (fbxModel.hasGeometricOffset && visitedNodes.size() > 1) {
+            qCWarning(modelformat) << "Here is a parent node with Geometric offset ?????" << url;
+        }
+        
     }
     return globalTransform;
 }
