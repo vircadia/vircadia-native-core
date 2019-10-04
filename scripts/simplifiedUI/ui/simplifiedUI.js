@@ -840,7 +840,7 @@ function shutdown() {
     }
 
     if (secondLaunchWindow) {
-        closesecondLaunchWindow();
+        closeSecondLaunchWindow();
     }
 
     maybeDeleteInputDeviceMutedOverlay();
