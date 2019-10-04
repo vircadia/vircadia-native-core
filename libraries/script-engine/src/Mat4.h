@@ -250,7 +250,6 @@ public slots:
      * Gets the "forward" direction that the camera would face if its orientation was set to the rotation contained in a 
      * matrix. The High Fidelity camera has axes x = right, y = up, -z = forward. 
      * <p>Synonym for {@link Mat4(0).getForward|getForward}.</p>
-     * <p class="important">To do: This function currently doesn't work as expected.</p>
      * @function Mat4(0).getFront
      * @param {Mat4} m - The matrix.
      * @returns {Vec3} The negative z-axis rotated by orientation.
@@ -261,17 +260,22 @@ public slots:
     /**jsdoc
      * Gets the "forward" direction that the camera would face if its orientation was set to the rotation contained in a
      * matrix. The High Fidelity camera has axes x = right, y = up, -z = forward.
-     * <p class="important">To do: This function currently doesn't work as expected.</p>
      * @function Mat4(0).getForward
      * @param {Mat4} m - The matrix.
      * @returns {Vec3} The negative z-axis rotated by the rotation in the matrix.
+     * @example <caption>Demonstrate that the "forward" direction is the negative z-axis.</caption>
+     * var rot = Quat.IDENTITY;
+     * var trans = Vec3.ZERO;
+     * var matrix = Mat4.createFromRotAndTrans(rot, trans);
+     * var forward = Mat4.getForward(matrix);
+     * print("Forward: " + JSON.stringify(forward));
+     * // Forward: {"x":0,"y":0,"z":-1}
      */
     glm::vec3 getForward(const glm::mat4& m) const;
 
     /**jsdoc
      * Gets the "right" direction that the camera would have if its orientation was set to the rotation contained in a matrix. 
      * The High Fidelity camera has axes x = right, y = up, -z = forward.
-     * <p class="important">To do: This function currently doesn't work as expected.</p>
      * @function Mat4(0).getRight
      * @param {Mat4} m - The matrix.
      * @returns {Vec3} The x-axis rotated by the rotation in the matrix.
@@ -281,7 +285,6 @@ public slots:
     /**jsdoc
      * Gets the "up" direction that the camera would have if its orientation was set to the rotation contained in a matrix. The 
      * High Fidelity camera has axes x = right, y = up, -z = forward.
-     * <p class="important">To do: This function currently doesn't work as expected.</p>
      * @function Mat4(0).getUp
      * @param {Mat4} m - The matrix.
      * @returns {Vec3} The y-axis rotated by the rotation in the matrix.
