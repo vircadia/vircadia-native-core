@@ -556,7 +556,9 @@ void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, bool 
 }
 
 void EntityScriptServer::sendStatsPacket() {
-
+    QJsonObject statsObject;
+    // Add ESS-specific ...
+    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
 }
 
 void EntityScriptServer::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
