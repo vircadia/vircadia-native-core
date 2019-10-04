@@ -93,10 +93,10 @@ public slots:
     /**jsdoc
      * Creates a matrix from columns of values.
      * @function Mat4(0).createFromColumns
-     * @param {Vec4} col0 - Column 0.
-     * @param {Vec4} col1 - Column 1.
-     * @param {Vec4} col2 - Column 2.
-     * @param {Vec4} col3 - Column 3.
+     * @param {Vec4} col0 - Column 0 values.
+     * @param {Vec4} col1 - Column 1 values.
+     * @param {Vec4} col2 - Column 2 values.
+     * @param {Vec4} col3 - Column 3 valuse.
      * @returns {Mat4} The matrix with the specified columns values.
      * @example <caption>Create a matrix from columns.</caption>
      * var col0 = { x: 0.707107, y: 1.224745, z: -1.414214, w: 0.0 };
@@ -115,7 +115,7 @@ public slots:
     /**jsdoc
      * Creates a matrix from an array of values.
      * @function Mat4(0).createFromArray
-     * @param {number[]} arr  - The array.
+     * @param {number[]} arr  - The array of values, starting with column 0.
      * @returns {Mat4} The matrix with the specified values.
      * @example <caption>Create a matrix from an array.</caption>
      * var arr = [
@@ -287,6 +287,7 @@ public slots:
      * @returns {Vec3} The y-axis rotated by the rotation in the matrix.
      */
     glm::vec3 getUp(const glm::mat4& m) const;
+
 
     /**jsdoc
      * Prints a matrix to the program log as a label followed by the matrix's values.
