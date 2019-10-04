@@ -1906,6 +1906,7 @@ public:
     void debugDrawPose(controller::Action action, const char* channelName, float size);
 
     bool getIsJointOverridden(int jointIndex) const;
+    glm::vec3 getLookAtPivotPoint();
 
 public slots:
 
@@ -2663,6 +2664,7 @@ private:
     bool _shouldTurnToFaceCamera { false };
     bool _scriptControlsHeadLookAt { false };
     float _scriptHeadControlTimer { 0.0f };
+    float _firstPersonSteadyHeadTimer { 0.0f };
     bool _pointAtActive { false };
     bool _isPointTargetValid { true };
 

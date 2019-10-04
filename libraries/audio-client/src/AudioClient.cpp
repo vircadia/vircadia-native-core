@@ -494,7 +494,9 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             waveInGetDevCaps(WAVE_MAPPER, &wic, sizeof(wic));
             //Use the received manufacturer id to get the device's real name
             waveInGetDevCaps(wic.wMid, &wic, sizeof(wic));
+#if !defined(NDEBUG) 
             qCDebug(audioclient) << "input device:" << wic.szPname;
+#endif
             deviceName = wic.szPname;
         } else {
             WAVEOUTCAPS woc;
@@ -502,7 +504,9 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             waveOutGetDevCaps(WAVE_MAPPER, &woc, sizeof(woc));
             //Use the received manufacturer id to get the device's real name
             waveOutGetDevCaps(woc.wMid, &woc, sizeof(woc));
+#if !defined(NDEBUG) 
             qCDebug(audioclient) << "output device:" << woc.szPname;
+#endif
             deviceName = woc.szPname;
         }
     } else {
@@ -532,10 +536,10 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             break;
         }
     }
-    
+#if !defined(NDEBUG) 
     qCDebug(audioclient) << "defaultAudioDeviceForMode mode: " << (mode == QAudio::AudioOutput ? "Output" : "Input") 
 	<< " [" << deviceName << "] [" << foundDevice.deviceName() << "]";
-
+#endif
     return foundDevice;
 #endif
 
