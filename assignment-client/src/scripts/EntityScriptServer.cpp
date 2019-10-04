@@ -557,8 +557,50 @@ void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, bool 
 
 void EntityScriptServer::sendStatsPacket() {
     QJsonObject statsObject;
-    // Add ESS-specific ...
-    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
+
+    QJsonObject octreeStats;
+    octreeStats["elementCount"] = (double)OctreeElement::getNodeCount();
+    octreeStats["internalElementCount"] = (double)OctreeElement::getInternalNodeCount();
+    octreeStats["leafElementCount"] = (double)OctreeElement::getLeafNodeCount();
+    statsObject["octree_stats"] = octreeStats;
+
+    QJsonObject scriptEngineStats;
+    int numberRunningScripts = 0;
+    const auto scriptEngine = _entitiesScriptEngine;
+    if (scriptEngine) {
+        numberRunningScripts = scriptEngine->getNumRunningEntityScripts();
+    }
+    scriptEngineStats["number_running_scripts"] = numberRunningScripts;
+    statsObject["script_engine_stats"] = scriptEngineStats;
+    
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    QJsonObject nodesObject;
+    nodeList->eachNode([&](const SharedNodePointer& node) {
+        QJsonObject clientStats;
+        const QString uuidString(uuidStringWithoutCurlyBraces(node->getUUID()));
+        clientStats["node_type"] = NodeType::getNodeTypeName(node->getType());
+        auto& nodeStats = node->getConnectionStats();
+
+        static const QString NODE_OUTBOUND_KBPS_STAT_KEY("outbound_kbit/s");
+        static const QString NODE_INBOUND_KBPS_STAT_KEY("inbound_kbit/s");
+
+        // add the key to ask the domain-server for a username replacement, if it has it
+        clientStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidString;
+
+        clientStats[NODE_OUTBOUND_KBPS_STAT_KEY] = node->getOutboundKbps();
+        clientStats[NODE_INBOUND_KBPS_STAT_KEY] = node->getInboundKbps();
+
+        using namespace std::chrono;
+        const float statsPeriod = duration<float, seconds::period>(nodeStats.endTime - nodeStats.startTime).count();
+        clientStats["unreliable_packet/s"] = (nodeStats.sentUnreliablePackets + nodeStats.receivedUnreliablePackets) / statsPeriod;
+        clientStats["reliable_packet/s"] = (nodeStats.sentPackets + nodeStats.receivedPackets) / statsPeriod;
+
+        nodesObject[uuidString] = clientStats;
+    });
+
+    statsObject["nodes"] = nodesObject;
+    addPacketStatsAndSendStatsPacket(statsObject);
 }
 
 void EntityScriptServer::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
