@@ -29,7 +29,7 @@ using Storage = storage::Storage;
 using StoragePointer = storage::Pointer;
 using StorageBuilders = storage::Builders;
 
-constexpr char* const EXTENSION{ ".hfb" };
+constexpr const char* const EXTENSION{ ".hfb" };
 constexpr uint32_t HEADER_SIZE{ sizeof(uint32_t) * 3 };
 constexpr uint32_t CHUNK_HEADER_SIZE = sizeof(uint32_t) * 2;
 constexpr uint32_t MAGIC{ 0x49464948 };

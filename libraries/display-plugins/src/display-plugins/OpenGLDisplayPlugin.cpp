@@ -517,8 +517,6 @@ ktx::StoragePointer textureToKtx(const gpu::Texture& texture) {
 void OpenGLDisplayPlugin::captureFrame(const std::string& filename) const {
     withOtherThreadContext([&] {
         using namespace gpu;
-        auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
-        FramebufferPointer framebuffer{ Framebuffer::create("captureFramebuffer") };
         TextureCapturer captureLambda = [&](const gpu::TexturePointer& texture)->storage::StoragePointer {
             return textureToKtx(*texture);
         };
