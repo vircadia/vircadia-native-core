@@ -145,6 +145,42 @@ public:
     bool isLimbNode;  // is this FBXModel transform is a "LimbNode" i.e. a joint
 };
 
+
+glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParentMap,
+    const QHash<QString, FBXModel>& fbxModels, QString nodeID, bool mixamoHack, const QString& url) {
+    glm::mat4 globalTransform;
+    QVector<QString> visitedNodes; // Used to prevent following a cycle
+    while (!nodeID.isNull()) {
+        visitedNodes.append(nodeID); // Append each node we visit
+
+        const FBXModel& fbxModel = fbxModels.value(nodeID);
+        globalTransform = glm::translate(fbxModel.translation) * fbxModel.preTransform * glm::mat4_cast(fbxModel.preRotation *
+            fbxModel.rotation * fbxModel.postRotation) * fbxModel.postTransform * globalTransform;
+        if (fbxModel.hasGeometricOffset) {
+            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(fbxModel.geometricScaling, fbxModel.geometricRotation, fbxModel.geometricTranslation);
+            globalTransform = globalTransform * geometricOffset;
+        }
+
+        if (mixamoHack) {
+            // there's something weird about the models from Mixamo Fuse; they don't skin right with the full transform
+            return globalTransform;
+        }
+        QList<QString> parentIDs = _connectionParentMap.values(nodeID);
+        nodeID = QString();
+        foreach(const QString& parentID, parentIDs) {
+            if (visitedNodes.contains(parentID)) {
+                qCWarning(modelformat) << "Ignoring loop detected in FBX connection map for" << url;
+                continue;
+            }
+            if (fbxModels.contains(parentID)) {
+                nodeID = parentID;
+                break;
+            }
+        }
+    }
+    return globalTransform;
+}
+
 std::vector<QString> getModelIDsForMeshID(const QString& meshID, const QHash<QString, FBXModel>& fbxModels, const QMultiMap<QString, QString>& _connectionParentMap) {
     std::vector<QString> modelsForMesh;
     if (fbxModels.contains(meshID)) {
@@ -1344,7 +1380,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         joint.globalTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation * joint.postRotation) * joint.postTransform;
         if (joint.parentIndex != -1 && joint.parentIndex < (int)jointIndex && !needMixamoHack) {
             hfm::Joint& parentJoint = hfmModel.joints[joint.parentIndex];
-            joint.globalTransform = joint.globalTransform * parentJoint.globalTransform;
+          //  joint.globalTransform = joint.globalTransform * parentJoint.globalTransform;
+            joint.globalTransform = parentJoint.globalTransform * joint.globalTransform;
             if (parentJoint.hasGeometricOffset) {
                 // Per the FBX standard, geometric offset should not propagate to children.
                 // However, we must be careful when modifying the behavior of FBXSerializer.
@@ -1359,6 +1396,13 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             joint.globalTransform = joint.globalTransform * geometricOffset;
         }
 
+        // accumulate local transforms
+       // QString modelID = fbxModels.contains(it.key()) ? it.key() : _connectionParentMap.value(it.key());
+        glm::mat4 anotherModelTransform = getGlobalTransform(_connectionParentMap, fbxModels, modelID, hfmModel.applicationName == "mixamo.com", url);
+    /*    if (anotherModelTransform != joint.globalTransform) {
+            joint.globalTransform = anotherModelTransform;
+        }
+*/
         hfmModel.joints.push_back(joint);
     }
 
