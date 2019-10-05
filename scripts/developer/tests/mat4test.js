@@ -9,13 +9,24 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var IDENTITY = {r0c0: 1, r0c1: 0, r0c2: 0, r0c3: 0,
-                r1c0: 0, r1c1: 1, r1c2: 0, r1c3: 0,
-                r2c0: 0, r2c1: 0, r2c2: 1, r2c3: 0,
-                r3c0: 0, r3c1: 0, r3c2: 0, r3c3: 1};
+var X = {x: 1, y: 0, z: 0};
+var Y = {x: 0, y: 1, z: 0};
+var Z = {x: 0, y: 0, z: 1};
+
+var IDENTITY = {
+    r0c0: 1, r0c1: 0, r0c2: 0, r0c3: 0,
+    r1c0: 0, r1c1: 1, r1c2: 0, r1c3: 0,
+    r2c0: 0, r2c1: 0, r2c2: 1, r2c3: 0,
+    r3c0: 0, r3c1: 0, r3c2: 0, r3c3: 1
+};
 
 var ROT_ZERO = {x: 0, y: 0, z: 0, w: 1};
 var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
+
+var DEG_45 = Math.PI / 4;
+var ROT_X_45 = Quat.angleAxis(DEG_45, X);
+var ROT_Y_45 = Quat.angleAxis(DEG_45, Y);
+var ROT_Z_45 = Quat.angleAxis(DEG_45, Z);
 
 var ONE = {x: 1, y: 1, z: 1};
 var ZERO = {x: 0, y: 0, z: 0};
@@ -23,6 +34,7 @@ var ONE_TWO_THREE = {x: 1, y: 2, z: 3};
 var ONE_HALF = {x: 0.5, y: 0.5, z: 0.5};
 
 var EPSILON = 0.000001;
+
 
 function mat4FuzzyEqual(a, b) {
     var r, c;
@@ -141,12 +153,45 @@ function testInverse() {
     assert(mat4FuzzyEqual(IDENTITY, Mat4.multiply(test2, Mat4.inverse(test2))));
 }
 
-function testForward() {
-    var test0 = IDENTITY;
-    assert(mat4FuzzyEqual({x: 0, y: 0, z: -1}, Mat4.getForward(test0)));
+function columnsFromQuat(q) {
+    var axes = [Vec3.multiplyQbyV(q, X), Vec3.multiplyQbyV(q, Y), Vec3.multiplyQbyV(q, Z)];
+    axes[0].w = 0;
+    axes[1].w = 0;
+    axes[2].w = 0;
+    axes[3] = {x: 0, y: 0, z: 0, w: 1};
+    return axes;
+}
 
-    var test1 = Mat4.createFromScaleRotAndTrans(ONE_HALF, ROT_Y_180, ONE_TWO_THREE);
-    assert(mat4FuzzyEqual({x: 0, y: 0, z: 1}, Mat4.getForward(test1)));
+function matrixFromColumns(cols) {
+    return Mat4.createFromColumns(cols[0], cols[1], cols[2], cols[3]);
+}
+
+function testMatForwardRightUpFromQuat(q) {
+    var cols = columnsFromQuat(q);
+    var mat = matrixFromColumns(cols);
+
+    assert(vec3FuzzyEqual(Mat4.getForward(mat), Vec3.multiply(cols[2], -1)));
+    assert(vec3FuzzyEqual(Mat4.getForward(mat), Quat.getForward(q)));
+
+    assert(vec3FuzzyEqual(Mat4.getRight(mat), cols[0]));
+    assert(vec3FuzzyEqual(Mat4.getRight(mat), Quat.getRight(q)));
+
+    assert(vec3FuzzyEqual(Mat4.getUp(mat), cols[1]));
+    assert(vec3FuzzyEqual(Mat4.getUp(mat), Quat.getUp(q)));
+}
+
+function testForwardRightUp() {
+
+    // test several variations of rotations
+    testMatForwardRightUpFromQuat(ROT_X_45);
+    testMatForwardRightUpFromQuat(ROT_Y_45);
+    testMatForwardRightUpFromQuat(ROT_Z_45);
+    testMatForwardRightUpFromQuat(Quat.multiply(ROT_X_45, ROT_Y_45));
+    testMatForwardRightUpFromQuat(Quat.multiply(ROT_Y_45, ROT_X_45));
+    testMatForwardRightUpFromQuat(Quat.multiply(ROT_X_45, ROT_Z_45));
+    testMatForwardRightUpFromQuat(Quat.multiply(ROT_Z_45, ROT_X_45));
+    testMatForwardRightUpFromQuat(Quat.multiply(ROT_X_45, ROT_Z_45));
+    testMatForwardRightUpFromQuat(Quat.multiply(ROT_Z_45, ROT_X_45));
 }
 
 function testMat4() {
@@ -157,7 +202,7 @@ function testMat4() {
     testTransformPoint();
     testTransformVector();
     testInverse();
-    testForward();
+    testForwardRightUp();
 
     print("MAT4 TEST complete! (" + (testCount - failureCount) + "/" + testCount + ") tests passed!");
 }
