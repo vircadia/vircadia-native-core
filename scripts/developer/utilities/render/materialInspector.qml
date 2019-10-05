@@ -98,14 +98,28 @@ Rectangle {
             property: "opacity"
             readOnly: isReadOnly
         }
-        Prop.PropEnum {
+        Prop.PropString {
+            visible: hasMaterial && ("opacityMap" in theMaterialAttributes)
+            label: "opacityMap"
+            object: theMaterialAttributes
+            property: "opacityMap"
+            readOnly: isReadOnly
+        }
+        Prop.PropString {
+            visible: hasMaterial && ("opacityMapMode" in theMaterialAttributes)
+            label: "opacityMapMode"
+            object: theMaterialAttributes
+            property: "opacityMapMode"
+            readOnly: isReadOnly
+        }
+        /*Prop.PropEnum {
             visible: hasMaterial && ("opacityMapMode" in theMaterialAttributes)
             label: "opacityMapMode"
             object: theMaterialAttributes
             property: "opacityMapMode"
             readOnly: isReadOnly
             enums: ["None", "Mask", "Blend"]
-        } 
+        } */
         Prop.PropScalar {
             visible: hasMaterial && ("opacityCutoff" in theMaterialAttributes)
             label: "opacity Cutoff"
