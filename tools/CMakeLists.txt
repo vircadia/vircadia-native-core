@@ -23,7 +23,6 @@ if (BUILD_TOOLS)
         udt-test
         vhacd-util
         gpu-frame-player
-        gpu-frame-converter
         ice-client
         ktx-tool
         ac-client
