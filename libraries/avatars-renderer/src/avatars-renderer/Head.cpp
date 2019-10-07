@@ -92,22 +92,23 @@ void Head::simulate(float deltaTime) {
         } else if (_timeWithoutTalking - deltaTime < BLINK_AFTER_TALKING && _timeWithoutTalking >= BLINK_AFTER_TALKING) {
             forceBlink = true;
         }
-
         if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
             // no blinking when brows are raised; blink less with increasing loudness
             const float BASE_BLINK_RATE = 15.0f / 60.0f;
             const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
             if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(fabs(_averageLoudness - _longTermAverageLoudness)) *
                 ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
-                _leftEyeBlinkVelocity = BLINK_SPEED + randFloat() * BLINK_SPEED_VARIABILITY;
-                _rightEyeBlinkVelocity = BLINK_SPEED + randFloat() * BLINK_SPEED_VARIABILITY;
+                float randSpeedVariability = randFloat();
+                float eyeBlinkVelocity = BLINK_SPEED + randSpeedVariability * BLINK_SPEED_VARIABILITY;
+                _leftEyeBlinkVelocity = eyeBlinkVelocity;
+                _rightEyeBlinkVelocity = eyeBlinkVelocity;
                 if (randFloat() < 0.5f) {
                     _leftEyeBlink = BLINK_START_VARIABILITY;
-                } else {
                     _rightEyeBlink = BLINK_START_VARIABILITY;
                 }
             }
         } else {
+
             _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
             _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
 
