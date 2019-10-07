@@ -13,6 +13,8 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
 
 void launchAutoUpdater(const QString& autoUpdaterPath);
 void swapLaunchers(const QString& oldLauncherPath = QString(), const QString& newLauncherPath = QString());
+void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message);
+void cleanLogFile();
 
 #ifdef Q_OS_MAC
 bool replaceDirectory(const QString& orginalDirectory, const QString& newDirectory);

@@ -7,6 +7,11 @@
 #include <QFile>
 #include <QProcess>
 #include <QProcessEnvironment>
+#include <QDateTime>
+#include <QTextStream>
+#include <QStandardPaths>
+#include <iostream>
+//#incluce <QTextStream>
 
 
 QString getMetaverseAPIDomain() {
@@ -15,6 +20,43 @@ QString getMetaverseAPIDomain() {
         return processEnvironment.value("HIFI_METAVERSE_URL");
     }
     return "https://metaverse.highfidelity.com";
+}
+
+
+void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+    Q_UNUSED(context);
+
+    QString date = QDateTime::currentDateTime().toString("dd/MM/yyyy hh:mm:ss");
+    QString txt = QString("[%1] ").arg(date);
+
+    switch (type) {
+      case QtDebugMsg:
+         txt += QString("{Debug} \t\t %1").arg(message);
+         break;
+      case QtWarningMsg:
+         txt += QString("{Warning} \t %1").arg(message);
+         break;
+      case QtCriticalMsg:
+         txt += QString("{Critical} \t %1").arg(message);
+         break;
+      case QtFatalMsg:
+          txt += QString("{Fatal} \t\t %1").arg(message);
+         break;
+      case QtInfoMsg:
+          txt += QString("{Info} \t %1").arg(message);
+          break;
+   }
+
+    QDir launcherDirectory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    launcherDirectory.mkpath(launcherDirectory.absolutePath());
+    QString filename = launcherDirectory.absoluteFilePath("Log.txt");
+
+    QFile outFile(filename);
+    outFile.open(QIODevice::WriteOnly | QIODevice::Append);
+
+    QTextStream textStream(&outFile);
+    std::cout << txt.toStdString() << "\n";
+    textStream << txt << "\n";
 }
 
 void swapLaunchers(const QString& oldLauncherPath, const QString& newLauncherPath) {
@@ -32,6 +74,21 @@ void swapLaunchers(const QString& oldLauncherPath, const QString& newLauncherPat
     } else {
         qDebug() << "failed";
         exit(0);
+    }
+}
+
+
+void cleanLogFile() {
+    QDir launcherDirectory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    launcherDirectory.mkpath(launcherDirectory.absolutePath());
+    QString filename = launcherDirectory.absoluteFilePath("Log.txt");
+    QString tmpFilename = launcherDirectory.absoluteFilePath("Log-last.txt");
+    if (QFile::exists(filename)) {
+        if (QFile::exists(tmpFilename)) {
+            QFile::remove(tmpFilename);
+        }
+        QFile::rename(filename, tmpFilename);
+        QFile::remove(filename);
     }
 }
 

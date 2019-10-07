@@ -271,6 +271,7 @@ void LauncherState::getCurrentClientVersion() {
         }
     }
 
+    qDebug() << "Is logged-in: " << _config.loggedIn;
     if (_config.loggedIn) {
         downloadClient();
     } else {
@@ -718,14 +719,18 @@ void LauncherState::launchClient() {
 
     auto path = getConfigFilePath();
     QFile configFile{ path };
-    if (configFile.open(QIODevice::WriteOnly)) {
+    if (configFile.open(QIODevice::ReadWrite)) {
         QJsonDocument doc = QJsonDocument::fromJson(configFile.readAll());
         doc.setObject({
             { configHomeLocationKey, _config.homeLocation },
             { configLoggedInKey, _config.loggedIn },
             { configLauncherPathKey, _config.launcherPath },
         });
-        configFile.write(doc.toJson());
+        qint64 result = configFile.write(doc.toJson());
+        configFile.close();
+        qDebug() << "Wrote data to config data: " << result;
+    } else {
+        qDebug() << "Failed to open config file";
     }
 
     QString defaultScriptsPath;

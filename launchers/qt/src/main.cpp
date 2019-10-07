@@ -29,7 +29,13 @@ bool hasSuffix(const std::string& path, const std::string& suffix) {
 }
 
 int main(int argc, char *argv[]) {
+    QString name { "High Fidelity" };
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QCoreApplication::setOrganizationName(name);
+    QCoreApplication::setApplicationName("HQ Launcher");
     Q_INIT_RESOURCE(resources);
+    cleanLogFile();
+    qInstallMessageHandler(messageHandler);
 #ifdef Q_OS_MAC
     if (isLauncherAlreadyRunning()) {
         return 0;
@@ -58,11 +64,6 @@ int main(int argc, char *argv[]) {
     }
 
 #endif
-
-    QString name { "High Fidelity" };
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    QCoreApplication::setOrganizationName(name);
-    QCoreApplication::setApplicationName("HQ Launcher");
 
     Launcher launcher(argc, argv);
 
