@@ -64,7 +64,6 @@ void BuildsRequest::receivedResponse() {
         } else {
             auto root = doc.object();
             if (!root.contains("default_tag")) {
-                    //setApplicationState(ApplicationState::UnexpectedError);
                 _error = Error::MissingDefaultTag;
                 emit finished();
                 return;
@@ -74,7 +73,6 @@ void BuildsRequest::receivedResponse() {
 
             auto results = root["results"];
             if (!results.isArray()) {
-                //setApplicationState(ApplicationState::UnexpectedError);
                 _error = Error::MalformedResponse;
                 emit finished();
                 return;

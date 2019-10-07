@@ -5,7 +5,7 @@
 
 class LauncherWindow : public QQuickView {
 public:
-    LauncherWindow() = default;
+    LauncherWindow();
     ~LauncherWindow() = default;
     void keyPressEvent(QKeyEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;

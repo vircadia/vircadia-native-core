@@ -4,9 +4,11 @@ import QtQuick.Controls 2.1
 TextField {
     id: control
 
+    height: 50
+
     font.family: "Graphik Regular"
     font.pointSize: 10.5
-    color: text.length == 0 ? "#7e8c81" : "#000000"
+    color: (text.length == 0 || !enabled) ? "#7e8c81" : "#000000"
 
     property bool togglePasswordField: false
     verticalAlignment: TextInput.AlignVCenter

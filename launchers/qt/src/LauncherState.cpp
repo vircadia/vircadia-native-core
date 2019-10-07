@@ -111,7 +111,7 @@ static const std::array<QString, LauncherState::UIState::UI_STATE_NUM> QML_FILE_
     { { "qml/SplashScreen.qml", "qml/HFBase/CreateAccountBase.qml", "qml/HFBase/LoginBase.qml",
         "qml/Download.qml", "qml/DownloadFinished.qml", "qml/HFBase/Error.qml" } };
 
-void LauncherState::ASSERT_STATE(LauncherState::ApplicationState state) {
+void LauncherState::ASSERT_STATE(ApplicationState state) {
     if (_applicationState != state) {
         qDebug() << "Unexpected state, current: " << _applicationState << ", expected: " << state;
 #ifdef BREAK_ON_ERROR
@@ -120,7 +120,7 @@ void LauncherState::ASSERT_STATE(LauncherState::ApplicationState state) {
     }
 }
 
-void LauncherState::ASSERT_STATE(const std::vector<LauncherState::ApplicationState>& states) {
+void LauncherState::ASSERT_STATE(const std::vector<ApplicationState>& states) {
     for (auto state : states) {
         if (_applicationState == state) {
             return;
@@ -146,7 +146,7 @@ QString LauncherState::getCurrentUISource() const {
 }
 
 void LauncherState::declareQML() {
-    qmlRegisterType<LauncherState>("HQLauncher", 1, 0, "LauncherStateEnums");
+    qmlRegisterType<LauncherState>("HQLauncher", 1, 0, "ApplicationState");
 }
 
 LauncherState::UIState LauncherState::getUIState() const {
@@ -325,15 +325,19 @@ void LauncherState::signup(QString email, QString username, QString password, QS
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err == SignupRequest::Error::BadPassword) {
-            setLastSignupErrorMessage("That's an invalid password - please try another password.");
+            setLastSignupErrorMessage("That's an invalid password - passwords must be at least 6 characters.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err == SignupRequest::Error::BadUsername) {
             setLastSignupErrorMessage("That's an invalid username - please try another username.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
-        } else if (err == SignupRequest::Error::UserProfileAlreadyCompleted || err == SignupRequest::Error::NoSuchEmail) {
-            setLastSignupErrorMessage("That email does not have an account setup for it, or it was previously completed.");
+        } else if (err == SignupRequest::Error::UserProfileAlreadyCompleted) {
+            setLastSignupErrorMessage("That email has already been completed.");
+            setApplicationState(ApplicationState::WaitingForSignup);
+            return;
+        } else if (err == SignupRequest::Error::NoSuchEmail) {
+            setLastSignupErrorMessage("That email does not have an account setup for it.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err != SignupRequest::Error::None) {
@@ -382,8 +386,6 @@ void LauncherState::login(QString username, QString password, QString displayNam
     setApplicationState(ApplicationState::RequestingLogin);
 
     _displayName = displayName;
-
-    qDebug() << "Got login: " << username << password;
 
     auto request = new LoginRequest();
 
@@ -533,7 +535,6 @@ void LauncherState::installClient() {
     auto unzipper = new Unzipper(_clientZipFile.fileName(), QDir(installDir));
     unzipper->setAutoDelete(true);
     connect(unzipper, &Unzipper::progress, this, [this](float progress) {
-        //qDebug() << "Unzipper progress: " << progress;
         _interfaceInstallProgress = progress;
         emit downloadProgressChanged();
     });
@@ -547,8 +548,6 @@ void LauncherState::installClient() {
         }
     });
     QThreadPool::globalInstance()->start(unzipper);
-
-    //launchClient();
 }
 
 void LauncherState::downloadLauncher() {
@@ -770,3 +769,4 @@ void LauncherState::setApplicationState(ApplicationState state) {
 LauncherState::ApplicationState LauncherState::getApplicationState() const {
     return _applicationState;
 }
+

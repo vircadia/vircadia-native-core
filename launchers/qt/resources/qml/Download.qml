@@ -97,7 +97,6 @@ Item {
     }
 
     Component.onCompleted: {
-        root.parent.setStateInfoState("right");
         root.parent.setBuildInfoState("left");
     }
 }

@@ -70,19 +70,18 @@ public:
         LaunchingHighFidelity,
     };
 
+    Q_ENUM(ApplicationState)
+
     bool _isDebuggingScreens{ false };
     UIState _currentDebugScreen{ UIState::SplashScreen };
     void toggleDebugState();
     void gotoNextDebugScreen();
     void gotoPreviousDebugScreen();
 
-    Q_ENUM(UIState);
-    Q_ENUM(ApplicationState)
-
     Q_INVOKABLE QString getCurrentUISource() const;
 
-    void ASSERT_STATE(LauncherState::ApplicationState state);
-    void ASSERT_STATE(const std::vector<LauncherState::ApplicationState>& states);
+    void ASSERT_STATE(ApplicationState state);
+    void ASSERT_STATE(const std::vector<ApplicationState>& states);
 
     static void declareQML();
 

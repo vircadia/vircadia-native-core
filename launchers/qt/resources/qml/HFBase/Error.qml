@@ -49,10 +49,7 @@ Item {
     HFTextRegular {
         id: description
 
-        width: 100
-        height: 40
-
-        text: "We seem to have a problem.\n Please restart HQ Launcher"
+        text: "We seem to have a problem.\nPlease restart HQ Launcher"
 
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
@@ -83,7 +80,6 @@ Item {
     }
 
     Component.onCompleted: {
-        root.parent.setStateInfoState("left");
         root.parent.setBuildInfoState("right");
     }
 

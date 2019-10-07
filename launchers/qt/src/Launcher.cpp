@@ -15,6 +15,7 @@ Launcher::Launcher(int& argc, char**argv) : QGuiApplication(argc, argv) {
     _launcherWindow = std::make_unique<LauncherWindow>();
     _launcherWindow->rootContext()->setContextProperty("LauncherState", _launcherState.get());
     _launcherWindow->rootContext()->setContextProperty("PathUtils", new PathUtils());
+    _launcherWindow->setTitle("High Fidelity");
     _launcherWindow->setFlags(Qt::FramelessWindowHint | Qt::Window);
     _launcherWindow->setLauncherStatePtr(_launcherState);
 

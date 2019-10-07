@@ -4,6 +4,32 @@
 
 #include <QCursor>
 
+#ifdef Q_OS_WIN
+#include <shellapi.h>
+#include <propsys.h>
+#include <propkey.h>
+#endif
+
+LauncherWindow::LauncherWindow() {
+#ifdef Q_OS_WIN
+    // On Windows, disable pinning of the launcher.
+    IPropertyStore* pps;
+    HWND id = (HWND)this->winId();
+    if (id == NULL) {
+        qDebug() << "Failed to disable pinning, window id is null";
+    } else {
+        HRESULT hr = SHGetPropertyStoreForWindow(id, IID_PPV_ARGS(&pps));
+        if (SUCCEEDED(hr)) {
+            PROPVARIANT var;
+            var.vt = VT_BOOL;
+            var.boolVal = VARIANT_TRUE;
+            hr = pps->SetValue(PKEY_AppUserModel_PreventPinning, var);
+            pps->Release();
+        }
+    }
+#endif
+}
+
 void LauncherWindow::keyPressEvent(QKeyEvent* event) {
     QQuickView::keyPressEvent(event);
     if (!event->isAccepted()) {

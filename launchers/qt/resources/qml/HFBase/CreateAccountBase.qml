@@ -1,6 +1,8 @@
 import QtQuick 2.3
 import QtQuick 2.1
+
 import "../HFControls"
+import HQLauncher 1.0
 
 
 Item {
@@ -10,6 +12,8 @@ Item {
     property string usernamePlaceholder: "User name"
     property string passwordPlaceholder: "Set a password"
     property int marginLeft: root.width * 0.15
+
+    property bool enabled: LauncherState.applicationState == ApplicationState.WaitingForSignup
 
     Image {
         anchors.centerIn: parent
@@ -24,10 +28,9 @@ Item {
     HFTextHeader {
         id: title
         width: 481
-        height: 27
         lineHeight: 35
         lineHeightMode: Text.FixedHeight
-        text: root.titleText
+        text: root.titleText + " " + LauncherState.applicationState
         visible: LauncherState.lastSignupErrorMessage.length == 0 ? root.titleText : "Uh oh."
         anchors {
             top: root.top
@@ -40,7 +43,6 @@ Item {
     HFTextRegular {
         id: instruction
         width: 425
-        height: 22
 
         text: "Use the email address that you registered with."
         visible: LauncherState.lastSignupErrorMessage.length == 0
@@ -57,16 +59,15 @@ Item {
         id: error
 
         width: 425
-        height: 22
 
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
+        wrapMode: Text.Wrap
 
         visible: LauncherState.lastSignupErrorMessage.length > 0
         text: LauncherState.lastSignupErrorMessage
+
         anchors {
             left: root.left
-            right: root.right
+            leftMargin: root.marginLeft
             top: title.bottom
             topMargin: 18
         }
@@ -75,7 +76,9 @@ Item {
     HFTextField {
         id: email
         width: 430
-        height: 50
+
+        enabled: root.enabled
+
         placeholderText: "Email Address"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
@@ -89,7 +92,9 @@ Item {
     HFTextField {
         id: username
         width: 430
-        height: 50
+
+        enabled: root.enabled
+
         placeholderText: root.usernamePlaceholder
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
@@ -103,7 +108,9 @@ Item {
     HFTextField {
         id: passwordField
         width: 430
-        height: 50
+
+        enabled: root.enabled
+
         placeholderText: root.passwordPlaceholder
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         togglePasswordField: true
@@ -136,7 +143,9 @@ Item {
      HFTextField {
         id: displayName
         width: 430
-        height: 50
+
+        enabled: root.enabled
+
         placeholderText: "Display Name"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
@@ -152,7 +161,8 @@ Item {
     HFButton {
         id: button
         width: 134
-        height: 50
+
+        enabled: root.enabled
 
         text: "NEXT"
 
@@ -201,7 +211,6 @@ Item {
     }
 
     Component.onCompleted: {
-        root.parent.setStateInfoState("right");
         root.parent.setBuildInfoState("left");
     }
 }
