@@ -5,6 +5,8 @@
 #import <Cocoa/Cocoa.h>
 #include <QString>
 #include <QDebug>
+#include <QTimer>
+#include <QCoreApplication>
 
 void launchClient(const QString& clientPath, const QString& homePath, const QString& defaultScriptOverride,
                   const QString& displayName, const QString& contentCachePath, QString loginTokenResponse) {
@@ -72,7 +74,7 @@ void launchAutoUpdater(const QString& autoUpdaterPath) {
         @throw exception;
     }
 
-    exit(0);
+    QCoreApplication::instance()->quit();
 }
 
 
