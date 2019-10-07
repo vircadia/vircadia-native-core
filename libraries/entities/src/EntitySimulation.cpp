@@ -39,12 +39,7 @@ void EntitySimulation::updateEntities() {
     callUpdateOnEntitiesThatNeedIt(now);
     moveSimpleKinematics(now);
     sortEntitiesThatMoved();
-}
-
-void EntitySimulation::takeDeadEntities(SetOfEntities& entitiesToDelete) {
-    QMutexLocker lock(&_mutex);
-    entitiesToDelete.swap(_deadEntities);
-    _deadEntities.clear();
+    processDeadEntities();
 }
 
 void EntitySimulation::removeEntityFromInternalLists(EntityItemPointer entity) {
@@ -259,4 +254,21 @@ void EntitySimulation::moveSimpleKinematics(uint64_t now) {
             itemItr = _simpleKinematicEntities.erase(itemItr);
         }
     }
+}
+
+void EntitySimulation::processDeadEntities() {
+    if (_deadEntities.empty()) {
+        return;
+    }
+    SetOfEntities entitiesToDeleteImmediately;
+    SetOfEntities dummyList; // ignore this list: it will be empty
+    foreach (auto entity, _deadEntities) {
+        QUuid nullSessionID;
+        entitiesToDeleteImmediately.insert(entity);
+        entity->collectChildrenForDelete(entitiesToDeleteImmediately, dummyList, nullSessionID);
+    }
+    if (_entityTree) {
+        _entityTree->deleteEntitiesByPointer(entitiesToDeleteImmediately);
+    }
+    _deadEntities.clear();
 }

@@ -18,6 +18,7 @@
 #include <glm/glm.hpp>
 
 #include <QtGui/QWindow>
+#include <QSet>
 
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
@@ -49,6 +50,7 @@ typedef std::shared_ptr<EntityTree> EntityTreePointer;
 typedef std::shared_ptr<EntityDynamicInterface> EntityDynamicPointer;
 typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
 using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
+using SetOfEntities = QSet<EntityItemPointer>;
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() override { };
@@ -540,6 +542,8 @@ public:
 
     static QString _marketplacePublicKey;
     static void retrieveMarketplacePublicKey();
+
+    void collectChildrenForDelete(SetOfEntities& entitiesToDelete, SetOfEntities& domainEntities, const QUuid& sessionID) const;
 
     float getBoundingRadius() const { return _boundingRadius; }
     void setSpaceIndex(int32_t index);

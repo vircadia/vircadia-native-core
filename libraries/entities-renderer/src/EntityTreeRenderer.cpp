@@ -1357,6 +1357,10 @@ EntityItemPointer EntityTreeRenderer::getEntity(const EntityItemID& id) {
     return result;
 }
 
+void EntityTreeRenderer::deleteEntity(const EntityItemID& id) const {
+    DependencyManager::get<EntityScriptingInterface>()->deleteEntity(id);
+}
+
 void EntityTreeRenderer::onEntityChanged(const EntityItemID& id) {
     _changedEntitiesGuard.withWriteLock([&] {
         _changedEntities.insert(id);

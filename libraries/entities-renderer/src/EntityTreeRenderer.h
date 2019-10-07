@@ -118,6 +118,7 @@ public:
     void setProxyWindow(const EntityItemID& id, QWindow* proxyWindow);
     void setCollisionSound(const EntityItemID& id, const SharedSoundPointer& sound);
     EntityItemPointer getEntity(const EntityItemID& id);
+    void deleteEntity(const EntityItemID& id) const;
     void onEntityChanged(const EntityItemID& id);
 
     // Access the workload Space

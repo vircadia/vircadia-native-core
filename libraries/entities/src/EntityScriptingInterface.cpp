@@ -966,42 +966,52 @@ void EntityScriptingInterface::deleteEntity(const QUuid& id) {
 
     _activityTracking.deletedEntityCount++;
 
-    EntityItemID entityID(id);
-    bool shouldSendDeleteToServer = true;
-
-    // If we have a local entity tree set, then also update it.
-    if (_entityTree) {
-        _entityTree->withWriteLock([&] {
-            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-            if (entity) {
-                auto nodeList = DependencyManager::get<NodeList>();
-                const QUuid myNodeID = nodeList->getSessionUUID();
-                if (entity->isAvatarEntity() && !entity->isMyAvatarEntity()) {
-                    // don't delete other avatar's avatarEntities
-                    shouldSendDeleteToServer = false;
-                    return;
-                }
-
-                if (entity->getLocked()) {
-                    shouldSendDeleteToServer = false;
-                } else {
-                    // only delete non-domain entities, domain entities will round trip through the server filters
-                    if (!entity->isDomainEntity() || _entityTree->isServerlessMode()) {
-                        shouldSendDeleteToServer = false;
-                        _entityTree->deleteEntity(entityID);
-
-                        if (entity->isAvatarEntity() && getEntityPacketSender()->getMyAvatar()) {
-                            getEntityPacketSender()->getMyAvatar()->clearAvatarEntity(entityID, false);
-                        }
-                    }
-                }
-            }
-        });
+    if (!_entityTree) {
+        return;
     }
 
-    // if at this point, we know the id, and we should still delete the entity, send the update to the entity server
-    if (shouldSendDeleteToServer) {
-        getEntityPacketSender()->queueEraseEntityMessage(entityID);
+    EntityItemID entityID(id);
+
+    // If we have a local entity tree set, then also update it.
+    SetOfEntities entitiesToDeleteImmediately;
+    SetOfEntities domainEntities;
+    _entityTree->withWriteLock([&] {
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+        if (entity) {
+            if (entity->isAvatarEntity() && !entity->isMyAvatarEntity()) {
+                // don't delete other avatar's avatarEntities
+                return;
+            }
+            if (entity->getLocked()) {
+                return;
+            }
+
+            // Deleting an entity has consequences for linked children: some can be deleted but others can't.
+            // Local- and my-avatar-entities can be deleted immediately, but other-avatar-entities can't be deleted
+            // by this context, and domain-entity deletes must rountrip through the entity-server for authorization.
+            // So we recurse down the linked hierarchy and snarf children into two categories:
+            // (a) entitiesToDeleteImmediately and (b) domainEntntities.
+            if (entity->isDomainEntity()) {
+                domainEntities.insert(entity);
+            } else {
+                entitiesToDeleteImmediately.insert(entity);
+                const auto sessionID = DependencyManager::get<NodeList>()->getSessionUUID();
+                entity->collectChildrenForDelete(entitiesToDeleteImmediately, domainEntities, sessionID);
+            }
+            if (!entitiesToDeleteImmediately.empty()) {
+                _entityTree->deleteEntitiesByPointer(entitiesToDeleteImmediately);
+            }
+        }
+    });
+
+    foreach (auto entity, entitiesToDeleteImmediately) {
+        if (entity->isMyAvatarEntity()) {
+            getEntityPacketSender()->getMyAvatar()->clearAvatarEntity(entityID, false);
+        }
+    }
+    // finally ask entity-server to delete domainEntities
+    foreach (auto entity, domainEntities) {
+        getEntityPacketSender()->queueEraseEntityMessage(entity->getID());
     }
 }
 

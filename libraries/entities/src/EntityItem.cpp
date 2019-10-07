@@ -3203,6 +3203,7 @@ void EntityItem::somethingChangedNotification() {
     });
 }
 
+// static
 void EntityItem::retrieveMarketplacePublicKey() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest;
@@ -3232,6 +3233,26 @@ void EntityItem::retrieveMarketplacePublicKey() {
 
         networkReply->deleteLater();
     });
+}
+
+void EntityItem::collectChildrenForDelete(SetOfEntities& entitiesToDelete, SetOfEntities& domainEntities, const QUuid& sessionID) const {
+    // Deleting an entity has consequences for its children, however there are rules dictating what can be deleted.
+    // This method helps enforce those rules for the children of entity (not for this entity).
+    for (SpatiallyNestablePointer child : getChildren()) {
+        if (child && child->getNestableType() == NestableType::Entity) {
+            EntityItemPointer childEntity = std::static_pointer_cast<EntityItem>(child);
+            // NOTE: null sessionID means "collect ALL known entities", else we only collect: local-entities and authorized avatar-entities
+            if (sessionID.isNull() || childEntity->isLocalEntity() || (childEntity->isAvatarEntity() &&
+                    (childEntity->isMyAvatarEntity() || childEntity->getOwningAvatarID() == sessionID))) {
+                if (entitiesToDelete.find(childEntity) == entitiesToDelete.end()) {
+                    entitiesToDelete.insert(childEntity);
+                    childEntity->collectChildrenForDelete(entitiesToDelete, domainEntities, sessionID);
+                }
+            } else if (childEntity->isDomainEntity()) {
+                domainEntities.insert(childEntity);
+            }
+        }
+    }
 }
 
 void EntityItem::setSpaceIndex(int32_t index) {
@@ -3398,7 +3419,7 @@ void EntityItem::prepareForSimulationOwnershipBid(EntityItemProperties& properti
     properties.setSimulationOwner(Physics::getSessionUUID(), priority);
     setPendingOwnershipPriority(priority);
 
-    // ANDREW TODO: figure out if it would be OK to NOT bother set these properties
+    // ANDREW TODO: figure out if it would be OK to NOT bother set these properties here
     properties.setEntityHostType(getEntityHostType());
     properties.setOwningAvatarID(getOwningAvatarID());
     setLastBroadcast(now); // for debug/physics status icons

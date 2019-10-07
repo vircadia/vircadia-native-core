@@ -16,7 +16,6 @@
 #include <unordered_set>
 
 #include <QtCore/QObject>
-#include <QSet>
 #include <QVector>
 
 #include <PerfStat.h>
@@ -25,7 +24,6 @@
 #include "EntityTree.h"
 
 using EntitySimulationPointer = std::shared_ptr<EntitySimulation>;
-using SetOfEntities = QSet<EntityItemPointer>;
 using VectorOfEntities = QVector<EntityItemPointer>;
 
 // the EntitySimulation needs to know when these things change on an entity,
@@ -77,16 +75,16 @@ public:
 
     EntityTreePointer getEntityTree() { return _entityTree; }
 
-    virtual void takeDeadEntities(SetOfEntities& entitiesToDelete);
-
     virtual void prepareEntityForDelete(EntityItemPointer entity);
 
     void processChangedEntities();
+    virtual void queueEraseDomainEntities(const SetOfEntities& domainEntities) const { }
 
 protected:
     virtual void addEntityToInternalLists(EntityItemPointer entity);
     virtual void removeEntityFromInternalLists(EntityItemPointer entity);
     virtual void processChangedEntity(const EntityItemPointer& entity);
+    virtual void processDeadEntities();
 
     void expireMortalEntities(uint64_t now);
     void callUpdateOnEntitiesThatNeedIt(uint64_t now);

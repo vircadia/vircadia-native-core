@@ -1577,7 +1577,8 @@ void MyAvatar::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteAr
 }
 
 void MyAvatar::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
-    AvatarData::clearAvatarEntity(entityID, requiresRemovalFromTree);
+    // NOTE: the requiresRemovalFromTree argument is unused
+    AvatarData::clearAvatarEntity(entityID);
     _avatarEntitiesLock.withWriteLock([&] {
         _cachedAvatarEntityBlobsToDelete.push_back(entityID);
     });
@@ -1647,13 +1648,16 @@ void MyAvatar::handleChangedAvatarEntityData() {
     // move the lists to minimize lock time
     std::vector<QUuid> cachedBlobsToDelete;
     std::vector<QUuid> cachedBlobsToUpdate;
-    std::vector<QUuid> entitiesToDelete;
+    QSet<EntityItemID> idsToDelete;
     std::vector<QUuid> entitiesToAdd;
     std::vector<QUuid> entitiesToUpdate;
     _avatarEntitiesLock.withWriteLock([&] {
         cachedBlobsToDelete = std::move(_cachedAvatarEntityBlobsToDelete);
         cachedBlobsToUpdate = std::move(_cachedAvatarEntityBlobsToAddOrUpdate);
-        entitiesToDelete = std::move(_entitiesToDelete);
+        foreach (auto id, _entitiesToDelete) {
+            idsToDelete.insert(id);
+        }
+        _entitiesToDelete.clear();
         entitiesToAdd = std::move(_entitiesToAdd);
         entitiesToUpdate = std::move(_entitiesToUpdate);
     });
@@ -1671,7 +1675,7 @@ void MyAvatar::handleChangedAvatarEntityData() {
     };
 
     // remove delete-add and delete-update overlap
-    for (const auto& id : entitiesToDelete) {
+    for (const auto& id : idsToDelete) {
         removeAllInstancesHelper(id, cachedBlobsToUpdate);
         removeAllInstancesHelper(id, entitiesToAdd);
         removeAllInstancesHelper(id, entitiesToUpdate);
@@ -1685,11 +1689,9 @@ void MyAvatar::handleChangedAvatarEntityData() {
     }
 
     // DELETE real entities
-    for (const auto& id : entitiesToDelete) {
-        entityTree->withWriteLock([&] {
-            entityTree->deleteEntity(id);
-        });
-    }
+    entityTree->withWriteLock([&] {
+        entityTree->deleteEntitiesByID(idsToDelete);
+    });
 
     // ADD real entities
     EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
@@ -1802,7 +1804,7 @@ void MyAvatar::handleChangedAvatarEntityData() {
         // we have a client traits handler
         // flag removed entities as deleted so that changes are sent next frame
         _avatarEntitiesLock.withWriteLock([&] {
-            for (const auto& id : entitiesToDelete) {
+            for (const auto& id : idsToDelete) {
                 if (_packedAvatarEntityData.find(id) != _packedAvatarEntityData.end()) {
                     _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, id);
                 }
@@ -2531,18 +2533,11 @@ bool isWearableEntity(const EntityItemPointer& entity) {
 void MyAvatar::removeWornAvatarEntity(const EntityItemID& entityID) {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-
     if (entityTree) {
         auto entity = entityTree->findEntityByID(entityID);
         if (entity && isWearableEntity(entity)) {
-            entityTree->withWriteLock([&entityID, &entityTree] {
-                // remove this entity first from the entity tree
-                entityTree->deleteEntity(entityID, true, true);
-            });
-
-            // remove the avatar entity from our internal list
-            // (but indicate it doesn't need to be pulled from the tree)
-            clearAvatarEntity(entityID, false);
+            treeRenderer->deleteEntity(entityID);
+            clearAvatarEntity(entityID);
         }
     }
 }
@@ -2552,8 +2547,16 @@ void MyAvatar::clearWornAvatarEntities() {
     _avatarEntitiesLock.withReadLock([&] {
         avatarEntityIDs = _packedAvatarEntityData.keys();
     });
-    for (auto entityID : avatarEntityIDs) {
-        removeWornAvatarEntity(entityID);
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        for (auto entityID : avatarEntityIDs) {
+            auto entity = entityTree->findEntityByID(entityID);
+            if (entity && isWearableEntity(entity)) {
+                treeRenderer->deleteEntity(entityID);
+                clearAvatarEntity(entityID);
+            }
+        }
     }
 }
 

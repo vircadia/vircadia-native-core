@@ -63,19 +63,20 @@ public:
     void removeDynamic(const QUuid dynamicID) override;
     void applyDynamicChanges() override;
 
-    virtual void takeDeadEntities(SetOfEntities& deadEntities) override;
     void takeDeadAvatarEntities(SetOfEntities& deadEntities);
 
     virtual void clearEntities() override;
+    void queueEraseDomainEntities(const SetOfEntities& domainEntities) const override;
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
-    virtual void addEntityToInternalLists(EntityItemPointer entity) override;
-    virtual void removeEntityFromInternalLists(EntityItemPointer entity) override;
+    void addEntityToInternalLists(EntityItemPointer entity) override;
+    void removeEntityFromInternalLists(EntityItemPointer entity) override;
     void processChangedEntity(const EntityItemPointer& entity) override;
+    void processDeadEntities() override;
 
     void removeOwnershipData(EntityMotionState* motionState);
     void clearOwnershipData();

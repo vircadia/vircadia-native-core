@@ -543,10 +543,13 @@ void AvatarManager::removeDeadAvatarEntities(const SetOfEntities& deadEntities) 
     for (auto entity : deadEntities) {
         QUuid entityOwnerID = entity->getOwningAvatarID();
         AvatarSharedPointer avatar = getAvatarBySessionID(entityOwnerID);
-        const bool REQUIRES_REMOVAL_FROM_TREE = false;
         if (avatar) {
-            avatar->clearAvatarEntity(entity->getID(), REQUIRES_REMOVAL_FROM_TREE);
+            avatar->clearAvatarEntity(entity->getID());
         }
+    }
+}
+
+/* ADEBUG: I don't think the code below is necessary because any dead entities will have already been removed from tree and simulation
         if (entityTree && entity->isMyAvatarEntity()) {
             entityTree->withWriteLock([&] {
                 // We only need to delete the direct children (rather than the descendants) because
@@ -566,6 +569,7 @@ void AvatarManager::removeDeadAvatarEntities(const SetOfEntities& deadEntities) 
         }
     }
 }
+*/
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
     auto avatar = std::static_pointer_cast<OtherAvatar>(removedAvatar);

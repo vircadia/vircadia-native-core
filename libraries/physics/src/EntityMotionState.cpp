@@ -62,7 +62,6 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     // rather than pass the legit shape pointer to the ObjectMotionState ctor above.
     setShape(shape);
 
-    // ANDREW TODO: maybe all non-domain entities should be unownable?  or our avatar entities should have a special OwnershipState
     if (_entity->isAvatarEntity() && !_entity->isMyAvatarEntity()) {
         // avatar entities are always thus, so we cache this fact in _ownershipState
         _ownershipState = EntityMotionState::OwnershipState::Unownable;
@@ -748,7 +747,6 @@ bool EntityMotionState::shouldSendBid() const {
     // NOTE: this method is only ever called when the entity's simulation is NOT locally owned
     return _body->isActive()
         && (_region == workload::Region::R1)
-        // ANDREW TODO: make sure _ownershipState to Unownable on creation when applicable
         && _ownershipState != EntityMotionState::OwnershipState::Unownable
         && glm::max(glm::max(VOLUNTEER_SIMULATION_PRIORITY, _bumpedPriority), _entity->getScriptSimulationPriority()) >= _entity->getSimulationPriority()
         && !_entity->getLocked()
@@ -770,8 +768,7 @@ uint8_t EntityMotionState::computeFinalBidPriority() const {
 }
 
 bool EntityMotionState::isLocallyOwned() const {
-    // ANDREW TODO: maybe also always return true for MyAvatar's avatar entities?
-    return _entity->getSimulatorID() == Physics::getSessionUUID();
+    return _entity->getSimulatorID() == Physics::getSessionUUID() || _entity->isMyAvatarEntity();
 }
 
 bool EntityMotionState::isLocallyOwnedOrShouldBe() const {
@@ -789,13 +786,15 @@ void EntityMotionState::setRegion(uint8_t region) {
 }
 
 void EntityMotionState::initForBid() {
-    assert(_ownershipState != EntityMotionState::OwnershipState::Unownable);
-    _ownershipState = EntityMotionState::OwnershipState::PendingBid;
+    if (_ownershipState != EntityMotionState::OwnershipState::Unownable) {
+        _ownershipState = EntityMotionState::OwnershipState::PendingBid;
+    }
 }
 
 void EntityMotionState::initForOwned() {
-    assert(_ownershipState != EntityMotionState::OwnershipState::Unownable);
-    _ownershipState = EntityMotionState::OwnershipState::LocallyOwned;
+    if (_ownershipState != EntityMotionState::OwnershipState::Unownable) {
+        _ownershipState = EntityMotionState::OwnershipState::LocallyOwned;
+    }
 }
 
 void EntityMotionState::clearOwnershipState() {

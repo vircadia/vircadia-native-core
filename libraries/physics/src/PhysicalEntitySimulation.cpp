@@ -107,18 +107,6 @@ void PhysicalEntitySimulation::clearOwnershipData() {
     _bids.clear();
 }
 
-void PhysicalEntitySimulation::takeDeadEntities(SetOfEntities& deadEntities) {
-    QMutexLocker lock(&_mutex);
-    for (auto entity : _deadEntities) {
-        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        if (motionState) {
-            _entitiesToRemoveFromPhysics.insert(entity);
-        }
-    }
-    _deadEntities.swap(deadEntities);
-    _deadEntities.clear();
-}
-
 void PhysicalEntitySimulation::takeDeadAvatarEntities(SetOfEntities& deadEntities) {
     _deadAvatarEntities.swap(deadEntities);
     _deadAvatarEntities.clear();
@@ -182,6 +170,38 @@ void PhysicalEntitySimulation::processChangedEntity(const EntityItemPointer& ent
     }
 }
 
+void PhysicalEntitySimulation::processDeadEntities() {
+    if (_deadEntities.empty()) {
+        return;
+    }
+    PROFILE_RANGE(simulation_physics, "Deletes");
+    SetOfEntities entitiesToDeleteImmediately;
+    SetOfEntities domainEntities;
+    QUuid sessionID = Physics::getSessionUUID();
+    QMutexLocker lock(&_mutex);
+    for (auto entity : _deadEntities) {
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+        if (motionState) {
+            _entitiesToRemoveFromPhysics.insert(entity);
+        }
+        if (entity->isDomainEntity()) {
+            domainEntities.insert(entity);
+        } else if (entity->isLocalEntity() || entity->isMyAvatarEntity()) {
+            entitiesToDeleteImmediately.insert(entity);
+            entity->collectChildrenForDelete(entitiesToDeleteImmediately, domainEntities, sessionID);
+        }
+    }
+    _deadEntities.clear();
+
+    // interface-client can't delete domainEntities outright, they must roundtrip through the entity-server
+    for (auto entity : domainEntities) {
+        _entityPacketSender->queueEraseEntityMessage(entity->getID());
+    }
+    if (!entitiesToDeleteImmediately.empty()) {
+        getEntityTree()->deleteEntitiesByPointer(entitiesToDeleteImmediately);
+    }
+}
+
 void PhysicalEntitySimulation::clearEntities() {
     // TODO: we should probably wait to lock the _physicsEngine so we don't mess up data structures
     // while it is in the middle of a simulation step.  As it is, we're probably in shutdown mode
@@ -211,6 +231,15 @@ void PhysicalEntitySimulation::clearEntities() {
     _entitiesToDeleteLater.clear();
 
     EntitySimulation::clearEntities();
+}
+
+void PhysicalEntitySimulation::queueEraseDomainEntities(const SetOfEntities& domainEntities) const {
+    if (_entityPacketSender) {
+        for (auto domainEntity : domainEntities) {
+            assert(domainEntity->isDomainEntity());
+            _entityPacketSender->queueEraseEntityMessage(domainEntity->getID());
+        }
+    }
 }
 
 // virtual
