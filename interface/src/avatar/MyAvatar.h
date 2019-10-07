@@ -272,11 +272,12 @@ class MyAvatar : public Avatar {
      *     the value.</p>
      * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
-     * @property {number} isInSittingState - <code>true</code> if your avatar is sitting (avatar leaning is disabled, 
-     *     recenntering is enabled), <code>false</code> if it is standing (avatar leaning is enabled, and avatar recenters if it 
-     *     leans too far). If <code>userRecenterModel == 2</code> (i.e., auto) the property value automatically updates as the 
-     *     user sits or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the 
-     *     current siting / standing state, which is updated when the user next sits or stands unless 
+     * @property {number} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting
+     *     (avatar leaning is disabled, recenntering is enabled), <code>false</code> if the user wearing the HMD is
+     *     determined to be standing (avatar leaning is enabled, and avatar recenters if it leans too far).
+     *     If <code>userRecenterModel == 2</code> (i.e., auto) the property value automatically updates as the user sits
+     *     or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the current
+     *     siting / standing state, which is updated when the user next sits or stands unless
      *     <code>isSitStandStateLocked == true</code>.
      * @property {boolean} isSitStandStateLocked - <code>true</code> to lock the avatar sitting/standing state, i.e., use this 
      *     to disable automatically changing state.
@@ -1889,6 +1890,14 @@ public:
      * @param {Quat} rotation - The absolute rotation of the avatar once the sitting action ends.
      */
     Q_INVOKABLE void endSit(const glm::vec3& position, const glm::quat& rotation);
+
+    /**jsdoc
+     * Gets whether the avatar is in a seated pose. The seated pose is set by calling the 
+     * MyAvatar::beginSit method.
+     * @function MyAvatar.isSeated
+     * @returns {boolean} <code>true</code> if the avatar is in a seated pose. 
+     */
+    Q_INVOKABLE bool isSeated() { return _characterController.getSeated(); }
 
     int getOverrideJointCount() const;
     bool getFlowActive() const;

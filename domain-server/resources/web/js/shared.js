@@ -136,6 +136,23 @@ function getCurrentDomainIDType() {
   return DOMAIN_ID_TYPE_UNKNOWN;
 }
 
+function isCloudDomain() {
+
+  if (!domainIDIsSet()) {
+    return false;
+  }
+  if (typeof DomainInfo === 'undefined') {
+    return false;
+  }
+  if (DomainInfo === null) {
+    return false;
+  }
+  if (typeof DomainInfo.cloud_domain !== "boolean") {
+    return false;
+  }
+  return DomainInfo.cloud_domain;
+}
+
 function showLoadingDialog(msg) {
   var message = '<div class="text-center">';
   message += '<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span> ' + msg;
