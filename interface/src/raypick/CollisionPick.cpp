@@ -134,7 +134,7 @@ bool CollisionPick::getShapeInfoReady(const CollisionRegion& pick) {
     return _mathPick.loaded;
 }
 
-void CollisionPick::computeShapeInfoDimensionsOnly(const CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource) {
+void CollisionPick::computeShapeInfoDimensionsOnly(const CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<ModelResource> resource) {
     ShapeType type = shapeInfo.getType();
     glm::vec3 dimensions = pick.transform.getScale();
     QString modelURL = (resource ? resource->getURL().toString() : "");
@@ -147,7 +147,7 @@ void CollisionPick::computeShapeInfoDimensionsOnly(const CollisionRegion& pick, 
     }
 }
 
-void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource) {
+void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<ModelResource> resource) {
     // This code was copied and modified from RenderableModelEntityItem::computeShapeInfo
     // TODO: Move to some shared code area (in entities-renderer? model-networking?)
     // after we verify this is working and do a diff comparison with RenderableModelEntityItem::computeShapeInfo
@@ -381,7 +381,7 @@ CollisionPick::CollisionPick(const PickFilter& filter, float maxDistance, bool e
     _scaleWithParent(scaleWithParent),
     _physicsEngine(physicsEngine) {
     if (collisionRegion.shouldComputeShapeInfo()) {
-        _cachedResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(collisionRegion.modelURL);
+        _cachedResource = DependencyManager::get<ModelCache>()->getCollisionModelResource(collisionRegion.modelURL);
     }
     _mathPick.loaded = isLoaded();
 }

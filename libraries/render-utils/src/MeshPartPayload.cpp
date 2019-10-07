@@ -202,9 +202,13 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     assert(model && model->isLoaded());
 
+    auto shape = model->getHFMModel().shapes[shapeIndex];
+    assert(shape.mesh == meshIndex);
+    assert(shape.meshPart == partIndex);
+
     bool useDualQuaternionSkinning = model->getUseDualQuaternionSkinning();
 
-    auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
+    auto& modelMesh = model->getNetworkModel()->getMeshes().at(_meshIndex);
     _meshNumVertices = (int)modelMesh->getNumVertices();
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 
@@ -263,7 +267,7 @@ void ModelMeshPartPayload::initCache(const ModelPointer& model) {
         _hasTangents = !mesh.tangents.isEmpty();
     }
 
-    auto networkMaterial = model->getGeometry()->getShapeMaterial(_shapeID);
+    auto networkMaterial = model->getNetworkModel()->getShapeMaterial(_shapeID);
     if (networkMaterial) {
         addMaterial(graphics::MaterialLayer(networkMaterial, 0));
     }

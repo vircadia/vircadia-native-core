@@ -178,7 +178,7 @@ public:
     virtual void updateClusterMatrices();
 
     /// Returns a reference to the shared geometry.
-    const Geometry::Pointer& getGeometry() const { return _renderGeometry; }
+    const NetworkModel::Pointer& getNetworkModel() const { return _renderGeometry; }
 
     const QVariantMap getTextures() const { assert(isLoaded()); return _renderGeometry->getTextures(); }
     Q_INVOKABLE virtual void setTextures(const QVariantMap& textures);
@@ -391,9 +391,9 @@ protected:
     /// \return true if joint exists
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
 
-    Geometry::Pointer _renderGeometry; // only ever set by its watcher
+    NetworkModel::Pointer _renderGeometry; // only ever set by its watcher
 
-    GeometryResourceWatcher _renderWatcher;
+    ModelResourceWatcher _renderWatcher;
 
     SpatiallyNestable* _spatiallyNestableOverride;
 
@@ -515,7 +515,7 @@ private:
 };
 
 Q_DECLARE_METATYPE(ModelPointer)
-Q_DECLARE_METATYPE(Geometry::WeakPointer)
+Q_DECLARE_METATYPE(NetworkModel::WeakPointer)
 Q_DECLARE_METATYPE(BlendshapeOffset)
 
 /// Handle management of pending models that need blending

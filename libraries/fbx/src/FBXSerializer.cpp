@@ -1377,11 +1377,13 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
 
         // Now that we've initialized the joint, we can define the transform
         // modelIDs is ordered from parent to children, so we can safely get parent transforms from earlier joints as we iterate
-        joint.globalTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation * joint.postRotation) * joint.postTransform;
+        joint.localTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation * joint.postRotation) * joint.postTransform;
+        joint.globalTransform = joint.localTransform;
         if (joint.parentIndex != -1 && joint.parentIndex < (int)jointIndex && !needMixamoHack) {
             hfm::Joint& parentJoint = hfmModel.joints[joint.parentIndex];
-          //  joint.globalTransform = joint.globalTransform * parentJoint.globalTransform;
-            joint.globalTransform = parentJoint.globalTransform * joint.globalTransform;
+            // SG Change: i think this not correct and the [parent]*[local] is the correct answer here    
+            //joint.globalTransform = joint.globalTransform * parentJoint.globalTransform;
+            joint.globalTransform = parentJoint.globalTransform * joint.localTransform;
             if (parentJoint.hasGeometricOffset) {
                 // Per the FBX standard, geometric offset should not propagate to children.
                 // However, we must be careful when modifying the behavior of FBXSerializer.
@@ -1396,13 +1398,21 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             joint.globalTransform = joint.globalTransform * geometricOffset;
         }
 
-        // accumulate local transforms
+        // TODO: Remove these lines, just here to make sure we are not breaking the transform computation
        // QString modelID = fbxModels.contains(it.key()) ? it.key() : _connectionParentMap.value(it.key());
         glm::mat4 anotherModelTransform = getGlobalTransform(_connectionParentMap, fbxModels, modelID, hfmModel.applicationName == "mixamo.com", url);
-    /*    if (anotherModelTransform != joint.globalTransform) {
-            joint.globalTransform = anotherModelTransform;
+        auto col0 = (glm::epsilonNotEqual(anotherModelTransform[0], joint.globalTransform[0], 0.001f));
+        auto col1 = (glm::epsilonNotEqual(anotherModelTransform[1], joint.globalTransform[1], 0.001f));
+        auto col2 = (glm::epsilonNotEqual(anotherModelTransform[2], joint.globalTransform[2], 0.001f));
+        auto col3 = (glm::epsilonNotEqual(anotherModelTransform[3], joint.globalTransform[3], 0.001f));
+        if (    glm::any(col0)
+            || glm::any(col1)
+            || glm::any(col2)
+            || glm::any(col3)) {
+            anotherModelTransform = getGlobalTransform(_connectionParentMap, fbxModels, modelID, hfmModel.applicationName == "mixamo.com", url);
+          //  joint.globalTransform = anotherModelTransform;
         }
-*/
+
         hfmModel.joints.push_back(joint);
     }
 

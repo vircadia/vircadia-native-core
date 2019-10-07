@@ -282,7 +282,7 @@ bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3
 }
 
 void RenderableModelEntityItem::fetchCollisionGeometryResource() {
-    _collisionGeometryResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCollisionShapeURL());
+    _collisionGeometryResource = DependencyManager::get<ModelCache>()->getCollisionModelResource(getCollisionShapeURL());
 }
 
 bool RenderableModelEntityItem::unableToLoadCollisionShape() {
@@ -504,7 +504,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                 meshes.push_back(hfmMesh._mesh);
             }
         } else {
-            meshes = model->getGeometry()->getMeshes();
+            meshes = model->getNetworkModel()->getMeshes();
         }
         int32_t numMeshes = (int32_t)(meshes.size());
 
@@ -1431,7 +1431,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
     }
 
-    if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+    if (!_texturesLoaded && model->getNetworkModel() && model->getNetworkModel()->areTexturesLoaded()) {
         withWriteLock([&] {
             _texturesLoaded = true;
         });

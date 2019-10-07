@@ -27,14 +27,14 @@ class MeshPart;
 using GeometryMappingPair = std::pair<QUrl, QVariantHash>;
 Q_DECLARE_METATYPE(GeometryMappingPair)
 
-class Geometry {
+class NetworkModel {
 public:
-    using Pointer = std::shared_ptr<Geometry>;
-    using WeakPointer = std::weak_ptr<Geometry>;
+    using Pointer = std::shared_ptr<NetworkModel>;
+    using WeakPointer = std::weak_ptr<NetworkModel>;
 
-    Geometry() = default;
-    Geometry(const Geometry& geometry);
-    virtual ~Geometry() = default;
+    NetworkModel() = default;
+    NetworkModel(const NetworkModel& geometry);
+    virtual ~NetworkModel() = default;
 
     // Immutable over lifetime
     using GeometryMeshes = std::vector<std::shared_ptr<const graphics::Mesh>>;
@@ -76,22 +76,22 @@ private:
 };
 
 /// A geometry loaded from the network.
-class GeometryResource : public Resource, public Geometry {
+class ModelResource : public Resource, public NetworkModel {
     Q_OBJECT
 public:
-    using Pointer = QSharedPointer<GeometryResource>;
+    using Pointer = QSharedPointer<ModelResource>;
 
-    GeometryResource(const QUrl& url, const ModelLoader& modelLoader) : Resource(url), _modelLoader(modelLoader) {}
-    GeometryResource(const GeometryResource& other);
+    ModelResource(const QUrl& url, const ModelLoader& modelLoader) : Resource(url), _modelLoader(modelLoader) {}
+    ModelResource(const ModelResource& other);
 
-    QString getType() const override { return "Geometry"; }
+    QString getType() const override { return "Model"; }
 
     virtual void deleter() override;
 
     virtual void downloadFinished(const QByteArray& data) override;
     void setExtra(void* extra) override;
 
-    virtual bool areTexturesLoaded() const override { return isLoaded() && Geometry::areTexturesLoaded(); }
+    virtual bool areTexturesLoaded() const override { return isLoaded() && NetworkModel::areTexturesLoaded(); }
 
 private slots:
     void onGeometryMappingLoaded(bool success);
@@ -115,21 +115,21 @@ private:
     QUrl _textureBaseURL;
     bool _combineParts;
 
-    GeometryResource::Pointer _geometryResource;
+    ModelResource::Pointer _modelResource;
     QMetaObject::Connection _connection;
 
     bool _isCacheable{ true };
 };
 
-class GeometryResourceWatcher : public QObject {
+class ModelResourceWatcher : public QObject {
     Q_OBJECT
 public:
-    using Pointer = std::shared_ptr<GeometryResourceWatcher>;
+    using Pointer = std::shared_ptr<ModelResourceWatcher>;
 
-    GeometryResourceWatcher() = delete;
-    GeometryResourceWatcher(Geometry::Pointer& geometryPtr) : _geometryRef(geometryPtr) {}
+    ModelResourceWatcher() = delete;
+    ModelResourceWatcher(NetworkModel::Pointer& geometryPtr) : _networkModelRef(geometryPtr) {}
 
-    void setResource(GeometryResource::Pointer resource);
+    void setResource(ModelResource::Pointer resource);
 
     QUrl getURL() const { return (bool)_resource ? _resource->getURL() : QUrl(); }
     int getResourceDownloadAttempts() { return _resource ? _resource->getDownloadAttempts() : 0; }
@@ -147,8 +147,8 @@ private slots:
     void resourceRefreshed();
 
 private:
-    GeometryResource::Pointer _resource;
-    Geometry::Pointer& _geometryRef;
+    ModelResource::Pointer _resource;
+    NetworkModel::Pointer& _networkModelRef;
 };
 
 /// Stores cached model geometries.
@@ -158,18 +158,18 @@ class ModelCache : public ResourceCache, public Dependency {
 
 public:
 
-    GeometryResource::Pointer getGeometryResource(const QUrl& url,
+    ModelResource::Pointer getModelResource(const QUrl& url,
                                                   const GeometryMappingPair& mapping =
                                                         GeometryMappingPair(QUrl(), QVariantHash()),
                                                   const QUrl& textureBaseUrl = QUrl());
 
-    GeometryResource::Pointer getCollisionGeometryResource(const QUrl& url,
+    ModelResource::Pointer getCollisionModelResource(const QUrl& url,
                                                            const GeometryMappingPair& mapping =
                                                                  GeometryMappingPair(QUrl(), QVariantHash()),
                                                            const QUrl& textureBaseUrl = QUrl());
 
 protected:
-    friend class GeometryResource;
+    friend class ModelResource;
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url) override;
     QSharedPointer<Resource> createResourceCopy(const QSharedPointer<Resource>& resource) override;

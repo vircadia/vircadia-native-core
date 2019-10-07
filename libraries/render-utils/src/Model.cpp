@@ -42,7 +42,7 @@
 using namespace std;
 
 int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
-int weakGeometryResourceBridgePointerTypeId = qRegisterMetaType<Geometry::WeakPointer>();
+int weakGeometryResourceBridgePointerTypeId = qRegisterMetaType<NetworkModel::WeakPointer>();
 int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3>>();
 int normalTypeVecTypeId = qRegisterMetaType<QVector<NormalType>>("QVector<NormalType>");
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
@@ -71,7 +71,7 @@ Model::Model(QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
 
     setSnapModelToRegistrationPoint(true, glm::vec3(0.5f));
 
-    connect(&_renderWatcher, &GeometryResourceWatcher::finished, this, &Model::loadURLFinished);
+    connect(&_renderWatcher, &ModelResourceWatcher::finished, this, &Model::loadURLFinished);
 }
 
 Model::~Model() {
@@ -151,7 +151,7 @@ void Model::setOffset(const glm::vec3& offset) {
 }
 
 void Model::calculateTextureInfo() {
-    if (!_hasCalculatedTextureInfo && isLoaded() && getGeometry()->areTexturesLoaded() && !_modelMeshRenderItemsMap.isEmpty()) {
+    if (!_hasCalculatedTextureInfo && isLoaded() && getNetworkModel()->areTexturesLoaded() && !_modelMeshRenderItemsMap.isEmpty()) {
         size_t textureSize = 0;
         int textureCount = 0;
         bool allTexturesLoaded = true;
@@ -178,12 +178,12 @@ int Model::getRenderInfoTextureCount() {
 }
 
 bool Model::shouldInvalidatePayloadShapeKey(int meshIndex) {
-    if (!getGeometry()) {
+    if (!getNetworkModel()) {
         return true;
     }
 
     const HFMModel& hfmModel = getHFMModel();
-    const auto& networkMeshes = getGeometry()->getMeshes();
+    const auto& networkMeshes = getNetworkModel()->getMeshes();
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
     // to false to rebuild out mesh groups.
     if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)hfmModel.meshes.size() || meshIndex >= (int)_meshStates.size()) {
@@ -643,8 +643,8 @@ glm::mat4 Model::getWorldToHFMMatrix() const {
 // TODO: deprecate and remove
 MeshProxyList Model::getMeshes() const {
     MeshProxyList result;
-    const Geometry::Pointer& renderGeometry = getGeometry();
-    const Geometry::GeometryMeshes& meshes = renderGeometry->getMeshes();
+    const NetworkModel::Pointer& renderGeometry = getNetworkModel();
+    const NetworkModel::GeometryMeshes& meshes = renderGeometry->getMeshes();
 
     if (!isLoaded()) {
         return result;
@@ -772,7 +772,7 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
                 auto& materialName = _modelMeshMaterialNames[shapeID];
-                result.appendMaterial(graphics::MaterialLayer(getGeometry()->getShapeMaterial(shapeID), 0), shapeID, materialName);
+                result.appendMaterial(graphics::MaterialLayer(getNetworkModel()->getShapeMaterial(shapeID), 0), shapeID, materialName);
 
                 {
                     std::unique_lock<std::mutex> lock(_materialMappingMutex);
@@ -1196,7 +1196,7 @@ void Model::setURL(const QUrl& url) {
     invalidCalculatedMeshBoxes();
     deleteGeometry();
 
-    auto resource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
+    auto resource = DependencyManager::get<ModelCache>()->getModelResource(url);
     if (resource) {
         resource->setLoadPriority(this, _loadingPriority);
         _renderWatcher.setResource(resource);
@@ -1487,7 +1487,7 @@ void Model::createRenderItemSet() {
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
-            auto material = getGeometry()->getShapeMaterial(shapeID);
+            auto material = getNetworkModel()->getShapeMaterial(shapeID);
             _modelMeshMaterialNames.push_back(material ? material->getName() : "");
             _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
             shapeID++;
@@ -1680,7 +1680,7 @@ void Model::removeMaterial(graphics::MaterialPointer material, const std::string
     AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
 }
 
-class CollisionRenderGeometry : public Geometry {
+class CollisionRenderGeometry : public NetworkModel {
 public:
     CollisionRenderGeometry(graphics::MeshPointer mesh) {
         _hfmModel = std::make_shared<HFMModel>();
@@ -1838,7 +1838,7 @@ void Blender::run() {
 
 bool Model::maybeStartBlender() {
     if (isLoaded()) {
-        QThreadPool::globalInstance()->start(new Blender(getThisPointer(), getGeometry()->getConstHFMModelPointer(),
+        QThreadPool::globalInstance()->start(new Blender(getThisPointer(), getNetworkModel()->getConstHFMModelPointer(),
                                                          ++_blendNumber, _blendshapeCoefficients));
         return true;
     }
