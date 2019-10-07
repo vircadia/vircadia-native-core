@@ -47,8 +47,10 @@ Rectangle {
 
      Flickable {
         id: tempAvatarPageContainer
-        visible: true
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: continueLink.top
         clip: true
         contentWidth: parent.width
         contentHeight: tempAvatarPageGrid.height
@@ -133,40 +135,39 @@ Rectangle {
                         wrapMode: Text.Wrap
                     }
                 }
-
-                HifiStylesUit.RalewayBold {
-                    anchors.top: qrAndInstructionsContainer.bottom
-                    anchors.topMargin: 150
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    horizontalAlignment: Text.AlignLeft
-                    text: "Continue >"
-                    color: simplifiedUI.colors.text.lightBlue
-                    opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
-                    size: 36
-                    height: paintedHeight
-                    z: 1
-
-                    MouseArea {
-                        id: continueMouseArea
-                        hoverEnabled: true
-                        anchors.fill: parent
-
-                        onClicked: {
-                            Tablet.playSound(TabletEnums.ButtonClick);
-                            sendToScript({
-                                "source": "SecondLaunchWindow.qml",
-                                "method": "closeSecondLaunchWindow"
-                            });
-                        }
-                    }
-                }
             }
         }
 
         SimplifiedControls.VerticalScrollBar {
             parent: tempAvatarPageContainer
-            z: 2
+        }
+    }
+
+    HifiStylesUit.RalewayBold {
+        id: continueLink
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: paintedHeight + 24
+        horizontalAlignment: Text.AlignLeft
+        text: "Continue >"
+        color: simplifiedUI.colors.text.lightBlue
+        opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
+        size: 36
+        z: 1
+
+        MouseArea {
+            id: continueMouseArea
+            hoverEnabled: true
+            anchors.fill: parent
+
+            onClicked: {
+                Tablet.playSound(TabletEnums.ButtonClick);
+                sendToScript({
+                    "source": "SecondLaunchWindow.qml",
+                    "method": "closeSecondLaunchWindow"
+                });
+            }
         }
     }
 

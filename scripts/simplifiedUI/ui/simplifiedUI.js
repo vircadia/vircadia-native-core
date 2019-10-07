@@ -362,8 +362,6 @@ var TOP_BAR_HEIGHT_PX = 48;
 var INITIAL_LAUNCH_QML_PATH = Script.resolvePath("./simplifiedFTUE/InitialLaunchWindow.qml");
 var INITIAL_LAUNCH_WINDOW_TITLE = "Initial Launch";
 var INITIAL_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
-var INITIAL_LAUNCH_WIDTH_PX = Window.innerWidth;
-var INITIAL_LAUNCH_HEIGHT_PX = Window.innerHeight - TOP_BAR_HEIGHT_PX;
 var INITIAL_WINDOW_FLAGS = 0x00000001 | // Qt::Window
 0x00000800 | // Qt::FramelessWindowHint
 0x40000000; // Qt::NoDropShadowWindowHint
@@ -377,12 +375,12 @@ function displayInitialLaunchWindow() {
         title: INITIAL_LAUNCH_WINDOW_TITLE,
         presentationMode: INITIAL_LAUNCH_PRESENTATION_MODE,
         size: {
-            x: INITIAL_LAUNCH_WIDTH_PX,
-            y: INITIAL_LAUNCH_HEIGHT_PX
+            x: Window.innerWidth,
+            y: Window.innerHeight + TOP_BAR_HEIGHT_PX
         },
         position: {
             x: Window.x,
-            y: Window.y + TOP_BAR_HEIGHT_PX
+            y: Window.y
         },
         overrideFlags: INITIAL_WINDOW_FLAGS
     });
@@ -395,8 +393,6 @@ function displayInitialLaunchWindow() {
 var SECOND_LAUNCH_QML_PATH = Script.resolvePath("simplifiedFTUE/SecondLaunchWindow.qml");
 var SECOND_LAUNCH_WINDOW_TITLE = "Second Launch";
 var SECOND_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
-var SECOND_LAUNCH_WIDTH_PX = Window.innerWidth;
-var SECOND_LAUNCH_HEIGHT_PX = Window.innerHeight - TOP_BAR_HEIGHT_PX;
 var SECOND_WINDOW_FLAGS = 0x00000001 | // Qt::Window
 0x00000800 | // Qt::FramelessWindowHint
 0x40000000; // Qt::NoDropShadowWindowHint
@@ -410,12 +406,12 @@ function displaySecondLaunchWindow() {
         title: SECOND_LAUNCH_WINDOW_TITLE,
         presentationMode: SECOND_LAUNCH_PRESENTATION_MODE,
         size: {
-            x: SECOND_LAUNCH_WIDTH_PX,
-            y: SECOND_LAUNCH_HEIGHT_PX
+            x: Window.innerWidth,
+            y: Window.innerHeight + TOP_BAR_HEIGHT_PX
         },
         position: {
             x: Window.x,
-            y: Window.y + TOP_BAR_HEIGHT_PX
+            y: Window.y
         },
         overrideFlags: SECOND_WINDOW_FLAGS
     });
@@ -659,22 +655,22 @@ function onGeometryChanged(rect) {
     }
     if (initialLaunchWindow) {
         initialLaunchWindow.size = {
-            "x": rect.width,
-            "y": rect.height
+            "x": Window.innerWidth,
+            "y": Window.innerHeight + TOP_BAR_HEIGHT_PX
         };
         initialLaunchWindow.position = {
             "x": rect.x,
-            "y": rect.y + TOP_BAR_HEIGHT_PX
+            "y": rect.y
         };
     }
     if (secondLaunchWindow) {
         secondLaunchWindow.size = {
-            "x": rect.width,
-            "y": rect.height
+            "x": Window.innerWidth,
+            "y": Window.innerHeight + TOP_BAR_HEIGHT_PX
         };
         secondLaunchWindow.position = {
             "x": rect.x,
-            "y": rect.y + TOP_BAR_HEIGHT_PX
+            "y": rect.y
         };
     }
 }
