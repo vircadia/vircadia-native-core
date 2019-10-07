@@ -549,28 +549,6 @@ void AvatarManager::removeDeadAvatarEntities(const SetOfEntities& deadEntities) 
     }
 }
 
-/* ADEBUG: I don't think the code below is necessary because any dead entities will have already been removed from tree and simulation
-        if (entityTree && entity->isMyAvatarEntity()) {
-            entityTree->withWriteLock([&] {
-                // We only need to delete the direct children (rather than the descendants) because
-                // when the child is deleted, it will take care of its own children.  If the child
-                // is also an avatar-entity, we'll end up back here.  If it's not, the entity-server
-                // will take care of it in the usual way.
-                entity->forEachChild([&](SpatiallyNestablePointer child) {
-                    EntityItemPointer childEntity = std::dynamic_pointer_cast<EntityItem>(child);
-                    if (childEntity) {
-                        entityTree->deleteEntity(childEntity->getID(), true, true);
-                        if (avatar) {
-                            avatar->clearAvatarEntity(childEntity->getID(), REQUIRES_REMOVAL_FROM_TREE);
-                        }
-                    }
-                });
-            });
-        }
-    }
-}
-*/
-
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
     auto avatar = std::static_pointer_cast<OtherAvatar>(removedAvatar);
     AvatarHashMap::handleRemovedAvatar(avatar, removalReason);

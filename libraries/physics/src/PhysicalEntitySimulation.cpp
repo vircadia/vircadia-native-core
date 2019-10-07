@@ -69,7 +69,7 @@ void PhysicalEntitySimulation::removeEntityFromInternalLists(EntityItemPointer e
         _entitiesToRemoveFromPhysics.insert(entity);
     }
     if (entity->isDead() && entity->getElement()) {
-        _deadEntities.insert(entity);
+        _deadEntitiesToRemoveFromTree.insert(entity);
     }
     if (entity->isAvatarEntity()) {
         _deadAvatarEntities.insert(entity);
@@ -171,7 +171,7 @@ void PhysicalEntitySimulation::processChangedEntity(const EntityItemPointer& ent
 }
 
 void PhysicalEntitySimulation::processDeadEntities() {
-    if (_deadEntities.empty()) {
+    if (_deadEntitiesToRemoveFromTree.empty()) {
         return;
     }
     PROFILE_RANGE(simulation_physics, "Deletes");
@@ -179,7 +179,7 @@ void PhysicalEntitySimulation::processDeadEntities() {
     SetOfEntities domainEntities;
     QUuid sessionID = Physics::getSessionUUID();
     QMutexLocker lock(&_mutex);
-    for (auto entity : _deadEntities) {
+    for (auto entity : _deadEntitiesToRemoveFromTree) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
             _entitiesToRemoveFromPhysics.insert(entity);
@@ -191,7 +191,7 @@ void PhysicalEntitySimulation::processDeadEntities() {
             entity->collectChildrenForDelete(entitiesToDeleteImmediately, domainEntities, sessionID);
         }
     }
-    _deadEntities.clear();
+    _deadEntitiesToRemoveFromTree.clear();
 
     // interface-client can't delete domainEntities outright, they must roundtrip through the entity-server
     for (auto entity : domainEntities) {

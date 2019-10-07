@@ -43,7 +43,7 @@ void EntitySimulation::updateEntities() {
 }
 
 void EntitySimulation::removeEntityFromInternalLists(EntityItemPointer entity) {
-    // remove from all internal lists except _deadEntities
+    // remove from all internal lists except _deadEntitiesToRemoveFromTree
     _entitiesToSort.remove(entity);
     _simpleKinematicEntities.remove(entity);
     _allEntities.remove(entity);
@@ -59,7 +59,7 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
         QMutexLocker lock(&_mutex);
         removeEntityFromInternalLists(entity);
         if (entity->getElement()) {
-            _deadEntities.insert(entity);
+            _deadEntitiesToRemoveFromTree.insert(entity);
             _entityTree->cleanupCloneIDs(entity->getEntityItemID());
         }
     }
@@ -217,7 +217,7 @@ void EntitySimulation::clearEntities() {
     _simpleKinematicEntities.clear();
     _changedEntities.clear();
     _allEntities.clear();
-    _deadEntities.clear();
+    _deadEntitiesToRemoveFromTree.clear();
     _entitiesToUpdate.clear();
     _mortalEntities.clear();
     _nextExpiry = std::numeric_limits<uint64_t>::max();
@@ -257,18 +257,21 @@ void EntitySimulation::moveSimpleKinematics(uint64_t now) {
 }
 
 void EntitySimulation::processDeadEntities() {
-    if (_deadEntities.empty()) {
+    if (_deadEntitiesToRemoveFromTree.empty()) {
         return;
     }
     SetOfEntities entitiesToDeleteImmediately;
-    SetOfEntities dummyList; // ignore this list: it will be empty
-    foreach (auto entity, _deadEntities) {
-        QUuid nullSessionID;
+    // NOTE: dummyList will be empty because this base-class implementation is only used server-side
+    // for which ATM we only process domain-entities, and since we are passing nullSessionID for authorization
+    // EntityItem::collectChildrenForDelete() will not collect domain-entities into this side list.
+    SetOfEntities dummyList;
+    QUuid nullSessionID;
+    foreach (auto entity, _deadEntitiesToRemoveFromTree) {
         entitiesToDeleteImmediately.insert(entity);
         entity->collectChildrenForDelete(entitiesToDeleteImmediately, dummyList, nullSessionID);
     }
     if (_entityTree) {
         _entityTree->deleteEntitiesByPointer(entitiesToDeleteImmediately);
     }
-    _deadEntities.clear();
+    _deadEntitiesToRemoveFromTree.clear();
 }

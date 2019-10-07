@@ -94,7 +94,7 @@ protected:
 
     SetOfEntities _entitiesToSort; // entities moved by simulation (and might need resort in EntityTree)
     SetOfEntities _simpleKinematicEntities; // entities undergoing non-colliding kinematic motion
-    SetOfEntities _deadEntities; // dead entities that might still be in the _entityTree
+    SetOfEntities _deadEntitiesToRemoveFromTree;
 
 private:
     void moveSimpleKinematics();

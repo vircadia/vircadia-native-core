@@ -124,7 +124,7 @@ private:
 
     VectorOfEntityMotionStates _owned;
     VectorOfEntityMotionStates _bids;
-    SetOfEntities _deadAvatarEntities;
+    SetOfEntities _deadAvatarEntities; // to remove from Avatar's lists
     std::vector<EntityItemPointer> _entitiesToDeleteLater;
 
     QList<EntityDynamicPointer> _dynamicsToAdd;
