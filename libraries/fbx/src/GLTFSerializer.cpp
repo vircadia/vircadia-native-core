@@ -1003,10 +1003,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     
 
     // Build joints
-    HFMJoint joint;
     hfmModel.jointIndices["x"] = numNodes;
 
     for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
+        HFMJoint joint;
         auto& node = _file.nodes[nodeIndex];
         auto parentItr = parentIndices.find(nodeIndex);
         if (parentsEnd == parentItr) {
@@ -1021,12 +1021,12 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         glm::vec3 scale = extractScale(joint.transform);
         joint.postTransform = glm::scale(glm::mat4(), scale);
 
-        joint.globalTransform = joint.transform;
         // Nodes are sorted, so we can apply the full transform just by getting the global transform of the already defined parent
         if (joint.parentIndex != -1 && joint.parentIndex != nodeIndex) {
-            const auto& parentJoint = hfmModel.joints[(size_t)nodeIndex];
-            joint.globalTransform = parentJoint.globalTransform * joint.globalTransform;
+            const auto& parentJoint = hfmModel.joints[(size_t)joint.parentIndex];
+            joint.transform = parentJoint.transform * joint.transform;
         }
+        joint.globalTransform = joint.transform;
 
         joint.name = node.name;
         joint.isSkeletonJoint = false;
@@ -1102,7 +1102,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     int meshCount = _file.meshes.size();
     hfmModel.meshes.resize(meshCount);
     hfmModel.meshExtents.reset();
-    hfmModel.meshes.resize(meshCount);
     for (int meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
         const auto& gltfMesh = _file.meshes[meshIndex];
         auto& mesh = hfmModel.meshes[meshIndex];
@@ -1211,12 +1210,12 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         break;
 
                     case GLTFVertexAttribute::JOINTS_0:
-                        success = addArrayFromAttribute(vertexAttribute, accessor, colors);
+                        success = addArrayFromAttribute(vertexAttribute, accessor, joints);
                         jointStride = GLTFAccessorType::count((GLTFAccessorType::Value)accessor.type);
                         break;
 
                     case GLTFVertexAttribute::WEIGHTS_0:
-                        success = addArrayFromAttribute(vertexAttribute, accessor, colors);
+                        success = addArrayFromAttribute(vertexAttribute, accessor, weights);
                         weightStride = GLTFAccessorType::count((GLTFAccessorType::Value)accessor.type);
                         break;
 
@@ -1240,106 +1239,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             }
 
             int partVerticesCount = vertices.size() / 3;
-
-            // generate the normals if they don't exist
-            // FIXME move to GLTF post-load processing
-            if (normals.size() == 0) {
-                QVector<int> newIndices;
-                QVector<float> newVertices;
-                QVector<float> newNormals;
-                QVector<float> newTexcoords;
-                QVector<float> newTexcoords2;
-                QVector<float> newColors;
-                QVector<uint16_t> newJoints;
-                QVector<float> newWeights;
-
-                for (int n = 0; n < indices.size(); n = n + 3) {
-                    int v1_index = (indices[n + 0] * 3);
-                    int v2_index = (indices[n + 1] * 3);
-                    int v3_index = (indices[n + 2] * 3);
-
-                    glm::vec3 v1 = glm::vec3(vertices[v1_index], vertices[v1_index + 1], vertices[v1_index + 2]);
-                    glm::vec3 v2 = glm::vec3(vertices[v2_index], vertices[v2_index + 1], vertices[v2_index + 2]);
-                    glm::vec3 v3 = glm::vec3(vertices[v3_index], vertices[v3_index + 1], vertices[v3_index + 2]);
-
-                    newVertices.append(v1.x);
-                    newVertices.append(v1.y);
-                    newVertices.append(v1.z);
-                    newVertices.append(v2.x);
-                    newVertices.append(v2.y);
-                    newVertices.append(v2.z);
-                    newVertices.append(v3.x);
-                    newVertices.append(v3.y);
-                    newVertices.append(v3.z);
-
-                    glm::vec3 norm = glm::normalize(glm::cross(v2 - v1, v3 - v1));
-
-                    newNormals.append(norm.x);
-                    newNormals.append(norm.y);
-                    newNormals.append(norm.z);
-                    newNormals.append(norm.x);
-                    newNormals.append(norm.y);
-                    newNormals.append(norm.z);
-                    newNormals.append(norm.x);
-                    newNormals.append(norm.y);
-                    newNormals.append(norm.z);
-
-                    if (texcoords.size() == partVerticesCount * TEX_COORD_STRIDE) {
-                        GLTF_APPEND_ARRAY_2(newTexcoords, texcoords)
-                    }
-
-                    if (texcoords2.size() == partVerticesCount * TEX_COORD_STRIDE) {
-                        GLTF_APPEND_ARRAY_2(newTexcoords2, texcoords2)
-                    }
-
-                    if (colors.size() == partVerticesCount * colorStride) {
-                        if (colorStride == 4) {
-                            GLTF_APPEND_ARRAY_4(newColors, colors)
-                        } else {
-                            GLTF_APPEND_ARRAY_3(newColors, colors)
-                        }
-                    }
-
-                    if (joints.size() == partVerticesCount * jointStride) {
-                        if (jointStride == 4) {
-                            GLTF_APPEND_ARRAY_4(newJoints, joints)
-                        } else if (jointStride == 3) {
-                            GLTF_APPEND_ARRAY_3(newJoints, joints)
-                        } else if (jointStride == 2) {
-                            GLTF_APPEND_ARRAY_2(newJoints, joints)
-                        } else {
-                            GLTF_APPEND_ARRAY_1(newJoints, joints)
-                        }
-                    }
-
-                    if (weights.size() == partVerticesCount * weightStride) {
-                        if (weightStride == 4) {
-                            GLTF_APPEND_ARRAY_4(newWeights, weights)
-                        } else if (weightStride == 3) {
-                            GLTF_APPEND_ARRAY_3(newWeights, weights)
-                        } else if (weightStride == 2) {
-                            GLTF_APPEND_ARRAY_2(newWeights, weights)
-                        } else {
-                            GLTF_APPEND_ARRAY_1(newWeights, weights)
-                        }
-                    }
-                    newIndices.append(n);
-                    newIndices.append(n + 1);
-                    newIndices.append(n + 2);
-                }
-
-                vertices = newVertices;
-                normals = newNormals;
-                tangents = QVector<float>();
-                texcoords = newTexcoords;
-                texcoords2 = newTexcoords2;
-                colors = newColors;
-                joints = newJoints;
-                weights = newWeights;
-                indices = newIndices;
-
-                partVerticesCount = vertices.size() / 3;
-            }
 
             QVector<int> validatedIndices;
             for (int n = 0; n < indices.count(); ++n) {
@@ -1476,13 +1375,13 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 int numVertices = mesh.vertices.size() - prevMeshVerticesCount;
 
                 // Append new cluster indices and weights for this mesh part
+                int prevMeshClusterWeightCount = mesh.clusterWeights.count();
                 for (int i = 0; i < numVertices * WEIGHTS_PER_VERTEX; ++i) {
                     mesh.clusterIndices.push_back(mesh.clusters.size() - 1);
                     mesh.clusterWeights.push_back(0);
                 }
 
                 // normalize and compress to 16-bits
-                int prevMeshClusterWeightCount = mesh.clusterWeights.count();
                 for (int i = 0; i < numVertices; ++i) {
                     int j = i * WEIGHTS_PER_VERTEX;
 
@@ -1984,6 +1883,7 @@ bool GLTFSerializer::addArrayFromAttribute(GLTFVertexAttribute::Value vertexAttr
             qWarning(modelformat) << "There was a problem reading glTF WEIGHTS_0 data for model " << _url;
             return false;
         }
+        break;
 
     default:
         qWarning(modelformat) << "Unexpected attribute type" << _url;
