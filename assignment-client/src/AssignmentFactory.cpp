@@ -24,7 +24,7 @@
 ThreadedAssignment* AssignmentFactory::unpackAssignment(ReceivedMessage& message) {
 
     quint8 packedType;
-    if (message.readPrimitive(&packedType) != sizeof(packedType)) {
+    if (message.peekPrimitive(&packedType) != sizeof(packedType)) {
         return nullptr;
     }
 
