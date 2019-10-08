@@ -2553,7 +2553,7 @@ void MyAvatar::clearWornAvatarEntities() {
 }
 
 /**jsdoc
- * Information about an avatar entity.
+ * <p>Information about an avatar entity.</p>
  * <table>
  *   <thead>
  *     <tr><th>Property</th><th>Type</th><th>Description</th></tr>
