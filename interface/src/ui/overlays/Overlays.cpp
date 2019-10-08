@@ -1934,7 +1934,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     start point.</p>
  * @property {Vec3} end - The end point of the line. Synonyms: <code>endPoint</code> and <code>p2</code>.
  *     <p><strong>Note:</strong> If <code>parentID</code> is set, use <code>localEnd</code> to set the local position of the 
- *     end point.</em></p>
+ *     end point.</p>
 
  * @property {Vec3} localStart - The local position of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>start</code>.

@@ -75,7 +75,7 @@ public:
      *       close to the previous solution, but still provides the benefits of avoiding limb locking.</td></tr>
      *     <tr><td><code>2</code></td><td>PreviousSolution</td><td>
      *       <p>The IK system will begin to solve from the same position and orientations for each joint that was the result 
-     *       from the previous frame.<p>
+     *       from the previous frame.</p>
      *       <p>Pros: As the end effectors typically do not move much from frame to frame, this is likely to converge quickly 
      *       to a valid solution.</p>
      *       <p>Cons: If the previous solution resulted in an awkward or uncomfortable posture, the next frame will also be 
