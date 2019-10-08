@@ -128,10 +128,6 @@ Rectangle {
                 // If we have never auto-selected and the user is still using a default avatar or if the current avatar is not valid (fst), or if 
                 // the current avatar is the old default (Woody), use top avatar from inventory or one of the new defaults.
 
-                // ZRF REMOVE ME!   
-                currentAvatarURLContainsDefaultAvatar = true;
-                userHasValidAvatarInInventory = false;
-
                 // If the current avatar URL is invalid, OR the user is using the "default avatar" (Woody)...
                 if (!currentAvatarURLContainsFST || currentAvatarURLContainsDefaultAvatar) {
                     // If the user has a valid avatar in their inventory...

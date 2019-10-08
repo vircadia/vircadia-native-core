@@ -27,8 +27,6 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        // ZRF REMOVE ME
-        return;
         if (Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatarFromInventory", false) || 
             Settings.getValue("simplifiedUI/closedAvatarPageOfInitialLaunchWindow", false)) {
             tempAvatarPageContainer.visible = false;

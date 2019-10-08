@@ -83,9 +83,6 @@ Rectangle {
                 emptyInventoryContainer.visible = true;
             }
 
-            // ZRF REMOVE ME
-            emptyInventoryContainer.visible = true;
-
             avatarAppInventoryModel.handlePage(result.status !== "success" && result.message, result);
             root.updatePreviewUrl();
         }
