@@ -106,8 +106,9 @@ public:
  * "domain" entities, travel to different domains with a user as "avatar" entities, or be visible only to an individual user as 
  * "local" entities (a.k.a. "overlays").
  *
- * <p>Note: For Interface scripts, the entities available to scripts are those that Interface has displayed and so knows 
- * about.</p>
+ * <p>Note: For Interface, avatar, and client entity scripts, the entities available to scripts are those that Interface has 
+ * displayed and so knows about. For assignment client scripts, the entities available are those that are "seen" by the 
+ * {@link EntityViewer}. For entity server scripts, all entities are available.</p>
  *
  * <h3>Entity Methods</h3>
  *
