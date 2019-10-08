@@ -131,7 +131,8 @@ Script.include("/~/system/libraries/controllers.js");
                     // return currentPoint.z - _this.controlPoint.z;
                     return 0.5;
                 } else {
-                    return Controller.getActionValue(Controller.Standard.TranslateZ);
+                    // return Controller.getActionValue(Controller.Standard.TranslateZ);
+                    return null;
                 }
             }).to(Controller.Actions.TranslateZ);
 
