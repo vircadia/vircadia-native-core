@@ -122,7 +122,7 @@ Rectangle {
                 var userHasValidAvatarInInventory = topBarInventoryModel.count > 0 && 
                     topBarInventoryModel.get(0).download_url.indexOf(".fst") > -1;
                 var simplifiedAvatarPrefix = resourceDirectoryUrl + "qml/hifi/simplifiedUI/topBar/avatars/simplifiedAvatar_";
-                var simplifiedAvatarColors = ["Blue", "Cyan", "Green", "Pink", "Red", "Yellow"];
+                var simplifiedAvatarColors = ["Blue", "Cyan", "Green", "Magenta", "Red", "Yellow"];
                 var simplifiedAvatarSuffix = "/avatar.fst";
 
                 // If we have never auto-selected and the user is still using a default avatar or if the current avatar is not valid (fst), or if 

@@ -45,14 +45,12 @@ Rectangle {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: continueLink.top
+            anchors.bottom: firstPageBottomBarContainer.top
 
             Image {
                 id: avatarImage
-                anchors.top: parent.top
-                anchors.topMargin: 96
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 96
+                anchors.verticalCenter: parent.verticalCenter
+                height: Math.min(Math.max(parent.height - 24, 350), 898)
                 anchors.left: parent.left
                 anchors.leftMargin: 12
                 source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/" +
@@ -92,17 +90,22 @@ Rectangle {
                     anchors.top: headerText.bottom
                     anchors.topMargin: 10
                     anchors.left: parent.left
-                    width: Math.min(720, parent.width) - headerText.anchors.rightMargin
+                    width: Math.min(700, parent.width) - headerText.anchors.rightMargin
                     height: paintedHeight
                     text: "...but we've given you this <b>temporary avatar</b> to use " +
                         "for today. If you see this avatar in-world, walk up and " +
                         "say hello to other new users!<br><br>" +
-                        "<b>We want you to be you</b> so we've built an Avatar Creator " +
-                        "App that's as easy as taking a selfie and picking your " +
+                        "<b>We want you to be you</b> so we've built " +
+                        "<a href=\"https://www.highfidelity.com/knowledge/virtual-you\">Virtual You</a>, an Avatar Creator " +
+                        "App. Creating an avatar is as easy as taking a selfie and picking your " +
                         "outfits! Available now on iOS and Android."
                     color: simplifiedUI.colors.text.black
                     size: 22
                     wrapMode: Text.Wrap
+
+                    onLinkActivated: {
+                        Qt.openUrlExternally(link);
+                    }
                 }
             }
 
@@ -141,37 +144,69 @@ Rectangle {
 
             SimplifiedControls.VerticalScrollBar {
                 parent: textContainer
-                anchors.topMargin: 96
-                anchors.bottomMargin: anchors.topMargin
+                visible: parent.contentHeight > parent.height
+                size: parent.height / parent.contentHeight
             }
-        }
-        
+        }        
 
-        HifiStylesUit.RalewayBold {
-            id: continueLink
-            anchors.bottom: parent.bottom
+        Item {
+            id: firstPageBottomBarContainer
             anchors.left: parent.left
-            anchors.leftMargin: 16
+            anchors.leftMargin: 32
             anchors.right: parent.right
-            anchors.rightMargin: 16
-            height: 96
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            text: "Continue >"
-            color: simplifiedUI.colors.text.lightBlue
-            opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
-            size: 36
+            anchors.rightMargin: 32
+            anchors.bottom: parent.bottom
+            height: continueLink.height + learnMoreAvatarLink.height + 48
+        
+            HifiStylesUit.RalewayBold {
+                id: continueLink
+                anchors.centerIn: parent
+                text: "Continue >"
+                width: parent.width
+                height: paintedHeight
+                color: simplifiedUI.colors.text.lightBlue
+                opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
+                size: 36
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
 
-            MouseArea {
-                id: continueMouseArea
-                hoverEnabled: true
-                anchors.fill: parent
+                MouseArea {
+                    id: continueMouseArea
+                    hoverEnabled: true
+                    anchors.fill: parent
 
-                onClicked: {
-                    Tablet.playSound(TabletEnums.ButtonClick);
-                    tempAvatarPageContainer.visible = false;
-                    Settings.setValue("simplifiedUI/closedAvatarPageOfInitialLaunchWindow", true);
-                    controlsContainer.visible = true;
+                    onClicked: {
+                        Tablet.playSound(TabletEnums.ButtonClick);
+                        tempAvatarPageContainer.visible = false;
+                        Settings.setValue("simplifiedUI/closedAvatarPageOfInitialLaunchWindow", true);
+                        controlsContainer.visible = true;
+                    }
+                }
+            }
+        
+            HifiStylesUit.RalewayBold {
+                id: learnMoreAvatarLink
+                anchors.left: parent.left
+                anchors.leftMargin: 16
+                anchors.top: continueLink.bottom
+                anchors.topMargin: 8
+                text: "Learn more about custom avatars."
+                width: paintedWidth
+                height: paintedHeight
+                color: simplifiedUI.colors.text.lightBlue
+                opacity: learnMoreAboutAvatarsMouseArea.containsMouse ? 1.0 : 0.7
+                size: 14
+                wrapMode: Text.Wrap
+
+                MouseArea {
+                    id: learnMoreAboutAvatarsMouseArea
+                    hoverEnabled: true
+                    anchors.fill: parent
+
+                    onClicked: {
+                        Tablet.playSound(TabletEnums.ButtonClick);
+                        Qt.openUrlExternally("https://www.highfidelity.com/knowledge/avatars");
+                    }
                 }
             }
         }
@@ -184,7 +219,7 @@ Rectangle {
 
         HifiStylesUit.RalewayRegular {
             id: controlsDescriptionText
-            text: "Use these avatar controls to <b>interact with and move around in your new HQ.</b>"
+            text: "Use these avatar controls to<br><b>interact with and move around in your new HQ.</b>"
             anchors.top: parent.top
             anchors.topMargin: 48
             anchors.left: parent.left

@@ -25,58 +25,42 @@ Rectangle {
         id: simplifiedUI
     }
 
-    Image {
-        id: topLeftAccentImage
-        width: 180
-        height: 450
-        anchors.left: parent.left
-        anchors.top: parent.top
-        source: "images/standOutTopLeft.png"
-        z: 1
-    }
-
-    Image {
-        id: bottomRightAccentImage
-        width: 250
-        height: 80
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        source: "images/standOutBottomRight.png"
-        z: 1
-    }
-
-     Flickable {
-        id: tempAvatarPageContainer
+    Item {
+        id: contentContainer
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: continueLink.top
-        clip: true
-        contentWidth: parent.width
-        contentHeight: tempAvatarPageGrid.height
 
-        GridLayout {
-            id: tempAvatarPageGrid
-            width: parent.width
-            columns: 2
-            rows: 1
+        Image {
+            id: avatarImage
+            anchors.verticalCenter: parent.verticalCenter
+            height: Math.min(Math.max(parent.height - 24, 350), 898)
+            anchors.left: parent.left
+            anchors.leftMargin: 12
+            source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/hero.png"
+            mipmap: true
+            fillMode: Image.PreserveAspectFit
+        }
 
-            Image {
-                Layout.preferredWidth: 428
-                Layout.minimumHeight: 240
-                Layout.maximumHeight: 800
-                Layout.fillHeight: true
-                source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/hero.png"
-                mipmap: true
-                fillMode: Image.PreserveAspectFit
-            }
+        Item {
+            anchors.top: parent.top
+            anchors.topMargin: 196
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 32
+            anchors.left: avatarImage.right
+            anchors.right: parent.right
 
-            Item {
-                id: textAndQRContainer
-                Layout.minimumWidth: 300
-                Layout.maximumWidth: 1680
-                Layout.fillWidth: true
-                Layout.preferredHeight: childrenRect.height
+            Flickable {
+                id: textContainer
+                clip: true
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                width: Math.min(700, parent.width)
+                contentWidth: width
+                contentHeight: contentItem.childrenRect.height
+                interactive: contentHeight > height
 
                 HifiStylesUit.RalewayBold {
                     id: headerText
@@ -86,9 +70,9 @@ Rectangle {
                     height: paintedHeight
                     wrapMode: Text.Wrap
                     anchors.top: parent.top
-                    anchors.topMargin: 120
                     anchors.left: parent.left
                     anchors.right: parent.right
+                    anchors.rightMargin: 16
                 }
 
                 HifiStylesUit.RalewayRegular {
@@ -96,28 +80,31 @@ Rectangle {
                     anchors.top: headerText.bottom
                     anchors.topMargin: 10
                     anchors.left: parent.left
-                    anchors.right: parent.right
+                    width: parent.width - headerText.anchors.rightMargin
                     height: paintedHeight
                     text: "You can create and upload custom avatars from our Avatar Creator App. " +
-                        "It's as easy as taking a selfie. Available now on iOS and Android Platforms."
+                        "It's as easy as taking a selfie.<br>Available now on iOS and Android Platforms."
                     color: simplifiedUI.colors.text.black
-                    size: 24
+                    size: 22
                     wrapMode: Text.Wrap
                 }
 
                 Item {
                     id: qrAndInstructionsContainer
                     anchors.top: descriptionText.bottom
-                    anchors.topMargin: 50
+                    anchors.topMargin: 24
                     anchors.left: parent.left
                     anchors.right: parent.right
+                    anchors.rightMargin: 16
                     height: avatarAppQRCodeImage.height
 
                     Image {
                         id: avatarAppQRCodeImage
                         source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/qrCode.jpg"
-                        height: 190
+                        anchors.top: parent.top
+                        anchors.left: parent.left
                         width: 190
+                        height: width
                         mipmap: true
                         fillMode: Image.PreserveAspectFit
                     }
@@ -131,7 +118,7 @@ Rectangle {
                         anchors.right: parent.right
                         text: "Use your mobile phone to scan this QR code."
                         color: simplifiedUI.colors.text.black
-                        size: 24
+                        size: 22
                         wrapMode: Text.Wrap
                     }
                 }
@@ -139,22 +126,27 @@ Rectangle {
         }
 
         SimplifiedControls.VerticalScrollBar {
-            parent: tempAvatarPageContainer
+            parent: textContainer
+            visible: parent.contentHeight > parent.height
+            size: parent.height / parent.contentHeight
         }
     }
+        
 
     HifiStylesUit.RalewayBold {
         id: continueLink
         anchors.bottom: parent.bottom
         anchors.left: parent.left
+        anchors.leftMargin: 16
         anchors.right: parent.right
-        height: paintedHeight + 24
-        horizontalAlignment: Text.AlignLeft
-        text: "Continue >"
+        anchors.rightMargin: 16
+        height: 96
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
+        text: "No thanks, I'll keep using my default avatar."
         color: simplifiedUI.colors.text.lightBlue
         opacity: continueMouseArea.containsMouse ? 1.0 : 0.7
-        size: 36
-        z: 1
+        size: 24
 
         MouseArea {
             id: continueMouseArea
@@ -169,6 +161,24 @@ Rectangle {
                 });
             }
         }
+    }
+
+    Image {
+        id: topLeftAccentImage
+        width: 180
+        height: 450
+        anchors.left: parent.left
+        anchors.top: parent.top
+        source: "images/standOutTopLeft.png"
+    }
+
+    Image {
+        id: bottomRightAccentImage
+        width: 250
+        height: 80
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        source: "images/standOutBottomRight.png"
     }
 
     signal sendToScript(var message);
