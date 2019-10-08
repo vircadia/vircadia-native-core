@@ -2163,25 +2163,31 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     //deadzone constant
     #define INPUT_DEADZONE_THRESHOLD 0.05f
 
-    if (abs(params.inputZ) > INPUT_DEADZONE_THRESHOLD && abs(params.inputZ) >= abs(params.inputX)) {
-            if (params.inputZ > INPUT_DEADZONE_THRESHOLD) {
-                    // forward
-                    _animVars.set("isInputForward", true);
-                    _animVars.set("isInputBackward", false);
-                    _animVars.set("isInputRight", false);
-                    _animVars.set("isInputLeft", false);
-                    _animVars.set("isNotInput", false);
-                }
-            else {
-                // backward
-                _animVars.set("isInputForward", false);
-                _animVars.set("isInputBackward", true);
-                _animVars.set("isInputRight", false);
-                _animVars.set("isInputLeft", false);
-                _animVars.set("isNotInput", false);
-            }
-    } else if (abs(params.inputX) > INPUT_DEADZONE_THRESHOLD && abs(params.inputX) > abs(params.inputZ)) {
-        if (params.inputX > INPUT_DEADZONE_THRESHOLD) {
+    if (abs(params.inputX) <= INPUT_DEADZONE_THRESHOLD && abs(params.inputZ) <= INPUT_DEADZONE_THRESHOLD) {
+        // no WASD input
+        _animVars.set("isInputForward", false);
+        _animVars.set("isInputBackward", false);
+        _animVars.set("isInputRight", false);
+        _animVars.set("isInputLeft", false);
+        _animVars.set("isNotInput", true);
+    } else if ( abs(params.inputZ) >= abs(params.inputX) ) {
+        if (params.inputZ > 0) {
+            // forward
+            _animVars.set("isInputForward", true);
+            _animVars.set("isInputBackward", false);
+            _animVars.set("isInputRight", false);
+            _animVars.set("isInputLeft", false);
+            _animVars.set("isNotInput", false);
+        } else { 
+            // backward
+            _animVars.set("isInputForward", false);
+            _animVars.set("isInputBackward", true);
+            _animVars.set("isInputRight", false);
+            _animVars.set("isInputLeft", false);
+            _animVars.set("isNotInput", false);
+        }
+    } else {
+        if (params.inputX > 0) {
             // right
             _animVars.set("isInputForward", false);
             _animVars.set("isInputBackward", false);
@@ -2196,14 +2202,8 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
             _animVars.set("isInputLeft", true);
             _animVars.set("isNotInput", false);
         }
-    } else if (params.inputX <= INPUT_DEADZONE_THRESHOLD && params.inputZ <= INPUT_DEADZONE_THRESHOLD) {
-        // no WASD input
-        _animVars.set("isInputForward", false);
-        _animVars.set("isInputBackward", false);
-        _animVars.set("isInputRight", false);
-        _animVars.set("isInputLeft", false);
-        _animVars.set("isNotInput", true);
     }
+
 
     _headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
     bool leftHandEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftHand] & (uint8_t)ControllerFlags::Enabled;
