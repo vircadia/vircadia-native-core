@@ -157,6 +157,7 @@ render::ItemID EntityTreeRenderer::renderableIdForEntityId(const EntityItemID& i
 }
 
 int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
+bool _signalsConnected = false;
 
 void EntityTreeRenderer::resetEntitiesScriptEngine() {
     _entitiesScriptEngine = scriptEngineFactory(ScriptEngine::ENTITY_CLIENT_SCRIPT, NO_SCRIPT,
@@ -168,47 +169,52 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
     entityScriptingInterface->setEntitiesScriptEngine(entitiesScriptEngineProvider);
 
     // Connect mouse events to entity script callbacks
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, "mousePressOnEntity", event);
-    });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseDoublePressOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseDoublePressOnEntity", event);
-    });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseMoveOnEntity", event);
-        // FIXME: this is a duplicate of mouseMoveOnEntity, but it seems like some scripts might use this naming
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseMoveEvent", event);
-    });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseReleaseOnEntity", event);
-    });
+    if (!_signalsConnected) {
+    
+        connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, "mousePressOnEntity", event);
+        });
+        connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseDoublePressOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseDoublePressOnEntity", event);
+        });
+        connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseMoveOnEntity", event);
+            // FIXME: this is a duplicate of mouseMoveOnEntity, but it seems like some scripts might use this naming
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseMoveEvent", event);
+        });
+        connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseReleaseOnEntity", event);
+        });
 
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, "clickDownOnEntity", event);
-    });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::holdingClickOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, "holdingClickOnEntity", event);
-    });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickReleaseOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, "clickReleaseOnEntity", event);
-    });
+        connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, "clickDownOnEntity", event);
+        });
+        connect(entityScriptingInterface.data(), &EntityScriptingInterface::holdingClickOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, "holdingClickOnEntity", event);
+        });
+        connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickReleaseOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, "clickReleaseOnEntity", event);
+        });
 
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, "hoverEnterEntity", event);
-    });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, "hoverOverEntity", event);
-    });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, "hoverLeaveEntity", event);
-    });
+        connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, "hoverEnterEntity", event);
+        });
+        connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, "hoverOverEntity", event);
+        });
+        connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, "hoverLeaveEntity", event);
+        });
 
-    connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptPreloadFinished, [&](const EntityItemID& entityID) {
-        EntityItemPointer entity = getTree()->findEntityByID(entityID);
-        if (entity) {
-            entity->setScriptHasFinishedPreload(true);
-        }
-    });
+        connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptPreloadFinished, [&](const EntityItemID& entityID) {
+            EntityItemPointer entity = getTree()->findEntityByID(entityID);
+            if (entity) {
+                entity->setScriptHasFinishedPreload(true);
+            }
+        });
+
+        _signalsConnected = true;
+    }
 }
 
 void EntityTreeRenderer::stopDomainAndNonOwnedEntities() {
