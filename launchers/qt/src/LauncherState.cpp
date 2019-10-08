@@ -79,7 +79,6 @@ QString LauncherState::getClientExecutablePath() const {
 #endif
 }
 
-
 QString LauncherState::getConfigFilePath() const {
     QDir clientDirectory = getClientDirectory();
     return clientDirectory.absoluteFilePath("config.json");
@@ -89,7 +88,7 @@ QString LauncherState::getLauncherFilePath() const {
 #if defined(Q_OS_WIN)
     return _launcherDirectory.absoluteFilePath("launcher.exe");
 #elif defined(Q_OS_MACOS)
-    return _launcherDirectory.absoluteFilePath("launcher.app");
+    return getBundlePath() + "/Contents/MacOS/HQ Launcher";
 #endif
 }
 

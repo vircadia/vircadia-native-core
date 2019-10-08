@@ -42,6 +42,10 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
 
 }
 
+QString getBundlePath() {
+    return QString::fromNSString([[NSBundle mainBundle] bundlePath]);
+}
+
 
 void launchAutoUpdater(const QString& autoUpdaterPath) {
     NSException *exception;

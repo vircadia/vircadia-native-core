@@ -21,6 +21,7 @@ bool replaceDirectory(const QString& orginalDirectory, const QString& newDirecto
 void closeInterfaceIfRunning();
 void waitForInterfaceToClose();
 bool isLauncherAlreadyRunning();
+QString getBundlePath();
 #endif
 
 #ifdef Q_OS_WIN
