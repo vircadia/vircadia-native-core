@@ -157,7 +157,6 @@ render::ItemID EntityTreeRenderer::renderableIdForEntityId(const EntityItemID& i
 }
 
 int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
-bool _signalsConnected = false;
 
 void EntityTreeRenderer::resetEntitiesScriptEngine() {
     _entitiesScriptEngine = scriptEngineFactory(ScriptEngine::ENTITY_CLIENT_SCRIPT, NO_SCRIPT,
@@ -169,7 +168,7 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
     entityScriptingInterface->setEntitiesScriptEngine(entitiesScriptEngineProvider);
 
     // Connect mouse events to entity script callbacks
-    if (!_signalsConnected) {
+    if (!_mouseAndPreloadSignalHandlersConnected) {
     
         connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
             _entitiesScriptEngine->callEntityScriptMethod(entityID, "mousePressOnEntity", event);
@@ -213,7 +212,7 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
             }
         });
 
-        _signalsConnected = true;
+        _mouseAndPreloadSignalHandlersConnected = true;
     }
 }
 
