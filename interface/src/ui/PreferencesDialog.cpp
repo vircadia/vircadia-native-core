@@ -10,7 +10,6 @@
 
 #include <AudioClient.h>
 #include <avatar/AvatarManager.h>
-#include <devices/DdeFaceTracker.h>
 #include <ScriptEngines.h>
 #include <OffscreenUi.h>
 #include <Preferences.h>
@@ -283,22 +282,6 @@ void setupPreferences() {
         auto setter = [myAvatar](bool value) { myAvatar->setCollisionsEnabled(value); };
         auto preference = new CheckPreference(AVATAR_TUNING, "Enable Avatar collisions", getter, setter);
         preferences->addPreference(preference);
-    }
-
-    static const QString FACE_TRACKING{ "Face Tracking" };
-    {
-#ifdef HAVE_DDE
-        auto getter = []()->float { return DependencyManager::get<DdeFaceTracker>()->getEyeClosingThreshold(); };
-        auto setter = [](float value) { DependencyManager::get<DdeFaceTracker>()->setEyeClosingThreshold(value); };
-        preferences->addPreference(new SliderPreference(FACE_TRACKING, "Eye Closing Threshold", getter, setter));
-#endif
-    }
-
-
-    {
-        auto getter = []()->float { return FaceTracker::getEyeDeflection(); };
-        auto setter = [](float value) { FaceTracker::setEyeDeflection(value); };
-        preferences->addPreference(new SliderPreference(FACE_TRACKING, "Eye Deflection", getter, setter));
     }
 
     static const QString VR_MOVEMENT{ "VR Movement" };

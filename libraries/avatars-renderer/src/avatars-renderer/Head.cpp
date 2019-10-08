@@ -16,7 +16,6 @@
 #include <NodeList.h>
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
-#include <trackers/FaceTracker.h>
 #include <Rig.h>
 #include "Logging.h"
 
@@ -25,6 +24,22 @@
 using namespace std;
 
 static bool disableEyelidAdjustment { false };
+
+static void updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
+    float jawOpen, float mouth2, float mouth3, float mouth4, QVector<float>& coefficients) {
+
+    coefficients.resize(std::max((int)coefficients.size(), (int)Blendshapes::BlendshapeCount));
+    qFill(coefficients.begin(), coefficients.end(), 0.0f);
+    coefficients[(int)Blendshapes::EyeBlink_L] = leftBlink;
+    coefficients[(int)Blendshapes::EyeBlink_R] = rightBlink;
+    coefficients[(int)Blendshapes::BrowsU_C] = browUp;
+    coefficients[(int)Blendshapes::BrowsU_L] = browUp;
+    coefficients[(int)Blendshapes::BrowsU_R] = browUp;
+    coefficients[(int)Blendshapes::JawOpen] = jawOpen;
+    coefficients[(int)Blendshapes::MouthSmile_L] = coefficients[(int)Blendshapes::MouthSmile_R] = mouth4;
+    coefficients[(int)Blendshapes::LipsUpperClose] = mouth2;
+    coefficients[(int)Blendshapes::LipsFunnel] = mouth3;
+}
 
 Head::Head(Avatar* owningAvatar) :
     HeadData(owningAvatar),
@@ -153,7 +168,7 @@ void Head::simulate(float deltaTime) {
         _mouthTime = 0.0f;
     }
 
-    FaceTracker::updateFakeCoefficients(
+    updateFakeCoefficients(
         _leftEyeBlink,
         _rightEyeBlink,
         _browAudioLift,

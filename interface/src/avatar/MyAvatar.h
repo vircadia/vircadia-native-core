@@ -34,7 +34,6 @@
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
 #include "RingBufferHistory.h"
-#include "devices/DdeFaceTracker.h"
 
 class AvatarActionHold;
 class ModelItemID;
@@ -1899,7 +1898,7 @@ public:
     bool getFlowActive() const;
     bool getNetworkGraphActive() const;
 
-    void updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera);
+    void updateLookAtPosition(Camera& myCamera);
 
     // sets the reaction enabled and triggered parameters of the passed in params
     // also clears internal reaction triggers
@@ -2542,7 +2541,6 @@ private:
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) override;
 
     void simulate(float deltaTime, bool inView) override;
-    void updateFromTrackers(float deltaTime);
     void saveAvatarUrl();
     virtual void render(RenderArgs* renderArgs) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;

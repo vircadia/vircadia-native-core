@@ -14,10 +14,8 @@
 #include <NodeList.h>
 #include <recording/Deck.h>
 #include <Rig.h>
-#include <trackers/FaceTracker.h>
-#include <FaceshiftConstants.h>
+#include <BlendshapeConstants.h>
 
-#include "devices/DdeFaceTracker.h"
 #include "Application.h"
 #include "MyAvatar.h"
 

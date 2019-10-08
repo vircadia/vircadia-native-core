@@ -1,5 +1,5 @@
 //
-//  FaceshiftConstants.cpp
+//  BlendshapeConstants.cpp
 //
 //
 //  Created by Clement on 1/23/15.
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "FaceshiftConstants.h"
+#include "BlendshapeConstants.h"
 
 const char* FACESHIFT_BLENDSHAPES[] = {
     "EyeBlink_L",
@@ -34,7 +34,7 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     "JawFwd",
     "JawLeft",
     "JawOpen",
-    "JawChew", // legacy not in ARKit
+    "JawChew",
     "JawRight",
     "MouthLeft",
     "MouthRight",
@@ -48,15 +48,15 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     "LipsStretch_R",
     "LipsUpperClose",
     "LipsLowerClose",
-    "LipsUpperUp",   // legacy, split in ARKit
-    "LipsLowerDown", // legacy, split in ARKit
+    "LipsUpperUp",
+    "LipsLowerDown",
     "LipsUpperOpen",
     "LipsLowerOpen",
     "LipsFunnel",
     "LipsPucker",
     "ChinLowerRaise",
     "ChinUpperRaise",
-    "Sneer",  // legacy, split in ARKit
+    "Sneer",
     "Puff",
     "CheekSquint_L",
     "CheekSquint_R",
@@ -70,8 +70,6 @@ const char* FACESHIFT_BLENDSHAPES[] = {
 // MouthShrugLower
 // MouthShrugUpper
 // TongueOut
-
-const int NUM_FACESHIFT_BLENDSHAPES = sizeof(FACESHIFT_BLENDSHAPES) / sizeof(char*);
 
 const int EYE_BLINK_L_INDEX = 0;
 const int EYE_BLINK_R_INDEX = 1;

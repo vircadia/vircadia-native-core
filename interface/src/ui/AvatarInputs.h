@@ -32,14 +32,6 @@ class AvatarInputs : public QObject {
      * @hifi-client-entity
      * @hifi-avatar
      *
-     * @property {boolean} cameraEnabled - <code>true</code> if webcam face tracking is enabled, <code>false</code> if it is 
-     *     disabled.
-     *     <em>Read-only.</em>
-     *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
-     * @property {boolean} cameraMuted - <code>true</code> if webcam face tracking is muted (temporarily disabled), 
-     *     <code>false</code> it if isn't.
-     *     <em>Read-only.</em>
-     *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
      * @property {boolean} ignoreRadiusEnabled - <code>true</code> if the privacy shield is enabled, <code>false</code> if it
      *     is disabled.
      *     <em>Read-only.</em>
@@ -51,8 +43,6 @@ class AvatarInputs : public QObject {
      *     it is hidden.
      */
 
-    AI_PROPERTY(bool, cameraEnabled, false)
-    AI_PROPERTY(bool, cameraMuted, false)
     AI_PROPERTY(bool, isHMD, false)
 
     Q_PROPERTY(bool showAudioTools READ showAudioTools WRITE setShowAudioTools NOTIFY showAudioToolsChanged)
@@ -96,22 +86,6 @@ public slots:
     void setShowBubbleTools(bool showBubbleTools);
 
 signals:
-
-    /**jsdoc
-     * Triggered when webcam face tracking is enabled or disabled.
-     * @deprecated This signal is deprecated and will be removed.
-     * @function AvatarInputs.cameraEnabledChanged
-     * @returns {Signal}
-     */
-    void cameraEnabledChanged();
-
-    /**jsdoc
-     * Triggered when webcam face tracking is muted (temporarily disabled) or unmuted.
-     * @deprecated This signal is deprecated and will be removed.
-     * @function AvatarInputs.cameraMutedChanged
-     * @returns {Signal}
-     */
-    void cameraMutedChanged();
 
     /**jsdoc
      * Triggered when the display mode changes between desktop and HMD.
@@ -182,13 +156,6 @@ protected:
      * @function AvatarInputs.resetSensors
      */
     Q_INVOKABLE void resetSensors();
-
-    /**jsdoc
-     * Toggles the muting (temporary disablement) of webcam face tracking on/off.
-     * <p class="important">Deprecated: This function is deprecated and will be removed.</p>
-     * @function AvatarInputs.toggleCameraMute
-     */
-    Q_INVOKABLE void toggleCameraMute();
 
 private: 
     void onAvatarEnteredIgnoreRadius();

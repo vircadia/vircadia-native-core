@@ -71,7 +71,7 @@ void HeadData::setOrientation(const glm::quat& orientation) {
 }
 
 void HeadData::computeBlendshapesLookupMap(){
-    for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
+    for (int i = 0; i < (int)Blendshapes::BlendshapeCount; i++) {
         _blendshapeLookupMap[FACESHIFT_BLENDSHAPES[i]] = i;
     }
 }

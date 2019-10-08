@@ -20,7 +20,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <SharedUtil.h>
-#include <FaceshiftConstants.h>
+#include <BlendshapeConstants.h>
 
 // degrees
 const float MIN_HEAD_YAW = -180.0f;

@@ -81,7 +81,6 @@
 #include "VisionSqueeze.h"
 
 class GLCanvas;
-class FaceTracker;
 class MainWindow;
 class AssetUpload;
 class CompositorHelper;
@@ -190,9 +189,6 @@ public:
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
     ivec2 getMouse() const;
-
-    FaceTracker* getActiveFaceTracker();
-    FaceTracker* getSelectedFaceTracker();
 
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     const ApplicationOverlay& getApplicationOverlay() const { return _applicationOverlay; }
@@ -423,7 +419,6 @@ public slots:
     static void packageModel();
 
     void resetSensors(bool andReload = false);
-    void setActiveFaceTracker() const;
 
     void hmdVisibleChanged(bool visible);
 
@@ -496,8 +491,6 @@ private slots:
     void onPresent(quint32 frameCount);
 
     void resettingDomain();
-
-    void faceTrackerMuteToggled();
 
     void activeChanged(Qt::ApplicationState state);
     void windowMinimizedChanged(bool minimized);
@@ -735,8 +728,6 @@ private:
     LoginStateManager _loginStateManager;
     PerformanceManager _performanceManager;
     RefreshRateManager _refreshRateManager;
-
-    quint64 _lastFaceTrackerUpdate;
 
     GameWorkload _gameWorkload;
 
