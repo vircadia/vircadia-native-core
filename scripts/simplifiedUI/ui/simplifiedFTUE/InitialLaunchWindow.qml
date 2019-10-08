@@ -27,6 +27,8 @@ Rectangle {
     }
 
     Component.onCompleted: {
+        // ZRF REMOVE ME
+        return;
         if (Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatarFromInventory", false) || 
             Settings.getValue("simplifiedUI/closedAvatarPageOfInitialLaunchWindow", false)) {
             tempAvatarPageContainer.visible = false;
@@ -38,103 +40,109 @@ Rectangle {
         id: tempAvatarPageContainer
         anchors.fill: parent
 
-        Flickable {
-            id: tempAvatarPageFlickable
+        Item {
+            id: contentContainer
             anchors.top: parent.top
             anchors.left: parent.left
-            anchors.leftMargin: 16
             anchors.right: parent.right
-            anchors.rightMargin: 16
             anchors.bottom: continueLink.top
-            clip: true
-            contentWidth: parent.width
-            contentHeight: tempAvatarPageGrid.heights
-            interactive: contentHeight > height
 
-            RowLayout {
-                id: tempAvatarPageGrid
-                width: parent.width
+            Image {
+                id: avatarImage
+                anchors.top: parent.top
+                anchors.topMargin: 96
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 96
+                anchors.left: parent.left
+                anchors.leftMargin: 12
+                source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/" +
+                    MyAvatar.skeletonModelURL.substring(MyAvatar.skeletonModelURL.indexOf("simplifiedAvatar"), MyAvatar.skeletonModelURL.lastIndexOf("/")) + ".png"
+                mipmap: true
+                fillMode: Image.PreserveAspectFit
+            }
+
+            Flickable {
+                id: textContainer
+                clip: true
+                anchors.top: parent.top
+                anchors.topMargin: 128
+                anchors.bottom: qrAndInstructionsContainer.top
+                anchors.bottomMargin: 32
+                anchors.left: avatarImage.right
+                anchors.right: parent.right
+                contentWidth: width
+                contentHeight: contentItem.childrenRect.height
+                interactive: contentHeight > height
+
+                HifiStylesUit.RalewayBold {
+                    id: headerText
+                    text: "We know this isn't you..."
+                    color: simplifiedUI.colors.text.black
+                    size: 48
+                    height: paintedHeight
+                    wrapMode: Text.Wrap
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.rightMargin: 16
+                }
+
+                HifiStylesUit.RalewayRegular {
+                    id: descriptionText
+                    anchors.top: headerText.bottom
+                    anchors.topMargin: 10
+                    anchors.left: parent.left
+                    width: Math.min(720, parent.width) - headerText.anchors.rightMargin
+                    height: paintedHeight
+                    text: "...but we've given you this <b>temporary avatar</b> to use " +
+                        "for today. If you see this avatar in-world, walk up and " +
+                        "say hello to other new users!<br><br>" +
+                        "<b>We want you to be you</b> so we've built an Avatar Creator " +
+                        "App that's as easy as taking a selfie and picking your " +
+                        "outfits! Available now on iOS and Android."
+                    color: simplifiedUI.colors.text.black
+                    size: 22
+                    wrapMode: Text.Wrap
+                }
+            }
+
+            Item {
+                id: qrAndInstructionsContainer
+                anchors.left: avatarImage.right
+                anchors.right: parent.right
+                anchors.rightMargin: 16
+                anchors.bottom: parent.bottom
+                height: 190
 
                 Image {
-                    Layout.preferredWidth: 428
-                    Layout.minimumHeight: 240
-                    Layout.maximumHeight: 800
-                    Layout.fillHeight: true
-                    source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/" +
-                        MyAvatar.skeletonModelURL.substring(MyAvatar.skeletonModelURL.indexOf("simplifiedAvatar"), MyAvatar.skeletonModelURL.lastIndexOf("/")) + ".png"
+                    id: avatarAppQRCodeImage
+                    source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/qrCode.jpg"
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    width: 190
                     mipmap: true
                     fillMode: Image.PreserveAspectFit
                 }
 
-                Item {
-                    id: textAndQRContainer
-                    Layout.minimumWidth: 300
-                    Layout.maximumWidth: 1680
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: childrenRect.height
-
-                    HifiStylesUit.RalewayBold {
-                        id: headerText
-                        text: "We know this isn't you..."
-                        color: simplifiedUI.colors.text.black
-                        size: 48
-                        height: paintedHeight
-                        wrapMode: Text.Wrap
-                        anchors.top: parent.top
-                        anchors.topMargin: 120
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                    }
-
-                    HifiStylesUit.RalewayRegular {
-                        id: descriptionText
-                        anchors.top: headerText.bottom
-                        anchors.topMargin: 10
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        height: paintedHeight
-                        text: "but we've given you this <b>temporary avatar</b> to use " +
-                            "for today. If you see this avatar in-world, walk up and " +
-                            "say hello to other new users!<br><br>" +
-                            "<b>We want you to be you</b> so we've built an Avatar Creator " +
-                            "App that's as easy as taking a selfie and picking your " +
-                            "outfits! Available now on iOS and Android."
-                        color: simplifiedUI.colors.text.black
-                        size: 22
-                        wrapMode: Text.Wrap
-                    }
-
-                    Item {
-                        id: qrAndInstructionsContainer
-                        anchors.top: descriptionText.bottom
-                        anchors.topMargin: 50
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        height: avatarAppQRCodeImage.height
-
-                        Image {
-                            id: avatarAppQRCodeImage
-                            source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/qrCode.jpg"
-                            height: 190
-                            width: 190
-                            mipmap: true
-                            fillMode: Image.PreserveAspectFit
-                        }
-
-                        HifiStylesUit.RalewayBold {
-                            id: instructionText
-                            anchors.top: avatarAppQRCodeImage.top
-                            anchors.bottom: avatarAppQRCodeImage.bottom
-                            anchors.left: avatarAppQRCodeImage.right
-                            anchors.leftMargin: 30
-                            anchors.right: parent.right
-                            text: "Use your mobile phone to scan this QR code."
-                            color: simplifiedUI.colors.text.black
-                            size: 22
-                            wrapMode: Text.Wrap
-                        }
-                    }
+                HifiStylesUit.RalewayBold {
+                    id: instructionText
+                    anchors.top: avatarAppQRCodeImage.top
+                    anchors.bottom: avatarAppQRCodeImage.bottom
+                    anchors.left: avatarAppQRCodeImage.right
+                    anchors.leftMargin: 30
+                    anchors.right: parent.right
+                    text: "Use your mobile phone to scan this QR code."
+                    color: simplifiedUI.colors.text.black
+                    size: 22
+                    wrapMode: Text.Wrap
                 }
+            }
+
+            SimplifiedControls.VerticalScrollBar {
+                parent: textContainer
+                anchors.topMargin: 96
+                anchors.bottomMargin: anchors.topMargin
             }
         }
         
@@ -166,10 +174,6 @@ Rectangle {
                     controlsContainer.visible = true;
                 }
             }
-        }
-
-        SimplifiedControls.VerticalScrollBar {
-            parent: tempAvatarPageFlickable
         }
     }
 
