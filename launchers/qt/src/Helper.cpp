@@ -57,6 +57,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     QTextStream textStream(&outFile);
     std::cout << txt.toStdString() << "\n";
     textStream << txt << "\n";
+    outFile.close();
 }
 
 void swapLaunchers(const QString& oldLauncherPath, const QString& newLauncherPath) {

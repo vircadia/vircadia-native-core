@@ -16,7 +16,7 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
                   const QString& displayName, const QString& contentCachePath, QString loginResponseToken) {
 
     // TODO Fix parameters
-    QString params = "--url \"" + homePath + "\""
+    QString params = "\"" + clientPath + "\"" + " --url \"" + homePath + "\""
         + " --setBookmark \"hqhome=" + homePath + "\""
         + " --defaultScriptsOverride \"file:///" + defaultScriptsPath + "\""
         + " --cache \"" + contentCachePath + "\""
@@ -58,7 +58,7 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
 }
 
 void launchAutoUpdater(const QString& autoUpdaterPath) {
-    QString params = "--restart --noUpdate";
+    QString params = "\"" + QCoreApplication::applicationFilePath() + "\"" + " --restart --noUpdate";
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
 
