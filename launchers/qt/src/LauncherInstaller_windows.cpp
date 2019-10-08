@@ -31,7 +31,6 @@ bool LauncherInstaller::runningOutsideOfInstallDir() {
 }
 
 void LauncherInstaller::install() {
-    //qDebug() << "Is install dir empty: " << _launcherInstallDir.isEmpty();
     if (runningOutsideOfInstallDir()) {
         qDebug() << "Installing HQ Launcher....";
         QString oldLauncherPath = _launcherInstallDir.absolutePath() + "/HQ Launcher.exe";

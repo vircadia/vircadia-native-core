@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <iostream>
+#include <QDebug>
+#include <QString>
 
 bool isCommandlineOption(const std::string& option) {
     if (option.rfind("--", 0) == 0 && option.at(2) != '-') {
@@ -18,7 +20,7 @@ void CommandlineOptions::parse(const int argc, char** argv) {
     for (int index = 1; index < argc; index++) {
         std::string option = argv[index];
         if (isCommandlineOption(option)) {
-            std::cout << "adding commandline option: " << option << "\n";
+            qDebug() << "adding commandline option: " << QString::fromStdString(option);
             _commandlineOptions.push_back(option);
         }
     }

@@ -42,6 +42,10 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
 
 }
 
+QString getBundlePath() {
+    return QString::fromNSString([[NSBundle mainBundle] bundlePath]);
+}
+
 
 void launchAutoUpdater(const QString& autoUpdaterPath) {
     NSException *exception;
@@ -55,13 +59,13 @@ void launchAutoUpdater(const QString& autoUpdaterPath) {
         task.launchPath = [newLauncher stringByAppendingString: bundlePath];
         task.arguments = @[[[NSBundle mainBundle] bundlePath], newLauncher];
 
-        NSLog(@"launching updater: %@ %@", task.launchPath, task.arguments);
+        qDebug() << "launching updater: " << task.launchPath << task.arguments;
 
         @try {
             [task launch];
         }
         @catch (NSException *e) {
-            NSLog(@"couldn't launch updater: %@, %@", e.name, e.reason);
+            qDebug() << "couldn't launch updater: " << QString::fromNSString(e.name) << QString::fromNSString(e.reason);
             exception = e;
             continue;
         }
@@ -117,9 +121,9 @@ void waitForInterfaceToClose() {
 
 bool isLauncherAlreadyRunning() {
     NSArray* apps = [NSRunningApplication runningApplicationsWithBundleIdentifier:@"com.highfidelity.launcher"];
-    NSLog(@"Count: %lu", [apps count]);
     if ([apps count] > 1) {
         NSLog(@"launcher is already running");
+        qDebug() << "launcher is already running";
         return true;
     }
 

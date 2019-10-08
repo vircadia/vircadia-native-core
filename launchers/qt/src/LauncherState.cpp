@@ -80,7 +80,6 @@ QString LauncherState::getClientExecutablePath() const {
 #endif
 }
 
-
 QString LauncherState::getConfigFilePath() const {
     QDir clientDirectory = getClientDirectory();
     return clientDirectory.absoluteFilePath("config.json");
@@ -90,7 +89,7 @@ QString LauncherState::getLauncherFilePath() const {
 #if defined(Q_OS_WIN)
     return _launcherDirectory.absoluteFilePath("launcher.exe");
 #elif defined(Q_OS_MACOS)
-    return _launcherDirectory.absoluteFilePath("launcher.app");
+    return getBundlePath() + "/Contents/MacOS/HQ Launcher";
 #endif
 }
 
@@ -278,6 +277,7 @@ void LauncherState::getCurrentClientVersion() {
         }
     }
 
+    qDebug() << "Is logged-in: " << _config.loggedIn;
     if (_config.loggedIn) {
         downloadClient();
     } else {
@@ -735,7 +735,7 @@ void LauncherState::launchClient() {
 
     auto path = getConfigFilePath();
     QFile configFile{ path };
-    if (configFile.open(QIODevice::WriteOnly)) {
+    if (configFile.open(QIODevice::ReadWrite | QIODevice::Truncate)) {
         QJsonDocument doc = QJsonDocument::fromJson(configFile.readAll());
         doc.setObject({
             { configHomeLocationKey, _config.homeLocation },
@@ -743,7 +743,11 @@ void LauncherState::launchClient() {
             { configLoggedInKey, _config.loggedIn },
             { configLauncherPathKey, getLauncherFilePath() },
         });
-        configFile.write(doc.toJson());
+        qint64 result = configFile.write(doc.toJson());
+        configFile.close();
+        qDebug() << "Wrote data to config data: " << result;
+    } else {
+        qDebug() << "Failed to open config file";
     }
 
     QString defaultScriptsPath;
