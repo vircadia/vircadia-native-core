@@ -78,6 +78,7 @@ Item {
 
             enabled: root.enabled
 
+            text: LauncherState.lastUsedUsername
             placeholderText: "Username"
 
             seperatorColor: Qt.rgba(1, 1, 1, 0.3)

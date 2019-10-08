@@ -31,6 +31,7 @@
 //#define BREAK_ON_ERROR
 
 const QString configHomeLocationKey { "homeLocation" };
+const QString configLastLoginKey { "lastLogin" };
 const QString configLoggedInKey{ "loggedIn" };
 const QString configLauncherPathKey{ "launcherPath" };
 
@@ -261,10 +262,16 @@ void LauncherState::getCurrentClientVersion() {
             _config.launcherPath = getLauncherFilePath();
             _config.loggedIn = false;
             if (root.contains(configLoggedInKey)) {
-                _config.loggedIn = root["loggedIn"].toBool();
+                _config.loggedIn = root[configLoggedInKey].toBool();
+            }
+            if (root.contains(configLastLoginKey)) {
+                _config.lastLogin = root[configLastLoginKey].toString();
             }
             if (root.contains(configHomeLocationKey)) {
-                _config.homeLocation = root["homeLocation"].toString();
+                _config.homeLocation = root[configHomeLocationKey].toString();
+            }
+            if (root.contains(configLauncherPathKey)) {
+                _config.launcherPath = root[configLauncherPathKey].toString();
             }
         } else {
             qDebug() << "Failed to open config.json";
@@ -274,7 +281,12 @@ void LauncherState::getCurrentClientVersion() {
     if (_config.loggedIn) {
         downloadClient();
     } else {
-        setApplicationState(ApplicationState::WaitingForSignup);
+        if (_config.lastLogin.isEmpty()) {
+            setApplicationState(ApplicationState::WaitingForSignup);
+        } else {
+            _lastUsedUsername = _config.lastLogin;
+            setApplicationState(ApplicationState::WaitingForLogin);
+        }
     }
 }
 
@@ -312,7 +324,7 @@ void LauncherState::signup(QString email, QString username, QString password, QS
         emit lastSignupErrorChanged();
     }
 
-    QObject::connect(signupRequest, &SignupRequest::finished, this, [this, signupRequest] {
+    QObject::connect(signupRequest, &SignupRequest::finished, this, [this, signupRequest, username] {
         signupRequest->deleteLater();
 
 
@@ -349,6 +361,9 @@ void LauncherState::signup(QString email, QString username, QString password, QS
 
         // After successfully signing up, attempt to login
         auto loginRequest = new LoginRequest();
+
+        _lastUsedUsername = username;
+        _config.lastLogin = username;
 
         connect(loginRequest, &LoginRequest::finished, this, [this, loginRequest]() {
             ASSERT_STATE(ApplicationState::RequestingLoginAfterSignup);
@@ -389,7 +404,7 @@ void LauncherState::login(QString username, QString password, QString displayNam
 
     auto request = new LoginRequest();
 
-    connect(request, &LoginRequest::finished, this, [this, request]() {
+    connect(request, &LoginRequest::finished, this, [this, request, username]() {
         ASSERT_STATE(ApplicationState::RequestingLogin);
 
         request->deleteLater();
@@ -404,6 +419,8 @@ void LauncherState::login(QString username, QString password, QString displayNam
             return;
         }
 
+        _lastUsedUsername = username;
+        _config.lastLogin = username;
         _config.loggedIn = true;
         _loginResponse = request->getToken();
         _loginTokenResponse = request->getRawToken();
@@ -722,8 +739,9 @@ void LauncherState::launchClient() {
         QJsonDocument doc = QJsonDocument::fromJson(configFile.readAll());
         doc.setObject({
             { configHomeLocationKey, _config.homeLocation },
+            { configLastLoginKey, _config.lastLogin },
             { configLoggedInKey, _config.loggedIn },
-            { configLauncherPathKey, _config.launcherPath },
+            { configLauncherPathKey, getLauncherFilePath() },
         });
         configFile.write(doc.toJson());
     }

@@ -13,6 +13,7 @@
 #include "BuildsRequest.h"
 
 struct LauncherConfig {
+    QString lastLogin{ "" };
     QString launcherPath{ "" };
     bool loggedIn{ false };
     QString homeLocation{ "" };
@@ -28,6 +29,7 @@ class LauncherState : public QObject {
     Q_PROPERTY(QString lastLoginErrorMessage READ getLastLoginErrorMessage NOTIFY lastLoginErrorMessageChanged)
     Q_PROPERTY(QString lastSignupErrorMessage READ getLastSignupErrorMessage NOTIFY lastSignupErrorMessageChanged)
     Q_PROPERTY(QString buildVersion READ getBuildVersion)
+    Q_PROPERTY(QString lastUsedUsername READ getLastUsedUsername)
 
 public:
     LauncherState();
@@ -94,6 +96,7 @@ public:
     QString getLastSignupErrorMessage() const { return _lastSignupErrorMessage; }
 
     QString getBuildVersion() { return QString(LAUNCHER_BUILD_VERSION); }
+    QString getLastUsedUsername() const { return _lastUsedUsername; }
 
     void setApplicationStateError(QString errorMessage);
     void setApplicationState(ApplicationState state);
@@ -174,6 +177,7 @@ private:
     SignupRequest::Error _lastSignupError{ SignupRequest::Error::None };
     QString _lastLoginErrorMessage{ "" };
     QString _lastSignupErrorMessage{ "" };
+    QString _lastUsedUsername;
     QString _displayName;
     QString _applicationErrorMessage;
     QString _currentClientVersion;

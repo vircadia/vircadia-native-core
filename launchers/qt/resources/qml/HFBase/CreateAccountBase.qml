@@ -9,7 +9,7 @@ Item {
     id: root
     anchors.centerIn: parent
     property string titleText: "Sign-in and pick a password"
-    property string usernamePlaceholder: "User name"
+    property string usernamePlaceholder: "Username"
     property string passwordPlaceholder: "Set a password"
     property int marginLeft: root.width * 0.15
 
@@ -30,8 +30,7 @@ Item {
         width: 481
         lineHeight: 35
         lineHeightMode: Text.FixedHeight
-        text: root.titleText + " " + LauncherState.applicationState
-        visible: LauncherState.lastSignupErrorMessage.length == 0 ? root.titleText : "Uh oh."
+        text: LauncherState.lastSignupErrorMessage.length == 0 ? root.titleText : "Uh oh."
         anchors {
             top: root.top
             topMargin: 29
