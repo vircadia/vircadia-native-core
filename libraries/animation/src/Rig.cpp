@@ -2160,40 +2160,43 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
         }
     }
 
-    //TODO: how to handle multiple inputs?  Is there a trick to prioritize fwd/bwd with order of operations?
-    if (params.inputX) {
-        if (params.inputX > 0.0f) {
-            // left
+    //deadzone constant
+    #define INPUT_DEADZONE_THRESHOLD 0.05f
+
+    if (abs(params.inputZ) > INPUT_DEADZONE_THRESHOLD && abs(params.inputZ) >= abs(params.inputX)) {
+            if (params.inputZ > INPUT_DEADZONE_THRESHOLD) {
+                    // forward
+                    _animVars.set("isInputForward", true);
+                    _animVars.set("isInputBackward", false);
+                    _animVars.set("isInputRight", false);
+                    _animVars.set("isInputLeft", false);
+                    _animVars.set("isNotInput", false);
+                }
+            else {
+                // backward
+                _animVars.set("isInputForward", false);
+                _animVars.set("isInputBackward", true);
+                _animVars.set("isInputRight", false);
+                _animVars.set("isInputLeft", false);
+                _animVars.set("isNotInput", false);
+            }
+    } else if (abs(params.inputX) > INPUT_DEADZONE_THRESHOLD && abs(params.inputX) > abs(params.inputZ)) {
+        if (params.inputX > INPUT_DEADZONE_THRESHOLD) {
+            // right
             _animVars.set("isInputForward", false);
             _animVars.set("isInputBackward", false);
             _animVars.set("isInputRight", true);
             _animVars.set("isInputLeft", false);
             _animVars.set("isNotInput", false);
         } else {
-            // right
+            // left
             _animVars.set("isInputForward", false);
             _animVars.set("isInputBackward", false);
             _animVars.set("isInputRight", false);
             _animVars.set("isInputLeft", true);
             _animVars.set("isNotInput", false);
         }
-    } else if (params.inputZ) {
-        if (params.inputZ > 0.0f) {
-            // forward
-            _animVars.set("isInputForward", true);
-            _animVars.set("isInputBackward", false);
-            _animVars.set("isInputRight", false);
-            _animVars.set("isInputLeft", false);
-            _animVars.set("isNotInput", false);
-        } else {
-            // backward
-            _animVars.set("isInputForward", false);
-            _animVars.set("isInputBackward", true);
-            _animVars.set("isInputRight", false);
-            _animVars.set("isInputLeft", false);
-            _animVars.set("isNotInput", false);
-        }
-    } else if (params.inputX == 0.0f && params.inputZ == 0.0f) {
+    } else if (params.inputX <= INPUT_DEADZONE_THRESHOLD && params.inputZ <= INPUT_DEADZONE_THRESHOLD) {
         // no WASD input
         _animVars.set("isInputForward", false);
         _animVars.set("isInputBackward", false);
