@@ -11,8 +11,8 @@
 
 #include "MainWindow.h"
 
-#include <QApplication>
-#include <QDesktopWidget>
+#include <QtGui/QGuiApplication>
+#include <QtGui/QScreen>
 #include <QEvent>
 #include <QMoveEvent>
 #include <QResizeEvent>
@@ -22,8 +22,8 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QMimeData>
-#include <QWindow>
-#include <QDebug>
+#include <QtGui/QWindow>
+#include <QtCore/QDebug>
 
 #include "ui/Logging.h"
 #include "DockWidget.h"
@@ -60,7 +60,7 @@ QWindow* MainWindow::findMainWindow() {
 void MainWindow::restoreGeometry() {
     // Did not use setGeometry() on purpose,
     // see http://doc.qt.io/qt-5/qsettings.html#restoring-the-state-of-a-gui-application
-    QRect windowGeometry = qApp->desktop()->availableGeometry();
+    QRect windowGeometry = QGuiApplication::primaryScreen()->availableGeometry();
 #if defined(Q_OS_MAC)
     windowGeometry.setSize((windowGeometry.size() * 0.5f));
 #endif

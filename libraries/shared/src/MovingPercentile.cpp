@@ -46,13 +46,13 @@ void MovingPercentile::updatePercentile(qint64 sample) {
     // swap new sample with neighbors in _samplesSorted until it's in sorted order
     // try swapping up first, then down.  element will only be swapped one direction.
     while (newSampleIndex < _samplesSorted.size() - 1 && sample > _samplesSorted[newSampleIndex + 1]) {
-        _samplesSorted.swap(newSampleIndex, newSampleIndex + 1);
-        _sampleIds.swap(newSampleIndex, newSampleIndex + 1);
+        std::swap(_samplesSorted[newSampleIndex], _samplesSorted[newSampleIndex + 1]);
+        std::swap(_sampleIds[newSampleIndex], _sampleIds[newSampleIndex + 1]);
         newSampleIndex++;
     }
     while (newSampleIndex > 0 && sample < _samplesSorted[newSampleIndex - 1]) {
-        _samplesSorted.swap(newSampleIndex, newSampleIndex - 1);
-        _sampleIds.swap(newSampleIndex, newSampleIndex - 1);
+        std::swap(_samplesSorted[newSampleIndex], _samplesSorted[newSampleIndex - 1]);
+        std::swap(_sampleIds[newSampleIndex], _sampleIds[newSampleIndex - 1]);
         newSampleIndex--;
     }
 
