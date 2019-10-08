@@ -81,8 +81,8 @@ public:
     bool getHasProceduralEyeMovement() const;
     void setHasProceduralEyeMovement(bool hasProceduralEyeMovement);
 
-    void setFaceTrackerConnected(bool value);
-    bool getFaceTrackerConnected() const { return _isFaceTrackerConnected; }
+    void setHasScriptedBlendshapes(bool value);
+    bool getHasScriptedBlendshapes() const { return _hasScriptedBlendshapes; }
 
     friend class AvatarData;
 
@@ -103,7 +103,7 @@ protected:
     bool _hasProceduralEyeFaceMovement { true };
     bool _hasProceduralEyeMovement { true };
 
-    bool _isFaceTrackerConnected { false };
+    bool _hasScriptedBlendshapes { false };
 
     float _leftEyeBlink { 0.0f };
     float _rightEyeBlink { 0.0f };

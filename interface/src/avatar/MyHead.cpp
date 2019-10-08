@@ -64,7 +64,9 @@ void MyHead::simulate(float deltaTime) {
         bool eyeLidsTracked =
             userInputMapper->getActionStateValid(controller::Action::LEFT_EYE_BLINK) &&
             userInputMapper->getActionStateValid(controller::Action::RIGHT_EYE_BLINK);
-        setFaceTrackerConnected(eyeLidsTracked);
+
+        setHasScriptedBlendshapes(eyeLidsTracked);
+
         if (eyeLidsTracked) {
             float leftEyeBlink = userInputMapper->getActionState(controller::Action::LEFT_EYE_BLINK);
             float rightEyeBlink = userInputMapper->getActionState(controller::Action::RIGHT_EYE_BLINK);

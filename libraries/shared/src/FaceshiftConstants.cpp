@@ -34,7 +34,7 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     "JawFwd",
     "JawLeft",
     "JawOpen",
-    "JawChew",
+    "JawChew", // legacy not in ARKit
     "JawRight",
     "MouthLeft",
     "MouthRight",
@@ -48,20 +48,28 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     "LipsStretch_R",
     "LipsUpperClose",
     "LipsLowerClose",
-    "LipsUpperUp",
-    "LipsLowerDown",
+    "LipsUpperUp",   // legacy, split in ARKit
+    "LipsLowerDown", // legacy, split in ARKit
     "LipsUpperOpen",
     "LipsLowerOpen",
     "LipsFunnel",
     "LipsPucker",
     "ChinLowerRaise",
     "ChinUpperRaise",
-    "Sneer",
+    "Sneer",  // legacy, split in ARKit
     "Puff",
     "CheekSquint_L",
     "CheekSquint_R",
     ""
 };
+
+// new in ARKit
+// LipsTogether
+// MouthPressLeft
+// MouthPressRight
+// MouthShrugLower
+// MouthShrugUpper
+// TongueOut
 
 const int NUM_FACESHIFT_BLENDSHAPES = sizeof(FACESHIFT_BLENDSHAPES) / sizeof(char*);
 

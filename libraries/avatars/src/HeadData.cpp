@@ -206,8 +206,7 @@ void HeadData::setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement
 }
 
 bool HeadData::getHasProceduralBlinkFaceMovement() const {
-    // return _hasProceduralBlinkFaceMovement;
-    return _hasProceduralBlinkFaceMovement && !_isFaceTrackerConnected;
+    return _hasProceduralBlinkFaceMovement;
 }
 
 void HeadData::setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement) {
@@ -230,6 +229,6 @@ void HeadData::setHasProceduralEyeMovement(bool hasProceduralEyeMovement) {
     _hasProceduralEyeMovement = hasProceduralEyeMovement;
 }
 
-void HeadData::setFaceTrackerConnected(bool value) {
-    _isFaceTrackerConnected = value;
+void HeadData::setHasScriptedBlendshapes(bool value) {
+    _hasScriptedBlendshapes = value;
 }

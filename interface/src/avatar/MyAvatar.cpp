@@ -3405,31 +3405,6 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     return !defaultMode || (!firstPerson && !insideHead) || (overrideAnim && !insideHead);
 }
 
-void MyAvatar::setHasScriptedBlendshapes(bool hasScriptedBlendshapes) {
-    if (hasScriptedBlendshapes == _hasScriptedBlendShapes) {
-        return;
-    }
-    if (!hasScriptedBlendshapes) {
-        // send a forced avatarData update to make sure the script can send neutal blendshapes on unload
-        // without having to wait for the update loop, make sure _hasScriptedBlendShapes is still true
-        // before sending the update, or else it won't send the neutal blendshapes to the receiving clients
-        sendAvatarDataPacket(true);
-    }
-    _hasScriptedBlendShapes = hasScriptedBlendshapes;
-}
-
-void MyAvatar::setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement) {
-    _headData->setHasProceduralBlinkFaceMovement(hasProceduralBlinkFaceMovement);
-}
-
-void MyAvatar::setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement) {
-    _headData->setHasProceduralEyeFaceMovement(hasProceduralEyeFaceMovement);
-}
-
-void MyAvatar::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) {
-    _headData->setHasAudioEnabledFaceMovement(hasAudioEnabledFaceMovement);
-}
-
 void MyAvatar::setRotationRecenterFilterLength(float length) {
     const float MINIMUM_ROTATION_RECENTER_FILTER_LENGTH = 0.01f;
     _rotationRecenterFilterLength = std::max(MINIMUM_ROTATION_RECENTER_FILTER_LENGTH, length);
