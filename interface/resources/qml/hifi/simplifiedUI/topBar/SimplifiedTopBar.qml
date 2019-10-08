@@ -121,7 +121,7 @@ Rectangle {
                 var alreadyAutoSelectedAvatarFromInventory = Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatarFromInventory", false);
                 var userHasValidAvatarInInventory = topBarInventoryModel.count > 0 && 
                     topBarInventoryModel.get(0).download_url.indexOf(".fst") > -1;
-                var simplifiedAvatarPrefix = resourceDirectoryUrl + "qml/hifi/simplifiedUI/topBar/avatars/simplifiedAvatar_";
+                var simplifiedAvatarPrefix = "https://content.highfidelity.com/Experiences/Releases/simplifiedUI/simplifiedFTUE/avatars/simplifiedAvatar_";
                 var simplifiedAvatarColors = ["Blue", "Cyan", "Green", "Magenta", "Red", "Yellow"];
                 var simplifiedAvatarSuffix = "/avatar.fst";
 
