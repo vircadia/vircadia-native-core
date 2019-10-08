@@ -50,7 +50,7 @@ Rectangle {
             Image {
                 id: avatarImage
                 anchors.verticalCenter: parent.verticalCenter
-                height: Math.min(Math.max(parent.height - 24, 350), 898)
+                height: Math.max(parent.height - 48, 350)
                 anchors.left: parent.left
                 anchors.leftMargin: 12
                 source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/" +
@@ -67,6 +67,7 @@ Rectangle {
                 anchors.bottom: qrAndInstructionsContainer.top
                 anchors.bottomMargin: 32
                 anchors.left: avatarImage.right
+                anchors.leftMargin: 48
                 anchors.right: parent.right
                 contentWidth: width
                 contentHeight: contentItem.childrenRect.height
@@ -112,10 +113,11 @@ Rectangle {
             Item {
                 id: qrAndInstructionsContainer
                 anchors.left: avatarImage.right
+                anchors.leftMargin: 48
                 anchors.right: parent.right
                 anchors.rightMargin: 16
                 anchors.bottom: parent.bottom
-                height: 190
+                height: 130
 
                 Image {
                     id: avatarAppQRCodeImage
@@ -123,7 +125,7 @@ Rectangle {
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
-                    width: 190
+                    width: 130
                     mipmap: true
                     fillMode: Image.PreserveAspectFit
                 }
@@ -156,7 +158,7 @@ Rectangle {
             anchors.right: parent.right
             anchors.rightMargin: 32
             anchors.bottom: parent.bottom
-            height: continueLink.height + learnMoreAvatarLink.height + 48
+            height: continueLink.height + 48
         
             HifiStylesUit.RalewayBold {
                 id: continueLink
@@ -180,32 +182,6 @@ Rectangle {
                         tempAvatarPageContainer.visible = false;
                         Settings.setValue("simplifiedUI/closedAvatarPageOfInitialLaunchWindow", true);
                         controlsContainer.visible = true;
-                    }
-                }
-            }
-        
-            HifiStylesUit.RalewayBold {
-                id: learnMoreAvatarLink
-                anchors.left: parent.left
-                anchors.leftMargin: 16
-                anchors.top: continueLink.bottom
-                anchors.topMargin: 8
-                text: "Learn more about custom avatars."
-                width: paintedWidth
-                height: paintedHeight
-                color: simplifiedUI.colors.text.lightBlue
-                opacity: learnMoreAboutAvatarsMouseArea.containsMouse ? 1.0 : 0.7
-                size: 14
-                wrapMode: Text.Wrap
-
-                MouseArea {
-                    id: learnMoreAboutAvatarsMouseArea
-                    hoverEnabled: true
-                    anchors.fill: parent
-
-                    onClicked: {
-                        Tablet.playSound(TabletEnums.ButtonClick);
-                        Qt.openUrlExternally("https://www.highfidelity.com/knowledge/avatars");
                     }
                 }
             }

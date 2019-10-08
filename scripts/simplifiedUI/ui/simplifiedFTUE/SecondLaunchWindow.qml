@@ -35,7 +35,7 @@ Rectangle {
         Image {
             id: avatarImage
             anchors.verticalCenter: parent.verticalCenter
-            height: Math.min(Math.max(parent.height - 24, 350), 898)
+            height: Math.max(parent.height - 48, 350)
             anchors.left: parent.left
             anchors.leftMargin: 12
             source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/hero.png"
@@ -49,6 +49,7 @@ Rectangle {
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 32
             anchors.left: avatarImage.right
+            anchors.leftMargin: 48
             anchors.right: parent.right
 
             Flickable {
@@ -103,7 +104,7 @@ Rectangle {
                         source: resourceDirectoryUrl + "qml/hifi/simplifiedUI/avatarApp/images/qrCode.jpg"
                         anchors.top: parent.top
                         anchors.left: parent.left
-                        width: 190
+                        width: 130
                         height: width
                         mipmap: true
                         fillMode: Image.PreserveAspectFit
@@ -165,8 +166,8 @@ Rectangle {
 
     Image {
         id: topLeftAccentImage
-        width: 180
-        height: 450
+        width: 130
+        height: 320
         anchors.left: parent.left
         anchors.top: parent.top
         source: "images/standOutTopLeft.png"
