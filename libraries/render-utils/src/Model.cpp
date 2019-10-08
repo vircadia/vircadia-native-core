@@ -1687,7 +1687,6 @@ public:
         std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
         meshes->push_back(mesh);
         _meshes = meshes;
-        _meshParts = std::shared_ptr<const GeometryMeshParts>();
     }
 };
 

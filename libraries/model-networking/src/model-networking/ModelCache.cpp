@@ -295,7 +295,7 @@ void ModelResource::onGeometryMappingLoaded(bool success) {
     if (success && _modelResource) {
         _hfmModel = _modelResource->_hfmModel;
         _materialMapping = _modelResource->_materialMapping;
-        _meshParts = _modelResource->_meshParts;
+     //   _meshParts = _modelResource->_meshParts;
         _meshes = _modelResource->_meshes;
         _materials = _modelResource->_materials;
 
@@ -329,21 +329,13 @@ void ModelResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const Mate
     }
 
     std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
-    std::shared_ptr<GeometryMeshParts> parts = std::make_shared<GeometryMeshParts>();
     int meshID = 0;
     for (const HFMMesh& mesh : _hfmModel->meshes) {
         // Copy mesh pointers
         meshes->emplace_back(mesh._mesh);
-        int partID = 0;
-        for (const HFMMeshPart& part : mesh.parts) {
-            // Construct local parts
-            parts->push_back(std::make_shared<MeshPart>(meshID, partID, (int)materialIDAtlas[part.materialID]));
-            partID++;
-        }
         meshID++;
     }
     _meshes = meshes;
-    _meshParts = parts;
 
     finishedLoading(true);
 }
@@ -428,7 +420,6 @@ NetworkModel::NetworkModel(const NetworkModel& networkModel) {
     _hfmModel = networkModel._hfmModel;
     _materialMapping = networkModel._materialMapping;
     _meshes = networkModel._meshes;
-    _meshParts = networkModel._meshParts;
 
     _materials.reserve(networkModel._materials.size());
     for (const auto& material : networkModel._materials) {
@@ -500,15 +491,8 @@ bool NetworkModel::areTexturesLoaded() const {
     return true;
 }
 
-const std::shared_ptr<NetworkMaterial> NetworkModel::getShapeMaterial(int partID) const {
- /*   if ((partID >= 0) && (partID < (int)_meshParts->size())) {
-        int materialID = _meshParts->at(partID)->materialID;
-        if ((materialID >= 0) && (materialID < (int)_materials.size())) {
-            return _materials[materialID];
-        }
-    }*/
-
-    auto materialID = getHFMModel().shapes[partID].material;
+const std::shared_ptr<NetworkMaterial> NetworkModel::getShapeMaterial(int shapeID) const {
+    auto materialID = getHFMModel().shapes[shapeID].material;
     if ((materialID >= 0) && (materialID < (int)_materials.size())) {
         return _materials[materialID];
     }

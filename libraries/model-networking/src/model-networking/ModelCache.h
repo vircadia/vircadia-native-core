@@ -22,8 +22,6 @@
 #include <material-networking/TextureCache.h>
 #include "ModelLoader.h"
 
-class MeshPart;
-
 using GeometryMappingPair = std::pair<QUrl, QVariantHash>;
 Q_DECLARE_METATYPE(GeometryMappingPair)
 
@@ -38,7 +36,6 @@ public:
 
     // Immutable over lifetime
     using GeometryMeshes = std::vector<std::shared_ptr<const graphics::Mesh>>;
-    using GeometryMeshParts = std::vector<std::shared_ptr<const MeshPart>>;
 
     // Mutable, but must retain structure of vector
     using NetworkMaterials = std::vector<std::shared_ptr<NetworkMaterial>>;
@@ -63,7 +60,6 @@ protected:
     HFMModel::ConstPointer _hfmModel;
     MaterialMapping _materialMapping;
     std::shared_ptr<const GeometryMeshes> _meshes;
-    std::shared_ptr<const GeometryMeshParts> _meshParts;
 
     // Copied to each geometry, mutable throughout lifetime via setTextures
     NetworkMaterials _materials;
@@ -178,14 +174,6 @@ private:
     ModelCache();
     virtual ~ModelCache() = default;
     ModelLoader _modelLoader;
-};
-
-class MeshPart {
-public:
-    MeshPart(int mesh, int part, int material) : meshID { mesh }, partID { part }, materialID { material } {}
-    int meshID { -1 };
-    int partID { -1 };
-    int materialID { -1 };
 };
 
 #endif // hifi_ModelCache_h
