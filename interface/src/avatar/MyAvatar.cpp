@@ -3560,7 +3560,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         if (faceForward || _shouldTurnToFaceCamera) {
             const float REORIENT_FORWARD_BLEND = 0.25f;
             const float REORIENT_TURN_BLEND = 0.03f;
-            const float DIAGONAL_TURN_BLEND = 0.02f;
+            const float DIAGONAL_TURN_BLEND = 0.1f;
             float blend = (_shouldTurnToFaceCamera ? REORIENT_TURN_BLEND : REORIENT_FORWARD_BLEND) * timeScale;
             if (blend > 1.0f) {
                 blend = 1.0f;
@@ -3772,7 +3772,8 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
         // Desktop mode.
         direction = (zSpeed * forward) + (xSpeed * right);
         CameraMode mode = qApp->getCamera().getMode();
-        if ((mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_SELFIE) && zSpeed != 0.0f && xSpeed != 0.0f){
+        if ((mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_SELFIE) && 
+            zSpeed != 0.0f && xSpeed != 0.0f && !isFlying()){
             direction = (zSpeed * forward);
         }
         
