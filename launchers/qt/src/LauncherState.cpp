@@ -718,7 +718,7 @@ void LauncherState::launchClient() {
 
     auto path = getConfigFilePath();
     QFile configFile{ path };
-    if (configFile.open(QIODevice::ReadWrite)) {
+    if (configFile.open(QIODevice::ReadWrite | QIODevice::Truncate)) {
         QJsonDocument doc = QJsonDocument::fromJson(configFile.readAll());
         doc.setObject({
             { configHomeLocationKey, _config.homeLocation },
