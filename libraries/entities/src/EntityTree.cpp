@@ -736,9 +736,11 @@ void EntityTree::deleteEntitiesByPointer(const SetOfEntities& entities) {
     }
     DeleteEntityOperator theOperator(getThisPointer());
     for (auto entity : entities) {
-        theOperator.addEntityToDeleteList(entity);
-        emit deletingEntity(entity->getID());
-        emit deletingEntityPointer(entity.get());
+        if (entity->getElement()) {
+            theOperator.addEntityToDeleteList(entity);
+            emit deletingEntity(entity->getID());
+            emit deletingEntityPointer(entity.get());
+        }
     }
 
     if (!theOperator.getEntities().empty()) {

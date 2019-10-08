@@ -54,6 +54,7 @@ void DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEnt
 }
 
 void DeleteEntityOperator::addEntityToDeleteList(const EntityItemPointer& entity) {
+    assert(entity && entity->getElement());
     EntityToDeleteDetails details;
     details.entity = entity;
     details.containingElement = entity->getElement();
