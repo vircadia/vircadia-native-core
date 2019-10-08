@@ -1,14 +1,13 @@
 
 
 var MaterialInspector = Script.require('./materialInspector.js');
-var Page = Script.require('./luci/Page.js');
+
+var Page = Script.require('../lib/skit/Page.js');
 
 
 function openView() {
-    //window.closed.connect(function() { Script.stop(); });
+    var pages = new Pages(Script.resolvePath("."));
 
-
-    var pages = new Pages();
     function fromQml(message) {
         if (pages.open(message.method)) {
             return;
@@ -17,12 +16,6 @@ function openView() {
 
     var luciWindow  
     function openLuciWindow(window) {
-        if (luciWindow !== undefined) {
-            activeWindow.fromQml.disconnect(fromQml);
-        }
-        if (window !== undefined) {
-            window.fromQml.connect(fromQml);
-        }
         luciWindow = window;
 
 
@@ -57,9 +50,6 @@ function openView() {
     }
 
     function closeLuciWindow() {
-        if (luciWindow !== undefined) {
-            activeWindow.fromQml.disconnect(fromQml);
-        }
         luciWindow = {};
 
         Controller.mousePressEvent.disconnect(onMousePressEvent);
@@ -68,10 +58,10 @@ function openView() {
         pages.clear();
     }
 
-    pages.addPage('Luci', 'Luci', '../luci.qml', 300, 420, openLuciWindow, closeLuciWindow);
-    pages.addPage('openEngineInspectorView', 'Render Engine Inspector', '../engineInspector.qml', 300, 400);
-    pages.addPage('openEngineLODView', 'Render LOD', '../lod.qml', 300, 400);
-    pages.addPage('openMaterialInspectorView', 'Material Inspector', '../materialInspector.qml', 300, 400, MaterialInspector.setWindow, MaterialInspector.setWindow);
+    pages.addPage('Luci', 'Luci', 'luci.qml', 300, 420, fromQml, openLuciWindow, closeLuciWindow);
+    pages.addPage('openEngineInspectorView', 'Render Engine Inspector', 'engineInspector.qml', 300, 400);
+    pages.addPage('openEngineLODView', 'Render LOD', 'lod.qml', 300, 400);
+    pages.addPage('openMaterialInspectorView', 'Material Inspector', 'materialInspector.qml', 300, 400, null, MaterialInspector.setWindow, MaterialInspector.setWindow);
 
     pages.open('Luci');
 

@@ -136,6 +136,8 @@ private slots:
     void tokenGrantFinished();
     void profileRequestFinished();
 
+    void aboutToQuit();
+
 signals:
     void iceServerChanged();
     void userConnected();

@@ -1658,7 +1658,7 @@ void Rig::updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headPos
             _animVars.set("splineIKEnabled", false);
             _animVars.unset("headPosition");
             _animVars.set("headRotation", headPose.rot());
-            _animVars.set("headType", (int)IKTarget::Type::RotationOnly);
+            _animVars.set("headType", (int)IKTarget::Type::Unknown);
         }
     }
 }
@@ -2644,4 +2644,9 @@ float Rig::getUnscaledEyeHeight() const {
     } else {
         return DEFAULT_AVATAR_EYE_HEIGHT;
     }
+}
+
+void Rig::setDirectionalBlending(const QString& targetName, const glm::vec3& blendingTarget, const QString& alphaName, float alpha) {
+    _animVars.set(targetName, blendingTarget);
+    _animVars.set(alphaName, alpha);
 }

@@ -274,11 +274,12 @@ class MyAvatar : public Avatar {
      *     the value.</p>
      * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
-     * @property {number} isInSittingState - <code>true</code> if your avatar is sitting (avatar leaning is disabled, 
-     *     recenntering is enabled), <code>false</code> if it is standing (avatar leaning is enabled, and avatar recenters if it 
-     *     leans too far). If <code>userRecenterModel == 2</code> (i.e., auto) the property value automatically updates as the 
-     *     user sits or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the 
-     *     current siting / standing state, which is updated when the user next sits or stands unless 
+     * @property {number} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting
+     *     (avatar leaning is disabled, recenntering is enabled), <code>false</code> if the user wearing the HMD is
+     *     determined to be standing (avatar leaning is enabled, and avatar recenters if it leans too far).
+     *     If <code>userRecenterModel == 2</code> (i.e., auto) the property value automatically updates as the user sits
+     *     or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the current
+     *     siting / standing state, which is updated when the user next sits or stands unless
      *     <code>isSitStandStateLocked == true</code>.
      * @property {boolean} isSitStandStateLocked - <code>true</code> to lock the avatar sitting/standing state, i.e., use this 
      *     to disable automatically changing state.
@@ -1753,6 +1754,34 @@ public:
     void prepareAvatarEntityDataForReload();
 
     /**jsdoc
+    * Turn the avatar's head until it faces the target point within the 90/-90 degree range.
+    * Once this method is called, API calls will have full control of the head for a limited time.
+    * If this method is not called for two seconds, the engine will regain control of the head.
+    * @function MyAvatar.setHeadLookAt
+    * @param {Vec3} lookAtTarget - The target point in world coordinates.
+    */
+    Q_INVOKABLE void setHeadLookAt(const glm::vec3& lookAtTarget);
+
+    /**jsdoc
+    * Returns the current head look at target point in world coordinates.
+    * @function MyAvatar.getHeadLookAt
+    * @returns {Vec3} Default position between your avatar's eyes in world coordinates.
+    */
+    Q_INVOKABLE glm::vec3 getHeadLookAt() { return _lookAtCameraTarget; }
+
+    /**jsdoc
+    * Aims the pointing directional blending towards the provided target point.
+    * The "point" reaction should be triggered before using this method. 
+    * <code>MyAvatar.beginReaction("point")</code>
+    * Returns <code>true</code> if the target point lays in front of the avatar.
+    * @function MyAvatar.setPointAt
+    * @param {Vec3} pointAtTarget - The target point in world coordinates.
+    */
+    Q_INVOKABLE bool setPointAt(const glm::vec3& pointAtTarget);
+
+    glm::quat getLookAtRotation() { return _lookAtYaw * _lookAtPitch; }
+
+    /**jsdoc
      * Creates a new grab that grabs an entity.
      * @function MyAvatar.grab
      * @param {Uuid} targetID - The ID of the entity to grab.
@@ -1865,6 +1894,14 @@ public:
      */
     Q_INVOKABLE void endSit(const glm::vec3& position, const glm::quat& rotation);
 
+    /**jsdoc
+     * Gets whether the avatar is in a seated pose. The seated pose is set by calling the 
+     * MyAvatar::beginSit method.
+     * @function MyAvatar.isSeated
+     * @returns {boolean} <code>true</code> if the avatar is in a seated pose. 
+     */
+    Q_INVOKABLE bool isSeated() { return _characterController.getSeated(); }
+
     int getOverrideJointCount() const;
     bool getFlowActive() const;
     bool getNetworkGraphActive() const;
@@ -1881,6 +1918,7 @@ public:
     void debugDrawPose(controller::Action action, const char* channelName, float size);
 
     bool getIsJointOverridden(int jointIndex) const;
+    glm::vec3 getLookAtPivotPoint();
 
 public slots:
 
@@ -2629,6 +2667,19 @@ private:
 
     glm::vec3 _trackedHeadPosition;
 
+    const float MAX_LOOK_AT_TIME_SCRIPT_CONTROL = 2.0f;
+    glm::quat _lookAtPitch;
+    glm::quat _lookAtYaw;
+    glm::vec3 _lookAtCameraTarget;
+    glm::vec3 _lookAtScriptTarget;
+    bool _headLookAtActive { false };
+    bool _shouldTurnToFaceCamera { false };
+    bool _scriptControlsHeadLookAt { false };
+    float _scriptHeadControlTimer { 0.0f };
+    float _firstPersonSteadyHeadTimer { 0.0f };
+    bool _pointAtActive { false };
+    bool _isPointTargetValid { true };
+
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
     Setting::Handle<bool> _showPlayArea;
@@ -2653,6 +2704,11 @@ private:
     void initHeadBones();
     void initAnimGraph();
     void initFlowFromFST();
+    void updateHeadLookAt(float deltaTime);
+    void resetHeadLookAt();
+    void resetLookAtRotation(const glm::vec3& avatarPosition, const glm::quat& avatarOrientation);
+    void resetPointAt();
+    static glm::vec3 aimToBlendValues(const glm::vec3& aimVector, const glm::quat& frameOrientation);
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;

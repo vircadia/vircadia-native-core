@@ -1,8 +1,10 @@
 Module Prop
 Global 1.0 style/Global.qml
 PropText 1.0 style/PiText.qml
+PropTextField 1.0 style/PiTextField.qml
 PropLabel 1.0 style/PiLabel.qml
 PropSplitter 1.0 style/PiSplitter.qml
+PropButton 1.0 style/PiButton.qml
 PropComboBox 1.0 style/PiComboBox.qml
 PropCanvasIcon 1.0 style/PiCanvasIcon.qml
 PropCheckBox 1.0 style/PiCheckBox.qml

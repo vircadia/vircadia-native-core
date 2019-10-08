@@ -29,6 +29,8 @@ static Setting::Handle<QString> desktopOutputDeviceSetting { QStringList { Audio
 static Setting::Handle<QString> hmdInputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, "INPUT" }};
 static Setting::Handle<QString> hmdOutputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, "OUTPUT" }};
 
+Q_DECLARE_METATYPE(HifiAudioDeviceInfo);
+
 Setting::Handle<QString>& getSetting(bool contextIsHMD, QAudio::Mode mode) {
     if (mode == QAudio::AudioInput) {
         return contextIsHMD ? hmdInputDeviceSetting : desktopInputDeviceSetting;
@@ -64,6 +66,8 @@ static QString getTargetDevice(bool hmd, QAudio::Mode mode) {
         } else { // if (_mode == QAudio::AudioOutput)
             deviceName = qApp->getActiveDisplayPlugin()->getPreferredAudioOutDevice();
         }
+    } else {
+        deviceName = HifiAudioDeviceInfo::DEFAULT_DEVICE_NAME;
     }
     return deviceName;
 }
@@ -139,7 +143,7 @@ QVariant AudioDeviceList::data(const QModelIndex& index, int role) const {
     } else if (role == SelectedHMDRole) {
         return _devices.at(index.row())->selectedHMD;
     } else if (role == InfoRole) {
-        return QVariant::fromValue<QAudioDeviceInfo>(_devices.at(index.row())->info);
+        return QVariant::fromValue<HifiAudioDeviceInfo>(_devices.at(index.row())->info);
     } else {
         return QVariant();
     }
@@ -191,18 +195,13 @@ void AudioDeviceList::resetDevice(bool contextIsHMD) {
 #endif
 }
 
-void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device, bool isHMD) {
-    QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
+void AudioDeviceList::onDeviceChanged(const HifiAudioDeviceInfo& device, bool isHMD) {
+    HifiAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
     selectedDevice = device;
-
     for (auto i = 0; i < _devices.size(); ++i) {
         std::shared_ptr<AudioDevice> device = _devices[i];
         bool& isSelected = isHMD ? device->selectedHMD : device->selectedDesktop;
-        if (isSelected && device->info != selectedDevice) {
-            isSelected = false;
-        } else if (device->info == selectedDevice) {
-            isSelected = true;
-        }
+        isSelected = device->info == selectedDevice;
     }
 
     emit deviceChanged(selectedDevice);
@@ -259,37 +258,46 @@ std::shared_ptr<scripting::AudioDevice> getSimilarDevice(const QString& deviceNa
     return devices[minDistanceIndex];
 }
 
-void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
+void AudioDeviceList::onDevicesChanged(const QList<HifiAudioDeviceInfo>& devices) {
     beginResetModel();
 
     QList<std::shared_ptr<AudioDevice>> newDevices;
     bool hmdIsSelected = false;
     bool desktopIsSelected = false;
 
-    foreach(const QAudioDeviceInfo& deviceInfo, devices) {
+    foreach(const HifiAudioDeviceInfo& deviceInfo, devices) {
         for (bool isHMD : {false, true}) {
             auto& backupSelectedDeviceName = isHMD ? _backupSelectedHMDDeviceName : _backupSelectedDesktopDeviceName;
             if (deviceInfo.deviceName() == backupSelectedDeviceName) {
-                QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
+                HifiAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
                 selectedDevice = deviceInfo;
                 backupSelectedDeviceName.clear();
             }
         }
     }
 
-    foreach(const QAudioDeviceInfo& deviceInfo, devices) {
+    foreach(const HifiAudioDeviceInfo& deviceInfo, devices) {
         AudioDevice device;
         device.info = deviceInfo;
-        device.display = device.info.deviceName()
-            .replace("High Definition", "HD")
-            .remove("Device")
-            .replace(" )", ")");
+
+        if (deviceInfo.isDefault()) {
+            if (deviceInfo.getMode() == QAudio::AudioInput) {
+                device.display = "Computer's default microphone (recommended)";
+            } else {
+                device.display = "Computer's default audio (recommended)";
+            }
+        } else {
+            device.display = device.info.deviceName()
+                .replace("High Definition", "HD")
+                .remove("Device")
+                .replace(" )", ")");
+        }
 
         for (bool isHMD : {false, true}) {
-            QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
+            HifiAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
             bool& isSelected = isHMD ? device.selectedHMD : device.selectedDesktop;
 
-            if (!selectedDevice.isNull()) {
+            if (!selectedDevice.getDevice().isNull()) {
                 isSelected = (device.info == selectedDevice);
             }
             else {
@@ -325,13 +333,13 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
 
     if (!newDevices.isEmpty()) {
         if (!hmdIsSelected) {
-            _backupSelectedHMDDeviceName = !_selectedHMDDevice.isNull() ? _selectedHMDDevice.deviceName() : _hmdSavedDeviceName;
+            _backupSelectedHMDDeviceName = !_selectedHMDDevice.getDevice().isNull() ? _selectedHMDDevice.deviceName() : _hmdSavedDeviceName;
             auto device = getSimilarDevice(_backupSelectedHMDDeviceName, newDevices);
             device->selectedHMD = true;
             emit selectedDevicePlugged(device->info, true);
         }
         if (!desktopIsSelected) {
-            _backupSelectedDesktopDeviceName = !_selectedDesktopDevice.isNull() ? _selectedDesktopDevice.deviceName() : _desktopSavedDeviceName;
+            _backupSelectedDesktopDeviceName = !_selectedDesktopDevice.getDevice().isNull() ? _selectedDesktopDevice.deviceName() : _desktopSavedDeviceName;
             auto device = getSimilarDevice(_backupSelectedDesktopDeviceName, newDevices);
             device->selectedDesktop = true;
             emit selectedDevicePlugged(device->info, false);
@@ -382,8 +390,8 @@ AudioDevices::AudioDevices(bool& contextIsHMD) : _contextIsHMD(contextIsHMD) {
     _outputs.onDeviceChanged(client->getActiveAudioDevice(QAudio::AudioOutput), contextIsHMD);
 
     // connections are made after client is initialized, so we must also fetch the devices
-    const QList<QAudioDeviceInfo>& devicesInput = client->getAudioDevices(QAudio::AudioInput);
-    const QList<QAudioDeviceInfo>& devicesOutput = client->getAudioDevices(QAudio::AudioOutput);
+    const QList<HifiAudioDeviceInfo>& devicesInput = client->getAudioDevices(QAudio::AudioInput);
+    const QList<HifiAudioDeviceInfo>& devicesOutput = client->getAudioDevices(QAudio::AudioOutput);
 
     //setup devices
     _inputs.onDevicesChanged(devicesInput);
@@ -397,9 +405,9 @@ void AudioDevices::onContextChanged(const QString& context) {
     _outputs.resetDevice(_contextIsHMD);
 }
 
-void AudioDevices::onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& device,
-                                    const QAudioDeviceInfo& previousDevice, bool isHMD) {
-    QString deviceName = device.isNull() ? QString() : device.deviceName();
+void AudioDevices::onDeviceSelected(QAudio::Mode mode, const HifiAudioDeviceInfo& device,
+                                    const HifiAudioDeviceInfo& previousDevice, bool isHMD) {
+    QString deviceName = device.deviceName();
 
     auto& setting = getSetting(isHMD, mode);
 
@@ -410,7 +418,7 @@ void AudioDevices::onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& d
     setting.set(deviceName);
 
     // log the selected device
-    if (!device.isNull()) {
+    if (!device.getDevice().isNull()) {
         QJsonObject data;
 
         const QString MODE = "audio_mode";
@@ -434,13 +442,13 @@ void AudioDevices::onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& d
     }
 }
 
-void AudioDevices::onDeviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& device) {
+void AudioDevices::onDeviceChanged(QAudio::Mode mode, const HifiAudioDeviceInfo& device) {
     if (mode == QAudio::AudioInput) {
         if (_requestedInputDevice == device) {
             onDeviceSelected(QAudio::AudioInput, device,
                              _contextIsHMD ? _inputs._selectedHMDDevice : _inputs._selectedDesktopDevice,
                              _contextIsHMD);
-            _requestedInputDevice = QAudioDeviceInfo();
+            _requestedInputDevice = HifiAudioDeviceInfo();
         }
         _inputs.onDeviceChanged(device, _contextIsHMD);
     } else { // if (mode == QAudio::AudioOutput)
@@ -448,13 +456,13 @@ void AudioDevices::onDeviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& de
             onDeviceSelected(QAudio::AudioOutput, device,
                              _contextIsHMD ? _outputs._selectedHMDDevice : _outputs._selectedDesktopDevice,
                              _contextIsHMD);
-            _requestedOutputDevice = QAudioDeviceInfo();
+            _requestedOutputDevice = HifiAudioDeviceInfo();
         }
         _outputs.onDeviceChanged(device, _contextIsHMD);
     }
 }
 
-void AudioDevices::onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceInfo>& devices) {
+void AudioDevices::onDevicesChanged(QAudio::Mode mode, const QList<HifiAudioDeviceInfo>& devices) {
     static std::once_flag once;
     std::call_once(once, [&] {
         //readout settings
@@ -503,14 +511,14 @@ void AudioDevices::onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceI
 }
 
 
-void AudioDevices::chooseInputDevice(const QAudioDeviceInfo& device, bool isHMD) {
+void AudioDevices::chooseInputDevice(const HifiAudioDeviceInfo& device, bool isHMD) {
     //check if current context equals device to change
     if (_contextIsHMD == isHMD) {
         auto client = DependencyManager::get<AudioClient>().data();
         _requestedInputDevice = device;
         QMetaObject::invokeMethod(client, "switchAudioDevice",
                                   Q_ARG(QAudio::Mode, QAudio::AudioInput),
-                                  Q_ARG(const QAudioDeviceInfo&, device));
+                                  Q_ARG(const HifiAudioDeviceInfo&, device));
     } else {
         //context is different. just save device in settings
         onDeviceSelected(QAudio::AudioInput, device,
@@ -520,14 +528,14 @@ void AudioDevices::chooseInputDevice(const QAudioDeviceInfo& device, bool isHMD)
     }
 }
 
-void AudioDevices::chooseOutputDevice(const QAudioDeviceInfo& device, bool isHMD) {
+void AudioDevices::chooseOutputDevice(const HifiAudioDeviceInfo& device, bool isHMD) {
     //check if current context equals device to change
     if (_contextIsHMD == isHMD) {
         auto client = DependencyManager::get<AudioClient>().data();
         _requestedOutputDevice = device;
         QMetaObject::invokeMethod(client, "switchAudioDevice",
                                   Q_ARG(QAudio::Mode, QAudio::AudioOutput),
-                                  Q_ARG(const QAudioDeviceInfo&, device));
+                                  Q_ARG(const HifiAudioDeviceInfo&, device));
     } else {
         //context is different. just save device in settings
         onDeviceSelected(QAudio::AudioOutput, device,

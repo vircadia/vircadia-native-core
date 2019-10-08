@@ -138,7 +138,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
 
     DependencyManager::set<StatTracker>();
-    DependencyManager::set<AccountManager>([&]{ return QString(HIGH_FIDELITY_ATP_CLIENT_USER_AGENT); });
+    DependencyManager::set<AccountManager>(false, [&]{ return QString(HIGH_FIDELITY_ATP_CLIENT_USER_AGENT); });
     DependencyManager::set<AddressManager>();
     DependencyManager::set<NodeList>(NodeType::Agent, _listenPort);
 

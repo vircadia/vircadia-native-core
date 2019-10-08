@@ -14,6 +14,8 @@
 
 #include <stdint.h>
 
+#include <array>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -362,6 +364,32 @@ inline int fastLrintf(float x) {
     bits.d += (3ULL << 51);
     return (int)bits.i;
 #endif
+}
+
+// returns the FOV from the projection matrix
+inline glm::vec4 extractFov( const glm::mat4& m) {
+    static const std::array<glm::vec4, 4> CLIPS{ {
+                                                { 1, 0, 0, 1 },
+                                                { -1, 0, 0, 1 },
+                                                { 0, 1, 0, 1 },
+                                                { 0, -1, 0, 1 }
+                                            } };
+
+    glm::mat4 mt = glm::transpose(m);
+    glm::vec4 v, result;
+    // Left
+    v = mt * CLIPS[0];
+    result.x = -atanf(v.z / v.x);
+    // Right
+    v = mt * CLIPS[1];
+    result.y = atanf(v.z / v.x);
+    // Down
+    v = mt * CLIPS[2];
+    result.z = -atanf(v.z / v.y);
+    // Up
+    v = mt * CLIPS[3];
+    result.w = atanf(v.z / v.y);
+    return result;
 }
 
 #endif // hifi_GLMHelpers_h

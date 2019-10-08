@@ -75,7 +75,8 @@ void PhysicalEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
         if (motionState) {
             removeOwnershipData(motionState);
             _entitiesToRemoveFromPhysics.insert(entity);
-        } else if (entity->isDead() && entity->getElement()) {
+        }
+        if (entity->isDead() && entity->getElement()) {
             _deadEntities.insert(entity);
         }
     }

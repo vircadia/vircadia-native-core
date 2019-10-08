@@ -96,6 +96,21 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity, this, handlePointerEvent);
     connect(entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity, this, handlePointerEvent);
     connect(entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity, this, handlePointerEvent);
+    // Handle mouse-clicking or laser-clicking on entities with the `href` property set
+    connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity, this, [&](const QUuid& entityID, const PointerEvent& event) {
+        if (!EntityTree::areEntityClicksCaptured() && (event.getButtons() & PointerEvent::PrimaryButton)) {
+            auto entity = getEntity(entityID);
+            if (!entity) {
+                return;
+            }
+            auto properties = entity->getProperties();
+            QString urlString = properties.getHref();
+            QUrl url = QUrl(urlString, QUrl::StrictMode);
+            if (url.isValid() && !url.isEmpty()) {
+                DependencyManager::get<AddressManager>()->handleLookupString(urlString);
+            }
+        }
+    });
     connect(entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity, this, [&](const QUuid& entityID, const PointerEvent& event) {
         std::shared_ptr<render::entities::WebEntityRenderer> thisEntity;
         auto entity = getEntity(entityID);
@@ -800,15 +815,6 @@ QUuid EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     EntityItemPointer entity;
     if (rayPickResult.intersects && (entity = getTree()->findEntityByID(rayPickResult.entityID))) {
-        if (!EntityTree::areEntityClicksCaptured() && event->button() == Qt::MouseButton::LeftButton) {
-            auto properties = entity->getProperties();
-            QString urlString = properties.getHref();
-            QUrl url = QUrl(urlString, QUrl::StrictMode);
-            if (url.isValid() && !url.isEmpty()) {
-                DependencyManager::get<AddressManager>()->handleLookupString(urlString);
-            }
-        }
-
         glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
         PointerEvent pointerEvent(PointerEvent::Press, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,

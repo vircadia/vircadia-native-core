@@ -269,7 +269,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     bool wasDuplicate = false;
     
     if (sequenceNumber > _lastReceivedSequenceNumber) {
-        // Update largest recieved sequence number
+        // Update largest received sequence number
         _lastReceivedSequenceNumber = sequenceNumber;
     } else {
         // Otherwise, it could be a resend, try and remove it from the loss list
@@ -312,9 +312,7 @@ void Connection::processControl(ControlPacketPointer controlPacket) {
                 // We're already in a state where we've received a handshake ack, so we are likely in a state
                 // where the other end expired our connection. Let's reset.
 
-#ifdef UDT_CONNECTION_DEBUG
-                qCDebug(networking) << "Got HandshakeRequest from" << _destination << ", stopping SendQueue";
-#endif
+                qCDebug(networking) << "Got HandshakeRequest from" << _destination << "while active, stopping SendQueue";
                 _hasReceivedHandshakeACK = false;
                 stopSendQueue();
             }
@@ -333,7 +331,7 @@ void Connection::processACK(ControlPacketPointer controlPacket) {
     // validate that this isn't a BS ACK
     if (ack > getSendQueue().getCurrentSequenceNumber()) {
         // in UDT they specifically break the connection here - do we want to do anything?
-        Q_ASSERT_X(false, "Connection::processACK", "ACK recieved higher than largest sent sequence number");
+        Q_ASSERT_X(false, "Connection::processACK", "ACK received higher than largest sent sequence number");
         return;
     }
     

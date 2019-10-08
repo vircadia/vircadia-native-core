@@ -1,0 +1,222 @@
+#!/bin/bash
+set -e
+
+# Sign, Notarize, and Staple a notarization ticket to the app.
+
+function usage {
+    echo "usage: $0 datt bundle_path [entitlements]"
+    exit -1
+}
+
+apple_id=""
+developer_id_key_label="Mac Developer ID Application: High Fidelity Inc"
+k_password_label="com.highfidelity.mac-signing-appleid"
+k_password_service="AC_PASSWORD"
+
+# Check for supported Mac OS Version (10.14 or greater)
+if [ ! -x /usr/bin/sw_vers ]; then
+    echo "Can't find sw_vers, is this Mac OS?"
+    exit -1
+fi
+set +e
+/usr/bin/sw_vers -productVersion | \
+    awk -F'.' '{ if ($1 == 10 && $2 >= 14) { exit 0 } else { exit 1 } }'
+is_supported=$?
+set -e
+if [[ $is_supported -eq 1 ]]; then
+    echo "Must use Mac OS 10.14 or greater"
+    exit -1
+fi
+
+# Check for Xcode
+if [ ! -x /usr/bin/xcode-select ]; then
+    echo "Xcode is not installed"
+    exit -1
+fi
+
+function set_apple_id {
+    if [[ "$apple_id" != "" ]]; then return; fi # already set
+
+    apple_id=$(security find-generic-password \
+        -l $k_password_label -s $k_password_service | \
+        grep acct | awk -F'=' '{ print $2 }' | tr -d '"')
+    if [ "$apple_id" == "" ]; then
+        echo "couldn't find Apple ID in keychain"
+        exit -1
+    fi
+}
+
+function ensure_developer_id_key_is_present {
+    set +e
+    security find-key -l "$developer_id_key_label" > /dev/null 2>&1
+    success=$?
+    set -e
+    if [[ $success == 1 ]]; then
+        echo "The Developer ID Key is not in your Keychain: $developer_id_key_label"
+        exit -1
+    fi
+}
+
+function sign {
+    bundle_path="$1"
+    entitlements="$2"
+
+    ensure_developer_id_key_is_present
+    if [ "$entitlements" != "" ]; then
+        codesign --force \
+            --deep \
+            --sign "Developer ID Application: High Fidelity Inc" \
+            --timestamp \
+            --options runtime \
+            --entitlements "$entitlements" \
+            "$bundle_path"
+    else
+        codesign --force \
+            --deep \
+            --sign "Developer ID Application: High Fidelity Inc" \
+            --timestamp \
+            --options runtime \
+            "$bundle_path"
+    fi
+}
+
+# The `notarize` function sets `result_uuid` on return.
+result_uuid=""
+
+function notarize {
+    local bundle_path=$1
+
+    local bundle_id=$(/usr/libexec/PlistBuddy -c Print:CFBundleIdentifier \
+                    "$bundle_path"/Contents/Info.plist)
+    if [ "$bundle_id" == "" ]; then
+        echo "couldn't find bundle id in bundle's Info.plist: $bundle_path"
+        exit -1
+    fi
+
+    set_apple_id
+
+    if [ -e "$bundle_path.zip" ]; then
+        echo "zip already exists, moving it out of the way"
+        mv "$bundle_path.zip"{,.$(uuidgen)}
+    fi
+
+    local local_bundle_path=$(basename "$bundle_path")
+    (cd "$bundle_path/.."; \
+     zip -r --symlinks "$local_bundle_path.zip" "$local_bundle_path" \
+        >/dev/null 2>&1)
+
+    # `result_uuid` is intentionally global
+    result_uuid=$(xcrun altool --notarize-app \
+        --primary-bundle-id $bundle_id \
+        --username $apple_id --password "@keychain:$k_password_service" \
+        --file "$bundle_path.zip" 2>&1 | tee /dev/tty | \
+        awk -F'=' '{ if (/^RequestUUID/) print $2 }' | sed 's/^ //')
+}
+
+function is_notarization_complete {
+    set_apple_id
+
+    set +e
+    local status_code=$(xcrun altool --notarization-info $result_uuid \
+        --username $apple_id --password "@keychain:$k_password_service" 2>&1 | \
+        awk '{ if (/Status Code/) print $3 }')
+    set -e
+    # Status Code is only set when a job is complete.
+    if [[ "$status_code" -ne "" ]]; then
+        return 1
+    fi
+    return $status_code
+}
+
+command=$1
+
+case $command in
+    # Utility to add your Apple ID to the keychain
+    add_password)
+        echo -n "Apple ID: "
+        read appleid_name
+        if [ "$appleid_name" == "" ]; then
+            echo "Apple ID was empty!"
+            exit -1
+        fi
+        security add-generic-password \
+            -a "$appleid_name" \
+            -s "$k_password_service" \
+            -l "$k_password_label" \
+            -j "Apple ID used for High Fidelity's code signing" \
+            -w
+        ;;
+
+    # Sign a bundle with the Developer ID Application cert
+    sign)
+        bundle_path=$2
+        if [ "$bundle_path" == "" ]; then
+            echo "usage: $0 $command bundle_path"
+            exit -1
+        fi
+        if [ ! -d "$bundle_path" ]; then
+            echo "bundle_path doesn't exist"
+            exit -1
+        fi
+
+        sign "$bundle_path" "$3"
+        ;;
+
+    # Submit a bundle to Apple for notarization
+    notarize)
+        bundle_path=$2
+        if [ "$bundle_path" == "" ]; then
+            echo "usage: $0 $command bundle_path"
+            exit -1
+        fi
+        if [ ! -d "$bundle_path" ]; then
+            echo "bundle_path doesn't exist"
+            exit -1
+        fi
+
+        notarize "$bundle_path"
+        ;;
+
+    # Check the notarization logs
+    logs)
+        result_uuid=$2
+        if [ "$result_uuid" == "" ]; then
+            echo "usage: $0 $command result_uuid"
+            exit -1
+        fi
+        set_apple_id
+
+        xcrun altool --notarization-info $result_uuid \
+            --username $apple_id --password "@keychain:$k_password_service"
+        ;;
+
+    # Do all the things.
+    datt)
+        bundle_path=$2
+        if [ "$bundle_path" == "" ]; then
+            echo "usage: $0 bundle_path [entitlements]"
+            exit -1
+        fi
+        if [ ! -d "$bundle_path" ]; then
+            echo "bundle_path doesn't exist"
+            exit -1
+        fi
+
+        sign "$bundle_path" "$3"
+        notarize "$bundle_path"
+
+        # TODO: is_notarization_complete needs to recognize notarization
+        # while :; do
+        #     echo "sleeping..."
+        #     sleep 27
+        #     is_notarization_complete
+        #     [[ $? == 1 ]] && break
+        # done
+        # xcrun stapler staple "$bundle_path"
+        ;;
+
+    *)
+        usage
+        ;;
+
+esac

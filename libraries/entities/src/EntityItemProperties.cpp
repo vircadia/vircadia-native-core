@@ -706,15 +706,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *
  * @property {Vec3} gravity=0,0,0 - The acceleration due to gravity in m/s<sup>2</sup> that the entity should move with, in 
  *     world coordinates. Use a value of <code>{ x: 0, y: -9.8, z: 0 }</code> to simulate Earth's gravity. Gravity is applied 
- *     to an entity's motion only if its <code>dynamic</code> property is <code>true</code>. The <code>gravity</code> value is 
- *     applied in addition to the <code>acceleration</code> value.
+ *     to an entity's motion only if its <code>dynamic</code> property is <code>true</code>.
  *     <p>If changing an entity's <code>gravity</code> from {@link Vec3(0)|Vec3.ZERO}, you need to give it a small 
  *     <code>velocity</code> in order to kick off physics simulation.</p>
- * @property {Vec3} acceleration=0,0,0 - A general acceleration in m/s<sup>2</sup> that the entity should move with, in world 
- *     coordinates. The acceleration is applied to an entity's motion only if its <code>dynamic</code> property is 
- *     <code>true</code>. The <code>acceleration</code> value is applied in addition to the <code>gravity</code> value.
- *     <p>If changing an entity's <code>acceleration</code> from {@link Vec3(0)|Vec3.ZERO}, you need to give it a small 
- *     <code>velocity</code> in order to kick off physics simulation.<p>
+ * @property {Vec3} acceleration - The current, measured acceleration of the entity, in m/s<sup>2</sup>.
+ *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
  * @property {number} restitution=0.5 - The "bounciness" of an entity when it collides, range <code>0.0</code> &ndash; 
  *     <code>0.99</code>. The higher the value, the more bouncy.
  * @property {number} friction=0.5 - How much an entity slows down when it's moving against another, range <code>0.0</code> 

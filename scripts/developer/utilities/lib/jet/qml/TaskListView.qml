@@ -91,12 +91,12 @@ Rectangle {
         }
     }
 
-    Original.ScrollView {
+    ListView {
         anchors.fill: parent 
-        ListView {
-            id: theView
-            model: jobsModel
-            delegate: objRecursiveDelegate
-        }
+
+        id: theView
+        model: jobsModel
+        delegate: objRecursiveDelegate
     }
+    
 }

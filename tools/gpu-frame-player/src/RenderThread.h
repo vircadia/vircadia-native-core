@@ -57,7 +57,7 @@ public:
     uint32_t _externalTexture{ 0 };
     void move(const glm::vec3& v);
     glm::mat4 _correction;
-
+    gpu::PipelinePointer _presentPipeline;
 
     void resize(const QSize& newSize);
     void setup() override;

@@ -103,14 +103,14 @@ void main(void) {
         <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex)$>
 
     <@if HIFI_USE_TRANSLUCENT@>
+        float cutoff = getMaterialOpacityCutoff(mat);
         float opacity = getMaterialOpacity(mat) * _color.a;
-    <@else@>
-        float opacity = 1.0;
-    <@endif@>
-        <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
-    <@if HIFI_USE_TRANSLUCENT@>
+        <$evalMaterialOpacity(albedoTex.a, cutoff, opacity, matKey, opacity)$>;
         <$discardInvisible(opacity)$>;
     <@else@>
+        float cutoff = getMaterialOpacityCutoff(mat);
+        float opacity = 1.0;
+        <$evalMaterialOpacityMask(albedoTex.a, cutoff, opacity)$>;
         <$discardTransparent(opacity)$>;
     <@endif@>
 
@@ -155,15 +155,15 @@ void main(void) {
     <@endif@>
 
     <@if HIFI_USE_TRANSLUCENT@>
+        float cutoff = getMaterialOpacityCutoff(mat);
         float opacity = getMaterialOpacity(mat) * _color.a;
+        <$evalMaterialOpacity(albedoTex.a, cutoff, opacity, matKey, opacity)$>;
+        <$discardInvisible(opacity)$>;
     <@else@>
+        float cutoff = getMaterialOpacityCutoff(mat);
         float opacity = 1.0;
-    <@endif@>
-        <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
-    <@if HIFI_USE_TRANSLUCENT@>
-            <$discardInvisible(opacity)$>;
-    <@else@>
-            <$discardTransparent(opacity)$>;
+        <$evalMaterialOpacityMask(albedoTex.a, cutoff, opacity)$>;
+        <$discardTransparent(opacity)$>;
     <@endif@>
 
         vec3 albedo = getMaterialAlbedo(mat);
@@ -217,13 +217,13 @@ void main(void) {
                 _fragColor0 = color;
             <@else@>
                 _fragColor0 = vec4(evalLightmappedColor(
-		            cam._viewInverse,
-		            1.0,
-		            DEFAULT_OCCLUSION,
-		            fragNormalWS,
-		            albedo,
-		            lightmap),
-		            opacity);
+                    cam._viewInverse,
+                    1.0,
+                    DEFAULT_OCCLUSION,
+                    fragNormalWS,
+                    albedo,
+                    lightmap),
+                    opacity);
             <@endif@>
         <@else@>
             <@if not HIFI_USE_LIGHTMAP@>
@@ -241,13 +241,13 @@ void main(void) {
                     opacity);
             <@else@>
                 _fragColor0 = vec4(evalLightmappedColor(
-		            cam._viewInverse,
-		            1.0,
-		            DEFAULT_OCCLUSION,
-		            fragNormalWS,
-		            albedo,
-		            lightmap),
-		            opacity);
+                cam._viewInverse,
+                1.0,
+                DEFAULT_OCCLUSION,
+                fragNormalWS,
+                albedo,
+                lightmap),
+                opacity);
             <@endif@>
         <@endif@>
     <@else@>
@@ -315,13 +315,13 @@ void main(void) {
                     opacity);
             <@else@>
                 _fragColor0 = vec4(evalLightmappedColor(
-		            cam._viewInverse,
-		            1.0,
-		            DEFAULT_OCCLUSION,
-		            fragNormalWS,
-		            albedo,
-		            lightmap),
-		            opacity);
+                    cam._viewInverse,
+                    1.0,
+                    DEFAULT_OCCLUSION,
+                    fragNormalWS,
+                    albedo,
+                    lightmap),
+                    opacity);
             <@endif@>
         <@endif@>
     <@endif@>
