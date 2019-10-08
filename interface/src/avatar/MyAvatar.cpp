@@ -2175,7 +2175,7 @@ static float lookAtCostFunction(const glm::vec3& myForward, const glm::vec3& myP
 }
 
 void MyAvatar::computeMyLookAtTarget(const AvatarHash& hash) {
-    glm::vec3 myForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
+    glm::vec3 myForward = _lookAtYaw * IDENTITY_FORWARD;
     glm::vec3 myPosition = getHead()->getEyePosition();
     CameraMode mode = qApp->getCamera().getMode();
     if (mode == CAMERA_MODE_FIRST_PERSON) {
