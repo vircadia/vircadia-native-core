@@ -38,6 +38,12 @@
 #include "udt/Packet.h"
 #include "HMACAuth.h"
 
+#if defined(Q_OS_WIN)
+#include <winsock.h>
+#else 
+#include <arpa/inet.h>
+#endif
+
 static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.LocalPort", 0);
 
 using namespace std::chrono_literals;

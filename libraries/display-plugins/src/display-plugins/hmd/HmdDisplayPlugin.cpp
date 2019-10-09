@@ -290,7 +290,7 @@ void HmdDisplayPlugin::internalPresent() {
             _previewTexture->setSource("HMD Preview Texture");
             _previewTexture->setUsage(gpu::Texture::Usage::Builder().withColor().build());
             _previewTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
-            _previewTexture->assignStoredMip(0, image.byteCount(), image.constBits());
+            _previewTexture->assignStoredMip(0, image.sizeInBytes(), image.constBits());
             _previewTexture->setAutoGenerateMips(true);
 
         auto viewport = getViewportForSourceSize(uvec2(_previewTexture->getDimensions()));
