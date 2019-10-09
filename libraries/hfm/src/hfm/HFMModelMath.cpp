@@ -47,7 +47,7 @@ void calculateExtentsForShape(hfm::Shape& shape, const std::vector<hfm::Mesh>& m
         }
         const glm::vec3& vertex = mesh.vertices[idx];
         const glm::vec3 transformedVertex = glm::vec3(globalTransform * glm::vec4(vertex, 1.0f));
-        shapeExtents.addPoint(vertex);
+        shapeExtents.addPoint(transformedVertex);
     });
 
     thickenFlatExtents(shapeExtents);
