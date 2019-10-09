@@ -987,24 +987,11 @@ void GLTFFile::normalizeNodeTransforms() {
 
 bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& mapping, const hifi::URL& url) {
     int numNodes = _file.nodes.size();
-    hfmModel.transforms.resize(numNodes);
     
-    auto parentIndices = gltf::findParentIndices(_file.nodes);
-    const auto parentsEnd = parentIndices.end();
-    for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
-        auto& gltfNode = _file.nodes[nodeIndex];
-        auto& hmfTransform = hfmModel.transforms[nodeIndex];
-        auto parentItr = parentIndices.find(nodeIndex);
-        if (parentItr != parentsEnd ) {
-            hmfTransform.parent = parentItr->second;
-        }
-        hmfTransform.transform = getModelTransform(gltfNode);
-    }
-    
-
     // Build joints
     hfmModel.jointIndices["x"] = numNodes;
-
+    auto parentIndices = gltf::findParentIndices(_file.nodes);
+    const auto parentsEnd = parentIndices.end();
     for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
         HFMJoint joint;
         auto& node = _file.nodes[nodeIndex];
@@ -1032,7 +1019,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         joint.isSkeletonJoint = false;
         hfmModel.joints.push_back(joint);
     }
-    hfmModel.shapeVertices.resize(hfmModel.joints.size());
 
     // get offset transform from mapping
     float unitScaleFactor = 1.0f;
