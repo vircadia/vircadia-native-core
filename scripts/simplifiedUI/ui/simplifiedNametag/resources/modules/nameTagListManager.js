@@ -197,6 +197,27 @@ function toggleInterval() {
 }
 
 
+// Disconnect the camera mode updated signal if we have one connected for the selfie mode
+var cameraModeUpdatedSignalConnected = false;
+function maybeDisconnectCameraModeUpdatedSignal(){
+    if (cameraModeUpdatedSignalConnected) {
+        Camera.modeUpdated.disconnect(handleCameraModeChanged);
+        cameraModeUpdatedSignalConnected = false;
+    }
+}
+
+
+// Turn on the nametag for yourself if you are in selfie mode, other wise delete it
+function handleCameraModeChanged(mode) {
+    if (mode === "selfie") {
+        if (avatarNametagMode === "alwaysOn") {
+            add(MyAvatar.sessionUUID);
+        }
+    } else {
+        maybeRemove(MyAvatar.sessionUUID);
+    }
+}
+
 // Handle checking to see if we should add or delete nametags in persistent mode
 var alwaysOnAvatarDistanceCheck = false;
 var DISTANCE_CHECK_INTERVAL_MS = 1000;
@@ -215,6 +236,10 @@ function handleAlwaysOnMode(shouldTurnOnAlwaysOnMode) {
             });
         maybeClearAlwaysOnAvatarDistanceCheck();
         alwaysOnAvatarDistanceCheck = Script.setInterval(maybeAddOrRemoveIntervalCheck, DISTANCE_CHECK_INTERVAL_MS);
+
+        if (Camera.mode === "selfie") {
+            add(MyAvatar.sessionUUID);
+        }
     }
 }
 
@@ -652,6 +677,7 @@ function reset() {
     _this.avatars = {};
     shouldToggleInterval();
     maybeClearAlwaysOnAvatarDistanceCheck();
+    maybeDisconnectCameraModeUpdatedSignal();
 
     return _this;
 }
@@ -662,11 +688,14 @@ var avatarNametagMode = "on";
 function handleAvatarNametagMode(newAvatarNametagMode) {
     if (avatarNametagMode === "alwaysOn") {
         handleAlwaysOnMode(false);
+        maybeDisconnectCameraModeUpdatedSignal();
     }
 
     avatarNametagMode = newAvatarNametagMode;
     if (avatarNametagMode === "alwaysOn") {
         handleAlwaysOnMode(true);
+        Camera.modeUpdated.connect(handleCameraModeChanged);
+        cameraModeUpdatedSignalConnected = true;
     }
 
     if (avatarNametagMode === "off" || avatarNametagMode === "on") {
