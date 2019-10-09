@@ -2163,14 +2163,14 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     //deadzone constant
     const float INPUT_DEADZONE_THRESHOLD = 0.05f;
 
-    if (abs(params.inputX) <= INPUT_DEADZONE_THRESHOLD && abs(params.inputZ) <= INPUT_DEADZONE_THRESHOLD) {
+    if (fabsf(params.inputX) <= INPUT_DEADZONE_THRESHOLD && fabsf(params.inputZ) <= INPUT_DEADZONE_THRESHOLD) {
         // no WASD input
         _animVars.set("isInputForward", false);
         _animVars.set("isInputBackward", false);
         _animVars.set("isInputRight", false);
         _animVars.set("isInputLeft", false);
         _animVars.set("isNotInput", true);
-    } else if ( abs(params.inputZ) >= abs(params.inputX) ) {
+    } else if (fabsf(params.inputZ) >= fabsf(params.inputX)) {
         if (params.inputZ > 0.0f) {
             // forward
             _animVars.set("isInputForward", true);
