@@ -1008,12 +1008,13 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         glm::vec3 scale = extractScale(joint.transform);
         joint.postTransform = glm::scale(glm::mat4(), scale);
 
+        joint.globalTransform = joint.transform;
         // Nodes are sorted, so we can apply the full transform just by getting the global transform of the already defined parent
         if (joint.parentIndex != -1 && joint.parentIndex != nodeIndex) {
             const auto& parentJoint = hfmModel.joints[(size_t)joint.parentIndex];
             joint.transform = parentJoint.transform * joint.transform;
+            joint.globalTransform = joint.globalTransform * parentJoint.globalTransform;
         }
-        joint.globalTransform = joint.transform;
 
         joint.name = node.name;
         joint.isSkeletonJoint = false;
