@@ -52,8 +52,8 @@ class RouteBuilderProxy : public QObject {
 
         /**jsdoc
          * Terminates the route with a standard control, an action, or a script function. The output value from the route is 
-         * sent to the specified destination.<br />
-         * This is a QML-specific version of {@link MappingObject#to|to}: use this version in QML files.
+         * sent to the specified destination.
+         * <p>This is a QML-specific version of {@link MappingObject#to|to}: use this version in QML files.</p>
          * @function RouteObject#toQml
          * @param {Controller.Standard|Controller.Actions|function} destination - The standard control, action, or JavaScript
          * function that the route output is mapped to. For a function, the parameter can be either the name of the function or
@@ -64,8 +64,8 @@ class RouteBuilderProxy : public QObject {
         /**jsdoc
          * Processes the route only if a condition is satisfied. The condition is evaluated before the route input is read, and
          * the input is read only if the condition is <code>true</code>. Thus, if the condition is not met then subsequent
-         * routes using the same input are processed.<br />
-         * This is a QML-specific version of {@link MappingObject#to|to}: use this version in QML files.
+         * routes using the same input are processed.
+         * <p>This is a QML-specific version of {@link MappingObject#when|when}: use this version in QML files.</p>
          * @function RouteObject#whenQml
          * @param {condition|condition[]} expression - <p>A <code>condition</code> may be a:</p>
          *     <ul>

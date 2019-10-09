@@ -56,10 +56,10 @@ void InfoView::show(const QString& path, bool firstOrChangedOnly, QString urlQue
         const QString lastVersion = infoVersion.get();
         const QString version = fetchVersion(url);
         // If we have version information stored
-        if (lastVersion != QString::null) {
+        if (!lastVersion.isNull()) {
             // Check to see the document version.  If it's valid and matches
             // the stored version, we're done, so exit
-            if (version == QString::null || version == lastVersion) {
+            if (version.isNull() || version == lastVersion) {
                 return;
             }
         }

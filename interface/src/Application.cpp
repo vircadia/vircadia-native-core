@@ -252,6 +252,7 @@
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
+#include <Windows.h>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -532,6 +533,11 @@ bool isDomainURL(QUrl url) {
 }
 
 #ifdef Q_OS_WIN
+static const UINT UWM_IDENTIFY_INSTANCES =
+    RegisterWindowMessage("UWM_IDENTIFY_INSTANCES_{8AB82783-B74A-4258-955B-8188C22AA0D6}_" + qgetenv("USERNAME"));
+static const UINT UWM_SHOW_APPLICATION =
+    RegisterWindowMessage("UWM_SHOW_APPLICATION_{71123FD6-3DA8-4DC1-9C27-8A12A6250CBA}_" + qgetenv("USERNAME"));
+
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
 public:
     static MyNativeEventFilter& getInstance() {
@@ -4957,7 +4963,7 @@ extern "C" {
         CCHAR NumberOfProcessors;
     };
 
-    NTSYSCALLAPI NTSTATUS NTAPI NtQuerySystemInformation(
+    NTSYSCALLAPI LONG NTAPI NtQuerySystemInformation(
         _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
         _Out_writes_bytes_opt_(SystemInformationLength) PVOID SystemInformation,
         _In_ ULONG SystemInformationLength,
@@ -4966,12 +4972,12 @@ extern "C" {
 
 }
 template <typename T>
-NTSTATUS NtQuerySystemInformation(SYSTEM_INFORMATION_CLASS SystemInformationClass, T& t) {
+LONG NtQuerySystemInformation(SYSTEM_INFORMATION_CLASS SystemInformationClass, T& t) {
     return NtQuerySystemInformation(SystemInformationClass, &t, (ULONG)sizeof(T), nullptr);
 }
 
 template <typename T>
-NTSTATUS NtQuerySystemInformation(SYSTEM_INFORMATION_CLASS SystemInformationClass, std::vector<T>& t) {
+LONG NtQuerySystemInformation(SYSTEM_INFORMATION_CLASS SystemInformationClass, std::vector<T>& t) {
     return NtQuerySystemInformation(SystemInformationClass, t.data(), (ULONG)(sizeof(T) * t.size()), nullptr);
 }
 

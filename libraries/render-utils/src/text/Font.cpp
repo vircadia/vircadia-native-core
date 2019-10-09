@@ -258,7 +258,7 @@ void Font::read(QIODevice& in) {
     _texture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::SINGLE_MIP,
                                       gpu::Sampler(gpu::Sampler::FILTER_MIN_POINT_MAG_LINEAR));
     _texture->setStoredMipFormat(formatMip);
-    _texture->assignStoredMip(0, image.byteCount(), image.constBits());
+    _texture->assignStoredMip(0, image.sizeInBytes(), image.constBits());
 }
 
 void Font::setupGPU() {

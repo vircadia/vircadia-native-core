@@ -69,7 +69,7 @@ class TabletScriptingInterface : public QObject, public Dependency {
 public:
 
     /**jsdoc
-     * Standard tablet sounds.
+     * <p>Standard tablet sounds.</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>Description</th></tr>
@@ -273,7 +273,9 @@ public:
     Q_INVOKABLE void gotoHomeScreen();
 
     /**jsdoc
-     * Opens a web page or app on the tablet.
+     * Opens a web app or page in addition to any current app. In tablet mode, the app or page is displayed over the top of the
+     * current app; in toolbar mode, the app is opened in a new window that replaces any current window open. If in tablet
+     * mode, the app or page can be closed using {@link TabletProxy#returnToPreviousApp}.
      * @function TabletProxy#gotoWebScreen
      * @param {string} url - The URL of the web page or app.
      * @param {string} [injectedJavaScriptUrl=""] - The URL of JavaScript to inject into the web page.
@@ -294,29 +296,31 @@ public:
     Q_INVOKABLE void loadQMLSource(const QVariant& path, bool resizable = false);
 
     /**jsdoc
-     * Internal function, do not call from scripts
      * @function TabletProxy#loadQMLSourceImpl
+     * @deprecated This function is deprecated and will be removed.
      */
+    // Internal function, do not call from scripts.
     Q_INVOKABLE void loadQMLSourceImpl(const QVariant& path, bool resizable, bool localSafeContext);
 
-     /**jsdoc
-     * Internal function, do not call from scripts
-     * @function TabletProxy#loadHTMLSourceImpl
+    /**jsdoc
+     * @function TabletProxy#loadHTMLSourceOnTopImpl
+     * @deprecated This function is deprecated and will be removed.
      */
-    Q_INVOKABLE void loadHTMLSourceImpl(const QVariant& url, const QString& injectJavaScriptUrl, bool localSafeContext);
+    // Internal function, do not call from scripts.
+    Q_INVOKABLE void loadHTMLSourceOnTopImpl(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase, bool localSafeContext);
 
-     /**jsdoc
-     * Internal function, do not call from scripts
-     * @function TabletProxy#loadHTMLSourceImpl
-     */
-    Q_INVOKABLE void loadHTMLSourceImpl(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase, bool localSafeContext);
-
-     /**jsdoc
-     * Internal function, do not call from scripts
+    /**jsdoc
      * @function TabletProxy#returnToPreviousAppImpl
+     * @deprecated This function is deprecated and will be removed.
      */
+    // Internal function, do not call from scripts.
     Q_INVOKABLE void returnToPreviousAppImpl(bool localSafeContext);
 
+    /**jsdoc
+     *@function TabletProxy#loadQMLOnTopImpl
+     * @deprecated This function is deprecated and will be removed.
+     */
+    // Internal function, do not call from scripts.
     Q_INVOKABLE void loadQMLOnTopImpl(const QVariant& path, bool localSafeContext);
 
     // FIXME: This currently relies on a script initializing the tablet (hence the bool denoting success);
@@ -355,8 +359,8 @@ public:
 
     /**jsdoc
      * Opens a web app or page in addition to any current app. In tablet mode, the app or page is displayed over the top of the
-     * current app; in toolbar mode, the app is opened in a new window. If in tablet mode, the app or page can be closed using
-     * {@link TabletProxy#returnToPreviousApp}.
+     * current app; in toolbar mode, the app is opened in a new window that replaces any current window open. If in tablet 
+     * mode, the app or page can be closed using {@link TabletProxy#returnToPreviousApp}.
      * @function TabletProxy#loadWebScreenOnTop
      * @param {string} path - The URL of the web page or HTML app.
      * @param {string} [injectedJavaScriptURL=""] - The URL of JavaScript to inject into the web page.
