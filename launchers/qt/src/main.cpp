@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     QString name { "High Fidelity" };
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QCoreApplication::setOrganizationName(name);
-    QCoreApplication::setApplicationName("HQ Launcher");
+    QCoreApplication::setApplicationName("Launcher");
     Q_INIT_RESOURCE(resources);
     cleanLogFile();
     qInstallMessageHandler(messageHandler);
@@ -51,11 +51,11 @@ int main(int argc, char *argv[]) {
     options->parse(argc, argv);
 #ifdef Q_OS_WIN
     LauncherInstaller launcherInstaller(argv[0]);
-    if (options->contains("--restart") || launcherInstaller.runningOutsideOfInstallDir()) {
-        launcherInstaller.install();
-    } else if (options->contains("--uninstall")) {
+    if (options->contains("--uninstall") || options->contains("--resumeUninstall")) {
         launcherInstaller.uninstall();
         return 0;
+    } else if (options->contains("--restart") || launcherInstaller.runningOutsideOfInstallDir()) {
+        launcherInstaller.install();
     }
 
     int interfacePID = -1;
@@ -64,9 +64,6 @@ int main(int argc, char *argv[]) {
     }
 
 #endif
-
     Launcher launcher(argc, argv);
-
     return launcher.exec();
-
 }

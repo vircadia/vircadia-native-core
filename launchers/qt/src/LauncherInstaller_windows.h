@@ -11,6 +11,7 @@ public:
     bool runningOutsideOfInstallDir();
 private:
     void createShortcuts();
+    void uninstallOldLauncher();
     void createApplicationRegistryKeys();
     void deleteShortcuts();
     void deleteApplicationRegistryKeys();
