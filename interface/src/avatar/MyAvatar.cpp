@@ -2175,7 +2175,7 @@ static float lookAtCostFunction(const glm::vec3& myForward, const glm::vec3& myP
 }
 
 void MyAvatar::computeMyLookAtTarget(const AvatarHash& hash) {
-    glm::vec3 myForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
+    glm::vec3 myForward = _lookAtYaw * IDENTITY_FORWARD;
     glm::vec3 myPosition = getHead()->getEyePosition();
     CameraMode mode = qApp->getCamera().getMode();
     if (mode == CAMERA_MODE_FIRST_PERSON) {
@@ -2553,7 +2553,7 @@ void MyAvatar::clearWornAvatarEntities() {
 }
 
 /**jsdoc
- * Information about an avatar entity.
+ * <p>Information about an avatar entity.</p>
  * <table>
  *   <thead>
  *     <tr><th>Property</th><th>Type</th><th>Description</th></tr>
@@ -3560,7 +3560,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         if (faceForward || _shouldTurnToFaceCamera) {
             const float REORIENT_FORWARD_BLEND = 0.25f;
             const float REORIENT_TURN_BLEND = 0.03f;
-            const float DIAGONAL_TURN_BLEND = 0.02f;
+            const float DIAGONAL_TURN_BLEND = 0.1f;
             float blend = (_shouldTurnToFaceCamera ? REORIENT_TURN_BLEND : REORIENT_FORWARD_BLEND) * timeScale;
             if (blend > 1.0f) {
                 blend = 1.0f;
@@ -3772,7 +3772,8 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
         // Desktop mode.
         direction = (zSpeed * forward) + (xSpeed * right);
         CameraMode mode = qApp->getCamera().getMode();
-        if ((mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_SELFIE) && zSpeed != 0.0f && xSpeed != 0.0f){
+        if ((mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_SELFIE) && 
+            zSpeed != 0.0f && xSpeed != 0.0f && !isFlying()){
             direction = (zSpeed * forward);
         }
         
@@ -4387,7 +4388,8 @@ bool MyAvatar::isFlying() {
 
 bool MyAvatar::isInAir() {
     // If Avatar is Hover, Falling, or Taking off, they are in Air.
-    return _characterController.getState() != CharacterController::State::Ground;
+    return _characterController.getState() != CharacterController::State::Ground &&
+           _characterController.getState() != CharacterController::State::Seated;
 }
 
 bool MyAvatar::getFlyingEnabled() {

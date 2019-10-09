@@ -188,11 +188,11 @@ public slots:
     /**jsdoc
      * Takes you to a specified metaverse address.
      * @function location.handleLookupString
-     * @param {string} address - The address to go to: a <code>"hifi://"<code> address, an IP address (e.g., 
-     * <code>"127.0.0.1"</code> or <code>"localhost"</code>), a domain name, a named path on a domain (starts with 
-     * <code>"/"</code>), a position or position and orientation, or a user (starts with <code>"@"</code>).
+     * @param {string} address - The address to go to: a <code>"hifi://"</code> address, an IP address (e.g., 
+     *     <code>"127.0.0.1"</code> or <code>"localhost"</code>), a domain name, a named path on a domain (starts with 
+     *     <code>"/"</code>), a position or position and orientation, or a user (starts with <code>"@"</code>).
      * @param {boolean} [fromSuggestions=false] - Set to <code>true</code> if the address is obtained from the "Goto" dialog.
-     *    Helps ensure that user's location history is correctly maintained.
+     *     Helps ensure that user's location history is correctly maintained.
      */
     void handleLookupString(const QString& lookupString, bool fromSuggestions = false);
 
@@ -259,7 +259,7 @@ public slots:
     /**jsdoc
      * Checks if going back to the previous location is possible.
      * @function location.canGoBack
-     * @returns <code>true</code> if going back is possible, <code>false</code> if it isn't.
+     * @returns {boolean} <code>true</code> if going back is possible, <code>false</code> if it isn't.
      */
     bool canGoBack() const;
 
