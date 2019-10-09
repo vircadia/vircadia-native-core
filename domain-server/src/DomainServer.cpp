@@ -385,7 +385,7 @@ void DomainServer::parseCommandLine(int argc, char* argv[]) {
         }
 
         if (_iceServerAddr.isEmpty()) {
-            qCWarning(domain_server_ice) << "Could not parse an IP address and port combination from" << hostnamePortString;
+            qCWarning(domain_server_ice) << "ALERT: Could not parse an IP address and port combination from" << hostnamePortString;
             ::exit(0);
         }
     }
@@ -876,7 +876,7 @@ void DomainServer::setupAutomaticNetworking() {
                     nodeList->startSTUNPublicSocketUpdate();
                 }
             } else {
-                qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
+                qCCritical(domain_server) << "PAGE: Cannot enable domain-server automatic networking without a domain ID."
                 << "Please add an ID to your config file or via the web interface.";
                 return;
             }
@@ -1635,8 +1635,9 @@ void DomainServer::handleFailedICEServerAddressUpdate(QNetworkReply* requestRepl
     } else {
         const int ICE_SERVER_UPDATE_RETRY_MS = 2 * 1000;
 
-        qCWarning(domain_server_ice) << "Failed to update ice-server address (" << _iceServerSocket << ") with High Fidelity Metaverse - error was"
-                   << requestReply->errorString();
+        qCWarning(domain_server_ice) << "PAGE: Failed to update ice-server address (" << _iceServerSocket <<
+            ") with Metaverse (" << requestReply->url() << ") (critical error for auto-networking) error:" <<
+            requestReply->errorString();
         qCWarning(domain_server_ice) << "\tRe-attempting in" << ICE_SERVER_UPDATE_RETRY_MS / 1000 << "seconds";
 
         QTimer::singleShot(ICE_SERVER_UPDATE_RETRY_MS, this, SLOT(sendICEServerAddressToMetaverseAPI()));
@@ -3450,8 +3451,9 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
         // we ended up with an empty list since everything we've tried has failed
         // so clear the set of failed addresses and start going through them again
 
-        qCWarning(domain_server_ice) << "All current ice-server addresses have failed - re-attempting all current addresses for"
-                   << _iceServerAddr;
+        qCWarning(domain_server_ice) <<
+            "PAGE: All current ice-server addresses have failed - re-attempting all current addresses for"
+            << _iceServerAddr;
 
         _failedIceServerAddresses.clear();
         candidateICEAddresses = _iceServerAddresses;

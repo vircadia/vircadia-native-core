@@ -287,7 +287,7 @@ public slots:
     /**jsdoc
      * @function Picks.PICK_ENTITIES
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_DOMAIN_ENTITIES | 
-     *     Picks.PICK_AVATAR_ENTITIES</cpode> properties expression instead.
+     *     Picks.PICK_AVATAR_ENTITIES</code> properties expression instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES); }

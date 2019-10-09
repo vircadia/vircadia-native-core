@@ -106,8 +106,9 @@ public:
  * "domain" entities, travel to different domains with a user as "avatar" entities, or be visible only to an individual user as 
  * "local" entities (a.k.a. "overlays").
  *
- * <p>Note: For Interface scripts, the entities available to scripts are those that Interface has displayed and so knows 
- * about.</p>
+ * <p>Note: For Interface, avatar, and client entity scripts, the entities available to scripts are those that Interface has 
+ * displayed and so knows about. For assignment client scripts, the entities available are those that are "seen" by the 
+ * {@link EntityViewer}. For entity server scripts, all entities are available.</p>
  *
  * <h3>Entity Methods</h3>
  *
@@ -728,7 +729,8 @@ public slots:
      * Finds all domain and avatar entities whose axis-aligned boxes intersect a search frustum.
      * @function Entities.findEntitiesInFrustum
      * @param {ViewFrustum} frustum - The frustum to search in. The <code>position</code>, <code>orientation</code>, 
-     *     <code>projection</code>, and <code>centerRadius</code> properties must be specified.
+     *     <code>projection</code>, and <code>centerRadius</code> properties must be specified. The <code>fieldOfView</code> 
+     *     and <code>aspectRatio</code> properties are not used; these values are specified by the <code>projection</code>.
      * @returns {Uuid[]} An array of entity IDs whose axis-aligned boxes intersect the search frustum. The array is empty if no 
      *     entities could be found.
      * @example <caption>Report the number of entities in view.</caption>
@@ -1870,7 +1872,7 @@ public slots:
      /**jsdoc
       * Called when a {@link Entities.getMeshes} call is complete.
       * @callback Entities~getMeshesCallback
-      * @param {MeshProxy[]} meshes - If <code>success<</code> is <code>true</code>, a {@link MeshProxy} per mesh in the 
+      * @param {MeshProxy[]} meshes - If <code>success</code> is <code>true</code>, a {@link MeshProxy} per mesh in the 
       *     <code>Model</code> or <code>PolyVox</code> entity; otherwise <code>undefined</code>. 
       * @param {boolean} success - <code>true</code> if the {@link Entities.getMeshes} call was successful, <code>false</code> 
       *     otherwise. The call may be unsuccessful if the requested entity could not be found.

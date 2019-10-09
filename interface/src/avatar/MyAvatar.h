@@ -170,10 +170,12 @@ class MyAvatar : public Avatar {
      *     collision. It can be a mono or stereo 16-bit WAV file running at either 24kHz or 48kHz. The latter is down-sampled 
      *     by the audio mixer, so all audio effectively plays back at a 24khz. 48kHz RAW files are also supported.
      * @property {number} audioListenerMode=0 - Specifies the listening position when hearing spatialized audio. Must be one 
-     *     of the following property values:<br />
-     *     <code>Myavatar.audioListenerModeHead</code><br />
-     *     <code>Myavatar.audioListenerModeCamera</code><br />
-     *     <code>Myavatar.audioListenerModeCustom</code>
+     *     of the following property values:
+     *     <ul>
+     *         <li><code>MyAvatar.audioListenerModeHead</code></li>
+     *         <li><code>MyAvatar.audioListenerModeCamera</code></li>
+     *         <li><code>MyAvatar.audioListenerModeCustom</code></li>
+     *     </ul>
      * @property {number} audioListenerModeHead=0 - The audio listening position is at the avatar's head. <em>Read-only.</em>
      * @property {number} audioListenerModeCamera=1 - The audio listening position is at the camera. <em>Read-only.</em>
      * @property {number} audioListenerModeCustom=2 - The audio listening position is at a the position specified by set by the 
@@ -182,8 +184,8 @@ class MyAvatar : public Avatar {
      *     property value is <code>audioListenerModeCustom</code>.
      * @property {Quat} customListenOrientation=Quat.IDENTITY - The listening orientation used when the
      *     <code>audioListenerMode</code> property value is <code>audioListenerModeCustom</code>.
-     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> to transmit blendshapes over the network.<br />
-     *     <strong>Note:</strong> Currently doesn't work. Use {@link MyAvatar.setForceFaceTrackerConnected} instead.
+     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> to transmit blendshapes over the network.
+     *     <p><strong>Note:</strong> Currently doesn't work. Use {@link MyAvatar.setForceFaceTrackerConnected} instead.</p>
      * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if procedural blinking is turned on.
      * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if procedural eye movement is turned on.
      * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> to move the mouth blendshapes with voice audio 
@@ -241,8 +243,8 @@ class MyAvatar : public Avatar {
      * @property {boolean} useAdvancedMovementControls - Returns and sets the value of the Interface setting, Settings > 
      *     Controls > Walking. Note: Setting the value has no effect unless Interface is restarted.
      * @property {boolean} showPlayArea - Returns and sets the value of the Interface setting, Settings > Controls > Show room 
-     *     boundaries while teleporting.<br />
-     *     <strong>Note:</strong> Setting the value has no effect unless Interface is restarted.
+     *     boundaries while teleporting.
+     *     <p><strong>Note:</strong> Setting the value has no effect unless Interface is restarted.</p>
      *
      * @property {number} yawSpeed=75 - The mouse X sensitivity value in Settings > General. <em>Read-only.</em>
      * @property {number} pitchSpeed=50 - The mouse Y sensitivity value in Settings > General. <em>Read-only.</em>
@@ -272,11 +274,12 @@ class MyAvatar : public Avatar {
      *     the value.</p>
      * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
-     * @property {number} isInSittingState - <code>true</code> if your avatar is sitting (avatar leaning is disabled, 
-     *     recenntering is enabled), <code>false</code> if it is standing (avatar leaning is enabled, and avatar recenters if it 
-     *     leans too far). If <code>userRecenterModel == 2</code> (i.e., auto) the property value automatically updates as the 
-     *     user sits or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the 
-     *     current siting / standing state, which is updated when the user next sits or stands unless 
+     * @property {number} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting
+     *     (avatar leaning is disabled, recenntering is enabled), <code>false</code> if the user wearing the HMD is
+     *     determined to be standing (avatar leaning is enabled, and avatar recenters if it leans too far).
+     *     If <code>userRecenterModel == 2</code> (i.e., auto) the property value automatically updates as the user sits
+     *     or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the current
+     *     siting / standing state, which is updated when the user next sits or stands unless
      *     <code>isSitStandStateLocked == true</code>.
      * @property {boolean} isSitStandStateLocked - <code>true</code> to lock the avatar sitting/standing state, i.e., use this 
      *     to disable automatically changing state.
@@ -490,9 +493,10 @@ public:
      *     <tr><td><code>2</code></td><td>Auto</td><td>Interface detects when the user is standing or seated in the real world. 
      *       Avatar leaning is disabled when the user is sitting (i.e., avatar always recenters), and avatar leaning is enabled 
      *       when the user is standing (i.e., avatar leans, then if leans too far it recenters).</td></tr>
-     *     <tr><td><code>3</code></td><td>DisableHMDLean</td><td>Both avatar leaning and recentering are disabled regardless of 
+     *     <tr><td><code>3</code></td><td>DisableHMDLean</td><td><p>Both avatar leaning and recentering are disabled regardless of 
      *       what the user is doing in the real world and no matter what their avatar is doing in the virtual world. Enables 
-     *       the avatar to sit on the floor when the user sits on the floor.<br /><strong>Note:</strong> Experimental.</td></tr>
+     *       the avatar to sit on the floor when the user sits on the floor.</p>
+     *       <p><strong>Note:</strong> Experimental.</p></td></tr>
      *   </tbody>
      * </table>
      * @typedef {number} MyAvatar.SitStandModelType
@@ -781,7 +785,7 @@ public:
      * additional properties specified when adding the different handlers.</p>
      * <p>A handler may change a value from <code>animStateDictionaryIn</code> or add different values in the 
      * <code>animStateDictionaryOut</code> returned. Any property values set in <code>animStateDictionaryOut</code> will 
-     * override those of the internal animation machinery.</p.
+     * override those of the internal animation machinery.</p>
      * @function MyAvatar.addAnimationStateHandler
      * @param {function} handler - The animation state handler function to add.
      * @param {Array<string>|null} propertiesList - The list of {@link MyAvatar.AnimStateDictionary|AnimStateDictionary} 
@@ -1889,6 +1893,14 @@ public:
      * @param {Quat} rotation - The absolute rotation of the avatar once the sitting action ends.
      */
     Q_INVOKABLE void endSit(const glm::vec3& position, const glm::quat& rotation);
+
+    /**jsdoc
+     * Gets whether the avatar is in a seated pose. The seated pose is set by calling the 
+     * MyAvatar::beginSit method.
+     * @function MyAvatar.isSeated
+     * @returns {boolean} <code>true</code> if the avatar is in a seated pose. 
+     */
+    Q_INVOKABLE bool isSeated() { return _characterController.getSeated(); }
 
     int getOverrideJointCount() const;
     bool getFlowActive() const;
