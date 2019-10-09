@@ -450,6 +450,7 @@ function onGeometryChanged(rect) {
 
 
 function onWindowMinimizedChanged(isMinimized) {
+    isWindowMinimized = isMinimized;
     maybeChangeEmoteIndicatorVisibility(!isMinimized);
 }
 
@@ -546,8 +547,12 @@ function showEmoteAppBar() {
 }
 
 
+// There is currently no property in the Window Scripting Interface to determine
+// whether the Interface window is currently minimized. This feels like an oversight.
+// We should add that functionality to the Window Scripting Interface, and remove `isWindowMinimized` below.
+var isWindowMinimized = false;
 function maybeChangeEmoteIndicatorVisibility(desiredVisibility) {
-    if (Window.minimized || HMD.active) {
+    if (isWindowMinimized || HMD.active) {
         desiredVisibility = false;
     }
 

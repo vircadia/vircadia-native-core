@@ -363,6 +363,8 @@ var INITIAL_LAUNCH_QML_PATH = Script.resolvePath("./simplifiedFTUE/InitialLaunch
 var INITIAL_LAUNCH_WINDOW_TITLE = "Initial Launch";
 var INITIAL_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var INITIAL_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+0x00000008 | // Qt::Popup
+0x00000002 | // Qt::Tool
 0x00000800 | // Qt::FramelessWindowHint
 0x40000000; // Qt::NoDropShadowWindowHint
 var initialLaunchWindow = false;
@@ -396,6 +398,8 @@ var SECOND_LAUNCH_QML_PATH = Script.resolvePath("simplifiedFTUE/SecondLaunchWind
 var SECOND_LAUNCH_WINDOW_TITLE = "Second Launch";
 var SECOND_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var SECOND_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+0x00000008 | // Qt::Popup
+0x00000002 | // Qt::Tool
 0x00000800 | // Qt::FramelessWindowHint
 0x40000000; // Qt::NoDropShadowWindowHint
 var secondLaunchWindow = false;
