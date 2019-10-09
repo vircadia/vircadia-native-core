@@ -96,7 +96,7 @@ namespace ktx {
     using GLBaseInternalFormat = khronos::gl::texture::BaseInternalFormat;
 
     using Storage = storage::Storage;
-    using StoragePointer = std::shared_ptr<Storage>;
+    using StoragePointer = std::shared_ptr<const Storage>;
 
     struct ImageDescriptor;
     using ImageDescriptors = std::vector<ImageDescriptor>;

@@ -829,7 +829,7 @@ Menu::Menu() {
     // Help > Release Notes
     action = addActionToQMenuAndActionHash(helpMenu, "Release Notes");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("http://steamcommunity.com/games/390540/announcements/"));
+        QDesktopServices::openUrl(QUrl("https://docs.highfidelity.com/release-notes.html"));
     });
 
     // Help > Report a Bug!

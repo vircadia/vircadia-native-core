@@ -10,9 +10,7 @@
 #include <nlohmann/json.hpp>
 #include <unordered_map>
 
-#include <QtCore/QFileInfo>
-#include <QtCore/QDir>
-
+#include <shared/FileUtils.h>
 #include <ktx/KTX.h>
 #include "Frame.h"
 #include "Batch.h"
@@ -22,24 +20,18 @@
 
 namespace gpu {
 using json = nlohmann::json;
+using StoragePointer = storage::StoragePointer;
+using FileStorage = storage::FileStorage;
 
 class Deserializer {
 public:
-    static std::string getBaseName(const std::string& filename) {
-        static const std::string ext{ ".json" };
-        if (std::string::npos != filename.rfind(ext)) {
-            return filename.substr(0, filename.size() - ext.size());
-        }
-        return filename;
-    }
-
     static std::string getBaseDir(const std::string& filename) {
         std::string result;
         if (0 == filename.find("assets:")) {
             auto lastSlash = filename.rfind('/');
             result = filename.substr(0, lastSlash + 1);
         } else {
-            result = QFileInfo(filename.c_str()).absoluteDir().canonicalPath().toStdString();
+            result = FileUtils::getParentPath(filename.c_str()).toStdString();
             if (*result.rbegin() != '/') {
                 result += '/';
             }
@@ -47,15 +39,17 @@ public:
         return result;
     }
 
-    Deserializer(const std::string& filename, uint32_t externalTexture, const TextureLoader& loader) :
-        basename(getBaseName(filename)), basedir(getBaseDir(filename)), externalTexture(externalTexture), textureLoader(loader) {
+    Deserializer(const std::string& filename_, uint32_t externalTexture = 0) :
+        filename(filename_), basedir(getBaseDir(filename_)), mappedFile(std::make_shared<FileStorage>(filename.c_str())),
+        externalTexture(externalTexture) {
+        descriptor = std::make_shared<hfb::Descriptor>(mappedFile);
     }
 
-    const std::string basename;
+    const std::string filename;
     const std::string basedir;
-    std::string binaryFile;
+    const StoragePointer mappedFile;
     const uint32_t externalTexture;
-    TextureLoader textureLoader;
+    hfb::Descriptor::Pointer descriptor;
     std::vector<ShaderPointer> shaders;
     std::vector<ShaderPointer> programs;
     std::vector<TexturePointer> textures;
@@ -69,10 +63,13 @@ public:
     std::vector<QueryPointer> queries;
     json frameNode;
     FramePointer readFrame();
-    void optimizeFrame(const IndexOptimizer& optimizer);
 
     FramePointer deserializeFrame();
 
+    std::string getStringChunk(size_t chunkIndex) {
+        auto storage = descriptor->getChunk((uint32_t)chunkIndex);
+        return std::string{ (const char*)storage->data(), storage->size() };
+    }
 
     void readBuffers(const json& node);
 
@@ -148,12 +145,11 @@ public:
     }
 
     template <typename T, typename TT = T>
-    static bool readBatchCacheTransformed(typename Batch::Cache<T>::Vector& dest,
-                                          const json& node,
-                                          const std::string& name,
-                                          std::function<TT(const json&)> f = [](const json& node) -> TT {
-                                              return node.get<TT>();
-                                          }) {
+    static bool readBatchCacheTransformed(
+        typename Batch::Cache<T>::Vector& dest,
+        const json& node,
+        const std::string& name,
+        std::function<TT(const json&)> f = [](const json& node) -> TT { return node.get<TT>(); }) {
         if (node.count(name)) {
             const auto& arrayNode = node[name];
             for (const auto& entry : arrayNode) {
@@ -230,12 +226,8 @@ public:
     static void readCommand(const json& node, Batch& batch);
 };
 
-FramePointer readFrame(const std::string& filename, uint32_t externalTexture, const TextureLoader& loader) {
-    return Deserializer(filename, externalTexture, loader).readFrame();
-}
-
-void optimizeFrame(const std::string& filename, const IndexOptimizer& optimizer) {
-    return Deserializer(filename, 0, {}).optimizeFrame(optimizer);
+FramePointer readFrame(const std::string& filename, uint32_t externalTexture) {
+    return Deserializer(filename, externalTexture).readFrame();
 }
 
 }  // namespace gpu
@@ -243,9 +235,9 @@ void optimizeFrame(const std::string& filename, const IndexOptimizer& optimizer)
 using namespace gpu;
 
 void Deserializer::readBuffers(const json& buffersNode) {
-    storage::FileStorage mappedFile(binaryFile.c_str());
-    const auto mappedSize = mappedFile.size();
-    const auto* mapped = mappedFile.data();
+    const auto& binaryChunk = descriptor->chunks[1];
+    const auto* mapped = mappedFile->data() + binaryChunk.offset;
+    const auto mappedSize = binaryChunk.length;
     size_t bufferCount = buffersNode.size();
     buffers.reserve(buffersNode.size());
     size_t offset = 0;
@@ -311,6 +303,8 @@ Sampler Deserializer::readSampler(const json& node) {
     return result;
 }
 
+constexpr uint32_t INVALID_CHUNK_INDEX{ (uint32_t)-1 };
+
 TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
     if (node.is_null()) {
         return nullptr;
@@ -319,8 +313,17 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
     std::string source;
     readOptional(source, node, keys::source);
 
+    uint32_t chunkIndex = INVALID_CHUNK_INDEX;
+    readOptional(chunkIndex, node, keys::chunk);
+
     std::string ktxFile;
     readOptional(ktxFile, node, keys::ktxFile);
+    if (!ktxFile.empty()) {
+        if (!FileUtils::exists(ktxFile.c_str())) {
+            qDebug() << "Warning" << ktxFile.c_str() << " not found, ignoring";
+            ktxFile = {};
+        }
+    }
     Element ktxTexelFormat, ktxMipFormat;
     if (!ktxFile.empty()) {
         // If we get a texture that starts with ":" we need to re-route it to the resources directory
@@ -330,8 +333,8 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
             frameReaderPath.replace("libraries/gpu/src/gpu/framereader.cpp", "interface/resources", Qt::CaseInsensitive);
             ktxFile.replace(0, 1, frameReaderPath.toStdString());
         }
-        if (QFileInfo(ktxFile.c_str()).isRelative()) {
-            ktxFile = basedir + ktxFile;
+        if (FileUtils::isRelative(ktxFile.c_str())) {
+            ktxFile = basedir + "/" + ktxFile;
         }
         ktx::StoragePointer ktxStorage{ new storage::FileStorage(ktxFile.c_str()) };
         auto ktxObject = ktx::KTX::create(ktxStorage);
@@ -364,12 +367,14 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
     auto& texture = *result;
     readOptional(texture._source, node, keys::source);
 
-    if (!ktxFile.empty()) {
-        if (QFileInfo(ktxFile.c_str()).isRelative()) {
-            ktxFile = basedir + "/" + ktxFile;
-        }
+
+    if (chunkIndex != INVALID_CHUNK_INDEX) {
+        auto ktxChunk = descriptor->getChunk(chunkIndex);
+        texture.setKtxBacking(ktxChunk);
+    } else if (!ktxFile.empty()) {
+        texture.setSource(ktxFile);
         texture.setKtxBacking(ktxFile);
-    }
+    } 
     return result;
 }
 
@@ -405,11 +410,11 @@ ShaderPointer Deserializer::readShader(const json& node) {
     // FIXME support procedural shaders
     Shader::Type type = node[keys::type];
     std::string name = node[keys::name];
-    // Using the serialized ID is bad, because it's generated at 
-    // cmake time, and can change across platforms or when 
+    // Using the serialized ID is bad, because it's generated at
+    // cmake time, and can change across platforms or when
     // shaders are added or removed
     // uint32_t id = node[keys::id];
-    
+
     uint32_t id = shadersIdsByName[name];
     ShaderPointer result;
     switch (type) {
@@ -555,11 +560,15 @@ StatePointer readState(const json& node) {
 
     State::Data data;
     Deserializer::readOptionalTransformed<State::Flags>(data.flags, node, keys::flags, &readStateFlags);
-    Deserializer::readOptionalTransformed<State::BlendFunction>(data.blendFunction, node, keys::blendFunction, &readBlendFunction);
+    Deserializer::readOptionalTransformed<State::BlendFunction>(data.blendFunction, node, keys::blendFunction,
+                                                                &readBlendFunction);
     Deserializer::readOptionalTransformed<State::DepthTest>(data.depthTest, node, keys::depthTest, &readDepthTest);
-    Deserializer::readOptionalTransformed<State::StencilActivation>(data.stencilActivation, node, keys::stencilActivation, &readStencilActivation);
-    Deserializer::readOptionalTransformed<State::StencilTest>(data.stencilTestFront, node, keys::stencilTestFront, &readStencilTest);
-    Deserializer::readOptionalTransformed<State::StencilTest>(data.stencilTestBack, node, keys::stencilTestBack, &readStencilTest);
+    Deserializer::readOptionalTransformed<State::StencilActivation>(data.stencilActivation, node, keys::stencilActivation,
+                                                                    &readStencilActivation);
+    Deserializer::readOptionalTransformed<State::StencilTest>(data.stencilTestFront, node, keys::stencilTestFront,
+                                                              &readStencilTest);
+    Deserializer::readOptionalTransformed<State::StencilTest>(data.stencilTestBack, node, keys::stencilTestBack,
+                                                              &readStencilTest);
     Deserializer::readOptional(data.colorWriteMask, node, keys::colorWriteMask);
     Deserializer::readOptional(data.cullMode, node, keys::cullMode);
     Deserializer::readOptional(data.depthBias, node, keys::depthBias);
@@ -799,24 +808,14 @@ StereoState readStereoState(const json& node) {
 
 
 FramePointer Deserializer::deserializeFrame() {
-    {
-        std::string filename{ basename + ".json" };
-        storage::FileStorage mappedFile(filename.c_str());
-        frameNode = json::parse(std::string((const char*)mappedFile.data(), mappedFile.size()));
+    if (!descriptor.operator bool()) {
+        return {};
     }
+
+    frameNode = json::parse(getStringChunk(0));
 
     FramePointer result = std::make_shared<Frame>();
     auto& frame = *result;
-
-    if (frameNode[keys::binary].is_string()) {
-        binaryFile = frameNode[keys::binary];
-        if (QFileInfo(binaryFile.c_str()).isRelative()) {
-            binaryFile = basedir + "/" + binaryFile;
-        }
-    } else {
-        binaryFile = basename + ".bin";
-    }
-
 
     if (frameNode.count(keys::buffers)) {
         readBuffers(frameNode[keys::buffers]);
@@ -830,19 +829,7 @@ FramePointer Deserializer::deserializeFrame() {
 
     formats = readArray<Stream::FormatPointer>(frameNode, keys::formats, [](const json& node) { return readFormat(node); });
 
-    auto textureReader = [this](const json& node) { return readTexture(node, externalTexture); };
-    textures = readArray<TexturePointer>(frameNode, keys::textures, textureReader);
-    if (textureLoader) {
-        std::vector<uint32_t> capturedTextures = readNumericVector<uint32_t>(frameNode[keys::capturedTextures]);
-        for (const auto& index : capturedTextures) {
-            const auto& texturePointer = textures[index];
-            uint16 layers = std::max<uint16>(texturePointer->getNumSlices(), 1);
-            for (uint16 layer = 0; layer < layers; ++layer) {
-                std::string filename = basename + "." + std::to_string(index) + "." + std::to_string(layer) + ".png";
-                textureLoader(filename, texturePointer, layer);
-            }
-        }
-    }
+    textures = readArray<TexturePointer>(frameNode, keys::textures, [this](const json& node) { return readTexture(node, externalTexture); });
 
     // Must come after textures
     auto textureTableReader = [this](const json& node) { return readTextureTable(node); };
@@ -868,87 +855,22 @@ FramePointer Deserializer::deserializeFrame() {
         }
     }
 
+    for (uint32_t i = 0; i < textures.size(); ++i) {
+        const auto& texturePtr = textures[i];
+        if (!texturePtr) {
+            continue;
+        }
+        const auto& texture = *texturePtr;
+        if (texture.getUsageType() == gpu::TextureUsageType::RESOURCE && texture.source().empty()) {
+            qDebug() << "Empty source ";
+        }
+    }
+
     return result;
 }
-
-
 
 FramePointer Deserializer::readFrame() {
     auto result = deserializeFrame();
     result->finish();
     return result;
-}
-
-void Deserializer::optimizeFrame(const IndexOptimizer& optimizer) {
-    auto result = deserializeFrame();
-    auto& frame = *result;
-
-
-        // optimize the index buffers?
-    struct CurrentIndexBuffer {
-        Offset offset{ 0 };
-        BufferPointer buffer;
-        Type type{ gpu::Type::INT32 };
-        Primitive primitve{ Primitive::TRIANGLES };
-        uint32_t numIndices{ 0 };
-        uint32_t startIndex{ 0 };
-    };
-
-    std::vector<CurrentIndexBuffer> captured;
-    for (auto& batch : frame.batches) {
-
-        CurrentIndexBuffer currentIndexBuffer;
-        batch->forEachCommand([&](Batch::Command cmd, const Batch::Param* params){
-            switch(cmd) {
-                case Batch::Command::COMMAND_setIndexBuffer:
-                    currentIndexBuffer.offset = params[0]._size;
-                    currentIndexBuffer.buffer = batch->_buffers.get(params[1]._int);
-                    currentIndexBuffer.type = (Type)params[2]._int;
-                    break;
-
-                case Batch::Command::COMMAND_drawIndexed:
-                    currentIndexBuffer.startIndex = params[0]._int;
-                    currentIndexBuffer.numIndices = params[1]._int;
-                    currentIndexBuffer.primitve = (Primitive)params[2]._int;
-                    captured.emplace_back(currentIndexBuffer);
-                    break;
-
-                case Batch::Command::COMMAND_drawIndexedInstanced:
-                    currentIndexBuffer.startIndex = params[1]._int;
-                    currentIndexBuffer.numIndices = params[2]._int;
-                    currentIndexBuffer.primitve = (Primitive)params[3]._int;
-                    captured.emplace_back(currentIndexBuffer);
-                    break;
-
-                default: 
-                    break;
-            }
-        });
-    }
-
-
-    std::string optimizedBinaryFile = basename + "_optimized.bin";
-    QFile(binaryFile.c_str()).copy(optimizedBinaryFile.c_str());
-    {
-        storage::FileStorage mappedFile(optimizedBinaryFile.c_str());
-        std::set<BufferPointer> uniqueBuffers;
-        for (const auto& capturedIndexData : captured) {
-            if (uniqueBuffers.count(capturedIndexData.buffer)) {
-                continue;
-            }
-            uniqueBuffers.insert(capturedIndexData.buffer);
-            auto bufferOffset = bufferOffsets[capturedIndexData.buffer];
-            auto& buffer = *capturedIndexData.buffer;
-            const auto& count = capturedIndexData.numIndices;
-            auto indices = (uint32_t*)buffer.editData();
-            optimizer(capturedIndexData.primitve, count / 3, count, indices);
-            memcpy(mappedFile.mutableData() + bufferOffset, indices, sizeof(uint32_t) * count);
-        }
-    }
-    frameNode[keys::binary] = optimizedBinaryFile;
-    {
-        std::string frameJson = frameNode.dump();
-        std::string filename = basename + "_optimized.json";
-        storage::FileStorage::create(filename.c_str(), frameJson.size(), (const uint8_t*)frameJson.data());
-    }
 }

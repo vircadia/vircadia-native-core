@@ -71,23 +71,63 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
 }
 
 function loadSeparateDefaults() {
+    var currentlyRunningScripts = ScriptDiscoveryService.getRunning();
+
     for (var i in DEFAULT_SCRIPTS_SEPARATE) {
-        Script.load(DEFAULT_SCRIPTS_SEPARATE[i]);
+        var shouldLoadCurrentDefaultScript = true;
+
+        for (var j = 0; j < currentlyRunningScripts.length; j++) {
+            var currentRunningScriptObject = currentlyRunningScripts[j];
+            var currentDefaultScriptName = DEFAULT_SCRIPTS_SEPARATE[i].substr((DEFAULT_SCRIPTS_SEPARATE[i].lastIndexOf("/") + 1), DEFAULT_SCRIPTS_SEPARATE[i].length);
+            if (currentDefaultScriptName === currentRunningScriptObject.name) {
+                shouldLoadCurrentDefaultScript = false;
+            }
+        }
+
+        if (shouldLoadCurrentDefaultScript) {
+            Script.load(DEFAULT_SCRIPTS_SEPARATE[i]);
+        }
     }
 }
 
 function runDefaultsTogether() {
-    for (var i in DEFAULT_SCRIPTS_COMBINED) {
-        Script.include(DEFAULT_SCRIPTS_COMBINED[i]);
+    var currentlyRunningScripts = ScriptDiscoveryService.getRunning();
+
+    for (var i = 0; i < DEFAULT_SCRIPTS_COMBINED.length; i++) {
+        var shouldIncludeCurrentDefaultScript = true;
+
+        for (var j = 0; j < currentlyRunningScripts.length; j++) {
+            var currentRunningScriptObject = currentlyRunningScripts[j];
+            var currentDefaultScriptName = DEFAULT_SCRIPTS_COMBINED[i].substr((DEFAULT_SCRIPTS_COMBINED[i].lastIndexOf("/") + 1), DEFAULT_SCRIPTS_COMBINED[i].length);
+            if (currentDefaultScriptName === currentRunningScriptObject.name) {
+                shouldIncludeCurrentDefaultScript = false;
+            }
+        }
+
+        if (shouldIncludeCurrentDefaultScript) {
+            Script.include(DEFAULT_SCRIPTS_COMBINED[i]);
+        }
     }
-    loadSeparateDefaults();
 }
 
 function runDefaultsSeparately() {
+    var currentlyRunningScripts = ScriptDiscoveryService.getRunning();
+
     for (var i in DEFAULT_SCRIPTS_COMBINED) {
-        Script.load(DEFAULT_SCRIPTS_COMBINED[i]);
+        var shouldLoadCurrentDefaultScript = true;
+
+        for (var j = 0; j < currentlyRunningScripts.length; j++) {
+            var currentRunningScriptObject = currentlyRunningScripts[j];
+            var currentDefaultScriptName = DEFAULT_SCRIPTS_COMBINED[i].substr((DEFAULT_SCRIPTS_COMBINED[i].lastIndexOf("/") + 1), DEFAULT_SCRIPTS_COMBINED[i].length);
+            if (currentDefaultScriptName === currentRunningScriptObject.name) {
+                shouldLoadCurrentDefaultScript = false;
+            }
+        }
+
+        if (shouldLoadCurrentDefaultScript) {
+            Script.load(DEFAULT_SCRIPTS_COMBINED[i]);
+        }
     }
-    loadSeparateDefaults();
 }
 
 // start all scripts
@@ -99,6 +139,7 @@ if (Menu.isOptionChecked(MENU_ITEM)) {
     // include all default scripts into this ScriptEngine
     runDefaultsTogether();
 }
+loadSeparateDefaults();
 
 function menuItemEvent(menuItem) {
     if (menuItem === MENU_ITEM) {
