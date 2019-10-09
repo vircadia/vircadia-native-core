@@ -233,3 +233,19 @@ void HeadData::setHasProceduralEyeMovement(bool hasProceduralEyeMovement) {
 void HeadData::setFaceTrackerConnected(bool value) {
     _isFaceTrackerConnected = value;
 }
+
+void HeadData::setLookAtPosition(const glm::vec3& lookAtPosition) {
+    if (_requestLookAtPosition != lookAtPosition) {
+        _lookAtPositionChanged = usecTimestampNow();
+        glm::vec3 oldAvatarLookAtVector = _requestLookAtPosition - _owningAvatar->getWorldPosition();
+        glm::vec3 newAvatarLookAtVector = lookAtPosition - _owningAvatar->getWorldPosition();
+        const float MIN_BLINK_ANGLE = 0.35f; // 20 degrees
+        _forceBlink = angleBetween(oldAvatarLookAtVector, newAvatarLookAtVector) > MIN_BLINK_ANGLE;
+        _lookAtUpdated = false;
+    }
+    _requestLookAtPosition = lookAtPosition;
+    if (_lookAtUpdated) {
+        _forceBlink = false;
+        _lookAtPosition = lookAtPosition;
+    }    
+}

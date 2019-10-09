@@ -64,12 +64,7 @@ public:
     void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { _blendshapeCoefficients = blendshapeCoefficients; }
 
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
-    void setLookAtPosition(const glm::vec3& lookAtPosition) {
-        if (_lookAtPosition != lookAtPosition) {
-            _lookAtPositionChanged = usecTimestampNow();
-        }
-        _lookAtPosition = lookAtPosition;
-    }
+    void setLookAtPosition(const glm::vec3& lookAtPosition);
     bool lookAtPositionChangedSince(quint64 time) { return _lookAtPositionChanged >= time; }
 
     bool getHasProceduralEyeFaceMovement() const;
@@ -84,6 +79,11 @@ public:
     void setFaceTrackerConnected(bool value);
     bool getFaceTrackerConnected() const { return _isFaceTrackerConnected; }
 
+    void updateEyeLookAt() {
+        _lookAtPosition = _requestLookAtPosition;
+        _lookAtUpdated = true;
+    }
+
     friend class AvatarData;
 
     QJsonObject toJson() const;
@@ -95,6 +95,7 @@ protected:
     float _basePitch;
     float _baseRoll;
 
+    glm::vec3 _requestLookAtPosition;
     glm::vec3 _lookAtPosition;
     quint64 _lookAtPositionChanged { 0 };
 
@@ -115,6 +116,8 @@ protected:
     QVector<float> _summedBlendshapeCoefficients;
     QMap<QString, int> _blendshapeLookupMap;
     AvatarData* _owningAvatar;
+    bool _forceBlink { false };
+    bool _lookAtUpdated { false };
 
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made

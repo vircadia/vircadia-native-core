@@ -2188,15 +2188,20 @@ void MyAvatar::computeMyLookAtTarget(const AvatarHash& hash) {
     foreach (const AvatarSharedPointer& avatarData, hash) {
         std::shared_ptr<Avatar> avatar = std::static_pointer_cast<Avatar>(avatarData);
         if (!avatar->isMyAvatar() && avatar->isInitialized()) {
-            glm::vec3 otherForward = avatar->getHead()->getForwardDirection();
-            glm::vec3 otherPosition = avatar->getHead()->getEyePosition();
-            const float TIME_WITHOUT_TALKING_THRESHOLD = 1.0f;
-            bool otherIsTalking = avatar->getHead()->getTimeWithoutTalking() <= TIME_WITHOUT_TALKING_THRESHOLD;
-            bool lookingAtOtherAlready = _lookAtTargetAvatar.lock().get() == avatar.get();
-            float cost = lookAtCostFunction(myForward, myPosition, otherForward, otherPosition, otherIsTalking, lookingAtOtherAlready);
-            if (cost < bestCost) {
-                bestCost = cost;
+            if (_forceTargetAvatarID.isNull() || avatar->getID() != _forceTargetAvatarID) {
+                glm::vec3 otherForward = avatar->getHead()->getForwardDirection();
+                glm::vec3 otherPosition = avatar->getHead()->getEyePosition();
+                const float TIME_WITHOUT_TALKING_THRESHOLD = 1.0f;
+                bool otherIsTalking = avatar->getHead()->getTimeWithoutTalking() <= TIME_WITHOUT_TALKING_THRESHOLD;
+                bool lookingAtOtherAlready = _lookAtTargetAvatar.lock().get() == avatar.get();
+                float cost = lookAtCostFunction(myForward, myPosition, otherForward, otherPosition, otherIsTalking, lookingAtOtherAlready);
+                if (cost < bestCost) {
+                    bestCost = cost;
+                    bestAvatar = avatar;
+                }
+            } else {
                 bestAvatar = avatar;
+                break;
             }
         }
     }
@@ -6838,3 +6843,10 @@ void MyAvatar::resetPointAt() {
     }
 }
 
+void MyAvatar::setLookAtAvatarID(const QUuid& avatarID) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "setLookAtAvatarID",
+            Q_ARG(const QUuid&, avatarID));
+    }
+    _forceTargetAvatarID = avatarID;
+}
