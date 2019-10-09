@@ -145,7 +145,7 @@ Item {
             id: button
             width: 110
 
-            enabled: root.enabled
+            enabled: root.enabled && username.text.length > 0 && password.text.length > 0 && displayName.text.length > 0
 
             text: "NEXT"
 

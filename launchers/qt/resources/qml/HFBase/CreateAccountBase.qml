@@ -105,7 +105,7 @@ Item {
     }
 
     HFTextField {
-        id: passwordField
+        id: password
         width: 430
 
         enabled: root.enabled
@@ -132,7 +132,7 @@ Item {
         width: 430
 
         anchors {
-            top: passwordField.bottom
+            top: password.bottom
             left: root.left
             leftMargin: root.marginLeft
             topMargin: 22
@@ -154,14 +154,14 @@ Item {
             topMargin: 4
         }
 
-         onAccepted: LauncherState.signup(email.text, username.text, passwordField.text, displayName.text)
+         onAccepted: LauncherState.signup(email.text, username.text, password.text, displayName.text)
     }
 
     HFButton {
         id: button
         width: 134
 
-        enabled: root.enabled
+        enabled: root.enabled && email.text.length > 0 && username.text.length > 0 && password.text.length > 0 && displayName.text.length > 0
 
         text: "NEXT"
 
@@ -172,7 +172,7 @@ Item {
             topMargin: 21
         }
 
-        onClicked: LauncherState.signup(email.text, username.text, passwordField.text, displayName.text)
+        onClicked: LauncherState.signup(email.text, username.text, password.text, displayName.text)
     }
 
 
