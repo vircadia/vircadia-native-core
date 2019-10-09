@@ -122,7 +122,7 @@ Rectangle {
                 var userHasValidAvatarInInventory = topBarInventoryModel.count > 0 && 
                     topBarInventoryModel.get(0).download_url.indexOf(".fst") > -1;
                 var simplifiedAvatarPrefix = "https://content.highfidelity.com/Experiences/Releases/simplifiedUI/simplifiedFTUE/avatars/simplifiedAvatar_";
-                var simplifiedAvatarColors = ["Blue", "Cyan", "Green", "Magenta", "Red", "Yellow"];
+                var simplifiedAvatarColors = ["Blue", "Cyan", "Green", "Magenta", "Red"];
                 var simplifiedAvatarSuffix = "/avatar.fst";
 
                 // Use `Settings.setValue("simplifiedUI/debugFTUE", 0);` to turn off FTUE Debug Mode.
