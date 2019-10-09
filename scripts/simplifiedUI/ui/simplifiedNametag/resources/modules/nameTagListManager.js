@@ -23,6 +23,31 @@ var SECONDS_IN_MINUTE = 60;
 var ALWAYS_ON_MAX_LIFETIME_IN_SECONDS = 5 * SECONDS_IN_MINUTE;
 
 // *************************************
+// START STARTUP/SHUTDOWN
+// *************************************
+// #region STARTUP/SHUTDOWN
+
+
+// Connect the camera mode updated signal on startup
+function startup() {
+    Camera.modeUpdated.connect(handleCameraModeChanged);
+    cameraModeUpdatedSignalConnected = true;
+
+    Script.scriptEnding.connect(shutdown);
+}
+
+startup();
+
+function shutdown() {
+    maybeDisconnectCameraModeUpdatedSignal();    
+}
+
+
+// *************************************
+// END STARTUP/SHUTDOWN
+// *************************************
+
+// *************************************
 // START UTILTY
 // *************************************
 // #region UTILTY
@@ -688,14 +713,11 @@ var avatarNametagMode = "on";
 function handleAvatarNametagMode(newAvatarNametagMode) {
     if (avatarNametagMode === "alwaysOn") {
         handleAlwaysOnMode(false);
-        maybeDisconnectCameraModeUpdatedSignal();
     }
 
     avatarNametagMode = newAvatarNametagMode;
     if (avatarNametagMode === "alwaysOn") {
         handleAlwaysOnMode(true);
-        Camera.modeUpdated.connect(handleCameraModeChanged);
-        cameraModeUpdatedSignalConnected = true;
     }
 
     if (avatarNametagMode === "off" || avatarNametagMode === "on") {
