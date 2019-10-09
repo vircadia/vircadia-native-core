@@ -371,6 +371,8 @@ function displayInitialLaunchWindow() {
         return;
     }
 
+    simplifiedEmote.handleFTUEScreensVisibilityChanged(true);
+
     initialLaunchWindow = Desktop.createWindow(INITIAL_LAUNCH_QML_PATH, {
         title: INITIAL_LAUNCH_WINDOW_TITLE,
         presentationMode: INITIAL_LAUNCH_PRESENTATION_MODE,
@@ -402,6 +404,8 @@ function displaySecondLaunchWindow() {
         return;
     }
 
+    simplifiedEmote.handleFTUEScreensVisibilityChanged(true);
+
     secondLaunchWindow = Desktop.createWindow(SECOND_LAUNCH_QML_PATH, {
         title: SECOND_LAUNCH_WINDOW_TITLE,
         presentationMode: SECOND_LAUNCH_PRESENTATION_MODE,
@@ -427,6 +431,8 @@ function closeInitialLaunchWindow() {
         initialLaunchWindow.close();
         initialLaunchWindow = null;
     }
+
+    simplifiedEmote.handleFTUEScreensVisibilityChanged(false);
 }
 
 function closeSecondLaunchWindow() {
@@ -435,6 +441,8 @@ function closeSecondLaunchWindow() {
         secondLaunchWindow.close();
         secondLaunchWindow = null;
     }
+
+    simplifiedEmote.handleFTUEScreensVisibilityChanged(false);
 }
 
 var INITIAL_LAUNCH_WINDOW_MESSAGE_SOURCE = "InitialLaunchWindow.qml";
@@ -764,7 +772,7 @@ function restoreLODSettings() {
 
 var nametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
 var si = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
-var emote = Script.require("../simplifiedEmote/simplifiedEmote.js?" + Date.now());
+var simplifiedEmote = Script.require("../simplifiedEmote/simplifiedEmote.js?" + Date.now());
 var oldShowAudioTools;
 var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);

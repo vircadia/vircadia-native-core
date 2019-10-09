@@ -125,6 +125,26 @@ Rectangle {
                 var simplifiedAvatarColors = ["Blue", "Cyan", "Green", "Magenta", "Red", "Yellow"];
                 var simplifiedAvatarSuffix = "/avatar.fst";
 
+                // Use `Settings.setValue("simplifiedUI/debugFTUE", 0);` to turn off FTUE Debug Mode.
+                // Use `Settings.setValue("simplifiedUI/debugFTUE", 1);` to debug FTUE Screen 1.
+                // Use `Settings.setValue("simplifiedUI/debugFTUE", 2);` to debug FTUE Screen 2.
+                // Use `Settings.setValue("simplifiedUI/debugFTUE", 3);` to debug FTUE Screen 3.
+                // Use `Settings.setValue("simplifiedUI/debugFTUE", 4);` to force the UI to show what would happen if the user had an empty Inventory.
+
+                var debugFTUE = Settings.getValue("simplifiedUI/debugFTUE", 0);
+                if (debugFTUE === 1 || debugFTUE === 2) {
+                    scriptExecutionCount = 1;
+                    currentAvatarURLContainsDefaultAvatar = true;
+                    if (debugFTUE === 1) {
+                        userHasValidAvatarInInventory = false;
+                        currentAvatarURLContainsSimplifiedAvatar = false;
+                    }
+                } else if (debugFTUE === 3) {
+                    scriptExecutionCount = 2;
+                    currentAvatarURLContainsDefaultAvatar = false;
+                    currentAvatarURLContainsSimplifiedAvatar = true;
+                }
+
                 // If we have never auto-selected and the user is still using a default avatar or if the current avatar is not valid (fst), or if 
                 // the current avatar is the old default (Woody), use top avatar from inventory or one of the new defaults.
 
@@ -591,7 +611,7 @@ Rectangle {
     }
 
 
-    function updatePreviewUrl() {
+    function updatePreviewUrl() {        
         var previewUrl = "";
         var downloadUrl = "";
         for (var i = 0; i < topBarInventoryModel.count; ++i) {
@@ -605,6 +625,8 @@ Rectangle {
                 return;
             }
         }
+        
+        avatarButtonImage.source = "../images/defaultAvatar.svg";
     }
 
 

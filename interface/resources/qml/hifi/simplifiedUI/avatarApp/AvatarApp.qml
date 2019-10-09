@@ -83,6 +83,10 @@ Rectangle {
                 emptyInventoryContainer.visible = true;
             }
 
+            if (Settings.getValue("simplifiedUI/debugFTUE", 0) === 4) {
+                emptyInventoryContainer.visible = true;
+            }
+
             avatarAppInventoryModel.handlePage(result.status !== "success" && result.message, result);
             root.updatePreviewUrl();
         }
@@ -360,6 +364,8 @@ Rectangle {
                 return;
             }
         }
+        
+        root.avatarPreviewUrl = "../../images/defaultAvatar.svg";
     }
 
     function fromScript(message) {

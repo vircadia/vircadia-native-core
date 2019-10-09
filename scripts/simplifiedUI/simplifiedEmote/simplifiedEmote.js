@@ -450,11 +450,7 @@ function onGeometryChanged(rect) {
 
 
 function onWindowMinimizedChanged(isMinimized) {
-    if (isMinimized) {
-        handleEmoteIndicatorVisibleChanged(false);
-    } else if (!HMD.active) {
-        handleEmoteIndicatorVisibleChanged(true);
-    }
+    maybeChangeEmoteIndicatorVisibility(!isMinimized);
 }
 
 
@@ -550,14 +546,23 @@ function showEmoteAppBar() {
 }
 
 
-function handleEmoteIndicatorVisibleChanged(shouldBeVisible) {
-    if (shouldBeVisible && !emoteAppBarWindow) {
+function maybeChangeEmoteIndicatorVisibility(desiredVisibility) {
+    if (Window.minimized || HMD.active) {
+        desiredVisibility = false;
+    }
+
+    if (desiredVisibility && !emoteAppBarWindow) {
         showEmoteAppBar();
-    } else if (emoteAppBarWindow) {
+    } else if (!desiredVisibility && emoteAppBarWindow) {
         emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
         emoteAppBarWindow.close();
         emoteAppBarWindow = false;
     }
+}
+
+
+function handleFTUEScreensVisibilityChanged(ftueScreenVisible) {
+    maybeChangeEmoteIndicatorVisibility(!ftueScreenVisible);
 }
 
 
@@ -566,11 +571,7 @@ function onDisplayModeChanged(isHMDMode) {
         endReactionWrapper(react);
     });
 
-    if (isHMDMode) {
-        handleEmoteIndicatorVisibleChanged(false);
-    } else {
-        handleEmoteIndicatorVisibleChanged(true);
-    }
+    maybeChangeEmoteIndicatorVisibility(!isHMDMode);
 }
 
 
@@ -578,6 +579,7 @@ var emojiAPI = Script.require("./emojiApp/simplifiedEmoji.js?" + Date.now());
 var keyPressSignalsConnected = false;
 var emojiCodeMap;
 var customEmojiCodeMap;
+var _this;
 function setup() {
     deleteOldReticles();
 
@@ -609,12 +611,22 @@ function setup() {
     HMD.displayModeChanged.connect(onDisplayModeChanged);
 
     getSounds();
-    handleEmoteIndicatorVisibleChanged(true);
+    maybeChangeEmoteIndicatorVisibility(true);
     
     Controller.keyPressEvent.connect(keyPressHandler);
     Controller.keyReleaseEvent.connect(keyReleaseHandler);
     keyPressSignalsConnected = true;
     Script.scriptEnding.connect(unload);
+    
+    function Emote() {
+        _this = this;
+    }
+
+    Emote.prototype = {
+        handleFTUEScreensVisibilityChanged: handleFTUEScreensVisibilityChanged
+    };
+
+    return new Emote();
 }
 
 
@@ -671,7 +683,6 @@ function unload() {
 // #region EMOJI_UTILITY
 
 
-var EMOJI_52_BASE_URL = "../../resources/images/emojis/52px/";
 function selectedEmoji(code) {
     emojiAPI.addEmoji(code);
     // this URL needs to be relative to SimplifiedEmoteIndicator.qml
@@ -786,4 +797,6 @@ function toggleEmojiApp() {
 // END EMOJI
 // *************************************
 
-setup();
+var emote = setup();
+
+module.exports = emote;

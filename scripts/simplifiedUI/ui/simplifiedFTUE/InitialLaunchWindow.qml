@@ -28,7 +28,8 @@ Rectangle {
 
     Component.onCompleted: {
         if (Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatarFromInventory", false) || 
-            Settings.getValue("simplifiedUI/closedAvatarPageOfInitialLaunchWindow", false)) {
+            Settings.getValue("simplifiedUI/closedAvatarPageOfInitialLaunchWindow", false) ||
+            Settings.getValue("simplifiedUI/debugFTUE", 0) === 2) {
             tempAvatarPageContainer.visible = false;
             controlsContainer.visible = true;
         }
@@ -95,7 +96,7 @@ Rectangle {
                         "for today. If you see this avatar in-world, walk up and " +
                         "say hello to other new users!<br><br>" +
                         "<b>We want you to be you</b> so we've built " +
-                        "<a href=\"https://www.highfidelity.com/knowledge/virtual-you\">Virtual You</a>, an Avatar Creator " +
+                        '<a href="https://www.highfidelity.com/knowledge/virtual-you/">Virtual You</a>, an Avatar Creator ' +
                         "App. Creating an avatar is as easy as taking a selfie and picking your " +
                         "outfits! Available now on iOS and Android."
                     color: simplifiedUI.colors.text.black
