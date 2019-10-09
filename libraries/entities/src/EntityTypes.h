@@ -46,18 +46,18 @@ public:
      *       See also, the <code>"Box"</code> and <code>"Sphere"</code> entity types.</td>
      *       <td>{@link Entities.EntityProperties-Shape|EntityProperties-Shape}</td></tr>
      *     <tr><td><code>"Box"</code></td><td>A rectangular prism. This is a synonym of <code>"Shape"</code> for the case
-     *       where the entity's <code>shape</code> property value is <code>"Cube"</code>.<br />
-     *       If an entity is created with its <code>type</code> 
+     *       where the entity's <code>shape</code> property value is <code>"Cube"</code>.
+     *       <p>If an entity is created with its <code>type</code> 
      *       set to <code>"Box"</code> it will always be created with a <code>shape</code> property value of 
      *       <code>"Cube"</code>. If an entity of type <code>Shape</code> or <code>Sphere</code> has its <code>shape</code> set 
-     *       to <code>"Cube"</code> then its <code>type</code> will be reported as <code>"Box"</code>.
+     *       to <code>"Cube"</code> then its <code>type</code> will be reported as <code>"Box"</code>.</p></td>
      *       <td>{@link Entities.EntityProperties-Box|EntityProperties-Box}</td></tr>
      *     <tr><td><code>"Sphere"</code></td><td>A sphere. This is a synonym of <code>"Shape"</code> for the case
-     *       where the entity's <code>shape</code> property value is <code>"Sphere"</code>.<br />
-     *       If an entity is created with its <code>type</code>
+     *       where the entity's <code>shape</code> property value is <code>"Sphere"</code>.
+     *       <p>If an entity is created with its <code>type</code>
      *       set to <code>"Sphere"</code> it will always be created with a <code>shape</code> property value of
      *       <code>"Sphere"</code>. If an entity of type <code>Box</code> or <code>Shape</code> has its <code>shape</code> set
-     *       to <code>"Sphere"</code> then its <code>type</code> will be reported as <code>"Sphere"</code>.
+     *       to <code>"Sphere"</code> then its <code>type</code> will be reported as <code>"Sphere"</code>.</td>
      *       <td>{@link Entities.EntityProperties-Sphere|EntityProperties-Sphere}</td></tr>
      *     <tr><td><code>"Model"</code></td><td>A mesh model from a glTF, FBX, or OBJ file.</td>
      *       <td>{@link Entities.EntityProperties-Model|EntityProperties-Model}</td></tr>

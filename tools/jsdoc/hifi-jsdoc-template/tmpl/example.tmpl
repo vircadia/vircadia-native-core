@@ -29,113 +29,113 @@ if (data.defaultvalue && (data.defaultvaluetype === 'object' || data.defaultvalu
 
     <?js if (data.version) {?>
     <p>Version:</p>
-    <p><ul class="dummy"><li><?js= version ?></li></ul></p>
+    <div><ul class="dummy"><li><?js= version ?></li></ul></div>
     <?js } ?>
 
     <?js if (data.since) {?>
     <p>Since:</p>
-    <p><ul class="dummy"><li><?js= since ?></li></ul></p>
+    <div><ul class="dummy"><li><?js= since ?></li></ul></div>
     <?js } ?>
 
     <?js if (data.inherited && data.inherits && !data.overrides) { ?>
     <p>Inherited From:</p>
-    <p><ul class="dummy"><li>
+    <div><ul class="dummy"><li>
         <?js= this.linkto(data.inherits, this.htmlsafe(data.inherits)) ?>
-    </li></ul></p>
+    </li></ul></div>
     <?js } ?>
 
     <?js if (data.overrides) { ?>
     <p>Overrides:</p>
-    <p><ul class="dummy"><li>
+    <div><ul class="dummy"><li>
         <?js= this.linkto(data.overrides, this.htmlsafe(data.overrides)) ?>
-    </li></ul></p>
+    </li></ul></div>
     <?js } ?>
 
     <?js if (data.implementations && data.implementations.length) { ?>
     <p>Implementations:</p>
-    <p><ul>
+    <div><ul>
         <?js data.implementations.forEach(function(impl) { ?>
             <li><?js= self.linkto(impl, self.htmlsafe(impl)) ?></li>
         <?js }); ?>
-    </ul></p>
+    </ul></div>
     <?js } ?>
 
     <?js if (data.implements && data.implements.length) { ?>
     <p>Implements:</p>
-    <p><ul>
+    <div><ul>
         <?js data.implements.forEach(function(impl) { ?>
             <li><?js= self.linkto(impl, self.htmlsafe(impl)) ?></li>
         <?js }); ?>
-    </ul></p>
+    </ul></div>
     <?js } ?>
 
     <?js if (data.mixes && data.mixes.length) { ?>
         <p>Mixes In:</p>
 
-        <p><ul>
+        <div><ul>
         <?js data.mixes.forEach(function(a) { ?>
             <li><?js= self.linkto(a, a) ?></li>
         <?js }); ?>
-        </ul></p>
+        </ul></div>
     <?js } ?>
 
 
     <?js if (data.author && author.length) {?>
     <p>Author:</p>
-    <p>
+    <div>
         <ul><?js author.forEach(function(a) { ?>
             <li><?js= self.resolveAuthorLinks(a) ?></li>
         <?js }); ?></ul>
-    </p>
+    </div>
     <?js } ?>
 
     <?js if (data.copyright) {?>
     <p>Copyright:</p>
-    <p><ul class="dummy"><li><?js= copyright ?></li></ul></p>
+    <div><ul class="dummy"><li><?js= copyright ?></li></ul></div>
     <?js } ?>
 
     <?js if (data.license) {?>
     <p>License:</p>
-    <p><ul class="dummy"><li><?js= license ?></li></ul></p>
+    <div><ul class="dummy"><li><?js= license ?></li></ul></div>
     <?js } ?>
 
     <?js if (data.defaultvalue) {?>
     <p>Default Value:</p>
-    <p><ul class="dummy">
-            <li<?js= defaultObjectClass ?>><?js= data.defaultvalue ?></li>
-        </ul></p>
+    <div><ul class="dummy">
+            <li><?js= defaultObjectClass ?>><?js= data.defaultvalue ?></li>
+        </ul></div>
     <?js } ?>
 
     <?js if (data.meta && self.outputSourceFiles) {?>
     <p>Source:</p>
-    <p><ul class="dummy"><li>
+    <div><ul class="dummy"><li>
         <?js= self.linkto(meta.shortpath) ?>, <?js= self.linkto(meta.shortpath, 'line ' + meta.lineno, null, 'line' + meta.lineno) ?>
-    </li></ul></p>
+    </li></ul></div>
     <?js } ?>
 
     <?js if (data.tutorials && tutorials.length) {?>
     <p>Tutorials:</p>
-    <p>
+    <div>
         <ul><?js tutorials.forEach(function(t) { ?>
             <li><?js= self.tutoriallink(t) ?></li>
         <?js }); ?></ul>
-    </p>
+    </div>
     <?js } ?>
 
     <?js if (data.see && see.length) {?>
     <p class="see">See:</p>
-    <p>
+    <div>
         <ul><?js see.forEach(function(s) { ?>
             <li><?js= self.linkto(s) ?></li>
         <?js }); ?></ul>
-    </p>
+    </div>
     <?js } ?>
 
     <?js if (data.todo && todo.length) {?>
     <p>To Do:</p>
-    <p>
+    <div>
         <ul><?js todo.forEach(function(t) { ?>
             <li><?js= t ?></li>
         <?js }); ?></ul>
-    </p>
+    </div>
     <?js } ?>

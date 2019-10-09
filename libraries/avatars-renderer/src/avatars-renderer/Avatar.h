@@ -470,7 +470,7 @@ public:
     /**jsdoc
      * Sets the joint of the entity or avatar that the avatar is parented to. 
      * @function MyAvatar.setParentJointIndex
-     * @param {number} parentJointIndex - he joint of the entity or avatar that the avatar should be parented to. Use
+     * @param {number} parentJointIndex - The joint of the entity or avatar that the avatar should be parented to. Use
      *     <code>65535</code> or <code>-1</code> to parent to the entity or avatar's position and orientation rather than a 
      *     joint.
      */

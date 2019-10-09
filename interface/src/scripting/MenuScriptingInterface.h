@@ -24,7 +24,8 @@ class MenuItemProperties;
  * <h3>Groupings</h3>
  * 
  * <p>A "grouping" provides a way to group a set of menus or menu items together so that they can all be set visible or invisible 
- * as a group.</p> There is currently only one available group: <code>"Developer"</code>. This grouping can be toggled in the 
+ * as a group.</p>
+ * <p>There is currently only one available group: <code>"Developer"</code>. This grouping can be toggled in the 
  * "Settings" menu.</p>
  * <p>If a menu item doesn't belong to a group, it is always displayed.</p>
  *

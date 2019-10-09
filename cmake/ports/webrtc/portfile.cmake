@@ -14,9 +14,9 @@ elseif (WIN32)
 elseif (APPLE)
     vcpkg_download_distfile(
         WEBRTC_SOURCE_ARCHIVE
-        URLS https://hifi-public.s3.amazonaws.com/seth/webrtc-20190626-osx.tar.gz
-        SHA512 fc70cec1b5ee87395137b7090f424e2fc2300fc17d744d5ffa1cf7aa0e0f1a069a9d72ba1ad2fb4a640ebeb6c218bda24351ba0083e1ff96c4a4b5032648a9d2
-        FILENAME webrtc-20190626-osx.tar.gz
+        URLS https://hifi-public.s3.amazonaws.com/seth/webrtc-m78-osx.tar.gz
+        SHA512 8b547da921cc96f5c22b4253a1c9e707971bb627898fbdb6b238ef1318c7d2512e878344885c936d4bd6a66005cc5b63dfc3fa5ddd14f17f378dcaa17b5e25df
+        FILENAME webrtc-m78-osx.tar.gz
     )
 else ()
     # else Linux desktop

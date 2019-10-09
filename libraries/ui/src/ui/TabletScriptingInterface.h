@@ -69,7 +69,7 @@ class TabletScriptingInterface : public QObject, public Dependency {
 public:
 
     /**jsdoc
-     * Standard tablet sounds.
+     * <p>Standard tablet sounds.</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>Description</th></tr>

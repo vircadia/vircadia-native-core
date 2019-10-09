@@ -545,7 +545,7 @@ void Avatar::relayJointDataToChildren() {
 }
 
 /**jsdoc
- * An avatar has different types of data simulated at different rates, in Hz.
+ * <p>An avatar has different types of data simulated at different rates, in Hz.</p>
  *
  * <table>
  *   <thead>
