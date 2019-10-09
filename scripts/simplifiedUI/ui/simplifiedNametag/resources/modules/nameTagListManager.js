@@ -224,7 +224,7 @@ function toggleInterval() {
 
 // Disconnect the camera mode updated signal if we have one connected for the selfie mode
 var cameraModeUpdatedSignalConnected = false;
-function maybeDisconnectCameraModeUpdatedSignal(){
+function maybeDisconnectCameraModeUpdatedSignal() {
     if (cameraModeUpdatedSignalConnected) {
         Camera.modeUpdated.disconnect(handleCameraModeChanged);
         cameraModeUpdatedSignalConnected = false;
@@ -702,7 +702,6 @@ function reset() {
     _this.avatars = {};
     shouldToggleInterval();
     maybeClearAlwaysOnAvatarDistanceCheck();
-    maybeDisconnectCameraModeUpdatedSignal();
 
     return _this;
 }
