@@ -530,8 +530,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                     if (object.properties.at(2) == "Mesh") {
                         meshes.insert(getID(object.properties), extractMesh(object, meshIndex, deduplicateIndices));
                     } else { // object.properties.at(2) == "Shape"
-                        ExtractedBlendshape extracted = { getID(object.properties), extractBlendshape(object) };
-                        blendshapes.append(extracted);
+                        ExtractedBlendshape blendshape = { getID(object.properties), extractBlendshape(object) };
+                        blendshapes.append(blendshape);
                     }
                 } else if (object.name == "Model") {
                     QString name = getModelName(object.properties);
@@ -705,8 +705,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
 
                     // add the blendshapes included in the model, if any
                     if (mesh) {
-                        foreach (const ExtractedBlendshape& extracted, blendshapes) {
-                            addBlendshapes(extracted, blendshapeIndices.values(extracted.id.toLatin1()), *mesh);
+                        foreach (const ExtractedBlendshape& blendshape, blendshapes) {
+                            addBlendshapes(blendshape, blendshapeIndices.values(blendshape.id.toLatin1()), *mesh);
                         }
                     }
 
@@ -1229,11 +1229,11 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
     }
 
     // assign the blendshapes to their corresponding meshes
-    foreach (const ExtractedBlendshape& extracted, blendshapes) {
-        QString blendshapeChannelID = _connectionParentMap.value(extracted.id);
+    foreach (const ExtractedBlendshape& blendshape, blendshapes) {
+        QString blendshapeChannelID = _connectionParentMap.value(blendshape.id);
         QString blendshapeID = _connectionParentMap.value(blendshapeChannelID);
         QString meshID = _connectionParentMap.value(blendshapeID);
-        addBlendshapes(extracted, blendshapeChannelIndices.values(blendshapeChannelID), meshes[meshID]);
+        addBlendshapes(blendshape, blendshapeChannelIndices.values(blendshapeChannelID), meshes[meshID]);
     }
 
     // get offset transform from mapping

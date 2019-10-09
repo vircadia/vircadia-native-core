@@ -104,9 +104,11 @@ void CauterizedModel::updateClusterMatrices() {
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
         return;
     }
+
+    updateShapeStatesFromRig();
+
     _needsUpdateClusterMatrices = false;
     const HFMModel& hfmModel = getHFMModel();
-
     for (int i = 0; i < (int)_meshStates.size(); i++) {
         Model::MeshState& state = _meshStates[i];
         const HFMMesh& mesh = hfmModel.meshes.at(i);
@@ -221,13 +223,14 @@ void CauterizedModel::updateRenderItems() {
                 auto itemID = self->_modelMeshRenderItemIDs[i];
                 auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
 
+                const auto& shapeState = self->getShapeState(i);
                 const auto& meshState = self->getMeshState(meshIndex);
                 const auto& cauterizedMeshState = self->getCauterizeMeshState(meshIndex);
 
                 bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
                 bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
-                transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
+                transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, shapeState, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
                         primitiveMode, renderItemKeyGlobalFlags, enableCauterization](ModelMeshPartPayload& mmppData) {
                     CauterizedMeshPartPayload& data = static_cast<CauterizedMeshPartPayload&>(mmppData);
                     if (useDualQuaternionSkinning) {
@@ -241,7 +244,7 @@ void CauterizedModel::updateRenderItems() {
                     }
 
                     Transform renderTransform = modelTransform;
-                    if (useDualQuaternionSkinning) {
+                    /*if (useDualQuaternionSkinning) {
                         if (meshState.clusterDualQuaternions.size() == 1 || meshState.clusterDualQuaternions.size() == 2) {
                             const auto& dq = meshState.clusterDualQuaternions[0];
                             Transform transform(dq.getRotation(),
@@ -253,6 +256,9 @@ void CauterizedModel::updateRenderItems() {
                         if (meshState.clusterMatrices.size() == 1 || meshState.clusterMatrices.size() == 2) {
                             renderTransform = modelTransform.worldTransform(Transform(meshState.clusterMatrices[0]));
                         }
+                    }*/
+                    if (meshState.clusterMatrices.size() <= 1) {
+                        renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
                     }
                     data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 

@@ -232,12 +232,13 @@ void Model::updateRenderItems() {
             auto itemID = self->_modelMeshRenderItemIDs[i];
             auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
 
+            const auto& shapeState = self->getShapeState(i);
             const auto& meshState = self->getMeshState(meshIndex);
 
             bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
             bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, shapeState, meshState, useDualQuaternionSkinning,
                                                                   invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
@@ -249,7 +250,7 @@ void Model::updateRenderItems() {
 
                 Transform renderTransform = modelTransform;
 
-                if (useDualQuaternionSkinning) {
+                /*if (useDualQuaternionSkinning) {
                     if (meshState.clusterDualQuaternions.size() == 1 || meshState.clusterDualQuaternions.size() == 2) {
                         const auto& dq = meshState.clusterDualQuaternions[0];
                         Transform transform(dq.getRotation(),
@@ -261,6 +262,9 @@ void Model::updateRenderItems() {
                     if (meshState.clusterMatrices.size() == 1 || meshState.clusterMatrices.size() == 2) {
                         renderTransform = modelTransform.worldTransform(Transform(meshState.clusterMatrices[0]));
                     }
+                }*/
+                if (meshState.clusterMatrices.size() <= 1) {
+                    renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
@@ -293,6 +297,21 @@ void Model::reset() {
     }
 }
 
+void Model::updateShapeStatesFromRig() {
+    const HFMModel& hfmModel = getHFMModel();
+    // TODO: should all Models have a valid _rig?
+    { // Shapes state:
+        const auto& shapes = hfmModel.shapes;
+        _shapeStates.resize(shapes.size());
+        for (int s = 0; s < shapes.size(); ++s) {
+            uint32_t jointId = shapes[s].transform;
+            if (jointId < _rig.getJointStateCount()) {
+                _shapeStates[s]._rootFromJointTransform = _rig.getJointTransform(shapes[s].transform);
+            }
+        }
+    }
+}
+
 bool Model::updateGeometry() {
     bool needFullUpdate = false;
 
@@ -306,6 +325,8 @@ bool Model::updateGeometry() {
     if (_rig.jointStatesEmpty() && getHFMModel().joints.size() > 0) {
         initJointStates();
         assert(_meshStates.empty());
+
+        updateShapeStatesFromRig();
 
         const HFMModel& hfmModel = getHFMModel();
         int i = 0;
@@ -1385,6 +1406,8 @@ void Model::updateClusterMatrices() {
         return;
     }
 
+    updateShapeStatesFromRig();
+
     _needsUpdateClusterMatrices = false;
     const HFMModel& hfmModel = getHFMModel();
     for (int i = 0; i < (int) _meshStates.size(); i++) {
@@ -1418,6 +1441,7 @@ void Model::updateClusterMatrices() {
 
 void Model::deleteGeometry() {
     _deleteGeometryCounter++;
+    _shapeStates.clear();
     _meshStates.clear();
     _rig.destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
@@ -1496,7 +1520,7 @@ void Model::createRenderItemSet() {
 }
 
 bool Model::isRenderable() const {
-    return !_meshStates.empty() || (isLoaded() && _renderGeometry->getMeshes().empty());
+    return (!_shapeStates.empty() && !_meshStates.empty()) || (isLoaded() && _renderGeometry->getMeshes().empty());
 }
 
 std::set<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialName) {

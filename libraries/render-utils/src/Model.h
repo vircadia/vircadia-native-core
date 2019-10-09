@@ -343,6 +343,12 @@ public:
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
 
+    class ShapeState {
+    public:
+        glm::mat4 _rootFromJointTransform;
+    };
+    const ShapeState& getShapeState(int index) { return _shapeStates.at(index); }
+
     uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
     const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItemsMap; }
     BlendShapeOperator getModelBlendshapeOperator() const { return _modelBlendshapeOperator; }
@@ -420,6 +426,8 @@ protected:
     glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
 
     std::vector<MeshState> _meshStates;
+    std::vector<ShapeState> _shapeStates;
+    void updateShapeStatesFromRig();
 
     virtual void initJointStates();
 

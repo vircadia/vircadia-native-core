@@ -221,8 +221,10 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     }
 
     updateTransform(transform, offsetTransform);
+
     Transform renderTransform = transform;
-    if (useDualQuaternionSkinning) {
+
+/*    if (useDualQuaternionSkinning) {
         if (state.clusterDualQuaternions.size() == 1) {
             const auto& dq = state.clusterDualQuaternions[0];
             Transform transform(dq.getRotation(),
@@ -235,6 +237,10 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
             renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
         }
     }
+*/
+    
+    const Model::ShapeState& shapeState = model->getShapeState(shapeIndex);
+    renderTransform = transform.worldTransform(shapeState._rootFromJointTransform);
     updateTransformForSkinnedMesh(renderTransform, transform);
 
     initCache(model);
@@ -320,7 +326,8 @@ void ModelMeshPartPayload::updateClusterBuffer(const std::vector<Model::Transfor
 void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform) {
     _transform = renderTransform;
     _worldBound = _adjustedLocalBound;
-    _worldBound.transform(boundTransform);
+ //   _worldBound.transform(boundTransform);
+    _worldBound.transform(renderTransform);
 }
 
 // Note that this method is called for models but not for shapes
