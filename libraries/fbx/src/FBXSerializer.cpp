@@ -1480,6 +1480,12 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         // meshShapes will be added to hfmModel at the very end
         std::vector<hfm::Shape> meshShapes;
         meshShapes.reserve(instanceModelIDs.size() * mesh.parts.size());
+        if (instanceModelIDs.size() > 1) {
+            qCDebug(modelformat) << "Mesh " << meshID << " made of " << mesh.parts.size() << " parts is instanced " << instanceModelIDs.size() << " times!!!";
+        }
+        if (mesh.parts.size() < 1) {
+            qCDebug(modelformat) << "Mesh " << meshID << " made of " << mesh.parts.size() << " parts !!!!! ";
+        }
         for (const QString& modelID : instanceModelIDs) {
             // The transform node has the same indexing order as the joints
             const uint32_t transformIndex = (uint32_t)modelIDs.indexOf(modelID);
@@ -1500,6 +1506,14 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 shape.mesh = meshIndex;
                 shape.meshPart = i;
                 shape.transform = transformIndex;
+                
+                auto matName = mesh.parts[i].materialID;
+                auto materialIt = materialNameToID.find(matName.toStdString());
+                if (materialIt != materialNameToID.end()) {
+                    shape.material = materialIt->second;
+                } else {
+                    qCDebug(modelformat) << "Unknown material ? " << matName;
+                }
 
                 shape.transformedExtents.reset();
                 // compute the shape extents from the transformed vertices
@@ -1546,14 +1560,21 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
             // For baked models with FBX_DRACO_MESH_VERSION >= 2, get materials from extracted.materialIDPerMeshPart
             if (!extracted.materialIDPerMeshPart.empty()) {
-                for (uint32_t i = 0; i < (uint32_t)extracted.materialIDPerMeshPart.size(); ++i) {
-                    hfm::Shape& shape = partShapes[i];
-                    const std::string& materialID = extracted.materialIDPerMeshPart[i];
-                    auto materialIt = materialNameToID.find(materialID);
-                    if (materialIt != materialNameToID.end()) {
-                        shape.material = materialIt->second;
+          /*      if (partShapes.size() == extracted.materialIDPerMeshPart.size()) {
+                    for (uint32_t i = 0; i < (uint32_t)extracted.materialIDPerMeshPart.size(); ++i) {
+                        hfm::Shape& shape = partShapes[i];
+                        const std::string& materialID = extracted.materialIDPerMeshPart[i];
+                        auto materialIt = materialNameToID.find(materialID);
+                        if (materialIt != materialNameToID.end()) {
+                            shape.material = materialIt->second;
+                        }
                     }
-                }
+                } else {
+                    for (int p = 0; p < mesh.parts.size(); p++) {
+                        qCDebug(modelformat) << "mesh.parts[" << p <<"] is " << mesh.parts[p].materialID;
+                    }
+                        qCDebug(modelformat) << "partShapes is not the same size as materialIDPerMeshPart ?";
+                }*/
             }
 
             // find the clusters with which the mesh is associated
