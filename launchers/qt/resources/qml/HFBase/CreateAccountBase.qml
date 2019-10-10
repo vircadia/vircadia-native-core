@@ -10,7 +10,7 @@ Item {
     anchors.centerIn: parent
     property string titleText: "Sign-in and pick a password"
     property string usernamePlaceholder: "Username"
-    property string passwordPlaceholder: "Set a password"
+    property string passwordPlaceholder: "Set a password (must be at least 6 characters)"
     property int marginLeft: root.width * 0.15
 
     property bool enabled: LauncherState.applicationState == ApplicationState.WaitingForSignup
@@ -43,7 +43,7 @@ Item {
         id: instruction
         width: 425
 
-        text: "Use the email address that you registered with."
+        text: "Use the email address you applied for access with."
         visible: LauncherState.lastSignupErrorMessage.length == 0
 
         anchors {
@@ -63,6 +63,16 @@ Item {
 
         visible: LauncherState.lastSignupErrorMessage.length > 0
         text: LauncherState.lastSignupErrorMessage
+
+        textFormat: Text.StyledText
+
+        onLinkActivated: {
+            if (link == "login") {
+                LauncherState.gotoLogin();
+            } else {
+                LauncherState.openURLInBrowser(link)
+            }
+        }
 
         anchors {
             left: root.left
@@ -194,7 +204,6 @@ Item {
             cursorShape: Qt.PointingHandCursor
 
             onClicked: {
-                console.log("clicked");
                 LauncherState.gotoLogin();
             }
         }

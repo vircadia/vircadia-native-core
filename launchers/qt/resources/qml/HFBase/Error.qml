@@ -49,7 +49,7 @@ Item {
     HFTextRegular {
         id: description
 
-        text: "We seem to have a problem.\nPlease restart HQ Launcher"
+        text: "We seem to have a problem.\nPlease restart Launcher"
 
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter

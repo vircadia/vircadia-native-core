@@ -51,11 +51,10 @@ Item {
             visible: LauncherState.lastLoginErrorMessage.length == 0
             text: "Use the account credentials you created at sign-up"
             anchors {
-                left: parent.left
-                right: parent.right;
-
                 top: title.bottom
                 topMargin: 18
+
+                horizontalCenter: parent.horizontalCenter
             }
         }
 
@@ -68,8 +67,7 @@ Item {
                 top: title.bottom
                 topMargin: 18
 
-                left: parent.left
-                right: parent.right;
+                horizontalCenter: parent.horizontalCenter
             }
         }
 

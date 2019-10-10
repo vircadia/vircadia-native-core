@@ -28,12 +28,24 @@
 
 #include <qregularexpression.h>
 
+#ifdef Q_OS_WIN
+#include <shellapi.h>
+#endif
+
 //#define BREAK_ON_ERROR
 
 const QString configHomeLocationKey { "homeLocation" };
 const QString configLastLoginKey { "lastLogin" };
 const QString configLoggedInKey{ "loggedIn" };
 const QString configLauncherPathKey{ "launcherPath" };
+
+Q_INVOKABLE void LauncherState::openURLInBrowser(QString url) {
+#ifdef Q_OS_WIN
+    ShellExecute(0, 0, url.toLatin1(), 0, 0 , SW_SHOW);
+#elif defined(Q_OS_DARWIN)
+    system("open \"" + url.toLatin1() + "\");
+#endif
+}
 
 void LauncherState::toggleDebugState() {
     _isDebuggingScreens = !_isDebuggingScreens;
@@ -293,6 +305,8 @@ void LauncherState::getCurrentClientVersion() {
 
 void LauncherState::gotoSignup() {
     if (_applicationState == ApplicationState::WaitingForLogin) {
+        setLastSignupErrorMessage("");
+        _lastLoginErrorMessage = "";
         setApplicationState(ApplicationState::WaitingForSignup);
     } else {
         qDebug() << "Error, can't switch to signup page, current state is: " << _applicationState;
@@ -301,6 +315,7 @@ void LauncherState::gotoSignup() {
 
 void LauncherState::gotoLogin() {
     if (_applicationState == ApplicationState::WaitingForSignup) {
+        setLastLoginErrorMessage("");
         setApplicationState(ApplicationState::WaitingForLogin);
     } else {
         qDebug() << "Error, can't switch to signup page, current state is: " << _applicationState;
@@ -337,7 +352,7 @@ void LauncherState::signup(QString email, QString username, QString password, QS
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err == SignupRequest::Error::BadPassword) {
-            setLastSignupErrorMessage("That's an invalid password - passwords must be at least 6 characters.");
+            setLastSignupErrorMessage("That's an invalid password - must be at least 6 characters.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err == SignupRequest::Error::BadUsername) {
@@ -345,11 +360,11 @@ void LauncherState::signup(QString email, QString username, QString password, QS
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err == SignupRequest::Error::UserProfileAlreadyCompleted) {
-            setLastSignupErrorMessage("That email has already been completed.");
+            setLastSignupErrorMessage("This email exists, if it's yours please <b><a href='login'>login</a></b>.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err == SignupRequest::Error::NoSuchEmail) {
-            setLastSignupErrorMessage("That email does not have an account setup for it.");
+            setLastSignupErrorMessage("That email isn't setup yet. <a href='https://www.highfidelity.com/hq-support'>Request Access</a>.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err != SignupRequest::Error::None) {
