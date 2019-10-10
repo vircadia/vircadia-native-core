@@ -14,7 +14,6 @@
 
 
 // START CONFIG OPTIONS
-var DOCKED_QML_SUPPORTED = true;
 var TOOLBAR_NAME = "com.highfidelity.interface.toolbar.system";
 var DEFAULT_SCRIPTS_PATH_PREFIX = ScriptDiscoveryService.defaultScriptsPath + "/";
 // END CONFIG OPTIONS
@@ -378,14 +377,7 @@ function displayInitialLaunchWindow() {
     initialLaunchWindow = Desktop.createWindow(INITIAL_LAUNCH_QML_PATH, {
         title: INITIAL_LAUNCH_WINDOW_TITLE,
         presentationMode: INITIAL_LAUNCH_PRESENTATION_MODE,
-        size: {
-            x: Window.innerWidth,
-            y: Window.innerHeight + TOP_BAR_HEIGHT_PX
-        },
-        position: {
-            x: Window.x,
-            y: Window.y
-        },
+        isFullScreenWindow: true,
         overrideFlags: INITIAL_WINDOW_FLAGS
     });
 
@@ -413,14 +405,7 @@ function displaySecondLaunchWindow() {
     secondLaunchWindow = Desktop.createWindow(SECOND_LAUNCH_QML_PATH, {
         title: SECOND_LAUNCH_WINDOW_TITLE,
         presentationMode: SECOND_LAUNCH_PRESENTATION_MODE,
-        size: {
-            x: Window.innerWidth,
-            y: Window.innerHeight + TOP_BAR_HEIGHT_PX
-        },
-        position: {
-            x: Window.x,
-            y: Window.y
-        },
+        isFullScreenWindow: true,
         overrideFlags: SECOND_WINDOW_FLAGS
     });
 
@@ -581,16 +566,9 @@ function loadSimplifiedTopBar() {
             y: TOP_BAR_HEIGHT_PX
         }
     };
-    if (DOCKED_QML_SUPPORTED) {
-        windowProps.presentationWindowInfo = {
-            dockArea: Desktop.DockArea.TOP
-        };
-    } else {
-        windowProps.position = {
-            x: Window.x,
-            y: Window.y
-        };
-    }
+    windowProps.presentationWindowInfo = {
+        dockArea: Desktop.DockArea.TOP
+    };
     topBarWindow = Desktop.createWindow(TOP_BAR_QML_PATH, windowProps);
 
     topBarWindow.fromQml.connect(onMessageFromTopBar);
@@ -655,36 +633,6 @@ function onHMDInputDeviceMutedChanged(isMuted) {
 function onGeometryChanged(rect) {
     updateInputDeviceMutedOverlay(Audio.muted);
     updateOutputDeviceMutedOverlay(isOutputMuted());
-    if (topBarWindow && !DOCKED_QML_SUPPORTED) {
-        topBarWindow.size = {
-            "x": rect.width,
-            "y": TOP_BAR_HEIGHT_PX
-        };
-        topBarWindow.position = {
-            "x": rect.x,
-            "y": rect.y 
-        };
-    }
-    if (initialLaunchWindow) {
-        initialLaunchWindow.size = {
-            "x": Window.innerWidth,
-            "y": Window.innerHeight + TOP_BAR_HEIGHT_PX
-        };
-        initialLaunchWindow.position = {
-            "x": rect.x,
-            "y": rect.y
-        };
-    }
-    if (secondLaunchWindow) {
-        secondLaunchWindow.size = {
-            "x": Window.innerWidth,
-            "y": Window.innerHeight + TOP_BAR_HEIGHT_PX
-        };
-        secondLaunchWindow.position = {
-            "x": rect.x,
-            "y": rect.y
-        };
-    }
 }
 
 var initialLaunchWindowIsMinimized = false;

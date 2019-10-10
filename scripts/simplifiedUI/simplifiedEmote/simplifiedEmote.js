@@ -444,11 +444,6 @@ function updateEmoteIndicatorIcon(iconURL) {
 }
 
 
-function onGeometryChanged(rect) {
-    updateEmoteAppBarPosition();
-}
-
-
 function onWindowMinimizedChanged(isMinimized) {
     isWindowMinimized = isMinimized;
     maybeChangeEmoteIndicatorVisibility(!isMinimized);
@@ -536,10 +531,11 @@ function showEmoteAppBar() {
             x: EMOTE_APP_BAR_WIDTH_PX,
             y: EMOTE_APP_BAR_HEIGHT_PX
         },
-        position: {
-            x: Window.x + EMOTE_APP_BAR_LEFT_MARGIN,
-            y: Window.y + Window.innerHeight - EMOTE_APP_BAR_BOTTOM_MARGIN
+        relativePosition: {
+            x: EMOTE_APP_BAR_LEFT_MARGIN,
+            y: EMOTE_APP_BAR_BOTTOM_MARGIN
         },
+        relativePositionAnchor: Desktop.RelativePositionAnchor.BOTTOM_LEFT,
         overrideFlags: EMOTE_APP_BAR_WINDOW_FLAGS
     });
 
@@ -612,7 +608,6 @@ function setup() {
     }, {});
 
     Window.minimizedChanged.connect(onWindowMinimizedChanged);
-    Window.geometryChanged.connect(onGeometryChanged);
     HMD.displayModeChanged.connect(onDisplayModeChanged);
 
     getSounds();
@@ -655,7 +650,6 @@ function unload() {
     maybeDeleteRemoteIndicatorTimeout();
 
     Window.minimizedChanged.disconnect(onWindowMinimizedChanged);
-    Window.geometryChanged.disconnect(onGeometryChanged);
     HMD.displayModeChanged.disconnect(onDisplayModeChanged);
 
     if (keyPressSignalsConnected) {
