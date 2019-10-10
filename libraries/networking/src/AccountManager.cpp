@@ -808,6 +808,8 @@ void AccountManager::requestAccountSettings() {
         return;
     }
 
+    qCDebug(networking) << "Requesting the Account Settings from the Metaverse API";
+
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QUrl lockerURL = _authURL;
@@ -834,6 +836,9 @@ void AccountManager::requestAccountSettingsFinished() {
     if (rootObject.contains("status") && rootObject["status"].toString() == "success") {
         if (rootObject.contains("data") && rootObject["data"].isObject()) {
             _settings.unpack(rootObject["data"].toObject());
+            _lastSuccessfulSyncTimestamp = _settings.lastChangeTimestamp();
+
+            qCDebug(networking) << "Received the Account Settings from the Metaverse API";
 
             emit accountSettingsLoaded();
         } else {
@@ -873,6 +878,8 @@ void AccountManager::postAccountSettings() {
         qCWarning(networking) << "Can't post account settings: Not logged in";
         return;
     }
+
+    qDebug() << "Account Settings have changed, pushing them to the Metaverse API";
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
