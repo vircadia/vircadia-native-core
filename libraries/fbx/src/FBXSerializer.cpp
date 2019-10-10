@@ -145,6 +145,42 @@ public:
     bool isLimbNode;  // is this FBXModel transform is a "LimbNode" i.e. a joint
 };
 
+
+glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParentMap,
+    const QHash<QString, FBXModel>& fbxModels, QString nodeID, bool mixamoHack, const QString& url) {
+    glm::mat4 globalTransform;
+    QVector<QString> visitedNodes; // Used to prevent following a cycle
+    while (!nodeID.isNull()) {
+        visitedNodes.append(nodeID); // Append each node we visit
+
+        const FBXModel& fbxModel = fbxModels.value(nodeID);
+        globalTransform = glm::translate(fbxModel.translation) * fbxModel.preTransform * glm::mat4_cast(fbxModel.preRotation *
+            fbxModel.rotation * fbxModel.postRotation) * fbxModel.postTransform * globalTransform;
+        if (fbxModel.hasGeometricOffset) {
+            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(fbxModel.geometricScaling, fbxModel.geometricRotation, fbxModel.geometricTranslation);
+            globalTransform = globalTransform * geometricOffset;
+        }
+
+        if (mixamoHack) {
+            // there's something weird about the models from Mixamo Fuse; they don't skin right with the full transform
+            return globalTransform;
+        }
+        QList<QString> parentIDs = _connectionParentMap.values(nodeID);
+        nodeID = QString();
+        foreach(const QString& parentID, parentIDs) {
+            if (visitedNodes.contains(parentID)) {
+                qCWarning(modelformat) << "Ignoring loop detected in FBX connection map for" << url;
+                continue;
+            }
+            if (fbxModels.contains(parentID)) {
+                nodeID = parentID;
+                break;
+            }
+        }
+    }
+    return globalTransform;
+}
+
 std::vector<QString> getModelIDsForMeshID(const QString& meshID, const QHash<QString, FBXModel>& fbxModels, const QMultiMap<QString, QString>& _connectionParentMap) {
     std::vector<QString> modelsForMesh;
     if (fbxModels.contains(meshID)) {
@@ -494,8 +530,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                     if (object.properties.at(2) == "Mesh") {
                         meshes.insert(getID(object.properties), extractMesh(object, meshIndex, deduplicateIndices));
                     } else { // object.properties.at(2) == "Shape"
-                        ExtractedBlendshape extracted = { getID(object.properties), extractBlendshape(object) };
-                        blendshapes.append(extracted);
+                        ExtractedBlendshape blendshape = { getID(object.properties), extractBlendshape(object) };
+                        blendshapes.append(blendshape);
                     }
                 } else if (object.name == "Model") {
                     QString name = getModelName(object.properties);
@@ -669,8 +705,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
 
                     // add the blendshapes included in the model, if any
                     if (mesh) {
-                        foreach (const ExtractedBlendshape& extracted, blendshapes) {
-                            addBlendshapes(extracted, blendshapeIndices.values(extracted.id.toLatin1()), *mesh);
+                        foreach (const ExtractedBlendshape& blendshape, blendshapes) {
+                            addBlendshapes(blendshape, blendshapeIndices.values(blendshape.id.toLatin1()), *mesh);
                         }
                     }
 
@@ -1193,11 +1229,11 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
     }
 
     // assign the blendshapes to their corresponding meshes
-    foreach (const ExtractedBlendshape& extracted, blendshapes) {
-        QString blendshapeChannelID = _connectionParentMap.value(extracted.id);
+    foreach (const ExtractedBlendshape& blendshape, blendshapes) {
+        QString blendshapeChannelID = _connectionParentMap.value(blendshape.id);
         QString blendshapeID = _connectionParentMap.value(blendshapeChannelID);
         QString meshID = _connectionParentMap.value(blendshapeID);
-        addBlendshapes(extracted, blendshapeChannelIndices.values(blendshapeChannelID), meshes[meshID]);
+        addBlendshapes(blendshape, blendshapeChannelIndices.values(blendshapeChannelID), meshes[meshID]);
     }
 
     // get offset transform from mapping
@@ -1341,10 +1377,13 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
 
         // Now that we've initialized the joint, we can define the transform
         // modelIDs is ordered from parent to children, so we can safely get parent transforms from earlier joints as we iterate
-        joint.globalTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation * joint.postRotation) * joint.postTransform;
+        joint.localTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation * joint.postRotation) * joint.postTransform;
+        joint.globalTransform = joint.localTransform;
         if (joint.parentIndex != -1 && joint.parentIndex < (int)jointIndex && !needMixamoHack) {
             hfm::Joint& parentJoint = hfmModel.joints[joint.parentIndex];
-            joint.globalTransform = joint.globalTransform * parentJoint.globalTransform;
+            // SG Change: i think this not correct and the [parent]*[local] is the correct answer here    
+            //joint.globalTransform = joint.globalTransform * parentJoint.globalTransform;
+            joint.globalTransform = parentJoint.globalTransform * joint.localTransform;
             if (parentJoint.hasGeometricOffset) {
                 // Per the FBX standard, geometric offset should not propagate to children.
                 // However, we must be careful when modifying the behavior of FBXSerializer.
@@ -1357,6 +1396,21 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         if (joint.hasGeometricOffset) {
             glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(joint.geometricScaling, joint.geometricRotation, joint.geometricTranslation);
             joint.globalTransform = joint.globalTransform * geometricOffset;
+        }
+
+        // TODO: Remove these lines, just here to make sure we are not breaking the transform computation
+       // QString modelID = fbxModels.contains(it.key()) ? it.key() : _connectionParentMap.value(it.key());
+        glm::mat4 anotherModelTransform = getGlobalTransform(_connectionParentMap, fbxModels, modelID, hfmModel.applicationName == "mixamo.com", url);
+        auto col0 = (glm::epsilonNotEqual(anotherModelTransform[0], joint.globalTransform[0], 0.001f));
+        auto col1 = (glm::epsilonNotEqual(anotherModelTransform[1], joint.globalTransform[1], 0.001f));
+        auto col2 = (glm::epsilonNotEqual(anotherModelTransform[2], joint.globalTransform[2], 0.001f));
+        auto col3 = (glm::epsilonNotEqual(anotherModelTransform[3], joint.globalTransform[3], 0.001f));
+        if (    glm::any(col0)
+            || glm::any(col1)
+            || glm::any(col2)
+            || glm::any(col3)) {
+            anotherModelTransform = getGlobalTransform(_connectionParentMap, fbxModels, modelID, hfmModel.applicationName == "mixamo.com", url);
+          //  joint.globalTransform = anotherModelTransform;
         }
 
         hfmModel.joints.push_back(joint);
@@ -1426,6 +1480,12 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         // meshShapes will be added to hfmModel at the very end
         std::vector<hfm::Shape> meshShapes;
         meshShapes.reserve(instanceModelIDs.size() * mesh.parts.size());
+        if (instanceModelIDs.size() > 1) {
+            qCDebug(modelformat) << "Mesh " << meshID << " made of " << mesh.parts.size() << " parts is instanced " << instanceModelIDs.size() << " times!!!";
+        }
+        if (mesh.parts.size() < 1) {
+            qCDebug(modelformat) << "Mesh " << meshID << " made of " << mesh.parts.size() << " parts !!!!! ";
+        }
         for (const QString& modelID : instanceModelIDs) {
             // The transform node has the same indexing order as the joints
             const uint32_t transformIndex = (uint32_t)modelIDs.indexOf(modelID);
@@ -1446,6 +1506,14 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 shape.mesh = meshIndex;
                 shape.meshPart = i;
                 shape.transform = transformIndex;
+                
+                auto matName = mesh.parts[i].materialID;
+                auto materialIt = materialNameToID.find(matName.toStdString());
+                if (materialIt != materialNameToID.end()) {
+                    shape.material = materialIt->second;
+                } else {
+                    qCDebug(modelformat) << "Unknown material ? " << matName;
+                }
 
                 shape.transformedExtents.reset();
                 // compute the shape extents from the transformed vertices
@@ -1492,14 +1560,21 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
             // For baked models with FBX_DRACO_MESH_VERSION >= 2, get materials from extracted.materialIDPerMeshPart
             if (!extracted.materialIDPerMeshPart.empty()) {
-                for (uint32_t i = 0; i < (uint32_t)extracted.materialIDPerMeshPart.size(); ++i) {
-                    hfm::Shape& shape = partShapes[i];
-                    const std::string& materialID = extracted.materialIDPerMeshPart[i];
-                    auto materialIt = materialNameToID.find(materialID);
-                    if (materialIt != materialNameToID.end()) {
-                        shape.material = materialIt->second;
+          /*      if (partShapes.size() == extracted.materialIDPerMeshPart.size()) {
+                    for (uint32_t i = 0; i < (uint32_t)extracted.materialIDPerMeshPart.size(); ++i) {
+                        hfm::Shape& shape = partShapes[i];
+                        const std::string& materialID = extracted.materialIDPerMeshPart[i];
+                        auto materialIt = materialNameToID.find(materialID);
+                        if (materialIt != materialNameToID.end()) {
+                            shape.material = materialIt->second;
+                        }
                     }
-                }
+                } else {
+                    for (int p = 0; p < mesh.parts.size(); p++) {
+                        qCDebug(modelformat) << "mesh.parts[" << p <<"] is " << mesh.parts[p].materialID;
+                    }
+                        qCDebug(modelformat) << "partShapes is not the same size as materialIDPerMeshPart ?";
+                }*/
             }
 
             // find the clusters with which the mesh is associated

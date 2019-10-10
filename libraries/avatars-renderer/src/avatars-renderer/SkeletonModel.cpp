@@ -177,7 +177,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 
     // FIXME: This texture loading logic should probably live in Avatar, to mirror RenderableModelEntityItem,
     // but Avatars don't get updates in the same way
-    if (!_texturesLoaded && getGeometry() && getGeometry()->areTexturesLoaded()) {
+    if (!_texturesLoaded && getNetworkModel() && getNetworkModel()->areTexturesLoaded()) {
         _texturesLoaded = true;
         updateRenderItems();
     }
