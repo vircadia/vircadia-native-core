@@ -5244,23 +5244,23 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idle",
-                                                                                                            "var": "isNotMoving"
+                                                                                                            "var": "isNotInput"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
-                                                                                                            "var": "isMovingForward"
+                                                                                                            "var": "isInputForward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
-                                                                                                            "var": "isMovingBackward"
+                                                                                                            "var": "isInputBackward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isMovingRight"
+                                                                                                            "var": "isInputRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isMovingLeft"
+                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
@@ -5313,19 +5313,19 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "WALKFWD",
-                                                                                                            "var": "isMovingForward"
+                                                                                                            "var": "isInputForward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
-                                                                                                            "var": "isMovingBackward"
+                                                                                                            "var": "isInputBackward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isMovingRight"
+                                                                                                            "var": "isInputRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isMovingLeft"
+                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
@@ -5380,19 +5380,19 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "idle",
-                                                                                                            "var": "isNotMoving"
+                                                                                                            "var": "isNotInput"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
-                                                                                                            "var": "isMovingBackward"
+                                                                                                            "var": "isInputBackward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isMovingRight"
+                                                                                                            "var": "isInputRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isMovingLeft"
+                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
@@ -5469,19 +5469,19 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
-                                                                                                            "var": "isMovingForward"
+                                                                                                            "var": "isInputForward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
-                                                                                                            "var": "isMovingBackward"
+                                                                                                            "var": "isInputBackward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isMovingRight"
+                                                                                                            "var": "isInputRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isMovingLeft"
+                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "strafeRightHmd",
@@ -5533,19 +5533,19 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotMoving"
+                                                                                                            "var": "isNotInput"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
-                                                                                                            "var": "isMovingBackward"
+                                                                                                            "var": "isInputBackward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isMovingRight"
+                                                                                                            "var": "isInputRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isMovingLeft"
+                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
@@ -5597,19 +5597,19 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotMoving"
+                                                                                                            "var": "isNotInput"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
-                                                                                                            "var": "isMovingForward"
+                                                                                                            "var": "isInputForward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isMovingRight"
+                                                                                                            "var": "isInputRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isMovingLeft"
+                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
@@ -5661,19 +5661,19 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotMoving"
+                                                                                                            "var": "isNotInput"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
-                                                                                                            "var": "isMovingForward"
+                                                                                                            "var": "isInputForward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
-                                                                                                            "var": "isMovingBackward"
+                                                                                                            "var": "isInputBackward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isMovingLeft"
+                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
@@ -5725,19 +5725,19 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotMoving"
+                                                                                                            "var": "isNotInput"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
-                                                                                                            "var": "isMovingForward"
+                                                                                                            "var": "isInputForward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
-                                                                                                            "var": "isMovingBackward"
+                                                                                                            "var": "isInputBackward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isMovingRight"
+                                                                                                            "var": "isInputRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
@@ -5794,19 +5794,19 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
-                                                                                                            "var": "isMovingForward"
+                                                                                                            "var": "isInputForward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
-                                                                                                            "var": "isMovingBackward"
+                                                                                                            "var": "isInputBackward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isMovingRight"
+                                                                                                            "var": "isInputRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isMovingLeft"
+                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnLeft",
@@ -5859,19 +5859,19 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
-                                                                                                            "var": "isMovingForward"
+                                                                                                            "var": "isInputForward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
-                                                                                                            "var": "isMovingBackward"
+                                                                                                            "var": "isInputBackward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isMovingRight"
+                                                                                                            "var": "isInputRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isMovingLeft"
+                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
@@ -5919,15 +5919,15 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotMoving"
+                                                                                                            "var": "isNotInput"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
-                                                                                                            "var": "isMovingForward"
+                                                                                                            "var": "isInputForward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
-                                                                                                            "var": "isMovingBackward"
+                                                                                                            "var": "isInputBackward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "strafeLeftHmd",
@@ -5935,11 +5935,11 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isMovingRight"
+                                                                                                            "var": "isInputRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isMovingLeft"
+                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
@@ -5983,15 +5983,15 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotMoving"
+                                                                                                            "var": "isNotInput"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
-                                                                                                            "var": "isMovingForward"
+                                                                                                            "var": "isInputForward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
-                                                                                                            "var": "isMovingBackward"
+                                                                                                            "var": "isInputBackward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "strafeRightHmd",
@@ -5999,11 +5999,11 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isMovingRight"
+                                                                                                            "var": "isInputRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isMovingLeft"
+                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
@@ -6128,19 +6128,19 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "WALKFWD",
-                                                                                                            "var": "isMovingForward"
+                                                                                                            "var": "isInputForward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
-                                                                                                            "var": "isMovingBackward"
+                                                                                                            "var": "isInputBackward"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isMovingRight"
+                                                                                                            "var": "isInputRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isMovingLeft"
+                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
