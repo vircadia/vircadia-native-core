@@ -43,7 +43,7 @@ Q_INVOKABLE void LauncherState::openURLInBrowser(QString url) {
 #ifdef Q_OS_WIN
     ShellExecute(0, 0, url.toLatin1(), 0, 0 , SW_SHOW);
 #elif defined(Q_OS_DARWIN)
-    system("open \"" + url.toLatin1() + "\");
+    system("open \"" + url.toLatin1() + "\"");
 #endif
 }
 
