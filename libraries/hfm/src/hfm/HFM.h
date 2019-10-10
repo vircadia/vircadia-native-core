@@ -120,6 +120,7 @@ public:
     glm::vec3 geometricScaling;
 
     // globalTransform is the transform of the joint with all parent transforms applied, plus the geometric offset
+    glm::mat4 localTransform;
     glm::mat4 globalTransform;
 };
 

@@ -194,7 +194,7 @@ float importanceSample3DDimension(float startDim) {
 }
 
 ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
-                                                                                       const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource,
+                                                                                       const ShapeType& shapeType, const ModelResource::Pointer& geometryResource,
                                                                                        const TriangleInfo& triangleInfo) {
     CpuParticle particle;
 
@@ -379,7 +379,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
 
     particle::Properties particleProperties;
     ShapeType shapeType;
-    GeometryResource::Pointer geometryResource;
+    ModelResource::Pointer geometryResource;
     withReadLock([&] {
         particleProperties = _particleProperties;
         shapeType = _shapeType;
@@ -482,7 +482,7 @@ void ParticleEffectEntityRenderer::fetchGeometryResource() {
     if (hullURL.isEmpty()) {
         _geometryResource.reset();
     } else {
-        _geometryResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
+        _geometryResource = DependencyManager::get<ModelCache>()->getCollisionModelResource(hullURL);
     }
 }
 

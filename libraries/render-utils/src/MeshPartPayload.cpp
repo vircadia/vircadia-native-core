@@ -202,9 +202,13 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     assert(model && model->isLoaded());
 
+    auto shape = model->getHFMModel().shapes[shapeIndex];
+    assert(shape.mesh == meshIndex);
+    assert(shape.meshPart == partIndex);
+
     bool useDualQuaternionSkinning = model->getUseDualQuaternionSkinning();
 
-    auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
+    auto& modelMesh = model->getNetworkModel()->getMeshes().at(_meshIndex);
     _meshNumVertices = (int)modelMesh->getNumVertices();
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 
@@ -217,8 +221,10 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     }
 
     updateTransform(transform, offsetTransform);
+
     Transform renderTransform = transform;
-    if (useDualQuaternionSkinning) {
+
+/*    if (useDualQuaternionSkinning) {
         if (state.clusterDualQuaternions.size() == 1) {
             const auto& dq = state.clusterDualQuaternions[0];
             Transform transform(dq.getRotation(),
@@ -231,6 +237,10 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
             renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
         }
     }
+*/
+    
+    const Model::ShapeState& shapeState = model->getShapeState(shapeIndex);
+    renderTransform = transform.worldTransform(shapeState._rootFromJointTransform);
     updateTransformForSkinnedMesh(renderTransform, transform);
 
     initCache(model);
@@ -263,7 +273,7 @@ void ModelMeshPartPayload::initCache(const ModelPointer& model) {
         _hasTangents = !mesh.tangents.isEmpty();
     }
 
-    auto networkMaterial = model->getGeometry()->getShapeMaterial(_shapeID);
+    auto networkMaterial = model->getNetworkModel()->getShapeMaterial(_shapeID);
     if (networkMaterial) {
         addMaterial(graphics::MaterialLayer(networkMaterial, 0));
     }
@@ -316,7 +326,8 @@ void ModelMeshPartPayload::updateClusterBuffer(const std::vector<Model::Transfor
 void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform) {
     _transform = renderTransform;
     _worldBound = _adjustedLocalBound;
-    _worldBound.transform(boundTransform);
+ //   _worldBound.transform(boundTransform);
+    _worldBound.transform(renderTransform);
 }
 
 // Note that this method is called for models but not for shapes

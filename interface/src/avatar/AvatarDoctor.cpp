@@ -79,7 +79,7 @@ void AvatarDoctor::startDiagnosing() {
     _missingTextureCount = 0;
     _unsupportedTextureCount = 0;
 
-    const auto resource = DependencyManager::get<ModelCache>()->getGeometryResource(_avatarFSTFileUrl);
+    const auto resource = DependencyManager::get<ModelCache>()->getModelResource(_avatarFSTFileUrl);
     resource->refresh();
 
     const auto resourceLoaded = [this, resource](bool success) {
@@ -297,7 +297,7 @@ void AvatarDoctor::startDiagnosing() {
         if (resource->isLoaded()) {
             resourceLoaded(!resource->isFailed());
         } else {
-            connect(resource.data(), &GeometryResource::finished, this, resourceLoaded);
+            connect(resource.data(), &ModelResource::finished, this, resourceLoaded);
         }
     } else {
         addError("Model file cannot be opened", "missing-file");
