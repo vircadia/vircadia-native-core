@@ -127,3 +127,8 @@ Script.scriptEnding.connect(function() {
 });
 
 Menu.menuItemEvent.connect(menuItemEvent);
+
+var ANDROID_UI_AUTO_LOD_ADJUST = false;
+var ANDROID_UI_LOD_ANGLE_DEG = 0.248;
+LODManager.automaticLODAdjust = ANDROID_UI_AUTO_LOD_ADJUST;
+LODManager.lodAngleDeg = ANDROID_UI_LOD_ANGLE_DEG;

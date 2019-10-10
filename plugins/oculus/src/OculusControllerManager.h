@@ -98,7 +98,6 @@ private:
         float _leftHapticStrength { 0.0f };
         float _rightHapticDuration { 0.0f };
         float _rightHapticStrength { 0.0f };
-        Setting::Handle<bool> _trackControllersInOculusHome { "trackControllersInOculusHome", false };
         mutable std::recursive_mutex _lock;
         std::map<int, bool> _lostTracking;
         std::map<int, quint64> _regainTrackingDeadline;
@@ -109,6 +108,7 @@ private:
 
     void checkForConnectedDevices();
 
+    Setting::Handle<bool> _trackControllersInOculusHome { "trackControllersInOculusHome", false };
     ovrInputState _remoteInputState {};
     ovrInputState _touchInputState {};
     RemoteDevice::Pointer _remote;

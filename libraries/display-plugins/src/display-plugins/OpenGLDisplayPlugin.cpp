@@ -373,7 +373,7 @@ void OpenGLDisplayPlugin::customizeContext() {
                 auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
                 cursorData.texture->setUsage(usage.build());
                 cursorData.texture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
-                cursorData.texture->assignStoredMip(0, image.byteCount(), image.constBits());
+                cursorData.texture->assignStoredMip(0, image.sizeInBytes(), image.constBits());
                 cursorData.texture->setAutoGenerateMips(true);
             }
         }
