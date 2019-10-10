@@ -57,7 +57,7 @@ void UserSettingsRequest::receivedResponse() {
     }
 
     if (root["data"].toObject().contains("home_location")) {
-        auto homeLocation = root["data"].toObject()["home_location"];
+        QJsonValue homeLocation = root["data"].toObject()["home_location"];
         if (homeLocation.isString()) {
             _userSettings.homeLocation = homeLocation.toString();
         }
