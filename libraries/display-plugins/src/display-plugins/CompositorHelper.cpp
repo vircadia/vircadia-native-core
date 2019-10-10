@@ -15,10 +15,10 @@
 
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QDesktopWidget>
+#include <QtGui/QGuiApplication>
+#include <QtGui/QScreen>
 #include <QtGui/QWindow>
-#include <QQuickWindow>
+#include <QtQuick/QQuickWindow>
 
 #include <DebugDraw.h>
 #include <shared/QtHelpers.h>
@@ -177,9 +177,35 @@ QPointF CompositorHelper::getMouseEventPosition(QMouseEvent* event) {
     return event->localPos();
 }
 
+static bool isWindowActive() {
+    for (const auto& window : QGuiApplication::topLevelWindows()) {
+        if (window->isActive()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool CompositorHelper::shouldCaptureMouse() const {
+    if (!_allowMouseCapture) {
+        return false;
+    }
+
+    if (!isHMD()) {
+        return false;
+    }
+
+
+    if (!isWindowActive()) {
+        return false;
+    }
+
+    if (ui::Menu::isSomeSubmenuShown()) {
+        return false;
+    }
+
     // if we're in HMD mode, and some window of ours is active, but we're not currently showing a popup menu
-    return _allowMouseCapture && isHMD() && QApplication::activeWindow() && !ui::Menu::isSomeSubmenuShown();
+    return true;
 }
 
 void CompositorHelper::setAllowMouseCapture(bool capture) {
@@ -206,9 +232,9 @@ void CompositorHelper::handleLeaveEvent() {
             mainWidgetFrame.moveTopLeft(topLeftScreen);
         }
         QRect uncoveredRect = mainWidgetFrame;
-        foreach(QWidget* widget, QApplication::topLevelWidgets()) {
-            if (widget->isWindow() && widget->isVisible() && widget != mainWidget) {
-                QRect widgetFrame = widget->frameGeometry();
+        for(QWindow* window : QGuiApplication::topLevelWindows()) {
+            if (window->isVisible() && window != mainWidget->windowHandle()) {
+                QRect widgetFrame = window->frameGeometry();
                 if (widgetFrame.intersects(uncoveredRect)) {
                     QRect intersection = uncoveredRect & widgetFrame;
                     if (intersection.top() > uncoveredRect.top()) {
@@ -292,7 +318,7 @@ glm::vec2 CompositorHelper::getReticleMaximumPosition() const {
     if (isHMD()) {
         result = VIRTUAL_SCREEN_SIZE;
     } else {
-        QRect rec = QApplication::desktop()->screenGeometry();
+        QRect rec = QGuiApplication::primaryScreen()->geometry();
         result = glm::vec2(rec.right(), rec.bottom());
     }
     return result;
@@ -308,8 +334,8 @@ void CompositorHelper::sendFakeMouseEvent() {
         // in HMD mode we need to fake our mouse moves...
         QPoint globalPos(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
         auto button = Qt::NoButton;
-        auto buttons = QApplication::mouseButtons();
-        auto modifiers = QApplication::keyboardModifiers();
+        auto buttons = QGuiApplication::mouseButtons();
+        auto modifiers = QGuiApplication::keyboardModifiers();
         QMouseEvent event(QEvent::MouseMove, globalPos, button, buttons, modifiers);
         _fakeMouseEvent = true;
         qApp->sendEvent(_renderingWidget, &event);
