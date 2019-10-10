@@ -252,6 +252,7 @@
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
+#include <Windows.h>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -532,6 +533,11 @@ bool isDomainURL(QUrl url) {
 }
 
 #ifdef Q_OS_WIN
+static const UINT UWM_IDENTIFY_INSTANCES =
+    RegisterWindowMessage("UWM_IDENTIFY_INSTANCES_{8AB82783-B74A-4258-955B-8188C22AA0D6}_" + qgetenv("USERNAME"));
+static const UINT UWM_SHOW_APPLICATION =
+    RegisterWindowMessage("UWM_SHOW_APPLICATION_{71123FD6-3DA8-4DC1-9C27-8A12A6250CBA}_" + qgetenv("USERNAME"));
+
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
 public:
     static MyNativeEventFilter& getInstance() {
@@ -3610,10 +3616,9 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
             mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
             _myCamera.setPosition(extractTranslation(camMat));
             _myCamera.setOrientation(glmExtractRotation(camMat));
-        }
-        else {
-            _myCamera.setPosition(myAvatar->getDefaultEyePosition());
-            _myCamera.setOrientation(myAvatar->getMyHead()->getHeadOrientation());
+        } else {
+            _myCamera.setPosition(myAvatar->getLookAtPivotPoint());
+            _myCamera.setOrientation(myAvatar->getLookAtRotation());
         }
     } else if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
         if (isHMDMode()) {
@@ -3647,9 +3652,9 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                 if (mode == CAMERA_MODE_SELFIE) {
                     lookAtRotation = lookAtRotation * glm::angleAxis(PI, myAvatar->getWorldOrientation() * Vectors::UP);
                 }
-                _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                _myCamera.setPosition(myAvatar->getLookAtPivotPoint()
                     + lookAtRotation * boomOffset);
-                _myCamera.lookAt(myAvatar->getDefaultEyePosition());
+                _myCamera.lookAt(myAvatar->getLookAtPivotPoint());
             }
         }
     } else if (mode == CAMERA_MODE_MIRROR) {
@@ -3677,8 +3682,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                 + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
                 + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
                 + mirrorBodyOrientation * hmdOffset);
-        }
-        else {
+        } else {
             auto userInputMapper = DependencyManager::get<UserInputMapper>();
             const float YAW_SPEED = TWO_PI / 5.0f;
             float deltaYaw = userInputMapper->getActionState(controller::Action::YAW) * YAW_SPEED * deltaTime;
@@ -3699,8 +3703,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                 _myCamera.setOrientation(cameraEntity->getWorldOrientation() * hmdRotation);
                 glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
                 _myCamera.setPosition(cameraEntity->getWorldPosition() + (hmdRotation * hmdOffset));
-            }
-            else {
+            } else {
                 _myCamera.setOrientation(cameraEntity->getWorldOrientation());
                 _myCamera.setPosition(cameraEntity->getWorldPosition());
             }
@@ -4960,7 +4963,7 @@ extern "C" {
         CCHAR NumberOfProcessors;
     };
 
-    NTSYSCALLAPI NTSTATUS NTAPI NtQuerySystemInformation(
+    NTSYSCALLAPI LONG NTAPI NtQuerySystemInformation(
         _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
         _Out_writes_bytes_opt_(SystemInformationLength) PVOID SystemInformation,
         _In_ ULONG SystemInformationLength,
@@ -4969,12 +4972,12 @@ extern "C" {
 
 }
 template <typename T>
-NTSTATUS NtQuerySystemInformation(SYSTEM_INFORMATION_CLASS SystemInformationClass, T& t) {
+LONG NtQuerySystemInformation(SYSTEM_INFORMATION_CLASS SystemInformationClass, T& t) {
     return NtQuerySystemInformation(SystemInformationClass, &t, (ULONG)sizeof(T), nullptr);
 }
 
 template <typename T>
-NTSTATUS NtQuerySystemInformation(SYSTEM_INFORMATION_CLASS SystemInformationClass, std::vector<T>& t) {
+LONG NtQuerySystemInformation(SYSTEM_INFORMATION_CLASS SystemInformationClass, std::vector<T>& t) {
     return NtQuerySystemInformation(SystemInformationClass, t.data(), (ULONG)(sizeof(T) * t.size()), nullptr);
 }
 

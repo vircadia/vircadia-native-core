@@ -95,7 +95,7 @@ static const QString MAIN_STATE_MACHINE_RIGHT_HAND_POSITION("mainStateMachineRig
  * <p><strong>Warning:</strong> These properties are subject to change.
  * <table>
  *   <thead>
- *     <tr><th>Name</th><th>Type</p><th>Description</th>
+ *     <tr><th>Name</th><th>Type</th><th>Description</th>
  *   </thead>
  *   <tbody>
  *     <tr><td><code>userAnimNone</code></td><td>boolean</td><td><code>true</code> when no user overrideAnimation is 

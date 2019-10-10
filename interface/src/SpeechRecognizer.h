@@ -23,6 +23,10 @@
 #include <DependencyManager.h>
 
 /**jsdoc
+ * The <code>SpeechRecognizer</code> API provides facilities to recognize voice commands.
+ * <p>Speech recognition is enabled or disabled via the Developer &gt; Scripting &gt; Enable Speech Control API menu item or 
+ * the {@link SpeechRecognizer.setEnabled} method.</p>
+ *
  * @namespace SpeechRecognizer
  *
  * @hifi-interface
@@ -40,36 +44,86 @@ public:
 public slots:
 
     /**jsdoc
+     * Enables or disables speech recognition.
      * @function SpeechRecognizer.setEnabled
-     * @param {boolean} enabled
+     * @param {boolean} enabled - <code>true</code> to enable speech recognition, <code>false</code> to disable.
      */
     void setEnabled(bool enabled);
 
     /**jsdoc
+     * Adds a voice command to the speech recognizer.
      * @function SpeechRecognizer.addCommand
-     * @param {string} command
+     * @param {string} command - The voice command to recognize.
      */
     void addCommand(const QString& command);
 
     /**jsdoc
+     * Removes a voice command from the speech recognizer.
      * @function SpeechRecognizer.removeCommand
-     * @param {string} command
+     * @param {string} command - The voice command to stop recognizing.
      */
     void removeCommand(const QString& command);
 
 signals:
 
     /**jsdoc
+     * Triggered when a voice command has been recognized.
      * @function SpeechRecognizer.commandRecognized
-     * @param {string} command
+     * @param {string} command - The voice command recognized.
      * @returns {Signal}
+     * @example <caption>Turn your avatar upon voice command.</caption>
+     * var TURN_LEFT = "turn left";
+     * var TURN_RIGHT = "turn right";
+     * var TURN_RATE = 0.5;
+     * var TURN_DURATION = 1000; // ms
+     * var turnRate = 0;
+     * 
+     * function getTurnRate() {
+     *     return turnRate;
+     * }
+     * 
+     * var MAPPING_NAME = "com.highfidelity.controllers.example.speechRecognizer";
+     * var mapping = Controller.newMapping(MAPPING_NAME);
+     * 
+     * mapping.from(getTurnRate).to(Controller.Actions.Yaw);
+     * Controller.enableMapping(MAPPING_NAME);
+     * 
+     * function onCommandRecognized(command) {
+     *     print("Speech command: " + command);
+     *     switch (command) {
+     *         case TURN_LEFT:
+     *             turnRate = -TURN_RATE;
+     *             break;
+     *         case TURN_RIGHT:
+     *             turnRate = TURN_RATE;
+     *             break;
+     *     }
+     *     Script.setTimeout(function () {
+     *         turnRate = 0;
+     *     }, TURN_DURATION);
+     * }
+     * 
+     * SpeechRecognizer.addCommand(TURN_LEFT);
+     * SpeechRecognizer.addCommand(TURN_RIGHT);
+     * SpeechRecognizer.commandRecognized.connect(onCommandRecognized);
+     * 
+     * Script.scriptEnding.connect(function () {
+     *     Controller.disableMapping(MAPPING_NAME);
+     *     SpeechRecognizer.removeCommand(TURN_LEFT);
+     *     SpeechRecognizer.removeCommand(TURN_RIGHT);
+     * });
      */
     void commandRecognized(const QString& command);
 
     /**jsdoc
+     * Triggered when speech recognition is enabled or disabled.
      * @function SpeechRecognizer.enabledUpdated
-     * @param {boolean} enabled
+     * @param {boolean} enabled - <code>true</code> if speech recognition is enabled, <code>false</code> if it is disabled.
      * @returns {Signal}
+     * @example <caption>Report when speech recognition is enabled or disabled.</caption>
+     * SpeechRecognizer.enabledUpdated.connect(function (enabled) {
+     *     print("Speech recognition: " + (enabled ? "enabled" : "disabled"));
+     * });
      */
     void enabledUpdated(bool enabled);
 

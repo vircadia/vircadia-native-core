@@ -1724,7 +1724,7 @@ bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int c
             break;
         default:
             qWarning(modelformat) << "Unknown accessorType: " << accessorType;
-            blobstream.unsetDevice();
+            blobstream.setDevice(nullptr);
             return false;
     }
     for (int i = 0; i < count; ++i) {
@@ -1734,13 +1734,13 @@ bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int c
                 blobstream >> value;
                 outarray.push_back(value);
             } else {
-                blobstream.unsetDevice();
+                blobstream.setDevice(nullptr);
                 return false;
             }
         }
     }
 
-    blobstream.unsetDevice();
+    blobstream.setDevice(nullptr);
     return true;
 }
 template <typename T>
@@ -1751,8 +1751,7 @@ bool GLTFSerializer::addArrayOfType(const hifi::ByteArray& bin,
                                     int accessorType,
                                     int componentType) {
     switch (componentType) {
-        case GLTFAccessorComponentType::BYTE: {
-        }
+        case GLTFAccessorComponentType::BYTE: {}
         case GLTFAccessorComponentType::UNSIGNED_BYTE: {
             return readArray<uchar>(bin, byteOffset, count, outarray, accessorType);
         }

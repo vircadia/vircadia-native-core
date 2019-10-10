@@ -223,7 +223,7 @@ public slots:
     /**jsdoc
      * Gets the "front" direction that the camera would face if its orientation was set to the quaternion value.
      * This is a synonym for {@link Quat(0).getForward|Quat.getForward}.
-     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, </code>-z</code> = forward.
+     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
      * @function Quat(0).getFront
      * @param {Quat} orientation - A quaternion representing an orientation.
      * @returns {Vec3} The negative z-axis rotated by <code>orientation</code>.
@@ -233,7 +233,7 @@ public slots:
     /**jsdoc
      * Gets the "forward" direction that the camera would face if its orientation was set to the quaternion value.
      * This is a synonym for {@link Quat(0).getFront|Quat.getFront}.
-     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, </code>-z</code> = forward.
+     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
      * @function Quat(0).getForward
      * @param {Quat} orientation - A quaternion representing an orientation.
      * @returns {Vec3} The negative z-axis rotated by <code>orientation</code>.
@@ -245,7 +245,7 @@ public slots:
 
     /**jsdoc
      * Gets the "right" direction that the camera would have if its orientation was set to the quaternion value.
-     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, </code>-z</code> = forward.
+     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
      * @function Quat(0).getRight
      * @param {Quat} orientation - A quaternion representing an orientation.
      * @returns {Vec3} The x-axis rotated by <code>orientation</code>.
@@ -254,7 +254,7 @@ public slots:
 
     /**jsdoc
      * Gets the "up" direction that the camera would have if its orientation was set to the quaternion value.
-     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, </code>-z</code> = forward.
+     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
      * @function Quat(0).getUp
      * @param {Quat} orientation - A quaternion representing an orientation.
      * @returns {Vec3} The y-axis rotated by <code>orientation</code>.
@@ -405,8 +405,9 @@ public slots:
     void print(const QString& label, const glm::quat& q, bool asDegrees = false);
 
     /**jsdoc
-     * Tests whether two quaternions are equal. <strong>Note:</strong> The quaternions must be exactly equal in order for 
-     * <code>true</code> to be returned; it is often better to use {@link Quat(0).dot|Quat.dot} and test for closeness to +/-1.
+     * Tests whether two quaternions are equal.
+     * <p><strong>Note:</strong> The quaternions must be exactly equal in order for <code>true</code> to be returned; it is 
+     * often better to use {@link Quat(0).dot|Quat.dot} and test for closeness to +/-1.</p>
      * @function Quat(0).equal
      * @param {Quat} q1 - The first quaternion.
      * @param {Quat} q2 - The second quaternion.

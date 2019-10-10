@@ -86,7 +86,7 @@ class UserInputMapper;
  * @typedef {object} Controller.MappingJSONRoute
  * @property {string|Controller.MappingJSONAxis} from - The name of a {@link Controller.Hardware} property or an axis made from 
  *     them. If a property name, the leading <code>"Controller.Hardware."</code> can be omitted.
- * @property {boolean} [peek=false] - If <codd>true</code>, then peeking is enabled per {@link RouteObject#peek}.
+ * @property {boolean} [peek=false] - If <code>true</code>, then peeking is enabled per {@link RouteObject#peek}.
  * @property {boolean} [debug=false] - If <code>true</code>, then debug is enabled per {@link RouteObject#debug}.
  * @property {string|string[]} [when=[]] - One or more numeric {@link Controller.Hardware} property names which are evaluated 
  *     as booleans and ANDed together. Prepend a property name with a <code>!</code> to do a logical NOT. The leading 
@@ -135,8 +135,8 @@ public:
 
     /**jsdoc
      * Creates a new {@link RouteObject} from a controller output, ready to be mapped to a standard control, action, or 
-     * function.<br />
-     * This is a QML-specific version of {@link MappingObject#from|from}: use this version in QML files.
+     * function.
+     * <p>This is a QML-specific version of {@link MappingObject#from|from}: use this version in QML files.</p>
      * @function MappingObject#fromQml
      * @param {Controller.Standard|Controller.Hardware|function} source - The controller output or function that is the source
      *     of the route data. If a function, it must return a number or a {@link Pose} value as the route data.
@@ -146,8 +146,8 @@ public:
 
     /**jsdoc
      * Creates a new {@link RouteObject} from two numeric {@link Controller.Hardware} outputs, one applied in the negative 
-     * direction and the other in the positive direction, ready to be mapped to a standard control, action, or function.<br />
-     * This is a QML-specific version of {@link MappingObject#makeAxis|makeAxis}: use this version in QML files.
+     * direction and the other in the positive direction, ready to be mapped to a standard control, action, or function.
+     * <p>This is a QML-specific version of {@link MappingObject#makeAxis|makeAxis}: use this version in QML files.</p>
      * @function MappingObject#makeAxisQml
      * @param {Controller.Hardware} source1 - The first, negative-direction controller output.
      * @param {Controller.Hardware} source2 - The second, positive-direction controller output.
@@ -189,8 +189,8 @@ public:
     Q_INVOKABLE QObject* makeAxis(const QScriptValue& source1, const QScriptValue& source2);
 
     /**jsdoc
-     * Enables or disables the mapping. When enabled, the routes in the mapping take effect.<br />
-     * Synonymous with {@link Controller.enableMapping}.
+     * Enables or disables the mapping. When enabled, the routes in the mapping take effect.
+     * <p>Synonymous with {@link Controller.enableMapping}.</p>
      * @function MappingObject#enable
      * @param {boolean} enable=true - If <code>true</code> then the mapping is enabled, otherwise it is disabled.
      * @returns {MappingObject} The mapping object, so that further routes can be added.
@@ -198,8 +198,8 @@ public:
     Q_INVOKABLE QObject* enable(bool enable = true);
 
     /**jsdoc
-     * Disables the mapping. When disabled, the routes in the mapping have no effect.<br />
-     * Synonymous with {@link Controller.disableMapping}.
+     * Disables the mapping. When disabled, the routes in the mapping have no effect.
+     * <p>Synonymous with {@link Controller.disableMapping}.</p>
      * @function MappingObject#disable
      * @returns {MappingObject} The mapping object, so that further routes can be added.
      */
