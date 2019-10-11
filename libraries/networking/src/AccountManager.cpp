@@ -879,7 +879,7 @@ void AccountManager::postAccountSettings() {
         return;
     }
 
-    qDebug() << "Account Settings have changed, pushing them to the Metaverse API";
+    qCDebug(networking) << "Account Settings have changed, pushing them to the Metaverse API";
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
