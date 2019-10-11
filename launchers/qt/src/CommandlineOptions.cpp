@@ -26,6 +26,11 @@ void CommandlineOptions::parse(const int argc, char** argv) {
     }
 }
 
+void CommandlineOptions::append(const std::string& command) {
+    qDebug() << "appending option: " << QString::fromStdString(command);
+    _commandlineOptions.push_back(command);
+}
+
 CommandlineOptions* CommandlineOptions::getInstance() {
     static CommandlineOptions commandlineOptions;
     return &commandlineOptions;

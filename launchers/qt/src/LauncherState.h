@@ -94,7 +94,7 @@ public:
     void setLastSignupErrorMessage(const QString& msg);
     QString getLastSignupErrorMessage() const { return _lastSignupErrorMessage; }
 
-    QString getBuildVersion() { return QString(LAUNCHER_BUILD_VERSION); }
+    QString getBuildVersion();
     QString getLastUsedUsername() const { return _lastUsedUsername; }
 
     void setApplicationStateError(QString errorMessage);

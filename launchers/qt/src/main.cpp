@@ -7,6 +7,7 @@
 #include "CommandlineOptions.h"
 #include <iostream>
 #include <string>
+#include <QProcess>
 #include "Helper.h"
 
 #ifdef Q_OS_WIN
@@ -36,6 +37,7 @@ int main(int argc, char *argv[]) {
     Q_INIT_RESOURCE(resources);
     cleanLogFile();
     qInstallMessageHandler(messageHandler);
+    bool didUpdate = false;
 #ifdef Q_OS_MAC
     if (isLauncherAlreadyRunning()) {
         return 0;
@@ -44,6 +46,7 @@ int main(int argc, char *argv[]) {
     if (argc == 3) {
         if (hasSuffix(argv[1], "app") && hasSuffix(argv[2], "app")) {
             swapLaunchers(argv[1], argv[2]);
+            didUpdate = true;
         }
     }
 #endif
@@ -64,6 +67,13 @@ int main(int argc, char *argv[]) {
     }
 
 #endif
+
+    QProcessEnvironment processEnvironment = QProcessEnvironment::systemEnvironment();
+    if (processEnvironment.contains("HQ_LAUNCHER_BUILD_VERSION")) {
+        if (didUpdate || options->contains("--restart")) {
+            options->append("--noUpdate");
+        }
+    }
     Launcher launcher(argc, argv);
     return launcher.exec();
 }

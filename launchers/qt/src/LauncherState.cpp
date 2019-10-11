@@ -230,8 +230,18 @@ void LauncherState::requestBuilds() {
     request->send(_networkAccessManager);
 }
 
+QString LauncherState::getBuildVersion() {
+    QString buildVersion { LAUNCHER_BUILD_VERSION };
+    QProcessEnvironment processEnvironment = QProcessEnvironment::systemEnvironment();
+    if (processEnvironment.contains("HQ_LAUNCHER_BUILD_VERSION")) {
+        buildVersion = processEnvironment.value("HQ_LAUNCHER_BUILD_VERSION");
+    }
+
+    return buildVersion;
+}
+
 bool LauncherState::shouldDownloadLauncher() {
-    return _latestBuilds.launcherBuild.latestVersion != atoi(LAUNCHER_BUILD_VERSION);
+    return _latestBuilds.launcherBuild.latestVersion != getBuildVersion().toInt();
 }
 
 void LauncherState::getCurrentClientVersion() {
