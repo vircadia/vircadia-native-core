@@ -558,16 +558,10 @@ void OtherAvatar::handleChangedAvatarEntityData() {
             _avatarEntitiesLock.withReadLock([&] {
                 packedAvatarEntityData = _packedAvatarEntityData;
             });
-            QSet<EntityItemID> idsToDelete;
             foreach (auto entityID, recentlyRemovedAvatarEntities) {
                 if (!packedAvatarEntityData.contains(entityID)) {
-                    idsToDelete.insert(entityID);
+                    entityTree->deleteEntity(entityID, true, true);
                 }
-            }
-            if (!idsToDelete.empty()) {
-                bool force = true;
-                bool ignoreWarnings = true;
-                entityTree->deleteEntitiesByID(idsToDelete, force, ignoreWarnings);
             }
 
             // TODO: move this outside of tree lock

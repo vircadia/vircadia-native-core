@@ -3936,7 +3936,7 @@ bool EntityItemProperties::decodeCloneEntityMessage(const QByteArray& buffer, in
     processedBytes = 0;
 
     if (NUM_BYTES_RFC4122_UUID * 2 > packetLength) {
-        qCDebug(entities) << "EntityItemProperties::decodeCloneEntityMessage().... bailing because not enough bytes in buffer";
+        qCDebug(entities) << "EntityItemProperties::processEraseMessageDetails().... bailing because not enough bytes in buffer";
         return false; // bail to prevent buffer overflow
     }
 

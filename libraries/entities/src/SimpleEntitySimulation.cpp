@@ -47,17 +47,14 @@ void SimpleEntitySimulation::clearOwnership(const QUuid& ownerID) {
     }
 }
 
-void SimpleEntitySimulation::updateEntities() {
-    EntitySimulation::updateEntities();
-    QMutexLocker lock(&_mutex);
-    uint64_t now = usecTimestampNow();
+void SimpleEntitySimulation::updateEntitiesInternal(uint64_t now) {
     expireStaleOwnerships(now);
     stopOwnerlessEntities(now);
 }
 
-void SimpleEntitySimulation::addEntityToInternalLists(EntityItemPointer entity) {
-    EntitySimulation::addEntityToInternalLists(entity);
+void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     if (entity->getSimulatorID().isNull()) {
+        QMutexLocker lock(&_mutex);
         if (entity->getDynamic()) {
             // we don't allow dynamic objects to move without an owner so nothing to do here
         } else if (entity->isMovingRelativeToParent()) {
@@ -68,6 +65,7 @@ void SimpleEntitySimulation::addEntityToInternalLists(EntityItemPointer entity) 
             }
         }
     } else {
+        QMutexLocker lock(&_mutex);
         _entitiesWithSimulationOwner.insert(entity);
         _nextStaleOwnershipExpiry = glm::min(_nextStaleOwnershipExpiry, entity->getSimulationOwnershipExpiry());
 
@@ -81,10 +79,10 @@ void SimpleEntitySimulation::addEntityToInternalLists(EntityItemPointer entity) 
     }
 }
 
-void SimpleEntitySimulation::removeEntityFromInternalLists(EntityItemPointer entity) {
+void SimpleEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
+    EntitySimulation::removeEntityInternal(entity);
     _entitiesWithSimulationOwner.remove(entity);
     _entitiesThatNeedSimulationOwner.remove(entity);
-    EntitySimulation::removeEntityFromInternalLists(entity);
 }
 
 void SimpleEntitySimulation::processChangedEntity(const EntityItemPointer& entity) {
@@ -137,11 +135,10 @@ void SimpleEntitySimulation::processChangedEntity(const EntityItemPointer& entit
     entity->clearDirtyFlags();
 }
 
-void SimpleEntitySimulation::clearEntities() {
+void SimpleEntitySimulation::clearEntitiesInternal() {
     QMutexLocker lock(&_mutex);
     _entitiesWithSimulationOwner.clear();
     _entitiesThatNeedSimulationOwner.clear();
-    EntitySimulation::clearEntities();
 }
 
 void SimpleEntitySimulation::sortEntitiesThatMoved() {

@@ -45,6 +45,10 @@ SpatiallyNestableWeakPointer InterfaceParentFinder::find(QUuid parentID, bool& s
         success = true;
         return parent;
     }
+    if (parentID == AVATAR_SELF_ID) {
+        success = true;
+        return avatarManager->getMyAvatar();
+    }
 
     success = false;
     return parent;

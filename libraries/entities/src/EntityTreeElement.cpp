@@ -705,7 +705,7 @@ void EntityTreeElement::cleanupDomainAndNonOwnedEntities() {
     withWriteLock([&] {
         EntityItems savedEntities;
         foreach(EntityItemPointer entity, _entityItems) {
-            if (!(entity->isLocalEntity() || entity->isMyAvatarEntity())) {
+            if (!(entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
                 entity->preDelete();
                 entity->_element = NULL;
             } else {
