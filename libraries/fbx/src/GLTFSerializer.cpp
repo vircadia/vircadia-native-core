@@ -1261,7 +1261,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tanW * tangents[n + 2]));
                 }
             } else if (meshAttributes.contains("TANGENT")) {
-                mesh.tangents.resize(partVerticesCount);
+                mesh.tangents.resize(mesh.tangents.size() + partVerticesCount);
             }
 
             if (texcoords.size() == partVerticesCount * TEX_COORD_STRIDE) {
@@ -1270,7 +1270,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     mesh.texCoords.push_back(glm::vec2(texcoords[n], texcoords[n + 1]));
                 }
             } else if (meshAttributes.contains("TEXCOORD_0")) {
-                mesh.texCoords.resize(partVerticesCount);
+                mesh.texCoords.resize(mesh.texCoords.size() + partVerticesCount);
             }
 
             if (texcoords2.size() == partVerticesCount * TEX_COORD_STRIDE) {
@@ -1279,7 +1279,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     mesh.texCoords1.push_back(glm::vec2(texcoords2[n], texcoords2[n + 1]));
                 }
             } else if (meshAttributes.contains("TEXCOORD_1")) {
-                mesh.texCoords1.resize(partVerticesCount);
+                mesh.texCoords1.resize(mesh.texCoords1.size() + partVerticesCount);
             }
 
             if (colors.size() == partVerticesCount * colorStride) {
