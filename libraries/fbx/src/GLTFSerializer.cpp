@@ -1082,14 +1082,20 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     }
 
 
-    int meshCount = _file.meshes.size();
-    hfmModel.meshes.resize(meshCount);
+    int gltfMeshCount = _file.meshes.size();
     hfmModel.meshExtents.reset();
-    for (int meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
-        const auto& gltfMesh = _file.meshes[meshIndex];
-        auto& mesh = hfmModel.meshes[meshIndex];
-        mesh.meshIndex = meshIndex;
+    std::vector<std::vector<hfm::Shape>> templateShapePerPrimPerGLTFMesh;
+    for (int gltfMeshIndex = 0; gltfMeshIndex < gltfMeshCount; ++gltfMeshIndex) {
+        const auto& gltfMesh = _file.meshes[gltfMeshIndex];
+        hfmModel.meshes.emplace_back();
+        // NOTE: The number of hfm meshes may be greater than the number of gltf meshes, if a gltf mesh has primitives with different vertex attributes. In that case, this mesh reference may be reassigned.
+        hfm::Mesh* meshPtr = &hfmModel.meshes.back();
+        const size_t firstMeshIndexForGLTFMesh = hfmModel.meshes.size() - 1;
+        meshPtr->meshIndex = gltfMeshIndex;
+        templateShapePerPrimPerGLTFMesh.emplace_back();
+        std::vector<hfm::Shape>& templateShapePerPrim = templateShapePerPrimPerGLTFMesh.back();
 
+        // TODO: Rewrite GLTF skinning definition
         if (!hfmModel.hasSkeletonJoints) { 
             HFMCluster cluster;
 #if 0
@@ -1097,31 +1103,70 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 #endif
             cluster.inverseBindMatrix = glm::mat4();
             cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
-            mesh.clusters.append(cluster);
+            meshPtr->clusters.append(cluster);
         } else { // skinned model
             for (int j = 0; j < numNodes; ++j) {
                 HFMCluster cluster;
                 cluster.jointIndex = j;
                 cluster.inverseBindMatrix = jointInverseBindTransforms[j];
                 cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
-                mesh.clusters.append(cluster);
+                meshPtr->clusters.append(cluster);
             }
         }
         HFMCluster root;
         root.jointIndex = 0;
         root.inverseBindMatrix = jointInverseBindTransforms[root.jointIndex];
         root.inverseBindTransform = Transform(root.inverseBindMatrix);
-        mesh.clusters.append(root);
+        meshPtr->clusters.append(root);
 
-        QSet<QString> meshAttributes;
-        for(const auto &primitive : gltfMesh.primitives) {
-            for (const auto& attribute : primitive.attributes.values.keys()) {
-                meshAttributes.insert(attribute);
+        QSet<QString> primitiveAttributes;
+        if (!gltfMesh.primitives.empty()) {
+            for (const auto& attribute : gltfMesh.primitives[0].attributes.values.keys()) {
+                primitiveAttributes.insert(attribute);
             }
         }
+        std::vector<QSet<QString>> primitiveAttributeVariants;
 
-        for(auto &primitive : gltfMesh.primitives) {
-            HFMMeshPart part = HFMMeshPart();
+        int primCount = (int)gltfMesh.primitives.size();
+        size_t hfmMeshIndex = firstMeshIndexForGLTFMesh;
+        for(int primIndex = 0; primIndex < primCount; ++primIndex) {
+            auto& primitive = gltfMesh.primitives[primIndex];
+
+            QList<QString> keys = primitive.attributes.values.keys();
+            QSet<QString> newPrimitiveAttributes;
+            for (const auto& key : keys) {
+                newPrimitiveAttributes.insert(key);
+            }
+            if (newPrimitiveAttributes != primitiveAttributes) {
+                assert(primIndex != 0);
+
+                // We need to use a different mesh because the vertex attributes are different
+                auto attributeVariantIt = std::find(primitiveAttributeVariants.cbegin(), primitiveAttributeVariants.cend(), newPrimitiveAttributes);
+                if (attributeVariantIt == primitiveAttributeVariants.cend()) {
+                    // Need to allocate a new mesh
+                    hfmModel.meshes.emplace_back();
+                    meshPtr = &hfmModel.meshes.back();
+                    hfmMeshIndex = hfmModel.meshes.size() - 1;
+                    meshPtr->meshIndex = gltfMeshIndex;
+                    primitiveAttributeVariants.push_back(newPrimitiveAttributes);
+                } else {
+                    // An hfm mesh already exists for this gltf mesh with the same vertex attributes. Use it again.
+                    auto variantIndex = (size_t)(attributeVariantIt - primitiveAttributeVariants.cbegin());
+                    hfmMeshIndex = firstMeshIndexForGLTFMesh + variantIndex;
+                    meshPtr = &hfmModel.meshes[hfmMeshIndex];
+                }
+                primitiveAttributes = newPrimitiveAttributes;
+            }
+            // Now, allocate the part for the correct mesh...
+            hfm::Mesh& mesh = *meshPtr;
+            mesh.parts.emplace_back();
+            hfm::MeshPart& part = mesh.parts.back();
+            // ...and keep track of the relationship between the gltf mesh/primitive and the hfm mesh/part
+            templateShapePerPrim.emplace_back();
+            hfm::Shape& templateShape = templateShapePerPrim.back();
+            templateShape.mesh = (uint32_t)hfmMeshIndex;
+            templateShape.meshPart = (uint32_t)(mesh.parts.size() - 1);
+            templateShape.material = primitive.material;
 
             int indicesAccessorIdx = primitive.indices;
 
@@ -1156,8 +1201,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
             // Increment the triangle indices by the current mesh vertex count so each mesh part can all reference the same buffers within the mesh
             int prevMeshVerticesCount = mesh.vertices.count();
-
-            QList<QString> keys = primitive.attributes.values.keys();
             QVector<uint16_t> clusterJoints;
             QVector<float> clusterWeights;
 
@@ -1240,53 +1283,53 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
             part.triangleIndices.append(validatedIndices);
 
-            mesh.vertices.reserve(partVerticesCount);
+            mesh.vertices.reserve(mesh.vertices.size() + partVerticesCount);
             for (int n = 0; n < vertices.size(); n = n + VERTEX_STRIDE) {
                 mesh.vertices.push_back(glm::vec3(vertices[n], vertices[n + 1], vertices[n + 2]));
             }
 
-            mesh.normals.reserve(partVerticesCount);
+            mesh.normals.reserve(mesh.normals.size() + partVerticesCount);
             for (int n = 0; n < normals.size(); n = n + NORMAL_STRIDE) {
                 mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
             }
 
             if (tangents.size() == partVerticesCount * tangentStride) {
-                mesh.tangents.reserve(partVerticesCount);
+                mesh.tangents.reserve(mesh.tangents.size() + partVerticesCount);
                 for (int n = 0; n < tangents.size(); n += tangentStride) {
                     float tanW = tangentStride == 4 ? tangents[n + 3] : 1;
                     mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tanW * tangents[n + 2]));
                 }
-            } else if (meshAttributes.contains("TANGENT")) {
+            } else if (primitiveAttributes.contains("TANGENT")) {
                 mesh.tangents.resize(mesh.tangents.size() + partVerticesCount);
             }
 
             if (texcoords.size() == partVerticesCount * TEX_COORD_STRIDE) {
-                mesh.texCoords.reserve(partVerticesCount);
+                mesh.texCoords.reserve(mesh.texCoords.size() + partVerticesCount);
                 for (int n = 0; n < texcoords.size(); n = n + 2) {
                     mesh.texCoords.push_back(glm::vec2(texcoords[n], texcoords[n + 1]));
                 }
-            } else if (meshAttributes.contains("TEXCOORD_0")) {
+            } else if (primitiveAttributes.contains("TEXCOORD_0")) {
                 mesh.texCoords.resize(mesh.texCoords.size() + partVerticesCount);
             }
 
             if (texcoords2.size() == partVerticesCount * TEX_COORD_STRIDE) {
-                mesh.texCoords1.reserve(partVerticesCount);
+                mesh.texCoords1.reserve(mesh.texCoords1.size() + partVerticesCount);
                 for (int n = 0; n < texcoords2.size(); n = n + 2) {
                     mesh.texCoords1.push_back(glm::vec2(texcoords2[n], texcoords2[n + 1]));
                 }
-            } else if (meshAttributes.contains("TEXCOORD_1")) {
+            } else if (primitiveAttributes.contains("TEXCOORD_1")) {
                 mesh.texCoords1.resize(mesh.texCoords1.size() + partVerticesCount);
             }
 
             if (colors.size() == partVerticesCount * colorStride) {
-                mesh.colors.reserve(partVerticesCount);
+                mesh.colors.reserve(mesh.colors.size() + partVerticesCount);
                 for (int n = 0; n < colors.size(); n += colorStride) {
                     mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
                 }
-            } else if (meshAttributes.contains("COLOR_0")) {
-                mesh.colors.reserve(partVerticesCount);
+            } else if (primitiveAttributes.contains("COLOR_0")) {
+                mesh.colors.reserve(mesh.colors.size() + partVerticesCount);
                 for (int i = 0; i < partVerticesCount; ++i) {
-                    mesh.colors.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
+                    mesh.colors.push_back(glm::vec3(1.0f));
                 }
             }
 
@@ -1312,7 +1355,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         clusterJoints.push_back(0);
                     }
                 }
-            } else if (meshAttributes.contains("JOINTS_0")) {
+            } else if (primitiveAttributes.contains("JOINTS_0")) {
                 for (int i = 0; i < partVerticesCount; ++i) {
                     for (int j = 0; j < 4; ++j) {
                         clusterJoints.push_back(0);
@@ -1342,10 +1385,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         clusterWeights.push_back(0.0f);
                     }
                 }
-            } else if (meshAttributes.contains("WEIGHTS_0")) {
+            } else if (primitiveAttributes.contains("WEIGHTS_0")) {
                 for (int i = 0; i < partVerticesCount; ++i) {
                     clusterWeights.push_back(1.0f);
-                    for (int j = 1; j < 4; ++j) {
+                    for (int j = 0; j < 4; ++j) {
                         clusterWeights.push_back(0.0f);
                     }
                 }
@@ -1382,8 +1425,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
                 }
             }
-
-            mesh.parts.push_back(part);
 
             // populate the texture coordinates if they don't exist
             if (mesh.texCoords.size() == 0 && !hfmModel.hasSkeletonJoints) {
@@ -1468,22 +1509,23 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     }
 
 
+    // Create the instance shapes for each transform node
     for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
         const auto& node = _file.nodes[nodeIndex];
         if (-1 == node.mesh) {
             continue;
         }
 
-        const auto& mesh = _file.meshes[node.mesh];
-        int primCount = (int)mesh.primitives.size();
+        const auto& gltfMesh = _file.meshes[node.mesh];
+        const auto& templateShapePerPrim = templateShapePerPrimPerGLTFMesh[node.mesh];
+        int primCount = (int)gltfMesh.primitives.size();
         for (int primIndex = 0; primIndex < primCount; ++primIndex) {
-            const auto& primitive = mesh.primitives[primIndex];
-            hfmModel.shapes.emplace_back();
+            const auto& primitive = gltfMesh.primitives[primIndex];
+            const auto& templateShape = templateShapePerPrim[primIndex];
+            hfmModel.shapes.push_back(templateShape);
             auto& hfmShape = hfmModel.shapes.back();
+            // Everything else is already defined (mesh, meshPart, material), so just define the new transform
             hfmShape.transform = nodeIndex;
-            hfmShape.mesh = node.mesh;
-            hfmShape.meshPart = primIndex;
-            hfmShape.material = primitive.material;
         }
     }
 
