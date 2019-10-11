@@ -298,7 +298,7 @@ function updateOutputDeviceMutedOverlay(isMuted) {
         var outputDeviceMutedOverlayBottomY = props.y + overlayDims;
         var inputDeviceMutedOverlayTopY = INPUT_DEVICE_MUTED_MARGIN_TOP_PX;
         if (outputDeviceMutedOverlayBottomY + OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX > inputDeviceMutedOverlayTopY) {
-            overlayDims = 2 * (inputDeviceMutedOverlayTopY - Window.innerHeight / 2 - OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX);
+            overlayDims = 2 * (Window.innerHeight - inputDeviceMutedOverlayTopY / 2 - OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX);
         }
 
         if (overlayDims + OUTPUT_DEVICE_MUTED_MARGIN_LEFT_RIGHT_PX > Window.innerWidth) {
