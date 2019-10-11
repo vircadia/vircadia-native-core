@@ -1082,10 +1082,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     }
 
 
-    for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
-    }
-
-
     int meshCount = _file.meshes.size();
     hfmModel.meshes.resize(meshCount);
     hfmModel.meshExtents.reset();
