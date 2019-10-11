@@ -262,26 +262,26 @@ void Head::applyEyelidOffset(glm::quat headOrientation) {
 
     float blinkUpCoefficient = -eyelidOffset;
     float blinkDownCoefficient = BLINK_DOWN_MULTIPLIER * eyelidOffset;
-    
+
     float openUpCoefficient = eyelidOffset;
     float openDownCoefficient = OPEN_DOWN_MULTIPLIER * eyelidOffset;
-    
+
     float browsUpCoefficient = BROW_UP_MULTIPLIER * eyelidOffset;
     float browsDownCoefficient = 0.0f;
 
     bool isLookingUp = (eyePitch > 0);
-    
+
     if (isLookingUp) {
         for (int i = 0; i < 2; i++) {
-            _transientBlendshapeCoefficients[EYE_BLINK_INDICES[i]] = blinkUpCoefficient;
-            _transientBlendshapeCoefficients[EYE_OPEN_INDICES[i]] = openUpCoefficient;
-            _transientBlendshapeCoefficients[BROWS_U_INDICES[i]] = browsUpCoefficient;
+            _transientBlendshapeCoefficients[(int)Blendshapes::EyeBlink_L + i] = blinkUpCoefficient;
+            _transientBlendshapeCoefficients[(int)Blendshapes::EyeOpen_L + i] = openUpCoefficient;
+            _transientBlendshapeCoefficients[(int)Blendshapes::BrowsU_L + i] = browsUpCoefficient;
         }
     } else {
         for (int i = 0; i < 2; i++) {
-            _transientBlendshapeCoefficients[EYE_BLINK_INDICES[i]] = blinkDownCoefficient;
-            _transientBlendshapeCoefficients[EYE_OPEN_INDICES[i]] = openDownCoefficient;
-            _transientBlendshapeCoefficients[BROWS_U_INDICES[i]] = browsDownCoefficient;
+            _transientBlendshapeCoefficients[(int)Blendshapes::EyeBlink_L + i] = blinkDownCoefficient;
+            _transientBlendshapeCoefficients[(int)Blendshapes::EyeOpen_L + i] = openDownCoefficient;
+            _transientBlendshapeCoefficients[(int)Blendshapes::BrowsU_L + i] = browsDownCoefficient;
         }
     }
 }

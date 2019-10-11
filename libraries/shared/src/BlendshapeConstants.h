@@ -15,12 +15,6 @@
 /// The names of the blendshapes expected by Faceshift, terminated with an empty string.
 extern const char* FACESHIFT_BLENDSHAPES[];
 
-// Eyes and Brows indices
-extern const int EYE_BLINK_INDICES[];
-extern const int EYE_OPEN_INDICES[];
-extern const int BROWS_U_INDICES[];
-extern const int EYE_SQUINT_INDICES[];
-
 enum class Blendshapes : int {
     EyeBlink_L = 0,
     EyeBlink_R,
@@ -32,7 +26,7 @@ enum class Blendshapes : int {
     EyeIn_R,
     EyeOpen_L,
     EyeOpen_R,
-    EyeOut_L, // 10
+    EyeOut_L,
     EyeOut_R,
     EyeUp_L,
     EyeUp_R,
@@ -42,9 +36,8 @@ enum class Blendshapes : int {
     BrowsU_L,
     BrowsU_R,
     JawFwd,
-    JawLeft, // 20
+    JawLeft,
     JawOpen,
-    JawChew, // legacy not in ARKit
     JawRight,
     MouthLeft,
     MouthRight,
@@ -52,25 +45,74 @@ enum class Blendshapes : int {
     MouthFrown_R,
     MouthSmile_L,
     MouthSmile_R,
-    MouthDimple_L, // 30
+    MouthDimple_L,
     MouthDimple_R,
     LipsStretch_L,
     LipsStretch_R,
     LipsUpperClose,
     LipsLowerClose,
-    LipsUpperUp, // legacy, split in ARKit
-    LipsLowerDown, // legacy, split in ARKit
     LipsUpperOpen,
     LipsLowerOpen,
-    LipsFunnel, // 40
+    LipsFunnel,
     LipsPucker,
-    ChinLowerRaise,
-    ChinUpperRaise,
-    Sneer, // legacy, split in ARKit
     Puff,
     CheekSquint_L,
     CheekSquint_R,
+    LipsTogether,
+    MouthUpperUp_L,
+    MouthUpperUp_R,
+    MouthLowerDown_L,
+    MouthLowerDown_R,
+    MouthPress_L,
+    MouthPress_R,
+    MouthShrugLower,
+    MouthShrugUpper,
+    NoseSneer_L,
+    NoseSneer_R,
+    TongueOut,
+    UserBlendshape0,
+    UserBlendshape1,
+    UserBlendshape2,
+    UserBlendshape3,
+    UserBlendshape4,
+    UserBlendshape5,
+    UserBlendshape6,
+    UserBlendshape7,
+    UserBlendshape8,
+    UserBlendshape9,
     BlendshapeCount
 };
+
+enum class LegacyBlendshpaes : int {
+    JawChew,  // not in ARKit
+    LipsUpperUp, // split in ARKit
+    LipsLowerDown, // split in ARKit
+    ChinLowerRaise, // not in ARKit
+    ChinUpperRaise, // not in ARKit
+    Sneer, // split in ARKit
+    LegacyBlendshapeCount
+}
+
+// NEW in ARKit
+// * LipsTogether
+// * MouthUpperUp_L
+// * MouthUpperUp_R
+// * MouthLowerDown_L
+// * MouthLowerDown_R
+// * MouthPress_L
+// * MouthPress_R
+// * MouthShrugLower
+// * MouthShrugUpper
+// * NoseSneer_L
+// * NoseSneer_R
+// * TongueOut
+
+// Legacy shapes
+// * JawChew (not in ARKit)
+// * MouthUpperUp (split in ARKit)
+// * MouthLowerDown (split in ARKit)
+// * Sneer (split in ARKit)
+// * ChinLowerRaise (not in ARKit)
+// * ChinUpperRase (not in ARKit)
 
 #endif // hifi_BlendshapeConstants_h

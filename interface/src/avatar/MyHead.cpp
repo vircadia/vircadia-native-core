@@ -58,6 +58,8 @@ void MyHead::simulate(float deltaTime) {
         //     }
         // }
 
+        // AJT: blendshapes
+
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
         bool eyeLidsTracked =
             userInputMapper->getActionStateValid(controller::Action::LEFT_EYE_BLINK) &&
@@ -69,13 +71,13 @@ void MyHead::simulate(float deltaTime) {
             float leftEyeBlink = userInputMapper->getActionState(controller::Action::LEFT_EYE_BLINK);
             float rightEyeBlink = userInputMapper->getActionState(controller::Action::RIGHT_EYE_BLINK);
             _blendshapeCoefficients.resize(std::max(_blendshapeCoefficients.size(), 2));
-            _blendshapeCoefficients[EYE_BLINK_INDICES[0]] = leftEyeBlink;
-            _blendshapeCoefficients[EYE_BLINK_INDICES[1]] = rightEyeBlink;
+            _blendshapeCoefficients[(int)Blendshapes::EyeBlink_L] = leftEyeBlink;
+            _blendshapeCoefficients[(int)Blendshapes::EyeBlink_R] = rightEyeBlink;
         } else {
             const float FULLY_OPEN = 0.0f;
             _blendshapeCoefficients.resize(std::max(_blendshapeCoefficients.size(), 2));
-            _blendshapeCoefficients[EYE_BLINK_INDICES[0]] = FULLY_OPEN;
-            _blendshapeCoefficients[EYE_BLINK_INDICES[1]] = FULLY_OPEN;
+            _blendshapeCoefficients[(int)Blendshapes::EyeBlink_L] = FULLY_OPEN;
+            _blendshapeCoefficients[(int)Blendshapes::EyeBlink_R] = FULLY_OPEN;
         }
     }
     Parent::simulate(deltaTime);

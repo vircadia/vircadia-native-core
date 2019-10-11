@@ -34,7 +34,6 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     "JawFwd",
     "JawLeft",
     "JawOpen",
-    "JawChew",
     "JawRight",
     "MouthLeft",
     "MouthRight",
@@ -48,40 +47,34 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     "LipsStretch_R",
     "LipsUpperClose",
     "LipsLowerClose",
-    "LipsUpperUp",
-    "LipsLowerDown",
     "LipsUpperOpen",
     "LipsLowerOpen",
     "LipsFunnel",
     "LipsPucker",
-    "ChinLowerRaise",
-    "ChinUpperRaise",
-    "Sneer",
     "Puff",
     "CheekSquint_L",
     "CheekSquint_R",
+    "LipsTogether",
+    "MouthUpperUp_L",
+    "MouthUpperUp_R",
+    "MouthLowerDown_L",
+    "MouthLowerDown_R",
+    "MouthPress_L",
+    "MouthPress_R",
+    "MouthShrugLower",
+    "MouthShrugUpper",
+    "NoseSneer_L",
+    "NoseSneer_R",
+    "TongueOut",
+    "UserBlendshape0",
+    "UserBlendshape1",
+    "UserBlendshape2",
+    "UserBlendshape3",
+    "UserBlendshape4",
+    "UserBlendshape5",
+    "UserBlendshape6",
+    "UserBlendshape7",
+    "UserBlendshape8",
+    "UserBlendshape9",
     ""
 };
-
-// new in ARKit
-// LipsTogether
-// MouthPressLeft
-// MouthPressRight
-// MouthShrugLower
-// MouthShrugUpper
-// TongueOut
-
-const int EYE_BLINK_L_INDEX = 0;
-const int EYE_BLINK_R_INDEX = 1;
-const int EYE_SQUINT_L_INDEX = 2;
-const int EYE_SQUINT_R_INDEX = 3;
-const int EYE_OPEN_L_INDEX = 8;
-const int EYE_OPEN_R_INDEX = 9;
-const int BROWS_U_L_INDEX = 17;
-const int BROWS_U_R_INDEX = 18;
-
-
-const int EYE_BLINK_INDICES[] = { EYE_BLINK_L_INDEX, EYE_BLINK_R_INDEX };
-const int EYE_SQUINT_INDICES[] = { EYE_SQUINT_L_INDEX, EYE_SQUINT_R_INDEX };
-const int EYE_OPEN_INDICES[] = { EYE_OPEN_L_INDEX, EYE_OPEN_R_INDEX };
-const int BROWS_U_INDICES[] = { BROWS_U_L_INDEX, BROWS_U_R_INDEX };

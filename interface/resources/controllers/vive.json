@@ -98,6 +98,8 @@
         { "from": "Vive.Head", "to" : "Standard.Head" },
         { "from": "Vive.LeftEye", "to" : "Standard.LeftEye" },
         { "from": "Vive.RightEye", "to" : "Standard.RightEye" },
+
+        // AJT: blendshapes (only keep blink)
         { "from": "Vive.LeftEyeBlink", "to" : "Standard.LeftEyeBlink" },
         { "from": "Vive.RightEyeBlink", "to" : "Standard.RightEyeBlink" },
 

@@ -61,6 +61,7 @@
         { "from": "Standard.LeftEye", "to": "Actions.LeftEye" },
         { "from": "Standard.RightEye", "to": "Actions.RightEye" },
 
+        // AJT: blendshapes
         { "from": "Standard.LeftEyeBlink", "to": "Actions.LeftEyeBlink" },
         { "from": "Standard.RightEyeBlink", "to": "Actions.RightEyeBlink" },
 
