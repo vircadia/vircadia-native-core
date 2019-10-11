@@ -27,9 +27,12 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        if (Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatarFromInventory", false) || 
-            Settings.getValue("simplifiedUI/closedAvatarPageOfInitialLaunchWindow", false) ||
-            Settings.getValue("simplifiedUI/debugFTUE", 0) === 2) {
+        var debugFTUE = Settings.getValue("simplifiedUI/debugFTUE", 0);
+
+        if ((debugFTUE !== 1 &&
+            (Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatarFromInventory", false) || 
+            Settings.getValue("simplifiedUI/closedAvatarPageOfInitialLaunchWindow", false))) ||
+            debugFTUE === 2) {
             tempAvatarPageContainer.visible = false;
             controlsContainer.visible = true;
         }
