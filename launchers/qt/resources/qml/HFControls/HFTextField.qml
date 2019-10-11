@@ -1,4 +1,4 @@
-import QtQuick 2.3
+import QtQuick 2.5
 import QtQuick.Controls 2.1
 
 TextField {
@@ -51,6 +51,38 @@ TextField {
                             control.echoMode = TextInput.Password;
                         }
                     }
+                }
+            }
+        }
+    }
+
+    Keys.onPressed: {
+        event.accepted = false;
+
+        if (Platform === "MacOS") {
+            if (event.key == Qt.Key_Left) {
+                if (control.cursorPosition > 0) {
+                    var index = control.cursorPosition - 1;
+                    control.select(index, index);
+                }
+                event.accepted = true;
+            }
+
+            if (event.key == Qt.Key_Right) {
+                if (control.cursorPosition < control.text.length) {
+                    var index = control.cursorPosition + 1;
+                    control.select(index, index);
+                }
+                event.accepted = true;
+            }
+
+            if (event.modifiers & Qt.ControlModifier) {
+                if (event.key == Qt.Key_C) {
+                    control.copy();
+                    event.accepted = true;
+                } else if (event.key == Qt.Key_V) {
+                    control.paste();
+                    event.accepted = true;
                 }
             }
         }
