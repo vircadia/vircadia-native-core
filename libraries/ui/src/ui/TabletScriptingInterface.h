@@ -39,9 +39,10 @@ class QmlWindowClass;
 class OffscreenQmlSurface;
 
 /**jsdoc
- * The <code>Tablet</code> API provides the facilities to work with the system or other tablet. In toolbar mode (Developer &gt; 
- * UI &gt; Tablet Becomes Toolbar), the tablet's menu buttons are displayed in a toolbar and other tablet content is displayed 
- * in a dialog.
+ * The <code>Tablet</code> API provides the facilities to work with the system or other tablet. In toolbar mode (see Developer 
+ * &gt; UI options), the tablet's menu buttons are displayed in a toolbar and other tablet content is displayed in a dialog.
+ *
+ * <p>See also the {@link Toolbars} API for working with toolbars.</p>
  *
  * @namespace Tablet
  *
@@ -98,7 +99,7 @@ public:
     void setToolbarScriptingInterface(ToolbarScriptingInterface* toolbarScriptingInterface) { _toolbarScriptingInterface = toolbarScriptingInterface; }
 
     /**jsdoc
-     * Gets an instance of a tablet. A new tablet is created if one with the specified ID doesn't already exist.
+     * Gets an instance of a tablet. A new tablet is created if one with the specified name doesn't already exist.
      * @function Tablet.getTablet
      * @param {string} name - A unique name that identifies the tablet.
      * @returns {TabletProxy} The tablet instance.
@@ -210,11 +211,10 @@ private:
 Q_DECLARE_METATYPE(TabletButtonsProxyModel*);
 
 /**jsdoc
- * An instance of a tablet. In toolbar mode (Developer &gt; 
- * UI &gt; Tablet Becomes Toolbar), the tablet's menu buttons are displayed in a toolbar and other tablet content is displayed 
- * in a dialog.
+ * An instance of a tablet. In toolbar mode (see Developer &gt; UI options), the tablet's menu buttons are displayed in a 
+ * toolbar and other tablet content is displayed in a dialog.
  *
- * <p>Create a new tablet or retrieve an existing tablet using {@link Tablet.getTablet}.</p>
+ * <p>Retrieve an existing tablet or create a new tablet using {@link Tablet.getTablet}.</p>
  *
  * @class TabletProxy
  *
@@ -317,7 +317,7 @@ public:
     Q_INVOKABLE void returnToPreviousAppImpl(bool localSafeContext);
 
     /**jsdoc
-     *@function TabletProxy#loadQMLOnTopImpl
+     * @function TabletProxy#loadQMLOnTopImpl
      * @deprecated This function is deprecated and will be removed.
      */
     // Internal function, do not call from scripts.
