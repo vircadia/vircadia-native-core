@@ -1998,6 +1998,12 @@ void AudioClient::outputNotify() {
     }
 }
 
+void AudioClient::noteAwakening() {
+    qCDebug(audioclient) << "Restarting the audio devices.";
+    switchInputToAudioDevice(_inputDeviceInfo); 
+    switchOutputToAudioDevice(_outputDeviceInfo);
+}
+
 bool AudioClient::switchOutputToAudioDevice(const HifiAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest) {
     Q_ASSERT_X(QThread::currentThread() == thread(), Q_FUNC_INFO, "Function invoked on wrong thread");
 

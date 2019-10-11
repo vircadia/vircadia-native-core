@@ -363,7 +363,8 @@ void EntityTests::entityTreeTests(bool verbose) {
             }
 
             quint64 startDelete = usecTimestampNow();
-            tree.deleteEntity(entityID);
+            bool force = true;
+            tree.deleteEntity(entityID, force);
             quint64 endDelete = usecTimestampNow();
             totalElapsedDelete += (endDelete - startDelete);
 
@@ -446,7 +447,9 @@ void EntityTests::entityTreeTests(bool verbose) {
             }
 
             quint64 startDelete = usecTimestampNow();
-            tree.deleteEntities(entitiesToDelete);
+            bool force = true;
+            bool ignoreWarnings = true;
+            tree.deleteEntitiesByID(entitiesToDelete, force, ignoreWarnings);
             quint64 endDelete = usecTimestampNow();
             totalElapsedDelete += (endDelete - startDelete);
 

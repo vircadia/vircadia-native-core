@@ -974,6 +974,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     
     QObject::connect(PlatformHelper::instance(), &PlatformHelper::systemWillWake, [] {
         QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
+        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "noteAwakening", Qt::QueuedConnection);
     });
 
 

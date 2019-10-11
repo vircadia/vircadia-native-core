@@ -42,6 +42,7 @@ public:
     ~DeleteEntityOperator();
 
     void addEntityIDToDeleteList(const EntityItemID& searchEntityID);
+    void addEntityToDeleteList(const EntityItemPointer& entity);
     virtual bool preRecursion(const OctreeElementPointer& element) override;
     virtual bool postRecursion(const OctreeElementPointer& element) override;
 

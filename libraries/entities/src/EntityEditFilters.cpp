@@ -43,7 +43,7 @@ QList<EntityItemID> EntityEditFilters::getZonesByPosition(glm::vec3& position) {
 }
 
 bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut,
-        bool& wasChanged, EntityTree::FilterType filterType, EntityItemID& itemID, EntityItemPointer& existingEntity) {
+        bool& wasChanged, EntityTree::FilterType filterType, EntityItemID& itemID, const EntityItemPointer& existingEntity) {
     
     // get the ids of all the zones (plus the global entity edit filter) that the position
     // lies within
