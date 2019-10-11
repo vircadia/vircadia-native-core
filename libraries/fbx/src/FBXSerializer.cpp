@@ -1463,9 +1463,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
     // see if any materials have texture children
     bool materialsHaveTextures = checkMaterialsHaveTextures(_hfmMaterials, _textureFilenames, _connectionChildMap);
 
-    // Note that the transforms in the TransformNodes are initially in world-space, and need to be converted to parent-space
-    std::vector<hfm::TransformNode> transformNodes;
-
     for (QMap<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         const QString& meshID = it.key();
         const ExtractedMesh& extracted = it.value();

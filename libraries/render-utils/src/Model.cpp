@@ -249,24 +249,10 @@ void Model::updateRenderItems() {
                 }
 
                 Transform renderTransform = modelTransform;
-
-                /*if (useDualQuaternionSkinning) {
-                    if (meshState.clusterDualQuaternions.size() == 1 || meshState.clusterDualQuaternions.size() == 2) {
-                        const auto& dq = meshState.clusterDualQuaternions[0];
-                        Transform transform(dq.getRotation(),
-                                            dq.getScale(),
-                                            dq.getTranslation());
-                        renderTransform = modelTransform.worldTransform(Transform(transform));
-                    }
-                } else {
-                    if (meshState.clusterMatrices.size() == 1 || meshState.clusterMatrices.size() == 2) {
-                        renderTransform = modelTransform.worldTransform(Transform(meshState.clusterMatrices[0]));
-                    }
-                }*/
                 if (meshState.clusterMatrices.size() <= 1) {
                     renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
                 }
-                data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
+                data.updateTransform(renderTransform);
 
                 data.setCauterized(cauterized);
                 data.updateKey(renderItemKeyGlobalFlags);
@@ -305,7 +291,7 @@ void Model::updateShapeStatesFromRig() {
         _shapeStates.resize(shapes.size());
         for (int s = 0; s < shapes.size(); ++s) {
             uint32_t jointId = shapes[s].transform;
-            if (jointId < _rig.getJointStateCount()) {
+            if (jointId < (uint32_t) _rig.getJointStateCount()) {
                 _shapeStates[s]._rootFromJointTransform = _rig.getJointTransform(shapes[s].transform);
             }
         }
@@ -329,14 +315,24 @@ bool Model::updateGeometry() {
         updateShapeStatesFromRig();
 
         const HFMModel& hfmModel = getHFMModel();
-        int i = 0;
-        foreach (const HFMMesh& mesh, hfmModel.meshes) {
+        const auto& hfmDynamicTransforms = hfmModel.dynamicTransforms;
+      /*  int i = 0;
+        for (const auto& mesh: hfmModel.meshes) {
             MeshState state;
             state.clusterDualQuaternions.resize(mesh.clusters.size());
             state.clusterMatrices.resize(mesh.clusters.size());
             _meshStates.push_back(state);
             i++;
         }
+        */
+        for (int i = 0; i < hfmDynamicTransforms.size(); i++) {
+            const auto& dynT =  hfmDynamicTransforms[i];
+            MeshState state;
+            state.clusterDualQuaternions.resize(dynT.clusters.size());
+            state.clusterMatrices.resize(dynT.clusters.size());
+            _meshStates.push_back(state);
+        }
+
         needFullUpdate = true;
         emit rigReady();
     }
@@ -1510,7 +1506,7 @@ void Model::createRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
+            _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform);
             auto material = getNetworkModel()->getShapeMaterial(shapeID);
             _modelMeshMaterialNames.push_back(material ? material->getName() : "");
             _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });

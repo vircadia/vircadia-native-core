@@ -64,11 +64,10 @@ void MeshPartPayload::updateMeshPart(const std::shared_ptr<const graphics::Mesh>
     }
 }
 
-void MeshPartPayload::updateTransform(const Transform& transform, const Transform& offsetTransform) {
-    _transform = transform;
-    Transform::mult(_drawTransform, _transform, offsetTransform);
+void MeshPartPayload::updateTransform(const Transform& transform) {
+    _worldFromLocalTransform = transform;
     _worldBound = _localBound;
-    _worldBound.transform(_drawTransform);
+    _worldBound.transform(_worldFromLocalTransform);
 }
 
 void MeshPartPayload::addMaterial(graphics::MaterialLayer material) {
@@ -134,7 +133,7 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) {
 }
 
  void MeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
-    batch.setModelTransform(_drawTransform);
+    batch.setModelTransform(_worldFromLocalTransform);
 }
 
 
@@ -196,7 +195,7 @@ template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, Ren
 
 }
 
-ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
+ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform) :
     _meshIndex(meshIndex),
     _shapeID(shapeIndex) {
 
@@ -220,28 +219,10 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
         computeAdjustedLocalBound(state.clusterMatrices);
     }
 
-    updateTransform(transform, offsetTransform);
-
-    Transform renderTransform = transform;
-
-/*    if (useDualQuaternionSkinning) {
-        if (state.clusterDualQuaternions.size() == 1) {
-            const auto& dq = state.clusterDualQuaternions[0];
-            Transform transform(dq.getRotation(),
-                                dq.getScale(),
-                                dq.getTranslation());
-            renderTransform = transform.worldTransform(Transform(transform));
-        }
-    } else {
-        if (state.clusterMatrices.size() == 1) {
-            renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
-        }
-    }
-*/
-    
+    Transform renderTransform = transform;   
     const Model::ShapeState& shapeState = model->getShapeState(shapeIndex);
     renderTransform = transform.worldTransform(shapeState._rootFromJointTransform);
-    updateTransformForSkinnedMesh(renderTransform, transform);
+    updateTransform(renderTransform);
 
     initCache(model);
 
@@ -321,13 +302,6 @@ void ModelMeshPartPayload::updateClusterBuffer(const std::vector<Model::Transfor
                 (const gpu::Byte*) clusterDualQuaternions.data());
         }
     }
-}
-
-void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform) {
-    _transform = renderTransform;
-    _worldBound = _adjustedLocalBound;
- //   _worldBound.transform(boundTransform);
-    _worldBound.transform(renderTransform);
 }
 
 // Note that this method is called for models but not for shapes
@@ -420,7 +394,7 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMo
     if (_clusterBuffer) {
         batch.setUniformBuffer(graphics::slot::buffer::Skinning, _clusterBuffer);
     }
-    batch.setModelTransform(_transform);
+    batch.setModelTransform(_worldFromLocalTransform);
 }
 
 void ModelMeshPartPayload::render(RenderArgs* args) {

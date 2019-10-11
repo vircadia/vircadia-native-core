@@ -293,13 +293,6 @@ public:
     bool shouldInitCollisions() const { return _collisionsConfig.size() > 0; }
 };
 
-// DEPRECATED in favor of using hfm::Joint
-class TransformNode {
-public:
-    uint32_t parent { 0 };
-    Transform transform;
-};
-
 // Formerly contained in hfm::Mesh
 class Deformer {
 public:
@@ -343,7 +336,6 @@ public:
     std::vector<Material> materials;
     std::vector<Deformer> deformers;
 
-    std::vector<TransformNode> transforms;
     std::vector<DynamicTransform> dynamicTransforms;
 
     std::vector<Joint> joints;

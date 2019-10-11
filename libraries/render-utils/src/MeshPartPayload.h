@@ -38,7 +38,7 @@ public:
     virtual void updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex);
 
     virtual void notifyLocationChanged() {}
-    void updateTransform(const Transform& transform, const Transform& offsetTransform);
+    void updateTransform(const Transform& transform);
 
     // Render Item interface
     virtual render::ItemKey getKey() const;
@@ -52,8 +52,7 @@ public:
     virtual void bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const;
 
     // Payload resource cached values
-    Transform _drawTransform;
-    Transform _transform;
+    Transform _worldFromLocalTransform;
     int _partIndex = 0;
     bool _hasColorAttrib { false };
 
@@ -86,7 +85,7 @@ namespace render {
 
 class ModelMeshPartPayload : public MeshPartPayload {
 public:
-    ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
+    ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform);
 
     typedef render::Payload<ModelMeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
@@ -100,7 +99,6 @@ public:
 
     // dual quaternion skinning
     void updateClusterBuffer(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions);
-    void updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform);
 
     // Render Item interface
     render::ShapeKey getShapeKey() const override; // shape interface
