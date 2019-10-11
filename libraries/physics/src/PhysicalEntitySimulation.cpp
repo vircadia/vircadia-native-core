@@ -40,9 +40,14 @@ void PhysicalEntitySimulation::init(
 }
 
 // begin EntitySimulation overrides
-void PhysicalEntitySimulation::addEntityToInternalLists(EntityItemPointer entity) {
-    EntitySimulation::addEntityToInternalLists(entity);
-    entity->deserializeActions(); // TODO: do this elsewhere
+void PhysicalEntitySimulation::updateEntitiesInternal(uint64_t now) {
+    // Do nothing here because the "internal" update the PhysicsEngine::stepSimulation() which is done elsewhere.
+}
+
+void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
+    QMutexLocker lock(&_mutex);
+    assert(entity);
+    assert(!entity->isDead());
     uint8_t region = _space->getRegion(entity->getSpaceIndex());
     bool maybeShouldBePhysical = (region < workload::Region::R3 || region == workload::Region::UNKNOWN) && entity->shouldBePhysical();
     bool canBeKinematic = region <= workload::Region::R3;
@@ -61,20 +66,23 @@ void PhysicalEntitySimulation::addEntityToInternalLists(EntityItemPointer entity
     }
 }
 
-void PhysicalEntitySimulation::removeEntityFromInternalLists(EntityItemPointer entity) {
-    _entitiesToAddToPhysics.remove(entity);
-    EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-    if (motionState) {
-        removeOwnershipData(motionState);
-        _entitiesToRemoveFromPhysics.insert(entity);
-    }
-    if (entity->isDead() && entity->getElement()) {
-        _deadEntitiesToRemoveFromTree.insert(entity);
+void PhysicalEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
+    if (entity->isSimulated()) {
+        EntitySimulation::removeEntityInternal(entity);
+        _entitiesToAddToPhysics.remove(entity);
+
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+        if (motionState) {
+            removeOwnershipData(motionState);
+            _entitiesToRemoveFromPhysics.insert(entity);
+        }
+        if (entity->isDead() && entity->getElement()) {
+            _deadEntities.insert(entity);
+        }
     }
     if (entity->isAvatarEntity()) {
         _deadAvatarEntities.insert(entity);
     }
-    EntitySimulation::removeEntityFromInternalLists(entity);
 }
 
 void PhysicalEntitySimulation::removeOwnershipData(EntityMotionState* motionState) {
@@ -105,6 +113,18 @@ void PhysicalEntitySimulation::clearOwnershipData() {
         _bids[i]->clearOwnershipState();
     }
     _bids.clear();
+}
+
+void PhysicalEntitySimulation::takeDeadEntities(SetOfEntities& deadEntities) {
+    QMutexLocker lock(&_mutex);
+    for (auto entity : _deadEntities) {
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+        if (motionState) {
+            _entitiesToRemoveFromPhysics.insert(entity);
+        }
+    }
+    _deadEntities.swap(deadEntities);
+    _deadEntities.clear();
 }
 
 void PhysicalEntitySimulation::takeDeadAvatarEntities(SetOfEntities& deadEntities) {
@@ -170,44 +190,11 @@ void PhysicalEntitySimulation::processChangedEntity(const EntityItemPointer& ent
     }
 }
 
-void PhysicalEntitySimulation::processDeadEntities() {
-    if (_deadEntitiesToRemoveFromTree.empty()) {
-        return;
-    }
-    PROFILE_RANGE(simulation_physics, "Deletes");
-    SetOfEntities entitiesToDeleteImmediately;
-    SetOfEntities domainEntities;
-    QUuid sessionID = Physics::getSessionUUID();
-    QMutexLocker lock(&_mutex);
-    for (auto entity : _deadEntitiesToRemoveFromTree) {
-        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        if (motionState) {
-            _entitiesToRemoveFromPhysics.insert(entity);
-        }
-        if (entity->isDomainEntity()) {
-            domainEntities.insert(entity);
-        } else if (entity->isLocalEntity() || entity->isMyAvatarEntity()) {
-            entitiesToDeleteImmediately.insert(entity);
-            entity->collectChildrenForDelete(entitiesToDeleteImmediately, domainEntities, sessionID);
-        }
-    }
-    _deadEntitiesToRemoveFromTree.clear();
-
-    // interface-client can't delete domainEntities outright, they must roundtrip through the entity-server
-    for (auto entity : domainEntities) {
-        _entityPacketSender->queueEraseEntityMessage(entity->getID());
-    }
-    if (!entitiesToDeleteImmediately.empty()) {
-        getEntityTree()->deleteEntitiesByPointer(entitiesToDeleteImmediately);
-    }
-}
-
-void PhysicalEntitySimulation::clearEntities() {
+void PhysicalEntitySimulation::clearEntitiesInternal() {
     // TODO: we should probably wait to lock the _physicsEngine so we don't mess up data structures
     // while it is in the middle of a simulation step.  As it is, we're probably in shutdown mode
     // anyway, so maybe the simulation was already properly shutdown?  Cross our fingers...
 
-    QMutexLocker lock(&_mutex);
     // remove the objects (aka MotionStates) from physics
     _physicsEngine->removeSetOfObjects(_physicalObjects);
 
@@ -229,23 +216,11 @@ void PhysicalEntitySimulation::clearEntities() {
     _entitiesToAddToPhysics.clear();
     _incomingChanges.clear();
     _entitiesToDeleteLater.clear();
-
-    EntitySimulation::clearEntities();
-}
-
-void PhysicalEntitySimulation::queueEraseDomainEntities(const SetOfEntities& domainEntities) const {
-    if (_entityPacketSender) {
-        for (auto domainEntity : domainEntities) {
-            assert(domainEntity->isDomainEntity());
-            _entityPacketSender->queueEraseEntityMessage(domainEntity->getID());
-        }
-    }
 }
 
 // virtual
 void PhysicalEntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
-    // DANGER! this can be called on any thread
-    // do no dirty deeds here --> assemble list for later
+    // this can be called on any thread
     assert(entity);
     assert(entity->isDead());
     QMutexLocker lock(&_mutex);
@@ -253,11 +228,11 @@ void PhysicalEntitySimulation::prepareEntityForDelete(EntityItemPointer entity) 
 }
 
 void PhysicalEntitySimulation::removeDeadEntities() {
-    // DANGER! only ever call this on the main thread
+    // only ever call this on the main thread
     QMutexLocker lock(&_mutex);
     for (auto& entity : _entitiesToDeleteLater) {
         entity->clearActions(getThisPointer());
-        EntitySimulation::prepareEntityForDelete(entity);
+        removeEntityInternal(entity);
     }
     _entitiesToDeleteLater.clear();
 }
@@ -672,14 +647,8 @@ void PhysicalEntitySimulation::addDynamic(EntityDynamicPointer dynamic) {
                     "dynamic that was already in _physicsEngine";
             }
         }
-        QMutexLocker lock(&_dynamicsMutex);
-        _dynamicsToAdd += dynamic;
+        EntitySimulation::addDynamic(dynamic);
     }
-}
-
-void PhysicalEntitySimulation::removeDynamic(const QUuid dynamicID) {
-    QMutexLocker lock(&_dynamicsMutex);
-    _dynamicsToRemove += dynamicID;
 }
 
 void PhysicalEntitySimulation::applyDynamicChanges() {
@@ -696,8 +665,8 @@ void PhysicalEntitySimulation::applyDynamicChanges() {
                 }
             }
         }
-        _dynamicsToAdd.clear();
-        _dynamicsToRemove.clear();
+        // applyDynamicChanges will clear _dynamicsToRemove and _dynamicsToAdd
+        EntitySimulation::applyDynamicChanges();
     }
 
     // put back the ones that couldn't yet be added
