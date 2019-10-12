@@ -23,11 +23,11 @@ void SignupRequest::send(QNetworkAccessManager& nam, QString email, QString user
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
     QUrlQuery query;
-    query.addQueryItem("email", email);
-    query.addQueryItem("username", username);
-    query.addQueryItem("password", password);
+    query.addQueryItem("email", QUrl::toPercentEncoding(email));
+    query.addQueryItem("username", QUrl::toPercentEncoding(username));
+    query.addQueryItem("password", QUrl::toPercentEncoding(password));
 
-    auto reply = nam.put(request, query.toString().toUtf8());
+    auto reply = nam.put(request, query.query(QUrl::FullyEncoded).toLatin1());
     QObject::connect(reply, &QNetworkReply::finished, this, &SignupRequest::receivedResponse);
 }
 

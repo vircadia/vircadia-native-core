@@ -15,11 +15,11 @@ void LoginRequest::send(QNetworkAccessManager& nam, QString username, QString pa
 
     QUrlQuery query;
     query.addQueryItem("grant_type", "password");
-    query.addQueryItem("username", username);
-    query.addQueryItem("password", password);
+    query.addQueryItem("username", QUrl::toPercentEncoding(username));
+    query.addQueryItem("password", QUrl::toPercentEncoding(password));
     query.addQueryItem("scope", "owner");
 
-    auto reply = nam.post(request, query.toString().toUtf8());
+    auto reply = nam.post(request, query.query(QUrl::FullyEncoded).toLatin1());
     QObject::connect(reply, &QNetworkReply::finished, this, &LoginRequest::receivedResponse);
 }
 
