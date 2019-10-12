@@ -233,7 +233,8 @@ void Model::updateRenderItems() {
             auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
 
             const auto& shapeState = self->getShapeState(i);
-            const auto& meshState = self->getMeshState(meshIndex);
+           // const auto& meshState = self->getMeshState(meshIndex);
+            MeshState meshState;
 
             bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
             bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
@@ -290,9 +291,9 @@ void Model::updateShapeStatesFromRig() {
         const auto& shapes = hfmModel.shapes;
         _shapeStates.resize(shapes.size());
         for (int s = 0; s < shapes.size(); ++s) {
-            uint32_t jointId = shapes[s].transform;
+            uint32_t jointId = shapes[s].joint;
             if (jointId < (uint32_t) _rig.getJointStateCount()) {
-                _shapeStates[s]._rootFromJointTransform = _rig.getJointTransform(shapes[s].transform);
+                _shapeStates[s]._rootFromJointTransform = _rig.getJointTransform(jointId);
             }
         }
     }
@@ -316,7 +317,7 @@ bool Model::updateGeometry() {
 
         const HFMModel& hfmModel = getHFMModel();
         const auto& hfmDynamicTransforms = hfmModel.dynamicTransforms;
-      /*  int i = 0;
+    /*    int i = 0;
         for (const auto& mesh: hfmModel.meshes) {
             MeshState state;
             state.clusterDualQuaternions.resize(mesh.clusters.size());
@@ -325,13 +326,13 @@ bool Model::updateGeometry() {
             i++;
         }
         */
-        for (int i = 0; i < hfmDynamicTransforms.size(); i++) {
+        /*for (int i = 0; i < hfmDynamicTransforms.size(); i++) {
             const auto& dynT =  hfmDynamicTransforms[i];
             MeshState state;
             state.clusterDualQuaternions.resize(dynT.clusters.size());
             state.clusterMatrices.resize(dynT.clusters.size());
             _meshStates.push_back(state);
-        }
+        }*/
 
         needFullUpdate = true;
         emit rigReady();
@@ -1476,7 +1477,7 @@ void Model::createRenderItemSet() {
     // all of our mesh vectors must match in size
     if (meshes.size() != _meshStates.size()) {
         qCDebug(renderutils) << "WARNING!!!! Mesh Sizes don't match! " << meshes.size() << _meshStates.size() << " We will not segregate mesh groups yet.";
-        return;
+      //  return;
     }
 
     // We should not have any existing renderItems if we enter this section of code
@@ -1516,7 +1517,7 @@ void Model::createRenderItemSet() {
 }
 
 bool Model::isRenderable() const {
-    return (!_shapeStates.empty() && !_meshStates.empty()) || (isLoaded() && _renderGeometry->getMeshes().empty());
+    return (!_shapeStates.empty() /* && !_meshStates.empty()*/) || (isLoaded() && _renderGeometry->getMeshes().empty());
 }
 
 std::set<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialName) {

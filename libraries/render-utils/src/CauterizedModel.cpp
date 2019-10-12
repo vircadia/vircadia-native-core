@@ -33,7 +33,7 @@ bool CauterizedModel::updateGeometry() {
     if (_isCauterized && needsFullUpdate) {
         assert(_cauterizeMeshStates.empty());
         const HFMModel& hfmModel = getHFMModel();
-        const auto& hfmDynamicTransforms = hfmModel.dynamicTransforms;
+      /*  const auto& hfmDynamicTransforms = hfmModel.dynamicTransforms;
         for (int i = 0; i < hfmDynamicTransforms.size(); i++) {
             const auto& dynT = hfmDynamicTransforms[i];
             MeshState state;
@@ -44,9 +44,8 @@ bool CauterizedModel::updateGeometry() {
             }
             _cauterizeMeshStates.append(state);
             _meshStates.push_back(state);
-        }
-
-     /*   foreach (const HFMMesh& mesh, hfmModel.meshes) {
+        }*/
+        foreach (const HFMMesh& mesh, hfmModel.meshes) {
             Model::MeshState state;
             if (_useDualQuaternionSkinning) {
                 state.clusterDualQuaternions.resize(mesh.clusters.size());
@@ -55,7 +54,7 @@ bool CauterizedModel::updateGeometry() {
                 state.clusterMatrices.resize(mesh.clusters.size());
                 _cauterizeMeshStates.append(state);
             }
-        }*/
+        }
     }
     return needsFullUpdate;
 }
@@ -68,7 +67,7 @@ void CauterizedModel::createRenderItemSet() {
         // all of our mesh vectors must match in size
         if (meshes.size() != _meshStates.size()) {
             qCDebug(renderutils) << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
-            return;
+      //      return;
         }
 
         // We should not have any existing renderItems if we enter this section of code
@@ -241,9 +240,10 @@ void CauterizedModel::updateRenderItems() {
 
                 const auto& shapeState = self->getShapeState(i);
 
-                
-                const auto& meshState = self->getMeshState(meshIndex);
-                const auto& cauterizedMeshState = self->getCauterizeMeshState(meshIndex);
+           //     const auto& meshState = self->getMeshState(meshIndex);
+            //    const auto& cauterizedMeshState = self->getCauterizeMeshState(meshIndex);
+                MeshState meshState;
+                MeshState cauterizedMeshState;
 
                 bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
                 bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();

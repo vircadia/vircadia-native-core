@@ -314,7 +314,7 @@ public:
     uint32_t mesh { UNDEFINED_KEY };
     uint32_t meshPart { UNDEFINED_KEY };
     uint32_t material { UNDEFINED_KEY };
-    uint32_t transform { UNDEFINED_KEY }; // The hfm::Joint associated with this shape, containing transform information
+    uint32_t joint { UNDEFINED_KEY }; // The hfm::Joint associated with this shape, containing transform information
     // TODO: Have all serializers calculate hfm::Shape::transformedExtents in world space where they previously calculated hfm::Mesh::meshExtents. Change all code that uses hfm::Mesh::meshExtents to use this instead.
     Extents transformedExtents; // The precise extents of the meshPart vertices in world space, after transform information is applied, while not taking into account rigging/skinning
     uint32_t dynamicTransform { UNDEFINED_KEY };

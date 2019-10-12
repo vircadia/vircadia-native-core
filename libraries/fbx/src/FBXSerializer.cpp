@@ -1502,7 +1502,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 hfm::Shape& shape = partShapes[i];
                 shape.mesh = meshIndex;
                 shape.meshPart = i;
-                shape.transform = transformIndex;
+                shape.joint = transformIndex;
                 
                 auto matName = mesh.parts[i].materialID;
                 auto materialIt = materialNameToID.find(matName.toStdString());

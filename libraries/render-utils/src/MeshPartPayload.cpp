@@ -209,14 +209,14 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     auto& modelMesh = model->getNetworkModel()->getMeshes().at(_meshIndex);
     _meshNumVertices = (int)modelMesh->getNumVertices();
-    const Model::MeshState& state = model->getMeshState(_meshIndex);
+   // const Model::MeshState& state = model->getMeshState(_meshIndex);
 
     updateMeshPart(modelMesh, partIndex);
 
     if (useDualQuaternionSkinning) {
-        computeAdjustedLocalBound(state.clusterDualQuaternions);
+     //   computeAdjustedLocalBound(state.clusterDualQuaternions);
     } else {
-        computeAdjustedLocalBound(state.clusterMatrices);
+      //  computeAdjustedLocalBound(state.clusterMatrices);
     }
 
     Transform renderTransform = transform;   
