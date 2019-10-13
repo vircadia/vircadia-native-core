@@ -126,9 +126,7 @@ public:
     void unhookChildAvatar(const EntityItemID entityID);
     void cleanupCloneIDs(const EntityItemID& entityID);
     void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = true);
-
-    void deleteEntitiesByID(const QSet<EntityItemID>& entityIDs, bool force = false, bool ignoreWarnings = true);
-    void deleteEntitiesByPointer(const SetOfEntities& entities);
+    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = true);
 
     EntityItemPointer findEntityByID(const QUuid& id) const;
     EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID) const;
@@ -293,7 +291,6 @@ signals:
 
 protected:
 
-    void recursivelyFilterAndCollectForDelete(const EntityItemPointer& entity, SetOfEntities& entitiesToDelete, bool force) const;
     void processRemovedEntities(const DeleteEntityOperator& theOperator);
     bool updateEntity(EntityItemPointer entity, const EntityItemProperties& properties,
             const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
@@ -342,12 +339,12 @@ protected:
     int _totalEditMessages = 0;
     int _totalUpdates = 0;
     int _totalCreates = 0;
-    mutable quint64 _totalDecodeTime = 0;
-    mutable quint64 _totalLookupTime = 0;
-    mutable quint64 _totalUpdateTime = 0;
-    mutable quint64 _totalCreateTime = 0;
-    mutable quint64 _totalLoggingTime = 0;
-    mutable quint64 _totalFilterTime = 0;
+    quint64 _totalDecodeTime = 0;
+    quint64 _totalLookupTime = 0;
+    quint64 _totalUpdateTime = 0;
+    quint64 _totalCreateTime = 0;
+    quint64 _totalLoggingTime = 0;
+    quint64 _totalFilterTime = 0;
 
     // these performance statistics are only used in the client
     void resetClientEditStats();
@@ -367,7 +364,7 @@ protected:
 
     float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };
 
-    bool filterProperties(const EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType) const;
+    bool filterProperties(EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType);
     bool _hasEntityEditFilter{ false };
     QStringList _entityScriptSourceWhitelist;
 

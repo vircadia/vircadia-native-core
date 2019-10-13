@@ -357,13 +357,11 @@ void Avatar::removeAvatarEntitiesFromTree() {
         _avatarEntitiesLock.withReadLock([&] {
             avatarEntityIDs = _packedAvatarEntityData.keys();
         });
-        QSet<EntityItemID> ids;
-        foreach (auto id, avatarEntityIDs) {
-            ids.insert(id);
-        }
-        bool force = true;
-        bool ignoreWarnings = true;
-        entityTree->deleteEntitiesByID(ids, force, ignoreWarnings); // locks tree
+        entityTree->withWriteLock([&] {
+            for (const auto& entityID : avatarEntityIDs) {
+                entityTree->deleteEntity(entityID, true, true);
+            }
+        });
     }
 }
 

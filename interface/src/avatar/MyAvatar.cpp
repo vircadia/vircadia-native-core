@@ -1577,8 +1577,7 @@ void MyAvatar::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteAr
 }
 
 void MyAvatar::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
-    // NOTE: the requiresRemovalFromTree argument is unused
-    AvatarData::clearAvatarEntity(entityID);
+    AvatarData::clearAvatarEntity(entityID, requiresRemovalFromTree);
     _avatarEntitiesLock.withWriteLock([&] {
         _cachedAvatarEntityBlobsToDelete.push_back(entityID);
     });
@@ -1586,12 +1585,7 @@ void MyAvatar::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFrom
 
 void MyAvatar::sanitizeAvatarEntityProperties(EntityItemProperties& properties) const {
     properties.setEntityHostType(entity::HostType::AVATAR);
-
-    // Note: we store AVATAR_SELF_ID in EntityItem::_owningAvatarID and we usually
-    // store the actual sessionUUID in EntityItemProperties::_owningAvatarID (for JS
-    // consumption, for example).  However at this context we are preparing properties
-    // for outgoing packet, in which case we use AVATAR_SELF_ID.
-    properties.setOwningAvatarID(AVATAR_SELF_ID);
+    properties.setOwningAvatarID(getID());
 
     // there's no entity-server to tell us we're the simulation owner, so always set the
     // simulationOwner to the owningAvatarID and a high priority.
@@ -1648,16 +1642,13 @@ void MyAvatar::handleChangedAvatarEntityData() {
     // move the lists to minimize lock time
     std::vector<QUuid> cachedBlobsToDelete;
     std::vector<QUuid> cachedBlobsToUpdate;
-    QSet<EntityItemID> idsToDelete;
+    std::vector<QUuid> entitiesToDelete;
     std::vector<QUuid> entitiesToAdd;
     std::vector<QUuid> entitiesToUpdate;
     _avatarEntitiesLock.withWriteLock([&] {
         cachedBlobsToDelete = std::move(_cachedAvatarEntityBlobsToDelete);
         cachedBlobsToUpdate = std::move(_cachedAvatarEntityBlobsToAddOrUpdate);
-        foreach (auto id, _entitiesToDelete) {
-            idsToDelete.insert(id);
-        }
-        _entitiesToDelete.clear();
+        entitiesToDelete = std::move(_entitiesToDelete);
         entitiesToAdd = std::move(_entitiesToAdd);
         entitiesToUpdate = std::move(_entitiesToUpdate);
     });
@@ -1675,7 +1666,7 @@ void MyAvatar::handleChangedAvatarEntityData() {
     };
 
     // remove delete-add and delete-update overlap
-    for (const auto& id : idsToDelete) {
+    for (const auto& id : entitiesToDelete) {
         removeAllInstancesHelper(id, cachedBlobsToUpdate);
         removeAllInstancesHelper(id, entitiesToAdd);
         removeAllInstancesHelper(id, entitiesToUpdate);
@@ -1689,9 +1680,11 @@ void MyAvatar::handleChangedAvatarEntityData() {
     }
 
     // DELETE real entities
-    entityTree->withWriteLock([&] {
-        entityTree->deleteEntitiesByID(idsToDelete);
-    });
+    for (const auto& id : entitiesToDelete) {
+        entityTree->withWriteLock([&] {
+            entityTree->deleteEntity(id);
+        });
+    }
 
     // ADD real entities
     EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
@@ -1804,7 +1797,7 @@ void MyAvatar::handleChangedAvatarEntityData() {
         // we have a client traits handler
         // flag removed entities as deleted so that changes are sent next frame
         _avatarEntitiesLock.withWriteLock([&] {
-            for (const auto& id : idsToDelete) {
+            for (const auto& id : entitiesToDelete) {
                 if (_packedAvatarEntityData.find(id) != _packedAvatarEntityData.end()) {
                     _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, id);
                 }
@@ -2533,11 +2526,18 @@ bool isWearableEntity(const EntityItemPointer& entity) {
 void MyAvatar::removeWornAvatarEntity(const EntityItemID& entityID) {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+
     if (entityTree) {
         auto entity = entityTree->findEntityByID(entityID);
         if (entity && isWearableEntity(entity)) {
-            treeRenderer->deleteEntity(entityID);
-            clearAvatarEntity(entityID);
+            entityTree->withWriteLock([&entityID, &entityTree] {
+                // remove this entity first from the entity tree
+                entityTree->deleteEntity(entityID, true, true);
+            });
+
+            // remove the avatar entity from our internal list
+            // (but indicate it doesn't need to be pulled from the tree)
+            clearAvatarEntity(entityID, false);
         }
     }
 }
@@ -2547,16 +2547,8 @@ void MyAvatar::clearWornAvatarEntities() {
     _avatarEntitiesLock.withReadLock([&] {
         avatarEntityIDs = _packedAvatarEntityData.keys();
     });
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    if (entityTree) {
-        for (auto entityID : avatarEntityIDs) {
-            auto entity = entityTree->findEntityByID(entityID);
-            if (entity && isWearableEntity(entity)) {
-                treeRenderer->deleteEntity(entityID);
-                clearAvatarEntity(entityID);
-            }
-        }
+    for (auto entityID : avatarEntityIDs) {
+        removeWornAvatarEntity(entityID);
     }
 }
 
@@ -4009,10 +4001,6 @@ float MyAvatar::getGravity() {
 void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
     QUuid oldSessionID = getSessionUUID();
     Avatar::setSessionUUID(sessionUUID);
-    bool sendPackets = !DependencyManager::get<NodeList>()->getSessionUUID().isNull();
-    if (!sendPackets) {
-        return;
-    }
     QUuid newSessionID = getSessionUUID();
     if (newSessionID != oldSessionID) {
         auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
@@ -4022,6 +4010,7 @@ void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
             _avatarEntitiesLock.withReadLock([&] {
                 avatarEntityIDs = _packedAvatarEntityData.keys();
             });
+            bool sendPackets = !DependencyManager::get<NodeList>()->getSessionUUID().isNull();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
             entityTree->withWriteLock([&] {
                 for (const auto& entityID : avatarEntityIDs) {
@@ -4029,9 +4018,11 @@ void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
                     if (!entity) {
                         continue;
                     }
+                    // update OwningAvatarID so entity can be identified as "ours" later
+                    entity->setOwningAvatarID(newSessionID);
                     // NOTE: each attached AvatarEntity already have the correct updated parentID
                     // via magic in SpatiallyNestable, hence we check against newSessionID
-                    if (entity->getParentID() == newSessionID) {
+                    if (sendPackets && entity->getParentID() == newSessionID) {
                         // but when we have a real session and the AvatarEntity is parented to MyAvatar
                         // we need to update the "packedAvatarEntityData" sent to the avatar-mixer
                         // because it contains a stale parentID somewhere deep inside
