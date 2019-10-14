@@ -195,6 +195,11 @@ void RecordingScriptingInterface::startRecording() {
 }
 
 void RecordingScriptingInterface::stopRecording() {
+    if (!_recorder->isRecording()) {
+        qCWarning(scriptengine) << "Recorder is not running";
+        return;
+    }
+
     _recorder->stop();
     _lastClip = _recorder->getClip();
     _lastClip->seek(0);
