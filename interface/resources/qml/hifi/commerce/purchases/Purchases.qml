@@ -580,8 +580,9 @@ Rectangle {
                             sendToScript(msg);
                         } else if (msg.method === "showInvalidatedLightbox") {
                             lightboxPopup.titleText = "Item Invalidated";
-                            lightboxPopup.bodyText = 'Your item is marked "invalidated" because this item has been suspended ' +
-                            "from the Marketplace due to a claim against its author.";
+                            lightboxPopup.bodyText = 'This item has been invalidated and is no longer available.<br>' +
+                                'If you have questions, please contact marketplace@highfidelity.com.<br>' +
+                                'Thank you!';
                             lightboxPopup.button1text = "CLOSE";
                             lightboxPopup.button1method = function() {
                                 lightboxPopup.visible = false;
