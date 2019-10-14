@@ -152,7 +152,7 @@ static int triggerReactionNameToIndex(const QString& reactionName) {
 }
 
 static int beginEndReactionNameToIndex(const QString& reactionName) {
-    assert(NUM_AVATAR_BEGIN_END_REACTIONS == TRIGGER_REACTION_NAMES.size());
+    assert(NUM_AVATAR_BEGIN_END_REACTIONS == BEGIN_END_REACTION_NAMES.size());
     return BEGIN_END_REACTION_NAMES.indexOf(reactionName);
 }
 
