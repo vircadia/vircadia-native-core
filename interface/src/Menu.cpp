@@ -640,11 +640,6 @@ Menu::Menu() {
     }
     #endif
 
-
-    // Developer >> Tests >>>
-    MenuWrapper* testMenu = developerMenu->addMenu("Tests");
-    addActionToQMenuAndActionHash(testMenu, MenuOption::RunClientScriptTests, 0, dialogsManager.data(), SLOT(showTestingResults()));
-
     // Developer > Timing >>>
     MenuWrapper* timingMenu = developerMenu->addMenu("Timing");
     MenuWrapper* perfTimerMenu = timingMenu->addMenu("Performance Timer");

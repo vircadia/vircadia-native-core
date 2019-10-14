@@ -384,6 +384,7 @@ Rectangle {
             placeholderTextColor: "#8E8E8E"
             font.pixelSize: 14
             placeholderText: width - leftPadding - rightPadding < goToTextFieldMetrics.width ? shortPlaceholderText : longPlaceholderText
+            blankPlaceholderTextOnFocus: false
             clip: true
             selectByMouse: true
             autoScroll: true
