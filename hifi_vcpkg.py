@@ -134,7 +134,7 @@ endif()
             downloadVcpkg = True
 
         if not downloadVcpkg and not os.path.isfile(self.exe):
-            print("Missing executable, boostrapping")
+            print("Missing executable, boot-strapping")
             downloadVcpkg = True
         
         # Make sure we have a vcpkg executable
