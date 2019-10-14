@@ -159,6 +159,7 @@ var SETTINGS_APP_WINDOW_FLAGS = 0x00000001 | // Qt::Window
     0x08000000 | // Qt::WindowCloseButtonHint
     0x00008000 | // Qt::WindowMaximizeButtonHint
     0x00004000; // Qt::WindowMinimizeButtonHint
+var SETTINGS_APP_RIGHT_MARGIN = 48;
 var settingsAppWindow = false;
 function toggleSettingsApp() {
     if (settingsAppWindow) {
@@ -178,7 +179,7 @@ function toggleSettingsApp() {
             y: SETTINGS_APP_HEIGHT_PX
         },
         position: {
-            x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - SETTINGS_APP_WIDTH_PX / 2),
+            x: Window.x + Window.innerWidth - SETTINGS_APP_WIDTH_PX - SETTINGS_APP_RIGHT_MARGIN,
             y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - SETTINGS_APP_HEIGHT_PX / 2)
         },
         overrideFlags: SETTINGS_APP_WINDOW_FLAGS

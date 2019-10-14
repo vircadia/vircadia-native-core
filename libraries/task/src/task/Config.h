@@ -18,6 +18,7 @@
 #include <QtCore/qjsondocument.h>
 #include <QtCore/qjsonobject.h>
 #include <QtCore/qjsonvalue.h>
+#include <QtCore/QRegularExpression>
 #include <shared/JSONHelpers.h>
 
 #include "SettingHandle.h"
@@ -189,7 +190,7 @@ public:
      * @returns {object[]}
      */
     Q_INVOKABLE QObjectList getSubConfigs() const {
-        auto list = findChildren<JobConfig*>(QRegExp(".*"), Qt::FindDirectChildrenOnly);
+        auto list = findChildren<JobConfig*>(QRegularExpression(".*"), Qt::FindDirectChildrenOnly);
         QObjectList returned;
         for (int i = 0; i < list.size(); i++) {
             returned.push_back(list[i]);

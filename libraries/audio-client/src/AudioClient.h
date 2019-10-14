@@ -255,6 +255,7 @@ public slots:
     void setOutputGain(float gain) { _outputGain = gain; };
 
     void outputNotify();
+    void noteAwakening();
 
     void loadSettings();
     void saveSettings();

@@ -2160,6 +2160,51 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
         }
     }
 
+    //deadzone constant
+    const float INPUT_DEADZONE_THRESHOLD = 0.05f;
+
+    if (fabsf(params.inputX) <= INPUT_DEADZONE_THRESHOLD && fabsf(params.inputZ) <= INPUT_DEADZONE_THRESHOLD) {
+        // no WASD input
+        _animVars.set("isInputForward", false);
+        _animVars.set("isInputBackward", false);
+        _animVars.set("isInputRight", false);
+        _animVars.set("isInputLeft", false);
+        _animVars.set("isNotInput", true);
+    } else if (fabsf(params.inputZ) >= fabsf(params.inputX)) {
+        if (params.inputZ > 0.0f) {
+            // forward
+            _animVars.set("isInputForward", true);
+            _animVars.set("isInputBackward", false);
+            _animVars.set("isInputRight", false);
+            _animVars.set("isInputLeft", false);
+            _animVars.set("isNotInput", false);
+        } else { 
+            // backward
+            _animVars.set("isInputForward", false);
+            _animVars.set("isInputBackward", true);
+            _animVars.set("isInputRight", false);
+            _animVars.set("isInputLeft", false);
+            _animVars.set("isNotInput", false);
+        }
+    } else {
+        if (params.inputX > 0.0f) {
+            // right
+            _animVars.set("isInputForward", false);
+            _animVars.set("isInputBackward", false);
+            _animVars.set("isInputRight", true);
+            _animVars.set("isInputLeft", false);
+            _animVars.set("isNotInput", false);
+        } else {
+            // left
+            _animVars.set("isInputForward", false);
+            _animVars.set("isInputBackward", false);
+            _animVars.set("isInputRight", false);
+            _animVars.set("isInputLeft", true);
+            _animVars.set("isNotInput", false);
+        }
+    }
+
+
     _headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
     bool leftHandEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftHand] & (uint8_t)ControllerFlags::Enabled;
     bool rightHandEnabled = params.primaryControllerFlags[PrimaryControllerType_RightHand] & (uint8_t)ControllerFlags::Enabled;
