@@ -146,7 +146,6 @@ private:
 
     Q_INVOKABLE glm::vec2 getPosition() const;
     Q_INVOKABLE void setPosition(const glm::vec2& position);
-    Q_INVOKABLE void setNativeWindowPosition(const glm::vec2& position);
     
     RelativePositionAnchor _relativePositionAnchor{ RelativePositionAnchor::TOP_LEFT };
     Q_INVOKABLE RelativePositionAnchor getRelativePositionAnchor() const;
@@ -165,7 +164,6 @@ private:
 
     Q_INVOKABLE glm::vec2 getSize() const;
     Q_INVOKABLE void setSize(const glm::vec2& size);
-    Q_INVOKABLE void setNativeWindowSize(const glm::vec2& size);
 
     Q_INVOKABLE void setVisible(bool visible);
     Q_INVOKABLE bool isVisible() const;
