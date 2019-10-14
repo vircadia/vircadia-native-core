@@ -57,7 +57,6 @@ public:
     bool _hasColorAttrib { false };
 
     graphics::Box _localBound;
-    graphics::Box _adjustedLocalBound;
     mutable graphics::Box _worldBound;
     std::shared_ptr<const graphics::Mesh> _drawMesh;
 
@@ -111,12 +110,6 @@ public:
     void bindMesh(gpu::Batch& batch) override;
     void bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const override;
 
-    // matrix palette skinning
-    void computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices);
-
-    // dual quaternion skinning
-    void computeAdjustedLocalBound(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions);
-
     gpu::BufferPointer _clusterBuffer;
 
     enum class ClusterBufferType { Matrices, DualQuaternions };
@@ -124,6 +117,7 @@ public:
 
     int _meshIndex;
     int _shapeID;
+    int _deformerIndex;
 
     bool _isSkinned{ false };
     bool _isBlendShaped { false };

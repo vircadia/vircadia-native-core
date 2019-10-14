@@ -186,7 +186,7 @@ bool Model::shouldInvalidatePayloadShapeKey(int meshIndex) {
     const auto& networkMeshes = getNetworkModel()->getMeshes();
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
     // to false to rebuild out mesh groups.
-    if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)hfmModel.meshes.size() || meshIndex >= (int)_meshStates.size()) {
+    if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)hfmModel.meshes.size() /* || meshIndex >= (int)_meshStates.size()*/) {
         _needsFixupInScene = true;     // trigger remove/add cycle
         invalidCalculatedMeshBoxes();  // if we have to reload, we need to assume our mesh boxes are all invalid
         return true;
@@ -233,32 +233,51 @@ void Model::updateRenderItems() {
             auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
 
             const auto& shapeState = self->getShapeState(i);
-           // const auto& meshState = self->getMeshState(meshIndex);
-            MeshState meshState;
+
+            auto deformerIndex = self->_modelMeshRenderItemShapes[i].deformerIndex;
+            bool isDeformed = (deformerIndex != hfm::UNDEFINED_KEY);
 
             bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
-            bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, shapeState, meshState, useDualQuaternionSkinning,
-                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
-                if (useDualQuaternionSkinning) {
-                    data.updateClusterBuffer(meshState.clusterDualQuaternions);
-                    data.computeAdjustedLocalBound(meshState.clusterDualQuaternions);
-                } else {
-                    data.updateClusterBuffer(meshState.clusterMatrices);
-                    data.computeAdjustedLocalBound(meshState.clusterMatrices);
-                }
+            
+            if (isDeformed) {
 
-                Transform renderTransform = modelTransform;
-                if (meshState.clusterMatrices.size() <= 1) {
+                const auto& meshState = self->getMeshState(deformerIndex);
+               // MeshState meshState;
+                bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
+
+
+                transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, shapeState, meshState, useDualQuaternionSkinning,
+                                                                      invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
+                    if (useDualQuaternionSkinning) {
+                        data.updateClusterBuffer(meshState.clusterDualQuaternions);
+                    } else {
+                        data.updateClusterBuffer(meshState.clusterMatrices);
+                    }
+
+                    Transform renderTransform = modelTransform;
+                 //   if (meshState.clusterMatrices.size() <= 1) {
+                        renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
+                   // }
+                    data.updateTransform(renderTransform);
+
+                    data.setCauterized(cauterized);
+                    data.updateKey(renderItemKeyGlobalFlags);
+                    data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
+                });
+            } else {
+                transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, shapeState, invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags](ModelMeshPartPayload& data) {
+                    
+                    Transform renderTransform = modelTransform;
+                    //   if (meshState.clusterMatrices.size() <= 1) {
                     renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
-                }
-                data.updateTransform(renderTransform);
+                    // }
+                    data.updateTransform(renderTransform);
 
-                data.setCauterized(cauterized);
-                data.updateKey(renderItemKeyGlobalFlags);
-                data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
-            });
+                    data.updateKey(renderItemKeyGlobalFlags);
+                    data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, false);
+                }); 
+            }
         }
 
         AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
@@ -317,8 +336,8 @@ bool Model::updateGeometry() {
 
         const HFMModel& hfmModel = getHFMModel();
         const auto& hfmDynamicTransforms = hfmModel.dynamicTransforms;
-    /*    int i = 0;
-        for (const auto& mesh: hfmModel.meshes) {
+        int i = 0;
+      /*  for (const auto& mesh: hfmModel.meshes) {
             MeshState state;
             state.clusterDualQuaternions.resize(mesh.clusters.size());
             state.clusterMatrices.resize(mesh.clusters.size());
@@ -326,13 +345,13 @@ bool Model::updateGeometry() {
             i++;
         }
         */
-        /*for (int i = 0; i < hfmDynamicTransforms.size(); i++) {
+        for (int i = 0; i < hfmDynamicTransforms.size(); i++) {
             const auto& dynT =  hfmDynamicTransforms[i];
             MeshState state;
             state.clusterDualQuaternions.resize(dynT.clusters.size());
             state.clusterMatrices.resize(dynT.clusters.size());
             _meshStates.push_back(state);
-        }*/
+        }
 
         needFullUpdate = true;
         emit rigReady();
@@ -1407,8 +1426,34 @@ void Model::updateClusterMatrices() {
 
     _needsUpdateClusterMatrices = false;
     const HFMModel& hfmModel = getHFMModel();
+    const auto& hfmDynamicTransforms = hfmModel.dynamicTransforms;
     for (int i = 0; i < (int) _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
+        const auto& deformer = hfmDynamicTransforms[i];
+
+        int meshIndex = i;
+        int clusterIndex = 0;
+
+        for (int d = 0; d < deformer.clusters.size(); d++) {
+            const auto& cluster = deformer.clusters[d];
+            clusterIndex = d;
+
+            const auto& cbmov = _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex);
+
+            if (_useDualQuaternionSkinning) {
+                auto jointPose = _rig.getJointPose(cluster.jointIndex);
+                Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
+                Transform clusterTransform;
+                Transform::mult(clusterTransform, jointTransform, cbmov.inverseBindTransform);
+                state.clusterDualQuaternions[d] = Model::TransformDualQuaternion(clusterTransform);
+            }
+            else {
+                auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
+                glm_mat4u_mul(jointMatrix, cbmov.inverseBindMatrix, state.clusterMatrices[d]);
+            }
+
+        }
+/*
         int meshIndex = i;
         const HFMMesh& mesh = hfmModel.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
@@ -1425,7 +1470,7 @@ void Model::updateClusterMatrices() {
                 auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
                 glm_mat4u_mul(jointMatrix, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindMatrix, state.clusterMatrices[j]);
             }
-        }
+        }*/
     }
 
     // post the blender if we're not currently waiting for one to finish
@@ -1474,12 +1519,6 @@ void Model::createRenderItemSet() {
     assert(isLoaded());
     const auto& meshes = _renderGeometry->getMeshes();
 
-    // all of our mesh vectors must match in size
-    if (meshes.size() != _meshStates.size()) {
-        qCDebug(renderutils) << "WARNING!!!! Mesh Sizes don't match! " << meshes.size() << _meshStates.size() << " We will not segregate mesh groups yet.";
-      //  return;
-    }
-
     // We should not have any existing renderItems if we enter this section of code
     Q_ASSERT(_modelMeshRenderItems.isEmpty());
 
@@ -1497,6 +1536,17 @@ void Model::createRenderItemSet() {
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
+    const auto& shapes = _renderGeometry->getHFMModel().shapes;
+    for (shapeID; shapeID < shapes.size(); shapeID++) {
+        const auto& shape = shapes[shapeID];
+
+        _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), shape.mesh, shape.meshPart, shapeID, transform);
+
+        auto material = getNetworkModel()->getShapeMaterial(shapeID);
+        _modelMeshMaterialNames.push_back(material ? material->getName() : "");
+        _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)shape.mesh, shape.dynamicTransform });
+    }
+/*
     uint32_t numMeshes = (uint32_t)meshes.size();
     for (uint32_t i = 0; i < numMeshes; i++) {
         const auto& mesh = meshes.at(i);
@@ -1513,7 +1563,7 @@ void Model::createRenderItemSet() {
             _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
             shapeID++;
         }
-    }
+    }*/
 }
 
 bool Model::isRenderable() const {

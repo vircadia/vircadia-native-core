@@ -473,7 +473,7 @@ protected:
     QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
     QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
     render::ItemIDs _modelMeshRenderItemIDs;
-    using ShapeInfo = struct { int meshIndex; int deformerIndex; };
+    using ShapeInfo = struct { int meshIndex; uint32_t deformerIndex{ hfm::UNDEFINED_KEY }; };
     std::vector<ShapeInfo> _modelMeshRenderItemShapes;
     std::vector<std::string> _modelMeshMaterialNames;
 

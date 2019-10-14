@@ -213,16 +213,12 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     updateMeshPart(modelMesh, partIndex);
 
-    if (useDualQuaternionSkinning) {
-     //   computeAdjustedLocalBound(state.clusterDualQuaternions);
-    } else {
-      //  computeAdjustedLocalBound(state.clusterMatrices);
-    }
-
     Transform renderTransform = transform;   
     const Model::ShapeState& shapeState = model->getShapeState(shapeIndex);
     renderTransform = transform.worldTransform(shapeState._rootFromJointTransform);
     updateTransform(renderTransform);
+
+    _deformerIndex = shape.dynamicTransform;
 
     initCache(model);
 
@@ -245,7 +241,9 @@ void ModelMeshPartPayload::initCache(const ModelPointer& model) {
     if (_drawMesh) {
         auto vertexFormat = _drawMesh->getVertexFormat();
         _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
-        _isSkinned = vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT) && vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_INDEX);
+        if (_deformerIndex != hfm::UNDEFINED_KEY) {
+            _isSkinned = vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT) && vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_INDEX);
+        }
 
         const HFMModel& hfmModel = model->getHFMModel();
         const HFMMesh& mesh = hfmModel.meshes.at(_meshIndex);
@@ -430,38 +428,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 
     const int INDICES_PER_TRIANGLE = 3;
     args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
-}
-
-void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices) {
-    _adjustedLocalBound = _localBound;
-    if (clusterMatrices.size() > 0) {
-        _adjustedLocalBound.transform(clusterMatrices.back());
-
-        for (int i = 0; i < (int)clusterMatrices.size() - 1; ++i) {
-            AABox clusterBound = _localBound;
-            clusterBound.transform(clusterMatrices[i]);
-            _adjustedLocalBound += clusterBound;
-        }
-    }
-}
-
-void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions) {
-    _adjustedLocalBound = _localBound;
-    if (clusterDualQuaternions.size() > 0) {
-        Transform rootTransform(clusterDualQuaternions.back().getRotation(),
-                                clusterDualQuaternions.back().getScale(),
-                                clusterDualQuaternions.back().getTranslation());
-        _adjustedLocalBound.transform(rootTransform);
-
-        for (int i = 0; i < (int)clusterDualQuaternions.size() - 1; ++i) {
-            AABox clusterBound = _localBound;
-            Transform transform(clusterDualQuaternions[i].getRotation(),
-                                clusterDualQuaternions[i].getScale(),
-                                clusterDualQuaternions[i].getTranslation());
-            clusterBound.transform(transform);
-            _adjustedLocalBound += clusterBound;
-        }
-    }
 }
 
 void ModelMeshPartPayload::setBlendshapeBuffer(const std::unordered_map<int, gpu::BufferPointer>& blendshapeBuffers, const QVector<int>& blendedMeshSizes) {
