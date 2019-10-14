@@ -284,28 +284,21 @@ function maybeDeleteOutputDeviceMutedOverlay() {
 
 var outputDeviceMutedOverlay = false;
 var OUTPUT_DEVICE_MUTED_OVERLAY_DEFAULT_DIMS_PX = 300;
-var OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX = 20;
-var OUTPUT_DEVICE_MUTED_MARGIN_LEFT_RIGHT_PX = 20;
+var OUTPUT_DEVICE_MUTED_OVERLAY_DEFAULT_MARGINS_PX = 20;
+var OUTPUT_DEVICE_MUTED_DIMS_RATIO_TO_WINDOW_SIZE = 0.8;
 function updateOutputDeviceMutedOverlay(isMuted) {
     if (isMuted) {
         var props = {
             imageURL: Script.resolvePath("images/outputDeviceMuted.svg"),
             alpha: 0.5
         };
+
         var overlayDims = OUTPUT_DEVICE_MUTED_OVERLAY_DEFAULT_DIMS_PX;
-        props.x = Window.innerWidth / 2 - overlayDims / 2;
-        props.y = Window.innerHeight / 2 - overlayDims / 2;
+        var overlayWithMarginsDims = overlayDims + 2 * OUTPUT_DEVICE_MUTED_OVERLAY_DEFAULT_MARGINS_PX;
 
-        var outputDeviceMutedOverlayBottomY = props.y + overlayDims;
-        var inputDeviceMutedOverlayTopY = INPUT_DEVICE_MUTED_MARGIN_TOP_PX;
-        if (outputDeviceMutedOverlayBottomY + OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX > inputDeviceMutedOverlayTopY) {
-            overlayDims = 2 * (inputDeviceMutedOverlayTopY - Window.innerHeight / 2 - OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX);
-        }
-
-        if (overlayDims + OUTPUT_DEVICE_MUTED_MARGIN_LEFT_RIGHT_PX > Window.innerWidth) {
-            overlayDims = Math.min(Window.innerWidth - OUTPUT_DEVICE_MUTED_MARGIN_LEFT_RIGHT_PX, overlayDims);
-        } else {
-            overlayDims = Math.min(OUTPUT_DEVICE_MUTED_OVERLAY_DEFAULT_DIMS_PX, overlayDims);
+        if  (overlayWithMarginsDims > Window.innerHeight || overlayWithMarginsDims > Window.innerWidth) {
+            var minWindowDims = Math.min(Window.innerHeight,  Window.innerWidth);
+            overlayDims = Math.round(minWindowDims * OUTPUT_DEVICE_MUTED_DIMS_RATIO_TO_WINDOW_SIZE);
         }
 
         props.width = overlayDims;
