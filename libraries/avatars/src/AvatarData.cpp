@@ -3214,3 +3214,12 @@ void AvatarData::clearAvatarGrabData(const QUuid& grabID) {
         }
     });
 }
+
+glm::vec3 AvatarData::getHeadJointFrontVector() const {
+    int headJointIndex = getJointIndex("Head");
+    glm::quat headJointRotation = Quaternions::Y_180 * getAbsoluteJointRotationInObjectFrame(headJointIndex);//    getAbsoluteJointRotationInRigFrame(headJointIndex, headJointRotation);
+    headJointRotation = getWorldOrientation() * headJointRotation;
+    float headYaw = safeEulerAngles(headJointRotation).y;
+    glm::quat headYawRotation = glm::angleAxis(headYaw, Vectors::UP);
+    return headYawRotation * IDENTITY_FORWARD;
+}

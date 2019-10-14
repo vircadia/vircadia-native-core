@@ -971,7 +971,6 @@ public:
      * @param {Uuid} entityID - The entity that the hand touch effect will be enabled for.
      */
     Q_INVOKABLE void enableHandTouchForID(const QUuid& entityID);
-    Q_INVOKABLE void setLookAtAvatarID(const QUuid& avatarID);
 
     bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)

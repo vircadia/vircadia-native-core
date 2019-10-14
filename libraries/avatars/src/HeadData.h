@@ -79,10 +79,7 @@ public:
     void setFaceTrackerConnected(bool value);
     bool getFaceTrackerConnected() const { return _isFaceTrackerConnected; }
 
-    void updateEyeLookAt() {
-        _lookAtPosition = _requestLookAtPosition;
-        _lookAtUpdated = true;
-    }
+    void updateEyeLookAt();
 
     friend class AvatarData;
 
@@ -116,7 +113,7 @@ protected:
     QVector<float> _summedBlendshapeCoefficients;
     QMap<QString, int> _blendshapeLookupMap;
     AvatarData* _owningAvatar;
-    bool _forceBlink { false };
+    bool _blinkToRetarget { false };
     bool _lookAtUpdated { false };
 
 private:

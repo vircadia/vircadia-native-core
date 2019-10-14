@@ -2150,7 +2150,7 @@ static float lookAtCostFunction(const glm::vec3& myForward, const glm::vec3& myP
     const float DISTANCE_FACTOR = 3.14f;
     const float MY_ANGLE_FACTOR = 1.0f;
     const float OTHER_ANGLE_FACTOR = 1.0f;
-    const float OTHER_IS_TALKING_TERM = otherIsTalking ? 1.0f : 0.0f;
+    const float OTHER_IS_TALKING_TERM = otherIsTalking ? -1.0f : 0.0f;
     const float LOOKING_AT_OTHER_ALREADY_TERM = lookingAtOtherAlready ? -0.2f : 0.0f;
 
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;  // meters
@@ -2176,6 +2176,9 @@ static float lookAtCostFunction(const glm::vec3& myForward, const glm::vec3& myP
 
 void MyAvatar::computeMyLookAtTarget(const AvatarHash& hash) {
     glm::vec3 myForward = _lookAtYaw * IDENTITY_FORWARD;
+    if (_skeletonModel->isLoaded()) {
+        myForward = getHeadJointFrontVector();
+    }
     glm::vec3 myPosition = getHead()->getEyePosition();
     CameraMode mode = qApp->getCamera().getMode();
     if (mode == CAMERA_MODE_FIRST_PERSON) {
@@ -2189,7 +2192,7 @@ void MyAvatar::computeMyLookAtTarget(const AvatarHash& hash) {
         std::shared_ptr<Avatar> avatar = std::static_pointer_cast<Avatar>(avatarData);
         if (!avatar->isMyAvatar() && avatar->isInitialized()) {
             if (_forceTargetAvatarID.isNull() || avatar->getID() != _forceTargetAvatarID) {
-                glm::vec3 otherForward = avatar->getHead()->getForwardDirection();
+                glm::vec3 otherForward = avatar->getHeadJointFrontVector();
                 glm::vec3 otherPosition = avatar->getHead()->getEyePosition();
                 const float TIME_WITHOUT_TALKING_THRESHOLD = 1.0f;
                 bool otherIsTalking = avatar->getHead()->getTimeWithoutTalking() <= TIME_WITHOUT_TALKING_THRESHOLD;
@@ -6841,12 +6844,4 @@ void MyAvatar::resetPointAt() {
         _skeletonModel->getRig().setDirectionalBlending(POINT_BLEND_DIRECTIONAL_ALPHA_NAME, glm::vec3(),
                                                         POINT_BLEND_LINEAR_ALPHA_NAME, POINT_ALPHA_BLENDING);
     }
-}
-
-void MyAvatar::setLookAtAvatarID(const QUuid& avatarID) {
-    if (QThread::currentThread() != thread()) {
-        BLOCKING_INVOKE_METHOD(this, "setLookAtAvatarID",
-            Q_ARG(const QUuid&, avatarID));
-    }
-    _forceTargetAvatarID = avatarID;
 }

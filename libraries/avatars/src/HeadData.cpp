@@ -240,12 +240,16 @@ void HeadData::setLookAtPosition(const glm::vec3& lookAtPosition) {
         glm::vec3 oldAvatarLookAtVector = _requestLookAtPosition - _owningAvatar->getWorldPosition();
         glm::vec3 newAvatarLookAtVector = lookAtPosition - _owningAvatar->getWorldPosition();
         const float MIN_BLINK_ANGLE = 0.35f; // 20 degrees
-        _forceBlink = angleBetween(oldAvatarLookAtVector, newAvatarLookAtVector) > MIN_BLINK_ANGLE;
+        _blinkToRetarget = angleBetween(oldAvatarLookAtVector, newAvatarLookAtVector) > MIN_BLINK_ANGLE;
         _lookAtUpdated = false;
+    } 
+    if (_lookAtUpdated) {
+        _lookAtPosition = lookAtPosition;
     }
     _requestLookAtPosition = lookAtPosition;
-    if (_lookAtUpdated) {
-        _forceBlink = false;
-        _lookAtPosition = lookAtPosition;
-    }    
+}
+
+void HeadData::updateEyeLookAt() {
+    _lookAtPosition = _requestLookAtPosition;
+    _lookAtUpdated = true;
 }
