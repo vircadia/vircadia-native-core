@@ -53,6 +53,15 @@ void DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEnt
     }
 }
 
+void DeleteEntityOperator::addEntityToDeleteList(const EntityItemPointer& entity) {
+    assert(entity && entity->getElement());
+    EntityToDeleteDetails details;
+    details.entity = entity;
+    details.containingElement = entity->getElement();
+    details.cube = details.containingElement->getAACube();
+    _entitiesToDelete << details;
+    _lookingCount++;
+}
 
 // does this entity tree element contain the old entity
 bool DeleteEntityOperator::subTreeContainsSomeEntitiesToDelete(const OctreeElementPointer& element) {
