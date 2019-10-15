@@ -22,7 +22,8 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
                              @"--defaultScriptsOverride", defaultScriptOverride.toNSString(),
                              @"--setBookmark", homeBookmark,
                              @"--no-updater",
-                             @"--no-launcher", nil];
+                             @"--no-launcher",
+                             @"--suppress-settings-reset", nil];
     } else {
         arguments = [NSArray arrayWithObjects:
                                  @"--url" , homePath.toNSString(),
@@ -30,7 +31,8 @@ void launchClient(const QString& clientPath, const QString& homePath, const QStr
                              @"--defaultScriptsOverride", defaultScriptOverride.toNSString(),
                              @"--setBookmark", homeBookmark,
                              @"--no-updater",
-                             @"--no-launcher", nil];
+                             @"--no-launcher",
+                             @"--suppress-settings-reset", nil];
     }
 
     NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
