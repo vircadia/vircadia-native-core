@@ -545,7 +545,8 @@ QStringList Rig::getAnimationRoles() const {
             auto clipNode = std::dynamic_pointer_cast<AnimClip>(node);
             if (clipNode) {
                 // filter out the userAnims, they are for internal use only.
-                if (!clipNode->getID().startsWith("userAnim")) {
+                // also don't return additive blend node clips as valid roles.
+                if (!clipNode->getID().startsWith("userAnim") && clipNode->getBlendType() == AnimBlendType_Normal) {
                     list.append(node->getID());
                 }
             }
