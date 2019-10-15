@@ -64,6 +64,11 @@ void RecordingScriptingInterface::playClip(NetworkClipLoaderPointer clipLoader, 
 }
 
 void RecordingScriptingInterface::loadRecording(const QString& url, QScriptValue callback) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "loadRecording", Q_ARG(const QString&, url), Q_ARG(QScriptValue, callback));
+        return;
+    }
+
     auto clipLoader = DependencyManager::get<recording::ClipCache>()->getClipLoader(url);
 
     if (clipLoader->isLoaded()) {
@@ -117,6 +122,11 @@ void RecordingScriptingInterface::startPlaying() {
 }
 
 void RecordingScriptingInterface::setPlayerVolume(float volume) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "setPlayerVolume", Q_ARG(float, volume));
+        return;
+    }
+
     _player->setVolume(std::min(std::max(volume, 0.0f), 1.0f));
 }
 
@@ -137,6 +147,11 @@ void RecordingScriptingInterface::setPlayFromCurrentLocation(bool playFromCurren
 }
 
 void RecordingScriptingInterface::setPlayerLoop(bool loop) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "setPlayerLoop", Q_ARG(bool, loop));
+        return;
+    }
+
     _player->loop(loop);
 }
 
@@ -197,6 +212,11 @@ void RecordingScriptingInterface::startRecording() {
 void RecordingScriptingInterface::stopRecording() {
     if (!_recorder->isRecording()) {
         qCWarning(scriptengine) << "Recorder is not running";
+        return;
+    }
+
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "stopRecording");
         return;
     }
 
