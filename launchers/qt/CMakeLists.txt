@@ -15,12 +15,13 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include("cmake/init.cmake")
 include("cmake/macros/SetPackagingParameters.cmake")
 
- if(MSVC)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-  endif()
+if(MSVC)
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
-if (WIN32)
-  set(CMAKE_MFC_FLAG 1)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MT")
+  set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MT")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
 endif()
 
 
@@ -44,8 +45,8 @@ if (WIN32)
 
     ExternalProject_Add(
         qtlite
-        URL "https://public.highfidelity.com/dependencies/qtlite/qt-lite-5.9.9-win-oct-9-2019.zip"
-        URL_HASH MD5=4c33eeca16563855be50dab8dd4f0f53
+        URL "https://public.highfidelity.com/dependencies/qtlite/qt-lite-5.9.9-win-oct-15-2019.zip"
+        URL_HASH MD5=0176277bca37d219e83738caf3a698eb
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""
