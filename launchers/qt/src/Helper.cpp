@@ -60,22 +60,17 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     outFile.close();
 }
 
-void swapLaunchers(const QString& oldLauncherPath, const QString& newLauncherPath) {
+bool swapLaunchers(const QString& oldLauncherPath, const QString& newLauncherPath) {
     if (!(QFileInfo::exists(oldLauncherPath) && QFileInfo::exists(newLauncherPath))) {
         qDebug() << "old launcher: " << oldLauncherPath << "new launcher: " << newLauncherPath << " file does not exist";
     }
 
     bool success = false;
 #ifdef Q_OS_MAC
+    qDebug() << "replacing launchers -> old launcher: " << oldLauncherPath << " new launcher: " << newLauncherPath;
     success = replaceDirectory(oldLauncherPath, newLauncherPath);
 #endif
-
-    if (success) {
-        qDebug() << "succeessfully replaced";
-    } else {
-        qDebug() << "failed";
-        exit(0);
-    }
+    return success;
 }
 
 

@@ -37,6 +37,8 @@ int main(int argc, char *argv[]) {
     Q_INIT_RESOURCE(resources);
     cleanLogFile();
     qInstallMessageHandler(messageHandler);
+    CommandlineOptions* options = CommandlineOptions::getInstance();
+    options->parse(argc, argv);
     bool didUpdate = false;
 #ifdef Q_OS_MAC
     if (isLauncherAlreadyRunning()) {
@@ -45,13 +47,15 @@ int main(int argc, char *argv[]) {
     closeInterfaceIfRunning();
     if (argc == 3) {
         if (hasSuffix(argv[1], "app") && hasSuffix(argv[2], "app")) {
-            swapLaunchers(argv[1], argv[2]);
+            bool success = swapLaunchers(argv[1], argv[2]);
+            qDebug() << "Launcher install success: " << success;
+            if (!success) {
+                options->append("--noUpdate");
+            }
             didUpdate = true;
         }
     }
 #endif
-    CommandlineOptions* options = CommandlineOptions::getInstance();
-    options->parse(argc, argv);
 #ifdef Q_OS_WIN
     LauncherInstaller launcherInstaller(argv[0]);
     if (options->contains("--uninstall") || options->contains("--resumeUninstall")) {
