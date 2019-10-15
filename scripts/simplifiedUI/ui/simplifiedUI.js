@@ -723,9 +723,9 @@ function restoreLODSettings() {
 }
 
 
-var nametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
-var si = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
-var simplifiedEmote = Script.require("../simplifiedEmote/simplifiedEmote.js?" + Date.now());
+var nametag = Script.require("./simplifiedNametag/simplifiedNametag.js");
+var si = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js");
+var simplifiedEmote = Script.require("../simplifiedEmote/simplifiedEmote.js");
 var oldShowAudioTools;
 var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);
