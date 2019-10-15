@@ -13,6 +13,8 @@ Script.include("/~/system/libraries/controllers.js");
 (function() {
 
     function TrackedHandWalk() {
+        this.gestureMappingName = 'hand-track-walk-gesture-' + Math.random();
+        this.inputGestureMapping = Controller.newMapping(this.gestureMappingName);
         this.mappingName = 'hand-track-walk-' + Math.random();
         this.inputMapping = Controller.newMapping(this.mappingName);
         this.leftIndexPos = null;
@@ -23,6 +25,8 @@ Script.include("/~/system/libraries/controllers.js");
         this.touchOffAboveDistance = 0.045;
         this.walkingForward = false;
         this.walkingBackward = false;
+
+        this.mappingEnabled = false;
 
         this.parameters = makeDispatcherModuleParameters(
             80,
@@ -53,6 +57,14 @@ Script.include("/~/system/libraries/controllers.js");
                 } else if (this.walkingBackward && thumbTipDistance > this.touchOffAboveDistance) {
                     this.walkingBackward = false;
                 }
+            }
+
+            if ((this.walkingForward || this.walkingBackward) && !this.mappingEnabled) {
+                Controller.enableMapping(this.mappingName);
+                this.mappingEnabled = true;
+            } else if (!(this.walkingForward || this.walkingBackward) && this.mappingEnabled) {
+                this.inputMapping.disable();
+                this.mappingEnabled = false;
             }
         };
 
@@ -108,16 +120,16 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.setup = function () {
             var _this = this;
-            this.inputMapping.from(Controller.Standard.LeftHandIndex4).peek().to(function (pose) {
+            this.inputGestureMapping.from(Controller.Standard.LeftHandIndex4).peek().to(function (pose) {
                 _this.leftIndexChanged(pose);
             });
-            this.inputMapping.from(Controller.Standard.LeftHandThumb4).peek().to(function (pose) {
+            this.inputGestureMapping.from(Controller.Standard.LeftHandThumb4).peek().to(function (pose) {
                 _this.leftThumbChanged(pose);
             });
-            this.inputMapping.from(Controller.Standard.RightHandIndex4).peek().to(function (pose) {
+            this.inputGestureMapping.from(Controller.Standard.RightHandIndex4).peek().to(function (pose) {
                 _this.rightIndexChanged(pose);
             });
-            this.inputMapping.from(Controller.Standard.RightHandThumb4).peek().to(function (pose) {
+            this.inputGestureMapping.from(Controller.Standard.RightHandThumb4).peek().to(function (pose) {
                 _this.rightThumbChanged(pose);
             });
 
@@ -132,7 +144,7 @@ Script.include("/~/system/libraries/controllers.js");
                     return 0.5;
                 } else {
                     // return Controller.getActionValue(Controller.Standard.TranslateZ);
-                    return null;
+                    return 0.0;
                 }
             }).to(Controller.Actions.TranslateZ);
 
@@ -145,10 +157,11 @@ Script.include("/~/system/libraries/controllers.js");
             //     }
             // }).to(Controller.Actions.Yaw);
 
-            Controller.enableMapping(this.mappingName);
+            Controller.enableMapping(this.gestureMappingName);
         };
 
         this.cleanUp = function () {
+            this.inputGestureMapping.disable();
             this.inputMapping.disable();
         };
     }
