@@ -14,7 +14,6 @@
 
 
 // START CONFIG OPTIONS
-var DOCKED_QML_SUPPORTED = true;
 var TOOLBAR_NAME = "com.highfidelity.interface.toolbar.system";
 var DEFAULT_SCRIPTS_PATH_PREFIX = ScriptDiscoveryService.defaultScriptsPath + "/";
 // END CONFIG OPTIONS
@@ -352,6 +351,124 @@ function setOutputMuted(outputMuted) {
     }
 }
 
+var TOP_BAR_HEIGHT_PX = 48;
+var INITIAL_LAUNCH_QML_PATH = Script.resolvePath("./simplifiedFTUE/InitialLaunchWindow.qml");
+var INITIAL_LAUNCH_WINDOW_TITLE = "Initial Launch";
+var INITIAL_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
+var INITIAL_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+0x00000008 | // Qt::Popup
+0x00000002 | // Qt::Tool
+0x00000800 | // Qt::FramelessWindowHint
+0x40000000; // Qt::NoDropShadowWindowHint
+var initialLaunchWindow = false;
+function displayInitialLaunchWindow() {
+    if (initialLaunchWindow) {
+        return;
+    }
+
+    simplifiedEmote.handleFTUEScreensVisibilityChanged(true);
+
+    initialLaunchWindow = Desktop.createWindow(INITIAL_LAUNCH_QML_PATH, {
+        title: INITIAL_LAUNCH_WINDOW_TITLE,
+        presentationMode: INITIAL_LAUNCH_PRESENTATION_MODE,
+        isFullScreenWindow: true,
+        overrideFlags: INITIAL_WINDOW_FLAGS
+    });
+
+    initialLaunchWindow.fromQml.connect(onMessageFromInitialLaunchWindow);
+
+    Window.location = "file:///~/serverless/tutorial.json";
+}
+
+var SECOND_LAUNCH_QML_PATH = Script.resolvePath("simplifiedFTUE/SecondLaunchWindow.qml");
+var SECOND_LAUNCH_WINDOW_TITLE = "Second Launch";
+var SECOND_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
+var SECOND_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+0x00000008 | // Qt::Popup
+0x00000002 | // Qt::Tool
+0x00000800 | // Qt::FramelessWindowHint
+0x40000000; // Qt::NoDropShadowWindowHint
+var secondLaunchWindow = false;
+function displaySecondLaunchWindow() {
+    if (secondLaunchWindow) {
+        return;
+    }
+
+    simplifiedEmote.handleFTUEScreensVisibilityChanged(true);
+
+    secondLaunchWindow = Desktop.createWindow(SECOND_LAUNCH_QML_PATH, {
+        title: SECOND_LAUNCH_WINDOW_TITLE,
+        presentationMode: SECOND_LAUNCH_PRESENTATION_MODE,
+        isFullScreenWindow: true,
+        overrideFlags: SECOND_WINDOW_FLAGS
+    });
+
+    secondLaunchWindow.fromQml.connect(onMessageFromSecondLaunchWindow);
+
+    Window.location = "file:///~/serverless/tutorial.json";
+}
+
+function closeInitialLaunchWindow() {
+    if (initialLaunchWindow) {
+        initialLaunchWindow.fromQml.disconnect(onMessageFromInitialLaunchWindow);
+        initialLaunchWindow.close();
+        initialLaunchWindow = null;
+    }
+
+    simplifiedEmote.handleFTUEScreensVisibilityChanged(false);
+}
+
+function closeSecondLaunchWindow() {
+    if (secondLaunchWindow) {
+        secondLaunchWindow.fromQml.disconnect(onMessageFromSecondLaunchWindow);
+        secondLaunchWindow.close();
+        secondLaunchWindow = null;
+    }
+
+    simplifiedEmote.handleFTUEScreensVisibilityChanged(false);
+}
+
+var INITIAL_LAUNCH_WINDOW_MESSAGE_SOURCE = "InitialLaunchWindow.qml";
+function onMessageFromInitialLaunchWindow(message) {
+    if (message.source !== INITIAL_LAUNCH_WINDOW_MESSAGE_SOURCE) {
+        return;
+    }
+
+    switch (message.method) {
+        case "closeInitialLaunchWindow":
+            closeInitialLaunchWindow();
+            var homeLocation = LocationBookmarks.getAddress("hqhome");
+            if (homeLocation) {
+                Window.location = homeLocation;
+            }
+            break;
+
+        default:
+            console.log("Unrecognized message from " + INITIAL_LAUNCH_WINDOW_MESSAGE_SOURCE + ": " + JSON.stringify(message));
+            break;
+    }
+}
+
+var SECOND_LAUNCH_WINDOW_MESSAGE_SOURCE = "SecondLaunchWindow.qml";
+function onMessageFromSecondLaunchWindow(message) {
+    if (message.source !== SECOND_LAUNCH_WINDOW_MESSAGE_SOURCE) {
+        return;
+    }
+
+    switch (message.method) {
+        case "closeSecondLaunchWindow":
+            closeSecondLaunchWindow();
+            var homeLocation = LocationBookmarks.getAddress("hqhome");
+            if (homeLocation) {
+                Window.location = homeLocation;
+            }
+            break;
+
+        default:
+            console.log("Unrecognized message from " + SECOND_LAUNCH_WINDOW_MESSAGE_SOURCE + ": " + JSON.stringify(message));
+            break;
+    }
+}
 
 var WAIT_FOR_TOP_BAR_MS = 1000;
 function sendLocalStatusToQml() {
@@ -397,6 +514,14 @@ function onMessageFromTopBar(message) {
             si.toggleStatus();
             break;
 
+        case "displayInitialLaunchWindow":
+            displayInitialLaunchWindow();
+            break;
+
+        case "displaySecondLaunchWindow":
+            displaySecondLaunchWindow();
+            break;
+
         default:
             console.log("Unrecognized message from " + TOP_BAR_MESSAGE_SOURCE + ": " + JSON.stringify(message));
             break;
@@ -425,7 +550,6 @@ var TOP_BAR_QML_PATH = Script.resourcesPath() + "qml/hifi/simplifiedUI/topBar/Si
 var TOP_BAR_WINDOW_TITLE = "Simplified Top Bar";
 var TOP_BAR_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var TOP_BAR_WIDTH_PX = Window.innerWidth;
-var TOP_BAR_HEIGHT_PX = 48;
 var topBarWindow = false;
 function loadSimplifiedTopBar() {
     var windowProps = {
@@ -436,16 +560,9 @@ function loadSimplifiedTopBar() {
             y: TOP_BAR_HEIGHT_PX
         }
     };
-    if (DOCKED_QML_SUPPORTED) {
-        windowProps.presentationWindowInfo = {
-            dockArea: Desktop.DockArea.TOP
-        };
-    } else {
-        windowProps.position = {
-            x: Window.x,
-            y: Window.y
-        };
-    }
+    windowProps.presentationWindowInfo = {
+        dockArea: Desktop.DockArea.TOP
+    };
     topBarWindow = Desktop.createWindow(TOP_BAR_QML_PATH, windowProps);
 
     topBarWindow.fromQml.connect(onMessageFromTopBar);
@@ -510,21 +627,38 @@ function onHMDInputDeviceMutedChanged(isMuted) {
 function onGeometryChanged(rect) {
     updateInputDeviceMutedOverlay(Audio.muted);
     updateOutputDeviceMutedOverlay(isOutputMuted());
-    if (topBarWindow && !DOCKED_QML_SUPPORTED) {
-        topBarWindow.size = {
-            "x": rect.width,
-            "y": TOP_BAR_HEIGHT_PX
-        };
-        topBarWindow.position = {
-            "x": rect.x,
-            "y": rect.y
-        };
+}
+
+var initialLaunchWindowIsMinimized = false;
+var secondLaunchWindowIsMinimized = false;
+function onWindowMinimizedChanged(isMinimized) {
+    if (isMinimized) {
+        handleInitialLaunchWindowVisibleChanged(false);
+        handleSecondLaunchWindowVisibleChanged(false);
+    } else if (!HMD.active) {
+        handleInitialLaunchWindowVisibleChanged(true);
+        handleSecondLaunchWindowVisibleChanged(true);
     }
 }
 
-function onWindowMinimizedChanged() {
-    // prerequisite placeholder for Reduce Friction of Customer Acquisition sub task: https://highfidelity.atlassian.net/browse/DEV-585
-    print("WINDOW MINIMIZED CHANGED SIGNAL");
+function handleInitialLaunchWindowVisibleChanged(shouldBeVisible) {
+    if (shouldBeVisible && !initialLaunchWindow && initialLaunchWindowIsMinimized) {
+        displayInitialLaunchWindow();
+        initialLaunchWindowIsMinimized = false;
+    } else if (!shouldBeVisible && initialLaunchWindow) {
+        closeInitialLaunchWindow();
+        initialLaunchWindowIsMinimized = true;
+    }
+}
+
+function handleSecondLaunchWindowVisibleChanged(shouldBeVisible) {
+    if (shouldBeVisible && !secondLaunchWindow && secondLaunchWindowIsMinimized) {
+        displaySecondLaunchWindow();
+        secondLaunchWindowIsMinimized = false;
+    } else if (!shouldBeVisible && secondLaunchWindow) {
+        closeSecondLaunchWindow();
+        secondLaunchWindowIsMinimized = true;
+    }
 }
 
 function onDisplayModeChanged(isHMDMode) {
@@ -534,8 +668,12 @@ function onDisplayModeChanged(isHMDMode) {
 
     if (isHMDMode) {
         onHMDInputDeviceMutedChanged(Audio.mutedHMD);
+        handleInitialLaunchWindowVisibleChanged(false);
+        handleSecondLaunchWindowVisibleChanged(false);
     } else {
         onDesktopInputDeviceMutedChanged(Audio.mutedDesktop);
+        handleInitialLaunchWindowVisibleChanged(true);
+        handleSecondLaunchWindowVisibleChanged(true);
     }
 }
 
@@ -578,9 +716,9 @@ function restoreLODSettings() {
 }
 
 
-var nametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
-var si = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
-var emote = Script.require("../simplifiedEmote/simplifiedEmote.js?" + Date.now());
+var nametag = Script.require("./simplifiedNametag/simplifiedNametag.js");
+var si = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js");
+var simplifiedEmote = Script.require("../simplifiedEmote/simplifiedEmote.js");
 var oldShowAudioTools;
 var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);
@@ -645,6 +783,14 @@ function shutdown() {
 
     if (settingsAppWindow) {
         settingsAppWindow.close();
+    }
+
+    if (initialLaunchWindow) {
+        closeInitialLaunchWindow();
+    }
+
+    if (secondLaunchWindow) {
+        closeSecondLaunchWindow();
     }
 
     maybeDeleteInputDeviceMutedOverlay();
