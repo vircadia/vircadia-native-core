@@ -72,7 +72,8 @@ void Head::simulate(float deltaTime) {
         _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
     }
 
-    if (getHasProceduralEyeMovement()) {
+    if (getProceduralAnimationFlag(HeadData::SaccadeProceduralEyeJointAnimation) &&
+        !getSuppressProceduralAnimationFlag(HeadData::SaccadeProceduralEyeJointAnimation)) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 1.0f;
         const float AVERAGE_SACCADE_INTERVAL = 6.0f;
@@ -95,7 +96,8 @@ void Head::simulate(float deltaTime) {
     const float BLINK_START_VARIABILITY = 0.25f;
     const float FULLY_OPEN = 0.0f;
     const float FULLY_CLOSED = 1.0f;
-    if (getHasProceduralBlinkFaceMovement()) {
+    if (getProceduralAnimationFlag(HeadData::BlinkProceduralBlendshapeAnimation) &&
+        !getSuppressProceduralAnimationFlag(HeadData::BlinkProceduralBlendshapeAnimation)) {
         // handle automatic blinks
         // Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
@@ -146,7 +148,8 @@ void Head::simulate(float deltaTime) {
     }
 
     // use data to update fake Faceshift blendshape coefficients
-    if (getHasAudioEnabledFaceMovement()) {
+    if (getProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation) &&
+        !getSuppressProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation)) {
         // Update audio attack data for facial animation (eyebrows and mouth)
         float audioAttackAveragingRate = (10.0f - deltaTime * NORMAL_HZ) / 10.0f; // --> 0.9 at 60 Hz
         _audioAttack = audioAttackAveragingRate * _audioAttack +
@@ -178,7 +181,8 @@ void Head::simulate(float deltaTime) {
         _mouth4,
         _transientBlendshapeCoefficients);
 
-    if (getHasProceduralEyeFaceMovement()) {
+    if (getProceduralAnimationFlag(HeadData::LidAdjustmentProceduralBlendshapeAnimation) &&
+        !getSuppressProceduralAnimationFlag(HeadData::LidAdjustmentProceduralBlendshapeAnimation)) {
         // This controls two things, the eye brow and the upper eye lid, it is driven by the vertical up/down angle of the
         // eyes relative to the head.  This is to try to help prevent sleepy eyes/crazy eyes.
         applyEyelidOffset(getOrientation());

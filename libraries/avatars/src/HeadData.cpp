@@ -27,11 +27,10 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _basePitch(0.0f),
     _baseRoll(0.0f),
     _lookAtPosition(0.0f, 0.0f, 0.0f),
-    _blendshapeCoefficients(QVector<float>(0, 0.0f)),
-    _transientBlendshapeCoefficients(QVector<float>(0, 0.0f)),
-    _summedBlendshapeCoefficients(QVector<float>(0, 0.0f)),
     _owningAvatar(owningAvatar)
 {
+    _userProceduralAnimationFlags.assign((size_t)ProceduralAnimaitonTypeCount, true);
+    _suppressProceduralAnimationFlags.assign((size_t)ProceduralAnimaitonTypeCount, false);
     computeBlendshapesLookupMap();
 }
 
@@ -102,7 +101,7 @@ const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
 
 void HeadData::setBlendshape(QString name, float val) {
 
-    //Check to see if the named blendshape exists, and then set its value if it does
+    // Check to see if the named blendshape exists, and then set its value if it does
     auto it = _blendshapeLookupMap.find(name);
     if (it != _blendshapeLookupMap.end()) {
         if (_blendshapeCoefficients.size() <= it.value()) {
@@ -112,6 +111,19 @@ void HeadData::setBlendshape(QString name, float val) {
             _transientBlendshapeCoefficients.resize(it.value() + 1);
         }
         _blendshapeCoefficients[it.value()] = val;
+    } else {
+        // check to see if this is a legacy blendshape that is present in
+        // ARKit blendshapes but is split. i.e. has left and right halfs.
+        if (name == "LipsUpperUp") {
+            _blendshapeCoefficients[(int)Blendshapes::MouthUpperUp_L] = val;
+            _blendshapeCoefficients[(int)Blendshapes::MouthUpperUp_R] = val;
+        } else if (name == "LipsLowerDown") {
+            _blendshapeCoefficients[(int)Blendshapes::MouthLowerDown_L] = val;
+            _blendshapeCoefficients[(int)Blendshapes::MouthLowerDown_R] = val;
+        } else if (name == "Sneer") {
+            _blendshapeCoefficients[(int)Blendshapes::NoseSneer_L] = val;
+            _blendshapeCoefficients[(int)Blendshapes::NoseSneer_R] = val;
+        }
     }
 }
 
@@ -197,38 +209,34 @@ void HeadData::fromJson(const QJsonObject& json) {
     }
 }
 
-bool HeadData::getHasProceduralEyeFaceMovement() const {
-    return _hasProceduralEyeFaceMovement;
+bool HeadData::getProceduralAnimationFlag(ProceduralAnimationType type) const {
+    return _userProceduralAnimationFlags[(int)type];
 }
 
-void HeadData::setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement) {
-    _hasProceduralEyeFaceMovement = hasProceduralEyeFaceMovement;
+void HeadData::setProceduralAnimationFlag(ProceduralAnimationType type, bool value) {
+    _userProceduralAnimationFlags[(int)type] = value;
 }
 
-bool HeadData::getHasProceduralBlinkFaceMovement() const {
-    return _hasProceduralBlinkFaceMovement;
+bool HeadData::getSuppressProceduralAnimationFlag(ProceduralAnimationType type) const {
+    return _suppressProceduralAnimationFlags[(int)type];
 }
 
-void HeadData::setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement) {
-    _hasProceduralBlinkFaceMovement = hasProceduralBlinkFaceMovement;
+void HeadData::setSuppressProceduralAnimationFlag(ProceduralAnimationType type, bool value) {
+    _suppressProceduralAnimationFlags[(int)type] = value;
 }
 
-bool HeadData::getHasAudioEnabledFaceMovement() const {
-    return _hasAudioEnabledFaceMovement;
-}
-
-void HeadData::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) {
-    _hasAudioEnabledFaceMovement = hasAudioEnabledFaceMovement;
-}
-
-bool HeadData::getHasProceduralEyeMovement() const {
-    return _hasProceduralEyeMovement;
-}
-
-void HeadData::setHasProceduralEyeMovement(bool hasProceduralEyeMovement) {
-    _hasProceduralEyeMovement = hasProceduralEyeMovement;
+bool HeadData::getHasScriptedBlendshapes() const {
+    return _hasScriptedBlendshapes;
 }
 
 void HeadData::setHasScriptedBlendshapes(bool value) {
     _hasScriptedBlendshapes = value;
+}
+
+bool HeadData::getHasInputDrivenBlendshapes() const {
+    return _hasInputDrivenBlendshapes;
+}
+
+void HeadData::setHasInputDrivenBlendshapes(bool value) {
+    _hasInputDrivenBlendshapes = value;
 }

@@ -111,6 +111,8 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     Head* head = _owningAvatar->getHead();
 
+    // AJT: blendshapes TODO: RE-enable this. but move into rig?
+    /*
     bool eyePosesValid = !head->getHasProceduralEyeMovement();
     glm::vec3 lookAt;
     if (eyePosesValid) {
@@ -118,6 +120,8 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     } else {
         lookAt = avoidCrossedEyes(head->getCorrectedLookAtPosition());
     }
+    */
+    glm::vec3 lookAt = avoidCrossedEyes(head->getCorrectedLookAtPosition());
 
     // no need to call Model::updateRig() because otherAvatars get their joint state
     // copied directly from AvtarData::_jointData (there are no Rig animations to blend)

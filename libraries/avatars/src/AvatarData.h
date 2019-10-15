@@ -107,7 +107,7 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits  (UNUSED)
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits (UNUSED)
 const int HAS_SCRIPTED_BLENDSHAPES = 4; // 5th bit
-const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
+const int HAS_PROCEDURAL_EYE_MOVEMENT = 5; // 6th bit
 const int HAS_REFERENTIAL = 6; // 7th bit
 const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit (UNUSED)
 const int AUDIO_ENABLED_FACE_MOVEMENT = 8; // 9th bit
@@ -703,13 +703,13 @@ public:
     float getDomainLimitedScale() const;
 
     void setHasScriptedBlendshapes(bool hasScriptedBlendshapes);
-    bool getHasScriptedBlendshapes() const { return _hasScriptedBlendshapes; }
+    bool getHasScriptedBlendshapes() const;
     void setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement);
-    bool getHasProceduralBlinkFaceMovement() const { return _headData->getHasProceduralBlinkFaceMovement(); }
+    bool getHasProceduralBlinkFaceMovement() const;
     void setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement);
-    bool getHasProceduralEyeFaceMovement() const { return _headData->getHasProceduralEyeFaceMovement(); }
+    bool getHasProceduralEyeFaceMovement() const;
     void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
-    bool getHasAudioEnabledFaceMovement() const { return _headData->getHasAudioEnabledFaceMovement(); }
+    bool getHasAudioEnabledFaceMovement() const;
 
     /**jsdoc
      * Gets the minimum scale allowed for this avatar in the current domain.
@@ -1716,7 +1716,6 @@ protected:
     // key state
     KeyState _keyState;
 
-    bool _hasScriptedBlendshapes;
     bool _hasNewJointData { true }; // set in AvatarData, cleared in Avatar
 
     mutable HeadData* _headData { nullptr };

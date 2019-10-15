@@ -91,7 +91,7 @@ enum class LegacyBlendshpaes : int {
     ChinUpperRaise, // not in ARKit
     Sneer, // split in ARKit
     LegacyBlendshapeCount
-}
+};
 
 // NEW in ARKit
 // * LipsTogether

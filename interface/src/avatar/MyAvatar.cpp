@@ -780,18 +780,6 @@ void MyAvatar::update(float deltaTime) {
     emit energyChanged(currentEnergy);
 
     updateEyeContactTarget(deltaTime);
-
-    // if we're getting eye rotations from a tracker, disable observer-side procedural eye motions
-    auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    bool eyesTracked =
-        userInputMapper->getPoseState(controller::Action::LEFT_EYE).valid &&
-        userInputMapper->getPoseState(controller::Action::RIGHT_EYE).valid;
-
-    int leftEyeJointIndex = getJointIndex("LeftEye");
-    int rightEyeJointIndex = getJointIndex("RightEye");
-    bool eyesAreOverridden = getIsJointOverridden(leftEyeJointIndex) || getIsJointOverridden(rightEyeJointIndex);
-
-    _headData->setHasProceduralEyeMovement(!(eyesTracked || eyesAreOverridden));
 }
 
 void MyAvatar::updateEyeContactTarget(float deltaTime) {

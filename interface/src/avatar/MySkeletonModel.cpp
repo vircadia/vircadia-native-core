@@ -114,6 +114,9 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     Head* head = _owningAvatar->getHead();
 
+    // AJT: blendshapes TODO: RE-enable this and avoid duplication with
+    // SkeletonModel::updateRig()
+    /*
     bool eyePosesValid = !head->getHasProceduralEyeMovement();
     glm::vec3 lookAt;
     if (eyePosesValid) {
@@ -121,6 +124,8 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     } else {
         lookAt = avoidCrossedEyes(head->getLookAtPosition());
     }
+    */
+    glm::vec3 lookAt = avoidCrossedEyes(head->getLookAtPosition());
 
     MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
     assert(myAvatar);
