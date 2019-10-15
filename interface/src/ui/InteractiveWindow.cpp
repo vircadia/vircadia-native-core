@@ -453,25 +453,6 @@ void InteractiveWindow::setPosition(const glm::vec2& position) {
     }
 }
 
-void InteractiveWindow::setNativeWindowPosition(const glm::vec2& position) {
-    if (!_qmlWindowProxy) {
-        return;
-    }
-
-    auto qmlWindow = _qmlWindowProxy->getQmlWindow();
-
-    if (!qmlWindow) {
-        return;
-    }
-    const auto nativeWindowProperty = qmlWindow->property("nativeWindow");
-    if (nativeWindowProperty.isNull() || !nativeWindowProperty.isValid()) {
-        return;
-    }
-    const auto nativeWindow = qvariant_cast<QQuickWindow*>(nativeWindowProperty);
-
-    nativeWindow->setPosition(QPoint(position.x, position.y));
-}
-
 RelativePositionAnchor InteractiveWindow::getRelativePositionAnchor() const {
     return _relativePositionAnchor;
 }
@@ -524,14 +505,14 @@ void InteractiveWindow::setPositionUsingRelativePositionAndAnchor(const QRect& m
         QMetaObject::invokeMethod(_qmlWindowProxy.get(), "writeProperty", Q_ARG(QString, INTERACTIVE_WINDOW_POSITION_PROPERTY),
             Q_ARG(QVariant, QPointF(newPosition.x, newPosition.y)));
     }
-    setNativeWindowPosition(newPosition);
+    setPosition(newPosition);
 }
 
 void InteractiveWindow::repositionAndResizeFullScreenWindow() {
     QRect windowGeometry = qApp->getWindow()->geometry();
 
-    setNativeWindowPosition(glm::vec2(windowGeometry.x(), windowGeometry.y()));
-    setNativeWindowSize(glm::vec2(windowGeometry.width(), windowGeometry.height()));
+    setPosition(glm::vec2(windowGeometry.x(), windowGeometry.y()));
+    setSize(glm::vec2(windowGeometry.width(), windowGeometry.height()));
 }
 
 glm::vec2 InteractiveWindow::getSize() const {
@@ -548,26 +529,6 @@ void InteractiveWindow::setSize(const glm::vec2& size) {
                                   Q_ARG(QVariant, QSize(size.x, size.y)));
         QMetaObject::invokeMethod(_qmlWindowProxy->getQmlWindow(), "updateInteractiveWindowSizeForMode");
     }
-}
-
-void InteractiveWindow::setNativeWindowSize(const glm::vec2& size) {
-    if (!_qmlWindowProxy) {
-        return;
-    }
-
-    auto qmlWindow = _qmlWindowProxy->getQmlWindow();
-
-    if (!qmlWindow) {
-        return;
-    }
-    const auto nativeWindowProperty = qmlWindow->property("nativeWindow");
-    if (nativeWindowProperty.isNull() || !nativeWindowProperty.isValid()) {
-        return;
-    }
-    const auto nativeWindow = qvariant_cast<QQuickWindow*>(nativeWindowProperty);
-
-    nativeWindow->setWidth(size.x);
-    nativeWindow->setHeight(size.y);
 }
 
 QString InteractiveWindow::getTitle() const {
