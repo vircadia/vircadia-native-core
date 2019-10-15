@@ -1653,7 +1653,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                         int oldIndex = fbxCluster.indices[i];
                         uint32_t newIndex = (uint32_t)extracted.newIndices.value(oldIndex);
                         deformer.indices.push_back(newIndex);
-                        deformer.indices.push_back((float)fbxCluster.weights[i]);
+                        deformer.weights.push_back((float)fbxCluster.weights[i]);
                     }
                 }
 

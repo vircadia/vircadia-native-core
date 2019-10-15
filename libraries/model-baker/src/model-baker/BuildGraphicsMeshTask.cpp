@@ -95,7 +95,7 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
         HIFI_FCDEBUG_ID(model_baker(), repeatMessageID, "BuildGraphicsMeshTask -- The number of indices and weights for a deformer had different sizes and have been trimmed to match");
     }
     // Record cluster sizes
-    const size_t numVertClusters = (reweightedDeformers.weightsPerVertex ? hfmMesh.clusterIndices.size() / reweightedDeformers.weightsPerVertex : 0);
+    const size_t numVertClusters = (reweightedDeformers.weightsPerVertex ? reweightedDeformers.indices.size() / reweightedDeformers.weightsPerVertex : 0);
     const size_t clusterIndicesSize = numVertClusters * clusterIndiceElement.getSize();
     const size_t clusterWeightsSize = numVertClusters * clusterWeightElement.getSize();
 
