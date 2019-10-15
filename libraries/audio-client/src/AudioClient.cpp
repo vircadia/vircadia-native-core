@@ -47,7 +47,7 @@
 #include <SettingHandle.h>
 #include <SharedUtil.h>
 #include <Transform.h>
-
+#include <plugins/DisplayPlugin.h>
 #include "AudioClientLogging.h"
 #include "AudioLogging.h"
 #include "AudioHelpers.h"
@@ -81,6 +81,21 @@ Mutex _recordMutex;
 
 HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode);
 
+#include <shared/QtHelpers.h>
+static QString getHmdAudioDeviceName(QAudio::Mode mode) {
+    foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getAllDisplayPlugins()) {
+        if (displayPlugin && displayPlugin->isHmd()) {
+            if (mode == QAudio::AudioInput) {
+                return displayPlugin->getPreferredAudioInDevice();
+            } else {
+                return displayPlugin->getPreferredAudioOutDevice();
+            }
+            break;
+        }
+    }
+    return QString();
+}
+
 // thread-safe
 QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
     // NOTE: availableDevices() clobbers the Qt internal device list
@@ -88,13 +103,26 @@ QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
     auto devices = QAudioDeviceInfo::availableDevices(mode);
 
     QList<HifiAudioDeviceInfo> newDevices;
-
     for (auto& device : devices) {
         newDevices.push_back(HifiAudioDeviceInfo(device, false, mode));
     }
     
     newDevices.push_front(defaultAudioDeviceForMode(mode));
-
+    
+    QString hmdDeviceName = getHmdAudioDeviceName(mode);
+    if (!hmdDeviceName.isNull() && !hmdDeviceName.isEmpty()) {
+        HifiAudioDeviceInfo hmdDevice;
+        foreach(auto device, newDevices) {
+            if (device.getDevice().deviceName() == hmdDeviceName) {
+                hmdDevice = HifiAudioDeviceInfo(device.getDevice(), true, mode, HifiAudioDeviceInfo::hmd);
+                break;
+            }
+        }
+        
+        if (!hmdDevice.getDevice().isNull()) {
+            newDevices.push_front(hmdDevice);
+        }
+    }
     return newDevices;
 }
 
@@ -477,7 +505,7 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
                 // find a device in the list that matches the name we have and return it
                 foreach(QAudioDeviceInfo audioDevice, devices){
                     if (audioDevice.deviceName() == CFStringGetCStringPtr(deviceName, kCFStringEncodingMacRoman)) {
-                        return HifiAudioDeviceInfo(audioDevice, true, mode);
+                        return HifiAudioDeviceInfo(audioDevice, true, mode, HifiAudioDeviceInfo::desktop);
                     }
                 }
             }
@@ -532,7 +560,7 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     HifiAudioDeviceInfo foundDevice;
     foreach(QAudioDeviceInfo audioDevice, devices) {
         if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
-            foundDevice=HifiAudioDeviceInfo(audioDevice,true,mode);
+            foundDevice=HifiAudioDeviceInfo(audioDevice,true,mode, HifiAudioDeviceInfo::desktop);
             break;
         }
     }
@@ -558,8 +586,8 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     }
 #endif
     // fallback for failed lookup is the default device
-    return (mode == QAudio::AudioInput) ? HifiAudioDeviceInfo(QAudioDeviceInfo::defaultInputDevice(), true,mode) : 
-        HifiAudioDeviceInfo(QAudioDeviceInfo::defaultOutputDevice(), true, mode);
+    return (mode == QAudio::AudioInput) ? HifiAudioDeviceInfo(QAudioDeviceInfo::defaultInputDevice(), true,mode, HifiAudioDeviceInfo::desktop) : 
+        HifiAudioDeviceInfo(QAudioDeviceInfo::defaultOutputDevice(), true, mode, HifiAudioDeviceInfo::desktop);
 }
 
 bool AudioClient::getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QString& deviceName) {

@@ -44,7 +44,8 @@ enum AudioDeviceRole {
     SelectedDesktopRole,
     SelectedHMDRole,
     PeakRole,
-    InfoRole
+    InfoRole,
+    TypeRole
 };
 
 QHash<int, QByteArray> AudioDeviceList::_roles {
@@ -52,7 +53,8 @@ QHash<int, QByteArray> AudioDeviceList::_roles {
     { SelectedDesktopRole, "selectedDesktop" },
     { SelectedHMDRole, "selectedHMD" },
     { PeakRole, "peak" },
-    { InfoRole, "info" }
+    { InfoRole, "info" },
+    { TypeRole, "type"}
 };
 
 static QString getTargetDevice(bool hmd, QAudio::Mode mode) {
@@ -144,6 +146,8 @@ QVariant AudioDeviceList::data(const QModelIndex& index, int role) const {
         return _devices.at(index.row())->selectedHMD;
     } else if (role == InfoRole) {
         return QVariant::fromValue<HifiAudioDeviceInfo>(_devices.at(index.row())->info);
+    } else if (role == TypeRole) {
+        return _devices.at(index.row())->type;
     } else {
         return QVariant();
     }
@@ -281,10 +285,18 @@ void AudioDeviceList::onDevicesChanged(const QList<HifiAudioDeviceInfo>& devices
         device.info = deviceInfo;
 
         if (deviceInfo.isDefault()) {
-            if (deviceInfo.getMode() == QAudio::AudioInput) {
-                device.display = "Computer's default microphone (recommended)";
-            } else {
-                device.display = "Computer's default audio (recommended)";
+            if (deviceInfo.getDeviceType() == HifiAudioDeviceInfo::desktop) {
+                if (deviceInfo.getMode() == QAudio::AudioInput) {
+                    device.display = "Computer's default microphone (recommended)";
+                } else {
+                    device.display = "Computer's default audio (recommended)";
+                }
+            } else if (deviceInfo.getDeviceType() == HifiAudioDeviceInfo::hmd) {
+                if (deviceInfo.getMode() == QAudio::AudioInput) {
+                    device.display = "Headset's default mic (recommended)";
+                } else {
+                    device.display = "Headset's default audio (recommended)";
+                }
             }
         } else {
             device.display = device.info.deviceName()
@@ -292,6 +304,19 @@ void AudioDeviceList::onDevicesChanged(const QList<HifiAudioDeviceInfo>& devices
                 .remove("Device")
                 .replace(" )", ")");
         }
+        
+        switch (deviceInfo.getDeviceType()) {
+        case HifiAudioDeviceInfo::hmd:
+            device.type = "hmd";
+            break;
+        case HifiAudioDeviceInfo::desktop:
+            device.type = "desktop";
+            break;
+        case HifiAudioDeviceInfo::both:
+            device.type = "both";
+            break;
+        }
+               
 
         for (bool isHMD : {false, true}) {
             HifiAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;

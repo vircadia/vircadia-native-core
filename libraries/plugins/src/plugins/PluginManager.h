@@ -51,7 +51,7 @@ public:
 
     using PluginFilter = std::function<bool(const QJsonObject&)>;
     void setPluginFilter(PluginFilter pluginFilter) { _pluginFilter = pluginFilter; }
-
+    Q_INVOKABLE DisplayPluginList getAllDisplayPlugins();
 signals:
     void inputDeviceRunningChanged(const QString& pluginName, bool isRunning, const QStringList& runningDevices);
     

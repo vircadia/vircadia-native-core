@@ -221,7 +221,21 @@ const OculusPlatformPluginPointer PluginManager::getOculusPlatformPlugin() {
     return oculusPlatformPlugin;
 }
 
-const DisplayPluginList& PluginManager::getDisplayPlugins() {
+#include <shared/QtHelpers.h>
+#include <QThreadPool>
+
+
+DisplayPluginList PluginManager::getAllDisplayPlugins() {
+    if (thread() != QThread::currentThread()) {
+        DisplayPluginList list;
+        QMetaObject::invokeMethod(this, "getAllDisplayPlugins", Qt::BlockingQueuedConnection, Q_RETURN_ARG(DisplayPluginList, list));
+        return list;
+    } else {
+        return _displayPlugins;
+    }
+}
+
+ const DisplayPluginList& PluginManager::getDisplayPlugins()  {
     static std::once_flag once;
     static auto deviceAddedCallback = [](QString deviceName) {
         qCDebug(plugins) << "Added device: " << deviceName;

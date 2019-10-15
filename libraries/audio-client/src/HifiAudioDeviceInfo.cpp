@@ -22,6 +22,7 @@ HifiAudioDeviceInfo& HifiAudioDeviceInfo::operator=(const HifiAudioDeviceInfo& o
     _audioDeviceInfo = other.getDevice();
     _mode = other.getMode();
     _isDefault = other.isDefault();
+    _deviceType = other.getDeviceType();
     return *this;
 }
 
