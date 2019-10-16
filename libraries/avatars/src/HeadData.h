@@ -113,8 +113,8 @@ protected:
     QVector<float> _summedBlendshapeCoefficients;
     QMap<QString, int> _blendshapeLookupMap;
     AvatarData* _owningAvatar;
-    bool _blinkToRetarget { false };
-    bool _lookAtUpdated { false };
+    bool _forceBlinkToRetarget { false };
+    bool _isEyeLookAtUpdated { false };
 
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made

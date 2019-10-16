@@ -96,15 +96,15 @@ void Head::simulate(float deltaTime) {
             // no blinking when brows are raised; blink less with increasing loudness
             const float BASE_BLINK_RATE = 15.0f / 60.0f;
             const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
-            if (_blinkToRetarget || forceBlink ||
+            if (_forceBlinkToRetarget || forceBlink ||
                 (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(fabs(_averageLoudness - _longTermAverageLoudness)) *
                 ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
                 float randSpeedVariability = randFloat();
                 float eyeBlinkVelocity = BLINK_SPEED + randSpeedVariability * BLINK_SPEED_VARIABILITY;
-                if (_blinkToRetarget) {
+                if (_forceBlinkToRetarget) {
                     // Slow down by half the blink if reseting eye target
                     eyeBlinkVelocity = 0.5f * eyeBlinkVelocity;
-                    _blinkToRetarget = false;
+                    _forceBlinkToRetarget = false;
                 }
                 _leftEyeBlinkVelocity = eyeBlinkVelocity;
                 _rightEyeBlinkVelocity = eyeBlinkVelocity;

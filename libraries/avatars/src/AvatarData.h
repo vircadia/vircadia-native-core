@@ -1480,6 +1480,7 @@ public:
     void setIsNewAvatar(bool isNewAvatar) { _isNewAvatar = isNewAvatar; }
     bool getIsNewAvatar() { return _isNewAvatar; }
     void setIsClientAvatar(bool isClientAvatar) { _isClientAvatar = isClientAvatar; }
+    bool getIsClientAvatar() const { return _isClientAvatar; }
     void setSkeletonData(const std::vector<AvatarSkeletonTrait::UnpackedJointData>& skeletonData);
     std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonData() const;
     void sendSkeletonData() const;

@@ -6709,8 +6709,9 @@ void MyAvatar::updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera) 
                 if (headPose.isValid()) {
                     lookAtSpot = transformPoint(headPose.getMatrix(), glm::vec3(0.0f, 0.0f, TREE_SCALE));
                 } else {
-                    lookAtSpot = myHead->getEyePosition() +
-                        (getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
+                    lookAtSpot = _shouldTurnToFaceCamera ?
+                                 myHead->getLookAtPosition() :
+                                 myHead->getEyePosition() + getHeadJointFrontVector() * (float)TREE_SCALE;
                 }
             }
 

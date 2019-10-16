@@ -235,21 +235,29 @@ void HeadData::setFaceTrackerConnected(bool value) {
 }
 
 void HeadData::setLookAtPosition(const glm::vec3& lookAtPosition) {
-    if (_requestLookAtPosition != lookAtPosition) {
-        _lookAtPositionChanged = usecTimestampNow();
-        glm::vec3 oldAvatarLookAtVector = _requestLookAtPosition - _owningAvatar->getWorldPosition();
-        glm::vec3 newAvatarLookAtVector = lookAtPosition - _owningAvatar->getWorldPosition();
-        const float MIN_BLINK_ANGLE = 0.35f; // 20 degrees
-        _blinkToRetarget = angleBetween(oldAvatarLookAtVector, newAvatarLookAtVector) > MIN_BLINK_ANGLE;
-        _lookAtUpdated = false;
-    } 
-    if (_lookAtUpdated) {
+    if (_owningAvatar->getIsClientAvatar() || _owningAvatar->isMyAvatar()) {
+        if (_isEyeLookAtUpdated && _requestLookAtPosition != lookAtPosition) {
+            _lookAtPositionChanged = usecTimestampNow();
+            glm::vec3 oldAvatarLookAtVector = _requestLookAtPosition - _owningAvatar->getWorldPosition();
+            glm::vec3 newAvatarLookAtVector = lookAtPosition - _owningAvatar->getWorldPosition();
+            const float MIN_BLINK_ANGLE = 0.35f; // 20 degrees
+            _forceBlinkToRetarget = angleBetween(oldAvatarLookAtVector, newAvatarLookAtVector) > MIN_BLINK_ANGLE;
+            if (_forceBlinkToRetarget) {
+                _isEyeLookAtUpdated = false;
+            } else {
+                _lookAtPosition = lookAtPosition;
+            }
+        }
+        _requestLookAtPosition = lookAtPosition;
+    } else {
+        if (_lookAtPosition != lookAtPosition) {
+            _lookAtPositionChanged = usecTimestampNow();
+        }
         _lookAtPosition = lookAtPosition;
     }
-    _requestLookAtPosition = lookAtPosition;
 }
 
 void HeadData::updateEyeLookAt() {
     _lookAtPosition = _requestLookAtPosition;
-    _lookAtUpdated = true;
+    _isEyeLookAtUpdated = true;
 }
