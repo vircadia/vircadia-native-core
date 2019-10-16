@@ -223,7 +223,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     renderTransform = transform.worldTransform(shapeState._rootFromJointTransform);
     updateTransform(renderTransform);
 
-    _deformerIndex = shape.dynamicTransform;
+    _deformerIndex = shape.skinDeformer;
 
     initCache(model);
 
