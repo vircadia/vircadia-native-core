@@ -710,7 +710,7 @@ void EntityTree::deleteEntitiesByID(const QSet<EntityItemID>& ids, bool force, b
                         if (_simulation) {
                             _simulation->queueEraseDomainEntity(entity->getID());
                         }
-                    } else if (entity->isLocalEntity() || entity->isMyAvatarEntity()) {
+                    } else if (force || entity->isLocalEntity() || entity->isMyAvatarEntity()) {
                         entitiesToDelete.insert(entity);
                         entity->collectChildrenForDelete(entitiesToDelete, sessionID);
                     }
