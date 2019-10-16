@@ -33,7 +33,7 @@ bool CauterizedModel::updateGeometry() {
     if (_isCauterized && needsFullUpdate) {
         assert(_cauterizeMeshStates.empty());
       /*  const HFMModel& hfmModel = getHFMModel();
-        const auto& hfmDynamicTransforms = hfmModel.dynamicTransforms;
+        const auto& hfmDynamicTransforms = hfmModel.skinDeformers;
         for (int i = 0; i < hfmDynamicTransforms.size(); i++) {
             const auto& dynT = hfmDynamicTransforms[i];
             MeshState state;
@@ -47,7 +47,7 @@ bool CauterizedModel::updateGeometry() {
         }*/
 
         const HFMModel& hfmModel = getHFMModel();
-        const auto& hfmDynamicTransforms = hfmModel.dynamicTransforms;
+        const auto& hfmDynamicTransforms = hfmModel.skinDeformers;
         int i = 0;
         /*  for (const auto& mesh: hfmModel.meshes) {
               MeshState state;
@@ -113,7 +113,7 @@ void CauterizedModel::createRenderItemSet() {
 
             auto material = getNetworkModel()->getShapeMaterial(shapeID);
             _modelMeshMaterialNames.push_back(material ? material->getName() : "");
-            _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)shape.mesh, shape.dynamicTransform });
+            _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)shape.mesh, shape.skinDeformer });
         }
 
 /*        int shapeID = 0;
@@ -153,7 +153,7 @@ void CauterizedModel::updateClusterMatrices() {
 
 
     const HFMModel& hfmModel = getHFMModel();
-    const auto& hfmDynamicTransforms = hfmModel.dynamicTransforms;
+    const auto& hfmDynamicTransforms = hfmModel.skinDeformers;
     for (int i = 0; i < (int)_meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const auto& deformer = hfmDynamicTransforms[i];

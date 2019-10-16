@@ -381,16 +381,16 @@ void BuildGraphicsMeshTask::run(const baker::BakeContextPointer& context, const 
     const auto& normalsPerMesh = input.get3();
     const auto& tangentsPerMesh = input.get4();
     const auto& shapes = input.get5();
-    const auto& dynamicTransforms = input.get6();
+    const auto& skinDeformers = input.get6();
     const auto& reweightedDeformersPerMesh = input.get7();
 
-    // Currently, there is only (at most) one dynamicTransform per mesh
-    // An undefined shape.dynamicTransform has the value hfm::UNDEFINED_KEY
-    std::vector<uint32_t> dynamicTransformPerMesh;
-    dynamicTransformPerMesh.resize(meshes.size(), hfm::UNDEFINED_KEY);
+    // Currently, there is only (at most) one skinDeformer per mesh
+    // An undefined shape.skinDeformer has the value hfm::UNDEFINED_KEY
+    std::vector<uint32_t> skinDeformerPerMesh;
+    skinDeformerPerMesh.resize(meshes.size(), hfm::UNDEFINED_KEY);
     for (const auto& shape : shapes) {
-        uint32_t dynamicTransformIndex = shape.dynamicTransform;
-        dynamicTransformPerMesh[shape.mesh] = dynamicTransformIndex;
+        uint32_t skinDeformerIndex = shape.skinDeformer;
+        skinDeformerPerMesh[shape.mesh] = skinDeformerIndex;
     }
 
     auto& graphicsMeshes = output;
@@ -403,10 +403,10 @@ void BuildGraphicsMeshTask::run(const baker::BakeContextPointer& context, const 
 
         uint16_t numDeformerControllers = 0;
         if (reweightedDeformers.weightsPerVertex != 0) {
-            uint32_t dynamicTransformIndex = dynamicTransformPerMesh[i];
-            if (dynamicTransformIndex != hfm::UNDEFINED_KEY) {
-                const hfm::DynamicTransform& dynamicTransform = dynamicTransforms[dynamicTransformIndex];
-                numDeformerControllers = (uint16_t)dynamicTransform.deformers.size();
+            uint32_t skinDeformerIndex = skinDeformerPerMesh[i];
+            if (skinDeformerIndex != hfm::UNDEFINED_KEY) {
+                const hfm::SkinDeformer& skinDeformer = skinDeformers[skinDeformerIndex];
+                numDeformerControllers = (uint16_t)skinDeformer.skinClusterIndices.size();
             }
         }
 
