@@ -2719,7 +2719,7 @@ void MyAvatar::updateMotors() {
         if (_characterController.getState() == CharacterController::State::Hover ||
                 _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
             CameraMode mode = qApp->getCamera().getMode();
-            if (mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
+            if (!qApp->isHMDMode() && (mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE)) {
                 motorRotation = getLookAtRotation();
             } else {
                 motorRotation = getMyHead()->getHeadOrientation();
