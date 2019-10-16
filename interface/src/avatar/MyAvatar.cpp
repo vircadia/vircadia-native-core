@@ -6846,17 +6846,14 @@ glm::vec3 MyAvatar::getCameraEyesPosition(float deltaTime) {
     frontOffset = frontOffset < 0.0f ? 0.0f : mixAlpha * frontOffset;
     glm::vec3 cameraOffset = upOffset * Vectors::UP + frontOffset * Vectors::FRONT;
     const float TAU = 0.1f;
-    _cameraEyesOffset = _cameraEyesOffset + (cameraOffset - _cameraEyesOffset) * TAU * timeScale;
+    _cameraEyesOffset = _cameraEyesOffset + (cameraOffset - _cameraEyesOffset) * min(1.0f, TAU * timeScale);
     glm::vec3 estimatedCameraPosition = defaultEyesPosition + getWorldOrientation() * _cameraEyesOffset;
     return estimatedCameraPosition;
 }
 
 bool MyAvatar::isJumping() {
-    if (_skeletonModel->isLoaded()) {
-        return (_skeletonModel->getRig().getState() == Rig::RigRole::InAir || 
-                _skeletonModel->getRig().getState() == Rig::RigRole::Takeoff) && !isFlying();
-    }
-    return false;
+    return (_characterController.getState() == CharacterController::State::InAir ||
+            _characterController.getState() == CharacterController::State::Takeoff) && !isFlying();
 }
 
 bool MyAvatar::setPointAt(const glm::vec3& pointAtTarget) {

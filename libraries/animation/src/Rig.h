@@ -115,16 +115,6 @@ public:
         Seated
     };
 
-    enum class RigRole {
-        Idle = 0,
-        Turn,
-        Move,
-        Hover,
-        Takeoff,
-        InAir,
-        Seated
-    };
-
     Rig();
     virtual ~Rig();
 
@@ -267,7 +257,6 @@ public:
     bool getFlowActive() const;
     bool getNetworkGraphActive() const;
     void setDirectionalBlending(const QString& targetName, const glm::vec3& blendingTarget, const QString& alphaName, float alpha);
-    const RigRole getState() const { return _state; }
 
 signals:
     void onLoadComplete();
@@ -349,6 +338,16 @@ protected:
     std::unique_ptr<AnimNodeLoader> _networkLoader;
     AnimVariantMap _animVars;
     AnimVariantMap _networkVars;
+
+    enum class RigRole {
+        Idle = 0,
+        Turn,
+        Move,
+        Hover,
+        Takeoff,
+        InAir,
+        Seated
+    };
 
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };
