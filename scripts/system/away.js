@@ -50,11 +50,11 @@ var OVERLAY_DATA_HMD = {
 };
 
 var AWAY_INTRO = {
-    url: "http://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/kneel.fbx",
+    url: "https://hifi-content.s3.amazonaws.com/doug/animation/fbx/afk_texting.fbx",
     playbackRate: 30.0,
-    loopFlag: false,
-    startFrame: 0.0,
-    endFrame: 83.0
+    loopFlag: true,
+    startFrame: 1.0,
+    endFrame: 489.0
 };
 
 // MAIN CONTROL

@@ -3618,7 +3618,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
             _myCamera.setPosition(extractTranslation(camMat));
             _myCamera.setOrientation(glmExtractRotation(camMat));
         } else {
-            _myCamera.setPosition(myAvatar->getLookAtPivotPoint());
+            _myCamera.setPosition(myAvatar->getCameraEyesPosition(deltaTime));
             _myCamera.setOrientation(myAvatar->getLookAtRotation());
         }
     } else if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {

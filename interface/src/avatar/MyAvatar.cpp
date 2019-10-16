@@ -152,7 +152,7 @@ static int triggerReactionNameToIndex(const QString& reactionName) {
 }
 
 static int beginEndReactionNameToIndex(const QString& reactionName) {
-    assert(NUM_AVATAR_BEGIN_END_REACTIONS == TRIGGER_REACTION_NAMES.size());
+    assert(NUM_AVATAR_BEGIN_END_REACTIONS == BEGIN_END_REACTION_NAMES.size());
     return BEGIN_END_REACTION_NAMES.indexOf(reactionName);
 }
 
@@ -2719,7 +2719,7 @@ void MyAvatar::updateMotors() {
         if (_characterController.getState() == CharacterController::State::Hover ||
                 _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
             CameraMode mode = qApp->getCamera().getMode();
-            if (mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
+            if (!qApp->isHMDMode() && (mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE)) {
                 motorRotation = getLookAtRotation();
             } else {
                 motorRotation = getMyHead()->getHeadOrientation();
@@ -6810,6 +6810,50 @@ glm::vec3 MyAvatar::getLookAtPivotPoint() {
     glm::vec3 avatarUp = getWorldOrientation() * Vectors::UP;
     glm::vec3 yAxisEyePosition = getWorldPosition() + avatarUp * glm::dot(avatarUp, _skeletonModel->getDefaultEyeModelPosition());
     return yAxisEyePosition;
+}
+
+glm::vec3 MyAvatar::getCameraEyesPosition(float deltaTime) {
+    glm::vec3 defaultEyesPosition = getLookAtPivotPoint();
+    if (isFlying()) {
+        return defaultEyesPosition;
+    }
+    glm::vec3 avatarFrontVector = getWorldOrientation() * Vectors::FRONT;
+    glm::vec3 avatarUpVector = getWorldOrientation() * Vectors::UP;
+    // Compute the offset between the default and real eye positions.
+    glm::vec3 defaultEyesToEyesVector = getHead()->getEyePosition() - defaultEyesPosition;
+    float FRONT_OFFSET_IDLE_MULTIPLIER = 2.0f;
+    float FRONT_OFFSET_JUMP_MULTIPLIER = 1.5f;
+    float frontOffset = FRONT_OFFSET_IDLE_MULTIPLIER * glm::length(defaultEyesPosition - getDefaultEyePosition());
+    
+    // Looking down will aproximate move the camera forward to meet the real eye position
+    float mixAlpha = glm::dot(_lookAtPitch * Vectors::FRONT, -avatarUpVector);
+    
+    // When jumping the camera should follow the real eye on the Y coordenate
+    float upOffset = 0.0f;
+    if (isJumping() || _characterController.getState() == CharacterController::State::Takeoff) {
+        upOffset = glm::dot(defaultEyesToEyesVector, avatarUpVector);
+        
+        frontOffset = glm::dot(defaultEyesToEyesVector, avatarFrontVector) * FRONT_OFFSET_JUMP_MULTIPLIER;
+        mixAlpha = 1.0f;
+    } else {
+        // Limit the range effect from 45 to 90 degrees
+        const float HEAD_OFFSET_DOT_THRESHOLD = 0.7f; // 45 degrees aprox
+        mixAlpha = mixAlpha < HEAD_OFFSET_DOT_THRESHOLD ? 0.0f : (mixAlpha - HEAD_OFFSET_DOT_THRESHOLD) /
+                                                                 (1.0f - HEAD_OFFSET_DOT_THRESHOLD);
+    }
+    const float FPS = 60.0f;
+    float timeScale = deltaTime * FPS;
+    frontOffset = frontOffset < 0.0f ? 0.0f : mixAlpha * frontOffset;
+    glm::vec3 cameraOffset = upOffset * Vectors::UP + frontOffset * Vectors::FRONT;
+    const float TAU = 0.1f;
+    _cameraEyesOffset = _cameraEyesOffset + (cameraOffset - _cameraEyesOffset) * min(1.0f, TAU * timeScale);
+    glm::vec3 estimatedCameraPosition = defaultEyesPosition + getWorldOrientation() * _cameraEyesOffset;
+    return estimatedCameraPosition;
+}
+
+bool MyAvatar::isJumping() {
+    return (_characterController.getState() == CharacterController::State::InAir ||
+            _characterController.getState() == CharacterController::State::Takeoff) && !isFlying();
 }
 
 bool MyAvatar::setPointAt(const glm::vec3& pointAtTarget) {

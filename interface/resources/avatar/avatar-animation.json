@@ -5251,7 +5251,7 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "idle",
-                                                                                                    "interpDuration": 20,
+                                                                                                    "interpDuration": 15,
                                                                                                     "interpTarget": 20,
                                                                                                     "interpType": "evaluateBoth",
                                                                                                     "transitions": [
@@ -5383,8 +5383,8 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "idleSettle",
-                                                                                                    "interpDuration": 15,
-                                                                                                    "interpTarget": 15,
+                                                                                                    "interpDuration": 13,
+                                                                                                    "interpTarget": 14,
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
                                                                                                         {
@@ -5477,7 +5477,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotInputSlow"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
@@ -5541,7 +5541,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotInputSlow"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
@@ -5605,7 +5605,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotInputSlow"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
@@ -5669,7 +5669,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotInputSlow"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
