@@ -444,17 +444,9 @@ function updateEmoteIndicatorIcon(iconURL) {
 }
 
 
-function onGeometryChanged(rect) {
-    updateEmoteAppBarPosition();
-}
-
-
 function onWindowMinimizedChanged(isMinimized) {
-    if (isMinimized) {
-        handleEmoteIndicatorVisibleChanged(false);
-    } else if (!HMD.active) {
-        handleEmoteIndicatorVisibleChanged(true);
-    }
+    isWindowMinimized = isMinimized;
+    maybeChangeEmoteIndicatorVisibility(!isMinimized);
 }
 
 
@@ -539,10 +531,11 @@ function showEmoteAppBar() {
             x: EMOTE_APP_BAR_WIDTH_PX,
             y: EMOTE_APP_BAR_HEIGHT_PX
         },
-        position: {
-            x: Window.x + EMOTE_APP_BAR_LEFT_MARGIN,
-            y: Window.y + Window.innerHeight - EMOTE_APP_BAR_BOTTOM_MARGIN
+        relativePosition: {
+            x: EMOTE_APP_BAR_LEFT_MARGIN,
+            y: EMOTE_APP_BAR_BOTTOM_MARGIN
         },
+        relativePositionAnchor: Desktop.RelativePositionAnchor.BOTTOM_LEFT,
         overrideFlags: EMOTE_APP_BAR_WINDOW_FLAGS
     });
 
@@ -550,14 +543,27 @@ function showEmoteAppBar() {
 }
 
 
-function handleEmoteIndicatorVisibleChanged(shouldBeVisible) {
-    if (shouldBeVisible && !emoteAppBarWindow) {
+// There is currently no property in the Window Scripting Interface to determine
+// whether the Interface window is currently minimized. This feels like an oversight.
+// We should add that functionality to the Window Scripting Interface, and remove `isWindowMinimized` below.
+var isWindowMinimized = false;
+function maybeChangeEmoteIndicatorVisibility(desiredVisibility) {
+    if (isWindowMinimized || HMD.active) {
+        desiredVisibility = false;
+    }
+
+    if (desiredVisibility && !emoteAppBarWindow) {
         showEmoteAppBar();
-    } else if (emoteAppBarWindow) {
+    } else if (!desiredVisibility && emoteAppBarWindow) {
         emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
         emoteAppBarWindow.close();
         emoteAppBarWindow = false;
     }
+}
+
+
+function handleFTUEScreensVisibilityChanged(ftueScreenVisible) {
+    maybeChangeEmoteIndicatorVisibility(!ftueScreenVisible);
 }
 
 
@@ -566,18 +572,15 @@ function onDisplayModeChanged(isHMDMode) {
         endReactionWrapper(react);
     });
 
-    if (isHMDMode) {
-        handleEmoteIndicatorVisibleChanged(false);
-    } else {
-        handleEmoteIndicatorVisibleChanged(true);
-    }
+    maybeChangeEmoteIndicatorVisibility(!isHMDMode);
 }
 
 
-var emojiAPI = Script.require("./emojiApp/simplifiedEmoji.js?" + Date.now());
+var emojiAPI = Script.require("./emojiApp/simplifiedEmoji.js");
 var keyPressSignalsConnected = false;
 var emojiCodeMap;
 var customEmojiCodeMap;
+var _this;
 function setup() {
     deleteOldReticles();
 
@@ -605,16 +608,25 @@ function setup() {
     }, {});
 
     Window.minimizedChanged.connect(onWindowMinimizedChanged);
-    Window.geometryChanged.connect(onGeometryChanged);
     HMD.displayModeChanged.connect(onDisplayModeChanged);
 
     getSounds();
-    handleEmoteIndicatorVisibleChanged(true);
+    maybeChangeEmoteIndicatorVisibility(true);
     
     Controller.keyPressEvent.connect(keyPressHandler);
     Controller.keyReleaseEvent.connect(keyReleaseHandler);
     keyPressSignalsConnected = true;
     Script.scriptEnding.connect(unload);
+    
+    function Emote() {
+        _this = this;
+    }
+
+    Emote.prototype = {
+        handleFTUEScreensVisibilityChanged: handleFTUEScreensVisibilityChanged
+    };
+
+    return new Emote();
 }
 
 
@@ -638,7 +650,6 @@ function unload() {
     maybeDeleteRemoteIndicatorTimeout();
 
     Window.minimizedChanged.disconnect(onWindowMinimizedChanged);
-    Window.geometryChanged.disconnect(onGeometryChanged);
     HMD.displayModeChanged.disconnect(onDisplayModeChanged);
 
     if (keyPressSignalsConnected) {
@@ -671,7 +682,6 @@ function unload() {
 // #region EMOJI_UTILITY
 
 
-var EMOJI_52_BASE_URL = "../../resources/images/emojis/52px/";
 function selectedEmoji(code) {
     emojiAPI.addEmoji(code);
     // this URL needs to be relative to SimplifiedEmoteIndicator.qml
@@ -786,4 +796,6 @@ function toggleEmojiApp() {
 // END EMOJI
 // *************************************
 
-setup();
+var emote = setup();
+
+module.exports = emote;

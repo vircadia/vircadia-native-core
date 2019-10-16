@@ -52,6 +52,21 @@ static const QVariantMap DOCK_AREA {
     { "RIGHT", DockArea::RIGHT }
 };
 
+/**jsdoc
+ * The possible "relative position anchors" of an <code>InteractiveWindow</code>. Used when defining the `relativePosition` property of an `InteractiveWindow`.
+ * @typedef {object} InteractiveWindow.RelativePositionAnchors
+ * @property {InteractiveWindow.RelativePositionAnchor} TOP_LEFT - Specifies that the `relativePosition` of the `InteractiveWindow` will be offset from the top left of the Interface window.
+ * @property {InteractiveWindow.RelativePositionAnchor} TOP_RIGHT - Specifies that the `relativePosition` of the `InteractiveWindow` will be offset from the top right of the Interface window.
+ * @property {InteractiveWindow.RelativePositionAnchor} BOTTOM_RIGHT - Specifies that the `relativePosition` of the `InteractiveWindow` will be offset from the bottom right of the Interface window.
+ * @property {InteractiveWindow.RelativePositionAnchor} BOTTOM_LEFT - Specifies that the `relativePosition` of the `InteractiveWindow` will be offset from the bottom left of the Interface window.
+ */
+static const QVariantMap RELATIVE_POSITION_ANCHOR {
+    { "TOP_LEFT", RelativePositionAnchor::TOP_LEFT },
+    { "TOP_RIGHT", RelativePositionAnchor::TOP_RIGHT },
+    { "BOTTOM_RIGHT", RelativePositionAnchor::BOTTOM_RIGHT },
+    { "BOTTOM_LEFT", RelativePositionAnchor::BOTTOM_LEFT }
+};
+
 DesktopScriptingInterface::DesktopScriptingInterface(QObject* parent, bool restricted) 
     : QObject(parent), _restricted(restricted) { }
 
@@ -97,6 +112,10 @@ QVariantMap DesktopScriptingInterface::getPresentationMode() {
 
 QVariantMap DesktopScriptingInterface::getDockArea() {
     return DOCK_AREA;
+}
+
+QVariantMap DesktopScriptingInterface::getRelativePositionAnchor() {
+    return RELATIVE_POSITION_ANCHOR;
 }
 
 void DesktopScriptingInterface::setHUDAlpha(float alpha) {

@@ -1463,9 +1463,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
     // see if any materials have texture children
     bool materialsHaveTextures = checkMaterialsHaveTextures(_hfmMaterials, _textureFilenames, _connectionChildMap);
 
-    // Note that the transforms in the TransformNodes are initially in world-space, and need to be converted to parent-space
-    std::vector<hfm::TransformNode> transformNodes;
-
     for (QMap<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         const QString& meshID = it.key();
         const ExtractedMesh& extracted = it.value();
@@ -1509,7 +1506,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 hfm::Shape& shape = partShapes[i];
                 shape.mesh = meshIndex;
                 shape.meshPart = i;
-                shape.transform = transformIndex;
+                shape.joint = transformIndex;
                 
                 auto matName = mesh.parts[i].materialID;
                 auto materialIt = materialNameToID.find(matName.toStdString());
@@ -1593,10 +1590,10 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
 
             // whether we're skinned depends on how many clusters are attached
-            if (clusterIDs.size() > 1) {
-                hfm::DynamicTransform dynamicTransform;
-                auto& clusters = dynamicTransform.clusters;
-                std::vector<hfm::Deformer> deformers;
+            if (clusterIDs.size() > 0) {
+                hfm::SkinDeformer skinDeformer;
+                auto& clusters = skinDeformer.clusters;
+                std::vector<hfm::SkinCluster> skinClusters;
                 for (const auto& clusterID : clusterIDs) {
                     HFMCluster hfmCluster;
                     const Cluster& fbxCluster = fbxClusters[clusterID];
@@ -1642,38 +1639,43 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 clusters.push_back(cluster);
 
                 // Skinned mesh instances have a dynamic transform
-                dynamicTransform.deformers.reserve(clusterIDs.size());
-                clusters.reserve(clusterIDs.size());
+                skinDeformer.skinClusterIndices.reserve(clusterIDs.size());
                 for (const auto& clusterID : clusterIDs) {
                     const Cluster& fbxCluster = fbxClusters[clusterID];
-                    dynamicTransform.deformers.emplace_back();
-                    deformers.emplace_back();
-                    hfm::Deformer& deformer = deformers.back();
+                    skinDeformer.skinClusterIndices.emplace_back();
+                    skinClusters.emplace_back();
+                    hfm::SkinCluster& skinCluster = skinClusters.back();
                     size_t indexWeightPairs = (size_t)std::min(fbxCluster.indices.size(), fbxCluster.weights.size());
-                    deformer.indices.reserve(indexWeightPairs);
-                    deformer.weights.reserve(indexWeightPairs);
-                    for (int i = 0; i < (int)indexWeightPairs; i++) {
-                        int oldIndex = fbxCluster.indices[i];
-                        uint32_t newIndex = (uint32_t)extracted.newIndices.value(oldIndex);
-                        deformer.indices.push_back(newIndex);
-                        deformer.indices.push_back((float)fbxCluster.weights[i]);
+                    skinCluster.indices.reserve(indexWeightPairs);
+                    skinCluster.weights.reserve(indexWeightPairs);
+
+                    for (int j = 0; j < fbxCluster.indices.size(); j++) {
+                        int oldIndex = fbxCluster.indices.at(j);
+                        float weight = fbxCluster.weights.at(j);
+                        for (QMultiHash<int, int>::const_iterator it = extracted.newIndices.constFind(oldIndex);
+                            it != extracted.newIndices.end() && it.key() == oldIndex; it++) {
+                            int newIndex = it.value();
+
+                            skinCluster.indices.push_back(newIndex);
+                            skinCluster.weights.push_back(weight);
+                        }
                     }
                 }
 
                 // Store this model's deformers, this dynamic transform's deformer IDs
-                uint32_t deformerMinID = (uint32_t)hfmModel.deformers.size();
-                hfmModel.deformers.insert(hfmModel.deformers.end(), deformers.cbegin(), deformers.cend());
-                dynamicTransform.deformers.resize(deformers.size());
-                std::iota(dynamicTransform.deformers.begin(), dynamicTransform.deformers.end(), deformerMinID);
+                uint32_t deformerMinID = (uint32_t)hfmModel.skinClusters.size();
+                hfmModel.skinClusters.insert(hfmModel.skinClusters.end(), skinClusters.cbegin(), skinClusters.cend());
+                skinDeformer.skinClusterIndices.resize(skinClusters.size());
+                std::iota(skinDeformer.skinClusterIndices.begin(), skinDeformer.skinClusterIndices.end(), deformerMinID);
 
                 // Store the model's dynamic transform, and put its ID in the shapes
-                hfmModel.dynamicTransforms.push_back(dynamicTransform);
-                uint32_t dynamicTransformID = (uint32_t)(hfmModel.dynamicTransforms.size() - 1);
+                hfmModel.skinDeformers.push_back(skinDeformer);
+                uint32_t skinDeformerID = (uint32_t)(hfmModel.skinDeformers.size() - 1);
                 for (hfm::Shape& shape : partShapes) {
-                    shape.dynamicTransform = dynamicTransformID;
+                    shape.skinDeformer = skinDeformerID;
                 }
             } else {
-                // this is a single-joint mesh
+                // this is a no cluster mesh
                 HFMJoint& joint = hfmModel.joints[transformIndex];
 
                 // Apply geometric offset, if present, by transforming the vertices directly

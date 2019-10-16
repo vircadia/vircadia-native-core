@@ -32,8 +32,40 @@ bool CauterizedModel::updateGeometry() {
     bool needsFullUpdate = Model::updateGeometry();
     if (_isCauterized && needsFullUpdate) {
         assert(_cauterizeMeshStates.empty());
+      /*  const HFMModel& hfmModel = getHFMModel();
+        const auto& hfmDynamicTransforms = hfmModel.skinDeformers;
+        for (int i = 0; i < hfmDynamicTransforms.size(); i++) {
+            const auto& dynT = hfmDynamicTransforms[i];
+            MeshState state;
+            if (_useDualQuaternionSkinning) {
+                state.clusterDualQuaternions.resize(dynT.clusters.size());
+            } else {
+                state.clusterMatrices.resize(dynT.clusters.size());
+            }
+            _cauterizeMeshStates.append(state);
+            _meshStates.push_back(state);
+        }*/
+
         const HFMModel& hfmModel = getHFMModel();
-        foreach (const HFMMesh& mesh, hfmModel.meshes) {
+        const auto& hfmDynamicTransforms = hfmModel.skinDeformers;
+        int i = 0;
+        /*  for (const auto& mesh: hfmModel.meshes) {
+              MeshState state;
+              state.clusterDualQuaternions.resize(mesh.clusters.size());
+              state.clusterMatrices.resize(mesh.clusters.size());
+              _meshStates.push_back(state);
+              i++;
+          }
+          */
+        for (int i = 0; i < hfmDynamicTransforms.size(); i++) {
+            const auto& dynT = hfmDynamicTransforms[i];
+            MeshState state;
+            state.clusterDualQuaternions.resize(dynT.clusters.size());
+            state.clusterMatrices.resize(dynT.clusters.size());
+            _cauterizeMeshStates.push_back(state);
+        }
+
+     /*   foreach (const HFMMesh& mesh, hfmModel.meshes) {
             Model::MeshState state;
             if (_useDualQuaternionSkinning) {
                 state.clusterDualQuaternions.resize(mesh.clusters.size());
@@ -42,7 +74,7 @@ bool CauterizedModel::updateGeometry() {
                 state.clusterMatrices.resize(mesh.clusters.size());
                 _cauterizeMeshStates.append(state);
             }
-        }
+        }*/
     }
     return needsFullUpdate;
 }
@@ -52,11 +84,6 @@ void CauterizedModel::createRenderItemSet() {
         assert(isLoaded());
         const auto& meshes = _renderGeometry->getMeshes();
 
-        // all of our mesh vectors must match in size
-        if (meshes.size() != _meshStates.size()) {
-            qCDebug(renderutils) << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
-            return;
-        }
 
         // We should not have any existing renderItems if we enter this section of code
         Q_ASSERT(_modelMeshRenderItems.isEmpty());
@@ -73,8 +100,23 @@ void CauterizedModel::createRenderItemSet() {
         offset.setScale(_scale);
         offset.postTranslate(_offset);
 
+        Transform::mult(transform, transform, offset);
+
         // Run through all of the meshes, and place them into their segregated, but unsorted buckets
+    // Run through all of the meshes, and place them into their segregated, but unsorted buckets
         int shapeID = 0;
+        const auto& shapes = _renderGeometry->getHFMModel().shapes;
+        for (shapeID; shapeID < shapes.size(); shapeID++) {
+            const auto& shape = shapes[shapeID];
+
+            _modelMeshRenderItems << std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), shape.mesh, shape.meshPart, shapeID, transform);
+
+            auto material = getNetworkModel()->getShapeMaterial(shapeID);
+            _modelMeshMaterialNames.push_back(material ? material->getName() : "");
+            _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)shape.mesh, shape.skinDeformer });
+        }
+
+/*        int shapeID = 0;
         uint32_t numMeshes = (uint32_t)meshes.size();
         for (uint32_t i = 0; i < numMeshes; i++) {
             const auto& mesh = meshes.at(i);
@@ -85,14 +127,14 @@ void CauterizedModel::createRenderItemSet() {
             // Create the render payloads
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
-                auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
+                auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform);
                 _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
                 auto material = getNetworkModel()->getShapeMaterial(shapeID);
                 _modelMeshMaterialNames.push_back(material ? material->getName() : "");
                 _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
                 shapeID++;
             }
-        }
+        }*/
     } else {
         Model::createRenderItemSet();
     }
@@ -108,6 +150,38 @@ void CauterizedModel::updateClusterMatrices() {
     updateShapeStatesFromRig();
 
     _needsUpdateClusterMatrices = false;
+
+
+    const HFMModel& hfmModel = getHFMModel();
+    const auto& hfmDynamicTransforms = hfmModel.skinDeformers;
+    for (int i = 0; i < (int)_meshStates.size(); i++) {
+        MeshState& state = _meshStates[i];
+        const auto& deformer = hfmDynamicTransforms[i];
+
+        int meshIndex = i;
+        int clusterIndex = 0;
+
+        for (int d = 0; d < deformer.clusters.size(); d++) {
+            const auto& cluster = deformer.clusters[d];
+            clusterIndex = d;
+
+            const auto& cbmov = _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex);
+
+            if (_useDualQuaternionSkinning) {
+                auto jointPose = _rig.getJointPose(cluster.jointIndex);
+                Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
+                Transform clusterTransform;
+                Transform::mult(clusterTransform, jointTransform, cbmov.inverseBindTransform);
+                state.clusterDualQuaternions[d] = Model::TransformDualQuaternion(clusterTransform);
+            }
+            else {
+                auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
+                glm_mat4u_mul(jointMatrix, cbmov.inverseBindMatrix, state.clusterMatrices[d]);
+            }
+
+        }
+    }
+/*
     const HFMModel& hfmModel = getHFMModel();
     for (int i = 0; i < (int)_meshStates.size(); i++) {
         Model::MeshState& state = _meshStates[i];
@@ -131,7 +205,7 @@ void CauterizedModel::updateClusterMatrices() {
             }
         }
     }
-
+*/
     // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
     if (!_cauterizeBoneSet.empty()) {
 
@@ -224,64 +298,69 @@ void CauterizedModel::updateRenderItems() {
                 auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
 
                 const auto& shapeState = self->getShapeState(i);
-                const auto& meshState = self->getMeshState(meshIndex);
-                const auto& cauterizedMeshState = self->getCauterizeMeshState(meshIndex);
+
+                auto deformerIndex = self->_modelMeshRenderItemShapes[i].deformerIndex;
+                bool isDeformed = (deformerIndex != hfm::UNDEFINED_KEY);
+
+
+              //  auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
+               // auto deformerIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
+
+             //   const auto& shapeState = self->getShapeState(i);
+
 
                 bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
                 bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
-                transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, shapeState, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
-                        primitiveMode, renderItemKeyGlobalFlags, enableCauterization](ModelMeshPartPayload& mmppData) {
-                    CauterizedMeshPartPayload& data = static_cast<CauterizedMeshPartPayload&>(mmppData);
-                    if (useDualQuaternionSkinning) {
-                        data.updateClusterBuffer(meshState.clusterDualQuaternions,
-                                                 cauterizedMeshState.clusterDualQuaternions);
-                        data.computeAdjustedLocalBound(meshState.clusterDualQuaternions);
-                    } else {
-                        data.updateClusterBuffer(meshState.clusterMatrices,
-                                                 cauterizedMeshState.clusterMatrices);
-                        data.computeAdjustedLocalBound(meshState.clusterMatrices);
-                    }
 
-                    Transform renderTransform = modelTransform;
-                    /*if (useDualQuaternionSkinning) {
-                        if (meshState.clusterDualQuaternions.size() == 1 || meshState.clusterDualQuaternions.size() == 2) {
-                            const auto& dq = meshState.clusterDualQuaternions[0];
-                            Transform transform(dq.getRotation(),
-                                                dq.getScale(),
-                                                dq.getTranslation());
-                            renderTransform = modelTransform.worldTransform(transform);
-                        }
-                    } else {
-                        if (meshState.clusterMatrices.size() == 1 || meshState.clusterMatrices.size() == 2) {
-                            renderTransform = modelTransform.worldTransform(Transform(meshState.clusterMatrices[0]));
-                        }
-                    }*/
-                    if (meshState.clusterMatrices.size() <= 1) {
+
+                if (isDeformed) { 
+
+                    const auto& meshState = self->getMeshState(deformerIndex);
+                    const auto& cauterizedMeshState = self->getCauterizeMeshState(deformerIndex);
+
+                    transaction.updateItem<ModelMeshPartPayload>(itemID,
+                        [modelTransform, shapeState, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
+                            primitiveMode, renderItemKeyGlobalFlags, enableCauterization](ModelMeshPartPayload& mmppData) {
+                        CauterizedMeshPartPayload& data = static_cast<CauterizedMeshPartPayload&>(mmppData);
+                        if (useDualQuaternionSkinning) {
+                            data.updateClusterBuffer(meshState.clusterDualQuaternions,
+                                                     cauterizedMeshState.clusterDualQuaternions);
+                        } else {
+                            data.updateClusterBuffer(meshState.clusterMatrices,
+                                                     cauterizedMeshState.clusterMatrices);
+                       }
+
+                        Transform renderTransform = modelTransform;
+                       // if (meshState.clusterMatrices.size() <= 2) {
+                       //     renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
+                       // }
+                        data.updateTransform(renderTransform);
+                        data.updateTransformForCauterizedMesh(renderTransform);
+                        data.updateTransformAndBound(modelTransform.worldTransform(shapeState._rootFromJointTransform));
+
+                        data.setEnableCauterization(enableCauterization);
+                        data.updateKey(renderItemKeyGlobalFlags);
+                        data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
+                    });
+                } else {
+                    transaction.updateItem<ModelMeshPartPayload>(itemID,
+                        [modelTransform, shapeState, invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, enableCauterization]
+                             (ModelMeshPartPayload& mmppData) {
+                        CauterizedMeshPartPayload& data = static_cast<CauterizedMeshPartPayload&>(mmppData);
+
+                        Transform renderTransform = modelTransform;
+
                         renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
-                    }
-                    data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
+                        data.updateTransform(renderTransform);
+                        data.updateTransformForCauterizedMesh(renderTransform);
 
-                    renderTransform = modelTransform;
-                    if (useDualQuaternionSkinning) {
-                        if (cauterizedMeshState.clusterDualQuaternions.size() == 1 || cauterizedMeshState.clusterDualQuaternions.size() == 2) {
-                            const auto& dq = cauterizedMeshState.clusterDualQuaternions[0];
-                            Transform transform(dq.getRotation(),
-                                                dq.getScale(),
-                                                dq.getTranslation());
-                            renderTransform = modelTransform.worldTransform(Transform(transform));
-                        }
-                    } else {
-                        if (cauterizedMeshState.clusterMatrices.size() == 1 || cauterizedMeshState.clusterMatrices.size() == 2) {
-                            renderTransform = modelTransform.worldTransform(Transform(cauterizedMeshState.clusterMatrices[0]));
-                        }
-                    }
-                    data.updateTransformForCauterizedMesh(renderTransform);
-
-                    data.setEnableCauterization(enableCauterization);
-                    data.updateKey(renderItemKeyGlobalFlags);
-                    data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
-                });
+                        data.setEnableCauterization(enableCauterization);
+                        data.updateKey(renderItemKeyGlobalFlags);
+                        data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, false);
+                    });
+                    
+                }
             }
 
             scene->enqueueTransaction(transaction);
