@@ -20,7 +20,7 @@ using json = nlohmann::json;
 
 class Serializer {
 public:
-    const std::string basename;
+    const std::string filename;
     const TextureCapturer textureCapturer;
     std::unordered_map<ShaderPointer, uint32_t> shaderMap;
     std::unordered_map<ShaderPointer, uint32_t> programMap;
@@ -32,8 +32,11 @@ public:
     std::unordered_map<FramebufferPointer, uint32_t> framebufferMap;
     std::unordered_map<SwapChainPointer, uint32_t> swapchainMap;
     std::unordered_map<QueryPointer, uint32_t> queryMap;
+    std::unordered_set<TexturePointer> captureTextures;
+    hfb::Buffer binaryBuffer;
+    hfb::StorageBuilders ktxBuilders;
 
-    Serializer(const std::string& basename, const TextureCapturer& capturer) : basename(basename), textureCapturer(capturer) {}
+    Serializer(const std::string& basename, const TextureCapturer& capturer) : filename(basename + hfb::EXTENSION), textureCapturer(capturer) {}
 
     template <typename T>
     static uint32_t getGlobalIndex(const T& value, std::unordered_map<T, uint32_t>& map) {
@@ -129,7 +132,7 @@ public:
     json writeProgram(const ShaderPointer& program);
     json writeNamedBatchData(const Batch::NamedBatchData& namedData);
 
-    json writeCapturableTextures(const Frame& frame);
+    void findCapturableTextures(const Frame& frame);
     void writeBinaryBlob();
     static std::string toBase64(const std::vector<uint8_t>& v);
     static json writeIrradiance(const SHPointer& irradiance);
@@ -146,7 +149,7 @@ public:
     static json writeTransform(const Transform& t) { return writeMat4(t.getMatrix()); }
     static json writeCommand(size_t index, const Batch& batch);
     static json writeSampler(const Sampler& sampler);
-    static json writeTexture(const TexturePointer& texture);
+    json writeTexture(const TexturePointer& texture);
     static json writeFormat(const Stream::FormatPointer& format);
     static json writeQuery(const QueryPointer& query);
     static json writeShader(const ShaderPointer& shader);
@@ -389,9 +392,17 @@ json Serializer::writeTexture(const TexturePointer& texturePointer) {
         const auto* storage = texture._storage.get();
         const auto* ktxStorage = dynamic_cast<const Texture::KtxStorage*>(storage);
         if (ktxStorage) {
-            result[keys::ktxFile] = ktxStorage->_filename;
-        } else {
-            // TODO serialize the backing storage
+            result[keys::chunk] = 2 + ktxBuilders.size();
+            auto filename = ktxStorage->_filename;
+            ktxBuilders.push_back([=] {
+                return std::make_shared<storage::FileStorage>(filename.c_str());
+            });
+        } else if (textureCapturer && captureTextures.count(texturePointer) != 0) {
+            result[keys::chunk] = 2 + ktxBuilders.size();
+            auto storage = textureCapturer(texturePointer);
+            ktxBuilders.push_back([=] {
+                return storage;
+            });
         }
     }
     return result;
@@ -673,14 +684,8 @@ json Serializer::writeQuery(const QueryPointer& queryPointer) {
     return result;
 }
 
-json Serializer::writeCapturableTextures(const Frame& frame) {
-    if (!textureCapturer) {
-        return json::array();
-    }
-
+void Serializer::findCapturableTextures(const Frame& frame) {
     std::unordered_set<TexturePointer> writtenRenderbuffers;
-    std::unordered_set<TexturePointer> captureTextures;
-
     auto maybeCaptureTexture = [&](const TexturePointer& texture) {
         // Not a valid texture
         if (!texture) {
@@ -755,20 +760,6 @@ json Serializer::writeCapturableTextures(const Frame& frame) {
             }
         }
     }
-
-    json result = json::array();
-    for (const auto& texture : captureTextures) {
-        if (textureCapturer) {
-            auto index = textureMap[texture];
-            auto layers = std::max<uint16>(texture->getNumSlices(), 1);
-            for (uint16 layer = 0; layer < layers; ++layer) {
-                std::string textureFilename = basename + "." + std::to_string(index) + "." + std::to_string(layer) + ".png";
-                textureCapturer(textureFilename, texture, layer);
-            }
-            result.push_back(index);
-        }
-    }
-    return result;
 }
 
 void Serializer::writeFrame(const Frame& frame) {
@@ -780,7 +771,7 @@ void Serializer::writeFrame(const Frame& frame) {
     }
 
     frameNode[keys::stereo] = writeStereoState(frame.stereoState);
-    frameNode[keys::capturedTextures] = writeCapturableTextures(frame);
+    findCapturableTextures(frame);
     frameNode[keys::frameIndex] = frame.frameIndex;
     frameNode[keys::view] = writeMat4(frame.view);
     frameNode[keys::pose] = writeMat4(frame.pose);
@@ -797,35 +788,21 @@ void Serializer::writeFrame(const Frame& frame) {
 
     // Serialize textures and buffers last, since the maps they use can be populated by some of the above code
     // Serialize textures
-    serializeMap(frameNode, keys::textures, textureMap, writeTexture);
+    serializeMap(frameNode, keys::textures, textureMap, std::bind(&Serializer::writeTexture, this, _1));
     // Serialize buffers
     serializeMap(frameNode, keys::buffers, bufferMap, writeBuffer);
 
-    {
-        std::string frameJson = frameNode.dump();
-        std::string filename = basename + ".json";
-        storage::FileStorage::create(filename.c_str(), frameJson.size(), (const uint8_t*)frameJson.data());
-    }
-
     writeBinaryBlob();
-    frameNode[keys::binary] = basename + ".bin";
+
+    hfb::writeFrame(filename, frameNode.dump(), binaryBuffer, ktxBuilders);
 }
 
 void Serializer::writeBinaryBlob() {
     const auto buffers = mapToVector(bufferMap);
     auto accumulator = [](size_t total, const BufferPointer& buffer) { return total + (buffer ? buffer->getSize() : 0); };
     size_t totalSize = std::accumulate(buffers.begin(), buffers.end(), (size_t)0, accumulator);
-
-    const auto blobFilename = basename + ".bin";
-    QFile file(blobFilename.c_str());
-    if (!file.open(QFile::ReadWrite | QIODevice::Truncate)) {
-        throw std::runtime_error("Unable to open file for writing");
-    }
-    if (!file.resize(totalSize)) {
-        throw std::runtime_error("Unable to resize file");
-    }
-
-    auto mapped = file.map(0, totalSize);
+    binaryBuffer.resize(totalSize);
+    auto mapped = binaryBuffer.data();
     size_t offset = 0;
 
     for (const auto& bufferPointer : buffers) {
@@ -837,8 +814,5 @@ void Serializer::writeBinaryBlob() {
         const auto& bufferData = buffer._renderSysmem.readData();
         memcpy(mapped + offset, bufferData, bufferSize);
         offset += bufferSize;
-    }
-    if (!file.unmap(mapped)) {
-        throw std::runtime_error("Unable to unmap file");
     }
 }

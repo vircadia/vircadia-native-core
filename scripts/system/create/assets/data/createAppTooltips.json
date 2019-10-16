@@ -76,7 +76,7 @@
         "tooltip": "The angle in deg at which light emits. Starts in the entity's -z direction, and rotates around its x axis."
     },
     "keyLight.castShadows": {
-        "tooltip": "If enabled, shadows are cast. The entity or avatar casting the shadow must also have Cast Shadows enabled."
+        "tooltip": "If enabled, shadows are cast. The entity or avatar casting the shadow must also have Cast Shadows enabled. Note: Shadows are rendered only on high-profiled computers. This setting will have no effect on computers profiled to medium or low graphics."
     },
     "keyLight.shadowBias": {
         "tooltip": "The bias of the shadows cast by the light.  Use this to fine-tune your shadows to your scene to prevent shadow acne and peter panning."
@@ -500,7 +500,7 @@
         "tooltip": "If enabled, grabbed entities will follow the movements of your hand controller instead of your avatar's hand."
     },
     "canCastShadow": {
-        "tooltip": "If enabled, this geometry of this entity casts shadows when a shadow-casting light source shines on it."
+        "tooltip": "If enabled, the geometry of this entity casts shadows when a shadow-casting light source shines on it. Note: Shadows are rendered only on high-profiled computers. This setting will have no effect on computers profiled to medium or low graphics.."
     },
     "ignorePickIntersection": {
         "tooltip": "If enabled, this entity will not be considered for ray picks, and will also not occlude other entities when picking."

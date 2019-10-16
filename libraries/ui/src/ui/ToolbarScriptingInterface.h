@@ -92,15 +92,19 @@ public:
     ToolbarProxy(QObject* qmlObject, QObject* parent = nullptr);
 
     /**jsdoc
+     * <em>Currently doesn't work.</em>
      * @function ToolbarProxy#addButton
-     * @param {object} properties
-     * @returns {ToolbarButtonProxy}
+     * @param {object} properties - Button properties
+     * @returns {object} The button added.
+     * @deprecated This method is deprecated and will be removed.
      */
     Q_INVOKABLE ToolbarButtonProxy* addButton(const QVariant& properties);
 
     /**jsdoc
+     * <em>Currently doesn't work.</em>
      * @function ToolbarProxy#removeButton
-     * @param {string} name
+     * @param {string} name - Button name.
+     * @deprecated This method is deprecated and will be removed.
      */
     Q_INVOKABLE void removeButton(const QVariant& name);
 

@@ -28,7 +28,7 @@ public:
      * <p>Specifies sets of joints.</p>
      * <table>
      *   <thead>
-     *     <tr><th>Value</th><th>Name</p><th>Description</th>
+     *     <tr><th>Value</th><th>Name</th><th>Description</th>
      *   </thead>
      *   <tbody>
      *     <tr><td><code>0</code></td><td>FullBodyBoneSet</td><td>All joints.</td></tr>

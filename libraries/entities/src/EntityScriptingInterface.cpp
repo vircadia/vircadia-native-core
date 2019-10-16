@@ -666,7 +666,7 @@ QScriptValue EntityScriptingInterface::getMultipleEntityProperties(QScriptContex
     const int ARGUMENT_EXTENDED_DESIRED_PROPERTIES = 1;
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    const auto entityIDs = qScriptValueToValue<QVector<QUuid>>(context->argument(ARGUMENT_ENTITY_IDS));
+    const auto entityIDs = qscriptvalue_cast<QVector<QUuid>>(context->argument(ARGUMENT_ENTITY_IDS));
     return entityScriptingInterface->getMultipleEntityPropertiesInternal(engine, entityIDs, context->argument(ARGUMENT_EXTENDED_DESIRED_PROPERTIES));
 }
 
@@ -716,7 +716,7 @@ QScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(QScri
         psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::FlagsActive);
     }
 
-    EntityPropertyFlags desiredProperties = qScriptValueToValue<EntityPropertyFlags>(extendedDesiredProperties);
+    EntityPropertyFlags desiredProperties = qscriptvalue_cast<EntityPropertyFlags>(extendedDesiredProperties);
     bool needsScriptSemantics = desiredProperties.getHasProperty(PROP_POSITION) ||
         desiredProperties.getHasProperty(PROP_ROTATION) ||
         desiredProperties.getHasProperty(PROP_LOCAL_POSITION) ||

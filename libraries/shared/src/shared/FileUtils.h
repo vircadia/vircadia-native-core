@@ -12,20 +12,23 @@
 #ifndef hifi_FileUtils_h
 #define hifi_FileUtils_h
 
-#include <QString>
-#include <QtCore/QFileSelector>
+#include <QtCore/QString>
+
 class FileUtils {
 
 public:
     static const QStringList& getFileSelectors();
     static QString selectFile(const QString& fileName);
     static void locateFile(const QString& fileName);
+    static bool exists(const QString& fileName);
+    static bool isRelative(const QString& fileName);
     static QString standardPath(QString subfolder);
     static QString readFile(const QString& filename);
     static QStringList readLines(const QString& filename, QString::SplitBehavior splitBehavior = QString::KeepEmptyParts);
     static QString replaceDateTimeTokens(const QString& path);
     static QString computeDocumentPath(const QString& path);
     static bool canCreateFile(const QString& fullPath);
+    static QString getParentPath(const QString& fullPath);
 };
 
 #endif // hifi_FileUtils_h

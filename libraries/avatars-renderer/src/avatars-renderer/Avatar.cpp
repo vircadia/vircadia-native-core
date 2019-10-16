@@ -545,7 +545,7 @@ void Avatar::relayJointDataToChildren() {
 }
 
 /**jsdoc
- * An avatar has different types of data simulated at different rates, in Hz.
+ * <p>An avatar has different types of data simulated at different rates, in Hz.</p>
  *
  * <table>
  *   <thead>
@@ -955,7 +955,7 @@ void Avatar::simulateAttachments(float deltaTime) {
         bool texturesLoaded = _attachmentModelsTexturesLoaded.at(i);
 
         // Watch for texture loading
-        if (!texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+        if (!texturesLoaded && model->getNetworkModel() && model->getNetworkModel()->areTexturesLoaded()) {
             _attachmentModelsTexturesLoaded[i] = true;
             model->updateRenderItems();
         }

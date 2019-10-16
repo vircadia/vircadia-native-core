@@ -24,6 +24,9 @@
 class EntitySimulation;
 
 /**jsdoc
+ * The <code>EntityViewer</code> API provides a headless viewer for assignment client scripts, so that they can "see" entities 
+ * in order for them to be available in the {@link Entities} API.
+ *
  * @namespace EntityViewer
  *
  * @hifi-assignment-client

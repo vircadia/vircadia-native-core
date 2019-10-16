@@ -31,6 +31,14 @@
 
 using namespace udt;
 
+#ifdef WIN32
+#include <winsock2.h>
+#include <WS2tcpip.h>
+#else
+#include <netinet/in.h>
+#endif
+
+
 Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     QObject(parent),
     _udpSocket(parent),

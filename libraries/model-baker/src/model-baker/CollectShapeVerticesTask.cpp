@@ -33,7 +33,7 @@ void CollectShapeVerticesTask::run(const baker::BakeContextPointer& context, con
     const auto& reweightedDeformers = input.get4();
     auto& shapeVerticesPerJoint = output;
 
-    shapeVerticesPerJoint.reserve(joints.size());
+    shapeVerticesPerJoint.resize(joints.size());
     std::vector<std::vector<VertexSource>> vertexSourcesPerJoint;
     vertexSourcesPerJoint.resize(joints.size());
     for (size_t i = 0; i < shapes.size(); ++i) {

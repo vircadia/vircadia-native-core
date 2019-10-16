@@ -13,12 +13,10 @@ var self = this;
                     <code><?js= (kind === 'class' ? 'new ' : '') + name + (data.signatureHead || '') ?></code></a>
                 </td>
                 <td>
-                <?js if (data.description) { ?>
-                <?js= description ?>
-                <?js= this.partial('details.tmpl', data) ?>
-                <?js } else { ?>
+                    <?js if (data.description) { ?>
+                        <?js= this.partial('description.tmpl', description) ?>
+                    <?js } ?>
                     <?js= this.partial('details.tmpl', data) ?>
-                <?js } ?>
                 </td>
             </tr>
     <?js } ?>
