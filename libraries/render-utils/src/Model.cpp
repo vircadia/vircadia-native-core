@@ -336,7 +336,7 @@ bool Model::updateGeometry() {
         updateShapeStatesFromRig();
 
         const HFMModel& hfmModel = getHFMModel();
-        const auto& hfmDynamicTransforms = hfmModel.dynamicTransforms;
+        const auto& hfmSkinDeformers = hfmModel.skinDeformers;
         int i = 0;
       /*  for (const auto& mesh: hfmModel.meshes) {
             MeshState state;
@@ -346,8 +346,8 @@ bool Model::updateGeometry() {
             i++;
         }
         */
-        for (int i = 0; i < hfmDynamicTransforms.size(); i++) {
-            const auto& dynT =  hfmDynamicTransforms[i];
+        for (int i = 0; i < hfmSkinDeformers.size(); i++) {
+            const auto& dynT =  hfmSkinDeformers[i];
             MeshState state;
             state.clusterDualQuaternions.resize(dynT.clusters.size());
             state.clusterMatrices.resize(dynT.clusters.size());
@@ -1427,10 +1427,10 @@ void Model::updateClusterMatrices() {
 
     _needsUpdateClusterMatrices = false;
     const HFMModel& hfmModel = getHFMModel();
-    const auto& hfmDynamicTransforms = hfmModel.dynamicTransforms;
+    const auto& hfmSkinDeformers = hfmModel.skinDeformers;
     for (int i = 0; i < (int) _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
-        const auto& deformer = hfmDynamicTransforms[i];
+        const auto& deformer = hfmSkinDeformers[i];
 
         int meshIndex = i;
         int clusterIndex = 0;
@@ -1545,7 +1545,7 @@ void Model::createRenderItemSet() {
 
         auto material = getNetworkModel()->getShapeMaterial(shapeID);
         _modelMeshMaterialNames.push_back(material ? material->getName() : "");
-        _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)shape.mesh, shape.dynamicTransform });
+        _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)shape.mesh, shape.skinDeformer });
     }
 /*
     uint32_t numMeshes = (uint32_t)meshes.size();

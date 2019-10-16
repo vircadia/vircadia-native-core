@@ -242,17 +242,20 @@ public:
     QVector<glm::vec3> colors;
     QVector<glm::vec2> texCoords;
     QVector<glm::vec2> texCoords1;
-    QVector<uint16_t> clusterIndices; // DEPRECATED (see hfm::Shape::dynamicTransform, hfm::DynamicTransform::deformers, hfm::Deformer)
-    QVector<uint16_t> clusterWeights; // DEPRECATED (see hfm::Shape::dynamicTransform, hfm::DynamicTransform::deformers, hfm::Deformer)
-    QVector<int32_t> originalIndices;
 
     QVector<Cluster> clusters; // DEPRECATED (see hfm::Shape::dynamicTransform, hfm::DynamicTransform::clusters)
-
     Extents meshExtents; // DEPRECATED (see hfm::Shape::transformedExtents)
     glm::mat4 modelTransform; // DEPRECATED (see hfm::Joint::globalTransform, hfm::Shape::transform, hfm::Model::joints)
 
+    // Skinning cluster attributes
+    QVector<uint16_t> clusterIndices;
+    QVector<uint16_t> clusterWeights;
+
+    // Blendshape attributes
     QVector<Blendshape> blendshapes;
 
+
+    QVector<int32_t> originalIndices; // Original indices of the vertices
     unsigned int meshIndex; // the order the meshes appeared in the object file
 
     graphics::MeshPointer _mesh;
@@ -294,18 +297,16 @@ public:
 };
 
 // Formerly contained in hfm::Mesh
-class Deformer {
+class SkinCluster {
 public:
     std::vector<uint32_t> indices;
     std::vector<float> weights;
 };
 
-class DynamicTransform {
+class SkinDeformer {
 public:
-    std::vector<uint16_t> deformers;
-    std::vector<Cluster> clusters; // affect the deformer of the same index
-    std::vector<uint32_t> blendshapes;
-    // There are also the meshExtents and modelTransform, which for now are left in hfm::Mesh
+    std::vector<uint16_t> skinClusterIndices;
+    std::vector<Cluster> clusters;
 };
 
 // The lightweight model part description.
@@ -317,7 +318,7 @@ public:
     uint32_t joint { UNDEFINED_KEY }; // The hfm::Joint associated with this shape, containing transform information
     // TODO: Have all serializers calculate hfm::Shape::transformedExtents in world space where they previously calculated hfm::Mesh::meshExtents. Change all code that uses hfm::Mesh::meshExtents to use this instead.
     Extents transformedExtents; // The precise extents of the meshPart vertices in world space, after transform information is applied, while not taking into account rigging/skinning
-    uint32_t dynamicTransform { UNDEFINED_KEY };
+    uint32_t skinDeformer { UNDEFINED_KEY };
 };
 
 /// The runtime model format.
@@ -334,9 +335,9 @@ public:
 
     std::vector<Mesh> meshes;
     std::vector<Material> materials;
-    std::vector<Deformer> deformers;
 
-    std::vector<DynamicTransform> dynamicTransforms;
+    std::vector<SkinDeformer> skinDeformers;
+    std::vector<SkinCluster> skinClusters;
 
     std::vector<Joint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices

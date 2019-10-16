@@ -30,8 +30,8 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
 
     // we make a copy of the inverseBindMatrices in order to prevent mutating the model bind pose
     // when we are dealing with a joint offset in the model
-    for (int i = 0; i < (int)hfmModel.dynamicTransforms.size(); i++) {
-        const auto& defor = hfmModel.dynamicTransforms[i];
+    for (int i = 0; i < (int)hfmModel.skinDeformers.size(); i++) {
+        const auto& defor = hfmModel.skinDeformers[i];
         std::vector<HFMCluster> dummyClustersList;
 
         for (int j = 0; j < defor.clusters.size(); j++) {
