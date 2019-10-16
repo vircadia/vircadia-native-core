@@ -1018,8 +1018,8 @@ void hfmDebugDump(const HFMModel& hfmModel) {
         qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
         qCDebug(modelformat) << "    texCoords.count() =" << mesh.texCoords.count();
         qCDebug(modelformat) << "    texCoords1.count() =" << mesh.texCoords1.count();
-        qCDebug(modelformat) << "    clusterIndices.count() =" << mesh.clusterIndices.count();
-        qCDebug(modelformat) << "    clusterWeights.count() =" << mesh.clusterWeights.count();
+        qCDebug(modelformat) << "    clusterIndices.size() =" << mesh.clusterIndices.size();
+        qCDebug(modelformat) << "    clusterWeights.size() =" << mesh.clusterWeights.size();
         qCDebug(modelformat) << "    meshExtents =" << mesh.meshExtents;
         qCDebug(modelformat) << "    modelTransform =" << mesh.modelTransform;
         qCDebug(modelformat) << "    parts.count() =" << mesh.parts.size();

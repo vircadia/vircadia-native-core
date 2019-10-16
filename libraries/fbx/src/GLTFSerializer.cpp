@@ -1401,7 +1401,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 int numVertices = mesh.vertices.size() - prevMeshVerticesCount;
 
                 // Append new cluster indices and weights for this mesh part
-                int prevMeshClusterWeightCount = mesh.clusterWeights.count();
+                size_t prevMeshClusterWeightCount = mesh.clusterWeights.size();
                 for (int i = 0; i < numVertices * WEIGHTS_PER_VERTEX; ++i) {
                     mesh.clusterIndices.push_back(mesh.clusters.size() - 1);
                     mesh.clusterWeights.push_back(0);

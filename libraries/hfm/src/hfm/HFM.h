@@ -248,8 +248,8 @@ public:
     glm::mat4 modelTransform; // DEPRECATED (see hfm::Joint::globalTransform, hfm::Shape::transform, hfm::Model::joints)
 
     // Skinning cluster attributes
-    QVector<uint16_t> clusterIndices;
-    QVector<uint16_t> clusterWeights;
+    std::vector<uint16_t> clusterIndices;
+    std::vector<uint16_t> clusterWeights;
 
     // Blendshape attributes
     QVector<Blendshape> blendshapes;
@@ -296,7 +296,7 @@ public:
     bool shouldInitCollisions() const { return _collisionsConfig.size() > 0; }
 };
 
-// Formerly contained in hfm::Mesh
+// A different skinning representation, used by FBXSerializer. We convert this to our graphics-optimized runtime representation contained within the mesh.
 class SkinCluster {
 public:
     std::vector<uint32_t> indices;
@@ -305,7 +305,7 @@ public:
 
 class SkinDeformer {
 public:
-    std::vector<uint16_t> skinClusterIndices;
+    std::vector<uint16_t> skinClusterIndices; // DEPRECATED (see hfm::Mesh.clusterIndices, hfm::Mesh.clusterWeights)
     std::vector<Cluster> clusters;
 };
 
@@ -337,7 +337,6 @@ public:
     std::vector<Material> materials;
 
     std::vector<SkinDeformer> skinDeformers;
-    std::vector<SkinCluster> skinClusters;
 
     std::vector<Joint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
