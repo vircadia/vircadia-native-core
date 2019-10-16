@@ -3235,7 +3235,7 @@ void EntityItem::retrieveMarketplacePublicKey() {
     });
 }
 
-void EntityItem::collectChildrenForDelete(SetOfEntities& entitiesToDelete, SetOfEntities& domainEntities, const QUuid& sessionID) const {
+void EntityItem::collectChildrenForDelete(SetOfEntities& entitiesToDelete, const QUuid& sessionID) const {
     // Deleting an entity has consequences for its children, however there are rules dictating what can be deleted.
     // This method helps enforce those rules for the children of entity (not for this entity).
     for (SpatiallyNestablePointer child : getChildren()) {
@@ -3246,10 +3246,8 @@ void EntityItem::collectChildrenForDelete(SetOfEntities& entitiesToDelete, SetOf
                     (childEntity->isMyAvatarEntity() || childEntity->getOwningAvatarID() == sessionID))) {
                 if (entitiesToDelete.find(childEntity) == entitiesToDelete.end()) {
                     entitiesToDelete.insert(childEntity);
-                    childEntity->collectChildrenForDelete(entitiesToDelete, domainEntities, sessionID);
+                    childEntity->collectChildrenForDelete(entitiesToDelete, sessionID);
                 }
-            } else if (childEntity->isDomainEntity()) {
-                domainEntities.insert(childEntity);
             }
         }
     }

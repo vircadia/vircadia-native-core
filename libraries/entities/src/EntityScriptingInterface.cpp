@@ -974,7 +974,6 @@ void EntityScriptingInterface::deleteEntity(const QUuid& id) {
 
     // If we have a local entity tree set, then also update it.
     SetOfEntities entitiesToDeleteImmediately;
-    SetOfEntities domainEntities;
     _entityTree->withWriteLock([&] {
         EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
         if (entity) {
@@ -988,15 +987,13 @@ void EntityScriptingInterface::deleteEntity(const QUuid& id) {
 
             // Deleting an entity has consequences for linked children: some can be deleted but others can't.
             // Local- and my-avatar-entities can be deleted immediately, but other-avatar-entities can't be deleted
-            // by this context, and domain-entity deletes must rountrip through the entity-server for authorization.
-            // So we recurse down the linked hierarchy and snarf children into two categories:
-            // (a) entitiesToDeleteImmediately and (b) domainEntntities.
+            // by this context, and a domain-entity must rountrip through the entity-server for authorization.
             if (entity->isDomainEntity()) {
-                domainEntities.insert(entity);
+                getEntityPacketSender()->queueEraseEntityMessage(entity->getID());
             } else {
                 entitiesToDeleteImmediately.insert(entity);
                 const auto sessionID = DependencyManager::get<NodeList>()->getSessionUUID();
-                entity->collectChildrenForDelete(entitiesToDeleteImmediately, domainEntities, sessionID);
+                entity->collectChildrenForDelete(entitiesToDeleteImmediately, sessionID);
             }
             if (!entitiesToDeleteImmediately.empty()) {
                 _entityTree->deleteEntitiesByPointer(entitiesToDeleteImmediately);
@@ -1008,10 +1005,6 @@ void EntityScriptingInterface::deleteEntity(const QUuid& id) {
         if (entity->isMyAvatarEntity()) {
             getEntityPacketSender()->getMyAvatar()->clearAvatarEntity(entityID, false);
         }
-    }
-    // finally ask entity-server to delete domainEntities
-    foreach (auto entity, domainEntities) {
-        getEntityPacketSender()->queueEraseEntityMessage(entity->getID());
     }
 }
 

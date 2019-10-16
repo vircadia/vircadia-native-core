@@ -66,7 +66,7 @@ public:
     void takeDeadAvatarEntities(SetOfEntities& deadEntities);
 
     virtual void clearEntities() override;
-    void queueEraseDomainEntities(const SetOfEntities& domainEntities) const override;
+    void queueEraseDomainEntity(const QUuid& id) const override;
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);

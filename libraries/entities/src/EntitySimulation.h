@@ -78,7 +78,7 @@ public:
     virtual void prepareEntityForDelete(EntityItemPointer entity);
 
     void processChangedEntities();
-    virtual void queueEraseDomainEntities(const SetOfEntities& domainEntities) const { }
+    virtual void queueEraseDomainEntity(const QUuid& id) const { }
 
 protected:
     virtual void addEntityToInternalLists(EntityItemPointer entity);

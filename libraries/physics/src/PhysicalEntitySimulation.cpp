@@ -176,7 +176,6 @@ void PhysicalEntitySimulation::processDeadEntities() {
     }
     PROFILE_RANGE(simulation_physics, "Deletes");
     SetOfEntities entitiesToDeleteImmediately;
-    SetOfEntities domainEntities;
     QUuid sessionID = Physics::getSessionUUID();
     QMutexLocker lock(&_mutex);
     for (auto entity : _deadEntitiesToRemoveFromTree) {
@@ -185,18 +184,15 @@ void PhysicalEntitySimulation::processDeadEntities() {
             _entitiesToRemoveFromPhysics.insert(entity);
         }
         if (entity->isDomainEntity()) {
-            domainEntities.insert(entity);
+            // interface-client can't delete domainEntities outright, they must roundtrip through the entity-server
+            _entityPacketSender->queueEraseEntityMessage(entity->getID());
         } else if (entity->isLocalEntity() || entity->isMyAvatarEntity()) {
             entitiesToDeleteImmediately.insert(entity);
-            entity->collectChildrenForDelete(entitiesToDeleteImmediately, domainEntities, sessionID);
+            entity->collectChildrenForDelete(entitiesToDeleteImmediately, sessionID);
         }
     }
     _deadEntitiesToRemoveFromTree.clear();
 
-    // interface-client can't delete domainEntities outright, they must roundtrip through the entity-server
-    for (auto entity : domainEntities) {
-        _entityPacketSender->queueEraseEntityMessage(entity->getID());
-    }
     if (!entitiesToDeleteImmediately.empty()) {
         getEntityTree()->deleteEntitiesByPointer(entitiesToDeleteImmediately);
     }
@@ -233,12 +229,9 @@ void PhysicalEntitySimulation::clearEntities() {
     EntitySimulation::clearEntities();
 }
 
-void PhysicalEntitySimulation::queueEraseDomainEntities(const SetOfEntities& domainEntities) const {
+void PhysicalEntitySimulation::queueEraseDomainEntity(const QUuid& id) const {
     if (_entityPacketSender) {
-        for (auto domainEntity : domainEntities) {
-            assert(domainEntity->isDomainEntity());
-            _entityPacketSender->queueEraseEntityMessage(domainEntity->getID());
-        }
+        _entityPacketSender->queueEraseEntityMessage(id);
     }
 }
 
