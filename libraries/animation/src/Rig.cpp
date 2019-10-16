@@ -1435,11 +1435,12 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
         //stategraph vars based on input
         const float INPUT_DEADZONE_THRESHOLD = 0.05f;
+        const float SLOW_SPEED_THRESHOLD = 1.5f;
 
         if (fabsf(_previousControllerParameters.inputX) <= INPUT_DEADZONE_THRESHOLD &&
             fabsf(_previousControllerParameters.inputZ) <= INPUT_DEADZONE_THRESHOLD) {
             // no WASD input
-            if (fabsf(forwardSpeed) <= 1.5f && fabsf(lateralSpeed) <= 1.5f) {
+            if (fabsf(forwardSpeed) <= SLOW_SPEED_THRESHOLD && fabsf(lateralSpeed) <= SLOW_SPEED_THRESHOLD) {
                 _animVars.set("isInputForward", false);
                 _animVars.set("isInputBackward", false);
                 _animVars.set("isInputRight", false);
