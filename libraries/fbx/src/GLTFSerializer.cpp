@@ -1520,7 +1520,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         const auto& templateShapePerPrim = templateShapePerPrimPerGLTFMesh[node.mesh];
         int primCount = (int)gltfMesh.primitives.size();
         for (int primIndex = 0; primIndex < primCount; ++primIndex) {
-            const auto& primitive = gltfMesh.primitives[primIndex];
             const auto& templateShape = templateShapePerPrim[primIndex];
             hfmModel.shapes.push_back(templateShape);
             auto& hfmShape = hfmModel.shapes.back();
