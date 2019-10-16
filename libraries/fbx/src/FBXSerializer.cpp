@@ -1592,7 +1592,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
 
             // whether we're skinned depends on how many clusters are attached
-            if (clusterIDs.size() > 1) {
+            if (clusterIDs.size() > 0) {
                 hfm::DynamicTransform dynamicTransform;
                 auto& clusters = dynamicTransform.clusters;
                 std::vector<hfm::Deformer> deformers;
@@ -1670,7 +1670,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                     shape.dynamicTransform = dynamicTransformID;
                 }
             } else {
-                // this is a single-joint mesh
+                // this is a no cluster mesh
                 HFMJoint& joint = hfmModel.joints[rootJointIndex];
 
                 // Apply geometric offset, if present, by transforming the vertices directly

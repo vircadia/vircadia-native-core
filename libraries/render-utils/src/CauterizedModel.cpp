@@ -319,7 +319,8 @@ void CauterizedModel::updateRenderItems() {
                     const auto& meshState = self->getMeshState(deformerIndex);
                     const auto& cauterizedMeshState = self->getCauterizeMeshState(deformerIndex);
 
-                    transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, shapeState, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
+                    transaction.updateItem<ModelMeshPartPayload>(itemID,
+                        [modelTransform, shapeState, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
                             primitiveMode, renderItemKeyGlobalFlags, enableCauterization](ModelMeshPartPayload& mmppData) {
                         CauterizedMeshPartPayload& data = static_cast<CauterizedMeshPartPayload&>(mmppData);
                         if (useDualQuaternionSkinning) {
@@ -331,26 +332,30 @@ void CauterizedModel::updateRenderItems() {
                        }
 
                         Transform renderTransform = modelTransform;
-                      //  if (meshState.clusterMatrices.size() <= 2) {
-                            renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
+                       // if (meshState.clusterMatrices.size() <= 2) {
+                       //     renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
                        // }
                         data.updateTransform(renderTransform);
                         data.updateTransformForCauterizedMesh(renderTransform);
+                        data.updateTransformAndBound(modelTransform.worldTransform(shapeState._rootFromJointTransform));
 
                         data.setEnableCauterization(enableCauterization);
                         data.updateKey(renderItemKeyGlobalFlags);
                         data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
                     });
                 } else {
-                    transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, shapeState, invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags](ModelMeshPartPayload& data) {
+                    transaction.updateItem<ModelMeshPartPayload>(itemID,
+                        [modelTransform, shapeState, invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, enableCauterization]
+                             (ModelMeshPartPayload& mmppData) {
+                        CauterizedMeshPartPayload& data = static_cast<CauterizedMeshPartPayload&>(mmppData);
 
                         Transform renderTransform = modelTransform;
-                        //   if (meshState.clusterMatrices.size() <= 1) {
-                        renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
-                        // }
-                        data.updateTransform(renderTransform);
 
-                     //   data.setEnableCauterization(enableCauterization);
+                        renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
+                        data.updateTransform(renderTransform);
+                        data.updateTransformForCauterizedMesh(renderTransform);
+
+                        data.setEnableCauterization(enableCauterization);
                         data.updateKey(renderItemKeyGlobalFlags);
                         data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, false);
                     });

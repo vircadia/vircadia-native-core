@@ -39,6 +39,7 @@ public:
 
     virtual void notifyLocationChanged() {}
     void updateTransform(const Transform& transform);
+    void updateTransformAndBound(const Transform& transform );
 
     // Render Item interface
     virtual render::ItemKey getKey() const;

@@ -70,6 +70,11 @@ void MeshPartPayload::updateTransform(const Transform& transform) {
     _worldBound.transform(_worldFromLocalTransform);
 }
 
+void MeshPartPayload::updateTransformAndBound(const Transform& transform) {
+    _worldBound = _localBound;
+    _worldBound.transform(transform);
+}
+
 void MeshPartPayload::addMaterial(graphics::MaterialLayer material) {
     _drawMaterials.push(material);
 }

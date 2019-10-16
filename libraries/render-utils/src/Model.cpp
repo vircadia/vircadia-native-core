@@ -257,9 +257,10 @@ void Model::updateRenderItems() {
 
                     Transform renderTransform = modelTransform;
                  //   if (meshState.clusterMatrices.size() <= 1) {
-                     renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
+                  //   renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
                    // }
                     data.updateTransform(renderTransform);
+                    data.updateTransformAndBound(modelTransform.worldTransform(shapeState._rootFromJointTransform));
 
                     data.setCauterized(cauterized);
                     data.updateKey(renderItemKeyGlobalFlags);
