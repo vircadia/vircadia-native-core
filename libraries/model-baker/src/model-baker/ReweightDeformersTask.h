@@ -19,7 +19,7 @@
 
 class ReweightDeformersTask {
 public:
-    using Input = baker::VaryingSet4<std::vector<hfm::Mesh>, std::vector<hfm::Shape>, std::vector<hfm::DynamicTransform>, std::vector<hfm::Deformer>>;
+    using Input = baker::VaryingSet4<std::vector<hfm::Mesh>, std::vector<hfm::Shape>, std::vector<hfm::SkinDeformer>, std::vector<hfm::SkinCluster>>;
     using Output = std::vector<baker::ReweightedDeformers>;
     using JobModel = baker::Job::ModelIO<ReweightDeformersTask, Input, Output>;
 

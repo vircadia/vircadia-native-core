@@ -13,15 +13,15 @@
 
 #include <glm/gtx/transform.hpp>
 
-// Used to track and avoid duplicate shape vertices, as multiple shapes can have the same mesh and dynamicTransform
+// Used to track and avoid duplicate shape vertices, as multiple shapes can have the same mesh and skinDeformer
 class VertexSource {
 public:
     uint32_t mesh;
-    uint32_t dynamicTransform;
+    uint32_t skinDeformer;
 
     bool operator==(const VertexSource& other) const {
         return mesh == other.mesh &&
-            dynamicTransform == other.dynamicTransform;
+            skinDeformer == other.skinDeformer;
     }
 };
 
@@ -29,7 +29,7 @@ void CollectShapeVerticesTask::run(const baker::BakeContextPointer& context, con
     const auto& meshes = input.get0();
     const auto& shapes = input.get1();
     const auto& joints = input.get2();
-    const auto& dynamicTransforms = input.get3();
+    const auto& skinDeformers = input.get3();
     const auto& reweightedDeformers = input.get4();
     auto& shapeVerticesPerJoint = output;
 
@@ -38,18 +38,18 @@ void CollectShapeVerticesTask::run(const baker::BakeContextPointer& context, con
     vertexSourcesPerJoint.resize(joints.size());
     for (size_t i = 0; i < shapes.size(); ++i) {
         const auto& shape = shapes[i];
-        const uint32_t dynamicTransformKey = shape.dynamicTransform;
-        if (dynamicTransformKey == hfm::UNDEFINED_KEY) {
+        const uint32_t skinDeformerKey = shape.skinDeformer;
+        if (skinDeformerKey == hfm::UNDEFINED_KEY) {
             continue;
         }
 
         VertexSource vertexSource;
         vertexSource.mesh = shape.mesh;
-        vertexSource.dynamicTransform = dynamicTransformKey;
+        vertexSource.skinDeformer = skinDeformerKey;
 
-        const auto& dynamicTransform = dynamicTransforms[dynamicTransformKey];
-        for (size_t j = 0; j < dynamicTransform.clusters.size(); ++j) {
-            const auto& cluster = dynamicTransform.clusters[j];
+        const auto& skinDeformer = skinDeformers[skinDeformerKey];
+        for (size_t j = 0; j < skinDeformer.clusters.size(); ++j) {
+            const auto& cluster = skinDeformer.clusters[j];
             const uint32_t jointIndex = cluster.jointIndex;
 
             auto& vertexSources = vertexSourcesPerJoint[jointIndex];

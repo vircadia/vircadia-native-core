@@ -295,7 +295,6 @@ void ModelResource::onGeometryMappingLoaded(bool success) {
     if (success && _modelResource) {
         _hfmModel = _modelResource->_hfmModel;
         _materialMapping = _modelResource->_materialMapping;
-     //   _meshParts = _modelResource->_meshParts;
         _meshes = _modelResource->_meshes;
         _materials = _modelResource->_materials;
 

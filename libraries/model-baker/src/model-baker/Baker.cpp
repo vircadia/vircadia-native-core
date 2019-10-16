@@ -29,7 +29,7 @@ namespace baker {
     class GetModelPartsTask {
     public:
         using Input = hfm::Model::Pointer;
-        using Output = VaryingSet8<std::vector<hfm::Mesh>, hifi::URL, baker::MeshIndicesToModelNames, baker::BlendshapesPerMesh, std::vector<hfm::Joint>, std::vector<hfm::Shape>, std::vector<hfm::DynamicTransform>, std::vector<hfm::Deformer>>;
+        using Output = VaryingSet8<std::vector<hfm::Mesh>, hifi::URL, baker::MeshIndicesToModelNames, baker::BlendshapesPerMesh, std::vector<hfm::Joint>, std::vector<hfm::Shape>, std::vector<hfm::SkinDeformer>, std::vector<hfm::SkinCluster>>;
         using JobModel = Job::ModelIO<GetModelPartsTask, Input, Output>;
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
@@ -44,8 +44,8 @@ namespace baker {
             }
             output.edit4() = hfmModelIn->joints;
             output.edit5() = hfmModelIn->shapes;
-            output.edit6() = hfmModelIn->dynamicTransforms;
-            output.edit7() = hfmModelIn->deformers;
+            output.edit6() = hfmModelIn->skinDeformers;
+            output.edit7() = hfmModelIn->skinClusters;
         }
     };
 
@@ -143,7 +143,7 @@ namespace baker {
             const auto blendshapesPerMeshIn = modelPartsIn.getN<GetModelPartsTask::Output>(3);
             const auto jointsIn = modelPartsIn.getN<GetModelPartsTask::Output>(4);
             const auto shapesIn = modelPartsIn.getN<GetModelPartsTask::Output>(5);
-            const auto dynamicTransformsIn = modelPartsIn.getN<GetModelPartsTask::Output>(6);
+            const auto skinDeformersIn = modelPartsIn.getN<GetModelPartsTask::Output>(6);
             const auto deformersIn = modelPartsIn.getN<GetModelPartsTask::Output>(7);
 
             // Calculate normals and tangents for meshes and blendshapes if they do not exist
@@ -158,14 +158,14 @@ namespace baker {
 
             // Skinning weight calculations
             // NOTE: Due to limitations in the current graphics::MeshPointer representation, the output list of ReweightedDeformers is per-mesh. An element is empty if there are no deformers for the mesh of the same index.
-            const auto reweightDeformersInputs = ReweightDeformersTask::Input(meshesIn, shapesIn, dynamicTransformsIn, deformersIn).asVarying();
+            const auto reweightDeformersInputs = ReweightDeformersTask::Input(meshesIn, shapesIn, skinDeformersIn, deformersIn).asVarying();
             const auto reweightedDeformers = model.addJob<ReweightDeformersTask>("ReweightDeformers", reweightDeformersInputs);
             // Shape vertices are included/rejected based on skinning weight, and thus must use the reweighted deformers.
-            const auto collectShapeVerticesInputs = CollectShapeVerticesTask::Input(meshesIn, shapesIn, jointsIn, dynamicTransformsIn, reweightedDeformers).asVarying();
+            const auto collectShapeVerticesInputs = CollectShapeVerticesTask::Input(meshesIn, shapesIn, jointsIn, skinDeformersIn, reweightedDeformers).asVarying();
             const auto shapeVerticesPerJoint = model.addJob<CollectShapeVerticesTask>("CollectShapeVertices", collectShapeVerticesInputs);
 
             // Build the graphics::MeshPointer for each hfm::Mesh
-            const auto buildGraphicsMeshInputs = BuildGraphicsMeshTask::Input(meshesIn, url, meshIndicesToModelNames, normalsPerMesh, tangentsPerMesh, shapesIn, dynamicTransformsIn, reweightedDeformers).asVarying();
+            const auto buildGraphicsMeshInputs = BuildGraphicsMeshTask::Input(meshesIn, url, meshIndicesToModelNames, normalsPerMesh, tangentsPerMesh, shapesIn, skinDeformersIn, reweightedDeformers).asVarying();
             const auto graphicsMeshes = model.addJob<BuildGraphicsMeshTask>("BuildGraphicsMesh", buildGraphicsMeshInputs);
 
             // Prepare joint information

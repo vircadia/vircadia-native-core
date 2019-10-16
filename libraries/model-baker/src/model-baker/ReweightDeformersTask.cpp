@@ -11,30 +11,30 @@
 
 #include "ReweightDeformersTask.h"
 
-baker::ReweightedDeformers getReweightedDeformers(size_t numMeshVertices, const std::vector<const hfm::Deformer*> deformers, const uint16_t weightsPerVertex) {
+baker::ReweightedDeformers getReweightedDeformers(size_t numMeshVertices, const std::vector<const hfm::SkinCluster*> skinClusters, const uint16_t weightsPerVertex) {
     baker::ReweightedDeformers reweightedDeformers;
-    if (deformers.size() == 0) {
+    if (skinClusters.size() == 0) {
         return reweightedDeformers;
     }
 
     size_t numClusterIndices = numMeshVertices * weightsPerVertex;
     reweightedDeformers.weightsPerVertex = weightsPerVertex;
     // TODO: Consider having a rootCluster property in the DynamicTransform rather than appending the root to the end of the cluster list.
-    reweightedDeformers.indices.resize(numClusterIndices, (uint16_t)(deformers.size() - 1));
+    reweightedDeformers.indices.resize(numClusterIndices, (uint16_t)(skinClusters.size() - 1));
     reweightedDeformers.weights.resize(numClusterIndices, 0);
 
     std::vector<float> weightAccumulators;
     weightAccumulators.resize(numClusterIndices, 0.0f);
-    for (uint16_t i = 0; i < (uint16_t)deformers.size(); ++i) {
-        const hfm::Deformer& deformer = *deformers[i];
+    for (uint16_t i = 0; i < (uint16_t)skinClusters.size(); ++i) {
+        const hfm::SkinCluster& skinCluster = *skinClusters[i];
 
-        if (deformer.indices.size() != deformer.weights.size()) {
+        if (skinCluster.indices.size() != skinCluster.weights.size()) {
             reweightedDeformers.trimmedToMatch = true;
         }
-        size_t numIndicesOrWeights = std::min(deformer.indices.size(), deformer.weights.size());
+        size_t numIndicesOrWeights = std::min(skinCluster.indices.size(), skinCluster.weights.size());
         for (size_t j = 0; j < numIndicesOrWeights; ++j) {
-            uint32_t index = deformer.indices[j];
-            float weight = deformer.weights[j];
+            uint32_t index = skinCluster.indices[j];
+            float weight = skinCluster.weights[j];
 
             // look for an unused slot in the weights vector
             uint32_t weightIndex = index * weightsPerVertex;
@@ -90,34 +90,34 @@ void ReweightDeformersTask::run(const baker::BakeContextPointer& context, const 
 
     const auto& meshes = input.get0();
     const auto& shapes = input.get1();
-    const auto& dynamicTransforms = input.get2();
-    const auto& deformers = input.get3();
+    const auto& skinDeformers = input.get2();
+    const auto& skinClusters = input.get3();
     auto& reweightedDeformers = output;
 
-    // Currently, there is only (at most) one dynamicTransform per mesh
-    // An undefined shape.dynamicTransform has the value hfm::UNDEFINED_KEY
-    std::vector<uint32_t> dynamicTransformPerMesh;
-    dynamicTransformPerMesh.resize(meshes.size(), hfm::UNDEFINED_KEY);
+    // Currently, there is only (at most) one skinDeformer per mesh
+    // An undefined shape.skinDeformer has the value hfm::UNDEFINED_KEY
+    std::vector<uint32_t> skinDeformerPerMesh;
+    skinDeformerPerMesh.resize(meshes.size(), hfm::UNDEFINED_KEY);
     for (const auto& shape : shapes) {
-        uint32_t dynamicTransformIndex = shape.dynamicTransform;
-        dynamicTransformPerMesh[shape.mesh] = dynamicTransformIndex;
+        uint32_t skinDeformerIndex = shape.skinDeformer;
+        skinDeformerPerMesh[shape.mesh] = skinDeformerIndex;
     }
 
     reweightedDeformers.reserve(meshes.size());
     for (size_t i = 0; i < meshes.size(); ++i) {
         const auto& mesh = meshes[i];
-        uint32_t dynamicTransformIndex = dynamicTransformPerMesh[i];
+        uint32_t skinDeformerIndex = skinDeformerPerMesh[i];
 
-        const hfm::DynamicTransform* dynamicTransform = nullptr;
-        std::vector<const hfm::Deformer*> meshDeformers;
-        if (dynamicTransformIndex != hfm::UNDEFINED_KEY) {
-            dynamicTransform = &dynamicTransforms[dynamicTransformIndex];
-            for (const auto& deformerIndex : dynamicTransform->deformers) {
-                const auto& deformer = deformers[deformerIndex];
-                meshDeformers.push_back(&deformer);
+        const hfm::SkinDeformer* skinDeformer = nullptr;
+        std::vector<const hfm::SkinCluster*> meshSkinClusters;
+        if (skinDeformerIndex != hfm::UNDEFINED_KEY) {
+            skinDeformer = &skinDeformers[skinDeformerIndex];
+            for (const auto& skinClusterIndex : skinDeformer->skinClusterIndices) {
+                const auto& skinCluster = skinClusters[skinClusterIndex];
+                meshSkinClusters.push_back(&skinCluster);
             }
         }
 
-        reweightedDeformers.push_back(getReweightedDeformers((size_t)mesh.vertices.size(), meshDeformers, NUM_WEIGHTS_PER_VERTEX));
+        reweightedDeformers.push_back(getReweightedDeformers((size_t)mesh.vertices.size(), meshSkinClusters, NUM_WEIGHTS_PER_VERTEX));
     }
 }

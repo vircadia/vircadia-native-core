@@ -19,7 +19,7 @@
 
 class CollectShapeVerticesTask {
 public:
-    using Input = baker::VaryingSet5<std::vector<hfm::Mesh>, std::vector<hfm::Shape>, std::vector<hfm::Joint>, std::vector<hfm::DynamicTransform>, std::vector<baker::ReweightedDeformers>>;
+    using Input = baker::VaryingSet5<std::vector<hfm::Mesh>, std::vector<hfm::Shape>, std::vector<hfm::Joint>, std::vector<hfm::SkinDeformer>, std::vector<baker::ReweightedDeformers>>;
     using Output = std::vector<ShapeVertices>;
     using JobModel = baker::Job::ModelIO<CollectShapeVerticesTask, Input, Output>;
 
