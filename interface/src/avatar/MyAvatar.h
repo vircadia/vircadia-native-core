@@ -275,7 +275,7 @@ class MyAvatar : public Avatar {
      * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
      * @property {number} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting
-     *     (avatar leaning is disabled, recenntering is enabled), <code>false</code> if the user wearing the HMD is
+     *     (avatar leaning is disabled, recentering is enabled), <code>false</code> if the user wearing the HMD is
      *     determined to be standing (avatar leaning is enabled, and avatar recenters if it leans too far).
      *     If <code>userRecenterModel == 2</code> (i.e., auto) the property value automatically updates as the user sits
      *     or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the current
