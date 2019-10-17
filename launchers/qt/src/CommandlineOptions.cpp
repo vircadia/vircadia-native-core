@@ -20,14 +20,12 @@ void CommandlineOptions::parse(const int argc, char** argv) {
     for (int index = 1; index < argc; index++) {
         std::string option = argv[index];
         if (isCommandlineOption(option)) {
-            qDebug() << "adding commandline option: " << QString::fromStdString(option);
             _commandlineOptions.push_back(option);
         }
     }
 }
 
 void CommandlineOptions::append(const std::string& command) {
-    qDebug() << "appending option: " << QString::fromStdString(command);
     _commandlineOptions.push_back(command);
 }
 

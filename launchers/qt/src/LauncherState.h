@@ -155,12 +155,6 @@ private:
     bool shouldDownloadContentCache() const;
     void getCurrentClientVersion();
 
-    QString getContentCachePath() const;
-    QString getClientDirectory() const;
-    QString getClientExecutablePath() const;
-    QString getConfigFilePath() const;
-    QString getLauncherFilePath() const;
-
     float calculateDownloadProgress() const;
 
     bool shouldDownloadLauncher();

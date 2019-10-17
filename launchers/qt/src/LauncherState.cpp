@@ -23,7 +23,6 @@
 
 #include <QThreadPool>
 
-#include <QStandardPaths>
 #include <QEventLoop>
 
 #include <qregularexpression.h>
@@ -75,38 +74,8 @@ void LauncherState::gotoPreviousDebugScreen() {
     }
 }
 
-QString LauncherState::getContentCachePath() const {
-    return _launcherDirectory.filePath("cache");
-}
-
-QString LauncherState::getClientDirectory() const {
-    return _launcherDirectory.filePath("interface_install");
-}
-
-QString LauncherState::getClientExecutablePath() const {
-    QDir clientDirectory = getClientDirectory();
-#if defined(Q_OS_WIN)
-    return clientDirectory.absoluteFilePath("interface.exe");
-#elif defined(Q_OS_MACOS)
-    return clientDirectory.absoluteFilePath("interface.app/Contents/MacOS/interface");
-#endif
-}
-
-QString LauncherState::getConfigFilePath() const {
-    QDir clientDirectory = getClientDirectory();
-    return clientDirectory.absoluteFilePath("config.json");
-}
-
-QString LauncherState::getLauncherFilePath() const {
-#if defined(Q_OS_WIN)
-    return _launcherDirectory.absoluteFilePath("launcher.exe");
-#elif defined(Q_OS_MACOS)
-    return getBundlePath() + "/Contents/MacOS/HQ Launcher";
-#endif
-}
-
 bool LauncherState::shouldDownloadContentCache() const {
-    return !_contentCacheURL.isEmpty() && !QFile::exists(getContentCachePath());
+    return !_contentCacheURL.isEmpty() && !QFile::exists(PathUtils::getContentCachePath());
 }
 
 void LauncherState::setLastSignupErrorMessage(const QString& msg) {
@@ -146,10 +115,10 @@ void LauncherState::ASSERT_STATE(const std::vector<ApplicationState>& states) {
 }
 
 LauncherState::LauncherState() {
-    _launcherDirectory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    // TODO Fix launcher directory
+    _launcherDirectory = PathUtils::getLauncherDirectory();
     qDebug() << "Launcher directory: " << _launcherDirectory.absolutePath();
     _launcherDirectory.mkpath(_launcherDirectory.absolutePath());
+    _launcherDirectory.mkpath(PathUtils::getDownloadDirectory().absolutePath());
     requestBuilds();
 }
 
@@ -255,7 +224,7 @@ void LauncherState::getCurrentClientVersion() {
     connect(&client, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), &loop, &QEventLoop::exit, Qt::QueuedConnection);
     connect(&client, &QProcess::errorOccurred, &loop, &QEventLoop::exit, Qt::QueuedConnection);
 
-    client.start(getClientExecutablePath(), { "--version" });
+    client.start(PathUtils::getClientExecutablePath(), { "--version" });
     loop.exec();
 
     // TODO Handle errors
@@ -273,14 +242,14 @@ void LauncherState::getCurrentClientVersion() {
     qDebug() << "Current client version is: " << _currentClientVersion;
 
     {
-        auto path = getConfigFilePath();
+        auto path = PathUtils::getConfigFilePath();
         QFile configFile{ path };
 
         if (configFile.open(QIODevice::ReadOnly)) {
             QJsonDocument doc = QJsonDocument::fromJson(configFile.readAll());
             auto root = doc.object();
 
-            _config.launcherPath = getLauncherFilePath();
+            _config.launcherPath = PathUtils::getLauncherFilePath();
             _config.loggedIn = false;
             if (root.contains(configLoggedInKey)) {
                 _config.loggedIn = root[configLoggedInKey].toBool();
@@ -509,7 +478,8 @@ void LauncherState::downloadClient() {
         auto request = new QNetworkRequest(QUrl(build.installerZipURL));
         auto reply = _networkAccessManager.get(*request);
 
-        _clientZipFile.setFileName(_launcherDirectory.absoluteFilePath("client.zip"));
+        QDir downloadDir{ PathUtils::getDownloadDirectory() };
+        _clientZipFile.setFileName(downloadDir.absoluteFilePath("client.zip"));
 
         qDebug() << "Opening " << _clientZipFile.fileName();
         if (!_clientZipFile.open(QIODevice::WriteOnly)) {
@@ -566,15 +536,18 @@ void LauncherState::installClient() {
     ASSERT_STATE(ApplicationState::DownloadingClient);
     setApplicationState(ApplicationState::InstallingClient);
 
-    _launcherDirectory.rmpath("interface_install");
-    _launcherDirectory.mkpath("interface_install");
-    auto installDir = _launcherDirectory.absoluteFilePath("interface_install");
+
+    auto clientDir = PathUtils::getClientDirectory();
+
+    auto clientPath = clientDir.absolutePath();
+    _launcherDirectory.rmpath(clientPath);
+    _launcherDirectory.mkpath(clientPath);
 
     _interfaceInstallProgress = 0;
 
-    qDebug() << "Unzipping " << _clientZipFile.fileName() << " to " << installDir;
+    qDebug() << "Unzipping " << _clientZipFile.fileName() << " to " << clientDir.absolutePath();
 
-    auto unzipper = new Unzipper(_clientZipFile.fileName(), QDir(installDir));
+    auto unzipper = new Unzipper(_clientZipFile.fileName(), clientDir);
     unzipper->setAutoDelete(true);
     connect(unzipper, &Unzipper::progress, this, [this](float progress) {
         _interfaceInstallProgress = progress;
@@ -666,7 +639,8 @@ void LauncherState::downloadContentCache() {
         request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         auto reply = _networkAccessManager.get(request);
 
-        _contentZipFile.setFileName(_launcherDirectory.absoluteFilePath("content_cache.zip"));
+        QDir downloadDir{ PathUtils::getDownloadDirectory() };
+        _contentZipFile.setFileName(downloadDir.absoluteFilePath("content_cache.zip"));
 
         qDebug() << "Opening " << _contentZipFile.fileName();
         if (!_contentZipFile.open(QIODevice::WriteOnly)) {
@@ -713,7 +687,7 @@ void LauncherState::installContentCache() {
     ASSERT_STATE(ApplicationState::DownloadingContentCache);
     setApplicationState(ApplicationState::InstallingContentCache);
 
-    auto installDir = getContentCachePath();
+    auto installDir = PathUtils::getContentCachePath();
 
     qDebug() << "Unzipping " << _contentZipFile.fileName() << " to " << installDir;
 
@@ -750,15 +724,10 @@ void LauncherState::launchClient() {
 
     setApplicationState(ApplicationState::LaunchingHighFidelity);
 
-    QDir installDirectory = _launcherDirectory.filePath("interface_install");
-    QString clientPath;
-#if defined(Q_OS_WIN)
-    clientPath = installDirectory.absoluteFilePath("interface.exe");
-#elif defined(Q_OS_MACOS)
-    clientPath = installDirectory.absoluteFilePath("interface.app/Contents/MacOS/interface");
-#endif
+    QDir installDirectory = PathUtils::getClientDirectory();
+    QString clientPath = PathUtils::getClientExecutablePath();
 
-    auto path = getConfigFilePath();
+    auto path = PathUtils::getConfigFilePath();
     QFile configFile{ path };
     if (configFile.open(QIODevice::ReadWrite | QIODevice::Truncate)) {
         QJsonDocument doc = QJsonDocument::fromJson(configFile.readAll());
@@ -766,7 +735,7 @@ void LauncherState::launchClient() {
             { configHomeLocationKey, _config.homeLocation },
             { configLastLoginKey, _config.lastLogin },
             { configLoggedInKey, _config.loggedIn },
-            { configLauncherPathKey, getLauncherFilePath() },
+            { configLauncherPathKey, PathUtils::getLauncherFilePath() },
         });
         qint64 result = configFile.write(doc.toJson());
         configFile.close();

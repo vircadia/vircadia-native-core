@@ -2,6 +2,7 @@
 
 #include "CommandlineOptions.h"
 #include "Helper.h"
+#include "PathUtils.h"
 
 #include <string>
 #include <chrono>
@@ -15,10 +16,11 @@
 #include <QDebug>
 
 LauncherInstaller::LauncherInstaller(const QString& applicationFilePath) {
-    _launcherInstallDir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    _launcherApplicationsDir = QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation) + "/Launcher";
+    _launcherInstallDir = PathUtils::getLauncherDirectory();
+    _launcherApplicationsDir = PathUtils::getApplicationsDirectory();
     qDebug() << "Launcher install dir: " << _launcherInstallDir.absolutePath();
     qDebug() << "Launcher Application dir: " << _launcherApplicationsDir.absolutePath();
+
     _launcherInstallDir.mkpath(_launcherInstallDir.absolutePath());
     _launcherApplicationsDir.mkpath(_launcherApplicationsDir.absolutePath());
     QFileInfo fileInfo(applicationFilePath);
@@ -36,7 +38,7 @@ void LauncherInstaller::install() {
     if (runningOutsideOfInstallDir()) {
         qDebug() << "Installing HQ Launcher....";
         uninstallOldLauncher();
-        QString oldLauncherPath = _launcherInstallDir.absolutePath() + "/HQ Launcher.exe";
+        QString oldLauncherPath = PathUtils::getLauncherFilePath();
 
         if (QFile::exists(oldLauncherPath)) {
             bool didRemove = QFile::remove(oldLauncherPath);
@@ -59,15 +61,15 @@ void LauncherInstaller::install() {
 }
 
 void LauncherInstaller::createShortcuts() {
-    QString launcherPath = _launcherInstallDir.absolutePath() + "/HQ Launcher.exe";
+    QString launcherPath = PathUtils::getLauncherFilePath();
 
-    QString uninstallLinkPath = _launcherInstallDir.absolutePath() + "/Uninstall HQ.lnk";
-    QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    QString applicationPath = _launcherApplicationsDir.absolutePath();
+    QString uninstallLinkPath = _launcherInstallDir.absoluteFilePath("Uninstall HQ.lnk");
 
-    QString appStartLinkPath = applicationPath + "/HQ Launcher.lnk";
-    QString uninstallAppStartLinkPath = applicationPath + "/Uninstall HQ.lnk";
-    QString desktopAppLinkPath = desktopPath  + "/HQ Launcher.lnk";
+    QDir desktopDir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+
+    QString appStartLinkPath = _launcherApplicationsDir.absoluteFilePath("HQ Launcher.lnk");
+    QString uninstallAppStartLinkPath = _launcherApplicationsDir.absoluteFilePath("Uninstall HQ.lnk");
+    QString desktopAppLinkPath = desktopDir.absoluteFilePath("HQ Launcher.lnk");
 
 
     createSymbolicLink((LPCSTR)launcherPath.toStdString().c_str(), (LPCSTR)uninstallLinkPath.toStdString().c_str(),
@@ -122,7 +124,7 @@ void LauncherInstaller::uninstall() {
         }
         return;
     }
-    QString launcherPath = _launcherInstallDir.absolutePath() + "/HQ Launcher.exe";
+    QString launcherPath = _launcherInstallDir.absoluteFilePath("HQ Launcher.exe");
     if (QFile::exists(launcherPath)) {
         bool removed = QFile::remove(launcherPath);
         qDebug() << "Successfully removed " << launcherPath << ": " << removed;
@@ -131,58 +133,58 @@ void LauncherInstaller::uninstall() {
 }
 
 void LauncherInstaller::deleteShortcuts() {
-    QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    QDir desktopDir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString applicationPath = _launcherApplicationsDir.absolutePath();
 
-    QString uninstallLinkPath = _launcherInstallDir.absolutePath() + "/Uninstall HQ.lnk";
+    QString uninstallLinkPath = _launcherInstallDir.absoluteFilePath("Uninstall HQ.lnk");
     if (QFile::exists(uninstallLinkPath)) {
         QFile::remove(uninstallLinkPath);
     }
 
-    QString appStartLinkPath = applicationPath + "/HQ Launcher.lnk";
+    QString appStartLinkPath = _launcherApplicationsDir.absoluteFilePath("HQ Launcher.lnk");
     if (QFile::exists(appStartLinkPath)) {
         QFile::remove(appStartLinkPath);
     }
 
-    QString uninstallAppStartLinkPath = applicationPath + "/Uninstall HQ.lnk";
+    QString uninstallAppStartLinkPath = _launcherApplicationsDir.absoluteFilePath("Uninstall HQ.lnk");
     if (QFile::exists(uninstallAppStartLinkPath)) {
         QFile::remove(uninstallAppStartLinkPath);
     }
 
-    QString desktopAppLinkPath = desktopPath  + "/HQ Launcher.lnk";
+    QString desktopAppLinkPath = desktopDir.absoluteFilePath("HQ Launcher.lnk");
     if (QFile::exists(desktopAppLinkPath)) {
         QFile::remove(desktopAppLinkPath);
     }
 }
 
 void LauncherInstaller::uninstallOldLauncher() {
-    QDir localAppPath = QStandardPaths::standardLocations(QStandardPaths::AppLocalDataLocation).value(0) + "/../../HQ";
-    QDir startAppPath = QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation).value(0) + "/HQ";
-    QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    QDir localAppDir = QStandardPaths::standardLocations(QStandardPaths::AppLocalDataLocation).value(0) + "/../../HQ";
+    QDir startAppDir = QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation).value(0) + "/HQ";
+    QDir desktopDir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 
-    qDebug() << localAppPath.absolutePath();
-    qDebug() << startAppPath.absolutePath();
-    QString desktopAppLinkPath = desktopPath  + "/HQ Launcher.lnk";
+    qDebug() << localAppDir.absolutePath();
+    qDebug() << startAppDir.absolutePath();
+    QString desktopAppLinkPath = desktopDir.absoluteFilePath("HQ Launcher.lnk");
     if (QFile::exists(desktopAppLinkPath)) {
         QFile::remove(desktopAppLinkPath);
     }
 
-    QString uninstallLinkPath = localAppPath.absolutePath() + "/Uninstall HQ.lnk";
+    QString uninstallLinkPath = localAppDir.absoluteFilePath("Uninstall HQ.lnk");
     if (QFile::exists(uninstallLinkPath)) {
         QFile::remove(uninstallLinkPath);
     }
 
-    QString applicationPath = localAppPath.absolutePath()  + "/HQ Launcher.exe";
+    QString applicationPath = localAppDir.absoluteFilePath("HQ Launcher.exe");
     if (QFile::exists(applicationPath)) {
         QFile::remove(applicationPath);
     }
 
-    QString appStartLinkPath = startAppPath.absolutePath() + "/HQ Launcher.lnk";
+    QString appStartLinkPath = startAppDir.absoluteFilePath("HQ Launcher.lnk");
     if (QFile::exists(appStartLinkPath)) {
         QFile::remove(appStartLinkPath);
     }
 
-    QString uninstallAppStartLinkPath = startAppPath.absolutePath() + "/Uninstall HQ.lnk";
+    QString uninstallAppStartLinkPath = startAppDir.absoluteFilePath("Uninstall HQ.lnk");
     if (QFile::exists(uninstallAppStartLinkPath)) {
         QFile::remove(uninstallAppStartLinkPath);
     }
