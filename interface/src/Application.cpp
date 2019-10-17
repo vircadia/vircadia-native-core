@@ -2959,13 +2959,29 @@ Application::~Application() {
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
 #ifdef Q_OS_MAC
+    // 10/16/2019 - Disabling this call. This causes known crashes (A), and it is not
+    // fully understood whether it might cause other unknown crashes (B).
+    //
+    // (A) Although we try to shutdown the ScriptEngine threads in onAboutToQuit, there is
+    // currently no guarantee that they have stopped. Waiting on them to stop has so far appeared to
+    // never return on Mac, causing the application to hang on shutdown. Because ScriptEngines
+    // may still be running, they may end up receiving events that are triggered from this processEvents call,
+    // and then try to access resources that are no longer available at this point in time.
+    // If the ScriptEngine threads were fully destroyed before getting here, this would
+    // not be an issue.
+    //
+    // (B) It seems likely that a bunch of potential event handlers are dependent on Application
+    // and other common dependencies to be available and not destroyed or in the middle of being
+    // destroyed.
+
+
     // Clear the event queue before application is totally destructed.
     // This will drain the messasge queue of pending "deleteLaters" queued up
     // during shutdown of the script engines.
     // We do this here because there is a possiblty that [NSApplication terminate:]
     // will be called during processEvents which will invoke all static destructors.
     // We want to postpone this utill the last possible moment.
-    QCoreApplication::processEvents();
+    //QCoreApplication::processEvents();
 #endif
 }
 
