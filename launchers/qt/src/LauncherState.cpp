@@ -32,6 +32,7 @@
 #endif
 
 //#define BREAK_ON_ERROR
+//#define DEBUG_UI
 
 const QString configHomeLocationKey { "homeLocation" };
 const QString configLastLoginKey { "lastLogin" };
@@ -47,6 +48,7 @@ Q_INVOKABLE void LauncherState::openURLInBrowser(QString url) {
 }
 
 void LauncherState::toggleDebugState() {
+#ifdef DEBUG_UI
     _isDebuggingScreens = !_isDebuggingScreens;
 
     UIState updatedUIState = getUIState();
@@ -55,8 +57,10 @@ void LauncherState::toggleDebugState() {
         emit updateSourceUrl(PathUtils::resourcePath(getCurrentUISource()));
         _uiState = getUIState();
     }
+#endif
 }
 void LauncherState::gotoNextDebugScreen() {
+#ifdef DEBUG_UI
     if (_currentDebugScreen < (UIState::UI_STATE_NUM - 1)) {
         _currentDebugScreen = (UIState)(_currentDebugScreen + 1);
         //UIState updatedUIState = getUIState();
@@ -64,14 +68,17 @@ void LauncherState::gotoNextDebugScreen() {
         emit updateSourceUrl(PathUtils::resourcePath(getCurrentUISource()));
         _uiState = getUIState();
     }
+#endif
 }
 void LauncherState::gotoPreviousDebugScreen() {
+#ifdef DEBUG_UI
     if (_currentDebugScreen > 0) {
         _currentDebugScreen = (UIState)(_currentDebugScreen - 1);
         emit uiStateChanged();
         emit updateSourceUrl(PathUtils::resourcePath(getCurrentUISource()));
         _uiState = getUIState();
     }
+#endif
 }
 
 bool LauncherState::shouldDownloadContentCache() const {
