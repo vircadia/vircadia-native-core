@@ -673,6 +673,8 @@ void LauncherState::contentCacheDownloadComplete() {
     if (reply->error()) {
         qDebug() << "Error downloading content cache: " << reply->error() << reply->readAll();
         qDebug() << "Continuing to launch client";
+        _contentDownloadProgress = 100.0f;
+        _contentInstallProgress = 100.0f;
         launchClient();
         return;
     }
