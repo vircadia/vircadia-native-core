@@ -270,9 +270,7 @@ void Model::updateRenderItems() {
                 transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, shapeState, invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags](ModelMeshPartPayload& data) {
                     
                     Transform renderTransform = modelTransform;
-                    //   if (meshState.clusterMatrices.size() <= 1) {
                     renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
-                    // }
                     data.updateTransform(renderTransform);
 
                     data.updateKey(renderItemKeyGlobalFlags);
@@ -337,15 +335,6 @@ bool Model::updateGeometry() {
 
         const HFMModel& hfmModel = getHFMModel();
         const auto& hfmSkinDeformers = hfmModel.skinDeformers;
-        int i = 0;
-      /*  for (const auto& mesh: hfmModel.meshes) {
-            MeshState state;
-            state.clusterDualQuaternions.resize(mesh.clusters.size());
-            state.clusterMatrices.resize(mesh.clusters.size());
-            _meshStates.push_back(state);
-            i++;
-        }
-        */
         for (int i = 0; i < hfmSkinDeformers.size(); i++) {
             const auto& dynT =  hfmSkinDeformers[i];
             MeshState state;
@@ -1428,16 +1417,12 @@ void Model::updateClusterMatrices() {
     _needsUpdateClusterMatrices = false;
     const HFMModel& hfmModel = getHFMModel();
     const auto& hfmSkinDeformers = hfmModel.skinDeformers;
-    for (int i = 0; i < (int) _meshStates.size(); i++) {
-        MeshState& state = _meshStates[i];
-        const auto& deformer = hfmSkinDeformers[i];
+    for (int meshIndex = 0; meshIndex < (int) _meshStates.size(); meshIndex++) {
+        MeshState& state = _meshStates[meshIndex];
+        const auto& deformer = hfmSkinDeformers[meshIndex];
 
-        int meshIndex = i;
-        int clusterIndex = 0;
-
-        for (int d = 0; d < deformer.clusters.size(); d++) {
-            const auto& cluster = deformer.clusters[d];
-            clusterIndex = d;
+        for (int clusterIndex = 0; clusterIndex < deformer.clusters.size(); clusterIndex++) {
+            const auto& cluster = deformer.clusters[clusterIndex];
 
             const auto& cbmov = _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex);
 
@@ -1446,32 +1431,12 @@ void Model::updateClusterMatrices() {
                 Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
                 Transform clusterTransform;
                 Transform::mult(clusterTransform, jointTransform, cbmov.inverseBindTransform);
-                state.clusterDualQuaternions[d] = Model::TransformDualQuaternion(clusterTransform);
-            }
-            else {
-                auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-                glm_mat4u_mul(jointMatrix, cbmov.inverseBindMatrix, state.clusterMatrices[d]);
-            }
-
-        }
-/*
-        int meshIndex = i;
-        const HFMMesh& mesh = hfmModel.meshes.at(i);
-        for (int j = 0; j < mesh.clusters.size(); j++) {
-            const HFMCluster& cluster = mesh.clusters.at(j);
-            int clusterIndex = j;
-
-            if (_useDualQuaternionSkinning) {
-                auto jointPose = _rig.getJointPose(cluster.jointIndex);
-                Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
-                Transform clusterTransform;
-                Transform::mult(clusterTransform, jointTransform, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindTransform);
-                state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(clusterTransform);
+                state.clusterDualQuaternions[clusterIndex] = Model::TransformDualQuaternion(clusterTransform);
             } else {
                 auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-                glm_mat4u_mul(jointMatrix, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindMatrix, state.clusterMatrices[j]);
+                glm_mat4u_mul(jointMatrix, cbmov.inverseBindMatrix, state.clusterMatrices[clusterIndex]);
             }
-        }*/
+        }
     }
 
     // post the blender if we're not currently waiting for one to finish
@@ -1547,24 +1512,6 @@ void Model::createRenderItemSet() {
         _modelMeshMaterialNames.push_back(material ? material->getName() : "");
         _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)shape.mesh, shape.skinDeformer });
     }
-/*
-    uint32_t numMeshes = (uint32_t)meshes.size();
-    for (uint32_t i = 0; i < numMeshes; i++) {
-        const auto& mesh = meshes.at(i);
-        if (!mesh) {
-            continue;
-        }
-
-        // Create the render payloads
-        int numParts = (int)mesh->getNumParts();
-        for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform);
-            auto material = getNetworkModel()->getShapeMaterial(shapeID);
-            _modelMeshMaterialNames.push_back(material ? material->getName() : "");
-            _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
-            shapeID++;
-        }
-    }*/
 }
 
 bool Model::isRenderable() const {
