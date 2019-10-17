@@ -136,7 +136,7 @@ Item {
     HFTextRegular {
         id: displayNameText
 
-        text: "This is the display name other people see in world, it can be changed at anytime, from your profile."
+        text: "This is the display name other people see in High Fidelity. It can be changed at any time from your profile."
         wrapMode: Text.Wrap
 
         width: 430

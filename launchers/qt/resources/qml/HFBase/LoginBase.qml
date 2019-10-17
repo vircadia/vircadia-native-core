@@ -21,7 +21,7 @@ Item {
     }
 
     Item {
-        width: 353
+        width: 383
         height: root.height
 
 
@@ -111,7 +111,8 @@ Item {
         HFTextRegular {
             id: displayText
 
-            text: "You can change this at anytime from your profile."
+            text: "This is the display name other people see in High Fidelity. It can be changed at any time from your profile."
+            wrapMode: Text.Wrap
 
             anchors {
                 top: password.bottom
