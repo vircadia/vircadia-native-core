@@ -1,5 +1,7 @@
 #include "PathUtils.h"
 
+#include "Helper.h"
+
 #include <QDir>
 #include <QDebug>
 #include <QStandardPaths>
