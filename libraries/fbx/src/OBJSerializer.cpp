@@ -899,10 +899,9 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
         if (!objMaterial.used) {
             continue;
         }
-        qCDebug(modelformat) << "OBJSerializer Material Name:" << materialID;
 
         // capture the name to index map
-        materialNameToIndex[materialID] = hfmModel.materials.size();
+        materialNameToIndex[materialID] = (uint32_t) hfmModel.materials.size();
 
         hfmModel.materials.emplace_back(objMaterial.diffuseColor,
             objMaterial.specularColor,
