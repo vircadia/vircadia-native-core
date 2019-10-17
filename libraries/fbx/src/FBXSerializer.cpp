@@ -1485,7 +1485,11 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         }
         for (const QString& modelID : instanceModelIDs) {
             // The transform node has the same indexing order as the joints
-            const uint32_t transformIndex = (uint32_t)modelIDs.indexOf(modelID);
+            int indexOfModelID = modelIDs.indexOf(modelID);
+            if (indexOfModelID == -1) {
+                qCDebug(modelformat) << "Model not in model list: " << modelID;
+            }
+            const uint32_t transformIndex = (indexOfModelID == -1) ? 0 : (uint32_t)indexOfModelID;
 
             // accumulate local transforms
             glm::mat4 globalTransform = hfmModel.joints[transformIndex].globalTransform;
@@ -1585,12 +1589,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 }
             }
 
-            auto rootJointIndex = modelIDs.indexOf(modelID);
-            if (rootJointIndex == -1) {
-                qCDebug(modelformat) << "Model not in model list: " << modelID;
-                rootJointIndex = 0;
-            }
-
             // whether we're skinned depends on how many clusters are attached
             if (clusterIDs.size() > 0) {
                 hfm::SkinDeformer skinDeformer;
@@ -1603,10 +1601,12 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                     // see http://stackoverflow.com/questions/13566608/loading-skinning-information-from-fbx for a discussion
                     // of skinning information in FBX
                     QString jointID = _connectionChildMap.value(clusterID);
-                    hfmCluster.jointIndex = modelIDs.indexOf(jointID);
-                    if (hfmCluster.jointIndex == -1) {
+                    int indexOfJointID = modelIDs.indexOf(jointID);
+                    if (indexOfJointID == -1) {
                         qCDebug(modelformat) << "Joint not in model list: " << jointID;
                         hfmCluster.jointIndex = 0;
+                    } else {
+                        hfmCluster.jointIndex = (uint32_t)indexOfJointID;
                     }
 
                     hfmCluster.inverseBindMatrix = glm::inverse(fbxCluster.transformLink) * globalTransform;
@@ -1635,7 +1635,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
 
                 // the last cluster is the root cluster
                 HFMCluster cluster;
-                cluster.jointIndex = rootJointIndex;
+                cluster.jointIndex = transformIndex;
                 clusters.push_back(cluster);
 
                 // Skinned mesh instances have a dynamic transform
@@ -1676,7 +1676,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 }
             } else {
                 // this is a no cluster mesh
-                HFMJoint& joint = hfmModel.joints[rootJointIndex];
+                HFMJoint& joint = hfmModel.joints[transformIndex];
 
                 // Apply geometric offset, if present, by transforming the vertices directly
                 if (joint.hasGeometricOffset) {
