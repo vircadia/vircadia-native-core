@@ -717,7 +717,7 @@ private:
 
 static const QString STATE_IN_HMD = "InHMD";
 static const QString STATE_CAMERA_FULL_SCREEN_MIRROR = "CameraFSM";
-static const QString STATE_CAMERA_FIRST_PERSON = "CameraFirstPersonLegacy";
+static const QString STATE_CAMERA_FIRST_PERSON = "CameraFirstPerson";
 static const QString STATE_CAMERA_FIRST_PERSON_LOOK_AT = "CameraFirstPersonLookat";
 static const QString STATE_CAMERA_THIRD_PERSON = "CameraThirdPerson";
 static const QString STATE_CAMERA_ENTITY = "CameraEntity";
