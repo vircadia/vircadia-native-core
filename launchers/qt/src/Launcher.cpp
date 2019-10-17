@@ -37,12 +37,6 @@ Launcher::Launcher(int& argc, char**argv) : QGuiApplication(argc, argv) {
     _launcherWindow->setWidth(627);
     _launcherWindow->setResizeMode(QQuickView::SizeRootObjectToView);
     _launcherWindow->show();
-
-    auto window = allWindows()[0];
-    window->setMaximumHeight(540);
-    window->setMaximumWidth(627);
-    window->setMinimumHeight(540);
-    window->setMinimumWidth(627);
 }
 
 Launcher::~Launcher() {
