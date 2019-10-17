@@ -397,7 +397,7 @@ void LODManager::setWorldDetailQuality(float quality) {
     static const float MIN_FPS = 10;
     static const float LOW = 0.25f;
 
-    bool isLowestValue = quality == LOW;
+    bool isLowestValue = quality <= LOW;
     bool isHMDMode = qApp->isHMDMode();
 
     float maxFPS = isHMDMode ? LOD_MAX_LIKELY_HMD_FPS : LOD_MAX_LIKELY_DESKTOP_FPS;
