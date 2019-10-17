@@ -678,14 +678,17 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
     hfmModel.meshExtents.reset();
     hfmModel.meshes.push_back(HFMMesh());
 
+    std::vector<QString> materialNamePerShape;
     try {
         // call parseOBJGroup as long as it's returning true.  Each successful call will
         // add a new meshPart to the model's single mesh.
         while (parseOBJGroup(tokenizer, mapping, hfmModel, scaleGuess, combineParts)) {}
 
-        HFMMesh& mesh = hfmModel.meshes[0];
-        mesh.meshIndex = 0;
+        uint32_t meshIndex = 0;
+        HFMMesh& mesh = hfmModel.meshes[meshIndex];
+        mesh.meshIndex = meshIndex;
 
+        uint32_t jointIndex = 0;
         hfmModel.joints.resize(1);
         hfmModel.joints[0].parentIndex = -1;
         hfmModel.joints[0].distanceToParent = 0;
@@ -696,14 +699,6 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
         hfmModel.joints[0].isSkeletonJoint = true;
 
         hfmModel.jointIndices["x"] = 1;
-
-        HFMCluster cluster;
-        cluster.jointIndex = 0;
-        cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1);
-        mesh.clusters.append(cluster);
 
         QMap<QString, int> materialMeshIdMap;
         std::vector<HFMMeshPart> hfmMeshParts;
@@ -718,12 +713,13 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
                     // Create a new HFMMesh for this material mapping.
                     materialMeshIdMap.insert(face.materialName, materialMeshIdMap.count());
 
+                    uint32_t partIndex = (int)hfmMeshParts.size();
                     hfmMeshParts.push_back(HFMMeshPart());
                     HFMMeshPart& meshPartNew = hfmMeshParts.back();
                     meshPartNew.quadIndices = QVector<int>(meshPart.quadIndices);                    // Copy over quad indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
                     meshPartNew.quadTrianglesIndices = QVector<int>(meshPart.quadTrianglesIndices); // Copy over quad triangulated indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
                     meshPartNew.triangleIndices = QVector<int>(meshPart.triangleIndices);            // Copy over triangle indices.
-
+                    
                     // Do some of the material logic (which previously lived below) now.
                     // All the faces in the same group will have the same name and material.
                     QString groupMaterialName = face.materialName;
@@ -745,8 +741,15 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
                             needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
                         }
                         materials[groupMaterialName] = material;
-                        meshPartNew.materialID = groupMaterialName;
+                        materialNamePerShape.push_back(groupMaterialName);
                     }
+
+
+                    hfm::Shape shape;
+                    shape.mesh = meshIndex;
+                    shape.joint = jointIndex;
+                    shape.meshPart = partIndex;
+                    hfmModel.shapes.push_back(shape);
                 }
             }
         }
@@ -829,12 +832,15 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
             mesh.meshExtents.addPoint(vertex);
             hfmModel.meshExtents.addPoint(vertex);
         }
-
+                
         // hfmDebugDump(hfmModel);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJSerializer fail: " << e.what();
     }
 
+    // At this point, the hfmModel joint, mesh, parts and shpaes have been defined
+    // only no material assigned
+ 
     QString queryPart = _url.query();
     bool suppressMaterialsHack = queryPart.contains("hifiusemat"); // If this appears in query string, don't fetch mtl even if used.
     OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];
@@ -886,6 +892,8 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
         }
     }
 
+    // As we are populating the material list in the hfmModel, let s also create the reverse map (from materialName to index)
+    QMap<QString, uint32_t> materialNameToIndex;
     foreach (QString materialID, materials.keys()) {
         OBJMaterial& objMaterial = materials[materialID];
         if (!objMaterial.used) {
@@ -898,6 +906,7 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
             objMaterial.shininess,
             objMaterial.opacity);
         HFMMaterial& hfmMaterial = hfmModel.materials.back();
+        materialNameToIndex[materialID] = hfmModel.materials.size();
 
         hfmMaterial.name = materialID;
         hfmMaterial.materialID = materialID;
@@ -995,6 +1004,14 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
         }
 
         modelMaterial->setOpacity(hfmMaterial.opacity);
+    }
+
+    // GO over the shapes once more to assign hte material index correctly
+    for (int i = 0; i < hfmModel.shapes.size(); ++i) {
+        auto foundMaterialIndex = materialNameToIndex.find(materialNamePerShape[i]);
+        if (foundMaterialIndex != materialNameToIndex.end()) {
+            hfmModel.shapes[i].material = foundMaterialIndex.value();
+        }
     }
 
     return hfmModelPtr;
