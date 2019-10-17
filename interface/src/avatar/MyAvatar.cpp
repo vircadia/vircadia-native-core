@@ -6821,32 +6821,48 @@ glm::vec3 MyAvatar::getCameraEyesPosition(float deltaTime) {
     glm::vec3 avatarUpVector = getWorldOrientation() * Vectors::UP;
     // Compute the offset between the default and real eye positions.
     glm::vec3 defaultEyesToEyesVector = getHead()->getEyePosition() - defaultEyesPosition;
-    float FRONT_OFFSET_IDLE_MULTIPLIER = 2.0f;
+    float FRONT_OFFSET_IDLE_MULTIPLIER = 2.5f;
     float FRONT_OFFSET_JUMP_MULTIPLIER = 1.5f;
     float frontOffset = FRONT_OFFSET_IDLE_MULTIPLIER * glm::length(defaultEyesPosition - getDefaultEyePosition());
     
     // Looking down will aproximate move the camera forward to meet the real eye position
     float mixAlpha = glm::dot(_lookAtPitch * Vectors::FRONT, -avatarUpVector);
-    
+    bool isLanding = false;
     // When jumping the camera should follow the real eye on the Y coordenate
     float upOffset = 0.0f;
     if (isJumping() || _characterController.getState() == CharacterController::State::Takeoff) {
         upOffset = glm::dot(defaultEyesToEyesVector, avatarUpVector);
-        
         frontOffset = glm::dot(defaultEyesToEyesVector, avatarFrontVector) * FRONT_OFFSET_JUMP_MULTIPLIER;
         mixAlpha = 1.0f;
+        _landingAfterJumpTime = 0.0f;
     } else {
-        // Limit the range effect from 45 to 90 degrees
-        const float HEAD_OFFSET_DOT_THRESHOLD = 0.7f; // 45 degrees aprox
-        mixAlpha = mixAlpha < HEAD_OFFSET_DOT_THRESHOLD ? 0.0f : (mixAlpha - HEAD_OFFSET_DOT_THRESHOLD) /
-                                                                 (1.0f - HEAD_OFFSET_DOT_THRESHOLD);
+        // Limit the range effect from 45 to 0 degrees
+        // between the front camera and the down vectors
+        const float HEAD_OFFSET_RANGE_IN_DEGREES = 45.0f;
+        const float HEAD_OFFSET_RANGE_OUT_DEGREES = 0.0f;
+        float rangeIn = glm::cos(glm::radians(HEAD_OFFSET_RANGE_IN_DEGREES));
+        float rangeOut = glm::cos(glm::radians(HEAD_OFFSET_RANGE_OUT_DEGREES));
+        mixAlpha = mixAlpha < rangeIn ? 0.0f : (mixAlpha - rangeIn) / (rangeOut - rangeIn);
+        const float WAIT_TO_LAND_TIME = 1.0f;
+        if (_landingAfterJumpTime < WAIT_TO_LAND_TIME) {
+            _landingAfterJumpTime += deltaTime;
+            isLanding = true;
+        }
     }
     const float FPS = 60.0f;
     float timeScale = deltaTime * FPS;
     frontOffset = frontOffset < 0.0f ? 0.0f : mixAlpha * frontOffset;
     glm::vec3 cameraOffset = upOffset * Vectors::UP + frontOffset * Vectors::FRONT;
-    const float TAU = 0.1f;
-    _cameraEyesOffset = _cameraEyesOffset + (cameraOffset - _cameraEyesOffset) * min(1.0f, TAU * timeScale);
+    const float JUMPING_TAU = 0.1f;
+    const float NO_JUMP_TAU = 0.3f;
+    const float LANDING_TAU = 0.05f;
+    float tau = NO_JUMP_TAU;
+    if (isJumping()) {
+        tau = JUMPING_TAU;
+    } else if (isLanding) {
+        tau = LANDING_TAU;
+    }
+    _cameraEyesOffset = _cameraEyesOffset + (cameraOffset - _cameraEyesOffset) * min(1.0f, tau * timeScale);
     glm::vec3 estimatedCameraPosition = defaultEyesPosition + getWorldOrientation() * _cameraEyesOffset;
     return estimatedCameraPosition;
 }
