@@ -73,7 +73,7 @@ void LoginRequest::receivedResponse() {
     _token.refreshToken = root["refresh_token"].toString();
     _token.tokenType = root["token_type"].toString();
 
-    qDebug() << "Got response for login: " << data;
+    qDebug() << "Got response for login";
     _rawLoginToken = data;
 
     emit finished();

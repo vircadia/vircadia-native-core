@@ -53,7 +53,7 @@ void LauncherInstaller::install() {
 
         deleteShortcuts();
         createShortcuts();
-
+        deleteApplicationRegistryKeys();
         createApplicationRegistryKeys();
     } else {
         qDebug() << "Failed to install HQ Launcher";
@@ -85,17 +85,31 @@ void LauncherInstaller::createShortcuts() {
                            (LPCSTR)("Click to Setup and Launch HQ"));
 }
 
+QString randomQtString() {
+   const QString possibleCharacters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+   const int randomStringLength = 5;
+   auto now = std::chrono::system_clock::now();
+   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
+   qsrand(duration.count());
+
+   QString randomString;
+   for(int i = 0; i < randomStringLength; i++)
+   {
+       int index = qrand() % possibleCharacters.length();
+       QChar nextChar = possibleCharacters.at(index);
+       randomString.append(nextChar);
+   }
+   return randomString;
+}
+
 void LauncherInstaller::uninstall() {
     qDebug() << "Uninstall Launcher";
     deleteShortcuts();
     CommandlineOptions* options = CommandlineOptions::getInstance();
     if (!options->contains("--resumeUninstall")) {
         QDir tmpDirectory = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-        QString destination = tmpDirectory.absolutePath() + "/HQ Launcher.exe";
-        qDebug() << destination;
-        if (QFile::exists(destination)) {
-            QFile::remove(destination);
-        }
+        QString destination = tmpDirectory.absolutePath() + "/" + randomQtString() + ".exe";
+        qDebug() << "temp file destination: " << destination;
         bool copied = QFile::copy(_launcherRunningFilePath, destination);
 
         if (copied) {
@@ -195,12 +209,14 @@ void LauncherInstaller::uninstallOldLauncher() {
 void LauncherInstaller::createApplicationRegistryKeys() {
     const std::string REGISTRY_PATH = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\HQ";
     bool success = insertRegistryKey(REGISTRY_PATH, "DisplayName", "HQ");
-    std::string installPath = _launcherInstallDir.absolutePath().toStdString();
+    std::string installPath = _launcherInstallDir.absolutePath().replace("/", "\\").toStdString();
     success = insertRegistryKey(REGISTRY_PATH, "InstallLocation", installPath);
-    std::string applicationExe = installPath + "/HQ Launcher.exe";
-    std::string uninstallPath = '"' + applicationExe + '"' + " --uninstall";
+    std::string applicationExe = installPath + "\\HQ Launcher.exe";
+    std::string uninstallPath = applicationExe + " --uninstall";
+    qDebug() << QString::fromStdString(applicationExe);
+    qDebug() << QString::fromStdString(uninstallPath);
     success = insertRegistryKey(REGISTRY_PATH, "UninstallString", uninstallPath);
-    success = insertRegistryKey(REGISTRY_PATH, "DisplayVersion", "DEV");
+    success = insertRegistryKey(REGISTRY_PATH, "DisplayVersion", std::string(LAUNCHER_BUILD_VERSION));
     success = insertRegistryKey(REGISTRY_PATH, "DisplayIcon", applicationExe);
     success = insertRegistryKey(REGISTRY_PATH, "Publisher", "High Fidelity");
 
@@ -209,7 +225,7 @@ void LauncherInstaller::createApplicationRegistryKeys() {
     std::stringstream date;
     date << std::put_time(std::localtime(&now), "%Y-%m-%d") ;
     success = insertRegistryKey(REGISTRY_PATH, "InstallDate", date.str());
-    //success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "EstimatedSize", (DWORD)size);
+    success = insertRegistryKey(REGISTRY_PATH, "EstimatedSize", (DWORD)14181);
     success = insertRegistryKey(REGISTRY_PATH, "NoModify", (DWORD)1);
     success = insertRegistryKey(REGISTRY_PATH, "NoRepair", (DWORD)1);
 
@@ -218,7 +234,6 @@ void LauncherInstaller::createApplicationRegistryKeys() {
 
 void LauncherInstaller::deleteApplicationRegistryKeys() {
     const std::string regPath= "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\HQ";
-    if (!deleteRegistryKey(regPath.c_str())) {
-        qDebug() << "Failed to delete registryKeys";
-    }
+    bool success = deleteRegistryKey(regPath.c_str());
+    qDebug() << "Did delete Application Registry Keys: " << success;
 }

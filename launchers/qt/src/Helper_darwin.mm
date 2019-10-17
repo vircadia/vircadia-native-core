@@ -97,10 +97,17 @@ void launchAutoUpdater(const QString& autoUpdaterPath) {
 
 
 bool replaceDirectory(const QString& orginalDirectory, const QString& newDirectory) {
+    NSError *error = nil;
     NSFileManager* fileManager = [NSFileManager defaultManager];
     NSURL* destinationUrl = [UpdaterHelper NSStringToNSURL:newDirectory.toNSString()];
-    return (bool) [fileManager replaceItemAtURL:[UpdaterHelper NSStringToNSURL:orginalDirectory.toNSString()] withItemAtURL:[UpdaterHelper NSStringToNSURL:newDirectory.toNSString()]
-                                 backupItemName:nil options:NSFileManagerItemReplacementUsingNewMetadataOnly resultingItemURL:&destinationUrl error:nil];
+    bool success = (bool) [fileManager replaceItemAtURL:[UpdaterHelper NSStringToNSURL:orginalDirectory.toNSString()] withItemAtURL:[UpdaterHelper NSStringToNSURL:newDirectory.toNSString()]
+                                 backupItemName:nil options:NSFileManagerItemReplacementUsingNewMetadataOnly resultingItemURL:&destinationUrl error:&error];
+
+    if (error != nil) {
+        qDebug() << "NSFileManager::replaceItemAtURL -> error: " << error;
+    }
+
+    return success;
 }
 
 
@@ -124,7 +131,6 @@ void waitForInterfaceToClose() {
 bool isLauncherAlreadyRunning() {
     NSArray* apps = [NSRunningApplication runningApplicationsWithBundleIdentifier:@"com.highfidelity.launcher"];
     if ([apps count] > 1) {
-        NSLog(@"launcher is already running");
         qDebug() << "launcher is already running";
         return true;
     }
