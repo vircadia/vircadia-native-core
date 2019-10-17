@@ -7,8 +7,6 @@ import "HFControls"
 
 Item {
     id: root
-    width: 627
-    height: 540
     Loader {
         anchors.fill: parent
         id: loader
@@ -33,8 +31,6 @@ Item {
 
     HFTextRegular {
         id: buildInfo
-
-        font.pixelSize: 12
 
         anchors {
             leftMargin: 10

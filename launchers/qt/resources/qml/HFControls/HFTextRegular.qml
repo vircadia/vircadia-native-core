@@ -5,7 +5,7 @@ Text {
     id: root
 
     font.family: "Graphik Regular"
-    font.pointSize: 10.5
+    font.pixelSize: 14
 
     color: "#C4C4C4"
     linkColor: color

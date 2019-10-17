@@ -3,6 +3,6 @@ import QtQuick 2.1
 
 Text {
     font.family: "Graphik Semibold"
-    font.pointSize: 24
+    font.pixelSize: 32
     color: "#ffffff"
 }
