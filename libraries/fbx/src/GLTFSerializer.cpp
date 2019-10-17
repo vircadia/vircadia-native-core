@@ -1524,7 +1524,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             hfmModel.shapes.push_back(templateShape);
             auto& hfmShape = hfmModel.shapes.back();
             // Everything else is already defined (mesh, meshPart, material), so just define the new transform
-            hfmShape.transform = nodeIndex;
+            hfmShape.joint = nodeIndex;
         }
     }
 

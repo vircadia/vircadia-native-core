@@ -40,7 +40,7 @@ void calculateExtentsForShape(hfm::Shape& shape, const std::vector<hfm::Mesh>& m
     const auto& mesh = meshes[shape.mesh];
     const auto& meshPart = mesh.parts[shape.meshPart];
 
-    glm::mat4 globalTransform = joints[shape.transform].globalTransform;
+    glm::mat4 globalTransform = joints[shape.joint].globalTransform;
     forEachIndex(meshPart, [&](int32_t idx){
         if (mesh.vertices.size() <= idx) {
             return;
