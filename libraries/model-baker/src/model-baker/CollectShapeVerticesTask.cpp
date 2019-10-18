@@ -13,6 +13,8 @@
 
 #include <glm/gtx/transform.hpp>
 
+#include <hfm/HFMModelMath.h>
+
 // Used to track and avoid duplicate shape vertices, as multiple shapes can have the same mesh and skinDeformer
 class VertexSource {
 public:
@@ -30,7 +32,6 @@ void CollectShapeVerticesTask::run(const baker::BakeContextPointer& context, con
     const auto& shapes = input.get1();
     const auto& joints = input.get2();
     const auto& skinDeformers = input.get3();
-    const auto& reweightedDeformers = input.get4();
     auto& shapeVerticesPerJoint = output;
 
     shapeVerticesPerJoint.resize(joints.size());
@@ -59,10 +60,9 @@ void CollectShapeVerticesTask::run(const baker::BakeContextPointer& context, con
 
                 const auto& mesh = meshes[shape.mesh];
                 const auto& vertices = mesh.vertices;
-                const auto& reweightedDeformer = reweightedDeformers[shape.mesh];
                 const glm::mat4 meshToJoint = cluster.inverseBindMatrix;
 
-                const uint16_t weightsPerVertex = reweightedDeformer.weightsPerVertex;
+                const uint16_t weightsPerVertex = hfm::NUM_SKINNING_WEIGHTS_PER_VERTEX;
                 if (weightsPerVertex == 0) {
                     for (int vertexIndex = 0; vertexIndex < (int)vertices.size(); ++vertexIndex) {
                         const glm::mat4 vertexTransform = meshToJoint * glm::translate(vertices[vertexIndex]);
@@ -71,9 +71,9 @@ void CollectShapeVerticesTask::run(const baker::BakeContextPointer& context, con
                 } else {
                     for (int vertexIndex = 0; vertexIndex < (int)vertices.size(); ++vertexIndex) {
                         for (uint16_t weightIndex = 0; weightIndex < weightsPerVertex; ++weightIndex) {
-                            const size_t index = vertexIndex*4 + weightIndex;
-                            const uint16_t clusterIndex = reweightedDeformer.indices[index];
-                            const uint16_t clusterWeight = reweightedDeformer.weights[index];
+                            const size_t index = vertexIndex*weightsPerVertex + weightIndex;
+                            const uint16_t clusterIndex = mesh.clusterIndices[index];
+                            const uint16_t clusterWeight = mesh.clusterWeights[index];
                             // Remember vertices associated with this joint with at least 1/4 weight
                             const uint16_t EXPANSION_WEIGHT_THRESHOLD = std::numeric_limits<uint16_t>::max() / 4;
                             if (clusterIndex != j || clusterWeight < EXPANSION_WEIGHT_THRESHOLD) {
