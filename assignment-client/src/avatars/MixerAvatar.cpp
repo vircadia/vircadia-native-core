@@ -32,22 +32,39 @@ MixerAvatar::MixerAvatar() {
 
     _challengeTimer.setSingleShot(true);
     _challengeTimer.setInterval(CHALLENGE_TIMEOUT_MS);
-    
-    _challengeTimer.callOnTimeout(this, [this]() {
-        if (_verifyState == challengeClient) {
-            _pendingEvent = false;
-            _verifyState = verificationFailed;
-            _needsIdentityUpdate = true;
-            qCDebug(avatars) << "Dynamic verification TIMED-OUT for" << getDisplayName() << getSessionUUID();
-        } else {
-            qCDebug(avatars) << "Ignoring timeout of avatar challenge";
-        }
-    });
-
+    _challengeTimer.callOnTimeout(this, &MixerAvatar::challengeTimeout);
+    // QTimer::start is a set of overloaded functions.
+    connect(this, &MixerAvatar::startChallengeTimer, &_challengeTimer, static_cast<void(QTimer::*)()>(&QTimer::start));
 }
 
 const char* MixerAvatar::stateToName(VerifyState state) {
     return QMetaEnum::fromType<VerifyState>().valueToKey(state);
+}
+
+void MixerAvatar::challengeTimeout() {
+    switch (_verifyState) {
+    case challengeClient:
+        _verifyState = staticValidation;
+        _pendingEvent = true;
+        if (++_numberChallenges < NUM_CHALLENGES_BEFORE_FAIL) {
+            qCDebug(avatars) << "Retrying (" << _numberChallenges << ") timed-out challenge for" << getDisplayName()
+                << getSessionUUID();
+        } else {
+            _certifyFailed = true;
+            _needsIdentityUpdate = true;
+            qCDebug(avatars) << "Dynamic verification TIMED-OUT for" << getDisplayName() << getSessionUUID();
+        }
+        break;
+
+    case verificationFailed:
+        qCDebug(avatars)  << "Retrying failed challenge for" << getDisplayName() << getSessionUUID();
+        _verifyState = staticValidation;
+        _pendingEvent = true;
+        break;
+
+    default:
+        qCDebug(avatars) << "Ignoring timeout of avatar challenge";
+    }
 }
 
 void MixerAvatar::fetchAvatarFST() {
@@ -210,6 +227,23 @@ void MixerAvatar::ownerRequestComplete() {
     networkReply->deleteLater();
 }
 
+void MixerAvatar::requestCurrentOwnership() {
+    // Get registered owner's public key from metaverse.
+    static const QString POP_MARKETPLACE_API { "/api/v1/commerce/proof_of_purchase_status/transfer" };
+    auto& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest networkRequest;
+    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
+    requestURL.setPath(POP_MARKETPLACE_API);
+    networkRequest.setUrl(requestURL);
+
+    QJsonObject request;
+    request["certificate_id"] = _certificateIdFromFST;
+    QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
+    connect(networkReply, &QNetworkReply::finished, this, &MixerAvatar::ownerRequestComplete);
+}
+
 void MixerAvatar::processCertifyEvents() {
     if (!_pendingEvent) {
         return;
@@ -221,26 +255,15 @@ void MixerAvatar::processCertifyEvents() {
         case receivedFST:
         {
             generateFSTHash();
+            _numberChallenges = 0;
             if (_certificateIdFromFST.length() != 0) {
                 QString& marketplacePublicKey = EntityItem::_marketplacePublicKey;
                 bool staticVerification = validateFSTHash(marketplacePublicKey);
                 _verifyState = staticVerification ? staticValidation : verificationFailed;
 
                 if (_verifyState == staticValidation) {
-                    static const QString POP_MARKETPLACE_API { "/api/v1/commerce/proof_of_purchase_status/transfer" };
-                    auto& networkAccessManager = NetworkAccessManager::getInstance();
-                    QNetworkRequest networkRequest;
-                    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-                    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
-                    requestURL.setPath(POP_MARKETPLACE_API);
-                    networkRequest.setUrl(requestURL);
-
-                    QJsonObject request;
-                    request["certificate_id"] = _certificateIdFromFST;
+                    requestCurrentOwnership();
                     _verifyState = requestingOwner;
-                    QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
-                    connect(networkReply, &QNetworkReply::finished, this, &MixerAvatar::ownerRequestComplete);
                 } else {
                     _needsIdentityUpdate = true;
                     _pendingEvent = false;
@@ -250,6 +273,13 @@ void MixerAvatar::processCertifyEvents() {
                 _pendingEvent = false;
                 _verifyState = nonCertified;
             }
+            break;
+        }
+
+        case staticValidation:
+        {
+            requestCurrentOwnership();
+            _verifyState = requestingOwner;
             break;
         }
 
@@ -325,8 +355,7 @@ void MixerAvatar::sendOwnerChallenge() {
     _challengeNonceHash = nonceHash.result();
     _pendingEvent = false;
     
-    // QTimer::start is a set of overloaded functions.
-    QMetaObject::invokeMethod(&_challengeTimer, static_cast<void(QTimer::*)()>(&QTimer::start));
+    emit startChallengeTimer();
 }
 
 void MixerAvatar::processChallengeResponse(ReceivedMessage& response) {
@@ -337,7 +366,7 @@ void MixerAvatar::processChallengeResponse(ReceivedMessage& response) {
         QByteArray responseData = response.readAll();
         if (responseData.length() < 8) {
             _verifyState = error;
-            qCDebug(avatars) << "Avatar challenge response packet too small, length:" << responseData.length();
+            qCWarning(avatars) << "ALERT: Avatar challenge response packet too small, length:" << responseData.length();
             return;
         }
 
@@ -354,9 +383,11 @@ void MixerAvatar::processChallengeResponse(ReceivedMessage& response) {
         bool challengeResult = EntityItemProperties::verifySignature(_ownerPublicKey, _challengeNonceHash,
             QByteArray::fromBase64(signedNonce));
         _verifyState = challengeResult ? verificationSucceeded : verificationFailed;
+        _certifyFailed = !challengeResult;
         _needsIdentityUpdate = true;
-        if (_verifyState == verificationFailed) {
+        if (_certifyFailed) {
             qCDebug(avatars) << "Dynamic verification FAILED for" << getDisplayName() << getSessionUUID();
+            emit startChallengeTimer();
         } else {
             qCDebug(avatars) << "Dynamic verification SUCCEEDED for" << getDisplayName() << getSessionUUID();
         }

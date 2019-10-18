@@ -27,7 +27,7 @@ public:
     void setNeedsHeroCheck(bool needsHeroCheck = true) { _needsHeroCheck = needsHeroCheck; }
 
     void fetchAvatarFST();
-    virtual bool isCertifyFailed() const override { return _verifyState == verificationFailed; }
+    virtual bool isCertifyFailed() const override { return _certifyFailed; }
     bool needsIdentityUpdate() const { return _needsIdentityUpdate; }
     void setNeedsIdentityUpdate(bool value = true) { _needsIdentityUpdate = value; }
 
@@ -60,11 +60,15 @@ private:
     QString _ownerPublicKey;
     QByteArray _challengeNonceHash;
     QTimer _challengeTimer;
+    static constexpr int NUM_CHALLENGES_BEFORE_FAIL = 1;
+    int _numberChallenges { 0 };
+    bool _certifyFailed { false };
     bool _needsIdentityUpdate { false };
 
     bool generateFSTHash();
     bool validateFSTHash(const QString& publicKey) const;
     QByteArray canonicalJson(const QString fstFile);
+    void requestCurrentOwnership();
     void sendOwnerChallenge();
 
     static const QString VERIFY_FAIL_MODEL;
@@ -72,6 +76,10 @@ private:
 private slots:
     void fstRequestComplete();
     void ownerRequestComplete();
+    void challengeTimeout();
+
+ signals:
+    void startChallengeTimer();
 };
 
 using MixerAvatarSharedPointer = std::shared_ptr<MixerAvatar>;
