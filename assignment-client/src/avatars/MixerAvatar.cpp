@@ -52,7 +52,7 @@ void MixerAvatar::challengeTimeout() {
         } else {
             _certifyFailed = true;
             _needsIdentityUpdate = true;
-            qCDebug(avatars) << "Dynamic verification TIMED-OUT for" << getDisplayName() << getSessionUUID();
+            qCWarning(avatars) << "ALERT: Dynamic verification TIMED-OUT for" << getDisplayName() << getSessionUUID();
         }
         break;
 
@@ -64,6 +64,7 @@ void MixerAvatar::challengeTimeout() {
 
     default:
         qCDebug(avatars) << "Ignoring timeout of avatar challenge";
+        break;
     }
 }
 
@@ -76,7 +77,7 @@ void MixerAvatar::fetchAvatarFST() {
     _pendingEvent = false;
 
     QUrl avatarURL = getSkeletonModelURL();
-    if (avatarURL.isEmpty() || avatarURL.isLocalFile() || avatarURL.scheme() == "qrc") {
+    if ((avatarURL.isEmpty() || avatarURL.isLocalFile() || avatarURL.scheme() == "qrc") && !isCertifyFailed()) {
         // Not network FST.
         return;
     }
@@ -340,18 +341,24 @@ void MixerAvatar::processCertifyEvents() {
 void MixerAvatar::sendOwnerChallenge() {
     auto nodeList = DependencyManager::get<NodeList>();
     QByteArray avatarID = ("{" + _marketplaceIdFromFST + "}").toUtf8();
-    QByteArray nonce = QUuid::createUuid().toByteArray();
+    if (_challengeNonce.isEmpty()) {
+        _challengeNonce = QUuid::createUuid().toByteArray();
+        QCryptographicHash nonceHash(QCryptographicHash::Sha256);
+        nonceHash.addData(_challengeNonce);
+        _challengeNonceHash = nonceHash.result();
+
+    }
 
     auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
-        2 * sizeof(int) + nonce.length() + avatarID.length(), true);
+        2 * sizeof(int) + _challengeNonce.length() + avatarID.length(), true);
     challengeOwnershipPacket->writePrimitive(avatarID.length());
-    challengeOwnershipPacket->writePrimitive(nonce.length());
+    challengeOwnershipPacket->writePrimitive(_challengeNonce.length());
     challengeOwnershipPacket->write(avatarID);
-    challengeOwnershipPacket->write(nonce);
+    challengeOwnershipPacket->write(_challengeNonce);
 
     nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(getSessionUUID())) );
     QCryptographicHash nonceHash(QCryptographicHash::Sha256);
-    nonceHash.addData(nonce);
+    nonceHash.addData(_challengeNonce);
     _challengeNonceHash = nonceHash.result();
     _pendingEvent = false;
     
@@ -390,6 +397,7 @@ void MixerAvatar::processChallengeResponse(ReceivedMessage& response) {
             emit startChallengeTimer();
         } else {
             qCDebug(avatars) << "Dynamic verification SUCCEEDED for" << getDisplayName() << getSessionUUID();
+            _challengeNonce.clear();
         }
 
     } else {

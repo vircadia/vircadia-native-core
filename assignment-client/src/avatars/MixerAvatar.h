@@ -58,6 +58,7 @@ private:
     QString _certificateIdFromFST;
     QString _dynamicMarketResponse;
     QString _ownerPublicKey;
+    QByteArray _challengeNonce;
     QByteArray _challengeNonceHash;
     QTimer _challengeTimer;
     static constexpr int NUM_CHALLENGES_BEFORE_FAIL = 1;
