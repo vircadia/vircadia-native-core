@@ -238,6 +238,7 @@ public slots:
 
     bool shouldLoopbackInjectors() override { return _shouldEchoToServer; }
     Q_INVOKABLE void changeDefault(HifiAudioDeviceInfo newDefault, QAudio::Mode mode);
+    void checkDefaultChanges(QList<HifiAudioDeviceInfo>& devices);
 
     // calling with a null QAudioDevice will use the system default
     bool switchAudioDevice(QAudio::Mode mode, const HifiAudioDeviceInfo& deviceInfo = HifiAudioDeviceInfo());

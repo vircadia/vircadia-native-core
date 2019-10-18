@@ -138,8 +138,8 @@ void AudioClient::checkDevices() {
     auto inputDevices = getAvailableDevices(QAudio::AudioInput);
     auto outputDevices = getAvailableDevices(QAudio::AudioOutput);
   
-    QMetaObject::invokeMethod(this, "changeDefault",  Q_ARG(HifiAudioDeviceInfo, inputDevices.first()), Q_ARG(QAudio::Mode, QAudio::AudioInput));
-    QMetaObject::invokeMethod(this, "changeDefault",  Q_ARG(HifiAudioDeviceInfo, outputDevices.first()), Q_ARG(QAudio::Mode, QAudio::AudioOutput));
+    checkDefaultChanges(inputDevices);
+    checkDefaultChanges(outputDevices);
 
     Lock lock(_deviceMutex);
     if (inputDevices != _inputDevices) {
@@ -150,6 +150,14 @@ void AudioClient::checkDevices() {
     if (outputDevices != _outputDevices) {
         _outputDevices.swap(outputDevices);
         emit devicesChanged(QAudio::AudioOutput, _outputDevices);
+    }
+}
+
+void AudioClient::checkDefaultChanges(QList<HifiAudioDeviceInfo>& devices) {
+    foreach(auto device, devices) {
+        if (device.isDefault()) {
+            QMetaObject::invokeMethod(this, "changeDefault", Q_ARG(HifiAudioDeviceInfo, device), Q_ARG(QAudio::Mode, device.getMode()));
+        }
     }
 }
 
