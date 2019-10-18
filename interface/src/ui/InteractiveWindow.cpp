@@ -116,9 +116,10 @@ void InteractiveWindow::forwardKeyReleaseEvent(int key, int modifiers) {
 }
 
 void InteractiveWindow::onMainWindowGeometryChanged(QRect geometry) {
+    // This handler is only connected `if (_isFullScreenWindow || _relativePositionAnchor != RelativePositionAnchor::NONE)`.
     if (_isFullScreenWindow) {
         repositionAndResizeFullScreenWindow();
-    } else {
+    } else if (_relativePositionAnchor != RelativePositionAnchor::NO_ANCHOR) {
         setPositionUsingRelativePositionAndAnchor(geometry);
     }
 }
@@ -326,7 +327,9 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
             connect(object, SIGNAL(presentationModeChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
 #endif
             
-            connect(qApp->getWindow(), &MainWindow::windowGeometryChanged, this, &InteractiveWindow::onMainWindowGeometryChanged, Qt::QueuedConnection);
+            if (_isFullScreenWindow || _relativePositionAnchor != RelativePositionAnchor::NO_ANCHOR) {
+                connect(qApp->getWindow(), &MainWindow::windowGeometryChanged, this, &InteractiveWindow::onMainWindowGeometryChanged, Qt::QueuedConnection);
+            }
 
             QUrl sourceURL{ sourceUrl };
             // If the passed URL doesn't correspond to a known scheme, assume it's a local file path
