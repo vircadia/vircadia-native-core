@@ -279,18 +279,6 @@ void ScriptableAvatar::setJointMappingsFromNetworkReply() {
     networkReply->deleteLater();
 }
 
-void ScriptableAvatar::setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement) {
-    _headData->setHasProceduralBlinkFaceMovement(hasProceduralBlinkFaceMovement);
-}
-
-void ScriptableAvatar::setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement) {
-    _headData->setHasProceduralEyeFaceMovement(hasProceduralEyeFaceMovement);
-}
-
-void ScriptableAvatar::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) {
-    _headData->setHasAudioEnabledFaceMovement(hasAudioEnabledFaceMovement);
-}
-
 AvatarEntityMap ScriptableAvatar::getAvatarEntityData() const {
     // DANGER: Now that we store the AvatarEntityData in packed format this call is potentially Very Expensive!
     // Avoid calling this method if possible.

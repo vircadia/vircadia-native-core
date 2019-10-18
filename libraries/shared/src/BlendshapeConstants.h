@@ -109,10 +109,10 @@ enum class LegacyBlendshpaes : int {
 
 // Legacy shapes
 // * JawChew (not in ARKit)
-// * MouthUpperUp (split in ARKit)
-// * MouthLowerDown (split in ARKit)
+// * LipsUpperUp (split in ARKit)
+// * LipsLowerDown (split in ARKit)
 // * Sneer (split in ARKit)
 // * ChinLowerRaise (not in ARKit)
-// * ChinUpperRase (not in ARKit)
+// * ChinUpperRaise (not in ARKit)
 
 #endif // hifi_BlendshapeConstants_h

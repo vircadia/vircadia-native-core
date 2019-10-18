@@ -350,7 +350,7 @@ namespace controller {
             makePosePair(Action::LEFT_EYE, "LeftEye"),
             makePosePair(Action::RIGHT_EYE, "RightEye"),
 
-            // AJT: blendshapes
+            // blendshapes
             makeAxisPair(Action::EYEBLINK_L, "EyeBlink_L"),
             makeAxisPair(Action::EYEBLINK_R, "EyeBlink_R"),
             makeAxisPair(Action::EYESQUINT_L, "EyeSquint_L"),

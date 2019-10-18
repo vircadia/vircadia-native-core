@@ -91,7 +91,7 @@ namespace controller {
         LEFT_GRIP,
         RIGHT_GRIP,
 
-        // AJT: blendshapes
+        // blendshapes
         EYEBLINK_L,
         EYEBLINK_R,
         EYESQUINT_L,

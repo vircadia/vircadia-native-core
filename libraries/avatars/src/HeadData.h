@@ -121,9 +121,9 @@ protected:
     float _averageLoudness { 0.0f };
     float _browAudioLift { 0.0f };
 
-    QVector<float> _blendshapeCoefficients { (int)Blendshapes::BlendshapeCount, 0.0f };
-    QVector<float> _transientBlendshapeCoefficients { (int)Blendshapes::BlendshapeCount, 0.0f };
-    QVector<float> _summedBlendshapeCoefficients { (int)Blendshapes::BlendshapeCount, 0.0f };
+    QVector<float> _blendshapeCoefficients;
+    QVector<float> _transientBlendshapeCoefficients;
+    QVector<float> _summedBlendshapeCoefficients;
     QMap<QString, int> _blendshapeLookupMap;
     AvatarData* _owningAvatar;
 

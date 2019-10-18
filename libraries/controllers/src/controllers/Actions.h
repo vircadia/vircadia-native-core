@@ -184,7 +184,7 @@ enum class Action {
     LEFT_EYE,
     RIGHT_EYE,
 
-    // AJT: blendshapes
+    // blendshapes
     EYEBLINK_L,
     EYEBLINK_R,
     EYESQUINT_L,

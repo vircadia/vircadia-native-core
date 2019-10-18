@@ -356,7 +356,7 @@ Input::NamedVector StandardController::getAvailableInputs() const {
         makePair(LEFT_EYE, "LeftEye"),
         makePair(RIGHT_EYE, "RightEye"),
 
-        // AJT: blendshapes
+        // blendshapes
         makePair(EYEBLINK_L, "EyeBlink_L"),
         makePair(EYEBLINK_R, "EyeBlink_R"),
         makePair(EYESQUINT_L, "EyeSquint_L"),

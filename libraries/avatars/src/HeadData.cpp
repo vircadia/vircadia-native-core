@@ -27,6 +27,9 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _basePitch(0.0f),
     _baseRoll(0.0f),
     _lookAtPosition(0.0f, 0.0f, 0.0f),
+    _blendshapeCoefficients((int)Blendshapes::BlendshapeCount, 0.0f),
+    _transientBlendshapeCoefficients((int)Blendshapes::BlendshapeCount, 0.0f),
+    _summedBlendshapeCoefficients((int)Blendshapes::BlendshapeCount, 0.0f),
     _owningAvatar(owningAvatar)
 {
     _userProceduralAnimationFlags.assign((size_t)ProceduralAnimaitonTypeCount, true);
