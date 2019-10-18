@@ -479,8 +479,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         glm::mat4 invRegistraionOffset = glm::translate(dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
         for (uint32_t i = 0; i < numHFMMeshes; i++) {
             const HFMMesh& mesh = hfmModel.meshes.at(i);
-            if (mesh.clusters.size() > 0) {
-                const HFMCluster& cluster = mesh.clusters.at(0);
+            if (i < hfmModel.skinDeformers.size() && hfmModel.skinDeformers[i].clusters.size() > 0) {
+                const HFMCluster& cluster = hfmModel.skinDeformers[i].clusters.at(0);
                 auto jointMatrix = model->getRig().getJointTransform(cluster.jointIndex);
                 // we backtranslate by the registration offset so we can apply that offset to the shapeInfo later
                 localTransforms.push_back(invRegistraionOffset * jointMatrix * cluster.inverseBindMatrix);

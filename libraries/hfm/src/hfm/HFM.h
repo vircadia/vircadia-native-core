@@ -387,6 +387,7 @@ typedef hfm::Texture HFMTexture;
 typedef hfm::MeshPart HFMMeshPart;
 typedef hfm::Material HFMMaterial;
 typedef hfm::Mesh HFMMesh;
+typedef hfm::SkinDeformer HFMSkinDeformer;
 typedef hfm::AnimationFrame HFMAnimationFrame;
 typedef hfm::Light HFMLight;
 typedef hfm::Model HFMModel;

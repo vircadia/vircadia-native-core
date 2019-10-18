@@ -35,7 +35,6 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
         std::vector<HFMCluster> dummyClustersList;
 
         for (int j = 0; j < defor.clusters.size(); j++) {
-            std::vector<glm::mat4> bindMatrices;
             // cast into a non-const reference, so we can mutate the FBXCluster
             HFMCluster& cluster = const_cast<HFMCluster&>(defor.clusters.at(j));
 
@@ -55,35 +54,6 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
         }
         _clusterBindMatrixOriginalValues.push_back(dummyClustersList);
     }
-
-
-/*
-    for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
-        const HFMMesh& mesh = hfmModel.meshes.at(i);
-        std::vector<HFMCluster> dummyClustersList;
-
-        for (int j = 0; j < mesh.clusters.size(); j++) {
-            std::vector<glm::mat4> bindMatrices;
-            // cast into a non-const reference, so we can mutate the FBXCluster
-            HFMCluster& cluster = const_cast<HFMCluster&>(mesh.clusters.at(j));
-
-            HFMCluster localCluster;
-            localCluster.jointIndex = cluster.jointIndex;
-            localCluster.inverseBindMatrix = cluster.inverseBindMatrix;
-            localCluster.inverseBindTransform.evalFromRawMatrix(localCluster.inverseBindMatrix);
-
-            // if we have a joint offset in the fst file then multiply its inverse by the
-            // model cluster inverse bind matrix
-            if (hfmModel.jointRotationOffsets.contains(cluster.jointIndex)) {
-                AnimPose localOffset(hfmModel.jointRotationOffsets[cluster.jointIndex], glm::vec3());
-                localCluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
-                localCluster.inverseBindTransform.evalFromRawMatrix(localCluster.inverseBindMatrix);
-            }
-            dummyClustersList.push_back(localCluster);
-        }
-        _clusterBindMatrixOriginalValues.push_back(dummyClustersList);
-    }
-*/
 }
 
 AnimSkeleton::AnimSkeleton(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
