@@ -333,6 +333,9 @@ void Avatar::setTargetScale(float targetScale) {
 }
 
 void Avatar::removeAvatarEntitiesFromTree() {
+    if (_packedAvatarEntityData.empty()) {
+        return;
+    }
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
@@ -340,9 +343,10 @@ void Avatar::removeAvatarEntitiesFromTree() {
         _avatarEntitiesLock.withReadLock([&] {
             avatarEntityIDs = _packedAvatarEntityData.keys();
         });
-        QSet<EntityItemID> ids;
+            std::vector<EntityItemID> ids;
+        ids.reserve(avatarEntityIDs.size());
         foreach (auto id, avatarEntityIDs) {
-            ids.insert(id);
+            ids.push_back(id);
         }
         bool force = true;
         bool ignoreWarnings = true;

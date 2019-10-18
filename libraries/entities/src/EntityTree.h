@@ -127,7 +127,7 @@ public:
     void cleanupCloneIDs(const EntityItemID& entityID);
     void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = true);
 
-    void deleteEntitiesByID(const QSet<EntityItemID>& entityIDs, bool force = false, bool ignoreWarnings = true);
+    void deleteEntitiesByID(const std::vector<EntityItemID>& entityIDs, bool force = false, bool ignoreWarnings = true);
     void deleteEntitiesByPointer(const SetOfEntities& entities);
 
     EntityItemPointer findEntityByID(const QUuid& id) const;

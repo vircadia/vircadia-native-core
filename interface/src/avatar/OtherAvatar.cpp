@@ -561,16 +561,19 @@ void OtherAvatar::handleChangedAvatarEntityData() {
             _avatarEntitiesLock.withReadLock([&] {
                 packedAvatarEntityData = _packedAvatarEntityData;
             });
-            QSet<EntityItemID> idsToDelete;
-            foreach (auto entityID, recentlyRemovedAvatarEntities) {
-                if (!packedAvatarEntityData.contains(entityID)) {
-                    idsToDelete.insert(entityID);
+            if (!recentlyRemovedAvatarEntities.empty()) {
+                std::vector<EntityItemID> idsToDelete;
+                idsToDelete.reserve(recentlyRemovedAvatarEntities.size());
+                foreach (auto entityID, recentlyRemovedAvatarEntities) {
+                    if (!packedAvatarEntityData.contains(entityID)) {
+                        idsToDelete.push_back(entityID);
+                    }
                 }
-            }
-            if (!idsToDelete.empty()) {
-                bool force = true;
-                bool ignoreWarnings = true;
-                entityTree->deleteEntitiesByID(idsToDelete, force, ignoreWarnings);
+                if (!idsToDelete.empty()) {
+                    bool force = true;
+                    bool ignoreWarnings = true;
+                    entityTree->deleteEntitiesByID(idsToDelete, force, ignoreWarnings);
+                }
             }
 
             // TODO: move this outside of tree lock
