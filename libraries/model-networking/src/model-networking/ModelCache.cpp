@@ -491,8 +491,8 @@ bool NetworkModel::areTexturesLoaded() const {
 }
 
 const std::shared_ptr<NetworkMaterial> NetworkModel::getShapeMaterial(int shapeID) const {
-    auto materialID = getHFMModel().shapes[shapeID].material;
-    if ((materialID >= 0) && (materialID < (int)_materials.size())) {
+    uint32_t materialID = getHFMModel().shapes[shapeID].material;
+    if (materialID < (uint32_t)_materials.size()) {
         return _materials[materialID];
     }
     return nullptr;

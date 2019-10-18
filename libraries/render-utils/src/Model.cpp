@@ -151,7 +151,7 @@ void Model::setOffset(const glm::vec3& offset) {
 }
 
 void Model::calculateTextureInfo() {
-    if (!_hasCalculatedTextureInfo && isLoaded() && getNetworkModel()->areTexturesLoaded() && !_modelMeshRenderItemsMap.isEmpty()) {
+    if (!_hasCalculatedTextureInfo && isLoaded() && getNetworkModel()->areTexturesLoaded() && !_modelMeshRenderItemIDs.empty()) {
         size_t textureSize = 0;
         int textureCount = 0;
         bool allTexturesLoaded = true;
@@ -228,24 +228,17 @@ void Model::updateRenderItems() {
 
         render::Transaction transaction;
         for (int i = 0; i < (int) self->_modelMeshRenderItemIDs.size(); i++) {
-
             auto itemID = self->_modelMeshRenderItemIDs[i];
-            auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
 
             const auto& shapeState = self->getShapeState(i);
 
-            auto deformerIndex = self->_modelMeshRenderItemShapes[i].deformerIndex;
-            bool isDeformed = (deformerIndex != hfm::UNDEFINED_KEY);
+            auto skinDeformerIndex = shapeState._skinDeformerIndex;
 
-            bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
+            bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(shapeState._meshIndex);
 
-            
-            if (isDeformed) {
-
-                const auto& meshState = self->getMeshState(deformerIndex);
-               // MeshState meshState;
+            if (skinDeformerIndex != hfm::UNDEFINED_KEY) {
+                const auto& meshState = self->getMeshState(skinDeformerIndex);
                 bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
-
 
                 transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, shapeState, meshState, useDualQuaternionSkinning,
                                                                       invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
@@ -303,15 +296,11 @@ void Model::reset() {
 }
 
 void Model::updateShapeStatesFromRig() {
-    const HFMModel& hfmModel = getHFMModel();
-    // TODO: should all Models have a valid _rig?
     { // Shapes state:
-        const auto& shapes = hfmModel.shapes;
-        _shapeStates.resize(shapes.size());
-        for (int s = 0; s < shapes.size(); ++s) {
-            uint32_t jointId = shapes[s].joint;
+        for (auto& shape : _shapeStates) {
+            uint32_t jointId = shape._jointIndex;
             if (jointId < (uint32_t) _rig.getJointStateCount()) {
-                _shapeStates[s]._rootFromJointTransform = _rig.getJointTransform(jointId);
+                shape._rootFromJointTransform = _rig.getJointTransform(jointId);
             }
         }
     }
@@ -331,11 +320,21 @@ bool Model::updateGeometry() {
         initJointStates();
         assert(_meshStates.empty());
 
+        const HFMModel& hfmModel = getHFMModel();
+
+        const auto& shapes = hfmModel.shapes;
+        _shapeStates.resize(shapes.size());
+        for (uint32_t s = 0; s < (uint32_t) shapes.size(); ++s) {
+            auto& shapeState = _shapeStates[s];
+            shapeState._jointIndex = shapes[s].joint;
+            shapeState._meshIndex = shapes[s].mesh;
+            shapeState._meshPartIndex = shapes[s].meshPart;
+            shapeState._skinDeformerIndex = shapes[s].skinDeformer;
+        }
         updateShapeStatesFromRig();
 
-        const HFMModel& hfmModel = getHFMModel();
         const auto& hfmSkinDeformers = hfmModel.skinDeformers;
-        for (int i = 0; i < hfmSkinDeformers.size(); i++) {
+        for (uint32_t i = 0; i < (uint32_t) hfmSkinDeformers.size(); i++) {
             const auto& dynT =  hfmSkinDeformers[i];
             MeshState state;
             state.clusterDualQuaternions.resize(dynT.clusters.size());
@@ -740,9 +739,9 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
         render::Transaction transaction;
         for (int i = 0; i < (int) _modelMeshRenderItemIDs.size(); i++) {
             auto itemID = _modelMeshRenderItemIDs[i];
-            auto shape = _modelMeshRenderItemShapes[i];
+            auto& shape = _shapeStates[i];
             // TODO: check to see if .partIndex matches too
-            if (shape.meshIndex == meshIndex) {
+            if (shape._meshIndex == (uint32_t) meshIndex) {
                 transaction.updateItem<ModelMeshPartPayload>(itemID, [=](ModelMeshPartPayload& data) {
                     data.updateMeshPart(mesh, partIndex);
                 });
@@ -904,8 +903,8 @@ void Model::updateRenderItemsKey(const render::ScenePointer& scene) {
     }
     auto renderItemsKey = _renderItemKeyGlobalFlags;
     render::Transaction transaction;
-    foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-        transaction.updateItem<ModelMeshPartPayload>(item, [renderItemsKey](ModelMeshPartPayload& data) {
+    for(auto itemID: _modelMeshRenderItemIDs) {
+        transaction.updateItem<ModelMeshPartPayload>(itemID, [renderItemsKey](ModelMeshPartPayload& data) {
             data.updateKey(renderItemsKey);
         });
     }
@@ -975,8 +974,8 @@ void Model::setCauterized(bool cauterized, const render::ScenePointer& scene) {
             return;
         }
         render::Transaction transaction;
-        foreach (auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [cauterized](ModelMeshPartPayload& data) {
+        for (auto itemID : _modelMeshRenderItemIDs) {
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [cauterized](ModelMeshPartPayload& data) {
                 data.setCauterized(cauterized);
             });
         }
@@ -1003,26 +1002,25 @@ bool Model::addToScene(const render::ScenePointer& scene,
 
     bool somethingAdded = false;
 
-    if (_modelMeshRenderItemsMap.empty()) {
+    if (_modelMeshRenderItemIDs.empty()) {
         bool hasTransparent = false;
         size_t verticesCount = 0;
         foreach(auto renderItem, _modelMeshRenderItems) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
-            if (_modelMeshRenderItemsMap.empty() && statusGetters.size()) {
+            if (_modelMeshRenderItemIDs.empty() && statusGetters.size()) {
                 renderPayload->addStatusGetters(statusGetters);
             }
             transaction.resetItem(item, renderPayload);
 
             hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
             verticesCount += renderItem.get()->getVerticesCount();
-            _modelMeshRenderItemsMap.insert(item, renderPayload);
             _modelMeshRenderItemIDs.emplace_back(item);
         }
-        somethingAdded = !_modelMeshRenderItemsMap.empty();
+        somethingAdded = !_modelMeshRenderItemIDs.empty();
 
         _renderInfoVertexCount = verticesCount;
-        _renderInfoDrawCalls = _modelMeshRenderItemsMap.count();
+        _renderInfoDrawCalls = (uint32_t) _modelMeshRenderItemIDs.size();
         _renderInfoHasTransparent = hasTransparent;
     }
 
@@ -1037,14 +1035,12 @@ bool Model::addToScene(const render::ScenePointer& scene,
 }
 
 void Model::removeFromScene(const render::ScenePointer& scene, render::Transaction& transaction) {
-    foreach (auto item, _modelMeshRenderItemsMap.keys()) {
-        transaction.removeItem(item);
+    for (auto itemID: _modelMeshRenderItemIDs) {
+        transaction.removeItem(itemID);
     }
     _modelMeshRenderItemIDs.clear();
-    _modelMeshRenderItemsMap.clear();
     _modelMeshRenderItems.clear();
     _modelMeshMaterialNames.clear();
-    _modelMeshRenderItemShapes.clear();
     _priorityMap.clear();
 
     _addedToScene = false;
@@ -1415,25 +1411,21 @@ void Model::updateClusterMatrices() {
     updateShapeStatesFromRig();
 
     _needsUpdateClusterMatrices = false;
-    const HFMModel& hfmModel = getHFMModel();
-    const auto& hfmSkinDeformers = hfmModel.skinDeformers;
-    for (int meshIndex = 0; meshIndex < (int) _meshStates.size(); meshIndex++) {
-        MeshState& state = _meshStates[meshIndex];
-        const auto& deformer = hfmSkinDeformers[meshIndex];
 
-        for (int clusterIndex = 0; clusterIndex < deformer.clusters.size(); clusterIndex++) {
-            const auto& cluster = deformer.clusters[clusterIndex];
-
-            const auto& cbmov = _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex);
+    for (int skinDeformerIndex = 0; skinDeformerIndex < (int)_meshStates.size(); skinDeformerIndex++) {
+        MeshState& state = _meshStates[skinDeformerIndex];
+        auto numClusters = state.getNumClusters();
+        for (uint32_t clusterIndex = 0; clusterIndex < numClusters; clusterIndex++) {
+            const auto& cbmov = _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(skinDeformerIndex, clusterIndex);
 
             if (_useDualQuaternionSkinning) {
-                auto jointPose = _rig.getJointPose(cluster.jointIndex);
+                auto jointPose = _rig.getJointPose(cbmov.jointIndex);
                 Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
                 Transform clusterTransform;
                 Transform::mult(clusterTransform, jointTransform, cbmov.inverseBindTransform);
                 state.clusterDualQuaternions[clusterIndex] = Model::TransformDualQuaternion(clusterTransform);
             } else {
-                auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
+                auto jointMatrix = _rig.getJointTransform(cbmov.jointIndex);
                 glm_mat4u_mul(jointMatrix, cbmov.inverseBindMatrix, state.clusterMatrices[clusterIndex]);
             }
         }
@@ -1441,7 +1433,7 @@ void Model::updateClusterMatrices() {
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (modelBlender->shouldComputeBlendshapes() && hfmModel.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (modelBlender->shouldComputeBlendshapes() && getHFMModel().hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }
@@ -1483,14 +1475,12 @@ const render::ItemIDs& Model::fetchRenderItemIDs() const {
 
 void Model::createRenderItemSet() {
     assert(isLoaded());
-    const auto& meshes = _renderGeometry->getMeshes();
 
     // We should not have any existing renderItems if we enter this section of code
     Q_ASSERT(_modelMeshRenderItems.isEmpty());
 
     _modelMeshRenderItems.clear();
     _modelMeshMaterialNames.clear();
-    _modelMeshRenderItemShapes.clear();
 
     Transform transform;
     transform.setTranslation(_translation);
@@ -1501,21 +1491,19 @@ void Model::createRenderItemSet() {
     offset.postTranslate(_offset);
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
-    int shapeID = 0;
     const auto& shapes = _renderGeometry->getHFMModel().shapes;
-    for (shapeID; shapeID < shapes.size(); shapeID++) {
+    for (uint32_t shapeID = 0; shapeID < shapes.size(); shapeID++) {
         const auto& shape = shapes[shapeID];
 
         _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), shape.mesh, shape.meshPart, shapeID, transform);
 
         auto material = getNetworkModel()->getShapeMaterial(shapeID);
         _modelMeshMaterialNames.push_back(material ? material->getName() : "");
-        _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)shape.mesh, shape.skinDeformer });
     }
 }
 
 bool Model::isRenderable() const {
-    return (!_shapeStates.empty() /* && !_meshStates.empty()*/) || (isLoaded() && _renderGeometry->getMeshes().empty());
+    return (!_shapeStates.empty()) || (isLoaded() && _renderGeometry->getMeshes().empty());
 }
 
 std::set<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialName) {
@@ -1571,11 +1559,11 @@ void Model::applyMaterialMapping() {
     PrimitiveMode primitiveMode = getPrimitiveMode();
     bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
     auto modelMeshRenderItemIDs = _modelMeshRenderItemIDs;
-    auto modelMeshRenderItemShapes = _modelMeshRenderItemShapes;
+    auto shapeStates = _shapeStates;
     std::unordered_map<int, bool> shouldInvalidatePayloadShapeKeyMap;
 
-    for (auto& shape : _modelMeshRenderItemShapes) {
-        shouldInvalidatePayloadShapeKeyMap[shape.meshIndex] = shouldInvalidatePayloadShapeKey(shape.meshIndex);
+    for (auto& shape : _shapeStates) {
+        shouldInvalidatePayloadShapeKeyMap[shape._meshIndex] = shouldInvalidatePayloadShapeKey(shape._meshIndex);
     }
 
     auto& materialMapping = getMaterialMapping();
@@ -1598,7 +1586,7 @@ void Model::applyMaterialMapping() {
 
         std::weak_ptr<Model> weakSelf = shared_from_this();
         auto materialLoaded = [networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning,
-                modelMeshRenderItemIDs, modelMeshRenderItemShapes, shouldInvalidatePayloadShapeKeyMap, weakSelf]() {
+                modelMeshRenderItemIDs, shapeStates, shouldInvalidatePayloadShapeKeyMap, weakSelf]() {
             std::shared_ptr<Model> self = weakSelf.lock();
             if (!self || networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() == 0) {
                 return;
@@ -1624,7 +1612,7 @@ void Model::applyMaterialMapping() {
             for (auto shapeID : shapeIDs) {
                 if (shapeID < modelMeshRenderItemIDs.size()) {
                     auto itemID = modelMeshRenderItemIDs[shapeID];
-                    auto meshIndex = modelMeshRenderItemShapes[shapeID].meshIndex;
+                    auto meshIndex = shapeStates[shapeID]._meshIndex;
                     bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKeyMap.at(meshIndex);
                     graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, priorityMapPerResource.at(shapeID));
                     {
@@ -1662,7 +1650,7 @@ void Model::addMaterial(graphics::MaterialLayer material, const std::string& par
     for (auto shapeID : shapeIDs) {
         if (shapeID < _modelMeshRenderItemIDs.size()) {
             auto itemID = _modelMeshRenderItemIDs[shapeID];
-            auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
+            auto meshIndex = _shapeStates[shapeID]._meshIndex;
             bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
             transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
                 invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
@@ -1684,7 +1672,7 @@ void Model::removeMaterial(graphics::MaterialPointer material, const std::string
             auto itemID = _modelMeshRenderItemIDs[shapeID];
             auto renderItemsKey = _renderItemKeyGlobalFlags;
             PrimitiveMode primitiveMode = getPrimitiveMode();
-            auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
+            auto meshIndex = _shapeStates[shapeID]._meshIndex;
             bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
             bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
             transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,

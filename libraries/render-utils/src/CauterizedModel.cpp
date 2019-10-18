@@ -33,14 +33,10 @@ bool CauterizedModel::updateGeometry() {
     if (_isCauterized && needsFullUpdate) {
         assert(_cauterizeMeshStates.empty());
 
-        const HFMModel& hfmModel = getHFMModel();
-        const auto& hfmDynamicTransforms = hfmModel.skinDeformers;
-        for (int i = 0; i < hfmDynamicTransforms.size(); i++) {
-            const auto& dynT = hfmDynamicTransforms[i];
-            MeshState state;
-            state.clusterDualQuaternions.resize(dynT.clusters.size());
-            state.clusterMatrices.resize(dynT.clusters.size());
-            _cauterizeMeshStates.push_back(state);
+        // initialize the cauterizedDeforemrStates as a copy of the standard deformerStates
+        _cauterizeMeshStates.resize(_meshStates.size());
+        for (int i = 0; i < (int) _meshStates.size(); ++i) {
+            _cauterizeMeshStates[i] = _meshStates[i];
         }
     }
     return needsFullUpdate;
@@ -49,15 +45,12 @@ bool CauterizedModel::updateGeometry() {
 void CauterizedModel::createRenderItemSet() {
     if (_isCauterized) {
         assert(isLoaded());
-        const auto& meshes = _renderGeometry->getMeshes();
-
 
         // We should not have any existing renderItems if we enter this section of code
         Q_ASSERT(_modelMeshRenderItems.isEmpty());
 
         _modelMeshRenderItems.clear();
         _modelMeshMaterialNames.clear();
-        _modelMeshRenderItemShapes.clear();
 
         Transform transform;
         transform.setTranslation(_translation);
@@ -72,14 +65,13 @@ void CauterizedModel::createRenderItemSet() {
         // Run through all of the meshes, and place them into their segregated, but unsorted buckets
         int shapeID = 0;
         const auto& shapes = _renderGeometry->getHFMModel().shapes;
-        for (shapeID; shapeID < shapes.size(); shapeID++) {
+        for (shapeID; shapeID < (int) shapes.size(); shapeID++) {
             const auto& shape = shapes[shapeID];
 
             _modelMeshRenderItems << std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), shape.mesh, shape.meshPart, shapeID, transform);
 
             auto material = getNetworkModel()->getShapeMaterial(shapeID);
             _modelMeshMaterialNames.push_back(material ? material->getName() : "");
-            _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)shape.mesh, shape.skinDeformer });
         }
     } else {
         Model::createRenderItemSet();
@@ -97,26 +89,20 @@ void CauterizedModel::updateClusterMatrices() {
 
     _needsUpdateClusterMatrices = false;
 
-
-    const HFMModel& hfmModel = getHFMModel();
-    const auto& hfmSkinDeformers = hfmModel.skinDeformers;
-    for (int meshIndex = 0; meshIndex < (int)_meshStates.size(); meshIndex++) {
-        MeshState& state = _meshStates[meshIndex];
-        const auto& deformer = hfmSkinDeformers[meshIndex];
-
-        for (int clusterIndex = 0; clusterIndex < deformer.clusters.size(); clusterIndex++) {
-            const auto& cluster = deformer.clusters[clusterIndex];
-
-            const auto& cbmov = _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex);
+    for (int skinDeformerIndex = 0; skinDeformerIndex < (int)_meshStates.size(); skinDeformerIndex++) {
+        MeshState& state = _meshStates[skinDeformerIndex];
+        auto numClusters = state.getNumClusters();
+        for (uint32_t clusterIndex = 0; clusterIndex < numClusters; clusterIndex++) {
+            const auto& cbmov = _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(skinDeformerIndex, clusterIndex);
 
             if (_useDualQuaternionSkinning) {
-                auto jointPose = _rig.getJointPose(cluster.jointIndex);
+                auto jointPose = _rig.getJointPose(cbmov.jointIndex);
                 Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
                 Transform clusterTransform;
                 Transform::mult(clusterTransform, jointTransform, cbmov.inverseBindTransform);
                 state.clusterDualQuaternions[clusterIndex] = Model::TransformDualQuaternion(clusterTransform);
             } else {
-                auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
+                auto jointMatrix = _rig.getJointTransform(cbmov.jointIndex);
                 glm_mat4u_mul(jointMatrix, cbmov.inverseBindMatrix, state.clusterMatrices[clusterIndex]);
             }
         }
@@ -127,6 +113,7 @@ void CauterizedModel::updateClusterMatrices() {
 
         AnimPose cauterizePose = _rig.getJointPose(_rig.indexOfJoint("Neck"));
         cauterizePose.scale() = glm::vec3(0.0001f, 0.0001f, 0.0001f);
+        Transform cauterizedDQTransform(cauterizePose.rot(), cauterizePose.scale(), cauterizePose.trans());
 
         static const glm::mat4 zeroScale(
             glm::vec4(0.0001f, 0.0f, 0.0f, 0.0f),
@@ -135,30 +122,27 @@ void CauterizedModel::updateClusterMatrices() {
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
         auto cauterizeMatrix = _rig.getJointTransform(_rig.indexOfJoint("Neck")) * zeroScale;
 
-        for (int meshIndex = 0; meshIndex < _cauterizeMeshStates.size(); meshIndex++) {
-            Model::MeshState& state = _cauterizeMeshStates[meshIndex];
-            const auto& deformer = hfmSkinDeformers[meshIndex];
+        for (int skinDeformerIndex = 0; skinDeformerIndex < (int) _cauterizeMeshStates.size(); skinDeformerIndex++) {
+            Model::MeshState& nonCauterizedState = _meshStates[skinDeformerIndex];
+            Model::MeshState& state = _cauterizeMeshStates[skinDeformerIndex];
 
-            for (int clusterIndex = 0; clusterIndex < deformer.clusters.size(); clusterIndex++) {
-                const auto& cluster = deformer.clusters[clusterIndex];
-
-                const auto& cbmov = _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex);
-
-                if (_useDualQuaternionSkinning) {
-                    if (_cauterizeBoneSet.find(cluster.jointIndex) == _cauterizeBoneSet.end()) {
-                        // not cauterized so just copy the value from the non-cauterized version.
-                        state.clusterDualQuaternions[clusterIndex] = _meshStates[meshIndex].clusterDualQuaternions[clusterIndex];
-                    } else {
-                        Transform jointTransform(cauterizePose.rot(), cauterizePose.scale(), cauterizePose.trans());
+            // Just reset cauterized state with normal state memcpy style
+            if (_useDualQuaternionSkinning) {
+                state.clusterDualQuaternions = nonCauterizedState.clusterDualQuaternions;
+            } else {
+                state.clusterMatrices = nonCauterizedState.clusterMatrices;
+            }
+           
+            // ANd only cauterize affected joints
+            auto numClusters = state.getNumClusters();
+            for (uint32_t clusterIndex = 0; clusterIndex < numClusters; clusterIndex++) {
+                const auto& cbmov = _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(skinDeformerIndex, clusterIndex);
+                if (_cauterizeBoneSet.find(cbmov.jointIndex) != _cauterizeBoneSet.end()) {
+                    if (_useDualQuaternionSkinning) {
                         Transform clusterTransform;
-                        Transform::mult(clusterTransform, jointTransform, cbmov.inverseBindTransform);
+                        Transform::mult(clusterTransform, cauterizedDQTransform, cbmov.inverseBindTransform);
                         state.clusterDualQuaternions[clusterIndex] = Model::TransformDualQuaternion(clusterTransform);
                         state.clusterDualQuaternions[clusterIndex].setCauterizationParameters(1.0f, cauterizePose.trans());
-                    }
-                } else {
-                    if (_cauterizeBoneSet.find(cluster.jointIndex) == _cauterizeBoneSet.end()) {
-                        // not cauterized so just copy the value from the non-cauterized version.
-                        state.clusterMatrices[clusterIndex] = _meshStates[meshIndex].clusterMatrices[clusterIndex];
                     } else {
                         glm_mat4u_mul(cauterizeMatrix, cbmov.inverseBindMatrix, state.clusterMatrices[clusterIndex]);
                     }
@@ -169,7 +153,7 @@ void CauterizedModel::updateClusterMatrices() {
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (modelBlender->shouldComputeBlendshapes() && hfmModel.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (modelBlender->shouldComputeBlendshapes() && getHFMModel().hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }
@@ -209,22 +193,19 @@ void CauterizedModel::updateRenderItems() {
 
             render::Transaction transaction;
             for (int i = 0; i < (int)self->_modelMeshRenderItemIDs.size(); i++) {
-
                 auto itemID = self->_modelMeshRenderItemIDs[i];
-                auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
 
                 const auto& shapeState = self->getShapeState(i);
 
-                auto deformerIndex = self->_modelMeshRenderItemShapes[i].deformerIndex;
-                bool isDeformed = (deformerIndex != hfm::UNDEFINED_KEY);
+                auto skinDeformerIndex = shapeState._skinDeformerIndex;
 
-                bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
+                bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(shapeState._meshIndex);
                 bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
-                if (isDeformed) { 
+                if (skinDeformerIndex != hfm::UNDEFINED_KEY) {
 
-                    const auto& meshState = self->getMeshState(deformerIndex);
-                    const auto& cauterizedMeshState = self->getCauterizeMeshState(deformerIndex);
+                    const auto& meshState = self->getMeshState(skinDeformerIndex);
+                    const auto& cauterizedMeshState = self->getCauterizeMeshState(skinDeformerIndex);
 
                     transaction.updateItem<ModelMeshPartPayload>(itemID,
                         [modelTransform, shapeState, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,

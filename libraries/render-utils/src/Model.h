@@ -297,6 +297,16 @@ public:
     int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
 
+    class ShapeState {
+    public:
+        glm::mat4 _rootFromJointTransform;
+        uint32_t _jointIndex{ hfm::UNDEFINED_KEY };
+        uint32_t _meshIndex{ hfm::UNDEFINED_KEY };
+        uint32_t _meshPartIndex{ hfm::UNDEFINED_KEY };
+        uint32_t _skinDeformerIndex{ hfm::UNDEFINED_KEY };
+    };
+    const ShapeState& getShapeState(int index) { return _shapeStates.at(index); }
+
     class TransformDualQuaternion {
     public:
         TransformDualQuaternion() {}
@@ -339,18 +349,13 @@ public:
     public:
         std::vector<TransformDualQuaternion> clusterDualQuaternions;
         std::vector<glm::mat4> clusterMatrices;
-    };
 
+        uint32_t getNumClusters() const { return (uint32_t) std::max(clusterMatrices.size(), clusterMatrices.size()); }
+    };
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
 
-    class ShapeState {
-    public:
-        glm::mat4 _rootFromJointTransform;
-    };
-    const ShapeState& getShapeState(int index) { return _shapeStates.at(index); }
-
     uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
-    const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItemsMap; }
+
     BlendShapeOperator getModelBlendshapeOperator() const { return _modelBlendshapeOperator; }
 
     void renderDebugMeshBoxes(gpu::Batch& batch, bool forward);
@@ -425,9 +430,11 @@ protected:
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
     glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
 
-    std::vector<MeshState> _meshStates;
+
     std::vector<ShapeState> _shapeStates;
     void updateShapeStatesFromRig();
+
+    std::vector<MeshState> _meshStates;
 
     virtual void initJointStates();
 
@@ -471,10 +478,7 @@ protected:
     static AbstractViewStateInterface* _viewState;
 
     QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
-    QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
     render::ItemIDs _modelMeshRenderItemIDs;
-    using ShapeInfo = struct { int meshIndex; uint32_t deformerIndex{ hfm::UNDEFINED_KEY }; };
-    std::vector<ShapeInfo> _modelMeshRenderItemShapes;
     std::vector<std::string> _modelMeshMaterialNames;
 
     bool _addedToScene { false }; // has been added to scene

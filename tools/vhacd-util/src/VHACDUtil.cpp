@@ -348,7 +348,7 @@ bool vhacd::VHACDUtil::computeVHACD(HFMModel& hfmModel,
 
         if (_verbose) {
             qDebug() << "mesh" << meshIndex << ": "
-                << " parts =" << mesh.parts.size() << " clusters =" << mesh.clusters.size()
+                << " parts =" << mesh.parts.size()
                 << " vertices =" << numVertices;
         }
         ++meshIndex;
