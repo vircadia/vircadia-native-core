@@ -497,6 +497,9 @@ void InteractiveWindow::setPositionUsingRelativePositionAndAnchor(const QRect& m
             newPosition.x = mainWindowGeometry.x() + relativePosition.x;
             newPosition.y = mainWindowGeometry.y() + mainWindowGeometry.height() - relativePosition.y;
             break;
+        case RelativePositionAnchor::NO_ANCHOR:
+            // No-op.
+            break;
     }
 
     // Make sure we include the dimensions of the docked widget!
