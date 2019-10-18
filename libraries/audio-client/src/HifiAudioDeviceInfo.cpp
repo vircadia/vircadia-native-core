@@ -26,7 +26,6 @@ HifiAudioDeviceInfo& HifiAudioDeviceInfo::operator=(const HifiAudioDeviceInfo& o
     return *this;
 }
 
-
 bool HifiAudioDeviceInfo::operator==(const HifiAudioDeviceInfo& rhs) const {
     //Does the QAudioDeviceinfo match as well as is this the default device or 
     return  getDevice() == rhs.getDevice() && isDefault() == rhs.isDefault();

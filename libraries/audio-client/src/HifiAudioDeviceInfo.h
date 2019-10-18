@@ -23,7 +23,7 @@ class HifiAudioDeviceInfo : public QObject {
     Q_OBJECT
     
 public:
-    enum deviceType {
+    enum DeviceType {
         desktop,
         hmd,
         both
@@ -38,7 +38,7 @@ public:
     }
 
 
-    HifiAudioDeviceInfo(QAudioDeviceInfo deviceInfo, bool isDefault, QAudio::Mode mode, deviceType devType=both) :
+    HifiAudioDeviceInfo(QAudioDeviceInfo deviceInfo, bool isDefault, QAudio::Mode mode, DeviceType devType=both) :
         _audioDeviceInfo(deviceInfo),
         _isDefault(isDefault),
         _mode(mode),
@@ -61,7 +61,7 @@ public:
     QAudioDeviceInfo getDevice() const { return _audioDeviceInfo; }
     bool isDefault() const { return _isDefault; }
     QAudio::Mode getMode() const { return _mode; }
-    deviceType getDeviceType() const { return _deviceType; }
+    DeviceType getDeviceType() const { return _deviceType; }
     HifiAudioDeviceInfo& operator=(const HifiAudioDeviceInfo& other);
     bool operator==(const HifiAudioDeviceInfo& rhs) const;
     bool operator!=(const HifiAudioDeviceInfo& rhs) const;
@@ -71,7 +71,7 @@ private:
     QAudioDeviceInfo _audioDeviceInfo;
     bool _isDefault { false };
     QAudio::Mode _mode { QAudio::AudioInput };
-    deviceType _deviceType{ both };
+    DeviceType _deviceType{ both };
 
 public:
     static const QString DEFAULT_DEVICE_NAME;

@@ -306,15 +306,15 @@ void AudioDeviceList::onDevicesChanged(const QList<HifiAudioDeviceInfo>& devices
         }
         
         switch (deviceInfo.getDeviceType()) {
-        case HifiAudioDeviceInfo::hmd:
-            device.type = "hmd";
-            break;
-        case HifiAudioDeviceInfo::desktop:
-            device.type = "desktop";
-            break;
-        case HifiAudioDeviceInfo::both:
-            device.type = "both";
-            break;
+            case HifiAudioDeviceInfo::hmd:
+                device.type = "hmd";
+                break;
+            case HifiAudioDeviceInfo::desktop:
+                device.type = "desktop";
+                break;
+            case HifiAudioDeviceInfo::both:
+                device.type = "both";
+                break;
         }
                
 
