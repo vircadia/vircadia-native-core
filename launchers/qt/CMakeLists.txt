@@ -66,7 +66,7 @@ if (WIN32)
   list(APPEND CMAKE_PREFIX_PATH ${SOURCE_DIR}/lib/cmake)
 
   set(SSL_DIR ${SOURCE_DIR}/ssl)
-  et(OPENSSL_ROOT_DIR ${SSL_DIR})
+  set(OPENSSL_ROOT_DIR ${SSL_DIR})
   message("SSL dir is ${SSL_DIR}")
   set(OPENSSL_USE_STATIC_LIBS TRUE)
   find_package(OpenSSL REQUIRED)
