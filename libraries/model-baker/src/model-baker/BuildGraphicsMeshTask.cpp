@@ -92,7 +92,7 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
     const auto clusterWeightElement = gpu::Element(gpu::VEC4, gpu::NUINT16, gpu::XYZW);
 
     // Record cluster sizes
-    const size_t numVertClusters = hfmMesh.clusterIndices.size() / hfm::NUM_SKINNING_WEIGHTS_PER_VERTEX;
+    const size_t numVertClusters = hfmMesh.clusterWeightsPerVertex == 0 ? 0 : hfmMesh.clusterIndices.size() / hfmMesh.clusterWeightsPerVertex;
     const size_t clusterIndicesSize = numVertClusters * clusterIndiceElement.getSize();
     const size_t clusterWeightsSize = numVertClusters * clusterWeightElement.getSize();
 
