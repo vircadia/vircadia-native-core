@@ -118,7 +118,7 @@ public:
 
     int _meshIndex;
     int _shapeID;
-    int _deformerIndex;
+    uint32_t _deformerIndex;
 
     bool _isSkinned{ false };
     bool _isBlendShaped { false };

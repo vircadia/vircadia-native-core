@@ -35,7 +35,7 @@ bool CauterizedModel::updateGeometry() {
 
         // initialize the cauterizedDeforemrStates as a copy of the standard deformerStates
         _cauterizeMeshStates.resize(_meshStates.size());
-        for (int i = 0; i < _meshStates.size(); ++i) {
+        for (int i = 0; i < (int) _meshStates.size(); ++i) {
             _cauterizeMeshStates[i] = _meshStates[i];
         }
     }
@@ -45,8 +45,6 @@ bool CauterizedModel::updateGeometry() {
 void CauterizedModel::createRenderItemSet() {
     if (_isCauterized) {
         assert(isLoaded());
-        const auto& meshes = _renderGeometry->getMeshes();
-
 
         // We should not have any existing renderItems if we enter this section of code
         Q_ASSERT(_modelMeshRenderItems.isEmpty());
@@ -67,7 +65,7 @@ void CauterizedModel::createRenderItemSet() {
         // Run through all of the meshes, and place them into their segregated, but unsorted buckets
         int shapeID = 0;
         const auto& shapes = _renderGeometry->getHFMModel().shapes;
-        for (shapeID; shapeID < shapes.size(); shapeID++) {
+        for (shapeID; shapeID < (int) shapes.size(); shapeID++) {
             const auto& shape = shapes[shapeID];
 
             _modelMeshRenderItems << std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), shape.mesh, shape.meshPart, shapeID, transform);
@@ -124,7 +122,7 @@ void CauterizedModel::updateClusterMatrices() {
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
         auto cauterizeMatrix = _rig.getJointTransform(_rig.indexOfJoint("Neck")) * zeroScale;
 
-        for (int skinDeformerIndex = 0; skinDeformerIndex < _cauterizeMeshStates.size(); skinDeformerIndex++) {
+        for (int skinDeformerIndex = 0; skinDeformerIndex < (int) _cauterizeMeshStates.size(); skinDeformerIndex++) {
             Model::MeshState& nonCauterizedState = _meshStates[skinDeformerIndex];
             Model::MeshState& state = _cauterizeMeshStates[skinDeformerIndex];
 

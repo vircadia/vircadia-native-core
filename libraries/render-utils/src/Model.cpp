@@ -324,7 +324,7 @@ bool Model::updateGeometry() {
 
         const auto& shapes = hfmModel.shapes;
         _shapeStates.resize(shapes.size());
-        for (int s = 0; s < shapes.size(); ++s) {
+        for (uint32_t s = 0; s < (uint32_t) shapes.size(); ++s) {
             auto& shapeState = _shapeStates[s];
             shapeState._jointIndex = shapes[s].joint;
             shapeState._meshIndex = shapes[s].mesh;
@@ -334,7 +334,7 @@ bool Model::updateGeometry() {
         updateShapeStatesFromRig();
 
         const auto& hfmSkinDeformers = hfmModel.skinDeformers;
-        for (int i = 0; i < hfmSkinDeformers.size(); i++) {
+        for (uint32_t i = 0; i < (uint32_t) hfmSkinDeformers.size(); i++) {
             const auto& dynT =  hfmSkinDeformers[i];
             MeshState state;
             state.clusterDualQuaternions.resize(dynT.clusters.size());
@@ -741,7 +741,7 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
             auto itemID = _modelMeshRenderItemIDs[i];
             auto& shape = _shapeStates[i];
             // TODO: check to see if .partIndex matches too
-            if (shape._meshIndex == meshIndex) {
+            if (shape._meshIndex == (uint32_t) meshIndex) {
                 transaction.updateItem<ModelMeshPartPayload>(itemID, [=](ModelMeshPartPayload& data) {
                     data.updateMeshPart(mesh, partIndex);
                 });
@@ -1424,8 +1424,7 @@ void Model::updateClusterMatrices() {
                 Transform clusterTransform;
                 Transform::mult(clusterTransform, jointTransform, cbmov.inverseBindTransform);
                 state.clusterDualQuaternions[clusterIndex] = Model::TransformDualQuaternion(clusterTransform);
-            }
-            else {
+            } else {
                 auto jointMatrix = _rig.getJointTransform(cbmov.jointIndex);
                 glm_mat4u_mul(jointMatrix, cbmov.inverseBindMatrix, state.clusterMatrices[clusterIndex]);
             }
@@ -1476,7 +1475,6 @@ const render::ItemIDs& Model::fetchRenderItemIDs() const {
 
 void Model::createRenderItemSet() {
     assert(isLoaded());
-    const auto& meshes = _renderGeometry->getMeshes();
 
     // We should not have any existing renderItems if we enter this section of code
     Q_ASSERT(_modelMeshRenderItems.isEmpty());
@@ -1493,9 +1491,8 @@ void Model::createRenderItemSet() {
     offset.postTranslate(_offset);
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
-    int shapeID = 0;
     const auto& shapes = _renderGeometry->getHFMModel().shapes;
-    for (shapeID; shapeID < shapes.size(); shapeID++) {
+    for (uint32_t shapeID = 0; shapeID < shapes.size(); shapeID++) {
         const auto& shape = shapes[shapeID];
 
         _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), shape.mesh, shape.meshPart, shapeID, transform);

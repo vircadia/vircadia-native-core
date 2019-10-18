@@ -1009,7 +1009,7 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
     }
 
     // GO over the shapes once more to assign hte material index correctly
-    for (int i = 0; i < hfmModel.shapes.size(); ++i) {
+    for (int i = 0; i < (uint32_t) hfmModel.shapes.size(); ++i) {
         auto foundMaterialIndex = materialNameToIndex.find(materialNamePerShape[i]);
         if (foundMaterialIndex != materialNameToIndex.end()) {
             hfmModel.shapes[i].material = foundMaterialIndex.value();
