@@ -20,6 +20,7 @@
 #include <FaceshiftConstants.h>
 
 #include <hfm/ModelFormatLogging.h>
+#include <hfm/HFMModelMath.h>
 
 // TOOL: Uncomment the following line to enable the filtering of all the unkwnon fields of a node so we can break point easily while loading a model with problems...
 //#define DEBUG_FBXSERIALIZER
@@ -1593,7 +1594,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             if (clusterIDs.size() > 0) {
                 hfm::SkinDeformer skinDeformer;
                 auto& clusters = skinDeformer.clusters;
-                std::vector<hfm::SkinCluster> skinClusters;
                 for (const auto& clusterID : clusterIDs) {
                     HFMCluster hfmCluster;
                     const Cluster& fbxCluster = fbxClusters[clusterID];
@@ -1638,7 +1638,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 cluster.jointIndex = transformIndex;
                 clusters.push_back(cluster);
 
-                // Skinned mesh instances have a dynamic transform
+                std::vector<hfm::SkinCluster> skinClusters;
+                // Skinned mesh instances have an hfm::SkinDeformer
                 skinDeformer.skinClusterIndices.reserve(clusterIDs.size());
                 for (const auto& clusterID : clusterIDs) {
                     const Cluster& fbxCluster = fbxClusters[clusterID];
@@ -1661,12 +1662,16 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                         }
                     }
                 }
-
-                // Store this model's deformers, this dynamic transform's deformer IDs
-                uint32_t deformerMinID = (uint32_t)hfmModel.skinClusters.size();
-                hfmModel.skinClusters.insert(hfmModel.skinClusters.end(), skinClusters.cbegin(), skinClusters.cend());
-                skinDeformer.skinClusterIndices.resize(skinClusters.size());
-                std::iota(skinDeformer.skinClusterIndices.begin(), skinDeformer.skinClusterIndices.end(), deformerMinID);
+                // It seems odd that this mesh-related code should be inside of the for loop for instanced model IDs.
+                // However, in practice, skinned FBX models appear to not be instanced, as the skinning includes both the weights and joints.
+                {
+                    hfm::ReweightedDeformers reweightedDeformers = hfm::getReweightedDeformers(mesh.vertices.size(), skinClusters);
+                    if (reweightedDeformers.trimmedToMatch) {
+                        qDebug(modelformat) << "FBXSerializer -- The number of indices and weights for a skinning deformer had different sizes and have been trimmed to match";
+                    }
+                    mesh.clusterIndices = std::move(reweightedDeformers.indices);
+                    mesh.clusterWeights = std::move(reweightedDeformers.weights);
+                }
 
                 // Store the model's dynamic transform, and put its ID in the shapes
                 hfmModel.skinDeformers.push_back(skinDeformer);

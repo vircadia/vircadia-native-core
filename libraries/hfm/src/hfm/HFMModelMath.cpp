@@ -11,6 +11,9 @@
 
 #include "HFMModelMath.h"
 
+#include <LogHandler.h>
+#include "ModelFormatLogging.h"
+
 namespace hfm {
 
 void forEachIndex(const hfm::MeshPart& meshPart, std::function<void(uint32_t)> func) {
@@ -61,6 +64,78 @@ void calculateExtentsForModel(Extents& modelExtents, const std::vector<hfm::Shap
         const auto& shapeExtents = shape.transformedExtents;
         modelExtents.addExtents(shapeExtents);
     }
+}
+
+ReweightedDeformers getReweightedDeformers(const size_t numMeshVertices, const std::vector<hfm::SkinCluster> skinClusters, const uint16_t weightsPerVertex) {
+    ReweightedDeformers reweightedDeformers;
+    if (skinClusters.size() == 0) {
+        return reweightedDeformers;
+    }
+
+    size_t numClusterIndices = numMeshVertices * weightsPerVertex;
+    reweightedDeformers.indices.resize(numClusterIndices, (uint16_t)(skinClusters.size() - 1));
+    reweightedDeformers.weights.resize(numClusterIndices, 0);
+
+    std::vector<float> weightAccumulators;
+    weightAccumulators.resize(numClusterIndices, 0.0f);
+    for (uint16_t i = 0; i < (uint16_t)skinClusters.size(); ++i) {
+        const hfm::SkinCluster& skinCluster = skinClusters[i];
+
+        if (skinCluster.indices.size() != skinCluster.weights.size()) {
+            reweightedDeformers.trimmedToMatch = true;
+        }
+        size_t numIndicesOrWeights = std::min(skinCluster.indices.size(), skinCluster.weights.size());
+        for (size_t j = 0; j < numIndicesOrWeights; ++j) {
+            uint32_t index = skinCluster.indices[j];
+            float weight = skinCluster.weights[j];
+
+            // look for an unused slot in the weights vector
+            uint32_t weightIndex = index * weightsPerVertex;
+            uint32_t lowestIndex = -1;
+            float lowestWeight = FLT_MAX;
+            uint16_t k = 0;
+            for (; k < weightsPerVertex; k++) {
+                if (weightAccumulators[weightIndex + k] == 0.0f) {
+                    reweightedDeformers.indices[weightIndex + k] = i;
+                    weightAccumulators[weightIndex + k] = weight;
+                    break;
+                }
+                if (weightAccumulators[weightIndex + k] < lowestWeight) {
+                    lowestIndex = k;
+                    lowestWeight = weightAccumulators[weightIndex + k];
+                }
+            }
+            if (k == weightsPerVertex && weight > lowestWeight) {
+                // no space for an additional weight; we must replace the lowest
+                weightAccumulators[weightIndex + lowestIndex] = weight;
+                reweightedDeformers.indices[weightIndex + lowestIndex] = i;
+            }
+        }
+    }
+
+    // now that we've accumulated the most relevant weights for each vertex
+    // normalize and compress to 16-bits
+    for (size_t i = 0; i < numMeshVertices; ++i) {
+        size_t j = i * weightsPerVertex;
+
+        // normalize weights into uint16_t
+        float totalWeight = 0.0f;
+        for (size_t k = j; k < j + weightsPerVertex; ++k) {
+            totalWeight += weightAccumulators[k];
+        }
+
+        const float ALMOST_HALF = 0.499f;
+        if (totalWeight > 0.0f) {
+            float weightScalingFactor = (float)(UINT16_MAX) / totalWeight;
+            for (size_t k = j; k < j + weightsPerVertex; ++k) {
+                reweightedDeformers.weights[k] = (uint16_t)(weightScalingFactor * weightAccumulators[k] + ALMOST_HALF);
+            }
+        } else {
+            reweightedDeformers.weights[j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
+        }
+    }
+
+    return reweightedDeformers;
 }
 
 };
