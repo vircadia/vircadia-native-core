@@ -260,10 +260,11 @@ void EntitySimulation::processDeadEntities() {
     if (_deadEntitiesToRemoveFromTree.empty()) {
         return;
     }
-    SetOfEntities entitiesToDeleteImmediately;
+    std::vector<EntityItemPointer> entitiesToDeleteImmediately;
+    entitiesToDeleteImmediately.reserve(_deadEntitiesToRemoveFromTree.size());
     QUuid nullSessionID;
     foreach (auto entity, _deadEntitiesToRemoveFromTree) {
-        entitiesToDeleteImmediately.insert(entity);
+        entitiesToDeleteImmediately.push_back(entity);
         entity->collectChildrenForDelete(entitiesToDeleteImmediately, nullSessionID);
     }
     if (_entityTree) {

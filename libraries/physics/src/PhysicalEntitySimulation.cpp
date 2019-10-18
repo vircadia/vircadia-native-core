@@ -175,7 +175,8 @@ void PhysicalEntitySimulation::processDeadEntities() {
         return;
     }
     PROFILE_RANGE(simulation_physics, "Deletes");
-    SetOfEntities entitiesToDeleteImmediately;
+    std::vector<EntityItemPointer> entitiesToDeleteImmediately;
+    entitiesToDeleteImmediately.reserve(_deadEntitiesToRemoveFromTree.size());
     QUuid sessionID = Physics::getSessionUUID();
     QMutexLocker lock(&_mutex);
     for (auto entity : _deadEntitiesToRemoveFromTree) {
@@ -187,7 +188,7 @@ void PhysicalEntitySimulation::processDeadEntities() {
             // interface-client can't delete domainEntities outright, they must roundtrip through the entity-server
             _entityPacketSender->queueEraseEntityMessage(entity->getID());
         } else if (entity->isLocalEntity() || entity->isMyAvatarEntity()) {
-            entitiesToDeleteImmediately.insert(entity);
+            entitiesToDeleteImmediately.push_back(entity);
             entity->collectChildrenForDelete(entitiesToDeleteImmediately, sessionID);
         }
     }

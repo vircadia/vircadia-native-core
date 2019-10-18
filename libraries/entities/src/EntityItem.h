@@ -543,7 +543,7 @@ public:
     static QString _marketplacePublicKey;
     static void retrieveMarketplacePublicKey();
 
-    void collectChildrenForDelete(SetOfEntities& entitiesToDelete, const QUuid& sessionID) const;
+    void collectChildrenForDelete(std::vector<EntityItemPointer>& entitiesToDelete, const QUuid& sessionID) const;
 
     float getBoundingRadius() const { return _boundingRadius; }
     void setSpaceIndex(int32_t index);

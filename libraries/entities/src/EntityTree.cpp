@@ -84,7 +84,7 @@ void EntityTree::eraseDomainAndNonOwnedEntities() {
     emit clearingEntities();
 
     if (_simulation) {
-        // local entities are not in the simulation, so we clear ALL
+        // local-entities are not in the simulation, so we clear ALL
         _simulation->clearEntities();
     }
 
@@ -647,11 +647,11 @@ void EntityTree::cleanupCloneIDs(const EntityItemID& entityID) {
     }
 }
 
-void EntityTree::recursivelyFilterAndCollectForDelete(const EntityItemPointer& entity, SetOfEntities& entitiesToDelete, bool force) const {
+void EntityTree::recursivelyFilterAndCollectForDelete(const EntityItemPointer& entity, std::vector<EntityItemPointer>& entitiesToDelete, bool force) const {
     // tree must be read-locked before calling this method
     //TODO: assert(treeIsLocked);
     assert(entity);
-    if (entity->getElement() && (entitiesToDelete.find(entity) == entitiesToDelete.end())) {
+    if (entity->getElement() && (std::find(entitiesToDelete.begin(), entitiesToDelete.end(), entity) == entitiesToDelete.end())) {
         // filter
         bool allowed = force;
         if (!allowed) {
@@ -663,7 +663,7 @@ void EntityTree::recursivelyFilterAndCollectForDelete(const EntityItemPointer& e
             _totalFilterTime += endFilter - startFilter;
         }
         if (allowed) {
-            entitiesToDelete.insert(entity);
+            entitiesToDelete.push_back(entity);
             for (SpatiallyNestablePointer child : entity->getChildren()) {
                 if (child && child->getNestableType() == NestableType::Entity) {
                     EntityItemPointer childEntity = std::static_pointer_cast<EntityItem>(child);
@@ -680,7 +680,8 @@ void EntityTree::deleteEntitiesByID(const std::vector<EntityItemID>& ids, bool f
     // (b) interface-client: deletes local- and my-avatar-entities immediately, submits domainEntity deletes to the entity-server
     if (getIsServer()) {
         withWriteLock([&] {
-            SetOfEntities entitiesToDelete;
+            std::vector<EntityItemPointer> entitiesToDelete;
+            entitiesToDelete.reserve(ids.size());
             for (auto id : ids) {
                 EntityItemPointer entity;
                 {
@@ -696,7 +697,9 @@ void EntityTree::deleteEntitiesByID(const std::vector<EntityItemID>& ids, bool f
             }
         });
     } else {
-        SetOfEntities entitiesToDelete;
+        std::vector<EntityItemID> domainEntitiesIDs;
+        std::vector<EntityItemPointer> entitiesToDelete;
+        entitiesToDelete.reserve(ids.size());
         QUuid sessionID = DependencyManager::get<NodeList>()->getSessionUUID();
         withWriteLock([&] {
             for (auto id : ids) {
@@ -707,11 +710,10 @@ void EntityTree::deleteEntitiesByID(const std::vector<EntityItemID>& ids, bool f
                 }
                 if (entity) {
                     if (entity->isDomainEntity()) {
-                        if (_simulation) {
-                            _simulation->queueEraseDomainEntity(entity->getID());
-                        }
+                        // domain-entity deletes must round-trip through entity-server
+                        domainEntitiesIDs.push_back(id);
                     } else if (force || entity->isLocalEntity() || entity->isMyAvatarEntity()) {
-                        entitiesToDelete.insert(entity);
+                        entitiesToDelete.push_back(entity);
                         entity->collectChildrenForDelete(entitiesToDelete, sessionID);
                     }
                 }
@@ -720,10 +722,15 @@ void EntityTree::deleteEntitiesByID(const std::vector<EntityItemID>& ids, bool f
                 deleteEntitiesByPointer(entitiesToDelete);
             }
         });
+        if (!domainEntitiesIDs.empty() && _simulation) {
+            for (auto id : domainEntitiesIDs) {
+                _simulation->queueEraseDomainEntity(id);
+            }
+        }
     }
 }
 
-void EntityTree::deleteEntitiesByPointer(const SetOfEntities& entities) {
+void EntityTree::deleteEntitiesByPointer(const std::vector<EntityItemPointer>& entities) {
     // tree must be write-locked before calling this method
     //TODO: assert(treeIsLocked);
     // NOTE: there is no entity validation (i.e. is entity in tree?) nor snarfing of children beyond this point.
@@ -2398,25 +2405,28 @@ int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePo
             // domain-entity deletion can trigger deletion of other entities the entity-server doesn't know about
             // so we must recurse down the children and collect consequential deletes however
             // we must first identify all domain-entities in idsToDelete so as to not overstep entity-server's authority
-            SetOfEntities domainEntities;
+            std::vector<EntityItemPointer> domainEntities;
+            domainEntities.reserve(idsToDelete.size());
             for (auto id : idsToDelete) {
                 EntityItemPointer entity = _entityMap.value(id);
                 if (entity && entity->isDomainEntity()) {
-                    domainEntities.insert(entity);
+                    domainEntities.push_back(entity);
                 }
             }
             // now we recurse domain-entities children and snarf consequential entities
+            // which are nomally just local-entities and myAvatar-entities
             auto nodeList = DependencyManager::get<NodeList>();
             QUuid sessionID = nodeList->getSessionUUID();
             // NOTE: normally a null sessionID would be bad, as that would cause the collectDhildrenForDelete() method below
-            // to snarf domain entities for which the interface-client is not authorized to delete without explicit instructions
+            // to snarf domain-entities for which the interface-client is not authorized to delete without explicit instructions
             // from the entity-server, however it is ok here because that would mean:
             // (a) interface-client is not connected to a domain which means...
             // (b) we should never get here (since this would correspond to a message from the entity-server) but...
             // (c) who cares? When not connected to a domain the interface-client can do whatever it wants.
-            SetOfEntities entitiesToDelete;
+            std::vector<EntityItemPointer> entitiesToDelete;
+            entitiesToDelete.reserve(domainEntities.size());
             for (auto entity : domainEntities) {
-                entitiesToDelete.insert(entity);
+                entitiesToDelete.push_back(entity);
                 entity->collectChildrenForDelete(entitiesToDelete, sessionID);
             }
 
@@ -2431,6 +2441,7 @@ int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePo
 // This version skips over the header
 // NOTE: Caller must write-lock the tree before calling this.
 int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
+    // NOTE: this is called on entity-server when receiving a delete request from an interface-client or agent
     //TODO: assert(treeIsLocked);
     assert(getIsServer());
     #ifdef EXTRA_ERASE_DEBUGGING
