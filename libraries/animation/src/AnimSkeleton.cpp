@@ -20,13 +20,7 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
 
     _geometryOffset = hfmModel.offset;
 
-    // convert to std::vector of joints
-    std::vector<HFMJoint> joints;
-    joints.reserve(hfmModel.joints.size());
-    for (auto& joint : hfmModel.joints) {
-        joints.push_back(joint);
-    }
-    buildSkeletonFromJoints(joints, hfmModel.jointRotationOffsets);
+    buildSkeletonFromJoints(hfmModel.joints, hfmModel.jointRotationOffsets);
 
     // we make a copy of the inverseBindMatrices in order to prevent mutating the model bind pose
     // when we are dealing with a joint offset in the model

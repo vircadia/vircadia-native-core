@@ -1014,6 +1014,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             const auto& parentJoint = hfmModel.joints[(size_t)joint.parentIndex];
             joint.transform = parentJoint.transform * joint.transform;
             joint.globalTransform = joint.globalTransform * parentJoint.globalTransform;
+        } else {
+            joint.transform = hfmModel.offset * joint.transform;
+            joint.globalTransform = hfmModel.offset * joint.globalTransform;
         }
 
         joint.name = node.name;
@@ -1034,6 +1037,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     std::vector<glm::mat4> globalBindTransforms;
     jointInverseBindTransforms.resize(numNodes);
     globalBindTransforms.resize(numNodes);
+    // Lookup between the GLTF mesh and the skin
+    std::vector<int> gltfMeshToSkin;
+    gltfMeshToSkin.resize(_file.meshes.size(), -1);
 
     hfmModel.hasSkeletonJoints = !_file.skins.isEmpty();
     if (hfmModel.hasSkeletonJoints) {
@@ -1042,7 +1048,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
         for (int jointIndex = 0; jointIndex < numNodes; ++jointIndex) {
             int nodeIndex = jointIndex;
-            auto joint = hfmModel.joints[jointIndex];
+            auto& joint = hfmModel.joints[jointIndex];
 
             for (int s = 0; s < _file.skins.size(); ++s) {
                 const auto& skin = _file.skins[s];
@@ -1068,7 +1074,41 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 glm::vec3 bindTranslation = extractTranslation(hfmModel.offset * glm::inverse(jointInverseBindTransforms[jointIndex]));
                 hfmModel.bindExtents.addPoint(bindTranslation);
             }
-            hfmModel.joints[jointIndex] = joint;
+        }
+
+        std::vector<int> skinToRootJoint;
+        skinToRootJoint.resize(_file.skins.size(), 0);
+        for (int jointIndex = 0; jointIndex < numNodes; ++jointIndex) {
+            const auto& node = _file.nodes[jointIndex];
+            if (node.skin != -1) {
+                skinToRootJoint[node.skin] = jointIndex;
+                if (node.mesh != -1) {
+                    gltfMeshToSkin[node.mesh] = node.skin;
+                }
+            }
+        }
+
+        for (int skinIndex = 0; skinIndex < _file.skins.size(); ++skinIndex) {
+            const auto& skin = _file.skins[skinIndex];
+            hfmModel.skinDeformers.emplace_back();
+            auto& skinDeformer = hfmModel.skinDeformers.back();
+
+            // Add the nodes being referred to for skinning
+            for (int skinJointIndex : skin.joints) {
+                hfm::Cluster cluster;
+                cluster.jointIndex = skinJointIndex;
+                cluster.inverseBindMatrix = jointInverseBindTransforms[skinJointIndex];
+                cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
+                skinDeformer.clusters.push_back(cluster);
+            }
+            
+            // Always append a cluster referring to the root joint at the end
+            int rootJointIndex = skinToRootJoint[skinIndex];
+            hfm::Cluster root;
+            root.jointIndex = rootJointIndex;
+            root.inverseBindMatrix = jointInverseBindTransforms[root.jointIndex];
+            root.inverseBindTransform = Transform(root.inverseBindMatrix);
+            skinDeformer.clusters.push_back(root);
         }
     }
 
@@ -1094,30 +1134,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         meshPtr->meshIndex = gltfMeshIndex;
         templateShapePerPrimPerGLTFMesh.emplace_back();
         std::vector<hfm::Shape>& templateShapePerPrim = templateShapePerPrimPerGLTFMesh.back();
-
-        // TODO: Rewrite GLTF skinning definition
-        if (!hfmModel.hasSkeletonJoints) { 
-            HFMCluster cluster;
-#if 0
-            cluster.jointIndex = nodeIndex;
-#endif
-            cluster.inverseBindMatrix = glm::mat4();
-            cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
-            meshPtr->clusters.append(cluster);
-        } else { // skinned model
-            for (int j = 0; j < numNodes; ++j) {
-                HFMCluster cluster;
-                cluster.jointIndex = j;
-                cluster.inverseBindMatrix = jointInverseBindTransforms[j];
-                cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
-                meshPtr->clusters.append(cluster);
-            }
-        }
-        HFMCluster root;
-        root.jointIndex = 0;
-        root.inverseBindMatrix = jointInverseBindTransforms[root.jointIndex];
-        root.inverseBindTransform = Transform(root.inverseBindMatrix);
-        meshPtr->clusters.append(root);
 
         QSet<QString> primitiveAttributes;
         if (!gltfMesh.primitives.empty()) {
@@ -1333,35 +1349,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 }
             }
 
-            if (joints.size() == partVerticesCount * jointStride) {
-                for (int n = 0; n < joints.size(); n += jointStride) {
-                    clusterJoints.push_back(joints[n]);
-                    if (jointStride > 1) {
-                        clusterJoints.push_back(joints[n + 1]);
-                        if (jointStride > 2) {
-                            clusterJoints.push_back(joints[n + 2]);
-                            if (jointStride > 3) {
-                                clusterJoints.push_back(joints[n + 3]);
-                            } else {
-                                clusterJoints.push_back(0);
-                            }
-                        } else {
-                            clusterJoints.push_back(0);
-                            clusterJoints.push_back(0);
-                        }
-                    } else {
-                        clusterJoints.push_back(0);
-                        clusterJoints.push_back(0);
-                        clusterJoints.push_back(0);
-                    }
-                }
-            } else if (primitiveAttributes.contains("JOINTS_0")) {
-                for (int i = 0; i < partVerticesCount; ++i) {
-                    for (int j = 0; j < 4; ++j) {
-                        clusterJoints.push_back(0);
-                    }
-                }
-            }
+            const int WEIGHTS_PER_VERTEX = 4;
 
             if (weights.size() == partVerticesCount * weightStride) {
                 for (int n = 0; n < weights.size(); n += weightStride) {
@@ -1388,40 +1376,65 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             } else if (primitiveAttributes.contains("WEIGHTS_0")) {
                 for (int i = 0; i < partVerticesCount; ++i) {
                     clusterWeights.push_back(1.0f);
-                    for (int j = 0; j < 4; ++j) {
+                    for (int j = 0; j < WEIGHTS_PER_VERTEX; ++j) {
                         clusterWeights.push_back(0.0f);
                     }
                 }
             }
 
-            // Build weights (adapted from FBXSerializer.cpp)
-            if (hfmModel.hasSkeletonJoints) {
-                const int WEIGHTS_PER_VERTEX = 4;
-                const float ALMOST_HALF = 0.499f;
-                int numVertices = mesh.vertices.size() - prevMeshVerticesCount;
-
-                // Append new cluster indices and weights for this mesh part
-                size_t prevMeshClusterWeightCount = mesh.clusterWeights.size();
-                for (int i = 0; i < numVertices * WEIGHTS_PER_VERTEX; ++i) {
-                    mesh.clusterIndices.push_back(mesh.clusters.size() - 1);
-                    mesh.clusterWeights.push_back(0);
+            // Compress floating point weights to uint16_t for graphics runtime
+            // TODO: If the GLTF skinning weights are already in integer format, we should just copy the data
+            if (!clusterWeights.empty()) {
+                size_t numWeights = 4 * (mesh.vertices.size() - (uint32_t)prevMeshVerticesCount);
+                size_t newWeightsStart = mesh.clusterWeights.size();
+                size_t newWeightsEnd = newWeightsStart + numWeights;
+                mesh.clusterWeights.reserve(newWeightsEnd);
+                for (int weightIndex = 0; weightIndex < clusterWeights.size(); ++weightIndex) {
+                    // Per the GLTF specification
+                    uint16_t weight = std::round(clusterWeights[weightIndex] * 65535.0);
+                    mesh.clusterWeights.push_back(weight);
                 }
+            }
 
-                // normalize and compress to 16-bits
-                for (int i = 0; i < numVertices; ++i) {
-                    int j = i * WEIGHTS_PER_VERTEX;
-
-                    float totalWeight = 0.0f;
-                    for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
-                        totalWeight += clusterWeights[k];
-                    }
-                    if (totalWeight > 0.0f) {
-                        float weightScalingFactor = (float)(UINT16_MAX) / totalWeight;
-                        for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
-                            mesh.clusterWeights[prevMeshClusterWeightCount + k] = (uint16_t)(weightScalingFactor * clusterWeights[k] + ALMOST_HALF);
+            if (joints.size() == partVerticesCount * jointStride) {
+                for (int n = 0; n < joints.size(); n += jointStride) {
+                    mesh.clusterIndices.push_back(joints[n]);
+                    if (jointStride > 1) {
+                        mesh.clusterIndices.push_back(joints[n + 1]);
+                        if (jointStride > 2) {
+                            mesh.clusterIndices.push_back(joints[n + 2]);
+                            if (jointStride > 3) {
+                                mesh.clusterIndices.push_back(joints[n + 3]);
+                            } else {
+                                mesh.clusterIndices.push_back(0);
+                            }
+                        } else {
+                            mesh.clusterIndices.push_back(0);
+                            mesh.clusterIndices.push_back(0);
                         }
                     } else {
-                        mesh.clusterWeights[prevMeshClusterWeightCount + j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
+                        mesh.clusterIndices.push_back(0);
+                        mesh.clusterIndices.push_back(0);
+                        mesh.clusterIndices.push_back(0);
+                    }
+                }
+            } else if (primitiveAttributes.contains("JOINTS_0")) {
+                for (int i = 0; i < partVerticesCount; ++i) {
+                    for (int j = 0; j < 4; ++j) {
+                        mesh.clusterIndices.push_back(0);
+                    }
+                }
+            }
+
+            if (!mesh.clusterIndices.empty()) {
+                int skinIndex = gltfMeshToSkin[gltfMeshIndex];
+                if (skinIndex != -1) {
+                    const auto& deformer = hfmModel.skinDeformers[(size_t)skinIndex];
+                    std::vector<uint16_t> oldToNew;
+                    oldToNew.resize(_file.nodes.size());
+                    for (uint16_t clusterIndex = 0; clusterIndex < deformer.clusters.size() - 1; ++clusterIndex) {
+                        const auto& cluster = deformer.clusters[clusterIndex];
+                        oldToNew[(size_t)cluster.jointIndex] = clusterIndex;
                     }
                 }
             }
@@ -1523,8 +1536,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             const auto& templateShape = templateShapePerPrim[primIndex];
             hfmModel.shapes.push_back(templateShape);
             auto& hfmShape = hfmModel.shapes.back();
-            // Everything else is already defined (mesh, meshPart, material), so just define the new transform
+            // Everything else is already defined (mesh, meshPart, material), so just define the new transform and deformer if present
             hfmShape.joint = nodeIndex;
+            hfmShape.skinDeformer = node.skin != -1 ? node.skin : hfm::UNDEFINED_KEY;
         }
     }
 
