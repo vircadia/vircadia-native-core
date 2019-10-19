@@ -473,20 +473,38 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // compute meshPart local transforms
         QVector<glm::mat4> localTransforms;
         const HFMModel& hfmModel = model->getHFMModel();
+        uint32_t numHFMShapes = (uint32_t)hfmModel.shapes.size();
         uint32_t numHFMMeshes = (uint32_t)hfmModel.meshes.size();
         int totalNumVertices = 0;
         glm::vec3 dimensions = getScaledDimensions();
         glm::mat4 invRegistraionOffset = glm::translate(dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
-        for (uint32_t i = 0; i < numHFMMeshes; i++) {
-            const HFMMesh& mesh = hfmModel.meshes.at(i);
-            if (i < hfmModel.skinDeformers.size() && hfmModel.skinDeformers[i].clusters.size() > 0) {
+        for (uint32_t s = 0; s < numHFMShapes; s++) {
+            const HFMShape& shape = hfmModel.shapes[s];
+    //        for (uint32_t i = 0; i < numHFMMeshes; i++) {
+            const HFMMesh& mesh = hfmModel.meshes.at(shape.mesh);
+            const HFMMeshPart& part = mesh.parts.at(shape.meshPart);
+           /* if (shape.skinDeformer != hfm::UNDEFINED_KEY) {
+                const HFMCluster& cluster = hfmModel.skinDeformers[shape.skinDeformer].clusters.at(0);
+                auto jointMatrix = model->getRig().getJointTransform(cluster.jointIndex);
+                // we backtranslate by the registration offset so we can apply that offset to the shapeInfo later
+                localTransforms.push_back(invRegistraionOffset * jointMatrix * cluster.inverseBindMatrix);
+            } else {*/
+            
+            if (shape.joint != hfm::UNDEFINED_KEY) {
+                auto jointMatrix = model->getRig().getJointTransform(shape.joint);
+                // we backtranslate by the registration offset so we can apply that offset to the shapeInfo later
+                localTransforms.push_back(invRegistraionOffset * jointMatrix/* * cluster.inverseBindMatrix*/);
+            } else {
+                localTransforms.push_back(invRegistraionOffset);
+            }
+        /*    if (i < hfmModel.skinDeformers.size() && hfmModel.skinDeformers[i].clusters.size() > 0) {
                 const HFMCluster& cluster = hfmModel.skinDeformers[i].clusters.at(0);
                 auto jointMatrix = model->getRig().getJointTransform(cluster.jointIndex);
                 // we backtranslate by the registration offset so we can apply that offset to the shapeInfo later
                 localTransforms.push_back(invRegistraionOffset * jointMatrix * cluster.inverseBindMatrix);
             } else {
                 localTransforms.push_back(invRegistraionOffset);
-            }
+            }*/
             totalNumVertices += mesh.vertices.size();
         }
         const int32_t MAX_VERTICES_PER_STATIC_MESH = 1e6;
