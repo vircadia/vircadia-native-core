@@ -4740,11 +4740,11 @@
                                                                                                         "children": [
                                                                                                         ],
                                                                                                         "data": {
-                                                                                                            "endFrame": 30,
+                                                                                                            "endFrame": 35,
                                                                                                             "loopFlag": true,
                                                                                                             "startFrame": 1,
                                                                                                             "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/side_step_short_left.fbx"
+                                                                                                            "url": "qrc:///avatar/animations/walk_left.fbx"
                                                                                                         },
                                                                                                         "id": "strafeLeftShortStep_c",
                                                                                                         "type": "clip"
@@ -4753,11 +4753,11 @@
                                                                                                         "children": [
                                                                                                         ],
                                                                                                         "data": {
-                                                                                                            "endFrame": 20,
+                                                                                                            "endFrame": 35,
                                                                                                             "loopFlag": true,
                                                                                                             "startFrame": 1,
                                                                                                             "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/side_step_left.fbx"
+                                                                                                            "url": "qrc:///avatar/animations/walk_left.fbx"
                                                                                                         },
                                                                                                         "id": "strafeLeftStep_c",
                                                                                                         "type": "clip"
@@ -4838,12 +4838,12 @@
                                                                                                         "children": [
                                                                                                         ],
                                                                                                         "data": {
-                                                                                                            "endFrame": 30,
+                                                                                                            "endFrame": 35,
                                                                                                             "loopFlag": true,
-                                                                                                            "mirrorFlag": true,
+                                                                                                            "mirrorFlag": false,
                                                                                                             "startFrame": 1,
                                                                                                             "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/side_step_short_left.fbx"
+                                                                                                            "url": "qrc:///avatar/animations/walk_right.fbx"
                                                                                                         },
                                                                                                         "id": "strafeRightShortStep_c",
                                                                                                         "type": "clip"
@@ -4852,12 +4852,12 @@
                                                                                                         "children": [
                                                                                                         ],
                                                                                                         "data": {
-                                                                                                            "endFrame": 20,
+                                                                                                            "endFrame": 35,
                                                                                                             "loopFlag": true,
-                                                                                                            "mirrorFlag": true,
+                                                                                                            "mirrorFlag": false,
                                                                                                             "startFrame": 1,
                                                                                                             "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/side_step_left.fbx"
+                                                                                                            "url": "qrc:///avatar/animations/walk_right.fbx"
                                                                                                         },
                                                                                                         "id": "strafeRightStep_c",
                                                                                                         "type": "clip"
@@ -5617,7 +5617,7 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isInputLeft"
+                                                                                                            "var": "isMovingLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
@@ -5681,7 +5681,7 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isInputRight"
+                                                                                                            "var": "isMovingRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
