@@ -235,6 +235,7 @@ public:
 
     std::vector<MeshPart> parts;
 
+    std::vector<glm::vec3> positions;
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
     QVector<glm::vec3> tangents;

@@ -16,6 +16,9 @@
 
 #include <unordered_map>
 
+#include <GLMHelpers.h>
+#include <glm/gtx/hash.hpp>
+
 namespace hfm {
 
 void forEachIndex(const hfm::MeshPart& meshPart, std::function<void(uint32_t)> func) {
@@ -142,12 +145,13 @@ ReweightedDeformers getReweightedDeformers(const size_t numMeshVertices, const s
 }
 
 
-MeshIndexedTrianglesPos generateMeshIndexedTrianglePos(const std::vector<glm::vec3>& srcVertices, const std::vector<HFMMeshPart> srcParts) {
+const MeshIndexedTrianglesPos generateMeshIndexedTrianglePos(const std::vector<glm::vec3>& srcVertices, const std::vector<HFMMeshPart>& srcParts) {
 
     MeshIndexedTrianglesPos dest;
-    dest.vertices.resize(srcVertices.size());
+   // dest.vertices.resize(srcVertices.size());
+    dest.vertices = srcVertices;
 
-    std::vector<uint32_t> remap(srcVertices.size());
+ /*   std::vector<uint32_t> remap(srcVertices.size());
     {
         std::unordered_map<glm::vec3, uint32_t> uniqueVertices;
         int vi = 0;
@@ -170,7 +174,7 @@ MeshIndexedTrianglesPos generateMeshIndexedTrianglePos(const std::vector<glm::ve
 
         }
     }
-
+*/
     auto newIndicesCount = 0;
     for (const auto& part : srcParts) {
         newIndicesCount += part.triangleIndices.size() + part.quadTrianglesIndices.size();
@@ -180,14 +184,17 @@ MeshIndexedTrianglesPos generateMeshIndexedTrianglePos(const std::vector<glm::ve
         dest.indices.resize(newIndicesCount);
         int i = 0;
         for (const auto& part : srcParts) {
+            glm::ivec2 spart(i, 0);
             for (const auto& qti : part.quadTrianglesIndices) {
-                dest.indices[i] = remap[qti];
+                dest.indices[i] = qti; //remap[qti];
                 ++i;
             }
             for (const auto& ti : part.quadTrianglesIndices) {
-                dest.indices[i] = remap[ti];
+                dest.indices[i] = ti; //remap[ti];
                 ++i;
             }
+            spart.y = i - spart.x;
+            dest.parts.push_back(spart);
 
            // dest.indices.insert(dest.indices.end(), part.quadTrianglesIndices.cbegin(), part.quadTrianglesIndices.cend());
            // dest.indices.insert(dest.indices.end(), part.triangleIndices.cbegin(), part.triangleIndices.cend());

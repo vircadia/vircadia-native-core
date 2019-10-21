@@ -29,6 +29,8 @@
 #include <GLTFSerializer.h>
 #include <model-baker/Baker.h>
 
+#include <hfm/HFMModelMath.h>
+
 Q_LOGGING_CATEGORY(trace_resource_parse_geometry, "trace.resource.parse.geometry")
 
 class GeometryExtra {
@@ -320,6 +322,7 @@ void ModelResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const Mate
     _hfmModel = hfmModel;
     _materialMapping = materialMapping;
 
+    
     // Copy materials
     QHash<QString, size_t> materialIDAtlas;
     for (const HFMMaterial& material : _hfmModel->materials) {
@@ -328,11 +331,16 @@ void ModelResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const Mate
     }
 
     std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
+    std::vector<hfm::MeshIndexedTrianglesPos> triangleListMeshes = std::vector<hfm::MeshIndexedTrianglesPos>();
     int meshID = 0;
     for (const HFMMesh& mesh : _hfmModel->meshes) {
         // Copy mesh pointers
         meshes->emplace_back(mesh._mesh);
         meshID++;
+
+        auto simpleMesh = hfm::generateMeshIndexedTrianglePos(mesh.positions, mesh.parts);
+
+        triangleListMeshes.emplace_back(simpleMesh);
     }
     _meshes = meshes;
 

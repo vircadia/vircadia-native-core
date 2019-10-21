@@ -174,6 +174,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index, bool deduplic
         data.indices.insert(vertex, newIndex);
         data.extracted.newIndices.insert(vertexIndex, newIndex);
         data.extracted.mesh.vertices.append(position);
+        data.extracted.mesh.positions.emplace_back(position);
         data.extracted.mesh.originalIndices.append(vertexIndex);
         data.extracted.mesh.normals.append(normal);
         data.extracted.mesh.texCoords.append(vertex.texCoord);

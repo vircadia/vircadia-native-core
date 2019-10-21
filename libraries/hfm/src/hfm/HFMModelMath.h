@@ -42,9 +42,10 @@ struct MeshIndexedTrianglesPos {
 public:
     std::vector<glm::vec3> vertices;
     std::vector<uint32_t> indices;
+    std::vector<glm::ivec2> parts; // Offset in the indices, Number of indices
 };
 
-MeshIndexedTrianglesPos generateMeshIndexedTrianglePos(const std::vector<glm::vec3>& srcVertices, const std::vector<HFMMeshPart> srcParts);
+const MeshIndexedTrianglesPos generateMeshIndexedTrianglePos(const std::vector<glm::vec3>& srcVertices, const std::vector<HFMMeshPart>& srcParts);
 
 };
 
