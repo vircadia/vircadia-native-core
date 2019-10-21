@@ -139,4 +139,24 @@ ReweightedDeformers getReweightedDeformers(const size_t numMeshVertices, const s
     return reweightedDeformers;
 }
 
+
+MeshIndexedTrianglesPos generateMeshIndexedTrianglePos(const std::vector<glm::vec3>& srcVertices, const std::vector<HFMMeshPart> srcParts) {
+
+    auto newIndicesCount = 0;
+    for (const auto& part : srcParts) {
+        newIndicesCount += part.triangleIndices.size() + part.quadTrianglesIndices.size();
+    }
+
+    MeshIndexedTrianglesPos dest;
+    dest.indices.reserve(newIndicesCount);
+    for (const auto& part : srcParts) {
+        dest.indices.insert(dest.indices.end(), part.triangleIndices.cbegin(), part.triangleIndices.cend());
+        dest.indices.insert(dest.indices.end(), part.quadTrianglesIndices.cbegin(), part.quadTrianglesIndices.cend());
+    }
+
+    dest.vertices = srcVertices;
+
+    return dest;
+}
+
 };

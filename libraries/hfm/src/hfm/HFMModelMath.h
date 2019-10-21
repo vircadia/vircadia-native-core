@@ -36,6 +36,16 @@ public:
 const uint16_t DEFAULT_SKINNING_WEIGHTS_PER_VERTEX = 4;
 
 ReweightedDeformers getReweightedDeformers(const size_t numMeshVertices, const std::vector<hfm::SkinCluster> skinClusters, const uint16_t weightsPerVertex = DEFAULT_SKINNING_WEIGHTS_PER_VERTEX);
+
+
+struct MeshIndexedTrianglesPos {
+public:
+    std::vector<glm::vec3> vertices;
+    std::vector<uint32_t> indices;
+};
+
+MeshIndexedTrianglesPos generateMeshIndexedTrianglePos(const std::vector<glm::vec3>& srcVertices, const std::vector<HFMMeshPart> srcParts);
+
 };
 
 #endif // #define hifi_hfm_ModelMath_h

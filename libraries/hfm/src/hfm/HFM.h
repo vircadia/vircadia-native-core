@@ -260,6 +260,8 @@ public:
 
     graphics::MeshPointer _mesh;
     bool wasCompressed { false };
+
+    MeshIndexedTrianglesPos _meshAsIndexedTrianglePos;
 };
 
 /// A single animation frame.
