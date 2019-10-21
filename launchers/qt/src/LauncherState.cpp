@@ -32,7 +32,7 @@
 #endif
 
 //#define BREAK_ON_ERROR
-#define DEBUG_UI
+//#define DEBUG_UI
 
 const QString configHomeLocationKey { "homeLocation" };
 const QString configLastLoginKey { "lastLogin" };
