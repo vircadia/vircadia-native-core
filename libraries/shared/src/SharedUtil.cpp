@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <chrono>
 
+#include <QtCore/QOperatingSystemVersion>
 #include <glm/glm.hpp>
 
 #ifdef Q_OS_WIN
@@ -793,15 +794,7 @@ void printSystemInformation() {
     qCDebug(shared).noquote() << "\tKernel Type: " << QSysInfo::kernelType();
     qCDebug(shared).noquote() << "\tKernel Version: " << QSysInfo::kernelVersion();
 
-    auto macVersion = QSysInfo::macVersion();
-    if (macVersion != QSysInfo::MV_None) {
-        qCDebug(shared) << "\tMac Version: " << macVersion;
-    }
-
-    auto windowsVersion = QSysInfo::windowsVersion();
-    if (windowsVersion != QSysInfo::WV_None) {
-        qCDebug(shared) << "\tWindows Version: " << windowsVersion;
-    }
+    qCDebug(shared) << "\tOS Version: " << QOperatingSystemVersion::current();
 
 #ifdef Q_OS_WIN
     SYSTEM_INFO si;

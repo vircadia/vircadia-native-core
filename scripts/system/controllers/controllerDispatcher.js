@@ -595,6 +595,10 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             Controller.disableMapping(MAPPING_NAME);
             _this.pointerManager.removePointers();
             Pointers.removePointer(this.mouseRayPointer);
+            Overlays.mouseReleaseOnOverlay.disconnect(mouseReleaseOnOverlay);
+            Overlays.mousePressOnOverlay.disconnect(mousePress);
+            Entities.mousePressOnEntity.disconnect(mousePress);
+            Messages.messageReceived.disconnect(controllerDispatcher.handleMessage);
         };
     }
 

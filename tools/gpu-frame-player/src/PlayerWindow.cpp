@@ -8,6 +8,8 @@
 
 #include "PlayerWindow.h"
 
+#include <QtCore/QByteArray>
+#include <QtCore/QBuffer>
 #include <QtGui/QResizeEvent>
 #include <QtGui/QImageReader>
 #include <QtGui/QScreen>
@@ -55,7 +57,7 @@ void PlayerWindow::loadFrame() {
         }
     }
 
-    QString fileName = QFileDialog::getOpenFileName(nullptr, tr("Open File"), openDir, tr("GPU Frames (*.json)"));
+    QString fileName = QFileDialog::getOpenFileName(nullptr, tr("Open File"), openDir, tr("GPU Frames (*.hfb)"));
     if (fileName.isNull()) {
         return;
     }
@@ -104,17 +106,8 @@ void PlayerWindow::resizeEvent(QResizeEvent* ev) {
     _renderThread.resize(ev->size());
 }
 
-void PlayerWindow::textureLoader(const std::string& filename, const gpu::TexturePointer& texture, uint16_t layer) {
-    QImage image;
-    QImageReader(filename.c_str()).read(&image);
-    if (layer > 0) {
-        return;
-    }
-    texture->assignStoredMip(0, image.byteCount(), image.constBits());
-}
-
 void PlayerWindow::loadFrame(const QString& path) {
-    auto frame = gpu::readFrame(path.toStdString(), _renderThread._externalTexture, &PlayerWindow::textureLoader);
+    auto frame = gpu::readFrame(path.toStdString(), _renderThread._externalTexture);
     if (frame) {
         _renderThread.submitFrame(frame);
         if (!_renderThread.isThreaded()) {

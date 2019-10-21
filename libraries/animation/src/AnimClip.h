@@ -55,6 +55,8 @@ public:
     float getFrame() const { return _frame; }
     void loadURL(const QString& url);
 
+    AnimBlendType getBlendType() const { return _blendType; };
+
 protected:
 
     virtual void setCurrentFrameInternal(float frame) override;

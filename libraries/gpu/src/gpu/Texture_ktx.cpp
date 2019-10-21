@@ -159,7 +159,31 @@ struct IrradianceKTXPayload {
 };
 const std::string IrradianceKTXPayload::KEY{ "hifi.irradianceSH" };
 
-KtxStorage::KtxStorage(const cache::FilePointer& cacheEntry) : KtxStorage(cacheEntry->getFilepath())  {
+KtxStorage::KtxStorage(const storage::StoragePointer& storage) : _storage(storage) {
+    auto ktxPointer = ktx::KTX::create(storage);
+    _ktxDescriptor.reset(new ktx::KTXDescriptor(ktxPointer->toDescriptor()));
+    if (_ktxDescriptor->images.size() < _ktxDescriptor->header.numberOfMipmapLevels) {
+        qWarning() << "Bad images found in ktx";
+    }
+
+    _offsetToMinMipKV = _ktxDescriptor->getValueOffsetForKey(ktx::HIFI_MIN_POPULATED_MIP_KEY);
+    if (_offsetToMinMipKV) {
+        auto data = storage->data() + ktx::KTX_HEADER_SIZE + _offsetToMinMipKV;
+        _minMipLevelAvailable = *data;
+    } else {
+        // Assume all mip levels are available
+        _minMipLevelAvailable = 0;
+    }
+
+    // now that we know the ktx, let's get the header info to configure this Texture::Storage:
+    Format mipFormat = Format::COLOR_BGRA_32;
+    Format texelFormat = Format::COLOR_SRGBA_32;
+    if (Texture::evalTextureFormat(_ktxDescriptor->header, mipFormat, texelFormat)) {
+        _format = mipFormat;
+    }
+}
+
+KtxStorage::KtxStorage(const cache::FilePointer& cacheEntry) : KtxStorage(cacheEntry->getFilepath()) {
     _cacheEntry = cacheEntry;
 }
 
@@ -228,27 +252,30 @@ void KtxStorage::releaseOpenKtxFiles() {
 PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
     auto faceOffset = _ktxDescriptor->getMipFaceTexelsOffset(level, face);
     auto faceSize = _ktxDescriptor->getMipFaceTexelsSize(level, face);
+    storage::StoragePointer storageView;
     if (faceSize != 0 && faceOffset != 0) {
-        std::lock_guard<std::mutex> lock(*_cacheFileMutex);
-        auto file = maybeOpenFile();
-        if (file) {
-            auto storageView = file->createView(faceSize, faceOffset);
-            if (storageView) {
-                return storageView->toMemoryStorage();
-            } else {
-                qWarning() << "Failed to get a valid storageView for faceSize=" << faceSize << "  faceOffset=" << faceOffset << "out of valid file " << QString::fromStdString(_filename);
-            }
+        if (_storage) {
+            storageView = _storage->createView(faceSize, faceOffset);
         } else {
-            qWarning() << "Failed to get a valid file out of maybeOpenFile " << QString::fromStdString(_filename);
+            std::lock_guard<std::mutex> lock(*_cacheFileMutex);
+            auto file = maybeOpenFile();
+            if (file) {
+                storageView = file->createView(faceSize, faceOffset);
+            } else {
+                qWarning() << "Failed to get a valid file out of maybeOpenFile " << QString::fromStdString(_filename);
+            }
         }
     }
-    return nullptr;
+    if (!storageView) {
+        qWarning() << "Failed to get a valid storageView for faceSize=" << faceSize << "  faceOffset=" << faceOffset
+                    << "out of valid file " << QString::fromStdString(_filename);
+    }
+    return storageView->toMemoryStorage();
 }
 
 Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
     return _ktxDescriptor->getMipFaceTexelsSize(level, face);
 }
-
 
 bool KtxStorage::isMipAvailable(uint16 level, uint8 face) const {
     return level >= _minMipLevelAvailable;
@@ -271,7 +298,7 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
     auto& imageDesc = _ktxDescriptor->images[level];
     if (storage->size() != imageDesc._imageSize) {
         qWarning() << "Invalid image size: " << storage->size() << ", expected: " << imageDesc._imageSize
-            << ", level: " << level << ", filename: " << QString::fromStdString(_filename);
+                   << ", level: " << level << ", filename: " << QString::fromStdString(_filename);
         return;
     }
 
@@ -311,13 +338,27 @@ void KtxStorage::assignMipFaceData(uint16 level, uint8 face, const storage::Stor
     throw std::runtime_error("Invalid call");
 }
 
-bool validKtx(const std::string& filename) {
-    ktx::StoragePointer storage { new storage::FileStorage(filename.c_str()) };
+bool validKtx(const storage::StoragePointer& storage) {
     auto ktxPointer = ktx::KTX::create(storage);
     if (!ktxPointer) {
         return false;
     }
     return true;
+}
+
+bool validKtx(const std::string& filename) {
+    ktx::StoragePointer storage{ new storage::FileStorage(filename.c_str()) };
+    return validKtx(storage);
+}
+
+void Texture::setKtxBacking(const storage::StoragePointer& storage) {
+    // Check the KTX file for validity before using it as backing storage
+    if (!validKtx(storage)) {
+        return;
+    }
+
+    auto newBacking = std::unique_ptr<Storage>(new KtxStorage(storage));
+    setStorage(newBacking);
 }
 
 void Texture::setKtxBacking(const std::string& filename) {
@@ -355,7 +396,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     // Set Dimensions
     uint32_t numFaces = 1;
     switch (texture.getType()) {
-    case TEX_1D: {
+        case TEX_1D: {
             if (texture.isArray()) {
                 header.set1DArray(texture.getWidth(), texture.getNumSlices());
             } else {
@@ -363,7 +404,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
             }
             break;
         }
-    case TEX_2D: {
+        case TEX_2D: {
             if (texture.isArray()) {
                 header.set2DArray(texture.getWidth(), texture.getHeight(), texture.getNumSlices());
             } else {
@@ -371,7 +412,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
             }
             break;
         }
-    case TEX_3D: {
+        case TEX_3D: {
             if (texture.isArray()) {
                 header.set3DArray(texture.getWidth(), texture.getHeight(), texture.getDepth(), texture.getNumSlices());
             } else {
@@ -379,7 +420,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
             }
             break;
         }
-    case TEX_CUBE: {
+        case TEX_CUBE: {
             if (texture.isArray()) {
                 header.setCubeArray(texture.getWidth(), texture.getHeight(), texture.getNumSlices());
             } else {
@@ -388,8 +429,8 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
             numFaces = Texture::CUBE_FACE_COUNT;
             break;
         }
-    default:
-        return nullptr;
+        default:
+            return nullptr;
     }
 
     // Number level of mips coming

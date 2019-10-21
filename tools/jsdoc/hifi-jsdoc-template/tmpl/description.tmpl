@@ -1,0 +1,15 @@
+<?js
+    var description = obj;
+    var self = this;
+    var descriptionRegExp = new RegExp('<(p|ul|div|table)[^>]*>', 'i');
+    var descriptionIndex =  description.search(descriptionRegExp);
+?>
+
+<?js if (descriptionIndex === -1) { ?>
+    <p><?js= description ?></p>
+<?js } else if (descriptionIndex !== 0) { ?>
+    <p><?js= description.slice(0, descriptionIndex) ?></p>
+    <?js= description.slice(descriptionIndex) ?>
+<?js } else { ?>
+    <?js= description ?>
+<?js } ?>

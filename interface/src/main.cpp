@@ -36,6 +36,7 @@
 #include "Profile.h"
 
 #ifdef Q_OS_WIN
+#include <Windows.h>
 extern "C" {
     typedef int(__stdcall * CHECKMINSPECPROC) ();
 }

@@ -83,6 +83,15 @@
                 ["Keyboard.Right"]
              ]
           },
+          "when": ["Application.CameraFirstPersonLookat", "!Keyboard.Shift"],
+          "to": "Actions.Yaw"
+        },
+
+        { "from": { "makeAxis" : [
+                ["Keyboard.Left"],
+                ["Keyboard.Right"]
+             ]
+          },
           "when": ["Application.CameraThirdPerson", "!Keyboard.Shift"],
           "to": "Actions.Yaw"
         },
@@ -113,7 +122,16 @@
           "when": ["Application.CameraFirstPerson", "!Keyboard.Control"],
           "to": "Actions.Yaw"
         },
-        
+
+        { "from": { "makeAxis" : [
+                ["Keyboard.A"],
+                ["Keyboard.D"]
+            ]
+          },
+          "when": ["Application.CameraFirstPersonLookat", "!Keyboard.Control"],
+          "to": "Actions.Yaw"
+        },
+
         { "from": { "makeAxis" : [
                 ["Keyboard.A"],
                 ["Keyboard.D"]
@@ -147,6 +165,15 @@
             ]
           },
           "when": "Application.CameraFirstPerson",
+          "to": "Actions.Yaw"
+        },
+
+        { "from": { "makeAxis" : [
+                ["Keyboard.TouchpadLeft"],
+                ["Keyboard.TouchpadRight"]
+            ]
+          },
+          "when": "Application.CameraFirstPersonLookat",
           "to": "Actions.Yaw"
         },
         
@@ -222,10 +249,12 @@
         { "from": "Keyboard.Left", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.Right", "when": "Keyboard.Shift", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.Up", "when": "Application.CameraFirstPerson", "to": "Actions.LONGITUDINAL_FORWARD" },
+        { "from": "Keyboard.Up", "when": "Application.CameraFirstPersonLookat", "to": "Actions.LONGITUDINAL_FORWARD" },
         { "from": "Keyboard.Up", "when": "Application.CameraThirdPerson", "to": "Actions.LONGITUDINAL_FORWARD" },
         { "from": "Keyboard.Up", "when": "Application.CameraLookAt", "to": "Actions.LONGITUDINAL_FORWARD" },
         { "from": "Keyboard.Up", "when": "Application.CameraSelfie", "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.Down", "when": "Application.CameraFirstPerson", "to": "Actions.LONGITUDINAL_BACKWARD" },
+        { "from": "Keyboard.Down", "when": "Application.CameraFirstPersonLookat", "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.Down", "when": "Application.CameraThirdPerson", "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.Down", "when": "Application.CameraLookAt", "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.Down", "when": "Application.CameraSelfie", "to": "Actions.LONGITUDINAL_FORWARD" },

@@ -56,8 +56,8 @@ namespace InteractiveWindowEnums {
     Q_NAMESPACE
 
     /**jsdoc
-     * A set of  flags controlling <code>InteractiveWindow</code> behavior. The value is constructed by using the 
-     * <code>|</code> (bitwise OR) operator on the individual flag values.<br />
+     * <p>A set of  flags controlling <code>InteractiveWindow</code> behavior. The value is constructed by using the 
+     * <code>|</code> (bitwise OR) operator on the individual flag values.</p>
      * <table>
      *   <thead>
      *     <tr><th>Flag Name</th><th>Value</th><th>Description</th></tr>
@@ -89,6 +89,15 @@ namespace InteractiveWindowEnums {
         RIGHT
     };
     Q_ENUM_NS(DockArea);
+
+    enum RelativePositionAnchor {
+        NO_ANCHOR,
+        TOP_LEFT,
+        TOP_RIGHT,
+        BOTTOM_RIGHT,
+        BOTTOM_LEFT
+    };
+    Q_ENUM_NS(RelativePositionAnchor);
 }
 
 using namespace InteractiveWindowEnums;
@@ -121,6 +130,8 @@ class InteractiveWindow : public QObject {
 
     Q_PROPERTY(QString title READ getTitle WRITE setTitle)
     Q_PROPERTY(glm::vec2 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(RelativePositionAnchor relativePositionAnchor READ getRelativePositionAnchor WRITE setRelativePositionAnchor)
+    Q_PROPERTY(glm::vec2 relativePosition READ getRelativePosition WRITE setRelativePosition)
     Q_PROPERTY(glm::vec2 size READ getSize WRITE setSize)
     Q_PROPERTY(bool visible READ isVisible WRITE setVisible)
     Q_PROPERTY(int presentationMode READ getPresentationMode WRITE setPresentationMode)
@@ -136,6 +147,21 @@ private:
 
     Q_INVOKABLE glm::vec2 getPosition() const;
     Q_INVOKABLE void setPosition(const glm::vec2& position);
+    
+    RelativePositionAnchor _relativePositionAnchor{ RelativePositionAnchor::NO_ANCHOR };
+    Q_INVOKABLE RelativePositionAnchor getRelativePositionAnchor() const;
+    Q_INVOKABLE void setRelativePositionAnchor(const RelativePositionAnchor& position);
+
+    // This "relative position" is relative to the "relative position anchor" and excludes the window frame.
+    // This position will ALWAYS include the geometry of a docked widget, if one is present.
+    glm::vec2 _relativePosition{ 0.0f, 0.0f };
+    Q_INVOKABLE glm::vec2 getRelativePosition() const;
+    Q_INVOKABLE void setRelativePosition(const glm::vec2& position);
+
+    Q_INVOKABLE void setPositionUsingRelativePositionAndAnchor(const QRect& mainWindowGeometry);
+
+    bool _isFullScreenWindow{ false };
+    Q_INVOKABLE void repositionAndResizeFullScreenWindow();
 
     Q_INVOKABLE glm::vec2 getSize() const;
     Q_INVOKABLE void setSize(const glm::vec2& size);
@@ -320,6 +346,7 @@ protected slots:
     void forwardKeyPressEvent(int key, int modifiers);
     void forwardKeyReleaseEvent(int key, int modifiers);
     void emitMainWindowResizeEvent();
+    void onMainWindowGeometryChanged(QRect geometry);
 
 private:
     std::shared_ptr<QmlWindowProxy> _qmlWindowProxy;

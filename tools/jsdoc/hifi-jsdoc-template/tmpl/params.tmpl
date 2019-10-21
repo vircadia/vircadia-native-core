@@ -120,10 +120,15 @@
                 </td>
             <?js } ?>
 
-            <td class="description last"><?js= param.description ?><?js if (param.subparams) { ?>
-                <h6>Properties</h6>
-                <?js= self.partial('params.tmpl', param.subparams) ?>
-            <?js } ?></td>
+            <td class="description last">
+                <?js if (param.description) { ?>
+                    <?js= self.partial('description.tmpl', param.description) ?>
+                <?js } ?>
+                <?js if (param.subparams) { ?>
+                    <h6>Properties</h6>
+                    <?js= self.partial('params.tmpl', param.subparams) ?>
+                <?js } ?>
+            </td>
         </tr>
 
     <?js }); ?>
