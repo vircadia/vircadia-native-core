@@ -14,6 +14,8 @@
 #include <LogHandler.h>
 #include "ModelFormatLogging.h"
 
+#include <unordered_map>
+
 namespace hfm {
 
 void forEachIndex(const hfm::MeshPart& meshPart, std::function<void(uint32_t)> func) {
@@ -142,19 +144,55 @@ ReweightedDeformers getReweightedDeformers(const size_t numMeshVertices, const s
 
 MeshIndexedTrianglesPos generateMeshIndexedTrianglePos(const std::vector<glm::vec3>& srcVertices, const std::vector<HFMMeshPart> srcParts) {
 
+    MeshIndexedTrianglesPos dest;
+    dest.vertices.resize(srcVertices.size());
+
+    std::vector<uint32_t> remap(srcVertices.size());
+    {
+        std::unordered_map<glm::vec3, uint32_t> uniqueVertices;
+        int vi = 0;
+        int vu = 0;
+        for (const auto& v : srcVertices) {
+            auto foundIndex = uniqueVertices.find(v);
+            if (foundIndex != uniqueVertices.end()) {
+                remap[vi] = foundIndex->second;
+            } else {
+                uniqueVertices[v] = vu;
+                remap[vi] = vu;
+                dest.vertices[vu] = v;
+                vu++;
+            }
+            ++vi;
+        }
+        if (uniqueVertices.size() < srcVertices.size()) {
+            dest.vertices.resize(uniqueVertices.size());
+            dest.vertices.shrink_to_fit();
+
+        }
+    }
+
     auto newIndicesCount = 0;
     for (const auto& part : srcParts) {
         newIndicesCount += part.triangleIndices.size() + part.quadTrianglesIndices.size();
     }
 
-    MeshIndexedTrianglesPos dest;
-    dest.indices.reserve(newIndicesCount);
-    for (const auto& part : srcParts) {
-        dest.indices.insert(dest.indices.end(), part.triangleIndices.cbegin(), part.triangleIndices.cend());
-        dest.indices.insert(dest.indices.end(), part.quadTrianglesIndices.cbegin(), part.quadTrianglesIndices.cend());
-    }
+    {
+        dest.indices.resize(newIndicesCount);
+        int i = 0;
+        for (const auto& part : srcParts) {
+            for (const auto& qti : part.quadTrianglesIndices) {
+                dest.indices[i] = remap[qti];
+                ++i;
+            }
+            for (const auto& ti : part.quadTrianglesIndices) {
+                dest.indices[i] = remap[ti];
+                ++i;
+            }
 
-    dest.vertices = srcVertices;
+           // dest.indices.insert(dest.indices.end(), part.quadTrianglesIndices.cbegin(), part.quadTrianglesIndices.cend());
+           // dest.indices.insert(dest.indices.end(), part.triangleIndices.cbegin(), part.triangleIndices.cend());
+        }
+    }
 
     return dest;
 }

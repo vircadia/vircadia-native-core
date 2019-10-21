@@ -261,7 +261,8 @@ public:
     graphics::MeshPointer _mesh;
     bool wasCompressed { false };
 
-    MeshIndexedTrianglesPos _meshAsIndexedTrianglePos;
+    std::vector<glm::vec3> uniqueVertices;
+    std::vector<uint32_t>  trianglesIndices;
 };
 
 /// A single animation frame.
