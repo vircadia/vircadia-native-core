@@ -2284,7 +2284,9 @@ void MyAvatar::updateLookAtTargetAvatar() {
     AvatarHash hash = DependencyManager::get<AvatarManager>()->getHashCopy();
 
     // determine what the best look at target for my avatar should be.
-    computeMyLookAtTarget(hash);
+    if (!_scriptControlsEyesLookAt) {
+        computeMyLookAtTarget(hash);
+    }
 
     // snap look at position for avatars that are looking at me.
     snapOtherAvatarLookAtTargetsToMe(hash);
@@ -6617,7 +6619,7 @@ bool MyAvatar::getIsJointOverridden(int jointIndex) const {
     return _skeletonModel->getIsJointOverridden(jointIndex);
 }
 
-void MyAvatar::updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera) {
+void MyAvatar::updateEyesLookAtPosition(FaceTracker* faceTracker, Camera& myCamera, float deltaTime) {
 
     updateLookAtTargetAvatar();
 
@@ -6646,6 +6648,13 @@ void MyAvatar::updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera) 
             lookAtSpot = (leftFocus + rightFocus) / 2.0f; // average
         } else {
             lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * 1000.0f;
+        }
+    } else if (_scriptControlsEyesLookAt) {
+        if (_scriptEyesControlTimer < MAX_LOOK_AT_TIME_SCRIPT_CONTROL) {
+            _scriptEyesControlTimer += deltaTime;
+            lookAtSpot = _eyesLookAtTarget;
+        } else {
+            _scriptControlsEyesLookAt = false;
         }
     } else {
         controller::Pose leftEyePose = getControllerPoseInAvatarFrame(controller::Action::LEFT_EYE);
@@ -6731,7 +6740,7 @@ void MyAvatar::updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera) 
             }
         }
     }
-
+    _eyesLookAtTarget = lookAtSpot;
     getHead()->setLookAtPosition(lookAtSpot);
 }
 
@@ -6812,6 +6821,17 @@ void MyAvatar::setHeadLookAt(const glm::vec3& lookAtTarget) {
     _scriptControlsHeadLookAt = true;
     _scriptHeadControlTimer = 0.0f;
     _lookAtScriptTarget = lookAtTarget;
+}
+
+void MyAvatar::setEyesLookAt(const glm::vec3& lookAtTarget) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "setEyesLookAt",
+            Q_ARG(const glm::vec3&, lookAtTarget));
+        return;
+    }
+    _eyesLookAtTarget = lookAtTarget;
+    _scriptEyesControlTimer = 0.0f;
+    _scriptControlsEyesLookAt = true;
 }
 
 glm::vec3 MyAvatar::getLookAtPivotPoint() {

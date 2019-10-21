@@ -5814,14 +5814,14 @@ void Application::pushPostUpdateLambda(void* key, const std::function<void()>& f
 // to everyone.
 // The principal result is to call updateLookAtTargetAvatar() and then setLookAtPosition().
 // Note that it is called BEFORE we update position or joints based on sensors, etc.
-void Application::updateMyAvatarLookAtPosition() {
+void Application::updateMyAvatarLookAtPosition(float deltaTime) {
     PerformanceTimer perfTimer("lookAt");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
 
     auto myAvatar = getMyAvatar();
     FaceTracker* faceTracker = getActiveFaceTracker();
-    myAvatar->updateLookAtPosition(faceTracker, _myCamera);
+    myAvatar->updateEyesLookAtPosition(faceTracker, _myCamera, deltaTime);
 }
 
 void Application::updateThreads(float deltaTime) {
@@ -6605,7 +6605,7 @@ void Application::update(float deltaTime) {
         {
             PROFILE_RANGE(simulation, "MyAvatar");
             PerformanceTimer perfTimer("MyAvatar");
-            qApp->updateMyAvatarLookAtPosition();
+            qApp->updateMyAvatarLookAtPosition(deltaTime);
             avatarManager->updateMyAvatar(deltaTime);
         }
     }
