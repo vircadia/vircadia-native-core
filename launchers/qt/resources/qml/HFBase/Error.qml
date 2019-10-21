@@ -33,10 +33,6 @@ Item {
 
     HFTextHeader {
         id: header
-
-        width: 87
-        height: 31
-
         text: "Uh oh."
 
         anchors {
@@ -49,10 +45,7 @@ Item {
     HFTextRegular {
         id: description
 
-        text: "We seem to have a problem.\nPlease restart Launcher"
-
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
+        text: "We seem to have a problem.\n   Please restart Launcher."
 
         anchors {
             top: header.bottom

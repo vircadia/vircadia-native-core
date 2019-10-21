@@ -32,7 +32,7 @@
 #endif
 
 //#define BREAK_ON_ERROR
-//#define DEBUG_UI
+#define DEBUG_UI
 
 const QString configHomeLocationKey { "homeLocation" };
 const QString configLastLoginKey { "lastLogin" };
@@ -286,6 +286,7 @@ void LauncherState::getCurrentClientVersion() {
             setApplicationState(ApplicationState::WaitingForLogin);
         }
     }
+    //setApplicationState(ApplicationState::WaitingForLogin);
 }
 
 
@@ -350,7 +351,7 @@ void LauncherState::signup(QString email, QString username, QString password, QS
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err == SignupRequest::Error::NoSuchEmail) {
-            setLastSignupErrorMessage("That email isn't setup yet. <a href='https://www.highfidelity.com/hq-support'>Request Access</a>.");
+            setLastSignupErrorMessage("That email isn't setup yet. <a href='https://www.highfidelity.com/hq-support'>Request access</a>.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err != SignupRequest::Error::None) {

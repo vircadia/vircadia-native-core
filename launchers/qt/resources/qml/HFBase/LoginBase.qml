@@ -21,7 +21,7 @@ Item {
     }
 
     Item {
-        width: 383
+        width: 430
         height: root.height
 
 
@@ -32,9 +32,8 @@ Item {
 
         HFTextHeader {
             id: title
-
-            font.bold: true
-
+            lineHeight: 35
+            lineHeightMode: Text.FixedHeight
             text: "Please Log in"
 
             anchors {
@@ -75,6 +74,7 @@ Item {
             id: username
 
             enabled: root.enabled
+            width: 430
 
             text: LauncherState.lastUsedUsername
             placeholderText: "Username"
@@ -91,7 +91,7 @@ Item {
 
         HFTextField {
             id: password
-
+            width: 430
             enabled: root.enabled
 
             placeholderText: "Password"
@@ -125,7 +125,7 @@ Item {
 
         HFTextField {
             id: displayName
-
+            width: 430
             enabled: root.enabled
 
             placeholderText: "Display name"
@@ -142,7 +142,7 @@ Item {
 
         HFButton {
             id: button
-            width: 110
+            width: 134
 
             enabled: root.enabled && username.text.length > 0 && password.text.length > 0 && displayName.text.length > 0
 
@@ -161,7 +161,7 @@ Item {
         Text {
             id: createAccountLink
 
-            text: "Create New Account"
+            text: "Sign up"
             font.family: "Graphik"
             font.pixelSize: 14
             color: "#009EE0"
@@ -191,8 +191,8 @@ Item {
                 right: parent.right
             }
         }
-    }
 
+    }
     Component.onCompleted: {
         root.parent.setBuildInfoState("right");
     }
