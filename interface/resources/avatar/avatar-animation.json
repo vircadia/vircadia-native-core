@@ -4746,32 +4746,6 @@
                                                                                                             "timeScale": 1,
                                                                                                             "url": "qrc:///avatar/animations/walk_left.fbx"
                                                                                                         },
-                                                                                                        "id": "strafeLeftShortStep_c",
-                                                                                                        "type": "clip"
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "children": [
-                                                                                                        ],
-                                                                                                        "data": {
-                                                                                                            "endFrame": 35,
-                                                                                                            "loopFlag": true,
-                                                                                                            "startFrame": 1,
-                                                                                                            "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/walk_left.fbx"
-                                                                                                        },
-                                                                                                        "id": "strafeLeftStep_c",
-                                                                                                        "type": "clip"
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "children": [
-                                                                                                        ],
-                                                                                                        "data": {
-                                                                                                            "endFrame": 35,
-                                                                                                            "loopFlag": true,
-                                                                                                            "startFrame": 1,
-                                                                                                            "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/walk_left.fbx"
-                                                                                                        },
                                                                                                         "id": "strafeLeftWalk_c",
                                                                                                         "type": "clip"
                                                                                                     },
@@ -4819,8 +4793,6 @@
                                                                                                     "alpha": 0,
                                                                                                     "alphaVar": "moveLateralAlpha",
                                                                                                     "characteristicSpeeds": [
-                                                                                                        0.1,
-                                                                                                        0.5,
                                                                                                         1,
                                                                                                         2.55,
                                                                                                         3.35,
@@ -4834,34 +4806,6 @@
                                                                                             },
                                                                                             {
                                                                                                 "children": [
-                                                                                                    {
-                                                                                                        "children": [
-                                                                                                        ],
-                                                                                                        "data": {
-                                                                                                            "endFrame": 35,
-                                                                                                            "loopFlag": true,
-                                                                                                            "mirrorFlag": false,
-                                                                                                            "startFrame": 1,
-                                                                                                            "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/walk_right.fbx"
-                                                                                                        },
-                                                                                                        "id": "strafeRightShortStep_c",
-                                                                                                        "type": "clip"
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "children": [
-                                                                                                        ],
-                                                                                                        "data": {
-                                                                                                            "endFrame": 35,
-                                                                                                            "loopFlag": true,
-                                                                                                            "mirrorFlag": false,
-                                                                                                            "startFrame": 1,
-                                                                                                            "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/walk_right.fbx"
-                                                                                                        },
-                                                                                                        "id": "strafeRightStep_c",
-                                                                                                        "type": "clip"
-                                                                                                    },
                                                                                                     {
                                                                                                         "children": [
                                                                                                         ],
@@ -4923,8 +4867,6 @@
                                                                                                     "alpha": 0,
                                                                                                     "alphaVar": "moveLateralAlpha",
                                                                                                     "characteristicSpeeds": [
-                                                                                                        0.1,
-                                                                                                        0.5,
                                                                                                         1,
                                                                                                         2.55,
                                                                                                         3.4,
