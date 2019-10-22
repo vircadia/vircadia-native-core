@@ -27,6 +27,7 @@ vcpkg_from_github(
     REF ab8f16961e19a86ee20c6a1d61f662392524cc77
     SHA512 927742db29867517283d45e475f0c534a9a57e165cae221f26e08e88057253a1682ac9919b2dc547b9cf388ba0b931b175623461d44f28c9184796ba90b1ed55
     HEAD_REF master
+    PATCHES "bullet-git-fix-build-clang-8.patch"
 )
 
 vcpkg_configure_cmake(

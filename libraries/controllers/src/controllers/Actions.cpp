@@ -335,8 +335,8 @@ namespace controller {
             makeAxisPair(Action::STEP_PITCH, "StepPitch"),
             makeAxisPair(Action::STEP_ROLL, "StepRoll"),
             makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateX"),
-            makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateY"),
-            makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateZ"),
+            makeAxisPair(Action::STEP_TRANSLATE_Y, "StepTranslateY"),
+            makeAxisPair(Action::STEP_TRANSLATE_Z, "StepTranslateZ"),
 
             makePosePair(Action::LEFT_HAND, "LeftHand"),
             makePosePair(Action::RIGHT_HAND, "RightHand"),

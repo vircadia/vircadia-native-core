@@ -272,7 +272,7 @@
             currentProgress = 0.0;
             connectionToDomainFailed = false;
             previousCameraMode = Camera.mode;
-            Camera.mode = "first person";
+            Camera.mode = "first person look at";
             updateProgressBar(0.0);
             scaleInterstitialPage(MyAvatar.sensorToWorldScale);
             timer = Script.setTimeout(update, 2000);

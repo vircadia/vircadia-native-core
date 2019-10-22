@@ -2478,8 +2478,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2489,8 +2489,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk02",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2500,8 +2500,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk03",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2511,8 +2511,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk04",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2522,8 +2522,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk_armsdown",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2533,8 +2533,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk_lefthand",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2544,8 +2544,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk_righthand",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -5244,62 +5244,6 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idle",
-                                                                                                            "var": "isNotInput"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "WALKFWD",
-                                                                                                            "var": "isInputForward"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "WALKBWD",
-                                                                                                            "var": "isInputBackward"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "STRAFERIGHT",
-                                                                                                            "var": "isInputRight"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "STRAFELEFT",
-                                                                                                            "var": "isInputLeft"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "turnRight",
-                                                                                                            "var": "isTurningRight"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "turnLeft",
-                                                                                                            "var": "isTurningLeft"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "fly",
-                                                                                                            "var": "isFlying"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "takeoffStand",
-                                                                                                            "var": "isTakeoffStand"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "TAKEOFFRUN",
-                                                                                                            "var": "isTakeoffRun"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "inAirStand",
-                                                                                                            "var": "isInAirStand"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "INAIRRUN",
-                                                                                                            "var": "isInAirRun"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "strafeRightHmd",
-                                                                                                            "var": "isMovingRightHmd"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "strafeLeftHmd",
-                                                                                                            "var": "isMovingLeftHmd"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "idle",
                                                                                                             "var": "isNotSeated"
                                                                                                         }
                                                                                                     ]
@@ -5307,7 +5251,7 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "idle",
-                                                                                                    "interpDuration": 20,
+                                                                                                    "interpDuration": 15,
                                                                                                     "interpTarget": 20,
                                                                                                     "interpType": "evaluateBoth",
                                                                                                     "transitions": [
@@ -5439,8 +5383,8 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "idleSettle",
-                                                                                                    "interpDuration": 15,
-                                                                                                    "interpTarget": 15,
+                                                                                                    "interpDuration": 13,
+                                                                                                    "interpTarget": 14,
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
                                                                                                         {
@@ -5533,7 +5477,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotInputSlow"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
@@ -5597,7 +5541,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotInputSlow"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
@@ -5661,7 +5605,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotInputSlow"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
@@ -5725,7 +5669,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotInputSlow"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",

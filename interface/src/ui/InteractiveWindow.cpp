@@ -39,6 +39,9 @@ static const char* const ADDITIONAL_FLAGS_PROPERTY = "additionalFlags";
 static const char* const OVERRIDE_FLAGS_PROPERTY = "overrideFlags";
 static const char* const SOURCE_PROPERTY = "source";
 static const char* const TITLE_PROPERTY = "title";
+static const char* const RELATIVE_POSITION_ANCHOR_PROPERTY = "relativePositionAnchor";
+static const char* const RELATIVE_POSITION_PROPERTY = "relativePosition";
+static const char* const IS_FULL_SCREEN_WINDOW = "isFullScreenWindow";
 static const char* const POSITION_PROPERTY = "position";
 static const char* const INTERACTIVE_WINDOW_POSITION_PROPERTY = "interactiveWindowPosition";
 static const char* const SIZE_PROPERTY = "size";
@@ -110,6 +113,15 @@ void InteractiveWindow::forwardKeyPressEvent(int key, int modifiers) {
 void InteractiveWindow::forwardKeyReleaseEvent(int key, int modifiers) {
     QKeyEvent* event = new QKeyEvent(QEvent::KeyRelease, key, static_cast<Qt::KeyboardModifiers>(modifiers));
     QCoreApplication::postEvent(QCoreApplication::instance(), event);
+}
+
+void InteractiveWindow::onMainWindowGeometryChanged(QRect geometry) {
+    // This handler is only connected `if (_isFullScreenWindow || _relativePositionAnchor != RelativePositionAnchor::NONE)`.
+    if (_isFullScreenWindow) {
+        repositionAndResizeFullScreenWindow();
+    } else if (_relativePositionAnchor != RelativePositionAnchor::NO_ANCHOR) {
+        setPositionUsingRelativePositionAndAnchor(geometry);
+    }
 }
 
 void InteractiveWindow::emitMainWindowResizeEvent() {
@@ -184,22 +196,32 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
          */
         if (nativeWindowInfo.contains(DOCK_AREA_PROPERTY)) {
             DockArea dockedArea = (DockArea) nativeWindowInfo[DOCK_AREA_PROPERTY].toInt();
+            int tempWidth = 0;
+            int tempHeight = 0;
             switch (dockedArea) {
                 case DockArea::TOP:
                     dockArea = Qt::TopDockWidgetArea;
-                    _dockWidget->setFixedHeight(windowSize.height());
+                    tempHeight = windowSize.height();
+                    _dockWidget->setFixedHeight(tempHeight);
+                    qApp->getWindow()->setDockedWidgetRelativePositionOffset(QSize(0, -tempHeight));
                     break;
                 case DockArea::BOTTOM:
                     dockArea = Qt::BottomDockWidgetArea;
-                    _dockWidget->setFixedHeight(windowSize.height());
+                    tempHeight = windowSize.height();
+                    _dockWidget->setFixedHeight(tempHeight);
+                    qApp->getWindow()->setDockedWidgetRelativePositionOffset(QSize(0, tempHeight));
                     break;
                 case DockArea::LEFT:
                     dockArea = Qt::LeftDockWidgetArea;
-                    _dockWidget->setFixedWidth(windowSize.width());
+                    tempWidth = windowSize.width();
+                    _dockWidget->setFixedWidth(tempWidth);
+                    qApp->getWindow()->setDockedWidgetRelativePositionOffset(QSize(-tempWidth, 0));
                     break;
                 case DockArea::RIGHT:
                     dockArea = Qt::RightDockWidgetArea;
-                    _dockWidget->setFixedWidth(windowSize.width());
+                    tempWidth = windowSize.width();
+                    _dockWidget->setFixedWidth(tempWidth);
+                    qApp->getWindow()->setDockedWidgetRelativePositionOffset(QSize(tempWidth, 0));
                     break;
 
                 default:
@@ -255,6 +277,9 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
             if (properties.contains(TITLE_PROPERTY)) {
                 object->setProperty(TITLE_PROPERTY, properties[TITLE_PROPERTY].toString());
             }
+            if (properties.contains(VISIBLE_PROPERTY)) {
+                object->setProperty(VISIBLE_PROPERTY, properties[INTERACTIVE_WINDOW_VISIBLE_PROPERTY].toBool());
+            }
             if (properties.contains(SIZE_PROPERTY)) {
                 const auto size = vec2FromVariant(properties[SIZE_PROPERTY]);
                 object->setProperty(INTERACTIVE_WINDOW_SIZE_PROPERTY, QSize(size.x, size.y));
@@ -263,8 +288,21 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
                 const auto position = vec2FromVariant(properties[POSITION_PROPERTY]);
                 object->setProperty(INTERACTIVE_WINDOW_POSITION_PROPERTY, QPointF(position.x, position.y));
             }
-            if (properties.contains(VISIBLE_PROPERTY)) {
-                object->setProperty(VISIBLE_PROPERTY, properties[INTERACTIVE_WINDOW_VISIBLE_PROPERTY].toBool());
+            if (properties.contains(RELATIVE_POSITION_ANCHOR_PROPERTY)) {
+                _relativePositionAnchor = static_cast<RelativePositionAnchor>(properties[RELATIVE_POSITION_ANCHOR_PROPERTY].toInt());
+            }
+            if (properties.contains(RELATIVE_POSITION_PROPERTY)) {
+                _relativePosition = vec2FromVariant(properties[RELATIVE_POSITION_PROPERTY]);
+                setPositionUsingRelativePositionAndAnchor(qApp->getWindow()->geometry());
+            }
+            if (properties.contains(IS_FULL_SCREEN_WINDOW)) {
+                _isFullScreenWindow = properties[IS_FULL_SCREEN_WINDOW].toBool();
+            }
+
+            if (_isFullScreenWindow) {
+                QRect geo = qApp->getWindow()->geometry();
+                object->setProperty(INTERACTIVE_WINDOW_POSITION_PROPERTY, QPointF(geo.x(), geo.y()));
+                object->setProperty(INTERACTIVE_WINDOW_SIZE_PROPERTY, QSize(geo.width(), geo.height()));
             }
 
             // The qmlToScript method handles the thread-safety of this call. Because the QVariant argument
@@ -288,6 +326,10 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
             connect(object, SIGNAL(interactiveWindowVisibleChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
             connect(object, SIGNAL(presentationModeChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
 #endif
+            
+            if (_isFullScreenWindow || _relativePositionAnchor != RelativePositionAnchor::NO_ANCHOR) {
+                connect(qApp->getWindow(), &MainWindow::windowGeometryChanged, this, &InteractiveWindow::onMainWindowGeometryChanged, Qt::QueuedConnection);
+            }
 
             QUrl sourceURL{ sourceUrl };
             // If the passed URL doesn't correspond to a known scheme, assume it's a local file path
@@ -412,6 +454,71 @@ void InteractiveWindow::setPosition(const glm::vec2& position) {
                                   Q_ARG(QVariant, QPointF(position.x, position.y)));
         QMetaObject::invokeMethod(_qmlWindowProxy->getQmlWindow(), "updateInteractiveWindowPositionForMode");
     }
+}
+
+RelativePositionAnchor InteractiveWindow::getRelativePositionAnchor() const {
+    return _relativePositionAnchor;
+}
+
+void InteractiveWindow::setRelativePositionAnchor(const RelativePositionAnchor& relativePositionAnchor) {
+    _relativePositionAnchor = relativePositionAnchor;
+    setPositionUsingRelativePositionAndAnchor(qApp->getWindow()->geometry());
+}
+
+glm::vec2 InteractiveWindow::getRelativePosition() const {
+    return _relativePosition;
+}
+
+void InteractiveWindow::setRelativePosition(const glm::vec2& relativePosition) {    
+    _relativePosition = relativePosition;
+    setPositionUsingRelativePositionAndAnchor(qApp->getWindow()->geometry());
+}
+
+void InteractiveWindow::setPositionUsingRelativePositionAndAnchor(const QRect& mainWindowGeometry) {
+    RelativePositionAnchor relativePositionAnchor = getRelativePositionAnchor();
+    glm::vec2 relativePosition = getRelativePosition();
+
+    glm::vec2 newPosition;
+
+    switch (relativePositionAnchor) {
+        case RelativePositionAnchor::TOP_LEFT:
+            newPosition.x = mainWindowGeometry.x() + relativePosition.x;
+            newPosition.y = mainWindowGeometry.y() + relativePosition.y;
+            break;
+        case RelativePositionAnchor::TOP_RIGHT:
+            newPosition.x = mainWindowGeometry.x() + mainWindowGeometry.width() - relativePosition.x;
+            newPosition.y = mainWindowGeometry.y() + relativePosition.y;
+            break;
+        case RelativePositionAnchor::BOTTOM_RIGHT:
+            newPosition.x = mainWindowGeometry.x() + mainWindowGeometry.width() - relativePosition.x;
+            newPosition.y = mainWindowGeometry.y() + mainWindowGeometry.height() - relativePosition.y;
+            break;
+        case RelativePositionAnchor::BOTTOM_LEFT:
+            newPosition.x = mainWindowGeometry.x() + relativePosition.x;
+            newPosition.y = mainWindowGeometry.y() + mainWindowGeometry.height() - relativePosition.y;
+            break;
+        case RelativePositionAnchor::NO_ANCHOR:
+            // No-op.
+            break;
+    }
+
+    // Make sure we include the dimensions of the docked widget!
+    QSize dockedWidgetRelativePositionOffset = qApp->getWindow()->getDockedWidgetRelativePositionOffset();
+    newPosition.x = newPosition.x + dockedWidgetRelativePositionOffset.width();
+    newPosition.y = newPosition.y + dockedWidgetRelativePositionOffset.height();
+
+    if (_qmlWindowProxy) {
+        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "writeProperty", Q_ARG(QString, INTERACTIVE_WINDOW_POSITION_PROPERTY),
+            Q_ARG(QVariant, QPointF(newPosition.x, newPosition.y)));
+    }
+    setPosition(newPosition);
+}
+
+void InteractiveWindow::repositionAndResizeFullScreenWindow() {
+    QRect windowGeometry = qApp->getWindow()->geometry();
+
+    setPosition(glm::vec2(windowGeometry.x(), windowGeometry.y()));
+    setSize(glm::vec2(windowGeometry.width(), windowGeometry.height()));
 }
 
 glm::vec2 InteractiveWindow::getSize() const {

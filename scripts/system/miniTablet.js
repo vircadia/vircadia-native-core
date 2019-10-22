@@ -53,7 +53,7 @@
     function handJointName(hand) {
         var jointName;
         if (hand === LEFT_HAND) {
-            if (Camera.mode === "first person") {
+            if (Camera.mode === "first person" || Camera.mode === "first person look at") {
                 jointName = "_CONTROLLER_LEFTHAND";
             } else if (Camera.mode === "third person") {
                 jointName = "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND";
@@ -61,7 +61,7 @@
                 jointName = "LeftHand";
             }
         } else {
-            if (Camera.mode === "first person") {
+            if (Camera.mode === "first person" || Camera.mode === "first person look at") {
                 jointName = "_CONTROLLER_RIGHTHAND";
             } else if (Camera.mode === "third person") {
                 jointName = "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND";
