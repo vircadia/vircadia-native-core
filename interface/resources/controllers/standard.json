@@ -208,7 +208,7 @@
         { "from": "Standard.Puff", "to": "Actions.Puff" },
         { "from": "Standard.CheekSquint_L", "to": "Actions.CheekSquint_L" },
         { "from": "Standard.CheekSquint_R", "to": "Actions.CheekSquint_R" },
-        { "from": "Standard.LipsTogether", "to": "Actions.LipsTogether" },
+        { "from": "Standard.MouthClose", "to": "Actions.MouthClose" },
         { "from": "Standard.MouthUpperUp_L", "to": "Actions.MouthUpperUp_L" },
         { "from": "Standard.MouthUpperUp_R", "to": "Actions.MouthUpperUp_R" },
         { "from": "Standard.MouthLowerDown_L", "to": "Actions.MouthLowerDown_L" },

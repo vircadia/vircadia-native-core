@@ -1217,6 +1217,10 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         _keyState = newKeyState;
         _handState = newHandState;
+        if (!newHasScriptedBlendshapes && getHasScriptedBlendshapes()) {
+            // if scripted blendshapes have just been turned off, slam blendshapes back to zero.
+            _headData->clearBlendshapeCoefficients();
+        }
         _headData->setHasScriptedBlendshapes(newHasScriptedBlendshapes);
         _headData->setProceduralAnimationFlag(HeadData::SaccadeProceduralEyeJointAnimation, newHasProceduralEyeMovement);
         _headData->setProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation, newHasAudioEnabledFaceMovement);

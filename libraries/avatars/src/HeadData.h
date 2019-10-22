@@ -62,6 +62,7 @@ public:
     const QVector<float>& getSummedBlendshapeCoefficients();
     int getNumSummedBlendshapeCoefficients() const;
     void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { _blendshapeCoefficients = blendshapeCoefficients; }
+    void clearBlendshapeCoefficients();
 
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
     void setLookAtPosition(const glm::vec3& lookAtPosition) {

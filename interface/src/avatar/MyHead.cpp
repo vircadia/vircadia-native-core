@@ -64,7 +64,7 @@ static controller::Action blendshapeActions[] = {
     controller::Action::PUFF,
     controller::Action::CHEEKSQUINT_L,
     controller::Action::CHEEKSQUINT_R,
-    controller::Action::LIPSTOGETHER,
+    controller::Action::MOUTHCLOSE,
     controller::Action::MOUTHUPPERUP_L,
     controller::Action::MOUTHUPPERUP_R,
     controller::Action::MOUTHLOWERDOWN_L,

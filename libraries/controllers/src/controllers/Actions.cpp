@@ -393,7 +393,7 @@ namespace controller {
             makeAxisPair(Action::PUFF, "Puff"),
             makeAxisPair(Action::CHEEKSQUINT_L, "CheekSquint_L"),
             makeAxisPair(Action::CHEEKSQUINT_R, "CheekSquint_R"),
-            makeAxisPair(Action::LIPSTOGETHER, "LipsTogether"),
+            makeAxisPair(Action::MOUTHCLOSE, "MouthClose"),
             makeAxisPair(Action::MOUTHUPPERUP_L, "MouthUpperUp_L"),
             makeAxisPair(Action::MOUTHUPPERUP_R, "MouthUpperUp_R"),
             makeAxisPair(Action::MOUTHLOWERDOWN_L, "MouthLowerDown_L"),

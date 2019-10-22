@@ -134,7 +134,7 @@ namespace controller {
         PUFF,
         CHEEKSQUINT_L,
         CHEEKSQUINT_R,
-        LIPSTOGETHER,
+        MOUTHCLOSE,
         MOUTHUPPERUP_L,
         MOUTHUPPERUP_R,
         MOUTHLOWERDOWN_L,

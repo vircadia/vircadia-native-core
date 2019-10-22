@@ -83,6 +83,10 @@ int HeadData::getNumSummedBlendshapeCoefficients() const {
     return maxSize;
 }
 
+void HeadData::clearBlendshapeCoefficients() {
+    _blendshapeCoefficients.fill(0.0f, (int)_blendshapeCoefficients.size());
+}
+
 const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
     int maxSize = std::max(_blendshapeCoefficients.size(), _transientBlendshapeCoefficients.size());
     if (_summedBlendshapeCoefficients.size() != maxSize) {

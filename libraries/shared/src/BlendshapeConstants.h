@@ -58,7 +58,7 @@ enum class Blendshapes : int {
     Puff,
     CheekSquint_L,
     CheekSquint_R,
-    LipsTogether,
+    MouthClose,
     MouthUpperUp_L,
     MouthUpperUp_R,
     MouthLowerDown_L,
@@ -94,7 +94,7 @@ enum class LegacyBlendshpaes : int {
 };
 
 // NEW in ARKit
-// * LipsTogether
+// * MouthClose
 // * MouthUpperUp_L
 // * MouthUpperUp_R
 // * MouthLowerDown_L

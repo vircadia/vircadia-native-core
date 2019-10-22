@@ -54,7 +54,7 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     "Puff",
     "CheekSquint_L",
     "CheekSquint_R",
-    "LipsTogether",
+    "MouthClose",
     "MouthUpperUp_L",
     "MouthUpperUp_R",
     "MouthLowerDown_L",

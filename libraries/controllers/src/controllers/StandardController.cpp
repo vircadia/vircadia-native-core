@@ -399,7 +399,7 @@ Input::NamedVector StandardController::getAvailableInputs() const {
         makePair(PUFF, "Puff"),
         makePair(CHEEKSQUINT_L, "CheekSquint_L"),
         makePair(CHEEKSQUINT_R, "CheekSquint_R"),
-        makePair(LIPSTOGETHER, "LipsTogether"),
+        makePair(MOUTHCLOSE, "MouthClose"),
         makePair(MOUTHUPPERUP_L, "MouthUpperUp_L"),
         makePair(MOUTHUPPERUP_R, "MouthUpperUp_R"),
         makePair(MOUTHLOWERDOWN_L, "MouthLowerDown_L"),
