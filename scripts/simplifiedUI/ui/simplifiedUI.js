@@ -718,7 +718,7 @@ function restoreLODSettings() {
 
 var nametag = Script.require("./simplifiedNametag/simplifiedNametag.js");
 var si = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js");
-var simplifiedEmote = Script.require("../simplifiedEmote/simplifiedEmote.js");
+var simplifiedEmote = Script.require("../simplifiedEmote/simplifiedEmote.js?" + Date.now());
 var oldShowAudioTools;
 var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);

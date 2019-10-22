@@ -167,6 +167,7 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         &InteractiveWindowProxy::emitScriptEvent, Qt::QueuedConnection);
 
     if (properties.contains(DOCKED_PROPERTY) && presentationMode == InteractiveWindowPresentationMode::Native) {
+        qDebug() << "CREATING WINDOW THAT IS DOCKED WITH NATIVE PRES MODE";
         QVariantMap nativeWindowInfo = properties[DOCKED_PROPERTY].toMap();
         Qt::DockWidgetArea dockArea = Qt::TopDockWidgetArea;
         QString title;
@@ -195,6 +196,7 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
          * @property {InteractiveWindow.DockArea} dockArea - The edge of the Interface window to dock to.
          */
         if (nativeWindowInfo.contains(DOCK_AREA_PROPERTY)) {
+            qDebug() << "CREATING DOCK AREA FOR NATIVE WINDOW " << DOCK_AREA_PROPERTY;
             DockArea dockedArea = (DockArea) nativeWindowInfo[DOCK_AREA_PROPERTY].toInt();
             int tempWidth = 0;
             int tempHeight = 0;
@@ -253,6 +255,7 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         _dockWidget->setObjectName("DockedWidget");
         mainWindow->addDockWidget(dockArea, _dockWidget.get());
     } else {
+        qDebug() << "CREATING OTHER WINDOW (NOT DOCKED WITH NATIVE PRES MODE)";
         auto contextInitLambda = [&](QQmlContext* context) {
             // If the restricted flag is on, the web content will not be able to access local files
             ContextAwareProfile::restrictContext(context, restricted);
@@ -336,6 +339,7 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
             if (!KNOWN_SCHEMES.contains(sourceURL.scheme(), Qt::CaseInsensitive)) {
                 sourceURL = QUrl::fromLocalFile(sourceURL.toString()).toString();
             }
+            qDebug() << "CREATING OTHER WINDOW WITH SOURCE URL: " << sourceUrl;
             object->setObjectName("InteractiveWindow");
             object->setProperty(SOURCE_PROPERTY, sourceURL);
         };
