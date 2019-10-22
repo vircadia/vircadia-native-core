@@ -570,7 +570,7 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     HifiAudioDeviceInfo foundDevice;
     foreach(QAudioDeviceInfo audioDevice, devices) {
         if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
-            foundDevice=HifiAudioDeviceInfo(audioDevice, true, mode, HifiAudioDeviceInfo::desktop);
+            foundDevice = HifiAudioDeviceInfo(audioDevice, true, mode, HifiAudioDeviceInfo::desktop);
             break;
         }
     }

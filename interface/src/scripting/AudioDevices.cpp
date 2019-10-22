@@ -268,9 +268,14 @@ void AudioDeviceList::onDevicesChanged(const QList<HifiAudioDeviceInfo>& devices
             for (bool isHMD : {false, true}) {
                 auto& backupSelectedDeviceName = isHMD ? _backupSelectedHMDDeviceName : _backupSelectedDesktopDeviceName;
                 if (deviceInfo.deviceName() == backupSelectedDeviceName) {
-                    HifiAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
-                    selectedDevice = deviceInfo;
-                    backupSelectedDeviceName.clear();
+                    if (isHMD && deviceInfo.getDeviceType() != HifiAudioDeviceInfo::desktop) {
+                        _selectedHMDDevice= deviceInfo;
+                        backupSelectedDeviceName.clear();
+                    } else if (!isHMD && deviceInfo.getDeviceType() != HifiAudioDeviceInfo::hmd) {
+                        _selectedDesktopDevice = deviceInfo;
+                        backupSelectedDeviceName.clear();
+                    }
+
                 }
             }
         }
@@ -323,8 +328,14 @@ void AudioDeviceList::onDevicesChanged(const QList<HifiAudioDeviceInfo>& devices
             }
             else {
                 //no selected device for context. fallback to saved
-                const QString& savedDeviceName = isHMD ? _hmdSavedDeviceName : _desktopSavedDeviceName;
-                isSelected = (device.info.deviceName() == savedDeviceName);
+                QString& savedDeviceName = isHMD ? _hmdSavedDeviceName : _desktopSavedDeviceName;
+
+                if (device.info.deviceName() == savedDeviceName) {
+                    if ((isHMD && device.info.getDeviceType() != HifiAudioDeviceInfo::desktop) ||
+                        (!isHMD && device.info.getDeviceType() != HifiAudioDeviceInfo::hmd)) {
+                        isSelected = true;
+                    }
+                }
             }
 
             if (isSelected) {
