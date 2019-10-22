@@ -393,9 +393,7 @@ float LODManager::getLODTargetFPS() const {
 }
 
 void LODManager::setWorldDetailQuality(WorldDetailQuality quality, bool isHMDMode) {
-    static const float MIN_FPS = 10;
     float desiredFPS = isHMDMode ? QUALITY_TO_FPS_HMD[quality] : QUALITY_TO_FPS_DESKTOP[quality];
-
     if (isHMDMode) {
         _hmdWorldDetailQuality = quality;
         setHMDLODTargetFPS(desiredFPS);
