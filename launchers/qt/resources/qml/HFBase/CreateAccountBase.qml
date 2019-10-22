@@ -164,7 +164,11 @@ Item {
             topMargin: 4
         }
 
-         onAccepted: LauncherState.signup(email.text, username.text, password.text, displayName.text)
+         onAccepted: {
+             if (root.enabled && email.text.length > 0 && username.text.length > 0 && password.text.length > 0 && displayName.text.length > 0) {
+                 LauncherState.signup(email.text, username.text, password.text, displayName.text);
+             }
+         }
     }
 
     HFButton {

@@ -286,7 +286,6 @@ void LauncherState::getCurrentClientVersion() {
             setApplicationState(ApplicationState::WaitingForLogin);
         }
     }
-    //setApplicationState(ApplicationState::WaitingForLogin);
 }
 
 
@@ -335,19 +334,19 @@ void LauncherState::signup(QString email, QString username, QString password, QS
 
         auto err = signupRequest->getError();
         if (err == SignupRequest::Error::ExistingUsername) {
-            setLastSignupErrorMessage(_username + " is already taken - please try a different username.");
+            setLastSignupErrorMessage(_username + " is already taken. Please try a different username.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err == SignupRequest::Error::BadPassword) {
-            setLastSignupErrorMessage("That's an invalid password - must be at least 6 characters.");
+            setLastSignupErrorMessage("That's an invalid password. Must be at least 6 characters.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err == SignupRequest::Error::BadUsername) {
-            setLastSignupErrorMessage("That's an invalid username - please try another username.");
+            setLastSignupErrorMessage("That's an invalid username. Please try another username.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err == SignupRequest::Error::UserProfileAlreadyCompleted) {
-            setLastSignupErrorMessage("This email exists, if it's yours please <b><a href='login'>login</a></b>.");
+            setLastSignupErrorMessage("An account with this email already exists. Please <b><a href='login'>log in</a></b>.");
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err == SignupRequest::Error::NoSuchEmail) {
@@ -355,7 +354,7 @@ void LauncherState::signup(QString email, QString username, QString password, QS
             setApplicationState(ApplicationState::WaitingForSignup);
             return;
         } else if (err != SignupRequest::Error::None) {
-            setApplicationStateError("Failed to sign up");
+            setApplicationStateError("Failed to sign up. Please try again.");
             return;
         }
 
@@ -374,11 +373,11 @@ void LauncherState::signup(QString email, QString username, QString password, QS
 
             auto err = loginRequest->getError();
             if (err == LoginRequest::Error::BadUsernameOrPassword) {
-                setLastLoginErrorMessage("Bad username or password");
+                setLastLoginErrorMessage("Invalid username or password.");
                 setApplicationState(ApplicationState::WaitingForLogin);
                 return;
             } else if (err != LoginRequest::Error::None) {
-                setApplicationStateError("Failed to login");
+                setApplicationStateError("Failed to login. Please try again.");
                 return;
             }
 
@@ -413,11 +412,11 @@ void LauncherState::login(QString username, QString password, QString displayNam
 
         auto err = request->getError();
         if (err == LoginRequest::Error::BadUsernameOrPassword) {
-            setLastLoginErrorMessage("Bad username or password");
+            setLastLoginErrorMessage("Invalid username or password");
             setApplicationState(ApplicationState::WaitingForLogin);
             return;
         } else if (err != LoginRequest::Error::None) {
-            setApplicationStateError("Failed to login");
+            setApplicationStateError("Failed to login. Please try again.");
             return;
         }
 

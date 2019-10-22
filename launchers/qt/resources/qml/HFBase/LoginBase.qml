@@ -137,7 +137,11 @@ Item {
                 left: parent.left
                 right: parent.right;
             }
-            onAccepted: LauncherState.login(username.text, password.text, displayName.text)
+            onAccepted: {
+                if (root.enabled && username.text.length > 0 && password.text.length > 0 && displayName.text.length > 0) {
+                    LauncherState.login(username.text, password.text, displayName.text);
+                }
+            }
         }
 
         HFButton {

@@ -42,7 +42,7 @@ Item {
     HFTextHeader {
         id: firstText
 
-        text: "Set up will take a moment"
+        text: "Setup will take a moment"
 
         anchors {
             top: logo.bottom
