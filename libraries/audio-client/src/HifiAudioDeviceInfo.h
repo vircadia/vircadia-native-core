@@ -37,7 +37,6 @@ public:
         _deviceType = deviceInfo.getDeviceType();
     }
 
-
     HifiAudioDeviceInfo(QAudioDeviceInfo deviceInfo, bool isDefault, QAudio::Mode mode, DeviceType devType=both) :
         _audioDeviceInfo(deviceInfo),
         _isDefault(isDefault),
@@ -65,7 +64,6 @@ public:
     HifiAudioDeviceInfo& operator=(const HifiAudioDeviceInfo& other);
     bool operator==(const HifiAudioDeviceInfo& rhs) const;
     bool operator!=(const HifiAudioDeviceInfo& rhs) const;
-
 
 private:
     QAudioDeviceInfo _audioDeviceInfo;

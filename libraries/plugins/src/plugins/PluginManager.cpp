@@ -13,6 +13,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QDebug>
 #include <QtCore/QPluginLoader>
+#include <shared/QtHelpers.h>
 
 //#define HIFI_PLUGINMANAGER_DEBUG
 #if defined(HIFI_PLUGINMANAGER_DEBUG)
@@ -21,6 +22,7 @@
 
 #include <DependencyManager.h>
 #include <UserActivityLogger.h>
+#include <QThreadPool>
 
 #include "RuntimePlugin.h"
 #include "CodecPlugin.h"
@@ -220,10 +222,6 @@ const OculusPlatformPluginPointer PluginManager::getOculusPlatformPlugin() {
     });
     return oculusPlatformPlugin;
 }
-
-#include <shared/QtHelpers.h>
-#include <QThreadPool>
-
 
 DisplayPluginList PluginManager::getAllDisplayPlugins() {
     if (thread() != QThread::currentThread()) {

@@ -62,12 +62,6 @@ static QString getTargetDevice(bool hmd, QAudio::Mode mode) {
     auto& setting = getSetting(hmd, mode);
     if (setting.isSet()) {
         deviceName = setting.get();
-    } else if (hmd) {
-        if (mode == QAudio::AudioInput) {
-            deviceName = qApp->getActiveDisplayPlugin()->getPreferredAudioInDevice();
-        } else { // if (_mode == QAudio::AudioOutput)
-            deviceName = qApp->getActiveDisplayPlugin()->getPreferredAudioOutDevice();
-        }
     } else {
         deviceName = HifiAudioDeviceInfo::DEFAULT_DEVICE_NAME;
     }
@@ -269,13 +263,15 @@ void AudioDeviceList::onDevicesChanged(const QList<HifiAudioDeviceInfo>& devices
     bool hmdIsSelected = false;
     bool desktopIsSelected = false;
 
-    foreach(const HifiAudioDeviceInfo& deviceInfo, devices) {
-        for (bool isHMD : {false, true}) {
-            auto& backupSelectedDeviceName = isHMD ? _backupSelectedHMDDeviceName : _backupSelectedDesktopDeviceName;
-            if (deviceInfo.deviceName() == backupSelectedDeviceName) {
-                HifiAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
-                selectedDevice = deviceInfo;
-                backupSelectedDeviceName.clear();
+    if (!_backupSelectedDesktopDeviceName.isEmpty() && !_backupSelectedHMDDeviceName.isEmpty()) {
+        foreach(const HifiAudioDeviceInfo& deviceInfo, devices) {
+            for (bool isHMD : {false, true}) {
+                auto& backupSelectedDeviceName = isHMD ? _backupSelectedHMDDeviceName : _backupSelectedDesktopDeviceName;
+                if (deviceInfo.deviceName() == backupSelectedDeviceName) {
+                    HifiAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
+                    selectedDevice = deviceInfo;
+                    backupSelectedDeviceName.clear();
+                }
             }
         }
     }

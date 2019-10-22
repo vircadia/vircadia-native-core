@@ -33,4 +33,3 @@ bool HifiAudioDeviceInfo::operator==(const HifiAudioDeviceInfo& rhs) const {
 bool HifiAudioDeviceInfo::operator!=(const HifiAudioDeviceInfo& rhs) const {
     return  getDevice() != rhs.getDevice() || isDefault() != rhs.isDefault();
 }
-

@@ -39,6 +39,7 @@
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
 
+#include <shared/QtHelpers.h>
 #include <ThreadHelpers.h>
 #include <NodeList.h>
 #include <plugins/CodecPlugin.h>
@@ -48,6 +49,7 @@
 #include <SharedUtil.h>
 #include <Transform.h>
 #include <plugins/DisplayPlugin.h>
+
 #include "AudioClientLogging.h"
 #include "AudioLogging.h"
 #include "AudioHelpers.h"
@@ -81,7 +83,7 @@ Mutex _recordMutex;
 
 HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode);
 
-#include <shared/QtHelpers.h>
+
 static QString getHmdAudioDeviceName(QAudio::Mode mode) {
     foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getAllDisplayPlugins()) {
         if (displayPlugin && displayPlugin->isHmd()) {
@@ -568,7 +570,7 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     HifiAudioDeviceInfo foundDevice;
     foreach(QAudioDeviceInfo audioDevice, devices) {
         if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
-            foundDevice=HifiAudioDeviceInfo(audioDevice,true,mode, HifiAudioDeviceInfo::desktop);
+            foundDevice=HifiAudioDeviceInfo(audioDevice, true, mode, HifiAudioDeviceInfo::desktop);
             break;
         }
     }
@@ -594,7 +596,7 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     }
 #endif
     // fallback for failed lookup is the default device
-    return (mode == QAudio::AudioInput) ? HifiAudioDeviceInfo(QAudioDeviceInfo::defaultInputDevice(), true,mode, HifiAudioDeviceInfo::desktop) : 
+    return (mode == QAudio::AudioInput) ? HifiAudioDeviceInfo(QAudioDeviceInfo::defaultInputDevice(), true, mode, HifiAudioDeviceInfo::desktop) : 
         HifiAudioDeviceInfo(QAudioDeviceInfo::defaultOutputDevice(), true, mode, HifiAudioDeviceInfo::desktop);
 }
 
