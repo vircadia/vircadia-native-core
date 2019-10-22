@@ -267,7 +267,7 @@ signals:
 private:
     LODManager();
 
-    void LODManager::setWorldDetailQuality(WorldDetailQuality quality, bool isHMDMode);
+    void setWorldDetailQuality(WorldDetailQuality quality, bool isHMDMode);
 
     std::mutex _automaticLODLock;
     bool _automaticLODAdjust = true;
