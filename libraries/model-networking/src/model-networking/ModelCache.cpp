@@ -331,16 +331,11 @@ void ModelResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const Mate
     }
 
     std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
-    std::vector<hfm::MeshIndexedTrianglesPos> triangleListMeshes = std::vector<hfm::MeshIndexedTrianglesPos>();
     int meshID = 0;
     for (const HFMMesh& mesh : _hfmModel->meshes) {
         // Copy mesh pointers
         meshes->emplace_back(mesh._mesh);
         meshID++;
-
-        auto simpleMesh = hfm::generateMeshIndexedTrianglePos(mesh.positions, mesh.parts);
-
-        triangleListMeshes.emplace_back(simpleMesh);
     }
     _meshes = meshes;
 

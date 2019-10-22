@@ -145,11 +145,12 @@ ReweightedDeformers getReweightedDeformers(const size_t numMeshVertices, const s
 }
 
 
-const MeshIndexedTrianglesPos generateMeshIndexedTrianglePos(const std::vector<glm::vec3>& srcVertices, const std::vector<HFMMeshPart>& srcParts) {
+const TriangleListMesh generateTriangleListMesh(const std::vector<glm::vec3>& srcVertices, const std::vector<HFMMeshPart>& srcParts) {
 
-    MeshIndexedTrianglesPos dest;
-   // dest.vertices.resize(srcVertices.size());
-    dest.vertices = srcVertices;
+    TriangleListMesh dest;
+
+    // just copy vertices
+    dest.vertices.insert(dest.vertices.end(), srcVertices.cbegin(), srcVertices.cend());
 
  /*   std::vector<uint32_t> remap(srcVertices.size());
     {
