@@ -19,11 +19,8 @@
 #include "ui/DialogsManager.h"
 #include "InterfaceLogging.h"
 
-const float LODManager::DEFAULT_DESKTOP_LOD_DOWN_FPS = LOD_DEFAULT_QUALITY_LEVEL * LOD_MAX_LIKELY_DESKTOP_FPS;
-const float LODManager::DEFAULT_HMD_LOD_DOWN_FPS = LOD_DEFAULT_QUALITY_LEVEL * LOD_MAX_LIKELY_HMD_FPS;
-
-Setting::Handle<float> desktopLODDecreaseFPS("desktopLODDecreaseFPS", LODManager::DEFAULT_DESKTOP_LOD_DOWN_FPS);
-Setting::Handle<float> hmdLODDecreaseFPS("hmdLODDecreaseFPS", LODManager::DEFAULT_HMD_LOD_DOWN_FPS);
+Setting::Handle<int> desktopWorldDetailQuality("desktopWorldDetailQuality", (int)DEFAULT_WORLD_DETAIL_QUALITY);
+Setting::Handle<int> hmdWorldDetailQuality("hmdWorldDetailQuality", (int)DEFAULT_WORLD_DETAIL_QUALITY);
 
 LODManager::LODManager() {
 }
@@ -326,19 +323,21 @@ QString LODManager::getLODFeedbackText() {
 }
 
 void LODManager::loadSettings() {
-    setDesktopLODTargetFPS(desktopLODDecreaseFPS.get());
-    Setting::Handle<bool> firstRun { Settings::firstRun, true };
+    auto desktopQuality = static_cast<WorldDetailQuality>(desktopWorldDetailQuality.get());
+    auto hmdQuality = static_cast<WorldDetailQuality>(hmdWorldDetailQuality.get());
+
+    Setting::Handle<bool> firstRun{ Settings::firstRun, true };
     if (qApp->property(hifi::properties::OCULUS_STORE).toBool() && firstRun.get()) {
-        const float LOD_HIGH_QUALITY_LEVEL = 0.75f;
-        setHMDLODTargetFPS(LOD_HIGH_QUALITY_LEVEL * LOD_MAX_LIKELY_HMD_FPS);
-    } else {
-        setHMDLODTargetFPS(hmdLODDecreaseFPS.get());
+        hmdQuality = WORLD_DETAIL_HIGH;
     }
+
+    setWorldDetailQuality(desktopQuality, false);
+    setWorldDetailQuality(hmdQuality, true);
 }
 
 void LODManager::saveSettings() {
-    desktopLODDecreaseFPS.set(getDesktopLODTargetFPS());
-    hmdLODDecreaseFPS.set(getHMDLODTargetFPS());
+    desktopWorldDetailQuality.set((int)_desktopWorldDetailQuality);
+    hmdWorldDetailQuality.set((int)_hmdWorldDetailQuality);
 }
 
 const float MIN_DECREASE_FPS = 0.5f;
@@ -393,54 +392,35 @@ float LODManager::getLODTargetFPS() const {
     }
 }
 
-void LODManager::setWorldDetailQuality(float quality) {
+void LODManager::setWorldDetailQuality(WorldDetailQuality quality, bool isHMDMode) {
     static const float MIN_FPS = 10;
-    static const float LOW = 0.25f;
-
-    bool isLowestValue = quality <= LOW;
-    bool isHMDMode = qApp->isHMDMode();
-
-    float maxFPS = isHMDMode ? LOD_MAX_LIKELY_HMD_FPS : LOD_MAX_LIKELY_DESKTOP_FPS;
-    float desiredFPS = maxFPS;
-
-    if (!isLowestValue) {
-        float calculatedFPS = (maxFPS - (maxFPS * quality));
-        desiredFPS = calculatedFPS < MIN_FPS ? MIN_FPS : calculatedFPS;
-    }
+    float desiredFPS = isHMDMode ? QUALITY_TO_FPS_HMD[quality] : QUALITY_TO_FPS_DESKTOP[quality];
 
     if (isHMDMode) {
+        _hmdWorldDetailQuality = quality;
         setHMDLODTargetFPS(desiredFPS);
     } else {
+        _desktopWorldDetailQuality = quality;
         setDesktopLODTargetFPS(desiredFPS);
     }
-
+}
+    
+void LODManager::setWorldDetailQuality(WorldDetailQuality quality) {
+    setWorldDetailQuality(quality, qApp->isHMDMode());
     emit worldDetailQualityChanged();
 }
 
-float LODManager::getWorldDetailQuality() const {
+WorldDetailQuality LODManager::getWorldDetailQuality() const {
+    return qApp->isHMDMode() ? _hmdWorldDetailQuality : _desktopWorldDetailQuality;
+}
 
-    static const float LOW = 0.25f;
-    static const float MEDIUM = 0.5f;
-    static const float HIGH = 0.75f;
+QScriptValue worldDetailQualityToScriptValue(QScriptEngine* engine, const WorldDetailQuality& worldDetailQuality) {
+    return worldDetailQuality;
+}
 
-    bool inHMD = qApp->isHMDMode();
-
-    float targetFPS = 0.0f;
-    if (inHMD) {
-        targetFPS = getHMDLODTargetFPS();
-    } else {
-        targetFPS = getDesktopLODTargetFPS();
-    }
-    float maxFPS = inHMD ? LOD_MAX_LIKELY_HMD_FPS : LOD_MAX_LIKELY_DESKTOP_FPS;
-    float percentage = 1.0f - targetFPS / maxFPS;
-
-    if (percentage <= LOW) {
-        return LOW;
-    } else if (percentage <= MEDIUM) {
-        return MEDIUM;
-    }
-
-    return HIGH;
+void worldDetailQualityFromScriptValue(const QScriptValue& object, WorldDetailQuality& worldDetailQuality) {
+    worldDetailQuality = 
+        static_cast<WorldDetailQuality>(std::min(std::max(object.toInt32(), (int)WORLD_DETAIL_LOW), (int)WORLD_DETAIL_HIGH));
 }
 
 void LODManager::setLODQualityLevel(float quality) {

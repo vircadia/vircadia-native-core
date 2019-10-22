@@ -58,18 +58,19 @@ void setupPreferences() {
     static const QString GRAPHICS_QUALITY { "Graphics Quality" };
     {
         auto getter = []()->float {
-            return DependencyManager::get<LODManager>()->getWorldDetailQuality();
+            return (int)DependencyManager::get<LODManager>()->getWorldDetailQuality();
         };
 
-        auto setter = [](float value) {
-            DependencyManager::get<LODManager>()->setWorldDetailQuality(value);
+        auto setter = [](int value) {
+            DependencyManager::get<LODManager>()->setWorldDetailQuality(static_cast<WorldDetailQuality>(value));
         };
 
-        auto wodSlider = new SliderPreference(GRAPHICS_QUALITY, "World Detail", getter, setter);
-        wodSlider->setMin(0.25f);
-        wodSlider->setMax(0.75f);
-        wodSlider->setStep(0.25f);
-        preferences->addPreference(wodSlider);
+        auto wodButtons = new RadioButtonsPreference(GRAPHICS_QUALITY, "World Detail", getter, setter);
+        QStringList items;
+        items << "Low World Detail" << "Medium World Detail" << "High World Detail";
+        wodButtons->setHeading("World Detail");
+        wodButtons->setItems(items);
+        preferences->addPreference(wodButtons);
 
         auto getterShadow = []()->bool {
             auto menu = Menu::getInstance();
