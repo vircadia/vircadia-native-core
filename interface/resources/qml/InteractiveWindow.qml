@@ -53,7 +53,6 @@ Windows.Window {
 
     property var initialized: false;
     onSourceChanged: {
-        print("INTERACTIVEWINDOWQML SOURCE CHANGED");
         if (dynamicContent) {
             dynamicContent.destroy();
             dynamicContent = null;
@@ -66,22 +65,28 @@ Windows.Window {
             }
         });
     }
+    
+    Timer {
+        id: timer
+    }
+    
+    function delay(delayTimeMS, delayFunction) {
+        timer.interval = delayTimeMS;
+        timer.repeat = true;
+        timer.triggered.connect(delayFunction);
+        timer.start();
+    }
 
     function updateInteractiveWindowPositionForMode() {
-        print("INTERACTIVEWINDOWQML UPDATING WINDOW POSITION FOR MODE: PRESENTATION MODE IS ", presentationMode);
         if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
-            print("INTERACTIVEWINDOWQML PRESENTATION MODE IS VIRTUAL");
             x = interactiveWindowPosition.x;
             y = interactiveWindowPosition.y;
         } else if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
-            print("INTERACTIVEWINDOWQML PRESENTATION MODE IS NATIVE");
             if (interactiveWindowPosition.x === 0 && interactiveWindowPosition.y === 0) {
-                print("INTERACTIVEWINDOWQML NATIVE WINDOW IS AT x:0 AND y:0. CALCULATING NEW POSITION.");
                 // default position for native window in center of main application window
                 nativeWindow.x = Math.floor(Window.x + (Window.innerWidth / 2) - (interactiveWindowSize.width / 2));
                 nativeWindow.y = Math.floor(Window.y + (Window.innerHeight / 2) - (interactiveWindowSize.height / 2));
             } else {
-                print("INTERACTIVEWINDOWQML NATIVE WINDOW IS NOT AT x:0 AND y:0. MOVING TO POSITION OF INTERACTIVE WINDOW");
                 nativeWindow.x = interactiveWindowPosition.x;
                 nativeWindow.y = interactiveWindowPosition.y;
             }
@@ -89,60 +94,54 @@ Windows.Window {
     }
 
     function updateInteractiveWindowSizeForMode() {
-        print("INTERACTIVEWINDOWQML UPDATING SIZE FOR MODE. SETTING ROOT AND CONTENT HOLDER WIDTH AND HEIGHT TO MATCH INTERACTIVE WINDOW.");
         root.width = interactiveWindowSize.width;
         root.height = interactiveWindowSize.height;
         contentHolder.width = interactiveWindowSize.width;
         contentHolder.height = interactiveWindowSize.height;
 
         if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
-            print("INTERACTIVEWINDOWQML PRESENTATION MODE IS NATIVE SO ALSO SETTING NATIVE WINDOW WIDTH AND HEIGHT TO MATCH INTERACTIVE WINDOW.");
             nativeWindow.width = interactiveWindowSize.width;
             nativeWindow.height = interactiveWindowSize.height;
         }
     }
 
     function updateContentParent() {
-        print("INTERACTIVEWINDOWQML UPDATE CONTENT PARENT");
         if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
-            print("INTERACTIVEWINDOWQML PRESENTATION MODE IS VIRTUAL");
             contentHolder.parent = root;
+            print("INTERACTIVEWINDOWQML CHANGED CONTENT PARENT TO ROOT. CONTENT HOLDER PARENT IS ", contentHolder.parent);
         } else if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
-            print("INTERACTIVEWINDOWQML PRESENTATION MODE IS NATIVE");
             contentHolder.parent = nativeWindow.contentItem;
+            print("INTERACTIVEWINDOWQML CHANGED CONTENT PARENT TO NATIVE WINDOW CONTENTITEM: ", nativeWindow.contentItem, ". CONTENT HOLDER PARENT IS ", contentHolder.parent);
+        } else if (!nativeWindow) {
+            print("INTERACTIVEWINDOWQML COULD NOT CHANGE CONTENT PARENT. NO NATIVE WINDOW.");
+        } else {
+            print("INTERACTIVEWINDOWQML COULD OT CHANGE CONTENT PARENT BUT HAVE A NATIVE WINDOW");
         }
     }
 
     function setupPresentationMode() {
-        print("INTERACTIVEWINDOWQML SET UP PRESENTATION MODE");
         if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
-            print("INTERACTIVEWINDOWQML PRESENTATION MODE IS VIRTUAL. UPDATING CONTENT PARENT, UPDATING INTERACTIVE WINDOW POSITION FOR MODE, AND SETTING VIRTUAL WINDOW VISIBILITY TO MATCH INTERACTIVE WINDOW VISIBILITY.");
             if (nativeWindow) {
-                print("INTERACTIVEWINDOWQML SETTING NATIVE WINDOW TO NOT VISIBLE");
                 nativeWindow.setVisible(false);
             }
-            updateContentParent();
             updateInteractiveWindowPositionForMode();
             shown = interactiveWindowVisible;
         } else if (presentationMode === Desktop.PresentationMode.NATIVE) {
-            print("INTERACTIVEWINDOWQML PRESENTATION MODE IS NATIVE");
             shown = false;
             if (nativeWindow) {
-                print("INTERACTIVEWINDOWQML NATIVE EXISTS. UPDATING CONTENT PARENT, UPDATING INTERACTIVE WINDOW POSITION FOR MODE, AND SETTING NATIVE WINDOW VISIBILITY TO MATCH INTERACTIVE WINDOW VISIBILITY.");
-                updateContentParent();
+                print("INTERACTIVEWINDOWQML SET UP PRES MODE FOUND NATIVE WINDOW");
                 updateInteractiveWindowPositionForMode();
                 nativeWindow.setVisible(interactiveWindowVisible);
+            } else {
+                print("INTERACTIVEWINDOWQML SET UP PRES MODE DID NOT FIND NATIVE WINDOW");
             }
         } else if (presentationMode === modeNotSet) {
-            console.error("presentationMode should be set.");
+            console.error("presentationMode should be set");
         }
     }
 
     Component.onCompleted: {
-        print("INTERACTIVEWINDOWQML ONROOTCOMPLETED FIX FOR OSX PARENT LOSS!!!!! CONNECTING SIGNALS TO UPDATE CONTENT PARENT WHEN PARENT HEIGHT OR WIDTH CHANGES. SETTING X,Y,WIDTH, AND HEIGHT TO MATCH INTERACTIVE WINDOW. CREATING NATIVE WINDOW. NATIVE WINDOW IS ALWAYS ON TOP FOR NON-WINDOWS.");
-        // Fix for parent loss on OSX:
-        parent.heightChanged.connect(updateContentParent);
-        parent.widthChanged.connect(updateContentParent);
+        print("INTERACTIVEWINDOWQML ONROOTCOMPLETED COMPLETED. ID IS ", this, " . CONTENT HOLDER PARENT IS ", contentHolder.parent);
 
         x = interactiveWindowPosition.x;
         y = interactiveWindowPosition.y;
@@ -158,25 +157,13 @@ Windows.Window {
                 width: interactiveWindowSize.width
                 height: interactiveWindowSize.height
                 Component.onCompleted: {
-                    print("INTERACTIVEWINDOWQML NATIVE WINDOW COMPLETED");
+                    // calling setupPresentationMode from here does not work because the fn will not find the native window
+                    print("INTERACTIVEWINDOWQML NATIVE WINDOW COMPLETED. ID IS ", this, " CONTENT HOLDER PARENT IS ", contentHolder.parent);
                 }
 
                 Rectangle {
                     color: hifi.colors.baseGray
                     anchors.fill: parent
-                    
-                    MouseArea {
-                        id: helpButtonMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onEntered: {
-                            Tablet.playSound(TabletEnums.ButtonHover);
-                        }
-                        onClicked: {
-                            nativeWindow.x = 0;
-                            nativeWindow.y = 0;
-                        }
-                    }
                 }
             }', root, 'InteractiveWindow.qml->nativeWindow');
         nativeWindow.title = root.title;
@@ -200,48 +187,38 @@ Windows.Window {
 
         nativeWindow.xChanged.connect(function() {
             if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow.visible) {
-                print("NATIVE WINDOW X CHANGED SIGNAL. THE WINDOW WAS NATIVE AND VISIBLE");
                 interactiveWindowPosition = Qt.point(nativeWindow.x, interactiveWindowPosition.y);
             }
         });
         
         nativeWindow.yChanged.connect(function() {
-            
             if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow.visible) {
-                print("NATIVE WINDOW Y CHANGED SIGNAL. THE WINDOW WAS NATIVE AND VISIBLE");
                 interactiveWindowPosition = Qt.point(interactiveWindowPosition.x, nativeWindow.y);
             }
         });
 
         nativeWindow.widthChanged.connect(function() {
             if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow.visible) {
-                print("NATIVE WINDOW WIDTH CHANGED SIGNAL. THE WINDOW WAS NATIVE AND VISIBLE");
                 interactiveWindowSize = Qt.size(nativeWindow.width, interactiveWindowSize.height);
             }
         });
         
         nativeWindow.heightChanged.connect(function() {
             if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow.visible) {
-                print("NATIVE WINDOW HEIGHT CHANGED SIGNAL. THE WINDOW WAS NATIVE AND VISIBLE");
                 interactiveWindowSize = Qt.size(interactiveWindowSize.width, nativeWindow.height);
             }
         });
 
         nativeWindow.closing.connect(function(closeEvent) {
-            print("NATIVE WINDOW CLOSING SIGNAL.");
             closeEvent.accepted = false;
             windowClosed();
         });
-
+        
         // finally set the initial window mode:
         setupPresentationMode();
-
+        updateContentParent();
+//TODO move this to wherever initialization is actually completed
         initialized = true;
-    }
-
-    Component.onDestruction: {
-        parent.heightChanged.disconnect(updateContentParent);
-        parent.widthChanged.disconnect(updateContentParent);
     }
 
     // Handle message traffic from the script that launched us to the loaded QML
@@ -273,8 +250,8 @@ Windows.Window {
         interactiveWindowSize.width = newWidth;
         updateInteractiveWindowSizeForMode();
     }
-    function onRequestNewHeight(newWidth) {
-        interactiveWindowSize.width = newWidth;
+    function onRequestNewHeight(newHeight) {
+        interactiveWindowSize.height = newHeight;
         updateInteractiveWindowSizeForMode();
     }
     
@@ -330,10 +307,7 @@ Windows.Window {
 
     onYChanged: {
         if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
-            print("VIRTUAL WINDOW Y CHANGE");
             interactiveWindowPosition = Qt.point(interactiveWindowPosition.x, y);
-        } else {
-            print("NATIVE WINDOW Y CHANGE");
         }
     }
 
@@ -352,6 +326,7 @@ Windows.Window {
     onPresentationModeChanged: {
         if (initialized) {
             setupPresentationMode();
+            updateContentParent();
         }
     }
 
@@ -367,5 +342,11 @@ Windows.Window {
     Item {
         id: contentHolder
         anchors.fill: parent
+        Component.onCompleted: {
+            print("INTERACTIVEWINDOWQML CONTENTHOLDER COMPLETED. ID IS ", contentHolder, " . CONTENT HOLDER PARENT IS ", contentHolder.parent);
+        }
+        onParentChanged: {
+            print("INTERACTIVEWINDOWQML NATIVE WINDOW PARENT CHANGED. CONTENT HOLDER PARENT IS ", contentHolder.parent);
+        }
     }
 }
