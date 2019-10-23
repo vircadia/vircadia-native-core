@@ -39,9 +39,6 @@ Rectangle {
     readonly property string emoteIconSource: "images/emote_Icon.svg"
     property bool allowEmoteDrawerExpansion: Settings.getValue("simplifiedUI/allowEmoteDrawerExpansion", true)
 
-    Component.onCompleted: {
-        print("EMOTE APP BAR ROOT WINDOW HAS COMPLETED LOADING");
-    }
 
     onRequestedWidthChanged: {
         root.requestNewWidth(root.requestedWidth);

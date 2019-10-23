@@ -380,7 +380,6 @@ function onMessageFromEmoteAppBar(message) {
     if (message.source !== EMOTE_APP_BAR_MESSAGE_SOURCE) {
         return;
     }
-    print("EMOTE WINDOW MESSAGE");
     switch (message.method) {
         case "positive":
             if (!message.data.isPressingAndHolding) {
@@ -522,11 +521,9 @@ var EMOTE_APP_BAR_WINDOW_FLAGS = 0x00000001 | // Qt::Window
 var emoteAppBarWindow = false;
 function showEmoteAppBar() {
     if (emoteAppBarWindow) {
-        print("EMOTE APP BAR WINDOW ALREADY EXISTS. DO NOT SHOW AGAIN.");
         return;
     }
 
-    print("CREATE EMOTE WINDOW");
     emoteAppBarWindow = Desktop.createWindow(EMOTE_APP_BAR_QML_PATH, {
         title: EMOTE_APP_BAR_WINDOW_TITLE,
         presentationMode: EMOTE_APP_BAR_PRESENTATION_MODE,
@@ -542,7 +539,6 @@ function showEmoteAppBar() {
         overrideFlags: EMOTE_APP_BAR_WINDOW_FLAGS
     });
 
-    print("EMOTE APP BAR WINDOW CREATED: ", emoteAppBarWindow);
     emoteAppBarWindow.fromQml.connect(onMessageFromEmoteAppBar);
 }
 
@@ -552,7 +548,6 @@ function showEmoteAppBar() {
 // We should add that functionality to the Window Scripting Interface, and remove `isWindowMinimized` below.
 var isWindowMinimized = false;
 function maybeChangeEmoteIndicatorVisibility(desiredVisibility) {
-    print("MAYBE CHANGE EMOTE WINDOW VISIBILITY ", desiredVisibility);
     if (isWindowMinimized || HMD.active) {
         desiredVisibility = false;
     }
@@ -587,7 +582,6 @@ var emojiCodeMap;
 var customEmojiCodeMap;
 var _this;
 function setup() {
-    print("STARTING EMOTE SCRIPT");
     deleteOldReticles();
 
     // make a map of just the utf codes to help with accesing

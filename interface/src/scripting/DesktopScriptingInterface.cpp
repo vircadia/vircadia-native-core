@@ -133,7 +133,6 @@ void DesktopScriptingInterface::show(const QString& path, const QString&  title)
 }
 
 InteractiveWindowPointer DesktopScriptingInterface::createWindow(const QString& sourceUrl, const QVariantMap& properties) {
-    qDebug() << "CREATING WINDOW WITH URL " << sourceUrl << " AND PROPERTIES " << properties;
     if (QThread::currentThread() != thread()) {
         InteractiveWindowPointer interactiveWindow = nullptr;
         BLOCKING_INVOKE_METHOD(this, "createWindowOnThread",
@@ -141,8 +140,7 @@ InteractiveWindowPointer DesktopScriptingInterface::createWindow(const QString& 
             Q_ARG(QString, sourceUrl),
             Q_ARG(QVariantMap, properties),
             Q_ARG(QThread*, QThread::currentThread()));
-        qDebug() << "RETURNING INTERACTIVE WINDOW " << interactiveWindow;
-        return interactiveWindow; 
+        return interactiveWindow;
     }
 
 
@@ -163,10 +161,8 @@ InteractiveWindowPointer DesktopScriptingInterface::createWindowOnThread(const Q
     // that the source URL is permitted
     const auto& urlValidator = OffscreenQmlSurface::getUrlValidator();
     if (!urlValidator(sourceUrl)) {
-        qDebug("INTERACTIVE WINDOW SOURCE URL WAS NOT VALID");
         return nullptr;
     }
-    qDebug() << "WINDOW SOURCE URL: " << sourceUrl;
     InteractiveWindowPointer window = new InteractiveWindow(sourceUrl, properties, _restricted);
     window->moveToThread(targetThread);
     return window;

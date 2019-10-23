@@ -72,7 +72,7 @@ Windows.Window {
     
     function delay(delayTimeMS, delayFunction) {
         timer.interval = delayTimeMS;
-        timer.repeat = true;
+        timer.repeat = false;
         timer.triggered.connect(delayFunction);
         timer.start();
     }
@@ -108,14 +108,8 @@ Windows.Window {
     function updateContentParent() {
         if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
             contentHolder.parent = root;
-            print("INTERACTIVEWINDOWQML CHANGED CONTENT PARENT TO ROOT. CONTENT HOLDER PARENT IS ", contentHolder.parent);
         } else if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
             contentHolder.parent = nativeWindow.contentItem;
-            print("INTERACTIVEWINDOWQML CHANGED CONTENT PARENT TO NATIVE WINDOW CONTENTITEM: ", nativeWindow.contentItem, ". CONTENT HOLDER PARENT IS ", contentHolder.parent);
-        } else if (!nativeWindow) {
-            print("INTERACTIVEWINDOWQML COULD NOT CHANGE CONTENT PARENT. NO NATIVE WINDOW.");
-        } else {
-            print("INTERACTIVEWINDOWQML COULD OT CHANGE CONTENT PARENT BUT HAVE A NATIVE WINDOW");
         }
     }
 
@@ -129,20 +123,16 @@ Windows.Window {
         } else if (presentationMode === Desktop.PresentationMode.NATIVE) {
             shown = false;
             if (nativeWindow) {
-                print("INTERACTIVEWINDOWQML SET UP PRES MODE FOUND NATIVE WINDOW");
                 updateInteractiveWindowPositionForMode();
                 nativeWindow.setVisible(interactiveWindowVisible);
-            } else {
-                print("INTERACTIVEWINDOWQML SET UP PRES MODE DID NOT FIND NATIVE WINDOW");
             }
         } else if (presentationMode === modeNotSet) {
-            console.error("presentationMode should be set");
+            console.error("presentationMode should be set.");
         }
     }
 
     Component.onCompleted: {
-        print("INTERACTIVEWINDOWQML ONROOTCOMPLETED COMPLETED. ID IS ", this, " . CONTENT HOLDER PARENT IS ", contentHolder.parent);
-
+        
         x = interactiveWindowPosition.x;
         y = interactiveWindowPosition.y;
         width = interactiveWindowSize.width;
@@ -157,8 +147,9 @@ Windows.Window {
                 width: interactiveWindowSize.width
                 height: interactiveWindowSize.height
                 Component.onCompleted: {
-                    // calling setupPresentationMode from here does not work because the fn will not find the native window
-                    print("INTERACTIVEWINDOWQML NATIVE WINDOW COMPLETED. ID IS ", this, " CONTENT HOLDER PARENT IS ", contentHolder.parent);
+                    delay(500, function() {
+                        updateContentParent();
+                    });
                 }
 
                 Rectangle {
@@ -213,11 +204,10 @@ Windows.Window {
             closeEvent.accepted = false;
             windowClosed();
         });
-        
+
         // finally set the initial window mode:
         setupPresentationMode();
-        updateContentParent();
-//TODO move this to wherever initialization is actually completed
+
         initialized = true;
     }
 
@@ -342,11 +332,5 @@ Windows.Window {
     Item {
         id: contentHolder
         anchors.fill: parent
-        Component.onCompleted: {
-            print("INTERACTIVEWINDOWQML CONTENTHOLDER COMPLETED. ID IS ", contentHolder, " . CONTENT HOLDER PARENT IS ", contentHolder.parent);
-        }
-        onParentChanged: {
-            print("INTERACTIVEWINDOWQML NATIVE WINDOW PARENT CHANGED. CONTENT HOLDER PARENT IS ", contentHolder.parent);
-        }
     }
 }
