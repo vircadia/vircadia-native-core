@@ -1817,7 +1817,7 @@ bool AudioClient::switchInputToAudioDevice(const HifiAudioDeviceInfo inputDevice
     Q_ASSERT_X(QThread::currentThread() == thread(), Q_FUNC_INFO, "Function invoked on wrong thread");
 
     qCDebug(audioclient) << __FUNCTION__ << "_inputDeviceInfo: [" << _inputDeviceInfo.deviceName() << ":" << _inputDeviceInfo.getDevice().deviceName() 
-        << "-- inputDeviceInfo: " << inputDeviceInfo.deviceName() << ":" << inputDeviceInfo.getDevice().deviceName() << "]";
+        << "-- inputDeviceInfo:" << inputDeviceInfo.deviceName() << ":" << inputDeviceInfo.getDevice().deviceName() << "]";
     bool supportedFormat = false;
 
     // NOTE: device start() uses the Qt internal device list
@@ -1869,7 +1869,7 @@ bool AudioClient::switchInputToAudioDevice(const HifiAudioDeviceInfo inputDevice
     }
 
     if (!inputDeviceInfo.getDevice().isNull()) {
-        qCDebug(audioclient) << "The audio input device " << inputDeviceInfo.deviceName() << ":" << inputDeviceInfo.getDevice().deviceName() << " is available.";
+        qCDebug(audioclient) << "The audio input device" << inputDeviceInfo.deviceName() << ":" << inputDeviceInfo.getDevice().deviceName() << "is available.";
       
         //do not update UI that we're changing devices if default or same device
         bool doEmit = _inputDeviceInfo.deviceName() != inputDeviceInfo.deviceName();
@@ -2055,7 +2055,7 @@ bool AudioClient::switchOutputToAudioDevice(const HifiAudioDeviceInfo outputDevi
     Q_ASSERT_X(QThread::currentThread() == thread(), Q_FUNC_INFO, "Function invoked on wrong thread");
     
     qCDebug(audioclient) << __FUNCTION__ << "_outputdeviceInfo: [" << _outputDeviceInfo.deviceName() << ":" << _outputDeviceInfo.getDevice().deviceName()
-        << "-- outputDeviceInfo: " << outputDeviceInfo.deviceName() << ":" << outputDeviceInfo.getDevice().deviceName() << "]";
+        << "-- outputDeviceInfo:" << outputDeviceInfo.deviceName() << ":" << outputDeviceInfo.getDevice().deviceName() << "]";
     bool supportedFormat = false;
 
     // NOTE: device start() uses the Qt internal device list
@@ -2111,7 +2111,7 @@ bool AudioClient::switchOutputToAudioDevice(const HifiAudioDeviceInfo outputDevi
     }
 
     if (!outputDeviceInfo.getDevice().isNull()) {
-        qCDebug(audioclient) << "The audio output device " << outputDeviceInfo.deviceName() << ":" << outputDeviceInfo.getDevice().deviceName() << " is available.";
+        qCDebug(audioclient) << "The audio output device" << outputDeviceInfo.deviceName() << ":" << outputDeviceInfo.getDevice().deviceName() << "is available.";
         
         //do not update UI that we're changing devices if default or same device
         bool doEmit = _outputDeviceInfo.deviceName() != outputDeviceInfo.deviceName();
