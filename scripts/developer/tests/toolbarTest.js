@@ -1,117 +1,38 @@
-var isActive = false;
+(function () {
 
-var toolBar = (function() {
-    var that = {},
-        toolBar,
-        activeButton,
-        newModelButton,
-        newShapeButton,
-        newLightButton,
-        newTextButton,
-        newWebButton,
-        newZoneButton,
-        newParticleButton,
-        newMaterialButton
-
-    var toolIconUrl = Script.resolvePath("../../system/assets/images/tools/");
-
-    function initialize() {
-        print("Toolbars: " + Toolbars);
-        toolBar = Toolbars.getToolbar("highfidelity.edit.toolbar");
-        print("Toolbar: " + toolBar);
-        activeButton = toolBar.addButton({
-            objectName: "activeButton",
-            imageURL: toolIconUrl + "edit-01.svg",
-            visible: true,
-            alpha: 0.9,
-        });
-
-        print("Button " + activeButton);
-        print("Button signal " + activeButton.clicked);
-        activeButton.clicked.connect(function(){
-            print("Clicked on button " + isActive);
-            that.setActive(!isActive);
-        });
-
-        newModelButton = toolBar.addButton({
-            objectName: "newModelButton",
-            imageURL: toolIconUrl + "model-01.svg",
-            alpha: 0.9,
-            visible: false
-        });
-
-        newShapeButton = toolBar.addButton({
-            objectName: "newShapeButton",
-            imageURL: toolIconUrl + "cube-01.svg",
-            alpha: 0.9,
-            visible: false
-        });
-
-        newLightButton = toolBar.addButton({
-            objectName: "newLightButton",
-            imageURL: toolIconUrl + "light-01.svg",
-            alpha: 0.9,
-            visible: false
-        });
-
-        newTextButton = toolBar.addButton({
-            objectName: "newTextButton",
-            imageURL: toolIconUrl + "text-01.svg",
-            alpha: 0.9,
-            visible: false
-        });
-
-        newWebButton = toolBar.addButton({
-            objectName: "newWebButton",
-            imageURL: toolIconUrl + "web-01.svg",
-            alpha: 0.9,
-            visible: false
-        });
-
-        newZoneButton = toolBar.addButton({
-            objectName: "newZoneButton",
-            imageURL: toolIconUrl + "zone-01.svg",
-            alpha: 0.9,
-            visible: false
-        });
-
-        newParticleButton = toolBar.addButton({
-            objectName: "newParticleButton",
-            imageURL: toolIconUrl + "particle-01.svg",
-            alpha: 0.9,
-            visible: false
-        });
-
-        newMaterialButton = toolBar.addButton({
-            objectName: "newMaterialButton",
-            imageURL: toolIconUrl + "material-01.svg",
-            alpha: 0.9,
-            visible: false
-        });
-
-        that.setActive(false);
-        newModelButton.clicked();
+    // Get the system toolbar.
+    var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+    if (!toolbar) {
+        print("ERROR: Couldn't get system toolbar.");
+        return;
     }
 
-    that.setActive = function(active) {
-        if (active != isActive) {
-            isActive = active;
-            that.showTools(isActive);
-        }
-    };
+    Script.setTimeout(function () {
+        // Report the system toolbar visibility.
+        var isToolbarVisible = toolbar.readProperty("visible");
+        print("Toolbar visible: " + isToolbarVisible);
 
-    // Sets visibility of tool buttons, excluding the power button
-    that.showTools = function(doShow) {
-        newModelButton.writeProperty('visible', doShow);
-        newShapeButton.writeProperty('visible', doShow);
-        newLightButton.writeProperty('visible', doShow);
-        newTextButton.writeProperty('visible', doShow);
-        newWebButton.writeProperty('visible', doShow);
-        newZoneButton.writeProperty('visible', doShow);
-        newParticleButton.writeProperty('visible', doShow);
-        newMaterialButton.writeProperty('visible', doShow);
-    };
+        // Briefly toggle the system toolbar visibility.
+        print("Toggle toolbar");
+        toolbar.writeProperty("visible", !isToolbarVisible);
+        Script.setTimeout(function () {
+            print("Toggle toolbar");
+            toolbar.writeProperty("visible", isToolbarVisible);
+        }, 2000);
+    }, 2000);
 
-    initialize();
-    return that;
+    Script.setTimeout(function () {
+        // Report the system toolbar visibility alternative method.
+        isToolbarVisible = toolbar.readProperties(["visible"]).visible;
+        print("Toolbar visible: " + isToolbarVisible);
+
+        // Briefly toggle the system toolbar visibility.
+        print("Toggle toolbar");
+        toolbar.writeProperties({ visible: !isToolbarVisible });
+        Script.setTimeout(function () {
+            print("Toggle toolbar");
+            toolbar.writeProperties({ visible: isToolbarVisible });
+        }, 2000);
+    }, 6000);
+
 }());

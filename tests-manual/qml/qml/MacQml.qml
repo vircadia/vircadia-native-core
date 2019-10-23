@@ -61,17 +61,21 @@ Item {
     Rectangle {
         width: 5
         height: 5
-        color: "red"
-        ColorAnimation on color { loops: Animation.Infinite; from: "red"; to: "yellow"; duration: 1000 }
+        color: "blue"
+        ColorAnimation on color { loops: Animation.Infinite; from: "blue"; to: "yellow"; duration: 1000 }
     }
-
 
     WebEngineView {
         id: root
-        url: "https://google.com/"
-        x: 6; y: 6;
-        width: parent.width * 0.8
-        height: parent.height * 0.8
+        url: "https://www.webrtc-experiment.com/Pluginfree-Screen-Sharing/#19583796789766627"
+//        url: "https://vimeo.com/108650530"
+//        url: "https://www.youtube.com/watch?v=7EWQOeQf32U&autoplay=1&loop=1"
+//        x: 6; y: 6;
+        anchors.fill: parent
+//        width: parent.width * 0.8
+//        height: parent.height * 0.8
 
     }
+
+
 }

@@ -152,7 +152,7 @@ static int triggerReactionNameToIndex(const QString& reactionName) {
 }
 
 static int beginEndReactionNameToIndex(const QString& reactionName) {
-    assert(NUM_AVATAR_BEGIN_END_REACTIONS == TRIGGER_REACTION_NAMES.size());
+    assert(NUM_AVATAR_BEGIN_END_REACTIONS == BEGIN_END_REACTION_NAMES.size());
     return BEGIN_END_REACTION_NAMES.indexOf(reactionName);
 }
 
@@ -958,7 +958,8 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         head->setScale(getModelScale());
         head->simulate(deltaTime);
         CameraMode mode = qApp->getCamera().getMode();
-        if (_scriptControlsHeadLookAt || mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
+        if (_scriptControlsHeadLookAt || mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT || mode == CAMERA_MODE_FIRST_PERSON ||
+                                         mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
             if (!_pointAtActive || !_isPointTargetValid) {
                 updateHeadLookAt(deltaTime);
             } else {
@@ -2178,7 +2179,7 @@ void MyAvatar::computeMyLookAtTarget(const AvatarHash& hash) {
     glm::vec3 myForward = _lookAtYaw * IDENTITY_FORWARD;
     glm::vec3 myPosition = getHead()->getEyePosition();
     CameraMode mode = qApp->getCamera().getMode();
-    if (mode == CAMERA_MODE_FIRST_PERSON) {
+    if (mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT || mode == CAMERA_MODE_FIRST_PERSON) {
         myPosition = qApp->getCamera().getPosition();
     }
 
@@ -2719,7 +2720,7 @@ void MyAvatar::updateMotors() {
         if (_characterController.getState() == CharacterController::State::Hover ||
                 _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
             CameraMode mode = qApp->getCamera().getMode();
-            if (mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
+            if (!qApp->isHMDMode() && (mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE)) {
                 motorRotation = getLookAtRotation();
             } else {
                 motorRotation = getMyHead()->getHeadOrientation();
@@ -3399,7 +3400,8 @@ bool MyAvatar::cameraInsideHead(const glm::vec3& cameraPosition) const {
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     bool defaultMode = renderArgs->_renderMode == RenderArgs::DEFAULT_RENDER_MODE;
-    bool firstPerson = qApp->getCamera().getMode() == CAMERA_MODE_FIRST_PERSON;
+    bool firstPerson = qApp->getCamera().getMode() == CAMERA_MODE_FIRST_PERSON_LOOK_AT ||
+                       qApp->getCamera().getMode() == CAMERA_MODE_FIRST_PERSON;
     bool overrideAnim = _skeletonModel ? _skeletonModel->getRig().isPlayingOverrideAnimation() : false;
     bool insideHead = cameraInsideHead(renderArgs->getViewFrustum().getPosition());
     return !defaultMode || (!firstPerson && !insideHead) || (overrideAnim && !insideHead);
@@ -3444,8 +3446,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
     float targetSpeed = getDriveKey(YAW) * _yawSpeed;
     CameraMode mode = qApp->getCamera().getMode();
     bool computeLookAt = isReadyForPhysics() && !qApp->isHMDMode() && 
-                        (mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE);
-    bool smoothCameraYaw = computeLookAt && mode != CAMERA_MODE_FIRST_PERSON;
+                        (mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE);
+    bool smoothCameraYaw = computeLookAt && mode != CAMERA_MODE_FIRST_PERSON_LOOK_AT;
     if (smoothCameraYaw) {
         // For "Look At" and "Selfie" camera modes we also smooth the yaw rotation from right-click mouse movement.
         float speedFromDeltaYaw = deltaTime > FLT_EPSILON ? getDriveKey(DELTA_YAW) / deltaTime : 0.0f;
@@ -3569,11 +3571,11 @@ void MyAvatar::updateOrientation(float deltaTime) {
             if (isMovingFwdBwd) {
                 if (isMovingSideways) {
                     // Reorient avatar to face camera diagonal
-                    blend = mode == CAMERA_MODE_FIRST_PERSON ? 1.0f : DIAGONAL_TURN_BLEND;
+                    blend = mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT ? 1.0f : DIAGONAL_TURN_BLEND;
                     float turnSign = getDriveKey(TRANSLATE_Z) < 0.0f ? -1.0f : 1.0f;
                     turnSign = getDriveKey(TRANSLATE_X) > 0.0f ? -turnSign : turnSign;
                     faceRotation = _lookAtYaw * glm::angleAxis(turnSign * 0.25f * PI, Vectors::UP);
-                } else if (mode == CAMERA_MODE_FIRST_PERSON) {
+                } else if (mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT) {
                     blend = 1.0f;
                 }
             }
@@ -3644,11 +3646,11 @@ void MyAvatar::updateOrientation(float deltaTime) {
         glm::vec3 ajustedYawVector = cameraYawVector;
         float limitAngle = 0.0f;
         float triggerAngle = -glm::sin(glm::radians(TRIGGER_REORIENT_ANGLE));
-        if (mode == CAMERA_MODE_FIRST_PERSON) {
+        if (mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT) {
             limitAngle = glm::sin(glm::radians(90.0f - FIRST_PERSON_TRIGGER_REORIENT_ANGLE));
             triggerAngle = limitAngle;
         }
-        float reorientAngle = mode == CAMERA_MODE_FIRST_PERSON ? FIRST_PERSON_REORIENT_ANGLE : DEFAULT_REORIENT_ANGLE;
+        float reorientAngle = mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT ? FIRST_PERSON_REORIENT_ANGLE : DEFAULT_REORIENT_ANGLE;
         if (frontBackDot < limitAngle) {
             if (frontBackDot < 0.0f) {
                 ajustedYawVector = (leftRightDot < 0.0f ? -avatarVectorRight : avatarVectorRight);
@@ -3684,7 +3686,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         }
         _headLookAtActive = true;
         const float FIRST_PERSON_RECENTER_SECONDS = 15.0f;
-        if (mode == CAMERA_MODE_FIRST_PERSON) {
+        if (mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT) {
             if (getDriveKey(YAW) + getDriveKey(STEP_YAW) + getDriveKey(DELTA_YAW) == 0.0f) {
                 if (_firstPersonSteadyHeadTimer < FIRST_PERSON_RECENTER_SECONDS) {
                     if (_firstPersonSteadyHeadTimer > 0.0f) {
@@ -3772,7 +3774,7 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
         // Desktop mode.
         direction = (zSpeed * forward) + (xSpeed * right);
         CameraMode mode = qApp->getCamera().getMode();
-        if ((mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_SELFIE) && 
+        if ((mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT || mode == CAMERA_MODE_SELFIE) &&
             zSpeed != 0.0f && xSpeed != 0.0f && !isFlying()){
             direction = (zSpeed * forward);
         }
@@ -5437,7 +5439,7 @@ glm::quat MyAvatar::getOrientationForAudio() {
         case AudioListenerMode::FROM_HEAD: {
             // Using the camera's orientation instead, when the current mode is controlling the avatar's head.
             CameraMode mode = qApp->getCamera().getMode();
-            bool headFollowsCamera = mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE;
+            bool headFollowsCamera = mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE;
             result = headFollowsCamera ? qApp->getCamera().getOrientation() : getHead()->getFinalOrientationInWorldFrame();
             break;
         }
@@ -6810,6 +6812,66 @@ glm::vec3 MyAvatar::getLookAtPivotPoint() {
     glm::vec3 avatarUp = getWorldOrientation() * Vectors::UP;
     glm::vec3 yAxisEyePosition = getWorldPosition() + avatarUp * glm::dot(avatarUp, _skeletonModel->getDefaultEyeModelPosition());
     return yAxisEyePosition;
+}
+
+glm::vec3 MyAvatar::getCameraEyesPosition(float deltaTime) {
+    glm::vec3 defaultEyesPosition = getLookAtPivotPoint();
+    if (isFlying()) {
+        return defaultEyesPosition;
+    }
+    glm::vec3 avatarFrontVector = getWorldOrientation() * Vectors::FRONT;
+    glm::vec3 avatarUpVector = getWorldOrientation() * Vectors::UP;
+    // Compute the offset between the default and real eye positions.
+    glm::vec3 defaultEyesToEyesVector = getHead()->getEyePosition() - defaultEyesPosition;
+    float FRONT_OFFSET_IDLE_MULTIPLIER = 2.5f;
+    float FRONT_OFFSET_JUMP_MULTIPLIER = 1.5f;
+    float frontOffset = FRONT_OFFSET_IDLE_MULTIPLIER * glm::length(defaultEyesPosition - getDefaultEyePosition());
+    
+    // Looking down will aproximate move the camera forward to meet the real eye position
+    float mixAlpha = glm::dot(_lookAtPitch * Vectors::FRONT, -avatarUpVector);
+    bool isLanding = false;
+    // When jumping the camera should follow the real eye on the Y coordenate
+    float upOffset = 0.0f;
+    if (isJumping() || _characterController.getState() == CharacterController::State::Takeoff) {
+        upOffset = glm::dot(defaultEyesToEyesVector, avatarUpVector);
+        frontOffset = glm::dot(defaultEyesToEyesVector, avatarFrontVector) * FRONT_OFFSET_JUMP_MULTIPLIER;
+        mixAlpha = 1.0f;
+        _landingAfterJumpTime = 0.0f;
+    } else {
+        // Limit the range effect from 45 to 0 degrees
+        // between the front camera and the down vectors
+        const float HEAD_OFFSET_RANGE_IN_DEGREES = 45.0f;
+        const float HEAD_OFFSET_RANGE_OUT_DEGREES = 0.0f;
+        float rangeIn = glm::cos(glm::radians(HEAD_OFFSET_RANGE_IN_DEGREES));
+        float rangeOut = glm::cos(glm::radians(HEAD_OFFSET_RANGE_OUT_DEGREES));
+        mixAlpha = mixAlpha < rangeIn ? 0.0f : (mixAlpha - rangeIn) / (rangeOut - rangeIn);
+        const float WAIT_TO_LAND_TIME = 1.0f;
+        if (_landingAfterJumpTime < WAIT_TO_LAND_TIME) {
+            _landingAfterJumpTime += deltaTime;
+            isLanding = true;
+        }
+    }
+    const float FPS = 60.0f;
+    float timeScale = deltaTime * FPS;
+    frontOffset = frontOffset < 0.0f ? 0.0f : mixAlpha * frontOffset;
+    glm::vec3 cameraOffset = upOffset * Vectors::UP + frontOffset * Vectors::FRONT;
+    const float JUMPING_TAU = 0.1f;
+    const float NO_JUMP_TAU = 0.3f;
+    const float LANDING_TAU = 0.05f;
+    float tau = NO_JUMP_TAU;
+    if (isJumping()) {
+        tau = JUMPING_TAU;
+    } else if (isLanding) {
+        tau = LANDING_TAU;
+    }
+    _cameraEyesOffset = _cameraEyesOffset + (cameraOffset - _cameraEyesOffset) * min(1.0f, tau * timeScale);
+    glm::vec3 estimatedCameraPosition = defaultEyesPosition + getWorldOrientation() * _cameraEyesOffset;
+    return estimatedCameraPosition;
+}
+
+bool MyAvatar::isJumping() {
+    return (_characterController.getState() == CharacterController::State::InAir ||
+            _characterController.getState() == CharacterController::State::Takeoff) && !isFlying();
 }
 
 bool MyAvatar::setPointAt(const glm::vec3& pointAtTarget) {

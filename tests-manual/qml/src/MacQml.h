@@ -9,7 +9,7 @@ public:
     QmlPtr _surface;
     GLuint _fbo{ 0 };
 
-    MacQml(const QWindow* window) : Parent(window) {}
+    MacQml(QWindow* window) : Parent(window) {}
     void update() override;
     void init() override;
     void draw() override;

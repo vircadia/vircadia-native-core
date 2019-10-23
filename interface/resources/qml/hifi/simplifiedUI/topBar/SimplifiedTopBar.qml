@@ -54,8 +54,8 @@ Rectangle {
 
             if ((MyAvatar.skeletonModelURL.indexOf("defaultAvatar") > -1 || MyAvatar.skeletonModelURL.indexOf("fst") === -1) &&
                 topBarInventoryModel.count > 0) {
-                Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatar", true);
-                MyAvatar.useFullAvatarURL = topBarInventoryModel.get(0).download_url;
+                Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatarFromInventory", true);
+                MyAvatar.useFullAvatarURL(topBarInventoryModel.get(0).download_url);
             }
         }
     }
@@ -71,7 +71,7 @@ Rectangle {
             if (isLoggedIn) {
                 Commerce.getWalletStatus();
             } else {
-                // Show some error to the user
+                // Show some error to the user in the UI?
             }
         }
 
@@ -113,12 +113,68 @@ Rectangle {
                 topBarInventoryModel.getNextPage();
             } else {
                 inventoryFullyReceived = true;
+                var scriptExecutionCount = Settings.getValue("simplifiedUI/SUIScriptExecutionCount");
+                var currentAvatarURL = MyAvatar.skeletonModelURL;
+                var currentAvatarURLContainsDefaultAvatar = currentAvatarURL.indexOf("defaultAvatar") > -1;
+                var currentAvatarURLContainsFST = currentAvatarURL.indexOf("fst") > -1;
+                var currentAvatarURLContainsSimplifiedAvatar = currentAvatarURL.indexOf("simplifiedAvatar") > -1;
+                var alreadyAutoSelectedAvatarFromInventory = Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatarFromInventory", false);
+                var userHasValidAvatarInInventory = topBarInventoryModel.count > 0 && 
+                    topBarInventoryModel.get(0).download_url.indexOf(".fst") > -1;
+                var simplifiedAvatarPrefix = "https://content.highfidelity.com/Experiences/Releases/simplifiedUI/simplifiedFTUE/avatars/simplifiedAvatar_";
+                var simplifiedAvatarColors = ["Blue", "Cyan", "Green", "Magenta", "Red"];
+                var simplifiedAvatarSuffix = "/avatar.fst";
 
-                // If we have an avatar in our inventory AND we haven't already auto-selected an avatar...
-                if ((!Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatar", false) ||
-                    MyAvatar.skeletonModelURL.indexOf("defaultAvatar") > -1 || MyAvatar.skeletonModelURL.indexOf("fst") === -1) && topBarInventoryModel.count > 0) {
-                    Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatar", true);
-                    MyAvatar.skeletonModelURL = topBarInventoryModel.get(0).download_url;
+                // Use `Settings.setValue("simplifiedUI/debugFTUE", 0);` to turn off FTUE Debug Mode.
+                // Use `Settings.setValue("simplifiedUI/debugFTUE", 1);` to debug FTUE Screen 1.
+                // Use `Settings.setValue("simplifiedUI/debugFTUE", 2);` to debug FTUE Screen 2.
+                // Use `Settings.setValue("simplifiedUI/debugFTUE", 3);` to debug FTUE Screen 3.
+                // Use `Settings.setValue("simplifiedUI/debugFTUE", 4);` to force the UI to show what would happen if the user had an empty Inventory.
+
+                var debugFTUE = Settings.getValue("simplifiedUI/debugFTUE", 0);
+                if (debugFTUE === 1 || debugFTUE === 2) {
+                    scriptExecutionCount = 1;
+                    currentAvatarURLContainsDefaultAvatar = true;
+                    if (debugFTUE === 1) {
+                        userHasValidAvatarInInventory = false;
+                        currentAvatarURLContainsSimplifiedAvatar = false;
+                    }
+                } else if (debugFTUE === 3) {
+                    scriptExecutionCount = 2;
+                    currentAvatarURLContainsDefaultAvatar = false;
+                    currentAvatarURLContainsSimplifiedAvatar = true;
+                }
+
+                // If we have never auto-selected and the user is still using a default avatar or if the current avatar is not valid (fst), or if 
+                // the current avatar is the old default (Woody), use top avatar from inventory or one of the new defaults.
+
+                // If the current avatar URL is invalid, OR the user is using the "default avatar" (Woody)...
+                if (!currentAvatarURLContainsFST || currentAvatarURLContainsDefaultAvatar) {
+                    // If the user has a valid avatar in their inventory...
+                    if (userHasValidAvatarInInventory) {
+                        // ...use the first avatar in the user's inventory.
+                        MyAvatar.useFullAvatarURL(topBarInventoryModel.get(0).download_url);
+                        Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatarFromInventory", true);
+                    // Else if the user isn't wearing a "Simplified Avatar"
+                    } else if (!currentAvatarURLContainsSimplifiedAvatar) {
+                        // ...assign to the user a new "Simplified Avatar" (i.e. a simple avatar of random color)
+                        var avatarColor = simplifiedAvatarColors[Math.floor(Math.random() * simplifiedAvatarColors.length)];
+                        var simplifiedAvatarModelURL = simplifiedAvatarPrefix + avatarColor + simplifiedAvatarSuffix;
+                        MyAvatar.useFullAvatarURL(simplifiedAvatarModelURL);
+                        currentAvatarURLContainsSimplifiedAvatar = true;
+                    }
+                }
+
+                if (scriptExecutionCount === 1) {
+                    sendToScript({
+                        "source": "SimplifiedTopBar.qml",
+                        "method": "displayInitialLaunchWindow"
+                    });
+                } else if (scriptExecutionCount === 2 && currentAvatarURLContainsSimplifiedAvatar) {
+                    sendToScript({
+                        "source": "SimplifiedTopBar.qml",
+                        "method": "displaySecondLaunchWindow"
+                    });
                 }
             }
         }
@@ -373,7 +429,7 @@ Rectangle {
         SimplifiedControls.TextField {
             id: goToTextField
             readonly property string shortPlaceholderText: "Jump to..."
-            readonly property string longPlaceholderText: "Type the name of a location to quickly jump there..."
+            readonly property string longPlaceholderText: "Quickly jump to a location by typing '/LocationName'"
             anchors.centerIn: parent
             width: Math.min(parent.width, 445)
             height: 35
@@ -384,6 +440,7 @@ Rectangle {
             placeholderTextColor: "#8E8E8E"
             font.pixelSize: 14
             placeholderText: width - leftPadding - rightPadding < goToTextFieldMetrics.width ? shortPlaceholderText : longPlaceholderText
+            blankPlaceholderTextOnFocus: false
             clip: true
             selectByMouse: true
             autoScroll: true
@@ -555,7 +612,7 @@ Rectangle {
     }
 
 
-    function updatePreviewUrl() {
+    function updatePreviewUrl() {        
         var previewUrl = "";
         var downloadUrl = "";
         for (var i = 0; i < topBarInventoryModel.count; ++i) {
@@ -569,6 +626,8 @@ Rectangle {
                 return;
             }
         }
+        
+        avatarButtonImage.source = "../images/defaultAvatar.svg";
     }
 
 

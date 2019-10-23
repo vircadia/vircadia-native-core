@@ -2478,8 +2478,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2489,8 +2489,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk02",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2500,8 +2500,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk03",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2511,8 +2511,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk04",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2522,8 +2522,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk_armsdown",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2533,8 +2533,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk_lefthand",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -2544,8 +2544,8 @@
                                                                                                                         {
                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                             "id": "talk_righthand",
-                                                                                                                            "interpDuration": 1,
-                                                                                                                            "interpTarget": 1,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "interpTarget": 20,
                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.33,
                                                                                                                             "resume": true,
@@ -4740,32 +4740,6 @@
                                                                                                         "children": [
                                                                                                         ],
                                                                                                         "data": {
-                                                                                                            "endFrame": 30,
-                                                                                                            "loopFlag": true,
-                                                                                                            "startFrame": 1,
-                                                                                                            "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/side_step_short_left.fbx"
-                                                                                                        },
-                                                                                                        "id": "strafeLeftShortStep_c",
-                                                                                                        "type": "clip"
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "children": [
-                                                                                                        ],
-                                                                                                        "data": {
-                                                                                                            "endFrame": 20,
-                                                                                                            "loopFlag": true,
-                                                                                                            "startFrame": 1,
-                                                                                                            "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/side_step_left.fbx"
-                                                                                                        },
-                                                                                                        "id": "strafeLeftStep_c",
-                                                                                                        "type": "clip"
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "children": [
-                                                                                                        ],
-                                                                                                        "data": {
                                                                                                             "endFrame": 35,
                                                                                                             "loopFlag": true,
                                                                                                             "startFrame": 1,
@@ -4819,8 +4793,6 @@
                                                                                                     "alpha": 0,
                                                                                                     "alphaVar": "moveLateralAlpha",
                                                                                                     "characteristicSpeeds": [
-                                                                                                        0.1,
-                                                                                                        0.5,
                                                                                                         1,
                                                                                                         2.55,
                                                                                                         3.35,
@@ -4834,34 +4806,6 @@
                                                                                             },
                                                                                             {
                                                                                                 "children": [
-                                                                                                    {
-                                                                                                        "children": [
-                                                                                                        ],
-                                                                                                        "data": {
-                                                                                                            "endFrame": 30,
-                                                                                                            "loopFlag": true,
-                                                                                                            "mirrorFlag": true,
-                                                                                                            "startFrame": 1,
-                                                                                                            "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/side_step_short_left.fbx"
-                                                                                                        },
-                                                                                                        "id": "strafeRightShortStep_c",
-                                                                                                        "type": "clip"
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "children": [
-                                                                                                        ],
-                                                                                                        "data": {
-                                                                                                            "endFrame": 20,
-                                                                                                            "loopFlag": true,
-                                                                                                            "mirrorFlag": true,
-                                                                                                            "startFrame": 1,
-                                                                                                            "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/side_step_left.fbx"
-                                                                                                        },
-                                                                                                        "id": "strafeRightStep_c",
-                                                                                                        "type": "clip"
-                                                                                                    },
                                                                                                     {
                                                                                                         "children": [
                                                                                                         ],
@@ -4923,8 +4867,6 @@
                                                                                                     "alpha": 0,
                                                                                                     "alphaVar": "moveLateralAlpha",
                                                                                                     "characteristicSpeeds": [
-                                                                                                        0.1,
-                                                                                                        0.5,
                                                                                                         1,
                                                                                                         2.55,
                                                                                                         3.4,
@@ -5244,62 +5186,6 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idle",
-                                                                                                            "var": "isNotInput"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "WALKFWD",
-                                                                                                            "var": "isInputForward"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "WALKBWD",
-                                                                                                            "var": "isInputBackward"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "STRAFERIGHT",
-                                                                                                            "var": "isInputRight"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "STRAFELEFT",
-                                                                                                            "var": "isInputLeft"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "turnRight",
-                                                                                                            "var": "isTurningRight"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "turnLeft",
-                                                                                                            "var": "isTurningLeft"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "fly",
-                                                                                                            "var": "isFlying"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "takeoffStand",
-                                                                                                            "var": "isTakeoffStand"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "TAKEOFFRUN",
-                                                                                                            "var": "isTakeoffRun"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "inAirStand",
-                                                                                                            "var": "isInAirStand"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "INAIRRUN",
-                                                                                                            "var": "isInAirRun"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "strafeRightHmd",
-                                                                                                            "var": "isMovingRightHmd"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "strafeLeftHmd",
-                                                                                                            "var": "isMovingLeftHmd"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "idle",
                                                                                                             "var": "isNotSeated"
                                                                                                         }
                                                                                                     ]
@@ -5307,7 +5193,7 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "idle",
-                                                                                                    "interpDuration": 20,
+                                                                                                    "interpDuration": 15,
                                                                                                     "interpTarget": 20,
                                                                                                     "interpType": "evaluateBoth",
                                                                                                     "transitions": [
@@ -5439,8 +5325,8 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "idleSettle",
-                                                                                                    "interpDuration": 15,
-                                                                                                    "interpTarget": 15,
+                                                                                                    "interpDuration": 13,
+                                                                                                    "interpTarget": 14,
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
                                                                                                         {
@@ -5533,7 +5419,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotInputSlow"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKBWD",
@@ -5597,7 +5483,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotInputSlow"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
@@ -5661,7 +5547,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotInputSlow"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
@@ -5673,7 +5559,7 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFELEFT",
-                                                                                                            "var": "isInputLeft"
+                                                                                                            "var": "isMovingLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
@@ -5725,7 +5611,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotInputSlow"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
@@ -5737,7 +5623,7 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "STRAFERIGHT",
-                                                                                                            "var": "isInputRight"
+                                                                                                            "var": "isMovingRight"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",

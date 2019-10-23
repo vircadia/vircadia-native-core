@@ -1919,6 +1919,8 @@ public:
 
     bool getIsJointOverridden(int jointIndex) const;
     glm::vec3 getLookAtPivotPoint();
+    glm::vec3 getCameraEyesPosition(float deltaTime);
+    bool isJumping();
 
 public slots:
 
@@ -2973,6 +2975,9 @@ private:
 
     // used to prevent character from jumping after endSit is called.
     bool _endSitKeyPressComplete { false };
+
+    glm::vec3 _cameraEyesOffset;
+    float _landingAfterJumpTime { 0.0f };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

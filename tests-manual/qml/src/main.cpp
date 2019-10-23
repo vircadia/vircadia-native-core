@@ -205,12 +205,22 @@ void TestWindow::resizeEvent(QResizeEvent* ev) {
 
 
 int main(int argc, char** argv) {
+#ifdef Q_OS_MAC
     auto format = getDefaultOpenGLSurfaceFormat();
-    format.setVersion(4, 1);
+    // Deal with some weirdness in the chromium context sharing on Mac.
+    // The primary share context needs to be 3.2, so that the Chromium will
+    // succeed in it's creation of it's command stub contexts.
+    format.setVersion(3, 2);
+    // This appears to resolve the issues with corrupted fonts on OSX.  No
+    // idea why.
+    qputenv("QT_ENABLE_GLYPH_CACHE_WORKAROUND", "true");
+    // https://i.kym-cdn.com/entries/icons/original/000/008/342/ihave.jpg
     QSurfaceFormat::setDefaultFormat(format);
+#endif
 
+    
     QGuiApplication app(argc, argv);
-    TestCase::Builder builder = [](const QWindow* window)->TestCase*{ return new MacQml(window); };
+    TestCase::Builder builder = [](QWindow* window)->TestCase*{ return new MacQml(window); };
     TestWindow window(builder);
     return app.exec();
 }
