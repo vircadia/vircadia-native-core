@@ -240,7 +240,7 @@ signals:
     void pauseChanged();
 
     /**jsdoc
-     * Triggered when scoep is triggered.
+     * Triggered when scope is triggered.
      * @function AudioScope.triggered
      * @returns {Signal}
      */
