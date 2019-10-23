@@ -2191,20 +2191,15 @@ void MyAvatar::computeMyLookAtTarget(const AvatarHash& hash) {
     foreach (const AvatarSharedPointer& avatarData, hash) {
         std::shared_ptr<Avatar> avatar = std::static_pointer_cast<Avatar>(avatarData);
         if (!avatar->isMyAvatar() && avatar->isInitialized()) {
-            if (_forceTargetAvatarID.isNull() || avatar->getID() != _forceTargetAvatarID) {
-                glm::vec3 otherForward = avatar->getHeadJointFrontVector();
-                glm::vec3 otherPosition = avatar->getHead()->getEyePosition();
-                const float TIME_WITHOUT_TALKING_THRESHOLD = 1.0f;
-                bool otherIsTalking = avatar->getHead()->getTimeWithoutTalking() <= TIME_WITHOUT_TALKING_THRESHOLD;
-                bool lookingAtOtherAlready = _lookAtTargetAvatar.lock().get() == avatar.get();
-                float cost = lookAtCostFunction(myForward, myPosition, otherForward, otherPosition, otherIsTalking, lookingAtOtherAlready);
-                if (cost < bestCost) {
-                    bestCost = cost;
-                    bestAvatar = avatar;
-                }
-            } else {
+            glm::vec3 otherForward = avatar->getHeadJointFrontVector();
+            glm::vec3 otherPosition = avatar->getHead()->getEyePosition();
+            const float TIME_WITHOUT_TALKING_THRESHOLD = 1.0f;
+            bool otherIsTalking = avatar->getHead()->getTimeWithoutTalking() <= TIME_WITHOUT_TALKING_THRESHOLD;
+            bool lookingAtOtherAlready = _lookAtTargetAvatar.lock().get() == avatar.get();
+            float cost = lookAtCostFunction(myForward, myPosition, otherForward, otherPosition, otherIsTalking, lookingAtOtherAlready);
+            if (cost < bestCost) {
+                bestCost = cost;
                 bestAvatar = avatar;
-                break;
             }
         }
     }
@@ -6652,7 +6647,7 @@ void MyAvatar::updateEyesLookAtPosition(FaceTracker* faceTracker, Camera& myCame
     } else if (_scriptControlsEyesLookAt) {
         if (_scriptEyesControlTimer < MAX_LOOK_AT_TIME_SCRIPT_CONTROL) {
             _scriptEyesControlTimer += deltaTime;
-            lookAtSpot = _eyesLookAtTarget;
+            lookAtSpot = _eyesLookAtTarget.get();
         } else {
             _scriptControlsEyesLookAt = false;
         }
@@ -6740,7 +6735,7 @@ void MyAvatar::updateEyesLookAtPosition(FaceTracker* faceTracker, Camera& myCame
             }
         }
     }
-    _eyesLookAtTarget = lookAtSpot;
+    _eyesLookAtTarget.set(lookAtSpot);
     getHead()->setLookAtPosition(lookAtSpot);
 }
 
@@ -6829,7 +6824,7 @@ void MyAvatar::setEyesLookAt(const glm::vec3& lookAtTarget) {
             Q_ARG(const glm::vec3&, lookAtTarget));
         return;
     }
-    _eyesLookAtTarget = lookAtTarget;
+    _eyesLookAtTarget.set(lookAtTarget);
     _scriptEyesControlTimer = 0.0f;
     _scriptControlsEyesLookAt = true;
 }

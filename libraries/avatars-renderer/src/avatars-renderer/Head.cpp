@@ -355,3 +355,24 @@ float Head::getFinalPitch() const {
 float Head::getFinalRoll() const {
     return glm::clamp(_baseRoll + _deltaRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
 }
+
+void Head::setLookAtPosition(const glm::vec3& lookAtPosition) {
+    if (_isEyeLookAtUpdated && _requestLookAtPosition != lookAtPosition) {
+        _lookAtPositionChanged = usecTimestampNow();
+        glm::vec3 oldAvatarLookAtVector = _requestLookAtPosition - _owningAvatar->getWorldPosition();
+        glm::vec3 newAvatarLookAtVector = lookAtPosition - _owningAvatar->getWorldPosition();
+        const float MIN_BLINK_ANGLE = 0.35f; // 20 degrees
+        _forceBlinkToRetarget = angleBetween(oldAvatarLookAtVector, newAvatarLookAtVector) > MIN_BLINK_ANGLE;
+        if (_forceBlinkToRetarget) {
+            _isEyeLookAtUpdated = false;
+        } else {
+            _lookAtPosition = lookAtPosition;
+        }
+    }
+    _requestLookAtPosition = lookAtPosition;
+}
+
+void Head::updateEyeLookAt() {
+    _lookAtPosition = _requestLookAtPosition;
+    _isEyeLookAtUpdated = true;
+}

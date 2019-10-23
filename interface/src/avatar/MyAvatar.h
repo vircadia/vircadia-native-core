@@ -1780,7 +1780,7 @@ public:
     * @function MyAvatar.getEyesLookAt
     * @returns {Vec3} The eyes's look at target in world coordinates.
     */
-    Q_INVOKABLE glm::vec3 getEyesLookAt() { return _eyesLookAtTarget; }
+    Q_INVOKABLE glm::vec3 getEyesLookAt() { return _eyesLookAtTarget.get(); }
 
     /**jsdoc
     * Aims the pointing directional blending towards the provided target point.
@@ -2672,13 +2672,12 @@ private:
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
-    QUuid _forceTargetAvatarID;
     bool _shouldRender { true };
     float _oculusYawOffset;
 
     eyeContactTarget _eyeContactTarget;
     float _eyeContactTargetTimer { 0.0f };
-    glm::vec3 _eyesLookAtTarget;
+    ThreadSafeValueCache<glm::vec3> _eyesLookAtTarget { glm::vec3() };
     bool _scriptControlsEyesLookAt{ false };
     float _scriptEyesControlTimer{ 0.0f };
 
