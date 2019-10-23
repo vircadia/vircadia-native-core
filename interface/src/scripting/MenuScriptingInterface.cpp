@@ -41,7 +41,8 @@ void MenuScriptingInterface::removeMenu(const QString& menu) {
 
 bool MenuScriptingInterface::menuExists(const QString& menu) {
     if (QThread::currentThread() == qApp->thread()) {
-        return Menu::getInstance()->menuExists(menu);
+        Menu* menuInstance = Menu::getInstance();
+        return menuInstance && menuInstance->menuExists(menu);
     }
     bool result { false };
     BLOCKING_INVOKE_METHOD(Menu::getInstance(), "menuExists",
@@ -84,7 +85,8 @@ void MenuScriptingInterface::removeMenuItem(const QString& menu, const QString& 
 
 bool MenuScriptingInterface::menuItemExists(const QString& menu, const QString& menuitem) {
     if (QThread::currentThread() == qApp->thread()) {
-        return Menu::getInstance()->menuItemExists(menu, menuitem);
+        Menu* menuInstance = Menu::getInstance();
+        return menuInstance && menuInstance->menuItemExists(menu, menuitem);
     }
     bool result { false };
     BLOCKING_INVOKE_METHOD(Menu::getInstance(), "menuItemExists",
@@ -96,7 +98,8 @@ bool MenuScriptingInterface::menuItemExists(const QString& menu, const QString& 
 
 bool MenuScriptingInterface::isOptionChecked(const QString& menuOption) {
     if (QThread::currentThread() == qApp->thread()) {
-        return Menu::getInstance()->isOptionChecked(menuOption);
+        Menu* menuInstance = Menu::getInstance();
+        return menuInstance && menuInstance->isOptionChecked(menuOption);
     }
     bool result { false };
     BLOCKING_INVOKE_METHOD(Menu::getInstance(), "isOptionChecked",
@@ -113,7 +116,8 @@ void MenuScriptingInterface::setIsOptionChecked(const QString& menuOption, bool 
 
 bool MenuScriptingInterface::isMenuEnabled(const QString& menuOption) {
     if (QThread::currentThread() == qApp->thread()) {
-        return Menu::getInstance()->isOptionChecked(menuOption);
+        Menu* menuInstance = Menu::getInstance();
+        return menuInstance && menuInstance->isMenuEnabled(menuOption);
     }
     bool result { false };
     BLOCKING_INVOKE_METHOD(Menu::getInstance(), "isMenuEnabled",
