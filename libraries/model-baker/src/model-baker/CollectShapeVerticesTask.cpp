@@ -62,7 +62,7 @@ void CollectShapeVerticesTask::run(const baker::BakeContextPointer& context, con
                 const auto& vertices = mesh.vertices;
                 const glm::mat4 meshToJoint = cluster.inverseBindMatrix;
 
-                const uint16_t weightsPerVertex = hfm::NUM_SKINNING_WEIGHTS_PER_VERTEX;
+                const uint16_t weightsPerVertex = mesh.clusterWeightsPerVertex;
                 if (weightsPerVertex == 0) {
                     for (int vertexIndex = 0; vertexIndex < (int)vertices.size(); ++vertexIndex) {
                         const glm::mat4 vertexTransform = meshToJoint * glm::translate(vertices[vertexIndex]);

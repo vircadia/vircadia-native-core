@@ -1671,6 +1671,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                     }
                     mesh.clusterIndices = std::move(reweightedDeformers.indices);
                     mesh.clusterWeights = std::move(reweightedDeformers.weights);
+                    mesh.clusterWeightsPerVertex = reweightedDeformers.weightsPerVertex;
                 }
 
                 // Store the model's dynamic transform, and put its ID in the shapes

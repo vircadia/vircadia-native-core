@@ -75,6 +75,7 @@ ReweightedDeformers getReweightedDeformers(const size_t numMeshVertices, const s
     size_t numClusterIndices = numMeshVertices * weightsPerVertex;
     reweightedDeformers.indices.resize(numClusterIndices, (uint16_t)(skinClusters.size() - 1));
     reweightedDeformers.weights.resize(numClusterIndices, 0);
+    reweightedDeformers.weightsPerVertex = weightsPerVertex;
 
     std::vector<float> weightAccumulators;
     weightAccumulators.resize(numClusterIndices, 0.0f);

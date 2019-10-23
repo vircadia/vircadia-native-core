@@ -46,7 +46,7 @@ struct GLTFNode {
     QVector<double> scale;
     QVector<double> matrix;
     glm::mat4 transform;
-    int skin;
+    int skin { -1 };
     QVector<int> skeletons;
     QString jointName;
     QMap<QString, bool> defined;

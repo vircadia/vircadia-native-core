@@ -250,6 +250,7 @@ public:
     // Skinning cluster attributes
     std::vector<uint16_t> clusterIndices;
     std::vector<uint16_t> clusterWeights;
+    uint16_t clusterWeightsPerVertex { 0 };
 
     // Blendshape attributes
     QVector<Blendshape> blendshapes;
