@@ -86,8 +86,6 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
                                             this, "handleOctreePacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
 
-    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
-
     packetReceiver.registerListener(PacketType::ReloadEntityServerScript, this, "handleReloadEntityServerScriptPacket");
     packetReceiver.registerListener(PacketType::EntityScriptGetStatus, this, "handleEntityScriptGetStatusPacket");
     packetReceiver.registerListener(PacketType::EntityServerScriptLog, this, "handleEntityServerScriptLogPacket");
@@ -255,6 +253,7 @@ void EntityScriptServer::handleEntityScriptCallMethodPacket(QSharedPointer<Recei
 void EntityScriptServer::run() {
     DependencyManager::set<ScriptEngines>(ScriptEngine::ENTITY_SERVER_SCRIPT);
     DependencyManager::set<EntityScriptServerServices>();
+    DependencyManager::set<AvatarHashMap>();
 
     // make sure we request our script once the agent connects to the domain
     auto nodeList = DependencyManager::get<NodeList>();
@@ -448,6 +447,7 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
     newEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
 
     newEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
+    newEngine->registerGlobalObject("AvatarList", DependencyManager::get<AvatarHashMap>().data());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();

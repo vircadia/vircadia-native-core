@@ -91,6 +91,7 @@ namespace InteractiveWindowEnums {
     Q_ENUM_NS(DockArea);
 
     enum RelativePositionAnchor {
+        NO_ANCHOR,
         TOP_LEFT,
         TOP_RIGHT,
         BOTTOM_RIGHT,
@@ -147,7 +148,7 @@ private:
     Q_INVOKABLE glm::vec2 getPosition() const;
     Q_INVOKABLE void setPosition(const glm::vec2& position);
     
-    RelativePositionAnchor _relativePositionAnchor{ RelativePositionAnchor::TOP_LEFT };
+    RelativePositionAnchor _relativePositionAnchor{ RelativePositionAnchor::NO_ANCHOR };
     Q_INVOKABLE RelativePositionAnchor getRelativePositionAnchor() const;
     Q_INVOKABLE void setRelativePositionAnchor(const RelativePositionAnchor& position);
 
