@@ -265,7 +265,7 @@ public slots:
      * Gets the default directory that recordings are saved in.
      * @function Recording.getDefaultRecordingSaveDirectory
      * @returns {string} The default recording save directory.
-     * @exampl <caption>Report the default save directory.</caption>
+     * @example <caption>Report the default save directory.</caption>
      * print("Default save directory: " + Recording.getDefaultRecordingSaveDirectory());
      */
     QString getDefaultRecordingSaveDirectory();
