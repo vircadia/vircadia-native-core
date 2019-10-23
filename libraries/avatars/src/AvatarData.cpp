@@ -1445,7 +1445,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 }
 
 /**jsdoc
- * The avatar mixer data comprises different types of data, with the data rates of each being tracked in kbps.
+ * <p>The avatar mixer data comprises different types of data, with the data rates of each being tracked in kbps.</p>
  *
  * <table>
  *   <thead>
@@ -1550,7 +1550,7 @@ float AvatarData::getDataRate(const QString& rateName) const {
 }
 
 /**jsdoc
- * The avatar mixer data comprises different types of data updated at different rates, in Hz.
+ * <p>The avatar mixer data comprises different types of data updated at different rates, in Hz.</p>
  *
  * <table>
  *   <thead>

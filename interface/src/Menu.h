@@ -111,7 +111,8 @@ namespace MenuOption {
     const QString ExpandSimulationTiming = "Expand /simulation";
     const QString ExpandPhysicsTiming = "Expand /physics";
     const QString ExpandUpdateTiming = "Expand /update";
-    const QString FirstPerson = "First Person";
+    const QString FirstPerson = "First Person Legacy";
+    const QString FirstPersonLookAt = "First Person";
     const QString FirstPersonHMD = "Enter First Person Mode in HMD";
     const QString FivePointCalibration = "5 Point Calibration";
     const QString FixGaze = "Fix Gaze (no saccade)";
@@ -178,7 +179,6 @@ namespace MenuOption {
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts...";
-    const QString RunClientScriptTests = "Run Client Script Tests";
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
     const QString ShowTrackedObjects = "Show Tracked Objects";

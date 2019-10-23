@@ -41,7 +41,7 @@ public:
      * @property {Controller.Standard|Controller.Actions|function} action - The controller output or function that triggers the 
      *     events on the entity or overlay. If a function, it must return a number <code>&gt;= 1.0</code> to start the action 
      *     and <code>&lt; 1.0</code> to terminate the action.
-     * @property {string} button - Which button to trigger.
+     * @property {string} button - Which button to trigger:
      *    <ul>
      *      <li><code>"Primary"</code>, <code>"Secondary"</code>, and <code>"Tertiary"</code> cause {@link Entities} and 
      *      {@link Overlays} mouse pointer events. Other button names also cause mouse events but the <code>button</code> 

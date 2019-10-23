@@ -172,7 +172,7 @@ Menu::Menu() {
 
     // View > First Person
     auto firstPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::FirstPerson, 0,
+                                   viewMenu, MenuOption::FirstPersonLookAt, 0,
                                    true, qApp, SLOT(cameraMenuChanged())));
 
     firstPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
@@ -640,11 +640,6 @@ Menu::Menu() {
     }
     #endif
 
-
-    // Developer >> Tests >>>
-    MenuWrapper* testMenu = developerMenu->addMenu("Tests");
-    addActionToQMenuAndActionHash(testMenu, MenuOption::RunClientScriptTests, 0, dialogsManager.data(), SLOT(showTestingResults()));
-
     // Developer > Timing >>>
     MenuWrapper* timingMenu = developerMenu->addMenu("Timing");
     MenuWrapper* perfTimerMenu = timingMenu->addMenu("Performance Timer");
@@ -829,7 +824,7 @@ Menu::Menu() {
     // Help > Release Notes
     action = addActionToQMenuAndActionHash(helpMenu, "Release Notes");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("http://steamcommunity.com/games/390540/announcements/"));
+        QDesktopServices::openUrl(QUrl("https://docs.highfidelity.com/release-notes.html"));
     });
 
     // Help > Report a Bug!

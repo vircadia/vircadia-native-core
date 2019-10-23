@@ -808,6 +808,8 @@ void AccountManager::requestAccountSettings() {
         return;
     }
 
+    qCDebug(networking) << "Requesting the Account Settings from the Metaverse API";
+
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QUrl lockerURL = _authURL;
@@ -834,6 +836,9 @@ void AccountManager::requestAccountSettingsFinished() {
     if (rootObject.contains("status") && rootObject["status"].toString() == "success") {
         if (rootObject.contains("data") && rootObject["data"].isObject()) {
             _settings.unpack(rootObject["data"].toObject());
+            _lastSuccessfulSyncTimestamp = _settings.lastChangeTimestamp();
+
+            qCDebug(networking) << "Received the Account Settings from the Metaverse API";
 
             emit accountSettingsLoaded();
         } else {
@@ -873,6 +878,8 @@ void AccountManager::postAccountSettings() {
         qCWarning(networking) << "Can't post account settings: Not logged in";
         return;
     }
+
+    qCDebug(networking) << "Account Settings have changed, pushing them to the Metaverse API";
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
@@ -1035,7 +1042,7 @@ void AccountManager::publicKeyUploadSucceeded(QNetworkReply* reply) {
 
 void AccountManager::publicKeyUploadFailed(QNetworkReply* reply) {
     // the public key upload has failed
-    qWarning() << "Public key upload failed from AccountManager" << reply->errorString();
+    qCritical() << "PAGE: Public key upload failed from AccountManager to" << reply->url() << reply->errorString();
 
     // we aren't waiting for a response any longer
     _isWaitingForKeypairResponse = false;

@@ -95,7 +95,7 @@ static const QString MAIN_STATE_MACHINE_RIGHT_HAND_POSITION("mainStateMachineRig
  * <p><strong>Warning:</strong> These properties are subject to change.
  * <table>
  *   <thead>
- *     <tr><th>Name</th><th>Type</p><th>Description</th>
+ *     <tr><th>Name</th><th>Type</th><th>Description</th>
  *   </thead>
  *   <tbody>
  *     <tr><td><code>userAnimNone</code></td><td>boolean</td><td><code>true</code> when no user overrideAnimation is 
@@ -545,7 +545,8 @@ QStringList Rig::getAnimationRoles() const {
             auto clipNode = std::dynamic_pointer_cast<AnimClip>(node);
             if (clipNode) {
                 // filter out the userAnims, they are for internal use only.
-                if (!clipNode->getID().startsWith("userAnim")) {
+                // also don't return additive blend node clips as valid roles.
+                if (!clipNode->getID().startsWith("userAnim") && clipNode->getBlendType() == AnimBlendType_Normal) {
                     list.append(node->getID());
                 }
             }
@@ -1432,6 +1433,69 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         }
         _lastEnableInverseKinematics = _enableInverseKinematics;
 
+
+        //stategraph vars based on input
+        const float INPUT_DEADZONE_THRESHOLD = 0.05f;
+        const float SLOW_SPEED_THRESHOLD = 1.5f;
+
+        if (fabsf(_previousControllerParameters.inputX) <= INPUT_DEADZONE_THRESHOLD &&
+            fabsf(_previousControllerParameters.inputZ) <= INPUT_DEADZONE_THRESHOLD) {
+            // no WASD input
+            if (fabsf(forwardSpeed) <= SLOW_SPEED_THRESHOLD && fabsf(lateralSpeed) <= SLOW_SPEED_THRESHOLD) {
+                _animVars.set("isInputForward", false);
+                _animVars.set("isInputBackward", false);
+                _animVars.set("isInputRight", false);
+                _animVars.set("isInputLeft", false);
+                _animVars.set("isNotInput", true);
+                _animVars.set("isNotInputSlow", true);
+
+            } else {
+                _animVars.set("isInputForward", false);
+                _animVars.set("isInputBackward", false);
+                _animVars.set("isInputRight", false);
+                _animVars.set("isInputLeft", false);
+                _animVars.set("isNotInput", true);
+                _animVars.set("isNotInputSlow", false);
+            }
+        } else if (fabsf(_previousControllerParameters.inputZ) >= fabsf(_previousControllerParameters.inputX)) {
+            if (_previousControllerParameters.inputZ > 0.0f) {
+                // forward
+                _animVars.set("isInputForward", true);
+                _animVars.set("isInputBackward", false);
+                _animVars.set("isInputRight", false);
+                _animVars.set("isInputLeft", false);
+                _animVars.set("isNotInput", false);
+                _animVars.set("isNotInputSlow", false);
+            } else {
+                // backward
+                _animVars.set("isInputForward", false);
+                _animVars.set("isInputBackward", true);
+                _animVars.set("isInputRight", false);
+                _animVars.set("isInputLeft", false);
+                _animVars.set("isNotInput", false);
+                _animVars.set("isNotInputSlow", false);
+            }
+        } else {
+            if (_previousControllerParameters.inputX > 0.0f) {
+                // right
+                _animVars.set("isInputForward", false);
+                _animVars.set("isInputBackward", false);
+                _animVars.set("isInputRight", true);
+                _animVars.set("isInputLeft", false);
+                _animVars.set("isNotInput", false);
+                _animVars.set("isNotInputSlow", false);
+            } else {
+                // left
+                _animVars.set("isInputForward", false);
+                _animVars.set("isInputBackward", false);
+                _animVars.set("isInputRight", false);
+                _animVars.set("isInputLeft", true);
+                _animVars.set("isNotInput", false);
+                _animVars.set("isNotInputSlow", false);
+            }
+        }
+
+
     }
     _lastForward = forward;
     _lastPosition = worldPosition;
@@ -2159,6 +2223,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
             _animVars.set("idleOverlayAlpha", 0.0f);  // backward compatibility for older anim graphs.
         }
     }
+
 
     _headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
     bool leftHandEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftHand] & (uint8_t)ControllerFlags::Enabled;

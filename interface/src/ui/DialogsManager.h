@@ -53,7 +53,6 @@ public slots:
     void lodTools();
     void hmdTools(bool showTools);
     void showDomainConnectionDialog();
-    void showTestingResults();
     void toggleAddressBar();
     
     // Application Update
