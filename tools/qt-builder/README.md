@@ -1,8 +1,10 @@
 # General
 This document describes the process to build Qt 5.12.3.
-Note that there are three patches.  The first (to qfloat16.h) is needed to compile QT 5.12.3 on Visual Studio 2017 due to a bug in Visual Studio (*bitset* will not compile.  Note that there is a change in CMakeLists.txt to support this.  
-The second patch is to OpenSL ES audio.
-The third is a patch to QScriptEngine to prevent crashes in QScriptEnginePrivate::reportAdditionalMemoryCost, during garbage collection.  See https://bugreports.qt.io/browse/QTBUG-76176
+Note that there are several patches.  
+* The first (to qfloat16.h) is needed to compile QT 5.12.3 on Visual Studio 2017 due to a bug in Visual Studio (*bitset* will not compile.  Note that there is a change in CMakeLists.txt to support this.  
+* The second patch is to OpenSL ES audio and allow audio echo cancelllation on Android.
+* The third is a patch to QScriptEngine to prevent crashes in QScriptEnginePrivate::reportAdditionalMemoryCost, during garbage collection.  See https://bugreports.qt.io/browse/QTBUG-76176
+* The fourth is a patch which fixes video playback on WebEngineViews on mac.  See https://bugreports.qt.io/browse/QTBUG-70967
 ## Requirements
 ### Windows
 1.  Visual Studio 2017  
@@ -222,6 +224,7 @@ git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch
 `cd qt5`  
 `git apply --ignore-space-change --ignore-whitespace patches/aec.patch`  
 `git apply --ignore-space-change --ignore-whitespace patches/qtscript-crash-fix.patch`  
+`git apply --ignore-space-change --ignore-whitespace patches/mac-web-video.patch`  
 `cd ..`  
 #### Configuring
 `mkdir qt5-install`  
