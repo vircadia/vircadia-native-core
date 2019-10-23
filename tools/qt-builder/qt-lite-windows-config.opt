@@ -18,14 +18,19 @@ tests
 -no-compile-examples
 -no-pch
 -confirm-license
+-opengl
+desktop
 -skip
 qtmultimedia
+-skip
+qttranslations
 -prefix
 ./qt-install
+
 -openssl-linked
-OPENSSL_LIBS=-lssl -lcrypto
--L/path/to/openssl/lib
--I/path/to/openssl/include
+OPENSSL_LIBS=-lssleay32 -llibeay32
+-I\path\to\openssl\include
+-L\path\to\openssl\lib
 -no-feature-widgets
 -no-feature-dbus
 -no-feature-xml
