@@ -233,4 +233,3 @@ void HeadData::setHasProceduralEyeMovement(bool hasProceduralEyeMovement) {
 void HeadData::setFaceTrackerConnected(bool value) {
     _isFaceTrackerConnected = value;
 }
-
