@@ -908,17 +908,21 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
 
     // Head's look at blending needs updating
     // before we perform rig animations and IK.
-    CameraMode mode = qApp->getCamera().getMode();
-    if (_scriptControlsHeadLookAt || mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT || mode == CAMERA_MODE_FIRST_PERSON ||
-                                        mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
-        if (!_pointAtActive || !_isPointTargetValid) {
-            updateHeadLookAt(deltaTime);
-        } else {
+    {
+        PerformanceTimer perfTimer("lookat");
+
+        CameraMode mode = qApp->getCamera().getMode();
+        if (_scriptControlsHeadLookAt || mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT || mode == CAMERA_MODE_FIRST_PERSON ||
+            mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
+            if (!_pointAtActive || !_isPointTargetValid) {
+                updateHeadLookAt(deltaTime);
+            } else {
+                resetHeadLookAt();
+            }
+        } else if (_headLookAtActive) {
             resetHeadLookAt();
+            _headLookAtActive = false;
         }
-    } else if (_headLookAtActive) {
-        resetHeadLookAt();
-        _headLookAtActive = false;
     }
 
     // update sensorToWorldMatrix for camera and hand controllers
