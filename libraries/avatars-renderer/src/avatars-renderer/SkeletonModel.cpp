@@ -110,17 +110,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     assert(!_owningAvatar->isMyAvatar());
 
     Head* head = _owningAvatar->getHead();
-
-    // AJT: blendshapes TODO: RE-enable this. but move into rig?
-    /*
-    bool eyePosesValid = !head->getHasProceduralEyeMovement();
-    glm::vec3 lookAt;
-    if (eyePosesValid) {
-        lookAt = head->getLookAtPosition(); // don't apply no-crosseyes code etc when eyes are being tracked
-    } else {
-        lookAt = avoidCrossedEyes(head->getCorrectedLookAtPosition());
-    }
-    */
     glm::vec3 lookAt = avoidCrossedEyes(head->getCorrectedLookAtPosition());
 
     // no need to call Model::updateRig() because otherAvatars get their joint state

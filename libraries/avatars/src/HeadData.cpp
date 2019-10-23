@@ -186,14 +186,7 @@ QJsonObject HeadData::toJson() const {
 void HeadData::fromJson(const QJsonObject& json) {
     if (json.contains(JSON_AVATAR_HEAD_BLENDSHAPE_COEFFICIENTS)) {
         auto jsonValue = json[JSON_AVATAR_HEAD_BLENDSHAPE_COEFFICIENTS];
-        if (jsonValue.isArray()) {
-            QVector<float> blendshapeCoefficients;
-            QJsonArray blendshapeCoefficientsJson = jsonValue.toArray();
-            for (const auto& blendshapeCoefficient : blendshapeCoefficientsJson) {
-                blendshapeCoefficients.push_back((float)blendshapeCoefficient.toDouble());
-            }
-            setBlendshapeCoefficients(blendshapeCoefficients);
-        } else if (jsonValue.isObject()) {
+        if (jsonValue.isObject()) {
             QJsonObject blendshapeCoefficientsJson = jsonValue.toObject();
             for (const QString& name : blendshapeCoefficientsJson.keys()) {
                 float value = (float)blendshapeCoefficientsJson[name].toDouble();

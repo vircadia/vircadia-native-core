@@ -2637,6 +2637,7 @@ enum class JsonAvatarFrameVersion : int {
     JointRotationsInAbsoluteFrame,
     JointDefaultPoseBits,
     JointUnscaledTranslations,
+    ARKitBlendshapes
 };
 
 QJsonValue toJsonValue(const JointData& joint) {
@@ -2681,7 +2682,7 @@ void AvatarData::avatarEntityDataToJson(QJsonObject& root) const {
 QJsonObject AvatarData::toJson() const {
     QJsonObject root;
 
-    root[JSON_AVATAR_VERSION] = (int)JsonAvatarFrameVersion::JointUnscaledTranslations;
+    root[JSON_AVATAR_VERSION] = (int)JsonAvatarFrameVersion::ARKitBlendshapes;
 
     if (!getSkeletonModelURL().isEmpty()) {
         root[JSON_AVATAR_BODY_MODEL] = getSkeletonModelURL().toString();
