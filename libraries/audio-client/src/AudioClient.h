@@ -242,7 +242,7 @@ public slots:
 
     // calling with a null QAudioDevice will use the system default
     bool switchAudioDevice(QAudio::Mode mode, const HifiAudioDeviceInfo& deviceInfo = HifiAudioDeviceInfo());
-    bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName);
+    bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName, bool isHmd);
     // Qt opensles plugin is not able to detect when the headset is plugged in
     void setHeadsetPluggedIn(bool pluggedIn);
 

@@ -424,12 +424,14 @@ void AudioClient::setAudioPaused(bool pause) {
     }
 }
 
-HifiAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
+HifiAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName, bool isHmd=false) {
     HifiAudioDeviceInfo result;
     foreach (HifiAudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
         if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
-            result = audioDevice;
-            break;
+            if ((!isHmd && audioDevice.getDeviceType() != HifiAudioDeviceInfo::hmd) || (isHmd && audioDevice.getDeviceType() != HifiAudioDeviceInfo::desktop)) {
+                result = audioDevice;
+                break;
+            }
         }
     }
     return result;
@@ -986,13 +988,18 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
 
 void AudioClient::changeDefault(HifiAudioDeviceInfo newDefault, QAudio::Mode mode) {
     HifiAudioDeviceInfo currentDevice = mode == QAudio::AudioInput ? _inputDeviceInfo : _outputDeviceInfo;
-    if (currentDevice.isDefault() && currentDevice.getDevice() != newDefault.getDevice()) {
+    if (currentDevice.isDefault() && currentDevice.getDeviceType() == newDefault.getDeviceType()  && currentDevice.getDevice() != newDefault.getDevice()) {
         switchAudioDevice(mode, newDefault);
     }
 }
 
 bool AudioClient::switchAudioDevice(QAudio::Mode mode, const HifiAudioDeviceInfo& deviceInfo) {
     auto device = deviceInfo;
+    if (deviceInfo.getDevice().isNull()) {
+        qCDebug(audioclient) << __FUNCTION__ << " switching to null device :" 
+            << deviceInfo.deviceName() << " : " << deviceInfo.getDevice().deviceName();
+    }
+
     if (mode == QAudio::AudioInput) {
         return switchInputToAudioDevice(device);
     } else {
@@ -1000,8 +1007,8 @@ bool AudioClient::switchAudioDevice(QAudio::Mode mode, const HifiAudioDeviceInfo
     }
 }
 
-bool AudioClient::switchAudioDevice(QAudio::Mode mode, const QString& deviceName) {
-    return switchAudioDevice(mode, getNamedAudioDeviceForMode(mode, deviceName));
+bool AudioClient::switchAudioDevice(QAudio::Mode mode, const QString& deviceName, bool isHmd) {
+    return switchAudioDevice(mode, getNamedAudioDeviceForMode(mode, deviceName, isHmd));
 }
 
 void AudioClient::configureReverb() {
@@ -1809,7 +1816,8 @@ void AudioClient::outputFormatChanged() {
 bool AudioClient::switchInputToAudioDevice(const HifiAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest) {
     Q_ASSERT_X(QThread::currentThread() == thread(), Q_FUNC_INFO, "Function invoked on wrong thread");
 
-    qCDebug(audioclient) << __FUNCTION__ << "inputDeviceInfo: [" << _inputDeviceInfo.deviceName() <<"----"<<inputDeviceInfo.getDevice().deviceName() << "]";
+    qCDebug(audioclient) << __FUNCTION__ << "inputDeviceInfo: [" << _inputDeviceInfo.deviceName() << ":" << _inputDeviceInfo.getDevice().deviceName() 
+        <<"-- new device: "<< inputDeviceInfo.deviceName() <<":"<< inputDeviceInfo.getDevice().deviceName() << "]";
     bool supportedFormat = false;
 
     // NOTE: device start() uses the Qt internal device list
@@ -2044,8 +2052,9 @@ void AudioClient::noteAwakening() {
 
 bool AudioClient::switchOutputToAudioDevice(const HifiAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest) {
     Q_ASSERT_X(QThread::currentThread() == thread(), Q_FUNC_INFO, "Function invoked on wrong thread");
-
-    qCDebug(audioclient) << "AudioClient::switchOutputToAudioDevice() outputDeviceInfo: [" << outputDeviceInfo.deviceName() << "]";
+    
+    qCDebug(audioclient) << __FUNCTION__ << "inputDeviceInfo: [" << _outputDeviceInfo.deviceName() << ":" << _outputDeviceInfo.getDevice().deviceName()
+        << "-- new device: " << outputDeviceInfo.deviceName() << ":" << outputDeviceInfo.getDevice().deviceName() << "]";
     bool supportedFormat = false;
 
     // NOTE: device start() uses the Qt internal device list

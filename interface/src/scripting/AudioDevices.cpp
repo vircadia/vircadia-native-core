@@ -164,8 +164,8 @@ void AudioDeviceList::resetDevice(bool contextIsHMD) {
     QString deviceName = getTargetDevice(contextIsHMD, _mode);
     // FIXME can't use blocking connections here, so we can't determine whether the switch succeeded or not
     // We need to have the AudioClient emit signals on switch success / failure
-    QMetaObject::invokeMethod(client, "switchAudioDevice", 
-        Q_ARG(QAudio::Mode, _mode), Q_ARG(QString, deviceName));
+    QMetaObject::invokeMethod(client, "switchAudioDevice",
+        Q_ARG(QAudio::Mode, _mode), Q_ARG(QString, deviceName), Q_ARG(bool, contextIsHMD));
 
 #if 0
     bool switchResult = false;
