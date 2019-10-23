@@ -2005,9 +2005,9 @@ void AudioClient::setHeadsetPluggedIn(bool pluggedIn) {
         bool aecEnabled = enableAEC.get();
 
         if ((pluggedIn || !aecEnabled) && _inputDeviceInfo.deviceName() != VOICE_RECOGNITION) {
-            switchAudioDevice(QAudio::AudioInput, VOICE_RECOGNITION);
+            switchAudioDevice(QAudio::AudioInput, VOICE_RECOGNITION, false);
         } else if (!pluggedIn && aecEnabled && _inputDeviceInfo.deviceName() != VOICE_COMMUNICATION) {
-            switchAudioDevice(QAudio::AudioInput, VOICE_COMMUNICATION);
+            switchAudioDevice(QAudio::AudioInput, VOICE_COMMUNICATION, false);
         }
     }
     _isHeadsetPluggedIn = pluggedIn;
