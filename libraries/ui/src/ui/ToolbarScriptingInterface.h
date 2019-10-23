@@ -19,7 +19,7 @@
 
 class QQuickItem;
 
-// No JSDoc for ToolbarButtonProxy because oolbarProxy#addButton() doesn't work.
+// No JSDoc for ToolbarButtonProxy because ToolbarProxy#addButton() doesn't work.
 class ToolbarButtonProxy : public QmlWrapper {
     Q_OBJECT
 
