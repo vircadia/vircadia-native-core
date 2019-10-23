@@ -26,7 +26,7 @@ exports.handlers = {
             '../../assignment-client/src/octree',
             '../../interface/src',
             '../../interface/src/assets',
-            '../../interface/src/audio',
+            //'../../interface/src/audio', Exlude AudioScope API from output.
             '../../interface/src/avatar',
             '../../interface/src/commerce',
             '../../interface/src/devices',
