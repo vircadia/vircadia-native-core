@@ -225,9 +225,9 @@ Flickable {
                 SimplifiedControls.RadioButton {
                     id: firstPerson
                     text: "First Person View"
-                    checked: Camera.mode === "first person"
+                    checked: Camera.mode === "first person look at"
                     onClicked: {
-                        Camera.mode = "first person"
+                        Camera.mode = "first person look at"
                     }
                 }
 
@@ -254,7 +254,7 @@ Flickable {
                     target: Camera
 
                     onModeUpdated: {
-                        if (Camera.mode === "first person") {
+                        if (Camera.mode === "first person look at") {
                             firstPerson.checked = true
                         } else if (Camera.mode === "look at") {
                             thirdPerson.checked = true
