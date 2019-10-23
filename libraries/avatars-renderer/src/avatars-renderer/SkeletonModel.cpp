@@ -165,8 +165,9 @@ void SkeletonModel::updateAttitude(const glm::quat& orientation) {
 // but just before head has been simulated.
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     updateAttitude(_owningAvatar->getWorldOrientation());
+    setBlendshapeCoefficients(_owningAvatar->getHead()->getSummedBlendshapeCoefficients());
+
     if (fullUpdate) {
-        setBlendshapeCoefficients(_owningAvatar->getHead()->getSummedBlendshapeCoefficients());
 
         Parent::simulate(deltaTime, fullUpdate);
 
