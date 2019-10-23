@@ -14,7 +14,7 @@ Button {
     property int backgroundWidth: 2
 
     font.family: "Graphik Semibold"
-    font.pointSize: 12
+    font.pixelSize: 15
 
     background: Rectangle {
         implicitWidth: 100

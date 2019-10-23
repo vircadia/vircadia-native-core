@@ -66,7 +66,12 @@ if (WIN32)
   list(APPEND CMAKE_PREFIX_PATH ${SOURCE_DIR}/lib/cmake)
 
   set(SSL_DIR ${SOURCE_DIR}/ssl)
+  set(OPENSSL_ROOT_DIR ${SSL_DIR})
   message("SSL dir is ${SSL_DIR}")
+  set(OPENSSL_USE_STATIC_LIBS TRUE)
+  find_package(OpenSSL REQUIRED)
+
+  message("-- Found OpenSSL Libs ${OPENSSL_LIBRARIES}")
 
 endif ()
 
@@ -220,8 +225,9 @@ if (WIN32)
   target_link_libraries(${PROJECT_NAME}
     wsock32 ws2_32 Winmm version imm32 dwmapi
     Crypt32 Iphlpapi
-    "${SSL_DIR}/lib/libeay32.lib"
-    "${SSL_DIR}/lib/ssleay32.lib"
+    #"${SSL_DIR}/lib/libeay32.lib"
+    #"${SSL_DIR}/lib/ssleay32.lib"
+    ${OPENSSL_LIBRARIES}
     "${_qt5Core_install_prefix}/qml/QtQuick.2/qtquick2plugin.lib"
     "${_qt5Core_install_prefix}/qml/QtQuick/Controls.2/qtquickcontrols2plugin.lib"
     "${_qt5Core_install_prefix}/qml/QtQuick/Templates.2/qtquicktemplates2plugin.lib")

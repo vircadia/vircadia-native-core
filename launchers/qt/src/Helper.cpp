@@ -1,5 +1,7 @@
 #include "Helper.h"
 
+#include "PathUtils.h"
+
 #include <QCoreApplication>
 #include <QDebug>
 #include <QFileInfo>
@@ -47,9 +49,9 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
           break;
    }
 
-    QDir launcherDirectory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    launcherDirectory.mkpath(launcherDirectory.absolutePath());
-    QString filename = launcherDirectory.absoluteFilePath("Log.txt");
+    QDir logsDir = PathUtils::getLogsDirectory();
+    logsDir.mkpath(logsDir.absolutePath());
+    QString filename = logsDir.absoluteFilePath("Log.txt");
 
     QFile outFile(filename);
     outFile.open(QIODevice::WriteOnly | QIODevice::Append);

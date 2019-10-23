@@ -30,16 +30,17 @@ bool hasSuffix(const std::string& path, const std::string& suffix) {
 }
 
 int main(int argc, char *argv[]) {
-    QString name { "High Fidelity" };
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    QCoreApplication::setOrganizationName(name);
+    QCoreApplication::setOrganizationName("High Fidelity");
     QCoreApplication::setApplicationName("Launcher");
+
     Q_INIT_RESOURCE(resources);
     cleanLogFile();
     qInstallMessageHandler(messageHandler);
     CommandlineOptions* options = CommandlineOptions::getInstance();
     options->parse(argc, argv);
     bool didUpdate = false;
+
 #ifdef Q_OS_MAC
     if (isLauncherAlreadyRunning()) {
         return 0;
@@ -48,7 +49,7 @@ int main(int argc, char *argv[]) {
     if (argc == 3) {
         if (hasSuffix(argv[1], "app") && hasSuffix(argv[2], "app")) {
             bool success = swapLaunchers(argv[1], argv[2]);
-            qDebug() << "Launcher install success: " << success;
+            qDebug() << "Successfully installed Launcher: " << success;
             if (!success) {
                 options->append("--noUpdate");
             }
@@ -56,6 +57,12 @@ int main(int argc, char *argv[]) {
         }
     }
 #endif
+
+    if (options->contains("--version")) {
+        std::cout << LAUNCHER_BUILD_VERSION << std::endl;
+        return 0;
+    }
+
 #ifdef Q_OS_WIN
     LauncherInstaller launcherInstaller(argv[0]);
     if (options->contains("--uninstall") || options->contains("--resumeUninstall")) {
@@ -69,7 +76,6 @@ int main(int argc, char *argv[]) {
     if (isProcessRunning("interface.exe", interfacePID)) {
         shutdownProcess(interfacePID, 0);
     }
-
 #endif
 
     QProcessEnvironment processEnvironment = QProcessEnvironment::systemEnvironment();
@@ -78,6 +84,7 @@ int main(int argc, char *argv[]) {
             options->append("--noUpdate");
         }
     }
+
     Launcher launcher(argc, argv);
     return launcher.exec();
 }

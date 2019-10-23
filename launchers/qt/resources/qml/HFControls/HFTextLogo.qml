@@ -5,7 +5,7 @@ Text {
     text: "High Fidelity"
     font.bold: true
     font.family: "Graphik Semibold"
-    font.pointSize: 14
+    font.pixelSize: 17
     font.letterSpacing: -1
     color: "#FFFFFF"
 }

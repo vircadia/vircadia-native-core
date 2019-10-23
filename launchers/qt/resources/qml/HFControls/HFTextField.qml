@@ -7,7 +7,7 @@ TextField {
     height: 50
 
     font.family: "Graphik Regular"
-    font.pointSize: 10.5
+    font.pixelSize: 14
     color: (text.length == 0 || !enabled) ? "#7e8c81" : "#000000"
 
     property bool togglePasswordField: false

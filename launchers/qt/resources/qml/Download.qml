@@ -54,7 +54,7 @@ Item {
     HFTextRegular {
         id: secondText
 
-        text: "We're getting everything setup for you."
+        text: "We're getting everything set up for you."
 
         anchors {
             top: firstText.bottom

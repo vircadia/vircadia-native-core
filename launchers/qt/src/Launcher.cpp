@@ -33,6 +33,8 @@ Launcher::Launcher(int& argc, char**argv) : QGuiApplication(argc, argv) {
     QFontDatabase::addApplicationFont(PathUtils::fontPath("Graphik-Semibold.ttf"));
 
     _launcherWindow->setSource(QUrl(PathUtils::resourcePath("qml/root.qml")));
+    _launcherWindow->setHeight(540);
+    _launcherWindow->setWidth(627);
     _launcherWindow->setResizeMode(QQuickView::SizeRootObjectToView);
     _launcherWindow->show();
 }

@@ -8,7 +8,7 @@ import HQLauncher 1.0
 Item {
     id: root
     anchors.centerIn: parent
-    property string titleText: "Sign-in and pick a password"
+    property string titleText: "Sign in and pick a password"
     property string usernamePlaceholder: "Username"
     property string passwordPlaceholder: "Set a password (must be at least 6 characters)"
     property int marginLeft: root.width * 0.15
@@ -30,7 +30,7 @@ Item {
         width: 481
         lineHeight: 35
         lineHeightMode: Text.FixedHeight
-        text: LauncherState.lastSignupErrorMessage.length == 0 ? root.titleText : "Uh oh."
+        text: LauncherState.lastSignupErrorMessage.length == 0 ? root.titleText : "Uh oh"
         anchors {
             top: root.top
             topMargin: 29
@@ -43,7 +43,7 @@ Item {
         id: instruction
         width: 425
 
-        text: "Use the email address you applied for access with."
+        text: "Use the email address you applied for access with"
         visible: LauncherState.lastSignupErrorMessage.length == 0
 
         anchors {
@@ -136,7 +136,7 @@ Item {
     HFTextRegular {
         id: displayNameText
 
-        text: "This is the display name other people see in world, it can be changed at anytime, from your profile."
+        text: "This is the display name other people see in High Fidelity. It can be changed at any time from your profile."
         wrapMode: Text.Wrap
 
         width: 430
@@ -164,7 +164,11 @@ Item {
             topMargin: 4
         }
 
-         onAccepted: LauncherState.signup(email.text, username.text, password.text, displayName.text)
+         onAccepted: {
+             if (root.enabled && email.text.length > 0 && username.text.length > 0 && password.text.length > 0 && displayName.text.length > 0) {
+                 LauncherState.signup(email.text, username.text, password.text, displayName.text);
+             }
+         }
     }
 
     HFButton {
@@ -214,7 +218,6 @@ Item {
             bottom: root.bottom
             bottomMargin: 46
             right: displayName.right
-            rightMargin: 30
         }
     }
 
