@@ -111,7 +111,7 @@ vec3 fetchNormalMap(vec2 uv) {
     // unpack normal, swizzle to get into hifi tangent space with Y axis pointing out
     vec2 t = 2.0 * (texture(normalMap, uv, TAA_TEXTURE_LOD_BIAS).rg - vec2(0.5, 0.5));
     vec2 t2 = t*t;
-    return vec3(t.x, sqrt(1.0 - t2.x - t2.y), t.y);
+    return vec3(t.x, sqrt(max(0.0, 1.0 - t2.x - t2.y)), t.y);
 }
 <@endif@>
 
@@ -214,14 +214,22 @@ vec3 fetchLightMap(vec2 uv) {
 }
 <@endfunc@>
 
-<@func evalMaterialOpacity(fetchedOpacity, materialOpacity, matKey, opacity)@>
+<@func evalMaterialOpacityMask(fetchedOpacity, materialOpacityCutoff, opacity)@>
 {
-    const float OPACITY_MASK_THRESHOLD = 0.5;
-    <$opacity$> = mix(1.0,
-                      mix(<$fetchedOpacity$>,
-                          step(OPACITY_MASK_THRESHOLD, <$fetchedOpacity$>),
-                          float((<$matKey$> & OPACITY_MASK_MAP_BIT) != 0)),
-                      float((<$matKey$> & (OPACITY_TRANSLUCENT_MAP_BIT | OPACITY_MASK_MAP_BIT)) != 0)) * <$materialOpacity$>;
+    // This path only valid for opaque or texel opaque material 
+    <$opacity$> = step(<$materialOpacityCutoff$>, <$fetchedOpacity$>);
+}
+<@endfunc@>
+
+
+<@func evalMaterialOpacity(fetchedOpacity, materialOpacityCutoff, materialOpacity, matKey, opacity)@>
+{
+    // This path only valid for transparent material
+    // Assert that float((<$matKey$> & (OPACITY_TRANSLUCENT_MAP_BIT | OPACITY_MASK_MAP_BIT)) != 0)) == 1.0
+    <$opacity$> = mix(<$fetchedOpacity$>,
+                          step(<$materialOpacityCutoff$>, <$fetchedOpacity$>),
+                          float((<$matKey$> & OPACITY_MASK_MAP_BIT) != 0))
+                       * <$materialOpacity$>;
 }
 <@endfunc@>
 

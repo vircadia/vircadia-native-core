@@ -245,9 +245,10 @@ QByteArray AvatarData::toByteArrayStateful(AvatarDataDetail dataDetail, bool dro
 }
 
 QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime,
-                                   const QVector<JointData>& lastSentJointData,
-    AvatarDataPacket::SendStatus& sendStatus, bool dropFaceTracking, bool distanceAdjust,
-    glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut, int maxDataSize, AvatarDataRate* outboundDataRateOut) const {
+                                   const QVector<JointData>& lastSentJointData, AvatarDataPacket::SendStatus& sendStatus,
+                                   bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition,
+                                   QVector<JointData>* sentJointDataOut,
+                                   int maxDataSize, AvatarDataRate* outboundDataRateOut) const {
 
     bool cullSmallChanges = (dataDetail == CullSmallData);
     bool sendAll = (dataDetail == SendAllData);
@@ -532,7 +533,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             setAtBit16(flags, IS_FACE_TRACKER_CONNECTED);
         }
         // eye tracker state
-        if (_headData->_isEyeTrackerConnected) {
+        if (!_headData->_hasProceduralEyeMovement) {
             setAtBit16(flags, IS_EYE_TRACKER_CONNECTED);
         }
         // referential state
@@ -1150,7 +1151,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             + (oneAtBit16(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
 
         auto newFaceTrackerConnected = oneAtBit16(bitItems, IS_FACE_TRACKER_CONNECTED);
-        auto newEyeTrackerConnected = oneAtBit16(bitItems, IS_EYE_TRACKER_CONNECTED);
+        auto newHasntProceduralEyeMovement = oneAtBit16(bitItems, IS_EYE_TRACKER_CONNECTED);
 
         auto newHasAudioEnabledFaceMovement = oneAtBit16(bitItems, AUDIO_ENABLED_FACE_MOVEMENT);
         auto newHasProceduralEyeFaceMovement = oneAtBit16(bitItems, PROCEDURAL_EYE_FACE_MOVEMENT);
@@ -1161,7 +1162,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         bool keyStateChanged = (_keyState != newKeyState);
         bool handStateChanged = (_handState != newHandState);
         bool faceStateChanged = (_headData->_isFaceTrackerConnected != newFaceTrackerConnected);
-        bool eyeStateChanged = (_headData->_isEyeTrackerConnected != newEyeTrackerConnected);
+        bool eyeStateChanged = (_headData->_hasProceduralEyeMovement == newHasntProceduralEyeMovement);
         bool audioEnableFaceMovementChanged = (_headData->getHasAudioEnabledFaceMovement() != newHasAudioEnabledFaceMovement);
         bool proceduralEyeFaceMovementChanged = (_headData->getHasProceduralEyeFaceMovement() != newHasProceduralEyeFaceMovement);
         bool proceduralBlinkFaceMovementChanged = (_headData->getHasProceduralBlinkFaceMovement() != newHasProceduralBlinkFaceMovement);
@@ -1174,7 +1175,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _keyState = newKeyState;
         _handState = newHandState;
         _headData->_isFaceTrackerConnected = newFaceTrackerConnected;
-        _headData->_isEyeTrackerConnected = newEyeTrackerConnected;
+        _headData->setHasProceduralEyeMovement(!newHasntProceduralEyeMovement);
         _headData->setHasAudioEnabledFaceMovement(newHasAudioEnabledFaceMovement);
         _headData->setHasProceduralEyeFaceMovement(newHasProceduralEyeFaceMovement);
         _headData->setHasProceduralBlinkFaceMovement(newHasProceduralBlinkFaceMovement);
@@ -1444,7 +1445,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 }
 
 /**jsdoc
- * The avatar mixer data comprises different types of data, with the data rates of each being tracked in kbps.
+ * <p>The avatar mixer data comprises different types of data, with the data rates of each being tracked in kbps.</p>
  *
  * <table>
  *   <thead>
@@ -1549,7 +1550,7 @@ float AvatarData::getDataRate(const QString& rateName) const {
 }
 
 /**jsdoc
- * The avatar mixer data comprises different types of data updated at different rates, in Hz.
+ * <p>The avatar mixer data comprises different types of data updated at different rates, in Hz.</p>
  *
  * <table>
  *   <thead>

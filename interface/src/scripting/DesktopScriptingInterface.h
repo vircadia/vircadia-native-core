@@ -42,6 +42,9 @@
  * @property {InteractiveWindow.DockAreas} DockArea - The possible docking locations of an {@link InteractiveWindow}: top, 
  *     bottom, left, or right of the Interface window. 
  *     <em>Read-only.</em>
+ * @property {InteractiveWindow.RelativePositionAnchors} RelativePositionAnchor - The possible "relative position anchors" for an {@link InteractiveWindow}: top left, 
+ *     top right, bottom right, or bottom left of the Interface window. 
+ *     <em>Read-only.</em>
  */
 class DesktopScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -50,10 +53,13 @@ class DesktopScriptingInterface : public QObject, public Dependency {
 
     Q_PROPERTY(QVariantMap PresentationMode READ getPresentationMode CONSTANT FINAL)
     Q_PROPERTY(QVariantMap DockArea READ getDockArea CONSTANT FINAL)
+    Q_PROPERTY(QVariantMap RelativePositionAnchor READ getRelativePositionAnchor CONSTANT FINAL)
     Q_PROPERTY(int ALWAYS_ON_TOP READ flagAlwaysOnTop CONSTANT FINAL)
     Q_PROPERTY(int CLOSE_BUTTON_HIDES READ flagCloseButtonHides CONSTANT FINAL)
 
 public:
+    DesktopScriptingInterface(QObject* parent= nullptr, bool restricted = false);
+
     /**jsdoc
      * Sets the opacity of the HUD surface.
      * @function Desktop.setHUDAlpha
@@ -104,8 +110,9 @@ private:
     Q_INVOKABLE InteractiveWindowPointer createWindowOnThread(const QString& sourceUrl, const QVariantMap& properties, QThread* targetThread);
 
     static QVariantMap getDockArea();
-
+    static QVariantMap getRelativePositionAnchor();
     Q_INVOKABLE static QVariantMap getPresentationMode();
+    const bool _restricted;
 };
 
 

@@ -83,7 +83,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::BulkAvatarTraitsAck, this, "queueIncomingPacket");
     packetReceiver.registerListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
-    packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnership");
+    packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "queueIncomingPacket");
 
     packetReceiver.registerListenerForTypes({
         PacketType::ReplicatedAvatarIdentity,
@@ -499,6 +499,8 @@ void AvatarMixer::handleAvatarKilled(SharedNodePointer avatarNode) {
            } else {
                _sessionDisplayNames.erase(displayNameIter);
            }
+
+            nodeData->getAvatar().stopChallengeTimer();
         }
 
         std::unique_ptr<NLPacket> killPacket;
@@ -1134,16 +1136,6 @@ void AvatarMixer::entityRemoved(EntityItem * entity) {
 
 void AvatarMixer::entityChange() {
     _dirtyHeroStatus = true;
-}
-
-void AvatarMixer::handleChallengeOwnership(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    if (senderNode->getType() == NodeType::Agent && senderNode->getLinkedData()) {
-        auto clientData = static_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
-        auto avatar = clientData->getAvatarSharedPointer();
-        if (avatar) {
-            avatar->handleChallengeResponse(message.data());
-        }
-    }
 }
 
 void AvatarMixer::aboutToFinish() {

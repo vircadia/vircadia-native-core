@@ -26,6 +26,8 @@ scriptable::ScriptableMaterial& scriptable::ScriptableMaterial::operator=(const 
     albedo = material.albedo;
 
     if (model.toStdString() == graphics::Material::HIFI_PBR) {
+        opacityCutoff = material.opacityCutoff;
+        opacityMapMode = material.opacityMapMode;
         roughness = material.roughness;
         metallic = material.metallic;
         scattering = material.scattering;
@@ -63,6 +65,8 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
         albedo = material->getAlbedo();
 
         if (model.toStdString() == graphics::Material::HIFI_PBR) {
+            opacityCutoff = material->getOpacityCutoff();
+            opacityMapMode = QString(graphics::MaterialKey::getOpacityMapModeName(material->getOpacityMapMode()).c_str());
             roughness = material->getRoughness();
             metallic = material->getMetallic();
             scattering = material->getScattering();

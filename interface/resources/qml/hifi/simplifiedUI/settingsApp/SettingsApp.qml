@@ -17,8 +17,6 @@ import "./audio" as AudioSettings
 import "./general" as GeneralSettings
 import "./vr" as VrSettings
 import "./dev" as DevSettings
-import "./about" as AboutSettings
-
 Rectangle {
     property string activeTabView: "generalTabView"
     id: root
@@ -87,10 +85,6 @@ Rectangle {
                 tabViewName: "vrTabView"
             }
             ListElement {
-                tabTitle: "About"
-                tabViewName: "aboutTabView"
-            }
-            ListElement {
                 tabTitle: "Dev"
                 tabViewName: "devTabView"
             }
@@ -154,13 +148,13 @@ Rectangle {
         }
     }
 
+
     Item {
         id: tabViewContainers
         anchors.top: tabContainer.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-
 
         GeneralSettings.General {
             id: generalTabViewContainer
@@ -169,8 +163,10 @@ Rectangle {
             onSendNameTagInfo: {
                 sendToScript(message);
             }
+            onSendEmoteVisible: {
+                sendToScript(message);
+            }
         }
-        
 
         AudioSettings.Audio {
             id: audioTabViewContainer
@@ -190,12 +186,6 @@ Rectangle {
             anchors.fill: parent
         }
 
-        AboutSettings.About {
-            id: aboutTabViewContainer
-            visible: activeTabView === "aboutTabView"
-            anchors.fill: parent
-        }
-
         SimplifiedControls.VerticalScrollBar {
             parent: {
                 if (activeTabView === "generalTabView") {
@@ -206,8 +196,6 @@ Rectangle {
                     vrTabViewContainer
                 } else if (activeTabView === "devTabView") {
                     devTabViewContainer
-                } else if (activeTabView === "aboutTabView") {
-                    aboutTabViewContainer
                 }
             }
         }

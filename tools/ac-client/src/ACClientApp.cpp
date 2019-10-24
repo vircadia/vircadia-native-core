@@ -100,7 +100,7 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
 
-    DependencyManager::set<AccountManager>([&]{ return QString("Mozilla/5.0 (HighFidelityACClient)"); });
+    DependencyManager::set<AccountManager>(false, [&]{ return QString("Mozilla/5.0 (HighFidelityACClient)"); });
     DependencyManager::set<AddressManager>();
     DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
 

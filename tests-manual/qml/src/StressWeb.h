@@ -24,7 +24,7 @@ public:
     std::array<std::array<QmlInfo, DIVISIONS_Y>, DIVISIONS_X> _surfaces;
     GLuint _fbo{ 0 };
 
-    StressWeb(const QWindow* window) : Parent(window) {}
+    StressWeb(QWindow* window) : Parent(window) {}
     static QString getSourceUrl(bool video);
     void buildSurface(QmlInfo& qmlInfo, bool video);
     void destroySurface(QmlInfo& qmlInfo);

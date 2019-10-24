@@ -50,12 +50,14 @@ class AccountServicesScriptingInterface : public QObject {
      *     <code>"Unknown user"</code>. <em>Read-only.</em>
      * @property {boolean} loggedIn - <code>true</code> if the user is logged in, otherwise <code>false</code>. 
      *     <em>Read-only.</em>
-     * @property {string} findableBy - The user's visibility to other users:<br />
-     *     <code>"none"</code> - user appears offline.<br />
-     *     <code>"friends"</code> - user is visible only to friends.<br />
-     *     <code>"connections"</code> - user is visible to friends and connections.<br />
-     *     <code>"all"</code> - user is visible to everyone.
-     * @property {string} metaverseServerURL - The metaverse server that the user is authenticated against when logged in 
+     * @property {string} findableBy - The user's visibility to other users:
+     *     <ul>
+     *         <li><code>"none"</code> &mdash; user appears offline.</li>
+     *         <li><code>"friends"</code> &mdash; user is visible only to friends.</li>
+     *         <li><code>"connections"</code> &mdash; user is visible to friends and connections.</li>
+     *         <li><code>"all"</code> &mdash; user is visible to everyone.</li>
+     *     </ul>
+     * @property {string} metaverseServerURL - The metaverse server that the user is authenticated against when logged in
      *     &mdash; typically <code>"https://metaverse.highfidelity.com"</code>. <em>Read-only.</em>
      */
 
@@ -160,11 +162,13 @@ signals:
     /**jsdoc
      * Triggered when the user's visibility to others changes.
      * @function AccountServices.findableByChanged
-     * @param {string} findableBy - The user's visibility to other people:<br />
-     *     <code>"none"</code> - user appears offline.<br />
-     *     <code>"friends"</code> - user is visible only to friends.<br />
-     *     <code>"connections"</code> - user is visible to friends and connections.<br />
-     *     <code>"all"</code> - user is visible to everyone.
+     * @param {string} findableBy - The user's visibility to other people:
+     *     <ul>
+     *         <li><code>"none"</code> &mdash; user appears offline.</li>
+     *         <li><code>"friends"</code> &mdash; user is visible only to friends.</li>
+     *         <li><code>"connections"</code> &mdash; user is visible to friends and connections.</li>
+     *         <li><code>"all"</code> &mdash; user is visible to everyone.</li>
+     *     </ul>
      * @returns {Signal}
      * @example <caption>Report when your visiblity changes.</caption>
      * AccountServices.findableByChanged.connect(function (findableBy) {

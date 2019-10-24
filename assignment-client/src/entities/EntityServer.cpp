@@ -17,9 +17,9 @@
 #include <QJsonDocument>
 
 #include <EntityTree.h>
-#include <SimpleEntitySimulation.h>
 #include <ResourceCache.h>
 #include <ScriptCache.h>
+#include <plugins/PluginManager.h>
 #include <EntityEditFilters.h>
 #include <NetworkingConstants.h>
 #include <hfm/ModelFormatRegistry.h>
@@ -36,12 +36,13 @@ const char* LOCAL_MODELS_PERSIST_FILE = "resources/models.svo";
 
 EntityServer::EntityServer(ReceivedMessage& message) :
     OctreeServer(message),
-    _entitySimulation(NULL),
+    _entitySimulation(nullptr),
     _dynamicDomainVerificationTimer(this)
 {
     DependencyManager::set<ResourceManager>();
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<ScriptCache>();
+    DependencyManager::set<PluginManager>()->instantiate();
 
     DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
     DependencyManager::set<AssignmentDynamicFactory>();

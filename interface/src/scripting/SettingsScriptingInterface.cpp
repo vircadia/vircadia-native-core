@@ -35,8 +35,20 @@ QVariant SettingsScriptingInterface::getValue(const QString& setting, const QVar
 }
 
 void SettingsScriptingInterface::setValue(const QString& setting, const QVariant& value) {
+    if (getValue(setting) == value) {
+        return;
+    }
+    if (setting.startsWith("private/")) {
+        if (_restrictPrivateValues) {
+            qWarning() << "SettingsScriptingInterface::setValue -- restricted write: " << setting << value;
+            return;
+        } else {
+            qInfo() << "SettingsScriptingInterface::setValue -- allowing restricted write: " << setting << value;
+        }
+    }
     // Make a deep-copy of the string.
     // Dangling pointers can occur with QStrings that are implicitly shared from a QScriptEngine.
     QString deepCopy = QString::fromUtf16(setting.utf16());
     Setting::Handle<QVariant>(deepCopy).set(value);
+    emit valueChanged(setting, value);
 }

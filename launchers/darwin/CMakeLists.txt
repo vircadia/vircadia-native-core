@@ -45,6 +45,8 @@ set(src_files
   src/CustomUI.m
   src/NSTask+NSTaskExecveAdditions.h
   src/NSTask+NSTaskExecveAdditions.m
+  src/HQDefaults.h
+  src/HQDefaults.m
   src/main.mm
   nib/Window.xib
   nib/SplashScreen.xib
@@ -69,7 +71,7 @@ set_target_properties(${this_target} PROPERTIES
 set(MACOSX_BUNDLE_ICON_FILE "interface.icns")
 
 function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
-  if (NOT DEFINED ${_RESULT_NAME}) 
+  if (NOT DEFINED ${_RESULT_NAME})
     if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
       set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
     else()
@@ -89,8 +91,14 @@ if ("${LAUNCHER_HMAC_SECRET}" STREQUAL "")
     message(FATAL_ERROR "LAUNCHER_HMAC_SECRET is not set")
 endif()
 
+# Development environments don't set BUILD_VERSION. Let 0 mean a development version.
+if(NOT BUILD_VERSION)
+    set(BUILD_VERSION 0)
+endif()
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_HMAC_SECRET="${LAUNCHER_HMAC_SECRET}")
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE USER_AGENT_STRING="HQLauncher/${BUILD_VERSION} \(macOS\)")
 
 file(GLOB NIB_FILES "nib/*.xib")
 
@@ -112,9 +120,16 @@ add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   ${CMAKE_SOURCE_DIR}/images "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/")
 
+add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_SOURCE_DIR}/data/HQDefaults.plist "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/")
+
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
   COMMAND updater
-  COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/updater" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/")
+  COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/updater" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/MacOS/"
+  # Older versions of Launcher put updater in `/Contents/Resources/updater`.
+  COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources" ln -sf ../MacOS/updater updater
+)
 
 install(
   TARGETS HQLauncher
@@ -140,3 +155,17 @@ set(DMG_SUBFOLDER_ICON "${CMAKE_SOURCE_DIR}/cmake/installer/install-folder.rsrc"
 
 set(CPACK_GENERATOR "DragNDrop")
 include(CPack)
+
+include(FindXCTest)
+
+include_directories(${CMAKE_SOURCE_DIR}/src)
+
+xctest_add_bundle(HQLauncherTests HQLauncher
+    ${CMAKE_SOURCE_DIR}/src/HQDefaults.m
+    ${CMAKE_SOURCE_DIR}/tests/HQDefaultsTests.m
+    ${CMAKE_SOURCE_DIR}/tests/Info.plist
+)
+
+set_target_properties(HQLauncherTests PROPERTIES
+  MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/tests/Info.plist
+  )

@@ -91,12 +91,6 @@ namespace controller {
     class StateController;
 }
 
-#ifdef Q_OS_WIN
-static const UINT UWM_IDENTIFY_INSTANCES =
-    RegisterWindowMessage("UWM_IDENTIFY_INSTANCES_{8AB82783-B74A-4258-955B-8188C22AA0D6}_" + qgetenv("USERNAME"));
-static const UINT UWM_SHOW_APPLICATION =
-    RegisterWindowMessage("UWM_SHOW_APPLICATION_{71123FD6-3DA8-4DC1-9C27-8A12A6250CBA}_" + qgetenv("USERNAME"));
-#endif
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
 static const QString SCRIPTS_SWITCH = "scripts";
@@ -252,7 +246,7 @@ public:
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
-    virtual void registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) override;
+    virtual void registerScriptEngineWithApplicationServices(const ScriptEnginePointer& scriptEngine) override;
 
     virtual void copyCurrentViewFrustum(ViewFrustum& viewOut) const override { copyDisplayViewFrustum(viewOut); }
     virtual QThread* getMainThread() override { return thread(); }
@@ -437,13 +431,6 @@ public slots:
     void sendWrongProtocolVersionsSignature(bool checked) { ::sendWrongProtocolVersionsSignature(checked); }
 #endif
 
-#ifdef HAVE_IVIEWHMD
-    void setActiveEyeTracker();
-    void calibrateEyeTracker1Point();
-    void calibrateEyeTracker3Points();
-    void calibrateEyeTracker5Points();
-#endif
-
     static void showHelp();
 
     void cycleCamera();
@@ -496,6 +483,9 @@ public slots:
 
     bool gpuTextureMemSizeStable();
     void showUrlHandler(const QUrl& url);
+
+    // used to test "shutdown" crash annotation.
+    void crashOnShutdown();
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
@@ -844,5 +834,7 @@ private:
     bool _overrideEntry { false };
 
     VisionSqueeze _visionSqueeze;
+
+    bool _crashOnShutdown { false };
 };
 #endif // hifi_Application_h

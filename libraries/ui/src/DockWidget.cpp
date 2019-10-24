@@ -47,3 +47,10 @@ QQuickItem* DockWidget::getRootItem() const {
 std::shared_ptr<QQuickView> DockWidget::getQuickView() const {
     return _quickView;
 }
+
+void DockWidget::resizeEvent(QResizeEvent* event) {
+    // This signal is currently handled in `InteractiveWindow.cpp`. There, it's used to
+    // emit a `windowGeometryChanged()` signal, which is handled by scripts
+    // that need to know when to change the position of their overlay UI elements.
+    emit onResizeEvent();
+}

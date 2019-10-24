@@ -150,7 +150,7 @@ BOOL LauncherUtils::launchApplication(LPCWSTR lpApplicationName, LPTSTR cmdArgs)
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
-
+   
     // start the program up
     BOOL success = CreateProcess(
         lpApplicationName,   // the path
@@ -181,7 +181,7 @@ BOOL LauncherUtils::deleteRegistryKey(const CString& registryPath) {
 }
 
 LauncherUtils::ResponseError LauncherUtils::makeHTTPCall(const CString& callerName,
-    const CString& mainUrl, const CString& dirUrl,
+    bool useHTTPS, const CString& mainUrl, const CString& dirUrl,
     const CString& contentType, CStringA& postData,
     CString& response, bool isPost = false) {
 
@@ -190,12 +190,12 @@ LauncherUtils::ResponseError LauncherUtils::makeHTTPCall(const CString& callerNa
     if (!hopen) {
         return ResponseError::Open;
     }
-    HINTERNET hconnect = WinHttpConnect(hopen, mainUrl, INTERNET_DEFAULT_HTTPS_PORT, 0);
+    HINTERNET hconnect = WinHttpConnect(hopen, mainUrl, useHTTPS ? INTERNET_DEFAULT_HTTPS_PORT : INTERNET_DEFAULT_HTTP_PORT, 0);
     if (!hconnect) {
         return ResponseError::Connect;
     }
     HINTERNET hrequest = WinHttpOpenRequest(hconnect, isPost ? L"POST" : L"GET", dirUrl,
-        NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE);
+        NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, useHTTPS ? WINHTTP_FLAG_SECURE : 0);
     if (!hrequest) {
         return ResponseError::OpenRequest;
     }
@@ -497,7 +497,7 @@ DWORD WINAPI LauncherUtils::deleteDirectoryThread(LPVOID lpParameter) {
 DWORD WINAPI LauncherUtils::httpThread(LPVOID lpParameter) {
     HttpThreadData& data = *((HttpThreadData*)lpParameter);
     CString response;
-    auto error = LauncherUtils::makeHTTPCall(data._callerName, data._mainUrl, data._dirUrl, 
+    auto error = LauncherUtils::makeHTTPCall(data._callerName, data._useHTTPS, data._mainUrl, data._dirUrl,
                                              data._contentType, data._postData, response, data._isPost);
     data._callback(response, error);
     return 0;
@@ -552,12 +552,13 @@ BOOL LauncherUtils::deleteDirectoryOnThread(const CString& dirPath, std::functio
     return FALSE;
 }
 
-BOOL LauncherUtils::httpCallOnThread(const CString& callerName, const CString& mainUrl, const CString& dirUrl,
+BOOL LauncherUtils::httpCallOnThread(const CString& callerName, bool useHTTPS, const CString& mainUrl, const CString& dirUrl,
                                      const CString& contentType, CStringA& postData, bool isPost,
                                      std::function<void(CString, int)> callback) {
     DWORD myThreadID;
     HttpThreadData* httpThreadData = new HttpThreadData();
     httpThreadData->_callerName = callerName;
+    httpThreadData->_useHTTPS = useHTTPS;
     httpThreadData->_mainUrl = mainUrl;
     httpThreadData->_dirUrl = dirUrl;
     httpThreadData->_contentType = contentType;

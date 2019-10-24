@@ -44,7 +44,7 @@ namespace controller {
      *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>
      *   </thead>
      *   <tbody>
-     *     <tr><td colSpan=4><strong>Avatar Movement</strong></td>
+     *     <tr><td colSpan=4><strong>Avatar Movement</strong></td></tr>
      *     <tr><td><code>TranslateX</code></td><td>number</td><td>number</td><td>Move the user's avatar in the direction of its 
      *       x-axis, if the camera isn't in independent or mirror modes.</td></tr>
      *     <tr><td><code>TranslateY</code></td><td>number</td><td>number</td><td>Move the user's avatar in the direction of its 
@@ -71,7 +71,7 @@ namespace controller {
      *       step increment, if the camera isn't in independent or mirror modes.</td></tr>
      *     <tr><td><code>StepRoll</code></td><td>number</td><td>number</td><td>No action.</td></tr>
      *
-     *     <tr><td colSpan=4><strong>Avatar Skeleton</strong></td>
+     *     <tr><td colSpan=4><strong>Avatar Skeleton</strong></td></tr>
      *     <tr><td><code>Hips</code></td><td>number</td><td>{@link Pose}</td><td>Set the hips pose of the user's avatar.
      *       </td></tr>
      *     <tr><td><code>Spine2</code></td><td>number</td><td>{@link Pose}</td><td>Set the spine2 pose of the user's avatar.
@@ -171,7 +171,7 @@ namespace controller {
      *     <tr><td><code>RightFoot</code></td><td>number</td><td>{@link Pose}</td><td>Set the right foot pose of the user's
      *       avatar.</td></tr>
      *
-     *     <tr><td colSpan=4><strong><strong>Application</strong></td>
+     *     <tr><td colSpan=4><strong>Application</strong></td></tr>
      *     <tr><td><code>BoomIn</code></td><td>number</td><td>number</td><td>Zoom camera in from third person toward first 
      *       person view.</td></tr>
      *     <tr><td><code>BoomOut</code></td><td>number</td><td>number</td><td>Zoom camera out from first person to third 
@@ -212,7 +212,7 @@ namespace controller {
      *     <tr><td><code>SecondaryAction</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
      *       action is deprecated and will be removed. It takes no action.</span></td></tr>
      *
-     *     <tr><td colSpan=4><strong>Aliases</strong></td>
+     *     <tr><td colSpan=4><strong>Aliases</strong></td></tr>
      *     <tr><td><code>Backward</code></td><td>number</td><td>number</td><td>Alias for <code>TranslateZ</code> in the 
      *       positive direction.</td></tr>
      *     <tr><td><code>Forward</code></td><td>number</td><td>number</td><td>Alias for <code>TranslateZ</code> in the negative 
@@ -234,7 +234,7 @@ namespace controller {
      *     <tr><td><code>YawRight</code></td><td>number</td><td>number</td><td>Alias for <code>Yaw</code> in the negative 
      *       direction.</td></tr>
      *
-     *     <tr><td colSpan=4><strong>Deprecated Aliases</strong></td>
+     *     <tr><td colSpan=4><strong>Deprecated Aliases</strong></td></tr>
      *     <tr><td><code>LEFT_HAND</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: This 
      *       action is deprecated and will be removed. Use <code>LeftHand</code> instead.</span></td></tr>
      *     <tr><td><code>RIGHT_HAND</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: This 
@@ -282,7 +282,7 @@ namespace controller {
      *     <tr><td><code>ACTION2</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
      *       action is deprecated and will be removed. Use <code>SecondaryAction</code> instead.</span></td></tr>
      *
-     *     <tr><td colSpan=4><strong>Deprecated Trackers</strong></td>
+     *     <tr><td colSpan=4><strong>Deprecated Trackers</strong></td><tr>
      *     <tr><td><code>TrackedObject00</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
      *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
      *     <tr><td><code>TrackedObject01</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
@@ -335,8 +335,8 @@ namespace controller {
             makeAxisPair(Action::STEP_PITCH, "StepPitch"),
             makeAxisPair(Action::STEP_ROLL, "StepRoll"),
             makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateX"),
-            makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateY"),
-            makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateZ"),
+            makeAxisPair(Action::STEP_TRANSLATE_Y, "StepTranslateY"),
+            makeAxisPair(Action::STEP_TRANSLATE_Z, "StepTranslateZ"),
 
             makePosePair(Action::LEFT_HAND, "LeftHand"),
             makePosePair(Action::RIGHT_HAND, "RightHand"),
@@ -347,6 +347,10 @@ namespace controller {
             makePosePair(Action::HIPS, "Hips"),
             makePosePair(Action::SPINE2, "Spine2"),
             makePosePair(Action::HEAD, "Head"),
+            makePosePair(Action::LEFT_EYE, "LeftEye"),
+            makePosePair(Action::RIGHT_EYE, "RightEye"),
+            makeAxisPair(Action::LEFT_EYE_BLINK, "LeftEyeBlink"),
+            makeAxisPair(Action::RIGHT_EYE_BLINK, "RightEyeBlink"),
 
             makePosePair(Action::LEFT_HAND_THUMB1, "LeftHandThumb1"),
             makePosePair(Action::LEFT_HAND_THUMB2, "LeftHandThumb2"),

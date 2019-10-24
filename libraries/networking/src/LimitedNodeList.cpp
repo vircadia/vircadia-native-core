@@ -38,6 +38,12 @@
 #include "udt/Packet.h"
 #include "HMACAuth.h"
 
+#if defined(Q_OS_WIN)
+#include <winsock.h>
+#else 
+#include <arpa/inet.h>
+#endif
+
 static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.LocalPort", 0);
 
 using namespace std::chrono_literals;
@@ -52,7 +58,7 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     _nodeSocket.bind(QHostAddress::AnyIPv4, port);
     quint16 assignedPort = _nodeSocket.localPort();
     if (socketListenPort != INVALID_PORT && socketListenPort != 0 && socketListenPort != assignedPort) {
-        qCCritical(networking) << "NodeList is unable to assign requested port of" << socketListenPort;
+        qCCritical(networking) << "PAGE: NodeList is unable to assign requested port of" << socketListenPort;
     }
     qCDebug(networking) << "NodeList socket is listening on" << assignedPort;
 
@@ -1155,6 +1161,7 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
 void LimitedNodeList::possiblyTimeoutSTUNAddressLookup() {
     if (_stunSockAddr.getAddress().isNull()) {
         // our stun address is still NULL, but we've been waiting for long enough - time to force a fail
+        qCCritical(networking) << "PAGE: Failed to lookup address of STUN server" << STUN_SERVER_HOSTNAME;
         stopInitialSTUNUpdate(false);
     }
 }
@@ -1170,7 +1177,7 @@ void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
     if (!success) {
         // if we're here this was the last failed STUN request
         // use our DS as our stun server
-        qCDebug(networking, "Failed to lookup public address via STUN server at %s:%hu.",
+        qCWarning(networking, "PAGE: Failed to lookup public address via STUN server at %s:%hu (likely a critical error for auto-networking).",
                 STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
         qCDebug(networking) << "LimitedNodeList public socket will be set with local port and null QHostAddress.";
 
@@ -1212,7 +1219,8 @@ void LimitedNodeList::updateLocalSocket() {
     QTcpSocket* localIPTestSocket = new QTcpSocket;
 
     connect(localIPTestSocket, &QTcpSocket::connected, this, &LimitedNodeList::connectedForLocalSocketTest);
-    connect(localIPTestSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(errorTestingLocalSocket()));
+    connect(localIPTestSocket, static_cast<void(QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),
+        this, &LimitedNodeList::errorTestingLocalSocket);
 
     // attempt to connect to our reliable host
     localIPTestSocket->connectToHost(RELIABLE_LOCAL_IP_CHECK_HOST, RELIABLE_LOCAL_IP_CHECK_PORT);
@@ -1225,8 +1233,8 @@ void LimitedNodeList::connectedForLocalSocketTest() {
         auto localHostAddress = localIPTestSocket->localAddress();
 
         if (localHostAddress.protocol() == QAbstractSocket::IPv4Protocol) {
-            _hasTCPCheckedLocalSocket = true;
             setLocalSocket(HifiSockAddr { localHostAddress, _nodeSocket.localPort() });
+            _hasTCPCheckedLocalSocket = true;
         }
 
         localIPTestSocket->deleteLater();
@@ -1242,9 +1250,11 @@ void LimitedNodeList::errorTestingLocalSocket() {
         // then use our possibly updated guessed local address as fallback
         if (!_hasTCPCheckedLocalSocket) {
             setLocalSocket(HifiSockAddr { getGuessedLocalAddress(), _nodeSocket.localPort() });
+            qCCritical(networking) << "PAGE: Can't connect to Google DNS service via TCP, falling back to guessed local address"
+                << getLocalSockAddr();
         }
 
-        localIPTestSocket->deleteLater();;
+        localIPTestSocket->deleteLater();
     }
 }
 
@@ -1325,7 +1335,8 @@ void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* p
 
         qCDebug(networking) << "Wrote local listening port" << localPort << "to shared memory at key" << key;
     } else {
-        qWarning() << "Failed to create and attach to shared memory to share local port with assignment-client children.";
+        qWarning() << "ALERT: Failed to create and attach to shared memory to share local port with assignment-client children:"
+            << sharedPortMem->errorString();
     }
 }
 
@@ -1333,7 +1344,8 @@ void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* p
 bool LimitedNodeList::getLocalServerPortFromSharedMemory(const QString key, quint16& localPort) {
     QSharedMemory sharedMem(key);
     if (!sharedMem.attach(QSharedMemory::ReadOnly)) {
-        qCWarning(networking) << "Could not attach to shared memory at key" << key;
+        qCWarning(networking) << "Could not attach to shared memory at key" << key
+            << ":" << sharedMem.errorString();
         return false;
     } else {
         sharedMem.lock();

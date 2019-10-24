@@ -21,7 +21,9 @@ const uint32_t MAX_RANGE_QUERY_DEPTH = 1;
 static bool timeElapsed = true;
 #else
 const uint32_t MAX_RANGE_QUERY_DEPTH = 10000;
+#if !defined(USE_GLES)
 static bool timeElapsed = false;
+#endif
 #endif
 
 #if defined(USE_GLES)

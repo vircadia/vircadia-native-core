@@ -14,8 +14,6 @@
 
 
 // START CONFIG OPTIONS
-var DOCKED_QML_SUPPORTED = true;
-var SHOW_PROTOTYPE_EMOTE_APP = false;
 var TOOLBAR_NAME = "com.highfidelity.interface.toolbar.system";
 var DEFAULT_SCRIPTS_PATH_PREFIX = ScriptDiscoveryService.defaultScriptsPath + "/";
 // END CONFIG OPTIONS
@@ -116,7 +114,7 @@ function toggleAvatarApp() {
 
 
 function handleAvatarNametagMode(newAvatarNametagMode) {
-    simplifiedNametag.handleAvatarNametagMode(newAvatarNametagMode);
+    nametag.handleAvatarNametagMode(newAvatarNametagMode);
 }
 
 
@@ -127,10 +125,13 @@ function onMessageFromSettingsApp(message) {
     }
 
     switch (message.method) {
+        /* 
+            This calls an update methon on the module apis because I can't get a signal from Settings.QML to the emoji.js without it being a module like
+            nametag.  
+        */
         case "handleAvatarNametagMode":
             handleAvatarNametagMode(message.avatarNametagMode);
             break;
-            
         default:
             console.log("Unrecognized message from " + SETTINGS_APP_MESSAGE_SOURCE + ": " + JSON.stringify(message));
             break;
@@ -158,6 +159,7 @@ var SETTINGS_APP_WINDOW_FLAGS = 0x00000001 | // Qt::Window
     0x08000000 | // Qt::WindowCloseButtonHint
     0x00008000 | // Qt::WindowMaximizeButtonHint
     0x00004000; // Qt::WindowMinimizeButtonHint
+var SETTINGS_APP_RIGHT_MARGIN = 48;
 var settingsAppWindow = false;
 function toggleSettingsApp() {
     if (settingsAppWindow) {
@@ -177,7 +179,7 @@ function toggleSettingsApp() {
             y: SETTINGS_APP_HEIGHT_PX
         },
         position: {
-            x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - SETTINGS_APP_WIDTH_PX / 2),
+            x: Window.x + Window.innerWidth - SETTINGS_APP_WIDTH_PX - SETTINGS_APP_RIGHT_MARGIN,
             y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - SETTINGS_APP_HEIGHT_PX / 2)
         },
         overrideFlags: SETTINGS_APP_WINDOW_FLAGS
@@ -270,73 +272,6 @@ function toggleHelpApp() {
     helpAppWindow.closed.connect(onHelpAppClosed);
 }
 
-function updateEmoteAppBarPosition() {
-    if (!emoteAppBarWindow) {
-        return;
-    }
-
-    emoteAppBarWindow.position = {
-        x: Window.x + EMOTE_APP_BAR_LEFT_MARGIN,
-        y: Window.y + Window.innerHeight - EMOTE_APP_BAR_BOTTOM_MARGIN
-    };
-}
-
-
-var EMOTE_APP_BAR_MESSAGE_SOURCE = "EmoteAppBar.qml";
-function onMessageFromEmoteAppBar(message) {
-    if (message.source !== EMOTE_APP_BAR_MESSAGE_SOURCE) {
-        return;
-    }
-
-    switch (message.method) {
-            
-        default:
-            console.log("Unrecognized message from " + EMOTE_APP_BAR_MESSAGE_SOURCE + ": " + JSON.stringify(message));
-            break;
-    }
-}
-
-
-function onEmoteAppBarClosed() {
-    if (emoteAppBarWindow) {
-        emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
-        emoteAppBarWindow.closed.disconnect(onEmoteAppClosed);
-    }
-    emoteAppBarWindow = false;
-}
-
-
-var EMOTE_APP_BAR_QML_PATH = Script.resourcesPath() + "qml/hifi/simplifiedUI/emoteApp/bar/EmoteAppBar.qml";
-var EMOTE_APP_BAR_WINDOW_TITLE = "Emote";
-var EMOTE_APP_BAR_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
-var EMOTE_APP_BAR_WIDTH_PX = 48;
-var EMOTE_APP_BAR_HEIGHT_PX = 48;
-var EMOTE_APP_BAR_LEFT_MARGIN = 48;
-var EMOTE_APP_BAR_BOTTOM_MARGIN = 48;
-var EMOTE_APP_BAR_WINDOW_FLAGS = 0x00000001 | // Qt::Window
-    0x00000800 | // Qt::FramelessWindowHint
-    0x40000000 | // Qt::NoDropShadowWindowHint
-    0x00200000; // Qt::WindowDoesNotAcceptFocus
-var emoteAppBarWindow = false;
-function showEmoteAppBar() {
-    emoteAppBarWindow = Desktop.createWindow(EMOTE_APP_BAR_QML_PATH, {
-        title: EMOTE_APP_BAR_WINDOW_TITLE,
-        presentationMode: EMOTE_APP_BAR_PRESENTATION_MODE,
-        size: {
-            x: EMOTE_APP_BAR_WIDTH_PX,
-            y: EMOTE_APP_BAR_HEIGHT_PX
-        },
-        position: {
-            x: Window.x + EMOTE_APP_BAR_LEFT_MARGIN,
-            y: Window.y + Window.innerHeight - EMOTE_APP_BAR_BOTTOM_MARGIN
-        },
-        overrideFlags: EMOTE_APP_BAR_WINDOW_FLAGS
-    });
-
-    emoteAppBarWindow.fromQml.connect(onMessageFromEmoteAppBar);
-    emoteAppBarWindow.closed.connect(onEmoteAppBarClosed);
-}
-
 
 function maybeDeleteOutputDeviceMutedOverlay() {
     if (outputDeviceMutedOverlay) {
@@ -348,28 +283,21 @@ function maybeDeleteOutputDeviceMutedOverlay() {
 
 var outputDeviceMutedOverlay = false;
 var OUTPUT_DEVICE_MUTED_OVERLAY_DEFAULT_DIMS_PX = 300;
-var OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX = 20;
-var OUTPUT_DEVICE_MUTED_MARGIN_LEFT_RIGHT_PX = 20;
+var OUTPUT_DEVICE_MUTED_OVERLAY_DEFAULT_MARGINS_PX = 20;
+var OUTPUT_DEVICE_MUTED_DIMS_RATIO_TO_WINDOW_SIZE = 0.8;
 function updateOutputDeviceMutedOverlay(isMuted) {
     if (isMuted) {
         var props = {
             imageURL: Script.resolvePath("images/outputDeviceMuted.svg"),
             alpha: 0.5
         };
+
         var overlayDims = OUTPUT_DEVICE_MUTED_OVERLAY_DEFAULT_DIMS_PX;
-        props.x = Window.innerWidth / 2 - overlayDims / 2;
-        props.y = Window.innerHeight / 2 - overlayDims / 2;
+        var overlayWithMarginsDims = overlayDims + 2 * OUTPUT_DEVICE_MUTED_OVERLAY_DEFAULT_MARGINS_PX;
 
-        var outputDeviceMutedOverlayBottomY = props.y + overlayDims;
-        var inputDeviceMutedOverlayTopY = getInputDeviceMutedOverlayTopY();
-        if (outputDeviceMutedOverlayBottomY + OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX > inputDeviceMutedOverlayTopY) {
-            overlayDims = 2 * (inputDeviceMutedOverlayTopY - Window.innerHeight / 2 - OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX);
-        }
-
-        if (overlayDims + OUTPUT_DEVICE_MUTED_MARGIN_LEFT_RIGHT_PX > Window.innerWidth) {
-            overlayDims = Math.min(Window.innerWidth - OUTPUT_DEVICE_MUTED_MARGIN_LEFT_RIGHT_PX, overlayDims);
-        } else {
-            overlayDims = Math.min(OUTPUT_DEVICE_MUTED_OVERLAY_DEFAULT_DIMS_PX, overlayDims);
+        if  (overlayWithMarginsDims > Window.innerHeight || overlayWithMarginsDims > Window.innerWidth) {
+            var minWindowDims = Math.min(Window.innerHeight,  Window.innerWidth);
+            overlayDims = Math.round(minWindowDims * OUTPUT_DEVICE_MUTED_DIMS_RATIO_TO_WINDOW_SIZE);
         }
 
         props.width = overlayDims;
@@ -423,6 +351,124 @@ function setOutputMuted(outputMuted) {
     }
 }
 
+var TOP_BAR_HEIGHT_PX = 48;
+var INITIAL_LAUNCH_QML_PATH = Script.resolvePath("./simplifiedFTUE/InitialLaunchWindow.qml");
+var INITIAL_LAUNCH_WINDOW_TITLE = "Initial Launch";
+var INITIAL_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
+var INITIAL_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+0x00000008 | // Qt::Popup
+0x00000002 | // Qt::Tool
+0x00000800 | // Qt::FramelessWindowHint
+0x40000000; // Qt::NoDropShadowWindowHint
+var initialLaunchWindow = false;
+function displayInitialLaunchWindow() {
+    if (initialLaunchWindow) {
+        return;
+    }
+
+    simplifiedEmote.handleFTUEScreensVisibilityChanged(true);
+
+    initialLaunchWindow = Desktop.createWindow(INITIAL_LAUNCH_QML_PATH, {
+        title: INITIAL_LAUNCH_WINDOW_TITLE,
+        presentationMode: INITIAL_LAUNCH_PRESENTATION_MODE,
+        isFullScreenWindow: true,
+        overrideFlags: INITIAL_WINDOW_FLAGS
+    });
+
+    initialLaunchWindow.fromQml.connect(onMessageFromInitialLaunchWindow);
+
+    Window.location = "file:///~/serverless/empty.json";
+}
+
+var SECOND_LAUNCH_QML_PATH = Script.resolvePath("simplifiedFTUE/SecondLaunchWindow.qml");
+var SECOND_LAUNCH_WINDOW_TITLE = "Second Launch";
+var SECOND_LAUNCH_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
+var SECOND_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+0x00000008 | // Qt::Popup
+0x00000002 | // Qt::Tool
+0x00000800 | // Qt::FramelessWindowHint
+0x40000000; // Qt::NoDropShadowWindowHint
+var secondLaunchWindow = false;
+function displaySecondLaunchWindow() {
+    if (secondLaunchWindow) {
+        return;
+    }
+
+    simplifiedEmote.handleFTUEScreensVisibilityChanged(true);
+
+    secondLaunchWindow = Desktop.createWindow(SECOND_LAUNCH_QML_PATH, {
+        title: SECOND_LAUNCH_WINDOW_TITLE,
+        presentationMode: SECOND_LAUNCH_PRESENTATION_MODE,
+        isFullScreenWindow: true,
+        overrideFlags: SECOND_WINDOW_FLAGS
+    });
+
+    secondLaunchWindow.fromQml.connect(onMessageFromSecondLaunchWindow);
+
+    Window.location = "file:///~/serverless/empty.json";
+}
+
+function closeInitialLaunchWindow() {
+    if (initialLaunchWindow) {
+        initialLaunchWindow.fromQml.disconnect(onMessageFromInitialLaunchWindow);
+        initialLaunchWindow.close();
+        initialLaunchWindow = null;
+    }
+
+    simplifiedEmote.handleFTUEScreensVisibilityChanged(false);
+}
+
+function closeSecondLaunchWindow() {
+    if (secondLaunchWindow) {
+        secondLaunchWindow.fromQml.disconnect(onMessageFromSecondLaunchWindow);
+        secondLaunchWindow.close();
+        secondLaunchWindow = null;
+    }
+
+    simplifiedEmote.handleFTUEScreensVisibilityChanged(false);
+}
+
+var INITIAL_LAUNCH_WINDOW_MESSAGE_SOURCE = "InitialLaunchWindow.qml";
+function onMessageFromInitialLaunchWindow(message) {
+    if (message.source !== INITIAL_LAUNCH_WINDOW_MESSAGE_SOURCE) {
+        return;
+    }
+
+    switch (message.method) {
+        case "closeInitialLaunchWindow":
+            closeInitialLaunchWindow();
+            var homeLocation = LocationBookmarks.getAddress("hqhome");
+            if (homeLocation) {
+                Window.location = homeLocation;
+            }
+            break;
+
+        default:
+            console.log("Unrecognized message from " + INITIAL_LAUNCH_WINDOW_MESSAGE_SOURCE + ": " + JSON.stringify(message));
+            break;
+    }
+}
+
+var SECOND_LAUNCH_WINDOW_MESSAGE_SOURCE = "SecondLaunchWindow.qml";
+function onMessageFromSecondLaunchWindow(message) {
+    if (message.source !== SECOND_LAUNCH_WINDOW_MESSAGE_SOURCE) {
+        return;
+    }
+
+    switch (message.method) {
+        case "closeSecondLaunchWindow":
+            closeSecondLaunchWindow();
+            var homeLocation = LocationBookmarks.getAddress("hqhome");
+            if (homeLocation) {
+                Window.location = homeLocation;
+            }
+            break;
+
+        default:
+            console.log("Unrecognized message from " + SECOND_LAUNCH_WINDOW_MESSAGE_SOURCE + ": " + JSON.stringify(message));
+            break;
+    }
+}
 
 var WAIT_FOR_TOP_BAR_MS = 1000;
 function sendLocalStatusToQml() {
@@ -447,7 +493,6 @@ function onMessageFromTopBar(message) {
     if (message.source !== TOP_BAR_MESSAGE_SOURCE) {
         return;
     }
-
     switch (message.method) {
         case "toggleAvatarApp":
             toggleAvatarApp();
@@ -467,6 +512,14 @@ function onMessageFromTopBar(message) {
 
         case "toggleStatus":
             si.toggleStatus();
+            break;
+
+        case "displayInitialLaunchWindow":
+            displayInitialLaunchWindow();
+            break;
+
+        case "displaySecondLaunchWindow":
+            displaySecondLaunchWindow();
             break;
 
         default:
@@ -497,7 +550,6 @@ var TOP_BAR_QML_PATH = Script.resourcesPath() + "qml/hifi/simplifiedUI/topBar/Si
 var TOP_BAR_WINDOW_TITLE = "Simplified Top Bar";
 var TOP_BAR_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var TOP_BAR_WIDTH_PX = Window.innerWidth;
-var TOP_BAR_HEIGHT_PX = 48;
 var topBarWindow = false;
 function loadSimplifiedTopBar() {
     var windowProps = {
@@ -508,16 +560,9 @@ function loadSimplifiedTopBar() {
             y: TOP_BAR_HEIGHT_PX
         }
     };
-    if (DOCKED_QML_SUPPORTED) {
-        windowProps.presentationWindowInfo = {
-            dockArea: Desktop.DockArea.TOP
-        };
-    } else {
-        windowProps.position = {
-            x: Window.x,
-            y: Window.y
-        };
-    }
+    windowProps.presentationWindowInfo = {
+        dockArea: Desktop.DockArea.TOP
+    };
     topBarWindow = Desktop.createWindow(TOP_BAR_QML_PATH, windowProps);
 
     topBarWindow.fromQml.connect(onMessageFromTopBar);
@@ -539,15 +584,11 @@ function maybeDeleteInputDeviceMutedOverlay() {
 }
 
 
-function getInputDeviceMutedOverlayTopY() {
-    return (Window.innerHeight - INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX - INPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX);
-}
-
-
 var inputDeviceMutedOverlay = false;
-var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX = 353;
-var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX = 95;
-var INPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX = 20 + TOP_BAR_HEIGHT_PX;
+var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX = 237;
+var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX = 64;
+var INPUT_DEVICE_MUTED_MARGIN_LEFT_PX = 20;
+var INPUT_DEVICE_MUTED_MARGIN_TOP_PX = 20;
 function updateInputDeviceMutedOverlay(isMuted) {
     if (isMuted) {
         var props = {
@@ -556,8 +597,8 @@ function updateInputDeviceMutedOverlay(isMuted) {
         };
         props.width = INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX;
         props.height = INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX;
-        props.x = Window.innerWidth / 2 - INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX / 2;
-        props.y = getInputDeviceMutedOverlayTopY();
+        props.x = INPUT_DEVICE_MUTED_MARGIN_LEFT_PX;
+        props.y = INPUT_DEVICE_MUTED_MARGIN_TOP_PX;
         if (inputDeviceMutedOverlay) {
             Overlays.editOverlay(inputDeviceMutedOverlay, props);
         } else {
@@ -586,29 +627,53 @@ function onHMDInputDeviceMutedChanged(isMuted) {
 function onGeometryChanged(rect) {
     updateInputDeviceMutedOverlay(Audio.muted);
     updateOutputDeviceMutedOverlay(isOutputMuted());
-    if (topBarWindow && !DOCKED_QML_SUPPORTED) {
-        topBarWindow.size = {
-            "x": rect.width,
-            "y": TOP_BAR_HEIGHT_PX
-        };
-        topBarWindow.position = {
-            "x": rect.x,
-            "y": rect.y
-        };
-    }
+}
 
-    updateEmoteAppBarPosition();
+var initialLaunchWindowIsMinimized = false;
+var secondLaunchWindowIsMinimized = false;
+function onWindowMinimizedChanged(isMinimized) {
+    if (isMinimized) {
+        handleInitialLaunchWindowVisibleChanged(false);
+        handleSecondLaunchWindowVisibleChanged(false);
+    } else if (!HMD.active) {
+        handleInitialLaunchWindowVisibleChanged(true);
+        handleSecondLaunchWindowVisibleChanged(true);
+    }
+}
+
+function handleInitialLaunchWindowVisibleChanged(shouldBeVisible) {
+    if (shouldBeVisible && !initialLaunchWindow && initialLaunchWindowIsMinimized) {
+        displayInitialLaunchWindow();
+        initialLaunchWindowIsMinimized = false;
+    } else if (!shouldBeVisible && initialLaunchWindow) {
+        closeInitialLaunchWindow();
+        initialLaunchWindowIsMinimized = true;
+    }
+}
+
+function handleSecondLaunchWindowVisibleChanged(shouldBeVisible) {
+    if (shouldBeVisible && !secondLaunchWindow && secondLaunchWindowIsMinimized) {
+        displaySecondLaunchWindow();
+        secondLaunchWindowIsMinimized = false;
+    } else if (!shouldBeVisible && secondLaunchWindow) {
+        closeSecondLaunchWindow();
+        secondLaunchWindowIsMinimized = true;
+    }
 }
 
 function onDisplayModeChanged(isHMDMode) {
     if (isHMDMode) {
-        Camera.setModeString("first person");
+        Camera.setModeString("first person look at");
     }
 
     if (isHMDMode) {
         onHMDInputDeviceMutedChanged(Audio.mutedHMD);
+        handleInitialLaunchWindowVisibleChanged(false);
+        handleSecondLaunchWindowVisibleChanged(false);
     } else {
         onDesktopInputDeviceMutedChanged(Audio.mutedDesktop);
+        handleInitialLaunchWindowVisibleChanged(true);
+        handleSecondLaunchWindowVisibleChanged(true);
     }
 }
 
@@ -651,9 +716,9 @@ function restoreLODSettings() {
 }
 
 
-var simplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
-var SimplifiedStatusIndicator = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
-var si;
+var nametag = Script.require("./simplifiedNametag/simplifiedNametag.js");
+var si = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js");
+var simplifiedEmote = Script.require("../simplifiedEmote/simplifiedEmote.js");
 var oldShowAudioTools;
 var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);
@@ -672,16 +737,15 @@ function startup() {
 
     loadSimplifiedTopBar();
 
-    simplifiedNametag.create();
-    si = new SimplifiedStatusIndicator({
-        statusChanged: onStatusChanged
-    });
-    si.startup();
+    
+    si.updateProperties({ statusChanged: onStatusChanged });
+
     updateInputDeviceMutedOverlay(Audio.muted);
     updateOutputDeviceMutedOverlay(isOutputMuted());
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
     Audio.mutedHMDChanged.connect(onHMDInputDeviceMutedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
+    Window.minimizedChanged.connect(onWindowMinimizedChanged);
     HMD.displayModeChanged.connect(onDisplayModeChanged);
     Audio.avatarGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.localInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
@@ -693,10 +757,6 @@ function startup() {
     AvatarInputs.showAudioTools = false;
     oldShowBubbleTools = AvatarInputs.showBubbleTools;
     AvatarInputs.showBubbleTools = false;
-
-    if (SHOW_PROTOTYPE_EMOTE_APP) {
-        showEmoteAppBar();
-    }
 }
 
 
@@ -704,7 +764,6 @@ function shutdown() {
     restoreLODSettings();
 
     if (!keepExistingUIAndScriptsSetting) {
-        console.log("The Simplified UI script has been shut down. If you notice any strangeness with user interface, please restart this application.");
 
         if (!HMD.active) {
             var toolbar = Toolbars.getToolbar(TOOLBAR_NAME);
@@ -726,19 +785,21 @@ function shutdown() {
         settingsAppWindow.close();
     }
 
-    if (emoteAppBarWindow) {
-        emoteAppBarWindow.close();
+    if (initialLaunchWindow) {
+        closeInitialLaunchWindow();
+    }
+
+    if (secondLaunchWindow) {
+        closeSecondLaunchWindow();
     }
 
     maybeDeleteInputDeviceMutedOverlay();
     maybeDeleteOutputDeviceMutedOverlay();
 
-    simplifiedNametag.destroy();
-    si.unload();
-
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
     Audio.mutedHMDChanged.disconnect(onHMDInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
+    Window.minimizedChanged.disconnect(onWindowMinimizedChanged);
     HMD.displayModeChanged.disconnect(onDisplayModeChanged);
     Audio.avatarGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.localInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);

@@ -1275,9 +1275,9 @@ public:
      * @param {number} [scale=1.0] - The scale to apply to the model.
      * @param {boolean} [isSoft=false] -  If the model has a skeleton, set this to <code>true</code> so that the bones of the 
      *     attached model's skeleton are rotated to fit the avatar's current pose. <code>isSoft</code> is used, for example, 
-     *     to have clothing that moves with the avatar.<br />
-     *     If <code>true</code>, the <code>translation</code>, <code>rotation</code>, and <code>scale</code> parameters are 
-     *     ignored.
+     *     to have clothing that moves with the avatar.
+     *     <p>If <code>true</code>, the <code>translation</code>, <code>rotation</code>, and <code>scale</code> parameters are 
+     *     ignored.</p>
      * @param {boolean} [allowDuplicates=false] - If <code>true</code> then more than one copy of any particular model may be 
      *     attached to the same joint; if <code>false</code> then the same model cannot be attached to the same joint.
      * @param {boolean} [useSaved=true] - <em>Not used.</em>

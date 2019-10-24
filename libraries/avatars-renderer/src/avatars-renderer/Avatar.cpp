@@ -108,9 +108,19 @@ void Avatar::setShowMyLookAtVectors(bool showMine) {
     showMyLookAtVectors = showMine;
 }
 
+static bool showMyLookAtTarget = false;
+void Avatar::setShowMyLookAtTarget(bool showMine) {
+    showMyLookAtTarget = showMine;
+}
+
 static bool showOtherLookAtVectors = false;
 void Avatar::setShowOtherLookAtVectors(bool showOthers) {
     showOtherLookAtVectors = showOthers;
+}
+
+static bool showOtherLookAtTarget = false;
+void Avatar::setShowOtherLookAtTarget(bool showOthers) {
+    showOtherLookAtTarget = showOthers;
 }
 
 static bool showCollisionShapes = false;
@@ -123,7 +133,21 @@ void Avatar::setShowNamesAboveHeads(bool show) {
     showNamesAboveHeads = show;
 }
 
+static const char* avatarTransitStatusToStringMap[] = {
+    "IDLE",
+    "STARTED",
+    "PRE_TRANSIT",
+    "START_TRANSIT",
+    "TRANSITING",
+    "END_TRANSIT",
+    "POST_TRANSIT",
+    "ENDED",
+    "ABORT_TRANSIT"
+};
+
 AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
+    AvatarTransit::Status previousStatus = _status;
+
     float oneFrameDistance = _isActive ? glm::length(avatarPosition - _endPosition) : glm::length(avatarPosition - _lastPosition);
     if (oneFrameDistance > (config._minTriggerDistance * _scale)) {
         if (oneFrameDistance < (config._maxTriggerDistance * _scale)) {
@@ -131,7 +155,7 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
         } else {
             _lastPosition = avatarPosition;
             _status = Status::ABORT_TRANSIT;
-        }        
+        }
     }
     _lastPosition = avatarPosition;
     _status = updatePosition(deltaTime);
@@ -140,7 +164,17 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
         reset();
         _status = Status::ENDED;
     }
+
+    if (previousStatus != _status) {
+        qDebug(avatars_renderer) << "AvatarTransit " << avatarTransitStatusToStringMap[(int)previousStatus] << "->" << avatarTransitStatusToStringMap[_status];
+    }
     return _status;
+}
+
+void AvatarTransit::slamPosition(const glm::vec3& avatarPosition) {
+    // used to instantly teleport between two points without triggering a change in status.
+    _lastPosition = avatarPosition;
+    _endPosition = avatarPosition;
 }
 
 void AvatarTransit::reset() {
@@ -148,6 +182,7 @@ void AvatarTransit::reset() {
     _currentPosition = _endPosition;
     _isActive = false;
 }
+
 void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const AvatarTransit::TransitConfig& config) {
     _startPosition = startPosition;
     _endPosition = endPosition;
@@ -192,8 +227,8 @@ AvatarTransit::Status AvatarTransit::updatePosition(float deltaTime) {
             status = Status::PRE_TRANSIT;
             if (_currentTime == 0) {
                 status = Status::STARTED;
-            } 
-        } else if (nextTime < _totalTime - _postTransitTime){
+            }
+        } else if (nextTime < _totalTime - _postTransitTime) {
             status = Status::TRANSITING;
             if (_currentTime <= _preTransitTime) {
                 status = Status::START_TRANSIT;
@@ -510,7 +545,7 @@ void Avatar::relayJointDataToChildren() {
 }
 
 /**jsdoc
- * An avatar has different types of data simulated at different rates, in Hz.
+ * <p>An avatar has different types of data simulated at different rates, in Hz.</p>
  *
  * <table>
  *   <thead>
@@ -519,10 +554,10 @@ void Avatar::relayJointDataToChildren() {
  *   <tbody>
  *     <tr><td><code>"avatar" or ""</code></td><td>The rate at which the avatar is updated even if not in view.</td></tr>
  *     <tr><td><code>"avatarInView"</code></td><td>The rate at which the avatar is updated if in view.</td></tr>
- *     <tr><td><code>"skeletonModel"</code></td><td>The rate at which the skeleton model is being updated, even if there are no 
+ *     <tr><td><code>"skeletonModel"</code></td><td>The rate at which the skeleton model is being updated, even if there are no
  *       joint data available.</td></tr>
  *     <tr><td><code>"jointData"</code></td><td>The rate at which joint data are being updated.</td></tr>
- *     <tr><td><code>""</code></td><td>When no rate name is specified, the <code>"avatar"</code> update rate is 
+ *     <tr><td><code>""</code></td><td>When no rate name is specified, the <code>"avatar"</code> update rate is
  *       provided.</td></tr>
  *   </tbody>
  * </table>
@@ -557,6 +592,7 @@ void Avatar::slamPosition(const glm::vec3& newPosition) {
     _positionDeltaAccumulator = glm::vec3(0.0f);
     setWorldVelocity(glm::vec3(0.0f));
     _lastVelocity = glm::vec3(0.0f);
+    _transit.slamPosition(newPosition);
 }
 
 void Avatar::updateAttitude(const glm::quat& orientation) {
@@ -703,6 +739,14 @@ void Avatar::updateRenderItem(render::Transaction& transaction) {
 
 void Avatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
+    if (isMyAvatar() ? showMyLookAtTarget : showOtherLookAtTarget) {
+        glm::vec3 lookAtTarget = getHead()->getLookAtPosition();
+        DebugDraw::getInstance().addMarker(QString("look-at-") + getID().toString(),
+                                           glm::quat(), lookAtTarget, glm::vec4(1), 1.0f);
+    } else {
+        DebugDraw::getInstance().removeMarker(QString("look-at-") + getID().toString());
+    }
+
     if (isMyAvatar() ? showMyLookAtVectors : showOtherLookAtVectors) {
         const float EYE_RAY_LENGTH = 10.0;
         const glm::vec4 BLUE(0.0f, 0.0f, _lookAtSnappingEnabled ? 1.0f : 0.25f, 1.0f);
@@ -810,7 +854,8 @@ void Avatar::render(RenderArgs* renderArgs) {
         float distanceToTarget = glm::length(toTarget);
         const float DISPLAYNAME_DISTANCE = 20.0f;
         updateDisplayNameAlpha(distanceToTarget < DISPLAYNAME_DISTANCE);
-        if (!isMyAvatar() || renderArgs->_cameraMode != (int8_t)CAMERA_MODE_FIRST_PERSON) {
+        if (!isMyAvatar() || !(renderArgs->_cameraMode == (int8_t)CAMERA_MODE_FIRST_PERSON_LOOK_AT
+                          || renderArgs->_cameraMode == (int8_t)CAMERA_MODE_FIRST_PERSON)) {
             auto& frustum = renderArgs->getViewFrustum();
             auto textPosition = getDisplayNamePosition();
             if (frustum.pointIntersectsFrustum(textPosition)) {
@@ -1533,7 +1578,7 @@ void Avatar::setModelURLFinished(bool success) {
             QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
                 Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
         } else {
-            qCWarning(avatars_renderer) << "Avatar model failed to load... attempts:" 
+            qCWarning(avatars_renderer) << "Avatar model failed to load... attempts:"
                 << _skeletonModel->getResourceDownloadAttempts() << "out of:" << MAX_SKELETON_DOWNLOAD_ATTEMPTS;
         }
     }

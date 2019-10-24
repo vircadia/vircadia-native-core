@@ -375,6 +375,18 @@ namespace scriptable {
         }
 
         if (material.model.toStdString() == graphics::Material::HIFI_PBR) {
+            if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OPACITY_CUTOFF_VAL_BIT)) {
+                obj.setProperty("opacityCutoff", FALLTHROUGH);
+            } else if (material.key.isOpacityCutoff()) {
+                obj.setProperty("opacityCutoff", material.opacityCutoff);
+            }
+
+            if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OPACITY_MAP_MODE_BIT)) {
+                obj.setProperty("opacityMapMode", FALLTHROUGH);
+            } else if (material.key.isOpacityMapMode()) {
+                obj.setProperty("opacityMapMode", material.opacityMapMode);
+            }
+
             if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::GLOSSY_VAL_BIT)) {
                 obj.setProperty("roughness", FALLTHROUGH);
             } else if (material.key.isGlossy()) {

@@ -38,6 +38,7 @@
 
 #include <QtScriptTools/QScriptEngineDebugger>
 
+#include <shared/LocalFileAccessGate.h>
 #include <shared/QtHelpers.h>
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
@@ -236,6 +237,11 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
     }
 }
 
+QString ScriptEngine::getTypeAsString() const {
+    auto value = QVariant::fromValue(_type).toString();
+    return value.isEmpty() ? "unknown" : value.toLower();
+}
+
 QString ScriptEngine::getContext() const {
     switch (_context) {
         case CLIENT_SCRIPT:
@@ -422,6 +428,12 @@ void ScriptEngine::waitTillDoneRunning() {
             if (isEvaluating()) {
                 qCWarning(scriptengine) << "Script Engine has been running too long, aborting:" << getFilename();
                 abortEvaluation();
+            } else {
+                auto context = currentContext();
+                if (context) {
+                    qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
+                    context->throwError("Timed out during shutdown");
+                }
             }
 
             // Wait for the scripting thread to stop running, as
@@ -444,9 +456,9 @@ void ScriptEngine::waitTillDoneRunning() {
                     qCWarning(scriptengine) << "Script Engine has been running too long, aborting:" << getFilename();
                     abortEvaluation();
                 } else {
-                    qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
                     auto context = currentContext();
                     if (context) {
+                        qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
                         context->throwError("Timed out during shutdown");
                     }
                 }
@@ -1015,8 +1027,8 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         };
 
         /**jsdoc
-         * The name of an entity event. When the entity event occurs, any function that has been registered for that event via 
-         * {@link Script.addEventHandler} is called with parameters per the entity event.
+         * <p>The name of an entity event. When the entity event occurs, any function that has been registered for that event via 
+         * {@link Script.addEventHandler} is called with parameters per the entity event.</p>
          * <table>
          *   <thead>
          *     <tr><th>Event Name</th><th>Entity Event</th></tr>
@@ -1117,6 +1129,12 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
 }
 
 void ScriptEngine::run() {
+    if (QThread::currentThread() != qApp->thread() && _context == Context::CLIENT_SCRIPT) {
+        // Flag that we're allowed to access local HTML files on UI created from C++ calls on this thread
+        // (because we're a client script)
+        hifi::scripting::setLocalAccessSafeThread(true);
+    }
+
     auto filenameParts = _fileNameString.split("/");
     auto name = filenameParts.size() > 0 ? filenameParts[filenameParts.size() - 1] : "unknown";
     PROFILE_SET_THREAD_NAME("Script: " + name);
@@ -1294,6 +1312,9 @@ void ScriptEngine::run() {
 
     emit finished(_fileNameString, qSharedPointerCast<ScriptEngine>(sharedFromThis()));
 
+    // Don't leave our local-file-access flag laying around, reset it to false when the scriptengine 
+    // thread is finished
+    hifi::scripting::setLocalAccessSafeThread(false);
     _isRunning = false;
     emit runningStateChanged();
     emit doneRunning();
@@ -2204,7 +2225,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
 /**jsdoc
  * Triggered when the script starts for a user. See also, {@link Script.entityScriptPreloadFinished}.
  * <p>Note: Can only be connected to via <code>this.preload = function (...) { ... }</code> in the entity script.</p>
- * <table><tr><th>Available in:</th><td>Client Entity Scripts</td><td>Server Entity Scripts</td></tr></table>
+ * <p class="availableIn"><strong>Supported Script Types:</strong> Client Entity Scripts &bull; Server Entity Scripts</p>
  * @function Entities.preload
  * @param {Uuid} entityID - The ID of the entity that the script is running in.
  * @returns {Signal}
@@ -2410,7 +2431,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 /**jsdoc
  * Triggered when the script terminates for a user.
  * <p>Note: Can only be connected to via <code>this.unoad = function () { ... }</code> in the entity script.</p>
- * <table><tr><th>Available in:</th><td>Client Entity Scripts</td><td>Server Entity Scripts</td></tr></table>
+ * <p class="availableIn"><strong>Supported Script Types:</strong> Client Entity Scripts &bull; Server Entity Scripts</p>
  * @function Entities.unload
  * @param {Uuid} entityID - The ID of the entity that the script is running in.
  * @returns {Signal}

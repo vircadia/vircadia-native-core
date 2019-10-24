@@ -128,6 +128,10 @@ void AnimStateMachine::switchState(const AnimVariantMap& animVars, const AnimCon
     auto prevStateNode = _children[_currentState->getChildIndex()];
     auto nextStateNode = _children[desiredState->getChildIndex()];
 
+    // activate/deactivate states
+    prevStateNode->setActive(false);
+    nextStateNode->setActive(true);
+
     bool interpActive = _duringInterp;
     _duringInterp = true;
     _alpha = 0.0f;

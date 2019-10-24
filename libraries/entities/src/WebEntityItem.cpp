@@ -15,6 +15,7 @@
 
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
+#include <shared/LocalFileAccessGate.h>
 
 #include "EntitiesLogging.h"
 #include "EntityItemProperties.h"
@@ -31,6 +32,9 @@ EntityItemPointer WebEntityItem::factory(const EntityItemID& entityID, const Ent
 }
 
 WebEntityItem::WebEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
+    // this initialzation of localSafeContext is reading a thread-local variable and that is depends on
+    // the ctor being executed on the same thread as the script, assuming it's being create by a script
+    _localSafeContext = hifi::scripting::isLocalAccessSafeThread();
     _type = EntityTypes::Web;
 }
 
@@ -238,6 +242,12 @@ void WebEntityItem::setColor(const glm::u8vec3& value) {
 glm::u8vec3 WebEntityItem::getColor() const {
     return resultWithReadLock<glm::u8vec3>([&] {
         return _color;
+    });
+}
+
+bool WebEntityItem::getLocalSafeContext() const {
+    return resultWithReadLock<bool>([&] {
+        return _localSafeContext;
     });
 }
 

@@ -52,7 +52,8 @@ void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 albedo, float r
 }
 
 void packDeferredFragmentUnlit(vec3 normal, float alpha, vec3 color) {
-    if (alpha < 1.0) {
+    // to reduce texel flickering for floating point error we discard when alpha is "almost one"
+    if (alpha < 0.999999) {
         discard;
     }
     _fragColor0 = vec4(color, packUnlit());

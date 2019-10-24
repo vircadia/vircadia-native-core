@@ -24,6 +24,10 @@ public:
     ~MainWindow();
 
     static QWindow* findMainWindow();
+
+    // This offset is used for positioning children window relative to the main window.
+    void setDockedWidgetRelativePositionOffset(const QSize& newOffset) { _dockedWidgetRelativePositionOffset.setWidth(newOffset.width()); _dockedWidgetRelativePositionOffset.setHeight(newOffset.height()); }
+    QSize getDockedWidgetRelativePositionOffset() { return _dockedWidgetRelativePositionOffset; }
 public slots:
     void restoreGeometry();
     void saveGeometry();
@@ -46,6 +50,7 @@ protected:
 private:
     Setting::Handle<QRect> _windowGeometry;
     Setting::Handle<int> _windowState;
+    QSize _dockedWidgetRelativePositionOffset{ 0, 0 };
 };
 
 #endif /* defined(__hifi__MainWindow__) */

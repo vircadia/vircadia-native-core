@@ -210,6 +210,8 @@ private:
     std::function<RayToEntityIntersectionResult(unsigned int)> _getPrevRayPickResultOperator;
     std::function<void(unsigned int, bool)> _setPrecisionPickingOperator;
 
+    bool _mouseAndPreloadSignalHandlersConnected { false };
+
     class LayeredZone {
     public:
         LayeredZone(std::shared_ptr<ZoneEntityItem> zone) : zone(zone), id(zone->getID()), volume(zone->getVolumeEstimate()) {}

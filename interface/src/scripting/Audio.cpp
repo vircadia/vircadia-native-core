@@ -101,6 +101,10 @@ void Audio::setMutedDesktop(bool isMuted) {
             }
         }
     });
+    if (!isMuted && _settingsLoaded && !_pushingToTalk) {
+        // If the user is not pushing to talk and muted is changed to false, disable Push-To-Talk. Settings also need to be loaded.
+        setPTTDesktop(isMuted);
+    }
     if (changed) {
         if (!isHMD) {
             emit mutedChanged(isMuted);
@@ -128,6 +132,10 @@ void Audio::setMutedHMD(bool isMuted) {
             }
         }
     });
+    if (!isMuted && _settingsLoaded && !_pushingToTalk) {
+        // If the user is not pushing to talk and muted is changed to false, disable Push-To-Talk. Settings also need to be loaded.
+        setPTTHMD(isMuted);
+    }
     if (changed) {
         if (isHMD) {
             emit mutedChanged(isMuted);
@@ -187,9 +195,9 @@ void Audio::setPTTDesktop(bool enabled) {
             _pttDesktop = enabled;
         }
     });
-    if (enabled || _settingsLoaded) {
+    if (enabled && _settingsLoaded) {
         // Set to default behavior (muted for Desktop) on Push-To-Talk disable or when enabled. Settings also need to be loaded.
-        setMutedDesktop(true);
+        setMutedDesktop(enabled);
     }
     if (changed) {
         emit pushToTalkChanged(enabled);
@@ -211,7 +219,7 @@ void Audio::setPTTHMD(bool enabled) {
             _pttHMD = enabled;
         }
     });
-    if (enabled || _settingsLoaded) {
+    if (enabled && _settingsLoaded) {
         // Set to default behavior (unmuted for HMD) on Push-To-Talk disable or muted for when PTT is enabled.
         setMutedHMD(enabled);
     }
@@ -432,13 +440,13 @@ void Audio::handlePushedToTalk(bool enabled) {
     }
 }
 
-void Audio::setInputDevice(const QAudioDeviceInfo& device, bool isHMD) {
+void Audio::setInputDevice(const HifiAudioDeviceInfo& device, bool isHMD) {
     withWriteLock([&] {
         _devices.chooseInputDevice(device, isHMD);
     });
 }
 
-void Audio::setOutputDevice(const QAudioDeviceInfo& device, bool isHMD) {
+void Audio::setOutputDevice(const HifiAudioDeviceInfo& device, bool isHMD) {
     withWriteLock([&] {
         _devices.chooseOutputDevice(device, isHMD);
     });

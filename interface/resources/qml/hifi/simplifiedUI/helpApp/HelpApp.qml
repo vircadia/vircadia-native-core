@@ -16,6 +16,7 @@ import stylesUit 1.0 as HifiStylesUit
 import "./controls" as HelpControls
 import "./faq" as HelpFAQ
 import "./about" as HelpAbout
+import "./support" as HelpSupport
 
 Rectangle {
     property string activeTabView: "controlsTabView"
@@ -58,6 +59,10 @@ Rectangle {
             ListElement {
                 tabTitle: "Controls"
                 tabViewName: "controlsTabView"
+            }
+            ListElement {
+                tabTitle: "Support"
+                tabViewName: "supportTabView"
             }
             ListElement {
                 tabTitle: "FAQ"
@@ -139,6 +144,12 @@ Rectangle {
             anchors.fill: parent
         }
 
+        HelpSupport.HelpSupport {
+            id: supportTabViewContainer
+            visible: activeTabView === "supportTabView"
+            anchors.fill: parent
+        }
+
         HelpFAQ.HelpFAQ {
             id: faqTabViewContainer
             visible: activeTabView === "faqTabView"
@@ -159,6 +170,8 @@ Rectangle {
             parent: {
                 if (activeTabView === "controlsTabView") {
                     controlsTabViewContainer
+                } else if (activeTabView === "supportTabView") {
+                    supportTabViewContainer
                 } else if (activeTabView === "faqTabView") {
                     faqTabViewContainer
                 } else if (activeTabView === "aboutTabView") {

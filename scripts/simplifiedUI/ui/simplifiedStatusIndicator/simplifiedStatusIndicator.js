@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-function simplifiedStatusIndicator(properties) {
+function SimplifiedStatusIndicator() {
     var that = this;
     var DEBUG = false;
 
@@ -64,7 +64,9 @@ function simplifiedStatusIndicator(properties) {
         
         queryParamString += "&displayName=" + displayNameToSend;
         queryParamString += "&status=" + currentStatus;
-        queryParamString += "&organization=" + location.hostname;
+        var domainID = location.domainID;
+        domainID = domainID.substring(1, domainID.length - 1);
+        queryParamString += "&organization=" + domainID;
 
         var uri = REQUEST_URL + "?" + queryParamString;
 
@@ -83,6 +85,7 @@ function simplifiedStatusIndicator(properties) {
             }
         });
     }
+
 
     // Get status from database
     function getStatus(callback) {
@@ -123,6 +126,17 @@ function simplifiedStatusIndicator(properties) {
 
     // #region SIGNALS
 
+    function updateProperties(properties) {
+        // Overwrite with the given properties
+        var overwriteableKeys = ["statusChanged"];
+        Object.keys(properties).forEach(function (key) {
+            if (overwriteableKeys.indexOf(key) > -1) {
+                that[key] = properties[key];
+            }
+        });
+    }
+
+    
     var currentStatus = "available"; // Default is available
     function toggleStatus() {
         if (currentStatus === "busy") {
@@ -205,6 +219,8 @@ function simplifiedStatusIndicator(properties) {
         Window.domainChanged.connect(onDomainChanged);
 
         getStatus(setStatus);
+
+        Script.scriptEnding.connect(unload);
     }
 
 
@@ -222,20 +238,15 @@ function simplifiedStatusIndicator(properties) {
 
     // #endregion APP LIFETIME
 
-    that.startup = startup;
-    that.unload = unload;
     that.toggleStatus = toggleStatus;
     that.setStatus = setStatus;
     that.getLocalStatus = getLocalStatus;
     that.statusChanged = statusChanged;
-    
-    // Overwrite with the given properties
-    var overwriteableKeys = ["statusChanged"];
-    Object.keys(properties).forEach(function (key) {
-        if (overwriteableKeys.indexOf(key) > -1) {
-            that[key] = properties[key];
-        }
-    });
+    that.updateProperties = updateProperties;
+
+    startup();
 }
+
+var simplifiedStatusIndicator = new SimplifiedStatusIndicator();
 
 module.exports = simplifiedStatusIndicator;

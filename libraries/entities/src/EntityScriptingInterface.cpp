@@ -481,11 +481,15 @@ QUuid EntityScriptingInterface::addEntityInternal(const EntityItemProperties& pr
     _activityTracking.addedEntityCount++;
 
     auto nodeList = DependencyManager::get<NodeList>();
-    const auto sessionID = nodeList->getSessionUUID();
+    auto sessionID = nodeList->getSessionUUID();
 
     EntityItemProperties propertiesWithSimID = properties;
     propertiesWithSimID.setEntityHostType(entityHostType);
     if (entityHostType == entity::HostType::AVATAR) {
+        if (sessionID.isNull()) {
+            // null sessionID is unacceptable in this case
+            sessionID = AVATAR_SELF_ID;
+        }
         propertiesWithSimID.setOwningAvatarID(sessionID);
     } else if (entityHostType == entity::HostType::LOCAL) {
         // For now, local entities are always collisionless
@@ -662,7 +666,7 @@ QScriptValue EntityScriptingInterface::getMultipleEntityProperties(QScriptContex
     const int ARGUMENT_EXTENDED_DESIRED_PROPERTIES = 1;
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    const auto entityIDs = qScriptValueToValue<QVector<QUuid>>(context->argument(ARGUMENT_ENTITY_IDS));
+    const auto entityIDs = qscriptvalue_cast<QVector<QUuid>>(context->argument(ARGUMENT_ENTITY_IDS));
     return entityScriptingInterface->getMultipleEntityPropertiesInternal(engine, entityIDs, context->argument(ARGUMENT_EXTENDED_DESIRED_PROPERTIES));
 }
 
@@ -712,7 +716,7 @@ QScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(QScri
         psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::FlagsActive);
     }
 
-    EntityPropertyFlags desiredProperties = qScriptValueToValue<EntityPropertyFlags>(extendedDesiredProperties);
+    EntityPropertyFlags desiredProperties = qscriptvalue_cast<EntityPropertyFlags>(extendedDesiredProperties);
     bool needsScriptSemantics = desiredProperties.getHasProperty(PROP_POSITION) ||
         desiredProperties.getHasProperty(PROP_ROTATION) ||
         desiredProperties.getHasProperty(PROP_LOCAL_POSITION) ||
@@ -801,7 +805,7 @@ QUuid EntityScriptingInterface::editEntity(const QUuid& id, const EntityItemProp
             return;
         }
 
-        if (entity->isAvatarEntity() && entity->getOwningAvatarID() != sessionID) {
+        if (entity->isAvatarEntity() && entity->getOwningAvatarID() != sessionID && entity->getOwningAvatarID() != AVATAR_SELF_ID) {
             // don't edit other avatar's avatarEntities
             properties = EntityItemProperties();
             return;

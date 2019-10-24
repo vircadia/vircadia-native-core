@@ -93,6 +93,7 @@ public:
 
     AvatarTransit() {};
     Status update(float deltaTime, const glm::vec3& avatarPosition, const TransitConfig& config);
+    void slamPosition(const glm::vec3& avatarPosition);
     Status getStatus() { return _status; }
     bool isActive() { return _isActive; }
     glm::vec3 getCurrentPosition() { return _currentPosition; }
@@ -139,7 +140,9 @@ public:
     static void setShowAvatars(bool render);
     static void setShowReceiveStats(bool receiveStats);
     static void setShowMyLookAtVectors(bool showMine);
+    static void setShowMyLookAtTarget(bool showMine);
     static void setShowOtherLookAtVectors(bool showOthers);
+    static void setShowOtherLookAtTarget(bool showOthers);
     static void setShowCollisionShapes(bool render);
     static void setShowNamesAboveHeads(bool show);
 
@@ -467,7 +470,7 @@ public:
     /**jsdoc
      * Sets the joint of the entity or avatar that the avatar is parented to. 
      * @function MyAvatar.setParentJointIndex
-     * @param {number} parentJointIndex - he joint of the entity or avatar that the avatar should be parented to. Use
+     * @param {number} parentJointIndex - The joint of the entity or avatar that the avatar should be parented to. Use
      *     <code>65535</code> or <code>-1</code> to parent to the entity or avatar's position and orientation rather than a 
      *     joint.
      */

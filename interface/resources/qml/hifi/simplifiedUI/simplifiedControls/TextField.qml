@@ -21,6 +21,12 @@ TextField {
         id: simplifiedUI
     }
 
+    property string rightGlyph: ""
+    property alias bottomBorderVisible: bottomRectangle.visible
+    property alias backgroundColor: textFieldBackground.color
+    property string unfocusedPlaceholderText
+    property bool blankPlaceholderTextOnFocus: true
+
     color: simplifiedUI.colors.text.white
     font.family: "Graphik Medium"
     font.pixelSize: 22
@@ -31,12 +37,10 @@ TextField {
     autoScroll: false
     hoverEnabled: true
     leftPadding: 0
-    rightPadding: editPencil.implicitWidth + simplifiedUI.sizes.controls.textField.editPencilPadding
+    rightPadding: root.rightGlyph === "" ? 0 : rightGlyphItem.implicitWidth + simplifiedUI.sizes.controls.textField.rightGlyphPadding
 
-    onFocusChanged: {
-        if (focus) {
-            Tablet.playSound(TabletEnums.ButtonClick);
-        }
+    onPressed: {
+        Tablet.playSound(TabletEnums.ButtonClick);
     }
 
     onHoveredChanged: {
@@ -45,7 +49,22 @@ TextField {
         }
     }
 
-    background: Item {
+    onFocusChanged: {
+        if (!root.blankPlaceholderTextOnFocus) {
+            return;
+        }
+
+        if (focus) {
+            root.unfocusedPlaceholderText = root.placeholderText;
+            root.placeholderText = "";
+        } else {
+            root.placeholderText = root.unfocusedPlaceholderText;
+        }
+    }
+
+    background: Rectangle {
+        id: textFieldBackground
+        color: Qt.rgba(0, 0, 0, 0);
         anchors.fill: parent
 
         Rectangle {
@@ -59,8 +78,9 @@ TextField {
         }
 
         HifiStylesUit.HiFiGlyphs {
-            id: editPencil
-            text: simplifiedUI.glyphs.pencil
+            id: rightGlyphItem
+            text: root.rightGlyph
+            visible: rightGlyphItem.text !== ""
             // Text Size
             size: root.font.pixelSize * 1.5
             // Anchors

@@ -11,22 +11,47 @@
 
 #include "ContextAwareProfile.h"
 
-#if !defined(Q_OS_ANDROID)
-
+#include <cassert>
+#include <QtCore/QThread>
 #include <QtQml/QQmlContext>
+
+#include <shared/QtHelpers.h>
+#include <SharedUtil.h>
 
 static const QString RESTRICTED_FLAG_PROPERTY = "RestrictFileAccess";
 
-ContextAwareProfile::ContextAwareProfile(QQmlContext* parent) :
-    QQuickWebEngineProfile(parent), _context(parent) { }
-
-
-void ContextAwareProfile::restrictContext(QQmlContext* context) {
-    context->setContextProperty(RESTRICTED_FLAG_PROPERTY, true);
+ContextAwareProfile::ContextAwareProfile(QQmlContext* context) :
+    ContextAwareProfileParent(context), _context(context) { 
+    assert(context);
 }
 
-bool ContextAwareProfile::isRestricted(QQmlContext* context) {
-    return context->contextProperty(RESTRICTED_FLAG_PROPERTY).toBool();
+
+void ContextAwareProfile::restrictContext(QQmlContext* context, bool restrict) {
+    context->setContextProperty(RESTRICTED_FLAG_PROPERTY, restrict);
 }
 
-#endif
+bool ContextAwareProfile::isRestrictedInternal() {
+    if (QThread::currentThread() != thread()) {
+        bool restrictedResult = false;
+        BLOCKING_INVOKE_METHOD(this, "isRestrictedInternal", Q_RETURN_ARG(bool, restrictedResult));
+        return restrictedResult;
+    }
+
+    QVariant variant = _context->contextProperty(RESTRICTED_FLAG_PROPERTY);
+    if (variant.isValid()) {
+        return variant.toBool();
+    }
+
+    // BUGZ-1365 - we MUST defalut to restricted mode in the absence of a flag, or it's too easy for someone to make 
+    // a new mechanism for loading web content that fails to restrict access to local files
+    return true;
+}
+
+bool ContextAwareProfile::isRestricted() {
+    auto now = usecTimestampNow();
+    if (now > _cacheExpiry) {
+        _cachedValue = isRestrictedInternal();
+        _cacheExpiry = now + MAX_CACHE_AGE;
+    }
+    return _cachedValue;
+}

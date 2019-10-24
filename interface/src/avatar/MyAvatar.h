@@ -29,10 +29,12 @@
 #include <ScriptEngine.h>
 #include <SettingHandle.h>
 #include <Sound.h>
+#include <shared/Camera.h>
 
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
 #include "RingBufferHistory.h"
+#include "devices/DdeFaceTracker.h"
 
 class AvatarActionHold;
 class ModelItemID;
@@ -154,6 +156,7 @@ class MyAvatar : public Avatar {
      *
      * @property {Vec3} qmlPosition - A synonym for <code>position</code> for use by QML.
      *
+     * @property {Vec3} feetPosition - The position of the avatar's feet.
      * @property {boolean} shouldRenderLocally=true - If <code>true</code> then your avatar is rendered for you in Interface,
      *     otherwise it is not rendered for you (but it is still rendered for other users).
      * @property {Vec3} motorVelocity=Vec3.ZERO - The target velocity of your avatar to be achieved by a scripted motor.
@@ -167,10 +170,12 @@ class MyAvatar : public Avatar {
      *     collision. It can be a mono or stereo 16-bit WAV file running at either 24kHz or 48kHz. The latter is down-sampled 
      *     by the audio mixer, so all audio effectively plays back at a 24khz. 48kHz RAW files are also supported.
      * @property {number} audioListenerMode=0 - Specifies the listening position when hearing spatialized audio. Must be one 
-     *     of the following property values:<br />
-     *     <code>Myavatar.audioListenerModeHead</code><br />
-     *     <code>Myavatar.audioListenerModeCamera</code><br />
-     *     <code>Myavatar.audioListenerModeCustom</code>
+     *     of the following property values:
+     *     <ul>
+     *         <li><code>MyAvatar.audioListenerModeHead</code></li>
+     *         <li><code>MyAvatar.audioListenerModeCamera</code></li>
+     *         <li><code>MyAvatar.audioListenerModeCustom</code></li>
+     *     </ul>
      * @property {number} audioListenerModeHead=0 - The audio listening position is at the avatar's head. <em>Read-only.</em>
      * @property {number} audioListenerModeCamera=1 - The audio listening position is at the camera. <em>Read-only.</em>
      * @property {number} audioListenerModeCustom=2 - The audio listening position is at a the position specified by set by the 
@@ -179,8 +184,8 @@ class MyAvatar : public Avatar {
      *     property value is <code>audioListenerModeCustom</code>.
      * @property {Quat} customListenOrientation=Quat.IDENTITY - The listening orientation used when the
      *     <code>audioListenerMode</code> property value is <code>audioListenerModeCustom</code>.
-     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> to transmit blendshapes over the network.<br />
-     *     <strong>Note:</strong> Currently doesn't work. Use {@link MyAvatar.setForceFaceTrackerConnected} instead.
+     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> to transmit blendshapes over the network.
+     *     <p><strong>Note:</strong> Currently doesn't work. Use {@link MyAvatar.setForceFaceTrackerConnected} instead.</p>
      * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if procedural blinking is turned on.
      * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if procedural eye movement is turned on.
      * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> to move the mouth blendshapes with voice audio 
@@ -238,8 +243,8 @@ class MyAvatar : public Avatar {
      * @property {boolean} useAdvancedMovementControls - Returns and sets the value of the Interface setting, Settings > 
      *     Controls > Walking. Note: Setting the value has no effect unless Interface is restarted.
      * @property {boolean} showPlayArea - Returns and sets the value of the Interface setting, Settings > Controls > Show room 
-     *     boundaries while teleporting.<br />
-     *     <strong>Note:</strong> Setting the value has no effect unless Interface is restarted.
+     *     boundaries while teleporting.
+     *     <p><strong>Note:</strong> Setting the value has no effect unless Interface is restarted.</p>
      *
      * @property {number} yawSpeed=75 - The mouse X sensitivity value in Settings > General. <em>Read-only.</em>
      * @property {number} pitchSpeed=50 - The mouse Y sensitivity value in Settings > General. <em>Read-only.</em>
@@ -269,11 +274,12 @@ class MyAvatar : public Avatar {
      *     the value.</p>
      * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
-     * @property {number} isInSittingState - <code>true</code> if your avatar is sitting (avatar leaning is disabled, 
-     *     recenntering is enabled), <code>false</code> if it is standing (avatar leaning is enabled, and avatar recenters if it 
-     *     leans too far). If <code>userRecenterModel == 2</code> (i.e., auto) the property value automatically updates as the 
-     *     user sits or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the 
-     *     current siting / standing state, which is updated when the user next sits or stands unless 
+     * @property {number} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting
+     *     (avatar leaning is disabled, recenntering is enabled), <code>false</code> if the user wearing the HMD is
+     *     determined to be standing (avatar leaning is enabled, and avatar recenters if it leans too far).
+     *     If <code>userRecenterModel == 2</code> (i.e., auto) the property value automatically updates as the user sits
+     *     or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the current
+     *     siting / standing state, which is updated when the user next sits or stands unless
      *     <code>isSitStandStateLocked == true</code>.
      * @property {boolean} isSitStandStateLocked - <code>true</code> to lock the avatar sitting/standing state, i.e., use this 
      *     to disable automatically changing state.
@@ -340,6 +346,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(QVector3D qmlPosition READ getQmlPosition)
     QVector3D getQmlPosition() { auto p = getWorldPosition(); return QVector3D(p.x, p.y, p.z); }
 
+    Q_PROPERTY(glm::vec3 feetPosition READ getWorldFeetPosition WRITE goToFeetLocation)
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
     Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
@@ -486,9 +493,10 @@ public:
      *     <tr><td><code>2</code></td><td>Auto</td><td>Interface detects when the user is standing or seated in the real world. 
      *       Avatar leaning is disabled when the user is sitting (i.e., avatar always recenters), and avatar leaning is enabled 
      *       when the user is standing (i.e., avatar leans, then if leans too far it recenters).</td></tr>
-     *     <tr><td><code>3</code></td><td>DisableHMDLean</td><td>Both avatar leaning and recentering are disabled regardless of 
+     *     <tr><td><code>3</code></td><td>DisableHMDLean</td><td><p>Both avatar leaning and recentering are disabled regardless of 
      *       what the user is doing in the real world and no matter what their avatar is doing in the virtual world. Enables 
-     *       the avatar to sit on the floor when the user sits on the floor.<br /><strong>Note:</strong> Experimental.</td></tr>
+     *       the avatar to sit on the floor when the user sits on the floor.</p>
+     *       <p><strong>Note:</strong> Experimental.</p></td></tr>
      *   </tbody>
      * </table>
      * @typedef {number} MyAvatar.SitStandModelType
@@ -777,7 +785,7 @@ public:
      * additional properties specified when adding the different handlers.</p>
      * <p>A handler may change a value from <code>animStateDictionaryIn</code> or add different values in the 
      * <code>animStateDictionaryOut</code> returned. Any property values set in <code>animStateDictionaryOut</code> will 
-     * override those of the internal animation machinery.</p.
+     * override those of the internal animation machinery.</p>
      * @function MyAvatar.addAnimationStateHandler
      * @param {function} handler - The animation state handler function to add.
      * @param {Array<string>|null} propertiesList - The list of {@link MyAvatar.AnimStateDictionary|AnimStateDictionary} 
@@ -1746,6 +1754,34 @@ public:
     void prepareAvatarEntityDataForReload();
 
     /**jsdoc
+    * Turn the avatar's head until it faces the target point within the 90/-90 degree range.
+    * Once this method is called, API calls will have full control of the head for a limited time.
+    * If this method is not called for two seconds, the engine will regain control of the head.
+    * @function MyAvatar.setHeadLookAt
+    * @param {Vec3} lookAtTarget - The target point in world coordinates.
+    */
+    Q_INVOKABLE void setHeadLookAt(const glm::vec3& lookAtTarget);
+
+    /**jsdoc
+    * Returns the current head look at target point in world coordinates.
+    * @function MyAvatar.getHeadLookAt
+    * @returns {Vec3} Default position between your avatar's eyes in world coordinates.
+    */
+    Q_INVOKABLE glm::vec3 getHeadLookAt() { return _lookAtCameraTarget; }
+
+    /**jsdoc
+    * Aims the pointing directional blending towards the provided target point.
+    * The "point" reaction should be triggered before using this method. 
+    * <code>MyAvatar.beginReaction("point")</code>
+    * Returns <code>true</code> if the target point lays in front of the avatar.
+    * @function MyAvatar.setPointAt
+    * @param {Vec3} pointAtTarget - The target point in world coordinates.
+    */
+    Q_INVOKABLE bool setPointAt(const glm::vec3& pointAtTarget);
+
+    glm::quat getLookAtRotation() { return _lookAtYaw * _lookAtPitch; }
+
+    /**jsdoc
      * Creates a new grab that grabs an entity.
      * @function MyAvatar.grab
      * @param {Uuid} targetID - The ID of the entity to grab.
@@ -1858,9 +1894,19 @@ public:
      */
     Q_INVOKABLE void endSit(const glm::vec3& position, const glm::quat& rotation);
 
+    /**jsdoc
+     * Gets whether the avatar is in a seated pose. The seated pose is set by calling the 
+     * MyAvatar::beginSit method.
+     * @function MyAvatar.isSeated
+     * @returns {boolean} <code>true</code> if the avatar is in a seated pose. 
+     */
+    Q_INVOKABLE bool isSeated() { return _characterController.getSeated(); }
+
     int getOverrideJointCount() const;
     bool getFlowActive() const;
     bool getNetworkGraphActive() const;
+
+    void updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera);
 
     // sets the reaction enabled and triggered parameters of the passed in params
     // also clears internal reaction triggers
@@ -1868,6 +1914,13 @@ public:
 
     // Don't substitute verify-fail:
     virtual const QUrl& getSkeletonModelURL() const override { return _skeletonModelURL; }
+
+    void debugDrawPose(controller::Action action, const char* channelName, float size);
+
+    bool getIsJointOverridden(int jointIndex) const;
+    glm::vec3 getLookAtPivotPoint();
+    glm::vec3 getCameraEyesPosition(float deltaTime);
+    bool isJumping();
 
 public slots:
 
@@ -1938,9 +1991,8 @@ public slots:
      * @param {boolean} [shouldFaceLocation=false] - Set to <code>true</code> to position the avatar a short distance away from
      *      the new position and orientate the avatar to face the position.
      */
-    void goToFeetLocation(const glm::vec3& newPosition,
-        bool hasOrientation, const glm::quat& newOrientation,
-        bool shouldFaceLocation);
+    void goToFeetLocation(const glm::vec3& newPosition, bool hasOrientation = false, 
+        const glm::quat& newOrientation = glm::quat(), bool shouldFaceLocation = false);
 
     /**jsdoc
      * Moves the avatar to a new position and/or orientation in the domain.
@@ -2617,6 +2669,19 @@ private:
 
     glm::vec3 _trackedHeadPosition;
 
+    const float MAX_LOOK_AT_TIME_SCRIPT_CONTROL = 2.0f;
+    glm::quat _lookAtPitch;
+    glm::quat _lookAtYaw;
+    glm::vec3 _lookAtCameraTarget;
+    glm::vec3 _lookAtScriptTarget;
+    bool _headLookAtActive { false };
+    bool _shouldTurnToFaceCamera { false };
+    bool _scriptControlsHeadLookAt { false };
+    float _scriptHeadControlTimer { 0.0f };
+    float _firstPersonSteadyHeadTimer { 0.0f };
+    bool _pointAtActive { false };
+    bool _isPointTargetValid { true };
+
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
     Setting::Handle<bool> _showPlayArea;
@@ -2641,6 +2706,11 @@ private:
     void initHeadBones();
     void initAnimGraph();
     void initFlowFromFST();
+    void updateHeadLookAt(float deltaTime);
+    void resetHeadLookAt();
+    void resetLookAtRotation(const glm::vec3& avatarPosition, const glm::quat& avatarOrientation);
+    void resetPointAt();
+    static glm::vec3 aimToBlendValues(const glm::vec3& aimVector, const glm::quat& frameOrientation);
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
@@ -2902,6 +2972,12 @@ private:
     int _reactionEnabledRefCounts[NUM_AVATAR_BEGIN_END_REACTIONS] { 0, 0, 0 };
 
     mutable std::mutex _reactionLock;
+
+    // used to prevent character from jumping after endSit is called.
+    bool _endSitKeyPressComplete { false };
+
+    glm::vec3 _cameraEyesOffset;
+    float _landingAfterJumpTime { 0.0f };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

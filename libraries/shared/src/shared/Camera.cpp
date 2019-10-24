@@ -25,14 +25,32 @@
  *     <tr>
  *       <td><strong>First&nbsp;Person</strong></td>
  *       <td><code>"first&nbsp;person"</code></td>
- *       <td>The camera is positioned such that you have the same view as your avatar. The camera moves and rotates with your
- *       avatar.</td>
+ *       <td>Legacy first person camera mode. The camera is positioned such that you have the same view as your avatar.
+ *       The camera moves and rotates with your avatar.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><strong>First&nbsp;Person&nbsp;Look&nbsp;At</strong></td>
+ *       <td><code>"first&nbsp;person&nbsp;look&nbsp;at"</code></td>
+ *       <td>Default first person camera mode. The camera is positioned such that you have the same view as your avatar.
+ *       The camera moves and rotates with your avatar's head.</td>
  *     </tr>
  *     <tr>
  *       <td><strong>Third&nbsp;Person</strong></td>
  *       <td><code>"third&nbsp;person"</code></td>
  *       <td>The camera is positioned such that you have a view from just behind your avatar. The camera moves and rotates with
  *       your avatar.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><strong>Look&nbsp;At</strong></td>
+ *       <td><code>"look&nbsp;at"</code></td>
+ *       <td>The camera is positioned behind your avatar. The camera moves and rotates independently from your avatar.
+ *       The avatar's head always faces the camera look at point.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><strong>Selfie</strong></td>
+ *       <td><code>"selfie"</code></td>
+ *       <td>The camera is positioned in front of your avatar. The camera moves and rotates independently from your avatar.
+ *       Your avatar's head is always facing the camera.</td>
  *     </tr>
  *     <tr>
  *       <td><strong>Mirror</strong></td>
@@ -61,12 +79,18 @@ CameraMode stringToMode(const QString& mode) {
         return CAMERA_MODE_THIRD_PERSON;
     } else if (mode == "first person") {
         return CAMERA_MODE_FIRST_PERSON;
+    } else if (mode == "first person look at") {
+        return CAMERA_MODE_FIRST_PERSON_LOOK_AT;
     } else if (mode == "mirror") {
         return CAMERA_MODE_MIRROR;
     } else if (mode == "independent") {
         return CAMERA_MODE_INDEPENDENT;
     } else if (mode == "entity") {
         return CAMERA_MODE_ENTITY;
+    } else if (mode == "look at") {
+        return CAMERA_MODE_LOOK_AT;
+    } else if (mode == "selfie") {
+        return CAMERA_MODE_SELFIE;
     }
     return CAMERA_MODE_NULL;
 }
@@ -76,12 +100,18 @@ QString modeToString(CameraMode mode) {
         return "third person";
     } else if (mode == CAMERA_MODE_FIRST_PERSON) {
         return "first person";
+    } else if (mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT) {
+        return "first person look at";
     } else if (mode == CAMERA_MODE_MIRROR) {
         return "mirror";
     } else if (mode == CAMERA_MODE_INDEPENDENT) {
         return "independent";
     } else if (mode == CAMERA_MODE_ENTITY) {
         return "entity";
+    } else if (mode == CAMERA_MODE_LOOK_AT) {
+        return "look at";
+    } else if (mode == CAMERA_MODE_SELFIE) {
+        return "selfie";
     }
     return "unknown";
 }

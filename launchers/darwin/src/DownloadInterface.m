@@ -8,9 +8,10 @@
 {
     self.progressPercentage = 0.0;
     self.taskProgressPercentage = 0.0;
-    NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:downloadUrl]
-                                             cachePolicy:NSURLRequestUseProtocolCachePolicy
-                                         timeoutInterval:60.0];
+    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:downloadUrl]
+                                                           cachePolicy:NSURLRequestUseProtocolCachePolicy
+                                                       timeoutInterval:60.0];
+    [request setValue:@USER_AGENT_STRING forHTTPHeaderField:@"User-Agent"];
 
     NSURLSessionConfiguration *defaultConfigObject = [NSURLSessionConfiguration defaultSessionConfiguration];
     NSURLSession *defaultSession = [NSURLSession sessionWithConfiguration: defaultConfigObject delegate: self delegateQueue: [NSOperationQueue mainQueue]];
@@ -21,7 +22,10 @@
 
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite {
     CGFloat prog = (float)totalBytesWritten/totalBytesExpectedToWrite;
-    NSLog(@"interface downloaded %d%%", (int)(100.0*prog));
+    
+    if ((int)(100.0 * prog) != (int)self.progressPercentage) {
+        NSLog(@"interface downloaded %d%%", (int)(100.0*prog));
+    }
 
     self.progressPercentage = (100.0 * prog);
     [[Launcher sharedLauncher] updateProgressIndicator];
@@ -46,6 +50,8 @@
                                                      repeats: YES];
     NSError *error = nil;
     NSFileManager *fileManager = [NSFileManager defaultManager];
+    Launcher* sharedLauncher = [Launcher sharedLauncher];
+    NSString* appPath = [sharedLauncher getAppPath];
     NSString *destinationFileName = downloadTask.originalRequest.URL.lastPathComponent;
     NSString* finalFilePath = [[[Launcher sharedLauncher] getAppPath] stringByAppendingPathComponent:destinationFileName];
     NSURL *destinationURL = [NSURL URLWithString: [finalFilePath stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLFragmentAllowedCharacterSet]] relativeToURL: [NSURL URLWithString:@"file://"]];
@@ -55,7 +61,12 @@
     }
     [fileManager moveItemAtURL:location toURL:destinationURL error:&error];
 
-    Launcher* sharedLauncher = [Launcher sharedLauncher];
+    NSURL *oldInterfaceURL = [NSURL URLWithString: [[appPath stringByAppendingString:@"interface.app"] stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLFragmentAllowedCharacterSet]] relativeToURL: [NSURL URLWithString:@"file://"]];
+
+    if([fileManager fileExistsAtPath:[oldInterfaceURL path]])
+    {
+        [fileManager removeItemAtURL:oldInterfaceURL error:nil];
+    }
 
     if (error) {
         NSLog(@"Download Interface: failed to move file to destination -> error: %@", error);
@@ -64,7 +75,6 @@
         return;
     }
     [sharedLauncher setDownloadFilename:destinationFileName];
-    NSString* appPath = [sharedLauncher getAppPath];
     NSString* downloadFileName = [sharedLauncher getDownloadFilename];
 
     NSLog(@"extract interface zip");

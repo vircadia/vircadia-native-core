@@ -125,7 +125,7 @@ exports.handlers = {
             if (rows.length > 0) {
                 var availableIn = "<p class='availableIn'><b>Supported Script Types:</b> " + rows.join(" &bull; ") + "</p>";
              
-                e.doclet.description = (e.doclet.description ? e.doclet.description : "") + availableIn;
+                e.doclet.description = availableIn + (e.doclet.description ? e.doclet.description : "");
             }            
         }
 

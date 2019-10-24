@@ -168,7 +168,6 @@ class ScriptEngine;
  *       <td><code>startFarTrigger</code><br /><code>continueFarTrigger</code><br /><code>stopFarTrigger</code></td>
  *       <td>These methods are called when a user is more than 0.3m away from the entity, the entity is triggerable, and the 
  *         user starts, continues, or stops squeezing the trigger.</td>
- *       </td>
  *       <td>A light switch that can be toggled on and off from a distance.</td>
  *     </tr>
  *     <tr>
@@ -217,25 +216,25 @@ class ScriptEngine;
  *
  * @property {Controller.Actions} Actions - Predefined actions on Interface and the user's avatar. These can be used as end
  *     points in a {@link RouteObject} mapping. A synonym for <code>Controller.Hardware.Actions</code>.
- *     <em>Read-only.</em><br /><br />
- *     Default mappings are provided from the <code>Controller.Hardware.Keyboard</code> and <code>Controller.Standard</code> to 
- *     actions in 
+ *     <em>Read-only.</em>
+ *     <p>Default mappings are provided from the <code>Controller.Hardware.Keyboard</code> and <code>Controller.Standard</code> 
+ *     to actions in 
  *     <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/keyboardMouse.json">
  *     keyboardMouse.json</a> and 
  *     <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/standard.json">
- *     standard.json</a>, respectively.
+ *     standard.json</a>, respectively.</p>
  *
  * @property {Controller.Hardware} Hardware - Standard and hardware-specific controller and computer outputs, plus predefined 
  *     actions on Interface and the user's avatar. The outputs can be mapped to <code>Actions</code> or functions in a 
- *     {@link RouteObject} mapping. Additionally, hardware-specific controller outputs can be mapped to <code>Standard</code> 
- *     controller outputs. <em>Read-only.</em>
+ *     {@link RouteObject} mapping. Additionally, hardware-specific controller outputs can be mapped to 
+ *     <code>Controller.Standard</code> controller outputs. <em>Read-only.</em>
  *
  * @property {Controller.Standard} Standard - Standard controller outputs that can be mapped to <code>Actions</code> or 
- *     functions in a {@link RouteObject} mapping. <em>Read-only.</em><br /><br />
- *     Each hardware device has a mapping from its outputs to <code>Controller.Standard</code> items, specified in a JSON file. 
+ *     functions in a {@link RouteObject} mapping. <em>Read-only.</em>
+ *     <p>Each hardware device has a mapping from its outputs to <code>Controller.Standard</code> items, specified in a JSON file. 
  *     For example, <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/leapmotion.json">
  *     leapmotion.json</a> and 
- *     <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/vive.json">vive.json</a>.
+ *     <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/vive.json">vive.json</a>.</p>
  */
 
 /// handles scripting of input controller commands from JS

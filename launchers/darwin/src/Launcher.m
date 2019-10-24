@@ -8,6 +8,8 @@
 #import "ErrorViewController.h"
 #import "Settings.h"
 #import "NSTask+NSTaskExecveAdditions.h"
+#import "Interface.h"
+#import "HQDefaults.h"
 
 @interface Launcher ()
 
@@ -241,7 +243,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     return self.waitingForInterfaceToTerminate;
 }
 
-- (BOOL) isLoadedIn
+- (BOOL) isLoggedIn
 {
     return [[Settings sharedSettings] isLoggedIn];
 }
@@ -253,6 +255,11 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     self.domainScriptsUrl = aDomainScriptsUrl;
 
     [[Settings sharedSettings] setDomainUrl:aDomainURL];
+}
+
+- (void) setOrganizationBuildTag:(NSString*) organizationBuildTag;
+{
+    [[Settings sharedSettings] setOrganizationBuildTag:organizationBuildTag];
 }
 
 - (NSString*) getAppPath
@@ -275,13 +282,26 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     self.displayName = aDiplayName;
 }
 
+- (NSInteger) getCurrentVersion {
+    NSInteger currentVersion;
+    @try {
+        NSString* interfaceAppPath = [[self getAppPath] stringByAppendingString:@"interface.app"];
+        NSError* error = nil;
+        Interface* interface = [[Interface alloc] initWith:interfaceAppPath];
+        currentVersion = [interface getVersion:&error];
+        if (currentVersion == 0 && error != nil) {
+            NSLog(@"can't get version from interface: %@", error);
+        }
+    } @catch (NSException *exception) {
+        NSLog(@"an exception was thrown while getting current interface version: %@", exception);
+        currentVersion = 0;
+    }
+    return currentVersion;
+}
+
 - (void) domainContentDownloadFinished
 {
-    if (self.shouldDownloadInterface) {
-        [self.downloadInterface downloadInterface: self.interfaceDownloadUrl];
-        return;
-    }
-    [self interfaceFinishedDownloading];
+    [self tryDownloadLatestBuild:TRUE];
 }
 
 - (void) domainScriptsDownloadFinished
@@ -337,6 +357,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 {
     self.credentialsAccepted = aOriginzationAccepted;
     if (aOriginzationAccepted) {
+        [self updateLatestBuildInfo];
         [self.credentialsRequest confirmCredentials:self.username : self.password];
     } else {
         LoginScreen* loginScreen = [[LoginScreen alloc] initWithNibName:@"LoginScreen" bundle:nil];
@@ -349,42 +370,33 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     return YES;
 }
 
-- (struct LatestBuildInfo) getLatestBuildInfo
-{
-    return self.buildInfo;
-}
-
-- (void) setLatestBuildInfo:(struct LatestBuildInfo) latestBuildInfo
-{
-    self.buildInfo = latestBuildInfo;
-}
-
 -(void) showLoginScreen
 {
     LoginScreen* loginScreen = [[LoginScreen alloc] initWithNibName:@"LoginScreen" bundle:nil];
     [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: loginScreen];
 }
 
-- (void) shouldDownloadLatestBuild:(BOOL) shouldDownload :(NSString*) downloadUrl :(BOOL) newLauncherAvailable :(NSString*) launcherUrl
+- (void) shouldDownloadLatestBuild:(NSArray*) latestBuilds :(NSString*) defaultBuildTag :(BOOL) newLauncherAvailable :(NSString*) launcherUrl
 {
+    self.latestBuilds = [[NSArray alloc] initWithArray:latestBuilds copyItems:true];
+    self.defaultBuildTag = defaultBuildTag;
+
+    [self updateLatestBuildInfo];
+
+    NSString *kLauncherUrl = @"LAUNCHER_URL";
+    NSString *envLauncherUrl = [[NSProcessInfo processInfo] environment][kLauncherUrl];
+    if (envLauncherUrl != nil) {
+        NSLog(@"Using launcherUrl from environment: %@ = %@", kLauncherUrl, envLauncherUrl);
+        launcherUrl = envLauncherUrl;
+    }
+
     NSDictionary* launcherArguments = [LauncherCommandlineArgs arguments];
     if (newLauncherAvailable && ![launcherArguments valueForKey: @"--noUpdate"]) {
         [self.downloadLauncher downloadLauncher: launcherUrl];
     } else {
-        self.shouldDownloadInterface = shouldDownload;
-        self.interfaceDownloadUrl = downloadUrl;
         self.latestBuildRequestFinished = TRUE;
-        if ([self isLoadedIn]) {
-            Launcher* sharedLauncher = [Launcher sharedLauncher];
-            [sharedLauncher setCurrentProcessState:CHECKING_UPDATE];
-            if (shouldDownload) {
-                ProcessScreen* processScreen = [[ProcessScreen alloc] initWithNibName:@"ProcessScreen" bundle:nil];
-                [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: processScreen];
-                [self startUpdateProgressIndicatorTimer];
-                [self.downloadInterface downloadInterface: downloadUrl];
-                return;
-            }
-            [self interfaceFinishedDownloading];
+        if ([self isLoggedIn]) {
+            [self tryDownloadLatestBuild:FALSE];
         } else {
             [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
             [self showLoginScreen];
@@ -392,13 +404,99 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     }
 }
 
+// The latest builds are always retrieved on application start because they contain not only
+// the latest interface builds, but also the latest launcher builds, which are required to know if
+// we need to self-update first. The interface builds are categorized by build tag, and we may
+// not know at application start which build tag we should be using. There are 2 scenarios where
+// we call this function to determine our build tag and the correct build:
+//
+//   1. If we are logged in, we will have our build tag and can immediately get the correct build
+//      after receiving the builds.
+//   2. If we are not logged in, we need to wait until we have logged in and received the org
+//      metadata for the user. The latest build info also needs to be updated _before_ downloading
+//      the content set cache because the progress bar value depends on it.
+//
+- (void) updateLatestBuildInfo {
+    NSLog(@"Updating latest build info");
+
+    NSInteger currentVersion = [self getCurrentVersion];
+    NSInteger latestVersion = 0;
+    Launcher* sharedLauncher = [Launcher sharedLauncher];
+    [sharedLauncher setCurrentProcessState:CHECKING_UPDATE];
+    BOOL newVersionAvailable = false;
+    NSString* url = @"";
+    NSString* buildTag = [[Settings sharedSettings] organizationBuildTag];
+    if ([buildTag length] == 0) {
+        buildTag = self.defaultBuildTag;
+    }
+
+    for (NSDictionary* build in self.latestBuilds) {
+        NSString* name = [build valueForKey:@"name"];
+        NSLog(@"Checking %@", name);
+        if ([name isEqual:buildTag]) {
+            url = [[[build objectForKey:@"installers"] objectForKey:@"mac"] valueForKey:@"zip_url"];
+            NSString* thisLatestVersion = [build valueForKey:@"latest_version"];
+            latestVersion = thisLatestVersion.integerValue;
+            newVersionAvailable = currentVersion != latestVersion;
+            NSLog(@"Using %@, %ld", name, latestVersion);
+            break;
+        }
+    }
+
+    self.shouldDownloadInterface = newVersionAvailable;
+    self.interfaceDownloadUrl = url;
+
+    NSLog(@"Updating latest build info, currentVersion=%ld, latestVersion=%ld, %@ %@",
+          currentVersion, latestVersion, (self.shouldDownloadInterface ? @"Yes" : @"No"), self.interfaceDownloadUrl);
+}
+
+- (void) tryDownloadLatestBuild:(BOOL)progressScreenAlreadyDisplayed
+{
+    if (self.shouldDownloadInterface) {
+        if (!progressScreenAlreadyDisplayed) {
+            ProcessScreen* processScreen = [[ProcessScreen alloc] initWithNibName:@"ProcessScreen" bundle:nil];
+            [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: processScreen];
+            [self startUpdateProgressIndicatorTimer];
+        }
+        [self.downloadInterface downloadInterface: self.interfaceDownloadUrl];
+        return;
+    }
+
+    [self interfaceFinishedDownloading];
+}
+
 -(void)runAutoupdater
 {
-    NSTask* task = [[NSTask alloc] init]; 
+    NSException *exception;
+    bool launched = false;
     NSString* newLauncher =  [[[Launcher sharedLauncher] getDownloadPathForContentAndScripts] stringByAppendingPathComponent: @"HQ Launcher.app"];
-    task.launchPath = [newLauncher stringByAppendingString:@"/Contents/Resources/updater"];
-    task.arguments = @[[[NSBundle mainBundle] bundlePath], newLauncher];
-    [task launch];
+
+    // Older versions of Launcher put updater in `/Contents/Resources/updater`.
+    for (NSString *bundlePath in @[@"/Contents/MacOS/updater",
+                                   @"/Contents/Resources/updater",
+                                   ]) {
+        NSTask* task = [[NSTask alloc] init];
+        task.launchPath = [newLauncher stringByAppendingString: bundlePath];
+        task.arguments = @[[[NSBundle mainBundle] bundlePath], newLauncher];
+
+        NSLog(@"launching updater: %@ %@", task.launchPath, task.arguments);
+
+        @try {
+            [task launch];
+        }
+        @catch (NSException *e) {
+            NSLog(@"couldn't launch updater: %@, %@", e.name, e.reason);
+            exception = e;
+            continue;
+        }
+
+        launched = true;
+        break;
+    }
+
+    if (!launched) {
+        @throw exception;
+    }
 
     [NSApp terminate:self];
 }
@@ -416,6 +514,17 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 - (void)applicationWillFinishLaunching:(NSNotification *)notification
 {
     [self.window makeKeyAndOrderFront:self];
+}
+
+-(void)applicationDidFinishLaunching:(NSNotification *)notification
+{
+    // Sanity check the HQDefaults so we fail early if there's an issue.
+    HQDefaults *defaults = [HQDefaults sharedDefaults];
+    if ([defaults defaultNamed:@"thunderURL"] == nil) {
+        @throw [NSException exceptionWithName:@"DefaultsNotConfigured"
+                                       reason:@"thunderURL is not configured"
+                                     userInfo:nil];
+    }
 }
 
 - (void) setDownloadFilename:(NSString *)aFilename

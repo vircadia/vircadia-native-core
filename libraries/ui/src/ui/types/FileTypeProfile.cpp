@@ -29,8 +29,8 @@ FileTypeProfile::FileTypeProfile(QQmlContext* parent) :
 }
 
 void FileTypeProfile::RequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {
-    RequestFilters::interceptHFWebEngineRequest(info, getContext());
-    RequestFilters::interceptFileType(info, getContext());
+    RequestFilters::interceptHFWebEngineRequest(info, isRestricted());
+    RequestFilters::interceptFileType(info);
 }
 
 void FileTypeProfile::registerWithContext(QQmlContext* context) {

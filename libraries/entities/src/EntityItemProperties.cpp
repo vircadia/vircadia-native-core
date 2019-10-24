@@ -706,15 +706,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *
  * @property {Vec3} gravity=0,0,0 - The acceleration due to gravity in m/s<sup>2</sup> that the entity should move with, in 
  *     world coordinates. Use a value of <code>{ x: 0, y: -9.8, z: 0 }</code> to simulate Earth's gravity. Gravity is applied 
- *     to an entity's motion only if its <code>dynamic</code> property is <code>true</code>. The <code>gravity</code> value is 
- *     applied in addition to the <code>acceleration</code> value.
+ *     to an entity's motion only if its <code>dynamic</code> property is <code>true</code>.
  *     <p>If changing an entity's <code>gravity</code> from {@link Vec3(0)|Vec3.ZERO}, you need to give it a small 
  *     <code>velocity</code> in order to kick off physics simulation.</p>
- * @property {Vec3} acceleration=0,0,0 - A general acceleration in m/s<sup>2</sup> that the entity should move with, in world 
- *     coordinates. The acceleration is applied to an entity's motion only if its <code>dynamic</code> property is 
- *     <code>true</code>. The <code>acceleration</code> value is applied in addition to the <code>gravity</code> value.
- *     <p>If changing an entity's <code>acceleration</code> from {@link Vec3(0)|Vec3.ZERO}, you need to give it a small 
- *     <code>velocity</code> in order to kick off physics simulation.<p>
+ * @property {Vec3} acceleration - The current, measured acceleration of the entity, in m/s<sup>2</sup>.
+ *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
  * @property {number} restitution=0.5 - The "bounciness" of an entity when it collides, range <code>0.0</code> &ndash; 
  *     <code>0.99</code>. The higher the value, the more bouncy.
  * @property {number} friction=0.5 - How much an entity slows down when it's moving against another, range <code>0.0</code> 
@@ -944,7 +940,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} materialMappingRot=0 - How much to rotate the material within the parent's UV-space, in degrees.
  * @property {boolean} materialRepeat=true - <code>true</code> if the material repeats, <code>false</code> if it doesn't. If 
  *     <code>false</code>, fragments outside of texCoord 0 &ndash; 1 will be discarded. Works in both <code>"uv"</code> and 
- *     </code>"projected"</code> modes.
+ *     <code>"projected"</code> modes.
  * @example <caption>Color a sphere using a Material entity.</caption>
  * var entityID = Entities.addEntity({
  *     type: "Sphere",
@@ -965,7 +961,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *             // Value overrides entity's "color" property.
  *             albedo: [1.0, 1.0, 0]  // Yellow
  *         }
- *     }),
+ *     })
  * });
  */
 
@@ -1217,10 +1213,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>dimensions / voxelVolumesize</code>.
  * @property {string} voxelData="ABAAEAAQAAAAHgAAEAB42u3BAQ0AAADCoPdPbQ8HFAAAAPBuEAAAAQ==" - Base-64 encoded compressed dump of 
  *     the PolyVox data. This property is typically not used in scripts directly; rather, functions that manipulate a PolyVox 
- *     entity update it.<br />
- *     The size of this property increases with the size and complexity of the PolyVox entity, with the size depending on how 
+ *     entity update it.
+ *     <p>The size of this property increases with the size and complexity of the PolyVox entity, with the size depending on how 
  *     the particular entity's voxels compress. Because this property value has to fit within a High Fidelity datagram packet, 
- *     there is a limit to the size and complexity of a PolyVox entity; edits which would result in an overflow are rejected.
+ *     there is a limit to the size and complexity of a PolyVox entity; edits which would result in an overflow are rejected.</p>
  * @property {Entities.PolyVoxSurfaceStyle} voxelSurfaceStyle=2 - The style of rendering the voxels' surface and how 
  *     neighboring PolyVox entities are joined.
  * @property {string} xTextureURL="" - The URL of the texture to map to surfaces perpendicular to the entity's local x-axis. 
@@ -1309,7 +1305,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} bottomMargin=0.0 - The bottom margin, in meters.
  * @property {boolean} unlit=false - <code>true</code> if the entity is unaffected by lighting, <code>false</code> if it is lit 
  *     by the key light and local lights.
- * @property {string} font="" - The font to render the text with. It can be one of the following: <code>"Courier"</code,
+ * @property {string} font="" - The font to render the text with. It can be one of the following: <code>"Courier"</code>,
  *     <code>"Inconsolata"</code>, <code>"Roboto"</code>, <code>"Timeless"</code>, or a path to a .sdff file.
  * @property {Entities.TextEffect} textEffect="none" - The effect that is applied to the text.
  * @property {Color} textEffectColor=255,255,255 - The color of the effect.

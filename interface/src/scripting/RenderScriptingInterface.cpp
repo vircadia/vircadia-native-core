@@ -82,10 +82,17 @@ void RenderScriptingInterface::forceShadowsEnabled(bool enabled) {
         _shadowsEnabled = (enabled);
         _shadowsEnabledSetting.set(enabled);
 
-        auto lightingModelConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
+        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+        assert(renderConfig);
+        auto lightingModelConfig = renderConfig->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
         if (lightingModelConfig) {
             Menu::getInstance()->setIsOptionChecked(MenuOption::Shadows, enabled);
             lightingModelConfig->setShadow(enabled);
+        }
+        auto secondaryLightingModelConfig = renderConfig->getConfig<MakeLightingModel>("RenderSecondView.LightingModel");
+        if (secondaryLightingModelConfig) {
+            Menu::getInstance()->setIsOptionChecked(MenuOption::Shadows, enabled);
+            secondaryLightingModelConfig->setShadow(enabled);
         }
     });
 }

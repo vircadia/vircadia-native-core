@@ -20,7 +20,7 @@ public:
     ConstrainToIntegerFilter() = default;
 
     virtual AxisValue apply(AxisValue value) const override {
-        return { glm::sign(value.value), value.timestamp };
+        return { glm::sign(value.value), value.timestamp, value.valid };
     }
 
     virtual Pose apply(Pose value) const override { return value; }

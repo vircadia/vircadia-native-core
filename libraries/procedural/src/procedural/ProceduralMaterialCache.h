@@ -34,7 +34,7 @@ public:
     void setLightMap(const QUrl& url);
 
     bool isMissingTexture();
-    void checkResetOpacityMap();
+    bool checkResetOpacityMap();
 
     class Texture {
     public:

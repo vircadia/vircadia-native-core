@@ -60,74 +60,107 @@ void PrepareJointsTask::configure(const Config& config) {
     _passthrough = config.passthrough;
 }
 
+
 void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
     const auto& jointsIn = input.get0();
     auto& jointsOut = output.edit0();
-
+    std::vector<QString> jointNames;
     if (_passthrough) {
         jointsOut = jointsIn;
     } else {
         const auto& mapping = input.get1();
         auto& jointRotationOffsets = output.edit1();
-        auto& jointIndices = output.edit2();
 
-        bool newJointRot = false;
         static const QString JOINT_ROTATION_OFFSET2_FIELD = "jointRotationOffset2";
         QVariantHash fstHashMap = mapping;
-        if (fstHashMap.contains(JOINT_ROTATION_OFFSET2_FIELD)) {
-            newJointRot = true;
-        } else {
-            newJointRot = false;
-        }
+        bool newJointRot = fstHashMap.contains(JOINT_ROTATION_OFFSET2_FIELD);
 
         // Get joint renames
-        auto jointNameMapping = getJointNameMapping(mapping);
+        QMap<QString, QString> jointNameMapping = getJointNameMapping(mapping);
         // Apply joint metadata from FST file mappings
-        for (const auto& jointIn : jointsIn) {
+        for (const hfm::Joint& jointIn : jointsIn) {
             jointsOut.push_back(jointIn);
-            auto& jointOut = jointsOut.back();
+            hfm::Joint& jointOut = jointsOut.back();
 
             if (!newJointRot) {
-                auto jointNameMapKey = jointNameMapping.key(jointIn.name);
+                // Offset rotations are referenced by the new joint's names
+                // We need to assign new joint's names now, before the offsets are read.
+                QString jointNameMapKey = jointNameMapping.key(jointIn.name);
                 if (jointNameMapping.contains(jointNameMapKey)) {
                     jointOut.name = jointNameMapKey;
                 }
             }
-            jointIndices.insert(jointOut.name, (int)jointsOut.size());
+            jointNames.push_back(jointOut.name);
         }
 
         // Get joint rotation offsets from FST file mappings
-        auto offsets = getJointRotationOffsets(mapping);
+        QMap<QString, glm::quat> offsets = getJointRotationOffsets(mapping);
         for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
             QString jointName = itr.key();
-            int jointIndex = jointIndices.value(jointName) - 1;
-            if (jointIndex >= 0) {
-                glm::quat rotationOffset = itr.value();
-                jointRotationOffsets.insert(jointIndex, rotationOffset);
-                qCDebug(model_baker) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
+            auto jointToOffset = std::find_if(jointsOut.begin(), jointsOut.end(), [jointName](const hfm::Joint& joint) {
+                return (joint.name == jointName && joint.isSkeletonJoint);
+            });
+            if (jointToOffset != jointsOut.end()) {
+                // In case there are named duplicates we'll assign the offset rotation to the first skeleton joint that matches the name.
+                int jointIndex = (int)distance(jointsOut.begin(), jointToOffset);
+                if (jointIndex >= 0) {
+                    glm::quat rotationOffset = itr.value();
+                    jointRotationOffsets.insert(jointIndex, rotationOffset);
+                    qCDebug(model_baker) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
+                }
             }
         }
 
         if (newJointRot) {
-            for (auto& jointOut : jointsOut) {
-                auto jointNameMapKey = jointNameMapping.key(jointOut.name);
-                int mappedIndex = jointIndices.value(jointOut.name);
+            // Offset rotations are referenced using the original joint's names
+            // We need to apply new names now, once we have read the offsets
+            for (size_t i = 0; i < jointsOut.size(); i++) {
+                hfm::Joint& jointOut = jointsOut[i];
+                QString jointNameMapKey = jointNameMapping.key(jointOut.name);
                 if (jointNameMapping.contains(jointNameMapKey)) {
-                    // delete and replace with hifi name
-                    jointIndices.remove(jointOut.name);
                     jointOut.name = jointNameMapKey;
-                    jointIndices.insert(jointOut.name, mappedIndex);
-                } else {
-                    // nothing mapped to this fbx joint name
-                    if (jointNameMapping.contains(jointOut.name)) {
-                        // but the name is in the list of hifi names is mapped to a different joint
-                        int extraIndex = jointIndices.value(jointOut.name);
+                    jointNames[i] = jointNameMapKey;
+                }
+            }
+        }
+
+        const QString APPEND_DUPLICATE_JOINT = "_joint";
+        const QString APPEND_DUPLICATE_MESH = "_mesh";
+
+        // resolve duplicates and set jointIndices
+        auto& jointIndices = output.edit2();
+        for (size_t i = 0; i < jointsOut.size(); i++) {
+            hfm::Joint& jointOut = jointsOut[i];
+            if (jointIndices.contains(jointOut.name)) {
+                int duplicatedJointIndex = jointIndices[jointOut.name] - 1;
+                if (duplicatedJointIndex >= 0) {
+                    auto& duplicatedJoint = jointsOut[duplicatedJointIndex];
+                    bool areBothJoints = jointOut.isSkeletonJoint && duplicatedJoint.isSkeletonJoint;
+                    QString existJointName = jointOut.name;
+                    QString appendName;
+                    if (areBothJoints) {
+                        appendName = APPEND_DUPLICATE_JOINT;
+                        qCWarning(model_baker) << "Duplicated skeleton joints found: " << existJointName;
+                    } else {
+                        appendName = APPEND_DUPLICATE_MESH;
+                        qCDebug(model_baker) << "Duplicated joints found. Renaming the mesh joint: " << existJointName;
+                    }
+                    QString newName = existJointName + appendName;
+                    // Make sure the new name is unique
+                    int duplicateIndex = 0;
+                    while (jointIndices.contains(newName)) {
+                        newName = existJointName + appendName + QString::number(++duplicateIndex);
+                    }
+                    // Find and rename the mesh joint
+                    if (!jointOut.isSkeletonJoint) {
+                        jointOut.name = newName;
+                    } else {
                         jointIndices.remove(jointOut.name);
-                        jointOut.name = "";
-                        jointIndices.insert(jointOut.name, extraIndex);
+                        jointIndices.insert(newName, duplicatedJointIndex);
                     }
                 }
             }
+            jointIndices.insert(jointOut.name, (int)(i + 1));
         }
     }
 }

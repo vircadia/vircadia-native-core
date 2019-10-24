@@ -225,7 +225,7 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
  * 
  * <table>
  *   <thead>
- *     <tr><th>Property</th><th>Type</th><td>Data</th><th>Description</th></tr>
+ *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
  *     <tr><td><code>0</code> &ndash; <code>9</code></td><td>number</td><td>number</td><td>A "0" &ndash; "1" key on the 
@@ -275,13 +275,15 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
  *     <tr><td><code>MouseWheelLeft</code></td><td>number</td><td>number</td><td>The mouse wheel rotated left. The data value 
  *       is the number of units rotated (typically <code>1.0</code>).</td></tr>
  *     <tr><td><code>MouseWheelUp</code></td><td>number</td><td>number</td><td>The mouse wheel rotated up. The data value 
- *       is the number of units rotated (typically <code>1.0</code>).<br />
- *       <strong>Warning:</strong> The mouse wheel in an ordinary mouse generates left/right wheel events instead of 
- *       up/down.</td></tr>
+ *       is the number of units rotated (typically <code>1.0</code>).
+ *       <p><strong>Warning:</strong> The mouse wheel in an ordinary mouse generates left/right wheel events instead of 
+ *       up/down.</p>
+ *       </td></tr>
  *     <tr><td><code>MouseWheelDown</code></td><td>number</td><td>number</td><td>The mouse wheel rotated down. The data value 
- *       is the number of units rotated (typically <code>1.0</code>).<br />
- *       <strong>Warning:</strong> The mouse wheel in an ordinary mouse generates left/right wheel events instead of 
- *       up/down.</td></tr>
+ *       is the number of units rotated (typically <code>1.0</code>).
+ *       <p><strong>Warning:</strong> The mouse wheel in an ordinary mouse generates left/right wheel events instead of 
+ *       up/down.</p>
+ *       </td></tr>
   *     <tr><td><code>TouchpadRight</code></td><td>number</td><td>number</td><td>The average touch on a touch-enabled device 
  *       moved right. The data value is how far the average position of all touch points moved.</td></tr>
  *     <tr><td><code>TouchpadLeft</code></td><td>number</td><td>number</td><td>The average touch on a touch-enabled device 

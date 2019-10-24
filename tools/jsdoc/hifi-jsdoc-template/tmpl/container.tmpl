@@ -63,11 +63,13 @@
 
     <section>
     <article>
+
         <div class="container-overview">
-            <?js if (doc.kind === 'module' && doc.modules) { ?>
+            <?js if (isGlobalPage) { ?>
+            <?js } else if (doc.kind === 'module' && doc.modules) { ?>
                 <?js if (doc.description) { ?>
                     <h3>Description</h3>
-                    <p><?js= doc.description ?></p>
+                    <div><?js= doc.description ?></div>
                 <?js } ?>
 
                 <?js doc.modules.forEach(function(module) { ?>
@@ -75,7 +77,8 @@
                 <?js }) ?>
             <?js } else if (doc.kind === 'class' || (doc.kind === 'namespace' && doc.signature)) { ?>
                 <h3>Description</h3>
-                <p><?js= doc.description ?></p>
+                <div><?js= doc.description ?></div>
+                <?js= self.partial('details.tmpl', doc) ?>
                 <table>
                     <thead>
                         <tr>
@@ -84,37 +87,41 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td><code><?js= (doc.kind === 'class' ? 'new ' : '') + doc.name + (doc.signature || '') ?></code><p />
+                            <td><code><?js= (doc.kind === 'class' ? 'new ' : '') + doc.name + (doc.signature || '') ?></code>
                             <?js if (doc.params) { ?>
                                 <h3 class="paramHeading">Parameters</h3>
                                     <?js= self.partial('params.tmpl', doc.params) ?>
                             <?js } ?>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
-                 <?js= self.partial('details.tmpl', doc) ?>
 
+                <?js if (doc.examples && doc.examples.length) { ?>
+                    <h3>Example<?js= doc.examples.length > 1? 's':'' ?></h3>
+                    <?js= self.partial('examples.tmpl', doc.examples) ?>
+                <?js } ?>                
             <?js } else { ?>
                 <h3>Description</h3>
                 <?js if (doc.description) { ?>
-                    <p><?js= doc.description ?></p>
+                    <div><?js= doc.description ?></div>
                 <?js } ?>
-            <?js
-                var classes = self.find({kind: 'class', memberof: doc.longname});
-                if (!isGlobalPage && classes && classes.length) {
-            ?>
-                <h3 id="#class">Classes</h3>
-                <?js classes.forEach(function(c) { ?>
-                    <p><?js= self.linkto(c.longname, c.name) ?></p>
-                <?js }); ?>
-            <?js } ?>
-
-                <?js= self.partial('details.tmpl', doc) ?>
 
                 <?js if (doc.examples && doc.examples.length) { ?>
                     <h3>Example<?js= doc.examples.length > 1? 's':'' ?></h3>
                     <?js= self.partial('examples.tmpl', doc.examples) ?>
                 <?js } ?>
+                <?js
+                    var classes = self.find({kind: 'class', memberof: doc.longname});
+                    if (!isGlobalPage && classes && classes.length) {
+                ?>
+                    <h3 id="#class">Classes</h3>
+                    <?js classes.forEach(function(c) { ?>
+                        <p><?js= self.linkto(c.longname, c.name) ?></p>
+                        <?js }); ?>
+                    <?js } ?>
+
+                    <?js= self.partial('details.tmpl', doc) ?>
             <?js } ?>
         </div>
 
@@ -260,6 +267,7 @@
             <?js methods.forEach(function(m) { ?>
                 <?js= self.partial('method.tmpl', m) ?>
             <?js }); ?>
+            </div>
         <?js } ?>
 
         <?js
@@ -272,12 +280,10 @@
             <?js signals.forEach(function(s) { ?>
                 <?js= self.partial('signal.tmpl', s) ?>
             <?js }); ?>
+            </div>
         <?js } ?>
         
-
-        </article>
-
-
+    </article>
     </section>
     <?js } ?>
 <?js }); ?>
