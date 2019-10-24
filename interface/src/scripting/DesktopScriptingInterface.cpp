@@ -55,12 +55,14 @@ static const QVariantMap DOCK_AREA {
 /**jsdoc
  * The possible "relative position anchors" of an <code>InteractiveWindow</code>. Used when defining the `relativePosition` property of an `InteractiveWindow`.
  * @typedef {object} InteractiveWindow.RelativePositionAnchors
+ * @property {InteractiveWindow.RelativePositionAnchor} NO_ANCHOR - Specifies that the position of the `InteractiveWindow` will not be relative to any part of the Interface window.
  * @property {InteractiveWindow.RelativePositionAnchor} TOP_LEFT - Specifies that the `relativePosition` of the `InteractiveWindow` will be offset from the top left of the Interface window.
  * @property {InteractiveWindow.RelativePositionAnchor} TOP_RIGHT - Specifies that the `relativePosition` of the `InteractiveWindow` will be offset from the top right of the Interface window.
  * @property {InteractiveWindow.RelativePositionAnchor} BOTTOM_RIGHT - Specifies that the `relativePosition` of the `InteractiveWindow` will be offset from the bottom right of the Interface window.
  * @property {InteractiveWindow.RelativePositionAnchor} BOTTOM_LEFT - Specifies that the `relativePosition` of the `InteractiveWindow` will be offset from the bottom left of the Interface window.
  */
 static const QVariantMap RELATIVE_POSITION_ANCHOR {
+    { "NO_ANCHOR", RelativePositionAnchor::NO_ANCHOR },
     { "TOP_LEFT", RelativePositionAnchor::TOP_LEFT },
     { "TOP_RIGHT", RelativePositionAnchor::TOP_RIGHT },
     { "BOTTOM_RIGHT", RelativePositionAnchor::BOTTOM_RIGHT },

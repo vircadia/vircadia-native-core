@@ -717,6 +717,7 @@ private:
 static const QString STATE_IN_HMD = "InHMD";
 static const QString STATE_CAMERA_FULL_SCREEN_MIRROR = "CameraFSM";
 static const QString STATE_CAMERA_FIRST_PERSON = "CameraFirstPerson";
+static const QString STATE_CAMERA_FIRST_PERSON_LOOK_AT = "CameraFirstPersonLookat";
 static const QString STATE_CAMERA_THIRD_PERSON = "CameraThirdPerson";
 static const QString STATE_CAMERA_ENTITY = "CameraEntity";
 static const QString STATE_CAMERA_INDEPENDENT = "CameraIndependent";
@@ -933,7 +934,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
     controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
-                    STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT, STATE_CAMERA_LOOK_AT, STATE_CAMERA_SELFIE,
+                    STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_FIRST_PERSON_LOOK_AT, STATE_CAMERA_THIRD_PERSON,
+                    STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT, STATE_CAMERA_LOOK_AT, STATE_CAMERA_SELFIE,
                     STATE_SNAP_TURN, STATE_ADVANCED_MOVEMENT_CONTROLS, STATE_GROUNDED, STATE_NAV_FOCUSED,
                     STATE_PLATFORM_WINDOWS, STATE_PLATFORM_MAC, STATE_PLATFORM_ANDROID, STATE_LEFT_HAND_DOMINANT, STATE_RIGHT_HAND_DOMINANT, STATE_STRAFE_ENABLED } });
     DependencyManager::set<UserInputMapper>();
@@ -1880,6 +1882,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _applicationStateDevice->setInputVariant(STATE_CAMERA_FIRST_PERSON, []() -> float {
         return qApp->getCamera().getMode() == CAMERA_MODE_FIRST_PERSON ? 1 : 0;
     });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_FIRST_PERSON_LOOK_AT, []() -> float {
+        return qApp->getCamera().getMode() == CAMERA_MODE_FIRST_PERSON_LOOK_AT ? 1 : 0;
+    });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_THIRD_PERSON, []() -> float {
         return qApp->getCamera().getMode() == CAMERA_MODE_THIRD_PERSON ? 1 : 0;
     });
@@ -1989,7 +1994,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         settingsTimer->start();
     }, QThread::LowestPriority);
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPersonLookAt)) {
         getMyAvatar()->setBoomLength(MyAvatar::ZOOM_MIN);  // So that camera doesn't auto-switch to third person.
     }
 
@@ -2938,13 +2943,29 @@ Application::~Application() {
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
 #ifdef Q_OS_MAC
+    // 10/16/2019 - Disabling this call. This causes known crashes (A), and it is not
+    // fully understood whether it might cause other unknown crashes (B).
+    //
+    // (A) Although we try to shutdown the ScriptEngine threads in onAboutToQuit, there is
+    // currently no guarantee that they have stopped. Waiting on them to stop has so far appeared to
+    // never return on Mac, causing the application to hang on shutdown. Because ScriptEngines
+    // may still be running, they may end up receiving events that are triggered from this processEvents call,
+    // and then try to access resources that are no longer available at this point in time.
+    // If the ScriptEngine threads were fully destroyed before getting here, this would
+    // not be an issue.
+    //
+    // (B) It seems likely that a bunch of potential event handlers are dependent on Application
+    // and other common dependencies to be available and not destroyed or in the middle of being
+    // destroyed.
+
+
     // Clear the event queue before application is totally destructed.
     // This will drain the messasge queue of pending "deleteLaters" queued up
     // during shutdown of the script engines.
     // We do this here because there is a possiblty that [NSApplication terminate:]
     // will be called during processEvents which will invoke all static destructors.
     // We want to postpone this utill the last possible moment.
-    QCoreApplication::processEvents();
+    //QCoreApplication::processEvents();
 #endif
 }
 
@@ -3587,14 +3608,17 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
     // Using the latter will cause the camera to wobble with idle animations,
     // or with changes from the face tracker
     CameraMode mode = _myCamera.getMode();
-    if (mode == CAMERA_MODE_FIRST_PERSON) {
+    if (mode == CAMERA_MODE_FIRST_PERSON || mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT) {
         _thirdPersonHMDCameraBoomValid= false;
         if (isHMDMode()) {
             mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
             _myCamera.setPosition(extractTranslation(camMat));
             _myCamera.setOrientation(glmExtractRotation(camMat));
+        } else if (mode == CAMERA_MODE_FIRST_PERSON) {
+            _myCamera.setPosition(myAvatar->getDefaultEyePosition());
+            _myCamera.setOrientation(myAvatar->getMyHead()->getHeadOrientation());
         } else {
-            _myCamera.setPosition(myAvatar->getLookAtPivotPoint());
+            _myCamera.setPosition(myAvatar->getCameraEyesPosition(deltaTime));
             _myCamera.setOrientation(myAvatar->getLookAtRotation());
         }
     } else if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE) {
@@ -4373,7 +4397,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_1: {
                 Menu* menu = Menu::getInstance();
-                menu->triggerOption(MenuOption::FirstPerson);
+                menu->triggerOption(MenuOption::FirstPersonLookAt);
                 break;
             }
             case Qt::Key_2: {
@@ -5421,7 +5445,7 @@ void Application::loadSettings() {
                 isFirstPerson = menu->isOptionChecked(MenuOption::FirstPersonHMD);
             } else {
                 // if HMD is not active, only use first person if the menu option is checked
-                isFirstPerson = menu->isOptionChecked(MenuOption::FirstPerson);
+                isFirstPerson = menu->isOptionChecked(MenuOption::FirstPersonLookAt);
             }
         }
     }
@@ -5436,9 +5460,9 @@ void Application::loadSettings() {
 
     // finish initializing the camera, based on everything we checked above. Third person camera will be used if no settings
     // dictated that we should be in first person
-    Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, isFirstPerson);
+    Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPersonLookAt, isFirstPerson);
     Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !isFirstPerson);
-    _myCamera.setMode((isFirstPerson) ? CAMERA_MODE_FIRST_PERSON : CAMERA_MODE_LOOK_AT);
+    _myCamera.setMode((isFirstPerson) ? CAMERA_MODE_FIRST_PERSON_LOOK_AT : CAMERA_MODE_LOOK_AT);
     cameraMenuChanged();
 
     auto inputs = pluginManager->getInputPlugins();
@@ -5602,7 +5626,7 @@ void Application::pauseUntilLoginDetermined() {
         menu->getMenu("Developer")->setVisible(false);
     }
     _previousCameraMode = _myCamera.getMode();
-    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON_LOOK_AT);
     cameraModeChanged();
 
     // disconnect domain handler.
@@ -5750,13 +5774,13 @@ void Application::pushPostUpdateLambda(void* key, const std::function<void()>& f
 // to everyone.
 // The principal result is to call updateLookAtTargetAvatar() and then setLookAtPosition().
 // Note that it is called BEFORE we update position or joints based on sensors, etc.
-void Application::updateMyAvatarLookAtPosition() {
+void Application::updateMyAvatarLookAtPosition(float deltaTime) {
     PerformanceTimer perfTimer("lookAt");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
 
     auto myAvatar = getMyAvatar();
-    myAvatar->updateLookAtPosition(_myCamera);
+    myAvatar->updateEyesLookAtPosition(deltaTime);
 }
 
 void Application::updateThreads(float deltaTime) {
@@ -5790,11 +5814,11 @@ void Application::cycleCamera() {
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
 
         menu->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-        menu->setIsOptionChecked(MenuOption::FirstPerson, true);
+        menu->setIsOptionChecked(MenuOption::FirstPersonLookAt, true);
 
-    } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
+    } else if (menu->isOptionChecked(MenuOption::FirstPersonLookAt)) {
 
-        menu->setIsOptionChecked(MenuOption::FirstPerson, false);
+        menu->setIsOptionChecked(MenuOption::FirstPersonLookAt, false);
         menu->setIsOptionChecked(MenuOption::LookAtCamera, true);
 
     } else if (menu->isOptionChecked(MenuOption::LookAtCamera)) {
@@ -5813,8 +5837,8 @@ void Application::cycleCamera() {
 
 void Application::cameraModeChanged() {
     switch (_myCamera.getMode()) {
-        case CAMERA_MODE_FIRST_PERSON:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
+        case CAMERA_MODE_FIRST_PERSON_LOOK_AT:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPersonLookAt, true);
             break;
         case CAMERA_MODE_LOOK_AT:
             Menu::getInstance()->setIsOptionChecked(MenuOption::LookAtCamera, true);
@@ -5834,12 +5858,12 @@ void Application::changeViewAsNeeded(float boomLength) {
     // This is called when the boom length has changed
     bool boomLengthGreaterThanMinimum = (boomLength > MyAvatar::ZOOM_MIN);
 
-    if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON && boomLengthGreaterThanMinimum) {
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+    if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON_LOOK_AT && boomLengthGreaterThanMinimum) {
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPersonLookAt, false);
         Menu::getInstance()->setIsOptionChecked(MenuOption::LookAtCamera, true);
         cameraMenuChanged();
     } else if (_myCamera.getMode() == CAMERA_MODE_LOOK_AT && !boomLengthGreaterThanMinimum) {
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPersonLookAt, true);
         Menu::getInstance()->setIsOptionChecked(MenuOption::LookAtCamera, false);
         cameraMenuChanged();
     }
@@ -5847,9 +5871,9 @@ void Application::changeViewAsNeeded(float boomLength) {
 
 void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
-    if (menu->isOptionChecked(MenuOption::FirstPerson)) {
-        if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
-            _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+    if (menu->isOptionChecked(MenuOption::FirstPersonLookAt)) {
+        if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON_LOOK_AT) {
+            _myCamera.setMode(CAMERA_MODE_FIRST_PERSON_LOOK_AT);
             getMyAvatar()->setBoomLength(MyAvatar::ZOOM_MIN);
         }
     } else if (menu->isOptionChecked(MenuOption::LookAtCamera)) {
@@ -6509,7 +6533,7 @@ void Application::update(float deltaTime) {
         {
             PROFILE_RANGE(simulation, "MyAvatar");
             PerformanceTimer perfTimer("MyAvatar");
-            qApp->updateMyAvatarLookAtPosition();
+            qApp->updateMyAvatarLookAtPosition(deltaTime);
             avatarManager->updateMyAvatar(deltaTime);
         }
     }
@@ -8911,7 +8935,7 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
         }
 
         if (isHmd && menu->isOptionChecked(MenuOption::FirstPersonHMD)) {
-            menu->setIsOptionChecked(MenuOption::FirstPerson, true);
+            menu->setIsOptionChecked(MenuOption::FirstPersonLookAt, true);
             cameraMenuChanged();
         }
 

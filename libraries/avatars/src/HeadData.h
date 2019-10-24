@@ -65,7 +65,7 @@ public:
     void clearBlendshapeCoefficients();
 
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
-    void setLookAtPosition(const glm::vec3& lookAtPosition) {
+    virtual void setLookAtPosition(const glm::vec3& lookAtPosition) {
         if (_lookAtPosition != lookAtPosition) {
             _lookAtPositionChanged = usecTimestampNow();
         }

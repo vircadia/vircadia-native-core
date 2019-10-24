@@ -377,7 +377,7 @@ function displayInitialLaunchWindow() {
 
     initialLaunchWindow.fromQml.connect(onMessageFromInitialLaunchWindow);
 
-    Window.location = "file:///~/serverless/tutorial.json";
+    Window.location = "file:///~/serverless/empty.json";
 }
 
 var SECOND_LAUNCH_QML_PATH = Script.resolvePath("simplifiedFTUE/SecondLaunchWindow.qml");
@@ -405,7 +405,7 @@ function displaySecondLaunchWindow() {
 
     secondLaunchWindow.fromQml.connect(onMessageFromSecondLaunchWindow);
 
-    Window.location = "file:///~/serverless/tutorial.json";
+    Window.location = "file:///~/serverless/empty.json";
 }
 
 function closeInitialLaunchWindow() {
@@ -663,7 +663,7 @@ function handleSecondLaunchWindowVisibleChanged(shouldBeVisible) {
 
 function onDisplayModeChanged(isHMDMode) {
     if (isHMDMode) {
-        Camera.setModeString("first person");
+        Camera.setModeString("first person look at");
     }
 
     if (isHMDMode) {

@@ -171,7 +171,7 @@ Menu::Menu() {
 
     // View > First Person
     auto firstPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::FirstPerson, 0,
+                                   viewMenu, MenuOption::FirstPersonLookAt, 0,
                                    true, qApp, SLOT(cameraMenuChanged())));
 
     firstPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));

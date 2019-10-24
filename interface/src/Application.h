@@ -288,7 +288,7 @@ public:
 
     virtual void pushPostUpdateLambda(void* key, const std::function<void()>& func) override;
 
-    void updateMyAvatarLookAtPosition();
+    void updateMyAvatarLookAtPosition(float deltaTime);
 
     float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 

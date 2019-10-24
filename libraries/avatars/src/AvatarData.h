@@ -1508,6 +1508,7 @@ public:
     std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonData() const;
     void sendSkeletonData() const;
     QVector<JointData> getJointData() const;
+    glm::vec3 getHeadJointFrontVector() const;
 
 signals:
 
