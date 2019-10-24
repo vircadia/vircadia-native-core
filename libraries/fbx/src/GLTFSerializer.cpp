@@ -1394,6 +1394,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     uint16_t weight = std::round(clusterWeights[weightIndex] * 65535.0);
                     mesh.clusterWeights.push_back(weight);
                 }
+                mesh.clusterWeightsPerVertex = WEIGHTS_PER_VERTEX;
             }
 
             if (joints.size() == partVerticesCount * jointStride) {
