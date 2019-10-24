@@ -1543,6 +1543,24 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         }
     }
 
+    // TODO: Fix skinning and remove this workaround which disables skinning
+    {
+        std::vector<int> meshToRootJoint;
+        meshToRootJoint.resize(hfmModel.meshes.size(), -1);
+        std::vector<uint16_t> meshToClusterSize;
+        meshToClusterSize.resize(hfmModel.meshes.size());
+        for (auto& shape : hfmModel.shapes) {
+            shape.skinDeformer = hfm::UNDEFINED_KEY;
+        }
+
+        for (auto& mesh : hfmModel.meshes) {
+            mesh.clusterWeights.clear();
+            mesh.clusterIndices.clear();
+            mesh.clusterWeightsPerVertex = 0;
+        }
+
+    }
+
     return true;
 }
 
