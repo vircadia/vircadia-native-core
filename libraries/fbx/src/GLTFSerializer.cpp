@@ -1315,8 +1315,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     float tanW = tangentStride == 4 ? tangents[n + 3] : 1;
                     mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tanW * tangents[n + 2]));
                 }
-            } else if (primitiveAttributes.contains("TANGENT")) {
-                mesh.tangents.resize(mesh.tangents.size() + partVerticesCount);
             }
 
             if (texcoords.size() == partVerticesCount * TEX_COORD_STRIDE) {
@@ -1874,7 +1872,6 @@ bool GLTFSerializer::addArrayFromAttribute(GLTFVertexAttribute::Value vertexAttr
             qWarning(modelformat) << "Invalid accessor type on glTF TANGENT data for model " << _url;
             return false;
         }
-        break;
 
         if (!addArrayFromAccessor(accessor, outarray)) {
             qWarning(modelformat) << "There was a problem reading glTF TANGENT data for model " << _url;
