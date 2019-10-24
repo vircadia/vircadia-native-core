@@ -83,7 +83,6 @@ Mutex _recordMutex;
 
 HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode);
 
-
 static QString getHmdAudioDeviceName(QAudio::Mode mode) {
     foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getAllDisplayPlugins()) {
         if (displayPlugin && displayPlugin->isHmd()) {
@@ -100,6 +99,10 @@ static QString getHmdAudioDeviceName(QAudio::Mode mode) {
 
 // thread-safe
 QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
+    //get hmd device name prior to locking device mutex. in case of shutdown, this thread will be locked and audio client
+    //cannot properly shut down. 
+    QString hmdDeviceName = getHmdAudioDeviceName(mode);
+
     // NOTE: availableDevices() clobbers the Qt internal device list
     Lock lock(_deviceMutex);
     auto devices = QAudioDeviceInfo::availableDevices(mode);
@@ -110,8 +113,7 @@ QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
     }
     
     newDevices.push_front(defaultAudioDeviceForMode(mode));
-    
-    QString hmdDeviceName = getHmdAudioDeviceName(mode);
+   
     if (!hmdDeviceName.isNull() && !hmdDeviceName.isEmpty()) {
         HifiAudioDeviceInfo hmdDevice;
         foreach(auto device, newDevices) {
@@ -803,6 +805,7 @@ void AudioClient::stop() {
     // Destruction of the pointers will occur when the parent object (this) is destroyed)
     {
         Lock lock(_checkDevicesMutex);
+        _checkDevicesTimer->stop();
         _checkDevicesTimer = nullptr;
     }
     {
