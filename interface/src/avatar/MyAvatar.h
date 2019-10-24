@@ -307,7 +307,7 @@ class MyAvatar : public Avatar {
      * @borrows Avatar.clearAvatarEntity as clearAvatarEntity
      * @borrows Avatar.hasScriptedBlendshapes as hasScriptedBlendshapes
      * @borrows Avatar.hasProceduralBlinkFaceMovement as hasProceduralBlinkFaceMovement
-     * @borrows Avatar.hasEyeFaceMovement as hasEyeFaceMovement
+     * @borrows Avatar.hasProceduralEyeFaceMovement as hasProceduralEyeFaceMovement
      * @borrows Avatar.hasAudioEnabledFaceMovement as hasAudioEnabledFaceMovement
      * @borrows Avatar.setSkeletonModelURL as setSkeletonModelURL
      * @borrows Avatar.getAttachmentData as getAttachmentData

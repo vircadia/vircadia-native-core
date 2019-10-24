@@ -6535,7 +6535,6 @@ void MyAvatar::updateEyesLookAtPosition(float deltaTime) {
 
     updateLookAtTargetAvatar();
 
-    bool isLookingAtSomeone = false;
     glm::vec3 lookAtSpot;
 
     const MyHead* myHead = getMyHead();
@@ -6596,7 +6595,6 @@ void MyAvatar::updateEyesLookAtPosition(float deltaTime) {
                 avatar && avatar->getLookAtSnappingEnabled() && getLookAtSnappingEnabled();
             if (haveLookAtCandidate && mutualLookAtSnappingEnabled) {
                 //  If I am looking at someone else, look directly at one of their eyes
-                isLookingAtSomeone = true;
                 auto lookingAtHead = avatar->getHead();
 
                 const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
