@@ -68,13 +68,11 @@ Windows.Window {
     
     Timer {
         id: timer
-    }
-    
-    function delay(delayTimeMS, delayFunction) {
-        timer.interval = delayTimeMS;
-        timer.repeat = false;
-        timer.triggered.connect(delayFunction);
-        timer.start();
+        interval: 500;
+        repeat: false;
+        onTriggered: {
+            updateContentParent();
+        }
     }
 
     function updateInteractiveWindowPositionForMode() {
@@ -146,10 +144,10 @@ Windows.Window {
                 id: root;
                 width: interactiveWindowSize.width
                 height: interactiveWindowSize.height
+                // fix for missing content on OSX initial startup with a non-maximized interface window. It seems that in this case, we cannot update
+                // the content parent during creation of the Window root. This added delay will update the parent after the root has finished loading.
                 Component.onCompleted: {
-                    delay(500, function() {
-                        updateContentParent();
-                    });
+                    timer.start();
                 }
 
                 Rectangle {

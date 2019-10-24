@@ -1,4 +1,4 @@
-//
+﻿//
 //  SimplifiedEmoteIndicator.qml
 //
 //  Created by Milad Nazeri on 2019-08-05
