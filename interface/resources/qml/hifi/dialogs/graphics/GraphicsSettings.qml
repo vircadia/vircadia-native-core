@@ -133,15 +133,12 @@ Item {
 
                         ListElement {
                             text: "Low World Detail"
-                            worldDetailQualityValue: 0.25
                         }
                         ListElement {
                             text: "Medium World Detail"
-                            worldDetailQualityValue: 0.5
                         }
                         ListElement {
                             text: "Full World Detail"
-                            worldDetailQualityValue: 0.75
                         }
                     }
                 
@@ -158,14 +155,7 @@ Item {
                         currentIndex: -1
 
                         function refreshWorldDetailDropdown() {
-                            var currentWorldDetailQuality = LODManager.worldDetailQuality;
-                            if (currentWorldDetailQuality <= 0.25) {
-                                worldDetailDropdown.currentIndex = 0;
-                            } else if (currentWorldDetailQuality <= 0.5) {
-                                worldDetailDropdown.currentIndex = 1;
-                            } else {
-                                worldDetailDropdown.currentIndex = 2;
-                            }
+                            worldDetailDropdown.currentIndex = LODManager.worldDetailQuality;
                         }
 
                         Component.onCompleted: {
@@ -173,7 +163,7 @@ Item {
                         }
                         
                         onCurrentIndexChanged: {
-                            LODManager.worldDetailQuality = model.get(currentIndex).worldDetailQualityValue;
+                            LODManager.worldDetailQuality = currentIndex;
                             worldDetailDropdown.displayText = model.get(currentIndex).text;
                         }
                     }
