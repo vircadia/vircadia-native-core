@@ -1315,8 +1315,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     float tanW = tangentStride == 4 ? tangents[n + 3] : 1;
                     mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tanW * tangents[n + 2]));
                 }
-            } else if (primitiveAttributes.contains("TANGENT")) {
-                mesh.tangents.resize(mesh.tangents.size() + partVerticesCount);
             }
 
             if (texcoords.size() == partVerticesCount * TEX_COORD_STRIDE) {
@@ -1391,9 +1389,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 mesh.clusterWeights.reserve(newWeightsEnd);
                 for (int weightIndex = 0; weightIndex < clusterWeights.size(); ++weightIndex) {
                     // Per the GLTF specification
-                    uint16_t weight = std::round(clusterWeights[weightIndex] * 65535.0);
+                    uint16_t weight = std::round(clusterWeights[weightIndex] * 65535.0f);
                     mesh.clusterWeights.push_back(weight);
                 }
+                mesh.clusterWeightsPerVertex = WEIGHTS_PER_VERTEX;
             }
 
             if (joints.size() == partVerticesCount * jointStride) {
@@ -1540,6 +1539,25 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             hfmShape.joint = nodeIndex;
             hfmShape.skinDeformer = node.skin != -1 ? node.skin : hfm::UNDEFINED_KEY;
         }
+    }
+
+    // TODO: Fix skinning and remove this workaround which disables skinning
+    // TODO: Restore after testing
+    {
+        std::vector<int> meshToRootJoint;
+        meshToRootJoint.resize(hfmModel.meshes.size(), -1);
+        std::vector<uint16_t> meshToClusterSize;
+        meshToClusterSize.resize(hfmModel.meshes.size());
+        for (auto& shape : hfmModel.shapes) {
+            shape.skinDeformer = hfm::UNDEFINED_KEY;
+        }
+
+        for (auto& mesh : hfmModel.meshes) {
+            mesh.clusterWeights.clear();
+            mesh.clusterIndices.clear();
+            mesh.clusterWeightsPerVertex = 0;
+        }
+
     }
 
     return true;
@@ -1855,7 +1873,6 @@ bool GLTFSerializer::addArrayFromAttribute(GLTFVertexAttribute::Value vertexAttr
             qWarning(modelformat) << "Invalid accessor type on glTF TANGENT data for model " << _url;
             return false;
         }
-        break;
 
         if (!addArrayFromAccessor(accessor, outarray)) {
             qWarning(modelformat) << "There was a problem reading glTF TANGENT data for model " << _url;

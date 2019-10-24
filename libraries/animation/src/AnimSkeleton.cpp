@@ -28,7 +28,7 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
         const auto& defor = hfmModel.skinDeformers[i];
         std::vector<HFMCluster> dummyClustersList;
 
-        for (int j = 0; j < (uint32_t) defor.clusters.size(); j++) {
+        for (uint32_t j = 0; j < (uint32_t)defor.clusters.size(); j++) {
             // cast into a non-const reference, so we can mutate the FBXCluster
             HFMCluster& cluster = const_cast<HFMCluster&>(defor.clusters.at(j));
 

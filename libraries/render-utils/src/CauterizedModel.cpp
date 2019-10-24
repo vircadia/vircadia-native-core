@@ -63,9 +63,8 @@ void CauterizedModel::createRenderItemSet() {
         Transform::mult(transform, transform, offset);
 
         // Run through all of the meshes, and place them into their segregated, but unsorted buckets
-        int shapeID = 0;
         const auto& shapes = _renderGeometry->getHFMModel().shapes;
-        for (shapeID; shapeID < (int) shapes.size(); shapeID++) {
+        for (int shapeID = 0; shapeID < (int) shapes.size(); shapeID++) {
             const auto& shape = shapes[shapeID];
 
             _modelMeshRenderItems << std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), shape.mesh, shape.meshPart, shapeID, transform);
