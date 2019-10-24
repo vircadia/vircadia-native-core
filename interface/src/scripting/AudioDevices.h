@@ -29,6 +29,7 @@ public:
     QString display;
     bool selectedDesktop { false };
     bool selectedHMD { false };
+    QString type;
 };
 
 class AudioDeviceList : public QAbstractListModel {
