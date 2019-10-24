@@ -1765,9 +1765,25 @@ public:
     /**jsdoc
     * Returns the current head look at target point in world coordinates.
     * @function MyAvatar.getHeadLookAt
-    * @returns {Vec3} Default position between your avatar's eyes in world coordinates.
+    * @returns {Vec3} The head's look at target in world coordinates.
     */
     Q_INVOKABLE glm::vec3 getHeadLookAt() { return _lookAtCameraTarget; }
+
+    /**jsdoc
+    * Force the avatar's eyes to look to the specified location.
+    * Once this method is called, API calls will have full control of the eyes for a limited time.
+    * If this method is not called for two seconds, the engine will regain control of the eyes.
+    * @function MyAvatar.setEyesLookAt
+    * @param {Vec3} lookAtTarget - The target point in world coordinates.
+    */
+    Q_INVOKABLE void setEyesLookAt(const glm::vec3& lookAtTarget);
+
+    /**jsdoc
+    * Returns the current eyes look at target point in world coordinates.
+    * @function MyAvatar.getEyesLookAt
+    * @returns {Vec3} The eyes's look at target in world coordinates.
+    */
+    Q_INVOKABLE glm::vec3 getEyesLookAt() { return _eyesLookAtTarget.get(); }
 
     /**jsdoc
     * Aims the pointing directional blending towards the provided target point.
@@ -1906,7 +1922,7 @@ public:
     bool getFlowActive() const;
     bool getNetworkGraphActive() const;
 
-    void updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera);
+    void updateEyesLookAtPosition(FaceTracker* faceTracker, Camera& myCamera, float deltaTime);
 
     // sets the reaction enabled and triggered parameters of the passed in params
     // also clears internal reaction triggers
@@ -2666,6 +2682,9 @@ private:
 
     eyeContactTarget _eyeContactTarget;
     float _eyeContactTargetTimer { 0.0f };
+    ThreadSafeValueCache<glm::vec3> _eyesLookAtTarget { glm::vec3() };
+    bool _scriptControlsEyesLookAt{ false };
+    float _scriptEyesControlTimer{ 0.0f };
 
     glm::vec3 _trackedHeadPosition;
 

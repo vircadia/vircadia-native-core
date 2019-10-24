@@ -96,10 +96,16 @@ void Head::simulate(float deltaTime) {
             // no blinking when brows are raised; blink less with increasing loudness
             const float BASE_BLINK_RATE = 15.0f / 60.0f;
             const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
-            if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(fabs(_averageLoudness - _longTermAverageLoudness)) *
+            if (_forceBlinkToRetarget || forceBlink ||
+                (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(fabs(_averageLoudness - _longTermAverageLoudness)) *
                 ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
                 float randSpeedVariability = randFloat();
                 float eyeBlinkVelocity = BLINK_SPEED + randSpeedVariability * BLINK_SPEED_VARIABILITY;
+                if (_forceBlinkToRetarget) {
+                    // Slow down by half the blink if reseting eye target
+                    eyeBlinkVelocity = 0.5f * eyeBlinkVelocity;
+                    _forceBlinkToRetarget = false;
+                }
                 _leftEyeBlinkVelocity = eyeBlinkVelocity;
                 _rightEyeBlinkVelocity = eyeBlinkVelocity;
                 if (randFloat() < 0.5f) {
@@ -114,13 +120,12 @@ void Head::simulate(float deltaTime) {
 
             if (_leftEyeBlink == FULLY_CLOSED) {
                 _leftEyeBlinkVelocity = -BLINK_SPEED;
-
+                updateEyeLookAt();
             } else if (_leftEyeBlink == FULLY_OPEN) {
                 _leftEyeBlinkVelocity = 0.0f;
             }
             if (_rightEyeBlink == FULLY_CLOSED) {
                 _rightEyeBlinkVelocity = -BLINK_SPEED;
-
             } else if (_rightEyeBlink == FULLY_OPEN) {
                 _rightEyeBlinkVelocity = 0.0f;
             }
@@ -349,4 +354,25 @@ float Head::getFinalPitch() const {
 
 float Head::getFinalRoll() const {
     return glm::clamp(_baseRoll + _deltaRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
+}
+
+void Head::setLookAtPosition(const glm::vec3& lookAtPosition) {
+    if (_isEyeLookAtUpdated && _requestLookAtPosition != lookAtPosition) {
+        _lookAtPositionChanged = usecTimestampNow();
+        glm::vec3 oldAvatarLookAtVector = _requestLookAtPosition - _owningAvatar->getWorldPosition();
+        glm::vec3 newAvatarLookAtVector = lookAtPosition - _owningAvatar->getWorldPosition();
+        const float MIN_BLINK_ANGLE = 0.35f; // 20 degrees
+        _forceBlinkToRetarget = angleBetween(oldAvatarLookAtVector, newAvatarLookAtVector) > MIN_BLINK_ANGLE;
+        if (_forceBlinkToRetarget) {
+            _isEyeLookAtUpdated = false;
+        } else {
+            _lookAtPosition = lookAtPosition;
+        }
+    }
+    _requestLookAtPosition = lookAtPosition;
+}
+
+void Head::updateEyeLookAt() {
+    _lookAtPosition = _requestLookAtPosition;
+    _isEyeLookAtUpdated = true;
 }

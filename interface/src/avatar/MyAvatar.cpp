@@ -2158,7 +2158,7 @@ static float lookAtCostFunction(const glm::vec3& myForward, const glm::vec3& myP
     const float DISTANCE_FACTOR = 3.14f;
     const float MY_ANGLE_FACTOR = 1.0f;
     const float OTHER_ANGLE_FACTOR = 1.0f;
-    const float OTHER_IS_TALKING_TERM = otherIsTalking ? 1.0f : 0.0f;
+    const float OTHER_IS_TALKING_TERM = otherIsTalking ? -1.0f : 0.0f;
     const float LOOKING_AT_OTHER_ALREADY_TERM = lookingAtOtherAlready ? -0.2f : 0.0f;
 
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;  // meters
@@ -2184,6 +2184,9 @@ static float lookAtCostFunction(const glm::vec3& myForward, const glm::vec3& myP
 
 void MyAvatar::computeMyLookAtTarget(const AvatarHash& hash) {
     glm::vec3 myForward = _lookAtYaw * IDENTITY_FORWARD;
+    if (_skeletonModel->isLoaded()) {
+        myForward = getHeadJointFrontVector();
+    }
     glm::vec3 myPosition = getHead()->getEyePosition();
     CameraMode mode = qApp->getCamera().getMode();
     if (mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT || mode == CAMERA_MODE_FIRST_PERSON) {
@@ -2196,7 +2199,7 @@ void MyAvatar::computeMyLookAtTarget(const AvatarHash& hash) {
     foreach (const AvatarSharedPointer& avatarData, hash) {
         std::shared_ptr<Avatar> avatar = std::static_pointer_cast<Avatar>(avatarData);
         if (!avatar->isMyAvatar() && avatar->isInitialized()) {
-            glm::vec3 otherForward = avatar->getHead()->getForwardDirection();
+            glm::vec3 otherForward = avatar->getHeadJointFrontVector();
             glm::vec3 otherPosition = avatar->getHead()->getEyePosition();
             const float TIME_WITHOUT_TALKING_THRESHOLD = 1.0f;
             bool otherIsTalking = avatar->getHead()->getTimeWithoutTalking() <= TIME_WITHOUT_TALKING_THRESHOLD;
@@ -2284,7 +2287,9 @@ void MyAvatar::updateLookAtTargetAvatar() {
     AvatarHash hash = DependencyManager::get<AvatarManager>()->getHashCopy();
 
     // determine what the best look at target for my avatar should be.
-    computeMyLookAtTarget(hash);
+    if (!_scriptControlsEyesLookAt) {
+        computeMyLookAtTarget(hash);
+    }
 
     // snap look at position for avatars that are looking at me.
     snapOtherAvatarLookAtTargetsToMe(hash);
@@ -6619,7 +6624,7 @@ bool MyAvatar::getIsJointOverridden(int jointIndex) const {
     return _skeletonModel->getIsJointOverridden(jointIndex);
 }
 
-void MyAvatar::updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera) {
+void MyAvatar::updateEyesLookAtPosition(FaceTracker* faceTracker, Camera& myCamera, float deltaTime) {
 
     updateLookAtTargetAvatar();
 
@@ -6648,6 +6653,13 @@ void MyAvatar::updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera) 
             lookAtSpot = (leftFocus + rightFocus) / 2.0f; // average
         } else {
             lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * 1000.0f;
+        }
+    } else if (_scriptControlsEyesLookAt) {
+        if (_scriptEyesControlTimer < MAX_LOOK_AT_TIME_SCRIPT_CONTROL) {
+            _scriptEyesControlTimer += deltaTime;
+            lookAtSpot = _eyesLookAtTarget.get();
+        } else {
+            _scriptControlsEyesLookAt = false;
         }
     } else {
         controller::Pose leftEyePose = getControllerPoseInAvatarFrame(controller::Action::LEFT_EYE);
@@ -6711,8 +6723,9 @@ void MyAvatar::updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera) 
                 if (headPose.isValid()) {
                     lookAtSpot = transformPoint(headPose.getMatrix(), glm::vec3(0.0f, 0.0f, TREE_SCALE));
                 } else {
-                    lookAtSpot = myHead->getEyePosition() +
-                        (getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
+                    lookAtSpot = _shouldTurnToFaceCamera ?
+                                 myHead->getLookAtPosition() :
+                                 myHead->getEyePosition() + getHeadJointFrontVector() * (float)TREE_SCALE;
                 }
             }
 
@@ -6732,7 +6745,7 @@ void MyAvatar::updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera) 
             }
         }
     }
-
+    _eyesLookAtTarget.set(lookAtSpot);
     getHead()->setLookAtPosition(lookAtSpot);
 }
 
@@ -6813,6 +6826,17 @@ void MyAvatar::setHeadLookAt(const glm::vec3& lookAtTarget) {
     _scriptControlsHeadLookAt = true;
     _scriptHeadControlTimer = 0.0f;
     _lookAtScriptTarget = lookAtTarget;
+}
+
+void MyAvatar::setEyesLookAt(const glm::vec3& lookAtTarget) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "setEyesLookAt",
+            Q_ARG(const glm::vec3&, lookAtTarget));
+        return;
+    }
+    _eyesLookAtTarget.set(lookAtTarget);
+    _scriptEyesControlTimer = 0.0f;
+    _scriptControlsEyesLookAt = true;
 }
 
 glm::vec3 MyAvatar::getLookAtPivotPoint() {
@@ -6907,4 +6931,3 @@ void MyAvatar::resetPointAt() {
                                                         POINT_BLEND_LINEAR_ALPHA_NAME, POINT_ALPHA_BLENDING);
     }
 }
-
