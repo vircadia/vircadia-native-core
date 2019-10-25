@@ -429,7 +429,7 @@ Rectangle {
         SimplifiedControls.TextField {
             id: goToTextField
             readonly property string shortPlaceholderText: "Jump to..."
-            readonly property string longPlaceholderText: "Type the name of a location to quickly jump there..."
+            readonly property string longPlaceholderText: "Quickly jump to a location by typing '/LocationName'"
             anchors.centerIn: parent
             width: Math.min(parent.width, 445)
             height: 35

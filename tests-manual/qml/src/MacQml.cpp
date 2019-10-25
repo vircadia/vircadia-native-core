@@ -39,7 +39,7 @@ void MacQml::init() {
     _surface->load(url, callback);
     _surface->resize(_window->size());
     _surface->resume();
-
+    _window->installEventFilter(_surface.get());
 }
 
 void MacQml::draw() {
