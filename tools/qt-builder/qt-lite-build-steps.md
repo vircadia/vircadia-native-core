@@ -1,3 +1,9 @@
+## Requirements
+### Windows
+1. Visual Studio 2017
+2. Perl - http://strawberryperl.com/
+
+
 # Windows
 Command Prompt
 ```
@@ -24,6 +30,7 @@ cd qt-build
 ```
 
 Download ssl-static.zip and unzip to ssl-static folder next to qt5 folder
+`https://hifi-content.s3.amazonaws.com/dante/ssl-static-windows.zip`
 remove config.opt in the build folder
 copy over the config file from qt-builder
 ```
@@ -64,6 +71,7 @@ cd qt-build
 ```
 
 Download ssl-static.zip and unzip to ssl-static folder next to qt5 folder
+`https://hifi-content.s3.amazonaws.com/dante/openssl-static-osx.zip`
 copy over the config file from qt-builder
 ```
 cp path-to-your-hifi-directory/tools/qt-builder/qt-lite-osx-config ./config.opt
@@ -88,3 +96,9 @@ make install
 ```
 
 
+#Building a static version of openssl on windows
+https://wiki.openssl.org/index.php/Compilation_and_Installation#OpenSSL_1.0.2
+follow the instructions in that link.
+
+Keeping in mind that you need to use the non-dll commands (ex: 'nmake -f ms\ntdll.mak clean for the DLL target and nmake -f ms\nt.mak clean for static libraries.'
+so you'd want to use 'ms\nt.mak'

@@ -182,7 +182,6 @@ OPENSSL_LIBS=-lssleay32 -llibeay32
 -no-feature-progressdialog
 -no-feature-quick-positioners
 -no-feature-sha3-fast
--no-feature-shortcut
 -no-feature-completer
 -no-feature-image_heuristic_mask
 -no-feature-image_text
