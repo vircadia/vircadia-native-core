@@ -165,9 +165,6 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
         _status = Status::ENDED;
     }
 
-    if (previousStatus != _status) {
-        qDebug(avatars_renderer) << "AvatarTransit " << avatarTransitStatusToStringMap[(int)previousStatus] << "->" << avatarTransitStatusToStringMap[_status];
-    }
     return _status;
 }
 
