@@ -76,8 +76,8 @@ void MixerAvatar::fetchAvatarFST() {
 
     _pendingEvent = false;
 
-    QUrl avatarURL = getSkeletonModelURL();
-    if ((avatarURL.isEmpty() || avatarURL.isLocalFile() || avatarURL.scheme() == "qrc") && !isCertifyFailed()) {
+    QUrl avatarURL = _skeletonModelURL;
+    if (avatarURL.isEmpty() || avatarURL.isLocalFile() || avatarURL.scheme() == "qrc") {
         // Not network FST.
         return;
     }
