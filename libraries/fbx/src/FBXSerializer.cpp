@@ -1562,7 +1562,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
             // For baked models with FBX_DRACO_MESH_VERSION >= 2, get materials from extracted.materialIDPerMeshPart
             if (!extracted.materialIDPerMeshPart.empty()) {
-          /*      if (partShapes.size() == extracted.materialIDPerMeshPart.size()) {
+                // TODO: Verify this code works as intended by testing baked FBX models, then remove the verification/debug
+                if (partShapes.size() == extracted.materialIDPerMeshPart.size()) {
                     for (uint32_t i = 0; i < (uint32_t)extracted.materialIDPerMeshPart.size(); ++i) {
                         hfm::Shape& shape = partShapes[i];
                         const std::string& materialID = extracted.materialIDPerMeshPart[i];
@@ -1576,7 +1577,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                         qCDebug(modelformat) << "mesh.parts[" << p <<"] is " << mesh.parts[p].materialID;
                     }
                         qCDebug(modelformat) << "partShapes is not the same size as materialIDPerMeshPart ?";
-                }*/
+                }
             }
 
             // find the clusters with which the mesh is associated
