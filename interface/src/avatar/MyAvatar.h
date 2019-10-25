@@ -2918,7 +2918,6 @@ private:
 
     bool _haveReceivedHeightLimitsFromDomain { false };
     int _disableHandTouchCount { 0 };
-    bool _skeletonModelLoaded { false };
     bool _reloadAvatarEntityDataFromSettings { true };
 
     TimePoint _nextTraitsSendWindow;
