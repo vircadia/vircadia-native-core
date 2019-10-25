@@ -441,7 +441,7 @@ void LauncherState::requestSettings() {
     connect(request, &UserSettingsRequest::finished, this, [this, request]() {
         auto userSettings = request->getUserSettings();
         if (userSettings.homeLocation.isEmpty()) {
-            _config.homeLocation = "hifi://hq";
+            _config.homeLocation = "file:///~/serverless/tutorial.json";
             _contentCacheURL = "";
         } else {
             _config.homeLocation = userSettings.homeLocation;
