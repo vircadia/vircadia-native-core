@@ -542,18 +542,18 @@ QString defaultAudioDeviceName(QAudio::Mode mode) {
 
 
         OSStatus getPropertyError = AudioObjectGetPropertyData(kAudioObjectSystemObject,
-            &propertyAddress,
-            0,
-            NULL,
-            &propertySize,
-            &defaultDeviceID);
+                                                               &propertyAddress,
+                                                               0,
+                                                               NULL,
+                                                               &propertySize,
+                                                               &defaultDeviceID);
 
         if (!getPropertyError && propertySize) {
             CFStringRef devName = NULL;
             propertySize = sizeof(devName);
             propertyAddress.mSelector = kAudioDevicePropertyDeviceNameCFString;
             getPropertyError = AudioObjectGetPropertyData(defaultDeviceID, &propertyAddress, 0,
-                NULL, &propertySize, &devName);
+                                                          NULL, &propertySize, &devName);
 
             if (!getPropertyError && propertySize) {
                 deviceName = CFStringGetCStringPtr(devName, kCFStringEncodingMacRoman);
