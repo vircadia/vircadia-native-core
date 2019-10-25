@@ -545,7 +545,7 @@ QString defaultAudioDeviceName(QAudio::Mode mode) {
                                                       NULL, &propertySize, &devName);
 
         if (!getPropertyError && propertySize) {
-            deviceName = CFStringGetCStringPtr(devName, kCFStringEncodingMacRoman));
+            deviceName = CFStringGetCStringPtr(devName, kCFStringEncodingMacRoman);
             }
         }
 #endif
