@@ -265,7 +265,7 @@ static const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
 void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
     quint64 start = usecTimestampNow();
 
-    if (node->getType() == NodeType::Agent && node->getLinkedData() && node->getActiveSocket() && !node->isUpstream()) {
+    if ((node->getType() == NodeType::Agent || node->getType() == NodeType::EntityScriptServer) && node->getLinkedData() && node->getActiveSocket() && !node->isUpstream()) {
         broadcastAvatarDataToAgent(node);
     } else if (node->getType() == NodeType::DownstreamAvatarMixer) {
         broadcastAvatarDataToDownstreamMixer(node);

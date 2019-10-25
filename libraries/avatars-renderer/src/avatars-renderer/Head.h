@@ -79,6 +79,9 @@ public:
 
     float getTimeWithoutTalking() const { return _timeWithoutTalking; }
 
+    virtual void setLookAtPosition(const glm::vec3& lookAtPosition) override;
+    void updateEyeLookAt();
+
 protected:
     // disallow copies of the Head, copy of owning Avatar is disallowed too
     Head(const Head&);
@@ -122,6 +125,10 @@ protected:
 
     int _leftEyeLookAtID;
     int _rightEyeLookAtID;
+
+    glm::vec3 _requestLookAtPosition;
+    bool _forceBlinkToRetarget { false };
+    bool _isEyeLookAtUpdated { false };
 
     // private methods
     void calculateMouthShapes(float timeRatio);

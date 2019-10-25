@@ -13,6 +13,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QDebug>
 #include <QtCore/QPluginLoader>
+#include <shared/QtHelpers.h>
 
 //#define HIFI_PLUGINMANAGER_DEBUG
 #if defined(HIFI_PLUGINMANAGER_DEBUG)
@@ -21,6 +22,7 @@
 
 #include <DependencyManager.h>
 #include <UserActivityLogger.h>
+#include <QThreadPool>
 
 #include "RuntimePlugin.h"
 #include "CodecPlugin.h"
@@ -221,7 +223,17 @@ const OculusPlatformPluginPointer PluginManager::getOculusPlatformPlugin() {
     return oculusPlatformPlugin;
 }
 
-const DisplayPluginList& PluginManager::getDisplayPlugins() {
+DisplayPluginList PluginManager::getAllDisplayPlugins() {
+    if (thread() != QThread::currentThread()) {
+        DisplayPluginList list;
+        QMetaObject::invokeMethod(this, "getAllDisplayPlugins", Qt::BlockingQueuedConnection, Q_RETURN_ARG(DisplayPluginList, list));
+        return list;
+    } else {
+        return _displayPlugins;
+    }
+}
+
+ const DisplayPluginList& PluginManager::getDisplayPlugins()  {
     static std::once_flag once;
     static auto deviceAddedCallback = [](QString deviceName) {
         qCDebug(plugins) << "Added device: " << deviceName;
