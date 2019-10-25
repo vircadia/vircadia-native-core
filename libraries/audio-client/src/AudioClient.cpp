@@ -117,14 +117,13 @@ QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
         } 
     }
 
-    if (!defaultDesktopDevice.getDevice().isNull()) {
-        newDevices.push_front(defaultDesktopDevice);
-    } else {
-        qCDebug(audioclient) << __FUNCTION__ << "Default device not found in list:" << defDeviceName 
+    if (defaultDesktopDevice.getDevice().isNull()) {
+        qCDebug(audioclient) << __FUNCTION__ << "Default device not found in list:" << defDeviceName
             << "Setting Default to: " << devices.first().deviceName();
         defaultDesktopDevice = HifiAudioDeviceInfo(devices.first(), true, mode, HifiAudioDeviceInfo::desktop);
     }
-  
+    newDevices.push_front(defaultDesktopDevice);
+    
     if (!hmdDeviceName.isNull() && !hmdDeviceName.isEmpty()) {
         HifiAudioDeviceInfo hmdDevice;
         foreach(auto device, newDevices) {
