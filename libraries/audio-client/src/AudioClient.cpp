@@ -516,37 +516,50 @@ QString defaultAudioDeviceName(QAudio::Mode mode) {
     QString deviceName;
 
 #ifdef __APPLE__
-    AudioDeviceID defaultDeviceID = 0;
-    uint32_t propertySize = sizeof(AudioDeviceID);
-    AudioObjectPropertyAddress propertyAddress = {
-        kAudioHardwarePropertyDefaultInputDevice,
-        kAudioObjectPropertyScopeGlobal,
-        kAudioObjectPropertyElementMaster
-    };
-
-    if (mode == QAudio::AudioOutput) {
-        propertyAddress.mSelector = kAudioHardwarePropertyDefaultOutputDevice;
+    QAudioDeviceInfo device;
+    if (mode == QAudio::AudioInput) {
+        device = QAudioDeviceInfo::defaultInputDevice();
+    } else {
+        device = QAudioDeviceInfo::defaultOutputDevice();
     }
+    if (!device.isNull()) {
+        if (!device.deviceName().isEmpty()) {
+            deviceName = device.deviceName();
+        }
+    } else {
+        qDebug() << "QT's Default device is null, reverting to platoform code";
+        AudioDeviceID defaultDeviceID = 0;
+        uint32_t propertySize = sizeof(AudioDeviceID);
+        AudioObjectPropertyAddress propertyAddress = {
+            kAudioHardwarePropertyDefaultInputDevice,
+            kAudioObjectPropertyScopeGlobal,
+            kAudioObjectPropertyElementMaster
+        };
+
+        if (mode == QAudio::AudioOutput) {
+            propertyAddress.mSelector = kAudioHardwarePropertyDefaultOutputDevice;
+        }
 
 
-    OSStatus getPropertyError = AudioObjectGetPropertyData(kAudioObjectSystemObject,
-                                                           &propertyAddress,
-                                                           0,
-                                                           NULL,
-                                                           &propertySize,
-                                                           &defaultDeviceID);
-
-    if (!getPropertyError && propertySize) {
-        CFStringRef devName = NULL;
-        propertySize = sizeof(devName);
-        propertyAddress.mSelector = kAudioDevicePropertyDeviceNameCFString;
-        getPropertyError = AudioObjectGetPropertyData(defaultDeviceID, &propertyAddress, 0,
-                                                      NULL, &propertySize, &devName);
+        OSStatus getPropertyError = AudioObjectGetPropertyData(kAudioObjectSystemObject,
+            &propertyAddress,
+            0,
+            NULL,
+            &propertySize,
+            &defaultDeviceID);
 
         if (!getPropertyError && propertySize) {
-            deviceName = CFStringGetCStringPtr(devName, kCFStringEncodingMacRoman);
+            CFStringRef devName = NULL;
+            propertySize = sizeof(devName);
+            propertyAddress.mSelector = kAudioDevicePropertyDeviceNameCFString;
+            getPropertyError = AudioObjectGetPropertyData(defaultDeviceID, &propertyAddress, 0,
+                NULL, &propertySize, &devName);
+
+            if (!getPropertyError && propertySize) {
+                deviceName = CFStringGetCStringPtr(devName, kCFStringEncodingMacRoman);
             }
         }
+    }
 #endif
 #ifdef WIN32
     //Check for Windows Vista or higher, IMMDeviceEnumerator doesn't work below that.
