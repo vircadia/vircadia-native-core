@@ -217,6 +217,37 @@ function targetPointInterpolate() {
     }
 }
 
+
+function maybeClearInputAudioLevelsInterval() {
+    if (checkInputAudioLevelsInterval) {
+        Script.clearInterval(checkInputAudioLevelsInterval);
+        checkInputAudioLevelsInterval = false;
+        currentNumTimesAboveThreshold = 0;
+    }
+}
+
+
+var currentNumTimesAboveThreshold = 0;
+var checkInputAudioLevelsInterval;
+// The values below are determined empirically and may require tweaking over time if users
+// notice false-positives or false-negatives.
+var CHECK_INPUT_AUDIO_LEVELS_INTERVAL_MS = 200;
+var AUDIO_INPUT_THRESHOLD = 130;
+var NUM_REQUIRED_LEVELS_ABOVE_AUDIO_INPUT_THRESHOLD = 4;
+function checkInputLevelsCallback() {
+    if (MyAvatar.audioLoudness > AUDIO_INPUT_THRESHOLD) {
+        currentNumTimesAboveThreshold++;
+    } else {
+        currentNumTimesAboveThreshold = 0;
+    }
+
+    if (currentNumTimesAboveThreshold >= NUM_REQUIRED_LEVELS_ABOVE_AUDIO_INPUT_THRESHOLD) {
+        endReactionWrapper("raiseHand");
+        currentNumTimesAboveThreshold = 0;
+    }
+}
+
+
 function beginReactionWrapper(reaction) {
     maybeDeleteRemoteIndicatorTimeout();
 
@@ -246,6 +277,10 @@ function beginReactionWrapper(reaction) {
                 Script.update.connect(targetPointInterpolate);
                 targetPointInterpolateConnected = true;
             }
+            break;
+        case ("raiseHand"):
+            checkInputAudioLevelsInterval = Script.setInterval(checkInputLevelsCallback, CHECK_INPUT_AUDIO_LEVELS_INTERVAL_MS);
+            break;
     }
 }
 
@@ -370,6 +405,9 @@ function endReactionWrapper(reaction) {
             }
             maybeClearReticleUpdateLimiterTimeout();
             deleteOldReticles();
+            break;
+        case ("raiseHand"):
+            maybeClearInputAudioLevelsInterval();
             break;
     }
 }
@@ -648,6 +686,7 @@ function unload() {
     maybeClearClapSoundInterval();
     maybeClearReticleUpdateLimiterTimeout();
     maybeDeleteRemoteIndicatorTimeout();
+    maybeClearInputAudioLevelsInterval();
 
     Window.minimizedChanged.disconnect(onWindowMinimizedChanged);
     HMD.displayModeChanged.disconnect(onDisplayModeChanged);
