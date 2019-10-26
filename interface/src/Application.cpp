@@ -106,7 +106,7 @@
 #include <MessagesClient.h>
 #include <hfm/ModelFormatRegistry.h>
 #include <model-networking/ModelCacheScriptingInterface.h>
-#include <material-networking/MaterialCacheScriptingInterface.h>
+#include <procedural/MaterialCacheScriptingInterface.h>
 #include <material-networking/TextureCacheScriptingInterface.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
