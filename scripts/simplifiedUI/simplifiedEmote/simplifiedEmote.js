@@ -502,20 +502,20 @@ function keyPressHandler(event) {
     }
 
     if (!event.isAutoRepeat && ! event.isMeta && ! event.isControl && ! event.isAlt) {
-        if (event.text === POSITIVE_KEY) {
+        if (event.text.toLowerCase() === POSITIVE_KEY) {
             triggerReactionWrapper("positive");
-        } else if (event.text === NEGATIVE_KEY) {
+        } else if (event.text.toLowerCase() === NEGATIVE_KEY) {
             triggerReactionWrapper("negative");
-        } else if (event.text === RAISE_HAND_KEY) {
+        } else if (event.text.toLowerCase() === RAISE_HAND_KEY) {
             toggleReaction("raiseHand");
-        } else if (event.text === APPLAUD_KEY) {
+        } else if (event.text.toLowerCase() === APPLAUD_KEY) {
             // Make sure this doesn't get triggered if you are flying, falling, or jumping
             if (!MyAvatar.isInAir()) {
                 toggleReaction("applaud");
             }
-        } else if (event.text === POINT_KEY) {
+        } else if (event.text.toLowerCase() === POINT_KEY) {
             toggleReaction("point");
-        } else if (event.text === EMOTE_WINDOW && !(Settings.getValue("io.highfidelity.isEditing", false))) {
+        } else if (event.text.toLowerCase() === EMOTE_WINDOW && !(Settings.getValue("io.highfidelity.isEditing", false))) {
             toggleEmojiApp();
         }
     }
@@ -524,7 +524,7 @@ function keyPressHandler(event) {
 
 function keyReleaseHandler(event) {
     if (!event.isAutoRepeat) {
-        if (event.text === APPLAUD_KEY) {
+        if (event.text.toLowerCase() === APPLAUD_KEY) {
             if (reactionsBegun.indexOf("applaud") > -1) {
                 toggleReaction("applaud");
             }
