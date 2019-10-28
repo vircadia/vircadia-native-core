@@ -675,7 +675,6 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
 
     _url = url;
     bool combineParts = mapping.value("combineParts").toBool();
-    hfmModel.meshExtents.reset();
     hfmModel.meshes.push_back(HFMMesh());
 
     std::vector<QString> materialNamePerShape;
@@ -825,12 +824,6 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
                     mesh.texCoords << corner << corner << corner;
                 }
             }
-        }
-
-        mesh.meshExtents.reset();
-        foreach(const glm::vec3& vertex, mesh.vertices) {
-            mesh.meshExtents.addPoint(vertex);
-            hfmModel.meshExtents.addPoint(vertex);
         }
                 
         // hfmDebugDump(hfmModel);
