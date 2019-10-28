@@ -37,10 +37,10 @@ const QByteArray MESH = "Mesh";
 
 void OBJBaker::bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) {
     // Write OBJ Data as FBX tree nodes
-    createFBXNodeTree(_rootNode, hfmModel, dracoMeshes[0]);
+    createFBXNodeTree(_rootNode, hfmModel, dracoMeshes[0], dracoMaterialLists[0]);
 }
 
-void OBJBaker::createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& hfmModel, const hifi::ByteArray& dracoMesh) {
+void OBJBaker::createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& hfmModel, const hifi::ByteArray& dracoMesh, const std::vector<hifi::ByteArray>& dracoMaterialList) {
     // Make all generated nodes children of rootNode
     rootNode.children = { FBXNode(), FBXNode(), FBXNode() };
     FBXNode& globalSettingsNode = rootNode.children[0];
@@ -100,24 +100,22 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& h
     }
 
     // Generating Objects node's child - Material node
-    auto& meshParts = hfmModel->meshes[0].parts;
-    for (auto& meshPart : meshParts) {
+
+    // Each material ID should only appear once thanks to deduplication in BuildDracoMeshTask, but we want to make sure they are created in the right order
+    std::unordered_map<QString, uint32_t> materialIDToIndex;
+    for (uint32_t materialIndex = 0; materialIndex < hfmModel->materials.size(); ++materialIndex) {
+        const auto& material = hfmModel->materials[materialIndex];
+        materialIDToIndex[material.materialID] = materialIndex;
+    }
+
+    // Create nodes for each material in the material list
+    for (const auto& dracoMaterial : dracoMaterialList) {
+        const QString materialID = QString(dracoMaterial);
+        const uint32_t materialIndex = materialIDToIndex[materialID];
+        const auto& material = hfmModel->materials[materialIndex];
         FBXNode materialNode;
         materialNode.name = MATERIAL_NODE_NAME;
-        if (hfmModel->materials.size() == 1) {
-            // case when no material information is provided, OBJSerializer considers it as a single default material
-            for (auto& material : hfmModel->materials) {
-                setMaterialNodeProperties(materialNode, material.name, material, hfmModel);
-            }
-        } else {
-            for (auto& material : hfmModel->materials) {
-                if (material.name == meshPart.materialID) {
-                    setMaterialNodeProperties(materialNode, meshPart.materialID, material, hfmModel);
-                    break;
-                }
-            }
-        }
-
+        setMaterialNodeProperties(materialNode, material.materialID, material, hfmModel);
         objectNode.children.append(materialNode);
     }
 

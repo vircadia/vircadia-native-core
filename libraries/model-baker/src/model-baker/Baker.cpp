@@ -30,7 +30,7 @@ namespace baker {
     class GetModelPartsTask {
     public:
         using Input = hfm::Model::Pointer;
-        using Output = VaryingSet8<std::vector<hfm::Mesh>, hifi::URL, baker::MeshIndicesToModelNames, baker::BlendshapesPerMesh, std::vector<hfm::Joint>, std::vector<hfm::Shape>, std::vector<hfm::SkinDeformer>, Extents>;
+        using Output = VaryingSet9<std::vector<hfm::Mesh>, hifi::URL, baker::MeshIndicesToModelNames, baker::BlendshapesPerMesh, std::vector<hfm::Joint>, std::vector<hfm::Shape>, std::vector<hfm::SkinDeformer>, Extents, std::vector<hfm::Material>>;
         using JobModel = Job::ModelIO<GetModelPartsTask, Input, Output>;
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
@@ -47,6 +47,7 @@ namespace baker {
             output.edit5() = hfmModelIn->shapes;
             output.edit6() = hfmModelIn->skinDeformers;
             output.edit7() = hfmModelIn->meshExtents;
+            output.edit8() = hfmModelIn->materials;
         }
     };
 
@@ -170,6 +171,7 @@ namespace baker {
             const auto shapesIn = modelPartsIn.getN<GetModelPartsTask::Output>(5);
             const auto skinDeformersIn = modelPartsIn.getN<GetModelPartsTask::Output>(6);
             const auto modelExtentsIn = modelPartsIn.getN<GetModelPartsTask::Output>(7);
+            const auto materialsIn = modelPartsIn.getN<GetModelPartsTask::Output>(8);
 
             // Calculate normals and tangents for meshes and blendshapes if they do not exist
             // Note: Normals are never calculated here for OBJ models. OBJ files optionally define normals on a per-face basis, so for consistency normals are calculated beforehand in OBJSerializer.
@@ -214,7 +216,7 @@ namespace baker {
             // TODO: Tangent support (Needs changes to FBXSerializer_Mesh as well)
             // NOTE: Due to an unresolved linker error, BuildDracoMeshTask is not functional on Android
             // TODO: Figure out why BuildDracoMeshTask.cpp won't link with draco on Android
-            const auto buildDracoMeshInputs = BuildDracoMeshTask::Input(meshesIn, normalsPerMesh, tangentsPerMesh).asVarying();
+            const auto buildDracoMeshInputs = BuildDracoMeshTask::Input(shapesOut, meshesIn, materialsIn, normalsPerMesh, tangentsPerMesh).asVarying();
             const auto buildDracoMeshOutputs = model.addJob<BuildDracoMeshTask>("BuildDracoMesh", buildDracoMeshInputs);
             const auto dracoMeshes = buildDracoMeshOutputs.getN<BuildDracoMeshTask::Output>(0);
             const auto dracoErrors = buildDracoMeshOutputs.getN<BuildDracoMeshTask::Output>(1);
