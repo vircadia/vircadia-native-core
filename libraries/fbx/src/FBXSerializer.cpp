@@ -1492,15 +1492,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
             const uint32_t transformIndex = (indexOfModelID == -1) ? 0 : (uint32_t)indexOfModelID;
 
-            // accumulate local transforms
-            glm::mat4 globalTransform = hfmModel.joints[transformIndex].globalTransform;
-            // compute the mesh extents from the transformed vertices
-            for (const glm::vec3& vertex : mesh.vertices) {
-                glm::vec3 transformedVertex = glm::vec3(globalTransform * glm::vec4(vertex, 1.0f));
-                hfmModel.meshExtents.minimum = glm::min(hfmModel.meshExtents.minimum, transformedVertex);
-                hfmModel.meshExtents.maximum = glm::max(hfmModel.meshExtents.maximum, transformedVertex);
-            }
-
             // partShapes will be added to meshShapes at the very end
             std::vector<hfm::Shape> partShapes { mesh.parts.size() };
             for (uint32_t i = 0; i < (uint32_t)partShapes.size(); ++i) {
@@ -1508,6 +1499,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 shape.mesh = meshIndex;
                 shape.meshPart = i;
                 shape.joint = transformIndex;
+
+                hfm::calculateExtentsForShape(shape, hfmModel.meshes, hfmModel.joints);
                 
                 auto matName = mesh.parts[i].materialID;
                 auto materialIt = materialNameToID.find(matName.toStdString());
@@ -1515,14 +1508,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                     shape.material = materialIt->second;
                 } else {
                     qCDebug(modelformat) << "Unknown material ? " << matName;
-                }
-
-                shape.transformedExtents.reset();
-                // compute the shape extents from the transformed vertices
-                for (const glm::vec3& vertex : mesh.vertices) {
-                    glm::vec3 transformedVertex = glm::vec3(globalTransform * glm::vec4(vertex, 1.0f));
-                    shape.transformedExtents.minimum = glm::min(shape.transformedExtents.minimum, transformedVertex);
-                    shape.transformedExtents.maximum = glm::max(shape.transformedExtents.maximum, transformedVertex);
                 }
             }
 
@@ -1610,6 +1595,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                         hfmCluster.jointIndex = (uint32_t)indexOfJointID;
                     }
 
+                    const glm::mat4 globalTransform = hfmModel.joints[transformIndex].globalTransform;
                     hfmCluster.inverseBindMatrix = glm::inverse(fbxCluster.transformLink) * globalTransform;
 
                     // slam bottom row to (0, 0, 0, 1), we KNOW this is not a perspective matrix and
@@ -1717,6 +1703,9 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
         }
     }
+
+    // TODO: The ordering of shape extent calculations is wrong. The entire mesh vertex set is transformed if there is a geometric offset, which would break instancing for FBX models with a geometricOffset.
+    hfm::calculateExtentsForModel(hfmModel.meshExtents, hfmModel.shapes);
 
     if (applyUpAxisZRotation) {
         hfmModelPtr->meshExtents.transform(glm::mat4_cast(upAxisZRotation));
