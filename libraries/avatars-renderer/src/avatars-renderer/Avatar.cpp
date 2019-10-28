@@ -343,7 +343,7 @@ void Avatar::removeAvatarEntitiesFromTree() {
         _avatarEntitiesLock.withReadLock([&] {
             avatarEntityIDs = _packedAvatarEntityData.keys();
         });
-            std::vector<EntityItemID> ids;
+        std::vector<EntityItemID> ids;
         ids.reserve(avatarEntityIDs.size());
         foreach (auto id, avatarEntityIDs) {
             ids.push_back(id);
