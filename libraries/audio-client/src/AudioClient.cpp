@@ -81,7 +81,7 @@ using Lock = std::unique_lock<Mutex>;
 Mutex _deviceMutex;
 Mutex _recordMutex;
 
-HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode);
+QString defaultAudioDeviceName(QAudio::Mode mode);
 
 static QString getHmdAudioDeviceName(QAudio::Mode mode) {
     foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getAllDisplayPlugins()) {
@@ -102,18 +102,28 @@ QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
     //get hmd device name prior to locking device mutex. in case of shutdown, this thread will be locked and audio client
     //cannot properly shut down. 
     QString hmdDeviceName = getHmdAudioDeviceName(mode);
+    QString defDeviceName = defaultAudioDeviceName(mode);
 
     // NOTE: availableDevices() clobbers the Qt internal device list
     Lock lock(_deviceMutex);
     auto devices = QAudioDeviceInfo::availableDevices(mode);
-
+   
+    HifiAudioDeviceInfo defaultDesktopDevice;
     QList<HifiAudioDeviceInfo> newDevices;
     for (auto& device : devices) {
         newDevices.push_back(HifiAudioDeviceInfo(device, false, mode));
+        if (device.deviceName() == defDeviceName.trimmed()) {
+            defaultDesktopDevice = HifiAudioDeviceInfo(device, true, mode, HifiAudioDeviceInfo::desktop);
+        } 
     }
+
+    if (defaultDesktopDevice.getDevice().isNull()) {
+        qCDebug(audioclient) << __FUNCTION__ << "Default device not found in list:" << defDeviceName
+            << "Setting Default to: " << devices.first().deviceName();
+        defaultDesktopDevice = HifiAudioDeviceInfo(devices.first(), true, mode, HifiAudioDeviceInfo::desktop);
+    }
+    newDevices.push_front(defaultDesktopDevice);
     
-    newDevices.push_front(defaultAudioDeviceForMode(mode));
-   
     if (!hmdDeviceName.isNull() && !hmdDeviceName.isEmpty()) {
         HifiAudioDeviceInfo hmdDevice;
         foreach(auto device, newDevices) {
@@ -484,10 +494,40 @@ QString AudioClient::getWinDeviceName(wchar_t* guid) {
 #endif
 
 HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
-    QList<QAudioDeviceInfo> devices = QAudioDeviceInfo::availableDevices(mode);
-    
+    QString deviceName = defaultAudioDeviceName(mode);
+#if defined (Q_OS_ANDROID)
+    if (mode == QAudio::AudioInput) {
+        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, DEFAULT_AEC_ENABLED);
+        bool aecEnabled = enableAEC.get();
+        auto audioClient = DependencyManager::get<AudioClient>();
+        bool headsetOn = audioClient ? audioClient->isHeadsetPluggedIn() : false;
+        for (QAudioDeviceInfo inputDevice : QAudioDeviceInfo::availableDevices(mode)) {
+            if (((headsetOn || !aecEnabled) && inputDevice.deviceName() == VOICE_RECOGNITION) ||
+                ((!headsetOn && aecEnabled) && inputDevice.deviceName() == VOICE_COMMUNICATION)) {
+                return HifiAudioDeviceInfo(inputDevice, false, QAudio::AudioInput);
+            }
+        }
+    }
+#endif
+    return getNamedAudioDeviceForMode(mode, deviceName);
+}
+
+QString defaultAudioDeviceName(QAudio::Mode mode) {
+    QString deviceName;
+
 #ifdef __APPLE__
-    if (devices.size() > 1) {
+    QAudioDeviceInfo device;
+    if (mode == QAudio::AudioInput) {
+        device = QAudioDeviceInfo::defaultInputDevice();
+    } else {
+        device = QAudioDeviceInfo::defaultOutputDevice();
+    }
+    if (!device.isNull()) {
+        if (!device.deviceName().isEmpty()) {
+            deviceName = device.deviceName();
+        }
+    } else {
+        qDebug() << "QT's Default device is null, reverting to platoform code";
         AudioDeviceID defaultDeviceID = 0;
         uint32_t propertySize = sizeof(AudioDeviceID);
         AudioObjectPropertyAddress propertyAddress = {
@@ -509,25 +549,19 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
                                                                &defaultDeviceID);
 
         if (!getPropertyError && propertySize) {
-            CFStringRef deviceName = NULL;
-            propertySize = sizeof(deviceName);
+            CFStringRef devName = NULL;
+            propertySize = sizeof(devName);
             propertyAddress.mSelector = kAudioDevicePropertyDeviceNameCFString;
             getPropertyError = AudioObjectGetPropertyData(defaultDeviceID, &propertyAddress, 0,
-                                                          NULL, &propertySize, &deviceName);
+                                                          NULL, &propertySize, &devName);
 
             if (!getPropertyError && propertySize) {
-                // find a device in the list that matches the name we have and return it
-                foreach(QAudioDeviceInfo audioDevice, devices){
-                    if (audioDevice.deviceName() == CFStringGetCStringPtr(deviceName, kCFStringEncodingMacRoman)) {
-                        return HifiAudioDeviceInfo(audioDevice, true, mode, HifiAudioDeviceInfo::desktop);
-                    }
-                }
+                deviceName = CFStringGetCStringPtr(devName, kCFStringEncodingMacRoman);
             }
         }
     }
 #endif
 #ifdef WIN32
-    QString deviceName;
     //Check for Windows Vista or higher, IMMDeviceEnumerator doesn't work below that.
     if (!IsWindowsVistaOrGreater()) { // lower then vista
         if (mode == QAudio::AudioInput) {
@@ -571,37 +605,13 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         CoUninitialize();
     }
 
-    HifiAudioDeviceInfo foundDevice;
-    foreach(QAudioDeviceInfo audioDevice, devices) {
-        if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
-            foundDevice = HifiAudioDeviceInfo(audioDevice, true, mode, HifiAudioDeviceInfo::desktop);
-            break;
-        }
-    }
 #if !defined(NDEBUG) 
     qCDebug(audioclient) << "defaultAudioDeviceForMode mode: " << (mode == QAudio::AudioOutput ? "Output" : "Input") 
-	<< " [" << deviceName << "] [" << foundDevice.deviceName() << "]";
-#endif
-    return foundDevice;
+	<< " [" << deviceName << "] [" << "]";
 #endif
 
-#if defined (Q_OS_ANDROID)
-    if (mode == QAudio::AudioInput) {
-        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, DEFAULT_AEC_ENABLED);
-        bool aecEnabled = enableAEC.get();
-        auto audioClient = DependencyManager::get<AudioClient>();
-        bool headsetOn = audioClient ? audioClient->isHeadsetPluggedIn() : false;
-        for (QAudioDeviceInfo inputDevice : devices) {
-            if (((headsetOn || !aecEnabled) && inputDevice.deviceName() == VOICE_RECOGNITION) ||
-                   ((!headsetOn && aecEnabled) && inputDevice.deviceName() == VOICE_COMMUNICATION)) {
-                return HifiAudioDeviceInfo(inputDevice, false, QAudio::AudioInput); 
-            }
-        }
-    }
 #endif
-    // fallback for failed lookup is the default device
-    return (mode == QAudio::AudioInput) ? HifiAudioDeviceInfo(QAudioDeviceInfo::defaultInputDevice(), true, mode, HifiAudioDeviceInfo::desktop) : 
-        HifiAudioDeviceInfo(QAudioDeviceInfo::defaultOutputDevice(), true, mode, HifiAudioDeviceInfo::desktop);
+   return deviceName;
 }
 
 bool AudioClient::getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QString& deviceName) {
