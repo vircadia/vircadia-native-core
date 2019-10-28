@@ -493,7 +493,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                     if (dracoMeshNodeVersion >= 2) {
                         // Define the materialID for this mesh part index
                         uint16_t safeMaterialID = materialID < dracoMaterialList.size() ? materialID : 0;
-                        data.extracted.materialIDPerMeshPart.push_back(dracoMaterialList[materialID].c_str());
+                        data.extracted.materialIDPerMeshPart.push_back(dracoMaterialList[safeMaterialID].c_str());
                     } else {
                         // Define the materialID later, based on the order of first appearance of the materials in the _connectionChildMap
                         data.extracted.partMaterialTextures.append(materialTexture);
