@@ -49,11 +49,11 @@ if (argv.out) {
 }
 
 // call the packager to produce the executable
-packager(options, function(error, appPath) {
-    if (error) {
+packager(options)
+    .then(appPath => {
+        console.log("Wrote new app to " + appPath);
+    })
+    .catch(error => {
         console.error("There was an error writing the packaged console: " + error.message);
         process.exit(1);
-    } else {
-        console.log("Wrote new app to " + appPath);
-    }
-});
+    });
