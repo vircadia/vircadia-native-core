@@ -50,10 +50,10 @@ if (argv.out) {
 
 // call the packager to produce the executable
 packager(options)
-    .then(function(appPath) {
+    .then(appPath => {
         console.log("Wrote new app to " + appPath);
     })
-    .catch(function(error){
+    .catch(error => {
         console.error("There was an error writing the packaged console: " + error.message);
         process.exit(1);
     });
