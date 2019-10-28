@@ -501,7 +501,7 @@ HifiAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         bool aecEnabled = enableAEC.get();
         auto audioClient = DependencyManager::get<AudioClient>();
         bool headsetOn = audioClient ? audioClient->isHeadsetPluggedIn() : false;
-        for (QAudioDeviceInfo inputDevice : devices) {
+        for (QAudioDeviceInfo inputDevice : QAudioDeviceInfo::availableDevices(mode)) {
             if (((headsetOn || !aecEnabled) && inputDevice.deviceName() == VOICE_RECOGNITION) ||
                 ((!headsetOn && aecEnabled) && inputDevice.deviceName() == VOICE_COMMUNICATION)) {
                 return HifiAudioDeviceInfo(inputDevice, false, QAudio::AudioInput);
