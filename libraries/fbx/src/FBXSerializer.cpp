@@ -1312,6 +1312,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         joint.preTransform = fbxModel.preTransform;
         joint.preRotation = fbxModel.preRotation;
         joint.rotation = fbxModel.rotation;
+        glm::quat rotationWithoutUpZAxis = fbxModel.rotation;
         joint.postRotation = fbxModel.postRotation;
         joint.postTransform = fbxModel.postTransform;
         joint.rotationMin = fbxModel.rotationMin;
@@ -1379,7 +1380,11 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         // Now that we've initialized the joint, we can define the transform
         // modelIDs is ordered from parent to children, so we can safely get parent transforms from earlier joints as we iterate
         joint.localTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation * joint.postRotation) * joint.postTransform;
-        joint.globalTransform = joint.localTransform;
+        if (applyUpAxisZRotation) {
+            joint.globalTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(joint.preRotation * rotationWithoutUpZAxis * joint.postRotation) * joint.postTransform;
+        } else {
+            joint.globalTransform = joint.localTransform;
+        }
         if (joint.parentIndex != -1 && joint.parentIndex < (int)jointIndex && !needMixamoHack) {
             hfm::Joint& parentJoint = hfmModel.joints[joint.parentIndex];
             // SG Change: i think this not correct and the [parent]*[local] is the correct answer here    
