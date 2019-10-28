@@ -63,7 +63,6 @@ void LauncherState::gotoNextDebugScreen() {
 #ifdef DEBUG_UI
     if (_currentDebugScreen < (UIState::UI_STATE_NUM - 1)) {
         _currentDebugScreen = (UIState)(_currentDebugScreen + 1);
-        //UIState updatedUIState = getUIState();
         emit uiStateChanged();
         emit updateSourceUrl(PathUtils::resourcePath(getCurrentUISource()));
         _uiState = getUIState();
