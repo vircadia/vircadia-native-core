@@ -3,7 +3,7 @@
 #include <QDir>
 class LauncherInstaller {
 public:
-    LauncherInstaller(const QString& applicationFilePath);
+    LauncherInstaller();
     ~LauncherInstaller() = default;
 
     void install();

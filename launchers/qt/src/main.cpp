@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
     }
 
 #ifdef Q_OS_WIN
-    LauncherInstaller launcherInstaller(argv[0]);
+    LauncherInstaller launcherInstaller;
     if (options->contains("--uninstall") || options->contains("--resumeUninstall")) {
         launcherInstaller.uninstall();
         return 0;
