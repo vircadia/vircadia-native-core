@@ -825,8 +825,6 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
                 }
             }
         }
-                
-        // hfmDebugDump(hfmModel);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJSerializer fail: " << e.what();
     }
@@ -1013,76 +1011,4 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
     }
 
     return hfmModelPtr;
-}
-
-void hfmDebugDump(const HFMModel& hfmModel) {
-    qCDebug(modelformat) << "---------------- hfmModel ----------------";
-    qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
-    qCDebug(modelformat) << "  offset =" << hfmModel.offset;
-    qCDebug(modelformat) << "  meshes.count() =" << hfmModel.meshes.size();
-    foreach (HFMMesh mesh, hfmModel.meshes) {
-        qCDebug(modelformat) << "    vertices.count() =" << mesh.vertices.count();
-        qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
-        qCDebug(modelformat) << "    normals.count() =" << mesh.normals.count();
-        /*if (mesh.normals.count() == mesh.vertices.count()) {
-            for (int i = 0; i < mesh.normals.count(); i++) {
-                qCDebug(modelformat) << "        " << mesh.vertices[ i ] << mesh.normals[ i ];
-            }
-        }*/
-        qCDebug(modelformat) << "    tangents.count() =" << mesh.tangents.count();
-        qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
-        qCDebug(modelformat) << "    texCoords.count() =" << mesh.texCoords.count();
-        qCDebug(modelformat) << "    texCoords1.count() =" << mesh.texCoords1.count();
-        qCDebug(modelformat) << "    clusterIndices.size() =" << mesh.clusterIndices.size();
-        qCDebug(modelformat) << "    clusterWeights.size() =" << mesh.clusterWeights.size();
-        qCDebug(modelformat) << "    meshExtents =" << mesh.meshExtents;
-        qCDebug(modelformat) << "    modelTransform =" << mesh.modelTransform;
-        qCDebug(modelformat) << "    parts.count() =" << mesh.parts.size();
-        foreach (HFMMeshPart meshPart, mesh.parts) {
-            qCDebug(modelformat) << "        quadIndices.count() =" << meshPart.quadIndices.count();
-            qCDebug(modelformat) << "        triangleIndices.count() =" << meshPart.triangleIndices.count();
-   /*
-            qCDebug(modelformat) << "        diffuseColor =" << meshPart.diffuseColor << "mat =" << meshPart._material->getDiffuse();
-            qCDebug(modelformat) << "        specularColor =" << meshPart.specularColor << "mat =" << meshPart._material->getMetallic();
-            qCDebug(modelformat) << "        emissiveColor =" << meshPart.emissiveColor << "mat =" << meshPart._material->getEmissive();
-            qCDebug(modelformat) << "        emissiveParams =" << meshPart.emissiveParams;
-            qCDebug(modelformat) << "        gloss =" << meshPart.shininess << "mat =" << meshPart._material->getRoughness();
-            qCDebug(modelformat) << "        opacity =" << meshPart.opacity << "mat =" << meshPart._material->getOpacity();
-            */
-            qCDebug(modelformat) << "        materialID =" << meshPart.materialID;
-      /*      qCDebug(modelformat) << "        diffuse texture =" << meshPart.diffuseTexture.filename;
-            qCDebug(modelformat) << "        specular texture =" << meshPart.specularTexture.filename;
-            */
-        }
-        qCDebug(modelformat) << "    clusters.count() =" << mesh.clusters.count();
-        foreach (HFMCluster cluster, mesh.clusters) {
-            qCDebug(modelformat) << "        jointIndex =" << cluster.jointIndex;
-            qCDebug(modelformat) << "        inverseBindMatrix =" << cluster.inverseBindMatrix;
-        }
-    }
-
-    qCDebug(modelformat) << "  jointIndices =" << hfmModel.jointIndices;
-    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.size();
-
-    foreach (HFMJoint joint, hfmModel.joints) {
-
-        qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;
-        qCDebug(modelformat) << "    distanceToParent" << joint.distanceToParent;
-        qCDebug(modelformat) << "    translation" << joint.translation;
-        qCDebug(modelformat) << "    preTransform" << joint.preTransform;
-        qCDebug(modelformat) << "    preRotation" << joint.preRotation;
-        qCDebug(modelformat) << "    rotation" << joint.rotation;
-        qCDebug(modelformat) << "    postRotation" << joint.postRotation;
-        qCDebug(modelformat) << "    postTransform" << joint.postTransform;
-        qCDebug(modelformat) << "    transform" << joint.transform;
-        qCDebug(modelformat) << "    rotationMin" << joint.rotationMin;
-        qCDebug(modelformat) << "    rotationMax" << joint.rotationMax;
-        qCDebug(modelformat) << "    inverseDefaultRotation" << joint.inverseDefaultRotation;
-        qCDebug(modelformat) << "    inverseBindRotation" << joint.inverseBindRotation;
-        qCDebug(modelformat) << "    bindTransform" << joint.bindTransform;
-        qCDebug(modelformat) << "    name" << joint.name;
-        qCDebug(modelformat) << "    isSkeletonJoint" << joint.isSkeletonJoint;
-    }
-
-    qCDebug(modelformat) << "\n";
 }
