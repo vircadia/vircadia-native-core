@@ -101,7 +101,7 @@ static QString getHmdAudioDeviceName(QAudio::Mode mode) {
 QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
     //get hmd device name prior to locking device mutex. in case of shutdown, this thread will be locked and audio client
     //cannot properly shut down. 
-    QString hmdDeviceName = getHmdAudioDeviceName(mode);
+    QString hmdDeviceName = QString(); //getHmdAudioDeviceName(mode);
     QString defDeviceName = defaultAudioDeviceName(mode);
 
     // NOTE: availableDevices() clobbers the Qt internal device list
