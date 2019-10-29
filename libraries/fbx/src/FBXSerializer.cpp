@@ -1310,6 +1310,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         joint.parentIndex = fbxModel.parentIndex;
         uint32_t jointIndex = (uint32_t)hfmModel.joints.size();
 
+        // Copy default joint parameters from model
+
         joint.translation = fbxModel.translation; // these are usually in centimeters
         joint.preTransform = fbxModel.preTransform;
         joint.preRotation = fbxModel.preRotation;
@@ -1326,21 +1328,26 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         joint.isSkeletonJoint = fbxModel.isLimbNode;
         hfmModel.hasSkeletonJoints = (hfmModel.hasSkeletonJoints || joint.isSkeletonJoint);
 
+        joint.name = fbxModel.name;
+
+        // With the basic joint information, we can start to calculate compound transform information
+        // modelIDs is ordered from parent to children, so we can safely get parent transforms from earlier joints as we iterate
+
         // First, calculate the FBX-specific transform used for inverse bind transform calculations
 
-        glm::quat jointBindCombinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
-        glm::mat4 globalTransformForCluster = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(jointBindCombinedRotation) * joint.postTransform;
-        if (joint.parentIndex != -1 && joint.parentIndex < (int)jointIndex && !needMixamoHack) {
-            const glm::mat4& parentGlobalTransformForCluster = globalTransformForClusters[joint.parentIndex];
+        glm::quat jointBindCombinedRotation = fbxModel.preRotation * fbxModel.rotation * fbxModel.postRotation;
+        glm::mat4 globalTransformForCluster = glm::translate(fbxModel.translation) * fbxModel.preTransform * glm::mat4_cast(jointBindCombinedRotation) * fbxModel.postTransform;
+        if (fbxModel.parentIndex != -1 && fbxModel.parentIndex < (int)jointIndex && !needMixamoHack) {
+            const glm::mat4& parentGlobalTransformForCluster = globalTransformForClusters[fbxModel.parentIndex];
             globalTransformForCluster = parentGlobalTransformForCluster * globalTransformForCluster;
         }
-        if (joint.hasGeometricOffset) {
-            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(joint.geometricScaling, joint.geometricRotation, joint.geometricTranslation);
+        if (fbxModel.hasGeometricOffset) {
+            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(fbxModel.geometricScaling, fbxModel.geometricRotation, fbxModel.geometricTranslation);
             globalTransformForCluster = globalTransformForCluster * geometricOffset;
         }
         globalTransformForClusters.push_back(globalTransformForCluster);
 
-        // Then, calculate the transforms proper
+        // Make final adjustments to the static joint properties, and pre-calculate static transforms
 
         if (applyUpAxisZRotation && joint.parentIndex == -1) {
             joint.rotation *= upAxisZRotation;
@@ -1350,25 +1357,37 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(joint.geometricScaling, joint.geometricRotation, joint.geometricTranslation);
             joint.postTransform *= geometricOffset;
         }
+
         glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
+        joint.localTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
+
         if (joint.parentIndex == -1) {
-            joint.transform = hfmModel.offset * glm::translate(joint.translation) * joint.preTransform *
-                glm::mat4_cast(combinedRotation) * joint.postTransform;
+            joint.transform = hfmModel.offset * joint.localTransform;
+            joint.globalTransform = joint.localTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation);
             joint.distanceToParent = 0.0f;
-
         } else {
             const HFMJoint& parentJoint = hfmModel.joints.at(joint.parentIndex);
-            joint.transform = parentJoint.transform * glm::translate(joint.translation) *
-                joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
+            joint.transform = parentJoint.transform * joint.localTransform;
+            joint.globalTransform = parentJoint.globalTransform * joint.localTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation) * parentJoint.inverseDefaultRotation;
-            joint.distanceToParent = glm::distance(extractTranslation(parentJoint.transform),
-                extractTranslation(joint.transform));
+            joint.distanceToParent = glm::distance(extractTranslation(parentJoint.transform), extractTranslation(joint.transform));
+
+            if (parentJoint.hasGeometricOffset) {
+                // Per the FBX standard, geometric offset should not propagate to children.
+                // However, we must be careful when modifying the behavior of FBXSerializer.
+                // So, we leave this here, as a breakpoint for debugging, or stub for implementation.
+                // qCDebug(modelformat) << "Geometric offset encountered on non-leaf node. jointIndex: " << jointIndex << ", modelURL: " << url;
+                // glm::mat4 parentGeometricOffset = createMatFromScaleQuatAndPos(parentJoint.geometricScaling, parentJoint.geometricRotation, parentJoint.geometricTranslation);
+                // joint.preTransform = glm::inverse(parentGeometricOffset) * joint.preTransform;
+            }
         }
         joint.inverseBindRotation = joint.inverseDefaultRotation;
-        joint.name = fbxModel.name;
 
         joint.bindTransformFoundInCluster = false;
+
+        // Initialize animation information next
+        // And also get the joint poses from the first frame of the animation, if present
 
         QString rotationID = localRotations.value(modelID);
         AnimationCurve xRotCurve = animationCurves.value(xComponents.value(rotationID));
@@ -1395,24 +1414,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             if ((fbxVersionNumber < 7500) && (i == 0)) {
                 joint.translation = hfmModel.animationFrames[i].translations[jointIndex];
                 joint.rotation = hfmModel.animationFrames[i].rotations[jointIndex];
-            }
-
-        }
-
-        // Now that we've initialized the joint, we can define the transform
-        // modelIDs is ordered from parent to children, so we can safely get parent transforms from earlier joints as we iterate
-        joint.localTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation * joint.postRotation) * joint.postTransform;
-        joint.globalTransform = joint.localTransform;
-        if (joint.parentIndex != -1 && joint.parentIndex < (int)jointIndex && !needMixamoHack) {
-            hfm::Joint& parentJoint = hfmModel.joints[joint.parentIndex];
-            joint.globalTransform = parentJoint.globalTransform * joint.localTransform;
-            if (parentJoint.hasGeometricOffset) {
-                // Per the FBX standard, geometric offset should not propagate to children.
-                // However, we must be careful when modifying the behavior of FBXSerializer.
-                // So, we leave this here, as a breakpoint for debugging, or stub for implementation.
-                // qCDebug(modelformat) << "Geometric offset encountered on non-leaf node. jointIndex: " << jointIndex << ", modelURL: " << url;
-                // glm::mat4 parentGeometricOffset = createMatFromScaleQuatAndPos(parentJoint.geometricScaling, parentJoint.geometricRotation, parentJoint.geometricTranslation);
-                // joint.preTransform = glm::inverse(parentGeometricOffset) * joint.preTransform;
             }
         }
 
