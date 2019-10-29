@@ -15,7 +15,7 @@
 #include <QFile> 
 #include <QDebug>
 
-LauncherInstaller::LauncherInstaller(const QString& applicationFilePath) {
+LauncherInstaller::LauncherInstaller() {
     _launcherInstallDir = PathUtils::getLauncherDirectory();
     _launcherApplicationsDir = PathUtils::getApplicationsDirectory();
     qDebug() << "Launcher install dir: " << _launcherInstallDir.absolutePath();
@@ -23,7 +23,10 @@ LauncherInstaller::LauncherInstaller(const QString& applicationFilePath) {
 
     _launcherInstallDir.mkpath(_launcherInstallDir.absolutePath());
     _launcherApplicationsDir.mkpath(_launcherApplicationsDir.absolutePath());
-    QFileInfo fileInfo(applicationFilePath);
+    char appPath[MAX_PATH];
+    GetModuleFileNameA(NULL, appPath, MAX_PATH);
+    QString applicationRunningPath = appPath;
+    QFileInfo fileInfo(applicationRunningPath);
     _launcherRunningFilePath = fileInfo.absoluteFilePath();
     _launcherRunningDirPath = fileInfo.absoluteDir().absolutePath();
     qDebug() << "Launcher running file path: " << _launcherRunningFilePath;
@@ -44,11 +47,12 @@ void LauncherInstaller::install() {
             bool didRemove = QFile::remove(oldLauncherPath);
             qDebug() << "did remove file: " << didRemove;
         }
+        qDebug() << "Current launcher location: " << _launcherRunningFilePath;
         bool success = QFile::copy(_launcherRunningFilePath, oldLauncherPath);
         if (success) {
-            qDebug() << "successful";
+            qDebug() << "Launcher installed: " << oldLauncherPath;
         } else {
-            qDebug() << "not successful";
+            qDebug() << "Failed to install: " << oldLauncherPath;
         }
 
         deleteShortcuts();

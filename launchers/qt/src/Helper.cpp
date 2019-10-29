@@ -76,7 +76,7 @@ bool swapLaunchers(const QString& oldLauncherPath, const QString& newLauncherPat
 
 
 void cleanLogFile() {
-    QDir launcherDirectory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir launcherDirectory = PathUtils::getLogsDirectory();
     launcherDirectory.mkpath(launcherDirectory.absolutePath());
     QString filename = launcherDirectory.absoluteFilePath("Log.txt");
     QString tmpFilename = launcherDirectory.absoluteFilePath("Log-last.txt");
