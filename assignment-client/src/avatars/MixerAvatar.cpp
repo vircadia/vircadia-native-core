@@ -272,7 +272,10 @@ void MixerAvatar::processCertifyEvents() {
                 }
             } else {  // FST doesn't have a certificate, so noncertified rather than failed:
                 _pendingEvent = false;
+                _certifyFailed = false;
+                _needsIdentityUpdate = true;
                 _verifyState = nonCertified;
+                qCDebug(avatars) << "Avatar " << getDisplayName() << "(" << getSessionUUID() << ") isn't certified";
             }
             break;
         }
