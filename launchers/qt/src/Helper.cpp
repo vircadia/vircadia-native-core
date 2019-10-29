@@ -13,7 +13,6 @@
 #include <QTextStream>
 #include <QStandardPaths>
 #include <iostream>
-//#incluce <QTextStream>
 
 
 QString getMetaverseAPIDomain() {
@@ -104,32 +103,3 @@ const QString& getInterfaceSharedMemoryName() {
     static const QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
     return applicationName;
 }
-
-//#ifdef Q_OS_WIN
-//#include <Windows.h>
-//#include <tlhelp32.h>
-//#include <wincrypt.h>
-//#include <tlhelp32.h>
-//#include <strsafe.h>
-//#include <winhttp.h>
-//
-//bool isProcessRunning(const wchar_t *processName, int& processID) {
-//    bool exists = false;
-//    PROCESSENTRY32 entry;
-//    entry.dwSize = sizeof(PROCESSENTRY32);
-//
-//    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-//    
-//    if (Process32First(snapshot, &entry)) {
-//        while (Process32Next(snapshot, &entry)) {
-//            if (!_wcsicmp(entry.szExeFile, processName)) {
-//                exists = true;
-//                processID = entry.th32ProcessID;
-//                break;
-//            }
-//        }
-//    }
-//    CloseHandle(snapshot);
-//    return exists;
-//}
-//#endif

@@ -37,7 +37,3 @@ BOOL shutdownProcess(DWORD dwProcessId, UINT uExitCode);
 QString getHTTPUserAgent();
 
 const QString& getInterfaceSharedMemoryName();
-
-//#ifdef Q_OS_WIN
-//bool isProcessRunning(const wchar_t *processName, int& processID) {
-//#endif
