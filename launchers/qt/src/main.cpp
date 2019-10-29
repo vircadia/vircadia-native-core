@@ -50,9 +50,7 @@ int main(int argc, char *argv[]) {
         if (hasSuffix(argv[1], "app") && hasSuffix(argv[2], "app")) {
             bool success = swapLaunchers(argv[1], argv[2]);
             qDebug() << "Successfully installed Launcher: " << success;
-            if (!success) {
-                options->append("--noUpdate");
-            }
+            options->append("--noUpdate");
             didUpdate = true;
         }
     }

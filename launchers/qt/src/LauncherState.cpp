@@ -195,6 +195,8 @@ void LauncherState::requestBuilds() {
         _latestBuilds = request->getLatestBuilds();
 
         CommandlineOptions* options = CommandlineOptions::getInstance();
+        qDebug() << "Latest version: " << _latestBuilds.launcherBuild.latestVersion
+                 << "Curretn version: " << getBuildVersion().toInt();
         if (shouldDownloadLauncher() && !options->contains("--noUpdate")) {
             downloadLauncher();
             return;
@@ -211,7 +213,6 @@ QString LauncherState::getBuildVersion() {
     if (processEnvironment.contains("HQ_LAUNCHER_BUILD_VERSION")) {
         buildVersion = processEnvironment.value("HQ_LAUNCHER_BUILD_VERSION");
     }
-
     return buildVersion;
 }
 

@@ -11,7 +11,6 @@
 
 Launcher::Launcher(int& argc, char**argv) : QGuiApplication(argc, argv) {
     _launcherState = std::make_shared<LauncherState>();
-
     QString platform;
 #ifdef Q_OS_WIN
     platform = "Windows";
