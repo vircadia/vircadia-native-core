@@ -69,7 +69,6 @@ static QString getTargetDevice(bool hmd, QAudio::Mode mode) {
     return deviceName;
 }
 
-
 static QString getHmdAudioDeviceName(QAudio::Mode mode) {
     foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getAllDisplayPlugins()) {
         if (displayPlugin && displayPlugin->isHmd()) {

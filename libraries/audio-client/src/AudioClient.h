@@ -244,7 +244,6 @@ public slots:
     bool switchAudioDevice(QAudio::Mode mode, const HifiAudioDeviceInfo& deviceInfo = HifiAudioDeviceInfo());
     bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName, bool isHmd);
     void setHmdAudioName(QAudio::Mode mode, const QString& name);
-
     // Qt opensles plugin is not able to detect when the headset is plugged in
     void setHeadsetPluggedIn(bool pluggedIn);
 
@@ -315,6 +314,7 @@ private:
     // background tasks
     void checkDevices();
     void checkPeakValues();
+
     void outputFormatChanged();
     void handleAudioInput(QByteArray& audioBuffer);
     void prepareLocalAudioInjectors(std::unique_ptr<Lock> localAudioLock = nullptr);
@@ -508,6 +508,7 @@ private:
 #endif
 
     AudioSolo _solo;
+
     QReadWriteLock _hmdNameLock;
     Mutex _checkDevicesMutex;
     QTimer* _checkDevicesTimer { nullptr };

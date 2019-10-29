@@ -116,6 +116,7 @@ QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode, const QString&
         defaultDesktopDevice = HifiAudioDeviceInfo(devices.first(), true, mode, HifiAudioDeviceInfo::desktop);
     }
     newDevices.push_front(defaultDesktopDevice);
+
     if (!hmdName.isNull()) {
         HifiAudioDeviceInfo hmdDevice;
         foreach(auto device, newDevices) {
@@ -143,7 +144,6 @@ void AudioClient::checkDevices() {
 
     QString hmdInputName;
     QString hmdOutputName;
-
     {
         QReadLocker readLock(&_hmdNameLock);
         hmdInputName = _hmdInputName;
