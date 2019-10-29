@@ -205,6 +205,7 @@ Windows.Window {
 
         // finally set the initial window mode:
         setupPresentationMode();
+        updateContentParent();
 
         initialized = true;
     }
