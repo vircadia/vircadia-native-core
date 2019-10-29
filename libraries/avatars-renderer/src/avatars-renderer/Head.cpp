@@ -358,7 +358,6 @@ float Head::getFinalRoll() const {
 
 void Head::setLookAtPosition(const glm::vec3& lookAtPosition) {
     if (_isEyeLookAtUpdated && _requestLookAtPosition != lookAtPosition) {
-        _lookAtPositionChanged = usecTimestampNow();
         glm::vec3 oldAvatarLookAtVector = _requestLookAtPosition - _owningAvatar->getWorldPosition();
         glm::vec3 newAvatarLookAtVector = lookAtPosition - _owningAvatar->getWorldPosition();
         const float MIN_BLINK_ANGLE = 0.35f; // 20 degrees
@@ -369,6 +368,7 @@ void Head::setLookAtPosition(const glm::vec3& lookAtPosition) {
             _lookAtPosition = lookAtPosition;
         }
     }
+    _lookAtPositionChanged = usecTimestampNow();
     _requestLookAtPosition = lookAtPosition;
 }
 
