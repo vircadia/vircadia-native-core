@@ -83,25 +83,11 @@ Mutex _recordMutex;
 
 QString defaultAudioDeviceName(QAudio::Mode mode);
 
-static QString getHmdAudioDeviceName(QAudio::Mode mode) {
-    foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getAllDisplayPlugins()) {
-        if (displayPlugin && displayPlugin->isHmd()) {
-            if (mode == QAudio::AudioInput) {
-                return displayPlugin->getPreferredAudioInDevice();
-            } else {
-                return displayPlugin->getPreferredAudioOutDevice();
-            }
-            break;
-        }
-    }
-    return QString();
-}
-
 // thread-safe
 QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
     //get hmd device name prior to locking device mutex. in case of shutdown, this thread will be locked and audio client
     //cannot properly shut down. 
-    QString hmdDeviceName = getHmdAudioDeviceName(mode);
+    QString hmdDeviceName = QString();
     QString defDeviceName = defaultAudioDeviceName(mode);
 
     // NOTE: availableDevices() clobbers the Qt internal device list
