@@ -1326,6 +1326,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         joint.isSkeletonJoint = fbxModel.isLimbNode;
         hfmModel.hasSkeletonJoints = (hfmModel.hasSkeletonJoints || joint.isSkeletonJoint);
 
+        // First, calculate the FBX-specific transform used for inverse bind transform calculations
+
         glm::quat jointBindCombinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
         glm::mat4 globalTransformForCluster = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(jointBindCombinedRotation) * joint.postTransform;
         if (joint.parentIndex != -1 && joint.parentIndex < (int)jointIndex && !needMixamoHack) {
@@ -1338,9 +1340,15 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         }
         globalTransformForClusters.push_back(globalTransformForCluster);
 
+        // Then, calculate the transforms proper
+
         if (applyUpAxisZRotation && joint.parentIndex == -1) {
             joint.rotation *= upAxisZRotation;
             joint.translation = upAxisZRotation * joint.translation;
+        }
+        if (joint.hasGeometricOffset) {
+            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(joint.geometricScaling, joint.geometricRotation, joint.geometricTranslation);
+            joint.postTransform *= geometricOffset;
         }
         glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
         if (joint.parentIndex == -1) {
@@ -1405,12 +1413,15 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 // However, we must be careful when modifying the behavior of FBXSerializer.
                 // So, we leave this here, as a breakpoint for debugging, or stub for implementation.
                 // qCDebug(modelformat) << "Geometric offset encountered on non-leaf node. jointIndex: " << jointIndex << ", modelURL: " << url;
-                // glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(parentJoint.geometricScaling, parentJoint.geometricRotation, parentJoint.geometricTranslation);
-                // globalTransform = globalTransform * glm::inverse(geometricOffset);
+                // glm::mat4 parentGeometricOffset = createMatFromScaleQuatAndPos(parentJoint.geometricScaling, parentJoint.geometricRotation, parentJoint.geometricTranslation);
+                // joint.preTransform = glm::inverse(parentGeometricOffset) * joint.preTransform;
             }
         }
-        if (joint.hasGeometricOffset) {
+        // TODO: Revert after testing
+        if (false) {
+        //if (joint.hasGeometricOffset) {
             glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(joint.geometricScaling, joint.geometricRotation, joint.geometricTranslation);
+            joint.transform = joint.transform * geometricOffset;
             joint.globalTransform = joint.globalTransform * geometricOffset;
         }
 
@@ -1514,8 +1525,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 shape.mesh = meshIndex;
                 shape.meshPart = i;
                 shape.joint = transformIndex;
-
-                hfm::calculateExtentsForShape(shape, hfmModel.meshes, hfmModel.joints);
                 
                 auto matName = mesh.parts[i].materialID;
                 auto materialIt = materialNameToID.find(matName.toStdString());
@@ -1687,12 +1696,12 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 HFMJoint& joint = hfmModel.joints[transformIndex];
 
                 // Apply geometric offset, if present, by transforming the vertices directly
-                if (joint.hasGeometricOffset) {
+                /*if (joint.hasGeometricOffset) {
                     glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(joint.geometricScaling, joint.geometricRotation, joint.geometricTranslation);
                     for (int i = 0; i < mesh.vertices.size(); i++) {
                         mesh.vertices[i] = transformPoint(geometricOffset, mesh.vertices[i]);
                     }
-                }
+                }*/
             }
 
             // Store the parts for this mesh (or instance of this mesh, as the case may be)
@@ -1718,9 +1727,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
         }
     }
-
-    // TODO: The ordering of shape extent calculations is wrong. The entire mesh vertex set is transformed if there is a geometric offset, which would break instancing for FBX models with a geometricOffset.
-    hfm::calculateExtentsForModel(hfmModel.meshExtents, hfmModel.shapes);
 
     return hfmModelPtr;
 }
