@@ -6807,7 +6807,7 @@ void MyAvatar::updateHeadLookAt(float deltaTime) {
 
         if (_scriptControlsHeadLookAt) {
             _scriptHeadControlTimer += deltaTime;
-            if (_scriptHeadControlTimer > MAX_LOOK_AT_TIME_SCRIPT_CONTROL) {
+            if (_scriptHeadControlTimer >= MAX_LOOK_AT_TIME_SCRIPT_CONTROL) {
                 _scriptHeadControlTimer = 0.0f;
                 _scriptControlsHeadLookAt = false;
                 _lookAtCameraTarget = _lookAtScriptTarget;
@@ -6837,6 +6837,14 @@ void MyAvatar::setEyesLookAt(const glm::vec3& lookAtTarget) {
     _eyesLookAtTarget.set(lookAtTarget);
     _scriptEyesControlTimer = 0.0f;
     _scriptControlsEyesLookAt = true;
+}
+
+void MyAvatar::releaseHeadLookAtControl() {
+    _scriptHeadControlTimer = MAX_LOOK_AT_TIME_SCRIPT_CONTROL;
+}
+
+void MyAvatar::releaseEyesLookAtControl() {
+    _scriptEyesControlTimer = MAX_LOOK_AT_TIME_SCRIPT_CONTROL;
 }
 
 glm::vec3 MyAvatar::getLookAtPivotPoint() {
