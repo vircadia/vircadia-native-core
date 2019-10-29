@@ -15,6 +15,7 @@
 #include <algorithm>
 
 #include <shared/QtHelpers.h>
+#include <plugins/PluginManager.h>
 #include <plugins/DisplayPlugin.h>
 
 #include "Application.h"
@@ -66,6 +67,21 @@ static QString getTargetDevice(bool hmd, QAudio::Mode mode) {
         deviceName = HifiAudioDeviceInfo::DEFAULT_DEVICE_NAME;
     }
     return deviceName;
+}
+
+
+static QString getHmdAudioDeviceName(QAudio::Mode mode) {
+    foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getAllDisplayPlugins()) {
+        if (displayPlugin && displayPlugin->isHmd()) {
+            if (mode == QAudio::AudioInput) {
+                return displayPlugin->getPreferredAudioInDevice();
+            } else {
+                return displayPlugin->getPreferredAudioOutDevice();
+            }
+            break;
+        }
+    }
+    return QString();
 }
 
 Qt::ItemFlags AudioDeviceList::_flags { Qt::ItemIsSelectable | Qt::ItemIsEnabled };
@@ -263,6 +279,18 @@ void AudioDeviceList::onDevicesChanged(const QList<HifiAudioDeviceInfo>& devices
     bool hmdIsSelected = false;
     bool desktopIsSelected = false;
 
+   //getting hmd mode 
+    if (devices.size() > 0) {
+        auto mode = devices.first().getMode();
+        QString name = getHmdAudioDeviceName(mode);
+        if (!name.isEmpty()) {
+            auto client = DependencyManager::get<AudioClient>().data();
+            QMetaObject::invokeMethod(client, "setHmdAudioName",
+                Q_ARG(QAudio::Mode, mode),
+                Q_ARG(const QString&, name));
+        }
+    }
+
     if (!_backupSelectedDesktopDeviceName.isEmpty() && !_backupSelectedHMDDeviceName.isEmpty()) {
         foreach(const HifiAudioDeviceInfo& deviceInfo, devices) {
             for (bool isHMD : {false, true}) {
@@ -275,7 +303,6 @@ void AudioDeviceList::onDevicesChanged(const QList<HifiAudioDeviceInfo>& devices
                         _selectedDesktopDevice = deviceInfo;
                         backupSelectedDeviceName.clear();
                     }
-
                 }
             }
         }

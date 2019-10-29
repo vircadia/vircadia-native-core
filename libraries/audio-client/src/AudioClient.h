@@ -313,7 +313,7 @@ private:
     // background tasks
     void checkDevices();
     void checkPeakValues();
-
+    void setHmdAudioName(QAudio::Mode mode, const QString& name);
     void outputFormatChanged();
     void handleAudioInput(QByteArray& audioBuffer);
     void prepareLocalAudioInjectors(std::unique_ptr<Lock> localAudioLock = nullptr);
@@ -480,6 +480,9 @@ private:
 
     QList<HifiAudioDeviceInfo> _inputDevices;
     QList<HifiAudioDeviceInfo> _outputDevices;
+
+    QString _hmdInputName { QString() };
+    QString _hmdOutputName{ QString() };
 
     AudioFileWav _audioFileWav;
 

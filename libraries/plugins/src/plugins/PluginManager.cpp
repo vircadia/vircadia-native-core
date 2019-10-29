@@ -224,13 +224,7 @@ const OculusPlatformPluginPointer PluginManager::getOculusPlatformPlugin() {
 }
 
 DisplayPluginList PluginManager::getAllDisplayPlugins() {
-    if (thread() != QThread::currentThread()) {
-        DisplayPluginList list;
-        QMetaObject::invokeMethod(this, "getAllDisplayPlugins", Qt::BlockingQueuedConnection, Q_RETURN_ARG(DisplayPluginList, list));
-        return list;
-    } else {
-        return _displayPlugins;
-    }
+    return _displayPlugins;
 }
 
  const DisplayPluginList& PluginManager::getDisplayPlugins()  {
