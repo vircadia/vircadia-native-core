@@ -508,7 +508,7 @@ private:
 #endif
 
     AudioSolo _solo;
-
+    QReadWriteLock _hmdNameLock;
     Mutex _checkDevicesMutex;
     QTimer* _checkDevicesTimer { nullptr };
     Mutex _checkPeakValuesMutex;
