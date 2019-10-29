@@ -1405,8 +1405,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         joint.globalTransform = joint.localTransform;
         if (joint.parentIndex != -1 && joint.parentIndex < (int)jointIndex && !needMixamoHack) {
             hfm::Joint& parentJoint = hfmModel.joints[joint.parentIndex];
-            // SG Change: i think this not correct and the [parent]*[local] is the correct answer here    
-            //joint.globalTransform = joint.globalTransform * parentJoint.globalTransform;
             joint.globalTransform = parentJoint.globalTransform * joint.localTransform;
             if (parentJoint.hasGeometricOffset) {
                 // Per the FBX standard, geometric offset should not propagate to children.
@@ -1416,28 +1414,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 // glm::mat4 parentGeometricOffset = createMatFromScaleQuatAndPos(parentJoint.geometricScaling, parentJoint.geometricRotation, parentJoint.geometricTranslation);
                 // joint.preTransform = glm::inverse(parentGeometricOffset) * joint.preTransform;
             }
-        }
-        // TODO: Revert after testing
-        if (false) {
-        //if (joint.hasGeometricOffset) {
-            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(joint.geometricScaling, joint.geometricRotation, joint.geometricTranslation);
-            joint.transform = joint.transform * geometricOffset;
-            joint.globalTransform = joint.globalTransform * geometricOffset;
-        }
-
-        // TODO: Remove these lines, just here to make sure we are not breaking the transform computation
-       // QString modelID = fbxModels.contains(it.key()) ? it.key() : _connectionParentMap.value(it.key());
-        glm::mat4 anotherModelTransform = getGlobalTransform(_connectionParentMap, fbxModels, modelID, hfmModel.applicationName == "mixamo.com", url);
-        auto col0 = (glm::epsilonNotEqual(anotherModelTransform[0], joint.globalTransform[0], 0.001f));
-        auto col1 = (glm::epsilonNotEqual(anotherModelTransform[1], joint.globalTransform[1], 0.001f));
-        auto col2 = (glm::epsilonNotEqual(anotherModelTransform[2], joint.globalTransform[2], 0.001f));
-        auto col3 = (glm::epsilonNotEqual(anotherModelTransform[3], joint.globalTransform[3], 0.001f));
-        if (    glm::any(col0)
-            || glm::any(col1)
-            || glm::any(col2)
-            || glm::any(col3)) {
-            anotherModelTransform = getGlobalTransform(_connectionParentMap, fbxModels, modelID, hfmModel.applicationName == "mixamo.com", url);
-          //  joint.globalTransform = anotherModelTransform;
         }
 
         hfmModel.joints.push_back(joint);
@@ -1504,12 +1480,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         // meshShapes will be added to hfmModel at the very end
         std::vector<hfm::Shape> meshShapes;
         meshShapes.reserve(instanceModelIDs.size() * mesh.parts.size());
-        if (instanceModelIDs.size() > 1) {
-            qCDebug(modelformat) << "Mesh " << meshID << " made of " << mesh.parts.size() << " parts is instanced " << instanceModelIDs.size() << " times!!!";
-        }
-        if (mesh.parts.size() < 1) {
-            qCDebug(modelformat) << "Mesh " << meshID << " made of " << mesh.parts.size() << " parts !!!!! ";
-        }
         for (const QString& modelID : instanceModelIDs) {
             // The transform node has the same indexing order as the joints
             int indexOfModelID = modelIDs.indexOf(modelID);
@@ -1530,8 +1500,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 auto materialIt = materialNameToID.find(matName.toStdString());
                 if (materialIt != materialNameToID.end()) {
                     shape.material = materialIt->second;
-                } else {
-                    qCDebug(modelformat) << "Unknown material ? " << matName;
                 }
             }
 
@@ -1571,21 +1539,14 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             }
             // For baked models with FBX_DRACO_MESH_VERSION >= 2, get materials from extracted.materialIDPerMeshPart
             if (!extracted.materialIDPerMeshPart.empty()) {
-                // TODO: Verify this code works as intended by testing baked FBX models, then remove the verification/debug
-                if (partShapes.size() == extracted.materialIDPerMeshPart.size()) {
-                    for (uint32_t i = 0; i < (uint32_t)extracted.materialIDPerMeshPart.size(); ++i) {
-                        hfm::Shape& shape = partShapes[i];
-                        const std::string& materialID = extracted.materialIDPerMeshPart[i];
-                        auto materialIt = materialNameToID.find(materialID);
-                        if (materialIt != materialNameToID.end()) {
-                            shape.material = materialIt->second;
-                        }
+                assert(partShapes.size() == extracted.materialIDPerMeshPart.size());
+                for (uint32_t i = 0; i < (uint32_t)extracted.materialIDPerMeshPart.size(); ++i) {
+                    hfm::Shape& shape = partShapes[i];
+                    const std::string& materialID = extracted.materialIDPerMeshPart[i];
+                    auto materialIt = materialNameToID.find(materialID);
+                    if (materialIt != materialNameToID.end()) {
+                        shape.material = materialIt->second;
                     }
-                } else {
-                    for (int p = 0; p < mesh.parts.size(); p++) {
-                        qCDebug(modelformat) << "mesh.parts[" << p <<"] is " << mesh.parts[p].materialID;
-                    }
-                        qCDebug(modelformat) << "partShapes is not the same size as materialIDPerMeshPart ?";
                 }
             }
 
@@ -1694,14 +1655,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             } else {
                 // this is a no cluster mesh
                 HFMJoint& joint = hfmModel.joints[transformIndex];
-
-                // Apply geometric offset, if present, by transforming the vertices directly
-                /*if (joint.hasGeometricOffset) {
-                    glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(joint.geometricScaling, joint.geometricRotation, joint.geometricTranslation);
-                    for (int i = 0; i < mesh.vertices.size(); i++) {
-                        mesh.vertices[i] = transformPoint(geometricOffset, mesh.vertices[i]);
-                    }
-                }*/
             }
 
             // Store the parts for this mesh (or instance of this mesh, as the case may be)
