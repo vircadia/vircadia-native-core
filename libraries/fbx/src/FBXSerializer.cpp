@@ -1330,27 +1330,12 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
 
         joint.name = fbxModel.name;
 
+        joint.bindTransformFoundInCluster = false;
+
         // With the basic joint information, we can start to calculate compound transform information
         // modelIDs is ordered from parent to children, so we can safely get parent transforms from earlier joints as we iterate
 
-        // First, calculate the FBX-specific transform used for inverse bind transform calculations
-
-        glm::quat jointBindCombinedRotation = fbxModel.preRotation * fbxModel.rotation * fbxModel.postRotation;
-        const glm::mat4 localTransformForCluster = glm::translate(fbxModel.translation) * fbxModel.preTransform * glm::mat4_cast(jointBindCombinedRotation) * fbxModel.postTransform;
-        glm::mat4 globalTransformForCluster;
-        if (fbxModel.parentIndex != -1 && fbxModel.parentIndex < (int)jointIndex && !needMixamoHack) {
-            const glm::mat4& parentGlobalTransformForCluster = globalTransformForClusters[fbxModel.parentIndex];
-            globalTransformForCluster = parentGlobalTransformForCluster * localTransformForCluster;
-        } else {
-            globalTransformForCluster = localTransformForCluster;
-        }
-        if (fbxModel.hasGeometricOffset) {
-            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(fbxModel.geometricScaling, fbxModel.geometricRotation, fbxModel.geometricTranslation);
-            globalTransformForCluster = globalTransformForCluster * geometricOffset;
-        }
-        globalTransformForClusters.push_back(globalTransformForCluster);
-
-        // Make final adjustments to the static joint properties, and pre-calculate static transforms
+        // Make adjustments to the static joint properties, and pre-calculate static transforms
 
         if (applyUpAxisZRotation && joint.parentIndex == -1) {
             joint.rotation *= upAxisZRotation;
@@ -1387,7 +1372,26 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         }
         joint.inverseBindRotation = joint.inverseDefaultRotation;
 
-        joint.bindTransformFoundInCluster = false;
+        // If needed, separately calculate the FBX-specific transform used for inverse bind transform calculations
+
+        glm::mat4 globalTransformForCluster;
+        if (applyUpAxisZRotation && joint.parentIndex == -1) {
+            const glm::quat jointBindCombinedRotation = fbxModel.preRotation * fbxModel.rotation * fbxModel.postRotation;
+            const glm::mat4 localTransformForCluster = glm::translate(fbxModel.translation) * fbxModel.preTransform * glm::mat4_cast(jointBindCombinedRotation) * fbxModel.postTransform;
+            if (fbxModel.parentIndex != -1 && fbxModel.parentIndex < (int)jointIndex && !needMixamoHack) {
+                const glm::mat4& parentGlobalTransformForCluster = globalTransformForClusters[fbxModel.parentIndex];
+                globalTransformForCluster = parentGlobalTransformForCluster * localTransformForCluster;
+            } else {
+                globalTransformForCluster = localTransformForCluster;
+            }
+            if (fbxModel.hasGeometricOffset) {
+                glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(fbxModel.geometricScaling, fbxModel.geometricRotation, fbxModel.geometricTranslation);
+                globalTransformForCluster = globalTransformForCluster * geometricOffset;
+            }
+        } else {
+            globalTransformForCluster = joint.transform;
+        }
+        globalTransformForClusters.push_back(globalTransformForCluster);
 
         // Initialize animation information next
         // And also get the joint poses from the first frame of the animation, if present
