@@ -1653,9 +1653,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 for (hfm::Shape& shape : partShapes) {
                     shape.skinDeformer = skinDeformerID;
                 }
-            } else {
-                // this is a no cluster mesh
-                HFMJoint& joint = hfmModel.joints[transformIndex];
             }
 
             // Store the parts for this mesh (or instance of this mesh, as the case may be)
