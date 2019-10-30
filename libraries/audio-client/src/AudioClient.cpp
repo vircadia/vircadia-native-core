@@ -791,23 +791,7 @@ void AudioClient::start() {
         outputName = _hmdOutputName;
     }
 
-    HifiAudioDeviceInfo inputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioInput, inputName);
-    qCDebug(audioclient) << "The default audio input device is" << inputDeviceInfo.deviceName();
-    bool inputFormatSupported = switchInputToAudioDevice(inputDeviceInfo);
-
-    HifiAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput, outputName);
-    qCDebug(audioclient) << "The default audio output device is" << outputDeviceInfo.deviceName();
-    bool outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo);
-
-    if (!inputFormatSupported) {
-        qCDebug(audioclient) << "Unable to set up audio input because of a problem with input format.";
-        qCDebug(audioclient) << "The closest format available is" << inputDeviceInfo.getDevice().nearestFormat(_desiredInputFormat);
-    }
-
-    if (!outputFormatSupported) {
-        qCDebug(audioclient) << "Unable to set up audio output because of a problem with output format.";
-        qCDebug(audioclient) << "The closest format available is" << outputDeviceInfo.getDevice().nearestFormat(_desiredOutputFormat);
-    }
+  
 #if defined(Q_OS_ANDROID)
     connect(&_checkInputTimer, &QTimer::timeout, this, &AudioClient::checkInputTimeout);
     _checkInputTimer.start(CHECK_INPUT_READS_MSECS);
