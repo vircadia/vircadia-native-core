@@ -227,6 +227,9 @@
                     <pointsize>-1</pointsize>
                    </font>
                   </property>
+                  <property name="textColor">
+                   <color>black</color>
+                  </property>
                   <property name="frameShape">
                    <enum>QFrame::NoFrame</enum>
                   </property>
