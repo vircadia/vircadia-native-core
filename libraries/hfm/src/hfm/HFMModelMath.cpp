@@ -43,13 +43,13 @@ void calculateExtentsForShape(hfm::Shape& shape, const std::vector<hfm::Mesh>& m
     const auto& mesh = meshes[shape.mesh];
     const auto& meshPart = mesh.parts[shape.meshPart];
 
-    glm::mat4 globalTransform = joints[shape.joint].globalTransform;
+    glm::mat4 transform = joints[shape.joint].transform;
     forEachIndex(meshPart, [&](int32_t idx){
         if (mesh.vertices.size() <= idx) {
             return;
         }
         const glm::vec3& vertex = mesh.vertices[idx];
-        const glm::vec3 transformedVertex = glm::vec3(globalTransform * glm::vec4(vertex, 1.0f));
+        const glm::vec3 transformedVertex = glm::vec3(transform * glm::vec4(vertex, 1.0f));
         shapeExtents.addPoint(transformedVertex);
     });
 

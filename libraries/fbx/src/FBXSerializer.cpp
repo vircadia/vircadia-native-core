@@ -1362,8 +1362,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         joint.localTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
 
         if (joint.parentIndex == -1) {
-            joint.transform = hfmModel.offset * joint.localTransform;
-            joint.globalTransform = joint.localTransform;
+            joint.transform = joint.localTransform;
+            joint.globalTransform = hfmModel.offset * joint.localTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation);
             joint.distanceToParent = 0.0f;
         } else {

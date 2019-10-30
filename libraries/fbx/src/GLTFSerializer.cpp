@@ -1015,7 +1015,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             joint.transform = parentJoint.transform * joint.transform;
             joint.globalTransform = joint.globalTransform * parentJoint.globalTransform;
         } else {
-            joint.transform = hfmModel.offset * joint.transform;
+            joint.transform = joint.transform;
             joint.globalTransform = hfmModel.offset * joint.globalTransform;
         }
 
