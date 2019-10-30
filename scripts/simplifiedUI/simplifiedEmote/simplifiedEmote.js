@@ -217,6 +217,37 @@ function targetPointInterpolate() {
     }
 }
 
+
+function maybeClearInputAudioLevelsInterval() {
+    if (checkInputAudioLevelsInterval) {
+        Script.clearInterval(checkInputAudioLevelsInterval);
+        checkInputAudioLevelsInterval = false;
+        currentNumTimesAboveThreshold = 0;
+    }
+}
+
+
+var currentNumTimesAboveThreshold = 0;
+var checkInputAudioLevelsInterval;
+// The values below are determined empirically and may require tweaking over time if users
+// notice false-positives or false-negatives.
+var CHECK_INPUT_AUDIO_LEVELS_INTERVAL_MS = 200;
+var AUDIO_INPUT_THRESHOLD = 130;
+var NUM_REQUIRED_LEVELS_ABOVE_AUDIO_INPUT_THRESHOLD = 4;
+function checkInputLevelsCallback() {
+    if (MyAvatar.audioLoudness > AUDIO_INPUT_THRESHOLD) {
+        currentNumTimesAboveThreshold++;
+    } else {
+        currentNumTimesAboveThreshold = 0;
+    }
+
+    if (currentNumTimesAboveThreshold >= NUM_REQUIRED_LEVELS_ABOVE_AUDIO_INPUT_THRESHOLD) {
+        endReactionWrapper("raiseHand");
+        currentNumTimesAboveThreshold = 0;
+    }
+}
+
+
 function beginReactionWrapper(reaction) {
     maybeDeleteRemoteIndicatorTimeout();
 
@@ -246,6 +277,10 @@ function beginReactionWrapper(reaction) {
                 Script.update.connect(targetPointInterpolate);
                 targetPointInterpolateConnected = true;
             }
+            break;
+        case ("raiseHand"):
+            checkInputAudioLevelsInterval = Script.setInterval(checkInputLevelsCallback, CHECK_INPUT_AUDIO_LEVELS_INTERVAL_MS);
+            break;
     }
 }
 
@@ -371,6 +406,9 @@ function endReactionWrapper(reaction) {
             maybeClearReticleUpdateLimiterTimeout();
             deleteOldReticles();
             break;
+        case ("raiseHand"):
+            maybeClearInputAudioLevelsInterval();
+            break;
     }
 }
 
@@ -464,20 +502,20 @@ function keyPressHandler(event) {
     }
 
     if (!event.isAutoRepeat && ! event.isMeta && ! event.isControl && ! event.isAlt) {
-        if (event.text === POSITIVE_KEY) {
+        if (event.text.toLowerCase() === POSITIVE_KEY) {
             triggerReactionWrapper("positive");
-        } else if (event.text === NEGATIVE_KEY) {
+        } else if (event.text.toLowerCase() === NEGATIVE_KEY) {
             triggerReactionWrapper("negative");
-        } else if (event.text === RAISE_HAND_KEY) {
+        } else if (event.text.toLowerCase() === RAISE_HAND_KEY) {
             toggleReaction("raiseHand");
-        } else if (event.text === APPLAUD_KEY) {
+        } else if (event.text.toLowerCase() === APPLAUD_KEY) {
             // Make sure this doesn't get triggered if you are flying, falling, or jumping
             if (!MyAvatar.isInAir()) {
                 toggleReaction("applaud");
             }
-        } else if (event.text === POINT_KEY) {
+        } else if (event.text.toLowerCase() === POINT_KEY) {
             toggleReaction("point");
-        } else if (event.text === EMOTE_WINDOW && !(Settings.getValue("io.highfidelity.isEditing", false))) {
+        } else if (event.text.toLowerCase() === EMOTE_WINDOW && !(Settings.getValue("io.highfidelity.isEditing", false))) {
             toggleEmojiApp();
         }
     }
@@ -486,7 +524,7 @@ function keyPressHandler(event) {
 
 function keyReleaseHandler(event) {
     if (!event.isAutoRepeat) {
-        if (event.text === APPLAUD_KEY) {
+        if (event.text.toLowerCase() === APPLAUD_KEY) {
             if (reactionsBegun.indexOf("applaud") > -1) {
                 toggleReaction("applaud");
             }
@@ -648,6 +686,7 @@ function unload() {
     maybeClearClapSoundInterval();
     maybeClearReticleUpdateLimiterTimeout();
     maybeDeleteRemoteIndicatorTimeout();
+    maybeClearInputAudioLevelsInterval();
 
     Window.minimizedChanged.disconnect(onWindowMinimizedChanged);
     HMD.displayModeChanged.disconnect(onDisplayModeChanged);

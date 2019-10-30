@@ -733,7 +733,7 @@ void MyAvatar::update(float deltaTime) {
         _physicsSafetyPending = getCollisionsEnabled();
         _characterController.recomputeFlying(); // In case we've gone to into the sky.
     }
-    if (_goToFeetAjustment && _skeletonModelLoaded) {
+    if (_goToFeetAjustment && _skeletonModel->isLoaded()) {
         auto feetAjustment = getWorldPosition() - getWorldFeetPosition();
         _goToPosition = getWorldPosition() + feetAjustment;
         setWorldPosition(_goToPosition);
@@ -2501,7 +2501,6 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
     _headBoneSet.clear();
     _cauterizationNeedsUpdate = true;
-    _skeletonModelLoaded = false;
 
     std::shared_ptr<QMetaObject::Connection> skeletonConnection = std::make_shared<QMetaObject::Connection>();
     *skeletonConnection = QObject::connect(_skeletonModel.get(), &SkeletonModel::skeletonLoaded, [this, skeletonModelChangeCount, skeletonConnection]() {
@@ -2520,8 +2519,6 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
             _fstAnimGraphOverrideUrl = _skeletonModel->getNetworkModel()->getAnimGraphOverrideUrl();
             initAnimGraph();
             initFlowFromFST();
-
-            _skeletonModelLoaded = true;
         }
         QObject::disconnect(*skeletonConnection);
     });
@@ -5217,10 +5214,9 @@ bool MyAvatar::isReadyForPhysics() const {
 
 void MyAvatar::setSprintMode(bool sprint) {
     if (qApp->isHMDMode()) {
-        _walkSpeedScalar = sprint ? AVATAR_DESKTOP_SPRINT_SPEED_SCALAR : AVATAR_WALK_SPEED_SCALAR;
-    }
-    else {
         _walkSpeedScalar = sprint ? AVATAR_HMD_SPRINT_SPEED_SCALAR : AVATAR_WALK_SPEED_SCALAR;
+    } else {
+        _walkSpeedScalar = sprint ? AVATAR_DESKTOP_SPRINT_SPEED_SCALAR : AVATAR_WALK_SPEED_SCALAR;
     }
 }
 
@@ -6782,7 +6778,7 @@ glm::vec3 MyAvatar::aimToBlendValues(const glm::vec3& aimVector, const glm::quat
 }
 
 void MyAvatar::resetHeadLookAt() {
-    if (_skeletonModelLoaded) {
+    if (_skeletonModel->isLoaded()) {
         _skeletonModel->getRig().setDirectionalBlending(HEAD_BLEND_DIRECTIONAL_ALPHA_NAME, glm::vec3(),
                                                         HEAD_BLEND_LINEAR_ALPHA_NAME, HEAD_ALPHA_BLENDING);
     }
@@ -6798,7 +6794,7 @@ void MyAvatar::resetLookAtRotation(const glm::vec3& avatarPosition, const glm::q
 }
 
 void MyAvatar::updateHeadLookAt(float deltaTime) {    
-    if (_skeletonModelLoaded) {
+    if (_skeletonModel->isLoaded()) {
         glm::vec3 lookAtTarget = _scriptControlsHeadLookAt ? _lookAtScriptTarget : _lookAtCameraTarget;
         glm::vec3 aimVector = lookAtTarget - getDefaultEyePosition();
         glm::vec3 lookAtBlend = MyAvatar::aimToBlendValues(aimVector, getWorldOrientation());
@@ -6807,7 +6803,7 @@ void MyAvatar::updateHeadLookAt(float deltaTime) {
 
         if (_scriptControlsHeadLookAt) {
             _scriptHeadControlTimer += deltaTime;
-            if (_scriptHeadControlTimer > MAX_LOOK_AT_TIME_SCRIPT_CONTROL) {
+            if (_scriptHeadControlTimer >= MAX_LOOK_AT_TIME_SCRIPT_CONTROL) {
                 _scriptHeadControlTimer = 0.0f;
                 _scriptControlsHeadLookAt = false;
                 _lookAtCameraTarget = _lookAtScriptTarget;
@@ -6837,6 +6833,14 @@ void MyAvatar::setEyesLookAt(const glm::vec3& lookAtTarget) {
     _eyesLookAtTarget.set(lookAtTarget);
     _scriptEyesControlTimer = 0.0f;
     _scriptControlsEyesLookAt = true;
+}
+
+void MyAvatar::releaseHeadLookAtControl() {
+    _scriptHeadControlTimer = MAX_LOOK_AT_TIME_SCRIPT_CONTROL;
+}
+
+void MyAvatar::releaseEyesLookAtControl() {
+    _scriptEyesControlTimer = MAX_LOOK_AT_TIME_SCRIPT_CONTROL;
 }
 
 glm::vec3 MyAvatar::getLookAtPivotPoint() {
@@ -6912,7 +6916,7 @@ bool MyAvatar::setPointAt(const glm::vec3& pointAtTarget) {
             Q_ARG(const glm::vec3&, pointAtTarget));
         return result;
     }
-    if (_skeletonModelLoaded && _pointAtActive) {
+    if (_skeletonModel->isLoaded() && _pointAtActive) {
         glm::vec3 aimVector = pointAtTarget - getJointPosition(POINT_REF_JOINT_NAME);
         _isPointTargetValid = glm::dot(aimVector, getWorldOrientation() * Vectors::FRONT) > 0.0f;
         if (_isPointTargetValid) {
@@ -6926,7 +6930,7 @@ bool MyAvatar::setPointAt(const glm::vec3& pointAtTarget) {
 }
 
 void MyAvatar::resetPointAt() {
-    if (_skeletonModelLoaded) {
+    if (_skeletonModel->isLoaded()) {
         _skeletonModel->getRig().setDirectionalBlending(POINT_BLEND_DIRECTIONAL_ALPHA_NAME, glm::vec3(),
                                                         POINT_BLEND_LINEAR_ALPHA_NAME, POINT_ALPHA_BLENDING);
     }

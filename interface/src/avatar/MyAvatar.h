@@ -1770,6 +1770,12 @@ public:
     Q_INVOKABLE glm::vec3 getHeadLookAt() { return _lookAtCameraTarget; }
 
     /**jsdoc
+    * When this function is called the engine regains control of the head immediately.
+    * @function MyAvatar.releaseHeadLookAtControl
+    */
+    Q_INVOKABLE void releaseHeadLookAtControl();
+
+    /**jsdoc
     * Force the avatar's eyes to look to the specified location.
     * Once this method is called, API calls will have full control of the eyes for a limited time.
     * If this method is not called for two seconds, the engine will regain control of the eyes.
@@ -1784,6 +1790,12 @@ public:
     * @returns {Vec3} The eyes's look at target in world coordinates.
     */
     Q_INVOKABLE glm::vec3 getEyesLookAt() { return _eyesLookAtTarget.get(); }
+
+    /**jsdoc
+    * When this function is called the engine regains control of the eyes immediately.
+    * @function MyAvatar.releaseEyesLookAtControl
+    */
+    Q_INVOKABLE void releaseEyesLookAtControl();
 
     /**jsdoc
     * Aims the pointing directional blending towards the provided target point.
@@ -2918,7 +2930,6 @@ private:
 
     bool _haveReceivedHeightLimitsFromDomain { false };
     int _disableHandTouchCount { 0 };
-    bool _skeletonModelLoaded { false };
     bool _reloadAvatarEntityDataFromSettings { true };
 
     TimePoint _nextTraitsSendWindow;

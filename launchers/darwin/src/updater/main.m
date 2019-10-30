@@ -12,7 +12,23 @@
 }
 @end
 
+
+void redirectLogToDocuments()
+{
+    NSString* filePath = [[NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) objectAtIndex:0]
+                          stringByAppendingString:@"/Launcher/"];
+
+    if (![[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
+        NSError * error = nil;
+        [[NSFileManager defaultManager] createDirectoryAtPath:filePath withIntermediateDirectories:TRUE attributes:nil error:&error];
+    }
+    NSString *pathForLog = [filePath stringByAppendingPathComponent:@"log.txt"];
+
+    freopen([pathForLog cStringUsingEncoding:NSASCIIStringEncoding],"a+",stderr);
+}
+
 int main(int argc, char const* argv[]) {
+    redirectLogToDocuments();
     if (argc < 3) {
         NSLog(@"Error: wrong number of arguments");
         return 0;
@@ -50,6 +66,7 @@ int main(int argc, char const* argv[]) {
                               options:NSWorkspaceLaunchNewInstance
                         configuration:configuration
                                 error:&error];
+
     if (error != nil) {
         NSLog(@"couldn't start launcher: %@", error);
         return 1;
