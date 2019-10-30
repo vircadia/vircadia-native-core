@@ -1375,7 +1375,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         // If needed, separately calculate the FBX-specific transform used for inverse bind transform calculations
 
         glm::mat4 transformForCluster;
-        if (applyUpAxisZRotation && joint.parentIndex == -1) {
+        if (applyUpAxisZRotation) {
             const glm::quat jointBindCombinedRotation = fbxModel.preRotation * fbxModel.rotation * fbxModel.postRotation;
             const glm::mat4 localTransformForCluster = glm::translate(fbxModel.translation) * fbxModel.preTransform * glm::mat4_cast(jointBindCombinedRotation) * fbxModel.postTransform;
             if (fbxModel.parentIndex != -1 && fbxModel.parentIndex < (int)jointIndex && !needMixamoHack) {
