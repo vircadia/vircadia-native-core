@@ -348,13 +348,11 @@ void hfm::Model::debugDump() const {
         qCDebug(modelformat) << "    rotationMax" << joint.rotationMax;
         qCDebug(modelformat) << "    inverseDefaultRotation" << joint.inverseDefaultRotation;
         qCDebug(modelformat) << "    inverseBindRotation" << joint.inverseBindRotation;
+        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.bindTransformFoundInCluster;
         qCDebug(modelformat) << "    bindTransform" << joint.bindTransform;
         qCDebug(modelformat) << "    name" << joint.name;
         qCDebug(modelformat) << "    isSkeletonJoint" << joint.isSkeletonJoint;
-        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.hasGeometricOffset;
-        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.geometricTranslation;
-        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.geometricRotation;
-        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.geometricScaling;
+        qCDebug(modelformat) << "    geometricOffset" << joint.geometricOffset;
         qCDebug(modelformat) << "\n";
     }
 

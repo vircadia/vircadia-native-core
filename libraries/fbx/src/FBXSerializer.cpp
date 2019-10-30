@@ -1321,10 +1321,9 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         joint.rotationMin = fbxModel.rotationMin;
         joint.rotationMax = fbxModel.rotationMax;
 
-        joint.hasGeometricOffset = fbxModel.hasGeometricOffset;
-        joint.geometricTranslation = fbxModel.geometricTranslation;
-        joint.geometricRotation = fbxModel.geometricRotation;
-        joint.geometricScaling = fbxModel.geometricScaling;
+        if (fbxModel.hasGeometricOffset) {
+            joint.geometricOffset = createMatFromScaleQuatAndPos(fbxModel.geometricScaling, fbxModel.geometricRotation, fbxModel.geometricTranslation);
+        }
         joint.isSkeletonJoint = fbxModel.isLimbNode;
         hfmModel.hasSkeletonJoints = (hfmModel.hasSkeletonJoints || joint.isSkeletonJoint);
 
@@ -1341,9 +1340,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             joint.rotation *= upAxisZRotation;
             joint.translation = upAxisZRotation * joint.translation;
         }
-        if (joint.hasGeometricOffset) {
-            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(joint.geometricScaling, joint.geometricRotation, joint.geometricTranslation);
-            joint.postTransform *= geometricOffset;
+        if (fbxModel.hasGeometricOffset) {
+            joint.postTransform *= joint.geometricOffset;
         }
 
         glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
@@ -1361,13 +1359,12 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             joint.inverseDefaultRotation = glm::inverse(combinedRotation) * parentJoint.inverseDefaultRotation;
             joint.distanceToParent = glm::distance(extractTranslation(parentJoint.transform), extractTranslation(joint.transform));
 
-            if (parentJoint.hasGeometricOffset) {
+            if (fbxModel.hasGeometricOffset) {
                 // Per the FBX standard, geometric offset should not propagate to children.
                 // However, we must be careful when modifying the behavior of FBXSerializer.
                 // So, we leave this here, as a breakpoint for debugging, or stub for implementation.
                 // qCDebug(modelformat) << "Geometric offset encountered on non-leaf node. jointIndex: " << jointIndex << ", modelURL: " << url;
-                // glm::mat4 parentGeometricOffset = createMatFromScaleQuatAndPos(parentJoint.geometricScaling, parentJoint.geometricRotation, parentJoint.geometricTranslation);
-                // joint.preTransform = glm::inverse(parentGeometricOffset) * joint.preTransform;
+                // joint.preTransform = glm::inverse(parentJoint.geometricOffset) * joint.preTransform;
             }
         }
         joint.inverseBindRotation = joint.inverseDefaultRotation;
@@ -1385,8 +1382,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 transformForCluster = localTransformForCluster;
             }
             if (fbxModel.hasGeometricOffset) {
-                glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(fbxModel.geometricScaling, fbxModel.geometricRotation, fbxModel.geometricTranslation);
-                transformForCluster = transformForCluster * geometricOffset;
+                transformForCluster = transformForCluster * joint.geometricOffset;
             }
         } else {
             transformForCluster = joint.transform;
