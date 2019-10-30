@@ -1340,9 +1340,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             joint.rotation *= upAxisZRotation;
             joint.translation = upAxisZRotation * joint.translation;
         }
-        if (fbxModel.hasGeometricOffset) {
-            joint.postTransform *= joint.geometricOffset;
-        }
 
         glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
         joint.localTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
@@ -1358,14 +1355,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             joint.globalTransform = parentJoint.globalTransform * joint.localTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation) * parentJoint.inverseDefaultRotation;
             joint.distanceToParent = glm::distance(extractTranslation(parentJoint.transform), extractTranslation(joint.transform));
-
-            if (fbxModel.hasGeometricOffset) {
-                // Per the FBX standard, geometric offset should not propagate to children.
-                // However, we must be careful when modifying the behavior of FBXSerializer.
-                // So, we leave this here, as a breakpoint for debugging, or stub for implementation.
-                // qCDebug(modelformat) << "Geometric offset encountered on non-leaf node. jointIndex: " << jointIndex << ", modelURL: " << url;
-                // joint.preTransform = glm::inverse(parentJoint.geometricOffset) * joint.preTransform;
-            }
         }
         joint.inverseBindRotation = joint.inverseDefaultRotation;
 
@@ -1380,9 +1369,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 transformForCluster = parenttransformForCluster * localTransformForCluster;
             } else {
                 transformForCluster = localTransformForCluster;
-            }
-            if (fbxModel.hasGeometricOffset) {
-                transformForCluster = transformForCluster * joint.geometricOffset;
             }
         } else {
             transformForCluster = joint.transform;
