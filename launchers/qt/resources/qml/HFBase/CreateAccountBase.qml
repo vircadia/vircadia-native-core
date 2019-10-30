@@ -8,7 +8,7 @@ import HQLauncher 1.0
 Item {
     id: root
     anchors.centerIn: parent
-    property string titleText: "Sign in and pick a password"
+    property string titleText: "Create Your Username and Password"
     property string usernamePlaceholder: "Username"
     property string passwordPlaceholder: "Set a password (must be at least 6 characters)"
     property int marginLeft: root.width * 0.15
@@ -28,6 +28,7 @@ Item {
     HFTextHeader {
         id: title
         width: 481
+        wrapMode: Text.WordWrap
         lineHeight: 35
         lineHeightMode: Text.FixedHeight
         text: LauncherState.lastSignupErrorMessage.length == 0 ? root.titleText : "Uh oh"
@@ -36,21 +37,6 @@ Item {
             topMargin: 29
             left: root.left
             leftMargin: root.marginLeft
-        }
-    }
-
-    HFTextRegular {
-        id: instruction
-        width: 425
-
-        text: "Use the email address you applied for access with"
-        visible: LauncherState.lastSignupErrorMessage.length == 0
-
-        anchors {
-            left: root.left
-            leftMargin: root.marginLeft
-            top: title.bottom
-            topMargin: 18
         }
     }
 
@@ -88,10 +74,10 @@ Item {
 
         enabled: root.enabled
 
-        placeholderText: "Email Address"
+        placeholderText: "Verify Your Email"
         seperatorColor: Qt.rgba(1, 1, 1, 0.3)
         anchors {
-            top: instruction.bottom
+            top: error.visible ? error.bottom : title.bottom
             left: root.left
             leftMargin: root.marginLeft
             topMargin: 18

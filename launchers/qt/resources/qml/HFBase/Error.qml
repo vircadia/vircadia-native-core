@@ -45,7 +45,7 @@ Item {
     HFTextRegular {
         id: description
 
-        text: "We seem to have a problem.\n   Please restart Launcher."
+        text: "We seem to have a problem.\n          Please restart."
 
         anchors {
             top: header.bottom

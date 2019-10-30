@@ -77,7 +77,7 @@ Item {
             width: 430
 
             text: LauncherState.lastUsedUsername
-            placeholderText: "Username"
+            placeholderText: "Username or Email address"
 
             seperatorColor: Qt.rgba(1, 1, 1, 0.3)
             anchors {
