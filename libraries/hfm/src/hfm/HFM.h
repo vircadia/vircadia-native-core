@@ -113,11 +113,10 @@ public:
     bool isSkeletonJoint;
     bool bindTransformFoundInCluster;
 
+
     // geometric offset is applied in local space but does NOT affect children.
-    bool hasGeometricOffset;
-    glm::vec3 geometricTranslation;
-    glm::quat geometricRotation;
-    glm::vec3 geometricScaling;
+    // TODO: Apply hfm::Joint.geometricOffset to transforms in the model preparation step
+    glm::mat4 geometricOffset;
 
     // globalTransform is the transform of the joint with all parent transforms applied, plus the geometric offset
     glm::mat4 localTransform;
@@ -375,6 +374,8 @@ public:
     QMap<int, glm::quat> jointRotationOffsets;
     std::vector<ShapeVertices> shapeVertices;
     FlowData flowData;
+
+    void debugDump() const;
 };
 
 };

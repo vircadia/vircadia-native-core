@@ -369,11 +369,6 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 }
             }
 
-            if (dracoMeshNodeVersion >= 2) {
-                // Define the materialIDs now
-                data.extracted.materialIDPerMeshPart = dracoMaterialList;
-            }
-
             // load the draco mesh from the FBX and create a draco::Mesh
             draco::Decoder decoder;
             draco::DecoderBuffer decodedBuffer;
@@ -491,15 +486,13 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 // grab or setup the HFMMeshPart for the part this face belongs to
                 int& partIndexPlusOne = materialTextureParts[materialTexture];
                 if (partIndexPlusOne == 0) {
-                    data.extracted.mesh.parts.resize(data.extracted.mesh.parts.size() + 1);
-                    HFMMeshPart& part = data.extracted.mesh.parts.back();
+                    data.extracted.mesh.parts.emplace_back();
 
                     // Figure out if this is the older way of defining the per-part material for baked FBX
                     if (dracoMeshNodeVersion >= 2) {
-                        // Define the materialID now
-                        if (materialID < dracoMaterialList.size()) {
-                            part.materialID = QString(dracoMaterialList[materialID].c_str());
-                        }
+                        // Define the materialID for this mesh part index
+                        uint16_t safeMaterialID = materialID < dracoMaterialList.size() ? materialID : 0;
+                        data.extracted.materialIDPerMeshPart.push_back(dracoMaterialList[safeMaterialID].c_str());
                     } else {
                         // Define the materialID later, based on the order of first appearance of the materials in the _connectionChildMap
                         data.extracted.partMaterialTextures.append(materialTexture);
