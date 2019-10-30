@@ -190,7 +190,7 @@ const TriangleListMesh generateTriangleListMesh(const std::vector<glm::vec3>& sr
                 dest.indices[i] = qti; //remap[qti];
                 ++i;
             }
-            for (const auto& ti : part.quadTrianglesIndices) {
+            for (const auto& ti : part.triangleIndices) {
                 dest.indices[i] = ti; //remap[ti];
                 ++i;
             }
