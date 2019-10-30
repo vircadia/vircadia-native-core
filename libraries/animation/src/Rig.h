@@ -260,6 +260,7 @@ public:
 
 signals:
     void onLoadComplete();
+    void onLoadFailed();
 
 protected:
     bool isIndexValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
