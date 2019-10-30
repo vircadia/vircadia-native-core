@@ -144,7 +144,7 @@ def signBuild(executablePath):
 
 
 def zipDarwinLauncher():
-    launcherSourcePath = os.path.join(SOURCE_PATH, 'launchers', sys.platform)
+    launcherSourcePath = os.path.join(SOURCE_PATH, 'launchers', 'qt')
     launcherBuildPath = os.path.join(BUILD_PATH, 'launcher')
 
     archiveName = computeArchiveName('HQ Launcher')
@@ -165,7 +165,7 @@ def zipDarwinLauncher():
 
 
 def buildLightLauncher():
-    launcherSourcePath = os.path.join(SOURCE_PATH, 'launchers', sys.platform)
+    launcherSourcePath = os.path.join(SOURCE_PATH, 'launchers', 'qt')
     launcherBuildPath = os.path.join(BUILD_PATH, 'launcher')
     if not os.path.exists(launcherBuildPath):
         os.makedirs(launcherBuildPath)
