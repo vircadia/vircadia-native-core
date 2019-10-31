@@ -11,6 +11,9 @@ class ScreenshareScriptingInterface : public QObject, public Dependency {
 public:
 	ScreenshareScriptingInterface();
 
+	Q_INVOKABLE void startScreenshare(QString displayName, QString userName, QString token, QString sessionID, QString apiKey);
+
+private:
 #if DEV_BUILD
 #ifdef Q_OS_WIN
     const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare/hifi-screenshare-win32-x64/hifi-screenshare.exe" };
@@ -30,8 +33,6 @@ public:
     const QString SCREENSHARE_EXE_PATH{ QCoreApplication::applicationDirPath() + "/hifi-screenshare/hifi-screenshare" };
 #endif
 #endif
-
-	Q_INVOKABLE void startScreenshare(QString displayName, QString userName, QString token, QString sessionID, QString apiKey);
 };
 
 #endif // hifi_ScreenshareScriptingInterface_h
