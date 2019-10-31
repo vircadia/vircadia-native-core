@@ -40,6 +40,20 @@ void thickenFlatExtents(Extents& extents) {
     extents.maximum += glm::vec3(EPSILON, EPSILON, EPSILON);
 }
 
+void calculateExtentsForTriangleListMesh(TriangleListMesh& triangleListMesh) {
+    triangleListMesh.partExtents.resize(triangleListMesh.parts.size());
+    for (size_t partIndex = 0; partIndex < triangleListMesh.parts.size(); ++partIndex) {
+        const auto& part = triangleListMesh.parts[partIndex];
+        auto& extents = triangleListMesh.partExtents[partIndex];
+        int partEnd = part.x + part.y;
+        for (int i = part.x; i < partEnd; ++i) {
+            auto index = triangleListMesh.indices[i];
+            const auto& position = triangleListMesh.vertices[index];
+            extents.addPoint(position);
+        }
+    }
+}
+
 void calculateExtentsForShape(hfm::Shape& shape, const std::vector<hfm::Mesh>& meshes, const std::vector<hfm::Joint> joints) {
     auto& shapeExtents = shape.transformedExtents;
     shapeExtents.reset();
@@ -195,6 +209,8 @@ const TriangleListMesh generateTriangleListMesh(const std::vector<glm::vec3>& sr
             dest.parts.push_back(spart);
         }
     }
+
+    calculateExtentsForTriangleListMesh(dest);
 
     return dest;
 }

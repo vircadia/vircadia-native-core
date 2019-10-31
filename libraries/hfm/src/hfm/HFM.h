@@ -235,6 +235,7 @@ struct TriangleListMesh {
     std::vector<glm::vec3> vertices;
     std::vector<uint32_t> indices;
     std::vector<glm::ivec2> parts; // Offset in the indices, Number of indices
+    std::vector<Extents> partExtents; // Extents of each part with no transform applied. Same length as parts.
 };
 
 /// A single mesh (with optional blendshapes).

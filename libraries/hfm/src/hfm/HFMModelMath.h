@@ -20,6 +20,8 @@ void forEachIndex(const hfm::MeshPart& meshPart, std::function<void(uint32_t)> f
 
 void initializeExtents(Extents& extents);
 
+void calculateExtentsForTriangleListMesh(TriangleListMesh& triangleListMesh);
+
 // This can't be moved to model-baker until
 void calculateExtentsForShape(hfm::Shape& shape, const std::vector<hfm::Mesh>& meshes, const std::vector<hfm::Joint> joints);
 
