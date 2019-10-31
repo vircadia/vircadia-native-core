@@ -29,7 +29,6 @@ exports.handlers = {
             //'../../interface/src/audio', Exlude AudioScope API from output.
             '../../interface/src/avatar',
             '../../interface/src/commerce',
-            '../../interface/src/devices',
             '../../interface/src/java',
             '../../interface/src/networking',
             '../../interface/src/raypick',
@@ -64,7 +63,6 @@ exports.handlers = {
             '../../libraries/shared/src',
             '../../libraries/shared/src/shared',
             '../../libraries/task/src/task',
-            '../../libraries/trackers/src/trackers',
             '../../libraries/ui/src',
             '../../libraries/ui/src/ui',
             '../../plugins/oculus/src',

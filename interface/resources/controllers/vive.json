@@ -98,8 +98,9 @@
         { "from": "Vive.Head", "to" : "Standard.Head" },
         { "from": "Vive.LeftEye", "to" : "Standard.LeftEye" },
         { "from": "Vive.RightEye", "to" : "Standard.RightEye" },
-        { "from": "Vive.LeftEyeBlink", "to" : "Standard.LeftEyeBlink" },
-        { "from": "Vive.RightEyeBlink", "to" : "Standard.RightEyeBlink" },
+
+        { "from": "Vive.EyeBlink_L", "to" : "Standard.EyeBlink_L" },
+        { "from": "Vive.EyeBlink_R", "to" : "Standard.EyeBlink_R" },
 
         {
             "from": "Vive.LeftFoot", "to" : "Standard.LeftFoot",
