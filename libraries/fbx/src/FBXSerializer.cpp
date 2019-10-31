@@ -1600,12 +1600,10 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 cluster.jointIndex = transformIndex;
                 clusters.push_back(cluster);
 
-                std::vector<hfm::SkinCluster> skinClusters;
                 // Skinned mesh instances have an hfm::SkinDeformer
-                skinDeformer.skinClusterIndices.reserve(clusterIDs.size());
+                std::vector<hfm::SkinCluster> skinClusters;
                 for (const auto& clusterID : clusterIDs) {
                     const Cluster& fbxCluster = fbxClusters[clusterID];
-                    skinDeformer.skinClusterIndices.emplace_back();
                     skinClusters.emplace_back();
                     hfm::SkinCluster& skinCluster = skinClusters.back();
                     size_t indexWeightPairs = (size_t)std::min(fbxCluster.indices.size(), fbxCluster.weights.size());

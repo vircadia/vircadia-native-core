@@ -251,7 +251,6 @@ public:
     QVector<glm::vec2> texCoords;
     QVector<glm::vec2> texCoords1;
 
-    QVector<Cluster> clusters; // DEPRECATED (see hfm::Shape::dynamicTransform, hfm::DynamicTransform::clusters)
     Extents meshExtents; // DEPRECATED (see hfm::Shape::transformedExtents)
     glm::mat4 modelTransform; // DEPRECATED (see hfm::Joint::globalTransform, hfm::Shape::transform, hfm::Model::joints)
 
@@ -317,7 +316,6 @@ public:
 
 class SkinDeformer {
 public:
-    std::vector<uint16_t> skinClusterIndices; // DEPRECATED (see hfm::Mesh.clusterIndices, hfm::Mesh.clusterWeights)
     std::vector<Cluster> clusters;
 };
 
