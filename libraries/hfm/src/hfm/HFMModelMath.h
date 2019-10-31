@@ -25,8 +25,7 @@ void calculateExtentsForShape(hfm::Shape& shape, const std::vector<hfm::Mesh>& m
 
 void calculateExtentsForModel(Extents& modelExtents, const std::vector<hfm::Shape>& shapes);
 
-class ReweightedDeformers {
-public:
+struct ReweightedDeformers {
     std::vector<uint16_t> indices;
     std::vector<uint16_t> weights;
     uint16_t weightsPerVertex { 0 };
@@ -36,6 +35,9 @@ public:
 const uint16_t DEFAULT_SKINNING_WEIGHTS_PER_VERTEX = 4;
 
 ReweightedDeformers getReweightedDeformers(const size_t numMeshVertices, const std::vector<hfm::SkinCluster> skinClusters, const uint16_t weightsPerVertex = DEFAULT_SKINNING_WEIGHTS_PER_VERTEX);
+
+const TriangleListMesh generateTriangleListMesh(const std::vector<glm::vec3>& srcVertices, const std::vector<HFMMeshPart>& srcParts);
+
 };
 
 #endif // #define hifi_hfm_ModelMath_h

@@ -23,6 +23,7 @@
 #include "CalculateExtentsTask.h"
 #include "BuildDracoMeshTask.h"
 #include "ParseFlowDataTask.h"
+#include <hfm/HFMModelMath.h>
 
 namespace baker {
 
@@ -46,6 +47,26 @@ namespace baker {
             output.edit5() = hfmModelIn->shapes;
             output.edit6() = hfmModelIn->skinDeformers;
             output.edit7() = hfmModelIn->meshExtents;
+        }
+    };
+
+    class BuildMeshTriangleListTask {
+    public:
+        using Input = std::vector<hfm::Mesh>;
+        using Output = std::vector<hfm::TriangleListMesh>;
+        using JobModel = Job::ModelIO<BuildMeshTriangleListTask, Input, Output>;
+
+        void run(const BakeContextPointer& context, const Input& input, Output& output) {
+            const auto& meshesIn = input;
+            auto& indexedTrianglesMeshOut = output;
+            indexedTrianglesMeshOut.clear();
+            indexedTrianglesMeshOut.resize(meshesIn.size());
+
+            for (size_t i = 0; i < meshesIn.size(); i++) {
+                auto& mesh = meshesIn[i];
+                const auto verticesStd = mesh.vertices.toStdVector();
+                indexedTrianglesMeshOut[i] = hfm::generateTriangleListMesh(verticesStd, mesh.parts);
+            }
         }
     };
 
@@ -80,21 +101,23 @@ namespace baker {
 
     class BuildMeshesTask {
     public:
-        using Input = VaryingSet5<std::vector<hfm::Mesh>, std::vector<graphics::MeshPointer>, NormalsPerMesh, TangentsPerMesh, BlendshapesPerMesh>;
+        using Input = VaryingSet6<std::vector<hfm::Mesh>, std::vector<hfm::TriangleListMesh>, std::vector<graphics::MeshPointer>, NormalsPerMesh, TangentsPerMesh, BlendshapesPerMesh>;
         using Output = std::vector<hfm::Mesh>;
         using JobModel = Job::ModelIO<BuildMeshesTask, Input, Output>;
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
             auto& meshesIn = input.get0();
             int numMeshes = (int)meshesIn.size();
-            auto& graphicsMeshesIn = input.get1();
-            auto& normalsPerMeshIn = input.get2();
-            auto& tangentsPerMeshIn = input.get3();
-            auto& blendshapesPerMeshIn = input.get4();
+            auto& triangleListMeshesIn = input.get1();
+            auto& graphicsMeshesIn = input.get2();
+            auto& normalsPerMeshIn = input.get3();
+            auto& tangentsPerMeshIn = input.get4();
+            auto& blendshapesPerMeshIn = input.get5();
 
             auto meshesOut = meshesIn;
             for (int i = 0; i < numMeshes; i++) {
                 auto& meshOut = meshesOut[i];
+                meshOut.triangleListMesh = triangleListMeshesIn[i];
                 meshOut._mesh = safeGet(graphicsMeshesIn, i);
                 meshOut.normals = QVector<glm::vec3>::fromStdVector(safeGet(normalsPerMeshIn, i));
                 meshOut.tangents = QVector<glm::vec3>::fromStdVector(safeGet(tangentsPerMeshIn, i));
@@ -162,6 +185,9 @@ namespace baker {
             const auto collectShapeVerticesInputs = CollectShapeVerticesTask::Input(meshesIn, shapesIn, jointsIn, skinDeformersIn).asVarying();
             const auto shapeVerticesPerJoint = model.addJob<CollectShapeVerticesTask>("CollectShapeVertices", collectShapeVerticesInputs);
 
+            // Build the slim triangle list mesh for each hfm::mesh
+            const auto triangleListMeshes = model.addJob<BuildMeshTriangleListTask>("BuildMeshTriangleListTask", meshesIn);
+
             // Build the graphics::MeshPointer for each hfm::Mesh
             const auto buildGraphicsMeshInputs = BuildGraphicsMeshTask::Input(meshesIn, url, meshIndicesToModelNames, normalsPerMesh, tangentsPerMesh, shapesIn, skinDeformersIn).asVarying();
             const auto graphicsMeshes = model.addJob<BuildGraphicsMeshTask>("BuildGraphicsMesh", buildGraphicsMeshInputs);
@@ -200,7 +226,7 @@ namespace baker {
             // Combine the outputs into a new hfm::Model
             const auto buildBlendshapesInputs = BuildBlendshapesTask::Input(blendshapesPerMeshIn, normalsPerBlendshapePerMesh, tangentsPerBlendshapePerMesh).asVarying();
             const auto blendshapesPerMeshOut = model.addJob<BuildBlendshapesTask>("BuildBlendshapes", buildBlendshapesInputs);
-            const auto buildMeshesInputs = BuildMeshesTask::Input(meshesIn, graphicsMeshes, normalsPerMesh, tangentsPerMesh, blendshapesPerMeshOut).asVarying();
+            const auto buildMeshesInputs = BuildMeshesTask::Input(meshesIn, triangleListMeshes, graphicsMeshes, normalsPerMesh, tangentsPerMesh, blendshapesPerMeshOut).asVarying();
             const auto meshesOut = model.addJob<BuildMeshesTask>("BuildMeshes", buildMeshesInputs);
             const auto buildModelInputs = BuildModelTask::Input(hfmModelIn, meshesOut, jointsOut, jointRotationOffsets, jointIndices, flowData, shapeVerticesPerJoint, shapesOut, modelExtentsOut).asVarying();
             const auto hfmModelOut = model.addJob<BuildModelTask>("BuildModel", buildModelInputs);

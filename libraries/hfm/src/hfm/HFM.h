@@ -229,6 +229,14 @@ public:
     bool needTangentSpace() const;
 };
 
+
+/// Simple Triangle List Mesh
+struct TriangleListMesh {
+    std::vector<glm::vec3> vertices;
+    std::vector<uint32_t> indices;
+    std::vector<glm::ivec2> parts; // Offset in the indices, Number of indices
+};
+
 /// A single mesh (with optional blendshapes).
 class Mesh {
 public:
@@ -254,12 +262,15 @@ public:
     // Blendshape attributes
     QVector<Blendshape> blendshapes;
 
+    // Simple Triangle List Mesh generated during baking
+    hfm::TriangleListMesh triangleListMesh;
 
     QVector<int32_t> originalIndices; // Original indices of the vertices
     unsigned int meshIndex; // the order the meshes appeared in the object file
 
     graphics::MeshPointer _mesh;
     bool wasCompressed { false };
+
 };
 
 /// A single animation frame.
