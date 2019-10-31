@@ -13,12 +13,12 @@ public:
 
 #if DEV_BUILD
 #ifdef Q_OS_WIN
-    const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/hifi-screenshare-win32-x64/hifi-screenshare.exe" };
+    const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare/hifi-screenshare-win32-x64/hifi-screenshare.exe" };
 #elif defined(Q_OS_MAC)
-    const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare-darwin-x64/hifi-screenshare.app" };
+    const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare/screenshare-darwin-x64/hifi-screenshare.app" };
 #else
     // This path won't exist on other platforms, so the Screenshare Scripting Interface will exit early when invoked.
-    const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare/hifi-screenshare" };
+    const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare/screenshare-other-os/hifi-screenshare" };
 #endif
 #else
 #ifdef Q_OS_WIN
