@@ -5,7 +5,7 @@ add_custom_target(${TARGET_NAME}-npm-install
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 add_custom_target(${TARGET_NAME}
-	COMMAND npm run packager
+	COMMAND npm run packager -- --out ${CMAKE_CURRENT_BINARY_DIR}
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	DEPENDS ${TARGET_NAME}-npm-install
 )

@@ -1,5 +1,6 @@
 var packager = require('electron-packager');
 var osType = require('os').type();
+var argv = require('yargs').argv;
 
 var platform = null;
 if (osType == "Darwin" || osType == "Linux") {
@@ -30,6 +31,11 @@ if (osType == "Darwin") {
         ProductName: NAME,
         OriginalFilename: NAME + ".exe"
     }
+}
+
+// check if we were passed a custom out directory, pass it along if so
+if (argv.out) {
+    options.out = argv.out
 }
 
 // call the packager to produce the executable
