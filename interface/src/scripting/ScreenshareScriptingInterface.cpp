@@ -79,7 +79,7 @@ void ScreenshareScriptingInterface::stopScreenshare() {
         return;
     }
 
-    if (_screenshareProcess->state() != QProcess::NotRunning) {
+    if (_screenshareProcess && _screenshareProcess->state() != QProcess::NotRunning) {
         _screenshareProcess->terminate();
     }
 }
