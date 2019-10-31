@@ -1187,12 +1187,12 @@ void AudioClient::processWebrtcFarEnd(const int16_t* samples, int numFrames, int
     const webrtc::StreamConfig streamConfig = webrtc::StreamConfig(sampleRate, numChannels);
     const int numChunk = (int)streamConfig.num_frames();
 
-    if (sampleRate > WEBRTC_SAMPLE_RATE_MAX) {
-        qCWarning(audioclient) << "WebRTC does not support" << sampleRate << "output sample rate.";
-        return;
-    }
-    if (numChannels > WEBRTC_CHANNELS_MAX) {
-        qCWarning(audioclient) << "WebRTC does not support" << numChannels << "output channels.";
+    static int32_t lastWarningHash = 0;
+    if (sampleRate > WEBRTC_SAMPLE_RATE_MAX || numChannels > WEBRTC_CHANNELS_MAX) {
+        if (lastWarningHash != ((sampleRate << 8) | numChannels)) {
+            lastWarningHash = ((sampleRate << 8) | numChannels);
+            qCWarning(audioclient) << "AEC not unsupported for output format: sampleRate =" << sampleRate << "numChannels =" << numChannels;
+        }
         return;
     }
 
@@ -1228,17 +1228,14 @@ void AudioClient::processWebrtcNearEnd(int16_t* samples, int numFrames, int numC
 
     const webrtc::StreamConfig streamConfig = webrtc::StreamConfig(sampleRate, numChannels);
     const int numChunk = (int)streamConfig.num_frames();
+    assert(numFrames == chunk); // WebRTC requires exactly 10ms of input
 
-    if (sampleRate > WEBRTC_SAMPLE_RATE_MAX) {
-        qCWarning(audioclient) << "WebRTC does not support" << sampleRate << "input sample rate.";
-        return;
-    }
-    if (numChannels > WEBRTC_CHANNELS_MAX) {
-        qCWarning(audioclient) << "WebRTC does not support" << numChannels << "input channels.";
-        return;
-    }
-    if (numFrames != numChunk) {
-        qCWarning(audioclient) << "WebRTC requires exactly 10ms of input.";
+    static int32_t lastWarningHash = 0;
+    if (sampleRate > WEBRTC_SAMPLE_RATE_MAX || numChannels > WEBRTC_CHANNELS_MAX) {
+        if (lastWarningHash != ((sampleRate << 8) | numChannels)) {
+            lastWarningHash = ((sampleRate << 8) | numChannels);
+            qCWarning(audioclient) << "AEC not unsupported for input format: sampleRate =" << sampleRate << "numChannels =" << numChannels;
+        }
         return;
     }
 
