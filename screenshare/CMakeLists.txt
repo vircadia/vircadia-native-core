@@ -32,6 +32,12 @@ elseif (APPLE)
 	)
 endif()
 
-# Don't build the Screenshare Electron app when building the `ALL_BUILD` target.
-# Don't build the Screenshare Electron app when a user selects "Build Solution" from within Visual Studio.
-set_target_properties(${TARGET_NAME} PROPERTIES EXCLUDE_FROM_ALL TRUE EXCLUDE_FROM_DEFAULT_BUILD TRUE)
+if (PR_BUILD)
+	# DO build the Screenshare Electron app when building the `ALL_BUILD` target.
+	# DO build the Screenshare Electron app when a user selects "Build Solution" from within Visual Studio.
+	set_target_properties(${TARGET_NAME} PROPERTIES EXCLUDE_FROM_ALL TRUE EXCLUDE_FROM_DEFAULT_BUILD TRUE)
+else ()
+	# DO NOT build the Screenshare Electron app when building the `ALL_BUILD` target.
+	# DO NOT build the Screenshare Electron app when a user selects "Build Solution" from within Visual Studio.
+	set_target_properties(${TARGET_NAME} PROPERTIES EXCLUDE_FROM_ALL TRUE EXCLUDE_FROM_DEFAULT_BUILD TRUE)
+endif ()
