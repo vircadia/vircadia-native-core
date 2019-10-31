@@ -1,7 +1,7 @@
 var packager = require('electron-packager');
 var options = {
     dir: __dirname,
-    name: "screenshare",
+    name: "hifi-screenshare",
     version: "0.1.0",
     overwrite: true,
     prune: true,

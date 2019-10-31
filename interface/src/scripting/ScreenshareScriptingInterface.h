@@ -2,18 +2,36 @@
 #define hifi_ScreenshareScriptingInterface_h
 
 #include <QObject>
+
 #include <DependencyManager.h>
+#include <PathUtils.h>
 
 class ScreenshareScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
 	ScreenshareScriptingInterface();
-    // This is a note for Milad:
-    // The value of this `SCREENSHARE_EXE_PATH` string will have to be changed based on the operating system we're using.
-    // The binary should probably be stored in a path like this one.
-    const QString SCREENSHARE_EXE_PATH{ "C:\\hifi\\hiFi\\screenshare\\screenshare-win32-x64\\screenshare.exe" };
 
-	Q_INVOKABLE void startScreenshare(QString displayName, QString userName, QString token, QString sessionID, QString apiKey, QString fileLocation);
+#if DEV_BUILD
+#ifdef Q_OS_WIN
+    const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/hifi-screenshare-win32-x64/hifi-screenshare.exe" };
+#elif defined(Q_OS_MAC)
+    const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare-darwin-x64/hifi-screenshare.app" };
+#else
+    // This path won't exist on other platforms, so the Screenshare Scripting Interface will exit early when invoked.
+    const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare/hifi-screenshare" };
+#endif
+#else
+#ifdef Q_OS_WIN
+    const QString SCREENSHARE_EXE_PATH{ QCoreApplication::applicationDirPath() + "/hifi-screenshare/hifi-screenshare.exe" };
+#elif defined(Q_OS_MAC)
+    const QString SCREENSHARE_EXE_PATH{ QCoreApplication::applicationDirPath() + "/hifi-screenshare/hifi-screenshare.app" };
+#else
+    // This path won't exist on other platforms, so the Screenshare Scripting Interface will exit early when invoked.
+    const QString SCREENSHARE_EXE_PATH{ QCoreApplication::applicationDirPath() + "/hifi-screenshare/hifi-screenshare" };
+#endif
+#endif
+
+	Q_INVOKABLE void startScreenshare(QString displayName, QString userName, QString token, QString sessionID, QString apiKey);
 };
 
 #endif // hifi_ScreenshareScriptingInterface_h

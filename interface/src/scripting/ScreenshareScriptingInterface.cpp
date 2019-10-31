@@ -21,7 +21,7 @@ ScreenshareScriptingInterface::ScreenshareScriptingInterface() {
 
 };
 
-void ScreenshareScriptingInterface::startScreenshare(QString displayName, QString userName, QString token, QString sessionID, QString apiKey, QString fileLocation) {
+void ScreenshareScriptingInterface::startScreenshare(QString displayName, QString userName, QString token, QString sessionID, QString apiKey) {
     if (QThread::currentThread() != thread()) {
         // We must start a new QProcess from the main thread.
         QMetaObject::invokeMethod(
@@ -30,13 +30,18 @@ void ScreenshareScriptingInterface::startScreenshare(QString displayName, QStrin
             Q_ARG(QString, userName),
             Q_ARG(QString, token),
             Q_ARG(QString, sessionID),
-            Q_ARG(QString, apiKey), 
-            Q_ARG(QString, fileLocation)
+            Q_ARG(QString, apiKey)
         );
         return;
     }
 
     qDebug() << "ZRF: Inside startScreenshare(). `SCREENSHARE_EXE_PATH`:" << SCREENSHARE_EXE_PATH;
+
+    QFileInfo screenshareExecutable(SCREENSHARE_EXE_PATH);
+    if (!screenshareExecutable.exists() || !screenshareExecutable.isFile()) {
+        qDebug() << "Screenshare executable doesn't exist at" << SCREENSHARE_EXE_PATH;
+        return;
+    }
 
     if (displayName.isEmpty() || userName.isEmpty() || token.isEmpty() || sessionID.isEmpty() || apiKey.isEmpty()) {
         qDebug() << "Screenshare executable can't launch without connection info.";
@@ -65,6 +70,6 @@ void ScreenshareScriptingInterface::startScreenshare(QString displayName, QStrin
     // Note for Milad:
     // We'll have to have equivalent lines of code for MacOS.
 #ifdef Q_OS_WIN
-    electronProcess->start(fileLocation, arguments);
+    electronProcess->start(SCREENSHARE_EXE_PATH, arguments);
 #endif
 };

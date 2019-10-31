@@ -1,7 +1,7 @@
 var packager = require('electron-packager');
 var options = {
     dir: __dirname,
-    name: "screenshare",
+    name: "hifi-screenshare",
     version: "0.1.0",
     overwrite: true,
     prune: true,
@@ -9,7 +9,7 @@ var options = {
     platform: "darwin",
     CompanyName: "High Fidelity, Inc.",
     FileDescription: "High Fidelity Screenshare",
-    OriginalFilename: "screenshare.exe",
+    OriginalFilename: "hifi-screenshare.app",
     ignore: "electron-packager|README.md|CMakeLists.txt|packager.js|.gitignore"
 };
 
