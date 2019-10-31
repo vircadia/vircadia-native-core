@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QProcess>
+#include <QtCore/QCoreApplication>
 
 #include <DependencyManager.h>
 #include <PathUtils.h>
