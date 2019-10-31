@@ -1,25 +1,43 @@
 var packager = require('electron-packager');
+var osType = require('os').type();
+
+var platform = null;
+if (osType == "Darwin" || osType == "Linux") {
+    platform = osType.toLowerCase();
+} else if (osType == "Windows_NT") {
+    platform = "win32"
+}
+
+var NAME = "hifi-screenshare";
 var options = {
     dir: __dirname,
-    name: "hifi-screenshare",
+    name: NAME,
     version: "0.1.0",
     overwrite: true,
     prune: true,
     arch: "x64",
-    platform: "win32",
-    CompanyName: "High Fidelity, Inc.",
-    FileDescription: "High Fidelity Screenshare",
-    OriginalFilename: "hifi-screenshare.exe",
+    platform: platform,
     ignore: "electron-packager|README.md|CMakeLists.txt|packager.js|.gitignore"
 };
 
+// setup per OS options
+if (osType == "Darwin") {
+    options["app-bundle-id"] = "com.highfidelity.hifi-screenshare";
+} else if (osType == "Windows_NT") {
+    options["version-string"] = {
+        CompanyName: "High Fidelity, Inc.",
+        FileDescription: "High Fidelity Screenshare",
+        ProductName: NAME,
+        OriginalFilename: NAME + ".exe"
+    }
+}
 
 // call the packager to produce the executable
-packager(options, function(error, appPath) {
-    if (error) {
+packager(options)
+    .then(appPath => {
+        console.log("Wrote new app to " + appPath);
+    })
+    .catch(error => {
         console.error("There was an error writing the packaged console: " + error.message);
         process.exit(1);
-    } else {
-        console.log("Wrote new app to " + appPath);
-    }
-});
+    });
