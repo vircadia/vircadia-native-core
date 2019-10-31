@@ -12,12 +12,8 @@
 #include "HFMModelMath.h"
 
 #include <LogHandler.h>
-#include "ModelFormatLogging.h"
 
 #include <unordered_map>
-
-// TODO: Remove after testing
-#include <unordered_set>
 
 #include <GLMHelpers.h>
 #include <glm/gtx/hash.hpp>

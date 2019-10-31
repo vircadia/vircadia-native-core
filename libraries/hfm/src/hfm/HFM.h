@@ -244,7 +244,6 @@ public:
     std::vector<MeshPart> parts;
 
     QVector<glm::vec3> vertices;
-    std::vector<glm::vec3> _vertices;
     QVector<glm::vec3> normals;
     QVector<glm::vec3> tangents;
     QVector<glm::vec3> colors;

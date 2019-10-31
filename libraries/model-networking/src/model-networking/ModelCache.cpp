@@ -29,8 +29,6 @@
 #include <GLTFSerializer.h>
 #include <model-baker/Baker.h>
 
-#include <hfm/HFMModelMath.h>
-
 Q_LOGGING_CATEGORY(trace_resource_parse_geometry, "trace.resource.parse.geometry")
 
 class GeometryExtra {
@@ -322,7 +320,6 @@ void ModelResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const Mate
     _hfmModel = hfmModel;
     _materialMapping = materialMapping;
 
-    
     // Copy materials
     QHash<QString, size_t> materialIDAtlas;
     for (const HFMMaterial& material : _hfmModel->materials) {
