@@ -13,6 +13,7 @@
 #include <QtGui/QKeyEvent>
 #include <QtGui/QMouseEvent>
 #include <QtGui/QTouchEvent>
+#include <QGesture>
 
 #include <controllers/UserInputMapper.h>
 #include <PathUtils.h>
@@ -143,6 +144,36 @@ glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) {
         averagePoint /= (float)(points.count());
     }
     return averagePoint;
+}
+
+void KeyboardMouseDevice::touchGestureEvent(const QGestureEvent* event) {
+    QPinchGesture* pinchGesture = (QPinchGesture*) event->gesture(Qt::PinchGesture);
+
+    if (pinchGesture) {
+        switch (pinchGesture->state()) {
+            case Qt::GestureStarted:
+                _lastTotalScaleFactor = pinchGesture->totalScaleFactor();
+                break;
+
+            case Qt::GestureUpdated: {
+                qreal totalScaleFactor = pinchGesture->totalScaleFactor();
+                qreal scaleFactorDelta = totalScaleFactor - _lastTotalScaleFactor;
+                _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_POS).getChannel()].value = (float) (scaleFactorDelta > 0 ? scaleFactorDelta : 0.0f);
+                _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_NEG).getChannel()].value = (float) (scaleFactorDelta < 0 ? -scaleFactorDelta : 0.0f);
+                _lastTotalScaleFactor = totalScaleFactor;
+                break;
+            }
+
+            case Qt::GestureFinished: {
+                _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_POS).getChannel()].value = 0.0f;
+                _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_NEG).getChannel()].value = 0.0f;
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
 }
 
 void KeyboardMouseDevice::touchBeginEvent(const QTouchEvent* event) {
@@ -344,6 +375,8 @@ controller::Input::NamedVector KeyboardMouseDevice::InputDevice::getAvailableInp
         availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_X_NEG), "TouchpadLeft"));
         availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_Y_POS), "TouchpadUp"));
         availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_Y_NEG), "TouchpadDown"));
+        availableInputs.append(Input::NamedPair(makeInput(TOUCH_GESTURE_PINCH_POS), "GesturePinchOut"));
+        availableInputs.append(Input::NamedPair(makeInput(TOUCH_GESTURE_PINCH_NEG), "GesturePinchIn"));
     });
     return availableInputs;
 }

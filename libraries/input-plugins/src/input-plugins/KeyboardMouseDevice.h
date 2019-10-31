@@ -23,6 +23,7 @@ class QTouchEvent;
 class QKeyEvent;
 class QMouseEvent;
 class QWheelEvent;
+class QGestureEvent;
 
 class KeyboardMouseDevice : public InputPlugin {
     Q_OBJECT
@@ -60,6 +61,8 @@ public:
         TOUCH_AXIS_X_NEG,
         TOUCH_AXIS_Y_POS,
         TOUCH_AXIS_Y_NEG,
+        TOUCH_GESTURE_PINCH_POS,
+        TOUCH_GESTURE_PINCH_NEG,
     };
 
     enum TouchButtonChannel {
@@ -81,6 +84,7 @@ public:
     void mouseReleaseEvent(QMouseEvent* event);
     void eraseMouseClicked();
 
+    void touchGestureEvent(const QGestureEvent* event);
     void touchBeginEvent(const QTouchEvent* event);
     void touchEndEvent(const QTouchEvent* event);
     void touchUpdateEvent(const QTouchEvent* event);
@@ -121,6 +125,7 @@ protected:
     QPoint _previousCursor;
     QPoint _mousePressPos;
     quint64 _mousePressTime;
+    qreal _lastTotalScaleFactor;
     bool _clickDeadspotActive;
     glm::vec2 _lastTouch;
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
