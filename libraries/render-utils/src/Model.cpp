@@ -39,6 +39,8 @@
 #include "RenderUtilsLogging.h"
 #include <Trace.h>
 
+#include <BlendshapeConstants.h>
+
 using namespace std;
 
 int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();

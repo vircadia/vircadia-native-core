@@ -376,7 +376,6 @@ void Agent::executeScript() {
         // setup an Avatar for the script to use
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
         scriptedAvatar->setID(getSessionUUID());
-        scriptedAvatar->setForceFaceTrackerConnected(true);
 
         // call model URL setters with empty URLs so our avatar, if user, will have the default models
         scriptedAvatar->setSkeletonModelURL(QUrl());

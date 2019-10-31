@@ -20,7 +20,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <SharedUtil.h>
-#include <FaceshiftConstants.h>
+#include <BlendshapeConstants.h>
 
 // degrees
 const float MIN_HEAD_YAW = -180.0f;
@@ -62,6 +62,7 @@ public:
     const QVector<float>& getSummedBlendshapeCoefficients();
     int getNumSummedBlendshapeCoefficients() const;
     void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { _blendshapeCoefficients = blendshapeCoefficients; }
+    void clearBlendshapeCoefficients();
 
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
     virtual void setLookAtPosition(const glm::vec3& lookAtPosition) {
@@ -72,17 +73,29 @@ public:
     }
     bool lookAtPositionChangedSince(quint64 time) { return _lookAtPositionChanged >= time; }
 
-    bool getHasProceduralEyeFaceMovement() const;
-    void setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement);
-    bool getHasProceduralBlinkFaceMovement() const;
-    void setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement);
-    bool getHasAudioEnabledFaceMovement() const;
-    void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
-    bool getHasProceduralEyeMovement() const;
-    void setHasProceduralEyeMovement(bool hasProceduralEyeMovement);
+    enum ProceduralAnimationType {
+        AudioProceduralBlendshapeAnimation = 0,
+        BlinkProceduralBlendshapeAnimation,
+        LidAdjustmentProceduralBlendshapeAnimation,
+        SaccadeProceduralEyeJointAnimation,
+        ProceduralAnimaitonTypeCount,
+    };
 
-    void setFaceTrackerConnected(bool value);
-    bool getFaceTrackerConnected() const { return _isFaceTrackerConnected; }
+    // called by scripts to enable or disable procedural blendshape or eye joint animations.
+    bool getProceduralAnimationFlag(ProceduralAnimationType type) const;
+    void setProceduralAnimationFlag(ProceduralAnimationType type, bool value);
+
+    // called by c++ to suppress, i.e. temporarily disable a procedural animation.
+    bool getSuppressProceduralAnimationFlag(ProceduralAnimationType flag) const;
+    void setSuppressProceduralAnimationFlag(ProceduralAnimationType flag, bool value);
+
+    // called by scripts to enable/disable manual adjustment of blendshapes
+    void setHasScriptedBlendshapes(bool value);
+    bool getHasScriptedBlendshapes() const;
+
+    // called by C++ code to denote the presence of manually driven blendshapes.
+    void setHasInputDrivenBlendshapes(bool value);
+    bool getHasInputDrivenBlendshapes() const;
 
     friend class AvatarData;
 
@@ -98,12 +111,11 @@ protected:
     glm::vec3 _lookAtPosition;
     quint64 _lookAtPositionChanged { 0 };
 
-    bool _hasAudioEnabledFaceMovement { true };
-    bool _hasProceduralBlinkFaceMovement { true };
-    bool _hasProceduralEyeFaceMovement { true };
-    bool _hasProceduralEyeMovement { true };
+    std::vector<bool> _userProceduralAnimationFlags;
+    std::vector<bool> _suppressProceduralAnimationFlags;
 
-    bool _isFaceTrackerConnected { false };
+    bool _hasScriptedBlendshapes { false };
+    bool _hasInputDrivenBlendshapes { false };
 
     float _leftEyeBlink { 0.0f };
     float _rightEyeBlink { 0.0f };
