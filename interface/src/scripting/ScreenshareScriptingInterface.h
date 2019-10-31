@@ -11,6 +11,7 @@ class ScreenshareScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
 	ScreenshareScriptingInterface();
+    ~ScreenshareScriptingInterface();
 
 	Q_INVOKABLE void startScreenshare(QString displayName, QString userName, QString token, QString sessionID, QString apiKey);
     Q_INVOKABLE void stopScreenshare();

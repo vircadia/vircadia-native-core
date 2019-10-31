@@ -17,8 +17,11 @@
 
 
 ScreenshareScriptingInterface::ScreenshareScriptingInterface() {
-
 };
+
+ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {
+    stopScreenshare();
+}
 
 void ScreenshareScriptingInterface::startScreenshare(QString displayName, QString userName, QString token, QString sessionID, QString apiKey) {
     if (QThread::currentThread() != thread()) {
