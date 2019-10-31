@@ -65,7 +65,7 @@ namespace baker {
             for (int i = 0; i < meshesIn.size(); i++) {
                 auto& mesh = meshesIn[i];
 
-                auto meshPointer = const_cast<HFMMesh*> (&mesh);
+                auto meshPointer = const_cast<HFMMesh*>(&mesh);
                 meshPointer->_vertices = meshPointer->vertices.toStdVector();
 
                 indexedTrianglesMeshOut[i] = hfm::generateTriangleListMesh(meshPointer->_vertices, mesh.parts);

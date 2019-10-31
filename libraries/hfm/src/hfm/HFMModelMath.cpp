@@ -16,6 +16,9 @@
 
 #include <unordered_map>
 
+// TODO: Remove after testing
+#include <unordered_set>
+
 #include <GLMHelpers.h>
 #include <glm/gtx/hash.hpp>
 
@@ -144,38 +147,36 @@ ReweightedDeformers getReweightedDeformers(const size_t numMeshVertices, const s
     return reweightedDeformers;
 }
 
-
 const TriangleListMesh generateTriangleListMesh(const std::vector<glm::vec3>& srcVertices, const std::vector<HFMMeshPart>& srcParts) {
 
     TriangleListMesh dest;
 
-    // just copy vertices
-    dest.vertices.insert(dest.vertices.end(), srcVertices.cbegin(), srcVertices.cend());
+    // copy vertices for now
+    dest.vertices = srcVertices;
 
- /*   std::vector<uint32_t> remap(srcVertices.size());
+    std::vector<uint32_t> oldToNewIndex(srcVertices.size());
     {
-        std::unordered_map<glm::vec3, uint32_t> uniqueVertices;
-        int vi = 0;
-        int vu = 0;
-        for (const auto& v : srcVertices) {
-            auto foundIndex = uniqueVertices.find(v);
-            if (foundIndex != uniqueVertices.end()) {
-                remap[vi] = foundIndex->second;
+        std::unordered_map<glm::vec3, uint32_t> uniqueVertexToNewIndex;
+        int oldIndex = 0;
+        int newIndex = 0;
+        for (const auto& srcVertex : srcVertices) {
+            auto foundIndex = uniqueVertexToNewIndex.find(srcVertex);
+            if (foundIndex != uniqueVertexToNewIndex.end()) {
+                oldToNewIndex[oldIndex] = foundIndex->second;
             } else {
-                uniqueVertices[v] = vu;
-                remap[vi] = vu;
-                dest.vertices[vu] = v;
-                vu++;
+                uniqueVertexToNewIndex[srcVertex] = newIndex;
+                oldToNewIndex[oldIndex] = newIndex;
+                dest.vertices[newIndex] = srcVertex;
+                ++newIndex;
             }
-            ++vi;
+            ++oldIndex;
         }
-        if (uniqueVertices.size() < srcVertices.size()) {
-            dest.vertices.resize(uniqueVertices.size());
+        if (uniqueVertexToNewIndex.size() < srcVertices.size()) {
+            dest.vertices.resize(uniqueVertexToNewIndex.size());
             dest.vertices.shrink_to_fit();
-
         }
     }
-*/
+
     auto newIndicesCount = 0;
     for (const auto& part : srcParts) {
         newIndicesCount += part.triangleIndices.size() + part.quadTrianglesIndices.size();
@@ -187,18 +188,15 @@ const TriangleListMesh generateTriangleListMesh(const std::vector<glm::vec3>& sr
         for (const auto& part : srcParts) {
             glm::ivec2 spart(i, 0);
             for (const auto& qti : part.quadTrianglesIndices) {
-                dest.indices[i] = qti; //remap[qti];
+                dest.indices[i] = oldToNewIndex[qti];
                 ++i;
             }
             for (const auto& ti : part.triangleIndices) {
-                dest.indices[i] = ti; //remap[ti];
+                dest.indices[i] = oldToNewIndex[ti];
                 ++i;
             }
             spart.y = i - spart.x;
             dest.parts.push_back(spart);
-
-           // dest.indices.insert(dest.indices.end(), part.quadTrianglesIndices.cbegin(), part.quadTrianglesIndices.cend());
-           // dest.indices.insert(dest.indices.end(), part.triangleIndices.cbegin(), part.triangleIndices.cend());
         }
     }
 
