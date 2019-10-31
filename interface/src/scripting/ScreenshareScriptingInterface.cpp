@@ -10,7 +10,6 @@
 //
 
 #include "ScreenshareScriptingInterface.h"
-#include <QProcess>
 #include <QThread>
 #include <QDesktopServices>
 #include <QUrl>
@@ -35,7 +34,12 @@ void ScreenshareScriptingInterface::startScreenshare(QString displayName, QStrin
         return;
     }
 
-    qDebug() << "ZRF: Inside startScreenshare(). `SCREENSHARE_EXE_PATH`:" << SCREENSHARE_EXE_PATH;
+    if (_screenshareProcess && _screenshareProcess->state() != QProcess::NotRunning) {
+        qDebug() << "Screenshare process already running. Aborting...";
+        return;
+    }
+
+    _screenshareProcess.reset(new QProcess(this));
 
     QFileInfo screenshareExecutable(SCREENSHARE_EXE_PATH);
     if (!screenshareExecutable.exists() || !screenshareExecutable.isFile()) {
@@ -55,21 +59,27 @@ void ScreenshareScriptingInterface::startScreenshare(QString displayName, QStrin
     arguments << "--apiKey=" + apiKey; 
     arguments << "--sessionID=" + sessionID; 
 
-    QProcess* electronProcess = new QProcess(this);
-
-    connect(electronProcess, &QProcess::errorOccurred,
+    connect(_screenshareProcess.get(), &QProcess::errorOccurred,
         [=](QProcess::ProcessError error) { qDebug() << "ZRF QProcess::errorOccurred. `error`:" << error; });
-    connect(electronProcess, &QProcess::started, [=]() { qDebug() << "ZRF QProcess::started"; });
-    connect(electronProcess, &QProcess::stateChanged,
+    connect(_screenshareProcess.get(), &QProcess::started, [=]() { qDebug() << "ZRF QProcess::started"; });
+    connect(_screenshareProcess.get(), &QProcess::stateChanged,
         [=](QProcess::ProcessState newState) { qDebug() << "ZRF QProcess::stateChanged. `newState`:" << newState; });
-    connect(electronProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+    connect(_screenshareProcess.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
         [=](int exitCode, QProcess::ExitStatus exitStatus) {
             qDebug() << "ZRF QProcess::finished. `exitCode`:" << exitCode << "`exitStatus`:" << exitStatus;
+            emit screenshareStopped();
         });
 
-    // Note for Milad:
-    // We'll have to have equivalent lines of code for MacOS.
-#ifdef Q_OS_WIN
-    electronProcess->start(SCREENSHARE_EXE_PATH, arguments);
-#endif
+    _screenshareProcess->start(SCREENSHARE_EXE_PATH, arguments);
 };
+
+void ScreenshareScriptingInterface::stopScreenshare() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "stopScreenshare");
+        return;
+    }
+
+    if (_screenshareProcess->state() != QProcess::NotRunning) {
+        _screenshareProcess->terminate();
+    }
+}

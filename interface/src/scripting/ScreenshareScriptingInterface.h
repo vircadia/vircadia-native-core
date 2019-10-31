@@ -2,6 +2,7 @@
 #define hifi_ScreenshareScriptingInterface_h
 
 #include <QObject>
+#include <QProcess>
 
 #include <DependencyManager.h>
 #include <PathUtils.h>
@@ -12,6 +13,10 @@ public:
 	ScreenshareScriptingInterface();
 
 	Q_INVOKABLE void startScreenshare(QString displayName, QString userName, QString token, QString sessionID, QString apiKey);
+    Q_INVOKABLE void stopScreenshare();
+
+signals:
+    void screenshareStopped();
 
 private:
 #if DEV_BUILD
@@ -33,6 +38,8 @@ private:
     const QString SCREENSHARE_EXE_PATH{ QCoreApplication::applicationDirPath() + "/hifi-screenshare/hifi-screenshare" };
 #endif
 #endif
+
+    std::unique_ptr<QProcess> _screenshareProcess{ nullptr };
 };
 
 #endif // hifi_ScreenshareScriptingInterface_h
