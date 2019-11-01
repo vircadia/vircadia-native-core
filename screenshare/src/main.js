@@ -33,11 +33,10 @@ function createWindow(){
         useContentSize: true,
         zoomFactor: zoomFactor,
         resizable: false,
-        alwaysOnTop: true, // TRY
+        alwaysOnTop: false, // TRY
         webPreferences: {
             nodeIntegration: true
-        },
-        devTools: true
+        }
     });
     window.loadURL('file://' + __dirname + '/index.html');
     window.setMenu(null);

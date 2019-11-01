@@ -9,12 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ScreenshareScriptingInterface.h"
-#include <QThread>
-#include <QDesktopServices>
-#include <QUrl>
 #include <QCoreApplication>
+#include <QDesktopServices>
+#include <QThread>
+#include <QUrl>
 
+#include <AddressManager.h>
+
+#include "ScreenshareScriptingInterface.h"
 
 ScreenshareScriptingInterface::ScreenshareScriptingInterface() {
 };
@@ -23,16 +25,11 @@ ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {
     stopScreenshare();
 }
 
-void ScreenshareScriptingInterface::startScreenshare(QString displayName, QString userName, QString token, QString sessionID, QString apiKey) {
+void ScreenshareScriptingInterface::startScreenshare(const QString& roomName) {
     if (QThread::currentThread() != thread()) {
         // We must start a new QProcess from the main thread.
         QMetaObject::invokeMethod(
-            this, "startScreenshare", 
-            Q_ARG(QString, displayName),
-            Q_ARG(QString, userName),
-            Q_ARG(QString, token),
-            Q_ARG(QString, sessionID),
-            Q_ARG(QString, apiKey)
+            this, "startScreenshare"
         );
         return;
     }
@@ -50,14 +47,15 @@ void ScreenshareScriptingInterface::startScreenshare(QString displayName, QStrin
         return;
     }
 
-    if (displayName.isEmpty() || userName.isEmpty() || token.isEmpty() || sessionID.isEmpty() || apiKey.isEmpty()) {
-        qDebug() << "Screenshare executable can't launch without connection info.";
-        return;
-    }
+    QUuid currentDomainID = DependencyManager::get<AddressManager>()->getDomainID();
+
+    // Make HTTP GET request to:
+    // `https://metaverse.highfidelity.com/api/v1/domain/:domain_id/screenshare`,
+    // passing the Domain ID that the user is connected to, as well as the `roomName`.
+    // The server will respond with the relevant OpenTok Token, Session ID, and API Key.
+    // Upon error-free response, do the logic below, passing in that info as necessary.
 
     QStringList arguments;
-    arguments << "--userName=" + userName;
-    arguments << "--displayName=" + displayName; 
     arguments << "--token=" + token; 
     arguments << "--apiKey=" + apiKey; 
     arguments << "--sessionID=" + sessionID; 

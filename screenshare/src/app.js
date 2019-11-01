@@ -117,8 +117,12 @@ function togglePage(){
                 }
     
                 for (let source of sources) {
+                    console.log(JSON.stringify(sources,null,4));
                     sourceMap[source.id] = source;
-                    addSource(source, "selects");
+                    //*if (source.id.indexOf("screen") > -1) {
+                    //  console.log("Adding:", source.id)
+                        addSource(source, "selects");
+                   //}
                 }
             });
         }
@@ -200,7 +204,7 @@ function togglePage(){
 
         var publisherOptions = {
             videoSource: stream.getVideoTracks()[0],
-            audioSource: stream.getAudioTracks()[0],
+            audioSource: null,
             insertMode: 'append',
             width: 1280,
             height: 720

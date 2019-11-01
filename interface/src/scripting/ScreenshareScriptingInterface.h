@@ -14,7 +14,7 @@ public:
 	ScreenshareScriptingInterface();
     ~ScreenshareScriptingInterface();
 
-	Q_INVOKABLE void startScreenshare(QString displayName, QString userName, QString token, QString sessionID, QString apiKey);
+	Q_INVOKABLE void startScreenshare(const QString& roomName);
     Q_INVOKABLE void stopScreenshare();
 
 signals:
