@@ -1,5 +1,5 @@
 //
-//  CalculateExtentsTask.h
+//  CalculateTransformedExtentsTask.h
 //  model-baker/src/model-baker
 //
 //  Created by Sabrina Shanman on 2019/10/04.
@@ -17,11 +17,11 @@
 
 // Calculates any undefined extents in the shapes and the model. Precalculated extents will be left alone.
 // Bind extents will currently not be calculated
-class CalculateExtentsTask {
+class CalculateTransformedExtentsTask {
 public:
-    using Input = baker::VaryingSet4<Extents, std::vector<hfm::Mesh>, std::vector<hfm::Shape>, std::vector<hfm::Joint>>;
+    using Input = baker::VaryingSet4<Extents, std::vector<hfm::TriangleListMesh>, std::vector<hfm::Shape>, std::vector<hfm::Joint>>;
     using Output = baker::VaryingSet2<Extents, std::vector<hfm::Shape>>;
-    using JobModel = baker::Job::ModelIO<CalculateExtentsTask, Input, Output>;
+    using JobModel = baker::Job::ModelIO<CalculateTransformedExtentsTask, Input, Output>;
 
     void run(const baker::BakeContextPointer& context, const Input& input, Output& output);
 };

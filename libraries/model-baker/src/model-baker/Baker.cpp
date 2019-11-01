@@ -20,7 +20,7 @@
 #include "CalculateBlendshapeNormalsTask.h"
 #include "CalculateBlendshapeTangentsTask.h"
 #include "PrepareJointsTask.h"
-#include "CalculateExtentsTask.h"
+#include "CalculateTransformedExtentsTask.h"
 #include "BuildDracoMeshTask.h"
 #include "ParseFlowDataTask.h"
 #include <hfm/HFMModelMath.h>
@@ -200,10 +200,10 @@ namespace baker {
             const auto jointIndices = jointInfoOut.getN<PrepareJointsTask::Output>(2);
 
             // Use transform information to compute extents
-            const auto calculateExtentsInputs = CalculateExtentsTask::Input(modelExtentsIn, meshesIn, shapesIn, jointsOut).asVarying();
-            const auto calculateExtentsOutputs = model.addJob<CalculateExtentsTask>("CalculateExtents", calculateExtentsInputs);
-            const auto modelExtentsOut = calculateExtentsOutputs.getN<CalculateExtentsTask::Output>(0);
-            const auto shapesOut = calculateExtentsOutputs.getN<CalculateExtentsTask::Output>(1);
+            const auto calculateExtentsInputs = CalculateTransformedExtentsTask::Input(modelExtentsIn, triangleListMeshes, shapesIn, jointsOut).asVarying();
+            const auto calculateExtentsOutputs = model.addJob<CalculateTransformedExtentsTask>("CalculateExtents", calculateExtentsInputs);
+            const auto modelExtentsOut = calculateExtentsOutputs.getN<CalculateTransformedExtentsTask::Output>(0);
+            const auto shapesOut = calculateExtentsOutputs.getN<CalculateTransformedExtentsTask::Output>(1);
 
             // Parse material mapping
             const auto parseMaterialMappingInputs = ParseMaterialMappingTask::Input(mapping, materialMappingBaseURL).asVarying();
