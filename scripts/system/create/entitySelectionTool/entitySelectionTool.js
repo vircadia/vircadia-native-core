@@ -2047,7 +2047,9 @@ SelectionDisplay = (function() {
                 // Duplicate entities if Ctrl is pressed.  This will make a
                 // copy of the selected entities and move the _original_ entities, not
                 // the new ones.
-                if (event.isControl || doDuplicate) {
+                var isMac = Controller.getValue(Controller.Hardware.Application.PlatformMac);
+                var isControl = isMac ? event.isMeta : event.isControl;
+                if (isControl || doDuplicate) {
                     duplicatedEntityIDs = SelectionManager.duplicateSelection();
                     var ids = [];
                     for (var i = 0; i < duplicatedEntityIDs.length; ++i) {
@@ -2273,7 +2275,9 @@ SelectionDisplay = (function() {
                 // Duplicate entities if Ctrl is pressed.  This will make a
                 // copy of the selected entities and move the _original_ entities, not
                 // the new ones.
-                if (event.isControl) {
+                var isMac = Controller.getValue(Controller.Hardware.Application.PlatformMac);
+                var isControl = isMac ? event.isMeta : event.isControl;
+                if (isControl) {
                     duplicatedEntityIDs = SelectionManager.duplicateSelection();
                     var ids = [];
                     for (var i = 0; i < duplicatedEntityIDs.length; ++i) {
