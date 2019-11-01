@@ -54,22 +54,16 @@ void calculateExtentsForTriangleListMesh(TriangleListMesh& triangleListMesh) {
     }
 }
 
-void calculateExtentsForShape(hfm::Shape& shape, const std::vector<hfm::Mesh>& meshes, const std::vector<hfm::Joint> joints) {
+void calculateExtentsForShape(hfm::Shape& shape, const std::vector<hfm::TriangleListMesh>& triangleListMeshes, const std::vector<hfm::Joint>& joints) {
     auto& shapeExtents = shape.transformedExtents;
     shapeExtents.reset();
 
-    const auto& mesh = meshes[shape.mesh];
-    const auto& meshPart = mesh.parts[shape.meshPart];
+    const auto& triangleListMesh = triangleListMeshes[shape.mesh];
+    const auto& partExtent = triangleListMesh.partExtents[shape.meshPart];
 
-    glm::mat4 transform = joints[shape.joint].transform;
-    forEachIndex(meshPart, [&](int32_t idx){
-        if (mesh.vertices.size() <= idx) {
-            return;
-        }
-        const glm::vec3& vertex = mesh.vertices[idx];
-        const glm::vec3 transformedVertex = glm::vec3(transform * glm::vec4(vertex, 1.0f));
-        shapeExtents.addPoint(transformedVertex);
-    });
+    const glm::mat4& transform = joints[shape.joint].transform;
+    shapeExtents = partExtent;
+    shapeExtents.transform(transform);
 
     thickenFlatExtents(shapeExtents);
 }

@@ -1,5 +1,5 @@
 //
-//  CalculateExtentsTask.cpp
+//  CalculateTransformedExtentsTask.cpp
 //  model-baker/src/model-baker
 //
 //  Created by Sabrina Shanman on 2019/10/04.
@@ -9,13 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "CalculateExtentsTask.h"
+#include "CalculateTransformedExtentsTask.h"
 
 #include "hfm/HFMModelMath.h"
 
-void CalculateExtentsTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
+void CalculateTransformedExtentsTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
     const auto& modelExtentsIn = input.get0();
-    const auto& meshes = input.get1();
+    const auto& triangleListMeshes = input.get1();
     const auto& shapesIn = input.get2();
     const auto& joints = input.get3();
     auto& modelExtentsOut = output.edit0();
@@ -31,7 +31,7 @@ void CalculateExtentsTask::run(const baker::BakeContextPointer& context, const I
             continue;
         }
 
-        hfm::calculateExtentsForShape(shapeOut, meshes, joints);
+        hfm::calculateExtentsForShape(shapeOut, triangleListMeshes, joints);
     }
 
     modelExtentsOut = modelExtentsIn;
