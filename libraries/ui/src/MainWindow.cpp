@@ -62,7 +62,8 @@ void MainWindow::restoreGeometry() {
     // see http://doc.qt.io/qt-5/qsettings.html#restoring-the-state-of-a-gui-application
     QRect windowGeometry = QGuiApplication::primaryScreen()->availableGeometry();
 #if defined(Q_OS_MAC)
-    windowGeometry.setSize((windowGeometry.size() * 0.8f));
+    const float MACOS_INITIAL_WINDOW_SCALE = 0.8f;
+    windowGeometry.setSize((windowGeometry.size() * MACOS_INITIAL_WINDOW_SCALE));
 #endif
     QRect geometry = _windowGeometry.get(windowGeometry);
 #if defined(Q_OS_MAC)
