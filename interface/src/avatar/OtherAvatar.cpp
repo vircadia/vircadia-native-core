@@ -267,6 +267,7 @@ void OtherAvatar::simulate(float deltaTime, bool inView) {
                 _skeletonModel->getRig().computeExternalPoses(rootTransform);
                 _jointDataSimulationRate.increment();
 
+                head->simulate(deltaTime);
                 _skeletonModel->simulate(deltaTime, true);
 
                 locationChanged(); // joints changed, so if there are any children, update them.
@@ -277,9 +278,11 @@ void OtherAvatar::simulate(float deltaTime, bool inView) {
                     headPosition = getWorldPosition();
                 }
                 head->setPosition(headPosition);
+            } else {
+                head->simulate(deltaTime);
+                _skeletonModel->simulate(deltaTime, false);
             }
             head->setScale(getModelScale());
-            head->simulate(deltaTime);
             relayJointDataToChildren();
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.

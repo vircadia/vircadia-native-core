@@ -110,7 +110,6 @@ AvatarData::AvatarData() :
     _targetScale(1.0f),
     _handState(0),
     _keyState(NO_KEY_DOWN),
-    _forceFaceTrackerConnected(false),
     _headData(NULL),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
@@ -152,6 +151,48 @@ float AvatarData::getDomainLimitedScale() const {
         // We can't make a good estimate.
         return _targetScale;
     }
+}
+
+
+void AvatarData::setHasScriptedBlendshapes(bool hasScriptedBlendshapes) {
+    if (hasScriptedBlendshapes == _headData->getHasScriptedBlendshapes()) {
+        return;
+    }
+    if (!hasScriptedBlendshapes) {
+        // send a forced avatarData update to make sure the script can send neutal blendshapes on unload
+        // without having to wait for the update loop, make sure _hasScriptedBlendShapes is still true
+        // before sending the update, or else it won't send the neutal blendshapes to the receiving clients
+        sendAvatarDataPacket(true);
+    }
+    _headData->setHasScriptedBlendshapes(hasScriptedBlendshapes);
+}
+
+bool AvatarData::getHasScriptedBlendshapes() const {
+    return _headData->getHasScriptedBlendshapes();
+}
+
+void AvatarData::setHasProceduralBlinkFaceMovement(bool value) {
+    _headData->setProceduralAnimationFlag(HeadData::BlinkProceduralBlendshapeAnimation, value);
+}
+
+bool AvatarData::getHasProceduralBlinkFaceMovement() const {
+    return _headData->getProceduralAnimationFlag(HeadData::BlinkProceduralBlendshapeAnimation);
+}
+
+void AvatarData::setHasProceduralEyeFaceMovement(bool value) {
+    _headData->setProceduralAnimationFlag(HeadData::LidAdjustmentProceduralBlendshapeAnimation, value);
+}
+
+bool AvatarData::getHasProceduralEyeFaceMovement() const {
+    return _headData->getProceduralAnimationFlag(HeadData::LidAdjustmentProceduralBlendshapeAnimation);
+}
+
+void AvatarData::setHasAudioEnabledFaceMovement(bool value) {
+    _headData->setProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation, value);
+}
+
+bool AvatarData::getHasAudioEnabledFaceMovement() const {
+    return _headData->getProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation);
 }
 
 void AvatarData::setDomainMinimumHeight(float domainMinimumHeight) {
@@ -205,9 +246,6 @@ void AvatarData::lazyInitHeadData() const {
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
         _headData = new HeadData(const_cast<AvatarData*>(this));
-    }
-    if (_forceFaceTrackerConnected) {
-        _headData->_isFaceTrackerConnected = true;
     }
 }
 
@@ -338,7 +376,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                 tranlationChangedSince(lastSentTime) ||
                 parentInfoChangedSince(lastSentTime));
             hasHandControllers = _controllerLeftHandMatrixCache.isValid() || _controllerRightHandMatrixCache.isValid();
-            hasFaceTrackerInfo = !dropFaceTracking && (hasFaceTracker() || getHasScriptedBlendshapes()) &&
+            hasFaceTrackerInfo = !dropFaceTracking && getHasScriptedBlendshapes() &&
                 (sendAll || faceTrackerInfoChangedSince(lastSentTime));
             hasJointData = !sendMinimum;
             hasJointDefaultPoseFlags = hasJointData;
@@ -529,27 +567,31 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             setAtBit16(flags, HAND_STATE_FINGER_POINTING_BIT);
         }
         // face tracker state
-        if (_headData->_isFaceTrackerConnected) {
-            setAtBit16(flags, IS_FACE_TRACKER_CONNECTED);
+        if (_headData->_hasScriptedBlendshapes || _headData->_hasInputDrivenBlendshapes) {
+            setAtBit16(flags, HAS_SCRIPTED_BLENDSHAPES);
         }
         // eye tracker state
-        if (!_headData->_hasProceduralEyeMovement) {
-            setAtBit16(flags, IS_EYE_TRACKER_CONNECTED);
+        if (_headData->getProceduralAnimationFlag(HeadData::SaccadeProceduralEyeJointAnimation) &&
+            !_headData->getSuppressProceduralAnimationFlag(HeadData::SaccadeProceduralEyeJointAnimation)) {
+            setAtBit16(flags, HAS_PROCEDURAL_EYE_MOVEMENT);
         }
         // referential state
         if (!parentID.isNull()) {
             setAtBit16(flags, HAS_REFERENTIAL);
         }
         // audio face movement
-        if (_headData->getHasAudioEnabledFaceMovement()) {
+        if (_headData->getProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation) &&
+            !_headData->getSuppressProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation)) {
             setAtBit16(flags, AUDIO_ENABLED_FACE_MOVEMENT);
         }
         // procedural eye face movement
-        if (_headData->getHasProceduralEyeFaceMovement()) {
+        if (_headData->getProceduralAnimationFlag(HeadData::LidAdjustmentProceduralBlendshapeAnimation) &&
+            !_headData->getSuppressProceduralAnimationFlag(HeadData::LidAdjustmentProceduralBlendshapeAnimation)) {
             setAtBit16(flags, PROCEDURAL_EYE_FACE_MOVEMENT);
         }
         // procedural blink face movement
-        if (_headData->getHasProceduralBlinkFaceMovement()) {
+        if (_headData->getProceduralAnimationFlag(HeadData::BlinkProceduralBlendshapeAnimation) &&
+            !_headData->getSuppressProceduralAnimationFlag(HeadData::BlinkProceduralBlendshapeAnimation)) {
             setAtBit16(flags, PROCEDURAL_BLINK_FACE_MOVEMENT);
         }
         // avatar collisions enabled
@@ -1150,22 +1192,23 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         auto newHandState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT)
             + (oneAtBit16(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
 
-        auto newFaceTrackerConnected = oneAtBit16(bitItems, IS_FACE_TRACKER_CONNECTED);
-        auto newHasntProceduralEyeMovement = oneAtBit16(bitItems, IS_EYE_TRACKER_CONNECTED);
-
+        auto newHasScriptedBlendshapes = oneAtBit16(bitItems, HAS_SCRIPTED_BLENDSHAPES);
+        auto newHasProceduralEyeMovement = oneAtBit16(bitItems, HAS_PROCEDURAL_EYE_MOVEMENT);
         auto newHasAudioEnabledFaceMovement = oneAtBit16(bitItems, AUDIO_ENABLED_FACE_MOVEMENT);
         auto newHasProceduralEyeFaceMovement = oneAtBit16(bitItems, PROCEDURAL_EYE_FACE_MOVEMENT);
         auto newHasProceduralBlinkFaceMovement = oneAtBit16(bitItems, PROCEDURAL_BLINK_FACE_MOVEMENT);
+
         auto newCollideWithOtherAvatars = oneAtBit16(bitItems, COLLIDE_WITH_OTHER_AVATARS);
         auto newHasPriority = oneAtBit16(bitItems, HAS_HERO_PRIORITY);        
 
         bool keyStateChanged = (_keyState != newKeyState);
         bool handStateChanged = (_handState != newHandState);
-        bool faceStateChanged = (_headData->_isFaceTrackerConnected != newFaceTrackerConnected);
-        bool eyeStateChanged = (_headData->_hasProceduralEyeMovement == newHasntProceduralEyeMovement);
-        bool audioEnableFaceMovementChanged = (_headData->getHasAudioEnabledFaceMovement() != newHasAudioEnabledFaceMovement);
-        bool proceduralEyeFaceMovementChanged = (_headData->getHasProceduralEyeFaceMovement() != newHasProceduralEyeFaceMovement);
-        bool proceduralBlinkFaceMovementChanged = (_headData->getHasProceduralBlinkFaceMovement() != newHasProceduralBlinkFaceMovement);
+        bool faceStateChanged = (_headData->getHasScriptedBlendshapes() != newHasScriptedBlendshapes);
+
+        bool eyeStateChanged = (_headData->getProceduralAnimationFlag(HeadData::SaccadeProceduralEyeJointAnimation) != newHasProceduralEyeMovement);
+        bool audioEnableFaceMovementChanged = (_headData->getProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation) != newHasAudioEnabledFaceMovement);
+        bool proceduralEyeFaceMovementChanged = (_headData->getProceduralAnimationFlag(HeadData::LidAdjustmentProceduralBlendshapeAnimation) != newHasProceduralEyeFaceMovement);
+        bool proceduralBlinkFaceMovementChanged = (_headData->getProceduralAnimationFlag(HeadData::BlinkProceduralBlendshapeAnimation) != newHasProceduralBlinkFaceMovement);
         bool collideWithOtherAvatarsChanged = (_collideWithOtherAvatars != newCollideWithOtherAvatars);
         bool hasPriorityChanged = (getHasPriority() != newHasPriority);
         bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged || audioEnableFaceMovementChanged || 
@@ -1174,11 +1217,15 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         _keyState = newKeyState;
         _handState = newHandState;
-        _headData->_isFaceTrackerConnected = newFaceTrackerConnected;
-        _headData->setHasProceduralEyeMovement(!newHasntProceduralEyeMovement);
-        _headData->setHasAudioEnabledFaceMovement(newHasAudioEnabledFaceMovement);
-        _headData->setHasProceduralEyeFaceMovement(newHasProceduralEyeFaceMovement);
-        _headData->setHasProceduralBlinkFaceMovement(newHasProceduralBlinkFaceMovement);
+        if (!newHasScriptedBlendshapes && getHasScriptedBlendshapes()) {
+            // if scripted blendshapes have just been turned off, slam blendshapes back to zero.
+            _headData->clearBlendshapeCoefficients();
+        }
+        _headData->setHasScriptedBlendshapes(newHasScriptedBlendshapes);
+        _headData->setProceduralAnimationFlag(HeadData::SaccadeProceduralEyeJointAnimation, newHasProceduralEyeMovement);
+        _headData->setProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation, newHasAudioEnabledFaceMovement);
+        _headData->setProceduralAnimationFlag(HeadData::LidAdjustmentProceduralBlendshapeAnimation, newHasProceduralEyeFaceMovement);
+        _headData->setProceduralAnimationFlag(HeadData::BlinkProceduralBlendshapeAnimation, newHasProceduralBlinkFaceMovement);
         _collideWithOtherAvatars = newCollideWithOtherAvatars;
         setHasPriorityWithoutTimestampReset(newHasPriority);
 
@@ -1263,7 +1310,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
 
         PACKET_READ_CHECK(FaceTrackerCoefficients, coefficientsSize);
-        _headData->_blendshapeCoefficients.resize(numCoefficients);  // make sure there's room for the copy!
+        _headData->_blendshapeCoefficients.resize(std::min(numCoefficients, (int)Blendshapes::BlendshapeCount));  // make sure there's room for the copy!
         //only copy the blendshapes to headData, not the procedural face info
         memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, coefficientsSize);
         sourceBuffer += coefficientsSize;
@@ -2590,6 +2637,7 @@ enum class JsonAvatarFrameVersion : int {
     JointRotationsInAbsoluteFrame,
     JointDefaultPoseBits,
     JointUnscaledTranslations,
+    ARKitBlendshapes
 };
 
 QJsonValue toJsonValue(const JointData& joint) {
@@ -2634,7 +2682,7 @@ void AvatarData::avatarEntityDataToJson(QJsonObject& root) const {
 QJsonObject AvatarData::toJson() const {
     QJsonObject root;
 
-    root[JSON_AVATAR_VERSION] = (int)JsonAvatarFrameVersion::JointUnscaledTranslations;
+    root[JSON_AVATAR_VERSION] = (int)JsonAvatarFrameVersion::ARKitBlendshapes;
 
     if (!getSkeletonModelURL().isEmpty()) {
         root[JSON_AVATAR_BODY_MODEL] = getSkeletonModelURL().toString();
