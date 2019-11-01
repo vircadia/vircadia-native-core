@@ -100,7 +100,7 @@ static const QString USER_RECENTER_MODEL_DISABLE_HMD_LEAN = QStringLiteral("Disa
 
 const QString HEAD_BLEND_DIRECTIONAL_ALPHA_NAME = "lookAroundAlpha";
 const QString HEAD_BLEND_LINEAR_ALPHA_NAME = "lookBlendAlpha";
-const float HEAD_ALPHA_BLENDING = 1.0f;
+const QString SEATED_HEAD_BLEND_LINEAR_ALPHA_NAME = "seatedLookBlendAlpha";
 
 const QString POINT_REACTION_NAME = "point";
 const QString POINT_BLEND_DIRECTIONAL_ALPHA_NAME = "pointAroundAlpha";
@@ -6672,8 +6672,17 @@ glm::vec3 MyAvatar::aimToBlendValues(const glm::vec3& aimVector, const glm::quat
 
 void MyAvatar::resetHeadLookAt() {
     if (_skeletonModel->isLoaded()) {
-        _skeletonModel->getRig().setDirectionalBlending(HEAD_BLEND_DIRECTIONAL_ALPHA_NAME, glm::vec3(),
-                                                        HEAD_BLEND_LINEAR_ALPHA_NAME, HEAD_ALPHA_BLENDING);
+        if (isSeated()) {
+            _skeletonModel->getRig().setDirectionalBlending(HEAD_BLEND_DIRECTIONAL_ALPHA_NAME, glm::vec3(),
+                                                            HEAD_BLEND_LINEAR_ALPHA_NAME, 0.0f);
+            _skeletonModel->getRig().setDirectionalBlending(HEAD_BLEND_DIRECTIONAL_ALPHA_NAME, glm::vec3(),
+                                                            SEATED_HEAD_BLEND_LINEAR_ALPHA_NAME, 1.0f);
+        } else {
+            _skeletonModel->getRig().setDirectionalBlending(HEAD_BLEND_DIRECTIONAL_ALPHA_NAME, glm::vec3(),
+                                                            HEAD_BLEND_LINEAR_ALPHA_NAME, 1.0f);
+            _skeletonModel->getRig().setDirectionalBlending(HEAD_BLEND_DIRECTIONAL_ALPHA_NAME, glm::vec3(),
+                                                            SEATED_HEAD_BLEND_LINEAR_ALPHA_NAME, 0.0f);
+        }
     }
 }
 
@@ -6686,13 +6695,22 @@ void MyAvatar::resetLookAtRotation(const glm::vec3& avatarPosition, const glm::q
     resetHeadLookAt();
 }
 
-void MyAvatar::updateHeadLookAt(float deltaTime) {    
+void MyAvatar::updateHeadLookAt(float deltaTime) {
     if (_skeletonModel->isLoaded()) {
         glm::vec3 lookAtTarget = _scriptControlsHeadLookAt ? _lookAtScriptTarget : _lookAtCameraTarget;
         glm::vec3 aimVector = lookAtTarget - getDefaultEyePosition();
         glm::vec3 lookAtBlend = MyAvatar::aimToBlendValues(aimVector, getWorldOrientation());
-        _skeletonModel->getRig().setDirectionalBlending(HEAD_BLEND_DIRECTIONAL_ALPHA_NAME, lookAtBlend,
-                                                        HEAD_BLEND_LINEAR_ALPHA_NAME, HEAD_ALPHA_BLENDING);
+        if (isSeated()) {
+            _skeletonModel->getRig().setDirectionalBlending(HEAD_BLEND_DIRECTIONAL_ALPHA_NAME, lookAtBlend,
+                                                            HEAD_BLEND_LINEAR_ALPHA_NAME, 0.0f);
+            _skeletonModel->getRig().setDirectionalBlending(HEAD_BLEND_DIRECTIONAL_ALPHA_NAME, lookAtBlend,
+                                                            SEATED_HEAD_BLEND_LINEAR_ALPHA_NAME, 1.0f);
+        } else {
+            _skeletonModel->getRig().setDirectionalBlending(HEAD_BLEND_DIRECTIONAL_ALPHA_NAME, lookAtBlend,
+                                                            HEAD_BLEND_LINEAR_ALPHA_NAME, 1.0f);
+            _skeletonModel->getRig().setDirectionalBlending(HEAD_BLEND_DIRECTIONAL_ALPHA_NAME, lookAtBlend,
+                                                            SEATED_HEAD_BLEND_LINEAR_ALPHA_NAME, 0.0f);
+        }
 
         if (_scriptControlsHeadLookAt) {
             _scriptHeadControlTimer += deltaTime;
