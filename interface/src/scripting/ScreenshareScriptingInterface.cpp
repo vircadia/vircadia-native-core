@@ -29,7 +29,8 @@ void ScreenshareScriptingInterface::startScreenshare(const QString& roomName) {
     if (QThread::currentThread() != thread()) {
         // We must start a new QProcess from the main thread.
         QMetaObject::invokeMethod(
-            this, "startScreenshare"
+            this, "startScreenshare",
+            Q_ARG(const QString&, roomName)
         );
         return;
     }
