@@ -1227,8 +1227,7 @@ void AudioClient::processWebrtcFarEnd(const int16_t* samples, int numFrames, int
 void AudioClient::processWebrtcNearEnd(int16_t* samples, int numFrames, int numChannels, int sampleRate) {
 
     const webrtc::StreamConfig streamConfig = webrtc::StreamConfig(sampleRate, numChannels);
-    const int numChunk = (int)streamConfig.num_frames();
-    assert(numFrames == chunk); // WebRTC requires exactly 10ms of input
+    assert(numFrames == (int)streamConfig.num_frames());    // WebRTC requires exactly 10ms of input
 
     static int32_t lastWarningHash = 0;
     if (sampleRate > WEBRTC_SAMPLE_RATE_MAX || numChannels > WEBRTC_CHANNELS_MAX) {
