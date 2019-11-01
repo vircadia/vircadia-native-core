@@ -54,6 +54,9 @@ void ScreenshareScriptingInterface::startScreenshare(const QString& roomName) {
     // passing the Domain ID that the user is connected to, as well as the `roomName`.
     // The server will respond with the relevant OpenTok Token, Session ID, and API Key.
     // Upon error-free response, do the logic below, passing in that info as necessary.
+    QString token = "";
+    QString apiKey = "";
+    QString sessionID = "";
 
     QStringList arguments;
     arguments << "--token=" + token; 
