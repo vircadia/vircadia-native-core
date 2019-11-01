@@ -1,6 +1,5 @@
 var customEmojiList = [
-    {
-    }
+
 ]
 
 if (module.exports) {
