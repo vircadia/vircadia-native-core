@@ -30,8 +30,8 @@
  * format: <code>atp:/path/filename</code>. The assets may optionally be baked, in which case a request for the original 
  * unbaked version of the asset is automatically redirected to the baked version. The asset data may optionally be stored as 
  * compressed.</p>
- * <p>The client cache can be access directly, using <code>"atp:"</code> or <code>"cache:"</code> URLs. Interface, avatar, and 
- * assignment client scripts can write to the cache. All script types can read from the cache.</p>
+ * <p>The client cache can be accessed directly, using <code>"atp:"</code> or <code>"cache:"</code> URLs. Interface, avatar, 
+ * and assignment client scripts can write to the cache. All script types can read from the cache.</p>
  *
  * @namespace Assets
  *

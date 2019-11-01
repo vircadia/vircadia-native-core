@@ -11,7 +11,6 @@
 
 #include <AudioClient.h>
 #include <SettingHandle.h>
-#include <trackers/FaceTracker.h>
 #include <UsersScriptingInterface.h>
 
 #include "Application.h"
@@ -76,8 +75,6 @@ void AvatarInputs::update() {
         return;
     }
 
-    AI_UPDATE(cameraEnabled, !Menu::getInstance()->isOptionChecked(MenuOption::NoFaceTracking));
-    AI_UPDATE(cameraMuted, Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking));
     AI_UPDATE(isHMD, qApp->isHMDMode());
 }
 
@@ -101,13 +98,6 @@ void AvatarInputs::setShowBubbleTools(bool showBubbleTools) {
 
 bool AvatarInputs::getIgnoreRadiusEnabled() const {
     return DependencyManager::get<NodeList>()->getIgnoreRadiusEnabled();
-}
-
-void AvatarInputs::toggleCameraMute() {
-    FaceTracker* faceTracker = qApp->getSelectedFaceTracker();
-    if (faceTracker) {
-        faceTracker->toggleMute();
-    }
 }
 
 void AvatarInputs::resetSensors() {

@@ -153,13 +153,6 @@ public:
 
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking = false) override;
 
-    void setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement);
-    bool getHasProceduralBlinkFaceMovement() const override { return _headData->getHasProceduralBlinkFaceMovement(); }
-    void setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement);
-    bool getHasProceduralEyeFaceMovement() const override { return _headData->getHasProceduralEyeFaceMovement(); }
-    void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
-    bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
-
     /**jsdoc
      * Gets details of all avatar entities.
      * <p><strong>Warning:</strong> Potentially an expensive call. Do not use if possible.</p>

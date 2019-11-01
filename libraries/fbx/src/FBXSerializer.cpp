@@ -17,7 +17,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include <FaceshiftConstants.h>
+#include <BlendshapeConstants.h>
 
 #include <hfm/ModelFormatLogging.h>
 #include <hfm/HFMModelMath.h>

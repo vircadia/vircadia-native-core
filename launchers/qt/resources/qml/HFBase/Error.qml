@@ -45,11 +45,21 @@ Item {
     HFTextRegular {
         id: description
 
-        text: "We seem to have a problem.\n   Please restart Launcher."
+        text: "We seem to have a problem."
 
         anchors {
             top: header.bottom
             topMargin: 8
+            horizontalCenter: header.horizontalCenter
+        }
+    }
+
+    HFTextRegular {
+        text: "Please restart."
+
+        anchors {
+            top: description.bottom
+            topMargin: 1
             horizontalCenter: header.horizontalCenter
         }
     }

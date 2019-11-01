@@ -48,7 +48,6 @@
 #include <recording/Clip.h>
 #include <recording/Frame.h>
 #include <RecordingScriptingInterface.h>
-#include <trackers/FaceTracker.h>
 #include <RenderableModelEntityItem.h>
 #include <VariantMapToScriptValue.h>
 
@@ -349,7 +348,8 @@ MyAvatar::MyAvatar(QThread* thread) :
         }
     });
 
-    connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SIGNAL(onLoadComplete()));
+    connect(&(_skeletonModel->getRig()), &Rig::onLoadComplete, this, &MyAvatar::onLoadComplete);
+    connect(&(_skeletonModel->getRig()), &Rig::onLoadFailed, this, &MyAvatar::onLoadFailed);
 
     _characterController.setDensity(_density);
 }
@@ -749,7 +749,6 @@ void MyAvatar::update(float deltaTime) {
 
     Head* head = getHead();
     head->relax(deltaTime);
-    updateFromTrackers(deltaTime);
 
     if (getIsInWalkingState() && glm::length(getControllerPoseInAvatarFrame(controller::Action::HEAD).getVelocity()) < DEFAULT_AVATAR_WALK_SPEED_THRESHOLD) {
         setIsInWalkingState(false);
@@ -782,18 +781,6 @@ void MyAvatar::update(float deltaTime) {
     emit energyChanged(currentEnergy);
 
     updateEyeContactTarget(deltaTime);
-
-    // if we're getting eye rotations from a tracker, disable observer-side procedural eye motions
-    auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    bool eyesTracked =
-        userInputMapper->getPoseState(controller::Action::LEFT_EYE).valid &&
-        userInputMapper->getPoseState(controller::Action::RIGHT_EYE).valid;
-
-    int leftEyeJointIndex = getJointIndex("LeftEye");
-    int rightEyeJointIndex = getJointIndex("RightEye");
-    bool eyesAreOverridden = getIsJointOverridden(leftEyeJointIndex) || getIsJointOverridden(rightEyeJointIndex);
-
-    _headData->setHasProceduralEyeMovement(!(eyesTracked || eyesAreOverridden));
 }
 
 void MyAvatar::updateEyeContactTarget(float deltaTime) {
@@ -1146,60 +1133,6 @@ void MyAvatar::updateSensorToWorldMatrix() {
         emit sensorToWorldScaleChanged(sensorToWorldScale);
     }
     
-}
-
-//  Update avatar head rotation with sensor data
-void MyAvatar::updateFromTrackers(float deltaTime) {
-    glm::vec3 estimatedRotation;
-
-    bool hasHead = getControllerPoseInAvatarFrame(controller::Action::HEAD).isValid();
-    bool playing = DependencyManager::get<recording::Deck>()->isPlaying();
-    if (hasHead && playing) {
-        return;
-    }
-
-    FaceTracker* tracker = qApp->getActiveFaceTracker();
-    bool inFacetracker = tracker && !FaceTracker::isMuted();
-
-    if (inFacetracker) {
-        estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
-    }
-
-    //  Rotate the body if the head is turned beyond the screen
-    if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
-        const float TRACKER_YAW_TURN_SENSITIVITY = 0.5f;
-        const float TRACKER_MIN_YAW_TURN = 15.0f;
-        const float TRACKER_MAX_YAW_TURN = 50.0f;
-        if ( (fabs(estimatedRotation.y) > TRACKER_MIN_YAW_TURN) &&
-             (fabs(estimatedRotation.y) < TRACKER_MAX_YAW_TURN) ) {
-            if (estimatedRotation.y > 0.0f) {
-                _bodyYawDelta += (estimatedRotation.y - TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
-            } else {
-                _bodyYawDelta += (estimatedRotation.y + TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
-            }
-        }
-    }
-
-    // Set the rotation of the avatar's head (as seen by others, not affecting view frustum)
-    // to be scaled such that when the user's physical head is pointing at edge of screen, the
-    // avatar head is at the edge of the in-world view frustum.  So while a real person may move
-    // their head only 30 degrees or so, this may correspond to a 90 degree field of view.
-    // Note that roll is magnified by a constant because it is not related to field of view.
-
-
-    Head* head = getHead();
-    if (hasHead || playing) {
-        head->setDeltaPitch(estimatedRotation.x);
-        head->setDeltaYaw(estimatedRotation.y);
-        head->setDeltaRoll(estimatedRotation.z);
-    } else {
-        ViewFrustum viewFrustum;
-        qApp->copyViewFrustum(viewFrustum);
-        float magnifyFieldOfView = viewFrustum.getFieldOfView() / _realWorldFieldOfView.get();
-        head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
-        head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
-        head->setDeltaRoll(estimatedRotation.z);
-    }
 }
 
 glm::vec3 MyAvatar::getLeftHandPosition() const {
@@ -2635,6 +2568,8 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
     if (urlString.isEmpty() || (fullAvatarURL != getSkeletonModelURL())) {
         setSkeletonModelURL(fullAvatarURL);
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
+    } else {
+        emit onLoadComplete();
     }
 }
 
@@ -3414,31 +3349,6 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     bool overrideAnim = _skeletonModel ? _skeletonModel->getRig().isPlayingOverrideAnimation() : false;
     bool insideHead = cameraInsideHead(renderArgs->getViewFrustum().getPosition());
     return !defaultMode || (!firstPerson && !insideHead) || (overrideAnim && !insideHead);
-}
-
-void MyAvatar::setHasScriptedBlendshapes(bool hasScriptedBlendshapes) {
-    if (hasScriptedBlendshapes == _hasScriptedBlendShapes) {
-        return;
-    }
-    if (!hasScriptedBlendshapes) {
-        // send a forced avatarData update to make sure the script can send neutal blendshapes on unload
-        // without having to wait for the update loop, make sure _hasScriptedBlendShapes is still true
-        // before sending the update, or else it won't send the neutal blendshapes to the receiving clients
-        sendAvatarDataPacket(true);
-    }
-    _hasScriptedBlendShapes = hasScriptedBlendshapes;
-}
-
-void MyAvatar::setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement) {
-    _headData->setHasProceduralBlinkFaceMovement(hasProceduralBlinkFaceMovement);
-}
-
-void MyAvatar::setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement) {
-    _headData->setHasProceduralEyeFaceMovement(hasProceduralEyeFaceMovement);
-}
-
-void MyAvatar::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) {
-    _headData->setHasAudioEnabledFaceMovement(hasAudioEnabledFaceMovement);
 }
 
 void MyAvatar::setRotationRecenterFilterLength(float length) {
@@ -6620,11 +6530,10 @@ bool MyAvatar::getIsJointOverridden(int jointIndex) const {
     return _skeletonModel->getIsJointOverridden(jointIndex);
 }
 
-void MyAvatar::updateEyesLookAtPosition(FaceTracker* faceTracker, Camera& myCamera, float deltaTime) {
+void MyAvatar::updateEyesLookAtPosition(float deltaTime) {
 
     updateLookAtTargetAvatar();
 
-    bool isLookingAtSomeone = false;
     glm::vec3 lookAtSpot;
 
     const MyHead* myHead = getMyHead();
@@ -6685,7 +6594,6 @@ void MyAvatar::updateEyesLookAtPosition(FaceTracker* faceTracker, Camera& myCame
                 avatar && avatar->getLookAtSnappingEnabled() && getLookAtSnappingEnabled();
             if (haveLookAtCandidate && mutualLookAtSnappingEnabled) {
                 //  If I am looking at someone else, look directly at one of their eyes
-                isLookingAtSomeone = true;
                 auto lookingAtHead = avatar->getHead();
 
                 const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
@@ -6723,21 +6631,6 @@ void MyAvatar::updateEyesLookAtPosition(FaceTracker* faceTracker, Camera& myCame
                                  myHead->getLookAtPosition() :
                                  myHead->getEyePosition() + getHeadJointFrontVector() * (float)TREE_SCALE;
                 }
-            }
-
-            // Deflect the eyes a bit to match the detected gaze from the face tracker if active.
-            if (faceTracker && !faceTracker->isMuted()) {
-                float eyePitch = faceTracker->getEstimatedEyePitch();
-                float eyeYaw = faceTracker->getEstimatedEyeYaw();
-                const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
-                glm::vec3 origin = myHead->getEyePosition();
-                float deflection = faceTracker->getEyeDeflection();
-                if (isLookingAtSomeone) {
-                    deflection *= GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT;
-                }
-                lookAtSpot = origin + myCamera.getOrientation() * glm::quat(glm::radians(glm::vec3(
-                    eyePitch * deflection, eyeYaw * deflection, 0.0f))) *
-                    glm::inverse(myCamera.getOrientation()) * (lookAtSpot - origin);
             }
         }
     }
