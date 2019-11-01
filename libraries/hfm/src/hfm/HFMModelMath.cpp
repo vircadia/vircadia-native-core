@@ -40,22 +40,30 @@ void thickenFlatExtents(Extents& extents) {
     extents.maximum += glm::vec3(EPSILON, EPSILON, EPSILON);
 }
 
-void calculateExtentsForShape(hfm::Shape& shape, const std::vector<hfm::Mesh>& meshes, const std::vector<hfm::Joint> joints) {
+void calculateExtentsForTriangleListMesh(TriangleListMesh& triangleListMesh) {
+    triangleListMesh.partExtents.resize(triangleListMesh.parts.size());
+    for (size_t partIndex = 0; partIndex < triangleListMesh.parts.size(); ++partIndex) {
+        const auto& part = triangleListMesh.parts[partIndex];
+        auto& extents = triangleListMesh.partExtents[partIndex];
+        int partEnd = part.x + part.y;
+        for (int i = part.x; i < partEnd; ++i) {
+            auto index = triangleListMesh.indices[i];
+            const auto& position = triangleListMesh.vertices[index];
+            extents.addPoint(position);
+        }
+    }
+}
+
+void calculateExtentsForShape(hfm::Shape& shape, const std::vector<hfm::TriangleListMesh>& triangleListMeshes, const std::vector<hfm::Joint>& joints) {
     auto& shapeExtents = shape.transformedExtents;
     shapeExtents.reset();
 
-    const auto& mesh = meshes[shape.mesh];
-    const auto& meshPart = mesh.parts[shape.meshPart];
+    const auto& triangleListMesh = triangleListMeshes[shape.mesh];
+    const auto& partExtent = triangleListMesh.partExtents[shape.meshPart];
 
-    glm::mat4 transform = joints[shape.joint].transform;
-    forEachIndex(meshPart, [&](int32_t idx){
-        if (mesh.vertices.size() <= idx) {
-            return;
-        }
-        const glm::vec3& vertex = mesh.vertices[idx];
-        const glm::vec3 transformedVertex = glm::vec3(transform * glm::vec4(vertex, 1.0f));
-        shapeExtents.addPoint(transformedVertex);
-    });
+    const glm::mat4& transform = joints[shape.joint].transform;
+    shapeExtents = partExtent;
+    shapeExtents.transform(transform);
 
     thickenFlatExtents(shapeExtents);
 }
@@ -195,6 +203,8 @@ const TriangleListMesh generateTriangleListMesh(const std::vector<glm::vec3>& sr
             dest.parts.push_back(spart);
         }
     }
+
+    calculateExtentsForTriangleListMesh(dest);
 
     return dest;
 }
