@@ -541,7 +541,7 @@ function loaded() {
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
             let selection = [entityID];
-            let controlKey = window.navigator.platform.startsWith("Mac") ? clickeEvent.metaKey : clickEvent.ctrlKey;
+            let controlKey = window.navigator.platform.startsWith("Mac") ? clickEvent.metaKey : clickEvent.ctrlKey;
 
             if (controlKey) {
                 let selectedIndex = selectedEntities.indexOf(entityID);
