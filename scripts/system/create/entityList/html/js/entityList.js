@@ -541,8 +541,9 @@ function loaded() {
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
             let selection = [entityID];
+            let controlKey = window.navigator.platform.startsWith("Mac") ? clickeEvent.metaKey : clickEvent.ctrlKey;
 
-            if (clickEvent.ctrlKey) {
+            if (controlKey) {
                 let selectedIndex = selectedEntities.indexOf(entityID);
                 if (selectedIndex >= 0) {
                     selection = [];
@@ -573,7 +574,7 @@ function loaded() {
                         selection.reverse();
                     }
                 }
-            } else if (!clickEvent.ctrlKey && !clickEvent.shiftKey && selectedEntities.length === 1) {
+            } else if (!controlKey && !clickEvent.shiftKey && selectedEntities.length === 1) {
                 // if reselecting the same entity then start renaming it
                 if (selectedEntities[0] === entityID) {
                     if (renameLastBlur && renameLastEntityID === entityID && (Date.now() - renameLastBlur) < RENAME_COOLDOWN) {
