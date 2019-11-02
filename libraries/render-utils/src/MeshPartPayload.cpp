@@ -11,6 +11,8 @@
 
 #include "MeshPartPayload.h"
 
+#include <QProcess>
+
 #include <PerfStat.h>
 #include <DualQuaternion.h>
 #include <graphics/ShaderConstants.h>
@@ -20,6 +22,9 @@
 #include "DeferredLightingEffect.h"
 
 #include "RenderPipelines.h"
+
+static const QString ENABLE_MESH_SHADERS_STRING { "HIFI_ENABLE_MESH_SHADERS" };
+static bool ENABLE_MESH_SHADERS = QProcessEnvironment::systemEnvironment().contains(ENABLE_MESH_SHADERS_STRING);
 
 bool MeshPartPayload::enableMeshShaders = false;
 
@@ -466,7 +471,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 
     if (!_drawMaterials.empty() && _drawMaterials.top().material && _drawMaterials.top().material->isProcedural() &&
             _drawMaterials.top().material->isReady()) {
-        if (!enableMeshShaders) {
+        if (!(enableMeshShaders && ENABLE_MESH_SHADERS)) {
             return;
         }
         auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(_drawMaterials.top().material);
