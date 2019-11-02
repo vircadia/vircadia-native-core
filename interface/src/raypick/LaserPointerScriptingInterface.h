@@ -25,9 +25,9 @@ class LaserPointerScriptingInterface : public QObject, public Dependency {
  * represent objects for repeatedly calculating ray intersections with avatars, entities, and overlays. Ray pointers can also 
  * be configured to generate events on entities and overlays intersected.
  *
- * <p class="important">Deprecated: This API is deprecated. Use {@link Pointers} instead.
- *
  * @namespace LaserPointers
+ *
+ * @deprecated This API is deprecated and will be removed. Use {@link Pointers} instead.
  *
  * @hifi-interface
  * @hifi-client-entity

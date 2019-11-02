@@ -34,7 +34,6 @@
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
 #include "RingBufferHistory.h"
-#include "devices/DdeFaceTracker.h"
 
 class AvatarActionHold;
 class ModelItemID;
@@ -184,12 +183,6 @@ class MyAvatar : public Avatar {
      *     property value is <code>audioListenerModeCustom</code>.
      * @property {Quat} customListenOrientation=Quat.IDENTITY - The listening orientation used when the
      *     <code>audioListenerMode</code> property value is <code>audioListenerModeCustom</code>.
-     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> to transmit blendshapes over the network.
-     *     <p><strong>Note:</strong> Currently doesn't work. Use {@link MyAvatar.setForceFaceTrackerConnected} instead.</p>
-     * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if procedural blinking is turned on.
-     * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if procedural eye movement is turned on.
-     * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> to move the mouth blendshapes with voice audio 
-     *     when <code>MyAvatar.hasScriptedBlendshapes</code> is enabled.
      * @property {number} rotationRecenterFilterLength - Configures how quickly the avatar root rotates to recenter its facing 
      *     direction to match that of the user's torso based on head and hands orientation. A smaller value makes the 
      *     recentering happen more quickly. The minimum value is <code>0.01</code>.
@@ -275,7 +268,7 @@ class MyAvatar : public Avatar {
      * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
      * @property {number} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting
-     *     (avatar leaning is disabled, recenntering is enabled), <code>false</code> if the user wearing the HMD is
+     *     (avatar leaning is disabled, recentering is enabled), <code>false</code> if the user wearing the HMD is
      *     determined to be standing (avatar leaning is enabled, and avatar recenters if it leans too far).
      *     If <code>userRecenterModel == 2</code> (i.e., auto) the property value automatically updates as the user sits
      *     or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the current
@@ -312,7 +305,10 @@ class MyAvatar : public Avatar {
      * @borrows Avatar.setAttachmentsVariant as setAttachmentsVariant
      * @borrows Avatar.updateAvatarEntity as updateAvatarEntity
      * @borrows Avatar.clearAvatarEntity as clearAvatarEntity
-     * @borrows Avatar.setForceFaceTrackerConnected as setForceFaceTrackerConnected
+     * @borrows Avatar.hasScriptedBlendshapes as hasScriptedBlendshapes
+     * @borrows Avatar.hasProceduralBlinkFaceMovement as hasProceduralBlinkFaceMovement
+     * @borrows Avatar.hasProceduralEyeFaceMovement as hasProceduralEyeFaceMovement
+     * @borrows Avatar.hasAudioEnabledFaceMovement as hasAudioEnabledFaceMovement
      * @borrows Avatar.setSkeletonModelURL as setSkeletonModelURL
      * @borrows Avatar.getAttachmentData as getAttachmentData
      * @borrows Avatar.setAttachmentData as setAttachmentData
@@ -359,10 +355,6 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(AudioListenerMode audioListenerModeCustom READ getAudioListenerModeCustom)
     Q_PROPERTY(glm::vec3 customListenPosition READ getCustomListenPosition WRITE setCustomListenPosition)
     Q_PROPERTY(glm::quat customListenOrientation READ getCustomListenOrientation WRITE setCustomListenOrientation)
-    Q_PROPERTY(bool hasScriptedBlendshapes READ getHasScriptedBlendshapes WRITE setHasScriptedBlendshapes)
-    Q_PROPERTY(bool hasProceduralBlinkFaceMovement READ getHasProceduralBlinkFaceMovement WRITE setHasProceduralBlinkFaceMovement)
-    Q_PROPERTY(bool hasProceduralEyeFaceMovement READ getHasProceduralEyeFaceMovement WRITE setHasProceduralEyeFaceMovement)
-    Q_PROPERTY(bool hasAudioEnabledFaceMovement READ getHasAudioEnabledFaceMovement WRITE setHasAudioEnabledFaceMovement)
     Q_PROPERTY(float rotationRecenterFilterLength READ getRotationRecenterFilterLength WRITE setRotationRecenterFilterLength)
     Q_PROPERTY(float rotationThreshold READ getRotationThreshold WRITE setRotationThreshold)
     Q_PROPERTY(bool enableStepResetRotation READ getEnableStepResetRotation WRITE setEnableStepResetRotation)
@@ -1765,9 +1757,37 @@ public:
     /**jsdoc
     * Returns the current head look at target point in world coordinates.
     * @function MyAvatar.getHeadLookAt
-    * @returns {Vec3} Default position between your avatar's eyes in world coordinates.
+    * @returns {Vec3} The head's look at target in world coordinates.
     */
     Q_INVOKABLE glm::vec3 getHeadLookAt() { return _lookAtCameraTarget; }
+
+    /**jsdoc
+    * When this function is called the engine regains control of the head immediately.
+    * @function MyAvatar.releaseHeadLookAtControl
+    */
+    Q_INVOKABLE void releaseHeadLookAtControl();
+
+    /**jsdoc
+    * Force the avatar's eyes to look to the specified location.
+    * Once this method is called, API calls will have full control of the eyes for a limited time.
+    * If this method is not called for two seconds, the engine will regain control of the eyes.
+    * @function MyAvatar.setEyesLookAt
+    * @param {Vec3} lookAtTarget - The target point in world coordinates.
+    */
+    Q_INVOKABLE void setEyesLookAt(const glm::vec3& lookAtTarget);
+
+    /**jsdoc
+    * Returns the current eyes look at target point in world coordinates.
+    * @function MyAvatar.getEyesLookAt
+    * @returns {Vec3} The eyes's look at target in world coordinates.
+    */
+    Q_INVOKABLE glm::vec3 getEyesLookAt() { return _eyesLookAtTarget.get(); }
+
+    /**jsdoc
+    * When this function is called the engine regains control of the eyes immediately.
+    * @function MyAvatar.releaseEyesLookAtControl
+    */
+    Q_INVOKABLE void releaseEyesLookAtControl();
 
     /**jsdoc
     * Aims the pointing directional blending towards the provided target point.
@@ -1906,7 +1926,7 @@ public:
     bool getFlowActive() const;
     bool getNetworkGraphActive() const;
 
-    void updateLookAtPosition(FaceTracker* faceTracker, Camera& myCamera);
+    void updateEyesLookAtPosition(float deltaTime);
 
     // sets the reaction enabled and triggered parameters of the passed in params
     // also clears internal reaction triggers
@@ -2435,9 +2455,16 @@ signals:
     /**jsdoc
      * Triggered when the avatar's model finishes loading.
      * @function MyAvatar.onLoadComplete
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     void onLoadComplete();
+
+    /**jsdoc
+     * Triggered when the avatar's model has failed to load.
+     * @function MyAvatar.onLoadFailed
+     * @returns {Signal}
+     */
+    void onLoadFailed();
 
     /**jsdoc
      * Triggered when your avatar changes from being active to being away.
@@ -2551,20 +2578,11 @@ private:
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) override;
 
     void simulate(float deltaTime, bool inView) override;
-    void updateFromTrackers(float deltaTime);
     void saveAvatarUrl();
     virtual void render(RenderArgs* renderArgs) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
     bool getShouldRenderLocally() const { return _shouldRender; }
-    void setHasScriptedBlendshapes(bool hasScriptedBlendshapes);
-    bool getHasScriptedBlendshapes() const override { return _hasScriptedBlendShapes; }
-    void setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement);
-    bool getHasProceduralBlinkFaceMovement() const override { return _headData->getHasProceduralBlinkFaceMovement(); }
-    void setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement);
-    bool getHasProceduralEyeFaceMovement() const override { return _headData->getHasProceduralEyeFaceMovement(); }
-    void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
-    bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
     void setRotationRecenterFilterLength(float length);
     float getRotationRecenterFilterLength() const { return _rotationRecenterFilterLength; }
     void setRotationThreshold(float angleRadians);
@@ -2666,6 +2684,9 @@ private:
 
     eyeContactTarget _eyeContactTarget;
     float _eyeContactTargetTimer { 0.0f };
+    ThreadSafeValueCache<glm::vec3> _eyesLookAtTarget { glm::vec3() };
+    bool _scriptControlsEyesLookAt{ false };
+    float _scriptEyesControlTimer{ 0.0f };
 
     glm::vec3 _trackedHeadPosition;
 
@@ -2899,7 +2920,6 @@ private:
 
     bool _haveReceivedHeightLimitsFromDomain { false };
     int _disableHandTouchCount { 0 };
-    bool _skeletonModelLoaded { false };
     bool _reloadAvatarEntityDataFromSettings { true };
 
     TimePoint _nextTraitsSendWindow;

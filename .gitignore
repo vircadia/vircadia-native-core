@@ -92,6 +92,7 @@ npm-debug.log
 
 # Resource binary file
 interface/compiledResources
+*.rcc
 
 # GPUCache
 interface/resources/GPUCache/*

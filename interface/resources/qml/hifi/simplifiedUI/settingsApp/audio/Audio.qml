@@ -258,13 +258,12 @@ Flickable {
                 Layout.preferredHeight: contentItem.height
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
-                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.input
                 delegate: Item {
-                    width: parent.width
-                    height: inputDeviceCheckbox.height
-
+                     width:  parent.width
+                     height: model.type != "hmd" ? inputDeviceCheckbox.height + simplifiedUI.margins.settings.spacingBetweenRadiobuttons : 0
+                     visible: model.type != "hmd"
                     SimplifiedControls.RadioButton {
                         id: inputDeviceCheckbox
                         anchors.left: parent.left
@@ -354,13 +353,12 @@ Flickable {
                 Layout.preferredHeight: contentItem.height
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
-                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.output
                 delegate: Item {
                     width: parent.width
-                    height: outputDeviceCheckbox.height
-
+                    height: model.type != "hmd" ? outputDeviceCheckbox.height +simplifiedUI.margins.settings.spacingBetweenRadiobuttons : 0
+                    visible: model.type != "hmd"
                     SimplifiedControls.RadioButton {
                         id: outputDeviceCheckbox
                         anchors.left: parent.left

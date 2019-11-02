@@ -375,14 +375,14 @@ Rectangle {
             x: margins.paddings
             interactive: false;
             height: contentHeight;
-            spacing: 4;
+            
             clip: true;
             model: AudioScriptingInterface.devices.input;
             delegate: Item {
                 width: rightMostInputLevelPos - margins.paddings*2
-                height: margins.sizeCheckBox > checkBoxInput.implicitHeight ?
-                            margins.sizeCheckBox : checkBoxInput.implicitHeight
-
+                height: ((type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)) ?  
+                        (margins.sizeCheckBox > checkBoxInput.implicitHeight ? margins.sizeCheckBox + 4 : checkBoxInput.implicitHeight + 4) : 0
+                visible: (type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1) 
                 AudioControls.CheckBox {
                     id: checkBoxInput
                     anchors.left: parent.left
@@ -470,13 +470,13 @@ Rectangle {
             height: contentHeight;
             anchors.top: outputDeviceHeader.bottom;
             anchors.topMargin: 10;
-            spacing: 4;
             clip: true;
             model: AudioScriptingInterface.devices.output;
             delegate: Item {
                 width: rightMostInputLevelPos
-                height: margins.sizeCheckBox > checkBoxOutput.implicitHeight ?
-                            margins.sizeCheckBox : checkBoxOutput.implicitHeight
+                height: ((type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)) ? 
+                        (margins.sizeCheckBox > checkBoxOutput.implicitHeight ? margins.sizeCheckBox + 4 : checkBoxOutput.implicitHeight + 4) : 0
+                visible: (type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1) 
 
                 AudioControls.CheckBox {
                     id: checkBoxOutput

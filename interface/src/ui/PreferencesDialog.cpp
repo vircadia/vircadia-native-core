@@ -10,7 +10,6 @@
 
 #include <AudioClient.h>
 #include <avatar/AvatarManager.h>
-#include <devices/DdeFaceTracker.h>
 #include <ScriptEngines.h>
 #include <OffscreenUi.h>
 #include <Preferences.h>
@@ -58,18 +57,19 @@ void setupPreferences() {
     static const QString GRAPHICS_QUALITY { "Graphics Quality" };
     {
         auto getter = []()->float {
-            return DependencyManager::get<LODManager>()->getWorldDetailQuality();
+            return (int)DependencyManager::get<LODManager>()->getWorldDetailQuality();
         };
 
-        auto setter = [](float value) {
-            DependencyManager::get<LODManager>()->setWorldDetailQuality(value);
+        auto setter = [](int value) {
+            DependencyManager::get<LODManager>()->setWorldDetailQuality(static_cast<WorldDetailQuality>(value));
         };
 
-        auto wodSlider = new SliderPreference(GRAPHICS_QUALITY, "World Detail", getter, setter);
-        wodSlider->setMin(0.25f);
-        wodSlider->setMax(0.75f);
-        wodSlider->setStep(0.25f);
-        preferences->addPreference(wodSlider);
+        auto wodButtons = new RadioButtonsPreference(GRAPHICS_QUALITY, "World Detail", getter, setter);
+        QStringList items;
+        items << "Low World Detail" << "Medium World Detail" << "High World Detail";
+        wodButtons->setHeading("World Detail");
+        wodButtons->setItems(items);
+        preferences->addPreference(wodButtons);
 
         auto getterShadow = []()->bool {
             auto menu = Menu::getInstance();
@@ -293,22 +293,6 @@ void setupPreferences() {
         auto setter = [myAvatar](bool value) { myAvatar->setCollisionsEnabled(value); };
         auto preference = new CheckPreference(AVATAR_TUNING, "Enable Avatar collisions", getter, setter);
         preferences->addPreference(preference);
-    }
-
-    static const QString FACE_TRACKING{ "Face Tracking" };
-    {
-#ifdef HAVE_DDE
-        auto getter = []()->float { return DependencyManager::get<DdeFaceTracker>()->getEyeClosingThreshold(); };
-        auto setter = [](float value) { DependencyManager::get<DdeFaceTracker>()->setEyeClosingThreshold(value); };
-        preferences->addPreference(new SliderPreference(FACE_TRACKING, "Eye Closing Threshold", getter, setter));
-#endif
-    }
-
-
-    {
-        auto getter = []()->float { return FaceTracker::getEyeDeflection(); };
-        auto setter = [](float value) { FaceTracker::setEyeDeflection(value); };
-        preferences->addPreference(new SliderPreference(FACE_TRACKING, "Eye Deflection", getter, setter));
     }
 
     static const QString VR_MOVEMENT{ "VR Movement" };

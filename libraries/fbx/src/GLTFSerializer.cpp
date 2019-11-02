@@ -33,7 +33,7 @@
 #include <ResourceManager.h>
 #include <PathUtils.h>
 #include <image/ColorChannel.h>
-#include <FaceshiftConstants.h>
+#include <BlendshapeConstants.h>
 
 #include "FBXSerializer.h"
 

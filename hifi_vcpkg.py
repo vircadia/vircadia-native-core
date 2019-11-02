@@ -273,8 +273,10 @@ endif()
                     url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
                 else:
                     print('UNKNOWN LINUX VERSION!!!')
+                    return;
             else:
                 print('UNKNOWN OPERATING SYSTEM!!!')
+                return;
 
             print('Extracting ' + url + ' to ' + dest)
             hifi_utils.downloadAndExtract(url, dest)

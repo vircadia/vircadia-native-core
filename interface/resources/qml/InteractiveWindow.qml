@@ -65,6 +65,15 @@ Windows.Window {
             }
         });
     }
+    
+    Timer {
+        id: timer
+        interval: 500;
+        repeat: false;
+        onTriggered: {
+            updateContentParent();
+        }
+    }
 
     function updateInteractiveWindowPositionForMode() {
         if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
@@ -107,13 +116,11 @@ Windows.Window {
             if (nativeWindow) {
                 nativeWindow.setVisible(false);
             }
-            updateContentParent();
             updateInteractiveWindowPositionForMode();
             shown = interactiveWindowVisible;
         } else if (presentationMode === Desktop.PresentationMode.NATIVE) {
             shown = false;
             if (nativeWindow) {
-                updateContentParent();
                 updateInteractiveWindowPositionForMode();
                 nativeWindow.setVisible(interactiveWindowVisible);
             }
@@ -123,10 +130,7 @@ Windows.Window {
     }
 
     Component.onCompleted: {
-        // Fix for parent loss on OSX:
-        parent.heightChanged.connect(updateContentParent);
-        parent.widthChanged.connect(updateContentParent);
-
+        
         x = interactiveWindowPosition.x;
         y = interactiveWindowPosition.y;
         width = interactiveWindowSize.width;
@@ -140,6 +144,11 @@ Windows.Window {
                 id: root;
                 width: interactiveWindowSize.width
                 height: interactiveWindowSize.height
+                // fix for missing content on OSX initial startup with a non-maximized interface window. It seems that in this case, we cannot update
+                // the content parent during creation of the Window root. This added delay will update the parent after the root has finished loading.
+                Component.onCompleted: {
+                    timer.start();
+                }
 
                 Rectangle {
                     color: hifi.colors.baseGray
@@ -170,6 +179,7 @@ Windows.Window {
                 interactiveWindowPosition = Qt.point(nativeWindow.x, interactiveWindowPosition.y);
             }
         });
+        
         nativeWindow.yChanged.connect(function() {
             if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow.visible) {
                 interactiveWindowPosition = Qt.point(interactiveWindowPosition.x, nativeWindow.y);
@@ -181,6 +191,7 @@ Windows.Window {
                 interactiveWindowSize = Qt.size(nativeWindow.width, interactiveWindowSize.height);
             }
         });
+        
         nativeWindow.heightChanged.connect(function() {
             if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow.visible) {
                 interactiveWindowSize = Qt.size(interactiveWindowSize.width, nativeWindow.height);
@@ -194,13 +205,9 @@ Windows.Window {
 
         // finally set the initial window mode:
         setupPresentationMode();
+        updateContentParent();
 
         initialized = true;
-    }
-
-    Component.onDestruction: {
-        parent.heightChanged.disconnect(updateContentParent);
-        parent.widthChanged.disconnect(updateContentParent);
     }
 
     // Handle message traffic from the script that launched us to the loaded QML
@@ -232,8 +239,8 @@ Windows.Window {
         interactiveWindowSize.width = newWidth;
         updateInteractiveWindowSizeForMode();
     }
-    function onRequestNewHeight(newWidth) {
-        interactiveWindowSize.width = newWidth;
+    function onRequestNewHeight(newHeight) {
+        interactiveWindowSize.height = newHeight;
         updateInteractiveWindowSizeForMode();
     }
     
@@ -308,6 +315,7 @@ Windows.Window {
     onPresentationModeChanged: {
         if (initialized) {
             setupPresentationMode();
+            updateContentParent();
         }
     }
 

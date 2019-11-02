@@ -22,9 +22,9 @@ HifiAudioDeviceInfo& HifiAudioDeviceInfo::operator=(const HifiAudioDeviceInfo& o
     _audioDeviceInfo = other.getDevice();
     _mode = other.getMode();
     _isDefault = other.isDefault();
+    _deviceType = other.getDeviceType();
     return *this;
 }
-
 
 bool HifiAudioDeviceInfo::operator==(const HifiAudioDeviceInfo& rhs) const {
     //Does the QAudioDeviceinfo match as well as is this the default device or 
@@ -33,4 +33,3 @@ bool HifiAudioDeviceInfo::operator==(const HifiAudioDeviceInfo& rhs) const {
 bool HifiAudioDeviceInfo::operator!=(const HifiAudioDeviceInfo& rhs) const {
     return  getDevice() != rhs.getDevice() || isDefault() != rhs.isDefault();
 }
-

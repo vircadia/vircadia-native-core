@@ -238,10 +238,12 @@ public slots:
 
     bool shouldLoopbackInjectors() override { return _shouldEchoToServer; }
     Q_INVOKABLE void changeDefault(HifiAudioDeviceInfo newDefault, QAudio::Mode mode);
+    void checkDefaultChanges(QList<HifiAudioDeviceInfo>& devices);
 
     // calling with a null QAudioDevice will use the system default
     bool switchAudioDevice(QAudio::Mode mode, const HifiAudioDeviceInfo& deviceInfo = HifiAudioDeviceInfo());
-    bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName);
+    bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName, bool isHmd);
+    void setHmdAudioName(QAudio::Mode mode, const QString& name);
     // Qt opensles plugin is not able to detect when the headset is plugged in
     void setHeadsetPluggedIn(bool pluggedIn);
 
@@ -480,6 +482,9 @@ private:
     QList<HifiAudioDeviceInfo> _inputDevices;
     QList<HifiAudioDeviceInfo> _outputDevices;
 
+    QString _hmdInputName { QString() };
+    QString _hmdOutputName{ QString() };
+
     AudioFileWav _audioFileWav;
 
     bool _hasReceivedFirstPacket { false };
@@ -504,6 +509,7 @@ private:
 
     AudioSolo _solo;
 
+    QReadWriteLock _hmdNameLock;
     Mutex _checkDevicesMutex;
     QTimer* _checkDevicesTimer { nullptr };
     Mutex _checkPeakValuesMutex;

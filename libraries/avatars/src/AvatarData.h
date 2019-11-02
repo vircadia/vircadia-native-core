@@ -102,12 +102,12 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 // Procedural Collide with other avatars is enabled 12th bit
 // Procedural Has Hero Priority is enabled 13th bit
 
-const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
-const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
-const int IS_FACE_TRACKER_CONNECTED = 4; // 5th bit
-const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
+const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits  (UNUSED)
+const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits (UNUSED)
+const int HAS_SCRIPTED_BLENDSHAPES = 4; // 5th bit
+const int HAS_PROCEDURAL_EYE_MOVEMENT = 5; // 6th bit
 const int HAS_REFERENTIAL = 6; // 7th bit
-const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
+const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit (UNUSED)
 const int AUDIO_ENABLED_FACE_MOVEMENT = 8; // 9th bit
 const int PROCEDURAL_EYE_FACE_MOVEMENT = 9; // 10th bit
 const int PROCEDURAL_BLINK_FACE_MOVEMENT = 10; // 11th bit
@@ -323,7 +323,7 @@ namespace AvatarDataPacket {
 
     // variable length structure follows
 
-    // only present if IS_FACE_TRACKER_CONNECTED flag is set in AvatarInfo.flags
+    // only present if HAS_SCRIPTED_BLENDSHAPES flag is set in AvatarInfo.flags
     PACKED_BEGIN struct FaceTrackerInfo {
         float leftEyeBlink;
         float rightEyeBlink;
@@ -532,6 +532,19 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     size in the virtual world. <em>Read-only.</em>
      * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't. 
      *     <em>Read-only.</em>
+     * @property {boolean} hasScriptedBlendshapes=false - Set this to true before using the {@link MyAvatar.setBlendshape} method,
+     *     after you no longer want scripted control over the blendshapes set to back to false.<br />  NOTE: this property will
+     *     automatically become true if the Controller system has valid facial blendshape actions.
+     * @property {boolean} hasProceduralBlinkFaceMovement=true - By default avatars will blink automatically by animating facial
+     *     blendshapes. Set this property to <code>false</code> to disable this automatic blinking. This can be useful if you
+     *     wish to fully control the blink facial blendshapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasProceduralEyeFaceMovement=true - By default the avatar eye facial blendshapes will be adjusted
+     *     automatically as the eyes move. This will prevent the iris is never obscured by the upper or lower lids. Set this
+     *     property to <code>false</code> to disable this automatic movement. This can be useful if you wish to fully control
+     *     the eye blendshapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasAudioEnabledFaceMovement=true - By default the avatar mouth blendshapes will animate based on
+     *     the microphone audio. Set this property to <code>false</code> to disable that animaiton. This can be useful if you
+     *     wish to fully control the blink facial blendshapes via the {@link MyAvatar.setBlendshape} method.
      */
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getDomainLimitedScale WRITE setTargetScale)
@@ -572,6 +585,11 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(float sensorToWorldScale READ getSensorToWorldScale)
 
     Q_PROPERTY(bool hasPriority READ getHasPriority)
+
+    Q_PROPERTY(bool hasScriptedBlendshapes READ getHasScriptedBlendshapes WRITE setHasScriptedBlendshapes)
+    Q_PROPERTY(bool hasProceduralBlinkFaceMovement READ getHasProceduralBlinkFaceMovement WRITE setHasProceduralBlinkFaceMovement)
+    Q_PROPERTY(bool hasProceduralEyeFaceMovement READ getHasProceduralEyeFaceMovement WRITE setHasProceduralEyeFaceMovement)
+    Q_PROPERTY(bool hasAudioEnabledFaceMovement READ getHasAudioEnabledFaceMovement WRITE setHasAudioEnabledFaceMovement)
 
 public:
     virtual QString getName() const override { return QString("Avatar:") + _displayName; }
@@ -682,10 +700,14 @@ public:
 
     float getDomainLimitedScale() const;
 
-    virtual bool getHasScriptedBlendshapes() const { return false; }
-    virtual bool getHasProceduralBlinkFaceMovement() const { return true; }
-    virtual bool getHasProceduralEyeFaceMovement() const { return true; }
-    virtual bool getHasAudioEnabledFaceMovement() const { return false; }
+    void setHasScriptedBlendshapes(bool hasScriptedBlendshapes);
+    bool getHasScriptedBlendshapes() const;
+    void setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement);
+    bool getHasProceduralBlinkFaceMovement() const;
+    void setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement);
+    bool getHasProceduralEyeFaceMovement() const;
+    void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
+    bool getHasAudioEnabledFaceMovement() const;
 
     /**jsdoc
      * Gets the minimum scale allowed for this avatar in the current domain.
@@ -1109,13 +1131,14 @@ public:
 
     /**jsdoc
      * Sets the value of a blendshape to animate your avatar's face. To enable other users to see the resulting animation of 
-     * your avatar's face, use {@link Avatar.setForceFaceTrackerConnected} or {@link MyAvatar.setForceFaceTrackerConnected}.
+     * your avatar's face, set {@link Avatar.hasScriptedBlendshapes} to true while using this API and back to false when your
+     * animation is complete.
      * @function Avatar.setBlendshape
      * @param {string} name - The name of the blendshape, per the 
      *     {@link https://docs.highfidelity.com/create/avatars/avatar-standards.html#blendshapes Avatar Standards}.
      * @param {number} value - A value between <code>0.0</code> and <code>1.0</code>.
      * @example <caption>Open your avatar's mouth wide.</caption>
-     * MyAvatar.setForceFaceTrackerConnected(true);
+     * MyAvatar.hasScriptedBlendshapes = true;
      * MyAvatar.setBlendshape("JawOpen", 1.0);
      *
      * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
@@ -1161,15 +1184,16 @@ public:
      */
     Q_INVOKABLE virtual void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true);
 
-
     /**jsdoc
+     * <p class="important">Deprecated: This method is deprecated and will be removed.</p>
+     * Use Avatar.hasScriptedBlendshapes property instead.
      * Enables blendshapes set using {@link Avatar.setBlendshape} or {@link MyAvatar.setBlendshape} to be transmitted to other 
      * users so that they can see the animation of your avatar's face.
      * @function Avatar.setForceFaceTrackerConnected
      * @param {boolean} connected - <code>true</code> to enable blendshape changes to be transmitted to other users, 
      *     <code>false</code> to disable.
      */
-    Q_INVOKABLE void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
+    Q_INVOKABLE void setForceFaceTrackerConnected(bool connected) { setHasScriptedBlendshapes(connected); }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -1480,6 +1504,7 @@ public:
     std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonData() const;
     void sendSkeletonData() const;
     QVector<JointData> getJointData() const;
+    glm::vec3 getHeadJointFrontVector() const;
 
 signals:
 
@@ -1656,7 +1681,6 @@ protected:
     bool faceTrackerInfoChangedSince(quint64 time) const { return true; } // FIXME
 
     bool hasParent() const { return !getParentID().isNull(); }
-    bool hasFaceTracker() const { return _headData ? _headData->_isFaceTrackerConnected : false; }
 
     QByteArray packSkeletonData() const;
     QByteArray packSkeletonModelURL() const;
@@ -1689,7 +1713,6 @@ protected:
     // key state
     KeyState _keyState;
 
-    bool _forceFaceTrackerConnected;
     bool _hasNewJointData { true }; // set in AvatarData, cleared in Avatar
 
     mutable HeadData* _headData { nullptr };

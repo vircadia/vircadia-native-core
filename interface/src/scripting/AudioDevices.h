@@ -29,6 +29,7 @@ public:
     QString display;
     bool selectedDesktop { false };
     bool selectedHMD { false };
+    QString type;
 };
 
 class AudioDeviceList : public QAbstractListModel {
@@ -57,7 +58,7 @@ signals:
 
 protected slots:
     void onDeviceChanged(const HifiAudioDeviceInfo& device, bool isHMD);
-    void onDevicesChanged(const QList<HifiAudioDeviceInfo>& devices);
+    void onDevicesChanged(QAudio::Mode mode, const QList<HifiAudioDeviceInfo>& devices);
 
 protected:
     friend class AudioDevices;

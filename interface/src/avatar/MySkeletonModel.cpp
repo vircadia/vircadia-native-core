@@ -112,18 +112,19 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
 void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     const HFMModel& hfmModel = getHFMModel();
 
+    MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
+    assert(myAvatar);
+
     Head* head = _owningAvatar->getHead();
 
-    bool eyePosesValid = !head->getHasProceduralEyeMovement();
+    bool eyePosesValid = (myAvatar->getControllerPoseInSensorFrame(controller::Action::LEFT_EYE).isValid() ||
+                          myAvatar->getControllerPoseInSensorFrame(controller::Action::RIGHT_EYE).isValid());
     glm::vec3 lookAt;
     if (eyePosesValid) {
         lookAt = head->getLookAtPosition(); // don't apply no-crosseyes code when eyes are being tracked
     } else {
         lookAt = avoidCrossedEyes(head->getLookAtPosition());
     }
-
-    MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
-    assert(myAvatar);
 
     Rig::ControllerParameters params;
 
