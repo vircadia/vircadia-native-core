@@ -387,7 +387,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         foreach (const HFMMesh& mesh, collisionGeometry.meshes) {
             // each meshPart is a convex hull
             foreach (const HFMMeshPart &meshPart, mesh.parts) {
-                pointCollection.push_back(QVector<glm::vec3>());
+                pointCollection.emplace_back();
                 ShapeInfo::PointList& pointsInPart = pointCollection[i];
 
                 // run through all the triangles and (uniquely) add each point to the hull
@@ -400,14 +400,14 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                     glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[j]];
                     glm::vec3 p1 = mesh.vertices[meshPart.triangleIndices[j + 1]];
                     glm::vec3 p2 = mesh.vertices[meshPart.triangleIndices[j + 2]];
-                    if (!pointsInPart.contains(p0)) {
-                        pointsInPart << p0;
+                    if (std::find(pointsInPart.cbegin(), pointsInPart.cend(), p0) == pointsInPart.cend()) {
+                        pointsInPart.push_back(p0);
                     }
-                    if (!pointsInPart.contains(p1)) {
-                        pointsInPart << p1;
+                    if (std::find(pointsInPart.cbegin(), pointsInPart.cend(), p1) == pointsInPart.cend()) {
+                        pointsInPart.push_back(p1);
                     }
-                    if (!pointsInPart.contains(p2)) {
-                        pointsInPart << p2;
+                    if (std::find(pointsInPart.cbegin(), pointsInPart.cend(), p2) == pointsInPart.cend()) {
+                        pointsInPart.push_back(p2);
                     }
                 }
 
@@ -422,17 +422,17 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                     glm::vec3 p1 = mesh.vertices[meshPart.quadIndices[j + 1]];
                     glm::vec3 p2 = mesh.vertices[meshPart.quadIndices[j + 2]];
                     glm::vec3 p3 = mesh.vertices[meshPart.quadIndices[j + 3]];
-                    if (!pointsInPart.contains(p0)) {
-                        pointsInPart << p0;
+                    if (std::find(pointsInPart.cbegin(), pointsInPart.cend(), p0) == pointsInPart.cend()) {
+                        pointsInPart.push_back(p0);
                     }
-                    if (!pointsInPart.contains(p1)) {
-                        pointsInPart << p1;
+                    if (std::find(pointsInPart.cbegin(), pointsInPart.cend(), p1) == pointsInPart.cend()) {
+                        pointsInPart.push_back(p1);
                     }
-                    if (!pointsInPart.contains(p2)) {
-                        pointsInPart << p2;
+                    if (std::find(pointsInPart.cbegin(), pointsInPart.cend(), p2) == pointsInPart.cend()) {
+                        pointsInPart.push_back(p2);
                     }
-                    if (!pointsInPart.contains(p3)) {
-                        pointsInPart << p3;
+                    if (std::find(pointsInPart.cbegin(), pointsInPart.cend(), p3) == pointsInPart.cend()) {
+                        pointsInPart.push_back(p3);
                     }
                 }
 
