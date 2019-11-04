@@ -82,6 +82,8 @@ static void fixUpLegacyBlendshapes(QVariantHash& properties) {
     removeBlendshape(bs, "JawChew");
     removeBlendshape(bs, "ChinLowerRaise");
     removeBlendshape(bs, "ChinUpperRaise");
+    removeBlendshape(bs, "LipsUpperOpen");
+    removeBlendshape(bs, "LipsLowerOpen");
 
     // These blendshapes are split in ARKit, we replace them with their left and right sides with a weight of 1/2.
     splitBlendshapes(bs, "LipsUpperUp", "MouthUpperUp_L", "MouthUpperUp_R");
