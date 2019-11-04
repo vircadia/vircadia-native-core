@@ -17,7 +17,7 @@
 #include "TextureBaker.h"
 #include "baking/TextureFileNamer.h"
 
-#include <material-networking/MaterialCache.h>
+#include <procedural/ProceduralMaterialCache.h>
 
 static const QString BAKED_MATERIAL_EXTENSION = ".baked.json";
 

@@ -77,7 +77,6 @@
 #include <EntityTreeRenderer.h>
 #include <AbstractViewStateInterface.h>
 #include <AddressManager.h>
-#include <SceneScriptingInterface.h>
 
 #include "Camera.hpp"
 
@@ -372,53 +371,7 @@ public:
     virtual EntityDynamicPointer factoryBA(EntityItemPointer ownerEntity, QByteArray data) override { return nullptr; }
 };
 
-// Background Render Data & rendering functions
-class BackgroundRenderData {
-public:
-    typedef render::Payload<BackgroundRenderData> Payload;
-    typedef Payload::DataPointer Pointer;
-    static render::ItemID _item;  // unique WorldBoxRenderData
-};
-
-render::ItemID BackgroundRenderData::_item = 0;
 QSharedPointer<FileLogger> logger;
-
-namespace render {
-template <>
-const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) {
-    return ItemKey::Builder::background();
-}
-
-template <>
-const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) {
-    return Item::Bound();
-}
-
-template <>
-void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
-    Q_ASSERT(args->_batch);
-    gpu::Batch& batch = *args->_batch;
-
-    // Background rendering decision
-    auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-    auto backgroundMode = skyStage->getBackgroundMode();
-
-    switch (backgroundMode) {
-        case graphics::SunSkyStage::SKY_BOX: {
-            auto skybox = skyStage->getSkybox();
-            if (skybox) {
-                PerformanceTimer perfTimer("skybox");
-                skybox->render(batch, args->getViewFrustum());
-                break;
-            }
-        }
-        default:
-            // this line intentionally left blank
-            break;
-    }
-}
-}  // namespace render
-
 OffscreenGLCanvas* _chromiumShareContext{ nullptr };
 Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext* context);
 
@@ -468,7 +421,6 @@ public:
         DependencyManager::set<AnimationCache>();
         DependencyManager::set<ModelBlender>();
         DependencyManager::set<PathUtils>();
-        DependencyManager::set<SceneScriptingInterface>();
         DependencyManager::set<TestActionFactory>();
     }
 
@@ -856,22 +808,8 @@ private:
 
         getEntities()->update(false);
 
-        // The pending changes collecting the changes here
-        render::Transaction transaction;
-
-        // FIXME: Move this out of here!, Background / skybox should be driven by the enityt content just like the other entities
-        // Background rendering decision
-        if (!render::Item::isValidID(BackgroundRenderData::_item)) {
-            auto backgroundRenderData = std::make_shared<BackgroundRenderData>();
-            auto backgroundRenderPayload = std::make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
-            BackgroundRenderData::_item = _main3DScene->allocateID();
-            transaction.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
-        }
-
         {
             PerformanceTimer perfTimer("SceneProcessTransaction");
-            _main3DScene->enqueueTransaction(transaction);
-
             _main3DScene->processTransactionQueue();
         }
     }

@@ -22,7 +22,7 @@
 
 #include "Baker.h"
 
-#include <material-networking/MaterialCache.h>
+#include <graphics/Material.h>
 
 extern const QString BAKED_TEXTURE_KTX_EXT;
 extern const QString BAKED_META_TEXTURE_SUFFIX;

@@ -1,6 +1,5 @@
 //
 //  MaterialCacheScriptingInterface.cpp
-//  libraries/mmodel-networking/src/model-networking
 //
 //  Created by Sam Gateau on 17 September 2019.
 //  Copyright 2019 High Fidelity, Inc.
