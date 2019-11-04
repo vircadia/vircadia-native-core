@@ -39,7 +39,7 @@ Script.include("/~/system/libraries/controllers.js");
                     this.gestureCompleted = true;
                 } else if (leftTipDistance > this.touchOffAboveDistance || rightTipDistance > this.touchOffAboveDistance) {
                     this.gestureCompleted = false;
-                }
+                } // else don't change gestureCompleted
             } else {
                 this.gestureCompleted = false;
             }

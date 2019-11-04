@@ -52,10 +52,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.disable = false;
 
         this.otherModuleNeedsToRun = function(controllerData) {
-            // var grabOverlayModuleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
-            // var grabOverlayModule = getEnabledModuleByName(grabOverlayModuleName);
-            // var grabOverlayModuleReady = grabOverlayModule ? grabOverlayModule.isReady(controllerData) : makeRunningValues(false, [], []);
-
             var grabEntityModuleName = this.hand === RIGHT_HAND ? "RightNearGrabEntity" : "LeftNearGrabEntity";
             var grabEntityModule = getEnabledModuleByName(grabEntityModuleName);
             var grabEntityModuleReady = grabEntityModule ? grabEntityModule.isReady(controllerData) : makeRunningValues(false, [], []);
@@ -70,8 +66,7 @@ Script.include("/~/system/libraries/controllers.js");
             var nearTabletHighlightModuleReady = nearTabletHighlightModule ?
                 nearTabletHighlightModule.isReady(controllerData) : makeRunningValues(false, [], []);
 
-            return /* grabOverlayModuleReady.active || */ farGrabModuleReady.active || grabEntityModuleReady.active
-                /* || nearTabletHighlightModuleReady.active */ ;
+            return farGrabModuleReady.active || grabEntityModuleReady.active;
         };
 
         this.overlayLaserActive = function(controllerData) {

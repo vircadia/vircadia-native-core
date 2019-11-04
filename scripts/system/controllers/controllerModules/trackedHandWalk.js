@@ -46,7 +46,7 @@ Script.include("/~/system/libraries/controllers.js");
                     this.controlPoint = this.getControlPoint();
                 } else if (this.walkingForward && indexTipDistance > this.touchOffAboveDistance) {
                     this.walkingForward = false;
-                }
+                } // else don't change walkingForward
             }
 
             if (this.leftThumbPos && this.rightThumbPos) {
@@ -56,7 +56,7 @@ Script.include("/~/system/libraries/controllers.js");
                     this.controlPoint = this.getControlPoint();
                 } else if (this.walkingBackward && thumbTipDistance > this.touchOffAboveDistance) {
                     this.walkingBackward = false;
-                }
+                } // else don't change this.walkingBackward
             }
 
             if ((this.walkingForward || this.walkingBackward) && !this.mappingEnabled) {
@@ -65,7 +65,7 @@ Script.include("/~/system/libraries/controllers.js");
             } else if (!(this.walkingForward || this.walkingBackward) && this.mappingEnabled) {
                 this.inputMapping.disable();
                 this.mappingEnabled = false;
-            }
+            } // else don't change mappingEnabled
         };
 
         this.leftIndexChanged = function (pose) {
