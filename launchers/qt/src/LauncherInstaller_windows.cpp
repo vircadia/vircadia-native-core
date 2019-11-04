@@ -150,19 +150,35 @@ void LauncherInstaller::uninstall() {
             qDebug() << "Failed to complete uninstall launcher";
         }
         return;
+    } else {
+
+        bool deletedHQLauncherExe = deleteHQLauncherExecutable();
+        if (deletedHQLauncherExe) {
+            qDebug() << "Deleteing registry keys";
+            deleteApplicationRegistryKeys();
+        }
+    }
+}
+
+bool LauncherInstaller::deleteHQLauncherExecutable() {
+    static const int MAX_DELETE_ATTEMPTS = 3;
+
+    int deleteAttempts = 0;
+    bool fileRemoved = false;
+    QString launcherPath = _launcherInstallDir.absoluteFilePath("HQ Launcher.exe");
+    while (deleteAttempts < MAX_DELETE_ATTEMPTS) {
+        fileRemoved = QFile::remove(launcherPath);
+        if (fileRemoved) {
+            break;
+        }
+
+        timeDelay();
+        deleteAttempts++;
     }
 
-    if (options->contains("--resumeUninstall")) {
-        // delaying time here to make sure that the previous process exits
-        // before we try to delete it the file.
-        timeDelay();
-    }
-    QString launcherPath = _launcherInstallDir.absoluteFilePath("HQ Launcher.exe");
-    if (QFile::exists(launcherPath)) {
-        bool removed = QFile::remove(launcherPath);
-        qDebug() << "Successfully removed " << launcherPath << ": " << removed;
-    }
-    deleteApplicationRegistryKeys();
+    qDebug() << "Successfully removed " << launcherPath << ": " << fileRemoved;
+
+    return fileRemoved;
 }
 
 void LauncherInstaller::deleteShortcuts() {
