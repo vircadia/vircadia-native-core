@@ -386,8 +386,6 @@ namespace controller {
             makeAxisPair(Action::LIPSSTRETCH_R, "LipsStretch_R"),
             makeAxisPair(Action::LIPSUPPERCLOSE, "LipsUpperClose"),
             makeAxisPair(Action::LIPSLOWERCLOSE, "LipsLowerClose"),
-            makeAxisPair(Action::LIPSUPPEROPEN, "LipsUpperOpen"),
-            makeAxisPair(Action::LIPSLOWEROPEN, "LipsLowerOpen"),
             makeAxisPair(Action::LIPSFUNNEL, "LipsFunnel"),
             makeAxisPair(Action::LIPSPUCKER, "LipsPucker"),
             makeAxisPair(Action::PUFF, "Puff"),
