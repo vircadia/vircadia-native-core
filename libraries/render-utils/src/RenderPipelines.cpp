@@ -675,6 +675,7 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
             case graphics::MaterialKey::METALLIC_VAL_BIT:
             case graphics::MaterialKey::GLOSSY_VAL_BIT:
             case graphics::MaterialKey::OPACITY_VAL_BIT:
+            case graphics::MaterialKey::OPACITY_CUTOFF_VAL_BIT:
             case graphics::MaterialKey::SCATTERING_VAL_BIT:
             case graphics::Material::TEXCOORDTRANSFORM0:
             case graphics::Material::TEXCOORDTRANSFORM1:

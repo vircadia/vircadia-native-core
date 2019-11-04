@@ -24,7 +24,7 @@ LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL3) uniform sampler2D iChannel3;
 // comptability with existing procedural shaders that previously relied on these 
 // inputs as uniforms, not members of a UBO
 
-LAYOUT_STD140(binding=0) uniform standardInputsBuffer {
+LAYOUT_STD140(binding=PROCEDURAL_BUFFER_INPUTS) uniform standardInputsBuffer {
     // Offset 0
     vec4 date;
     // Offset 16, acts as vec4 for alignment purposes

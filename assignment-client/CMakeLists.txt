@@ -16,6 +16,7 @@ link_hifi_libraries(
   controllers physics plugins midi image
   material-networking model-networking ktx shaders
 )
+include_hifi_library_headers(procedural)
 
 add_dependencies(${TARGET_NAME} oven)
 

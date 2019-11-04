@@ -18,7 +18,7 @@
 #include <graphics/Asset.h>
 
 #include "FBXSerializer.h"
-#include <material-networking/MaterialCache.h>
+#include <procedural/ProceduralMaterialCache.h>
 #include <material-networking/TextureCache.h>
 #include "ModelLoader.h"
 

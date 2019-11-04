@@ -44,6 +44,7 @@ const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / CLIENT_
  * @namespace AvatarList
  *
  * @hifi-assignment-client
+ * @hifi-server-entity
  */
 
 class AvatarReplicas {

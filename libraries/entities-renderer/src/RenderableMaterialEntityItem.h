@@ -13,7 +13,7 @@
 
 #include <MaterialEntityItem.h>
 
-#include <material-networking/MaterialCache.h>
+#include <procedural/ProceduralMaterialCache.h>
 
 class NetworkMaterial;
 
