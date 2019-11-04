@@ -203,7 +203,7 @@ uint32_t ShapeInfo::getNumSubShapes() const {
 uint32_t ShapeInfo::getLargestSubshapePointCount() const {
     uint32_t numPoints = 0;
     for (uint32_t i = 0; i < (uint32_t)_pointCollection.size(); ++i) {
-        uint32_t n = _pointCollection[i].size();
+        uint32_t n = (uint32_t)_pointCollection[i].size();
         if (n > numPoints) {
             numPoints = n;
         }
