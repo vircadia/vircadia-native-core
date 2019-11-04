@@ -395,7 +395,6 @@ void AudioDeviceList::onDevicesChanged(QAudio::Mode mode, const QList<HifiAudioD
     if (_selectedDesktopDevice.isDefault() && _selectedDesktopDevice != oldDesktopDevice) {
         emit selectedDevicePlugged(_selectedDesktopDevice, false);
     }
-    
 }
 
 bool AudioInputDeviceList::peakValuesAvailable() {
