@@ -3452,7 +3452,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     bool isCameraYawing = getDriveKey(DELTA_YAW) + getDriveKey(STEP_YAW) + getDriveKey(YAW) != 0.0f;
     bool isRotatingWhileSeated = !isCameraYawing && isMovingSideways && _characterController.getSeated();
     glm::quat previousOrientation = getWorldOrientation();
-
+    glm::quat previousYaw = _lookAtYaw;
     if (!computeLookAt) {
         setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
         _lookAtCameraTarget = eyesPosition + getWorldOrientation() * Vectors::FRONT;
@@ -3462,6 +3462,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         // Compute new look at vectors
         if (totalBodyYaw != 0.0f) {
             _lookAtYaw = _lookAtYaw * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f)));
+            _lookAtYawSpeed = glm::degrees(glm::angle(_lookAtYaw * glm::inverse(previousYaw))) / deltaTime;
         }
         float pitchIncrement = getDriveKey(PITCH) * _pitchSpeed * deltaTime
             + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT;
@@ -3482,7 +3483,19 @@ void MyAvatar::updateOrientation(float deltaTime) {
             const float REORIENT_FORWARD_BLEND = 0.25f;
             const float REORIENT_TURN_BLEND = 0.03f;
             const float DIAGONAL_TURN_BLEND = 0.1f;
+            const float AVATAR_TURNS_TO_CAM_IN_SPEED = 130.0f; // Degrees per second
+            const float AVATAR_TURNS_TO_CAM_OUT_SPEED = 720.0f; // Degrees per second
+
             float blend = (_shouldTurnToFaceCamera ? REORIENT_TURN_BLEND : REORIENT_FORWARD_BLEND) * timeScale;
+            if (mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT && _lookAtYawSpeed > AVATAR_TURNS_TO_CAM_IN_SPEED) {
+                // When the camera is rotating fast we should accelerate the avatar's face forward speed
+                // to avoid showing the cauterized head;
+                float cameraYawSpeed = glm::min(_lookAtYawSpeed, AVATAR_TURNS_TO_CAM_OUT_SPEED);
+                float blendFactor = REORIENT_TURN_BLEND + REORIENT_FORWARD_BLEND * ((cameraYawSpeed - AVATAR_TURNS_TO_CAM_IN_SPEED) /
+                    (AVATAR_TURNS_TO_CAM_OUT_SPEED - AVATAR_TURNS_TO_CAM_IN_SPEED));
+                blend = glm::min(1.0f, blendFactor * timeScale);
+            }
+
             if (blend > 1.0f) {
                 blend = 1.0f;
             }
@@ -3573,7 +3586,6 @@ void MyAvatar::updateOrientation(float deltaTime) {
         if (frontBackDot < limitAngle) {
             if (frontBackDot < 0.0f) {
                 ajustedYawVector = (leftRightDot < 0.0f ? -avatarVectorRight : avatarVectorRight);
-                cameraVector = (ajustedYawVector * _lookAtPitch) * Vectors::FRONT;
             }
             if (!isRotatingWhileSeated) {
                 if (frontBackDot < triggerAngle) {
@@ -6762,19 +6774,18 @@ glm::vec3 MyAvatar::getLookAtPivotPoint() {
 
 glm::vec3 MyAvatar::getCameraEyesPosition(float deltaTime) {
     glm::vec3 defaultEyesPosition = getLookAtPivotPoint();
-    if (isFlying()) {
-        return defaultEyesPosition;
-    }
+
     glm::vec3 avatarFrontVector = getWorldOrientation() * Vectors::FRONT;
     glm::vec3 avatarUpVector = getWorldOrientation() * Vectors::UP;
     // Compute the offset between the default and real eye positions.
     glm::vec3 defaultEyesToEyesVector = getHead()->getEyePosition() - defaultEyesPosition;
-    float FRONT_OFFSET_IDLE_MULTIPLIER = 2.5f;
-    float FRONT_OFFSET_JUMP_MULTIPLIER = 1.5f;
+    const float FRONT_OFFSET_IDLE_MULTIPLIER = 3.5f;
+    const float FRONT_OFFSET_JUMP_MULTIPLIER = 1.5f;
     float frontOffset = FRONT_OFFSET_IDLE_MULTIPLIER * glm::length(defaultEyesPosition - getDefaultEyePosition());
-    
-    // Looking down will aproximate move the camera forward to meet the real eye position
+
+    // Looking down will move the camera forward to meet the real eye position
     float mixAlpha = glm::dot(_lookAtPitch * Vectors::FRONT, -avatarUpVector);
+
     bool isLanding = false;
     // When jumping the camera should follow the real eye on the Y coordenate
     float upOffset = 0.0f;
