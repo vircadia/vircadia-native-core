@@ -350,7 +350,8 @@ void AudioDeviceList::onDevicesChanged(QAudio::Mode mode, const QList<HifiAudioD
 
             if (!isSelected) {
                 if (selectedDevice.isDefault() && device.info.isDefault()) {
-                    if ((isHMD && device.info.getDeviceType() != HifiAudioDeviceInfo::desktop) || (!isHMD && device.info.getDeviceType() != HifiAudioDeviceInfo::hmd)) {
+                    if ((isHMD && device.info.getDeviceType() != HifiAudioDeviceInfo::desktop) || 
+                        (!isHMD && device.info.getDeviceType() != HifiAudioDeviceInfo::hmd)) {
                         selectedDevice = device.info;
                         isSelected = true;
                     }
@@ -388,7 +389,7 @@ void AudioDeviceList::onDevicesChanged(QAudio::Mode mode, const QList<HifiAudioD
     endResetModel();
     
     if (_selectedHMDDevice.isDefault() && _selectedHMDDevice != oldHmdDevice) {
-        emit selectedDevicePlugged(_selectedHMDDevice,true);
+        emit selectedDevicePlugged(_selectedHMDDevice, true);
     }
 
     if (_selectedDesktopDevice.isDefault() && _selectedDesktopDevice != oldDesktopDevice) {
