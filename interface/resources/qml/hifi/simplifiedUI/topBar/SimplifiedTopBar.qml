@@ -288,6 +288,7 @@ Rectangle {
 
     Item {
         id: outputDeviceButtonContainer
+        visible: false // An experiment. Will you notice?
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: inputDeviceButton.right
         anchors.leftMargin: 7
@@ -343,6 +344,7 @@ Rectangle {
 
     Item {
         id: statusButtonContainer
+        visible: false // An experiment. Will you notice?
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: outputDeviceButtonContainer.right
         anchors.leftMargin: 8

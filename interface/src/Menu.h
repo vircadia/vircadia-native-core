@@ -228,7 +228,7 @@ namespace MenuOption {
     const QString ForceCoarsePicking = "Force Coarse Picking";
     const QString ComputeBlendshapes = "Compute Blendshapes";
     const QString HighlightTransitions = "Highlight Transitions";
-    const QString MeshShaders = "Enable Procedural Materials on Meshes";
+    const QString MaterialProceduralShaders = "Enable Procedural Materials";
 }
 
 #endif // hifi_Menu_h
