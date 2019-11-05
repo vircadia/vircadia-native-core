@@ -50,7 +50,7 @@ int normalTypeVecTypeId = qRegisterMetaType<QVector<NormalType>>("QVector<Normal
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 #define HTTP_INVALID_COM "http://invalid.com"
 
-Model::Model(QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
+Model::Model(QObject* parent, SpatiallyNestable* spatiallyNestableOverride, uint64_t created) :
     QObject(parent),
     _renderGeometry(),
     _renderWatcher(_renderGeometry),
@@ -64,7 +64,8 @@ Model::Model(QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
     _snapModelToRegistrationPoint(false),
     _snappedToRegistrationPoint(false),
     _url(HTTP_INVALID_COM),
-    _renderItemKeyGlobalFlags(render::ItemKey::Builder().withVisible().withTagBits(render::hifi::TAG_ALL_VIEWS).build())
+    _renderItemKeyGlobalFlags(render::ItemKey::Builder().withVisible().withTagBits(render::hifi::TAG_ALL_VIEWS).build()),
+    _created(created)
 {
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
@@ -1497,7 +1498,7 @@ void Model::createRenderItemSet() {
     for (uint32_t shapeID = 0; shapeID < shapes.size(); shapeID++) {
         const auto& shape = shapes[shapeID];
 
-        _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), shape.mesh, shape.meshPart, shapeID, transform);
+        _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), shape.mesh, shape.meshPart, shapeID, transform, offset, _created);
 
         auto material = getNetworkModel()->getShapeMaterial(shapeID);
         _modelMeshMaterialNames.push_back(material ? material->getName() : "");

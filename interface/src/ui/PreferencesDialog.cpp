@@ -102,6 +102,16 @@ void setupPreferences() {
 
         preference->setItems(refreshRateProfiles);
         preferences->addPreference(preference);
+
+        auto getterMaterialProceduralShaders = []() -> bool {
+            auto menu = Menu::getInstance();
+            return menu->isOptionChecked(MenuOption::MaterialProceduralShaders);
+        };
+        auto setterMaterialProceduralShaders = [](bool value) {
+            auto menu = Menu::getInstance();
+            menu->setIsOptionChecked(MenuOption::MaterialProceduralShaders, value);
+        };
+        preferences->addPreference(new CheckPreference(GRAPHICS_QUALITY, "Enable Procedural Materials", getterMaterialProceduralShaders, setterMaterialProceduralShaders));
     }
     {
         // Expose the Viewport Resolution Scale

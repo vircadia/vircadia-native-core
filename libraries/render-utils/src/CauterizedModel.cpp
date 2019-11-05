@@ -67,7 +67,7 @@ void CauterizedModel::createRenderItemSet() {
         for (int shapeID = 0; shapeID < (int) shapes.size(); shapeID++) {
             const auto& shape = shapes[shapeID];
 
-            _modelMeshRenderItems << std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), shape.mesh, shape.meshPart, shapeID, transform);
+            _modelMeshRenderItems << std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), shape.mesh, shape.meshPart, shapeID, transform, offset, _created);
 
             auto material = getNetworkModel()->getShapeMaterial(shapeID);
             _modelMeshMaterialNames.push_back(material ? material->getName() : "");

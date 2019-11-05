@@ -18,8 +18,9 @@
 
 using namespace render;
 
-CauterizedMeshPartPayload::CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform)
-    : ModelMeshPartPayload(model, meshIndex, partIndex, shapeIndex, transform) {}
+CauterizedMeshPartPayload::CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex,
+                                                     const Transform& transform, const Transform& offsetTransform, const uint64_t& created)
+    : ModelMeshPartPayload(model, meshIndex, partIndex, shapeIndex, transform, offsetTransform, created) {}
 
 void CauterizedMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices,
                                                     const std::vector<glm::mat4>& cauterizedClusterMatrices) {
