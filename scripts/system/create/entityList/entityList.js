@@ -177,7 +177,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
 
             var cameraPosition = Camera.position;
             PROFILE("getMultipleProperties", function () {
-                var multipleProperties = Entities.getMultipleEntityProperties(ids, ['name', 'type', 'locked',
+                var multipleProperties = Entities.getMultipleEntityProperties(ids, ['position', 'name', 'type', 'locked',
                     'visible', 'renderInfo', 'modelURL', 'materialURL', 'imageURL', 'script', 'certificateID',
                     'skybox.url', 'ambientLight.url']);
                 for (var i = 0; i < multipleProperties.length; i++) {
