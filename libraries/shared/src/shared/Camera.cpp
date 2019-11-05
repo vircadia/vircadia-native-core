@@ -60,8 +60,8 @@
  *     <tr>
  *       <td><strong>Mirror</strong></td>
  *       <td><code>"mirror"</code></td>
- *       <td><p>The camera is positioned such that you are looking directly at your avatar. The camera moves and rotates with
- *       your avatar.</p> 
+ *       <td><p>The camera is positioned such that you are looking directly at your avatar. The camera is fixed and does not 
+ *       move with your avatar.</p> 
  *       <p><em>Legacy "look at myself" behavior.</em> To re-enable this behavior: </p>
  *       <pre class="prettyprint"><code>Camera.mode = "mirror";</code></pre></td>
  *     </tr>
