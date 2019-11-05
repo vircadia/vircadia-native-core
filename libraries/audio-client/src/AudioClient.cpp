@@ -324,12 +324,10 @@ AudioClient::AudioClient() {
 
     connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioClient::handleMismatchAudioFormat);
 
-    {
-        QReadLocker readLock(&_hmdNameLock);
-        // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
-        getAvailableDevices(QAudio::AudioInput, _hmdInputName);
-        getAvailableDevices(QAudio::AudioOutput, _hmdOutputName);
-    }
+    // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
+    getAvailableDevices(QAudio::AudioInput, QString());
+    getAvailableDevices(QAudio::AudioOutput, QString());
+    
     // start a thread to detect any device changes
     _checkDevicesTimer = new QTimer(this);
     const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
