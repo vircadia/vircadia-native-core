@@ -209,7 +209,6 @@ let elEntityTable,
     elFilterInView,
     elFilterRadius,
     elExport,
-    elPal,
     elSelectedEntitiesCount,
     elVisibleEntitiesCount,
     elNoEntitiesMessage,
@@ -254,7 +253,6 @@ function loaded() {
         elFilterInView = document.getElementById("filter-in-view");
         elFilterRadius = document.getElementById("filter-radius");
         elExport = document.getElementById("export");
-        elPal = document.getElementById("pal");
         elSelectedEntitiesCount = document.getElementById("selected-entities-count");
         elVisibleEntitiesCount = document.getElementById("visible-entities-count");
         elNoEntitiesMessage = document.getElementById("no-entities");
@@ -271,9 +269,6 @@ function loaded() {
         };
         elExport.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
-        };
-        elPal.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'pal' }));
         };
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
