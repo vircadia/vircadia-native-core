@@ -1,6 +1,5 @@
 //
-//  MaterialCacheScriptingInterface.h
-//  libraries/material-networking/src/material-networking
+//  ProceduralMaterialCacheScriptingInterface.h
 //
 //  Created by Sam Gateau on 17 September 2019.
 //  Copyright 2019 High Fidelity, Inc.
@@ -10,14 +9,14 @@
 //
 #pragma once
 
-#ifndef hifi_MaterialCacheScriptingInterface_h
-#define hifi_MaterialCacheScriptingInterface_h
+#ifndef hifi_ProceduralMaterialCacheScriptingInterface_h
+#define hifi_ProceduralMaterialCacheScriptingInterface_h
 
 #include <QObject>
 
 #include <ResourceCache.h>
 
-#include "MaterialCache.h"
+#include "ProceduralMaterialCache.h"
 
 class MaterialCacheScriptingInterface : public ScriptableResourceCache, public Dependency {
     Q_OBJECT
@@ -27,7 +26,7 @@ class MaterialCacheScriptingInterface : public ScriptableResourceCache, public D
     /**jsdoc
      * The <code>TextureCache</code> API manages texture cache resources.
      *
-     * @namespace TextureCache
+     * @namespace MaterialCache
      *
      * @hifi-interface
      * @hifi-client-entity
@@ -48,4 +47,4 @@ public:
     MaterialCacheScriptingInterface();
 };
 
-#endif // hifi_MaterialCacheScriptingInterface_h
+#endif // hifi_ProceduralMaterialCacheScriptingInterface_h

@@ -11,14 +11,22 @@
 
 #include "MeshPartPayload.h"
 
+#include <QProcess>
+
 #include <PerfStat.h>
 #include <DualQuaternion.h>
 #include <graphics/ShaderConstants.h>
 
 #include "render-utils/ShaderConstants.h"
+#include <procedural/Procedural.h>
 #include "DeferredLightingEffect.h"
 
 #include "RenderPipelines.h"
+
+static const QString ENABLE_MATERIAL_PROCEDURAL_SHADERS_STRING { "HIFI_ENABLE_MATERIAL_PROCEDURAL_SHADERS" };
+static bool ENABLE_MATERIAL_PROCEDURAL_SHADERS = QProcessEnvironment::systemEnvironment().contains(ENABLE_MATERIAL_PROCEDURAL_SHADERS_STRING);
+
+bool MeshPartPayload::enableMaterialProceduralShaders = false;
 
 using namespace render;
 
@@ -49,7 +57,9 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
-MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material) {
+MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material, const uint64_t& created) :
+    _created(created)
+{
     updateMeshPart(mesh, partIndex);
     addMaterial(graphics::MaterialLayer(material, 0));
 }
@@ -108,20 +118,30 @@ Item::Bound MeshPartPayload::getBound() const {
 }
 
 ShapeKey MeshPartPayload::getShapeKey() const {
-    graphics::MaterialKey drawMaterialKey = _drawMaterials.getMaterialKey();
-
     ShapeKey::Builder builder;
-    builder.withMaterial();
+    graphics::MaterialPointer material = _drawMaterials.empty() ? nullptr : _drawMaterials.top().material;
+    graphics::MaterialKey drawMaterialKey = _drawMaterials.getMaterialKey();
 
     if (drawMaterialKey.isTranslucent()) {
         builder.withTranslucent();
     }
-    if (drawMaterialKey.isNormalMap()) {
-        builder.withTangents();
+
+    if (material && material->isProcedural() && material->isReady()) {
+        builder.withOwnPipeline();
+    } else {
+        builder.withMaterial();
+
+        if (drawMaterialKey.isNormalMap()) {
+            builder.withTangents();
+        }
+        if (drawMaterialKey.isLightMap()) {
+            builder.withLightMap();
+        }
+        if (drawMaterialKey.isUnlit()) {
+            builder.withUnlit();
+        }
     }
-    if (drawMaterialKey.isLightMap()) {
-        builder.withLightMap();
-    }
+
     return builder.build();
 }
 
@@ -157,9 +177,20 @@ void MeshPartPayload::render(RenderArgs* args) {
     //Bind the index buffer and vertex buffer and Blend shapes if needed
     bindMesh(batch);
 
-    // apply material properties
-    if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
-        args->_details._materialSwitches++;
+    if (!_drawMaterials.empty() && _drawMaterials.top().material && _drawMaterials.top().material->isProcedural() &&
+            _drawMaterials.top().material->isReady()) {
+        auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(_drawMaterials.top().material);
+        auto& schema = _drawMaterials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
+        glm::vec4 outColor = glm::vec4(ColorUtils::tosRGBVec3(schema._albedo), schema._opacity);
+        outColor = procedural->getColor(outColor);
+        procedural->prepare(batch, _drawTransform.getTranslation(), _drawTransform.getScale(), _drawTransform.getRotation(), _created,
+                            ProceduralProgramKey(outColor.a < 1.0f));
+        batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
+    } else {
+        // apply material properties
+        if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
+            args->_details._materialSwitches++;
+        }
     }
 
     // Draw!
@@ -200,7 +231,8 @@ template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, Ren
 
 }
 
-ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform) :
+ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex,
+                                           const Transform& transform, const Transform& offsetTransform, const uint64_t& created) :
     _meshIndex(meshIndex),
     _shapeID(shapeIndex) {
 
@@ -237,6 +269,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     }
 #endif
 
+    _created = created;
 }
 
 void ModelMeshPartPayload::initCache(const ModelPointer& model) {
@@ -335,43 +368,47 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, PrimitiveMode pr
         RenderPipelines::updateMultiMaterial(_drawMaterials);
     }
 
+    ShapeKey::Builder builder;
+    graphics::MaterialPointer material = _drawMaterials.empty() ? nullptr : _drawMaterials.top().material;
     graphics::MaterialKey drawMaterialKey = _drawMaterials.getMaterialKey();
 
-    bool isTranslucent = drawMaterialKey.isTranslucent();
-    bool hasTangents = drawMaterialKey.isNormalMap() && _hasTangents;
-    bool hasLightmap = drawMaterialKey.isLightMap();
-    bool isUnlit = drawMaterialKey.isUnlit();
-
-    bool isDeformed = _isBlendShaped || _isSkinned;
     bool isWireframe = primitiveMode == PrimitiveMode::LINES;
 
     if (isWireframe) {
-        isTranslucent = hasTangents = hasLightmap = false;
-    }
-
-    ShapeKey::Builder builder;
-    builder.withMaterial();
-
-    if (isTranslucent) {
+        builder.withWireframe();
+    } else if (drawMaterialKey.isTranslucent()) {
         builder.withTranslucent();
     }
-    if (hasTangents) {
-        builder.withTangents();
-    }
-    if (hasLightmap) {
-        builder.withLightMap();
-    }
-    if (isUnlit) {
-        builder.withUnlit();
-    }
-    if (isDeformed) {
+
+    if (_isSkinned || (_isBlendShaped && _meshBlendshapeBuffer)) {
         builder.withDeformed();
+        if (useDualQuaternionSkinning) {
+            builder.withDualQuatSkinned();
+        }
     }
-    if (isWireframe) {
-        builder.withWireframe();
-    }
-    if (isDeformed && useDualQuaternionSkinning) {
-        builder.withDualQuatSkinned();
+
+    if (material && material->isProcedural() && material->isReady()) {
+        builder.withOwnPipeline();
+    } else {
+        bool hasTangents = drawMaterialKey.isNormalMap() && _hasTangents;
+        bool hasLightmap = drawMaterialKey.isLightMap();
+        bool isUnlit = drawMaterialKey.isUnlit();
+
+        if (isWireframe) {
+            hasTangents = hasLightmap = false;
+        }
+
+        builder.withMaterial();
+
+        if (hasTangents) {
+            builder.withTangents();
+        }
+        if (hasLightmap) {
+            builder.withLightMap();
+        }
+        if (isUnlit) {
+            builder.withUnlit();
+        }
     }
 
     _shapeKey = builder.build();
@@ -417,9 +454,23 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
         batch.setDrawcallUniform(drawcallInfo);
     }
 
-    // apply material properties
-    if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
-        args->_details._materialSwitches++;
+    if (!_drawMaterials.empty() && _drawMaterials.top().material && _drawMaterials.top().material->isProcedural() &&
+            _drawMaterials.top().material->isReady()) {
+        if (!(enableMaterialProceduralShaders && ENABLE_MATERIAL_PROCEDURAL_SHADERS)) {
+            return;
+        }
+        auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(_drawMaterials.top().material);
+        auto& schema = _drawMaterials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
+        glm::vec4 outColor = glm::vec4(ColorUtils::tosRGBVec3(schema._albedo), schema._opacity);
+        outColor = procedural->getColor(outColor);
+        procedural->prepare(batch, _drawTransform.getTranslation(), _drawTransform.getScale(), _drawTransform.getRotation(), _created,
+                            ProceduralProgramKey(outColor.a < 1.0f, _shapeKey.isDeformed(), _shapeKey.isDualQuatSkinned()));
+        batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
+    } else {
+        // apply material properties
+        if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
+            args->_details._materialSwitches++;
+        }
     }
 
     // Draw!

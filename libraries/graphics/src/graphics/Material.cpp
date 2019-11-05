@@ -34,7 +34,6 @@ std::string MaterialKey::getOpacityMapModeName(OpacityMapMode mode) {
     return names[mode];
 }
 
-
 bool MaterialKey::getOpacityMapModeFromName(const std::string& modeName, MaterialKey::OpacityMapMode& mode) {
     for (int i = OPACITY_MAP_OPAQUE; i <= OPACITY_MAP_BLEND; i++) {
         mode = (MaterialKey::OpacityMapMode) i;
@@ -44,6 +43,9 @@ bool MaterialKey::getOpacityMapModeFromName(const std::string& modeName, Materia
     }
     return false;
 }
+
+const std::string Material::HIFI_PBR { "hifi_pbr" };
+const std::string Material::HIFI_SHADER_SIMPLE { "hifi_shader_simple" };
 
 Material::Material() {
     for (int i = 0; i < NUM_TOTAL_FLAGS; i++) {

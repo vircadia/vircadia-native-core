@@ -14,7 +14,7 @@
 #include <graphics/Material.h>
 #include <hfm/HFM.h>
 
-#include "TextureCache.h"
+#include <material-networking/TextureCache.h>
 
 class NetworkMaterial : public graphics::Material {
 public:

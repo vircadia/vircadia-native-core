@@ -27,7 +27,7 @@ class Model;
 class MeshPartPayload {
 public:
     MeshPartPayload() = default;
-    MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material);
+    MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material, const uint64_t& created);
     virtual ~MeshPartPayload() = default;
 
     typedef render::Payload<MeshPartPayload> Payload;
@@ -72,8 +72,11 @@ public:
     void addMaterial(graphics::MaterialLayer material);
     void removeMaterial(graphics::MaterialPointer material);
 
+    static bool enableMaterialProceduralShaders;
+
 protected:
     render::ItemKey _itemKey{ render::ItemKey::Builder::opaqueShape().build() };
+    uint64_t _created;
 };
 
 namespace render {
@@ -85,7 +88,7 @@ namespace render {
 
 class ModelMeshPartPayload : public MeshPartPayload {
 public:
-    ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform);
+    ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform, const uint64_t& created);
 
     typedef render::Payload<ModelMeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
