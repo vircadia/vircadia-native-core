@@ -28,7 +28,7 @@ QDir PathUtils::getLauncherDirectory() {
 }
 
 QDir PathUtils::getApplicationsDirectory() {
-    return QDir(QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation)).absoluteFilePath("Launcher");
+    return QDir(QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation)).absoluteFilePath("HQ");
 }
 
 // The client directory is where interface is installed to.
