@@ -41,7 +41,7 @@
  *       <td><code>"third&nbsp;person"</code></td>
  *       <td><p>The camera is positioned such that you have a view from just behind your avatar. The camera moves and rotates 
  *       with your avatar.</p>  
- *       <p><em>Legacy third person camera camera mode.</em> To re-enable this behavior:</p> 
+ *       <p><em>Legacy third person camera camera mode.</em></p> 
  *       <pre class="prettyprint"><code>Camera.mode = "third person";</code></pre></td>
  *     </tr>
  *     <tr>
@@ -55,14 +55,15 @@
  *       <td><strong>Selfie</strong></td>
  *       <td><code>"selfie"</code></td>
  *       <td><p>The camera is positioned in front of your avatar. The camera moves and rotates independently from your avatar.
- *       Your avatar's head is always facing the camera.</p><p><em>Default "look at myself" camera mode.</em></p></td>
+ *       Your avatar's head is always facing the camera.</p>
+ *       <p><em>Default "look at myself" camera mode.</em></p></td>
  *     </tr>
  *     <tr>
  *       <td><strong>Mirror</strong></td>
  *       <td><code>"mirror"</code></td>
  *       <td><p>The camera is positioned such that you are looking directly at your avatar. The camera is fixed and does not 
  *       move with your avatar.</p> 
- *       <p><em>Legacy "look at myself" behavior.</em> To re-enable this behavior: </p>
+ *       <p><em>Legacy "look at myself" behavior.</em></p>
  *       <pre class="prettyprint"><code>Camera.mode = "mirror";</code></pre></td>
  *     </tr>
  *     <tr>
