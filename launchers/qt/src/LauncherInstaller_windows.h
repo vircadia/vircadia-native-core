@@ -15,6 +15,7 @@ private:
     void createApplicationRegistryKeys();
     void deleteShortcuts();
     void deleteApplicationRegistryKeys();
+    bool deleteHQLauncherExecutable();
 
     QDir _launcherInstallDir;
     QDir _launcherApplicationsDir;
