@@ -1,14 +1,53 @@
 body {
   background: black;
-  box-sizing: 0px;
+  box-sizing: border-box;
   /* display: -webkit-flex; */
   /* -webkit-justify-content: center; */
   /* -webkit-align-items: center; */
   /* -webkit-flex-direction: column; */
   font-family: "Graphik";
   margin: 0px;
+
+  }
+html::-webkit-scrollbar {
+  overflow: scroll;
+  overflow-x: hidden;
+  width: 0px;
 }
 
+#confirmation_screen {
+  /* background-color: orange; */
+  width: 100%;
+  display: flex;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+}
+
+#confirmation_text {
+  margin-top: 25px;
+  font-size: 25px;
+  line-height: 25px;
+}
+
+#confirmation_text p {
+  margin: 0px;
+}
+
+#button_selection {
+  margin-top: 25px;
+  width: 100%;
+  display: flex;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+
+#share_pick {
+  /* background-color: blue; */
+}
 
 .text_title {
   color: white;
@@ -54,8 +93,8 @@ h3 {
 
 .screen_label {
   max-width: 220px;
-  font-size: 18px;
-  line-height: 24px;
+  font-size: 25px;
+  line-height: 25px;
   margin-left: 15px;
   color: white;
   white-space: nowrap;
@@ -63,11 +102,11 @@ h3 {
   text-overflow: ellipsis;
 }
 
-.circle {
+.icon {
   display: inline-block;
   background: #C4C4C4;
-  width: 30px;
-  height: 30px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
 }
 
@@ -80,25 +119,28 @@ h3 {
   margin: 4px;
   cursor: pointer;
   width: 250px;
+  height: 75px;
+  line-height: 75px;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .button_confirmation:hover {
-  border: 2px solid white;
+  outline: solid white 2px;
   width: 250px;
 }
 
 .box {
-  background-color: orange;
+  /* background-color: orange; */
   height: 165px;
   width: 265px;
   display: inline-block;
-  margin-left: 20px;
+  margin-left: 35px;
   margin-bottom: 40px;
   margin-top: 20px;
 }
 
 .heading {
-  background-color: red;
   height: 35px;
   display: flex;
   align-items: center;
@@ -112,18 +154,26 @@ h3 {
   max-width: 265px;
 }
 
+.image:hover {
+  outline: solid white 3px;
+}
+
+.image_no_hover {
+  background-color: blue;
+  width: 265px;
+  height: 165px;
+  max-height: 165px;
+  max-width: 265px;
+}
+
 img {
   width: 265px;
   height: 165px;
 }
 
 .scrollbar {
-  /* background-color: #F5F5F5; */
   float: right;
-  height: 100%;
-  /* margin-bottom: 25px; */
-  /* margin-left: 22px; */
-  /* margin-top: 40px; */
+  height: 470px;
   margin-right: 20px;
   width: 100%;
   overflow-y: scroll;

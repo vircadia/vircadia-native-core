@@ -43,7 +43,7 @@ for (let index = 0; index < images; index++) {
 let currentScreensharePickID = "";
 function screensharePicked(id){
     currentScreensharePickID = id;
-    // console.log(currentScreensharePickID);
+    console.log(currentScreensharePickID);
     document.getElementById("share_pick").innerHTML = "";
     addSource(sourceMap[id], "share_pick");
     togglePage();
@@ -77,14 +77,22 @@ function togglePage(){
         let sourceBody = document.createElement('div')
         let thumbnail = isBrowser ? source.thumbnail : source.thumbnail.toDataURL();
         sourceBody.classList.add("box")
+        if (type === "share_pick") {
+            sourceBody.style.marginLeft = "0px";
+        }
+
         let circle = `<div class="circle" onclick="screensharePicked('${source.id}')"}></div>`
+        let image = "";
+        if (source.appIcon) {
+            image = `<img class="icon" src="${source.appIcon.toDataURL()}" />`;
+        }
         sourceBody.innerHTML = `
             <div class="heading">
-                ${type === "selects" ? circle : ""}
+                ${image}
                 <span class="screen_label">${source.name}</span>
             </div>
-            <div class="image">
-                <img src="${thumbnail}"></img>
+            <div class="${type === "share_pick" ? "image_no_hover" : "image"}" onclick="screensharePicked('${source.id}')">
+                <img src="${thumbnail}" />
             </div>
         `
         // console.log(sourceBody.innerHTML);
@@ -92,6 +100,7 @@ function togglePage(){
             document.getElementById("selects").appendChild(sourceBody);
         } else {
             document.getElementById("share_pick").appendChild(sourceBody);
+            document.getElementById("content_name").innerHTML = source.name;
         }
     }
 
@@ -110,14 +119,15 @@ function togglePage(){
                 thumbnailSize: {
                     width: imageWidth,
                     height: imageHeight
-                }
+                },
+                fetchWindowIcons: true
             }, (error, sources) => {
                 if (error) {
                     console.log("Error getting sources", error);
                 }
     
                 for (let source of sources) {
-                    console.log(JSON.stringify(sources,null,4));
+                    // console.log(JSON.stringify(sources,null,4));
                     sourceMap[source.id] = source;
                     //*if (source.id.indexOf("screen") > -1) {
                     //  console.log("Adding:", source.id)
