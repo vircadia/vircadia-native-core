@@ -14,11 +14,12 @@ public:
 	ScreenshareScriptingInterface();
     ~ScreenshareScriptingInterface();
 
-	Q_INVOKABLE void startScreenshare(const QString& roomName);
+	Q_INVOKABLE void startScreenshare(const bool& isPresenter);
     Q_INVOKABLE void stopScreenshare();
 
 signals:
     void screenshareStopped();
+    void startScreenshareViewer();
 
 private:
 #if DEV_BUILD

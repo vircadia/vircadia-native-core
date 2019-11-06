@@ -25,27 +25,29 @@ ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {
     stopScreenshare();
 }
 
-void ScreenshareScriptingInterface::startScreenshare(const QString& roomName) {
+void ScreenshareScriptingInterface::startScreenshare(const bool& isPresenter) {
     if (QThread::currentThread() != thread()) {
         // We must start a new QProcess from the main thread.
         QMetaObject::invokeMethod(
             this, "startScreenshare",
-            Q_ARG(const QString&, roomName)
+            Q_ARG(const bool&, isPresenter)
         );
         return;
     }
 
-    if (_screenshareProcess && _screenshareProcess->state() != QProcess::NotRunning) {
+    if (isPresenter && _screenshareProcess && _screenshareProcess->state() != QProcess::NotRunning) {
         qDebug() << "Screenshare process already running. Aborting...";
         return;
     }
 
-    _screenshareProcess.reset(new QProcess(this));
+    if (isPresenter) {
+        _screenshareProcess.reset(new QProcess(this));
 
-    QFileInfo screenshareExecutable(SCREENSHARE_EXE_PATH);
-    if (!screenshareExecutable.exists() || !screenshareExecutable.isFile()) {
-        qDebug() << "Screenshare executable doesn't exist at" << SCREENSHARE_EXE_PATH;
-        return;
+        QFileInfo screenshareExecutable(SCREENSHARE_EXE_PATH);
+        if (!screenshareExecutable.exists() || !screenshareExecutable.isFile()) {
+            qDebug() << "Screenshare executable doesn't exist at" << SCREENSHARE_EXE_PATH;
+            return;
+        }
     }
 
     QUuid currentDomainID = DependencyManager::get<AddressManager>()->getDomainID();
@@ -59,23 +61,27 @@ void ScreenshareScriptingInterface::startScreenshare(const QString& roomName) {
     QString apiKey = "";
     QString sessionID = "";
 
-    QStringList arguments;
-    arguments << "--token=" + token; 
-    arguments << "--apiKey=" + apiKey; 
-    arguments << "--sessionID=" + sessionID; 
+    if (isPresenter) {
+        QStringList arguments;
+        arguments << "--token=" + token; 
+        arguments << "--apiKey=" + apiKey; 
+        arguments << "--sessionID=" + sessionID;
+        
+        connect(_screenshareProcess.get(), &QProcess::errorOccurred,
+            [=](QProcess::ProcessError error) { qDebug() << "ZRF QProcess::errorOccurred. `error`:" << error; });
+        connect(_screenshareProcess.get(), &QProcess::started, [=]() { qDebug() << "ZRF QProcess::started"; });
+        connect(_screenshareProcess.get(), &QProcess::stateChanged,
+            [=](QProcess::ProcessState newState) { qDebug() << "ZRF QProcess::stateChanged. `newState`:" << newState; });
+        connect(_screenshareProcess.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            [=](int exitCode, QProcess::ExitStatus exitStatus) {
+                qDebug() << "ZRF QProcess::finished. `exitCode`:" << exitCode << "`exitStatus`:" << exitStatus;
+                emit screenshareStopped();
+            });
 
-    connect(_screenshareProcess.get(), &QProcess::errorOccurred,
-        [=](QProcess::ProcessError error) { qDebug() << "ZRF QProcess::errorOccurred. `error`:" << error; });
-    connect(_screenshareProcess.get(), &QProcess::started, [=]() { qDebug() << "ZRF QProcess::started"; });
-    connect(_screenshareProcess.get(), &QProcess::stateChanged,
-        [=](QProcess::ProcessState newState) { qDebug() << "ZRF QProcess::stateChanged. `newState`:" << newState; });
-    connect(_screenshareProcess.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-        [=](int exitCode, QProcess::ExitStatus exitStatus) {
-            qDebug() << "ZRF QProcess::finished. `exitCode`:" << exitCode << "`exitStatus`:" << exitStatus;
-            emit screenshareStopped();
-        });
-
-    _screenshareProcess->start(SCREENSHARE_EXE_PATH, arguments);
+        _screenshareProcess->start(SCREENSHARE_EXE_PATH, arguments);
+    } else {
+        
+    }
 };
 
 void ScreenshareScriptingInterface::stopScreenshare() {
