@@ -14,7 +14,7 @@ public:
 	ScreenshareScriptingInterface();
     ~ScreenshareScriptingInterface();
 
-	Q_INVOKABLE void startScreenshare(const bool& isPresenter);
+	Q_INVOKABLE void startScreenshare(const QUuid& screenshareZoneID, const QUuid& smartboardEntityID, const bool& isPresenter = false);
     Q_INVOKABLE void stopScreenshare();
 
 signals:
@@ -43,6 +43,7 @@ private:
 #endif
 
     std::unique_ptr<QProcess> _screenshareProcess{ nullptr };
+    QUuid _screenshareViewerLocalWebEntityUUID;
 };
 
 #endif // hifi_ScreenshareScriptingInterface_h

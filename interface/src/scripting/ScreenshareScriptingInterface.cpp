@@ -11,11 +11,13 @@
 
 #include <QCoreApplication>
 #include <QDesktopServices>
+#include <QJsonDocument>
 #include <QThread>
 #include <QUrl>
 
 #include <AddressManager.h>
 
+#include "EntityScriptingInterface.h"
 #include "ScreenshareScriptingInterface.h"
 
 ScreenshareScriptingInterface::ScreenshareScriptingInterface() {
@@ -25,7 +27,11 @@ ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {
     stopScreenshare();
 }
 
-void ScreenshareScriptingInterface::startScreenshare(const bool& isPresenter) {
+static const EntityTypes::EntityType LOCAL_SCREENSHARE_WEB_ENTITY_TYPE = EntityTypes::Web;
+static const uint8_t LOCAL_SCREENSHARE_WEB_ENTITY_FPS = 30;
+static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION(0.0f, 0.0f, 0.1f);
+static const QString LOCAL_SCREENSHARE_WEB_ENTITY_URL = "https://s3.amazonaws.com/hifi-content/Experiences/Releases/usefulUtilities/smartBoard/screenshareViewer/screenshareClient.html";
+void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZoneID, const QUuid& smartboardEntityID, const bool& isPresenter) {
     if (QThread::currentThread() != thread()) {
         // We must start a new QProcess from the main thread.
         QMetaObject::invokeMethod(
@@ -79,9 +85,57 @@ void ScreenshareScriptingInterface::startScreenshare(const bool& isPresenter) {
             });
 
         _screenshareProcess->start(SCREENSHARE_EXE_PATH, arguments);
-    } else {
-        
     }
+
+    if (!_screenshareViewerLocalWebEntityUUID.isNull()) {
+        return;
+    }
+
+    auto esi = DependencyManager::get<EntityScriptingInterface>();
+    if (!esi) {
+        return;
+    }
+
+    EntityItemProperties localScreenshareWebEntityProps;
+    localScreenshareWebEntityProps.setType(LOCAL_SCREENSHARE_WEB_ENTITY_TYPE);
+    localScreenshareWebEntityProps.setMaxFPS(LOCAL_SCREENSHARE_WEB_ENTITY_FPS);
+    localScreenshareWebEntityProps.setLocalPosition(LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION);
+    localScreenshareWebEntityProps.setSourceUrl(LOCAL_SCREENSHARE_WEB_ENTITY_URL);
+    localScreenshareWebEntityProps.setParentID(smartboardEntityID);
+
+    EntityPropertyFlags desiredSmartboardProperties;
+    desiredSmartboardProperties += PROP_POSITION;
+    desiredSmartboardProperties += PROP_DIMENSIONS;
+    EntityItemProperties smartboardProps = esi->getEntityProperties(smartboardEntityID, desiredSmartboardProperties);
+
+    localScreenshareWebEntityProps.setPosition(smartboardProps.getPosition());
+    localScreenshareWebEntityProps.setDimensions(smartboardProps.getDimensions());
+
+    _screenshareViewerLocalWebEntityUUID = esi->addEntity(localScreenshareWebEntityProps, "local");
+
+    QObject::connect(esi.data(), &EntityScriptingInterface::webEventReceived, this, [&](const QUuid& entityID, const QVariant& message) {
+        if (entityID == _screenshareViewerLocalWebEntityUUID) {
+            auto esi = DependencyManager::get<EntityScriptingInterface>();
+            if (!esi) {
+                return;
+            }
+
+            QJsonDocument jsonMessage = QJsonDocument::fromVariant(message);
+            QJsonObject jsonObject = jsonMessage.object();
+
+            if (jsonObject["type"] == "eventbridge_ready") {
+                QJsonObject responseObject;
+                responseObject.insert("type", "receiveConnectionInfo");
+                QJsonObject responseObjectData;
+                responseObjectData.insert("token", token);
+                responseObjectData.insert("projectAPIKey", apiKey);
+                responseObjectData.insert("sessionID", sessionID);
+                responseObject.insert("data", responseObjectData);
+
+                esi->emitScriptEvent(_screenshareViewerLocalWebEntityUUID, responseObject.toVariantMap());
+            }
+        }
+    });
 };
 
 void ScreenshareScriptingInterface::stopScreenshare() {
@@ -92,5 +146,12 @@ void ScreenshareScriptingInterface::stopScreenshare() {
 
     if (_screenshareProcess && _screenshareProcess->state() != QProcess::NotRunning) {
         _screenshareProcess->terminate();
+    }
+
+    if (!_screenshareViewerLocalWebEntityUUID.isNull()) {
+        auto esi = DependencyManager::get<EntityScriptingInterface>();
+        if (esi) {
+            esi->deleteEntity(_screenshareViewerLocalWebEntityUUID);
+        }
     }
 }
