@@ -21,7 +21,7 @@
 #include <ResourceManager.h>
 #include <ResourceRequestObserver.h>
 #include <ResourceCache.h>
-#include <material-networking/MaterialCache.h>
+#include <procedural/ProceduralMaterialCache.h>
 #include <material-networking/TextureCache.h>
 #include <hfm/ModelFormatRegistry.h>
 #include <FBXSerializer.h>
