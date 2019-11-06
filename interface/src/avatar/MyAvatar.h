@@ -2693,6 +2693,7 @@ private:
     const float MAX_LOOK_AT_TIME_SCRIPT_CONTROL = 2.0f;
     glm::quat _lookAtPitch;
     glm::quat _lookAtYaw;
+    float _lookAtYawSpeed { 0.0f };
     glm::vec3 _lookAtCameraTarget;
     glm::vec3 _lookAtScriptTarget;
     bool _headLookAtActive { false };

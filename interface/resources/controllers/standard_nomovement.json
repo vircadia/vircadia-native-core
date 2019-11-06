@@ -96,8 +96,6 @@
         { "from": "Standard.LipsStretch_R", "to": "Actions.LipsStretch_R" },
         { "from": "Standard.LipsUpperClose", "to": "Actions.LipsUpperClose" },
         { "from": "Standard.LipsLowerClose", "to": "Actions.LipsLowerClose" },
-        { "from": "Standard.LipsUpperOpen", "to": "Actions.LipsUpperOpen" },
-        { "from": "Standard.LipsLowerOpen", "to": "Actions.LipsLowerOpen" },
         { "from": "Standard.LipsFunnel", "to": "Actions.LipsFunnel" },
         { "from": "Standard.LipsPucker", "to": "Actions.LipsPucker" },
         { "from": "Standard.Puff", "to": "Actions.Puff" },

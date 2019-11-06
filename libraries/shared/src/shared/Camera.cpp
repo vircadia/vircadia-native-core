@@ -25,38 +25,46 @@
  *     <tr>
  *       <td><strong>First&nbsp;Person</strong></td>
  *       <td><code>"first&nbsp;person"</code></td>
- *       <td>Legacy first person camera mode. The camera is positioned such that you have the same view as your avatar.
- *       The camera moves and rotates with your avatar.</td>
+ *       <td><p>The camera is positioned such that you have the same view as your avatar. The camera moves and rotates with
+ *       your avatar.</p>
+ *       <p><em>Legacy first person camera mode.</em></p></td>
  *     </tr>
  *     <tr>
  *       <td><strong>First&nbsp;Person&nbsp;Look&nbsp;At</strong></td>
  *       <td><code>"first&nbsp;person&nbsp;look&nbsp;at"</code></td>
- *       <td>Default first person camera mode. The camera is positioned such that you have the same view as your avatar.
- *       The camera moves and rotates with your avatar's head.</td>
+ *       <td><p>The camera is positioned such that you have the same view as your avatar. The camera moves and rotates with 
+ *       your avatar's head.</p>
+ *       <p><em>Default first person camera mode.</em></p></td>
  *     </tr>
  *     <tr>
  *       <td><strong>Third&nbsp;Person</strong></td>
  *       <td><code>"third&nbsp;person"</code></td>
- *       <td>The camera is positioned such that you have a view from just behind your avatar. The camera moves and rotates with
- *       your avatar.</td>
+ *       <td><p>The camera is positioned such that you have a view from just behind your avatar. The camera moves and rotates 
+ *       with your avatar.</p>  
+ *       <p><em>Legacy third person camera camera mode.</em></p> 
+ *       <pre class="prettyprint"><code>Camera.mode = "third person";</code></pre></td>
  *     </tr>
  *     <tr>
  *       <td><strong>Look&nbsp;At</strong></td>
  *       <td><code>"look&nbsp;at"</code></td>
- *       <td>The camera is positioned behind your avatar. The camera moves and rotates independently from your avatar.
- *       The avatar's head always faces the camera look at point.</td>
+ *       <td><p>The camera is positioned behind your avatar. The camera moves and rotates independently from your avatar. The
+ *       avatar's head always faces the camera look at point.</p>
+ *       <p><em>Default third person camera mode.</em></td>
  *     </tr>
  *     <tr>
  *       <td><strong>Selfie</strong></td>
  *       <td><code>"selfie"</code></td>
- *       <td>The camera is positioned in front of your avatar. The camera moves and rotates independently from your avatar.
- *       Your avatar's head is always facing the camera.</td>
+ *       <td><p>The camera is positioned in front of your avatar. The camera moves and rotates independently from your avatar.
+ *       Your avatar's head is always facing the camera.</p>
+ *       <p><em>Default "look at myself" camera mode.</em></p></td>
  *     </tr>
  *     <tr>
  *       <td><strong>Mirror</strong></td>
  *       <td><code>"mirror"</code></td>
- *       <td>The camera is positioned such that you are looking directly at your avatar. The camera moves and rotates with your 
- *       avatar.</td>
+ *       <td><p>The camera is positioned such that you are looking directly at your avatar. The camera is fixed and does not 
+ *       move with your avatar.</p> 
+ *       <p><em>Legacy "look at myself" behavior.</em></p>
+ *       <pre class="prettyprint"><code>Camera.mode = "mirror";</code></pre></td>
  *     </tr>
  *     <tr>
  *       <td><strong>Independent</strong></td>

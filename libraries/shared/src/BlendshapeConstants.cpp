@@ -47,8 +47,6 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     "LipsStretch_R",
     "LipsUpperClose",
     "LipsLowerClose",
-    "LipsUpperOpen",
-    "LipsLowerOpen",
     "LipsFunnel",
     "LipsPucker",
     "Puff",

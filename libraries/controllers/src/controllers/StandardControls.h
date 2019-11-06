@@ -127,8 +127,6 @@ namespace controller {
         LIPSSTRETCH_R,
         LIPSUPPERCLOSE,
         LIPSLOWERCLOSE,
-        LIPSUPPEROPEN,
-        LIPSLOWEROPEN,
         LIPSFUNNEL,
         LIPSPUCKER,
         PUFF,

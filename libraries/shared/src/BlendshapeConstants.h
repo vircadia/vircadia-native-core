@@ -51,8 +51,6 @@ enum class Blendshapes : int {
     LipsStretch_R,
     LipsUpperClose,
     LipsLowerClose,
-    LipsUpperOpen,
-    LipsLowerOpen,
     LipsFunnel,
     LipsPucker,
     Puff,
@@ -114,5 +112,8 @@ enum class LegacyBlendshpaes : int {
 // * Sneer (split in ARKit)
 // * ChinLowerRaise (not in ARKit)
 // * ChinUpperRaise (not in ARKit)
+// * LipsUpperOpen (not in ARKit)
+// * LipsLowerOpen (not in ARKit)
+
 
 #endif // hifi_BlendshapeConstants_h
