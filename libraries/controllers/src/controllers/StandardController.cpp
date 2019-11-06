@@ -392,8 +392,6 @@ Input::NamedVector StandardController::getAvailableInputs() const {
         makePair(LIPSSTRETCH_R, "LipsStretch_R"),
         makePair(LIPSUPPERCLOSE, "LipsUpperClose"),
         makePair(LIPSLOWERCLOSE, "LipsLowerClose"),
-        makePair(LIPSUPPEROPEN, "LipsUpperOpen"),
-        makePair(LIPSLOWEROPEN, "LipsLowerOpen"),
         makePair(LIPSFUNNEL, "LipsFunnel"),
         makePair(LIPSPUCKER, "LipsPucker"),
         makePair(PUFF, "Puff"),
