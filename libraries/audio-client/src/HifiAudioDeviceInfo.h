@@ -35,13 +35,15 @@ public:
         _mode = deviceInfo.getMode();
         _isDefault = deviceInfo.isDefault();
         _deviceType = deviceInfo.getDeviceType();
+        _debugName = deviceInfo.getDevice().deviceName();
     }
 
     HifiAudioDeviceInfo(QAudioDeviceInfo deviceInfo, bool isDefault, QAudio::Mode mode, DeviceType devType=both) :
         _audioDeviceInfo(deviceInfo),
         _isDefault(isDefault),
         _mode(mode),
-        _deviceType(devType){
+        _deviceType(devType),
+        _debugName(deviceInfo.deviceName()) {
     }
     
     void setMode(QAudio::Mode mode) { _mode = mode; }
@@ -70,6 +72,7 @@ private:
     bool _isDefault { false };
     QAudio::Mode _mode { QAudio::AudioInput };
     DeviceType _deviceType{ both };
+    QString _debugName;
 
 public:
     static const QString DEFAULT_DEVICE_NAME;
