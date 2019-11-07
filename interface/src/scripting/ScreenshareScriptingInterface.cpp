@@ -30,12 +30,14 @@ ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {
 static const EntityTypes::EntityType LOCAL_SCREENSHARE_WEB_ENTITY_TYPE = EntityTypes::Web;
 static const uint8_t LOCAL_SCREENSHARE_WEB_ENTITY_FPS = 30;
 static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION(0.0f, 0.0f, 0.1f);
-static const QString LOCAL_SCREENSHARE_WEB_ENTITY_URL = "https://s3.amazonaws.com/hifi-content/Experiences/Releases/usefulUtilities/smartBoard/screenshareViewer/screenshareClient.html";
+static const QString LOCAL_SCREENSHARE_WEB_ENTITY_URL = "https://hifi-content.s3.amazonaws.com/Experiences/Releases/usefulUtilities/smartBoard/screenshareViewer/screenshareClient.html?1";
 void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZoneID, const QUuid& smartboardEntityID, const bool& isPresenter) {
     if (QThread::currentThread() != thread()) {
         // We must start a new QProcess from the main thread.
         QMetaObject::invokeMethod(
             this, "startScreenshare",
+            Q_ARG(const QUuid&, screenshareZoneID),
+            Q_ARG(const QUuid&, smartboardEntityID),
             Q_ARG(const bool&, isPresenter)
         );
         return;
@@ -111,10 +113,13 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
     localScreenshareWebEntityProps.setPosition(smartboardProps.getPosition());
     localScreenshareWebEntityProps.setDimensions(smartboardProps.getDimensions());
 
-    _screenshareViewerLocalWebEntityUUID = esi->addEntity(localScreenshareWebEntityProps, "local");
+    QString hostType = "local";
+    _screenshareViewerLocalWebEntityUUID = esi->addEntity(localScreenshareWebEntityProps, hostType);
 
     QObject::connect(esi.data(), &EntityScriptingInterface::webEventReceived, this, [&](const QUuid& entityID, const QVariant& message) {
         if (entityID == _screenshareViewerLocalWebEntityUUID) {
+            qDebug() << "ZRF HERE! Inside `webEventReceived(). `entityID`:" << entityID << "`_screenshareViewerLocalWebEntityUUID`:" << _screenshareViewerLocalWebEntityUUID;
+
             auto esi = DependencyManager::get<EntityScriptingInterface>();
             if (!esi) {
                 return;
@@ -123,14 +128,25 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
             QJsonDocument jsonMessage = QJsonDocument::fromVariant(message);
             QJsonObject jsonObject = jsonMessage.object();
 
-            if (jsonObject["type"] == "eventbridge_ready") {
+            qDebug() << "ZRF HERE! Inside `webEventReceived(). `message`:" << message << "`jsonMessage`:" << jsonMessage;
+
+            if (jsonObject["app"] != "screenshare") {
+                return;
+            }
+
+            qDebug() << "ZRF HERE! Inside `webEventReceived(). we're still here!";
+
+            if (jsonObject["method"] == "eventBridgeReady") {
                 QJsonObject responseObject;
-                responseObject.insert("type", "receiveConnectionInfo");
+                responseObject.insert("app", "screenshare");
+                responseObject.insert("method", "receiveConnectionInfo");
                 QJsonObject responseObjectData;
                 responseObjectData.insert("token", token);
                 responseObjectData.insert("projectAPIKey", apiKey);
                 responseObjectData.insert("sessionID", sessionID);
                 responseObject.insert("data", responseObjectData);
+
+                qDebug() << "ZRF HERE! Inside `webEventReceived(). `responseObject.toVariantMap()`:" << responseObject.toVariantMap();
 
                 esi->emitScriptEvent(_screenshareViewerLocalWebEntityUUID, responseObject.toVariantMap());
             }
@@ -154,4 +170,5 @@ void ScreenshareScriptingInterface::stopScreenshare() {
             esi->deleteEntity(_screenshareViewerLocalWebEntityUUID);
         }
     }
+    _screenshareViewerLocalWebEntityUUID = "{00000000-0000-0000-0000-000000000000}";
 }
