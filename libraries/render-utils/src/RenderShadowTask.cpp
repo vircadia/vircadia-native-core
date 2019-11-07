@@ -257,7 +257,9 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
                 ShapeKey::Builder(), ShapeKey::Builder().withFade(),
                 ShapeKey::Builder().withDeformed(), ShapeKey::Builder().withDeformed().withFade(),
                 ShapeKey::Builder().withDeformed().withDualQuatSkinned(), ShapeKey::Builder().withDeformed().withDualQuatSkinned().withFade(),
-                ShapeKey::Builder().withOwnPipeline(), ShapeKey::Builder().withOwnPipeline().withFade()
+                ShapeKey::Builder().withOwnPipeline(), ShapeKey::Builder().withOwnPipeline().withFade(),
+                ShapeKey::Builder().withOwnPipeline().withDeformed(), ShapeKey::Builder().withOwnPipeline().withDeformed().withFade(),
+                ShapeKey::Builder().withOwnPipeline().withDeformed().withDualQuatSkinned(), ShapeKey::Builder().withOwnPipeline().withDeformed().withDualQuatSkinned().withFade(),
             };
             std::vector<std::vector<ShapeKey>> sortedShapeKeys(keys.size());
 
