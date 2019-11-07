@@ -275,23 +275,6 @@ EntityListTool = function(shouldUseEditTabletApp) {
                 Window.saveFileChanged.connect(onFileSaveChanged);
                 Window.saveAsync("Select Where to Save", "", "*.json");
             }
-        } else if (data.type === "pal") {
-            var sessionIds = {}; // Collect the sessionsIds of all selected entities, w/o duplicates.
-            selectionManager.selections.forEach(function (id) {
-                var lastEditedBy = Entities.getEntityProperties(id, 'lastEditedBy').lastEditedBy;
-                if (lastEditedBy) {
-                    sessionIds[lastEditedBy] = true;
-                }
-            });
-            var dedupped = Object.keys(sessionIds);
-            if (!selectionManager.selections.length) {
-                Window.alert('No objects selected.');
-            } else if (!dedupped.length) {
-                Window.alert('There were no recent users of the ' + selectionManager.selections.length + ' selected objects.');
-            } else {
-                // No need to subscribe if we're just sending.
-                Messages.sendMessage('com.highfidelity.pal', JSON.stringify({method: 'select', params: [dedupped, true, false]}), 'local');
-            }
         } else if (data.type === "delete") {
             deleteSelectedEntities();
         } else if (data.type === "toggleLocked") {
