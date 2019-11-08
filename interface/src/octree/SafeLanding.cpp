@@ -39,6 +39,7 @@ bool SafeLanding::SequenceLessThan::operator()(const OCTREE_PACKET_SEQUENCE& a, 
 
 void SafeLanding::startTracking(QSharedPointer<EntityTreeRenderer> entityTreeRenderer) {
     if (!entityTreeRenderer.isNull()) {
+        qCDebug(interfaceapp) << "SafeLanding has started tracking";
         auto entityTree = entityTreeRenderer->getTree();
         if (entityTree && !_trackingEntities) {
             Locker lock(_lock);
@@ -104,47 +105,55 @@ void SafeLanding::updateTracking() {
         return;
     }
 
-    {
-        Locker lock(_lock);
-        bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
-        auto entityMapIter = _trackedEntities.begin();
-        while (entityMapIter != _trackedEntities.end()) {
-            auto entity = entityMapIter->second;
-            bool isVisuallyReady = true;
-            if (enableInterstitial) {
-                auto entityRenderable = _entityTreeRenderer->renderableForEntityId(entityMapIter->first);
-                if (!entityRenderable) {
-                    _entityTreeRenderer->addingEntity(entityMapIter->first);
-                }
-                isVisuallyReady = entity->isVisuallyReady() || (!entityRenderable && !entity->isParentPathComplete());
-            }
-            if (isEntityPhysicsReady(entity) && isVisuallyReady) {
-                entityMapIter = _trackedEntities.erase(entityMapIter);
-            } else {
-                entityMapIter++;
-            }
-        }
+    Locker lock(_lock);
+
+    bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+    auto entityMapIter = _trackedEntities.begin();
+    while (entityMapIter != _trackedEntities.end()) {
+        auto entity = entityMapIter->second;
+        bool isVisuallyReady = true;
         if (enableInterstitial) {
-            _trackedEntityStabilityCount++;
+            auto entityRenderable = _entityTreeRenderer->renderableForEntityId(entityMapIter->first);
+            if (!entityRenderable) {
+                _entityTreeRenderer->addingEntity(entityMapIter->first);
+            }
+            isVisuallyReady = entity->isVisuallyReady() || (!entityRenderable && !entity->isParentPathComplete());
         }
+        if (isEntityPhysicsReady(entity) && isVisuallyReady) {
+            entityMapIter = _trackedEntities.erase(entityMapIter);
+        } else {
+            entityMapIter++;
+        }
+    }
+    if (enableInterstitial) {
+        _trackedEntityStabilityCount++;
     }
 
     if (_trackedEntities.empty()) {
         // no more tracked entities --> check sequenceNumbers
         if (_sequenceStart != SafeLanding::INVALID_SEQUENCE) {
             bool shouldStop = false;
-            {
-                Locker lock(_lock);
-                auto sequenceSize = _sequenceEnd - _sequenceStart; // this works even in rollover case
-                auto startIter = _sequenceNumbers.find(_sequenceStart);
-                auto endIter = _sequenceNumbers.find(_sequenceEnd - 1);
+            auto sequenceSize = _sequenceEnd - _sequenceStart; // this works even in rollover case
+            auto startIter = _sequenceNumbers.find(_sequenceStart);
+            auto endIter = _sequenceNumbers.find(_sequenceEnd - 1);
 
-                bool missingSequenceNumbers = qApp->isMissingSequenceNumbers();
-                shouldStop = (sequenceSize == 0 ||
+            bool missingSequenceNumbers = qApp->isMissingSequenceNumbers();
+
+            // If the EntityQueryInitialResultsComplete packet is really late due to packet loss, the
+            // _sequenceNumbers map will be filled with unnecessary sequence numbers. This can cause
+            // the main thread to enter an infinite loop in the std::distance() calculation.
+            // Try to guard against this.  This might cause physics to be enabled too soon, but
+            // that is preferable to locking up.
+            bool tooManySequenceNumbers = _sequenceNumbers.size() >= (std::numeric_limits<OCTREE_PACKET_SEQUENCE>::max() / 2);
+
+            qCDebug(interfaceapp) << "SafeLanding has no more tracked entities and" << _sequenceNumbers.size() << "sequence numbers";
+
+            shouldStop = (sequenceSize == 0 ||
                     (startIter != _sequenceNumbers.end() &&
                      endIter != _sequenceNumbers.end() &&
+                     !tooManySequenceNumbers &&
                      ((distance(startIter, endIter) == sequenceSize - 1) || !missingSequenceNumbers)));
-            }
+
             if (shouldStop) {
                 stopTracking();
             }
@@ -153,6 +162,8 @@ void SafeLanding::updateTracking() {
 }
 
 void SafeLanding::stopTracking() {
+    qCDebug(interfaceapp) << "SafeLanding has stopped tracking";
+
     Locker lock(_lock);
     if (_trackingEntities) {
         _trackingEntities = false;
@@ -169,6 +180,7 @@ void SafeLanding::stopTracking() {
 }
 
 void SafeLanding::reset() {
+    Locker lock(_lock);
     _trackingEntities = false;
     _trackedEntities.clear();
     _maxTrackedEntityCount = 0;
@@ -177,6 +189,7 @@ void SafeLanding::reset() {
 }
 
 bool SafeLanding::trackingIsComplete() const {
+    Locker lock(_lock);
     return !_trackingEntities && (_sequenceStart != SafeLanding::INVALID_SEQUENCE);
 }
 
@@ -241,10 +254,8 @@ void SafeLanding::debugDumpSequenceIDs() const {
         ++itr;
         while (itr != _sequenceNumbers.end()) {
             OCTREE_PACKET_SEQUENCE s = *itr;
-            if (s != p + 1) {
-                qCDebug(interfaceapp) << "Gap from" << (int32_t)p << "to" << (int32_t)s << "(exclusive)";
-                p = s;
-            }
+            qCDebug(interfaceapp) << "    " << (int32_t)s;
+            p = s;
             ++itr;
         }
         if (p != SafeLanding::INVALID_SEQUENCE) {
