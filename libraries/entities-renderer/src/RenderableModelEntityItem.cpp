@@ -357,7 +357,6 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     const uint32_t TRIANGLE_STRIDE = 3;
-    const uint32_t QUAD_STRIDE = 4;
 
     ShapeType type = getShapeType();
 
@@ -439,8 +438,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
         glm::vec3 registrationOffset = dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
-        for (int32_t i = 0; i < pointCollection.size(); i++) {
-            for (int32_t j = 0; j < pointCollection[i].size(); j++) {
+        for (size_t i = 0; i < pointCollection.size(); i++) {
+            for (size_t j = 0; j < pointCollection[i].size(); j++) {
                 // back compensate for registration so we can apply that offset to the shapeInfo later
                 pointCollection[i][j] = scaleToFit * (pointCollection[i][j] + model->getOffset()) - registrationOffset;
             }
@@ -454,32 +453,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         model->updateGeometry();
 
         // compute meshPart local transforms
-        QVector<glm::mat4> localTransforms;
         const HFMModel& hfmModel = model->getHFMModel();
-        uint32_t numHFMShapes = (uint32_t)hfmModel.shapes.size();
-        localTransforms.reserve(numHFMShapes);
         glm::vec3 dimensions = getScaledDimensions();
         glm::mat4 invRegistraionOffset = glm::translate(dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
-        for (uint32_t s = 0; s < numHFMShapes; s++) {
-            const HFMShape& shape = hfmModel.shapes[s];
-            if (shape.joint != hfm::UNDEFINED_KEY) {
-                auto jointMatrix = model->getRig().getJointTransform(shape.joint);
-                // we backtranslate by the registration offset so we can apply that offset to the shapeInfo later
-                if (shape.skinDeformer != hfm::UNDEFINED_KEY) {
-                    const auto& skinDeformer = hfmModel.skinDeformers[shape.skinDeformer];
-                    glm::mat4 inverseBindMatrix;
-                    if (!skinDeformer.clusters.empty()) {
-                        const auto& cluster = skinDeformer.clusters.back();
-                        inverseBindMatrix = cluster.inverseBindMatrix;
-                    }
-                    localTransforms.push_back(invRegistraionOffset * jointMatrix * inverseBindMatrix);
-                } else {
-                    localTransforms.push_back(invRegistraionOffset * jointMatrix);
-                }
-            } else {
-                localTransforms.push_back(invRegistraionOffset);
-            }
-        }
 
         ShapeInfo::TriangleIndices& triangleIndices = shapeInfo.getTriangleIndices();
         triangleIndices.clear();
@@ -664,7 +640,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             }
         }
         for (auto points : pointCollection) {
-            for (int32_t i = 0; i < points.size(); ++i) {
+            for (size_t i = 0; i < points.size(); ++i) {
                 points[i] = (points[i] * scaleToFit);
             }
         }

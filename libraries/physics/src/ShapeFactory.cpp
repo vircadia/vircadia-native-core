@@ -109,7 +109,7 @@ btConvexHullShape* createConvexHull(const ShapeInfo::PointList& points) {
     glm::vec3 center = points[0];
     glm::vec3 maxCorner = center;
     glm::vec3 minCorner = center;
-    for (int i = 1; i < points.size(); i++) {
+    for (size_t i = 1; i < points.size(); i++) {
         center += points[i];
         maxCorner = glm::max(maxCorner, points[i]);
         minCorner = glm::min(minCorner, points[i]);
@@ -149,7 +149,7 @@ btConvexHullShape* createConvexHull(const ShapeInfo::PointList& points) {
     // add the points, correcting for margin
     glm::vec3 relativeScale = (diagonal - glm::vec3(2.0f * margin)) / diagonal;
     glm::vec3 correctedPoint;
-    for (int i = 0; i < points.size(); ++i) {
+    for (size_t i = 0; i < points.size(); ++i) {
         correctedPoint = (points[i] - center) * relativeScale + center;
         hull->addPoint(btVector3(correctedPoint[0], correctedPoint[1], correctedPoint[2]), false);
     }
