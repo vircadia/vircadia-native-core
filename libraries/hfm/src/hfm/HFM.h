@@ -401,6 +401,7 @@ typedef hfm::Mesh HFMMesh;
 typedef hfm::SkinDeformer HFMSkinDeformer;
 typedef hfm::AnimationFrame HFMAnimationFrame;
 typedef hfm::Light HFMLight;
+typedef hfm::Shape HFMShape;
 typedef hfm::Model HFMModel;
 typedef hfm::FlowData FlowData;
 

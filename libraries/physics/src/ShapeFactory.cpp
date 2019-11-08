@@ -217,7 +217,7 @@ btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
     }
 
     const ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
-    int32_t numIndices = triangleIndices.size();
+    int32_t numIndices = (int32_t)triangleIndices.size();
     if (numIndices < 3) {
         // not enough indices to make a single triangle
         return nullptr;
@@ -237,7 +237,7 @@ btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
         mesh.m_indexType = PHY_INTEGER;
         mesh.m_triangleIndexStride = VERTICES_PER_TRIANGLE * sizeof(int32_t);
     }
-    mesh.m_numVertices = pointList.size();
+    mesh.m_numVertices = (int)pointList.size();
     mesh.m_vertexBase = new unsigned char[VERTICES_PER_TRIANGLE * sizeof(btScalar) * (size_t)mesh.m_numVertices];
     mesh.m_vertexStride = VERTICES_PER_TRIANGLE * sizeof(btScalar);
     mesh.m_vertexType = PHY_FLOAT;
@@ -362,7 +362,7 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
             const ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
             uint32_t numSubShapes = info.getNumSubShapes();
             if (numSubShapes == 1) {
-                if (!pointCollection.isEmpty()) {
+                if (!pointCollection.empty()) {
                     shape = createConvexHull(pointCollection[0]);
                 }
             } else {
@@ -380,7 +380,7 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
         case SHAPE_TYPE_SIMPLE_COMPOUND: {
             const ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
             const ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
-            uint32_t numIndices = triangleIndices.size();
+            uint32_t numIndices = (uint32_t)triangleIndices.size();
             uint32_t numMeshes = info.getNumSubShapes();
             const uint32_t MIN_NUM_SIMPLE_COMPOUND_INDICES = 2; // END_OF_MESH_PART + END_OF_MESH
             if (numMeshes > 0 && numIndices > MIN_NUM_SIMPLE_COMPOUND_INDICES) {
