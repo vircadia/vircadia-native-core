@@ -824,77 +824,69 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
 void Model::calculateTriangleSets(const HFMModel& hfmModel) {
     PROFILE_RANGE(render, __FUNCTION__);
 
-    uint32_t numberOfMeshes = (uint32_t)hfmModel.meshes.size();
+    uint32_t meshInstanceCount = 0;
+    uint32_t lastMeshForInstanceCount = hfm::UNDEFINED_KEY;
+    for (const auto& shape : hfmModel.shapes) {
+        if (shape.mesh != lastMeshForInstanceCount) {
+            ++meshInstanceCount;
+        }
+        lastMeshForInstanceCount = shape.mesh;
+    }
 
     _triangleSetsValid = true;
     _modelSpaceMeshTriangleSets.clear();
-    _modelSpaceMeshTriangleSets.resize(numberOfMeshes);
+    _modelSpaceMeshTriangleSets.reserve(meshInstanceCount);
 
-    for (uint32_t i = 0; i < numberOfMeshes; i++) {
-        const HFMMesh& mesh = hfmModel.meshes.at(i);
+    uint32_t lastMeshForTriangleBuilding = hfm::UNDEFINED_KEY;
+    glm::mat4 lastTransformForTriangleBuilding { 0 };
+    std::vector<glm::vec3> transformedPoints;
+    for (const auto& shape : hfmModel.shapes) {
+        const uint32_t meshIndex = shape.mesh;
+        const hfm::Mesh& mesh = hfmModel.meshes.at(meshIndex);
+        const auto& triangleListMesh = mesh.triangleListMesh;
+        const glm::vec2 part = triangleListMesh.parts[shape.meshPart];
+        glm::mat4 worldFromMeshTransform;
+        if (shape.joint != hfm::UNDEFINED_KEY) {
+            // globalTransform includes hfmModel.offset, 
+            // which includes the scaling, rotation, and translation specified by the FST,
+            // and the scaling from the unit conversion in FBX.
+            // This can't change at runtime, so we can safely store these in our TriangleSet.
+            worldFromMeshTransform = hfmModel.joints[shape.joint].globalTransform;
+        }
 
-        const uint32_t numberOfParts = (uint32_t)mesh.parts.size();
-        auto& meshTriangleSets = _modelSpaceMeshTriangleSets[i];
-        meshTriangleSets.resize(numberOfParts);
+        if (meshIndex != lastMeshForTriangleBuilding || worldFromMeshTransform != lastTransformForTriangleBuilding) {
+            lastMeshForTriangleBuilding = meshIndex;
+            lastTransformForTriangleBuilding = worldFromMeshTransform;
+            _modelSpaceMeshTriangleSets.emplace_back();
+            _modelSpaceMeshTriangleSets.back().reserve(mesh.parts.size());
 
-        for (uint32_t j = 0; j < numberOfParts; j++) {
-            const HFMMeshPart& part = mesh.parts.at(j);
-
-            auto& partTriangleSet = meshTriangleSets[j];
-
-            const int INDICES_PER_TRIANGLE = 3;
-            const int INDICES_PER_QUAD = 4;
-            const int TRIANGLES_PER_QUAD = 2;
-
-            // tell our triangleSet how many triangles to expect.
-            int numberOfQuads = part.quadIndices.size() / INDICES_PER_QUAD;
-            int numberOfTris = part.triangleIndices.size() / INDICES_PER_TRIANGLE;
-            int totalTriangles = (numberOfQuads * TRIANGLES_PER_QUAD) + numberOfTris;
-            partTriangleSet.reserve(totalTriangles);
-
-            auto meshTransform = hfmModel.offset * mesh.modelTransform;
-
-            if (part.quadIndices.size() > 0) {
-                int vIndex = 0;
-                for (int q = 0; q < numberOfQuads; q++) {
-                    int i0 = part.quadIndices[vIndex++];
-                    int i1 = part.quadIndices[vIndex++];
-                    int i2 = part.quadIndices[vIndex++];
-                    int i3 = part.quadIndices[vIndex++];
-
-                    // track the model space version... these points will be transformed by the FST's offset, 
-                    // which includes the scaling, rotation, and translation specified by the FST/FBX, 
-                    // this can't change at runtime, so we can safely store these in our TriangleSet
-                    glm::vec3 v0 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i0], 1.0f));
-                    glm::vec3 v1 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i1], 1.0f));
-                    glm::vec3 v2 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i2], 1.0f));
-                    glm::vec3 v3 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i3], 1.0f));
-
-                    Triangle tri1 = { v0, v1, v3 };
-                    Triangle tri2 = { v1, v2, v3 };
-                    partTriangleSet.insert(tri1);
-                    partTriangleSet.insert(tri2);
+            transformedPoints = triangleListMesh.vertices;
+            if (worldFromMeshTransform != glm::mat4()) {
+                for (auto& point : transformedPoints) {
+                    point = glm::vec3(worldFromMeshTransform * glm::vec4(point, 1.0f));
                 }
             }
+        }
+        auto& meshTriangleSets = _modelSpaceMeshTriangleSets.back();
+        meshTriangleSets.emplace_back();
+        auto& partTriangleSet = meshTriangleSets.back();
 
-            if (part.triangleIndices.size() > 0) {
-                int vIndex = 0;
-                for (int t = 0; t < numberOfTris; t++) {
-                    int i0 = part.triangleIndices[vIndex++];
-                    int i1 = part.triangleIndices[vIndex++];
-                    int i2 = part.triangleIndices[vIndex++];
+        const static size_t INDICES_PER_TRIANGLE = 3;
+        const size_t triangleCount = (size_t)(part.y) / INDICES_PER_TRIANGLE;
+        partTriangleSet.reserve(triangleCount);
+        const size_t indexStart = (uint32_t)part.x;
+        const size_t indexEnd = indexStart + (triangleCount * INDICES_PER_TRIANGLE);
+        for (size_t i = indexStart; i < indexEnd; i += INDICES_PER_TRIANGLE) {
+            const int i0 = triangleListMesh.indices[i];
+            const int i1 = triangleListMesh.indices[i + 1];
+            const int i2 = triangleListMesh.indices[i + 2];
 
-                    // track the model space version... these points will be transformed by the FST's offset, 
-                    // which includes the scaling, rotation, and translation specified by the FST/FBX, 
-                    // this can't change at runtime, so we can safely store these in our TriangleSet
-                    glm::vec3 v0 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i0], 1.0f));
-                    glm::vec3 v1 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i1], 1.0f));
-                    glm::vec3 v2 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i2], 1.0f));
+            const glm::vec3 v0 = transformedPoints[i0];
+            const glm::vec3 v1 = transformedPoints[i1];
+            const glm::vec3 v2 = transformedPoints[i2];
 
-                    Triangle tri = { v0, v1, v2 };
-                    partTriangleSet.insert(tri);
-                }
-            }
+            const Triangle tri = { v0, v1, v2 };
+            partTriangleSet.insert(tri);
         }
     }
 }
