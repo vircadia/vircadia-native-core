@@ -399,6 +399,7 @@ void Agent::executeScript() {
                 }
 
                 // these procedural movements are included in the recordings
+                scriptedAvatar->setHasScriptedBlendshapes(true);
                 scriptedAvatar->setHasProceduralEyeFaceMovement(false);
                 scriptedAvatar->setHasProceduralBlinkFaceMovement(false);
                 scriptedAvatar->setHasAudioEnabledFaceMovement(false);
@@ -406,6 +407,7 @@ void Agent::executeScript() {
                 scriptedAvatar->clearRecordingBasis();
 
                 // restore procedural blendshape movement
+                scriptedAvatar->setHasScriptedBlendshapes(false);
                 scriptedAvatar->setHasProceduralEyeFaceMovement(true);
                 scriptedAvatar->setHasProceduralBlinkFaceMovement(true);
                 scriptedAvatar->setHasAudioEnabledFaceMovement(true);

@@ -232,12 +232,6 @@ void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
                 emit bookmarkLoaded(bookmarkName);
             });
 
-            std::shared_ptr<QMetaObject::Connection> connection2 = std::make_shared<QMetaObject::Connection>();
-            *connection2 = connect(myAvatar.get(), &MyAvatar::onLoadFailed, [this, bookmarkName, connection2]() {
-                qCDebug(interfaceapp) << "Failed to load avatar bookmark" << bookmarkName;
-                QObject::disconnect(*connection2);
-            });
-
             qCDebug(interfaceapp) << "Start loading avatar bookmark" << bookmarkName;
 
             const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();

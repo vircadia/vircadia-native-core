@@ -57,8 +57,6 @@ static controller::Action blendshapeActions[] = {
     controller::Action::LIPSSTRETCH_R,
     controller::Action::LIPSUPPERCLOSE,
     controller::Action::LIPSLOWERCLOSE,
-    controller::Action::LIPSUPPEROPEN,
-    controller::Action::LIPSLOWEROPEN,
     controller::Action::LIPSFUNNEL,
     controller::Action::LIPSPUCKER,
     controller::Action::PUFF,
