@@ -256,6 +256,7 @@ endif()
 
 if (BUILD_CLIENT)
   add_subdirectory(interface)
+  add_subdirectory(screenshare)
   set_target_properties(interface PROPERTIES FOLDER "Apps")
 
   option(USE_SIXENSE "Build Interface with sixense library/plugin" OFF)
