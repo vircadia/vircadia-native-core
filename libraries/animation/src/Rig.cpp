@@ -1492,15 +1492,17 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 _animVars.set("isInputBackward", false);
                 _animVars.set("isInputRight", false);
                 _animVars.set("isInputLeft", false);
-                _animVars.set("isNotInput", true); 
 
-                if (_isMovingWithMomentum) {
-                    _animVars.set("isNotInputSlow", true);
-                    _animVars.set("isNotInputNoMomentum", false);
-                } else {
-                    _animVars.set("isNotInputSlow", false);
-                    _animVars.set("isNotInputNoMomentum", true);
-                }
+                // directly reflects input
+                _animVars.set("isNotInput", true);  
+
+                // no input + speed drops to SLOW_SPEED_THRESHOLD
+                // (don't transition run->idle - slow to walk first)
+                _animVars.set("isNotInputSlow", _isMovingWithMomentum);
+
+                // no input + speed didn't get above HAS_MOMENTUM_THRESHOLD since last idle
+                // (brief inputs and movement adjustments)
+                _animVars.set("isNotInputNoMomentum", !_isMovingWithMomentum);
 
 
             } else {

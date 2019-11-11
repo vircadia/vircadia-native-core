@@ -15,6 +15,7 @@
     <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="true"/>
     <uses-feature android:name="android.software.vr.mode" android:required="true"/>
     <uses-feature android:name="android.hardware.vr.high_performance" android:required="true"/>
+    <uses-feature android:name="android.hardware.vr.headtracking" android:version="1" android:required="true" />
 
     <application
         android:name="org.qtproject.qt5.android.bindings.QtApplication"
