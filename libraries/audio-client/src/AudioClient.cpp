@@ -114,7 +114,7 @@ QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode, const QString&
         if (devices.size() > 0) {
             qCDebug(audioclient) << __FUNCTION__ << "Default device not found in list:" << defDeviceName
                 << "Setting Default to: " << devices.first().deviceName();
-            defaultDesktopDevice = HifiAudioDeviceInfo(devices.first(), true, mode, HifiAudioDeviceInfo::desktop);
+            newDevices.push_front(HifiAudioDeviceInfo(devices.first(), true, mode, HifiAudioDeviceInfo::desktop));
         } else {
             //current audio list is empty for some reason.
             qCDebug(audioclient) << __FUNCTION__ << "Default device not found in list no alternative selection available";
