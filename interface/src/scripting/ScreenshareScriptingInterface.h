@@ -1,10 +1,23 @@
+//
+//  ScreenshareScriptingInterface.h
+//  interface/src/scripting/
+//
+//  Created by Milad Nazeri and Zach Fox on 2019-10-23.
+//  Copyright 2019 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 #ifndef hifi_ScreenshareScriptingInterface_h
 #define hifi_ScreenshareScriptingInterface_h
 
-#include <QObject>
+// #include <QObject>
 #include <QProcess>
 #include <QtCore/QCoreApplication>
-
+// #include <QNetworkAccessManager>
+// #include <QNetworkReply>
+// #include <QNetworkRequest>
 #include <DependencyManager.h>
 #include <PathUtils.h>
 
