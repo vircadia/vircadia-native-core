@@ -3513,8 +3513,21 @@ void MyAvatar::updateOrientation(float deltaTime) {
             }
             setWorldOrientation(glm::slerp(getWorldOrientation(), faceRotation, blend));
         } else if (isRotatingWhileSeated) {
-            float rotatingWhileSeatedYaw = -getDriveKey(TRANSLATE_X) * _yawSpeed * deltaTime;
-            setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, rotatingWhileSeatedYaw, 0.0f))));
+
+            float seatedTargetSpeed = -getDriveKey(TRANSLATE_X) * _yawSpeed;
+
+            const float SEATED_ROTATION_RAMP_TIMESCALE = 0.5f;
+            float blend = deltaTime / SEATED_ROTATION_RAMP_TIMESCALE;
+            if (blend > 1.0f) {
+                blend = 1.0f;
+            }
+            _seatedBodyYawDelta = (1.0f - blend) * _seatedBodyYawDelta + blend * seatedTargetSpeed;
+            setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, _seatedBodyYawDelta, 0.0f))));
+
+
+
+            //float rotatingWhileSeatedYaw = -getDriveKey(TRANSLATE_X) * _yawSpeed * deltaTime;
+            //setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, rotatingWhileSeatedYaw, 0.0f))));
         }
     }
 

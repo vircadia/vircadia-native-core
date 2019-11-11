@@ -1245,6 +1245,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotInAir", true);
             _animVars.set("isSeated", false);
             _animVars.set("isNotSeated", true);
+            _animVars.set("isSeatedTurningRight", false);
+            _animVars.set("isSeatedTurningLeft", false);
+            _animVars.set("isSeatedNotTurning", false);
 
         } else if (_state == RigRole::Turn) {
             if (turningSpeed > 0.0f) {
@@ -1275,6 +1278,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotInAir", true);
             _animVars.set("isSeated", false);
             _animVars.set("isNotSeated", true);
+            _animVars.set("isSeatedTurningRight", false);
+            _animVars.set("isSeatedTurningLeft", false);
+            _animVars.set("isSeatedNotTurning", false);
 
         } else if (_state == RigRole::Idle) {
             // default anim vars to notMoving and notTurning
@@ -1298,6 +1304,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotInAir", true);
             _animVars.set("isSeated", false);
             _animVars.set("isNotSeated", true);
+            _animVars.set("isSeatedTurningRight", false);
+            _animVars.set("isSeatedTurningLeft", false);
+            _animVars.set("isSeatedNotTurning", false);
 
         } else if (_state == RigRole::Hover) {
             // flying.
@@ -1321,6 +1330,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotInAir", true);
             _animVars.set("isSeated", false);
             _animVars.set("isNotSeated", true);
+            _animVars.set("isSeatedTurningRight", false);
+            _animVars.set("isSeatedTurningLeft", false);
+            _animVars.set("isSeatedNotTurning", false);
 
         } else if (_state == RigRole::Takeoff) {
             // jumping in-air
@@ -1352,6 +1364,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotInAir", false);
             _animVars.set("isSeated", false);
             _animVars.set("isNotSeated", true);
+            _animVars.set("isSeatedTurningRight", false);
+            _animVars.set("isSeatedTurningLeft", false);
+            _animVars.set("isSeatedNotTurning", false);
 
         } else if (_state == RigRole::InAir) {
             // jumping in-air
@@ -1372,6 +1387,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotTakeoff", true);
             _animVars.set("isSeated", false);
             _animVars.set("isNotSeated", true);
+            _animVars.set("isSeatedTurningRight", false);
+            _animVars.set("isSeatedTurningLeft", false);
+            _animVars.set("isSeatedNotTurning", false);
 
             bool inAirRun = forwardSpeed > 0.1f;
             if (inAirRun) {
@@ -1394,6 +1412,23 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
             _animVars.set("inAirAlpha", alpha);
         } else if (_state == RigRole::Seated) {
+            if (turningSpeed > 0.05f) {
+                // seated turning right
+                _animVars.set("isSeatedTurningRight", true);
+                _animVars.set("isSeatedTurningLeft", false);
+                _animVars.set("isSeatedNotTurning", false);
+            } else if (turningSpeed < -0.05f) {
+                // seated turning left
+                _animVars.set("isSeatedTurningRight", false);
+                _animVars.set("isSeatedTurningLeft", true);
+                _animVars.set("isSeatedNotTurning", false);
+            } else {
+                // seated not turning
+                _animVars.set("isSeatedTurningRight", false);
+                _animVars.set("isSeatedTurningLeft", false);
+                _animVars.set("isSeatedNotTurning", true);
+            }
+
             _animVars.set("isMovingForward", false);
             _animVars.set("isMovingBackward", false);
             _animVars.set("isMovingRight", false);
