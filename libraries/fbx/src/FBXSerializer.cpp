@@ -1485,12 +1485,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 shape.mesh = meshIndex;
                 shape.meshPart = i;
                 shape.joint = transformIndex;
-                
-                auto matName = mesh.parts[i].materialID;
-                auto materialIt = materialNameToID.find(matName.toStdString());
-                if (materialIt != materialNameToID.end()) {
-                    shape.material = materialIt->second;
-                }
             }
 
             // For FBX_DRACO_MESH_VERSION < 2, or unbaked models, get materials from the partMaterialTextures
