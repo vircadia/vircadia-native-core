@@ -192,8 +192,9 @@ function togglePage(){
 
     function initializeTokboxSession() {
         console.log("\n\n\n\n #$######\n TRYING TO START SESSION")
-        session = OT.initSession(apiKey, sessionId);
-
+        console.log("projectAPIKey: " + projectAPIKey)
+        console.log("sessionId: " + sessionID)
+        session = OT.initSession(projectAPIKey, sessionID);
         session.on('sessionDisconnected', (event) => {
             console.log('You were disconnected from the session.', event.reason);
         });
@@ -244,43 +245,24 @@ function togglePage(){
   
 // main TODO:
     const ipcRenderer = electron.ipcRenderer;
-    let apiKey;
-    let sessionId;
+    let projectAPIKey;
+    let sessionID;
     let token;
     let session;
 
     ipcRenderer.on('connectionInfo', function(event, message){
         console.log("event:" + event);
         console.log("MESSAGE FROM MAIN:" + message);
-        // const connectionInfo = JSON.parse(message); 
-        // apiKey = connectionInfo.apiKey;
-        // sessionId = connectionInfo.sessionId;
-        // token = connectionInfo.token;
-        // initializeTokboxSession();
+        const connectionInfo = JSON.parse(message);
+        projectAPIKey = connectionInfo.projectAPIKey;
+        console.log()
+        sessionID = connectionInfo.sessionID;
+        token = connectionInfo.token;
+
+        initializeTokboxSession();
     })
 
-    function startup(){
-        console.log("\n\n IN STARTUP \n\n") 
-        // Make an Ajax request to get the OpenTok API key, session ID, and token from the server
-        // TODO:
-        fetch(process.env.hifiScreenshareURL)
-            .then(function(res) {
-                return res.json();
-            })
-            .then(function fetchJson(json) {
-                apiKey = json.apiKey;
-                sessionId = json.sessionId;
-                token = json.token;
-
-                initializeTokboxSession();
-            })
-            .catch(function catchErr(error) {
-                handleError(error);
-                alert('Failed to get opentok sessionId and token. Make sure you have updated the config.js file.');
-            });
-    }
 
     document.addEventListener("DOMContentLoaded", () => {
-        startup();
         showSources();
     })

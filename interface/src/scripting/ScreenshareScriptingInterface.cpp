@@ -40,12 +40,14 @@ ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {
 
 static const EntityTypes::EntityType LOCAL_SCREENSHARE_WEB_ENTITY_TYPE = EntityTypes::Web;
 static const uint8_t LOCAL_SCREENSHARE_WEB_ENTITY_FPS = 30;
+// This is going to be a good amount of work to make this work dynamically for any screensize.
+// V1 will have only hardcoded values.
 static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION(0.0f, -0.0862f, 0.0711f);
+static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_DIMENSIONS(4.0419f, 2.2735f, 0.0100f);
 static const QString LOCAL_SCREENSHARE_WEB_ENTITY_URL =
     "https://hifi-content.s3.amazonaws.com/Experiences/Releases/usefulUtilities/smartBoard/screenshareViewer/screenshareClient.html";
-static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_DIMENSIONS(4.0419f, 2.2735f, 0.0100f);
 QString token;
-QString apiKey;
+QString projectAPIKey;
 QString sessionID;
 void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZoneID,
                                                      const QUuid& smartboardEntityID,
@@ -91,15 +93,16 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
         QJsonDocument answerJSONObject = QJsonDocument::fromJson(answerByteArray);
 
         token = answerJSONObject["token"].toString();
-        apiKey = answerJSONObject["apiKey"].toString();
-        sessionID = answerJSONObject["sessionId"].toString();  // hifi-test has Id camel-case. Change for metaverse. 
-        qDebug() << "token:" << token << " apiKey:" << apiKey << " sessionID: " << sessionID;
+        projectAPIKey = answerJSONObject["projectAPIKey"].toString();
+        sessionID = answerJSONObject["sessionID"].toString();  // hifi-test has Id camel-case. Change for metaverse. 
+        qDebug() << "token:" << token << " projectAPIKey:" << projectAPIKey << " sessionID: " << sessionID;
 
         if (isPresenter) {
             QStringList arguments;
-            arguments << "--token=" + token;
-            arguments << "--apiKey=" + apiKey;
-            arguments << "--sessionID=" + sessionID;
+            arguments << " ";
+            arguments << "--token=" + token << " ";
+            arguments << "--projectAPIKey=" + projectAPIKey << " ";
+            arguments << "--sessionID=" + sessionID << " ";
 
             connect(_screenshareProcess.get(), &QProcess::errorOccurred,
                     [=](QProcess::ProcessError error) { qDebug() << "ZRF QProcess::errorOccurred. `error`:" << error; });
@@ -171,23 +174,15 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
                                      responseObject.insert("method", "receiveConnectionInfo");
                                      QJsonObject responseObjectData;
                                      responseObjectData.insert("token", token);
-                                     responseObjectData.insert("projectAPIKey", apiKey);
+                                     responseObjectData.insert("projectAPIKey", projectAPIKey);
                                      responseObjectData.insert("sessionID", sessionID);
                                      responseObject.insert("data", responseObjectData);
 
                                      qDebug() << "ZRF HERE! Inside `webEventReceived(). `responseObject.toVariantMap()`:"
                                               << responseObject.toVariantMap();
 
-                                     // Attempt 1, we receive the eventBridge message, but this won't send a message
-                                     // to that js
                                      auto esi = DependencyManager::get<EntityScriptingInterface>();
                                      esi->emitScriptEvent(_screenshareViewerLocalWebEntityUUID, responseObject.toVariantMap());
-
-                                     // atempt 2, same outcome
-                                     //auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
-                                     //auto webEntityRenderable =
-                                     //    entityTreeRenderer->renderableForEntityId(_screenshareViewerLocalWebEntityUUID);
-                                     //webEntityRenderable->emitScriptEvent(responseObject.toVariantMap());
                                  }
                              }
                          });

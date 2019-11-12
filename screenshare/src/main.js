@@ -1,18 +1,12 @@
 'use strict';
 
-var userName, displayName, token, apiKey, sessionID;
-
 const {app, BrowserWindow, ipcMain} = require('electron');
 const gotTheLock = app.requestSingleInstanceLock()
 const argv = require('yargs').argv;
 // ./screenshare.exe --userName=miladN ...
-console.log("argV:", argv)
-console.log("argV Username", argv.userName);
 const connectionInfo = {
-    userName: argv.userName || "testName",
-    displayName: argv.displayName || "displayName",
     token: argv.token || "token",
-    apiKey: argv.apiKey || "apiKey",
+    projectAPIKey: argv.projectAPIKey || "projectAPIKey",
     sessionID: argv.sessionID || "sessionID"
 }
 
