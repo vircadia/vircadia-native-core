@@ -160,8 +160,6 @@ public:
     QVector<int> quadIndices; // original indices from the FBX mesh
     QVector<int> quadTrianglesIndices; // original indices from the FBX mesh of the quad converted as triangles
     QVector<int> triangleIndices; // original indices from the FBX mesh
-
-    QString materialID; // DEPRECATED
 };
 
 class Material {

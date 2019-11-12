@@ -149,7 +149,6 @@ void vhacd::VHACDUtil::fattenMesh(const HFMMesh& mesh, const glm::mat4& modelOff
         result.vertices << p3; // add the new point to the result mesh
 
         HFMMeshPart newMeshPart;
-        setMeshPartDefaults(newMeshPart, "unknown");
         newMeshPart.triangleIndices << index0 << index1 << index2;
         newMeshPart.triangleIndices << index0 << index3 << index1;
         newMeshPart.triangleIndices << index1 << index3 << index2;

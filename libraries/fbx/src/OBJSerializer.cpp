@@ -174,11 +174,6 @@ glm::vec2 OBJTokenizer::getVec2() {
     return v;
 }
 
-
-void setMeshPartDefaults(HFMMeshPart& meshPart, QString materialID) {
-    meshPart.materialID = materialID;
-}
-
 // OBJFace
 //    NOTE (trent, 7/20/17): The vertexColors vector being passed-in isn't necessary here, but I'm just
 //                         pairing it with the vertices vector for consistency.
@@ -493,15 +488,12 @@ bool OBJSerializer::parseOBJGroup(OBJTokenizer& tokenizer, const hifi::VariantHa
     FaceGroup faces;
     HFMMesh& mesh = hfmModel.meshes[0];
     mesh.parts.push_back(HFMMeshPart());
-    HFMMeshPart& meshPart = mesh.parts.back();
     bool sawG = false;
     bool result = true;
     int originalFaceCountForDebugging = 0;
     QString currentGroup;
     bool anyVertexColor { false };
     int vertexCount { 0 };
-
-    setMeshPartDefaults(meshPart, QString("dontknow") + QString::number(mesh.parts.size()));
 
     while (true) {
         int tokenType = tokenizer.nextToken();
