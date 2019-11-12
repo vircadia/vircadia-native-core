@@ -15,7 +15,6 @@
     }"
 */
 
-var isBrowser = false;
 const imageWidth = 265;
 const imageHeight = 165;
 
@@ -36,14 +35,11 @@ for (let index = 0; index < images; index++) {
     testSources.push(test);
 }
 
-// if (!isBrowser) {
-    const electron = require('electron');
-// }
+const electron = require('electron');
 
 let currentScreensharePickID = "";
 function screensharePicked(id){
     currentScreensharePickID = id;
-    console.log(currentScreensharePickID);
     document.getElementById("share_pick").innerHTML = "";
     addSource(sourceMap[id], "share_pick");
     togglePage();
@@ -77,13 +73,12 @@ function togglePage(){
 // UI
     function addSource(source, type) {
         let sourceBody = document.createElement('div')
-        let thumbnail = isBrowser ? source.thumbnail : source.thumbnail.toDataURL();
+        let thumbnail = source.thumbnail.toDataURL();
         sourceBody.classList.add("box")
         if (type === "share_pick") {
             sourceBody.style.marginLeft = "0px";
         }
 
-        let circle = `<div class="circle" onclick="screensharePicked('${source.id}')"}></div>`
         let image = "";
         if (source.appIcon) {
             image = `<img class="icon" src="${source.appIcon.toDataURL()}" />`;
@@ -97,7 +92,6 @@ function togglePage(){
                 <img src="${thumbnail}" />
             </div>
         `
-        // console.log(sourceBody.innerHTML);
         if (type === "selects") {
             document.getElementById("selects").appendChild(sourceBody);
         } else {
@@ -110,34 +104,23 @@ function togglePage(){
     let sourceMap = {};
     function showSources() {
         document.getElementById("selects").innerHTML="";
-        if (isBrowser) {
-            for (let source of testSources) {
-                sourceMap[source.id] = source;
-                addSource(source, "selects");
+        electron.desktopCapturer.getSources({ 
+            types:['window', 'screen'],
+            thumbnailSize: {
+                width: imageWidth,
+                height: imageHeight
+            },
+            fetchWindowIcons: true
+        }, (error, sources) => {
+            if (error) {
+                console.log("Error getting sources", error);
             }
-        } else {
-            electron.desktopCapturer.getSources({ 
-                types:['window', 'screen'],
-                thumbnailSize: {
-                    width: imageWidth,
-                    height: imageHeight
-                },
-                fetchWindowIcons: true
-            }, (error, sources) => {
-                if (error) {
-                    console.log("Error getting sources", error);
-                }
-    
-                for (let source of sources) {
-                    // console.log(JSON.stringify(sources,null,4));
-                    sourceMap[source.id] = source;
-                    //*if (source.id.indexOf("screen") > -1) {
-                    //  console.log("Adding:", source.id)
-                        addSource(source, "selects");
-                   //}
-                }
-            });
-        }
+
+            for (let source of sources) {
+                sourceMap[source.id] = source;
+                    addSource(source, "selects");
+            }
+        });
     }
 
 
@@ -174,7 +157,6 @@ function togglePage(){
         showSources();
         document.getElementById('screenshare').style.visibility = "block";
         desktopSharing = true;
-        console.log("Desktop sharing started.. desktop_id:" + desktop_id);
         navigator.webkitGetUserMedia({
             audio: false,
             video: {
@@ -193,9 +175,6 @@ function togglePage(){
 // Tokbox
 
     function initializeTokboxSession() {
-        console.log("\n\n\n\n #$######\n TRYING TO START SESSION")
-        console.log("projectAPIKey: " + projectAPIKey)
-        console.log("sessionId: " + sessionID)
         session = OT.initSession(projectAPIKey, sessionID);
         session.on('sessionDisconnected', (event) => {
             console.log('You were disconnected from the session.', event.reason);
@@ -213,8 +192,6 @@ function togglePage(){
     var publisher; 
     function startTokboxPublisher(stream){
         publisher = document.createElement("div");
-        console.log("publisher pushed")
-
         var publisherOptions = {
             videoSource: stream.getVideoTracks()[0],
             audioSource: null,
@@ -240,7 +217,6 @@ function togglePage(){
 
 
     function stopTokBoxPublisher(){
-        console.log("TOK BOX STOPPED!")
         publisher.destroy();
     }
 
@@ -253,11 +229,8 @@ function togglePage(){
     let session;
 
     ipcRenderer.on('connectionInfo', function(event, message){
-        console.log("event:" + event);
-        console.log("MESSAGE FROM MAIN:" + message);
         const connectionInfo = JSON.parse(message);
         projectAPIKey = connectionInfo.projectAPIKey;
-        console.log()
         sessionID = connectionInfo.sessionID;
         token = connectionInfo.token;
 
