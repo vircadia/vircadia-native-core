@@ -18,7 +18,7 @@ if (osType == "Darwin" || osType == "Linux") {
     height = 660;
 } else if (osType == "Windows_NT") {
     width = 973;
-    height = 735;
+    height = 740;
 }
 
 if (!gotTheLock) {

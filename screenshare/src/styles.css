@@ -1,5 +1,5 @@
 body {
-  background: black;
+  background-color: black;
   box-sizing: border-box;
   /* display: -webkit-flex; */
   /* -webkit-justify-content: center; */
@@ -41,12 +41,16 @@ body {
 .button_confirmation {
     margin: 4px;
     cursor: pointer;
-    width: 250px;
-    height: 75px;
-    line-height: 75px;
+    width: 300px;
+    height: 32px;
+    line-height: 32px;
     text-align: center;
     vertical-align: middle;
     color: white
+}
+
+.grey_background {
+  background-color: #191919;
 }
 
 #no {
