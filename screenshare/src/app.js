@@ -245,20 +245,21 @@ function togglePage(){
 
   
 // main TODO:
-    // const {ipcRenderer} = ipcRenderer;
-    // let apiKey;
-    // let sessionId;
-    // let token;
-    // let session;
-    // ipcRenderer.on('connectionInfo', function(event, message){
-    //     console.log("event", event);
-    //     console.log("MESSAGE FROM MAIN", message);
-    //     const connectionInfo = JSON.parse(message); 
+    const ipcRenderer = electron.ipcRenderer;
+    let apiKey;
+    let sessionId;
+    let token;
+    let session;
+
+    ipcRenderer.on('connectionInfo', function(event, message){
+        console.log("event:" + event);
+        console.log("MESSAGE FROM MAIN:" + message);
+        // const connectionInfo = JSON.parse(message); 
         // apiKey = connectionInfo.apiKey;
         // sessionId = connectionInfo.sessionId;
         // token = connectionInfo.token;
         // initializeTokboxSession();
-    // })
+    })
 
     function startup(){
         console.log("\n\n IN STARTUP \n\n") 
