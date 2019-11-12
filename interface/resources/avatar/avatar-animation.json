@@ -4804,16 +4804,117 @@
                                                                                             },
                                                                                             {
                                                                                                 "children": [
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 59,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/settle_to_idle.fbx"
+                                                                                                        },
+                                                                                                        "id": "idleSettle01",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "blendType": "",
+                                                                                                            "endFrame": 40,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/settle_to_idle02.fbx"
+                                                                                                        },
+                                                                                                        "id": "idleSettle02",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 60,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/settle_to_idle03.fbx"
+                                                                                                        },
+                                                                                                        "id": "idleSettle03",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 82,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/settle_to_idle04.fbx"
+                                                                                                        },
+                                                                                                        "id": "idleSettle04",
+                                                                                                        "type": "clip"
+                                                                                                    }
                                                                                                 ],
                                                                                                 "data": {
+                                                                                                    "currentState": "idleSettle01",
                                                                                                     "endFrame": 59,
                                                                                                     "loopFlag": false,
+                                                                                                    "randomSwitchTimeMin": 1,
                                                                                                     "startFrame": 1,
+                                                                                                    "states": [
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "idleSettle01",
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "idleSettle02",
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "idleSettle03",
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "idleSettle04",
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ],
                                                                                                     "timeScale": 1,
-                                                                                                    "url": "qrc:///avatar/animations/settle_to_idle_small.fbx"
+                                                                                                    "url": "qrc:///avatar/animations/settle_to_idle.fbx"
                                                                                                 },
                                                                                                 "id": "idleSettle",
-                                                                                                "type": "clip"
+                                                                                                "type": "randomSwitchStateMachine"
                                                                                             },
                                                                                             {
                                                                                                 "children": [
@@ -5346,6 +5447,19 @@
                                                                                                 },
                                                                                                 "id": "LANDRUN",
                                                                                                 "type": "clip"
+                                                                                            },
+                                                                                            {
+                                                                                                "children": [
+                                                                                                ],
+                                                                                                "data": {
+                                                                                                    "endFrame": 40,
+                                                                                                    "loopFlag": false,
+                                                                                                    "startFrame": 1,
+                                                                                                    "timeScale": 1,
+                                                                                                    "url": "qrc:///avatar/animations/settle_to_idle_small.fbx"
+                                                                                                },
+                                                                                                "id": "idleSettleSmall",
+                                                                                                "type": "clip"
                                                                                             }
                                                                                         ],
                                                                                         "data": {
@@ -5371,7 +5485,7 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "idle",
-                                                                                                    "interpDuration": 15,
+                                                                                                    "interpDuration": 20,
                                                                                                     "interpTarget": 20,
                                                                                                     "interpType": "evaluateBoth",
                                                                                                     "transitions": [
@@ -5503,13 +5617,114 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "idleSettle",
-                                                                                                    "interpDuration": 13,
-                                                                                                    "interpTarget": 14,
+                                                                                                    "interpDuration": 15,
+                                                                                                    "interpTarget": 15,
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idle",
-                                                                                                            "var": "idleSettleOnDone"
+                                                                                                            "var": "idleSettle01OnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "idleSettle02OnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "idleSettle03OnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "idleSettle04OnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "reactionPositiveTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "reactionNegativeTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "reactionRaiseHandEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "reactionApplaudEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "reactionPointEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "WALKFWD",
+                                                                                                            "var": "isInputForward"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "WALKBWD",
+                                                                                                            "var": "isInputBackward"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "STRAFERIGHT",
+                                                                                                            "var": "isInputRight"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "STRAFELEFT",
+                                                                                                            "var": "isInputLeft"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "strafeRightHmd",
+                                                                                                            "var": "isMovingRightHmd"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "strafeLeftHmd",
+                                                                                                            "var": "isMovingLeftHmd"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "turnRight",
+                                                                                                            "var": "isTurningRight"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "turnLeft",
+                                                                                                            "var": "isTurningLeft"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "fly",
+                                                                                                            "var": "isFlying"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "takeoffStand",
+                                                                                                            "var": "isTakeoffStand"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "TAKEOFFRUN",
+                                                                                                            "var": "isTakeoffRun"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "inAirStand",
+                                                                                                            "var": "isInAirStand"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "INAIRRUN",
+                                                                                                            "var": "isInAirRun"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seated",
+                                                                                                            "var": "isSeated"
+                                                                                                        }
+                                                                                                    ]
+                                                                                                },
+                                                                                                {
+                                                                                                    "easingType": "easeInOutQuad",
+                                                                                                    "id": "idleSettleSmall",
+                                                                                                    "interpDuration": 10,
+                                                                                                    "interpTarget": 10,
+                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "transitions": [
+                                                                                                        {
+                                                                                                            "state": "idle",
+                                                                                                            "var": "idleSettleSmallOnDone"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "idle",
@@ -5596,6 +5811,10 @@
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
                                                                                                         {
+                                                                                                            "state": "idleSettleSmall",
+                                                                                                            "var": "isNotInputNoMomentum"
+                                                                                                        },
+                                                                                                        {
                                                                                                             "state": "idleSettle",
                                                                                                             "var": "isNotInputSlow"
                                                                                                         },
@@ -5659,6 +5878,10 @@
                                                                                                     "interpTarget": 35,
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
+                                                                                                        {
+                                                                                                            "state": "idleSettleSmall",
+                                                                                                            "var": "isNotInputNoMomentum"
+                                                                                                        },
                                                                                                         {
                                                                                                             "state": "idleSettle",
                                                                                                             "var": "isNotInputSlow"
@@ -5724,6 +5947,10 @@
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
                                                                                                         {
+                                                                                                            "state": "idleSettleSmall",
+                                                                                                            "var": "isNotInputNoMomentum"
+                                                                                                        },
+                                                                                                        {
                                                                                                             "state": "idleSettle",
                                                                                                             "var": "isNotInputSlow"
                                                                                                         },
@@ -5787,6 +6014,10 @@
                                                                                                     "interpTarget": 25,
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
+                                                                                                        {
+                                                                                                            "state": "idleSettleSmall",
+                                                                                                            "var": "isNotInputNoMomentum"
+                                                                                                        },
                                                                                                         {
                                                                                                             "state": "idleSettle",
                                                                                                             "var": "isNotInputSlow"

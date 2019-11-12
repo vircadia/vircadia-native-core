@@ -14,6 +14,9 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <algorithm>
+
+#include "AudioHelpers.h"
 
 static const int HRTF_AZIMUTHS = 72;    // 360 / 5-degree steps
 static const int HRTF_TAPS = 64;        // minimum-phase FIR coefficients
@@ -34,6 +37,9 @@ static const float HRTF_HEAD_RADIUS = 0.0875f;  // average human head in meters
 static const float ATTN_DISTANCE_REF = 2.0f;    // distance where attn is 0dB
 static const float ATTN_GAIN_MAX = 16.0f;       // max gain allowed by distance attn (+24dB)
 
+// Distance filter
+static const float LPF_DISTANCE_REF = 256.0f;   // approximation of sound propogation in air
+
 class AudioHRTF {
 
 public:
@@ -47,8 +53,10 @@ public:
     // distance: source distance in meters
     // gain: gain factor for distance attenuation
     // numFrames: must be HRTF_BLOCK in this version
+    // lpfDistance: distance filter adjustment (distance to 1kHz lowpass in meters)
     //
-    void render(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames);
+    void render(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames,
+                float lpfDistance = LPF_DISTANCE_REF);
 
     //
     // Non-spatialized direct mix (accumulates into existing output)
@@ -59,11 +67,14 @@ public:
     //
     // Fast path when input is known to be silent and state as been flushed
     //
-    void setParameterHistory(float azimuth, float distance, float gain) {
+    void setParameterHistory(float azimuth, float distance, float gain, float lpfDistance = LPF_DISTANCE_REF) {
         // new parameters become old
         _azimuthState = azimuth;
         _distanceState = distance;
         _gainState = gain;
+
+        _lpfState = 0.5f * fastLog2f(std::max(distance, 1.0f)) / fastLog2f(std::max(lpfDistance, 2.0f));
+        _lpfState = std::min(std::max(_lpfState, 0.0f), 1.0f);
     }
 
     //
@@ -88,6 +99,7 @@ public:
             _azimuthState = 0.0f;
             _distanceState = 0.0f;
             _gainState = 0.0f;
+            _lpfState = 0.0f;
 
             // _gainAdjust is retained
 
@@ -123,6 +135,7 @@ private:
     float _azimuthState = 0.0f;
     float _distanceState = 0.0f;
     float _gainState = 0.0f;
+    float _lpfState = 0.0f;
 
     // global and local gain adjustment
     float _gainAdjust = HRTF_GAIN;
