@@ -1790,12 +1790,11 @@ public:
     Q_INVOKABLE void releaseEyesLookAtControl();
 
     /**jsdoc
-    * Aims the pointing directional blending towards the provided target point.
-    * The "point" reaction should be triggered before using this method. 
-    * <code>MyAvatar.beginReaction("point")</code>
-    * Returns <code>true</code> if the target point lays in front of the avatar.
+    * Aims the pointing directional blending towards the provided target point. The "point" reaction should be triggered 
+    * before using this method with the code <code>MyAvatar.beginReaction("point")</code>.
     * @function MyAvatar.setPointAt
     * @param {Vec3} pointAtTarget - The target point in world coordinates.
+    * @returns {boolean} <code>true</code> if the target point lays in front of the avatar; <code>false</code> otherwise.
     */
     Q_INVOKABLE bool setPointAt(const glm::vec3& pointAtTarget);
 
