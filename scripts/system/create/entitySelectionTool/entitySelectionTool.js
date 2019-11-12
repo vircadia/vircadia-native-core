@@ -1118,8 +1118,9 @@ SelectionDisplay = (function() {
             return false;
         }
 
-        // No action if the Alt key is pressed.
-        if (event.isAlt) {
+        // No action if the Alt key is pressed unless on Mac.
+        var isMac = Controller.getValue(Controller.Hardware.Application.PlatformMac);
+        if (event.isAlt && !isMac) {
             return;
         }
 
