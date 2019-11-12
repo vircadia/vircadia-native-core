@@ -3513,21 +3513,69 @@ void MyAvatar::updateOrientation(float deltaTime) {
             }
             setWorldOrientation(glm::slerp(getWorldOrientation(), faceRotation, blend));
         } else if (isRotatingWhileSeated) {
+            float direction = -getDriveKey(TRANSLATE_X);
+            float seatedTargetSpeed = direction * _yawSpeed * deltaTime;
 
-            float seatedTargetSpeed = -getDriveKey(TRANSLATE_X) * _yawSpeed;
-
-            const float SEATED_ROTATION_RAMP_TIMESCALE = 0.5f;
+            const float SEATED_ROTATION_RAMP_TIMESCALE = 1.0; //used as divisor
             float blend = deltaTime / SEATED_ROTATION_RAMP_TIMESCALE;
             if (blend > 1.0f) {
                 blend = 1.0f;
             }
-            _seatedBodyYawDelta = (1.0f - blend) * _seatedBodyYawDelta + blend * seatedTargetSpeed;
+
+            /////// ease in
+            //_seatedBodyYawDelta = (1.0f - blend) * _seatedBodyYawDelta + blend * seatedTargetSpeed;
+
+            /////// ease out WIP
+
+            if (fabsf(_seatedBodyYawDelta) > 0.0f) {
+                //we are rotating
+                if (fabsf(_seatedBodyYawDelta) >= fabsf(seatedTargetSpeed)) {
+                    //we've reached target speed
+                    _seatedBodyYawDelta = seatedTargetSpeed;
+                } else {
+                    _seatedInterpTime += blend;
+                    _seatedBodyYawDelta = _seatedInterpTime * _seatedInterpTime * direction;
+                }
+            } else {
+                //init rotation
+                _seatedInterpTime = blend;
+                _seatedBodyYawDelta = blend * direction;
+            }
+
+            //////// linear
+            //if (_seatedBodyYawDelta < seatedTargetSpeed) {
+            //    _seatedBodyYawDelta += blend;
+            //}
+
             setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, _seatedBodyYawDelta, 0.0f))));
 
+            qDebug() << "_seatedBodyYawDelta: " << _seatedBodyYawDelta;
 
-
+            //original
             //float rotatingWhileSeatedYaw = -getDriveKey(TRANSLATE_X) * _yawSpeed * deltaTime;
             //setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, rotatingWhileSeatedYaw, 0.0f))));
+
+            //qDebug() << "_seatedBodyYawDelta: " << rotatingWhileSeatedYaw;
+        } else if (_characterController.getSeated() && _seatedBodyYawDelta > 0.0f) {
+            // attenuate body rotation speed
+            const float SEATED_ROTATION_DECAY_TIMESCALE = 0.05f;
+            float attenuation = 1.0f - deltaTime / SEATED_ROTATION_DECAY_TIMESCALE;
+            if (attenuation < 0.0f) {
+                attenuation = 0.0f;
+            }
+            _seatedBodyYawDelta *= attenuation;
+
+            float MINIMUM_ROTATION_RATE = 2.0f;
+            if (fabsf(_seatedBodyYawDelta) < MINIMUM_ROTATION_RATE) {
+                _seatedBodyYawDelta = 0.0f;
+            }
+
+            setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, _seatedBodyYawDelta, 0.0f))));
+
+            qDebug() << "attenuated _seatedBodyYawDelta: " << _seatedBodyYawDelta;
+        } else {
+            _seatedBodyYawDelta = 0.0f;
+            _seatedInterpTime = 0.0f;
         }
     }
 

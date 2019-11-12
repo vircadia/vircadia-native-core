@@ -663,6 +663,7 @@ protected:
 
     float _bodyYawDelta { 0.0f };  // degrees/sec
     float _seatedBodyYawDelta{ 0.0f };  //degrees/sec
+    float _seatedInterpTime{ 0.0f };    //used to transition rot while seated.
 
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces

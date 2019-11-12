@@ -1093,6 +1093,12 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         const float TURN_ENTER_SPEED_THRESHOLD = 0.5f; // rad/sec
         const float TURN_EXIT_SPEED_THRESHOLD = 0.2f; // rad/sec
 
+        //stategraph vars based on input
+        const float INPUT_DEADZONE_THRESHOLD = 0.05f;
+        const float SLOW_SPEED_THRESHOLD = 1.5f;
+        const float HAS_MOMENTUM_THRESHOLD = 2.2f;
+        const float RESET_MOMENTUM_THRESHOLD = 0.05f;
+
         if (ccState == CharacterControllerState::Hover) {
             if (_desiredState != RigRole::Hover) {
                 _desiredStateAge = 0.0f;
@@ -1412,21 +1418,21 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
             _animVars.set("inAirAlpha", alpha);
         } else if (_state == RigRole::Seated) {
-            if (turningSpeed > 0.05f) {
-                // seated turning right
-                _animVars.set("isSeatedTurningRight", true);
-                _animVars.set("isSeatedTurningLeft", false);
-                _animVars.set("isSeatedNotTurning", false);
-            } else if (turningSpeed < -0.05f) {
-                // seated turning left
-                _animVars.set("isSeatedTurningRight", false);
-                _animVars.set("isSeatedTurningLeft", true);
-                _animVars.set("isSeatedNotTurning", false);
-            } else {
+            if (fabsf(_previousControllerParameters.inputX) <= INPUT_DEADZONE_THRESHOLD) {
                 // seated not turning
                 _animVars.set("isSeatedTurningRight", false);
                 _animVars.set("isSeatedTurningLeft", false);
                 _animVars.set("isSeatedNotTurning", true);
+            } else if (turningSpeed > 0.1f) {
+                // seated turning right
+                _animVars.set("isSeatedTurningRight", true);
+                _animVars.set("isSeatedTurningLeft", false);
+                _animVars.set("isSeatedNotTurning", false);
+            } else if (turningSpeed < -0.1f) {
+                // seated turning left
+                _animVars.set("isSeatedTurningRight", false);
+                _animVars.set("isSeatedTurningLeft", true);
+                _animVars.set("isSeatedNotTurning", false);
             }
 
             _animVars.set("isMovingForward", false);
@@ -1470,11 +1476,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         _lastEnableInverseKinematics = _enableInverseKinematics;
 
 
-        //stategraph vars based on input
-        const float INPUT_DEADZONE_THRESHOLD = 0.05f;
-        const float SLOW_SPEED_THRESHOLD = 1.5f;
-        const float HAS_MOMENTUM_THRESHOLD = 2.2f;
-        const float RESET_MOMENTUM_THRESHOLD = 0.05f;
+
 
         if (fabsf(_previousControllerParameters.inputX) <= INPUT_DEADZONE_THRESHOLD &&
             fabsf(_previousControllerParameters.inputZ) <= INPUT_DEADZONE_THRESHOLD) {
