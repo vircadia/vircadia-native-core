@@ -10,20 +10,31 @@ const connectionInfo = {
     sessionID: argv.sessionID || "sessionID"
 }
 
+const osType = require('os').type();
+let width;
+let height;
+if (osType == "Darwin" || osType == "Linux") {
+    width = 960;
+    height = 660;
+} else if (osType == "Windows_NT") {
+    width = 973;
+    height = 735;
+}
+
 if (!gotTheLock) {
-//   log.warn("Another instance of the screenshare is already running - this instance will quit.");
+  console.log("Another instance of the screenshare is already running - this instance will quit.");
   app.exit(0);
   return;
 }
 
-var window;
+let window;
+const zoomFactor = 1.0;
 function createWindow(){
     console.log("Creating window")
-    const zoomFactor = 1.0;
     window = new BrowserWindow({
         backgroundColor: "#000000",
-        width: 940 * zoomFactor,
-        height: 660 * zoomFactor,
+        width: width,
+        height: height,
         center: true,
         frame: true,
         useContentSize: true,
