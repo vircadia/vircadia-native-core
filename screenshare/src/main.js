@@ -6,7 +6,8 @@ const {app, BrowserWindow, ipcMain} = require('electron');
 const gotTheLock = app.requestSingleInstanceLock()
 const argv = require('yargs').argv;
 // ./screenshare.exe --userName=miladN ...
-
+console.log("argV:", argv)
+console.log("argV Username", argv.userName);
 const connectionInfo = {
     userName: argv.userName || "testName",
     displayName: argv.displayName || "displayName",
@@ -23,6 +24,7 @@ if (!gotTheLock) {
 
 var window;
 function createWindow(){
+    console.log("Creating window")
     const zoomFactor = 1.0;
     window = new BrowserWindow({
         backgroundColor: "#000000",
@@ -33,24 +35,26 @@ function createWindow(){
         useContentSize: true,
         zoomFactor: zoomFactor,
         resizable: false,
-        alwaysOnTop: false, // TRY
         webPreferences: {
             nodeIntegration: true
         }
     });
     window.loadURL('file://' + __dirname + '/index.html');
     window.setMenu(null);
+    
+    window.webContents.on("did-finish-load", function(){
+        console.log("connectionInfo:", connectionInfo)
+        console.log("in did finish loading");
+        window.webContents.send('connectionInfo', JSON.stringify(connectionInfo));
+    });
 
-    window.once('ready-to-show', () => {
-        window.show();       
-        window.webContents.openDevTools()
-    })
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
+console.log("setting up on ready");
 app.on('ready', function() {
+    console.log("app ready");
     createWindow();
-    console.log("sending info");
-    window.webContents.send('connectionInfo', JSON.stringify(connectionInfo))
 });
+
