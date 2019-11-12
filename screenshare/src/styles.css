@@ -6,14 +6,8 @@ body {
   /* -webkit-align-items: center; */
   /* -webkit-flex-direction: column; */
   font-family: "Graphik";
-  margin: 0px;
-
+  margin: 0px 22px 10px 22px;
   }
-html::-webkit-scrollbar {
-  overflow: scroll;
-  overflow-x: hidden;
-  width: 0px;
-}
 
 #confirmation_screen {
   /* background-color: orange; */
@@ -25,7 +19,7 @@ html::-webkit-scrollbar {
 }
 
 #confirmation_text {
-  margin-top: 25px;
+  margin-top: 65px;
   font-size: 25px;
   line-height: 25px;
 }
@@ -44,9 +38,39 @@ html::-webkit-scrollbar {
   flex-direction: column;
 }
 
+.button_confirmation {
+    margin: 4px;
+    cursor: pointer;
+    width: 250px;
+    height: 75px;
+    line-height: 75px;
+    text-align: center;
+    vertical-align: middle;
+    color: white
+}
+
+#no {
+    color: rgba(1, 152, 203,0.7);
+}
+
+#no:hover {
+    color: rgba(1, 152, 203,1);
+}
+
+#yes {
+    outline: solid white 2px;
+}
+
+#yes:hover {
+    background: #0198CB;
+}
+
+yes:hover + #yes_background {
+    display: block;
+}
 
 #share_pick {
-  /* background-color: blue; */
+    margin-top: 60px;
 }
 
 .text_title {
@@ -59,19 +83,13 @@ html::-webkit-scrollbar {
 }
 
 #title {
-  margin-left: 21px;
   margin-top: 21px;
-}
-
-#selects {
-  margin-left: 21px;
-  margin-top: 70px;
 }
 
 h1 {
   line-height: 48px;
   font-size: 48px;
-  margin: 0px 0px 0px 0px;
+  margin: 0px;
 }
 
 h3 {
@@ -91,11 +109,15 @@ h3 {
   border-radius: 3px;
 }
 
+#selects {
+    margin-right: 19px;
+    padding-left: 3px;
+}
+
 .screen_label {
   max-width: 220px;
   font-size: 25px;
   line-height: 25px;
-  margin-left: 15px;
   color: white;
   white-space: nowrap;
   overflow: hidden;
@@ -104,40 +126,39 @@ h3 {
 
 .icon {
   display: inline-block;
-  background: #C4C4C4;
+  background: #000000;
   width: 20px;
   height: 20px;
-  border-radius: 50%;
-}
-
-.circle:hover{
-  background-color: yellow;
-  cursor: pointer;
-}
-
-.button_confirmation {
-  margin: 4px;
-  cursor: pointer;
-  width: 250px;
-  height: 75px;
-  line-height: 75px;
-  text-align: center;
-  vertical-align: middle;
-}
-
-.button_confirmation:hover {
-  outline: solid white 2px;
-  width: 250px;
+  margin-right: 15px;
 }
 
 .box {
-  /* background-color: orange; */
   height: 165px;
   width: 265px;
   display: inline-block;
   margin-left: 35px;
-  margin-bottom: 40px;
-  margin-top: 20px;
+  margin-top: 60px;
+  cursor: pointer;
+}
+
+.box:nth-child(1) {
+    margin-top: 0 !important;
+}
+
+.box:nth-child(2) {
+    margin-top: 0 !important;
+}
+
+.box:nth-child(3) {
+    margin-top: 0 !important;
+}
+
+.box:nth-child(3n) {
+    margin-right: 0 !important;
+}
+
+.box:nth-child(3n+1) {
+    margin-left: 0 !important;
 }
 
 .heading {
@@ -147,11 +168,11 @@ h3 {
 }
 
 .image {
-  background-color: blue;
   width: 265px;
   height: 165px;
   max-height: 165px;
   max-width: 265px;
+  margin: 0px;
 }
 
 .image:hover {
@@ -159,7 +180,6 @@ h3 {
 }
 
 .image_no_hover {
-  background-color: blue;
   width: 265px;
   height: 165px;
   max-height: 165px;
@@ -169,34 +189,33 @@ h3 {
 img {
   width: 265px;
   height: 165px;
+  margin: 0px;
 }
 
 .scrollbar {
   float: right;
-  height: 470px;
-  margin-right: 20px;
+  height: 500px;
   width: 100%;
   overflow-y: scroll;
+  margin-top: 40px;
 }
 
 #style-1::-webkit-scrollbar {
-  width: 15px;
-  background-color: red;
+  width: 9px;
+  overflow: scroll;
+  overflow-x: hidden;
 } 
 
 #style-1::-webkit-scrollbar-thumb {
   background-color: #0198CB;
-
+  width: 9px;
 }
 
 #style-1::-webkit-scrollbar-track {
   -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
   background-color: #848484;
-  margin-right: 22px;
+  width: 9px;
 }
-
-
-
 
 
 

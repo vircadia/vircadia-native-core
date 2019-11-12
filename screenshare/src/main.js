@@ -26,8 +26,8 @@ function createWindow(){
     const zoomFactor = 1.0;
     window = new BrowserWindow({
         backgroundColor: "#000000",
-        width: 1280 * zoomFactor,
-        height: 720 * zoomFactor,
+        width: 940 * zoomFactor,
+        height: 660 * zoomFactor,
         center: true,
         frame: true,
         useContentSize: true,
