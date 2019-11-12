@@ -488,7 +488,6 @@ bool OBJSerializer::parseOBJGroup(OBJTokenizer& tokenizer, const hifi::VariantHa
     FaceGroup faces;
     HFMMesh& mesh = hfmModel.meshes[0];
     mesh.parts.push_back(HFMMeshPart());
-    HFMMeshPart& meshPart = mesh.parts.back();
     bool sawG = false;
     bool result = true;
     int originalFaceCountForDebugging = 0;
