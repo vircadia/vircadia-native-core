@@ -64,10 +64,12 @@ function togglePage(){
     if (currentPage === "mainPage") {
         currentPage = "confirmationPage";
         document.getElementById("select_screen").style.display = "none";
+        document.getElementById("subtitle").innerHTML = "Confirm that you'd like to share this content.";
         document.getElementById("confirmation_screen").style.display = "block";
     } else {
         currentPage = "mainPage";
         document.getElementById("select_screen").style.display = "block";
+        document.getElementById("subtitle").innerHTML = "Please select the content you'd like to share.";
         document.getElementById("confirmation_screen").style.display = "none";
     }
 }
