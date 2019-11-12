@@ -398,8 +398,8 @@ const GROUPS = [
             {
                 label: "Base",
                 type: "number-draggable",
-                min: -1000,
-                max: 1000,
+                min: -16000,
+                max: 16000,
                 step: 1,
                 decimals: 0,
                 unit: "m",
@@ -409,8 +409,8 @@ const GROUPS = [
             {
                 label: "Ceiling",
                 type: "number-draggable",
-                min: -1000,
-                max: 5000,
+                min: -16000,
+                max: 16000,
                 step: 1,
                 decimals: 0,
                 unit: "m",

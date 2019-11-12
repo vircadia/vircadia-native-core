@@ -561,7 +561,8 @@ var toolBar = (function () {
             if (!properties.grab) {
                 properties.grab = {};
                 if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
-                    !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
+                    !(properties.type === "Zone" || properties.type === "Light"
+                    || properties.type === "ParticleEffect" || properties.type === "Web")) {
                     properties.grab.grabbable = true;
                 } else {
                     properties.grab.grabbable = false;
