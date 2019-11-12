@@ -94,7 +94,7 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
 
         token = answerJSONObject["token"].toString();
         projectAPIKey = answerJSONObject["projectAPIKey"].toString();
-        sessionID = answerJSONObject["sessionID"].toString();  // hifi-test has Id camel-case. Change for metaverse. 
+        sessionID = answerJSONObject["sessionID"].toString();
         qDebug() << "token:" << token << " projectAPIKey:" << projectAPIKey << " sessionID: " << sessionID;
 
         if (isPresenter) {
@@ -155,7 +155,6 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
                                      return;
                                  }
 
-                                 qDebug() << "MN HERE! message:" << message;
                                  QByteArray jsonByteArray = QVariant(message).toString().toUtf8();
                                  QJsonDocument jsonObject = QJsonDocument::fromJson(jsonByteArray);
 
