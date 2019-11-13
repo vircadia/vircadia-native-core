@@ -148,6 +148,22 @@ class MyAvatar : public Avatar {
      *     size in the virtual world. <em>Read-only.</em>
      * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't.
      *     <em>Read-only.</em>
+     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> if blendshapes are controlled by scripted actions, 
+     *     otherwise <code>false</code>. Set this to true before using the {@link MyAvatar.setBlendshape} method, and set back 
+     *     to false after you no longer want scripted control over the blendshapes.
+     *     <p>NOTE: This property will automatically be set to true if the Controller system has valid facial blendshape 
+     *     actions.</p>
+     * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating 
+     *     facial blendshapes, <code>false</code> if automatic blinking is disabled. Set this property to false if you wish to
+     *     fully control the blink facial blendshapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blendshapes for an avatar's eyes 
+     *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property 
+     *     to true to prevent the iris from being obscured by the upper or lower lids. Set this property to <code>false</code> 
+     *     if you wish to fully control the eye blendshapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blendshapes animate 
+     *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set 
+     *     this property to false if you wish to fully control the mouth facial blendshapes via the 
+     *     {@link MyAvatar.setBlendshape} method.
      *
      * @comment IMPORTANT: This group of properties is copied from Avatar.h; they should NOT be edited here.
      * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
