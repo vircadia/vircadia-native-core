@@ -111,11 +111,17 @@ QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode, const QString&
     }
 
     if (defaultDesktopDevice.getDevice().isNull()) {
-        qCDebug(audioclient) << __FUNCTION__ << "Default device not found in list:" << defDeviceName
-            << "Setting Default to: " << devices.first().deviceName();
-        defaultDesktopDevice = HifiAudioDeviceInfo(devices.first(), true, mode, HifiAudioDeviceInfo::desktop);
+        if (devices.size() > 0) {
+            qCDebug(audioclient) << __FUNCTION__ << "Default device not found in list:" << defDeviceName
+                << "Setting Default to: " << devices.first().deviceName();
+            newDevices.push_front(HifiAudioDeviceInfo(devices.first(), true, mode, HifiAudioDeviceInfo::desktop));
+        } else {
+            //current audio list is empty for some reason.
+            qCDebug(audioclient) << __FUNCTION__ << "Default device not found in list no alternative selection available";
+        }
+    } else {
+        newDevices.push_front(defaultDesktopDevice);
     }
-    newDevices.push_front(defaultDesktopDevice);
 
     if (!hmdName.isNull()) {
         HifiAudioDeviceInfo hmdDevice;
@@ -1829,6 +1835,8 @@ bool AudioClient::switchInputToAudioDevice(const HifiAudioDeviceInfo inputDevice
         _audioInput->deleteLater();
         _audioInput = NULL;
         _numInputCallbackBytes = 0;
+
+        _inputDeviceInfo.setDevice(QAudioDeviceInfo());
     }
 
     if (_dummyAudioInput) {
@@ -2075,6 +2083,8 @@ bool AudioClient::switchOutputToAudioDevice(const HifiAudioDeviceInfo outputDevi
 
         delete[] _localOutputMixBuffer;
         _localOutputMixBuffer = NULL;
+        
+        _outputDeviceInfo.setDevice(QAudioDeviceInfo());
     }
 
     // cleanup any resamplers
