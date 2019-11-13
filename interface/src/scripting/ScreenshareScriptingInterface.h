@@ -31,7 +31,8 @@ public:
     Q_INVOKABLE void stopScreenshare();
 
 signals:
-    void screenshareStopped();
+    void screenshareError();
+    void screenshareProcessTerminated();
     void startScreenshareViewer();
 
 private slots:

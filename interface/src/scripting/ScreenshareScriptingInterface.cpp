@@ -79,6 +79,8 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
         QFileInfo screenshareExecutable(SCREENSHARE_EXE_PATH);
         if (!screenshareExecutable.exists() || !screenshareExecutable.isFile()) {
             qDebug() << "Screenshare executable doesn't exist at" << SCREENSHARE_EXE_PATH;
+            stopScreenshare();
+            emit screenshareError();
             return;
         }
     }
@@ -115,6 +117,7 @@ void ScreenshareScriptingInterface::stopScreenshare() {
 
     if (_screenshareProcess && _screenshareProcess->state() != QProcess::NotRunning) {
         _screenshareProcess->terminate();
+        emit screenshareProcessTerminated();
     }
 
     if (!_screenshareViewerLocalWebEntityUUID.isNull()) {
@@ -138,8 +141,10 @@ void ScreenshareScriptingInterface::handleSuccessfulScreenshareInfoGet(QNetworkR
     QJsonDocument answerJSONObject = QJsonDocument::fromJson(answerByteArray);
 
     QString status = answerJSONObject["status"].toString();
-    if (status == "fail") {
+    if (status != "success") {
         qDebug() << "\n\n MN HERE: SCREENSHARE REPLY FAIL";
+        stopScreenshare();
+        emit screenshareError();
         return;
     }
 
@@ -147,6 +152,13 @@ void ScreenshareScriptingInterface::handleSuccessfulScreenshareInfoGet(QNetworkR
     _projectAPIKey = answerJSONObject["projectAPIKey"].toString();
     _sessionID = answerJSONObject["sessionID"].toString();
     qDebug() << "token:" << _token << " projectAPIKey:" << _projectAPIKey << " sessionID: " << _sessionID;
+
+    if (_token.isEmpty() || _projectAPIKey.isEmpty() || _sessionID.isEmpty()) {
+        qDebug() << "Not all Screen Share information was retrieved from the backend. Stopping...";
+        stopScreenshare();
+        emit screenshareError();
+        return;
+    }
 
     if (_isPresenter) {
         QStringList arguments;
@@ -164,7 +176,6 @@ void ScreenshareScriptingInterface::handleSuccessfulScreenshareInfoGet(QNetworkR
         connect(_screenshareProcess.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             [=](int exitCode, QProcess::ExitStatus exitStatus) {
                 qDebug() << "ZRF QProcess::finished. `exitCode`:" << exitCode << "`exitStatus`:" << exitStatus;
-                emit screenshareStopped();
                 stopScreenshare();
             });
 
@@ -172,11 +183,15 @@ void ScreenshareScriptingInterface::handleSuccessfulScreenshareInfoGet(QNetworkR
     }
 
     if (!_screenshareViewerLocalWebEntityUUID.isNull()) {
+        stopScreenshare();
+        emit screenshareError();
         return;
     }
 
     auto esi = DependencyManager::get<EntityScriptingInterface>();
     if (!esi) {
+        stopScreenshare();
+        emit screenshareError();
         return;
     }
 
@@ -200,6 +215,8 @@ void ScreenshareScriptingInterface::handleSuccessfulScreenshareInfoGet(QNetworkR
 
 void ScreenshareScriptingInterface::handleFailedScreenshareInfoGet(QNetworkReply* reply) {
     qDebug() << "\n\n MN HERE: handleFailedScreenshareInfoGet():" << reply->readAll();
+    stopScreenshare();
+    emit screenshareError();
 }
 
 void ScreenshareScriptingInterface::onWebEventReceived(const QUuid& entityID, const QVariant& message) {
