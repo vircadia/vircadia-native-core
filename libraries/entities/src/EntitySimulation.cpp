@@ -43,6 +43,7 @@ void EntitySimulation::updateEntities() {
 }
 
 void EntitySimulation::removeEntityFromInternalLists(EntityItemPointer entity) {
+    // protected: _mutex lock is guaranteed
     // remove from all internal lists except _deadEntitiesToRemoveFromTree
     _entitiesToSort.remove(entity);
     _simpleKinematicEntities.remove(entity);
@@ -144,6 +145,7 @@ void EntitySimulation::sortEntitiesThatMoved() {
 }
 
 void EntitySimulation::addEntityToInternalLists(EntityItemPointer entity) {
+    // protected: _mutex lock is guaranteed
     if (entity->isMortal()) {
         _mortalEntities.insert(entity);
         uint64_t expiry = entity->getExpiry();

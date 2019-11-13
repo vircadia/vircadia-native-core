@@ -171,6 +171,8 @@ void PhysicalEntitySimulation::processChangedEntity(const EntityItemPointer& ent
 }
 
 void PhysicalEntitySimulation::processDeadEntities() {
+    // Note: this override is a complete rewite of the base class's method because we cannot assume all entities
+    // are domain entities, and the consequence of trying to delete a domain-entity in this case is very different.
     if (_deadEntitiesToRemoveFromTree.empty()) {
         return;
     }
