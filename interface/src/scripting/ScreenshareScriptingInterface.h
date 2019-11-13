@@ -36,6 +36,8 @@ signals:
 
 private slots:
     void onWebEventReceived(const QUuid& entityID, const QVariant& message);
+    void handleSuccessfulScreenshareInfoGet(QNetworkReply* reply);
+    void handleFailedScreenshareInfoGet(QNetworkReply* reply);
 
 private:
 #if DEV_BUILD
@@ -63,6 +65,9 @@ private:
     QString _token{ "" };
     QString _projectAPIKey{ "" };
     QString _sessionID{ "" };
+    QUuid _screenshareZoneID;
+    QUuid _smartboardEntityID;
+    bool _isPresenter{ false };
 };
 
 #endif // hifi_ScreenshareScriptingInterface_h
