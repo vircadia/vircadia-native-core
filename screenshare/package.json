@@ -2,7 +2,7 @@
   "name": "highfidelity_screenshare",
   "version": "1.0.0",
   "description": "High Fidelity Screenshare",
-  "main": "src/main.js",
+  "main": "src/screenshareMainProcess.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "packager": "node packager.js"

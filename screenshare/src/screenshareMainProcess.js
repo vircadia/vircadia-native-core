@@ -1,4 +1,12 @@
 'use strict';
+//
+//  screenshareMainProcess.js
+//
+//  Created by Milad Nazeri, and Zach Fox 2019/11/13
+//  Copyright 2019 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 const {app, BrowserWindow, ipcMain} = require('electron');
 const gotTheLock = app.requestSingleInstanceLock()
@@ -53,14 +61,14 @@ function createWindow(){
         // as the screenshare executable during a post-build step
         //icon: "hifi-screenshare-icon.png"
     });
-    window.loadURL('file://' + __dirname + '/index.html');
+    window.loadURL('file://' + __dirname + '/screenshareApp.html');
     window.setMenu(null);
     
     window.webContents.on("did-finish-load", () => {
         window.webContents.send('connectionInfo', JSON.stringify(connectionInfo));
     });
-
 }
+
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
