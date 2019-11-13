@@ -165,6 +165,7 @@ void ScreenshareScriptingInterface::handleSuccessfulScreenshareInfoGet(QNetworkR
             [=](int exitCode, QProcess::ExitStatus exitStatus) {
                 qDebug() << "ZRF QProcess::finished. `exitCode`:" << exitCode << "`exitStatus`:" << exitStatus;
                 emit screenshareStopped();
+                stopScreenshare();
             });
 
         _screenshareProcess->start(SCREENSHARE_EXE_PATH, arguments);
