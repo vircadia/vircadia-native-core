@@ -1547,19 +1547,29 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
             if (_previousControllerParameters.inputX > 0.0f) {
                 // right
+                if (!_headEnabled) {
+                    _animVars.set("isInputRight", true);
+                } else {
+                    _animVars.set("isInputRight", false);
+                }
+
+                _animVars.set("isInputLeft", false);
                 _animVars.set("isInputForward", false);
                 _animVars.set("isInputBackward", false);
-                _animVars.set("isInputRight", true);
-                _animVars.set("isInputLeft", false);
                 _animVars.set("isNotInput", false);
                 _animVars.set("isNotInputSlow", false);
                 _animVars.set("isNotInputNoMomentum", false);
             } else {
                 // left
+                if (!_headEnabled) {
+                    _animVars.set("isInputLeft", true);
+                } else {
+                    _animVars.set("isInputLeft", false);
+                }
+
                 _animVars.set("isInputForward", false);
                 _animVars.set("isInputBackward", false);
                 _animVars.set("isInputRight", false);
-                _animVars.set("isInputLeft", true);
                 _animVars.set("isNotInput", false);
                 _animVars.set("isNotInputSlow", false);
                 _animVars.set("isNotInputNoMomentum", false);
