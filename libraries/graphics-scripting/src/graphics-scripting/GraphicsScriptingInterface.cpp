@@ -258,8 +258,8 @@ scriptable::ScriptableMeshPointer GraphicsScriptingInterface::newMesh(const QVar
     return scriptable::make_scriptowned<scriptable::ScriptableMesh>(mesh, nullptr);
 }
 
-QString GraphicsScriptingInterface::exportModelToOBJ(const scriptable::ScriptableModel& _in) {
-    const auto& in = _in.getConstMeshes();
+QString GraphicsScriptingInterface::exportModelToOBJ(const scriptable::ScriptableModelPointer& model) {
+    const auto& in = model->getConstMeshes();
     if (in.size()) {
         QList<scriptable::MeshPointer> meshes;
         foreach (auto meshProxy, in) {
