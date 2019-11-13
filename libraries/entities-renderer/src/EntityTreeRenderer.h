@@ -230,7 +230,7 @@ private:
 
     class LayeredZones : public std::vector<LayeredZone> {
     public:
-        bool clearDomainAndNonOwnedZones(const QUuid& sessionUUID);
+        bool clearDomainAndNonOwnedZones();
 
         void sort() { std::sort(begin(), end(), std::less<LayeredZone>()); }
         bool equals(const LayeredZones& other) const;
