@@ -32,7 +32,14 @@
 #include <RenderableTextEntityItem.h>
 #include <RenderableWebEntityItem.h>
 
-ScreenshareScriptingInterface::ScreenshareScriptingInterface(){};
+ScreenshareScriptingInterface::ScreenshareScriptingInterface() {
+    auto esi = DependencyManager::get<EntityScriptingInterface>();
+    if (!esi) {
+        return;
+    }
+
+    QObject::connect(esi.data(), &EntityScriptingInterface::webEventReceived, this, &ScreenshareScriptingInterface::onWebEventReceived);
+};
 
 ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {
     stopScreenshare();
@@ -46,9 +53,6 @@ static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION(0.0f, -0.0862
 static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_DIMENSIONS(4.0419f, 2.2735f, 0.0100f);
 static const QString LOCAL_SCREENSHARE_WEB_ENTITY_URL =
     "https://hifi-content.s3.amazonaws.com/Experiences/Releases/usefulUtilities/smartBoard/screenshareViewer/screenshareClient.html";
-QString token;
-QString projectAPIKey;
-QString sessionID;
 void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZoneID,
                                                      const QUuid& smartboardEntityID,
                                                      const bool& isPresenter) {
@@ -60,7 +64,6 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
     }
 
     if (isPresenter && _screenshareProcess && _screenshareProcess->state() != QProcess::NotRunning) {
-        qDebug() << "Screenshare process already running. Aborting...";
         return;
     }
 
@@ -77,7 +80,7 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
     QUuid currentDomainID = DependencyManager::get<AddressManager>()->getDomainID();
     // `https://metaverse.highfidelity.com/api/v1/domain/:domain_id/screenshare`,
     // passing the Domain ID that the user is connected to, as well as the `roomName`.
-    // The server will respond with the relevant OpenTok Token, Session ID, and API Key.
+    // The server will respond with the relevant OpenTok , Session ID, and API Key.
     // Upon error-free response, do the logic below, passing in that info as necessary.
     QNetworkAccessManager* manager = new QNetworkAccessManager();
     QObject::connect(manager, &QNetworkAccessManager::finished, this, [=](QNetworkReply* reply) {
@@ -92,17 +95,17 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
         QByteArray answerByteArray = answer.toUtf8();
         QJsonDocument answerJSONObject = QJsonDocument::fromJson(answerByteArray);
 
-        token = answerJSONObject["token"].toString();
-        projectAPIKey = answerJSONObject["projectAPIKey"].toString();
-        sessionID = answerJSONObject["sessionID"].toString();
-        qDebug() << "token:" << token << " projectAPIKey:" << projectAPIKey << " sessionID: " << sessionID;
+        _token = answerJSONObject["token"].toString();
+        _projectAPIKey = answerJSONObject["projectAPIKey"].toString();
+        _sessionID = answerJSONObject["sessionID"].toString();
+        qDebug() << "token:" << _token << " projectAPIKey:" << _projectAPIKey << " sessionID: " << _sessionID;
 
         if (isPresenter) {
             QStringList arguments;
             arguments << " ";
-            arguments << "--token=" + token << " ";
-            arguments << "--projectAPIKey=" + projectAPIKey << " ";
-            arguments << "--sessionID=" + sessionID << " ";
+            arguments << "--token=" + _token << " ";
+            arguments << "--projectAPIKey=" + _projectAPIKey << " ";
+            arguments << "--sessionID=" + _sessionID << " ";
 
             connect(_screenshareProcess.get(), &QProcess::errorOccurred,
                     [=](QProcess::ProcessError error) { qDebug() << "ZRF QProcess::errorOccurred. `error`:" << error; });
@@ -144,49 +147,6 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
         QString hostType = "local";
         _screenshareViewerLocalWebEntityUUID = esi->addEntity(localScreenshareWebEntityProps, hostType);
 
-        QObject::connect(esi.data(), &EntityScriptingInterface::webEventReceived, this,
-                         [&](const QUuid& entityID, const QVariant& message) {
-                             if (entityID == _screenshareViewerLocalWebEntityUUID) {
-                                 qDebug() << "ZRF HERE! Inside `webEventReceived(). `entityID`:" << entityID
-                                          << "`_screenshareViewerLocalWebEntityUUID`:" << _screenshareViewerLocalWebEntityUUID;
-
-                                 auto esi = DependencyManager::get<EntityScriptingInterface>();
-                                 if (!esi) {
-                                     return;
-                                 }
-
-                                 QByteArray jsonByteArray = QVariant(message).toString().toUtf8();
-                                 QJsonDocument jsonObject = QJsonDocument::fromJson(jsonByteArray);
-
-                                 qDebug() << "ZRF HERE! Inside `webEventReceived(). `message`:" << message
-                                          << "`jsonObject`:" << jsonObject;
-                                 qDebug() << jsonObject["app"];
-                                 if (jsonObject["app"] != "screenshare") {
-                                     return;
-                                 }
-
-                                 qDebug() << "ZRF HERE! Inside `webEventReceived(). we're still here!";
-
-                                 if (jsonObject["method"] == "eventBridgeReady") {
-                                     QJsonObject responseObject;
-                                     responseObject.insert("app", "screenshare");
-                                     responseObject.insert("method", "receiveConnectionInfo");
-                                     QJsonObject responseObjectData;
-                                     responseObjectData.insert("token", token);
-                                     responseObjectData.insert("projectAPIKey", projectAPIKey);
-                                     responseObjectData.insert("sessionID", sessionID);
-                                     responseObject.insert("data", responseObjectData);
-
-                                     qDebug() << "ZRF HERE! Inside `webEventReceived(). `responseObject.toVariantMap()`:"
-                                              << responseObject.toVariantMap();
-
-                                     auto esi = DependencyManager::get<EntityScriptingInterface>();
-                                     esi->emitScriptEvent(_screenshareViewerLocalWebEntityUUID, responseObject.toVariantMap());
-                                 }
-                             }
-                         });
-    });
-
     QNetworkRequest request;
     QString tokboxURL = QProcessEnvironment::systemEnvironment().value("hifiScreenshareUrl");
     request.setUrl(QUrl(tokboxURL));
@@ -210,4 +170,38 @@ void ScreenshareScriptingInterface::stopScreenshare() {
         }
     }
     _screenshareViewerLocalWebEntityUUID = "{00000000-0000-0000-0000-000000000000}";
+    _token = "";
+    _projectAPIKey = "";
+    _sessionID = "";
+}
+
+void ScreenshareScriptingInterface::onWebEventReceived(const QUuid& entityID, const QVariant& message) {
+    if (entityID == _screenshareViewerLocalWebEntityUUID) {
+            auto esi = DependencyManager::get<EntityScriptingInterface>();
+            if (!esi) {
+                return;
+            }
+
+            QByteArray jsonByteArray = QVariant(message).toString().toUtf8();
+            QJsonDocument jsonObject = QJsonDocument::fromJson(jsonByteArray);
+
+            if (jsonObject["app"] != "screenshare") {
+                return;
+            }
+
+            if (jsonObject["method"] == "eventBridgeReady") {
+                QJsonObject responseObject;
+                responseObject.insert("app", "screenshare");
+                responseObject.insert("method", "receiveConnectionInfo");
+                QJsonObject responseObjectData;
+                responseObjectData.insert("token", _token);
+                responseObjectData.insert("projectAPIKey", _projectAPIKey);
+                responseObjectData.insert("sessionID", _sessionID);
+                responseObject.insert("data", responseObjectData);
+
+                auto esi = DependencyManager::get<EntityScriptingInterface>();
+                esi->emitScriptEvent(_screenshareViewerLocalWebEntityUUID, responseObject.toVariantMap());
+            }
+        }
+    }
 }

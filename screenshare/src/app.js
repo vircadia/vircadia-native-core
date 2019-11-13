@@ -116,6 +116,10 @@ function togglePage(){
                 console.log("Error getting sources", error);
             }
 
+            // MN TODO:
+            // Add all sources to array, sort array by type, then call `addSource()`
+            // for all of those sources.
+
             for (let source of sources) {
                 sourceMap[source.id] = source;
                     addSource(source, "selects");

@@ -34,6 +34,9 @@ signals:
     void screenshareStopped();
     void startScreenshareViewer();
 
+private slots:
+    void onWebEventReceived(const QUuid& entityID, const QVariant& message);
+
 private:
 #if DEV_BUILD
 #ifdef Q_OS_WIN
@@ -57,6 +60,9 @@ private:
 
     std::unique_ptr<QProcess> _screenshareProcess{ nullptr };
     QUuid _screenshareViewerLocalWebEntityUUID;
+    QString _token{ "" };
+    QString _projectAPIKey{ "" };
+    QString _sessionID{ "" };
 };
 
 #endif // hifi_ScreenshareScriptingInterface_h
