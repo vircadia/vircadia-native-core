@@ -821,7 +821,7 @@ QUuid EntityScriptingInterface::editEntity(const QUuid& id, const EntityItemProp
                 // flag for simulation ownership, or upgrade existing ownership priority
                 // (actual bids for simulation ownership are sent by the PhysicalEntitySimulation)
                 entity->upgradeScriptSimulationPriority(properties.computeSimulationBidPriority());
-                if (entity->isMyAvatarEntity() || simulationOwner.getID() == sessionID) {
+                if (entity->isLocalEntity() || entity->isMyAvatarEntity() || simulationOwner.getID() == sessionID) {
                     // we own the simulation --> copy ALL restricted properties
                     properties.copySimulationRestrictedProperties(entity);
                 } else {
