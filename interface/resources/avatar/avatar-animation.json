@@ -5768,14 +5768,6 @@
                                                                                                             "var": "isInAirRun"
                                                                                                         },
                                                                                                         {
-                                                                                                            "state": "strafeRightHmd",
-                                                                                                            "var": "isMovingRightHmd"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "strafeLeftHmd",
-                                                                                                            "var": "isMovingLeftHmd"
-                                                                                                        },
-                                                                                                        {
                                                                                                             "state": "seated",
                                                                                                             "var": "isSeated"
                                                                                                         }
@@ -5830,14 +5822,6 @@
                                                                                                         {
                                                                                                             "state": "INAIRRUN",
                                                                                                             "var": "isInAirRun"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "strafeRightHmd",
-                                                                                                            "var": "isMovingRightHmd"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "strafeLeftHmd",
-                                                                                                            "var": "isMovingLeftHmd"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "seated",
@@ -5983,7 +5967,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotMoving"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
@@ -5996,14 +5980,6 @@
                                                                                                         {
                                                                                                             "state": "strafeLeftHmd",
                                                                                                             "var": "isMovingLeftHmd"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "STRAFERIGHT",
-                                                                                                            "var": "isInputRight"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "STRAFELEFT",
-                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
@@ -6047,7 +6023,7 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleSettle",
-                                                                                                            "var": "isNotInput"
+                                                                                                            "var": "isNotMoving"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "WALKFWD",
@@ -6060,14 +6036,6 @@
                                                                                                         {
                                                                                                             "state": "strafeRightHmd",
                                                                                                             "var": "isMovingRightHmd"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "STRAFERIGHT",
-                                                                                                            "var": "isInputRight"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "STRAFELEFT",
-                                                                                                            "var": "isInputLeft"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "turnRight",
