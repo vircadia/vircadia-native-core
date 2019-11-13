@@ -93,18 +93,16 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
     }
 
     QString currentDomainID = uuidStringWithoutCurlyBraces(addressManager->getDomainID());
-    QString requestURLPath = "api/v1/domains";
-    requestURLPath = requestURLPath.append(currentDomainID);
-    requestURLPath = requestURLPath.append("/screenshare");
+    QString requestURLPath = "api/v1/domains/%1/screenshare";
 
     JSONCallbackParameters callbackParams;
     callbackParams.callbackReceiver = this;
     callbackParams.jsonCallbackMethod = "handleSuccessfulScreenshareInfoGet";
     callbackParams.errorCallbackMethod = "handleFailedScreenshareInfoGet";
     accountManager->sendRequest(
-        requestURLPath,
+        requestURLPath.arg(currentDomainID),
         AccountManagerAuth::Required,
-        QNetworkAccessManager::PutOperation,
+        QNetworkAccessManager::GetOperation,
         callbackParams
     );
 }
@@ -200,7 +198,7 @@ void ScreenshareScriptingInterface::handleSuccessfulScreenshareInfoGet(QNetworkR
 }
 
 void ScreenshareScriptingInterface::handleFailedScreenshareInfoGet(QNetworkReply* reply) {
-    qDebug() << "\n\n MN HERE: handleFailedScreenshareInfoGet():" << reply->errorString();
+    qDebug() << "\n\n MN HERE: handleFailedScreenshareInfoGet():" << reply->readAll();
 }
 
 void ScreenshareScriptingInterface::onWebEventReceived(const QUuid& entityID, const QVariant& message) {
