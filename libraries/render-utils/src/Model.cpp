@@ -189,7 +189,7 @@ bool Model::shouldInvalidatePayloadShapeKey(int meshIndex) {
     const auto& networkMeshes = getNetworkModel()->getMeshes();
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
     // to false to rebuild out mesh groups.
-    if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)hfmModel.meshes.size() /* || meshIndex >= (int)_meshStates.size()*/) {
+    if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)hfmModel.meshes.size()) {
         _needsFixupInScene = true;     // trigger remove/add cycle
         invalidCalculatedMeshBoxes();  // if we have to reload, we need to assume our mesh boxes are all invalid
         return true;
@@ -252,9 +252,6 @@ void Model::updateRenderItems() {
                     }
 
                     Transform renderTransform = modelTransform;
-                 //   if (meshState.clusterMatrices.size() <= 1) {
-                  //   renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
-                   // }
                     data.updateTransform(renderTransform);
                     data.updateTransformAndBound(modelTransform.worldTransform(shapeState._rootFromJointTransform));
 
@@ -299,12 +296,10 @@ void Model::reset() {
 }
 
 void Model::updateShapeStatesFromRig() {
-    { // Shapes state:
-        for (auto& shape : _shapeStates) {
-            uint32_t jointId = shape._jointIndex;
-            if (jointId < (uint32_t) _rig.getJointStateCount()) {
-                shape._rootFromJointTransform = _rig.getJointTransform(jointId);
-            }
+    for (auto& shape : _shapeStates) {
+        uint32_t jointId = shape._jointIndex;
+        if (jointId < (uint32_t) _rig.getJointStateCount()) {
+            shape._rootFromJointTransform = _rig.getJointTransform(jointId);
         }
     }
 }

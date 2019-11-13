@@ -1462,7 +1462,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         const auto& partMaterialTextures = extracted.partMaterialTextures;
 
         uint32_t meshIndex = (uint32_t)hfmModel.meshes.size();
-        meshIDsToMeshIndices.insert(it.key(), meshIndex);
+        meshIDsToMeshIndices.insert(meshID, meshIndex);
         hfmModel.meshes.push_back(extracted.mesh);
         hfm::Mesh& mesh = hfmModel.meshes.back();
 
@@ -1629,8 +1629,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 }
 
                 // Store the model's dynamic transform, and put its ID in the shapes
+                uint32_t skinDeformerID = (uint32_t)hfmModel.skinDeformers.size();
                 hfmModel.skinDeformers.push_back(skinDeformer);
-                uint32_t skinDeformerID = (uint32_t)(hfmModel.skinDeformers.size() - 1);
                 for (hfm::Shape& shape : partShapes) {
                     shape.skinDeformer = skinDeformerID;
                 }

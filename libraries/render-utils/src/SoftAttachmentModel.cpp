@@ -61,8 +61,7 @@ void SoftAttachmentModel::updateClusterMatrices() {
                 Transform clusterTransform;
                 Transform::mult(clusterTransform, jointTransform, cbmov.inverseBindTransform);
                 state.clusterDualQuaternions[clusterIndex] = Model::TransformDualQuaternion(clusterTransform);
-            }
-            else {
+            } else {
                 auto jointMatrix = rig->getJointTransform(cbmov.jointIndex);
                 glm_mat4u_mul(jointMatrix, cbmov.inverseBindMatrix, state.clusterMatrices[clusterIndex]);
             }

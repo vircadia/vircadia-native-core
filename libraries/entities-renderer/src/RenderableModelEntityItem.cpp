@@ -403,19 +403,11 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                 numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
                 uint32_t indexStart = (uint32_t)part.x;
                 uint32_t indexEnd = indexStart + numIndices;
-                for (uint32_t j = indexStart; j < indexEnd; j += TRIANGLE_STRIDE) {
+                for (uint32_t j = indexStart; j < indexEnd; ++j) {
                     // NOTE: It seems odd to skip vertices when initializing a btConvexHullShape, but let's keep the behavior similar to the old behavior for now
-                    glm::vec3 p0 = triangleListMesh.vertices[triangleListMesh.indices[j]];
-                    glm::vec3 p1 = triangleListMesh.vertices[triangleListMesh.indices[j + 1]];
-                    glm::vec3 p2 = triangleListMesh.vertices[triangleListMesh.indices[j + 2]];
-                    if (std::find(pointsInPart.cbegin(), pointsInPart.cend(), p0) == pointsInPart.cend()) {
-                        pointsInPart.push_back(p0);
-                    }
-                    if (std::find(pointsInPart.cbegin(), pointsInPart.cend(), p1) == pointsInPart.cend()) {
-                        pointsInPart.push_back(p1);
-                    }
-                    if (std::find(pointsInPart.cbegin(), pointsInPart.cend(), p2) == pointsInPart.cend()) {
-                        pointsInPart.push_back(p2);
+                    glm::vec3 point = triangleListMesh.vertices[triangleListMesh.indices[j]];
+                    if (std::find(pointsInPart.cbegin(), pointsInPart.cend(), point) == pointsInPart.cend()) {
+                        pointsInPart.push_back(point);
                     }
                 }
 

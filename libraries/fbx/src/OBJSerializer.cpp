@@ -693,9 +693,9 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
 
         QMap<QString, int> materialMeshIdMap;
         std::vector<HFMMeshPart> hfmMeshParts;
-        for (uint32_t i = 0, meshPartCount = 0; i < (uint32_t)mesh.parts.size(); i++, meshPartCount++) {
-            HFMMeshPart& meshPart = mesh.parts[i];
-            FaceGroup faceGroup = faceGroups[meshPartCount];
+        for (uint32_t meshPartIndex = 0; meshPartIndex < (uint32_t)mesh.parts.size(); ++meshPartIndex) {
+            HFMMeshPart& meshPart = mesh.parts[meshPartIndex];
+            FaceGroup faceGroup = faceGroups[meshPartIndex];
             bool specifiesUV = false;
             foreach(OBJFace face, faceGroup) {
                 // Go through all of the OBJ faces and determine the number of different materials necessary (each different material will be a unique mesh).
@@ -750,8 +750,8 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
         mesh.parts.clear();
         mesh.parts = hfmMeshParts;
 
-        for (uint32_t i = 0, meshPartCount = 0; i < unmodifiedMeshPartCount; i++, meshPartCount++) {
-            FaceGroup faceGroup = faceGroups[meshPartCount];
+        for (uint32_t meshPartIndex = 0; meshPartIndex < unmodifiedMeshPartCount; meshPartIndex++) {
+            FaceGroup faceGroup = faceGroups[meshPartIndex];
 
             // Now that each mesh has been created with its own unique material mappings, fill them with data (vertex data is duplicated, face data is not).
             foreach(OBJFace face, faceGroup) {
