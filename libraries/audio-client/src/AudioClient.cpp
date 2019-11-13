@@ -1835,6 +1835,8 @@ bool AudioClient::switchInputToAudioDevice(const HifiAudioDeviceInfo inputDevice
         _audioInput->deleteLater();
         _audioInput = NULL;
         _numInputCallbackBytes = 0;
+
+        _inputDeviceInfo.setDevice(QAudioDeviceInfo());
     }
 
     if (_dummyAudioInput) {
@@ -2081,6 +2083,8 @@ bool AudioClient::switchOutputToAudioDevice(const HifiAudioDeviceInfo outputDevi
 
         delete[] _localOutputMixBuffer;
         _localOutputMixBuffer = NULL;
+        
+        _outputDeviceInfo.setDevice(QAudioDeviceInfo());
     }
 
     // cleanup any resamplers
