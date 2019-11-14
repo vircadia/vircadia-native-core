@@ -140,6 +140,7 @@ function addSources(){
 // 5. Add thse sources
 const electron = require('electron');
 const SCREENSHARE_TITLE = "Screen share";
+const SCREENSHARE_TITLE_REGEX = new RegExp("^" + SCREENSHARE_TITLE + "$");
 const IMAGE_WIDTH = 265;
 const IMAGE_HEIGHT = 165;
 let screenshareSourceArray = [];
@@ -158,7 +159,7 @@ function showSources() {
             console.log("Error getting sources", error);
         }
         for (let source of sources) {
-            if (source.name.indexOf(SCREENSHARE_TITLE) > -1){
+            if (source.name.match(SCREENSHARE_TITLE_REGEX)){
                 continue;
             }
             sourceMap[source.id] = source;

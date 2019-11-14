@@ -1,22 +1,16 @@
-# Hifi-Screenshare
+# Screen Sharing within High Fidelity
+This Screen Share app, built using Electron, allows for easy desktop screen sharing when used in conjuction with various scripts in the `hifi-content` repository.
 
-The Screenshare app will allow easy desktop sharing by being launced from within the highfidelity interface.
+# Screen Sharing Source Files
+## `packager.js`
+Calling npm run packager will use this file to create the actual Electron `hifi-screenshare` executable.
+It will kick out a folder `hifi-screenshare-<platform>` which contains an executable.
 
-# Setup
-Create the following environment variable the hifi-screenshare app will use to get the proper connection info:
-hifiScreenshareURL="<URL for authentication>"
+## `src/screenshareApp.js`
+The main process file to configure the electron app.
 
-# Screenshare API
-In order to launch the hifi-screenshare app from within interface, you will call the following:
-Screenshare.startScreenshare(displayName, userName, token, sessionID, apiKey);
-The app won't run without the correct info.
+## `src/screenshareMainProcess.js`
+The render file to display the app's UI.
 
-# Files included
-packager.js : 
-Calling npm run packager will use this file to create the actual electron hifi-screenshare executable
-
-src/main.js :
-The main process file to configure the electron app
-
-srce/app.js :
-The render file to dispaly the screenshare UI
+## `screenshareApp.html`
+The HTML that displays the screen selection UI and the confirmation screen UI.
