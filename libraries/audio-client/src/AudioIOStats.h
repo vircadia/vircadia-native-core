@@ -65,10 +65,10 @@ class AudioStreamStatsInterface : public QObject {
      *     <em>Read-only.</em>
      * @property {number} lossCountWindow - The number of audio packets lost since the previous statistic.
      *     <em>Read-only.</em>
-     * @property {number} lossRate - The total number of audio packets lost divided by the total number of audio packets 
+     * @property {number} lossRate - The ratio of the total number of audio packets lost to the total number of audio packets 
      *     expected.
      *     <em>Read-only.</em>
-     * @property {number} lossRateWindow - The number of audio packets lost divided by the total number of audio packets 
+     * @property {number} lossRateWindow - The ratio of the number of audio packets lost to the number of audio packets 
      *     expected since the previous statistic.
      *     <em>Read-only.</em>
      * @property {number} overflowCount - The number of times that the audio ring buffer has overflowed.
@@ -88,9 +88,10 @@ class AudioStreamStatsInterface : public QObject {
      */
 
     /**jsdoc
-     * Triggered when the total number of audio packets lost divided by the total number of audio packets expected changes.
+     * Triggered when the ratio of the total number of audio packets lost to the total number of audio packets expected changes.
      * @function AudioStats.AudioStreamStats.lossRateChanged
-     * @param {number} lossRate - The total number of audio packets lost divided by the total number of audio packets expected.
+     * @param {number} lossRate - The ratio of the total number of audio packets lost to the total number of audio packets 
+     *     expected.
      * @returns {Signal} 
      */
     AUDIO_PROPERTY(float, lossRate)
@@ -104,10 +105,10 @@ class AudioStreamStatsInterface : public QObject {
     AUDIO_PROPERTY(float, lossCount)
 
     /**jsdoc
-     * Triggered when the number of audio packets lost divided by the total number of audio packets expected since the previous 
+     * Triggered when the ratio of the number of audio packets lost to the number of audio packets expected since the previous 
      * statistic changes.
      * @function AudioStats.AudioStreamStats.lossRateWindowChanged
-     * @param {number} lossRateWindow - The number of audio packets lost divided by the total number of audio packets expected 
+     * @param {number} lossRateWindow - The ratio of the number of audio packets lost to the number of audio packets expected 
      *     since the previous statistic.
      * @returns {Signal} 
      */
