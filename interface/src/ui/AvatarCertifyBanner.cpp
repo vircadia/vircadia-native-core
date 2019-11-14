@@ -62,16 +62,7 @@ void AvatarCertifyBanner::show(const QUuid& avatarID) {
 
 void AvatarCertifyBanner::clear() {
     if (_active) {
-        auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
-        EntityTreePointer entityTree = entityTreeRenderer->getTree();
-        if (!entityTree) {
-            return;
-        }
-
-        entityTree->withWriteLock([&] {
-            entityTree->deleteEntity(_bannerID);
-        });
-
+        DependencyManager::get<EntityTreeRenderer>()->deleteEntity(_bannerID);
         _active = false;
     }
 }

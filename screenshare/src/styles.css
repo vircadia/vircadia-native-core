@@ -1,10 +1,6 @@
 body {
   background-color: black;
   box-sizing: border-box;
-  /* display: -webkit-flex; */
-  /* -webkit-justify-content: center; */
-  /* -webkit-align-items: center; */
-  /* -webkit-flex-direction: column; */
   font-family: "Graphik";
   margin: 0px 22px 10px 22px;
   }

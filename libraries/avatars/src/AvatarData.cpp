@@ -3033,15 +3033,12 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
 }
 
 void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
-
+    // NOTE: requiresRemovalFromTree is unused
     bool removedEntity = false;
-
     _avatarEntitiesLock.withWriteLock([this, &removedEntity, &entityID] {
         removedEntity = _packedAvatarEntityData.remove(entityID);
     });
-
     insertRemovedEntityID(entityID);
-
     if (removedEntity && _clientTraitsHandler) {
         // we have a client traits handler, so we need to mark this removed instance trait as deleted
         // so that changes are sent next frame

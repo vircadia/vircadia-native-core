@@ -18,7 +18,7 @@ function handleError(error) {
 // When an application is picked, make sure we clear out the previous pick, toggle the page, 
 // and add the correct source
 let currentScreensharePickID = "";
-function screensharePicked(id){
+function screensharePicked(id) {
     currentScreensharePickID = id;
     document.getElementById("share_pick").innerHTML = "";
     togglePage();
@@ -28,8 +28,8 @@ function screensharePicked(id){
 
 // Once we have confirmed that we want to share, prepare the tokbox publishing initiating
 // and toggle back to the selects page
-function screenConfirmed(isConfirmed){    
-    document.getElementById("selects").innerHTML="";
+function screenConfirmed(isConfirmed) {    
+    document.getElementById("selects").innerHTML = "";
     if (isConfirmed === true){
         onAccessApproved(currentScreensharePickID);
     }
@@ -72,7 +72,7 @@ function addSource(source, type) {
 // Get the html created from the source.  Alter slightly depending on whether this source
 // is on the selects screen, or the confirmation screen.  Mainly removing highlighting.
 // If there is an app Icon, then add it.
-function renderSourceHTML(source){
+function renderSourceHTML(source) {
     let type = currentPage === "confirmationPage" ? "share_pick" : "selects";
     let sourceBody = document.createElement('div')
     let thumbnail = source.thumbnail.toDataURL();
@@ -101,7 +101,7 @@ function renderSourceHTML(source){
 // Separate out the screenshares and applications
 // Make sure the screens are labeled in order
 // Concact the two arrays back together and return
-function sortSources(){
+function sortSources() {
     let screenSources = [];
     let applicationSources = [];
     // Difference with Mac selects:
@@ -112,19 +112,19 @@ function sortSources(){
         } else {
             applicationSources.push(source)
         }
-    })
-    screenSources.sort( (a, b) => {
+    });
+    screenSources.sort((a, b) => {
         let aNumber = a.name.replace(/[^\d]/, "");
         let bNumber = b.name.replace(/[^\d]/, "");
         return aNumber - bNumber;
-    })
+    });
     let finalSources = [...screenSources, ...applicationSources];
     return finalSources;
 }
 
 
 // Setup sorting the selection array, add individual sources, and update the sourceMap
-function addSources(){
+function addSources() {
     screenshareSourceArray = sortSources();
     for (let i = 0; i < screenshareSourceArray.length; i++) {
         addSource(screenshareSourceArray[i], "selects");
@@ -172,7 +172,7 @@ function showSources() {
 
 // Stop the localstream and end the tokrok publishing
 let localStream;
-function stopSharing(){
+function stopSharing() {
     desktopSharing = false;
 
     if (localStream) {
@@ -192,7 +192,7 @@ function gotStream(stream) {
 
     stream.onended = () => {
         if (desktopSharing) {
-            toggle();
+            togglePage();
         }
     };
 }
@@ -244,7 +244,7 @@ function initializeTokboxSession() {
 
 // Init the tokbox publisher with our newly created stream
 var publisher; 
-function startTokboxPublisher(stream){
+function startTokboxPublisher(stream) {
     publisher = document.createElement("div");
     var publisherOptions = {
         videoSource: stream.getVideoTracks()[0],
@@ -270,7 +270,7 @@ function startTokboxPublisher(stream){
 
 
 // Kills the streaming being sent to tokbox
-function stopTokBoxPublisher(){
+function stopTokBoxPublisher() {
     publisher.destroy();
 }
 
@@ -281,18 +281,18 @@ let projectAPIKey;
 let sessionID;
 let token;
 let session;
-ipcRenderer.on('connectionInfo', function(event, message){
+ipcRenderer.on('connectionInfo', function(event, message) {
     const connectionInfo = JSON.parse(message);
     projectAPIKey = connectionInfo.projectAPIKey;
     sessionID = connectionInfo.sessionID;
     token = connectionInfo.token;
 
     initializeTokboxSession();
-})
+});
 
 
 // Show the initial sources after the dom has loaded
 // Sources come from electron.desktopCapturer
 document.addEventListener("DOMContentLoaded", () => {
     showSources();
-})
+});

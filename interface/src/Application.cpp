@@ -889,10 +889,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ScriptCache>();
     DependencyManager::set<SoundCache>();
     DependencyManager::set<SoundCacheScriptingInterface>();
-    
-#ifdef HAVE_DDE
-    DependencyManager::set<DdeFaceTracker>();
-#endif
     DependencyManager::set<AudioClient>();
     DependencyManager::set<AudioScope>();
     DependencyManager::set<DeferredLightingEffect>();
