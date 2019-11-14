@@ -54,6 +54,7 @@ function createWindow(){
         webPreferences: {
             nodeIntegration: true
         },
+        icon: __dirname + `/resources/interface.png`,
         skipTaskbar: false,
         title: "Screen share"
         // TODO: Update this code once we have CMAKE copying a png from
