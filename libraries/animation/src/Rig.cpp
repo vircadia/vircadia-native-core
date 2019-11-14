@@ -1423,12 +1423,12 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 _animVars.set("isSeatedTurningRight", false);
                 _animVars.set("isSeatedTurningLeft", false);
                 _animVars.set("isSeatedNotTurning", true);
-            } else if (turningSpeed > 0.1f) {
+            } else if (_previousControllerParameters.inputX > 0.0f) {
                 // seated turning right
                 _animVars.set("isSeatedTurningRight", true);
                 _animVars.set("isSeatedTurningLeft", false);
                 _animVars.set("isSeatedNotTurning", false);
-            } else if (turningSpeed < -0.1f) {
+            } else {
                 // seated turning left
                 _animVars.set("isSeatedTurningRight", false);
                 _animVars.set("isSeatedTurningLeft", true);
