@@ -44,7 +44,7 @@ static const uint8_t LOCAL_SCREENSHARE_WEB_ENTITY_FPS = 30;
 static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION(0.0f, -0.0862f, 0.0711f);
 static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_DIMENSIONS(4.0419f, 2.2735f, 0.0100f);
 static const QString LOCAL_SCREENSHARE_WEB_ENTITY_URL =
-    "https://hifi-content.s3.amazonaws.com/Experiences/Releases/usefulUtilities/smartBoard/screenshareViewer/screenshareClient.html";
+    "https://content.highfidelity.com/Experiences/Releases/usefulUtilities/smartBoard/screenshareViewer/screenshareClient.html";
 static const QString LOCAL_SCREENSHARE_WEB_ENTITY_HOST_TYPE ="local";
 void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZoneID,
                                                      const QUuid& smartboardEntityID,
