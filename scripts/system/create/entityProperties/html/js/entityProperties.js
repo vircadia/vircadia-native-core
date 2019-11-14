@@ -1545,16 +1545,6 @@ const GROUPS = [
                 unit: "m/s<sup>2</sup>",
                 propertyID: "gravity",
             },
-            {
-                label: "Acceleration",
-                type: "vec3",
-                vec3Type: "xyz",
-                subLabels: [ "x", "y", "z" ],
-                step: 0.1,
-                decimals: 4,
-                unit: "m/s<sup>2</sup>",
-                propertyID: "acceleration",
-            },
         ]
     },
 ];
