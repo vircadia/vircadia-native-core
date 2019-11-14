@@ -1649,12 +1649,9 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
         return false;
     }
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    const QUuid myNodeID = nodeList->getSessionUUID();
-
     EntityItemPointer entity;
     bool doTransmit = false;
-    _entityTree->withWriteLock([this, &entity, entityID, myNodeID, &doTransmit, actor] {
+    _entityTree->withWriteLock([this, &entity, entityID, &doTransmit, actor] {
         EntitySimulationPointer simulation = _entityTree->getSimulation();
         entity = _entityTree->findEntityByEntityItemID(entityID);
         if (!entity) {
