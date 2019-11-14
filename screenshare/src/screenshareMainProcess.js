@@ -57,10 +57,6 @@ function createWindow(){
         icon: __dirname + `/resources/interface.png`,
         skipTaskbar: false,
         title: "Screen share"
-        // TODO: Update this code once we have CMAKE copying a png from
-        // `<hifi repo root>/interface/icon/interface.png` into the same directory
-        // as the screenshare executable during a post-build step
-        //icon: "hifi-screenshare-icon.png"
     });
     window.loadURL('file://' + __dirname + '/screenshareApp.html');
     window.setMenu(null);
