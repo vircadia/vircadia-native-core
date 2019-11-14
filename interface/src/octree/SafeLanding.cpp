@@ -151,7 +151,7 @@ void SafeLanding::updateTracking() {
             shouldStop = (sequenceSize == 0 ||
                     (startIter != _sequenceNumbers.end() &&
                      endIter != _sequenceNumbers.end() &&
-                     tooManySequenceNumbers &&
+                     !tooManySequenceNumbers &&
                      ((distance(startIter, endIter) == sequenceSize - 1) || !missingSequenceNumbers)));
 
             if (shouldStop) {
