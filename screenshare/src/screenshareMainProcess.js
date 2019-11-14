@@ -11,7 +11,7 @@ const {app, BrowserWindow, ipcMain} = require('electron');
 const gotTheLock = app.requestSingleInstanceLock()
 const argv = require('yargs').argv;
 
-// ./screenshare.exe --userName=miladN ...
+
 const connectionInfo = {
     token: argv.token || "token",
     projectAPIKey: argv.projectAPIKey || "projectAPIKey",
@@ -19,7 +19,7 @@ const connectionInfo = {
 }
 
 
-// Mac and Pc need slightly different width and height sizes.
+// Mac and PC need slightly different width and height sizes.
 const osType = require('os').type();
 let width;
 let height;
@@ -33,9 +33,9 @@ if (osType == "Darwin" || osType == "Linux") {
 
 
 if (!gotTheLock) {
-  console.log("Another instance of the screenshare is already running - this instance will quit.");
-  app.exit(0);
-  return;
+    console.log("Another instance of the screenshare is already running - this instance will quit.");
+    app.exit(0);
+    return;
 }
 
 let window;

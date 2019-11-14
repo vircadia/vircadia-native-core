@@ -22,10 +22,10 @@
 class ScreenshareScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
-	ScreenshareScriptingInterface();
+    ScreenshareScriptingInterface();
     ~ScreenshareScriptingInterface();
 
-	Q_INVOKABLE void startScreenshare(const QUuid& screenshareZoneID, const QUuid& smartboardEntityID, const bool& isPresenter = false);
+    Q_INVOKABLE void startScreenshare(const QUuid& screenshareZoneID, const QUuid& smartboardEntityID, const bool& isPresenter = false);
     Q_INVOKABLE void stopScreenshare();
 
 signals:
