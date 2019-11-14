@@ -1,8 +1,7 @@
 'use strict';
-//
 //  screenshareMainProcess.js
 //
-//  Created by Milad Nazeri, and Zach Fox 2019/11/13
+//  Milad Nazeri and Zach Fox 2019/11/13
 //  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.

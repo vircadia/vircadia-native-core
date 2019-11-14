@@ -1,4 +1,4 @@
-//
+'use strict';
 //  screenshareApp.js
 //
 //  Created by Milad Nazeri, Rebecca Stankus, and Zach Fox 2019/11/13
