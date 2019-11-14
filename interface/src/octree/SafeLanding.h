@@ -51,8 +51,8 @@ private:
     bool isEntityPhysicsReady(const EntityItemPointer& entity);
     void debugDumpSequenceIDs() const;
 
-    mutable std::recursive_mutex _lock;
-    using Locker = std::lock_guard<std::recursive_mutex>;
+    std::mutex _lock;
+    using Locker = std::lock_guard<std::mutex>;
     bool _trackingEntities { false };
     QSharedPointer<EntityTreeRenderer> _entityTreeRenderer;
     using EntityMap = std::map<EntityItemID, EntityItemPointer>;
