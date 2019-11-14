@@ -23,16 +23,16 @@ using SimpleEntitySimulationPointer = std::shared_ptr<SimpleEntitySimulation>;
 class SimpleEntitySimulation : public EntitySimulation {
 public:
     SimpleEntitySimulation() : EntitySimulation() { }
-    ~SimpleEntitySimulation() { clearEntitiesInternal(); }
+    ~SimpleEntitySimulation() { clearEntities(); }
 
     void clearOwnership(const QUuid& ownerID);
+    void clearEntities() override;
+    void updateEntities() override;
 
 protected:
-    void updateEntitiesInternal(uint64_t now) override;
-    void addEntityInternal(EntityItemPointer entity) override;
-    void removeEntityInternal(EntityItemPointer entity) override;
+    void addEntityToInternalLists(EntityItemPointer entity) override;
+    void removeEntityFromInternalLists(EntityItemPointer entity) override;
     void processChangedEntity(const EntityItemPointer& entity) override;
-    void clearEntitiesInternal() override;
 
     void sortEntitiesThatMoved() override;
 
