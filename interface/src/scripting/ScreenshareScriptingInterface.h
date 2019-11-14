@@ -12,13 +12,11 @@
 #ifndef hifi_ScreenshareScriptingInterface_h
 #define hifi_ScreenshareScriptingInterface_h
 
-// #include <QObject>
+#include <QObject>
 #include <QProcess>
 #include <QtCore/QCoreApplication>
-// #include <QNetworkAccessManager>
-// #include <QNetworkReply>
-// #include <QNetworkRequest>
-#include <DependencyManager.h>
+#include <QNetworkReply>
+
 #include <PathUtils.h>
 
 class ScreenshareScriptingInterface : public QObject, public Dependency {
