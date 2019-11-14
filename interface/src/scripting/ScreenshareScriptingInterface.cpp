@@ -135,23 +135,21 @@ void ScreenshareScriptingInterface::stopScreenshare() {
 
 void ScreenshareScriptingInterface::handleSuccessfulScreenshareInfoGet(QNetworkReply* reply) {
     QString answer = reply->readAll();
-    qDebug() << "\n\n MN HERE: REPLY" << answer;
 
     QByteArray answerByteArray = answer.toUtf8();
     QJsonDocument answerJSONObject = QJsonDocument::fromJson(answerByteArray);
 
     QString status = answerJSONObject["status"].toString();
     if (status != "success") {
-        qDebug() << "\n\n MN HERE: SCREENSHARE REPLY FAIL";
+        qDebug() << "Error when retrieving screenshare info via HTTP. Error:" << reply->errorString();
         stopScreenshare();
         emit screenshareError();
         return;
     }
 
     _token = answerJSONObject["token"].toString();
-    _projectAPIKey = answerJSONObject["projectAPIKey"].toString();
+    _projectAPIKey = answerJSONObject["projectApiKey"].toString();
     _sessionID = answerJSONObject["sessionID"].toString();
-    qDebug() << "token:" << _token << " projectAPIKey:" << _projectAPIKey << " sessionID: " << _sessionID;
 
     if (_token.isEmpty() || _projectAPIKey.isEmpty() || _sessionID.isEmpty()) {
         qDebug() << "Not all Screen Share information was retrieved from the backend. Stopping...";
@@ -167,16 +165,10 @@ void ScreenshareScriptingInterface::handleSuccessfulScreenshareInfoGet(QNetworkR
         arguments << "--projectAPIKey=" + _projectAPIKey << " ";
         arguments << "--sessionID=" + _sessionID << " ";
 
-        connect(_screenshareProcess.get(), &QProcess::errorOccurred,
-            [=](QProcess::ProcessError error) { qDebug() << "ZRF QProcess::errorOccurred. `error`:" << error; });
-        connect(_screenshareProcess.get(), &QProcess::started, [=]() { qDebug() << "ZRF QProcess::started"; });
-        connect(_screenshareProcess.get(), &QProcess::stateChanged, [=](QProcess::ProcessState newState) {
-            qDebug() << "ZRF QProcess::stateChanged. `newState`:" << newState;
-            });
         connect(_screenshareProcess.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             [=](int exitCode, QProcess::ExitStatus exitStatus) {
-                qDebug() << "ZRF QProcess::finished. `exitCode`:" << exitCode << "`exitStatus`:" << exitStatus;
                 stopScreenshare();
+                emit screenshareProcessTerminated();
             });
 
         _screenshareProcess->start(SCREENSHARE_EXE_PATH, arguments);
@@ -214,7 +206,7 @@ void ScreenshareScriptingInterface::handleSuccessfulScreenshareInfoGet(QNetworkR
 }
 
 void ScreenshareScriptingInterface::handleFailedScreenshareInfoGet(QNetworkReply* reply) {
-    qDebug() << "\n\n MN HERE: handleFailedScreenshareInfoGet():" << reply->readAll();
+    qDebug() << "Failed to get screenshare info via HTTP. Error:" << reply->errorString();
     stopScreenshare();
     emit screenshareError();
 }

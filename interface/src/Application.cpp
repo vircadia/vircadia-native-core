@@ -893,7 +893,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 #ifdef HAVE_DDE
     DependencyManager::set<DdeFaceTracker>();
 #endif
-    DependencyManager::set<ScreenshareScriptingInterface>();
     DependencyManager::set<AudioClient>();
     DependencyManager::set<AudioScope>();
     DependencyManager::set<DeferredLightingEffect>();
@@ -973,6 +972,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<KeyboardScriptingInterface>();
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
+    DependencyManager::set<ScreenshareScriptingInterface>();
     PlatformHelper::setup();
     
     QObject::connect(PlatformHelper::instance(), &PlatformHelper::systemWillWake, [] {
