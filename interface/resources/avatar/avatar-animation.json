@@ -867,7 +867,7 @@
                                                                                                                                             "loopFlag": false,
                                                                                                                                             "startFrame": 1,
                                                                                                                                             "timeScale": 1,
-                                                                                                                                            "url": "qrc:///avatar/animations/settle_sitturnright_to_sitidle.fbx"
+                                                                                                                                            "url": "qrc:///avatar/animations/settle_sitturnleft_to_sitidle.fbx"
                                                                                                                                         },
                                                                                                                                         "id": "seatedTurnLeft_to_Idle",
                                                                                                                                         "type": "clip"
@@ -930,8 +930,8 @@
                                                                                                                                         {
                                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                                             "id": "seatedTurnRight_to_Idle",
-                                                                                                                                            "interpDuration": 15,
-                                                                                                                                            "interpTarget": 15,
+                                                                                                                                            "interpDuration": 25,
+                                                                                                                                            "interpTarget": 25,
                                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                                             "transitions": [
                                                                                                                                                 {
@@ -947,8 +947,8 @@
                                                                                                                                         {
                                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                                             "id": "seatedTurnLeft_to_Idle",
-                                                                                                                                            "interpDuration": 15,
-                                                                                                                                            "interpTarget": 15,
+                                                                                                                                            "interpDuration": 25,
+                                                                                                                                            "interpTarget": 25,
                                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                                             "transitions": [
                                                                                                                                                 {
@@ -1230,6 +1230,14 @@
                                                                                                                                         {
                                                                                                                                             "randomSwitchState": "masterSeatedIdle",
                                                                                                                                             "var": "seatedFidgetShakeLegsOnDone"
+                                                                                                                                        },
+                                                                                                                                        {
+                                                                                                                                            "randomSwitchState": "masterSeatedIdle",
+                                                                                                                                            "var": "isSeatedTurningRight"
+                                                                                                                                        },
+                                                                                                                                        {
+                                                                                                                                            "randomSwitchState": "masterSeatedIdle",
+                                                                                                                                            "var": "isSeatedTurningLeft"
                                                                                                                                         }
                                                                                                                                     ]
                                                                                                                                 }
