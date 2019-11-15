@@ -572,7 +572,7 @@ var toolBar = (function () {
             entityID = Entities.addEntity(properties);
 
             // Make sure the entity is loaded before we try to figure out
-            // it's dimensions.
+            // its dimensions.
             var MAX_LOADED_CHECKS = 10;
             var LOADED_CHECK_INTERVAL = 200;
             var isLoadedCheckCount = 0;
