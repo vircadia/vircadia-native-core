@@ -47,3 +47,4 @@ packager(options)
         console.error("There was an error writing the packaged console: " + error.message);
         process.exit(1);
     });
+    
