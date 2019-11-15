@@ -578,14 +578,10 @@ var toolBar = (function () {
             var isLoadedCheckCount = 0;
             var entityIsLoadedCheck = function() {
                 isLoadedCheckCount++;
-                if (isLoadedCheckCount === MAX_LOADED_CHECKS) {
+                if (isLoadedCheckCount === MAX_LOADED_CHECKS || Entity.isLoaded(entityID)) {
                     return;
                 }
-                if (EntityisLoaded(entityID)) {
-                    return;
-                } else {
-                    Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
-                }
+                Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
             }
             Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
 
