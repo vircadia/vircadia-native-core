@@ -153,13 +153,13 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
 
         if (urlChanged && !usingMaterialData) {
             _networkMaterial = DependencyManager::get<MaterialCache>()->getMaterial(_materialURL);
-            auto onMaterialRequestFinished = [this, oldParentID, oldParentMaterialName, newCurrentMaterialName](bool success) {
+            auto onMaterialRequestFinished = [this, entity, oldParentID, oldParentMaterialName, newCurrentMaterialName](bool success) {
                 if (success) {
                     deleteMaterial(oldParentID, oldParentMaterialName);
                     _texturesLoaded = false;
                     _parsedMaterials = _networkMaterial->parsedMaterials;
                     setCurrentMaterialName(newCurrentMaterialName);
-                    applyMaterial();
+                    applyMaterial(entity);
                 } else {
                     deleteMaterial(oldParentID, oldParentMaterialName);
                     _retryApply = false;
@@ -183,13 +183,13 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
             _parsedMaterials = NetworkMaterialResource::parseJSONMaterials(QJsonDocument::fromJson(_materialData.toUtf8()), _materialURL);
             // Since our material changed, the current name might not be valid anymore, so we need to update
             setCurrentMaterialName(newCurrentMaterialName);
-            applyMaterial();
+            applyMaterial(entity);
         } else {
             if (deleteNeeded) {
                 deleteMaterial(oldParentID, oldParentMaterialName);
             }
             if (addNeeded) {
-                applyMaterial();
+                applyMaterial(entity);
             }
         }
 
@@ -382,7 +382,7 @@ void MaterialEntityRenderer::applyTextureTransform(std::shared_ptr<NetworkMateri
     material->setTextureTransforms(textureTransform, _materialMappingMode, _materialRepeat);
 }
 
-void MaterialEntityRenderer::applyMaterial() {
+void MaterialEntityRenderer::applyMaterial(const TypedEntityPointer& entity) {
     _retryApply = false;
 
     std::shared_ptr<NetworkMaterial> material = getMaterial();
@@ -395,6 +395,11 @@ void MaterialEntityRenderer::applyMaterial() {
     applyTextureTransform(material);
 
     graphics::MaterialLayer materialLayer = graphics::MaterialLayer(material, _priority);
+
+    if (auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(material)) {
+        procedural->setBoundOperator([this] { return getBound(); });
+        entity->setHasVertexShader(procedural->hasVertexShader());
+    }
 
     // Our parent could be an entity or an avatar
     std::string parentMaterialName = _parentMaterialName.toStdString();

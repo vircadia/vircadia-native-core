@@ -64,6 +64,8 @@ public:
     QString getParentMaterialName() const;
     void setParentMaterialName(const QString& parentMaterialName);
 
+    void setParentID(const QUuid& parentID) override;
+
     glm::vec2 getMaterialMappingPos() const;
     void setMaterialMappingPos(const glm::vec2& materialMappingPos);
     glm::vec2 getMaterialMappingScale() const;
@@ -72,6 +74,8 @@ public:
     void setMaterialMappingRot(float materialMappingRot);
 
     AACube calculateInitialQueryAACube(bool& success) override;
+
+    void setHasVertexShader(bool hasVertexShader);
 
 private:
     // URL for this material.  Currently, only JSON format is supported.  Set to "materialData" to use the material data to live edit a material.
@@ -107,6 +111,8 @@ private:
     // How much to rotate this material within its parent's UV-space (degrees)
     float _materialMappingRot { 0 };
     QString _materialData;
+
+    bool _hasVertexShader { false };
 
 };
 
