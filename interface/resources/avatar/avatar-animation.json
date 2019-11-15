@@ -939,6 +939,10 @@
                                                                                                                                                     "var": "isSeatedTurningLeft"
                                                                                                                                                 },
                                                                                                                                                 {
+                                                                                                                                                    "state": "seatedTurnRight",
+                                                                                                                                                    "var": "isSeatedTurningRight"
+                                                                                                                                                },
+                                                                                                                                                {
                                                                                                                                                     "state": "masterSeatedIdleRand",
                                                                                                                                                     "var": "seatedTurnRight_to_IdleOnDone"
                                                                                                                                                 }
@@ -954,6 +958,10 @@
                                                                                                                                                 {
                                                                                                                                                     "state": "seatedTurnRight",
                                                                                                                                                     "var": "isSeatedTurningRight"
+                                                                                                                                                },
+                                                                                                                                                {
+                                                                                                                                                    "state": "seatedTurnLeft",
+                                                                                                                                                    "var": "isSeatedTurningLeft"
                                                                                                                                                 },
                                                                                                                                                 {
                                                                                                                                                     "state": "masterSeatedIdleRand",

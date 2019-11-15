@@ -3537,6 +3537,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
             setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, _seatedBodyYawDelta, 0.0f))));
 
         } else if (_seatedBodyYawDelta != 0.0f) {
+            //decelerate from seated rotation
             const float ROTATION_DECAY_TIMESCALE = 0.25f;
             float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
             if (attenuation < 0.0f) {
