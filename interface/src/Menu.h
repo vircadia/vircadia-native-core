@@ -118,7 +118,6 @@ namespace MenuOption {
     const QString FixGaze = "Fix Gaze (no saccade)";
     const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
-    const QString FullscreenMirror = "Mirror";
     const QString Help = "Help...";
     const QString HomeLocation = "Home ";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
