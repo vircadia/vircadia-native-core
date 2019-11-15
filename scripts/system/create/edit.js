@@ -570,6 +570,25 @@ var toolBar = (function () {
             }
 
             entityID = Entities.addEntity(properties);
+
+            // Make sure the entity is loaded before we try to figure out
+            // it's dimensions.
+            var MAX_LOADED_CHECKS = 10;
+            var LOADED_CHECK_INTERVAL = 200;
+            var isLoadedCheckCount = 0;
+            var entityIsLoadedCheck = function() {
+                isLoadedCheckCount++;
+                if (isLoadedCheckCount === MAX_LOADED_CHECKS) {
+                    return;
+                }
+                if (EntityisLoaded(entityID)) {
+                    return;
+                } else {
+                    Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
+                }
+            }
+            Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
+
             SelectionManager.addEntity(entityID, false, this);
             SelectionManager.saveProperties();
             pushCommandForSelections([{
