@@ -99,6 +99,7 @@ namespace {
         glm::vec3 position;
         bool isInPriorityZone { false };
         float zoneVolume { std::numeric_limits<float>::max() };
+        EntityItemID id {};
 
         static bool operation(const OctreeElementPointer& element, void* extraData) {
             auto findPriorityZone = static_cast<FindPriorityZone*>(extraData);
@@ -113,6 +114,7 @@ namespace {
                             if (volume < findPriorityZone->zoneVolume) { // Smaller volume wins
                                 findPriorityZone->isInPriorityZone = zoneItem->getAvatarPriority() == COMPONENT_MODE_ENABLED;
                                 findPriorityZone->zoneVolume = volume;
+                                findPriorityZone->id = zoneItem->getEntityItemID();
                             }
                         }
                     }
@@ -152,7 +154,15 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
         EntityTree& entityTree = *slaveSharedData.entityTree;
         FindPriorityZone findPriorityZone { newPosition } ;
         entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
-        _avatar->setHasPriority(findPriorityZone.isInPriorityZone);
+        bool currentlyHasPriority = findPriorityZone.isInPriorityZone;
+        if (currentlyHasPriority != _avatar->getHasPriority()) {
+            _avatar->setHasPriority(currentlyHasPriority);
+            auto nodeList = DependencyManager::get<NodeList>();
+            auto packet = NLPacket::create(PacketType::AvatarZonePresence, 2 * NUM_BYTES_RFC4122_UUID, true);
+            packet->write(_avatar->getSessionUUID().toRfc4122());
+            packet->write(findPriorityZone.id.toRfc4122());
+            nodeList->sendPacket(std::move(packet), nodeList->getDomainSockAddr());
+        }
         _avatar->setNeedsHeroCheck(false);
     }
 
