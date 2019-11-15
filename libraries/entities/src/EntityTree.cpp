@@ -3154,6 +3154,7 @@ std::function<QObject*(const QUuid&)> EntityTree::_getEntityObjectOperator = nul
 std::function<QSizeF(const QUuid&, const QString&)> EntityTree::_textSizeOperator = nullptr;
 std::function<bool()> EntityTree::_areEntityClicksCapturedOperator = nullptr;
 std::function<void(const QUuid&, const QVariant&)> EntityTree::_emitScriptEventOperator = nullptr;
+std::function<glm::vec3(const QUuid&)> EntityTree::_getUnscaledDimensionsForEntityIDOperator = nullptr;
 
 QObject* EntityTree::getEntityObject(const QUuid& id) {
     if (_getEntityObjectOperator) {
@@ -3180,6 +3181,13 @@ void EntityTree::emitScriptEvent(const QUuid& id, const QVariant& message) {
     if (_emitScriptEventOperator) {
         _emitScriptEventOperator(id, message);
     }
+}
+
+glm::vec3 EntityTree::getUnscaledDimensionsForEntityID(const QUuid& id) {
+    if (_getUnscaledDimensionsForEntityIDOperator) {
+        return _getUnscaledDimensionsForEntityIDOperator(id);
+    }
+    return glm::vec3(1.0f);
 }
 
 void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,

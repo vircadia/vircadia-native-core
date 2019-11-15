@@ -56,7 +56,7 @@ private:
     void setCurrentMaterialName(const std::string& currentMaterialName);
 
     void applyTextureTransform(std::shared_ptr<NetworkMaterial>& material);
-    void applyMaterial();
+    void applyMaterial(const TypedEntityPointer& entity);
     void deleteMaterial(const QUuid& oldParentID, const QString& oldParentMaterialName);
 
     NetworkMaterialResourcePointer _networkMaterial;
