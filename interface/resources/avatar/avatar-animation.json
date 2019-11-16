@@ -824,7 +824,7 @@
                                                                                                                                         "children": [
                                                                                                                                         ],
                                                                                                                                         "data": {
-                                                                                                                                            "endFrame": 400,
+                                                                                                                                            "endFrame": 200,
                                                                                                                                             "loopFlag": true,
                                                                                                                                             "startFrame": 1,
                                                                                                                                             "timeScale": 1,
@@ -837,7 +837,7 @@
                                                                                                                                         "children": [
                                                                                                                                         ],
                                                                                                                                         "data": {
-                                                                                                                                            "endFrame": 400,
+                                                                                                                                            "endFrame": 200,
                                                                                                                                             "loopFlag": true,
                                                                                                                                             "startFrame": 1,
                                                                                                                                             "timeScale": 1,
@@ -896,8 +896,8 @@
                                                                                                                                         {
                                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                                             "id": "seatedTurnLeft",
-                                                                                                                                            "interpDuration": 25,
-                                                                                                                                            "interpTarget": 25,
+                                                                                                                                            "interpDuration": 22,
+                                                                                                                                            "interpTarget": 22,
                                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                                             "transitions": [
                                                                                                                                                 {
@@ -913,8 +913,8 @@
                                                                                                                                         {
                                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                                             "id": "seatedTurnRight",
-                                                                                                                                            "interpDuration": 25,
-                                                                                                                                            "interpTarget": 25,
+                                                                                                                                            "interpDuration": 22,
+                                                                                                                                            "interpTarget": 22,
                                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                                             "transitions": [
                                                                                                                                                 {
@@ -930,8 +930,8 @@
                                                                                                                                         {
                                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                                             "id": "seatedTurnRight_to_Idle",
-                                                                                                                                            "interpDuration": 25,
-                                                                                                                                            "interpTarget": 25,
+                                                                                                                                            "interpDuration": 22,
+                                                                                                                                            "interpTarget": 22,
                                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                                             "transitions": [
                                                                                                                                                 {
@@ -951,8 +951,8 @@
                                                                                                                                         {
                                                                                                                                             "easingType": "easeInOutQuad",
                                                                                                                                             "id": "seatedTurnLeft_to_Idle",
-                                                                                                                                            "interpDuration": 25,
-                                                                                                                                            "interpTarget": 25,
+                                                                                                                                            "interpDuration": 22,
+                                                                                                                                            "interpTarget": 22,
                                                                                                                                             "interpType": "evaluateBoth",
                                                                                                                                             "transitions": [
                                                                                                                                                 {

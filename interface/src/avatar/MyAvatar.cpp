@@ -3516,7 +3516,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
             float direction = -getDriveKey(TRANSLATE_X);
             float seatedTargetSpeed = direction * _yawSpeed * deltaTime;  //deg/renderframe
 
-            const float SEATED_ROTATION_ACCEL_SCALE = 3.0;
+            const float SEATED_ROTATION_ACCEL_SCALE = 3.5;
 
             float blend = deltaTime * SEATED_ROTATION_ACCEL_SCALE;
             if (blend > 1.0f) {
