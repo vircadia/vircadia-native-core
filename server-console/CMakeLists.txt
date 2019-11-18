@@ -24,11 +24,11 @@ set_target_properties(${TARGET_NAME}-npm-install PROPERTIES FOLDER "hidden/Serve
 
 # add a dependency from the package target to the server components
 if (BUILD_CLIENT)
-  #add_dependencies(${TARGET_NAME} interface)
+  add_dependencies(${TARGET_NAME} interface)
 endif()
 
 if (BUILD_SERVER)
-  #add_dependencies(${TARGET_NAME} assignment-client domain-server)
+  add_dependencies(${TARGET_NAME} assignment-client domain-server)
 endif()
 
 # set the packaged console folder depending on platform, so we can copy it
