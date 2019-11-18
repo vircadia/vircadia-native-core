@@ -172,6 +172,7 @@ function showSources() {
 
 // Stop the localstream and end the tokrok publishing
 let localStream;
+let desktopSharing;
 function stopSharing() {
     desktopSharing = false;
 
