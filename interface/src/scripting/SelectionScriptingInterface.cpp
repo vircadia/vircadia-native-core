@@ -17,7 +17,7 @@ GameplayObjects::GameplayObjects() {
 }
 
 bool GameplayObjects::addToGameplayObjects(const QUuid& avatarID) {
-    containsData = true;
+    _containsData = true;
     if (std::find(_avatarIDs.begin(), _avatarIDs.end(), avatarID) == _avatarIDs.end()) {
         _avatarIDs.push_back(avatarID);
     }
@@ -29,7 +29,7 @@ bool GameplayObjects::removeFromGameplayObjects(const QUuid& avatarID) {
 }
 
 bool GameplayObjects::addToGameplayObjects(const EntityItemID& entityID) {
-    containsData = true;
+    _containsData = true;
     if (std::find(_entityIDs.begin(), _entityIDs.end(), entityID) == _entityIDs.end()) {
         _entityIDs.push_back(entityID);
     }

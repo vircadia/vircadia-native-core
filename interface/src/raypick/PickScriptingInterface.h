@@ -52,6 +52,9 @@
  *     <em>Read-only.</em>
  *     <p><strong>Warning:</strong> Not yet implemented.</p>
  *
+ * @property {FilterFlags} PICK_BYPASS_IGNORE - Allows pick to intersect entities even when their ignorePickIntersection property is 'true'.
+ *     For debug purposes. <em>Read-only.</em>
+ *
  * @property {IntersectionType} INTERSECTED_NONE - Intersected nothing. <em>Read-only.</em>
  * @property {IntersectionType} INTERSECTED_ENTITY - Intersected an entity. <em>Read-only.</em>
  * @property {IntersectionType} INTERSECTED_LOCAL_ENTITY - Intersected a local entity. <em>Read-only.</em>
@@ -86,6 +89,8 @@ class PickScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(unsigned int PICK_COARSE READ PICK_COARSE CONSTANT)
 
     Q_PROPERTY(unsigned int PICK_ALL_INTERSECTIONS READ PICK_ALL_INTERSECTIONS CONSTANT)
+
+    Q_PROPERTY(unsigned int PICK_BYPASS_IGNORE READ PICK_BYPASS_IGNORE CONSTANT)
 
     Q_PROPERTY(unsigned int INTERSECTED_NONE READ INTERSECTED_NONE CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_ENTITY READ INTERSECTED_ENTITY CONSTANT)
@@ -281,6 +286,8 @@ public:
 
     unsigned int getPerFrameTimeBudget() const;
     void setPerFrameTimeBudget(unsigned int numUsecs);
+
+    static constexpr unsigned int PICK_BYPASS_IGNORE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_BYPASS_IGNORE); }
 
 public slots:
 

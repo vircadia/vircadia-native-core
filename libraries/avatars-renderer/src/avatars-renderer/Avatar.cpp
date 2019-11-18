@@ -333,18 +333,22 @@ void Avatar::setTargetScale(float targetScale) {
 }
 
 void Avatar::removeAvatarEntitiesFromTree() {
+    if (_packedAvatarEntityData.empty()) {
+        return;
+    }
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
-        QList<QUuid> avatarEntityIDs;
-        _avatarEntitiesLock.withReadLock([&] {
-            avatarEntityIDs = _packedAvatarEntityData.keys();
-        });
-        entityTree->withWriteLock([&] {
-            for (const auto& entityID : avatarEntityIDs) {
-                entityTree->deleteEntity(entityID, true, true);
-            }
-        });
+        std::vector<EntityItemID> ids;
+        ids.reserve(_packedAvatarEntityData.size());
+        PackedAvatarEntityMap::const_iterator itr = _packedAvatarEntityData.constBegin();
+        while (itr != _packedAvatarEntityData.constEnd()) {
+            ids.push_back(itr.key());
+            ++itr;
+        }
+        bool force = true;
+        bool ignoreWarnings = true;
+        entityTree->deleteEntitiesByID(ids, force, ignoreWarnings); // locks tree
     }
 }
 
