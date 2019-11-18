@@ -107,8 +107,6 @@ MessageBox {
         popup.open();
     }
 
-    property url getAvatarsUrl: '../../../images/avatarapp/BodyMart.PNG'
-
     function showBuyAvatars(callback, linkCallback) {
         popup.dialogButtons.yesButton.visible = false;
         popup.button1text = 'CANCEL'
