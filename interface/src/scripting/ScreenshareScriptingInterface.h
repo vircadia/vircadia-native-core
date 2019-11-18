@@ -59,6 +59,10 @@ private:
 #endif
 #endif
 
+    QTimer* _requestScreenshareInfoRetryTimer{ nullptr };
+    int _requestScreenshareInfoRetries{ 0 };
+    void requestScreenshareInfo();
+
     std::unique_ptr<QProcess> _screenshareProcess{ nullptr };
     QUuid _screenshareViewerLocalWebEntityUUID;
     QString _token{ "" };
