@@ -90,6 +90,7 @@ public:
     void touchUpdateEvent(const QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
+    bool isWheelByTouchPad(QWheelEvent* event);
 
     static void enableTouch(bool enableTouch) { _enableTouch = enableTouch; }
 
@@ -135,6 +136,8 @@ protected:
     std::chrono::high_resolution_clock::time_point _lastTouchTime;
 
     static bool _enableTouch;
+    QPoint _lastWheelDelta;
+    QPoint _wheelDeltaRepeatCount;
 
 private:
     void updateDeltaAxisValue(int channel, float value);
