@@ -128,9 +128,12 @@ void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event) {
 }
 
 bool KeyboardMouseDevice::isWheelByTouchPad(QWheelEvent* event) {
+#ifdef Q_OS_MAC
+    return false;
+#endif
     QPoint delta = event->angleDelta();
-    int deltaValueX = abs(delta.manhattanLength());
-    int deltaValueY = abs(delta.manhattanLength());
+    int deltaValueX = abs(delta.x());
+    int deltaValueY = abs(delta.y());
     const int MAX_WHEEL_DELTA_REPEAT = 20;
     const int COMMON_WHEEL_DELTA_VALUE = 120;
     if (deltaValueX != 0) {
