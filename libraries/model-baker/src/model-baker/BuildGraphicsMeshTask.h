@@ -2,8 +2,8 @@
 //  BuildGraphicsMeshTask.h
 //  model-baker/src/model-baker
 //
-//  Created by Sabrina Shanman on 2018/12/06.
-//  Copyright 2018 High Fidelity, Inc.
+//  Created by Sabrina Shanman on 2019/09/16.
+//  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,7 +20,7 @@
 
 class BuildGraphicsMeshTask {
 public:
-    using Input = baker::VaryingSet5<std::vector<hfm::Mesh>, hifi::URL, baker::MeshIndicesToModelNames, baker::NormalsPerMesh, baker::TangentsPerMesh>;
+    using Input = baker::VaryingSet7<std::vector<hfm::Mesh>, hifi::URL, baker::MeshIndicesToModelNames, baker::NormalsPerMesh, baker::TangentsPerMesh, std::vector<hfm::Shape>, std::vector<hfm::SkinDeformer>>;
     using Output = std::vector<graphics::MeshPointer>;
     using JobModel = baker::Job::ModelIO<BuildGraphicsMeshTask, Input, Output>;
 

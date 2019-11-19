@@ -2443,7 +2443,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
             if (_fullAvatarModelName.isEmpty()) {
                 // Store the FST file name into preferences
-                const auto& mapping = _skeletonModel->getGeometry()->getMapping();
+                const auto& mapping = _skeletonModel->getNetworkModel()->getMapping();
                 if (mapping.value("name").isValid()) {
                     _fullAvatarModelName = mapping.value("name").toString();
                 }
@@ -2451,7 +2451,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
             initHeadBones();
             _skeletonModel->setCauterizeBoneSet(_headBoneSet);
-            _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
+            _fstAnimGraphOverrideUrl = _skeletonModel->getNetworkModel()->getAnimGraphOverrideUrl();
             initAnimGraph();
             initFlowFromFST();
         }
