@@ -3,10 +3,12 @@ name: CMake CI
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
-  push:
-    branches:
-      - master
-      - stable
+
+# Eventually we will want to enable CI builds on push to specific branches, but we probably want to configure it not to happen in forks
+#  push:
+#    branches:
+#      - master
+#      - stable
 
 env:
   CI_BUILD: Github
@@ -19,7 +21,7 @@ env:
   GIT_PR_COMMIT_SHORT: ${{ github.sha }}
   HIFI_VCPKG_BOOTSTRAP: true
 
-  AWS_ACCESS_KEY_ID: AKIAJOF5R5WQWQL6C7UQ
+  AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key_id }}
 
   # Settings for uploading 
   APP_NAME: interface
@@ -83,10 +85,9 @@ jobs:
     - name: Remove Trigger Labels
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_REPO_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.github_ci_token }}
         LABEL_PREFIX: rebuild
       run: python "$GITHUB_WORKSPACE/tools/ci-scripts/remove-labels.py" 
-
 
   build_client_mac:
     runs-on: macOS-latest
@@ -116,11 +117,10 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_REPO_TOKEN }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+        GITHUB_TOKEN: ${{ secrets.github_ci_token }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
         ARTIFACT_PATTERN: HighFidelity-Beta-Interface-PR${{ github.event.number }}-*.dmg
       run: python3 "$GITHUB_WORKSPACE/tools/ci-scripts/upload.py" 
-
 
   build_full_mac:
     runs-on: macOS-latest
@@ -158,8 +158,8 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_REPO_TOKEN }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+        GITHUB_TOKEN: ${{ secrets.github_ci_token }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
         ARTIFACT_PATTERN: HighFidelity-Beta-PR${{ github.event.number }}-*.dmg
       run: python3 "$GITHUB_WORKSPACE/tools/ci-scripts/upload.py" 
 
@@ -196,8 +196,8 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_REPO_TOKEN }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+        GITHUB_TOKEN: ${{ secrets.github_ci_token }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
         ARTIFACT_PATTERN: HighFidelity-Beta-Interface-PR${{ github.event.number }}-*.exe
       run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload.py" 
           
@@ -242,7 +242,7 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_REPO_TOKEN }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+        GITHUB_TOKEN: ${{ secrets.github_ci_token }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
         ARTIFACT_PATTERN: HighFidelity-Beta-PR${{ github.event.number }}-*.exe
       run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload.py"
