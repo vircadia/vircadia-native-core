@@ -23,6 +23,7 @@
 #include "EntityScriptingInterface.h"
 #include "ScreenshareScriptingInterface.h"
 
+static const int SCREENSHARE_INFO_REQUEST_RETRY_TIMEOUT_MS = 300;
 ScreenshareScriptingInterface::ScreenshareScriptingInterface() {
     auto esi = DependencyManager::get<EntityScriptingInterface>();
     if (!esi) {
@@ -31,10 +32,58 @@ ScreenshareScriptingInterface::ScreenshareScriptingInterface() {
 
     // This signal/slot connection is used when the screen share local web entity sends an event bridge message. 
     QObject::connect(esi.data(), &EntityScriptingInterface::webEventReceived, this, &ScreenshareScriptingInterface::onWebEventReceived);
+
+    _requestScreenshareInfoRetryTimer = new QTimer;
+    _requestScreenshareInfoRetryTimer->setSingleShot(true);
+    _requestScreenshareInfoRetryTimer->setInterval(SCREENSHARE_INFO_REQUEST_RETRY_TIMEOUT_MS);
+    connect(_requestScreenshareInfoRetryTimer, &QTimer::timeout, this, &ScreenshareScriptingInterface::requestScreenshareInfo);
 };
 
 ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {
     stopScreenshare();
+}
+
+static const int MAX_NUM_SCREENSHARE_INFO_REQUEST_RETRIES = 5;
+void ScreenshareScriptingInterface::requestScreenshareInfo() {
+    _requestScreenshareInfoRetries++;
+
+    if (_requestScreenshareInfoRetries >= MAX_NUM_SCREENSHARE_INFO_REQUEST_RETRIES) {
+        qDebug() << "Maximum number of retries for screenshare info exceeded. Screenshare will not function.";
+        return;
+    }
+
+    // Don't continue with any more of this logic if we can't get the `AccountManager` or `AddressManager`.
+    auto accountManager = DependencyManager::get<AccountManager>();
+    if (!accountManager) {
+        return;
+    }
+    auto addressManager = DependencyManager::get<AddressManager>();
+    if (!addressManager) {
+        return;
+    }
+
+    // Construct and send a request to the Metaverse to obtain the information
+    // necessary to start the screen sharing process.
+    // This request requires:
+    //     1. The domain ID of the domain in which the user's avatar is present
+    //     2. User authentication information that is automatically included when `sendRequest()` is passed
+    //         with the `AccountManagerAuth::Required` argument.
+    // Note that this request will only return successfully if the Domain Server has already registered
+    // the user paired with the current domain with the Metaverse.
+    // See `DomainServer::screensharePresence()` for more info about that.
+
+    QString currentDomainID = uuidStringWithoutCurlyBraces(addressManager->getDomainID());
+    QString requestURLPath = "api/v1/domains/%1/screenshare";
+    JSONCallbackParameters callbackParams;
+    callbackParams.callbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "handleSuccessfulScreenshareInfoGet";
+    callbackParams.errorCallbackMethod = "handleFailedScreenshareInfoGet";
+    accountManager->sendRequest(
+        requestURLPath.arg(currentDomainID),
+        AccountManagerAuth::Required,
+        QNetworkAccessManager::GetOperation,
+        callbackParams
+    );
 }
 
 static const EntityTypes::EntityType LOCAL_SCREENSHARE_WEB_ENTITY_TYPE = EntityTypes::Web;
@@ -45,7 +94,7 @@ static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION(0.0f, -0.0862
 static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_DIMENSIONS(4.0419f, 2.2735f, 0.0100f);
 static const QString LOCAL_SCREENSHARE_WEB_ENTITY_URL =
     "https://content.highfidelity.com/Experiences/Releases/usefulUtilities/smartBoard/screenshareViewer/screenshareClient.html";
-static const QString LOCAL_SCREENSHARE_WEB_ENTITY_HOST_TYPE ="local";
+static const QString LOCAL_SCREENSHARE_WEB_ENTITY_HOST_TYPE = "local";
 void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZoneID,
                                                      const QUuid& smartboardEntityID,
                                                      const bool& isPresenter) {
@@ -83,37 +132,12 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
         }
     }
 
-    // Don't continue with any more of this logic if we can't get the `AccountManager` or `AddressManager`.
-    auto accountManager = DependencyManager::get<AccountManager>();
-    if (!accountManager) {
-        return;
-    }
-    auto addressManager = DependencyManager::get<AddressManager>();
-    if (!addressManager) {
-        return;
+    if (_requestScreenshareInfoRetryTimer && _requestScreenshareInfoRetryTimer->isActive()) {
+        _requestScreenshareInfoRetryTimer->stop();
     }
 
-    // Construct and send a request to the Metaverse to obtain the information
-    // necessary to start the screen sharing process.
-    // This request requires:
-    //     1. The domain ID of the domain in which the user's avatar is present
-    //     2. User authentication information that is automatically included when `sendRequest()` is passed
-    //         with the `AccountManagerAuth::Required` argument.
-    // Note that this request will only return successfully if the Domain Server has already registered
-    // the user paired with the current domain with the Metaverse.
-    // See `DomainServer::screensharePresence()` for more info about that.
-    QString currentDomainID = uuidStringWithoutCurlyBraces(addressManager->getDomainID());
-    QString requestURLPath = "api/v1/domains/%1/screenshare";
-    JSONCallbackParameters callbackParams;
-    callbackParams.callbackReceiver = this;
-    callbackParams.jsonCallbackMethod = "handleSuccessfulScreenshareInfoGet";
-    callbackParams.errorCallbackMethod = "handleFailedScreenshareInfoGet";
-    accountManager->sendRequest(
-        requestURLPath.arg(currentDomainID),
-        AccountManagerAuth::Required,
-        QNetworkAccessManager::GetOperation,
-        callbackParams
-    );
+    _requestScreenshareInfoRetries = 0;
+    requestScreenshareInfo();
 }
 
 void ScreenshareScriptingInterface::stopScreenshare() {
@@ -121,6 +145,11 @@ void ScreenshareScriptingInterface::stopScreenshare() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "stopScreenshare");
         return;
+    }
+
+    // If the retry timer is active, stop it.
+    if (_requestScreenshareInfoRetryTimer && _requestScreenshareInfoRetryTimer->isActive()) {
+        _requestScreenshareInfoRetryTimer->stop();
     }
 
     // If the Screen Share process is running...
@@ -231,9 +260,14 @@ void ScreenshareScriptingInterface::handleSuccessfulScreenshareInfoGet(QNetworkR
 }
 
 void ScreenshareScriptingInterface::handleFailedScreenshareInfoGet(QNetworkReply* reply) {
-    qDebug() << "Failed to get screenshare info via HTTP. Error:" << reply->errorString();
-    stopScreenshare();
-    emit screenshareError();
+    if (_requestScreenshareInfoRetries >= MAX_NUM_SCREENSHARE_INFO_REQUEST_RETRIES) {
+        qDebug() << "Failed to get screenshare info via HTTP after" << MAX_NUM_SCREENSHARE_INFO_REQUEST_RETRIES << "retries. Error:" << reply->errorString();
+        stopScreenshare();
+        emit screenshareError();
+        return;
+    }
+
+    _requestScreenshareInfoRetryTimer->start();
 }
 
 // This function will handle _all_ web events received via `EntityScriptingInterface::webEventReceived()`, including
