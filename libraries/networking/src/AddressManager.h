@@ -49,10 +49,10 @@ const QString GET_PLACE = "/api/v1/places/%1";
  * @property {Uuid} domainID - A UUID uniquely identifying the domain you're visiting. Is {@link Uuid(0)|Uuid.NULL} if you're not
  *     connected to the domain or are in a serverless domain.
  *     <em>Read-only.</em>
- * @property {string} hostname - The name of the domain for your current metaverse address (e.g., <code>"AvatarIsland"</code>,
+ * @property {string} hostname - The name of the domain for your current metaverse address (e.g., <code>"DomainName"</code>,
  *     <code>localhost</code>, or an IP address). Is blank if you're in a serverless domain.
  *     <em>Read-only.</em>
- * @property {string} href - Your current metaverse address (e.g., <code>"hifi://avatarisland/15,-10,26/0,0,0,1"</code>)
+ * @property {string} href - Your current metaverse address (e.g., <code>"hifi://domainname/15,-10,26/0,0,0,1"</code>)
  *     regardless of whether or not you're connected to the domain. Starts with <code>"file:///"</code> if you're in a 
  *     serverless domain.
  *     <em>Read-only.</em>
@@ -62,7 +62,7 @@ const QString GET_PLACE = "/api/v1/places/%1";
  *     (e.g., <code>"/15,-10,26/0,0,0,1"</code>).
  *     <em>Read-only.</em>
  * @property {string} placename - The place name in your current <code>href</code> metaverse address
- *     (e.g., <code>"AvatarIsland"</code>). Is blank if your <code>hostname</code> is an IP address.
+ *     (e.g., <code>"DomainName"</code>). Is blank if your <code>hostname</code> is an IP address.
  *     <em>Read-only.</em>
  * @property {string} protocol - The protocol of your current <code>href</code> metaverse address (e.g., <code>"hifi"</code>).
  *     <em>Read-only.</em>

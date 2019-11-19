@@ -48,7 +48,6 @@
         "Tip: Don't want others invading your personal space? Turn on the Bubble!",
         "Tip: Want to make a friend? Shake hands with them in VR!",
         "Tip: Enjoy live music? Visit Rust to dance your heart out!",
-        "Tip: Have you visited BodyMart to check out the new avatars recently?",
         "Tip: Use the Create app to import models and create custom entities.",
         "Tip: We're open source! Feel free to contribute to our code on GitHub!",
         "Tip: What emotes have you used in the Emote app?",
