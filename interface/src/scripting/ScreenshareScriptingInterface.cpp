@@ -90,8 +90,8 @@ static const EntityTypes::EntityType LOCAL_SCREENSHARE_WEB_ENTITY_TYPE = EntityT
 static const uint8_t LOCAL_SCREENSHARE_WEB_ENTITY_FPS = 30;
 // This is going to be a good amount of work to make this work dynamically for any screensize.
 // V1 will have only hardcoded values.
-static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION(0.0f, -0.0862f, 0.0711f);
-static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_DIMENSIONS(4.0419f, 2.2735f, 0.0100f);
+static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION(0.0128f, -0.0918f, 0.0771f);
+static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_DIMENSIONS(3.6790f, 2.0990f, 0.0100f);
 static const QString LOCAL_SCREENSHARE_WEB_ENTITY_URL =
     "https://content.highfidelity.com/Experiences/Releases/usefulUtilities/smartBoard/screenshareViewer/screenshareClient.html";
 static const QString LOCAL_SCREENSHARE_WEB_ENTITY_HOST_TYPE = "local";
