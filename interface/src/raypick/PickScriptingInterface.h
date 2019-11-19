@@ -152,19 +152,20 @@ public:
      * Gets the current properties of the pick.
      * @function Picks.getPickProperties
      * @param {number} id - The ID of the pick.
-     * @returns {Picks.RayPickProperties|Picks.ParabolaPickProperties|Picks.StylusPickProperties|Picks.CollisionPickProperties} Properties of the pick, per the pick <code>type</code>.
+     * @returns {Picks.RayPickProperties|Picks.ParabolaPickProperties|Picks.StylusPickProperties|Picks.CollisionPickProperties}
+     *     Properties of the pick, per the pick <code>type</code>.
      */
     Q_INVOKABLE QVariantMap getPickProperties(unsigned int uid) const;
 
     /**jsdoc
-    * Gets the parameters that were passed in to {@link Picks.createPick} to create the pick,
-    * if the pick was created through a script.
-    * Note that these properties do not reflect the current state of the pick.
-    * See {@link Picks.getPickProperties}.
-    * @function Picks.getPickScriptParameters
-    * @param {number} id - The ID of the pick.
-    * @returns {Picks.RayPickProperties|Picks.ParabolaPickProperties|Picks.StylusPickProperties|Picks.CollisionPickProperties} User-provided properties, per the pick <code>type</code>.
-    */
+     * Gets the parameters that were passed in to {@link Picks.createPick} to create the pick, if the pick was created through 
+     * a script. Note that these properties do not reflect the current state of the pick.
+     * See {@link Picks.getPickProperties}.
+     * @function Picks.getPickScriptParameters
+     * @param {number} id - The ID of the pick.
+     * @returns {Picks.RayPickProperties|Picks.ParabolaPickProperties|Picks.StylusPickProperties|Picks.CollisionPickProperties} 
+     *     Script-provided properties, per the pick <code>type</code>.
+     */
     Q_INVOKABLE QVariantMap getPickScriptParameters(unsigned int uid) const;
 
     /**jsdoc

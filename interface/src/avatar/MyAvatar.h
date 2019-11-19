@@ -148,6 +148,22 @@ class MyAvatar : public Avatar {
      *     size in the virtual world. <em>Read-only.</em>
      * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't.
      *     <em>Read-only.</em>
+     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> if blend shapes are controlled by scripted actions, 
+     *     otherwise <code>false</code>. Set this to <code>true</code> before using the {@link MyAvatar.setBlendshape} method, 
+     *     and set back to <code>false</code> after you no longer want scripted control over the blend shapes.
+     *     <p><strong>Note:</strong> This property will automatically be set to true if the Controller system has valid facial 
+     *     blend shape actions.</p>
+     * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating 
+     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code> if 
+     *     you wish to fully control the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes 
+     *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property 
+     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set this property to  
+     *     <code>false</code> if you wish to fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate 
+     *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set 
+     *     this property to <code>false</code> if you wish to fully control the mouth facial blend shapes via the 
+     *     {@link MyAvatar.setBlendshape} method.
      *
      * @comment IMPORTANT: This group of properties is copied from Avatar.h; they should NOT be edited here.
      * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
@@ -1746,7 +1762,7 @@ public:
     void prepareAvatarEntityDataForReload();
 
     /**jsdoc
-    * Turn the avatar's head until it faces the target point within the 90/-90 degree range.
+    * Turns the avatar's head until it faces the target point within a +90/-90 degree range.
     * Once this method is called, API calls will have full control of the head for a limited time.
     * If this method is not called for two seconds, the engine will regain control of the head.
     * @function MyAvatar.setHeadLookAt
@@ -1755,47 +1771,46 @@ public:
     Q_INVOKABLE void setHeadLookAt(const glm::vec3& lookAtTarget);
 
     /**jsdoc
-    * Returns the current head look at target point in world coordinates.
+    * Returns the current target point of the head's look direction in world coordinates.
     * @function MyAvatar.getHeadLookAt
-    * @returns {Vec3} The head's look at target in world coordinates.
+    * @returns {Vec3} The head's "look at" target in world coordinates.
     */
     Q_INVOKABLE glm::vec3 getHeadLookAt() { return _lookAtCameraTarget; }
 
     /**jsdoc
-    * When this function is called the engine regains control of the head immediately.
+    * Returns control of the avatar's head to the engine, and releases control from API calls.
     * @function MyAvatar.releaseHeadLookAtControl
     */
     Q_INVOKABLE void releaseHeadLookAtControl();
 
     /**jsdoc
-    * Force the avatar's eyes to look to the specified location.
-    * Once this method is called, API calls will have full control of the eyes for a limited time.
-    * If this method is not called for two seconds, the engine will regain control of the eyes.
+    * Forces the avatar's eyes to look at a specified location. Once this method is called, API calls 
+    * have full control of the eyes for a limited time. If this method is not called for two seconds, 
+    * the engine regains control of the eyes.
     * @function MyAvatar.setEyesLookAt
     * @param {Vec3} lookAtTarget - The target point in world coordinates.
     */
     Q_INVOKABLE void setEyesLookAt(const glm::vec3& lookAtTarget);
 
     /**jsdoc
-    * Returns the current eyes look at target point in world coordinates.
+    * Returns the current target point of the eyes look direction in world coordinates.
     * @function MyAvatar.getEyesLookAt
-    * @returns {Vec3} The eyes's look at target in world coordinates.
+    * @returns {Vec3} The eyes' "look at" target in world coordinates.
     */
     Q_INVOKABLE glm::vec3 getEyesLookAt() { return _eyesLookAtTarget.get(); }
 
     /**jsdoc
-    * When this function is called the engine regains control of the eyes immediately.
+    * Returns control of the avatar's eyes to the engine, and releases control from API calls.
     * @function MyAvatar.releaseEyesLookAtControl
     */
     Q_INVOKABLE void releaseEyesLookAtControl();
 
     /**jsdoc
-    * Aims the pointing directional blending towards the provided target point.
-    * The "point" reaction should be triggered before using this method. 
-    * <code>MyAvatar.beginReaction("point")</code>
-    * Returns <code>true</code> if the target point lays in front of the avatar.
+    * Aims the pointing directional blending towards the provided target point. The "point" reaction should be triggered 
+    * before using this method with the code <code>MyAvatar.beginReaction("point")</code>.
     * @function MyAvatar.setPointAt
     * @param {Vec3} pointAtTarget - The target point in world coordinates.
+    * @returns {boolean} <code>true</code> if the target point lays in front of the avatar, <code>false</code> if it doesn't.
     */
     Q_INVOKABLE bool setPointAt(const glm::vec3& pointAtTarget);
 
@@ -1899,7 +1914,7 @@ public:
     Q_INVOKABLE QVariantList getCollidingFlowJoints();
 
     /**jsdoc
-     * Starts a sitting action for the avatar
+     * Starts a sitting action for the avatar.
      * @function MyAvatar.beginSit
      * @param {Vec3} position - The point in space where the avatar will sit.
      * @param {Quat} rotation - Initial absolute orientation of the avatar once is seated.
@@ -1907,7 +1922,7 @@ public:
     Q_INVOKABLE void beginSit(const glm::vec3& position, const glm::quat& rotation);
 
     /**jsdoc
-     * Ends a sitting action for the avatar
+     * Ends a sitting action for the avatar.
      * @function MyAvatar.endSit
      * @param {Vec3} position - The position of the avatar when standing up.
      * @param {Quat} rotation - The absolute rotation of the avatar once the sitting action ends.
