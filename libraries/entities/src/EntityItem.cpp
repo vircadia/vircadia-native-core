@@ -2707,10 +2707,12 @@ quint64 EntityItem::getLastEdited() const {
 }
 
 void EntityItem::setLastEdited(quint64 lastEdited) {
-    withWriteLock([&] {
-        _lastEdited = _lastUpdated = lastEdited;
-        _changedOnServer = glm::max(lastEdited, _changedOnServer);
-    });
+    if (lastEdited == 0 || lastEdited > _lastEdited) {
+        withWriteLock([&] {
+            _lastEdited = _lastUpdated = lastEdited;
+            _changedOnServer = glm::max(lastEdited, _changedOnServer);
+        });
+    }
 }
 
 void EntityItem::markAsChangedOnServer() {

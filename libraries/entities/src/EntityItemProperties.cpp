@@ -5071,8 +5071,9 @@ void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityID
         setEntityHostType(entity::HostType::LOCAL);
         setCollisionless(true);
     }
-    setCreated(usecTimestampNow());
-    setLastEdited(usecTimestampNow());
+    uint64_t now = usecTimestampNow();
+    setCreated(now);
+    setLastEdited(now);
     setCloneable(ENTITY_ITEM_DEFAULT_CLONEABLE);
     setCloneLifetime(ENTITY_ITEM_DEFAULT_CLONE_LIFETIME);
     setCloneLimit(ENTITY_ITEM_DEFAULT_CLONE_LIMIT);

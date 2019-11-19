@@ -1942,6 +1942,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 FilterType filterType = isPhysics ? FilterType::Physics : (isAdd ? FilterType::Add : FilterType::Edit);
                 bool allowed = (!isPhysics && senderNode->isAllowedEditor()) || filterProperties(existingEntity, properties, properties, wasChanged, filterType);
                 if (!allowed) {
+                    // the update failed and we need to convey that fact to the sender
+                    // our method is to re-assert the current properties and bump the lastEdited timestamp
                     auto timestamp = properties.getLastEdited();
                     properties = EntityItemProperties();
                     properties.setLastEdited(timestamp);
