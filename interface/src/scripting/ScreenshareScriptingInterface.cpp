@@ -157,7 +157,6 @@ void ScreenshareScriptingInterface::stopScreenshare() {
         //...terminate it and make sure that scripts know we terminated it by emitting
         // `screenshareProcessTerminated()`.
         _screenshareProcess->terminate();
-        emit screenshareProcessTerminated();
     }
 
     // Delete the local web entity if we know about it here.
