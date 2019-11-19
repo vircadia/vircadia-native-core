@@ -168,7 +168,7 @@ public:
     * @function Pointers.getPointerScriptParameters
     * @param {number} id - The ID of the pointer.
     * @returns {Pointers.RayPointerProperties|Picks.ParabolaPointerProperties|Picks.StylusPointerProperties} 
-    *     User-provided properties, per the pointer <code>type</code>.
+    *     Script-provided properties, per the pointer <code>type</code>.
     */
     Q_INVOKABLE QVariantMap getPointerScriptParameters(unsigned int uid) const;
 

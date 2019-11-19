@@ -253,7 +253,7 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildStylusPick(const QVarian
  *     {@link Picks.getPickScriptParameters}. A parabola pick's type is {@link PickType.Parabola}.
  * @property {Vec3} baseScale - Returned from {@link Picks.getPickProperties} when the pick has a parent with varying scale 
  *     (usually an avatar or an entity). Its value is the original scale of the parent at the moment the pick was created, and 
- *     is used to rescale the pick, and/or the pointer which owns this pick, if any.
+ *     is used to rescale the pick and the pointer which owns this pick, if any.
  */
 std::shared_ptr<PickQuery> PickScriptingInterface::buildParabolaPick(const QVariantMap& propMap) {
     bool enabled = false;

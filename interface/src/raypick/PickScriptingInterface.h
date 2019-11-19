@@ -159,7 +159,7 @@ public:
      * @function Picks.getPickScriptParameters
      * @param {number} id - The ID of the pick.
      * @returns {Picks.RayPickProperties|Picks.ParabolaPickProperties|Picks.StylusPickProperties|Picks.CollisionPickProperties} 
-     *     User-provided properties, per the pick <code>type</code>.
+     *     Script-provided properties, per the pick <code>type</code>.
      */
     Q_INVOKABLE QVariantMap getPickScriptParameters(unsigned int uid) const;
 

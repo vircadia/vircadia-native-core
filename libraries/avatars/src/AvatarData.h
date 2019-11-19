@@ -532,21 +532,21 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     size in the virtual world. <em>Read-only.</em>
      * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't. 
      *     <em>Read-only.</em>
-     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> if blendshapes are controlled by scripted actions, 
-     *     otherwise <code>false</code>. Set this to true before using the {@link MyAvatar.setBlendshape} method, and set back 
-     *     to false after you no longer want scripted control over the blendshapes.
-     *     <p>NOTE: This property will automatically be set to true if the Controller system has valid facial blendshape 
-     *     actions.</p>
+     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> if blend shapes are controlled by scripted actions, 
+     *     otherwise <code>false</code>. Set this to <code>true</code> before using the {@link MyAvatar.setBlendshape} method, 
+     *     and set back to <code>false</code> after you no longer want scripted control over the blend shapes.
+     *     <p><strong>Note:</strong> This property will automatically be set to true if the Controller system has valid facial 
+     *     blend shape actions.</p>
      * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating 
-     *     facial blendshapes, <code>false</code> if automatic blinking is disabled. Set this property to false if you wish to
-     *     fully control the blink facial blendshapes via the {@link MyAvatar.setBlendshape} method.
-     * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blendshapes for an avatar's eyes 
+     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code> if 
+     *     you wish to fully control the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes 
      *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property 
-     *     to true to prevent the iris from being obscured by the upper or lower lids. Set this property to <code>false</code> 
-     *     if you wish to fully control the eye blendshapes via the {@link MyAvatar.setBlendshape} method.
-     * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blendshapes animate 
+     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set this property to  
+     *     <code>false</code> if you wish to fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate 
      *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set 
-     *     this property to false if you wish to fully control the mouth facial blendshapes via the 
+     *     this property to <code>false</code> if you wish to fully control the mouth facial blend shapes via the 
      *     {@link MyAvatar.setBlendshape} method.
      */
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
@@ -1133,9 +1133,9 @@ public:
 
 
     /**jsdoc
-     * Sets the value of a blendshape to animate your avatar's face. In order for other users to see the resulting animations 
-     * on your avatar's face, set {@link Avatar.hasScriptedBlendshapes} to true. When you are done using this API, set 
-     * {@link Avatar.hasScriptedBlendshapes} back to false when the animation is complete. 
+     * Sets the value of a blend shape to animate your avatar's face. In order for other users to see the resulting animations 
+     * on your avatar's face, set {@link Avatar.hasScriptedBlendshapes} to <code>true</code>. When you are done using this API, 
+     * set {@link Avatar.hasScriptedBlendshapes} back to <code>false</code> when the animation is complete. 
      * @function Avatar.setBlendshape
      * @param {string} name - The name of the blendshape, per the 
      *     {@link https://docs.highfidelity.com/create/avatars/avatar-standards.html#blendshapes Avatar Standards}.
