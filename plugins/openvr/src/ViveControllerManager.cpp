@@ -431,8 +431,8 @@ bool ViveControllerManager::isHeadControllerMounted() const {
 void ViveControllerManager::invalidateEyeInputs() {
     _inputDevice->_poseStateMap[controller::LEFT_EYE].valid = false;
     _inputDevice->_poseStateMap[controller::RIGHT_EYE].valid = false;
-    _inputDevice->_axisStateMap[controller::LEFT_EYE_BLINK].valid = false;
-    _inputDevice->_axisStateMap[controller::RIGHT_EYE_BLINK].valid = false;
+    _inputDevice->_axisStateMap[controller::EYEBLINK_L].valid = false;
+    _inputDevice->_axisStateMap[controller::EYEBLINK_R].valid = false;
 }
 
 
@@ -510,16 +510,16 @@ void ViveControllerManager::updateEyeTracker(float deltaTime, const controller::
 
     // in hifi, 0 is open 1 is closed.  in SRanipal 1 is open, 0 is closed.
     if (eyeDataBuffer.leftOpennessValid) {
-        _inputDevice->_axisStateMap[controller::LEFT_EYE_BLINK] =
+        _inputDevice->_axisStateMap[controller::EYEBLINK_L] =
             controller::AxisValue(1.0f - eyeDataBuffer.leftEyeOpenness, now);
     } else {
-        _inputDevice->_poseStateMap[controller::LEFT_EYE_BLINK].valid = false;
+        _inputDevice->_poseStateMap[controller::EYEBLINK_L].valid = false;
     }
     if (eyeDataBuffer.rightOpennessValid) {
-        _inputDevice->_axisStateMap[controller::RIGHT_EYE_BLINK] =
+        _inputDevice->_axisStateMap[controller::EYEBLINK_R] =
             controller::AxisValue(1.0f - eyeDataBuffer.rightEyeOpenness, now);
     } else {
-        _inputDevice->_poseStateMap[controller::RIGHT_EYE_BLINK].valid = false;
+        _inputDevice->_poseStateMap[controller::EYEBLINK_R].valid = false;
     }
 }
 
@@ -1931,8 +1931,8 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         makePair(RIGHT_ARM, "RightArm"),
         makePair(LEFT_EYE, "LeftEye"),
         makePair(RIGHT_EYE, "RightEye"),
-        makePair(LEFT_EYE_BLINK, "LeftEyeBlink"),
-        makePair(RIGHT_EYE_BLINK, "RightEyeBlink"),
+        makePair(EYEBLINK_L, "EyeBlink_L"),
+        makePair(EYEBLINK_R, "EyeBlink_R"),
 
         // 16 tracked poses
         makePair(TRACKED_OBJECT_00, "TrackedObject00"),
