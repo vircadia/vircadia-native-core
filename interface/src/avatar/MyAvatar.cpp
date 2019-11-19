@@ -3620,14 +3620,14 @@ void MyAvatar::updateOrientation(float deltaTime) {
             ajustedYawVector = (leftRightDot < 0.0f ? -avatarVectorRight : avatarVectorRight);
         }
         if (frontBackDot < limitAngle) {
-            _seatedBodyYawDelta = 0.0f;
 
             if (!isRotatingWhileSeated) {
-                if (frontBackDot < triggerAngle && isCameraYawing) {
+                if (frontBackDot < triggerAngle && _seatedBodyYawDelta == 0.0f) {
                     _shouldTurnToFaceCamera = true;
                     _firstPersonSteadyHeadTimer = 0.0f;
                 } else {
                     setWorldOrientation(previousOrientation);
+                    _seatedBodyYawDelta = 0.0f;
                 }
             } else {
                 setWorldOrientation(previousOrientation);
