@@ -128,6 +128,10 @@ void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event) {
 }
 
 bool KeyboardMouseDevice::isWheelByTouchPad(QWheelEvent* event) {
+    // This function is only used to track two finger swipe using the touchPad on Windows.
+    // That gesture gets sent as a wheel event. This wheel delta values are used to orbit the camera.
+    // On MacOS the two finger swipe fires touch events and wheel events. 
+    // In that case we always return false to avoid interference between both.
 #ifdef Q_OS_MAC
     return false;
 #endif
