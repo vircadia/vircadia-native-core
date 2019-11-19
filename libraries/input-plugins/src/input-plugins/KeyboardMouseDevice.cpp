@@ -13,6 +13,7 @@
 #include <QtGui/QKeyEvent>
 #include <QtGui/QMouseEvent>
 #include <QtGui/QTouchEvent>
+#include <QGesture>
 
 #include <controllers/UserInputMapper.h>
 #include <PathUtils.h>
@@ -126,12 +127,60 @@ void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event) {
     }
 }
 
-void KeyboardMouseDevice::wheelEvent(QWheelEvent* event) {
-    auto currentMove = event->angleDelta() / 120.0f;
-    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_POS).getChannel()].value = currentMove.x() > 0 ? currentMove.x() : 0;
-    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_NEG).getChannel()].value = currentMove.x() < 0 ? -currentMove.x() : 0;
-    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_POS).getChannel()].value = currentMove.y() > 0 ? currentMove.y() : 0;
-    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_NEG).getChannel()].value = currentMove.y() < 0 ? -currentMove.y() : 0;
+bool KeyboardMouseDevice::isWheelByTouchPad(QWheelEvent* event) {
+    // This function is only used to track two finger swipe using the touchPad on Windows.
+    // That gesture gets sent as a wheel event. This wheel delta values are used to orbit the camera.
+    // On MacOS the two finger swipe fires touch events and wheel events. 
+    // In that case we always return false to avoid interference between both.
+#ifdef Q_OS_MAC
+    return false;
+#endif
+    QPoint delta = event->angleDelta();
+    int deltaValueX = abs(delta.x());
+    int deltaValueY = abs(delta.y());
+    const int MAX_WHEEL_DELTA_REPEAT = 20;
+    const int COMMON_WHEEL_DELTA_VALUE = 120;
+    if (deltaValueX != 0) {
+        if (abs(_lastWheelDelta.x()) == deltaValueX) {
+            _wheelDeltaRepeatCount.setX(_wheelDeltaRepeatCount.x() + 1);
+        } else {
+            _wheelDeltaRepeatCount.setX(0);
+        }
+        return deltaValueX != COMMON_WHEEL_DELTA_VALUE && _wheelDeltaRepeatCount.x() < MAX_WHEEL_DELTA_REPEAT;
+    }
+    if (deltaValueY != 0) {
+        if (abs(_lastWheelDelta.y()) == deltaValueY) {
+            _wheelDeltaRepeatCount.setY(_wheelDeltaRepeatCount.y() + 1);
+        } else {
+            _wheelDeltaRepeatCount.setY(0);
+        }
+        return deltaValueY != COMMON_WHEEL_DELTA_VALUE && _wheelDeltaRepeatCount.y() < MAX_WHEEL_DELTA_REPEAT;
+    }
+    return false;
+}
+
+void KeyboardMouseDevice::wheelEvent(QWheelEvent* event) {    
+    if (isWheelByTouchPad(event)) {
+        // Check for horizontal and vertical scroll not triggered by the mouse.
+        // These are most likelly triggered by two fingers gesture on touchpad for windows.
+        QPoint delta = event->angleDelta();
+        float deltaX = (float)delta.x();
+        float deltaY = (float)delta.y();
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_POS).getChannel()].value = (deltaX > 0 ? deltaX : 0.0f);
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_NEG).getChannel()].value = (deltaX < 0 ? -deltaX : 0.0f);
+        // Y mouse is inverted positive is pointing up the screen
+        const float WHEEL_Y_ATTENUATION = 0.02f;
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_POS).getChannel()].value = (deltaY < 0 ? -WHEEL_Y_ATTENUATION * deltaY : 0.0f);
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_NEG).getChannel()].value = (deltaY > 0 ? WHEEL_Y_ATTENUATION * deltaY : 0.0f);
+    } else {
+        auto currentMove = event->angleDelta() / 120.0f;
+        float currentMoveX = (float)currentMove.x();
+        float currentMoveY = (float)currentMove.y();
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_POS).getChannel()].value = currentMoveX > 0 ? currentMoveX : 0.0f;
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_NEG).getChannel()].value = currentMoveX < 0 ? -currentMoveX : 0.0f;
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_POS).getChannel()].value = currentMoveY > 0 ? currentMoveY : 0.0f;
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_NEG).getChannel()].value = currentMoveY < 0 ? -currentMoveY : 0.0f;
+    }
 }
 
 glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) {
@@ -143,6 +192,37 @@ glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) {
         averagePoint /= (float)(points.count());
     }
     return averagePoint;
+}
+
+void KeyboardMouseDevice::touchGestureEvent(const QGestureEvent* event) {
+    QPinchGesture* pinchGesture = (QPinchGesture*) event->gesture(Qt::PinchGesture);
+
+    if (pinchGesture) {
+        switch (pinchGesture->state()) {
+            case Qt::GestureStarted:
+                _lastTotalScaleFactor = pinchGesture->totalScaleFactor();
+                break;
+
+            case Qt::GestureUpdated: {
+                const float PINCH_DELTA_STEP = 0.04f;
+                qreal totalScaleFactor = pinchGesture->totalScaleFactor();
+                qreal scaleFactorDelta = _lastTotalScaleFactor - totalScaleFactor;
+                _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_POS).getChannel()].value = scaleFactorDelta > 0.0 ? PINCH_DELTA_STEP : 0.0f;
+                _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_NEG).getChannel()].value = scaleFactorDelta < 0.0 ? PINCH_DELTA_STEP : 0.0f;
+                _lastTotalScaleFactor = totalScaleFactor;
+                break;
+            }
+
+            case Qt::GestureFinished: {
+                _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_POS).getChannel()].value = 0.0f;
+                _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_NEG).getChannel()].value = 0.0f;
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
 }
 
 void KeyboardMouseDevice::touchBeginEvent(const QTouchEvent* event) {
@@ -167,7 +247,7 @@ void KeyboardMouseDevice::touchUpdateEvent(const QTouchEvent* event) {
         _lastTouchTime = _clock.now();
 
         if (!_isTouching) {
-            _isTouching = event->touchPointStates().testFlag(Qt::TouchPointPressed);
+            _isTouching = true;
         } else {
             auto currentMove = currentPos - _lastTouch;
             _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_POS).getChannel()].value = (currentMove.x > 0 ? currentMove.x : 0.0f);
@@ -344,6 +424,8 @@ controller::Input::NamedVector KeyboardMouseDevice::InputDevice::getAvailableInp
         availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_X_NEG), "TouchpadLeft"));
         availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_Y_POS), "TouchpadUp"));
         availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_Y_NEG), "TouchpadDown"));
+        availableInputs.append(Input::NamedPair(makeInput(TOUCH_GESTURE_PINCH_POS), "GesturePinchOut"));
+        availableInputs.append(Input::NamedPair(makeInput(TOUCH_GESTURE_PINCH_NEG), "GesturePinchIn"));
     });
     return availableInputs;
 }
