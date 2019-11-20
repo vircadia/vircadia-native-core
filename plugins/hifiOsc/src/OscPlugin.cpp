@@ -373,16 +373,16 @@ static int genericHandlerFunc(const char* path, const char* types, lo_arg** argv
 
     // map /ELR to left eye rot
     if (path[0] == '/' && path[1] == 'E' && path[2] == 'L' && path[3] == 'R' &&
-        types[0] == 'f' && types[1] == 'f' && types[2] == 'f') {
-        glm::vec3 euler(-argv[0]->f, -argv[1]->f, argv[2]->f);
+        types[0] == 'f' && types[1] == 'f') {
+        glm::vec3 euler(-argv[0]->f, -argv[1]->f, 0.0f);
         container->_eyeLeftRot = glm::quat(glm::radians(euler)) * Quaternions::Y_180;
         container->_eyeLeftRotValid = true;
     }
 
     // map /ERR to right eye rot
     if (path[0] == '/' && path[1] == 'E' && path[2] == 'R' && path[3] == 'R' &&
-        types[0] == 'f' && types[1] == 'f' && types[2] == 'f') {
-        glm::vec3 euler(-argv[0]->f, -argv[1]->f, argv[2]->f);
+        types[0] == 'f' && types[1] == 'f') {
+        glm::vec3 euler((float)-argv[0]->f, (float)-argv[1]->f, 0.0f);
         container->_eyeRightRot = glm::quat(glm::radians(euler)) * Quaternions::Y_180;
         container->_eyeRightRotValid = true;
     }
@@ -597,6 +597,7 @@ QString OscPlugin::InputDevice::getDefaultMappingConfig() const {
 }
 
 void OscPlugin::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+    glm::mat4 sensorToAvatarMat = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
     std::lock_guard<std::mutex> guard(_container->_dataMutex);
     for (int i = 0; i < (int)FaceCap::BlendshapeCount; i++) {
         if (_container->_blendshapeValidFlags[i]) {
@@ -604,20 +605,22 @@ void OscPlugin::InputDevice::update(float deltaTime, const controller::InputCali
         }
     }
     if (_container->_headRotValid && _container->_headTransValid) {
-
         const float SMOOTH_TIMESCALE = 2.0f;
         float tau = deltaTime / SMOOTH_TIMESCALE;
         _container->_headTransSmoothed = lerp(_container->_headTransSmoothed, _container->_headTransTarget, tau);
         glm::vec3 delta = _container->_headTransSmoothed - _container->_headTransTarget;
         glm::vec3 trans = extractTranslation(inputCalibrationData.defaultHeadMat) + delta;
 
-        _poseStateMap[controller::HEAD] = controller::Pose(trans, _container->_headRot);
+        controller::Pose sensorSpacePose(trans, _container->_headRot);
+        _poseStateMap[controller::HEAD] = sensorSpacePose.transform(sensorToAvatarMat);
     }
     if (_container->_eyeLeftRotValid) {
-        _poseStateMap[controller::LEFT_EYE] = controller::Pose(vec3(0.0f), _container->_eyeLeftRot);
+        controller::Pose sensorSpacePose(vec3(0.0f), _container->_eyeLeftRot);
+        _poseStateMap[controller::LEFT_EYE] = sensorSpacePose.transform(sensorToAvatarMat);
     }
     if (_container->_eyeRightRotValid) {
-        _poseStateMap[controller::RIGHT_EYE] = controller::Pose(vec3(0.0f), _container->_eyeRightRot);
+        controller::Pose sensorSpacePose(vec3(0.0f), _container->_eyeRightRot);
+        _poseStateMap[controller::RIGHT_EYE] = sensorSpacePose.transform(sensorToAvatarMat);
     }
 }
 
