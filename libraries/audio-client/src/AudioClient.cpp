@@ -160,7 +160,7 @@ void AudioClient::checkDevices() {
     auto outputDevices = getAvailableDevices(QAudio::AudioOutput, hmdOutputName);
    
     static const QMetaMethod devicesChangedSig= QMetaMethod::fromSignal(&AudioClient::devicesChanged);
-    //only emit once the scripting interface has connecte to the signal
+    //only emit once the scripting interface has connected to the signal
     if (isSignalConnected(devicesChangedSig)) {
         Lock lock(_deviceMutex);
         if (inputDevices != _inputDevices) {
