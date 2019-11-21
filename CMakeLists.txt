@@ -274,9 +274,7 @@ endif()
 
 if (BUILD_CLIENT OR BUILD_SERVER)
   add_subdirectory(plugins)
-  if (NOT (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND "$ENV{CI_BUILD}" STREQUAL "Github"))
-    add_subdirectory(server-console)
-  endif()
+  add_subdirectory(server-console)
 endif()
 
 # BUILD_TOOLS option will be handled inside the tools's CMakeLists.txt because 'scribe' tool is required for build anyway
