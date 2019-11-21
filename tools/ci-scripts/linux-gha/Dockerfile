@@ -14,7 +14,7 @@ COPY ./plugins/hifiCodec/libhifiCodec.so /etc/hifi/server/plugins/
 COPY ./plugins/pcmCodec/libpcmCodec.so /etc/hifi/server/plugins/
 # Dummy statement
 RUN true
-COPY ./*.so /lib/
+#COPY ./*.so /lib/
 RUN ln -sf /lib/libquazip5.so /lib/libquazip5.so.1
 #COPY ./resources/ /etc/hifi/server/resources/
 #COPY ./supervisor/hifi.conf /etc/supervisor/conf.d/hifi.conf
