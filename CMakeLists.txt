@@ -57,7 +57,7 @@ else()
   include("${CMAKE_BINARY_DIR}/qt.cmake")
 endif()
 
-set(VCPKG_APPLOCAL_DEPS OFF)
+option(VCPKG_APPLOCAL_DEPS OFF)
 
 project(hifi)
 include("cmake/init.cmake")

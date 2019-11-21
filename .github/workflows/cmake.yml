@@ -74,7 +74,8 @@ env:
 jobs:
   unlabel:
     runs-on: ubuntu-latest
-    if: github.event.action == 'labeled'
+    if: false
+    #if: github.event.action == 'labeled'
     steps:
     - name: Install python modules
       run: pip install PyGithub
