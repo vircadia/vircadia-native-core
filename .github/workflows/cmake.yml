@@ -246,3 +246,42 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
         ARTIFACT_PATTERN: HighFidelity-Beta-PR${{ github.event.number }}-*.exe
       run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload.py"
+  build_full_linux:
+    runs-on: ubuntu-latest
+    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild'
+    env:
+      DOCKER_IMAGE_NAME: "linux-hifi-gha:${{ github.event.number }}"
+    steps:
+    - uses: actions/checkout@v1
+      with: 
+        submodules: true
+        fetch-depth: 1
+    - name: Install python modules 
+      run: pip install awscli boto3 PyGithub
+    - name: Install apt packages
+      # libglu1-mesa-dev needed for oven, npm for server-console
+      run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+    - name: Configure CMake (Linux)
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_TOOLS:BOOLEAN=false
+    - name: Build
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      # Parallel make:
+      run: cmake --build . -- -j3
+    - name: Build Ubuntu Docker
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: docker build -t $DOCKER_IMAGE_NAME -f $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/Dockerfile ./
+    - name: Upload Docker image
+      shell: bash
+      env:
+        # TODO: upload to correct location
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+      run: |
+        docker save -o ${{runner.workspace}}/build/hifi_docker_image.tar $DOCKER_IMAGE_NAME
+        aws s3 cp ${{runner.workspace}}/build/hifi_docker_image.tar s3://hifi-public/simon/builds/hifi_docker_image.$GIT_PR_COMMIT_SHORT.tar
