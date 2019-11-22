@@ -52,7 +52,6 @@
         { "from": "GamePad.DL", "to": "Standard.DL" },
         { "from": "GamePad.DR", "to": "Standard.DR" },
 
-        { "from": [ "GamePad.Y" ], "to": "Standard.RightPrimaryThumb", "peek": true },
         { "from": "GamePad.A", "to": "Standard.A" },
         { "from": "GamePad.B", "to": "Standard.B" },
         { "from": "GamePad.X", "to": "Standard.X" },
