@@ -374,16 +374,16 @@ static int genericHandlerFunc(const char* path, const char* types, lo_arg** argv
     // map /ELR to left eye rot
     if (path[0] == '/' && path[1] == 'E' && path[2] == 'L' && path[3] == 'R' &&
         types[0] == 'f' && types[1] == 'f') {
-        glm::vec3 euler(-argv[0]->f, -argv[1]->f, 0.0f);
-        container->_eyeLeftRot = glm::quat(glm::radians(euler)) * Quaternions::Y_180;
+        glm::vec3 euler(argv[0]->f, -argv[1]->f, 0.0f);
+        container->_eyeLeftRot = container->_headRot * glm::quat(glm::radians(euler));
         container->_eyeLeftRotValid = true;
     }
 
     // map /ERR to right eye rot
     if (path[0] == '/' && path[1] == 'E' && path[2] == 'R' && path[3] == 'R' &&
         types[0] == 'f' && types[1] == 'f') {
-        glm::vec3 euler((float)-argv[0]->f, (float)-argv[1]->f, 0.0f);
-        container->_eyeRightRot = glm::quat(glm::radians(euler)) * Quaternions::Y_180;
+        glm::vec3 euler((float)argv[0]->f, (float)-argv[1]->f, 0.0f);
+        container->_eyeRightRot = container->_headRot * glm::quat(glm::radians(euler));
         container->_eyeRightRotValid = true;
     }
 

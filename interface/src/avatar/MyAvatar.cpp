@@ -6593,18 +6593,18 @@ void MyAvatar::updateEyesLookAtPosition(float deltaTime) {
         // A script has set the eye rotations, so use these to set lookAtSpot
         glm::quat leftEyeRotation = getAbsoluteJointRotationInObjectFrame(leftEyeJointIndex);
         glm::quat rightEyeRotation = getAbsoluteJointRotationInObjectFrame(rightEyeJointIndex);
-        glm::vec3 leftVec = getWorldOrientation() * leftEyeRotation * IDENTITY_FORWARD;
-        glm::vec3 rightVec = getWorldOrientation() * rightEyeRotation * IDENTITY_FORWARD;
+        glm::vec3 leftVec = getWorldOrientation() * leftEyeRotation * Vectors::UNIT_Z;
+        glm::vec3 rightVec = getWorldOrientation() * rightEyeRotation * Vectors::UNIT_Z;
         glm::vec3 leftEyePosition = myHead->getLeftEyePosition();
         glm::vec3 rightEyePosition = myHead->getRightEyePosition();
         float t1, t2;
         bool success = findClosestApproachOfLines(leftEyePosition, leftVec, rightEyePosition, rightVec, t1, t2);
-        if (success) {
+        if (success && t1 > 0 && t2 > 0) {
             glm::vec3 leftFocus = leftEyePosition + leftVec * t1;
             glm::vec3 rightFocus = rightEyePosition + rightVec * t2;
             lookAtSpot = (leftFocus + rightFocus) / 2.0f; // average
         } else {
-            lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * 1000.0f;
+            lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * 20.0f;
         }
     } else if (_scriptControlsEyesLookAt) {
         if (_scriptEyesControlTimer < MAX_LOOK_AT_TIME_SCRIPT_CONTROL) {
@@ -6618,19 +6618,18 @@ void MyAvatar::updateEyesLookAtPosition(float deltaTime) {
         controller::Pose rightEyePose = getControllerPoseInAvatarFrame(controller::Action::RIGHT_EYE);
         if (leftEyePose.isValid() && rightEyePose.isValid()) {
             // an eye tracker is in use, set lookAtSpot from this
-            glm::vec3 leftVec = getWorldOrientation() * leftEyePose.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
-            glm::vec3 rightVec = getWorldOrientation() * rightEyePose.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
-
+            glm::vec3 leftVec = getWorldOrientation() * leftEyePose.rotation * Vectors::UNIT_Z;
+            glm::vec3 rightVec = getWorldOrientation() * rightEyePose.rotation * Vectors::UNIT_Z;
             glm::vec3 leftEyePosition = myHead->getLeftEyePosition();
             glm::vec3 rightEyePosition = myHead->getRightEyePosition();
             float t1, t2;
             bool success = findClosestApproachOfLines(leftEyePosition, leftVec, rightEyePosition, rightVec, t1, t2);
-            if (success) {
+            if (success && t1 > 0 && t2 > 0) {
                 glm::vec3 leftFocus = leftEyePosition + leftVec * t1;
                 glm::vec3 rightFocus = rightEyePosition + rightVec * t2;
                 lookAtSpot = (leftFocus + rightFocus) / 2.0f; // average
             } else {
-                lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * 1000.0f;
+                lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * 20.0f;
             }
         } else {
             // no script override, no eye tracker, so do procedural eye motion

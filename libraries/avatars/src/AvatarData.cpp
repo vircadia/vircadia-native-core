@@ -376,7 +376,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                 tranlationChangedSince(lastSentTime) ||
                 parentInfoChangedSince(lastSentTime));
             hasHandControllers = _controllerLeftHandMatrixCache.isValid() || _controllerRightHandMatrixCache.isValid();
-            hasFaceTrackerInfo = !dropFaceTracking && getHasScriptedBlendshapes() &&
+            hasFaceTrackerInfo = !dropFaceTracking && (getHasScriptedBlendshapes() || _headData->_hasInputDrivenBlendshapes) &&
                 (sendAll || faceTrackerInfoChangedSince(lastSentTime));
             hasJointData = !sendMinimum;
             hasJointDefaultPoseFlags = hasJointData;
