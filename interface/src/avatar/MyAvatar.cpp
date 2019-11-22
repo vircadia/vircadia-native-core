@@ -6589,6 +6589,7 @@ void MyAvatar::updateEyesLookAtPosition(float deltaTime) {
     int rightEyeJointIndex = getJointIndex("RightEye");
     bool eyesAreOverridden = getIsJointOverridden(leftEyeJointIndex) ||
         getIsJointOverridden(rightEyeJointIndex);
+    const float DEFAULT_GAZE_DISTANCE = 20.0f;  // meters
     if (eyesAreOverridden) {
         // A script has set the eye rotations, so use these to set lookAtSpot
         glm::quat leftEyeRotation = getAbsoluteJointRotationInObjectFrame(leftEyeJointIndex);
@@ -6604,7 +6605,7 @@ void MyAvatar::updateEyesLookAtPosition(float deltaTime) {
             glm::vec3 rightFocus = rightEyePosition + rightVec * t2;
             lookAtSpot = (leftFocus + rightFocus) / 2.0f; // average
         } else {
-            lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * 20.0f;
+            lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * DEFAULT_GAZE_DISTANCE;
         }
     } else if (_scriptControlsEyesLookAt) {
         if (_scriptEyesControlTimer < MAX_LOOK_AT_TIME_SCRIPT_CONTROL) {
@@ -6629,7 +6630,7 @@ void MyAvatar::updateEyesLookAtPosition(float deltaTime) {
                 glm::vec3 rightFocus = rightEyePosition + rightVec * t2;
                 lookAtSpot = (leftFocus + rightFocus) / 2.0f; // average
             } else {
-                lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * 20.0f;
+                lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * DEFAULT_GAZE_DISTANCE;
             }
         } else {
             // no script override, no eye tracker, so do procedural eye motion
