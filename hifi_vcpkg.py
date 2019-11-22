@@ -82,8 +82,9 @@ endif()
             self.vcpkgUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/builds/vcpkg-win32-client.zip?versionId=tSFzbw01VkkVFeRQ6YuAY4dro2HxJR9U'
             self.vcpkgHash = 'a650db47a63ccdc9904b68ddd16af74772e7e78170b513ea8de5a3b47d032751a3b73dcc7526d88bcb500753ea3dd9880639ca842bb176e2bddb1710f9a58cd3'
             self.hostTriplet = 'x64-windows'
-            if ('CI_BUILD' in os.environ) and os.environ["CI_BUILD"] == "Github" and (not self.noClean):
-                self.prebuiltArchive = "https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/builds/vcpkg-win32.zip?versionId=LtGKnBydCxteY3Ub1W_UNBN5sH.Ccp5g"
+# Don't use prebuilt on windows, because it is out of date with the inclusion of liblo.
+#           if ('CI_BUILD' in os.environ) and os.environ["CI_BUILD"] == "Github" and (not self.noClean):
+#               self.prebuiltArchive = "https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/builds/vcpkg-win32.zip?versionId=LtGKnBydCxteY3Ub1W_UNBN5sH.Ccp5g"
         elif 'Darwin' == system:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '--allowAppleClang' ]
