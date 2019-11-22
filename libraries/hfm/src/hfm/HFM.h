@@ -173,23 +173,26 @@ public:
     void getTextureNames(QSet<QString>& textureList) const;
     void setMaxNumPixelsPerTexture(int maxNumPixels);
 
-    glm::vec3 diffuseColor{ 1.0f };
-    float diffuseFactor{ 1.0f };
-    glm::vec3 specularColor{ 0.02f };
-    float specularFactor{ 1.0f };
+    glm::vec3 diffuseColor { 1.0f };
+    float diffuseFactor { 1.0f };
+    glm::vec3 specularColor { 0.02f };
+    float specularFactor { 1.0f };
 
-    glm::vec3 emissiveColor{ 0.0f };
-    float emissiveFactor{ 0.0f };
+    glm::vec3 emissiveColor { 0.0f };
+    float emissiveFactor { 0.0f };
 
-    float shininess{ 23.0f };
-    float opacity{ 1.0f };
+    float shininess { 23.0f };
+    float opacity { 1.0f };
 
-    float metallic{ 0.0f };
-    float roughness{ 1.0f };
-    float emissiveIntensity{ 1.0f };
-    float ambientFactor{ 1.0f };
+    float metallic { 0.0f };
+    float roughness { 1.0f };
+    float emissiveIntensity { 1.0f };
+    float ambientFactor { 1.0f };
 
     float bumpMultiplier { 1.0f }; // TODO: to be implemented
+
+    graphics::MaterialKey::OpacityMapMode alphaMode { graphics::MaterialKey::OPACITY_MAP_BLEND };
+    float alphaCutoff { 0.5f };
 
     QString materialID;
     QString name;
@@ -207,19 +210,19 @@ public:
     Texture occlusionTexture;
     Texture scatteringTexture;
     Texture lightmapTexture;
-    glm::vec2 lightmapParams{ 0.0f, 1.0f };
+    glm::vec2 lightmapParams { 0.0f, 1.0f };
 
 
-    bool isPBSMaterial{ false };
+    bool isPBSMaterial { false };
     // THe use XXXMap are not really used to drive which map are going or not, debug only
-    bool useNormalMap{ false };
-    bool useAlbedoMap{ false };
-    bool useOpacityMap{ false };
-    bool useRoughnessMap{ false };
-    bool useSpecularMap{ false };
-    bool useMetallicMap{ false };
-    bool useEmissiveMap{ false };
-    bool useOcclusionMap{ false };
+    bool useNormalMap { false };
+    bool useAlbedoMap { false };
+    bool useOpacityMap { false };
+    bool useRoughnessMap { false };
+    bool useSpecularMap { false };
+    bool useMetallicMap { false };
+    bool useEmissiveMap { false };
+    bool useOcclusionMap { false };
 
     bool needTangentSpace() const;
 };

@@ -416,21 +416,13 @@ struct GLTFpbrMetallicRoughness {
     }
 };
 
-namespace GLTFMaterialAlphaMode {
-    enum Values {
-        OPAQUE = 0,
-        MASK,
-        BLEND
-    };
-};
-
 struct GLTFMaterial {
     QString name;
     QVector<double> emissiveFactor;
     int emissiveTexture;
     int normalTexture;
     int occlusionTexture;
-    int alphaMode;
+    graphics::MaterialKey::OpacityMapMode alphaMode;
     double alphaCutoff;
     bool doubleSided;
     GLTFpbrMetallicRoughness pbrMetallicRoughness;
@@ -450,6 +442,12 @@ struct GLTFMaterial {
         }
         if (defined["emissiveFactor"]) {
             qCDebug(modelformat) << "emissiveFactor: " << emissiveFactor;
+        }
+        if (defined["alphaMode"]) {
+            qCDebug(modelformat) << "alphaMode: " << alphaMode;
+        }
+        if (defined["alphaCutoff"]) {
+            qCDebug(modelformat) << "alphaCutoff: " << alphaCutoff;
         }
         if (defined["pbrMetallicRoughness"]) {
             pbrMetallicRoughness.dump();
@@ -800,7 +798,7 @@ private:
 
     hifi::ByteArray setGLBChunks(const hifi::ByteArray& data);
     
-    int getMaterialAlphaMode(const QString& type);
+    graphics::MaterialKey::OpacityMapMode getMaterialAlphaMode(const QString& type);
     int getAccessorType(const QString& type);
     int getAnimationSamplerInterpolation(const QString& interpolation);
     int getCameraType(const QString& type);
@@ -854,7 +852,7 @@ private:
     bool doesResourceExist(const QString& url);
 
 
-    void setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material);
+    void setHFMMaterial(HFMMaterial& hfmMat, const GLTFMaterial& material);
     HFMTexture getHFMTexture(const GLTFTexture& texture);
     void glTFDebugDump();
     void hfmDebugDump(const HFMModel& hfmModel);
