@@ -103,9 +103,8 @@ void main(void) {
         <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex)$>
 
     <@if HIFI_USE_TRANSLUCENT@>
-        float cutoff = getMaterialOpacityCutoff(mat);
         float opacity = getMaterialOpacity(mat) * _color.a;
-        <$evalMaterialOpacity(albedoTex.a, cutoff, opacity, matKey, opacity)$>;
+        <$evalMaterialOpacity(albedoTex.a, opacity, opacity)$>;
         <$discardInvisible(opacity)$>;
     <@else@>
         float cutoff = getMaterialOpacityCutoff(mat);
@@ -155,9 +154,8 @@ void main(void) {
     <@endif@>
 
     <@if HIFI_USE_TRANSLUCENT@>
-        float cutoff = getMaterialOpacityCutoff(mat);
         float opacity = getMaterialOpacity(mat) * _color.a;
-        <$evalMaterialOpacity(albedoTex.a, cutoff, opacity, matKey, opacity)$>;
+        <$evalMaterialOpacity(albedoTex.a, opacity, opacity)$>;
         <$discardInvisible(opacity)$>;
     <@else@>
         float cutoff = getMaterialOpacityCutoff(mat);
