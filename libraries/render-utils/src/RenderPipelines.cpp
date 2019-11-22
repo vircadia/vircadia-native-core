@@ -387,8 +387,10 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
     std::call_once(once, [] {
         for (int i = 0; i < graphics::Material::NUM_TOTAL_FLAGS; i++) {
             // The opacity mask/map are derived from the albedo map
+            // FIXME: OPACITY_MAP_MODE_BIT is supposed to support fallthrough
             if (i != graphics::MaterialKey::OPACITY_MASK_MAP_BIT &&
-                    i != graphics::MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT) {
+                    i != graphics::MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT &&
+                    i != graphics::MaterialKey::OPACITY_MAP_MODE_BIT) {
                 allFlags.insert(i);
             }
         }
