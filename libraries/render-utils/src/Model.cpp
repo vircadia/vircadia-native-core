@@ -981,7 +981,9 @@ bool Model::addToScene(const render::ScenePointer& scene,
                        render::Transaction& transaction,
                        render::Item::Status::Getters& statusGetters,
                        BlendShapeOperator modelBlendshapeOperator) {
+
     if (!_addedToScene && isLoaded()) {
+        updateGeometry();
         updateClusterMatrices();
         if (_modelMeshRenderItems.empty()) {
             createRenderItemSet();
