@@ -146,7 +146,7 @@ bool KeyboardMouseDevice::isWheelByTouchPad(QWheelEvent* event) {
         } else {
             _wheelDeltaRepeatCount.setX(0);
         }
-        return deltaValueX != COMMON_WHEEL_DELTA_VALUE && _wheelDeltaRepeatCount.x() < MAX_WHEEL_DELTA_REPEAT;
+        return deltaValueX < COMMON_WHEEL_DELTA_VALUE && _wheelDeltaRepeatCount.x() < MAX_WHEEL_DELTA_REPEAT;
     }
     if (deltaValueY != 0) {
         if (abs(_lastWheelDelta.y()) == deltaValueY) {
@@ -154,7 +154,7 @@ bool KeyboardMouseDevice::isWheelByTouchPad(QWheelEvent* event) {
         } else {
             _wheelDeltaRepeatCount.setY(0);
         }
-        return deltaValueY != COMMON_WHEEL_DELTA_VALUE && _wheelDeltaRepeatCount.y() < MAX_WHEEL_DELTA_REPEAT;
+        return deltaValueY < COMMON_WHEEL_DELTA_VALUE && _wheelDeltaRepeatCount.y() < MAX_WHEEL_DELTA_REPEAT;
     }
     return false;
 }
