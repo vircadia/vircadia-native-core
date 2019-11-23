@@ -1,11 +1,8 @@
 High Fidelity (hifi) is an early-stage technology lab experimenting with Virtual Worlds and VR. 
 
 This repository contains the source to many of the components in our 
-alpha-stage virtual world. The project embraces distributed development. 
-If you'd like to help, we'll pay you -- find out more at [Worklist.net](https://worklist.net). 
-If you find a small bug and have a fix, pull requests are welcome. If you'd 
-like to get paid for your work, make sure you report the bug via a job on 
-[Worklist.net](https://worklist.net).
+alpha-stage virtual world. The project embraces distributed development.  
+If you find a small bug and have a fix, pull requests are welcome. 
 
 We're hiring! We're looking for skilled developers; 
 send your resume to hiring@highfidelity.com

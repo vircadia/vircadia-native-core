@@ -57,9 +57,12 @@ else()
   include("${CMAKE_BINARY_DIR}/qt.cmake")
 endif()
 
+option(VCPKG_APPLOCAL_DEPS OFF)
+
 project(hifi)
 include("cmake/init.cmake")
 include("cmake/compiler.cmake")
+option(VCPKG_APPLOCAL_DEPS OFF)
 
 add_paths_to_fixup_libs(${VCPKG_INSTALL_ROOT}/bin)
 add_paths_to_fixup_libs(${VCPKG_INSTALL_ROOT}/debug/bin)
