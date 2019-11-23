@@ -251,7 +251,7 @@ void Stats::updateStats(bool force) {
 
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         auto audioClient = DependencyManager::get<AudioClient>().data();
-        if (audioMixerNode || force) {
+        if (audioMixerNode) {
             STAT_UPDATE(audioMixerKbps, (int)roundf(audioMixerNode->getInboundKbps() +
                                                     audioMixerNode->getOutboundKbps()));
             STAT_UPDATE(audioMixerPps, audioMixerNode->getInboundPPS() +
