@@ -21,7 +21,7 @@ Behavior of the HQ Launcher is as follows:
     * home location
 * `LauncherWindows` - wrapper for `QQuickWindow` that implements drag feature
 * `LoginRequest` - checks the login credentials the user typed in.
-* `NSTask+NSTaskExecveAddtions` - Extension of NSTask for replacing Launcher process with interface client process
+* `NSTask+NSTaskExecveAdditions` - Extension of NSTask for replacing Launcher process with interface client process
 * `PathUtils` - Helper class for getting relative paths for HQ Launcher
 * `SignupRequest` - Determines if the users request to signup for a new account succeeded based on the entered credentials
 * `Unzipper` - helper class for extracting zip files
@@ -31,4 +31,4 @@ Behavior of the HQ Launcher is as follows:
 * `images/`-  Holds the images and icon that are used by the launcher
 * `qml/`
   * UI elements
-  * `QML_FILE_FOR_UI_STATE` varible in LauchherState defines what qml files are used by the laucnher.
+  * `QML_FILE_FOR_UI_STATE` variable in `LauchherState` defines what QML files are used by the Laucnher.
