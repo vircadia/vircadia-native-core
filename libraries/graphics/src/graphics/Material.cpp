@@ -209,8 +209,7 @@ bool Material::resetOpacityMap() const {
             }
         }
     }
-    auto newious = _key.getOpacityMapMode();
-    if (previous != newious) {
+    if (previous != _key.getOpacityMapMode()) {
         //opacity change detected for this material
         return true;
     }
