@@ -1,9 +1,9 @@
 # HQ Launcher
 Behavior of the HQ Launcher is as follows:
 * Update the HQ Launcher to the latest version
-* Sign up and sign in is the user is not
+* Sign up or sign in if is the user is not already signed in
 * Download the latest Interface client
-* Launching the user in the current HQ domain
+* Launch the user in the current HQ domain
 
 # directory structure
 
@@ -31,4 +31,4 @@ Behavior of the HQ Launcher is as follows:
 * `images/`-  Holds the images and icon that are used by the launcher
 * `qml/`
   * UI elements
-  * `QML_FILE_FOR_UI_STATE` variable in `LauchherState` defines what QML files are used by the Laucnher.
+  * `QML_FILE_FOR_UI_STATE` variable in `LauncherState` defines what QML files are used by the Launcher.
