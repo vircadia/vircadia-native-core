@@ -52,7 +52,7 @@ private:
 #ifdef Q_OS_WIN
     const QString SCREENSHARE_EXE_PATH{ QCoreApplication::applicationDirPath() + "/hifi-screenshare/hifi-screenshare.exe" };
 #elif defined(Q_OS_MAC)
-    const QString SCREENSHARE_EXE_PATH{ QCoreApplication::applicationDirPath() + "/hifi-screenshare/hifi-screenshare.app" };
+    const QString SCREENSHARE_EXE_PATH{ QCoreApplication::applicationDirPath() + "../../../hifi-screenshare.app" };
 #else
     // This path won't exist on other platforms, so the Screenshare Scripting Interface will exit early when invoked.
     const QString SCREENSHARE_EXE_PATH{ QCoreApplication::applicationDirPath() + "/hifi-screenshare/hifi-screenshare" };
