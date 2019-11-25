@@ -159,16 +159,20 @@ void AudioClient::checkDevices() {
     auto inputDevices = getAvailableDevices(QAudio::AudioInput, hmdInputName);
     auto outputDevices = getAvailableDevices(QAudio::AudioOutput, hmdOutputName);
    
-    Lock lock(_deviceMutex);
-    if (inputDevices != _inputDevices) {
-        _inputDevices.swap(inputDevices);
-        emit devicesChanged(QAudio::AudioInput, _inputDevices);
-    }
+    static const QMetaMethod devicesChangedSig= QMetaMethod::fromSignal(&AudioClient::devicesChanged);
+    //only emit once the scripting interface has connected to the signal
+    if (isSignalConnected(devicesChangedSig)) {
+        Lock lock(_deviceMutex);
+        if (inputDevices != _inputDevices) {
+            _inputDevices.swap(inputDevices);
+            emit devicesChanged(QAudio::AudioInput, _inputDevices);
+        }
 
-    if (outputDevices != _outputDevices) {
-        _outputDevices.swap(outputDevices);
-        emit devicesChanged(QAudio::AudioOutput, _outputDevices);
-    }
+        if (outputDevices != _outputDevices) {
+            _outputDevices.swap(outputDevices);
+            emit devicesChanged(QAudio::AudioOutput, _outputDevices);
+        }
+    } 
 }
 
 HifiAudioDeviceInfo AudioClient::getActiveAudioDevice(QAudio::Mode mode) const {

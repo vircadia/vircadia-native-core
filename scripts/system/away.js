@@ -50,7 +50,7 @@ var OVERLAY_DATA_HMD = {
 };
 
 var AWAY_INTRO = {
-    url: "https://hifi-content.s3.amazonaws.com/doug/animation/fbx/afk_texting.fbx",
+    url: "qrc:///avatar/animations/afk_texting.fbx",
     playbackRate: 30.0,
     loopFlag: true,
     startFrame: 1.0,
