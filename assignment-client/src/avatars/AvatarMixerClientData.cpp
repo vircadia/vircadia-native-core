@@ -167,13 +167,12 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
         bool isInScreenshareZone = findContainingZone.isInScreenshareZone;
         if (isInScreenshareZone != _avatar->isInScreenshareZone()) {
             _avatar->setInScreenshareZone(isInScreenshareZone);
-            if (isInScreenshareZone) {
-                auto nodeList = DependencyManager::get<NodeList>();
-                auto packet = NLPacket::create(PacketType::AvatarZonePresence, 2 * NUM_BYTES_RFC4122_UUID, true);
-                packet->write(_avatar->getSessionUUID().toRfc4122());
-                packet->write(findContainingZone.screenshareZoneid.toRfc4122());
-                nodeList->sendPacket(std::move(packet), nodeList->getDomainSockAddr());
-            }
+            const QUuid& zoneId = isInScreenshareZone ? findContainingZone.screenshareZoneid : QUuid();
+            auto nodeList = DependencyManager::get<NodeList>();
+            auto packet = NLPacket::create(PacketType::AvatarZonePresence, 2 * NUM_BYTES_RFC4122_UUID, true);
+            packet->write(_avatar->getSessionUUID().toRfc4122());
+            packet->write(zoneId.toRfc4122());
+            nodeList->sendPacket(std::move(packet), nodeList->getDomainSockAddr());
         }
         _avatar->setNeedsHeroCheck(false);
     }
