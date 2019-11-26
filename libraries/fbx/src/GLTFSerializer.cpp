@@ -1715,6 +1715,10 @@ void GLTFSerializer::setHFMMaterial(HFMMaterial& hfmMat, const GLTFMaterial& mat
         hfmMat._material->setOpacityCutoff(material.alphaCutoff);
     }
 
+    if (material.defined["doubleSided"] && material.doubleSided) {
+        hfmMat._material->setCullFaceMode(graphics::MaterialKey::CullFaceMode::CULL_NONE);
+    }
+
     if (material.defined["emissiveFactor"] && material.emissiveFactor.size() == 3) {
         glm::vec3 emissive = glm::vec3(material.emissiveFactor[0], material.emissiveFactor[1], material.emissiveFactor[2]);
         hfmMat._material->setEmissive(emissive);

@@ -495,6 +495,11 @@ namespace scriptable {
                 obj.setProperty("materialParams", FALLTHROUGH);
             }
 
+            if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::Material::CULL_FACE_MODE)) {
+                obj.setProperty("cullFaceMode", FALLTHROUGH);
+            } else if (!material.cullFaceMode.isEmpty()) {
+                obj.setProperty("cullFaceMode", material.cullFaceMode);
+            }
         } else if (material.model.toStdString() == graphics::Material::HIFI_SHADER_SIMPLE) {
             obj.setProperty("procedural", material.procedural);
         }
