@@ -23,8 +23,7 @@
 
 #include "AvatarMixerSlave.h"
 
-AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) : 
-    NodeData(nodeID, nodeLocalID) {
+AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) : NodeData(nodeID, nodeLocalID) {
     // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
     _avatar->setID(nodeID);
 }
@@ -92,41 +91,46 @@ int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData
 }
 
 namespace {
-    using std::static_pointer_cast;
+using std::static_pointer_cast;
 
-    // Operator to find if a point is within an avatar-priority (hero) Zone Entity.
-    struct FindPriorityZone {
-        glm::vec3 position;
-        bool isInPriorityZone { false };
-        float zoneVolume { std::numeric_limits<float>::max() };
-        EntityItemID id {};
+// Operator to find if a point is within an avatar-priority (hero) Zone Entity.
+struct FindContainingZone {
+    glm::vec3 position;
+    bool isInPriorityZone { false };
+    bool isInScreenshareZone { false };
+    float priorityZoneVolume { std::numeric_limits<float>::max() };
+    float screenshareZoneVolume { priorityZoneVolume };
+    EntityItemID id{};
 
-        static bool operation(const OctreeElementPointer& element, void* extraData) {
-            auto findPriorityZone = static_cast<FindPriorityZone*>(extraData);
-            if (element->getAACube().contains(findPriorityZone->position)) {
-                const EntityTreeElementPointer entityTreeElement = static_pointer_cast<EntityTreeElement>(element);
-                entityTreeElement->forEachEntity([&findPriorityZone](EntityItemPointer item) {
-                    if (item->getType() == EntityTypes::Zone 
-                        && item->contains(findPriorityZone->position)) {
-                        auto zoneItem = static_pointer_cast<ZoneEntityItem>(item);
-                        if (zoneItem->getAvatarPriority() != COMPONENT_MODE_INHERIT) {
-                            float volume = zoneItem->getVolumeEstimate();
-                            if (volume < findPriorityZone->zoneVolume) { // Smaller volume wins
-                                findPriorityZone->isInPriorityZone = zoneItem->getAvatarPriority() == COMPONENT_MODE_ENABLED;
-                                findPriorityZone->zoneVolume = volume;
-                                findPriorityZone->id = zoneItem->getEntityItemID();
-                            }
+    static bool operation(const OctreeElementPointer& element, void* extraData) {
+        auto findContainingZone = static_cast<FindContainingZone*>(extraData);
+        if (element->getAACube().contains(findContainingZone->position)) {
+            const EntityTreeElementPointer entityTreeElement = static_pointer_cast<EntityTreeElement>(element);
+            entityTreeElement->forEachEntity([&findContainingZone](EntityItemPointer item) {
+                if (item->getType() == EntityTypes::Zone && item->contains(findContainingZone->position)) {
+                    auto zoneItem = static_pointer_cast<ZoneEntityItem>(item);
+                    if (zoneItem->getAvatarPriority() != COMPONENT_MODE_INHERIT) {
+                        float volume = zoneItem->getVolumeEstimate();
+                        if (volume < findContainingZone->priorityZoneVolume) {  // Smaller volume wins
+                            findContainingZone->isInPriorityZone = zoneItem->getAvatarPriority() == COMPONENT_MODE_ENABLED;
+                            findContainingZone->priorityZoneVolume = volume;
+                        }
+                        if (volume < findContainingZone->screenshareZoneVolume) {
+                            findContainingZone->isInScreenshareZone = zoneItem->getScreenshare() == COMPONENT_MODE_ENABLED;
+                            findContainingZone->screenshareZoneVolume = volume;
+                            findContainingZone->id = zoneItem->getEntityItemID();
                         }
                     }
-                });
-                return true;  // Keep recursing 
-            } else {  // Position isn't within this subspace, so end recursion.
-                return false;
-            }
+                }
+            });
+            return true;  // Keep recursing
+        } else {          // Position isn't within this subspace, so end recursion.
+            return false;
         }
-    };
+    }
+};
 
-}  // Close anonymous namespace.
+}  // namespace
 
 int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveSharedData& slaveSharedData) {
     // pull the sequence number from the data first
@@ -152,15 +156,17 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
     auto newPosition = _avatar->getClientGlobalPosition();
     if (newPosition != oldPosition || _avatar->getNeedsHeroCheck()) {
         EntityTree& entityTree = *slaveSharedData.entityTree;
-        FindPriorityZone findPriorityZone { newPosition } ;
-        entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
-        bool currentlyHasPriority = findPriorityZone.isInPriorityZone;
+        FindContainingZone findContainingZone{ newPosition };
+        entityTree.recurseTreeWithOperation(&FindContainingZone::operation, &findContainingZone);
+        bool currentlyHasPriority = findContainingZone.isInPriorityZone;
         if (currentlyHasPriority != _avatar->getHasPriority()) {
             _avatar->setHasPriority(currentlyHasPriority);
+        }
+        if (findContainingZone.isInScreenshareZone) {
             auto nodeList = DependencyManager::get<NodeList>();
             auto packet = NLPacket::create(PacketType::AvatarZonePresence, 2 * NUM_BYTES_RFC4122_UUID, true);
             packet->write(_avatar->getSessionUUID().toRfc4122());
-            packet->write(findPriorityZone.id.toRfc4122());
+            packet->write(findContainingZone.id.toRfc4122());
             nodeList->sendPacket(std::move(packet), nodeList->getDomainSockAddr());
         }
         _avatar->setNeedsHeroCheck(false);
@@ -227,8 +233,7 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
             }
         } else {
             // Trying to read more bytes than available, bail
-            if (message.getBytesLeftToRead() < qint64(NUM_BYTES_RFC4122_UUID +
-                                                       sizeof(AvatarTraits::TraitWireSize))) {
+            if (message.getBytesLeftToRead() < qint64(NUM_BYTES_RFC4122_UUID + sizeof(AvatarTraits::TraitWireSize))) {
                 qWarning() << "Refusing to process malformed traits packet from" << message.getSenderSockAddr();
                 return;
             }
@@ -244,8 +249,7 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                 break;
             }
 
-            if (traitType == AvatarTraits::AvatarEntity ||
-                traitType == AvatarTraits::Grab) {
+            if (traitType == AvatarTraits::AvatarEntity || traitType == AvatarTraits::Grab) {
                 auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, instanceID);
 
                 if (packetTraitVersion > instanceVersionRef) {
@@ -303,7 +307,8 @@ void AvatarMixerClientData::processBulkAvatarTraitsAckMessage(ReceivedMessage& m
             auto simpleReceivedIt = traitVersions.simpleCBegin();
             while (simpleReceivedIt != traitVersions.simpleCEnd()) {
                 if (*simpleReceivedIt != AvatarTraits::DEFAULT_TRAIT_VERSION) {
-                    auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(traitVersions.simpleCBegin(), simpleReceivedIt));
+                    auto traitType =
+                        static_cast<AvatarTraits::TraitType>(std::distance(traitVersions.simpleCBegin(), simpleReceivedIt));
                     _perNodeAckedTraitVersions[nodeId][traitType] = *simpleReceivedIt;
                 }
                 simpleReceivedIt++;
@@ -361,8 +366,8 @@ void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(const SlaveSharedDa
             // make sure we're not unecessarily overriding the default avatar with the default avatar
             if (_avatar->getWireSafeSkeletonModelURL() != slaveSharedData.skeletonReplacementURL) {
                 // we need to change this avatar's skeleton URL, and send them a traits packet informing them of the change
-                qDebug() << "Overwriting avatar URL" << _avatar->getWireSafeSkeletonModelURL()
-                    << "to replacement" << slaveSharedData.skeletonReplacementURL << "for" << sendingNode.getUUID();
+                qDebug() << "Overwriting avatar URL" << _avatar->getWireSafeSkeletonModelURL() << "to replacement"
+                         << slaveSharedData.skeletonReplacementURL << "for" << sendingNode.getUUID();
                 _avatar->setSkeletonModelURL(slaveSharedData.skeletonReplacementURL);
 
                 auto packet = NLPacket::create(PacketType::SetAvatarTraits, -1, true);
@@ -463,9 +468,7 @@ void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
 
 bool AvatarMixerClientData::otherAvatarInView(const AABox& otherAvatarBox) {
     return std::any_of(std::begin(_currentViewFrustums), std::end(_currentViewFrustums),
-                       [&](const ConicalViewFrustum& viewFrustum) {
-        return viewFrustum.intersects(otherAvatarBox);
-    });
+                       [&](const ConicalViewFrustum& viewFrustum) { return viewFrustum.intersects(otherAvatarBox); });
 }
 
 void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
@@ -484,7 +487,8 @@ void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["recent_other_av_out_of_view"] = _recentOtherAvatarsOutOfView;
 }
 
-AvatarMixerClientData::TraitsCheckTimestamp AvatarMixerClientData::getLastOtherAvatarTraitsSendPoint(Node::LocalID otherAvatar) const {
+AvatarMixerClientData::TraitsCheckTimestamp AvatarMixerClientData::getLastOtherAvatarTraitsSendPoint(
+    Node::LocalID otherAvatar) const {
     auto it = _lastSentTraitsTimestamps.find(otherAvatar);
 
     if (it != _lastSentTraitsTimestamps.end()) {

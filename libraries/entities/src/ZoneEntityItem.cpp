@@ -476,9 +476,9 @@ bool ZoneEntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
 
     static const QString AVATAR_PRIORITY_PROPERTY = "avatarPriority";
 
-    // If set ignore only priority-inherit zones:
+    // If set match zones of interest to avatar mixer:
     if (jsonFilters.contains(AVATAR_PRIORITY_PROPERTY) && jsonFilters[AVATAR_PRIORITY_PROPERTY].toBool()
-        && _avatarPriority != COMPONENT_MODE_INHERIT) {
+        && (_avatarPriority != COMPONENT_MODE_INHERIT || _screenshare != COMPONENT_MODE_INHERIT)) {
         return true;
     }
 
