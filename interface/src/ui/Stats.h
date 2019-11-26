@@ -54,8 +54,8 @@ private: \
  *
  * @property {number} appdropped - The number of times a frame has not been provided to the display device in time.
  *     <em>Read-only.</em>
- * @property {number} longsubmits - The number of times the display devices takes longer than 11ms to return after being given 
- *     frame.
+ * @property {number} longsubmits - The number of times the display device has taken longer than 11ms to return after being 
+ *     given a frame.
  *     <em>Read-only.</em>
  * @property {number} longrenders - The number of times it has taken longer than 11ms to submit a new frame to the display 
  *     device.
@@ -73,14 +73,12 @@ private: \
  * @property {number} refreshRateTarget - The current refresh rate target per the current <code>refreshRateMode</code> and 
  *      <code>refreshRateRegime</code> if in desktop mode; a higher rate if in VR mode. 
  *     <em>Read-only.</em>
-
  * @property {RefreshRateProfile} refreshRateMode - The current refresh rate profile.
  *     <em>Read-only.</em>
  * @property {RefreshRateRegime} refreshRateRegime - The current refresh rate regime.
  *     <em>Read-only.</em>
  * @property {UXMode} uxMode - The user experience (UX) mode that Interface is running in.
  *     <em>Read-only.</em>
-
  * @property {number} avatarCount - The number of avatars in the domain other than the client's.
  *     <em>Read-only.</em>
  * @property {number} heroAvatarCount - The number avatars in a "hero" zone in the domain, other than the client's.
@@ -94,9 +92,8 @@ private: \
  *     that were updated in the most recent game loop.
  *     <em>Read-only.</em>
  * @property {number} notUpdatedAvatarCount - The number of avatars in the domain, other than the client's, that weren't able 
- *     to be updated in the most recent game loop because there wasn't enough time.
+ *     to be updated in the most recent game loop because there wasn't enough time to.
  *     <em>Read-only.</em>
-
  * @property {number} packetInCount - The number of packets being received from the domain server, in packets per second.
  *     <em>Read-only.</em>
  * @property {number} packetOutCount - The number of packets being sent to the domain server, in packets per second.
@@ -105,14 +102,12 @@ private: \
  *     <em>Read-only.</em>
  * @property {number} mbpsOut - The amount of data being sent to the domain server, in megabits per second.
  *    <em>Read-only.</em>
-
- * @property {number} assetMbpsIn - The amount of data being received from the asset server, in megabits per second.
+   @property {number} assetMbpsIn - The amount of data being received from the asset server, in megabits per second.
  *     <code>0.0</code> if not connected to an avatar mixer.
  *     <em>Read-only.</em>
  * @property {number} assetMbpsOut - The amount of data being sent to the asset server, in megabits per second.
  *     <code>0.0</code> if not connected to an avatar mixer.
  *     <em>Read-only.</em>
-
  * @property {number} audioPing - The ping time to the audio mixer, in ms.
  *     <code>-1</code> if not connected to an audio mixer.
  *     <em>Read-only.</em>
@@ -128,7 +123,6 @@ private: \
  * @property {number} messagePing - The ping time to the message mixer, in ms.
  *     <code>-1</code> if not connected to a message mixer.
  *     <em>Read-only.</em>
-
  * @property {Vec3} position - The position of the user's avatar.
  *     <em>Read-only.</em>
  *     <p><strong>Note:</strong> Property not available in the API.</p>
@@ -136,7 +130,6 @@ private: \
  *     <em>Read-only.</em>
  * @property {number} yaw - The yaw of the user's avatar body, in degrees.
  *     <em>Read-only.</em>
-
  * @property {number} avatarMixerInKbps - The amount of data being received from the avatar mixer, in kilobits per second.
  *     <code>-1</code> if not connected to an avatar mixer.
  *     <em>Read-only.</em>
@@ -149,7 +142,6 @@ private: \
  * @property {number} avatarMixerOutPps - The number of packets being sent to the avatar mixer, in packets per second.
  *      <code>-1</code> if not connected to an avatar mixer.
  *      <em>Read-only.</em>
-
  * @property {number} myAvatarSendRate - The number of avatar packets being sent by the user's avatar, in packets per second.
  *      <em>Read-only.</em>
  *
@@ -169,11 +161,10 @@ private: \
  *     per second.
  *     <code>-1</code> if not connected to an audio mixer.
  *     <em>Read-only.</em>
- * @property {number} audioMixerPps - The total number of packets being sent to received from the audio mixer, in packets per 
- *     second.
+ * @property {number} audioMixerPps - The total number of packets being sent to and received from the audio mixer, in packets 
+ *     per second.
  *     <code>-1</code> if not connected to an audio mixer.
  *     <em>Read-only.</em>
-
  * @property {number} audioOutboundPPS - The number of non-silent audio packets being sent by the user, in packets per second.
  *     <code>-1</code> if not connected to an audio mixer.
  *     <em>Read-only.</em>
@@ -189,11 +180,9 @@ private: \
  *     second.
  *     <code>-1</code> if not connected to an audio mixer.
  *     <em>Read-only.</em>
- * @property {number} audioPacketLoss - The number of audio packets being lost being sent to or received from the audio mixer, 
- *     in %.
+ * @property {number} audioPacketLoss - The number of audio packets being lost, sent to or received from the audio mixer, in %.
  *     <code>-1</code> if not connected to an audio mixer.
  *     <em>Read-only.</em>
-
  * @property {string} audioCodec - The name of the audio codec.
  *     <em>Read-only.</em>
  * @property {string} audioNoiseGate - The status of the audio noise gate: <code>"Open"</code> or <code>"Closed"</code>.
@@ -201,7 +190,6 @@ private: \
  * @property {Vec2} audioInjectors - The number of audio injectors, local and non-local.
  *     <em>Read-only.</em>
  *     <p><strong>Note:</strong> Property not available in the API.</p>
-
  * @property {number} entityPacketsInKbps - The average amount of data being received from entity servers, in kilobits per 
  *     second. (Multiply by the number of entity servers to get the total amount of data being received.)
  *     <code>-1</code> if not connected to an entity server.
@@ -216,12 +204,10 @@ private: \
  * @property {string[]} downloadUrls - The download URLs.
  *     <em>Read-only.</em>
  *     <p><strong>Note:</strong> Property not available in the API.</p>
-
  * @property {number} processing - The number of completed downloads being processed.
  *     <em>Read-only.</em>
  * @property {number} processingPending - The number of completed downloads waiting to be processed.
  *     <em>Read-only.</em>
-
  * @property {number} triangles - The number of triangles in the rendered scene.
  *     <em>Read-only.</em>
  * @property {number} drawcalls - The number of draw calls made for the rendered scene.
@@ -254,14 +240,12 @@ private: \
  *     <em>Read-only.</em>
  * @property {string} lodStatus - Description of the current LOD.
  *     <em>Read-only.</em>
-
  * @property {string} timingStats - Details of the average time (ms) spent in and number of calls made to different parts of 
  *     the code. Provided only if <code>timingExpanded</code> is <code>true</code>. Only the top 10 items are provided if 
  *     Developer &gt; Timing &gt; Performance Timer &gt; Only Display Top 10 is enabled.
  *     <em>Read-only.</em>
  * @property {string} gameUpdateStats - Details of the average time (ms) spent in different parts of the game loop.
  *     <em>Read-only.</em>
-
  * @property {number} serverElements - The total number of elements in the server octree.
  *     <em>Read-only.</em>
  * @property {number} serverInternal - The number of internal elements in the server octree.
@@ -274,14 +258,12 @@ private: \
  *     <em>Read-only.</em>
  * @property {number} localLeaves - The number of leaf elements in the client octree.
  *     <em>Read-only.</em>
-
- * @property {number} rectifiedTextureCount - The number of textures that have been resized so that their size is a power of 2 
- *     if smaller than 128, or a multiple of 128 if greater than 128.
+ * @property {number} rectifiedTextureCount - The number of textures that have been resized so that their dimensions is a power 
+ *     of 2 if smaller than 128 pixels, or a multiple of 128 if greater than 128 pixels.
  *     <em>Read-only.</em>
  * @property {number} decimatedTextureCount - The number of textures that have been reduced in size because they were over the 
- *     maximum allowed size of 4096 on desktop or 2048 on mobile.
+ *     maximum allowed dimensions of 4096 pixels on desktop or 2048 pixels on mobile.
  *     <em>Read-only.</em>
-
  * @property {number} gpuBuffers - The number of OpenGL buffer objects managed by the GPU back-end.
  *     <em>Read-only.</em>
  * @property {number} gpuBufferMemory - The total memory size of the <code>gpuBuffers</code>, in MB. 
@@ -305,8 +287,8 @@ private: \
  *     <em>Read-only.</em>
  * @property {number} gpuTextureFramebufferMemory - The memory size of the frame buffer on the GPU, in MB.
  *     <em>Read-only.</em>
- * @property {number} gpuTextureResourceMemory - The amount of GPU memory that has been allocated for "variable" textures, in 
- *     MB.
+ * @property {number} gpuTextureResourceMemory - The amount of GPU memory that has been allocated for "variable" textures that 
+ *     don't necessarily always have their full resolution in GPU memory, in MB.
  *     <em>Read-only.</em>
  * @property {number} gpuTextureResourceIdealMemory - The amount of memory that "variable" textures would take up if they were 
  *     all completely loaded, in MB.
@@ -317,7 +299,7 @@ private: \
  * @property {string} gpuTextureMemoryPressureState - The stats of the texture transfer engine.
  *     <ul>
  *         <li><code>"Undersubscribed"</code>: There is texture data that can fit in memory but that isn't on the GPU, so more 
- *         GPU texture memory should be allocated.</li>
+ *         GPU texture memory should be allocated if possible.</li>
  *         <li><code>"Transfer"</code>: More GPU texture memory has been allocated and texture data is being transferred.</li>
  *         <li><code>"Idle"</code>: Either all texture data has been transferred to the GPU or there is nor more space 
  *         available.</li>
@@ -330,8 +312,7 @@ private: \
  * @property {number} gpuTextureExternalMemory - The estimated amount of memory consumed by textures being used but that are
  *     not managed by the GPU library, in MB.
  *     <em>Read-only.</em>
-
- * @property {Vec2} gpuFrameSize - The dimensions of the frames being rendered.
+ * @property {Vec2} gpuFrameSize - The dimensions of the frames being rendered, in pixels.
  *     <em>Read-only.</em>
  *     <p><strong>Note:</strong> Property not available in the API.</p>
  * @property {number} gpuFrameTime - The time the GPU is spending on a frame, in ms.
@@ -397,7 +378,6 @@ private: \
  * @property {number} nodeListThreadQueueDepth - The number of events in the node list thread's event queue.
  *     Only provided if <code>eventQueueDebuggingOn</code> is <code>true</code>.
  *     <em>Read-only.</em>
- *
  *
  * @comment The following property is from Stats.qml. It shouldn't be in the API.
  * @property {string} bgColor
