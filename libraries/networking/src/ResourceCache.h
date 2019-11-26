@@ -91,8 +91,8 @@ private:
 class ScriptableResource : public QObject {
 
     /**jsdoc
-     * Information about a cached resource. Created by {@link AnimationCache.prefetch}, {@link ModelCache.prefetch},
-     * {@link SoundCache.prefetch}, or {@link TextureCache.prefetch}.
+     * Information about a cached resource. Created by {@link AnimationCache.prefetch}, {@link MaterialCache.prefetch}, 
+     * {@link ModelCache.prefetch}, {@link SoundCache.prefetch}, or {@link TextureCache.prefetch}.
      *
      * @class ResourceObject
      *
@@ -334,7 +334,7 @@ public:
      * @function ResourceCache.getResourceList
      * @returns {string[]} The URLs of all resources in the cache.
      * @example <caption>Report cached resources.</caption>
-     * // Replace AnimationCache with ModelCache, SoundCache, or TextureCache as appropriate.
+     * // Replace AnimationCache with MaterialCache, ModelCache, SoundCache, or TextureCache as appropriate.
      *
      * var cachedResources = AnimationCache.getResourceList();
      * print("Cached resources: " + JSON.stringify(cachedResources));
@@ -354,7 +354,7 @@ public:
      * @param {string} url - The URL of the resource to prefetch.
      * @returns {ResourceObject} A resource object.
      * @example <caption>Prefetch a resource and wait until it has loaded.</caption>
-     * // Replace AnimationCache with ModelCache, SoundCache, or TextureCache as appropriate.
+     * // Replace AnimationCache with MaterialCache, ModelCache, SoundCache, or TextureCache as appropriate.
      * // TextureCache has its own version of this function.
      * 
      * var resourceURL = "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/animations/sitting_idle.fbx";
