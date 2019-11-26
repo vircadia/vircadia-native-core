@@ -100,7 +100,7 @@ struct FindContainingZone {
     bool isInScreenshareZone { false };
     float priorityZoneVolume { std::numeric_limits<float>::max() };
     float screenshareZoneVolume { priorityZoneVolume };
-    EntityItemID id{};
+    EntityItemID screenshareZoneid{};
 
     static bool operation(const OctreeElementPointer& element, void* extraData) {
         auto findContainingZone = static_cast<FindContainingZone*>(extraData);
@@ -109,17 +109,19 @@ struct FindContainingZone {
             entityTreeElement->forEachEntity([&findContainingZone](EntityItemPointer item) {
                 if (item->getType() == EntityTypes::Zone && item->contains(findContainingZone->position)) {
                     auto zoneItem = static_pointer_cast<ZoneEntityItem>(item);
-                    if (zoneItem->getAvatarPriority() != COMPONENT_MODE_INHERIT) {
-                        float volume = zoneItem->getVolumeEstimate();
-                        if (volume < findContainingZone->priorityZoneVolume) {  // Smaller volume wins
-                            findContainingZone->isInPriorityZone = zoneItem->getAvatarPriority() == COMPONENT_MODE_ENABLED;
-                            findContainingZone->priorityZoneVolume = volume;
-                        }
-                        if (volume < findContainingZone->screenshareZoneVolume) {
-                            findContainingZone->isInScreenshareZone = zoneItem->getScreenshare() == COMPONENT_MODE_ENABLED;
+                    auto avatarPriorityProperty = zoneItem->getAvatarPriority();
+                    auto screenshareProperty = zoneItem->getScreenshare();
+                    float volume = zoneItem->getVolumeEstimate();
+                    if (avatarPriorityProperty != COMPONENT_MODE_INHERIT
+                        && volume < findContainingZone->priorityZoneVolume) {  // Smaller volume wins
+                        findContainingZone->isInPriorityZone = avatarPriorityProperty == COMPONENT_MODE_ENABLED;
+                        findContainingZone->priorityZoneVolume = volume;
+                    }
+                    if (screenshareProperty != COMPONENT_MODE_INHERIT
+                        && volume < findContainingZone->screenshareZoneVolume) {
+                            findContainingZone->isInScreenshareZone = screenshareProperty == COMPONENT_MODE_ENABLED;
                             findContainingZone->screenshareZoneVolume = volume;
-                            findContainingZone->id = zoneItem->getEntityItemID();
-                        }
+                            findContainingZone->screenshareZoneid = zoneItem->getEntityItemID();
                     }
                 }
             });
@@ -162,12 +164,16 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
         if (currentlyHasPriority != _avatar->getHasPriority()) {
             _avatar->setHasPriority(currentlyHasPriority);
         }
-        if (findContainingZone.isInScreenshareZone) {
-            auto nodeList = DependencyManager::get<NodeList>();
-            auto packet = NLPacket::create(PacketType::AvatarZonePresence, 2 * NUM_BYTES_RFC4122_UUID, true);
-            packet->write(_avatar->getSessionUUID().toRfc4122());
-            packet->write(findContainingZone.id.toRfc4122());
-            nodeList->sendPacket(std::move(packet), nodeList->getDomainSockAddr());
+        bool isInScreenshareZone = findContainingZone.isInScreenshareZone;
+        if (isInScreenshareZone != _avatar->isInScreenshareZone()) {
+            _avatar->setInScreenshareZone(isInScreenshareZone);
+            if (isInScreenshareZone) {
+                auto nodeList = DependencyManager::get<NodeList>();
+                auto packet = NLPacket::create(PacketType::AvatarZonePresence, 2 * NUM_BYTES_RFC4122_UUID, true);
+                packet->write(_avatar->getSessionUUID().toRfc4122());
+                packet->write(findContainingZone.screenshareZoneid.toRfc4122());
+                nodeList->sendPacket(std::move(packet), nodeList->getDomainSockAddr());
+            }
         }
         _avatar->setNeedsHeroCheck(false);
     }

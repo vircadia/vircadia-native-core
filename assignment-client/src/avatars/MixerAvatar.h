@@ -43,6 +43,9 @@ public:
     };
     Q_ENUM(VerifyState)
 
+    bool isInScreenshareZone() const { return _inScreenshareZone; }
+    void setInScreenshareZone(bool value = true) { _inScreenshareZone = value; }
+
 private:
     bool _needsHeroCheck { false };
     static const char* stateToName(VerifyState state);
@@ -65,6 +68,7 @@ private:
     int _numberChallenges { 0 };
     bool _certifyFailed { false };
     bool _needsIdentityUpdate { false };
+    bool _inScreenshareZone { false };
 
     bool generateFSTHash();
     bool validateFSTHash(const QString& publicKey) const;
