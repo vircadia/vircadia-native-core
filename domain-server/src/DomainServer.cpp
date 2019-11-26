@@ -3630,6 +3630,9 @@ void DomainServer::processAvatarZonePresencePacket(QSharedPointer<ReceivedMessag
         return;
     }
     QString verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
+    if (verifiedUsername.isEmpty()) { // Silently bail for users who are not logged in.
+        return;
+    }
     static const int SCREENSHARE_EXPIRATION_SECONDS = 24 * 60 * 60;
     screensharePresence(zone.isNull() ? "" : zone.toString(), verifiedUsername, SCREENSHARE_EXPIRATION_SECONDS);
 }
