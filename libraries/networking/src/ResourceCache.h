@@ -318,9 +318,11 @@ class ScriptableResourceCache : public QObject {
     Q_PROPERTY(size_t sizeCached READ getSizeCachedResources NOTIFY dirty)
 
     /**jsdoc
-    * @property {number} numGlobalQueriesPending - Total number of global queries pending (across all resource managers). <em>Read-only.</em>
-    * @property {number} numGlobalQueriesLoading - Total number of global queries loading (across all resource managers). <em>Read-only.</em>
-    */
+     * @property {number} numGlobalQueriesPending - Total number of global queries pending (across all resource cache managers).
+     *     <em>Read-only.</em>
+     * @property {number} numGlobalQueriesLoading - Total number of global queries loading (across all resource cache managers).
+     *     <em>Read-only.</em>
+     */
     Q_PROPERTY(size_t numGlobalQueriesPending READ getNumGlobalQueriesPending NOTIFY dirty)
     Q_PROPERTY(size_t numGlobalQueriesLoading READ getNumGlobalQueriesLoading NOTIFY dirty)
 
