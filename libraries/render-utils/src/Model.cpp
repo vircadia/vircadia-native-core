@@ -1040,7 +1040,7 @@ void Model::renderDebugMeshBoxes(gpu::Batch& batch, bool forward) {
     Transform meshToWorld(meshToWorldMatrix);
     batch.setModelTransform(meshToWorld);
 
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true, true, forward);
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, true, true, forward, graphics::MaterialKey::CULL_NONE);
 
     for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
         for (auto &partTriangleSet : meshTriangleSets) {

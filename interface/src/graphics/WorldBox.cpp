@@ -22,7 +22,7 @@ namespace render {
             PerformanceTimer perfTimer("worldBox");
 
             auto& batch = *args->_batch;
-            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, true, false, false, true, args->_renderMethod == Args::RenderMethod::FORWARD);
+            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, false, true, args->_renderMethod == Args::RenderMethod::FORWARD);
             WorldBoxRenderData::renderWorldBox(args, batch);
         }
     }
