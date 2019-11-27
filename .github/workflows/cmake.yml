@@ -224,7 +224,7 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}/build
       run: |
-          cp ../tools/ci-scripts/linux-gha/hifi.conf .
+          cp $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/hifi.conf .
           docker build -t $DOCKER_IMAGE_NAME -f $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/Dockerfile ./
     - name: Export Docker image
       shell: bash
