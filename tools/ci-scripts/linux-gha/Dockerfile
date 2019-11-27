@@ -1,4 +1,4 @@
-FROM simonwalton1/hifi_base_ubuntu:1.0
+FROM simonwalton1/hifi_base_ubuntu:1.1
 MAINTAINER DevOps Team (devops@highfidelity.io)
 
 EXPOSE 40100 40101 40102
@@ -17,7 +17,7 @@ RUN true
 COPY ./*.so /lib/
 RUN ln -sf /lib/libquazip5.so /lib/libquazip5.so.1
 #COPY ./resources/ /etc/hifi/server/resources/
-#COPY ./supervisor/hifi.conf /etc/supervisor/conf.d/hifi.conf
+COPY ./hifi.conf /etc/supervisor/conf.d/hifi.conf
 RUN for fn in /usr/local/Qt5.12.3/5.12.3/gcc_64/plugins/imageformats/*.so; do \
     if [ ! -x $fn ]; then ln -s $fn /etc/hifi/server/imageformats; fi; done
 RUN chmod +x /etc/hifi/server/domain-server

@@ -197,7 +197,7 @@ jobs:
       run: cmake --build . --config $BUILD_TYPE --target package
   build_full_linux:
     runs-on: ubuntu-latest
-    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild'
+    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-linux' || github.event.label.name == 'rebuild'
     env:
       DOCKER_IMAGE_NAME: "linux-hifi-gha:${{ github.event.number }}"
     steps:
@@ -207,9 +207,6 @@ jobs:
         fetch-depth: 1
     - name: Install python modules 
       run: pip install awscli boto3 PyGithub
-    - name: Install apt packages
-      # libglu1-mesa-dev needed for oven
-      run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
     - name: Configure CMake (Linux)
@@ -224,7 +221,9 @@ jobs:
     - name: Build Ubuntu Docker
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: docker build -t $DOCKER_IMAGE_NAME -f $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/Dockerfile ./
+      run: |
+          cp ../tools/ci-scripts/linux-gha/hifi.conf .
+          docker build -t $DOCKER_IMAGE_NAME -f $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/Dockerfile ./
     - name: Export Docker image
       shell: bash
       working-directory: ${{runner.workspace}}/build
