@@ -65,7 +65,7 @@ public:
     using JobModel = render::Task::Model<SecondaryCameraRenderTask, Config>;
     SecondaryCameraRenderTask() {}
     void configure(const Config& config) {}
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred = true);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor);
 };
 
 #endif

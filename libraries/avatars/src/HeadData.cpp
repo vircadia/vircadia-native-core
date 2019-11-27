@@ -27,11 +27,13 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _basePitch(0.0f),
     _baseRoll(0.0f),
     _lookAtPosition(0.0f, 0.0f, 0.0f),
-    _blendshapeCoefficients(QVector<float>(0, 0.0f)),
-    _transientBlendshapeCoefficients(QVector<float>(0, 0.0f)),
-    _summedBlendshapeCoefficients(QVector<float>(0, 0.0f)),
+    _blendshapeCoefficients((int)Blendshapes::BlendshapeCount, 0.0f),
+    _transientBlendshapeCoefficients((int)Blendshapes::BlendshapeCount, 0.0f),
+    _summedBlendshapeCoefficients((int)Blendshapes::BlendshapeCount, 0.0f),
     _owningAvatar(owningAvatar)
 {
+    _userProceduralAnimationFlags.assign((size_t)ProceduralAnimaitonTypeCount, true);
+    _suppressProceduralAnimationFlags.assign((size_t)ProceduralAnimaitonTypeCount, false);
     computeBlendshapesLookupMap();
 }
 
@@ -71,7 +73,7 @@ void HeadData::setOrientation(const glm::quat& orientation) {
 }
 
 void HeadData::computeBlendshapesLookupMap(){
-    for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
+    for (int i = 0; i < (int)Blendshapes::BlendshapeCount; i++) {
         _blendshapeLookupMap[FACESHIFT_BLENDSHAPES[i]] = i;
     }
 }
@@ -79,6 +81,10 @@ void HeadData::computeBlendshapesLookupMap(){
 int HeadData::getNumSummedBlendshapeCoefficients() const {
     int maxSize = std::max(_blendshapeCoefficients.size(), _transientBlendshapeCoefficients.size());
     return maxSize;
+}
+
+void HeadData::clearBlendshapeCoefficients() {
+    _blendshapeCoefficients.fill(0.0f, (int)_blendshapeCoefficients.size());
 }
 
 const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
@@ -102,7 +108,7 @@ const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
 
 void HeadData::setBlendshape(QString name, float val) {
 
-    //Check to see if the named blendshape exists, and then set its value if it does
+    // Check to see if the named blendshape exists, and then set its value if it does
     auto it = _blendshapeLookupMap.find(name);
     if (it != _blendshapeLookupMap.end()) {
         if (_blendshapeCoefficients.size() <= it.value()) {
@@ -112,6 +118,19 @@ void HeadData::setBlendshape(QString name, float val) {
             _transientBlendshapeCoefficients.resize(it.value() + 1);
         }
         _blendshapeCoefficients[it.value()] = val;
+    } else {
+        // check to see if this is a legacy blendshape that is present in
+        // ARKit blendshapes but is split. i.e. has left and right halfs.
+        if (name == "LipsUpperUp") {
+            _blendshapeCoefficients[(int)Blendshapes::MouthUpperUp_L] = val;
+            _blendshapeCoefficients[(int)Blendshapes::MouthUpperUp_R] = val;
+        } else if (name == "LipsLowerDown") {
+            _blendshapeCoefficients[(int)Blendshapes::MouthLowerDown_L] = val;
+            _blendshapeCoefficients[(int)Blendshapes::MouthLowerDown_R] = val;
+        } else if (name == "Sneer") {
+            _blendshapeCoefficients[(int)Blendshapes::NoseSneer_L] = val;
+            _blendshapeCoefficients[(int)Blendshapes::NoseSneer_R] = val;
+        }
     }
 }
 
@@ -167,14 +186,7 @@ QJsonObject HeadData::toJson() const {
 void HeadData::fromJson(const QJsonObject& json) {
     if (json.contains(JSON_AVATAR_HEAD_BLENDSHAPE_COEFFICIENTS)) {
         auto jsonValue = json[JSON_AVATAR_HEAD_BLENDSHAPE_COEFFICIENTS];
-        if (jsonValue.isArray()) {
-            QVector<float> blendshapeCoefficients;
-            QJsonArray blendshapeCoefficientsJson = jsonValue.toArray();
-            for (const auto& blendshapeCoefficient : blendshapeCoefficientsJson) {
-                blendshapeCoefficients.push_back((float)blendshapeCoefficient.toDouble());
-            }
-            setBlendshapeCoefficients(blendshapeCoefficients);
-        } else if (jsonValue.isObject()) {
+        if (jsonValue.isObject()) {
             QJsonObject blendshapeCoefficientsJson = jsonValue.toObject();
             for (const QString& name : blendshapeCoefficientsJson.keys()) {
                 float value = (float)blendshapeCoefficientsJson[name].toDouble();
@@ -195,4 +207,36 @@ void HeadData::fromJson(const QJsonObject& json) {
     if (json.contains(JSON_AVATAR_HEAD_ROTATION)) {
         setHeadOrientation(quatFromJsonValue(json[JSON_AVATAR_HEAD_ROTATION]));
     }
+}
+
+bool HeadData::getProceduralAnimationFlag(ProceduralAnimationType type) const {
+    return _userProceduralAnimationFlags[(int)type];
+}
+
+void HeadData::setProceduralAnimationFlag(ProceduralAnimationType type, bool value) {
+    _userProceduralAnimationFlags[(int)type] = value;
+}
+
+bool HeadData::getSuppressProceduralAnimationFlag(ProceduralAnimationType type) const {
+    return _suppressProceduralAnimationFlags[(int)type];
+}
+
+void HeadData::setSuppressProceduralAnimationFlag(ProceduralAnimationType type, bool value) {
+    _suppressProceduralAnimationFlags[(int)type] = value;
+}
+
+bool HeadData::getHasScriptedBlendshapes() const {
+    return _hasScriptedBlendshapes;
+}
+
+void HeadData::setHasScriptedBlendshapes(bool value) {
+    _hasScriptedBlendshapes = value;
+}
+
+bool HeadData::getHasInputDrivenBlendshapes() const {
+    return _hasInputDrivenBlendshapes;
+}
+
+void HeadData::setHasInputDrivenBlendshapes(bool value) {
+    _hasInputDrivenBlendshapes = value;
 }

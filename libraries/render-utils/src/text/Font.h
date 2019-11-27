@@ -10,12 +10,16 @@
 #ifndef hifi_Font_h
 #define hifi_Font_h
 
+#include <QObject>
+
 #include "Glyph.h"
-#include "EffectType.h"
+#include "TextEffect.h"
 #include <gpu/Batch.h>
 #include <gpu/Pipeline.h>
 
-class Font {
+class Font : public QObject {
+    Q_OBJECT
+
 public:
     using Pointer = std::shared_ptr<Font>;
 
@@ -24,14 +28,23 @@ public:
     void read(QIODevice& path);
 
     struct DrawParams {
-        vec4 color{ -1 };
-        EffectType effect;
+        vec4 color { 0 };
+
+        vec3 effectColor { 0 };
+        float effectThickness { 0 };
+
+        int effect { 0 };
+
+#if defined(__clang__)
+        __attribute__((unused))
+#endif
+        vec3 _spare;
     };
 
     struct DrawInfo {
-        gpu::BufferPointer verticesBuffer;
-        gpu::BufferPointer indicesBuffer;
-        gpu::BufferPointer paramsBuffer;
+        gpu::BufferPointer verticesBuffer { nullptr };
+        gpu::BufferPointer indicesBuffer { nullptr };
+        gpu::BufferPointer paramsBuffer { nullptr };
         uint32_t indexCount;
 
         QString string;
@@ -44,12 +57,17 @@ public:
     float getFontSize() const { return _fontSize; }
 
     // Render string to batch
-    void drawString(gpu::Batch& batch, DrawInfo& drawInfo, const QString& str,
-        const glm::vec4& color, EffectType effectType, 
-        const glm::vec2& origin, const glm::vec2& bound, bool layered);
+    void drawString(gpu::Batch& batch, DrawInfo& drawInfo, const QString& str, const glm::vec4& color,
+                    const glm::vec3& effectColor, float effectThickness, TextEffect effect, 
+                    const glm::vec2& origin, const glm::vec2& bound, float scale, bool unlit, bool forward);
 
     static Pointer load(const QString& family);
 
+    bool isLoaded() const { return _loaded; }
+    void setLoaded(bool loaded) { _loaded = loaded; }
+
+public slots:
+    void handleFontNetworkReply();
 
 private:
     static Pointer load(QIODevice& fontFile);
@@ -58,7 +76,7 @@ private:
     glm::vec2 computeTokenExtent(const QString& str) const;
 
     const Glyph& getGlyph(const QChar& c) const;
-    void buildVertices(DrawInfo& drawInfo, const QString& str, const glm::vec2& origin, const glm::vec2& bounds);
+    void buildVertices(DrawInfo& drawInfo, const QString& str, const glm::vec2& origin, const glm::vec2& bounds, float scale, bool enlargeForShadows);
 
     void setupGPU();
 
@@ -71,21 +89,21 @@ private:
 
     // Font characteristics
     QString _family;
-    float _fontSize = 0.0f;
-    float _leading = 0.0f;
-    float _ascent = 0.0f;
-    float _descent = 0.0f;
-    float _spaceWidth = 0.0f;
+    float _fontSize { 0.0f };
+    float _leading { 0.0f };
+    float _ascent { 0.0f };
+    float _descent { 0.0f };
+    float _spaceWidth { 0.0f };
 
-    bool _initialized = false;
+    float _scale { 0.0f };
 
-    // gpu structures
-    gpu::PipelinePointer _pipeline;
-    gpu::PipelinePointer _layeredPipeline;
-    gpu::PipelinePointer _transparentPipeline;
+    bool _loaded { true };
+
     gpu::TexturePointer _texture;
-    gpu::Stream::FormatPointer _format;
     gpu::BufferStreamPointer _stream;
+
+    static std::map<std::tuple<bool, bool, bool>, gpu::PipelinePointer> _pipelines;
+    static gpu::Stream::FormatPointer _format;
 };
 
 #endif

@@ -42,6 +42,7 @@
 #include <NetworkAccessManager.h>
 #include <GLMHelpers.h>
 #include <AudioClient.h>
+#include <shared/LocalFileAccessGate.h>
 
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/GLHelpers.h>
@@ -264,7 +265,19 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     }
 
     auto rootContext = engine->rootContext();
-    rootContext->setContextProperty("GL", ::getGLContextData());
+
+    static QJsonObject QML_GL_INFO;
+    static std::once_flag once_gl_info;
+    std::call_once(once_gl_info, [] {
+        const auto& contextInfo = gl::ContextInfo::get();
+        QML_GL_INFO = QJsonObject {
+            { "version", contextInfo.version.c_str() },
+            { "sl_version", contextInfo.shadingLanguageVersion.c_str() },
+            { "vendor", contextInfo.vendor.c_str() },
+            { "renderer", contextInfo.renderer.c_str() },
+        };
+    });
+    rootContext->setContextProperty("GL", QML_GL_INFO);
     rootContext->setContextProperty("urlHandler", new UrlHandler(rootContext));
     rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
     rootContext->setContextProperty("ApplicationInterface", qApp);
@@ -307,6 +320,13 @@ void OffscreenQmlSurface::onRootContextCreated(QQmlContext* qmlContext) {
 #endif
 }
 
+void OffscreenQmlSurface::applyWhiteList(const QUrl& url, QQmlContext* context) {
+    QList<QmlContextCallback> callbacks = getQmlWhitelist()->getCallbacksForUrl(url);
+    for(const auto& callback : callbacks){
+        callback(context);
+    }
+}
+
 QQmlContext* OffscreenQmlSurface::contextForUrl(const QUrl& qmlSource, QQuickItem* parent, bool forceNewContext) {
     // Get any whitelist functionality
     QList<QmlContextCallback> callbacks = getQmlWhitelist()->getCallbacksForUrl(qmlSource);
@@ -336,7 +356,7 @@ void OffscreenQmlSurface::onRootCreated() {
     getSurfaceContext()->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
 
     // Connect with the audio client and listen for audio device changes
-    connect(DependencyManager::get<AudioClient>().data(), &AudioClient::deviceChanged, this, [this](QAudio::Mode mode, const QAudioDeviceInfo& device) {
+    connect(DependencyManager::get<AudioClient>().data(), &AudioClient::deviceChanged, this, [this](QAudio::Mode mode, const HifiAudioDeviceInfo& device) {
         if (mode == QAudio::Mode::AudioOutput) {
             QMetaObject::invokeMethod(this, "changeAudioOutputDevice", Qt::QueuedConnection, Q_ARG(QString, device.deviceName()));
         }
@@ -679,43 +699,52 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
         return;
     }
 
-#if !defined(Q_OS_ANDROID)
-    // if HMD is being worn, allow keyboard to open.  allow it to close, HMD or not.
-    if (!raised || qApp->property(hifi::properties::HMD).toBool()) {
-        QQuickItem* item = dynamic_cast<QQuickItem*>(object);
-        if (!item) {
-            return;
-        }
+    bool android = false;
+#if defined(Q_OS_ANDROID)
+    android = true;
+#endif
 
-        // for future probably makes sense to consider one of the following:
-        // 1. make keyboard a singleton, which will be dynamically re-parented before showing
-        // 2. track currently visible keyboard somewhere, allow to subscribe for this signal
-        // any of above should also eliminate need in duplicated properties and code below
+    bool hmd = qApp->property(hifi::properties::HMD).toBool();
 
-        while (item) {
-            // Numeric value may be set in parameter from HTML UI; for QML UI, detect numeric fields here.
-            numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
-
-            if (item->property("keyboardRaised").isValid()) {
-                // FIXME - HMD only: Possibly set value of "keyboardEnabled" per isHMDMode() for use in WebView.qml.
-                if (item->property("punctuationMode").isValid()) {
-                    item->setProperty("punctuationMode", QVariant(numeric));
-                }
-                if (item->property("passwordField").isValid()) {
-                    item->setProperty("passwordField", QVariant(passwordField));
-                }
-
-                if (raised) {
-                    item->setProperty("keyboardRaised", QVariant(!raised));
-                }
-
-                item->setProperty("keyboardRaised", QVariant(raised));
+    if (!android || hmd) {
+        // if HMD is being worn, allow keyboard to open.  allow it to close, HMD or not.
+        if (!raised || hmd) {
+            QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+            if (!item) {
                 return;
             }
-            item = dynamic_cast<QQuickItem*>(item->parentItem());
+
+            // for future probably makes sense to consider one of the following:
+            // 1. make keyboard a singleton, which will be dynamically re-parented before showing
+            // 2. track currently visible keyboard somewhere, allow to subscribe for this signal
+            // any of above should also eliminate need in duplicated properties and code below
+
+            while (item) {
+                // Numeric value may be set in parameter from HTML UI; for QML UI, detect numeric fields here.
+                numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
+
+                if (item->property("keyboardRaised").isValid()) {
+
+                    if (item->property("punctuationMode").isValid()) {
+                        item->setProperty("punctuationMode", QVariant(numeric));
+                    }
+                    if (item->property("passwordField").isValid()) {
+                        item->setProperty("passwordField", QVariant(passwordField));
+                    }
+
+                    if (hmd && item->property("keyboardEnabled").isValid()) {
+                        item->setProperty("keyboardEnabled", true);
+                    }
+
+                    item->setProperty("keyboardRaised", QVariant(raised));
+
+                    return;
+                }
+                item = dynamic_cast<QQuickItem*>(item->parentItem());
+            }
         }
     }
-#endif
+
 }
 
 void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {
@@ -784,6 +813,26 @@ void OffscreenQmlSurface::forceQmlAudioOutputDeviceUpdate() {
         _audioOutputUpdateTimer.start();
     }
 #endif
+}
+
+void OffscreenQmlSurface::loadFromQml(const QUrl& qmlSource, QQuickItem* parent, const QJSValue& callback) {
+    auto objectCallback = [callback](QQmlContext* context, QQuickItem* newItem) {
+        QJSValue(callback).call(QJSValueList() << context->engine()->newQObject(newItem));
+    };
+
+    if (hifi::scripting::isLocalAccessSafeThread()) {
+        // If this is a 
+        auto contextCallback = [callback](QQmlContext* context) {
+            ContextAwareProfile::restrictContext(context, false);
+#if !defined(Q_OS_ANDROID)
+            FileTypeProfile::registerWithContext(context);
+            HFWebEngineProfile::registerWithContext(context);
+#endif
+        };
+        loadInternal(qmlSource, true, parent, objectCallback, contextCallback);
+    } else {
+        loadInternal(qmlSource, false, parent, objectCallback);
+    }
 }
 
 #include "OffscreenQmlSurface.moc"

@@ -19,10 +19,13 @@ enum CameraMode
 {
     CAMERA_MODE_NULL = -1,
     CAMERA_MODE_THIRD_PERSON,
+    CAMERA_MODE_FIRST_PERSON_LOOK_AT,
     CAMERA_MODE_FIRST_PERSON,
     CAMERA_MODE_MIRROR,
     CAMERA_MODE_INDEPENDENT,
     CAMERA_MODE_ENTITY,
+    CAMERA_MODE_LOOK_AT,
+    CAMERA_MODE_SELFIE,
     NUM_CAMERA_MODES
 };
 
@@ -38,7 +41,7 @@ class Camera : public QObject {
 
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
-    Q_PROPERTY(QString mode READ getModeString WRITE setModeString)
+    Q_PROPERTY(QString mode READ getModeString WRITE setModeString NOTIFY modeUpdated)
     Q_PROPERTY(QVariantMap frustum READ getViewFrustum CONSTANT)
 
 public:
@@ -182,7 +185,7 @@ private:
     void recompose();
     void decompose();
 
-    CameraMode _mode{ CAMERA_MODE_THIRD_PERSON };
+    CameraMode _mode{ CAMERA_MODE_LOOK_AT };
     glm::mat4 _transform;
     glm::mat4 _projection;
 

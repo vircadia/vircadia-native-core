@@ -30,7 +30,7 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome";
+const QString DEFAULT_HIFI_ADDRESS = "file:///~/serverless/tutorial.json";
 const QString DEFAULT_HOME_ADDRESS = "file:///~/serverless/tutorial.json";
 const QString REDIRECT_HIFI_ADDRESS = "file:///~/serverless/redirect.json";
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
@@ -234,14 +234,41 @@ const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
     return callbackParams;
 }
 
-bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
+bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger) {
     static QString URL_TYPE_USER = "user";
     static QString URL_TYPE_DOMAIN_ID = "domain_id";
     static QString URL_TYPE_PLACE = "place";
     static QString URL_TYPE_NETWORK_ADDRESS = "network_address";
-    if (lookupUrl.scheme() == URL_SCHEME_HIFI) {
 
+    QUrl lookupUrl = lookupUrlIn;
+
+    if (!lookupUrl.host().isEmpty() && !lookupUrl.path().isEmpty()) {
+        // Assignment clients ping for empty url until assigned. Don't spam.
         qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
+    }
+
+    if (lookupUrl.scheme().isEmpty() && !lookupUrl.path().startsWith("/")) {
+        // 'urls' without schemes are taken as domain names, as opposed to
+        // simply a path portion of a url, so we need to set the scheme
+        lookupUrl.setScheme(URL_SCHEME_HIFI);
+    }
+
+    static const QRegExp PORT_REGEX = QRegExp("\\d{1,5}(\\/.*)?");
+    if(!lookupUrl.scheme().isEmpty() && lookupUrl.host().isEmpty() && PORT_REGEX.exactMatch(lookupUrl.path())) {
+        // this is in the form somewhere:<port>, convert it to hifi://somewhere:<port>
+        lookupUrl = QUrl(URL_SCHEME_HIFI + "://" + lookupUrl.toString());
+    }
+    // it should be noted that url's in the form
+    // somewhere:<port> are not valid, as that
+    // would indicate that the scheme is 'somewhere'
+    // use hifi://somewhere:<port> instead
+
+    if (lookupUrl.scheme() == URL_SCHEME_HIFI) {
+        if (lookupUrl.host().isEmpty()) {
+            // this was in the form hifi:/somewhere or hifi:somewhere.  Fix it by making it hifi://somewhere
+            static const QRegExp HIFI_SCHEME_REGEX = QRegExp(URL_SCHEME_HIFI + ":\\/?($|\\w+)", Qt::CaseInsensitive);
+            lookupUrl = QUrl(lookupUrl.toString().replace(HIFI_SCHEME_REGEX, URL_SCHEME_HIFI + "://\\1"));
+        }
 
         DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::LookupAddress);
 
@@ -379,25 +406,11 @@ bool isPossiblePlaceName(QString possiblePlaceName) {
 }
 
 void AddressManager::handleLookupString(const QString& lookupString, bool fromSuggestions) {
-    if (!lookupString.isEmpty()) {
+
+    QString sanitizedString = lookupString.trimmed();
+    if (!sanitizedString.isEmpty()) {
         // make this a valid hifi URL and handle it off to handleUrl
-        QString sanitizedString = lookupString.trimmed();
-        QUrl lookupURL;
-
-        if (!lookupString.startsWith('/')) {
-            // sometimes we need to handle lookupStrings like hifi:/somewhere
-            const QRegExp HIFI_SCHEME_REGEX = QRegExp(URL_SCHEME_HIFI + ":\\/{1,2}", Qt::CaseInsensitive);
-            sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
-
-            lookupURL = QUrl(sanitizedString);
-            if (lookupURL.scheme().isEmpty() || lookupURL.scheme().toLower() == LOCALHOST) {
-                lookupURL = QUrl("hifi://" + sanitizedString);
-            }
-        } else {
-            lookupURL = QUrl(sanitizedString);
-        }
-
-        handleUrl(lookupURL, fromSuggestions ? Suggestions : UserInput);
+        handleUrl(sanitizedString, fromSuggestions ? Suggestions : UserInput);
     }
 }
 
@@ -482,7 +495,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
 
-                    qCDebug(networking) << "Possible domain change required to connect to domain with ID" << domainID
+                    qCDebug(networking_ice) << "Possible domain change required to connect to domain with ID" << domainID
                         << "via ice-server at" << iceServerAddress;
 
                     emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);

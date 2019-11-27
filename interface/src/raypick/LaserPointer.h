@@ -42,6 +42,8 @@ public:
     LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover, const PointerTriggers& triggers,
         bool faceAvatar, bool followNormal, float followNormalStrength, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithParent, bool enabled);
 
+    PickQuery::PickType getType() const override;
+
     QVariantMap toVariantMap() const override;
 
     static std::shared_ptr<StartEndRenderState> buildRenderState(const QVariantMap& propMap);

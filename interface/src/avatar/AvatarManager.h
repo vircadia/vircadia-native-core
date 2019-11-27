@@ -238,7 +238,7 @@ public:
      * @function AvatarManager.getPalData
      * @param {string[]} [avatarIDs=[]] - The IDs of the avatars to get the PAL data for. If empty, then PAL data is obtained 
      *     for all avatars.
-     * @returns {object<"data", AvatarManager.PalData[]>} An array of objects, each object being the PAL data for an avatar.
+     * @returns {Object<"data", AvatarManager.PalData[]>} An array of objects, each object being the PAL data for an avatar.
      * @example <caption>Report the PAL data for an avatar nearby.</caption>
      * var palData = AvatarManager.getPalData();
      * print("PAL data for one avatar: " + JSON.stringify(palData.data[0]));
@@ -273,6 +273,10 @@ public slots:
 
 protected:
     AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;
+    DetailedMotionState* createDetailedMotionState(OtherAvatarPointer avatar, int32_t jointIndex);
+    void rebuildAvatarPhysics(PhysicsEngine::Transaction& transaction, const OtherAvatarPointer& avatar);
+    void removeDetailedAvatarPhysics(PhysicsEngine::Transaction& transaction, const OtherAvatarPointer& avatar);
+    void rebuildDetailedAvatarPhysics(PhysicsEngine::Transaction& transaction, const OtherAvatarPointer& avatar);
 
 private:
     explicit AvatarManager(QObject* parent = 0);
@@ -288,7 +292,7 @@ private:
     void handleTransitAnimations(AvatarTransit::Status status);
 
     using SetOfOtherAvatars = std::set<OtherAvatarPointer>;
-    SetOfOtherAvatars _avatarsToChangeInPhysics;
+    SetOfOtherAvatars _otherAvatarsToChangeInPhysics;
 
     std::shared_ptr<MyAvatar> _myAvatar;
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.

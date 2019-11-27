@@ -14,48 +14,32 @@
 
 #include <memory>
 #include <glm/glm.hpp>
-#include <QColor>
-#include <gpu/Forward.h>
-
-namespace gpu {
-class Batch;
-}
-class Font;
 
 #include "text/Font.h"
-#include "text/EffectType.h"
-#include "text/FontFamilies.h"
+#include "TextEffect.h"
+#include "FontFamilies.h"
 
-// TextRenderer3D is actually a fairly thin wrapper around a Font class
-// defined in the cpp file.
 class TextRenderer3D {
 public:
-    static const float DEFAULT_POINT_SIZE;
-
-    static TextRenderer3D* getInstance(const char* family, float pointSize = DEFAULT_POINT_SIZE, 
-            bool bold = false, bool italic = false, EffectType effect = NO_EFFECT, int effectThickness = 1);
+    static TextRenderer3D* getInstance(const char* family);
 
     glm::vec2 computeExtent(const QString& str) const;
     float getFontSize() const; // Pixel size
     
-    void draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color = glm::vec4(1.0f),
-              const glm::vec2& bounds = glm::vec2(-1.0f), bool layered = false);
+    void draw(gpu::Batch& batch, float x, float y, const glm::vec2& bounds,
+              const QString& str, const glm::vec4& color, bool unlit, bool forward);
+    void draw(gpu::Batch& batch, float x, float y, const glm::vec2& bounds, float scale,
+              const QString& str, const QString& font, const glm::vec4& color, const glm::vec3& effectColor,
+              float effectThickness, TextEffect effect, bool unlit, bool forward);
 
 private:
-    TextRenderer3D(const char* family, float pointSize, int weight = -1, bool italic = false,
-                   EffectType effect = NO_EFFECT, int effectThickness = 1);
+    TextRenderer3D(const char* family);
 
-    // the type of effect to apply
-    const EffectType _effectType;
+    QString _family;
 
-    // the thickness of the effect
-    const int _effectThickness;
-
-    // text color
-    glm::vec4 _color;
-    Font::DrawInfo _drawInfo;
     std::shared_ptr<Font> _font;
-};
+    Font::DrawInfo _drawInfo;
 
+};
 
 #endif // hifi_TextRenderer3D_h

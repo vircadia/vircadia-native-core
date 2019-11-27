@@ -13,7 +13,9 @@
 
 enum MaterialMappingMode {
     UV = 0,
-    PROJECTED
+    PROJECTED,
+    // put new mapping-modes before this line.
+    UNSET_MATERIAL_MAPPING_MODE
 };
 
 class MaterialMappingModeHelpers {

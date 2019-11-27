@@ -62,7 +62,7 @@ void OtherAvatar::removeOrb() {
 }
 
 void OtherAvatar::updateOrbPosition() {
-    if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
+    if (!_otherAvatarOrbMeshPlaceholderID.isNull()) {
         EntityItemProperties properties;
         properties.setPosition(getHead()->getPosition());
         DependencyManager::get<EntityScriptingInterface>()->editEntity(_otherAvatarOrbMeshPlaceholderID, properties);
@@ -75,6 +75,7 @@ void OtherAvatar::createOrb() {
         properties.setType(EntityTypes::Sphere);
         properties.setAlpha(1.0f);
         properties.setColor(getLoadingOrbColor(_loadingStatus));
+        properties.setName("Loading Avatar " + getID().toString());
         properties.setPrimitiveMode(PrimitiveMode::LINES);
         properties.getPulse().setMin(0.5f);
         properties.getPulse().setMax(1.0f);
@@ -116,6 +117,8 @@ void OtherAvatar::updateSpaceProxy(workload::Transaction& transaction) const {
 int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     int32_t bytesRead = Avatar::parseDataFromBuffer(buffer);
     for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
+        // NOTE: we activate _detailedMotionStates is because they are KINEMATIC
+        // and Bullet will automagically call DetailedMotionState::getWorldTransform() when active.
         _detailedMotionStates[i]->forceActive();
     }
     if (_moving && _motionState) {
@@ -124,11 +127,11 @@ int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     return bytesRead;
 }
 
-btCollisionShape* OtherAvatar::createCollisionShape(int jointIndex, bool& isBound, std::vector<int>& boundJoints) {
+const btCollisionShape* OtherAvatar::createCollisionShape(int32_t jointIndex, bool& isBound, std::vector<int32_t>& boundJoints) {
     ShapeInfo shapeInfo;
     isBound = false;
-    QString jointName = ""; 
-    if (jointIndex > -1 && jointIndex < (int)_multiSphereShapes.size()) {
+    QString jointName = "";
+    if (jointIndex > -1 && jointIndex < (int32_t)_multiSphereShapes.size()) {
         jointName = _multiSphereShapes[jointIndex].getJointName();
     }
     switch (_bodyLOD) {
@@ -163,39 +166,21 @@ btCollisionShape* OtherAvatar::createCollisionShape(int jointIndex, bool& isBoun
             }
             break;
         }
+        // Note: MultiSphereLow case really means: "skip fingers and use spheres for hands,
+        // else fall through to MultiSphereHigh case"
     case BodyLOD::MultiSphereHigh:
         computeDetailedShapeInfo(shapeInfo, jointIndex);
         break;
     default:
+        assert(false); // should never reach here
         break;
     }
-    if (shapeInfo.getType() != SHAPE_TYPE_NONE) {
-        auto shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-        if (shape) {
-            shape->setMargin(0.001f);
-        }
-        return shape;
-    }
-    return nullptr;
+    return ObjectMotionState::getShapeManager()->getShape(shapeInfo);
 }
 
-DetailedMotionState* OtherAvatar::createMotionState(std::shared_ptr<OtherAvatar> avatar, int jointIndex) {
-    bool isBound = false;
-    std::vector<int> boundJoints;
-    btCollisionShape* shape = createCollisionShape(jointIndex, isBound, boundJoints);
-    if (shape) {
-        DetailedMotionState* motionState = new DetailedMotionState(avatar, shape, jointIndex);
-        motionState->setMass(computeMass());
-        motionState->setIsBound(isBound, boundJoints);
-        return motionState;
-    }
-    return nullptr;
-}
-
-void OtherAvatar::resetDetailedMotionStates() {
-    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
-        _detailedMotionStates[i] = nullptr;
-    }
+void OtherAvatar::forgetDetailedMotionStates() {
+    // NOTE: the DetailedMotionStates are deleted after being added to PhysicsEngine::Transaction::_objectsToRemove
+    // See AvatarManager::handleProcessedPhysicsTransaction()
     _detailedMotionStates.clear();
 }
 
@@ -217,6 +202,7 @@ void OtherAvatar::computeShapeLOD() {
         break;
     case workload::Region::UNKNOWN:
     case workload::Region::INVALID:
+    case workload::Region::R4:
     case workload::Region::R3:
     default:
         newLOD = BodyLOD::Sphere;
@@ -225,32 +211,29 @@ void OtherAvatar::computeShapeLOD() {
     if (newLOD != _bodyLOD) {
         _bodyLOD = newLOD;
         if (isInPhysicsSimulation()) {
-            _needsReinsertion = true;
+            _needsDetailedRebuild = true;
         }
     }
 }
 
 bool OtherAvatar::isInPhysicsSimulation() const {
-    return _motionState != nullptr && _detailedMotionStates.size() > 0;
+    return _motionState && _motionState->getRigidBody();
 }
 
 bool OtherAvatar::shouldBeInPhysicsSimulation() const {
-    return !isDead() && !(isInPhysicsSimulation() && _needsReinsertion);
+    return !isDead() && _workloadRegion <= workload::Region::R3;
 }
 
 bool OtherAvatar::needsPhysicsUpdate() const {
     constexpr uint32_t FLAGS_OF_INTEREST = Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS | Simulation::DIRTY_POSITION | Simulation::DIRTY_COLLISION_GROUP;
-    return (_needsReinsertion || (_motionState && (bool)(_motionState->getIncomingDirtyFlags() & FLAGS_OF_INTEREST)));
+    return (_needsDetailedRebuild || (_motionState && (bool)(_motionState->getIncomingDirtyFlags() & FLAGS_OF_INTEREST)));
 }
 
 void OtherAvatar::rebuildCollisionShape() {
     if (_motionState) {
+        // do not actually rebuild here, instead flag for later
         _motionState->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
-    }
-    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
-        if (_detailedMotionStates[i]) {
-            _detailedMotionStates[i]->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
-        }
+        _needsDetailedRebuild = true;
     }
 }
 
@@ -258,25 +241,6 @@ void OtherAvatar::setCollisionWithOtherAvatarsFlags() {
     if (_motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
     }
-}
-
-void OtherAvatar::createDetailedMotionStates(const std::shared_ptr<OtherAvatar>& avatar) {
-    auto& detailedMotionStates = getDetailedMotionStates();
-    assert(detailedMotionStates.empty());
-    if (_bodyLOD == BodyLOD::Sphere) {
-        auto dMotionState = createMotionState(avatar, -1);
-        if (dMotionState) {
-            detailedMotionStates.push_back(dMotionState);
-        }
-    } else {
-        for (int i = 0; i < getJointCount(); i++) {
-            auto dMotionState = createMotionState(avatar, i);
-            if (dMotionState) {
-                detailedMotionStates.push_back(dMotionState);
-            }
-        }
-    }
-    _needsReinsertion = false;
 }
 
 void OtherAvatar::simulate(float deltaTime, bool inView) {
@@ -303,6 +267,7 @@ void OtherAvatar::simulate(float deltaTime, bool inView) {
                 _skeletonModel->getRig().computeExternalPoses(rootTransform);
                 _jointDataSimulationRate.increment();
 
+                head->simulate(deltaTime);
                 _skeletonModel->simulate(deltaTime, true);
 
                 locationChanged(); // joints changed, so if there are any children, update them.
@@ -313,9 +278,11 @@ void OtherAvatar::simulate(float deltaTime, bool inView) {
                     headPosition = getWorldPosition();
                 }
                 head->setPosition(headPosition);
+            } else {
+                head->simulate(deltaTime);
+                _skeletonModel->simulate(deltaTime, false);
             }
             head->setScale(getModelScale());
-            head->simulate(deltaTime);
             relayJointDataToChildren();
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
@@ -548,13 +515,13 @@ void OtherAvatar::handleChangedAvatarEntityData() {
                 entity->setParentID(NULL_ID);
                 entity->setParentID(oldParentID);
 
-                if (entity->stillHasMyGrabAction()) {
+                if (entity->stillHasMyGrab()) {
                     // For this case: we want to ignore transform+velocities coming from authoritative OtherAvatar
                     // because the MyAvatar is grabbing and we expect the local grab state
                     // to have enough information to prevent simulation drift.
                     //
                     // Clever readers might realize this could cause problems.  For example,
-                    // if an ignored OtherAvagtar were to simultanously grab the object then there would be
+                    // if an ignored OtherAvatar were to simultanously grab the object then there would be
                     // a noticeable discrepancy between participants in the distributed physics simulation,
                     // however the difference would be stable and would not drift.
                     properties.clearTransformOrVelocityChanges();
@@ -594,9 +561,18 @@ void OtherAvatar::handleChangedAvatarEntityData() {
             _avatarEntitiesLock.withReadLock([&] {
                 packedAvatarEntityData = _packedAvatarEntityData;
             });
-            foreach (auto entityID, recentlyRemovedAvatarEntities) {
-                if (!packedAvatarEntityData.contains(entityID)) {
-                    entityTree->deleteEntity(entityID, true, true);
+            if (!recentlyRemovedAvatarEntities.empty()) {
+                std::vector<EntityItemID> idsToDelete;
+                idsToDelete.reserve(recentlyRemovedAvatarEntities.size());
+                foreach (auto entityID, recentlyRemovedAvatarEntities) {
+                    if (!packedAvatarEntityData.contains(entityID)) {
+                        idsToDelete.push_back(entityID);
+                    }
+                }
+                if (!idsToDelete.empty()) {
+                    bool force = true;
+                    bool ignoreWarnings = true;
+                    entityTree->deleteEntitiesByID(idsToDelete, force, ignoreWarnings);
                 }
             }
 

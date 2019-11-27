@@ -309,7 +309,7 @@ void GLBackend::setResourceTexture(unsigned int slot, const TexturePointer& reso
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(textureState._target, to);
         (void)CHECK_GL_ERROR();
-        _stats._RSAmountTextureMemoryBounded += (int)object->size();
+        _stats._RSAmountTextureMemoryBounded += (uint64_t)object->size();
 
     } else {
         releaseResourceTexture(slot);

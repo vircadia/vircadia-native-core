@@ -30,7 +30,8 @@ Windows.Window {
 
     signal selfDestruct();
 
-    property var flags: 0;
+    property var additionalFlags: 0;
+    property var overrideFlags: 0;
 
     property var source;
     property var dynamicContent;
@@ -58,10 +59,20 @@ Windows.Window {
         }
         QmlSurface.load(source, contentHolder, function(newObject) {
             dynamicContent = newObject;
+            updateInteractiveWindowSizeForMode();
             if (dynamicContent && dynamicContent.anchors) {
                 dynamicContent.anchors.fill = contentHolder;
             }
         });
+    }
+    
+    Timer {
+        id: timer
+        interval: 500;
+        repeat: false;
+        onTriggered: {
+            updateContentParent();
+        }
     }
 
     function updateInteractiveWindowPositionForMode() {
@@ -81,10 +92,12 @@ Windows.Window {
     }
 
     function updateInteractiveWindowSizeForMode() {
-        if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
-            width = interactiveWindowSize.width;
-            height = interactiveWindowSize.height;
-        } else if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
+        root.width = interactiveWindowSize.width;
+        root.height = interactiveWindowSize.height;
+        contentHolder.width = interactiveWindowSize.width;
+        contentHolder.height = interactiveWindowSize.height;
+
+        if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
             nativeWindow.width = interactiveWindowSize.width;
             nativeWindow.height = interactiveWindowSize.height;
         }
@@ -103,13 +116,11 @@ Windows.Window {
             if (nativeWindow) {
                 nativeWindow.setVisible(false);
             }
-            updateContentParent();
             updateInteractiveWindowPositionForMode();
             shown = interactiveWindowVisible;
         } else if (presentationMode === Desktop.PresentationMode.NATIVE) {
             shown = false;
             if (nativeWindow) {
-                updateContentParent();
                 updateInteractiveWindowPositionForMode();
                 nativeWindow.setVisible(interactiveWindowVisible);
             }
@@ -119,10 +130,7 @@ Windows.Window {
     }
 
     Component.onCompleted: {
-        // Fix for parent loss on OSX:
-        parent.heightChanged.connect(updateContentParent);
-        parent.widthChanged.connect(updateContentParent);
-
+        
         x = interactiveWindowPosition.x;
         y = interactiveWindowPosition.y;
         width = interactiveWindowSize.width;
@@ -134,6 +142,14 @@ Windows.Window {
 
             Window {
                 id: root;
+                width: interactiveWindowSize.width
+                height: interactiveWindowSize.height
+                // fix for missing content on OSX initial startup with a non-maximized interface window. It seems that in this case, we cannot update
+                // the content parent during creation of the Window root. This added delay will update the parent after the root has finished loading.
+                Component.onCompleted: {
+                    timer.start();
+                }
+
                 Rectangle {
                     color: hifi.colors.baseGray
                     anchors.fill: parent
@@ -147,10 +163,10 @@ Windows.Window {
             Qt.WindowMaximizeButtonHint |
             Qt.WindowMinimizeButtonHint;
         // only use the always on top feature for non Windows OS
-        if (Qt.platform.os !== "windows" && (flags & Desktop.ALWAYS_ON_TOP)) {
+        if (Qt.platform.os !== "windows" && (root.additionalFlags & Desktop.ALWAYS_ON_TOP)) {
             nativeWindowFlags |= Qt.WindowStaysOnTopHint;
         }
-        nativeWindow.flags = nativeWindowFlags;
+        nativeWindow.flags = root.overrideFlags || nativeWindowFlags;
 
         nativeWindow.x = interactiveWindowPosition.x;
         nativeWindow.y = interactiveWindowPosition.y;
@@ -163,6 +179,7 @@ Windows.Window {
                 interactiveWindowPosition = Qt.point(nativeWindow.x, interactiveWindowPosition.y);
             }
         });
+        
         nativeWindow.yChanged.connect(function() {
             if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow.visible) {
                 interactiveWindowPosition = Qt.point(interactiveWindowPosition.x, nativeWindow.y);
@@ -174,6 +191,7 @@ Windows.Window {
                 interactiveWindowSize = Qt.size(nativeWindow.width, interactiveWindowSize.height);
             }
         });
+        
         nativeWindow.heightChanged.connect(function() {
             if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow.visible) {
                 interactiveWindowSize = Qt.size(interactiveWindowSize.width, nativeWindow.height);
@@ -187,13 +205,9 @@ Windows.Window {
 
         // finally set the initial window mode:
         setupPresentationMode();
+        updateContentParent();
 
         initialized = true;
-    }
-
-    Component.onDestruction: {
-        parent.heightChanged.disconnect(updateContentParent);
-        parent.widthChanged.disconnect(updateContentParent);
     }
 
     // Handle message traffic from the script that launched us to the loaded QML
@@ -219,9 +233,40 @@ Windows.Window {
     // Handle message traffic from our loaded QML to the script that launched us
     signal sendToScript(var message);
 
+    // Children of this InteractiveWindow Item are able to request a new width and height
+    // for the parent Item (this one) and its associated C++ InteractiveWindow using these methods.
+    function onRequestNewWidth(newWidth) {
+        interactiveWindowSize.width = newWidth;
+        updateInteractiveWindowSizeForMode();
+    }
+    function onRequestNewHeight(newHeight) {
+        interactiveWindowSize.height = newHeight;
+        updateInteractiveWindowSizeForMode();
+    }
+    
+    // These signals are used to forward key-related events from the QML to the C++.
+    signal keyPressEvent(int key, int modifiers);
+    signal keyReleaseEvent(int key, int modifiers);
+
     onDynamicContentChanged: {
         if (dynamicContent && dynamicContent.sendToScript) {
             dynamicContent.sendToScript.connect(sendToScript);
+        }
+
+        if (dynamicContent && dynamicContent.requestNewWidth) {
+            dynamicContent.requestNewWidth.connect(onRequestNewWidth);
+        }
+
+        if (dynamicContent && dynamicContent.requestNewHeight) {
+            dynamicContent.requestNewHeight.connect(onRequestNewHeight);
+        }
+
+        if (dynamicContent && dynamicContent.keyPressEvent) {
+            dynamicContent.keyPressEvent.connect(keyPressEvent);
+        }
+
+        if (dynamicContent && dynamicContent.keyReleaseEvent) {
+            dynamicContent.keyReleaseEvent.connect(keyReleaseEvent);
         }
     }
 
@@ -270,6 +315,7 @@ Windows.Window {
     onPresentationModeChanged: {
         if (initialized) {
             setupPresentationMode();
+            updateContentParent();
         }
     }
 
@@ -277,7 +323,7 @@ Windows.Window {
         // set invisible on close, to make it not re-appear unintended after switching PresentationMode
         interactiveWindowVisible = false;
 
-        if ((flags & Desktop.CLOSE_BUTTON_HIDES) !== Desktop.CLOSE_BUTTON_HIDES) {
+        if ((root.additionalFlags & Desktop.CLOSE_BUTTON_HIDES) !== Desktop.CLOSE_BUTTON_HIDES) {
             selfDestruct();
         }
     }

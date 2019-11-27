@@ -30,7 +30,6 @@ protected:
 
 private:
     virtual bool needsRenderUpdate() const override;
-    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
 
@@ -46,8 +45,6 @@ private:
     float _alpha;
     PulsePropertyGroup _pulseProperties;
     BillboardMode _billboardMode;
-
-    glm::vec3 _dimensions;
 
     int _geometryId { 0 };
 };

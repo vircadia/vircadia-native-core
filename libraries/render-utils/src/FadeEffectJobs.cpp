@@ -69,7 +69,7 @@ void FadeEditJob::run(const render::RenderContextPointer& renderContext, const F
                     if (transition == nullptr || transition->isFinished || transition->eventType != transitionType) {
                         // Relaunch transition
                         render::Transaction transaction;
-                        transaction.addTransitionToItem(id, transitionType);
+                        transaction.resetTransitionOnItem(id, transitionType);
                         scene->enqueueTransaction(transaction);
                     }
                 });

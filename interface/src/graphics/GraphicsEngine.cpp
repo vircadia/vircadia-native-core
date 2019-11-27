@@ -65,15 +65,15 @@ void GraphicsEngine::initializeGPU(GLWidget* glwidget) {
     DependencyManager::get<TextureCache>()->setGPUContext(_gpuContext);
 }
 
-void GraphicsEngine::initializeRender(bool disableDeferred) {
+void GraphicsEngine::initializeRender() {
 
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
 #ifndef Q_OS_ANDROID
-    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !disableDeferred);
+    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor);
 #endif
-    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !disableDeferred, render::ItemKey::TAG_BITS_0, render::ItemKey::TAG_BITS_0);
+    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, render::ItemKey::TAG_BITS_0, render::ItemKey::TAG_BITS_0);
     _renderEngine->load();
     _renderEngine->registerScene(_renderScene);
 
@@ -132,6 +132,10 @@ static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SI
 
 bool GraphicsEngine::shouldPaint() const {
     auto displayPlugin = qApp->getActiveDisplayPlugin();
+    if (!displayPlugin) {
+        // We're shutting down
+        return false;
+    }
 
 #ifdef DEBUG_PAINT_DELAY
         static uint64_t paintDelaySamples{ 0 };
@@ -175,6 +179,10 @@ void GraphicsEngine::render_performFrame() {
     {
         PROFILE_RANGE(render, "/getActiveDisplayPlugin");
         displayPlugin = qApp->getActiveDisplayPlugin();
+        if (!displayPlugin) {
+            // We're shutting down
+            return;
+        }
     }
 
     {
@@ -250,8 +258,9 @@ void GraphicsEngine::render_performFrame() {
             batch.setFramebuffer(finalFramebuffer);
             batch.enableSkybox(true);
             batch.enableStereo(isStereo);
+            batch.clearDepthStencilFramebuffer(1.0, 0);
             batch.setViewportTransform({ 0, 0, finalFramebuffer->getSize() });
-            _splashScreen->render(batch, viewFrustum);
+            _splashScreen->render(batch, viewFrustum, renderArgs._renderMethod == RenderArgs::RenderMethod::FORWARD);
         });
     } else {
         {

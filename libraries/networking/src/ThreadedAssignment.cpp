@@ -18,7 +18,9 @@
 #include <QtCore/QTimer>
 
 #include <LogHandler.h>
+#include <shared/QtHelpers.h>
 
+#include <platform/Platform.h>
 #include "NetworkLogging.h"
 
 ThreadedAssignment::ThreadedAssignment(ReceivedMessage& message) :
@@ -27,6 +29,9 @@ ThreadedAssignment::ThreadedAssignment(ReceivedMessage& message) :
     _domainServerTimer(this),
     _statsTimer(this)
 {
+    // use <mixer-type> as a temporary targetName name until commonInit can be called later
+    LogHandler::getInstance().setTargetName(QString("<%1>").arg(getTypeName()));
+
     static const int STATS_TIMEOUT_MS = 1000;
     _statsTimer.setInterval(STATS_TIMEOUT_MS); // 1s, Qt::CoarseTimer acceptable
     connect(&_statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
@@ -37,6 +42,16 @@ ThreadedAssignment::ThreadedAssignment(ReceivedMessage& message) :
     // if the NL tells us we got a DS response, clear our member variable of queued check-ins
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::receivedDomainServerList, this, &ThreadedAssignment::clearQueuedCheckIns);
+
+    platform::create();
+    if (!platform::enumeratePlatform()) {
+        qCDebug(networking) << "Failed to enumerate platform.";
+    }
+}
+
+ThreadedAssignment::~ThreadedAssignment() {
+    stop();
+    platform::destroy();
 }
 
 void ThreadedAssignment::setFinished(bool isFinished) {
@@ -58,7 +73,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
             packetReceiver.setShouldDropPackets(true);
 
             // send a disconnect packet to the domain
-            nodeList->getDomainHandler().disconnect();
+            nodeList->getDomainHandler().disconnect("Finished");
 
             // stop our owned timers
             _domainServerTimer.stop();
@@ -93,6 +108,10 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
 
 void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject statsObject) {
     auto nodeList = DependencyManager::get<NodeList>();
+
+#ifdef DEBUG_EVENT_QUEUE
+    statsObject["nodelist_event_queue_size"] = ::hifi::qt::getEventQueueSize(nodeList->thread());
+#endif
 
     QJsonObject ioStats;
     ioStats["inbound_kbps"] = nodeList->getInboundKbps();

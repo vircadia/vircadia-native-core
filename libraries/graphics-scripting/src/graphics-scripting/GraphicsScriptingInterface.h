@@ -19,6 +19,7 @@
 
 #include "ScriptableMesh.h"
 #include <DependencyManager.h>
+#include "RegisteredMetaTypes.h"
 
 
 /**jsdoc
@@ -92,7 +93,7 @@ public slots:
      * @param {Graphics.Model} model
      * @returns {string}
      */
-    QString exportModelToOBJ(const scriptable::ScriptableModel& in);
+    QString exportModelToOBJ(const scriptable::ScriptableModelPointer& model);
 
 private:
     scriptable::ModelProviderPointer getModelProvider(const QUuid& uuid);
@@ -107,8 +108,6 @@ namespace scriptable {
     QScriptValue scriptableMaterialToScriptValue(QScriptEngine* engine, const scriptable::ScriptableMaterial &material);
 };
 
-Q_DECLARE_METATYPE(glm::uint32)
-Q_DECLARE_METATYPE(QVector<glm::uint32>)
 Q_DECLARE_METATYPE(NestableType)
 
 #endif // hifi_GraphicsScriptingInterface_h

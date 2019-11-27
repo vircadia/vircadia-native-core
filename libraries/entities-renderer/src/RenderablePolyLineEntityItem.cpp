@@ -19,15 +19,12 @@
 #include <PerfStat.h>
 #include <shaders/Shaders.h>
 
-#include <DisableDeferred.h>
-
 #include "paintStroke_Shared.slh"
 
 using namespace render;
 using namespace render::entities;
 
-gpu::PipelinePointer PolyLineEntityRenderer::_pipeline = nullptr;
-gpu::PipelinePointer PolyLineEntityRenderer::_glowPipeline = nullptr;
+std::map<std::pair<render::Args::RenderMethod, bool>, gpu::PipelinePointer> PolyLineEntityRenderer::_pipelines;
 
 static const QUrl DEFAULT_POLYLINE_TEXTURE = PathUtils::resourcesUrl("images/paintStroke.png");
 
@@ -44,35 +41,65 @@ PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) 
     }
 }
 
-void PolyLineEntityRenderer::buildPipeline() {
-    // FIXME: opaque pipeline
-    gpu::ShaderPointer program = gpu::Shader::createProgram(DISABLE_DEFERRED ? shader::entities_renderer::program::paintStroke_forward : shader::entities_renderer::program::paintStroke);
+void PolyLineEntityRenderer::updateModelTransformAndBound() {
+    bool success = false;
+    auto newModelTransform = _entity->getTransformToCenter(success);
+    if (success) {
+        _modelTransform = newModelTransform;
 
-    {
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setCullMode(gpu::State::CullMode::CULL_NONE);
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        PrepareStencil::testMask(*state);
-        state->setBlendFunction(true,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        _pipeline = gpu::Pipeline::create(program, state);
+        auto lineEntity = std::static_pointer_cast<PolyLineEntityItem>(_entity);
+        AABox bound;
+        lineEntity->computeTightLocalBoundingBox(bound);
+        bound.transform(newModelTransform);
+        _bound = bound;
     }
-    {
+}
+
+bool PolyLineEntityRenderer::isTransparent() const {
+    return _glow || (_textureLoaded && _texture->getGPUTexture() && _texture->getGPUTexture()->getUsage().isAlpha());
+}
+
+void PolyLineEntityRenderer::buildPipelines() {
+    static const std::vector<std::pair<render::Args::RenderMethod, bool>> keys = {
+        { render::Args::DEFERRED, false }, { render::Args::DEFERRED, true }, { render::Args::FORWARD, false }, { render::Args::FORWARD, true },
+    };
+
+    for (auto& key : keys) {
+        gpu::ShaderPointer program;
+        render::Args::RenderMethod renderMethod = key.first;
+        bool transparent = key.second;
+
+        if (renderMethod == render::Args::DEFERRED) {
+            if (transparent) {
+                program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke_translucent);
+            } else {
+                program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke);
+            }
+        } else { // render::Args::FORWARD
+            program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke_forward);
+        }
+
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
         state->setCullMode(gpu::State::CullMode::CULL_NONE);
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        PrepareStencil::testMask(*state);
-        state->setBlendFunction(true,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        state->setDepthTest(true, !transparent, gpu::LESS_EQUAL);
+        if (transparent) {
+            PrepareStencil::testMask(*state);
+        } else {
+            PrepareStencil::testMaskDrawShape(*state);
+        }
+
+        state->setBlendFunction(transparent, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        _glowPipeline = gpu::Pipeline::create(program, state);
+
+        _pipelines[key] = gpu::Pipeline::create(program, state);
     }
 }
 
 ItemKey PolyLineEntityRenderer::getKey() {
-    // FIXME: implement isTransparent() for polylines and an opaque pipeline
-    auto builder = ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+    auto builder = isTransparent() ?
+        ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer()) :
+        ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
 
     if (_cullWithParent) {
         builder.withSubMetaCulled();
@@ -82,7 +109,10 @@ ItemKey PolyLineEntityRenderer::getKey() {
 }
 
 ShapeKey PolyLineEntityRenderer::getShapeKey() {
-    auto builder = ShapeKey::Builder().withOwnPipeline().withTranslucent().withoutCullFace();
+    auto builder = ShapeKey::Builder().withOwnPipeline().withoutCullFace();
+    if (isTransparent()) {
+        builder.withTranslucent();
+    }
     if (_primitiveMode == PrimitiveMode::LINES) {
         builder.withWireframe();
     }
@@ -90,11 +120,9 @@ ShapeKey PolyLineEntityRenderer::getShapeKey() {
 }
 
 bool PolyLineEntityRenderer::needsRenderUpdate() const {
-    bool textureLoadedChanged = resultWithReadLock<bool>([&] {
+    if (resultWithReadLock<bool>([&] {
         return (!_textureLoaded && _texture && _texture->isLoaded());
-    });
-
-    if (textureLoadedChanged) {
+    })) {
         return true;
     }
 
@@ -103,10 +131,6 @@ bool PolyLineEntityRenderer::needsRenderUpdate() const {
 
 bool PolyLineEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (entity->pointsChanged() || entity->widthsChanged() || entity->normalsChanged() || entity->texturesChanged() || entity->colorsChanged()) {
-        return true;
-    }
-
-    if (_isUVModeStretch != entity->getIsUVModeStretch() || _glow != entity->getGlow() || _faceCamera != entity->getFaceCamera()) {
         return true;
     }
 
@@ -192,6 +216,9 @@ void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
 
 void PolyLineEntityRenderer::updateGeometry() {
     int maxNumVertices = std::min(_points.length(), _normals.length());
+    if (maxNumVertices < 1) {
+        return;
+    }
     bool doesStrokeWidthVary = false;
     if (_widths.size() > 0) {
         float prevWidth = _widths[0];
@@ -306,11 +333,11 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
         return;
     }
 
-    if (!_pipeline) {
-        buildPipeline();
+    if (_pipelines.empty()) {
+        buildPipelines();
     }
 
-    batch.setPipeline(_glow ? _glowPipeline : _pipeline);
+    batch.setPipeline(_pipelines[{args->_renderMethod, isTransparent()}]);
     batch.setModelTransform(transform);
     batch.setResourceTexture(0, texture);
     batch.draw(gpu::TRIANGLE_STRIP, (gpu::uint32)(2 * numVertices), 0);

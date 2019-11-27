@@ -32,6 +32,8 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
             return Rig::CharacterControllerState::InAir;
         case CharacterController::State::Hover:
             return Rig::CharacterControllerState::Hover;
+        case CharacterController::State::Seated:
+            return Rig::CharacterControllerState::Seated;
     };
 }
 
@@ -110,19 +112,19 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
 void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     const HFMModel& hfmModel = getHFMModel();
 
-    Head* head = _owningAvatar->getHead();
-
-    // make sure lookAt is not too close to face (avoid crosseyes)
-    glm::vec3 lookAt = head->getLookAtPosition();
-    glm::vec3 focusOffset = lookAt - _owningAvatar->getHead()->getEyePosition();
-    float focusDistance = glm::length(focusOffset);
-    const float MIN_LOOK_AT_FOCUS_DISTANCE = 1.0f;
-    if (focusDistance < MIN_LOOK_AT_FOCUS_DISTANCE && focusDistance > EPSILON) {
-        lookAt = _owningAvatar->getHead()->getEyePosition() + (MIN_LOOK_AT_FOCUS_DISTANCE / focusDistance) * focusOffset;
-    }
-
     MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
     assert(myAvatar);
+
+    Head* head = _owningAvatar->getHead();
+
+    bool eyePosesValid = (myAvatar->getControllerPoseInSensorFrame(controller::Action::LEFT_EYE).isValid() ||
+                          myAvatar->getControllerPoseInSensorFrame(controller::Action::RIGHT_EYE).isValid());
+    glm::vec3 lookAt;
+    if (eyePosesValid) {
+        lookAt = head->getLookAtPosition(); // don't apply no-crosseyes code when eyes are being tracked
+    } else {
+        lookAt = avoidCrossedEyes(head->getLookAtPosition());
+    }
 
     Rig::ControllerParameters params;
 
@@ -294,8 +296,6 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         _prevIsEstimatingHips = false;
     }
 
-    params.isTalking = head->getTimeWithoutTalking() <= 1.5f;
-
     // pass detailed torso k-dops to rig.
     int hipsJoint = _rig.indexOfJoint("Hips");
     if (hipsJoint >= 0) {
@@ -313,6 +313,14 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     if (spine2Joint >= 0) {
         params.spine2ShapeInfo = hfmModel.joints[spine2Joint].shapeInfo;
     }
+    const float TALKING_TIME_THRESHOLD = 0.75f;
+    params.isTalking = head->getTimeWithoutTalking() <= TALKING_TIME_THRESHOLD;
+
+    //pass X and Z input key floats (-1 to 1) to rig
+    params.inputX = myAvatar->getDriveKey(MyAvatar::TRANSLATE_X);
+    params.inputZ = myAvatar->getDriveKey(MyAvatar::TRANSLATE_Z);
+
+    myAvatar->updateRigControllerParameters(params);
 
     _rig.updateFromControllerParameters(params, deltaTime);
 
@@ -333,10 +341,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     eyeParams.modelTranslation = getTranslation();
     eyeParams.leftEyeJointIndex = _rig.indexOfJoint("LeftEye");
     eyeParams.rightEyeJointIndex = _rig.indexOfJoint("RightEye");
-
-    if (_owningAvatar->getHasProceduralEyeFaceMovement()) {
-        _rig.updateFromEyeParameters(eyeParams);
-    }
+    _rig.updateFromEyeParameters(eyeParams);
 
     updateFingers();
 }

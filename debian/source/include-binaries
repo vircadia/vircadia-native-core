@@ -1,0 +1,6 @@
+interface/compiledResources/resources.rcc
+tools/nitpick/compiledResources/resources.rcc
+__pycache__/hifi_android.cpython-37.pyc
+__pycache__/hifi_singleton.cpython-37.pyc
+__pycache__/hifi_utils.cpython-37.pyc
+__pycache__/hifi_vcpkg.cpython-37.pyc

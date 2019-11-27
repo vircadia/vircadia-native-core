@@ -16,6 +16,7 @@
 #include <QJsonObject>
 
 const QString TEXTURE_META_EXTENSION = ".texmeta.json";
+const uint16_t KTX_VERSION = 1;
 
 bool TextureMeta::deserialize(const QByteArray& data, TextureMeta* meta) {
     QJsonParseError error;
@@ -46,6 +47,9 @@ bool TextureMeta::deserialize(const QByteArray& data, TextureMeta* meta) {
             }
         }
     }
+    if (root.contains("version")) {
+        meta->version = root["version"].toInt();
+    }
 
     return true;
 }
@@ -62,6 +66,7 @@ QByteArray TextureMeta::serialize() {
     root["original"] = original.toString();
     root["uncompressed"] = uncompressed.toString();
     root["compressed"] = compressed;
+    root["version"] = KTX_VERSION;
     doc.setObject(root);
 
     return doc.toJson();

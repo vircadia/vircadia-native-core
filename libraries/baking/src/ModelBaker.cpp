@@ -45,6 +45,7 @@
 #include <QJsonArray>
 
 ModelBaker::ModelBaker(const QUrl& inputModelURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
+    _originalInputModelURL(inputModelURL),
     _modelURL(inputModelURL),
     _bakedOutputDir(bakedOutputDirectory),
     _originalOutputDir(originalOutputDirectory),
@@ -245,6 +246,12 @@ void ModelBaker::bakeSourceCopy() {
         // Begin hfm baking
         baker.run();
 
+        const auto& errors = baker.getDracoErrors();
+        if (std::find(errors.cbegin(), errors.cend(), true) != errors.cend()) {
+            handleError("Failed to finalize the baking of a draco Geometry node from model " + _modelURL.toString());
+            return;
+        }
+
         _hfmModel = baker.getHFMModel();
         _materialMapping = baker.getMaterialMapping();
         dracoMeshes = baker.getDracoMeshes();
@@ -258,7 +265,7 @@ void ModelBaker::bakeSourceCopy() {
         return;
     }
 
-    if (!_hfmModel->materials.isEmpty()) {
+    if (!_hfmModel->materials.empty()) {
         _materialBaker = QSharedPointer<MaterialBaker>(
             new MaterialBaker(_modelURL.fileName(), true, _bakedOutputDir),
             &MaterialBaker::deleteLater
@@ -436,8 +443,7 @@ void ModelBaker::abort() {
 
 bool ModelBaker::buildDracoMeshNode(FBXNode& dracoMeshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList) {
     if (dracoMeshBytes.isEmpty()) {
-        handleError("Failed to finalize the baking of a draco Geometry node");
-        return false;
+        handleWarning("Empty mesh detected in model: '" + _modelURL.toString() + "'. It will be included in the baked output.");
     }
 
     FBXNode dracoNode;

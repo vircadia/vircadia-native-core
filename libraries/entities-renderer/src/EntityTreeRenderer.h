@@ -69,6 +69,7 @@ public:
     virtual PacketType getExpectedPacketType() const override { return PacketType::EntityData; }
 
     // Returns the priority at which an entity should be loaded. Higher values indicate higher priority.
+    static CalculateEntityLoadingPriority getEntityLoadingPriorityOperator() { return _calculateEntityLoadingPriorityFunc; }
     static float getEntityLoadingPriority(const EntityItem& item) { return _calculateEntityLoadingPriorityFunc(item); }
     static void setEntityLoadingPriorityFunction(CalculateEntityLoadingPriority fn) { _calculateEntityLoadingPriorityFunc = fn; }
 
@@ -78,6 +79,7 @@ public:
     void setSetPrecisionPickingOperator(std::function<void(unsigned int, bool)> setPrecisionPickingOperator) { _setPrecisionPickingOperator = setPrecisionPickingOperator; }
 
     void shutdown();
+    void preUpdate();
     void update(bool simulate);
 
     EntityTreePointer getTree() { return std::static_pointer_cast<EntityTree>(_tree); }
@@ -116,6 +118,7 @@ public:
     void setProxyWindow(const EntityItemID& id, QWindow* proxyWindow);
     void setCollisionSound(const EntityItemID& id, const SharedSoundPointer& sound);
     EntityItemPointer getEntity(const EntityItemID& id);
+    void deleteEntity(const EntityItemID& id) const;
     void onEntityChanged(const EntityItemID& id);
 
     // Access the workload Space
@@ -169,7 +172,7 @@ private:
 
     void resetEntitiesScriptEngine();
 
-    bool findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar = nullptr);
+    void findBestZoneAndMaybeContainingEntities(QSet<EntityItemID>& entitiesContainingAvatar);
 
     bool applyLayeredZones();
     void stopDomainAndNonOwnedEntities();
@@ -180,13 +183,14 @@ private:
     EntityItemID _currentClickingOnEntityID;
 
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
-    bool checkEnterLeaveEntities();
+    void checkEnterLeaveEntities();
     void leaveDomainAndNonOwnedEntities();
     void leaveAllEntities();
     void forceRecheckEntities();
 
     glm::vec3 _avatarPosition { 0.0f };
-    QVector<EntityItemID> _currentEntitiesInside;
+    bool _forceRecheckEntities { true };
+    QSet<EntityItemID> _currentEntitiesInside;
 
     bool _wantScripts;
     ScriptEnginePointer _entitiesScriptEngine;
@@ -207,54 +211,46 @@ private:
     std::function<RayToEntityIntersectionResult(unsigned int)> _getPrevRayPickResultOperator;
     std::function<void(unsigned int, bool)> _setPrecisionPickingOperator;
 
+    bool _mouseAndPreloadSignalHandlersConnected { false };
+
     class LayeredZone {
     public:
-        LayeredZone(std::shared_ptr<ZoneEntityItem> zone, QUuid id, float volume) : zone(zone), id(id), volume(volume) {}
-        LayeredZone(std::shared_ptr<ZoneEntityItem> zone) : LayeredZone(zone, zone->getID(), zone->getVolumeEstimate()) {}
+        LayeredZone(std::shared_ptr<ZoneEntityItem> zone) : zone(zone), id(zone->getID()), volume(zone->getVolumeEstimate()) {}
 
-        bool operator<(const LayeredZone& r) const { return std::tie(volume, id) < std::tie(r.volume, r.id); }
-        bool operator==(const LayeredZone& r) const { return id == r.id; }
+        // We need to sort on volume AND id so that different clients sort zones with identical volumes the same way
+        bool operator<(const LayeredZone& r) const { return volume < r.volume || (volume == r.volume && id < r.id); }
+        bool operator==(const LayeredZone& r) const { return zone.lock() && zone.lock() == r.zone.lock(); }
+        bool operator!=(const LayeredZone& r) const { return !(*this == r); }
         bool operator<=(const LayeredZone& r) const { return (*this < r) || (*this == r); }
 
-        std::shared_ptr<ZoneEntityItem> zone;
+        std::weak_ptr<ZoneEntityItem> zone;
         QUuid id;
         float volume;
     };
 
-    class LayeredZones : public std::set<LayeredZone> {
+    class LayeredZones : public std::vector<LayeredZone> {
     public:
-        LayeredZones() {};
-        LayeredZones(LayeredZones&& other);
+        bool clearDomainAndNonOwnedZones();
 
-        // avoid accidental misconstruction
-        LayeredZones(const LayeredZones&) = delete;
-        LayeredZones& operator=(const LayeredZones&) = delete;
-        LayeredZones& operator=(LayeredZones&&) = delete;
+        void sort() { std::sort(begin(), end(), std::less<LayeredZone>()); }
+        bool equals(const LayeredZones& other) const;
+        bool update(std::shared_ptr<ZoneEntityItem> zone, const glm::vec3& position, EntityTreeRenderer* entityTreeRenderer);
 
-        void clear();
-        void clearNonLocalLayeredZones();
-        std::pair<iterator, bool> insert(const LayeredZone& layer);
-        void update(std::shared_ptr<ZoneEntityItem> zone);
-        bool contains(const LayeredZones& other);
-
-        std::shared_ptr<ZoneEntityItem> getZone() { return empty() ? nullptr : begin()->zone; }
-
-    private:
-        std::map<QUuid, iterator> _map;
-        iterator _skyboxLayer { end() };
+        void appendRenderIDs(render::ItemIDs& list, EntityTreeRenderer* entityTreeRenderer) const;
+        std::pair<bool, bool> getZoneInteractionProperties() const;
     };
 
     LayeredZones _layeredZones;
-    float _avgRenderableUpdateCost { 0.0f };
-
     uint64_t _lastZoneCheck { 0 };
     const uint64_t ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
     const float ZONE_CHECK_DISTANCE = 0.001f;
 
+    float _avgRenderableUpdateCost { 0.0f };
+
     ReadWriteLockable _changedEntitiesGuard;
     std::unordered_set<EntityItemID> _changedEntities;
 
-    std::unordered_map<EntityItemID, EntityRendererPointer> _renderablesToUpdate;
+    std::unordered_set<EntityRendererPointer> _renderablesToUpdate;
     std::unordered_map<EntityItemID, EntityRendererPointer> _entitiesInScene;
     std::unordered_map<EntityItemID, EntityItemWeakPointer> _entitiesToAdd;
 

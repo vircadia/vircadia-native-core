@@ -14,6 +14,8 @@
 
 #include <Transform.h>
 
+#include "GraphicsLogging.h"
+
 using namespace graphics;
 using namespace gpu;
 
@@ -22,7 +24,28 @@ const float Material::DEFAULT_OPACITY { 1.0f };
 const float Material::DEFAULT_ALBEDO { 0.5f };
 const float Material::DEFAULT_METALLIC { 0.0f };
 const float Material::DEFAULT_ROUGHNESS { 1.0f };
-const float Material::DEFAULT_SCATTERING { 0.0f };
+const float Material::DEFAULT_SCATTERING{ 0.0f };
+const MaterialKey::OpacityMapMode Material::DEFAULT_OPACITY_MAP_MODE{ MaterialKey::OPACITY_MAP_OPAQUE };
+const float Material::DEFAULT_OPACITY_CUTOFF { 0.5f };
+
+
+std::string MaterialKey::getOpacityMapModeName(OpacityMapMode mode) {
+    const std::string names[3] = { "OPACITY_MAP_OPAQUE", "OPACITY_MAP_MASK", "OPACITY_MAP_BLEND" };
+    return names[mode];
+}
+
+bool MaterialKey::getOpacityMapModeFromName(const std::string& modeName, MaterialKey::OpacityMapMode& mode) {
+    for (int i = OPACITY_MAP_OPAQUE; i <= OPACITY_MAP_BLEND; i++) {
+        mode = (MaterialKey::OpacityMapMode) i;
+        if (modeName == getOpacityMapModeName(mode)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const std::string Material::HIFI_PBR { "hifi_pbr" };
+const std::string Material::HIFI_SHADER_SIMPLE { "hifi_shader_simple" };
 
 Material::Material() {
     for (int i = 0; i < NUM_TOTAL_FLAGS; i++) {
@@ -40,6 +63,7 @@ Material::Material(const Material& material) :
     _roughness(material._roughness),
     _metallic(material._metallic),
     _scattering(material._scattering),
+    _opacityCutoff(material._opacityCutoff),
     _texcoordTransforms(material._texcoordTransforms),
     _lightmapParams(material._lightmapParams),
     _materialParams(material._materialParams),
@@ -50,7 +74,7 @@ Material::Material(const Material& material) :
 }
 
 Material& Material::operator=(const Material& material) {
-    QMutexLocker locker(&_textureMapsMutex);
+    std::lock_guard<std::recursive_mutex> locker(_textureMapsMutex);
 
     _name = material._name;
     _model = material._model;
@@ -61,6 +85,7 @@ Material& Material::operator=(const Material& material) {
     _roughness = material._roughness;
     _metallic = material._metallic;
     _scattering = material._scattering;
+    _opacityCutoff = material._opacityCutoff;
     _texcoordTransforms = material._texcoordTransforms;
     _lightmapParams = material._lightmapParams;
     _materialParams = material._materialParams;
@@ -109,8 +134,22 @@ void Material::setScattering(float scattering) {
     _scattering = scattering;
 }
 
+void Material::setOpacityCutoff(float opacityCutoff) {
+    opacityCutoff = glm::clamp(opacityCutoff, 0.0f, 1.0f);
+    _key.setOpacityCutoff(opacityCutoff != DEFAULT_OPACITY_CUTOFF);
+    _opacityCutoff = opacityCutoff;
+}
+
+void Material::setOpacityMapMode(MaterialKey::OpacityMapMode opacityMapMode) {
+    _key.setOpacityMapMode(opacityMapMode);
+}
+
+MaterialKey::OpacityMapMode  Material::getOpacityMapMode() const {
+    return _key.getOpacityMapMode();
+}
+
 void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
-    QMutexLocker locker(&_textureMapsMutex);
+    std::lock_guard<std::recursive_mutex>  locker(_textureMapsMutex);
 
     if (textureMap) {
         _key.setMapChannel(channel, true);
@@ -129,7 +168,7 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
         _texcoordTransforms[1] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
     }
 
-    if (channel == MaterialKey::LIGHTMAP_MAP) {
+    if (channel == MaterialKey::LIGHT_MAP) {
         // update the texcoord1 with lightmap
         _texcoordTransforms[1] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
         _lightmapParams = (textureMap ? glm::vec2(textureMap->getLightmapOffsetScale()) : glm::vec2(0.0, 1.0));
@@ -139,7 +178,14 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
 
 }
 
-void Material::resetOpacityMap() const {
+bool Material::resetOpacityMap() const {
+    // If OpacityMapMode explicit then nothing need to change here.
+    if (_key.isOpacityMapMode()) {
+        return false;
+    }
+
+    // Else, the legacy behavior is to interpret the albedo texture assigned to tune the opacity map mode value
+    auto previous = _key.getOpacityMapMode();
     // Clear the previous flags
     _key.setOpacityMaskMap(false);
     _key.setTranslucentMap(false);
@@ -163,10 +209,16 @@ void Material::resetOpacityMap() const {
             }
         }
     }
+    auto newious = _key.getOpacityMapMode();
+    if (previous != newious) {
+        //opacity change detected for this material
+        return true;
+    }
+    return false;
 }
 
 const TextureMapPointer Material::getTextureMap(MapChannel channel) const {
-    QMutexLocker locker(&_textureMapsMutex);
+    std::lock_guard<std::recursive_mutex> locker(_textureMapsMutex);
 
     auto result = _textureMaps.find(channel);
     if (result != _textureMaps.end()) {

@@ -55,7 +55,7 @@ public:
     int deserialize(const unsigned char* sourceBuffer);
 
     // Just test for within radius.
-    void setSimpleRadius(float radius);
+    void setPositionAndSimpleRadius(const glm::vec3& position, float radius);
 
 private:
     glm::vec3 _position { 0.0f, 0.0f, 0.0f };

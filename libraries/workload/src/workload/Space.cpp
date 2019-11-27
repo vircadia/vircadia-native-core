@@ -99,7 +99,7 @@ void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
         if (proxy.region < Region::INVALID) {
             glm::vec3 proxyCenter = glm::vec3(proxy.sphere);
             float proxyRadius = proxy.sphere.w;
-            uint8_t region = Region::UNKNOWN;
+            uint8_t region = Region::R4;
             for (uint32_t j = 0; j < numViews; ++j) {
                 auto& view = _views[j];
                 // for each 'view' we need only increment 'k' below the current value of 'region'
@@ -124,6 +124,18 @@ uint32_t Space::copyProxyValues(Proxy* proxies, uint32_t numDestProxies) const {
     std::unique_lock<std::mutex> lock(_proxiesMutex);
     auto numCopied = std::min(numDestProxies, (uint32_t)_proxies.size());
     memcpy(proxies, _proxies.data(), numCopied * sizeof(Proxy));
+    return numCopied;
+}
+
+uint32_t Space::copySelectedProxyValues(Proxy::Vector& proxies, const workload::indexed_container::Indices& indices) const {
+    std::unique_lock<std::mutex> lock(_proxiesMutex);
+    uint32_t numCopied = 0;
+    for (auto index : indices) {
+        if (isAllocatedID(index) && (index < (Index)_proxies.size())) {
+            proxies.push_back(_proxies[index]);
+            ++numCopied;
+        }
+    }
     return numCopied;
 }
 

@@ -26,7 +26,7 @@ public:
     explicit MyCharacterController(std::shared_ptr<MyAvatar> avatar);
     ~MyCharacterController ();
 
-    void setDynamicsWorld(btDynamicsWorld* world) override;
+    void addToWorld() override;
     void updateShapeIfNecessary() override;
 
     // Sweeping a convex shape through the physics simulation can be expensive when the obstacles are too
@@ -44,27 +44,24 @@ public:
 
     void setDensity(btScalar density) { _density = density; }
 
-    btCollisionShape* createDetailedCollisionShapeForJoint(int jointIndex);
-    DetailedMotionState* createDetailedMotionStateForJoint(int jointIndex);
+    const btCollisionShape* createDetailedCollisionShapeForJoint(int32_t jointIndex);
+    DetailedMotionState* createDetailedMotionStateForJoint(int32_t jointIndex);
     std::vector<DetailedMotionState*>& getDetailedMotionStates() { return _detailedMotionStates; }
     void clearDetailedMotionStates();
-    void resetDetailedMotionStates();
 
     void buildPhysicsTransaction(PhysicsEngine::Transaction& transaction);
-    void handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction);
-
 
     struct RayAvatarResult {
         bool _intersect { false };
         bool _isBound { false };
         QUuid _intersectWithAvatar;
-        int _intersectWithJoint { -1 };
+        int32_t _intersectWithJoint { -1 };
         float _distance { 0.0f };
         float _maxDistance { 0.0f };
         QVariantMap _extraInfo;
         glm::vec3 _intersectionPoint;
         glm::vec3 _intersectionNormal;
-        std::vector<int> _boundJoints;
+        std::vector<int32_t> _boundJoints;
     };
     std::vector<RayAvatarResult> rayTest(const btVector3& origin, const btVector3& direction, const btScalar& length,
                                          const QVector<uint>& jointsToExclude) const;
@@ -72,8 +69,9 @@ public:
     int32_t computeCollisionMask() const override;
     void handleChangedCollisionMask() override;
 
-    bool _collideWithOtherAvatars{ true };
     void setCollideWithOtherAvatars(bool collideWithOtherAvatars) { _collideWithOtherAvatars = collideWithOtherAvatars; }
+
+    bool needsSafeLandingSupport() const;
 
 protected:
     void initRayShotgun(const btCollisionWorld* world);
@@ -91,6 +89,7 @@ protected:
     btScalar _density { 1.0f };
 
     std::vector<DetailedMotionState*> _detailedMotionStates;
+    bool _collideWithOtherAvatars { true };
 };
 
 #endif // hifi_MyCharacterController_h

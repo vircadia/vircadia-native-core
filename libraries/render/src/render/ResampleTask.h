@@ -67,6 +67,21 @@ namespace render {
 
         gpu::FramebufferPointer getResampledFrameBuffer(const gpu::FramebufferPointer& sourceFramebuffer);
     };
+
+    class UpsampleToBlitFramebuffer {
+    public:
+        using Input = gpu::FramebufferPointer;
+        using JobModel = Job::ModelIO<UpsampleToBlitFramebuffer, Input, gpu::FramebufferPointer>;
+
+        UpsampleToBlitFramebuffer() {}
+
+        void run(const RenderContextPointer& renderContext, const Input& input, gpu::FramebufferPointer& resampledFrameBuffer);
+
+    protected:
+
+        static gpu::PipelinePointer _pipeline;
+        static gpu::PipelinePointer _mirrorPipeline;
+    };
 }
 
 #endif // hifi_render_ResampleTask_h

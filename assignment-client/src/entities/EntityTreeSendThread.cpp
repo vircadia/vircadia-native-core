@@ -160,6 +160,11 @@ bool EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
     if (sendComplete && nodeData->wantReportInitialCompletion() && _traversal.finished()) {
         // Dealt with all nearby entities.
         nodeData->setReportInitialCompletion(false);
+        // initial stats and entity packets are reliable until the initial query is complete
+        // to guarantee all entity data is available for safe landing/physics start.  Afterwards
+        // the packets are unreliable for performance.
+        nodeData->stats.getStatsMessage().setReliable(false);
+        nodeData->getPacket().setReliable(false);
 
         // Send EntityQueryInitialResultsComplete reliable packet ...
         auto initialCompletion = NLPacket::create(PacketType::EntityQueryInitialResultsComplete,
@@ -372,7 +377,7 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
                     // Record explicitly filtered-in entity so that extra entities can be flagged.
                     entityNodeData->insertSentFilteredEntity(entityID);
                 }
-                OctreeElement::AppendState appendEntityState = entity->appendEntityData(&_packetData, params, _extraEncodeData);
+                OctreeElement::AppendState appendEntityState = entity->appendEntityData(&_packetData, params, _extraEncodeData, entityNode->getCanGetAndSetPrivateUserData());
 
                 if (appendEntityState != OctreeElement::COMPLETED) {
                     if (appendEntityState == OctreeElement::PARTIAL) {

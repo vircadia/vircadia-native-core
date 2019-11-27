@@ -1,0 +1,57 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$>
+// Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Andrzej Kapolka on 9/15/14.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Inputs.slh@>
+<@include gpu/Color.slh@>
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
+<@include render-utils/ShaderConstants.h@>
+
+<@if HIFI_USE_DEFORMED or HIFI_USE_DEFORMEDDQ@>
+    <@include MeshDeformer.slh@>
+    <@if HIFI_USE_DEFORMED@>
+        <$declareMeshDeformer(1, _SCRIBE_NULL, 1, _SCRIBE_NULL, 1)$>
+    <@else@>
+        <$declareMeshDeformer(1, _SCRIBE_NULL, 1, 1, 1)$>
+    <@endif@>
+    <$declareMeshDeformerActivation(1, 1)$>
+<@endif@>
+
+layout(location=RENDER_UTILS_ATTR_POSITION_MS) out vec4 _positionMS;
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
+layout(location=RENDER_UTILS_ATTR_NORMAL_MS) out vec3 _normalMS;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
+
+void main(void) {
+    vec4 positionMS = inPosition;
+    vec3 normalMS = inNormal.xyz;
+
+<@if HIFI_USE_DEFORMED or HIFI_USE_DEFORMEDDQ@>
+        evalMeshDeformer(inPosition, positionMS, inNormal.xyz, normalMS,
+                         meshDeformer_doSkinning(_drawCallInfo.y), inSkinClusterIndex, inSkinClusterWeight,
+                         meshDeformer_doBlendshape(_drawCallInfo.y), gl_VertexID);
+<@endif@>
+
+    _positionMS = positionMS;
+    _normalMS = normalMS;
+
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToEyeAndClipPos(cam, obj, positionMS, _positionES, gl_Position)$>
+    <$transformModelToWorldDir(cam, obj, normalMS, _normalWS)$>
+
+    _color = color_sRGBAToLinear(inColor);
+    _texCoord01 = vec4(inTexCoord0.st, 0.0, 0.0);
+}

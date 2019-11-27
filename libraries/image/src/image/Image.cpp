@@ -20,7 +20,7 @@ size_t Image::getByteCount() const {
     if (_format == Format_RGBAF) {
         return sizeof(FloatPixels::value_type) * _floatData.size();
     } else {
-        return _packedData.byteCount();
+        return _packedData.sizeInBytes();
     }
 }
 

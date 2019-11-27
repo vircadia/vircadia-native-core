@@ -16,12 +16,16 @@
 QString PythonInterface::getPythonCommand() {
 #ifdef Q_OS_WIN
     if (_pythonCommand.isNull()) {
-        QString pythonPath = PathUtils::getPathToExecutable("python.exe");
+        // Use the python launcher as we need python 3, and python 2 may be installed
+        // See https://www.python.org/dev/peps/pep-0397/
+        const QString pythonLauncherExecutable{ "py.exe" };
+        QString pythonPath = PathUtils::getPathToExecutable(pythonLauncherExecutable);
         if (!pythonPath.isNull()) {
             _pythonCommand = pythonPath + _pythonExe;
-        } else {
-            QMessageBox::critical(0, "python.exe not found",
-                "Please verify that pyton.exe is in the PATH");
+        }
+        else {
+            QMessageBox::critical(0, pythonLauncherExecutable + " not found",
+                "Please verify that py.exe is in the PATH");
             exit(-1);
         }
     }

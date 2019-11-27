@@ -166,16 +166,16 @@ Rectangle {
             x: 2 * margins.paddings;
             width: parent.width;
             // switch heights + 2 * top margins
-            height: (root.switchHeight) * 3 + 48;
+            height: (root.switchHeight) * 6 + 48;
             anchors.top: firstSeparator.bottom;
             anchors.topMargin: 10;
 
-            // mute is in its own row
            Item {
                 id: switchContainer;
                 x: margins.paddings;
                 width: parent.width / 2;
                 height: parent.height;
+                anchors.top: parent.top
                 anchors.left: parent.left;
                 HifiControlsUit.Switch {
                     id: muteMic;
@@ -186,15 +186,6 @@ Rectangle {
                     backgroundOnColor: "#E3E3E3";
                     checked: muted;
                     onClicked: {
-                        if (pushToTalk && !checked) {
-                            // disable push to talk if unmuting
-                            if (bar.currentIndex === 0) {
-                                AudioScriptingInterface.pushToTalkDesktop = false;
-                            }
-                            else {
-                                AudioScriptingInterface.pushToTalkHMD = false;
-                            }
-                        }
                         if (bar.currentIndex === 0) {
                             AudioScriptingInterface.mutedDesktop = checked;
                         }
@@ -222,10 +213,27 @@ Rectangle {
                 }
 
                 HifiControlsUit.Switch {
-                    id: pttSwitch
+                    id: acousticEchoCancellationSwitch;
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
                     anchors.top: noiseReductionSwitch.bottom
+                    anchors.topMargin: 24
+                    anchors.left: parent.left
+                    labelTextOn: "Echo Cancellation";
+                    labelTextSize: 16;
+                    backgroundOnColor: "#E3E3E3";
+                    checked: AudioScriptingInterface.acousticEchoCancellation;
+                    onCheckedChanged: {
+                        AudioScriptingInterface.acousticEchoCancellation = checked;
+                        checked = Qt.binding(function() { return AudioScriptingInterface.acousticEchoCancellation; });
+                    }
+                }
+
+                HifiControlsUit.Switch {
+                    id: pttSwitch
+                    height: root.switchHeight;
+                    switchWidth: root.switchWidth;
+                    anchors.top: acousticEchoCancellationSwitch.bottom;
                     anchors.topMargin: 24
                     anchors.left: parent.left
                     labelTextOn: (bar.currentIndex === 0) ? qsTr("Push To Talk (T)") : qsTr("Push To Talk");
@@ -258,6 +266,7 @@ Rectangle {
                     labelTextSize: 16;
                     backgroundOnColor: "#E3E3E3";
                     checked: AudioScriptingInterface.warnWhenMuted;
+                    visible: bar.currentIndex !== 0;
                     onClicked: {
                         AudioScriptingInterface.warnWhenMuted = checked;
                         checked = Qt.binding(function() { return AudioScriptingInterface.warnWhenMuted; }); // restore binding
@@ -269,8 +278,8 @@ Rectangle {
                     id: audioLevelSwitch
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
-                    anchors.top: warnMutedSwitch.bottom
-                    anchors.topMargin: 24
+                    anchors.top: warnMutedSwitch.visible ? warnMutedSwitch.bottom : parent.top
+                    anchors.topMargin: bar.currentIndex === 0 ? 0 : 24
                     anchors.left: parent.left
                     labelTextOn: qsTr("Audio Level Meter");
                     labelTextSize: 16;
@@ -298,7 +307,6 @@ Rectangle {
                         checked = Qt.binding(function() { return AudioScriptingInterface.isStereoInput; }); // restore binding
                     }
                 }
-
             }
         }
 
@@ -367,14 +375,14 @@ Rectangle {
             x: margins.paddings
             interactive: false;
             height: contentHeight;
-            spacing: 4;
+            
             clip: true;
             model: AudioScriptingInterface.devices.input;
             delegate: Item {
                 width: rightMostInputLevelPos - margins.paddings*2
-                height: margins.sizeCheckBox > checkBoxInput.implicitHeight ?
-                            margins.sizeCheckBox : checkBoxInput.implicitHeight
-
+                height: ((type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)) ?  
+                        (margins.sizeCheckBox > checkBoxInput.implicitHeight ? margins.sizeCheckBox + 4 : checkBoxInput.implicitHeight + 4) : 0
+                visible: (type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1) 
                 AudioControls.CheckBox {
                     id: checkBoxInput
                     anchors.left: parent.left
@@ -462,13 +470,13 @@ Rectangle {
             height: contentHeight;
             anchors.top: outputDeviceHeader.bottom;
             anchors.topMargin: 10;
-            spacing: 4;
             clip: true;
             model: AudioScriptingInterface.devices.output;
             delegate: Item {
                 width: rightMostInputLevelPos
-                height: margins.sizeCheckBox > checkBoxOutput.implicitHeight ?
-                            margins.sizeCheckBox : checkBoxOutput.implicitHeight
+                height: ((type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)) ? 
+                        (margins.sizeCheckBox > checkBoxOutput.implicitHeight ? margins.sizeCheckBox + 4 : checkBoxOutput.implicitHeight + 4) : 0
+                visible: (type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1) 
 
                 AudioControls.CheckBox {
                     id: checkBoxOutput
@@ -664,7 +672,7 @@ Rectangle {
             }
             RalewayRegular {
                 id: systemInjectorGainSliderText;
-                text: "System Sound volume";
+                text: "UI FX volume";
                 size: 16;
                 anchors.left: parent.left;
                 color: hifi.colors.white;

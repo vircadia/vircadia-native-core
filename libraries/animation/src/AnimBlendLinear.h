@@ -27,7 +27,7 @@ class AnimBlendLinear : public AnimNode {
 public:
     friend class AnimTests;
 
-    AnimBlendLinear(const QString& id, float alpha);
+    AnimBlendLinear(const QString& id, float alpha, AnimBlendType blendType);
     virtual ~AnimBlendLinear() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
@@ -44,6 +44,7 @@ protected:
     AnimPoseVec _poses;
 
     float _alpha;
+    AnimBlendType _blendType;
 
     QString _alphaVar;
 

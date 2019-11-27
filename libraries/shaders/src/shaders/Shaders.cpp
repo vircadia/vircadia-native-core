@@ -32,16 +32,16 @@ namespace shader {
 
 #if defined(USE_GLES)
 
-static const Dialect DEFAULT_DIALECT = Dialect::glsl310es;
+const Dialect DEFAULT_DIALECT = Dialect::glsl310es;
 
 const std::vector<Dialect>& allDialects() {
-    static const std::vector<Dialect> ALL_DIALECTS{ { Dialect::glsl310es } };
+    static const std::vector<Dialect> ALL_DIALECTS{ Dialect::glsl310es };
     return ALL_DIALECTS;
 }
     
 #elif defined(Q_OS_MAC) 
 
-static const Dialect DEFAULT_DIALECT = Dialect::glsl410;
+const Dialect DEFAULT_DIALECT = Dialect::glsl410;
 
 const std::vector<Dialect>& allDialects() {
     static const std::vector<Dialect> ALL_DIALECTS{ Dialect::glsl410 };
@@ -50,7 +50,7 @@ const std::vector<Dialect>& allDialects() {
 
 #else
 
-static const Dialect DEFAULT_DIALECT = Dialect::glsl450;
+const Dialect DEFAULT_DIALECT = Dialect::glsl450;
 
 const std::vector<Dialect> & allDialects() {
     static const std::vector<Dialect> ALL_DIALECTS{ { Dialect::glsl450, Dialect::glsl410 } };
@@ -131,7 +131,6 @@ Source::Pointer Source::loadSource(uint32_t shaderId) {
     for (const auto& dialect : dialects) {
         result->dialectSources[dialect] = loadDialectSource(dialect, shaderId);
     }
-    result->reflection = result->dialectSources[DEFAULT_DIALECT].variantSources[Variant::Mono].reflection;
     return result;
 }
 
@@ -140,7 +139,6 @@ Source& Source::operator=(const Source& other) {
     name = other.name;
     dialectSources = other.dialectSources;
     replacements = other.replacements;
-    reflection = other.reflection;
     return *this;
 }
 

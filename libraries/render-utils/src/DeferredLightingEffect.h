@@ -37,10 +37,6 @@
 #include "SubsurfaceScattering.h"
 #include "AmbientOcclusionEffect.h"
 
-
-struct LightLocations;
-using LightLocationsPtr = std::shared_ptr<LightLocations>;
-
 // THis is where we currently accumulate the local lights, let s change that sooner than later
 class DeferredLightingEffect : public Dependency {
     SINGLETON_DEPENDENCY
@@ -72,49 +68,10 @@ private:
     gpu::PipelinePointer _localLight;
     gpu::PipelinePointer _localLightOutline;
 
-    LightLocationsPtr _directionalSkyboxLightLocations;
-    LightLocationsPtr _directionalAmbientSphereLightLocations;
-
-    LightLocationsPtr _directionalSkyboxLightShadowLocations;
-    LightLocationsPtr _directionalAmbientSphereLightShadowLocations;
-
-    LightLocationsPtr _localLightLocations;
-    LightLocationsPtr _localLightOutlineLocations;
-
     friend class LightClusteringPass;
     friend class RenderDeferredSetup;
     friend class RenderDeferredLocals;
     friend class RenderDeferredCleanup;
-};
-
-class PreparePrimaryFramebufferConfig : public render::Job::Config {
-    Q_OBJECT
-        Q_PROPERTY(float resolutionScale MEMBER resolutionScale NOTIFY dirty)
-public:
-
-    float resolutionScale{ 1.0f };
-
-signals:
-    void dirty();
-};
-
-class PreparePrimaryFramebuffer {
-public:
-
-    using Output = gpu::FramebufferPointer;
-    using Config = PreparePrimaryFramebufferConfig;
-    using JobModel = render::Job::ModelO<PreparePrimaryFramebuffer, Output, Config>;
-
-    PreparePrimaryFramebuffer(float resolutionScale = 1.0f) : _resolutionScale{resolutionScale} {}
-    void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, Output& primaryFramebuffer);
-
-    gpu::FramebufferPointer _primaryFramebuffer;
-    float _resolutionScale{ 1.0f };
-
-private:
-
-    static gpu::FramebufferPointer createFramebuffer(const char* name, const glm::uvec2& size);
 };
 
 class PrepareDeferred {

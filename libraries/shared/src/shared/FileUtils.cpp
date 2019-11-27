@@ -21,6 +21,7 @@
 #include <QtCore/QUrl>
 #include <QtCore/QTextStream>
 #include <QtCore/QRegularExpression>
+#include <QtCore/QFileSelector>
 #include <QtGui/QDesktopServices>
 
 
@@ -175,4 +176,16 @@ bool FileUtils::canCreateFile(const QString& fullPath) {
         }
     }
     return true;
+}
+
+QString FileUtils::getParentPath(const QString& fullPath) {
+    return QFileInfo(fullPath).absoluteDir().canonicalPath();
+}
+
+bool FileUtils::exists(const QString& fileName) {
+    return QFileInfo(fileName).exists();
+}
+
+bool FileUtils::isRelative(const QString& fileName) {
+    return QFileInfo(fileName).isRelative();
 }

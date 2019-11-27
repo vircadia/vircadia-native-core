@@ -1,5 +1,5 @@
 //
-//  Created by Sabrina Shanman 7/11/2018
+//  Created by Sabrina Shanman 2018/07/11
 //  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -49,6 +49,7 @@ class CollisionPick : public Pick<CollisionRegion> {
 public:
     CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, bool scaleWithParent, CollisionRegion collisionRegion, PhysicsEnginePointer physicsEngine);
 
+    PickType getType() const override { return PickType::Collision; }
     CollisionRegion getMathematicalPick() const override;
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override {
         return std::make_shared<CollisionPickResult>(pickVariant, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
@@ -62,14 +63,13 @@ protected:
     bool isLoaded() const;
     // Returns true if _mathPick.shapeInfo is valid. Otherwise, attempts to get the _mathPick ready for use.
     bool getShapeInfoReady(const CollisionRegion& pick);
-    void computeShapeInfo(const CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
-    void computeShapeInfoDimensionsOnly(const CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
+    void computeShapeInfoDimensionsOnly(const CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<ModelResource> resource);
     void filterIntersections(std::vector<ContactTestResult>& intersections) const;
 
     bool _scaleWithParent;
 
     PhysicsEnginePointer _physicsEngine;
-    QSharedPointer<GeometryResource> _cachedResource;
+    QSharedPointer<ModelResource> _cachedResource;
 
     // Options for what information to get from collision results
     bool _includeNormals;

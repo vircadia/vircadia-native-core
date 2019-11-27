@@ -10,6 +10,7 @@
 #include <QObject>
 
 #include <DependencyManager.h>
+#include <SettingHandle.h>
 
 #include "Forward.h"
 
@@ -38,6 +39,7 @@ public:
     void saveSettings();
     void setContainer(PluginContainer* container) { _container = container; }
 
+    int instantiate();
     void shutdown();
 
     // Application that have statically linked plugins can expose them to the plugin manager with these function
@@ -49,6 +51,7 @@ public:
 
     using PluginFilter = std::function<bool(const QJsonObject&)>;
     void setPluginFilter(PluginFilter pluginFilter) { _pluginFilter = pluginFilter; }
+    Q_INVOKABLE DisplayPluginList getAllDisplayPlugins();
 
 signals:
     void inputDeviceRunningChanged(const QString& pluginName, bool isRunning, const QStringList& runningDevices);
@@ -69,6 +72,9 @@ private:
     using LoaderList = QList<Loader>;
 
     const LoaderList& getLoadedPlugins() const;
+    Setting::Handle<bool> _enableScriptingPlugins {
+        "private/enableScriptingPlugins", (bool)qgetenv("enableScriptingPlugins").toInt()
+    };
 };
 
 // TODO: we should define this value in CMake, and then use CMake

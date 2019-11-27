@@ -22,7 +22,7 @@ class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
     ThreadedAssignment(ReceivedMessage& message);
-    ~ThreadedAssignment() { stop(); }
+    ~ThreadedAssignment();
 
     virtual void aboutToFinish() { };
     void addPacketStatsAndSendStatsPacket(QJsonObject statsObject);

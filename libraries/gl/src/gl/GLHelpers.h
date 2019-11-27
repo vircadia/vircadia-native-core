@@ -29,12 +29,35 @@ class QGLFormat;
 size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format);
 
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat();
-QJsonObject getGLContextData();
 int glVersionToInteger(QString glVersion);
 
 bool isRenderThread();
 
+#define GL_MAKE_VERSION(major, minor) ((major << 8) | minor)
+#define GL_GET_MINOR_VERSION(glversion) (glversion & 0x00FF)
+#define GL_GET_MAJOR_VERSION(glversion) ((glversion & 0xFF00) >> 8)
+
 namespace gl {
+    struct ContextInfo {
+        std::string version;
+        std::string shadingLanguageVersion;
+        std::string vendor;
+        std::string renderer;
+        std::vector<std::string> extensions;
+
+        ContextInfo& init();
+        operator bool() const { return !version.empty(); }
+
+        static const ContextInfo& get(bool init = false);
+    };
+
+#define LOG_GL_CONTEXT_INFO(category, contextInfo) \
+    qCDebug(category) << "GL Version: " << contextInfo.version.c_str(); \
+    qCDebug(category) << "GL Shader Language Version: " << contextInfo.shadingLanguageVersion.c_str(); \
+    qCDebug(category) << "GL Vendor: " << contextInfo.vendor.c_str(); \
+    qCDebug(category) << "GL Renderer: " << contextInfo.renderer.c_str();
+
+
     void globalLock();
     void globalRelease(bool finish = true);
 
@@ -51,8 +74,13 @@ namespace gl {
     bool checkGLErrorDebug(const char* name);
 
     bool disableGl45();
+    void setDisableGl45(bool disable);
 
-    void getTargetVersion(int& major, int& minor);
+    uint16_t getTargetVersion();
+
+    uint16_t getAvailableVersion();
+
+    uint16_t getRequiredVersion();
 } // namespace gl
 
 #define CHECK_GL_ERROR() ::gl::checkGLErrorDebug(__FUNCTION__)

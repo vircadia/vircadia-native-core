@@ -74,7 +74,24 @@
  *     avatar. <em>Read-only.</em>
  * @property {number} sensorToWorldScale - The scale that transforms dimensions in the user's real world to the avatar's
  *     size in the virtual world. <em>Read-only.</em>
- * @property {boolean} hasPriority - is the avatar in a Hero zone? <em>Read-only.</em>
+ * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't.
+ *     <em>Read-only.</em>
+ * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> if blend shapes are controlled by scripted actions, 
+ *     otherwise <code>false</code>. Set this to <code>true</code> before using the {@link MyAvatar.setBlendshape} method, 
+ *     and set back to <code>false</code> after you no longer want scripted control over the blend shapes.
+ *     <p><strong>Note:</strong> This property will automatically be set to true if the Controller system has valid facial 
+ *     blend shape actions.</p>
+ * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating 
+ *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code> if 
+ *     you wish to fully control the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
+ * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes 
+ *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property 
+ *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set this property to  
+ *     <code>false</code> if you wish to fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
+ * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate 
+ *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set 
+ *     this property to <code>false</code> if you wish to fully control the mouth facial blend shapes via the 
+ *     {@link MyAvatar.setBlendshape} method.
  *
  * @example <caption>Create a scriptable avatar.</caption>
  * (function () {
@@ -96,8 +113,10 @@ public:
     /**jsdoc
      * Starts playing an animation on the avatar.
      * @function Avatar.startAnimation
-     * @param {string} url - The animation file's URL. Animation files need to be in the FBX format but only need to contain
-     *     the avatar skeleton and animation data.
+     * @param {string} url - The animation file's URL. Animation files need to be in glTF or FBX format but only need to 
+     *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs 
+     *     respectively).
+     *     <p><strong>Warning:</strong> glTF animations currently do not always animate correctly.</p>
      * @param {number} [fps=30] - The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
      * @param {number} [priority=1] - <em>Not used.</em>
      * @param {boolean} [loop=false] - <code>true</code> if the animation should loop, <code>false</code> if it shouldn't.
@@ -138,7 +157,10 @@ public:
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
     Q_INVOKABLE virtual int getJointIndex(const QString& name) const override;
 
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
+    /**jsdoc
+     * @comment Uses the base class's JSDoc.
+     */
+    Q_INVOKABLE virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
     /**jsdoc
      * @comment Uses the base class's JSDoc.
@@ -146,13 +168,6 @@ public:
     int sendAvatarDataPacket(bool sendAll = false) override;
 
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking = false) override;
-
-    void setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement);
-    bool getHasProceduralBlinkFaceMovement() const override { return _headData->getHasProceduralBlinkFaceMovement(); }
-    void setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement);
-    bool getHasProceduralEyeFaceMovement() const override { return _headData->getHasProceduralEyeFaceMovement(); }
-    void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
-    bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
 
     /**jsdoc
      * Gets details of all avatar entities.

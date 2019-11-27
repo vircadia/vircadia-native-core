@@ -55,8 +55,6 @@
 #include "HeadData.h"
 #include "PathUtils.h"
 
-#include <graphics/Material.h>
-
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
 using AvatarHash = QHash<QUuid, AvatarSharedPointer>;
@@ -104,12 +102,12 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 // Procedural Collide with other avatars is enabled 12th bit
 // Procedural Has Hero Priority is enabled 13th bit
 
-const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
-const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
-const int IS_FACE_TRACKER_CONNECTED = 4; // 5th bit
-const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
+const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits  (UNUSED)
+const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits (UNUSED)
+const int HAS_SCRIPTED_BLENDSHAPES = 4; // 5th bit
+const int HAS_PROCEDURAL_EYE_MOVEMENT = 5; // 6th bit
 const int HAS_REFERENTIAL = 6; // 7th bit
-const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
+const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit (UNUSED)
 const int AUDIO_ENABLED_FACE_MOVEMENT = 8; // 9th bit
 const int PROCEDURAL_EYE_FACE_MOVEMENT = 9; // 10th bit
 const int PROCEDURAL_BLINK_FACE_MOVEMENT = 10; // 11th bit
@@ -117,8 +115,7 @@ const int COLLIDE_WITH_OTHER_AVATARS = 11; // 12th bit
 const int HAS_HERO_PRIORITY = 12; // 13th bit  (be scared)
 
 /**jsdoc
- * <p>The pointing state of the hands is specified by the following values:
- </p>
+ * <p>The pointing state of the hands is specified by the following values:</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Description</th>
@@ -302,6 +299,15 @@ namespace AvatarDataPacket {
     const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
     static_assert(sizeof(AvatarLocalPosition) == AVATAR_LOCAL_POSITION_SIZE, "AvatarDataPacket::AvatarLocalPosition size doesn't match.");
 
+    PACKED_BEGIN struct HandControllers {
+        SixByteQuat leftHandRotation;
+        SixByteTrans leftHandTranslation;
+        SixByteQuat rightHandRotation;
+        SixByteTrans rightHandTranslation;
+    } PACKED_END;
+    static const size_t HAND_CONTROLLERS_SIZE = 24;
+    static_assert(sizeof(HandControllers) == HAND_CONTROLLERS_SIZE, "AvatarDataPacket::HandControllers size doesn't match.");
+
     const size_t MAX_CONSTANT_HEADER_SIZE = HEADER_SIZE +
         AVATAR_GLOBAL_POSITION_SIZE +
         AVATAR_BOUNDING_BOX_SIZE +
@@ -312,21 +318,12 @@ namespace AvatarDataPacket {
         SENSOR_TO_WORLD_SIZE +
         ADDITIONAL_FLAGS_SIZE +
         PARENT_INFO_SIZE +
-        AVATAR_LOCAL_POSITION_SIZE;
-
-    PACKED_BEGIN struct HandControllers {
-        SixByteQuat leftHandRotation;
-        SixByteTrans leftHandTranslation;
-        SixByteQuat rightHandRotation;
-        SixByteTrans rightHandTranslation;
-    } PACKED_END;
-    static const size_t HAND_CONTROLLERS_SIZE = 24;
-    static_assert(sizeof(HandControllers) == HAND_CONTROLLERS_SIZE, "AvatarDataPacket::HandControllers size doesn't match.");
-
+        AVATAR_LOCAL_POSITION_SIZE +
+        HAND_CONTROLLERS_SIZE;
 
     // variable length structure follows
 
-    // only present if IS_FACE_TRACKER_CONNECTED flag is set in AvatarInfo.flags
+    // only present if HAS_SCRIPTED_BLENDSHAPES flag is set in AvatarInfo.flags
     PACKED_BEGIN struct FaceTrackerInfo {
         float leftEyeBlink;
         float rightEyeBlink;
@@ -377,6 +374,10 @@ namespace AvatarDataPacket {
     static_assert(sizeof(FarGrabJoints) == FAR_GRAB_JOINTS_SIZE, "AvatarDataPacket::FarGrabJoints size doesn't match.");
 
     static const size_t MIN_BULK_PACKET_SIZE = NUM_BYTES_RFC4122_UUID + HEADER_SIZE;
+
+    // AvatarIdentity packet:
+    enum class IdentityFlag: quint32 {none, isReplicated = 0x1, lookAtSnapping = 0x2, verificationFailed = 0x4};
+    Q_DECLARE_FLAGS(IdentityFlags, IdentityFlag)
 
     struct SendStatus {
         HasFlags itemFlags { 0 };
@@ -531,6 +532,22 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     size in the virtual world. <em>Read-only.</em>
      * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't. 
      *     <em>Read-only.</em>
+     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> if blend shapes are controlled by scripted actions, 
+     *     otherwise <code>false</code>. Set this to <code>true</code> before using the {@link MyAvatar.setBlendshape} method, 
+     *     and set back to <code>false</code> after you no longer want scripted control over the blend shapes.
+     *     <p><strong>Note:</strong> This property will automatically be set to true if the Controller system has valid facial 
+     *     blend shape actions.</p>
+     * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating 
+     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code> if 
+     *     you wish to fully control the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes 
+     *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property 
+     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set this property to  
+     *     <code>false</code> if you wish to fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate 
+     *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set 
+     *     this property to <code>false</code> if you wish to fully control the mouth facial blend shapes via the 
+     *     {@link MyAvatar.setBlendshape} method.
      */
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getDomainLimitedScale WRITE setTargetScale)
@@ -571,6 +588,11 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(float sensorToWorldScale READ getSensorToWorldScale)
 
     Q_PROPERTY(bool hasPriority READ getHasPriority)
+
+    Q_PROPERTY(bool hasScriptedBlendshapes READ getHasScriptedBlendshapes WRITE setHasScriptedBlendshapes)
+    Q_PROPERTY(bool hasProceduralBlinkFaceMovement READ getHasProceduralBlinkFaceMovement WRITE setHasProceduralBlinkFaceMovement)
+    Q_PROPERTY(bool hasProceduralEyeFaceMovement READ getHasProceduralEyeFaceMovement WRITE setHasProceduralEyeFaceMovement)
+    Q_PROPERTY(bool hasAudioEnabledFaceMovement READ getHasAudioEnabledFaceMovement WRITE setHasAudioEnabledFaceMovement)
 
 public:
     virtual QString getName() const override { return QString("Avatar:") + _displayName; }
@@ -681,10 +703,14 @@ public:
 
     float getDomainLimitedScale() const;
 
-    virtual bool getHasScriptedBlendshapes() const { return false; }
-    virtual bool getHasProceduralBlinkFaceMovement() const { return true; }
-    virtual bool getHasProceduralEyeFaceMovement() const { return true; }
-    virtual bool getHasAudioEnabledFaceMovement() const { return false; }
+    void setHasScriptedBlendshapes(bool hasScriptedBlendshapes);
+    bool getHasScriptedBlendshapes() const;
+    void setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement);
+    bool getHasProceduralBlinkFaceMovement() const;
+    void setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement);
+    bool getHasProceduralEyeFaceMovement() const;
+    void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
+    bool getHasAudioEnabledFaceMovement() const;
 
     /**jsdoc
      * Gets the minimum scale allowed for this avatar in the current domain.
@@ -1107,14 +1133,15 @@ public:
 
 
     /**jsdoc
-     * Sets the value of a blendshape to animate your avatar's face. To enable other users to see the resulting animation of 
-     * your avatar's face, use {@link Avatar.setForceFaceTrackerConnected} or {@link MyAvatar.setForceFaceTrackerConnected}.
+     * Sets the value of a blend shape to animate your avatar's face. In order for other users to see the resulting animations 
+     * on your avatar's face, set {@link Avatar.hasScriptedBlendshapes} to <code>true</code>. When you are done using this API, 
+     * set {@link Avatar.hasScriptedBlendshapes} back to <code>false</code> when the animation is complete. 
      * @function Avatar.setBlendshape
      * @param {string} name - The name of the blendshape, per the 
      *     {@link https://docs.highfidelity.com/create/avatars/avatar-standards.html#blendshapes Avatar Standards}.
      * @param {number} value - A value between <code>0.0</code> and <code>1.0</code>.
      * @example <caption>Open your avatar's mouth wide.</caption>
-     * MyAvatar.setForceFaceTrackerConnected(true);
+     * MyAvatar.hasScriptedBlendshapes = true;
      * MyAvatar.setBlendshape("JawOpen", 1.0);
      *
      * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
@@ -1155,20 +1182,21 @@ public:
     /**jsdoc
      * @function Avatar.clearAvatarEntity
      * @param {Uuid} entityID - The entity ID.
-     * @param {boolean} [requiresRemovalFromTree=true] - Requires removal from tree.
+     * @param {boolean} [requiresRemovalFromTree=true] - unused
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE virtual void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true);
 
-
     /**jsdoc
+     * <p class="important">Deprecated: This method is deprecated and will be removed.</p>
+     * Use Avatar.hasScriptedBlendshapes property instead.
      * Enables blendshapes set using {@link Avatar.setBlendshape} or {@link MyAvatar.setBlendshape} to be transmitted to other 
      * users so that they can see the animation of your avatar's face.
      * @function Avatar.setForceFaceTrackerConnected
      * @param {boolean} connected - <code>true</code> to enable blendshape changes to be transmitted to other users, 
      *     <code>false</code> to disable.
      */
-    Q_INVOKABLE void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
+    Q_INVOKABLE void setForceFaceTrackerConnected(bool connected) { setHasScriptedBlendshapes(connected); }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -1182,6 +1210,7 @@ public:
         QString sessionDisplayName;
         bool isReplicated;
         bool lookAtSnappingEnabled;
+        AvatarDataPacket::IdentityFlags identityFlags;
     };
 
     // identityChanged returns true if identity has changed, false otherwise.
@@ -1201,18 +1230,25 @@ public:
     QByteArray identityByteArray(bool setIsReplicated = false) const;
 
     QUrl getWireSafeSkeletonModelURL() const;
-    const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+    virtual const QUrl& getSkeletonModelURL() const;
 
     const QString& getDisplayName() const { return _displayName; }
     const QString& getSessionDisplayName() const { return _sessionDisplayName; }
     bool getLookAtSnappingEnabled() const { return _lookAtSnappingEnabled; }
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+
+    /**jsdoc
+     * Sets the avatar's skeleton model.
+     * @function Avatar.setSkeletonModelURL
+     * @param {string} url - The avatar's FST file.
+     */
+    Q_INVOKABLE virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setDisplayName(const QString& displayName);
     virtual void setSessionDisplayName(const QString& sessionDisplayName) {
         _sessionDisplayName = sessionDisplayName;
         markIdentityDataChanged();
     }
+    virtual bool isCertifyFailed() const { return _verificationFailed; }
 
     /**jsdoc
      * Gets information about the models currently attached to your avatar.
@@ -1256,20 +1292,19 @@ public:
     /**jsdoc
      * Attaches a model to your avatar. For example, you can give your avatar a hat to wear, a guitar to hold, or a surfboard to
      * stand on.
-     * <p>Note: Attached models are models only; they are not entities and can not be manipulated using the {@link Entities} API. 
-     * Nor can you use this function to attach an entity (such as a sphere or a box) to your avatar.</p>
      * @function Avatar.attach
-     * @param {string} modelURL - The URL of the model to attach. Models can be .FBX or .OBJ format.
-     * @param {string} [jointName=""] - The name of the avatar joint (see {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}) to attach the model 
-     *     to.
+     * @param {string} modelURL - The URL of the glTF, FBX, or OBJ model to attach. glTF models may be in JSON or binary format 
+     *     (".gltf" or ".glb" URLs respectively).
+     * @param {string} [jointName=""] - The name of the avatar joint (see {@link MyAvatar.getJointNames} or 
+     *     {@link Avatar.getJointNames}) to attach the model to.
      * @param {Vec3} [translation=Vec3.ZERO] - The offset to apply to the model relative to the joint position.
      * @param {Quat} [rotation=Quat.IDENTITY] - The rotation to apply to the model relative to the joint orientation.
      * @param {number} [scale=1.0] - The scale to apply to the model.
      * @param {boolean} [isSoft=false] -  If the model has a skeleton, set this to <code>true</code> so that the bones of the 
      *     attached model's skeleton are rotated to fit the avatar's current pose. <code>isSoft</code> is used, for example, 
-     *     to have clothing that moves with the avatar.<br />
-     *     If <code>true</code>, the <code>translation</code>, <code>rotation</code>, and <code>scale</code> parameters are 
-     *     ignored.
+     *     to have clothing that moves with the avatar.
+     *     <p>If <code>true</code>, the <code>translation</code>, <code>rotation</code>, and <code>scale</code> parameters are 
+     *     ignored.</p>
      * @param {boolean} [allowDuplicates=false] - If <code>true</code> then more than one copy of any particular model may be 
      *     attached to the same joint; if <code>false</code> then the same model cannot be attached to the same joint.
      * @param {boolean} [useSaved=true] - <em>Not used.</em>
@@ -1280,7 +1315,7 @@ public:
      *     jointName: "Head",
      *     translation: {"x": 0, "y": 0.25, "z": 0},
      *     rotation: {"x": 0, "y": 0, "z": 0, "w": 1},
-     *     scale: 1,
+     *     scale: 0.01,
      *     isSoft: false
      * };
      *
@@ -1459,8 +1494,6 @@ public:
 
     bool getIsReplicated() const { return _isReplicated; }
 
-    virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {}
-    virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
     void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
     int getReplicaIndex() { return _replicaIndex; }
 
@@ -1474,6 +1507,7 @@ public:
     std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonData() const;
     void sendSkeletonData() const;
     QVector<JointData> getJointData() const;
+    glm::vec3 getHeadJointFrontVector() const;
 
 signals:
 
@@ -1650,7 +1684,6 @@ protected:
     bool faceTrackerInfoChangedSince(quint64 time) const { return true; } // FIXME
 
     bool hasParent() const { return !getParentID().isNull(); }
-    bool hasFaceTracker() const { return _headData ? _headData->_isFaceTrackerConnected : false; }
 
     QByteArray packSkeletonData() const;
     QByteArray packSkeletonModelURL() const;
@@ -1683,7 +1716,6 @@ protected:
     // key state
     KeyState _keyState;
 
-    bool _forceFaceTrackerConnected;
     bool _hasNewJointData { true }; // set in AvatarData, cleared in Avatar
 
     mutable HeadData* _headData { nullptr };
@@ -1694,6 +1726,7 @@ protected:
     QString _displayName;
     QString _sessionDisplayName { };
     bool _lookAtSnappingEnabled { true };
+    bool _verificationFailed { false };
 
     quint64 _errorLogExpiry; ///< time in future when to log an error
 

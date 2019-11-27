@@ -12,13 +12,17 @@
 #ifndef hifi_ShapeManager_h
 #define hifi_ShapeManager_h
 
+#include <atomic>
+#include <chrono>
 #include <vector>
 
+#include <QObject>
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btHashMap.h>
 
 #include <ShapeInfo.h>
 
+#include "ShapeFactory.h"
 #include "HashKey.h"
 
 // The ShapeManager handles the ref-counting on shared shapes:
@@ -44,7 +48,8 @@
 // entries that still have zero ref-count.
 
 
-class ShapeManager {
+class ShapeManager : public QObject {
+    Q_OBJECT
 public:
 
     ShapeManager();
@@ -52,6 +57,8 @@ public:
 
     /// \return pointer to shape
     const btCollisionShape* getShape(const ShapeInfo& info);
+    const btCollisionShape* getShapeByKey(uint64_t key);
+    bool hasShapeWithKey(uint64_t key) const;
 
     /// \return true if shape was found and released
     bool releaseShape(const btCollisionShape* shape);
@@ -64,8 +71,14 @@ public:
     int getNumReferences(const ShapeInfo& info) const;
     int getNumReferences(const btCollisionShape* shape) const;
     bool hasShape(const btCollisionShape* shape) const;
+    uint32_t getWorkRequestCount() const { return _workRequestCount; }
+    uint32_t getWorkDeliveryCount() const { return _workDeliveryCount; }
+
+protected slots:
+    void acceptWork(ShapeFactory::Worker* worker);
 
 private:
+    void addToGarbage(uint64_t key);
     bool releaseShapeByKey(uint64_t key);
 
     class ShapeReference {
@@ -76,10 +89,24 @@ private:
         ShapeReference() : refCount(0), shape(nullptr) {}
     };
 
+    using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
+    class KeyExpiry {
+    public:
+        KeyExpiry(uint64_t k, std::chrono::time_point<std::chrono::steady_clock> e) : expiry(e), key(k) {}
+        TimePoint expiry;
+        uint64_t key;
+    };
+
     // btHashMap is required because it supports memory alignment of the btCollisionShapes
     btHashMap<HashKey, ShapeReference> _shapeMap;
     std::vector<uint64_t> _garbageRing;
+    std::vector<uint64_t> _pendingMeshShapes;
+    std::vector<KeyExpiry> _orphans;
+    ShapeFactory::Worker* _deadWorker { nullptr };
+    TimePoint _nextOrphanExpiry;
     uint32_t _ringIndex { 0 };
+    std::atomic_uint _workRequestCount { 0 };
+    std::atomic_uint _workDeliveryCount { 0 };
 };
 
 #endif // hifi_ShapeManager_h

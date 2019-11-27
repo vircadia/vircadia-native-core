@@ -9,9 +9,19 @@
 #include "NetworkUtils.h"
 #include <QtNetwork/QNetworkInterface>
 
+namespace {
+    const QString LINK_LOCAL_SUBNET {"169.254."};
+
+    // Is address local-subnet valid only (rfc 3927):
+    bool isLinkLocalAddress(const QHostAddress& ip4Addr) {
+        return ip4Addr.toString().startsWith(LINK_LOCAL_SUBNET);
+    }
+}
+
 QHostAddress getGuessedLocalAddress() {
 
     QHostAddress localAddress;
+    QHostAddress linkLocalAddress;
 
     foreach(const QNetworkInterface &networkInterface, QNetworkInterface::allInterfaces()) {
         if (networkInterface.flags() & QNetworkInterface::IsUp
@@ -20,12 +30,16 @@ QHostAddress getGuessedLocalAddress() {
             // we've decided that this is the active NIC
             // enumerate it's addresses to grab the IPv4 address
             foreach(const QNetworkAddressEntry &entry, networkInterface.addressEntries()) {
+                const auto& addressCandidate = entry.ip();
                 // make sure it's an IPv4 address that isn't the loopback
-                if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback()) {
-
-                    // set our localAddress and break out
-                    localAddress = entry.ip();
-                    break;
+                if (addressCandidate.protocol() == QAbstractSocket::IPv4Protocol && !addressCandidate.isLoopback()) {
+                    if (isLinkLocalAddress(addressCandidate)) {
+                        linkLocalAddress = addressCandidate;  // Last resort
+                    } else {
+                        // set our localAddress and break out
+                        localAddress = addressCandidate;
+                        break;
+                    }
                 }
             }
         }
@@ -36,7 +50,5 @@ QHostAddress getGuessedLocalAddress() {
     }
 
     // return the looked up local address
-    return localAddress;
+    return localAddress.isNull() ? linkLocalAddress : localAddress;
 }
-
-

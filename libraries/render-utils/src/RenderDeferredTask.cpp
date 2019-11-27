@@ -29,7 +29,6 @@
 #include <render/DrawStatus.h>
 #include <render/DrawSceneOctree.h>
 #include <render/BlurTask.h>
-#include <render/ResampleTask.h>
 
 #include "RenderHifi.h"
 #include "render-utils/ShaderConstants.h"
@@ -47,10 +46,11 @@
 #include "FadeEffect.h"
 #include "BloomStage.h"
 #include "RenderUtilsLogging.h"
+#include "RenderHUDLayerTask.h"
 
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
-#include "ToneMappingEffect.h"
+#include "ToneMapAndResampleTask.h"
 #include "SubsurfaceScattering.h"
 #include "DrawHaze.h"
 #include "BloomEffect.h"
@@ -95,12 +95,9 @@ RenderDeferredTask::RenderDeferredTask()
 
 void RenderDeferredTask::configure(const Config& config) {
     // Propagate resolution scale to sub jobs who need it
-    auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
-    auto upsamplePrimaryBufferConfig = config.getConfig<Upsample>("PrimaryBufferUpscale");
+    auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebuffer>("PreparePrimaryBufferDeferred");
     assert(preparePrimaryBufferConfig);
-    assert(upsamplePrimaryBufferConfig);
-    preparePrimaryBufferConfig->setProperty("resolutionScale", config.resolutionScale);
-    upsamplePrimaryBufferConfig->setProperty("factor", 1.0f / config.resolutionScale);
+    preparePrimaryBufferConfig->setResolutionScale(config.resolutionScale);
 }
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
@@ -148,12 +145,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto jitter = task.addJob<JitterSample>("JitterCam");
 
     // GPU jobs: Start preparing the primary, deferred and lighting buffer
-    const auto scaledPrimaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
+    const auto scaledPrimaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBufferDeferred");
 
     // Prepare deferred, generate the shared Deferred Frame Transform. Only valid with the scaled frame buffer
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform", jitter);
-
-    const auto opaqueRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer", "DrawOpaques");
 
     const auto prepareDeferredInputs = PrepareDeferred::Inputs(scaledPrimaryFramebuffer, lightingModel).asVarying();
     const auto prepareDeferredOutputs = task.addJob<PrepareDeferred>("PrepareDeferred", prepareDeferredInputs);
@@ -166,8 +161,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel, jitter).asVarying();
     task.addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
-
-    task.addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
 
     // Opaque all rendered
 
@@ -209,7 +202,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
-    const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame).asVarying();
+    const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame, hazeFrame).asVarying();
     task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", backgroundInputs);
 
     const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeFrame, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingModel, lightFrame));
@@ -219,57 +212,41 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto transparentsInputs = RenderTransparentDeferred::Inputs(transparents, hazeFrame, lightFrame, lightingModel, lightClusters, shadowFrame, jitter).asVarying();
     task.addJob<RenderTransparentDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
-    const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginHighlightRangeTimer", "Highlight");
-
+    // Highlight 
     const auto outlineInputs = DrawHighlightTask::Inputs(items, deferredFramebuffer, lightingFramebuffer, deferredFrameTransform, jitter).asVarying();
     task.addJob<DrawHighlightTask>("DrawHighlight", outlineInputs);
 
-    task.addJob<EndGPURangeTimer>("HighlightRangeTimer", outlineRangeTimer);
-
     // Layered Over (in front)
-    const auto inFrontOpaquesInputs = DrawLayered3D::Inputs(inFrontOpaque, lightingModel, jitter).asVarying();
-    const auto inFrontTransparentsInputs = DrawLayered3D::Inputs(inFrontTransparent, lightingModel, jitter).asVarying();
+    const auto inFrontOpaquesInputs = DrawLayered3D::Inputs(inFrontOpaque, lightingModel, hazeFrame, jitter).asVarying();
+    const auto inFrontTransparentsInputs = DrawLayered3D::Inputs(inFrontTransparent, lightingModel, hazeFrame, jitter).asVarying();
     task.addJob<DrawLayered3D>("DrawInFrontOpaque", inFrontOpaquesInputs, true);
     task.addJob<DrawLayered3D>("DrawInFrontTransparent", inFrontTransparentsInputs, false);
-
-    const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneLayeredAntialiasing");
 
     // AA job before bloom to limit flickering
     const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, lightingFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 
     // Add bloom
-    const auto bloomInputs = BloomEffect::Inputs(deferredFrameTransform, lightingFramebuffer, bloomFrame).asVarying();
+    const auto bloomInputs = BloomEffect::Inputs(deferredFrameTransform, lightingFramebuffer, bloomFrame, lightingModel).asVarying();
     task.addJob<BloomEffect>("Bloom", bloomInputs);
 
+    const auto destFramebuffer = static_cast<gpu::FramebufferPointer>(nullptr);
+
     // Lighting Buffer ready for tone mapping
-    const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, scaledPrimaryFramebuffer).asVarying();
-    task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
+    const auto toneMappingInputs = ToneMapAndResample::Input(lightingFramebuffer, destFramebuffer).asVarying();
+    const auto toneMappedBuffer = task.addJob<ToneMapAndResample>("ToneMapping", toneMappingInputs);
 
     // Debugging task is happening in the "over" layer after tone mapping and just before HUD
     { // Debug the bounds of the rendered items, still look at the zbuffer
-        const auto extraDebugBuffers = RenderDeferredTaskDebug::ExtraBuffers(linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, ambientOcclusionFramebuffer, scatteringResource, velocityBuffer);
+        const auto extraDebugBuffers = RenderDeferredTaskDebug::ExtraBuffers(linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, ambientOcclusionUniforms, scatteringResource, velocityBuffer);
         const auto debugInputs = RenderDeferredTaskDebug::Input(fetchedItems, shadowTaskOutputs, lightingStageInputs, lightClusters, prepareDeferredOutputs, extraDebugBuffers,
-                 deferredFrameTransform, jitter, lightingModel).asVarying();
+            deferredFrameTransform, jitter, lightingModel).asVarying();
         task.addJob<RenderDeferredTaskDebug>("DebugRenderDeferredTask", debugInputs);
     }
 
-    // Upscale to finale resolution
-    const auto primaryFramebuffer = task.addJob<render::Upsample>("PrimaryBufferUpscale", scaledPrimaryFramebuffer);
-
-    // Composite the HUD and HUD overlays
-    task.addJob<CompositeHUD>("HUD", primaryFramebuffer);
-
-    const auto nullJitter = Varying(glm::vec2(0.0f, 0.0f));
-    const auto hudOpaquesInputs = DrawLayered3D::Inputs(hudOpaque, lightingModel, nullJitter).asVarying();
-    const auto hudTransparentsInputs = DrawLayered3D::Inputs(hudTransparent, lightingModel, nullJitter).asVarying();
-    task.addJob<DrawLayered3D>("DrawHUDOpaque", hudOpaquesInputs, true);
-    task.addJob<DrawLayered3D>("DrawHUDTransparent", hudTransparentsInputs, false);
-
-    task.addJob<EndGPURangeTimer>("ToneAndPostRangeTimer", toneAndPostRangeTimer);
-
-    // Blit!
-    task.addJob<Blit>("Blit", primaryFramebuffer);
+    // HUD Layer
+    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(toneMappedBuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
+    task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
 }
 
 RenderDeferredTaskDebug::RenderDeferredTaskDebug() {
@@ -429,10 +406,47 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
 
         const auto debugZoneInputs = DebugZoneLighting::Inputs(deferredFrameTransform, lightFrame, backgroundFrame).asVarying();
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
-
     }
 
 
+}
+
+gpu::FramebufferPointer PreparePrimaryFramebuffer::createFramebuffer(const char* name, const glm::uvec2& frameSize) {
+    gpu::FramebufferPointer framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(name));
+    auto colorFormat = gpu::Element::COLOR_SRGBA_32;
+
+    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
+    auto primaryColorTexture = gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+
+    framebuffer->setRenderBuffer(0, primaryColorTexture);
+
+    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
+    auto primaryDepthTexture = gpu::Texture::createRenderBuffer(depthFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+
+    framebuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
+
+    return framebuffer;
+}
+
+void PreparePrimaryFramebuffer::configure(const Config& config) {
+    _resolutionScale = config.getResolutionScale();
+}
+
+void PreparePrimaryFramebuffer::run(const RenderContextPointer& renderContext, Output& primaryFramebuffer) {
+    glm::uvec2 frameSize(renderContext->args->_viewport.z, renderContext->args->_viewport.w);
+    glm::uvec2 scaledFrameSize(glm::vec2(frameSize) * _resolutionScale);
+
+    // Resizing framebuffers instead of re-building them seems to cause issues with threaded 
+    // rendering
+    if (!_primaryFramebuffer || _primaryFramebuffer->getSize() != scaledFrameSize) {
+        _primaryFramebuffer = createFramebuffer("deferredPrimary", scaledFrameSize);
+    }
+
+    primaryFramebuffer = _primaryFramebuffer;
+
+    // Set viewport for the rest of the scaled passes
+    renderContext->args->_viewport.z = scaledFrameSize.x;
+    renderContext->args->_viewport.w = scaledFrameSize.y;
 }
 
 
@@ -482,7 +496,7 @@ void RenderTransparentDeferred::run(const RenderContextPointer& renderContext, c
         if (hazeStage && hazeFrame->_hazes.size() > 0) {
             const auto& hazePointer = hazeStage->getHaze(hazeFrame->_hazes.front());
             if (hazePointer) {
-                batch.setUniformBuffer(ru::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
+                batch.setUniformBuffer(graphics::slot::buffer::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
             }
         }
 

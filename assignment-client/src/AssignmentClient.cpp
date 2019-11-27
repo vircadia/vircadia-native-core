@@ -22,6 +22,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <Assignment.h>
+#include <CrashAnnotations.h>
 #include <LogHandler.h>
 #include <LogUtils.h>
 #include <LimitedNodeList.h>
@@ -81,6 +82,9 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     }
 
     _assignmentServerSocket = HifiSockAddr(_assignmentServerHostname, assignmentServerPort, true);
+    if (_assignmentServerSocket.isNull()) {
+        qCCritical(assignment_client) << "PAGE: Couldn't resolve domain server address" << _assignmentServerHostname;
+    }
     _assignmentServerSocket.setObjectName("AssignmentServer");
     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
 
@@ -144,6 +148,7 @@ AssignmentClient::~AssignmentClient() {
 }
 
 void AssignmentClient::aboutToQuit() {
+    crash::annotations::setShutdownState(true);
     stopAssignmentClient();
 }
 
@@ -173,6 +178,7 @@ void AssignmentClient::sendStatusPacketToACM() {
 
 void AssignmentClient::sendAssignmentRequest() {
     if (!_currentAssignment && !_isAssigned) {
+        crash::annotations::setShutdownState(false);
 
         auto nodeList = DependencyManager::get<NodeList>();
 
@@ -180,16 +186,21 @@ void AssignmentClient::sendAssignmentRequest() {
             // we want to check again for the local domain-server port in case the DS has restarted
             quint16 localAssignmentServerPort;
             if (nodeList->getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, localAssignmentServerPort)) {
-                if (localAssignmentServerPort != _assignmentServerSocket.getPort()) {
-                    qCDebug(assignment_client) << "Port for local assignment server read from shared memory is"
-                        << localAssignmentServerPort;
+                if (localAssignmentServerPort == 0) {
+                    qCWarning(assignment_client) << "ALERT: Server port from shared memory is 0";
+                } else {
+                    if (localAssignmentServerPort != _assignmentServerSocket.getPort()) {
+                        qCDebug(assignment_client) << "Port for local assignment server read from shared memory is"
+                            << localAssignmentServerPort;
 
-                    _assignmentServerSocket.setPort(localAssignmentServerPort);
-                    nodeList->setAssignmentServerSocket(_assignmentServerSocket);
+                        _assignmentServerSocket.setPort(localAssignmentServerPort);
+                        nodeList->setAssignmentServerSocket(_assignmentServerSocket);
+                    }
                 }
             } else {
-                qCWarning(assignment_client) << "Failed to read local assignment server port from shared memory"
-                    << "- will send assignment request to previous assignment server socket.";
+                qCWarning(assignment_client) << "ALERT: Failed to read local assignment server port from shared memory ("
+                    << DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY
+                    << ")- will send assignment request to previous assignment server socket.";
             }
         }
 
@@ -247,7 +258,7 @@ void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<ReceivedMessa
         // Starts an event loop, and emits workerThread->started()
         workerThread->start();
     } else {
-        qCWarning(assignment_client) << "Received an assignment that could not be unpacked. Re-requesting.";
+        qCWarning(assignment_client) << "ALERT: Received an assignment that could not be unpacked. Re-requesting.";
     }
 }
 
@@ -289,6 +300,8 @@ void AssignmentClient::handleAuthenticationRequest() {
 }
 
 void AssignmentClient::assignmentCompleted() {
+    crash::annotations::setShutdownState(true);
+    
     // we expect that to be here the previous assignment has completely cleaned up
     assert(_currentAssignment.isNull());
 
@@ -307,7 +320,7 @@ void AssignmentClient::assignmentCompleted() {
 
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NodeType::Unassigned);
-    nodeList->reset();
+    nodeList->reset("Assignment completed");
     nodeList->resetNodeInterestSet();
     
     _isAssigned = false;

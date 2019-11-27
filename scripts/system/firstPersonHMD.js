@@ -16,7 +16,7 @@
 // Automatically enter first person mode when entering HMD mode
 HMD.displayModeChanged.connect(function(isHMDMode) {
     if (isHMDMode) {
-        Camera.setModeString("first person");
+        Camera.setModeString("first person look at");
     }
 });
 

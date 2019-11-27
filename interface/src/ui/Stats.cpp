@@ -180,6 +180,11 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE_FLOAT(mbpsIn, nodeList->getInboundKbps() / 1000.0f, 0.01f);
     STAT_UPDATE_FLOAT(mbpsOut, nodeList->getOutboundKbps() / 1000.0f, 0.01f);
 
+#ifdef DEBUG_EVENT_QUEUE
+    STAT_UPDATE(mainThreadQueueDepth, ::hifi::qt::getEventQueueSize(QThread::currentThread()));
+    STAT_UPDATE(nodeListThreadQueueDepth, ::hifi::qt::getEventQueueSize(nodeList->thread()));
+#endif
+
     SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
     SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
     SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
@@ -246,7 +251,7 @@ void Stats::updateStats(bool force) {
 
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         auto audioClient = DependencyManager::get<AudioClient>().data();
-        if (audioMixerNode || force) {
+        if (audioMixerNode) {
             STAT_UPDATE(audioMixerKbps, (int)roundf(audioMixerNode->getInboundKbps() +
                                                     audioMixerNode->getOutboundKbps()));
             STAT_UPDATE(audioMixerPps, audioMixerNode->getInboundPPS() +
@@ -372,7 +377,7 @@ void Stats::updateStats(bool force) {
     auto displayPlugin = qApp->getActiveDisplayPlugin();
     if (displayPlugin) {
         QVector2D dims(displayPlugin->getRecommendedRenderSize().x, displayPlugin->getRecommendedRenderSize().y);
-        dims *= displayPlugin->getRenderResolutionScale();
+        dims *= qApp->getRenderResolutionScale();
         STAT_UPDATE(gpuFrameSize, dims);
         STAT_UPDATE(gpuFrameTimePerPixel, (float)(gpuContext->getFrameTimerGPUAverage()*1000000.0 / double(dims.x()*dims.y())));
     }
@@ -411,6 +416,8 @@ void Stats::updateStats(bool force) {
     gpuContext->getFrameStats(gpuFrameStats);
 
     STAT_UPDATE(drawcalls, gpuFrameStats._DSNumDrawcalls);
+    STAT_UPDATE(lodTargetFramerate, DependencyManager::get<LODManager>()->getLODTargetFPS());
+    STAT_UPDATE(lodAngle, DependencyManager::get<LODManager>()->getLODAngleDeg());
 
 
     // Incoming packets

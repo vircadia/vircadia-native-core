@@ -24,24 +24,24 @@ var self = this;
         <tbody>
             <tr>
                 <td>
-                    <?js if (data.kind !== 'module' && data.description && !data.hideconstructor) { ?>
-                        <p>
-                            <?js= data.description ?>
-                            <?js= this.partial('details.tmpl', data) ?>
-                        </p>
+                    <?js if (data.kind !== 'module' && !data.hideconstructor) { ?>
+                        <?js if (data.description) { ?>
+                            <?js= self.partial('description.tmpl', data.description) ?>
+                        <?js } ?>
+                        <?js= this.partial('details.tmpl', data) ?>
                     <?js } else { ?>
                         <p style="color:red;">&nbsp;</p>
                     <?js } ?>                    
 
                     <?js if (data.exceptions && exceptions.length) { ?>
-                    <h3 class="subHeading">Throws:</h3>
+                    <h3 class="subHeading">Throws</h3>
                     <?js if (exceptions.length > 1) { ?><ul><?js
                     exceptions.forEach(function(r) { ?>
                         <li><?js= self.partial('exceptions.tmpl', r) ?></li>
                     <?js });
                     ?></ul><?js } else {
                     exceptions.forEach(function(r) { ?>
-                        <p><?js= self.partial('exceptions.tmpl', r) ?></p>
+                        <?js= self.partial('exceptions.tmpl', r) ?>
                     <?js });
                     } } ?>
 

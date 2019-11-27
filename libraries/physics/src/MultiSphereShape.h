@@ -19,28 +19,6 @@
 #include "BulletUtil.h"
 
 
-enum CollisionShapeExtractionMode {
-    None = 0,
-    Automatic,
-    Box,
-    Sphere,
-    SphereCollapse,
-    SpheresX,
-    SpheresY,
-    SpheresZ,
-    SpheresXY,
-    SpheresYZ,
-    SpheresXZ,
-    SpheresXYZ
-};
-
-struct SphereShapeData {
-    SphereShapeData() {}
-    glm::vec3 _position;
-    glm::vec3 _axis;
-    float _radius;    
-};
-
 class SphereRegion {
 public:
     SphereRegion() {}
@@ -74,23 +52,79 @@ const std::vector<glm::vec3> CORNER_SIGNS = {
 
 class MultiSphereShape {
 public:
+    enum ExtractionMode {
+        None = 0,
+        Automatic,
+        Box,
+        Sphere,
+        SphereCollapse,
+        SpheresX,
+        SpheresY,
+        SpheresZ,
+        SpheresXY,
+        SpheresYZ,
+        SpheresXZ,
+        SpheresXYZ
+    };
+
+    using CollapsingMode = ExtractionMode;
+    const std::vector<QString> ExtractionModeNames = {
+        "None",
+        "Automatic",
+        "Box",
+        "Sphere",
+        "SphereCollapse",
+        "SpheresX",
+        "SpheresY",
+        "SpheresZ",
+        "SpheresXY",
+        "SpheresYZ",
+        "SpheresXZ",
+        "SpheresXYZ"
+    };
+
+    struct SphereData {
+        glm::vec3 _position;
+        glm::vec3 _axis;
+        float _radius;
+    };
+
+    struct KdopCoefficient {
+        float xy = 0.0f;
+        float yz = 0.0f;
+        float xz = 0.0f;
+    };
+
+    struct KdopData {
+        std::vector<glm::vec3> _relativePoints;
+        bool _isValidShape{ true };
+        glm::vec3 _origin;
+        glm::vec3 _dimensions;
+        KdopCoefficient _epsilon;
+        KdopCoefficient _diff;
+    };
+
     MultiSphereShape() {};
     bool computeMultiSphereShape(int jointIndex, const QString& name, const std::vector<btVector3>& points, float scale = 1.0f);
     void calculateDebugLines();
-    const std::vector<SphereShapeData>& getSpheresData() const { return _spheres; }
+    const std::vector<SphereData>& getSpheresData() const { return _spheres; }
     const std::vector<std::pair<glm::vec3, glm::vec3>>& getDebugLines() const { return _debugLines; }
     void setScale(float scale);
     AABox& updateBoundingBox(const glm::vec3& position, const glm::quat& rotation);
     const AABox& getBoundingBox() const { return _boundingBox; }
     int getJointIndex() const { return _jointIndex; }
-    QString getJointName() const { return _name; }
+    QString getJointName() const { return _jointName; }
     bool isValid() const { return _spheres.size() > 0; }
 
 private:
-    CollisionShapeExtractionMode getExtractionModeByName(const QString& name);
+    KdopData getKdopData(const std::vector<btVector3>& kdop);
+    CollapsingMode computeSpheres(ExtractionMode mode, const KdopData& kdopData);
+    ExtractionMode getExtractionModeByJointName(const QString& jointName);
+    CollapsingMode getNextCollapsingMode(ExtractionMode mode, const std::vector<SphereData>& spheres);
+    QString modeToString(CollapsingMode type) { return ExtractionModeNames[(int)type]; }
     void filterUniquePoints(const std::vector<btVector3>& kdop, std::vector<glm::vec3>& uniquePoints);
-    void spheresFromAxes(const std::vector<glm::vec3>& points, const std::vector<glm::vec3>& axes, 
-                              std::vector<SphereShapeData>& spheres);
+    CollapsingMode spheresFromAxes(const std::vector<glm::vec3>& points, const std::vector<glm::vec3>& axes,
+                                   std::vector<SphereData>& spheres);
     
     void calculateSphereLines(std::vector<std::pair<glm::vec3, glm::vec3>>& outLines, const glm::vec3& center, const float& radius,
                               const int& subdivisions = DEFAULT_SPHERE_SUBDIVISIONS, const glm::vec3& direction = Vectors::UNIT_Y, 
@@ -101,10 +135,10 @@ private:
     void connectSpheres(int index1, int index2, bool onlyEdges = false);
 
     int _jointIndex { -1 };
-    QString _name;
-    std::vector<SphereShapeData> _spheres;
+    QString _jointName;
+    std::vector<SphereData> _spheres;
     std::vector<std::pair<glm::vec3, glm::vec3>> _debugLines;
-    CollisionShapeExtractionMode _mode;
+    ExtractionMode _mode { ExtractionMode::None };
     glm::vec3 _midPoint;
     float _scale { 1.0f };
     AABox _boundingBox;

@@ -15,6 +15,7 @@
 #include "EntityItem.h"
 
 #include "PulsePropertyGroup.h"
+#include "TextEffect.h"
 
 class TextEntityItem : public EntityItem {
 public:
@@ -97,6 +98,22 @@ public:
     float getBottomMargin() const;
     void setBottomMargin(float value);
 
+    bool getUnlit() const;
+    void setUnlit(bool value);
+
+    void setFont(const QString& value);
+    QString getFont() const;
+
+    TextEffect getTextEffect() const;
+    void setTextEffect(TextEffect value);
+
+    glm::u8vec3 getTextEffectColor() const;
+    void setTextEffectColor(const glm::u8vec3& value);
+
+    static const float DEFAULT_TEXT_EFFECT_THICKNESS;
+    float getTextEffectThickness() const;
+    void setTextEffectThickness(float value);
+
     PulsePropertyGroup getPulseProperties() const;
 
 private:
@@ -113,6 +130,12 @@ private:
     float _rightMargin;
     float _topMargin;
     float _bottomMargin;
+    bool _unlit;
+
+    QString _font;
+    TextEffect _effect;
+    glm::u8vec3 _effectColor;
+    float _effectThickness;
 };
 
 #endif // hifi_TextEntityItem_h

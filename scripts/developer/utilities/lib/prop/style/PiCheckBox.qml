@@ -9,15 +9,47 @@
 //
 
 import QtQuick 2.7
-import controlsUit 1.0 as HifiControls
+import QtQuick.Controls 2.2
 
-HifiControls.CheckBox {
+CheckBox {
     Global { id: global }
-    
-    color: global.fontColor
+    id: control
+    text: ""
+    checked: true
+    spacing: 0
 
-    //anchors.left: root.splitter.right
-    //anchors.verticalCenter: root.verticalCenter
-    //width: root.width * global.valueAreaWidthScale
+    indicator: Rectangle {
+        color: global.colorBack  
+        border.color: control.down ? global.colorBorderLighter : global.colorBorderLight
+        border.width: global.valueBorderWidth
+        radius: global.valueBorderRadius / 2
+
+         anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter   
+        implicitWidth: global.iconWidth
+        implicitHeight: global.iconWidth
+
+         Rectangle {
+            visible: control.checked
+
+             color: global.colorBorderHighight           
+            radius: global.valueBorderRadius / 4
+
+             anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
+
+             implicitWidth: global.iconWidth - 2
+            implicitHeight: global.iconHeight - 2
+        }      
+    }
+
+    contentItem: PiText {
+        text: control.text
+        anchors.verticalCenter: parent.verticalCenter
+        horizontalAlignment: Text.AlignHLeft
+        anchors.left: control.indicator.right
+        leftPadding: global.horizontalMargin
+    }    
+    
     height: global.slimHeight
 }

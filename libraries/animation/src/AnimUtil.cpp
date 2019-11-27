@@ -15,7 +15,6 @@
 
 // TODO: use restrict keyword
 // TODO: excellent candidate for simd vectorization.
-
 void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, AnimPose* result) {
     for (size_t i = 0; i < numPoses; i++) {
         const AnimPose& aPose = a[i];
@@ -24,6 +23,55 @@ void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, A
         result[i].scale() = lerp(aPose.scale(), bPose.scale(), alpha);
         result[i].rot() = safeLerp(aPose.rot(), bPose.rot(), alpha);
         result[i].trans() = lerp(aPose.trans(), bPose.trans(), alpha);
+    }
+}
+
+void blend3(size_t numPoses, const AnimPose* a, const AnimPose* b, const AnimPose* c, float* alphas, AnimPose* result) {
+    for (size_t i = 0; i < numPoses; i++) {
+        const AnimPose& aPose = a[i];
+        const AnimPose& bPose = b[i];
+        const AnimPose& cPose = c[i];
+
+        result[i].scale() = alphas[0] * aPose.scale() + alphas[1] * bPose.scale() + alphas[2] * cPose.scale();
+        result[i].rot() = safeLinearCombine3(aPose.rot(), bPose.rot(), cPose.rot(), alphas);
+        result[i].trans() = alphas[0] * aPose.trans() + alphas[1] * bPose.trans() + alphas[2] * cPose.trans();
+    }
+}
+
+void blend4(size_t numPoses, const AnimPose* a, const AnimPose* b, const AnimPose* c, const AnimPose* d, float* alphas, AnimPose* result) {
+    for (size_t i = 0; i < numPoses; i++) {
+        const AnimPose& aPose = a[i];
+        const AnimPose& bPose = b[i];
+        const AnimPose& cPose = c[i];
+        const AnimPose& dPose = d[i];
+
+        result[i].scale() = alphas[0] * aPose.scale() + alphas[1] * bPose.scale() + alphas[2] * cPose.scale() + alphas[3] * dPose.scale();
+        result[i].rot() = safeLinearCombine4(aPose.rot(), bPose.rot(), cPose.rot(), dPose.rot(), alphas);
+        result[i].trans() = alphas[0] * aPose.trans() + alphas[1] * bPose.trans() + alphas[2] * cPose.trans() + alphas[3] * dPose.trans();
+    }
+}
+
+// additive blend
+void blendAdd(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, AnimPose* result) {
+
+    const glm::vec3 IDENTITY_SCALE = glm::vec3(1.0f);
+    const glm::quat IDENTITY_ROT = glm::quat();
+
+    for (size_t i = 0; i < numPoses; i++) {
+        const AnimPose& aPose = a[i];
+        const AnimPose& bPose = b[i];
+
+        result[i].scale() = aPose.scale() * lerp(IDENTITY_SCALE, bPose.scale(), alpha);
+
+        // ensure that delta has the same "polarity" as the identity quat.
+        // we don't need to do a full dot product, just sign of w is sufficient.
+        glm::quat delta = bPose.rot();
+        if (delta.w < 0.0f) {
+            delta = -delta;
+        }
+        delta = glm::lerp(IDENTITY_ROT, delta, alpha);
+        result[i].rot() = glm::normalize(aPose.rot() * delta);
+        result[i].trans() = aPose.trans() + (alpha * bPose.trans());
     }
 }
 
@@ -209,5 +257,88 @@ bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& shapePose
         // push the point out along the x axis.
         displacementOut = shapePose.xformVectorFast(shapeInfo.points[0]);
         return true;
+    }
+}
+
+// See https://easings.net/en# for a graphical visualiztion of easing types.
+float easingFunc(float alpha, EasingType type) {
+    switch (type) {
+    case EasingType_Linear:
+        return alpha;
+    case EasingType_EaseInSine:
+        return sinf((alpha - 1.0f) * PI_OVER_TWO) + 1.0f;
+    case EasingType_EaseOutSine:
+        return sinf(alpha * PI_OVER_TWO);
+    case EasingType_EaseInOutSine:
+        return 0.5f * (1.0f - cosf(alpha * PI));
+    case EasingType_EaseInQuad:
+        return alpha * alpha;
+    case EasingType_EaseOutQuad:
+        return -(alpha * (alpha - 2.0f));
+    case EasingType_EaseInOutQuad:
+        return (alpha < 0.5f) ? (2.0f * alpha * alpha) : ((-2.0f * alpha * alpha) + (4.0f * alpha) - 1.0f);
+    case EasingType_EaseInCubic:
+        return alpha * alpha * alpha;
+    case EasingType_EaseOutCubic: {
+            float temp = alpha - 1.0f;
+            return temp * temp * temp + 1.0f;
+        }
+    case EasingType_EaseInOutCubic:
+        if (alpha < 0.5f) {
+            return 4.0f * alpha * alpha * alpha;
+        } else {
+            float temp = ((2.0f * alpha) - 2.0f);
+            return 0.5f * temp * temp * temp + 1.0f;
+        }
+    case EasingType_EaseInQuart:
+        return alpha * alpha * alpha * alpha;
+    case EasingType_EaseOutQuart: {
+            float temp = alpha - 1.0f;
+            return temp * temp * temp * (1.0f - alpha) + 1.0f;
+        }
+    case EasingType_EaseInOutQuart:
+        if (alpha < 0.5f) {
+            return 8.0f * alpha * alpha * alpha * alpha;
+        } else {
+            float temp = alpha - 1.0f;
+            return -8.0f * temp * temp * temp * temp + 1.0f;
+        }
+    case EasingType_EaseInQuint:
+        return alpha * alpha * alpha * alpha * alpha;
+    case EasingType_EaseOutQuint: {
+            float temp = (alpha - 1.0f);
+            return temp * temp * temp * temp * temp + 1.0f;
+        }
+    case EasingType_EaseInOutQuint:
+        if (alpha < 0.5f) {
+            return 16.0f * alpha * alpha * alpha * alpha * alpha;
+        } else {
+            float temp = ((2.0f * alpha) - 2.0f);
+            return 0.5f * temp * temp * temp * temp * temp + 1.0f;
+        }
+    case EasingType_EaseInExpo:
+        return (alpha == 0.0f) ? alpha : powf(2.0f, 10.0f * (alpha - 1.0f));
+    case EasingType_EaseOutExpo:
+        return (alpha == 1.0f) ? alpha : 1.0f - powf(2.0f, -10.0f * alpha);
+    case EasingType_EaseInOutExpo:
+        if (alpha == 0.0f || alpha == 1.0f)
+            return alpha;
+        else if (alpha < 0.5f) {
+            return 0.5f * powf(2.0f, (20.0f * alpha) - 10.0f);
+        } else {
+            return -0.5f * powf(2.0f, (-20.0f * alpha) + 10.0f) + 1.0f;
+        }
+    case EasingType_EaseInCirc:
+        return 1.0f - sqrtf(1.0f - (alpha * alpha));
+    case EasingType_EaseOutCirc:
+        return sqrtf((2.0f - alpha) * alpha);
+    case EasingType_EaseInOutCirc:
+        if (alpha < 0.5f) {
+            return 0.5f * (1.0f - sqrtf(1.0f - 4.0f * (alpha * alpha)));
+        } else {
+            return 0.5f * (sqrtf(-((2.0f * alpha) - 3.0f) * ((2.0f * alpha) - 1.0f)) + 1.0f);
+        }
+    default:
+        return alpha;
     }
 }

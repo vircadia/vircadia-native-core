@@ -30,6 +30,8 @@ source_group("UI Files" FILES ${QT_UI_FILES})
 # have qt5 wrap them and generate the appropriate header files
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
+setup_memory_debugger()
+
 # add them to the nitpick source files
 set(NITPICK_SRCS ${NITPICK_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
@@ -91,7 +93,7 @@ if (WIN32)
     set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
 endif()
 
-link_hifi_libraries(entities-renderer)
+link_hifi_libraries(entities-renderer platform physics)
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -195,5 +197,7 @@ if (WIN32)
     set(TARGET_INSTALL_DIR ${NITPICK_INSTALL_DIR})
     set(TARGET_INSTALL_COMPONENT ${CLIENT_COMPONENT})
 
+    package_libraries_for_deployment()
+elseif (APPLE)
     package_libraries_for_deployment()
 endif()

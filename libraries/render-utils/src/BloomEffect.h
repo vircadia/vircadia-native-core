@@ -17,6 +17,7 @@
 #include "BloomStage.h"
 
 #include "DeferredFrameTransform.h"
+#include "LightingModel.h"
 
 class BloomConfig : public render::Task::Config {
     Q_OBJECT
@@ -28,7 +29,7 @@ class BloomThresholdConfig : public render::Job::Config {
 
 class BloomThreshold {
 public:
-    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, gpu::FramebufferPointer, BloomStage::FramePointer>;
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, gpu::FramebufferPointer, BloomStage::FramePointer, LightingModelPointer>;
     using Outputs = render::VaryingSet3<gpu::FramebufferPointer, float, graphics::BloomPointer>;
     using Config = BloomThresholdConfig;
     using JobModel = render::Job::ModelIO<BloomThreshold, Inputs, Outputs, Config>;
@@ -87,12 +88,13 @@ private:
 
 class DebugBloomConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(int mode MEMBER mode NOTIFY dirty)
+    Q_PROPERTY(int mode READ getMode WRITE setMode NOTIFY dirty)
 
 public:
 
     enum Mode {
-        MODE_LEVEL0 = 0,
+        OFF = 0,
+        MODE_LEVEL0,
         MODE_LEVEL1,
         MODE_LEVEL2,
         MODE_ALL_LEVELS,
@@ -102,7 +104,10 @@ public:
 
     DebugBloomConfig() : render::Job::Config(false) {}
 
-    int mode{ MODE_ALL_LEVELS };
+    void setMode(int mode);
+    int getMode() const { return _mode; }
+
+    int _mode{ MODE_ALL_LEVELS };
 
 signals:
     void dirty();
@@ -127,14 +132,14 @@ private:
 
 class BloomEffect {
 public:
-    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, gpu::FramebufferPointer, BloomStage::FramePointer>;
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, gpu::FramebufferPointer, BloomStage::FramePointer, LightingModelPointer>;
     using Config = BloomConfig;
-	using JobModel = render::Task::ModelI<BloomEffect, Inputs, Config>;
+    using JobModel = render::Task::ModelI<BloomEffect, Inputs, Config>;
 
-	BloomEffect();
+    BloomEffect();
 
-	void configure(const Config& config);
-	void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+    void configure(const Config& config);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 
 };
 

@@ -93,6 +93,7 @@ public:
 
     AvatarTransit() {};
     Status update(float deltaTime, const glm::vec3& avatarPosition, const TransitConfig& config);
+    void slamPosition(const glm::vec3& avatarPosition);
     Status getStatus() { return _status; }
     bool isActive() { return _isActive; }
     glm::vec3 getCurrentPosition() { return _currentPosition; }
@@ -139,7 +140,9 @@ public:
     static void setShowAvatars(bool render);
     static void setShowReceiveStats(bool receiveStats);
     static void setShowMyLookAtVectors(bool showMine);
+    static void setShowMyLookAtTarget(bool showMine);
     static void setShowOtherLookAtVectors(bool showOthers);
+    static void setShowOtherLookAtTarget(bool showOthers);
     static void setShowCollisionShapes(bool render);
     static void setShowNamesAboveHeads(bool show);
 
@@ -339,7 +342,7 @@ public:
      */
     Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
 
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
+    Q_INVOKABLE virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
     void updateDisplayNameAlpha(bool showDisplayName);
@@ -441,7 +444,7 @@ public:
     /**jsdoc
      * Gets the ID of the entity of avatar that the avatar is parented to.
      * @function MyAvatar.getParentID
-     * @returns {Uuid} The ID of the entity or avatar that the avatar is parented to. {@link Uuid|Uuid.NULL} if not parented.
+     * @returns {Uuid} The ID of the entity or avatar that the avatar is parented to. {@link Uuid(0)|Uuid.NULL} if not parented.
      */
     // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
@@ -450,7 +453,7 @@ public:
      * Sets the ID of the entity of avatar that the avatar is parented to.
      * @function MyAvatar.setParentID
      * @param {Uuid} parentID - The ID of the entity or avatar that the avatar should be parented to. Set to 
-     *    {@link Uuid|Uuid.NULL} to unparent.
+     *    {@link Uuid(0)|Uuid.NULL} to unparent.
      */
     // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual void setParentID(const QUuid& parentID) override;
@@ -467,7 +470,7 @@ public:
     /**jsdoc
      * Sets the joint of the entity or avatar that the avatar is parented to. 
      * @function MyAvatar.setParentJointIndex
-     * @param {number} parentJointIndex - he joint of the entity or avatar that the avatar should be parented to. Use
+     * @param {number} parentJointIndex - The joint of the entity or avatar that the avatar should be parented to. Use
      *     <code>65535</code> or <code>-1</code> to parent to the entity or avatar's position and orientation rather than a 
      *     joint.
      */
@@ -523,6 +526,7 @@ public:
 
     void fadeIn(render::ScenePointer scene);
     void fadeOut(render::Transaction& transaction, KillAvatarReason reason);
+    render::Transition::Type getLastFadeRequested() const;
 
     // JSDoc is in AvatarData.h.
     Q_INVOKABLE virtual float getEyeHeight() const override;
@@ -543,8 +547,8 @@ public:
     virtual void setEnableMeshVisible(bool isEnabled);
     virtual bool getEnableMeshVisible() const;
 
-    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
-    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
@@ -658,6 +662,7 @@ protected:
     std::vector<std::shared_ptr<Model>> _attachmentsToDelete;
 
     float _bodyYawDelta { 0.0f };  // degrees/sec
+    float _seatedBodyYawDelta{ 0.0f };  // degrees/renderframe
 
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces
@@ -694,13 +699,14 @@ protected:
     glm::vec3 getDisplayNamePosition() const;
 
     Transform calculateDisplayNameTransform(const ViewFrustum& view, const glm::vec3& textPosition) const;
-    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const;
+    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition, bool forward) const;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene(const render::ScenePointer& scene);
 
     virtual void updatePalms();
 
     render::ItemID _renderItemID{ render::Item::INVALID_ITEM_ID };
+    render::Transition::Type _lastFadeRequested { render::Transition::Type::NONE }; // Used for sanity checking
 
     ThreadSafeValueCache<glm::vec3> _leftPalmPositionCache { glm::vec3() };
     ThreadSafeValueCache<glm::quat> _leftPalmRotationCache { glm::quat() };

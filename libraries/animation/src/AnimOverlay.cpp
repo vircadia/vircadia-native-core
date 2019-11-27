@@ -54,15 +54,20 @@ const AnimPoseVec& AnimOverlay::evaluate(const AnimVariantMap& animVars, const A
 
     if (_children.size() >= 2) {
         auto& underPoses = _children[1]->evaluate(animVars, context, dt, triggersOut);
-        auto& overPoses = _children[0]->overlay(animVars, context, dt, triggersOut, underPoses);
 
-        if (underPoses.size() > 0 && underPoses.size() == overPoses.size()) {
-            _poses.resize(underPoses.size());
-            assert(_boneSetVec.size() == _poses.size());
+        if (_alpha == 0.0f) {
+            _poses = underPoses;
+        } else {
+            auto& overPoses = _children[0]->overlay(animVars, context, dt, triggersOut, underPoses);
 
-            for (size_t i = 0; i < _poses.size(); i++) {
-                float alpha = _boneSetVec[i] * _alpha;
-                ::blend(1, &underPoses[i], &overPoses[i], alpha, &_poses[i]);
+            if (underPoses.size() > 0 && underPoses.size() == overPoses.size()) {
+                _poses.resize(underPoses.size());
+                assert(_boneSetVec.size() == _poses.size());
+
+                for (size_t i = 0; i < _poses.size(); i++) {
+                    float alpha = _boneSetVec[i] * _alpha;
+                    ::blend(1, &underPoses[i], &overPoses[i], alpha, &_poses[i]);
+                }
             }
         }
     }

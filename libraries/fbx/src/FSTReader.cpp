@@ -21,7 +21,7 @@
 
 QVariantHash FSTReader::parseMapping(QIODevice* device) {
     QVariantHash properties;
-    
+
     QByteArray line;
     while (!(line = device->readLine()).isEmpty()) {
         if ((line = line.trimmed()).startsWith('#')) {
@@ -34,12 +34,10 @@ QVariantHash FSTReader::parseMapping(QIODevice* device) {
         QByteArray name = sections.at(0).trimmed();
         if (sections.size() == 2) {
             properties.insertMulti(name, sections.at(1).trimmed());
-            
         } else if (sections.size() == 3) {
             QVariantHash heading = properties.value(name).toHash();
             heading.insertMulti(sections.at(1).trimmed(), sections.at(2).trimmed());
             properties.insert(name, heading);
-            
         } else if (sections.size() >= 4) {
             QVariantHash heading = properties.value(name).toHash();
             QVariantList contents;
@@ -50,14 +48,58 @@ QVariantHash FSTReader::parseMapping(QIODevice* device) {
             properties.insert(name, heading);
         }
     }
-    
+
     return properties;
+}
+
+static void removeBlendshape(QVariantHash& bs, const QString& key) {
+    if (bs.contains(key)) {
+        bs.remove(key);
+    }
+}
+
+static void splitBlendshapes(QVariantHash& bs, const QString& key, const QString& leftKey, const QString& rightKey) {
+    if (bs.contains(key) && !(bs.contains(leftKey) || bs.contains(rightKey))) {
+        // key has been split into leftKey and rightKey blendshapes
+        QVariantList origShapes = bs.values(key);
+        QVariantList halfShapes;
+        for (int i = 0; i < origShapes.size(); i++) {
+            QVariantList origShape = origShapes[i].toList();
+            QVariantList halfShape;
+            halfShape.append(origShape[0]);
+            halfShape.append(QVariant(0.5f * origShape[1].toFloat()));
+            bs.insertMulti(leftKey, halfShape);
+            bs.insertMulti(rightKey, halfShape);
+        }
+    }
+}
+
+// convert legacy blendshapes to arkit blendshapes
+static void fixUpLegacyBlendshapes(QVariantHash& properties) {
+    QVariantHash bs = properties.value("bs").toHash();
+
+    // These blendshapes have no ARKit equivalent, so we remove them.
+    removeBlendshape(bs, "JawChew");
+    removeBlendshape(bs, "ChinLowerRaise");
+    removeBlendshape(bs, "ChinUpperRaise");
+    removeBlendshape(bs, "LipsUpperOpen");
+    removeBlendshape(bs, "LipsLowerOpen");
+
+    // These blendshapes are split in ARKit, we replace them with their left and right sides with a weight of 1/2.
+    splitBlendshapes(bs, "LipsUpperUp", "MouthUpperUp_L", "MouthUpperUp_R");
+    splitBlendshapes(bs, "LipsLowerDown", "MouthLowerDown_L", "MouthLowerDown_R");
+    splitBlendshapes(bs, "Sneer", "NoseSneer_L", "NoseSneer_R");
+
+    // re-insert new mutated bs hash into mapping properties.
+    properties.insert("bs", bs);
 }
 
 QVariantHash FSTReader::readMapping(const QByteArray& data) {
     QBuffer buffer(const_cast<QByteArray*>(&data));
     buffer.open(QIODevice::ReadOnly);
-    return FSTReader::parseMapping(&buffer);
+    QVariantHash mapping = FSTReader::parseMapping(&buffer);
+    fixUpLegacyBlendshapes(mapping);
+    return mapping;
 }
 
 void FSTReader::writeVariant(QBuffer& buffer, QVariantHash::const_iterator& it) {

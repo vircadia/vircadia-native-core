@@ -23,7 +23,7 @@ static uint8_t CUSTOM_PIPELINE_NUMBER = 0;
 static gpu::Stream::FormatPointer _vertexFormat;
 static std::weak_ptr<gpu::Pipeline> _texturedPipeline;
 
-static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch) {
+static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, RenderArgs* args) {
     auto texturedPipeline = _texturedPipeline.lock();
     if (!texturedPipeline) {
         auto state = std::make_shared<gpu::State>();
@@ -62,32 +62,6 @@ ParticleEffectEntityRenderer::ParticleEffectEntityRenderer(const EntityItemPoint
         _vertexFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element::VEC2F_UV,
             offsetof(GpuParticle, uv), gpu::Stream::PER_INSTANCE);
     });
-}
-
-bool ParticleEffectEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    entity->updateQueryAACube();
-
-    if (_emitting != entity->getIsEmitting()) {
-        return true;
-    }
-
-    if (_particleProperties != entity->getParticleProperties()) {
-        return true;
-    }
-
-    if (_pulseProperties != entity->getPulseProperties()) {
-        return true;
-    }
-
-    if (_shapeType != entity->getShapeType()) {
-        return true;
-    }
-
-    if (_compoundShapeURL != entity->getCompoundShapeURL()) {
-        return true;
-    }
-
-    return false;
 }
 
 void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
@@ -226,7 +200,7 @@ float importanceSample3DDimension(float startDim) {
 }
 
 ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
-                                                                                       const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource,
+                                                                                       const ShapeType& shapeType, const ModelResource::Pointer& geometryResource,
                                                                                        const TriangleInfo& triangleInfo) {
     CpuParticle particle;
 
@@ -411,7 +385,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
 
     particle::Properties particleProperties;
     ShapeType shapeType;
-    GeometryResource::Pointer geometryResource;
+    ModelResource::Pointer geometryResource;
     withReadLock([&] {
         particleProperties = _particleProperties;
         shapeType = _shapeType;
@@ -514,7 +488,7 @@ void ParticleEffectEntityRenderer::fetchGeometryResource() {
     if (hullURL.isEmpty()) {
         _geometryResource.reset();
     } else {
-        _geometryResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
+        _geometryResource = DependencyManager::get<ModelCache>()->getCollisionModelResource(hullURL);
     }
 }
 
@@ -522,7 +496,7 @@ void ParticleEffectEntityRenderer::fetchGeometryResource() {
 void ParticleEffectEntityRenderer::computeTriangles(const hfm::Model& hfmModel) {
     PROFILE_RANGE(render, __FUNCTION__);
 
-    int numberOfMeshes = hfmModel.meshes.size();
+    uint32_t numberOfMeshes = (uint32_t)hfmModel.meshes.size();
 
     _hasComputedTriangles = true;
     _triangleInfo.triangles.clear();
@@ -532,11 +506,11 @@ void ParticleEffectEntityRenderer::computeTriangles(const hfm::Model& hfmModel) 
     float minArea = FLT_MAX;
     AABox bounds;
 
-    for (int i = 0; i < numberOfMeshes; i++) {
+    for (uint32_t i = 0; i < numberOfMeshes; i++) {
         const HFMMesh& mesh = hfmModel.meshes.at(i);
 
-        const int numberOfParts = mesh.parts.size();
-        for (int j = 0; j < numberOfParts; j++) {
+        const uint32_t numberOfParts = (uint32_t)mesh.parts.size();
+        for (uint32_t j = 0; j < numberOfParts; j++) {
             const HFMMeshPart& part = mesh.parts.at(j);
 
             const int INDICES_PER_TRIANGLE = 3;

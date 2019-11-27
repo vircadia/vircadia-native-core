@@ -24,6 +24,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
 #include <QtCore/QJsonDocument>
+#include <shared/QtHelpers.h>
 
 #include <AABox.h>
 #include <AvatarLogging.h>
@@ -82,6 +83,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::BulkAvatarTraitsAck, this, "queueIncomingPacket");
     packetReceiver.registerListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
+    packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "queueIncomingPacket");
 
     packetReceiver.registerListenerForTypes({
         PacketType::ReplicatedAvatarIdentity,
@@ -363,14 +365,17 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
 
     // there is no need to manage identity data we haven't received yet
     // so bail early if we've never received an identity packet for this avatar
-    if (!nodeData || !nodeData->getAvatar().hasProcessedFirstIdentity()) {
+    if (!nodeData || !nodeData->getAvatar().hasProcessedFirstIdentity() || !node->getActiveSocket()) {
         return;
     }
 
-    bool sendIdentity = false;
-    if (nodeData && nodeData->getAvatarSessionDisplayNameMustChange()) {
-        AvatarData& avatar = nodeData->getAvatar();
-        const QString& existingBaseDisplayName = nodeData->getAvatar().getSessionDisplayName();
+    MixerAvatar& avatar = nodeData->getAvatar();
+    bool sendIdentity = avatar.needsIdentityUpdate();
+    if (sendIdentity) {
+        nodeData->flagIdentityChange();
+    }
+    if (nodeData->getAvatarSessionDisplayNameMustChange()) {
+        const QString& existingBaseDisplayName = avatar.getSessionDisplayName();
         if (!existingBaseDisplayName.isEmpty()) {
             SessionDisplayName existingDisplayName { existingBaseDisplayName };
 
@@ -414,10 +419,11 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
         sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name or avatar.
         // since this packet includes a change to either the skeleton model URL or the display name
         // it needs a new sequence number
-        nodeData->getAvatar().pushIdentitySequenceNumber();
+        avatar.pushIdentitySequenceNumber();
 
         // tell node whose name changed about its new session display name or avatar.
         sendIdentityPacket(nodeData, node);
+        avatar.setNeedsIdentityUpdate(false);
     }
 }
 
@@ -493,6 +499,8 @@ void AvatarMixer::handleAvatarKilled(SharedNodePointer avatarNode) {
            } else {
                _sessionDisplayNames.erase(displayNameIter);
            }
+
+            nodeData->getAvatar().stopChallengeTimer();
         }
 
         std::unique_ptr<NLPacket> killPacket;
@@ -504,10 +512,10 @@ void AvatarMixer::handleAvatarKilled(SharedNodePointer avatarNode) {
             // we relay avatar kill packets to agents that are not upstream
             // and downstream avatar mixers, if the node that was just killed was being replicatedConnectedAgent
             return node->getActiveSocket() &&
-                ((node->getType() == NodeType::Agent && !node->isUpstream()) ||
+                (((node->getType() == NodeType::Agent || node->getType() == NodeType::EntityScriptServer) && !node->isUpstream()) ||
                  (avatarNode->isReplicated() && shouldReplicateTo(*avatarNode, *node)));
         }, [&](const SharedNodePointer& node) {
-            if (node->getType() == NodeType::Agent) {
+            if (node->getType() == NodeType::Agent || node->getType() == NodeType::EntityScriptServer) {
                 if (!killPacket) {
                     killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
                     killPacket->write(avatarNode->getUUID().toRfc4122());
@@ -747,6 +755,13 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["threads"] = _slavePool.numThreads();
     statsObject["trailing_mix_ratio"] = _trailingMixRatio;
     statsObject["throttling_ratio"] = _throttlingRatio;
+
+#ifdef DEBUG_EVENT_QUEUE
+    QJsonObject qtStats;
+
+    _slavePool.queueStats(qtStats);
+    statsObject["avatar_thread_event_queue"] = qtStats;
+#endif
 
     // this things all occur on the frequency of the tight loop
     int tightLoopFrames = _numTightLoopFrames;
@@ -1065,6 +1080,12 @@ void AvatarMixer::setupEntityQuery() {
     QJsonObject priorityZoneQuery;
     priorityZoneQuery["avatarPriority"] = true;
     priorityZoneQuery["type"] = "Zone";
+
+    QJsonObject queryFlags;
+    queryFlags["includeAncestors"] = true;
+    queryFlags["includeDescendants"] = true;
+    priorityZoneQuery["flags"] = queryFlags;
+    priorityZoneQuery["name"] = true; // Handy for debugging.
 
     _entityViewer.getOctreeQuery().setJSONParameters(priorityZoneQuery);
     _slaveSharedData.entityTree = entityTree;

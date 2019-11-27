@@ -25,7 +25,8 @@ class AnimClip : public AnimNode {
 public:
     friend class AnimTests;
 
-    AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag);
+    AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag,
+             AnimBlendType blendType, const QString& baseURL, float baseFrame);
     virtual ~AnimClip() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
@@ -52,19 +53,22 @@ public:
     void setMirrorFlag(bool mirrorFlag) { _mirrorFlag = mirrorFlag; }
 
     float getFrame() const { return _frame; }
-
     void loadURL(const QString& url);
+
+    AnimBlendType getBlendType() const { return _blendType; };
+
 protected:
 
     virtual void setCurrentFrameInternal(float frame) override;
 
-    void copyFromNetworkAnim();
     void buildMirrorAnim();
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;
 
     AnimationPointer _networkAnim;
+    AnimationPointer _baseNetworkAnim;
+
     AnimPoseVec _poses;
 
     // _anim[frame][joint]
@@ -78,6 +82,9 @@ protected:
     bool _loopFlag;
     bool _mirrorFlag;
     float _frame;
+    AnimBlendType _blendType;
+    QString _baseURL;
+    float _baseFrame;
 
     QString _startFrameVar;
     QString _endFrameVar;

@@ -103,7 +103,20 @@ static const float MAX_AVATAR_HEIGHT = 1000.0f * DEFAULT_AVATAR_HEIGHT; // meter
 static const float MIN_AVATAR_HEIGHT = 0.005f * DEFAULT_AVATAR_HEIGHT; // meters
 static const float MIN_AVATAR_RADIUS = 0.5f * MIN_AVATAR_HEIGHT;
 static const float AVATAR_WALK_SPEED_SCALAR = 1.0f;
-static const float AVATAR_DESKTOP_SPRINT_SPEED_SCALAR = 3.0f;
+static const float AVATAR_DESKTOP_SPRINT_SPEED_SCALAR = 2.0f;
 static const float AVATAR_HMD_SPRINT_SPEED_SCALAR = 2.0f;
+
+enum AvatarTriggerReaction {
+    AVATAR_REACTION_POSITIVE = 0,
+    AVATAR_REACTION_NEGATIVE,
+    NUM_AVATAR_TRIGGER_REACTIONS
+};
+
+enum AvatarBeginEndReaction {
+    AVATAR_REACTION_RAISE_HAND,
+    AVATAR_REACTION_APPLAUD,
+    AVATAR_REACTION_POINT,
+    NUM_AVATAR_BEGIN_END_REACTIONS
+};
 
 #endif // hifi_AvatarConstants_h

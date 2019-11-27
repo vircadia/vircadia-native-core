@@ -93,20 +93,24 @@ void SkeletonModel::initJointStates() {
     emit skeletonLoaded();
 }
 
+glm::vec3 SkeletonModel::avoidCrossedEyes(const glm::vec3& lookAt) {
+    // make sure lookAt is not too close to face (avoid crosseyes)
+    glm::vec3 focusOffset = lookAt - _owningAvatar->getHead()->getEyePosition();
+    float focusDistance = glm::length(focusOffset);
+    const float MIN_LOOK_AT_FOCUS_DISTANCE = 1.0f;
+    if (focusDistance < MIN_LOOK_AT_FOCUS_DISTANCE && focusDistance > EPSILON) {
+        return _owningAvatar->getHead()->getEyePosition() + (MIN_LOOK_AT_FOCUS_DISTANCE / focusDistance) * focusOffset;
+    } else {
+        return lookAt;
+    }
+}
+
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     assert(!_owningAvatar->isMyAvatar());
 
     Head* head = _owningAvatar->getHead();
-
-    // make sure lookAt is not too close to face (avoid crosseyes)
-    glm::vec3 lookAt = head->getCorrectedLookAtPosition();
-    glm::vec3 focusOffset = lookAt - _owningAvatar->getHead()->getEyePosition();
-    float focusDistance = glm::length(focusOffset);
-    const float MIN_LOOK_AT_FOCUS_DISTANCE = 1.0f;
-    if (focusDistance < MIN_LOOK_AT_FOCUS_DISTANCE && focusDistance > EPSILON) {
-        lookAt = _owningAvatar->getHead()->getEyePosition() + (MIN_LOOK_AT_FOCUS_DISTANCE / focusDistance) * focusOffset;
-    }
+    glm::vec3 lookAt = avoidCrossedEyes(head->getCorrectedLookAtPosition());
 
     // no need to call Model::updateRig() because otherAvatars get their joint state
     // copied directly from AvtarData::_jointData (there are no Rig animations to blend)
@@ -150,8 +154,9 @@ void SkeletonModel::updateAttitude(const glm::quat& orientation) {
 // but just before head has been simulated.
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     updateAttitude(_owningAvatar->getWorldOrientation());
+    setBlendshapeCoefficients(_owningAvatar->getHead()->getSummedBlendshapeCoefficients());
+
     if (fullUpdate) {
-        setBlendshapeCoefficients(_owningAvatar->getHead()->getSummedBlendshapeCoefficients());
 
         Parent::simulate(deltaTime, fullUpdate);
 
@@ -164,9 +169,9 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         Parent::simulate(deltaTime, fullUpdate);
     }
 
-    // FIXME: This texture loading logic should probably live in Avatar, to mirror RenderableModelEntityItem and ModelOverlay,
+    // FIXME: This texture loading logic should probably live in Avatar, to mirror RenderableModelEntityItem,
     // but Avatars don't get updates in the same way
-    if (!_texturesLoaded && getGeometry() && getGeometry()->areTexturesLoaded()) {
+    if (!_texturesLoaded && getNetworkModel() && getNetworkModel()->areTexturesLoaded()) {
         _texturesLoaded = true;
         updateRenderItems();
     }
@@ -288,6 +293,15 @@ bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3&
     return false;
 }
 
+
+bool SkeletonModel::getIsJointOverridden(int jointIndex) const {
+    // has this joint been set by a script?
+    if (!isLoaded() || _rig.jointStatesEmpty()) {
+        return false;
+    }
+    return _rig.getIsJointOverridden(jointIndex);
+}
+
 bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
     if (getEyeModelPositions(firstEyePosition, secondEyePosition)) {
         firstEyePosition = _translation + _rotation * firstEyePosition;
@@ -312,7 +326,7 @@ void SkeletonModel::computeBoundingShape() {
     }
 
     const HFMModel& hfmModel = getHFMModel();
-    if (hfmModel.joints.isEmpty() || _rig.indexOfJoint("Hips") == -1) {
+    if (hfmModel.joints.empty() || _rig.indexOfJoint("Hips") == -1) {
         // rootJointIndex == -1 if the avatar model has no skeleton
         return;
     }
@@ -331,18 +345,19 @@ void SkeletonModel::renderBoundingCollisionShapes(RenderArgs* args, gpu::Batch& 
     // draw a blue sphere at the capsule top point
     glm::vec3 topPoint = _translation + _rotation * (scale * (_boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * Vectors::UNIT_Y));
     batch.setModelTransform(Transform().setTranslation(topPoint).postScale(scale * _boundingCapsuleRadius));
-    geometryCache->renderSolidSphereInstance(args, batch, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
+    auto pipeline = geometryCache->getShapePipelinePointer(alpha < 1.0f, false, args->_renderMethod == render::Args::RenderMethod::FORWARD);
+    geometryCache->renderSolidSphereInstance(args, batch, glm::vec4(0.6f, 0.6f, 0.8f, alpha), pipeline);
 
     // draw a yellow sphere at the capsule bottom point
     glm::vec3 bottomPoint = topPoint - _rotation * glm::vec3(0.0f, scale * _boundingCapsuleHeight, 0.0f);
     batch.setModelTransform(Transform().setTranslation(bottomPoint).postScale(scale * _boundingCapsuleRadius));
-    geometryCache->renderSolidSphereInstance(args, batch, glm::vec4(0.8f, 0.8f, 0.6f, alpha));
+    geometryCache->renderSolidSphereInstance(args, batch, glm::vec4(0.8f, 0.8f, 0.6f, alpha), pipeline);
 
     // draw a green cylinder between the two points
     float capsuleDiameter = 2.0f * _boundingCapsuleRadius;
     glm::vec3 cylinderDimensions = glm::vec3(capsuleDiameter, _boundingCapsuleHeight, capsuleDiameter);
     batch.setModelTransform(Transform().setScale(scale * cylinderDimensions).setRotation(_rotation).setTranslation(0.5f * (topPoint + bottomPoint)));
-    geometryCache->renderSolidShapeInstance(args, batch, GeometryCache::Shape::Cylinder, glm::vec4(0.6f, 0.8f, 0.6f, alpha));
+    geometryCache->renderSolidShapeInstance(args, batch, GeometryCache::Shape::Cylinder, glm::vec4(0.6f, 0.8f, 0.6f, alpha), pipeline);
 }
 
 bool SkeletonModel::hasSkeleton() {
@@ -351,4 +366,3 @@ bool SkeletonModel::hasSkeleton() {
 
 void SkeletonModel::onInvalidate() {
 }
-

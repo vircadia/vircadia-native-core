@@ -30,7 +30,7 @@ public:
     virtual void loadBackup(const QString& backupName, QuaZip& zip) = 0;
     virtual void loadingComplete() = 0;
     virtual void createBackup(const QString& backupName, QuaZip& zip) = 0;
-    virtual void recoverBackup(const QString& backupName, QuaZip& zip) = 0;
+    virtual std::pair<bool, QString> recoverBackup(const QString& backupName, QuaZip& zip, const QString& username, const QString& sourceFilename) = 0;
     virtual void deleteBackup(const QString& backupName) = 0;
     virtual void consolidateBackup(const QString& backupName, QuaZip& zip) = 0;
     virtual bool isCorruptedBackup(const QString& backupName) = 0;

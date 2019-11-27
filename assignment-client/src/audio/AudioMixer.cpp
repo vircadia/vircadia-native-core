@@ -17,6 +17,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonValue>
+#include <shared/QtHelpers.h>
 
 #include <LogHandler.h>
 #include <NetworkAccessManager.h>
@@ -268,6 +269,13 @@ void AudioMixer::sendStatsPacket() {
     if (_numStatFrames == 0) {
         return;
     }
+
+#ifdef DEBUG_EVENT_QUEUE
+    QJsonObject qtStats;
+
+    _slavePool.queueStats(qtStats);
+    statsObject["audio_thread_event_queue"] = qtStats;
+#endif
 
     // general stats
     statsObject["useDynamicJitterBuffers"] = _numStaticJitterFrames == DISABLE_STATIC_JITTER_FRAMES;

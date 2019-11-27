@@ -22,6 +22,7 @@ FocusScope {
     property alias editable: comboBox.editable
     property alias comboBox: comboBox
     readonly property alias currentText: comboBox.currentText;
+    property alias displayText: comboBox.displayText;
     property alias currentIndex: comboBox.currentIndex;
     property int currentHighLightedIndex: comboBox.currentIndex;
 

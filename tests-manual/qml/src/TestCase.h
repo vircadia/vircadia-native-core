@@ -8,8 +8,8 @@
 class TestCase {
 public:
     using QmlPtr = QSharedPointer<hifi::qml::OffscreenSurface>;
-    using Builder = std::function<TestCase*(const QWindow*)>;
-    TestCase(const QWindow* window) : _window(window) {}
+    using Builder = std::function<TestCase*(QWindow*)>;
+    TestCase(QWindow* window) : _window(window) {}
     virtual void init();
     virtual void destroy();
     virtual void update();
@@ -18,6 +18,6 @@ public:
 
 protected:
     QOpenGLFunctions_4_1_Core _glf;
-    const QWindow* _window;
+    QWindow* _window;
     std::function<void(uint32_t, void*)> _discardLamdba;
 };

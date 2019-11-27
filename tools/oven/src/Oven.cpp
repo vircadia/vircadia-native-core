@@ -21,6 +21,7 @@
 #include <ResourceManager.h>
 #include <ResourceRequestObserver.h>
 #include <ResourceCache.h>
+#include <procedural/ProceduralMaterialCache.h>
 #include <material-networking/TextureCache.h>
 #include <hfm/ModelFormatRegistry.h>
 #include <FBXSerializer.h>
@@ -42,6 +43,7 @@ Oven::Oven() {
     DependencyManager::set<ResourceRequestObserver>();
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<TextureCache>();
+    DependencyManager::set<MaterialCache>();
 
     MaterialBaker::setNextOvenWorkerThreadOperator([] {
         return Oven::instance().getNextWorkerThread();

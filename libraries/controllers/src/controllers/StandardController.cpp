@@ -30,17 +30,16 @@ void StandardController::focusOutEvent() {
 /**jsdoc
  * <p>The <code>Controller.Standard</code> object has properties representing standard controller outputs. Those for physical 
  * controllers are based on the XBox controller, with aliases for PlayStation. The property values are integer IDs, uniquely 
- * identifying each output. <em>Read-only.</em> These can be mapped to actions or functions in a {@link RouteObject} 
- * mapping.</p>
- *
- * <p>The data value provided by each control is either a number or a {@link Pose}. Numbers are typically normalized to
- * <code>0.0</code> or <code>1.0</code> for button states, the range <code>0.0 &ndash; 1.0</code> for unidirectional scales,
- * and the range <code>-1.0 &ndash; 1.0</code> for bidirectional scales.</p>
- *
- * <p>Each hardware device has a mapping from its outputs to <code>Controller.Standard</code> items, specified in a JSON file.
- * For example, <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/leapmotion.json">
- * leapmotion.json</a> and
- * <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/vive.json">vive.json</a>.</p>
+ * identifying each output. <em>Read-only.</em></p>
+ * <p>These outputs can be mapped to actions or functions in a {@link RouteObject} mapping. The data value provided by each 
+ * control is either a number or a {@link Pose}. Numbers are typically normalized to <code>0.0</code> or <code>1.0</code> for 
+ * button states, the range <code>0.0</code> &ndash; <code>1.0</code> for unidirectional scales, and the range 
+ * <code>-1.0</code> &ndash; <code>1.0</code> for bidirectional scales.</p>
+ * <p>Each hardware device has a mapping from its outputs to a subset of <code>Controller.Standard</code> items, specified in a 
+ * JSON file. For example, 
+ * <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/vive.json">vive.json</a>
+ * and <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/leapmotion.json">
+ * leapmotion.json</a>.</p>
  *
  * <table>
  *   <thead>
@@ -119,12 +118,11 @@ void StandardController::focusOutEvent() {
  *       button.</td></tr>
  *     <tr><td><code>RightThumbUp</code></td><td>number</td><td>number</td><td>Right thumb not touching primary or secondary 
  *       thumb buttons.</td></tr>
- *     <tr><td><code>LeftPrimaryIndex</code></td><td>number</td><td>number</td><td>Left primary index control pressed. 
- *       <strong>To Do:</strong> <em>Implement this for current controllers.</em></td></tr>
+ *     <tr><td><code>LeftPrimaryIndex</code></td><td>number</td><td>number</td><td>Left primary index control pressed.</td></tr>
  *     <tr><td><code>LeftSecondaryIndex</code></td><td>number</td><td>number</td><td>Left secondary index control pressed.
  *       </td></tr>
  *     <tr><td><code>RightPrimaryIndex</code></td><td>number</td><td>number</td><td>Right primary index control pressed. 
- *       <strong>To Do:</strong> <em>Implement this for current controllers.</em></td></tr>
+ *       </td></tr>
  *     <tr><td><code>RightSecondaryIndex</code></td><td>number</td><td>number</td><td>Right secondary index control pressed.
  *       </td></tr>
  *     <tr><td><code>LeftPrimaryIndexTouch</code></td><td>number</td><td>number</td><td>Left index finger is touching primary 
@@ -355,6 +353,72 @@ Input::NamedVector StandardController::getAvailableInputs() const {
         makePair(HIPS, "Hips"),
         makePair(SPINE2, "Spine2"),
         makePair(HEAD, "Head"),
+        makePair(LEFT_EYE, "LeftEye"),
+        makePair(RIGHT_EYE, "RightEye"),
+
+        // blendshapes
+        makePair(EYEBLINK_L, "EyeBlink_L"),
+        makePair(EYEBLINK_R, "EyeBlink_R"),
+        makePair(EYESQUINT_L, "EyeSquint_L"),
+        makePair(EYESQUINT_R, "EyeSquint_R"),
+        makePair(EYEDOWN_L, "EyeDown_L"),
+        makePair(EYEDOWN_R, "EyeDown_R"),
+        makePair(EYEIN_L, "EyeIn_L"),
+        makePair(EYEIN_R, "EyeIn_R"),
+        makePair(EYEOPEN_L, "EyeOpen_L"),
+        makePair(EYEOPEN_R, "EyeOpen_R"),
+        makePair(EYEOUT_L, "EyeOut_L"),
+        makePair(EYEOUT_R, "EyeOut_R"),
+        makePair(EYEUP_L, "EyeUp_L"),
+        makePair(EYEUP_R, "EyeUp_R"),
+        makePair(BROWSD_L, "BrowsD_L"),
+        makePair(BROWSD_R, "BrowsD_R"),
+        makePair(BROWSU_C, "BrowsU_C"),
+        makePair(BROWSU_L, "BrowsU_L"),
+        makePair(BROWSU_R, "BrowsU_R"),
+        makePair(JAWFWD, "JawFwd"),
+        makePair(JAWLEFT, "JawLeft"),
+        makePair(JAWOPEN, "JawOpen"),
+        makePair(JAWRIGHT, "JawRight"),
+        makePair(MOUTHLEFT, "MouthLeft"),
+        makePair(MOUTHRIGHT, "MouthRight"),
+        makePair(MOUTHFROWN_L, "MouthFrown_L"),
+        makePair(MOUTHFROWN_R, "MouthFrown_R"),
+        makePair(MOUTHSMILE_L, "MouthSmile_L"),
+        makePair(MOUTHSMILE_R, "MouthSmile_R"),
+        makePair(MOUTHDIMPLE_L, "MouthDimple_L"),
+        makePair(MOUTHDIMPLE_R, "MouthDimple_R"),
+        makePair(LIPSSTRETCH_L, "LipsStretch_L"),
+        makePair(LIPSSTRETCH_R, "LipsStretch_R"),
+        makePair(LIPSUPPERCLOSE, "LipsUpperClose"),
+        makePair(LIPSLOWERCLOSE, "LipsLowerClose"),
+        makePair(LIPSFUNNEL, "LipsFunnel"),
+        makePair(LIPSPUCKER, "LipsPucker"),
+        makePair(PUFF, "Puff"),
+        makePair(CHEEKSQUINT_L, "CheekSquint_L"),
+        makePair(CHEEKSQUINT_R, "CheekSquint_R"),
+        makePair(MOUTHCLOSE, "MouthClose"),
+        makePair(MOUTHUPPERUP_L, "MouthUpperUp_L"),
+        makePair(MOUTHUPPERUP_R, "MouthUpperUp_R"),
+        makePair(MOUTHLOWERDOWN_L, "MouthLowerDown_L"),
+        makePair(MOUTHLOWERDOWN_R, "MouthLowerDown_R"),
+        makePair(MOUTHPRESS_L, "MouthPress_L"),
+        makePair(MOUTHPRESS_R, "MouthPress_R"),
+        makePair(MOUTHSHRUGLOWER, "MouthShrugLower"),
+        makePair(MOUTHSHRUGUPPER, "MouthShrugUpper"),
+        makePair(NOSESNEER_L, "NoseSneer_L"),
+        makePair(NOSESNEER_R, "NoseSneer_R"),
+        makePair(TONGUEOUT, "TongueOut"),
+        makePair(USERBLENDSHAPE0, "UserBlendshape0"),
+        makePair(USERBLENDSHAPE1, "UserBlendshape1"),
+        makePair(USERBLENDSHAPE2, "UserBlendshape2"),
+        makePair(USERBLENDSHAPE3, "UserBlendshape3"),
+        makePair(USERBLENDSHAPE4, "UserBlendshape4"),
+        makePair(USERBLENDSHAPE5, "UserBlendshape5"),
+        makePair(USERBLENDSHAPE6, "UserBlendshape6"),
+        makePair(USERBLENDSHAPE7, "UserBlendshape7"),
+        makePair(USERBLENDSHAPE8, "UserBlendshape8"),
+        makePair(USERBLENDSHAPE9, "UserBlendshape9"),
 
         // Aliases, PlayStation style names
         makePair(LB, "L1"),

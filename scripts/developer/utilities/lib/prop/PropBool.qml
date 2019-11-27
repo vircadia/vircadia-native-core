@@ -14,12 +14,6 @@ PropItem {
     Global { id: global }
     id: root
 
-    property alias valueVar : checkboxControl.checked
-
-    Component.onCompleted: {
-        valueVar = root.valueVarGetter();
-    }
-
     PropCheckBox {
         id: checkboxControl
 
@@ -27,6 +21,7 @@ PropItem {
         anchors.verticalCenter: root.verticalCenter
         width: root.width * global.valueAreaWidthScale
 
+        checked: root.valueVarGetter();
         onCheckedChanged: { root.valueVarSetter(checked); }
     }
 }

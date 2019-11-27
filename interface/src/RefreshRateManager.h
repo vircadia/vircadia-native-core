@@ -14,6 +14,9 @@
 
 #include <map>
 #include <string>
+#include <functional>
+
+#include <QTimer>
 
 #include <SettingHandle.h>
 #include <shared/ReadWriteLockable.h>
@@ -26,21 +29,25 @@ public:
         REALTIME,
         PROFILE_NUM
     };
+    static bool isValidRefreshRateProfile(RefreshRateProfile value) { return (value >= RefreshRateProfile::ECO && value <= RefreshRateProfile::REALTIME); }
 
     enum RefreshRateRegime {
-        RUNNING = 0,
+        FOCUS_ACTIVE = 0,
+        FOCUS_INACTIVE,
         UNFOCUS,
         MINIMIZED,
         STARTUP,
         SHUTDOWN,
         REGIME_NUM
     };
+    static bool isValidRefreshRateRegime(RefreshRateRegime value) { return (value >= RefreshRateRegime::FOCUS_ACTIVE && value <= RefreshRateRegime::SHUTDOWN); }
 
     enum UXMode {
         DESKTOP = 0,
-        HMD,
+        VR,
         UX_NUM
     };
+    static bool isValidUXMode(UXMode value) { return (value >= UXMode::DESKTOP && value <= UXMode::VR); }
 
     RefreshRateManager();
     ~RefreshRateManager() = default;
@@ -57,8 +64,12 @@ public:
     void setRefreshRateOperator(std::function<void(int)> refreshRateOperator) { _refreshRateOperator = refreshRateOperator; }
     int getActiveRefreshRate() const { return _activeRefreshRate; }
     void updateRefreshRateController() const;
-    void setInteractiveRefreshRate(int refreshRate);
-    int getInteractiveRefreshRate() const;
+
+    // query the refresh rate target at the specified combination
+    int queryRefreshRateTarget(RefreshRateProfile profile, RefreshRateRegime regime, UXMode uxMode) const;
+
+    void resetInactiveTimer();
+    void toggleInactive();
 
     static std::string refreshRateProfileToString(RefreshRateProfile refreshRateProfile);
     static RefreshRateProfile refreshRateProfileFromString(std::string refreshRateProfile);
@@ -66,18 +77,17 @@ public:
     static std::string refreshRateRegimeToString(RefreshRateRegime refreshRateRegime);
 
 private:
-    mutable ReadWriteLockable _refreshRateLock;
-    mutable ReadWriteLockable _refreshRateModeLock;
-
     mutable int _activeRefreshRate { 20 };
     RefreshRateProfile _refreshRateProfile { RefreshRateProfile::INTERACTIVE};
     RefreshRateRegime _refreshRateRegime { RefreshRateRegime::STARTUP };
     UXMode _uxMode;
 
-    Setting::Handle<int> _interactiveRefreshRate { "interactiveRefreshRate", 20};
-    Setting::Handle<int> _refreshRateMode { "refreshRateProfile", INTERACTIVE };
+    mutable ReadWriteLockable _refreshRateProfileSettingLock;
+    Setting::Handle<int> _refreshRateProfileSetting { "refreshRateProfile", RefreshRateProfile::INTERACTIVE };
 
     std::function<void(int)> _refreshRateOperator { nullptr };
+
+    std::shared_ptr<QTimer> _inactiveTimer { std::make_shared<QTimer>() };
 };
 
 #endif

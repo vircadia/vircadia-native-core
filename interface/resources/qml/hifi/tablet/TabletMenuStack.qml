@@ -49,7 +49,10 @@ Item {
         }
 
         function pushSource(path) {
-            d.push(Qt.resolvedUrl("../../" + path));
+            // Workaround issue https://bugreports.qt.io/browse/QTBUG-75516 in Qt 5.12.3
+            // by creating the manually, instead of letting StackView do it for us.
+            var item = Qt.createComponent(Qt.resolvedUrl("../../" + path));
+            d.push(item);
             if (d.currentItem.sendToScript !== undefined) {
                 d.currentItem.sendToScript.connect(tabletMenu.sendToScript);
             }

@@ -27,7 +27,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::StunResponse:
             return 17;
         case PacketType::DomainList:
-            return static_cast<PacketVersion>(DomainListVersion::AuthenticationOptional);
+            return static_cast<PacketVersion>(DomainListVersion::HasConnectReason);
         case PacketType::EntityAdd:
         case PacketType::EntityClone:
         case PacketType::EntityEdit:
@@ -38,10 +38,10 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(EntityQueryPacketVersion::ConicalFrustums);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::HandControllerSection);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::ARKitBlendshapes);
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::HandControllerSection);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::ARKitBlendshapes);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         // ICE packets
@@ -72,7 +72,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesExtraInfo);
 
         case PacketType::DomainConnectRequest:
-            return static_cast<PacketVersion>(DomainConnectRequestVersion::AlwaysHasMachineFingerprint);
+            return static_cast<PacketVersion>(DomainConnectRequestVersion::HasCompressedSystemInfo);
 
         case PacketType::DomainServerAddedNode:
             return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);

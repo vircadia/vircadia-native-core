@@ -99,7 +99,7 @@ public:
 
     static void setAbstractViewStateInterface(AbstractViewStateInterface* viewState) { _viewState = viewState; }
 
-    Model(QObject* parent = nullptr, SpatiallyNestable* spatiallyNestableOverride = nullptr);
+    Model(QObject* parent = nullptr, SpatiallyNestable* spatiallyNestableOverride = nullptr, uint64_t created = 0);
     virtual ~Model();
 
     inline ModelPointer getThisPointer() const {
@@ -180,7 +180,7 @@ public:
     virtual void updateClusterMatrices();
 
     /// Returns a reference to the shared geometry.
-    const Geometry::Pointer& getGeometry() const { return _renderGeometry; }
+    const NetworkModel::Pointer& getNetworkModel() const { return _renderGeometry; }
 
     const QVariantMap getTextures() const { assert(isLoaded()); return _renderGeometry->getTextures(); }
     Q_INVOKABLE virtual void setTextures(const QVariantMap& textures);
@@ -299,6 +299,16 @@ public:
     int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
 
+    class ShapeState {
+    public:
+        glm::mat4 _rootFromJointTransform;
+        uint32_t _jointIndex{ hfm::UNDEFINED_KEY };
+        uint32_t _meshIndex{ hfm::UNDEFINED_KEY };
+        uint32_t _meshPartIndex{ hfm::UNDEFINED_KEY };
+        uint32_t _skinDeformerIndex{ hfm::UNDEFINED_KEY };
+    };
+    const ShapeState& getShapeState(int index) { return _shapeStates.at(index); }
+
     class TransformDualQuaternion {
     public:
         TransformDualQuaternion() {}
@@ -341,15 +351,16 @@ public:
     public:
         std::vector<TransformDualQuaternion> clusterDualQuaternions;
         std::vector<glm::mat4> clusterMatrices;
-    };
 
+        uint32_t getNumClusters() const { return (uint32_t) std::max(clusterMatrices.size(), clusterMatrices.size()); }
+    };
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
 
     uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
-    const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItemsMap; }
+
     BlendShapeOperator getModelBlendshapeOperator() const { return _modelBlendshapeOperator; }
 
-    void renderDebugMeshBoxes(gpu::Batch& batch);
+    void renderDebugMeshBoxes(gpu::Batch& batch, bool forward);
 
     int getResourceDownloadAttempts() { return _renderWatcher.getResourceDownloadAttempts(); }
     int getResourceDownloadAttemptsRemaining() { return _renderWatcher.getResourceDownloadAttemptsRemaining(); }
@@ -365,8 +376,6 @@ public:
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
-    std::unordered_map<int, QVector<BlendshapeOffset>> _blendshapeOffsets;
-
 public slots:
     void loadURLFinished(bool success);
 
@@ -381,6 +390,7 @@ protected:
 
     std::unordered_map<unsigned int, quint16> _priorityMap; // only used for materialMapping
     std::unordered_map<unsigned int, std::vector<graphics::MaterialLayer>> _materialMapping; // generated during applyMaterialMapping
+    std::mutex _materialMappingMutex;
     void applyMaterialMapping();
 
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
@@ -394,9 +404,9 @@ protected:
     /// \return true if joint exists
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
 
-    Geometry::Pointer _renderGeometry; // only ever set by its watcher
+    NetworkModel::Pointer _renderGeometry; // only ever set by its watcher
 
-    GeometryResourceWatcher _renderWatcher;
+    ModelResourceWatcher _renderWatcher;
 
     SpatiallyNestable* _spatiallyNestableOverride;
 
@@ -422,6 +432,10 @@ protected:
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
     glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
 
+
+    std::vector<ShapeState> _shapeStates;
+    void updateShapeStatesFromRig();
+
     std::vector<MeshState> _meshStates;
 
     virtual void initJointStates();
@@ -429,7 +443,6 @@ protected:
     void setScaleInternal(const glm::vec3& scale);
     void snapToRegistrationPoint();
 
-    void computeMeshPartLocalBounds();
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
     /// Allow sub classes to force invalidating the bboxes
@@ -448,7 +461,6 @@ protected:
     QVector<float> _blendshapeCoefficients;
     QVector<float> _blendedBlendshapeCoefficients;
     int _blendNumber { 0 };
-    bool _blendshapeOffsetsInitialized { false };
 
     mutable QMutex _mutex{ QMutex::Recursive };
 
@@ -468,10 +480,7 @@ protected:
     static AbstractViewStateInterface* _viewState;
 
     QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
-    QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
     render::ItemIDs _modelMeshRenderItemIDs;
-    using ShapeInfo = struct { int meshIndex; };
-    std::vector<ShapeInfo> _modelMeshRenderItemShapes;
     std::vector<std::string> _modelMeshMaterialNames;
 
     bool _addedToScene { false }; // has been added to scene
@@ -512,7 +521,7 @@ protected:
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
-    void initializeBlendshapes(const HFMMesh& mesh, int index);
+    uint64_t _created;
 
 private:
     float _loadingPriority { 0.0f };
@@ -523,7 +532,7 @@ private:
 };
 
 Q_DECLARE_METATYPE(ModelPointer)
-Q_DECLARE_METATYPE(Geometry::WeakPointer)
+Q_DECLARE_METATYPE(NetworkModel::WeakPointer)
 Q_DECLARE_METATYPE(BlendshapeOffset)
 
 /// Handle management of pending models that need blending

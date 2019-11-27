@@ -11,8 +11,8 @@
 
 #include "MainWindow.h"
 
-#include <QApplication>
-#include <QDesktopWidget>
+#include <QtGui/QGuiApplication>
+#include <QtGui/QScreen>
 #include <QEvent>
 #include <QMoveEvent>
 #include <QResizeEvent>
@@ -22,10 +22,14 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QMimeData>
-#include <QWindow>
-#include <QDebug>
+#include <QtGui/QWindow>
+#include <QtCore/QDebug>
 
 #include "ui/Logging.h"
+#include "DockWidget.h"
+
+#include <QSizePolicy>
+#include <QLayout>
 
 MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent),
@@ -34,6 +38,7 @@ MainWindow::MainWindow(QWidget* parent) :
 {
     setAttribute(Qt::WA_NoSystemBackground);
     setAcceptDrops(true);
+    setStyleSheet("QMainWindow::separator {width: 1px; border: none;}");
 }
 
 MainWindow::~MainWindow() {
@@ -55,8 +60,17 @@ QWindow* MainWindow::findMainWindow() {
 void MainWindow::restoreGeometry() {
     // Did not use setGeometry() on purpose,
     // see http://doc.qt.io/qt-5/qsettings.html#restoring-the-state-of-a-gui-application
-    QRect geometry = _windowGeometry.get(qApp->desktop()->availableGeometry());
+    QRect windowGeometry = QGuiApplication::primaryScreen()->availableGeometry();
+#if defined(Q_OS_MAC)
+    const float MACOS_INITIAL_WINDOW_SCALE = 0.8f;
+    windowGeometry.setSize((windowGeometry.size() * MACOS_INITIAL_WINDOW_SCALE));
+#endif
+    QRect geometry = _windowGeometry.get(windowGeometry);
+#if defined(Q_OS_MAC)
+    move(geometry.center());
+#else
     move(geometry.topLeft());
+#endif
     resize(geometry.size());
 
     // Restore to maximized or full screen after restoring to windowed so that going windowed goes to good position and sizes.

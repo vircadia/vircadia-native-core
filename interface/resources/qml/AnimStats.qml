@@ -54,6 +54,9 @@ Item {
                         text: root.recenterText
                     }
                     StatText {
+                        text: root.overrideJointText
+                    }
+                    StatText {
                         text: "Anim Vars:--------------------------------------------------------------------------------"
                     }
                     ListView {
@@ -99,6 +102,9 @@ Item {
                         text: root.sittingText
                     }
                     StatText {
+                        text: root.flowText
+                    }
+                    StatText {
                         text: "State Machines:---------------------------------------------------------------------------"
                     }
                     ListView {
@@ -130,6 +136,9 @@ Item {
                     }
                     StatText {
                         text: root.walkingText
+                    }
+                    StatText {
+                        text: root.networkGraphText
                     }
                     StatText {
                         text: "Alpha Values:--------------------------------------------------------------------------"

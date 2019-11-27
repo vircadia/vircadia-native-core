@@ -109,8 +109,8 @@ public:
     void setShadowsMaxDistance(const float maxDistance);
     float getShadowsMaxDistance() const;
 
-    void setShadowsBiasScale(const float scale);
-    float getShadowsBiasScale() const;
+    void setShadowBias(float bias);
+    float getShadowBias() const;
 
     void setOrientation(const Quat& orientation);
     const glm::quat& getOrientation() const { return _transform.getRotation(); }
@@ -198,8 +198,8 @@ protected:
     Type _type { SUN };
     float _spotCos { -1.0f }; // stored here to be able to reset the spot angle when turning the type spot on/off
 
-    float _shadowsMaxDistance{ 40.0f };
-    float _shadowsBiasScale{ 1.0f };
+    float _shadowsMaxDistance { 40.0f };
+    float _shadowBias { 0.5f };
     bool _castShadows{ false };
 
     void updateLightRadius();

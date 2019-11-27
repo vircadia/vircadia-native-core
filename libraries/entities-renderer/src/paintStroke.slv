@@ -1,9 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  paintStroke.vert
-//  vertex shader
 //
 //  Created by Eric Levin on 7/20/15.
 //  Copyright 2014 High Fidelity, Inc.
@@ -20,7 +18,9 @@
 <@include paintStroke.slh@>
 <$declarePolyLineBuffers()$>
 
-layout(location=0) out vec3 _normalWS;
+<@if not HIFI_USE_FORWARD@>
+    layout(location=0) out vec3 _normalWS;
+<@endif@>
 layout(location=1) out vec2 _texCoord;
 layout(location=2) out vec4 _color;
 layout(location=3) out float _distanceFromCenter;
@@ -50,11 +50,15 @@ void main(void) {
         vec3 binormalEye = normalize(cross(normalEye, tangentEye));
         posEye.xyz += _distanceFromCenter * vertex.binormalAndHalfWidth.w * binormalEye;
         <$transformEyeToClipPos(cam, posEye, gl_Position)$>
+<@if not HIFI_USE_FORWARD@>
         <$transformEyeToWorldDir(cam, normalEye, _normalWS)$>
+<@endif@>
     } else {
         vec3 normal = vertex.normal.xyz;
         position.xyz += _distanceFromCenter * vertex.binormalAndHalfWidth.w * binormal;
         <$transformModelToClipPos(cam, obj, position, gl_Position)$>
+<@if not HIFI_USE_FORWARD@>
         <$transformModelToWorldDir(cam, obj, normal, _normalWS)$>
+<@endif@>
     }
 }

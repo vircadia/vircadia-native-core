@@ -225,10 +225,6 @@ StackView {
                     verticalCenter: addressLineContainer.verticalCenter;
                 }
 
-                onFocusChanged: {
-                    addressBarDialog.raised = focus;
-                }
-
                 onTextChanged: {
                     updateLocationText(text.length > 0);
                 }

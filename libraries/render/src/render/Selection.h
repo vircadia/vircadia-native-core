@@ -45,9 +45,8 @@ namespace render {
         Name _name;
         ItemIDs _items;
     };
-    using Selections = std::vector<Selection>;
 
-    using SelectionMap = std::map<const Selection::Name, Selection>;
+    using SelectionMap = std::unordered_map<Selection::Name, Selection>;
 
 }
 

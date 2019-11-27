@@ -36,10 +36,10 @@ MyCharacterController::MyCharacterController(std::shared_ptr<MyAvatar> avatar) {
 MyCharacterController::~MyCharacterController() {
 }
 
-void MyCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
-    CharacterController::setDynamicsWorld(world);
-    if (world && _rigidBody) {
-        initRayShotgun(world);
+void MyCharacterController::addToWorld() {
+    CharacterController::addToWorld();
+    if (_rigidBody) {
+        initRayShotgun(_physicsEngine->getDynamicsWorld());
     }
 }
 
@@ -204,7 +204,7 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
 }
 
 int32_t MyCharacterController::computeCollisionMask() const {
-    int32_t collisionMask = BULLET_COLLISION_MASK_MY_AVATAR; 
+    int32_t collisionMask = BULLET_COLLISION_MASK_MY_AVATAR;
     if (_collisionless && _collisionlessAllowed) {
         collisionMask = BULLET_COLLISION_MASK_COLLISIONLESS;
     } else if (!_collideWithOtherAvatars) {
@@ -216,14 +216,15 @@ int32_t MyCharacterController::computeCollisionMask() const {
 void MyCharacterController::handleChangedCollisionMask() {
     if (_pendingFlags & PENDING_FLAG_UPDATE_COLLISION_MASK) {
         // ATM the easiest way to update collision groups/masks is to remove/re-add the RigidBody
-        if (_dynamicsWorld) {
-            _dynamicsWorld->removeRigidBody(_rigidBody);
-            int32_t collisionMask = computeCollisionMask();
-            _dynamicsWorld->addRigidBody(_rigidBody, BULLET_COLLISION_GROUP_MY_AVATAR, collisionMask);
-        }
+        // but we don't do it here.  Instead we set some flags to remind us to do it later.
+        _pendingFlags |= (PENDING_FLAG_REMOVE_FROM_SIMULATION | PENDING_FLAG_ADD_TO_SIMULATION);
         _pendingFlags &= ~PENDING_FLAG_UPDATE_COLLISION_MASK;
         updateCurrentGravity();
     }
+}
+
+bool MyCharacterController::needsSafeLandingSupport() const {
+    return _isStuck && _numStuckSubsteps >= NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY;
 }
 
 btConvexHullShape* MyCharacterController::computeShape() const {
@@ -377,21 +378,18 @@ void MyCharacterController::updateMassProperties() {
     _rigidBody->setMassProps(mass, inertia);
 }
 
-btCollisionShape* MyCharacterController::createDetailedCollisionShapeForJoint(int jointIndex) {
+const btCollisionShape* MyCharacterController::createDetailedCollisionShapeForJoint(int32_t jointIndex) {
     ShapeInfo shapeInfo;
     _avatar->computeDetailedShapeInfo(shapeInfo, jointIndex);
     if (shapeInfo.getType() != SHAPE_TYPE_NONE) {
-        btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-        if (shape) {
-            shape->setMargin(0.001f);
-        }
+        const btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
         return shape;
     }
     return nullptr;
 }
 
-DetailedMotionState* MyCharacterController::createDetailedMotionStateForJoint(int jointIndex) {
-    auto shape = createDetailedCollisionShapeForJoint(jointIndex);
+DetailedMotionState* MyCharacterController::createDetailedMotionStateForJoint(int32_t jointIndex) {
+    const btCollisionShape* shape = createDetailedCollisionShapeForJoint(jointIndex);
     if (shape) {
         DetailedMotionState* motionState = new DetailedMotionState(_avatar, shape, jointIndex);
         motionState->setMass(_avatar->computeMass());
@@ -401,13 +399,11 @@ DetailedMotionState* MyCharacterController::createDetailedMotionStateForJoint(in
 }
 
 void MyCharacterController::clearDetailedMotionStates() {
+    // we don't actually clear the MotionStates here
+    // instead we twiddle some flags as a signal of what to do later
     _pendingFlags |= PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION; 
     // We make sure we don't add them again
     _pendingFlags &= ~PENDING_FLAG_ADD_DETAILED_TO_SIMULATION;
-}
-
-void MyCharacterController::resetDetailedMotionStates() {
-    _detailedMotionStates.clear();
 }
 
 void MyCharacterController::buildPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
@@ -419,28 +415,21 @@ void MyCharacterController::buildPhysicsTransaction(PhysicsEngine::Transaction& 
         for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
             transaction.objectsToRemove.push_back(_detailedMotionStates[i]);
         }
+        // NOTE: the DetailedMotionStates are deleted after being added to PhysicsEngine::Transaction::_objectsToRemove
+        // See AvatarManager::handleProcessedPhysicsTransaction()
         _detailedMotionStates.clear();
     }
     if (_pendingFlags & PENDING_FLAG_ADD_DETAILED_TO_SIMULATION) {
         _pendingFlags &= ~PENDING_FLAG_ADD_DETAILED_TO_SIMULATION;
-        for (int i = 0; i < _avatar->getJointCount(); i++) {
+        for (int32_t i = 0; i < _avatar->getJointCount(); i++) {
             auto dMotionState = createDetailedMotionStateForJoint(i);
             if (dMotionState) {
                 _detailedMotionStates.push_back(dMotionState);
                 transaction.objectsToAdd.push_back(dMotionState);
             }
         }
-    } 
-}
-
-void MyCharacterController::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
-    // things on objectsToRemove are ready for delete
-    for (auto object : transaction.objectsToRemove) {
-        delete object;
     }
-    transaction.clear();
 }
-
 
 class DetailedRayResultCallback : public btCollisionWorld::AllHitsRayResultCallback {
 public:
@@ -459,15 +448,15 @@ public:
 std::vector<MyCharacterController::RayAvatarResult> MyCharacterController::rayTest(const btVector3& origin, const btVector3& direction,
                                                                                    const btScalar& length, const QVector<uint>& jointsToExclude) const {
     std::vector<RayAvatarResult> foundAvatars;
-    if (_dynamicsWorld) {
+    if (_physicsEngine) {
         btVector3 end = origin + length * direction;
         DetailedRayResultCallback rayCallback = DetailedRayResultCallback();
         rayCallback.m_flags |= btTriangleRaycastCallback::kF_KeepUnflippedNormal;
         rayCallback.m_flags |= btTriangleRaycastCallback::kF_UseSubSimplexConvexCastRaytest;
-        _dynamicsWorld->rayTest(origin, end, rayCallback);
+        _physicsEngine->getDynamicsWorld()->rayTest(origin, end, rayCallback);
         if (rayCallback.m_hitFractions.size() > 0) {
             foundAvatars.reserve(rayCallback.m_hitFractions.size());
-            for (int i = 0; i < rayCallback.m_hitFractions.size(); i++) {
+            for (int32_t i = 0; i < rayCallback.m_hitFractions.size(); i++) {
                 auto object = rayCallback.m_collisionObjects[i];
                 ObjectMotionState* motionState = static_cast<ObjectMotionState*>(object->getUserPointer());
                 if (motionState && motionState->getType() == MOTIONSTATE_TYPE_DETAILED) {

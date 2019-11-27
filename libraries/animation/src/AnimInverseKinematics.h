@@ -63,7 +63,7 @@ public:
      * <p>Specifies the initial conditions of the IK solver.</p>
      * <table>
      *   <thead>
-     *     <tr><th>Value</th><th>Name</p><th>Description</th>
+     *     <tr><th>Value</th><th>Name</th><th>Description</th>
      *   </thead>
      *   <tbody>
      *     <tr><td><code>0</code></td><td>RelaxToUnderPoses</td><td>This is a blend: it is 15/16 <code>PreviousSolution</code> 
@@ -73,12 +73,14 @@ public:
      *     <tr><td><code>1</code></td><td>RelaxToLimitCenterPoses</td><td>This is a blend: it is 15/16 
      *       <code>PreviousSolution</code> and 1/16 <code>LimitCenterPoses</code>. This should converge quickly because it is 
      *       close to the previous solution, but still provides the benefits of avoiding limb locking.</td></tr>
-     *     <tr><td><code>2</code></td><td>PreviousSolution</td><td>The IK system will begin to solve from the same position and 
-     *       orientations for each joint that was the result from the previous frame.<br />
-     *       Pros: As the end effectors typically do not move much from frame to frame, this is likely to converge quickly 
-     *       to a valid solution.<br />
-     *       Cons: If the previous solution resulted in an awkward or uncomfortable posture, the next frame will also be 
-     *       awkward and uncomfortable. It can also result in locked elbows and knees.</td></tr>
+     *     <tr><td><code>2</code></td><td>PreviousSolution</td><td>
+     *       <p>The IK system will begin to solve from the same position and orientations for each joint that was the result 
+     *       from the previous frame.</p>
+     *       <p>Pros: As the end effectors typically do not move much from frame to frame, this is likely to converge quickly 
+     *       to a valid solution.</p>
+     *       <p>Cons: If the previous solution resulted in an awkward or uncomfortable posture, the next frame will also be 
+     *       awkward and uncomfortable. It can also result in locked elbows and knees.</p>
+     *       </td></tr>
      *     <tr><td><code>3</code></td><td>UnderPoses</td><td>The IK occurs at one of the top-most layers. It has access to the 
      *       full posture that was computed via canned animations and blends. We call this animated set of poses the "under 
      *       pose". The under poses are what would be visible if IK was completely disabled. Using the under poses as the 
@@ -148,6 +150,7 @@ protected:
     void clearConstraints();
     void initConstraints();
     void initLimitCenterPoses();
+    float getInterpolationAlpha(float timer);
 
     // no copies
     AnimInverseKinematics(const AnimInverseKinematics&) = delete;
@@ -181,6 +184,7 @@ protected:
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
     AnimPoseVec _limitCenterPoses;  // relative
+    std::map<int, glm::quat> _rotationOnlyIKRotations;
 
     std::map<int, AnimPose> _secondaryTargetsInRigFrame;
 

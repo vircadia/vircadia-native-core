@@ -102,6 +102,6 @@ if (DEFINED _TBB_LIB_DIR)
 endif ()
 
 if (DEFINED ${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE)
-  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/include CACHE TYPE "List of tbb include directories")
+  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/include CACHE STRING "List of tbb include directories")
 endif ()
 

@@ -11,6 +11,8 @@
 
 #include "HFWebEngineProfile.h"
 
+#include <set>
+#include <mutex>
 #include <QtQml/QQmlContext>
 
 #include "RequestFilters.h"
@@ -19,20 +21,39 @@
 
 static const QString QML_WEB_ENGINE_STORAGE_NAME = "qmlWebEngine";
 
+static std::set<HFWebEngineProfile*> HFWebEngineProfile_instances;
+static std::mutex HFWebEngineProfile_mutex;
+
 HFWebEngineProfile::HFWebEngineProfile(QQmlContext* parent) : Parent(parent)
 {
     setStorageName(QML_WEB_ENGINE_STORAGE_NAME);
+    setOffTheRecord(false);
 
     // we use the HFWebEngineRequestInterceptor to make sure that web requests are authenticated for the interface user
     setRequestInterceptor(new RequestInterceptor(this));
+
+    std::lock_guard<std::mutex> lock(HFWebEngineProfile_mutex);
+    HFWebEngineProfile_instances.insert(this);
+}
+
+HFWebEngineProfile::~HFWebEngineProfile() {
+    std::lock_guard<std::mutex> lock(HFWebEngineProfile_mutex);
+    HFWebEngineProfile_instances.erase(this);
 }
 
 void HFWebEngineProfile::RequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {
-    RequestFilters::interceptHFWebEngineRequest(info, getContext());
+    RequestFilters::interceptHFWebEngineRequest(info, isRestricted());
 }
 
 void HFWebEngineProfile::registerWithContext(QQmlContext* context) {
     context->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(context));
+}
+
+void HFWebEngineProfile::clearCache() {
+    std::lock_guard<std::mutex> lock(HFWebEngineProfile_mutex);
+    foreach (auto instance, HFWebEngineProfile_instances) {
+        instance->clearHttpCache();
+    }
 }
 
 #endif

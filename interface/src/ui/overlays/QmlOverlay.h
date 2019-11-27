@@ -9,10 +9,6 @@
 #ifndef hifi_QmlOverlay_h
 #define hifi_QmlOverlay_h
 
-#include <QString>
-#include <memory>
-
-#include <SharedUtil.h>
 #include "Overlay2D.h"
 
 class QQuickItem;
@@ -33,7 +29,7 @@ private:
     Q_INVOKABLE void buildQmlElement(const QUrl& url);
 
 protected:
-    QQuickItem* _qmlElement{ nullptr };
+    QQuickItem* _qmlElement { nullptr };
 };
 
 #endif // hifi_QmlOverlay_h

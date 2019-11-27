@@ -91,7 +91,8 @@ public:
 
     const Shaders& getShaders() const { return _shaders; }
 
-    const Reflection& getReflection() const { return _source.reflection; }
+    Reflection getReflection(shader::Dialect dialect, shader::Variant variant) const;
+    Reflection getReflection() const; // get the default version of the reflection
 
     // Compilation Handler can be passed while compiling a shader (in the makeProgram call) to be able to give the hand to
     // the caller thread if the compilation fails and to provide a different version of the source for it
@@ -117,9 +118,6 @@ public:
 protected:
     Shader(Type type, const Source& source, bool dynamic);
     Shader(Type type, const Pointer& vertex, const Pointer& geometry, const Pointer& pixel);
-
-    Shader(const Shader& shader);             // deep copy of the sysmem shader
-    Shader& operator=(const Shader& shader);  // deep copy of the sysmem texture
 
     // Source contains the actual source code or nothing if the shader is a program
     const Source _source;

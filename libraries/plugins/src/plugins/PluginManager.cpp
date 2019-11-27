@@ -13,6 +13,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QDebug>
 #include <QtCore/QPluginLoader>
+#include <shared/QtHelpers.h>
 
 //#define HIFI_PLUGINMANAGER_DEBUG
 #if defined(HIFI_PLUGINMANAGER_DEBUG)
@@ -21,6 +22,7 @@
 
 #include <DependencyManager.h>
 #include <UserActivityLogger.h>
+#include <QThreadPool>
 
 #include "RuntimePlugin.h"
 #include "CodecPlugin.h"
@@ -84,6 +86,11 @@ bool isDisabled(QJsonObject metaData) {
     return false;
 }
 
+int PluginManager::instantiate() {
+    auto loaders = getLoadedPlugins();
+    return std::count_if(loaders.begin(), loaders.end(), [](const auto& loader) { return (bool)loader->instance(); });
+}
+
  auto PluginManager::getLoadedPlugins() const -> const LoaderList& {
     static std::once_flag once;
     static LoaderList loadedPlugins;
@@ -105,6 +112,16 @@ bool isDisabled(QJsonObject metaData) {
             pluginDir.setNameFilters(QStringList() << "libplugins_lib*.so");
 #endif
             auto candidates = pluginDir.entryList();
+
+            if (_enableScriptingPlugins.get()) {
+                QDir scriptingPluginDir{ pluginDir };
+                scriptingPluginDir.cd("scripting");
+                qCDebug(plugins) << "Loading scripting plugins from " << scriptingPluginDir.path();
+                for (auto plugin : scriptingPluginDir.entryList()) {
+                    candidates << "scripting/" + plugin;
+                }
+            }
+
             for (auto plugin : candidates) {
                 qCDebug(plugins) << "Attempting plugin" << qPrintable(plugin);
                 QSharedPointer<QPluginLoader> loader(new QPluginLoader(pluginPath + plugin));
@@ -139,6 +156,8 @@ bool isDisabled(QJsonObject metaData) {
                     qCDebug(plugins) << " " << qPrintable(loader->errorString());
                 }
             }
+        } else {
+            qWarning() << "pluginPath does not exit..." << pluginDir;
         }
     });
     return loadedPlugins;
@@ -204,7 +223,11 @@ const OculusPlatformPluginPointer PluginManager::getOculusPlatformPlugin() {
     return oculusPlatformPlugin;
 }
 
-const DisplayPluginList& PluginManager::getDisplayPlugins() {
+DisplayPluginList PluginManager::getAllDisplayPlugins() {
+    return _displayPlugins;
+}
+
+ const DisplayPluginList& PluginManager::getDisplayPlugins()  {
     static std::once_flag once;
     static auto deviceAddedCallback = [](QString deviceName) {
         qCDebug(plugins) << "Added device: " << deviceName;

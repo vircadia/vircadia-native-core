@@ -32,6 +32,7 @@
 #include <OctreeConstants.h>
 #include <ShapeInfo.h>
 #include <ColorUtils.h>
+#include "FontFamilies.h"
 
 #include "EntityItemID.h"
 #include "EntityItemPropertiesDefaults.h"
@@ -64,15 +65,9 @@
 #include "PrimitiveMode.h"
 #include "WebInputMode.h"
 #include "GizmoType.h"
+#include "TextEffect.h"
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
-
-using ComponentPair = std::pair<const ComponentMode, const QString>;
-const std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT> COMPONENT_MODES = { {
-    ComponentPair { COMPONENT_MODE_INHERIT, { "inherit" } },
-    ComponentPair { COMPONENT_MODE_DISABLED, { "disabled" } },
-    ComponentPair { COMPONENT_MODE_ENABLED, { "enabled" } }
-} };
 
 using vec3Color = glm::vec3;
 using u8vec3Color = glm::u8vec3;
@@ -180,6 +175,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
     DEFINE_PROPERTY(PROP_LOCKED, Locked, locked, bool, ENTITY_ITEM_DEFAULT_LOCKED);
     DEFINE_PROPERTY_REF(PROP_USER_DATA, UserData, userData, QString, ENTITY_ITEM_DEFAULT_USER_DATA);
+    DEFINE_PROPERTY_REF(PROP_PRIVATE_USER_DATA, PrivateUserData, privateUserData, QString, ENTITY_ITEM_DEFAULT_PRIVATE_USER_DATA);
     DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString, "");
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString, "");
     DEFINE_PROPERTY_REF_WITH_SETTER(PROP_POSITION, Position, position, glm::vec3, ENTITY_ITEM_ZERO_VEC3);
@@ -320,6 +316,11 @@ public:
     DEFINE_PROPERTY_REF(PROP_RIGHT_MARGIN, RightMargin, rightMargin, float, TextEntityItem::DEFAULT_MARGIN);
     DEFINE_PROPERTY_REF(PROP_TOP_MARGIN, TopMargin, topMargin, float, TextEntityItem::DEFAULT_MARGIN);
     DEFINE_PROPERTY_REF(PROP_BOTTOM_MARGIN, BottomMargin, bottomMargin, float, TextEntityItem::DEFAULT_MARGIN);
+    DEFINE_PROPERTY_REF(PROP_UNLIT, Unlit, unlit, bool, false);
+    DEFINE_PROPERTY_REF(PROP_FONT, Font, font, QString, ROBOTO_FONT_FAMILY);
+    DEFINE_PROPERTY_REF_ENUM(PROP_TEXT_EFFECT, TextEffect, textEffect, TextEffect, TextEffect::NO_EFFECT);
+    DEFINE_PROPERTY_REF(PROP_TEXT_EFFECT_COLOR, TextEffectColor, textEffectColor, u8vec3Color, TextEntityItem::DEFAULT_TEXT_COLOR);
+    DEFINE_PROPERTY(PROP_TEXT_EFFECT_THICKNESS, TextEffectThickness, textEffectThickness, float, TextEntityItem::DEFAULT_TEXT_EFFECT_THICKNESS);
 
     // Zone
     DEFINE_PROPERTY_GROUP(KeyLight, keyLight, KeyLightPropertyGroup);
@@ -398,8 +399,6 @@ public:
     DEFINE_PROPERTY_GROUP(Ring, ring, RingGizmoPropertyGroup);
 
     static QString getComponentModeAsString(uint32_t mode);
-
-    std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator findComponent(const QString& mode);
 
 public:
     float getMaxDimension() const { return glm::compMax(_dimensions); }
@@ -607,6 +606,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Locked, locked, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Textures, textures, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, UserData, userData, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, PrivateUserData, privateUserData, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, SimulationOwner, simulationOwner, SimulationOwner());
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Text, text, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LineHeight, lineHeight, "");

@@ -32,19 +32,6 @@
 using namespace render;
 using namespace render::entities;
 
-// These or the icon "name" used by the render item status value, they correspond to the atlas texture used by the DrawItemStatus
-// job in the current rendering pipeline defined as of now  (11/2015) in render-utils/RenderDeferredTask.cpp.
-enum class RenderItemStatusIcon {
-    ACTIVE_IN_BULLET = 0,
-    PACKET_SENT = 1,
-    PACKET_RECEIVED = 2,
-    SIMULATION_OWNER = 3,
-    HAS_ACTIONS = 4,
-    OTHER_SIMULATION_OWNER = 5,
-    ENTITY_HOST_TYPE = 6,
-    NONE = 255
-};
-
 void EntityRenderer::initEntityRenderers() {
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyVox, RenderablePolyVoxEntityItem::factory)
@@ -56,6 +43,7 @@ const Transform& EntityRenderer::getModelTransform() const {
 
 void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters) {
     auto nodeList = DependencyManager::get<NodeList>();
+    // DANGER: nodeList->getSessionUUID() will return null id when not connected to domain.
     const QUuid& myNodeID = nodeList->getSessionUUID();
 
     statusGetters.push_back([entity]() -> render::Item::Status::Value {
@@ -67,7 +55,7 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
         return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ?
             render::Item::Status::Value::GREEN :
             render::Item::Status::Value::RED),
-            (unsigned char)RenderItemStatusIcon::PACKET_RECEIVED);
+            (unsigned char)render::Item::Status::Icon::PACKET_RECEIVED);
     });
 
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
@@ -79,17 +67,17 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
         return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ?
             render::Item::Status::Value::MAGENTA :
             render::Item::Status::Value::CYAN),
-            (unsigned char)RenderItemStatusIcon::PACKET_SENT);
+            (unsigned char)render::Item::Status::Icon::PACKET_SENT);
     });
 
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(entity->getPhysicsInfo());
         if (motionState && motionState->isActive()) {
             return render::Item::Status::Value(1.0f, render::Item::Status::Value::BLUE,
-                (unsigned char)RenderItemStatusIcon::ACTIVE_IN_BULLET);
+                (unsigned char)render::Item::Status::Icon::ACTIVE_IN_BULLET);
         }
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::BLUE,
-            (unsigned char)RenderItemStatusIcon::ACTIVE_IN_BULLET);
+            (unsigned char)render::Item::Status::Icon::ACTIVE_IN_BULLET);
     });
 
     statusGetters.push_back([entity, myNodeID] () -> render::Item::Status::Value {
@@ -98,39 +86,39 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
 
         if (weOwnSimulation) {
             return render::Item::Status::Value(1.0f, render::Item::Status::Value::BLUE,
-                (unsigned char)RenderItemStatusIcon::SIMULATION_OWNER);
+                (unsigned char)render::Item::Status::Icon::SIMULATION_OWNER);
         } else if (otherOwnSimulation) {
             return render::Item::Status::Value(1.0f, render::Item::Status::Value::RED,
-                (unsigned char)RenderItemStatusIcon::OTHER_SIMULATION_OWNER);
+                (unsigned char)render::Item::Status::Icon::OTHER_SIMULATION_OWNER);
         }
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::BLUE,
-            (unsigned char)RenderItemStatusIcon::SIMULATION_OWNER);
+            (unsigned char)render::Item::Status::Icon::SIMULATION_OWNER);
     });
 
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
         if (entity->hasActions()) {
             return render::Item::Status::Value(1.0f, render::Item::Status::Value::GREEN,
-                (unsigned char)RenderItemStatusIcon::HAS_ACTIONS);
+                (unsigned char)render::Item::Status::Icon::HAS_ACTIONS);
         }
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::GREEN,
-            (unsigned char)RenderItemStatusIcon::HAS_ACTIONS);
+            (unsigned char)render::Item::Status::Icon::HAS_ACTIONS);
     });
 
-    statusGetters.push_back([entity, myNodeID] () -> render::Item::Status::Value {
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
         if (entity->isAvatarEntity()) {
-            if (entity->getOwningAvatarID() == myNodeID) {
+            if (entity->isMyAvatarEntity()) {
                 return render::Item::Status::Value(1.0f, render::Item::Status::Value::GREEN,
-                    (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
+                    (unsigned char)render::Item::Status::Icon::ENTITY_HOST_TYPE);
             } else {
                 return render::Item::Status::Value(1.0f, render::Item::Status::Value::RED,
-                    (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
+                    (unsigned char)render::Item::Status::Icon::ENTITY_HOST_TYPE);
             }
         } else if (entity->isLocalEntity()) {
             return render::Item::Status::Value(1.0f, render::Item::Status::Value::BLUE,
-                (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
+                (unsigned char)render::Item::Status::Icon::ENTITY_HOST_TYPE);
         }
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::GREEN,
-            (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
+            (unsigned char)render::Item::Status::Icon::ENTITY_HOST_TYPE);
     });
 }
 
@@ -141,12 +129,7 @@ std::shared_ptr<T> make_renderer(const EntityItemPointer& entity) {
     return std::shared_ptr<T>(new T(entity), [](T* ptr) { ptr->deleteLater(); });
 }
 
-EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entity->getCreated()), _entity(entity) {
-    connect(entity.get(), &EntityItem::requestRenderUpdate, this, [&] {
-        _needsRenderUpdate = true;
-        emit requestRenderUpdate();
-    });
-}
+EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entity->getCreated()), _entity(entity) {}
 
 EntityRenderer::~EntityRenderer() {}
 
@@ -186,12 +169,11 @@ render::hifi::Layer EntityRenderer::getHifiRenderLayer() const {
 }
 
 ItemKey EntityRenderer::getKey() {
-    auto builder = ItemKey::Builder().withTypeShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+    ItemKey::Builder builder = ItemKey::Builder().withTypeShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
     if (isTransparent()) {
         builder.withTransparent();
-    }
-
-    if (_canCastShadow) {
+    } else if (_canCastShadow) {
         builder.withShadowCaster();
     }
 
@@ -199,10 +181,14 @@ ItemKey EntityRenderer::getKey() {
         builder.withSubMetaCulled();
     }
 
-    return builder.build();
+    if (!_visible) {
+        builder.withInvisible();
+    }
+
+    return builder;
 }
 
-uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) {
+uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
     if (Item::isValidID(_renderItemID)) {
         subItems.emplace_back(_renderItemID);
         return 1;
@@ -363,10 +349,6 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
 // Returns true if the item needs to have updateInscene called because of internal rendering 
 // changes (animation, fading, etc)
 bool EntityRenderer::needsRenderUpdate() const {
-    if (_needsRenderUpdate) {
-        return true;
-    }
-
     if (isFading()) {
         return true;
     }
@@ -379,6 +361,14 @@ bool EntityRenderer::needsRenderUpdate() const {
 
 // Returns true if the item in question needs to have updateInScene called because of changes in the entity
 bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity) const {
+    if (entity->needsRenderUpdate()) {
+        return true;
+    }
+
+    if (!entity->isVisuallyReady()) {
+        return true;
+    }
+
     bool success = false;
     auto bound = _entity->getAABox(success);
     if (success && _bound != bound) {
@@ -417,7 +407,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
     withWriteLock([&] {
         auto transparent = isTransparent();
         auto fading = isFading();
-        if (fading || _prevIsTransparent != transparent) {
+        if (fading || _prevIsTransparent != transparent || !entity->isVisuallyReady()) {
             emit requestRenderUpdate();
         }
         if (fading) {
@@ -436,7 +426,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         _canCastShadow = entity->getCanCastShadow();
         setCullWithParent(entity->getCullWithParent());
         _cauterized = entity->getCauterized();
-        _needsRenderUpdate = false;
+        entity->setNeedsRenderUpdate(false);
     });
 }
 
@@ -494,6 +484,29 @@ glm::vec4 EntityRenderer::calculatePulseColor(const glm::vec4& color, const Puls
         result.a *= pulse;
     } else if (pulseProperties.getAlphaMode() == PulseMode::OUT_PHASE) {
         result.a *= outPulse;
+    }
+
+    return result;
+}
+
+glm::vec3 EntityRenderer::calculatePulseColor(const glm::vec3& color, const PulsePropertyGroup& pulseProperties, quint64 start) {
+    if (pulseProperties.getPeriod() == 0.0f || (pulseProperties.getColorMode() == PulseMode::NONE && pulseProperties.getAlphaMode() == PulseMode::NONE)) {
+        return color;
+    }
+
+    float t = ((float)(usecTimestampNow() - start)) / ((float)USECS_PER_SECOND);
+    float pulse = 0.5f * (cosf(t * (2.0f * (float)M_PI) / pulseProperties.getPeriod()) + 1.0f) * (pulseProperties.getMax() - pulseProperties.getMin()) + pulseProperties.getMin();
+    float outPulse = (1.0f - pulse);
+
+    glm::vec3 result = color;
+    if (pulseProperties.getColorMode() == PulseMode::IN_PHASE) {
+        result.r *= pulse;
+        result.g *= pulse;
+        result.b *= pulse;
+    } else if (pulseProperties.getColorMode() == PulseMode::OUT_PHASE) {
+        result.r *= outPulse;
+        result.g *= outPulse;
+        result.b *= outPulse;
     }
 
     return result;

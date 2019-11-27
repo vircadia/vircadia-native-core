@@ -1,0 +1,24 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+
+override_dh_auto_configure:
+	mkdir obj-$(DEB_TARGET_MULTIARCH)
+	(cd obj-$(DEB_TARGET_MULTIARCH) && cmake .. -DCMAKE_INSTALL_PREFIX=/opt/hifi -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_EXPORT_NO_PACKAGE_REGISTRY=ON "-GUnix Makefiles" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCLIENT_ONLY=ON -DDOWNLOAD_SERVERLESS_CONTENT=ON -DCMAKE_CXX_COMPILER=/usr/lib/llvm-7/bin/clang\+\+ -DOpenGL_GL_PREFERENCE=GLVND)
+
+override_dh_auto_build:
+	(cd obj-$(DEB_TARGET_MULTIARCH) && make -j4)
+
+S=obj-$(DEB_TARGET_MULTIARCH)
+I=debian/hifi-interface/opt/hifi/interface
+
+override_dh_auto_install:
+	cp $(S)/interface/interface $(I)
+	cp $(S)/ext/makefiles/steamworks/project/src/steamworks/redistributable_bin/linux64/libsteam_api.so $(I)
+	cp $(S)/ext/makefiles/quazip/project/build/libquazip5.so.1 $(I)
+	cp $(S)/ext/makefiles/polyvox/project/build/library/PolyVoxCore/libPolyVoxCore.so.0 $(I)
+	cp $(S)/interface/resources.rcc $(I)
+	cp -r $(S)/interface/scripts $(I)/scripts
+	cp -r $(S)/interface/plugins $(I)/plugins

@@ -29,6 +29,7 @@
 #include <AbstractAudioInterface.h>
 #include <AudioEffectOptions.h>
 #include <AudioStreamStats.h>
+#include <shared/WebRTC.h>
 
 #include <DependencyManager.h>
 #include <HifiSockAddr.h>
@@ -52,6 +53,7 @@
 
 #include "AudioIOStats.h"
 #include "AudioFileWav.h"
+#include "HifiAudioDeviceInfo.h"
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -78,6 +80,9 @@ class QIODevice;
 class Transform;
 class NLPacket;
 
+#define DEFAULT_STARVE_DETECTION_ENABLED true
+#define DEFAULT_BUFFER_FRAMES 1
+
 class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -101,8 +106,8 @@ public:
             _audio(audio), _unfulfilledReads(0) {}
 
         void start() { open(QIODevice::ReadOnly | QIODevice::Unbuffered); }
-        qint64 readData(char * data, qint64 maxSize) override;
-        qint64 writeData(const char * data, qint64 maxSize) override { return 0; }
+        qint64 readData(char* data, qint64 maxSize) override;
+        qint64 writeData(const char* data, qint64 maxSize) override { return 0; }
         int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:
         LocalInjectorsStream& _localInjectorsStream;
@@ -110,7 +115,7 @@ public:
         AudioClient* _audio;
         int _unfulfilledReads;
     };
-
+    
     void startThread();
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
@@ -151,12 +156,12 @@ public:
     void setIsPlayingBackRecording(bool isPlayingBackRecording) { _isPlayingBackRecording = isPlayingBackRecording; }
 
     Q_INVOKABLE void setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale);
-    
+
     bool outputLocalInjector(const AudioInjectorPointer& injector) override;
 
-    QAudioDeviceInfo getActiveAudioDevice(QAudio::Mode mode) const;
-    QList<QAudioDeviceInfo> getAudioDevices(QAudio::Mode mode) const;
-
+    HifiAudioDeviceInfo getActiveAudioDevice(QAudio::Mode mode) const;
+    QList<HifiAudioDeviceInfo> getAudioDevices(QAudio::Mode mode) const;
+  
     void enablePeakValues(bool enable) { _enablePeakValues = enable; }
     bool peakValuesAvailable() const;
 
@@ -215,6 +220,9 @@ public slots:
     void setWarnWhenMuted(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isWarnWhenMutedEnabled() const { return _warnWhenMuted; }
 
+    void setAcousticEchoCancellation(bool isAECEnabled, bool emitSignal = true);
+    bool isAcousticEchoCancellationEnabled() const { return _isAECEnabled; }
+
     virtual bool getLocalEcho() override { return _shouldEchoLocally; }
     virtual void setLocalEcho(bool localEcho) override { _shouldEchoLocally = localEcho; }
     virtual void toggleLocalEcho() override { _shouldEchoLocally = !_shouldEchoLocally; }
@@ -231,9 +239,9 @@ public slots:
     bool shouldLoopbackInjectors() override { return _shouldEchoToServer; }
 
     // calling with a null QAudioDevice will use the system default
-    bool switchAudioDevice(QAudio::Mode mode, const QAudioDeviceInfo& deviceInfo = QAudioDeviceInfo());
-    bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName);
-
+    bool switchAudioDevice(QAudio::Mode mode, const HifiAudioDeviceInfo& deviceInfo = HifiAudioDeviceInfo());
+    bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName, bool isHmd);
+    void setHmdAudioName(QAudio::Mode mode, const QString& name);
     // Qt opensles plugin is not able to detect when the headset is plugged in
     void setHeadsetPluggedIn(bool pluggedIn);
 
@@ -241,10 +249,13 @@ public slots:
     void setInputVolume(float volume, bool emitSignal = true);
     void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
+
     void setLocalInjectorGain(float gain) { _localInjectorGain = gain; };
     void setSystemInjectorGain(float gain) { _systemInjectorGain = gain; };
+    void setOutputGain(float gain) { _outputGain = gain; };
 
     void outputNotify();
+    void noteAwakening();
 
     void loadSettings();
     void saveSettings();
@@ -254,6 +265,7 @@ signals:
     void muteToggled(bool muted);
     void noiseReductionChanged(bool noiseReductionEnabled);
     void warnWhenMutedChanged(bool warnWhenMutedEnabled);
+    void acousticEchoCancellationChanged(bool acousticEchoCancellationEnabled);
     void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
     void inputLoudnessChanged(float loudness, bool isClipping);
@@ -262,10 +274,10 @@ signals:
     void noiseGateOpened();
     void noiseGateClosed();
 
-    void changeDevice(const QAudioDeviceInfo& outputDeviceInfo);
+    void changeDevice(const HifiAudioDeviceInfo& outputDeviceInfo);
 
-    void deviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& device);
-    void devicesChanged(QAudio::Mode mode, const QList<QAudioDeviceInfo>& devices);
+    void deviceChanged(QAudio::Mode mode, const HifiAudioDeviceInfo& device);
+    void devicesChanged(QAudio::Mode mode, const QList<HifiAudioDeviceInfo>& devices);
     void peakValueListChanged(const QList<float> peakValueList);
 
     void receivedFirstPacket();
@@ -284,6 +296,16 @@ protected:
     virtual void customDeleter() override;
 
 private:
+    static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES{ 100 };
+    // OUTPUT_CHANNEL_COUNT is audio pipeline output format, which is always 2 channel.
+    // _outputFormat.channelCount() is device output format, which may be 1 or multichannel.
+    static const int OUTPUT_CHANNEL_COUNT{ 2 };
+    static const int STARVE_DETECTION_THRESHOLD{ 3 };
+    static const int STARVE_DETECTION_PERIOD{ 10 * 1000 }; // 10 Seconds
+
+    static const AudioPositionGetter DEFAULT_POSITION_GETTER;
+    static const AudioOrientationGetter DEFAULT_ORIENTATION_GETTER;
+
     friend class CheckDevicesThread;
     friend class LocalInjectorsThread;
 
@@ -299,9 +321,9 @@ private:
     float gainForSource(float distance, float volume);
 
 #ifdef Q_OS_ANDROID
-    QTimer _checkInputTimer;
+    QTimer _checkInputTimer{ this };
     long _inputReadsSinceLastCheck = 0l;
-    bool _isHeadsetPluggedIn;
+    bool _isHeadsetPluggedIn { false };
 #endif
 
     class Gate {
@@ -328,65 +350,68 @@ private:
         bool _isSimulatingJitter{ false };
     };
 
-    Gate _gate;
+    Gate _gate{ this };
 
     Mutex _injectorsMutex;
-    QAudioInput* _audioInput;
-    QTimer* _dummyAudioInput;
+    QAudioInput* _audioInput{ nullptr };
+    QTimer* _dummyAudioInput{ nullptr };
     QAudioFormat _desiredInputFormat;
     QAudioFormat _inputFormat;
-    QIODevice* _inputDevice;
-    int _numInputCallbackBytes;
-    QAudioOutput* _audioOutput;
+    QIODevice* _inputDevice{ nullptr };
+    int _numInputCallbackBytes{ 0 };
+    QAudioOutput* _audioOutput{ nullptr };
+    std::atomic<bool> _audioOutputInitialized { false };
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
-    int _outputFrameSize;
-    int _numOutputCallbackBytes;
-    QAudioOutput* _loopbackAudioOutput;
-    QIODevice* _loopbackOutputDevice;
-    AudioRingBuffer _inputRingBuffer;
-    LocalInjectorsStream _localInjectorsStream;
+    int _outputFrameSize{ 0 };
+    int _numOutputCallbackBytes{ 0 };
+    QAudioOutput* _loopbackAudioOutput{ nullptr };
+    QIODevice* _loopbackOutputDevice{ nullptr };
+    AudioRingBuffer _inputRingBuffer{ 0 };
+    LocalInjectorsStream _localInjectorsStream{ 0 , 1 };
     // In order to use _localInjectorsStream as a lock-free pipe,
     // use it with a single producer/consumer, and track available samples and injectors
     std::atomic<int> _localSamplesAvailable { 0 };
     std::atomic<bool> _localInjectorsAvailable { false };
-    MixedProcessedAudioStream _receivedAudioStream;
-    bool _isStereoInput;
+    MixedProcessedAudioStream _receivedAudioStream{ RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES };
+    bool _isStereoInput{ false };
     std::atomic<bool> _enablePeakValues { false };
 
-    quint64 _outputStarveDetectionStartTimeMsec;
-    int _outputStarveDetectionCount;
+    quint64 _outputStarveDetectionStartTimeMsec{ 0 };
+    int _outputStarveDetectionCount { 0 };
 
-    Setting::Handle<int> _outputBufferSizeFrames;
-    int _sessionOutputBufferSizeFrames;
-    Setting::Handle<bool> _outputStarveDetectionEnabled;
+    Setting::Handle<int> _outputBufferSizeFrames{"audioOutputBufferFrames", DEFAULT_BUFFER_FRAMES};
+    int _sessionOutputBufferSizeFrames{ _outputBufferSizeFrames.get() };
+    Setting::Handle<bool> _outputStarveDetectionEnabled{ "audioOutputStarveDetectionEnabled", DEFAULT_STARVE_DETECTION_ENABLED};
 
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
-    float _lastRawInputLoudness;    // before mute/gate
-    float _lastSmoothedRawInputLoudness;
-    float _lastInputLoudness;       // after mute/gate
-    float _timeSinceLastClip;
+    float _lastRawInputLoudness{ 0.0f };    // before mute/gate
+    float _lastSmoothedRawInputLoudness{ 0.0f };
+    float _lastInputLoudness{ 0.0f };       // after mute/gate
+    float _timeSinceLastClip{ -1.0f };
     int _totalInputAudioSamples;
 
-    bool _muted;
-    bool _shouldEchoLocally;
-    bool _shouldEchoToServer;
-    bool _isNoiseGateEnabled;
+    bool _muted{ false };
+    bool _shouldEchoLocally{ false };
+    bool _shouldEchoToServer{ false };
+    bool _isNoiseGateEnabled{ true };
     bool _warnWhenMuted;
+    bool _isAECEnabled{ true };
 
-    bool _reverb;
+    bool _reverb{ false };
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
-    AudioEffectOptions* _reverbOptions;
+    AudioEffectOptions* _reverbOptions{ &_scriptReverbOptions };
     AudioReverb _sourceReverb { AudioConstants::SAMPLE_RATE };
     AudioReverb _listenerReverb { AudioConstants::SAMPLE_RATE };
     AudioReverb _localReverb { AudioConstants::SAMPLE_RATE };
 
     // possible streams needed for resample
-    AudioSRC* _inputToNetworkResampler;
-    AudioSRC* _networkToOutputResampler;
-    AudioSRC* _localToOutputResampler;
+    AudioSRC* _inputToNetworkResampler{ nullptr };
+    AudioSRC* _networkToOutputResampler{ nullptr };
+    AudioSRC* _localToOutputResampler{ nullptr };
+    AudioSRC* _loopbackResampler{ nullptr };
 
     // for network audio (used by network audio thread)
     int16_t _networkScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
@@ -395,6 +420,8 @@ private:
     int _outputPeriod { 0 };
     float* _outputMixBuffer { NULL };
     int16_t* _outputScratchBuffer { NULL };
+    std::atomic<float> _outputGain { 1.0f };
+    float _lastOutputGain { 1.0f };
 
     // for local audio (used by audio injectors thread)
     std::atomic<float> _localInjectorGain { 1.0f };
@@ -403,41 +430,58 @@ private:
     int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
     float* _localOutputMixBuffer { NULL };
     Mutex _localAudioMutex;
-    AudioLimiter _audioLimiter;
-    
+    AudioLimiter _audioLimiter{ AudioConstants::SAMPLE_RATE, OUTPUT_CHANNEL_COUNT };
+
     // Adds Reverb
     void configureReverb();
     void updateReverbOptions();
-
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
-    bool switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest = false);
-    bool switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest = false);
+#if defined(WEBRTC_ENABLED)
+    static const int WEBRTC_SAMPLE_RATE_MAX = 96000;
+    static const int WEBRTC_CHANNELS_MAX = 2;
+    static const int WEBRTC_FRAMES_MAX = webrtc::AudioProcessing::kChunkSizeMs * WEBRTC_SAMPLE_RATE_MAX / 1000;
+
+    webrtc::AudioProcessing* _apm { nullptr };
+
+    int16_t _fifoFarEnd[WEBRTC_CHANNELS_MAX * WEBRTC_FRAMES_MAX] {};
+    int _numFifoFarEnd = 0; // numFrames saved in fifo
+
+    void configureWebrtc();
+    void processWebrtcFarEnd(const int16_t* samples, int numFrames, int numChannels, int sampleRate);
+    void processWebrtcNearEnd(int16_t* samples, int numFrames, int numChannels, int sampleRate);
+#endif
+
+    bool switchInputToAudioDevice(const HifiAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest = false);
+    bool switchOutputToAudioDevice(const HifiAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest = false);
 
     // Callback acceleration dependent calculations
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
     int calculateNumberOfFrameSamples(int numBytes) const;
 
-    quint16 _outgoingAvatarAudioSequenceNumber;
+    quint16 _outgoingAvatarAudioSequenceNumber{ 0 };
 
-    AudioOutputIODevice _audioOutputIODevice;
+    AudioOutputIODevice _audioOutputIODevice{ _localInjectorsStream, _receivedAudioStream, this };
 
-    AudioIOStats _stats;
+    AudioIOStats _stats{ &_receivedAudioStream };
 
     AudioGate* _audioGate { nullptr };
     bool _audioGateOpen { true };
 
-    AudioPositionGetter _positionGetter;
-    AudioOrientationGetter _orientationGetter;
+    AudioPositionGetter _positionGetter{ DEFAULT_POSITION_GETTER };
+    AudioOrientationGetter _orientationGetter{ DEFAULT_ORIENTATION_GETTER };
 
     glm::vec3 avatarBoundingBoxCorner;
     glm::vec3 avatarBoundingBoxScale;
 
-    QAudioDeviceInfo _inputDeviceInfo;
-    QAudioDeviceInfo _outputDeviceInfo;
+    HifiAudioDeviceInfo _inputDeviceInfo;
+    HifiAudioDeviceInfo _outputDeviceInfo;
 
-    QList<QAudioDeviceInfo> _inputDevices;
-    QList<QAudioDeviceInfo> _outputDevices;
+    QList<HifiAudioDeviceInfo> _inputDevices;
+    QList<HifiAudioDeviceInfo> _outputDevices;
+
+    QString _hmdInputName { QString() };
+    QString _hmdOutputName{ QString() };
 
     AudioFileWav _audioFileWav;
 
@@ -450,7 +494,7 @@ private:
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;
-    Encoder* _encoder { nullptr }; // for outbound mic stream
+    Encoder* _encoder { nullptr };  // for outbound mic stream
 
     RateCounter<> _silentOutbound;
     RateCounter<> _audioOutbound;
@@ -458,11 +502,12 @@ private:
     RateCounter<> _audioInbound;
 
 #if defined(Q_OS_ANDROID)
-    bool _shouldRestartInputSetup { true }; // Should we restart the input device because of an unintended stop?
+    bool _shouldRestartInputSetup { true };  // Should we restart the input device because of an unintended stop?
 #endif
 
     AudioSolo _solo;
-    
+
+    QReadWriteLock _hmdNameLock;
     Mutex _checkDevicesMutex;
     QTimer* _checkDevicesTimer { nullptr };
     Mutex _checkPeakValuesMutex;

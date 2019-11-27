@@ -22,6 +22,7 @@
 #include "HTTPManager.h"
 
 const char* HTTPConnection::StatusCode200 = "200 OK";
+const char* HTTPConnection::StatusCode204 = "204 No Content";
 const char* HTTPConnection::StatusCode301 = "301 Moved Permanently";
 const char* HTTPConnection::StatusCode302 = "302 Found";
 const char* HTTPConnection::StatusCode400 = "400 Bad Request";

@@ -13,6 +13,7 @@
 #include <unordered_set>
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 #include <QtCore/QtGlobal>
 
@@ -40,6 +41,8 @@ enum class Dialect
     glsl410,
 #endif
 };
+
+extern const Dialect DEFAULT_DIALECT;
 
 const std::vector<Dialect>& allDialects();
 const std::string& dialectPath(Dialect dialect);
@@ -138,9 +141,6 @@ struct Source {
 
     // The name of the shader file, with extension, i.e. DrawColor.frag
     std::string name;
-
-    // Generic reflection, copied from the 450 dialect / mono variant
-    Reflection reflection;
 
     // Map of platforms to their specific shaders
     std::unordered_map<Dialect, DialectSource, EnumClassHash> dialectSources;

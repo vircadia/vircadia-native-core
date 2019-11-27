@@ -53,22 +53,22 @@ QScriptValue menuItemPropertiesToScriptValue(QScriptEngine* engine, const MenuIt
 /**jsdoc
  * A set of properties that can be passed to {@link Menu.addMenuItem} to create a new menu item.
  *
- * If none of <code>position</code>, <code>beforeItem</code>, <code>afterItem</code>, or <code>grouping</code> are specified, 
- * the menu item will be placed at the end of the menu.
+ * If none of the properties, <code>position</code>, <code>beforeItem</code>, <code>afterItem</code>, or <code>grouping</code> 
+ * are specified, the menu item will be placed at the end of the menu.
  *
  * @typedef {object} Menu.MenuItemProperties
- * @property {string} menuName Name of the menu. Nested menus can be described using the ">" symbol.
- * @property {string} menuItemName Name of the menu item.
- * @property {boolean} [isCheckable=false] Whether or not the menu item is checkable.
- * @property {boolean} [isChecked=false] Whether or not the menu item is checked.
- * @property {boolean} [isSeparator=false] Whether or not the menu item is a separator.
- * @property {string} [shortcutKey] A shortcut key that triggers the menu item.
- * @property {KeyEvent} [shortcutKeyEvent] A {@link KeyEvent} that specifies a key that triggers the menu item.
- * @property {number} [position] The position to place the new menu item. An integer number with <code>0</code> being the first
+ * @property {string} menuName - Name of the menu. Nested menus can be described using the ">" character.
+ * @property {string} menuItemName - Name of the menu item.
+ * @property {boolean} [isCheckable=false] - Whether or not the menu item is checkable.
+ * @property {boolean} [isChecked=false] - Whether or not the menu item is checked.
+ * @property {boolean} [isSeparator=false] - Whether or not the menu item is a separator.
+ * @property {string} [shortcutKey] - A shortcut key that triggers the menu item.
+ * @property {KeyEvent} [shortcutKeyEvent] - A {@link KeyEvent} that specifies a key that triggers the menu item.
+ * @property {number} [position] - The position to place the new menu item. An integer number with <code>0</code> being the first
  *     menu item.
- * @property {string} [beforeItem] The name of the menu item to place this menu item before.
- * @property {string} [afterItem] The name of the menu item to place this menu item after.
- * @property {string} [grouping] The name of grouping to add this menu item to.
+ * @property {string} [beforeItem] - The name of the menu item to place this menu item before.
+ * @property {string} [afterItem] - The name of the menu item to place this menu item after.
+ * @property {string} [grouping] - The name of grouping to add this menu item to.
  */
 void menuItemPropertiesFromScriptValue(const QScriptValue& object, MenuItemProperties& properties) {
     properties.menuName = object.property("menuName").toVariant().toString();

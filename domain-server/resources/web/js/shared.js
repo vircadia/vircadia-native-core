@@ -44,7 +44,8 @@ $.extend(Settings, {
   INVALID_ROW_CLASS: 'invalid-input',
   DATA_ROW_INDEX: 'data-row-index',
   CONTENT_ARCHIVES_PANEL_ID: 'content_archives',
-  UPLOAD_CONTENT_BACKUP_PANEL_ID: 'upload_content'
+  UPLOAD_CONTENT_BACKUP_PANEL_ID: 'upload_content',
+  INSTALLED_CONTENT: 'installed_content'
 });
 
 var URLs = {
@@ -133,6 +134,23 @@ function getCurrentDomainIDType() {
     return DOMAIN_ID_TYPE_FULL;
   }
   return DOMAIN_ID_TYPE_UNKNOWN;
+}
+
+function isCloudDomain() {
+
+  if (!domainIDIsSet()) {
+    return false;
+  }
+  if (typeof DomainInfo === 'undefined') {
+    return false;
+  }
+  if (DomainInfo === null) {
+    return false;
+  }
+  if (typeof DomainInfo.cloud_domain !== "boolean") {
+    return false;
+  }
+  return DomainInfo.cloud_domain;
 }
 
 function showLoadingDialog(msg) {

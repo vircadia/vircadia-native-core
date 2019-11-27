@@ -222,7 +222,7 @@ void evalFragShadingGloss(out vec3 diffuse, out vec3 specular,
 }
 
 vec3 evalSpecularWithOpacity(vec3 specular, float opacity) {
-    return specular / opacity;
+    return specular / mix(1.0, opacity, float(opacity > 0.0));
 }
 
 <@if not GETFRESNEL0@>

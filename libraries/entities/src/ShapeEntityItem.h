@@ -72,7 +72,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    entity::Shape getShape() const { return _shape; }
+    entity::Shape getShape() const;
     void setShape(const entity::Shape& shape);
     void setShape(const QString& shape) { setShape(entity::shapeFromString(shape)); }
 
@@ -83,8 +83,6 @@ public:
     void setColor(const glm::u8vec3& value);
 
     void setUnscaledDimensions(const glm::vec3& value) override;
-
-    bool shouldBePhysical() const override { return !isDead(); }
 
     bool supportsDetailedIntersection() const override;
     bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,

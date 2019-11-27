@@ -26,7 +26,8 @@ public:
 
     static void addWhitelistContextHandler(const std::initializer_list<QUrl>& urls, const QmlContextCallback& callback);
     static void addWhitelistContextHandler(const QUrl& url, const QmlContextCallback& callback) { addWhitelistContextHandler({ { url } }, callback); };
-
+    static void applyWhiteList(const QUrl& url,QQmlContext* context);
+    
     bool isFocusText() const { return _focusText; }
     bool getCleaned() { return _isCleaned; }
 
@@ -36,6 +37,7 @@ public:
     Q_INVOKABLE void lowerKeyboard();
     PointerEvent::EventType choosePointerEventType(QEvent::Type type);
     Q_INVOKABLE unsigned int deviceIdByTouchPoint(qreal x, qreal y);
+   
 
 signals:
     void focusObjectChanged(QObject* newFocus);
@@ -59,6 +61,7 @@ public slots:
     void sendToQml(const QVariant& message);
 
 protected:
+    void loadFromQml(const QUrl& qmlSource, QQuickItem* parent, const QJSValue& callback) override;
     void clearFocusItem();
     void setFocusText(bool newFocusText);
     void initializeEngine(QQmlEngine* engine) override;

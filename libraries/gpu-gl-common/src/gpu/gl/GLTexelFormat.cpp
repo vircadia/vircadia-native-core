@@ -33,8 +33,8 @@ using namespace gpu::gl;
 #define GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT 0x8E8F
 #endif
 
-bool GLTexelFormat::isCompressed() const {
-    switch (internalFormat) {
+bool GLTexelFormat::isCompressed(GLenum format) {
+    switch (format) {
         case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
         case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
         case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
@@ -91,6 +91,11 @@ bool GLTexelFormat::isCompressed() const {
             return false;
     }
 }
+
+bool GLTexelFormat::isCompressed() const {
+    return isCompressed(internalFormat);
+}
+
 
 GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
     GLenum result = GL_RGBA8;

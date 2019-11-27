@@ -37,6 +37,7 @@ void EntityTreeHeadlessViewer::update() {
     if (_tree) {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         tree->withTryWriteLock([&] {
+            tree->preUpdate();
             tree->update();
         });
     }

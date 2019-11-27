@@ -1,7 +1,0 @@
-layout(location=0) in vec4 _color;
-
-layout(location=0) out vec4 _fragColor0;
-
-void main(void) {
-    _fragColor0 = _color;
-}

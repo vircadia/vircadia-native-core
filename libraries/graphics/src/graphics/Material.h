@@ -11,8 +11,7 @@
 #ifndef hifi_model_Material_h
 #define hifi_model_Material_h
 
-#include <QMutex>
-
+#include <mutex>
 #include <bitset>
 #include <map>
 #include <unordered_map>
@@ -44,6 +43,8 @@ public:
         OPACITY_VAL_BIT,
         OPACITY_MASK_MAP_BIT,           // Opacity Map and Opacity MASK map are mutually exclusive
         OPACITY_TRANSLUCENT_MAP_BIT,
+        OPACITY_MAP_MODE_BIT,           // Opacity map mode bit is set if the value has set explicitely and not deduced from the textures assigned 
+        OPACITY_CUTOFF_VAL_BIT,
         SCATTERING_VAL_BIT,
 
         // THe map bits must be in the same sequence as the enum names for the map channels
@@ -53,7 +54,7 @@ public:
         ROUGHNESS_MAP_BIT,
         NORMAL_MAP_BIT,
         OCCLUSION_MAP_BIT,
-        LIGHTMAP_MAP_BIT,
+        LIGHT_MAP_BIT,
         SCATTERING_MAP_BIT,
 
         NUM_FLAGS,
@@ -67,11 +68,20 @@ public:
         ROUGHNESS_MAP,
         NORMAL_MAP,
         OCCLUSION_MAP,
-        LIGHTMAP_MAP,
+        LIGHT_MAP,
         SCATTERING_MAP,
 
         NUM_MAP_CHANNELS,
     };
+
+    enum OpacityMapMode {
+        OPACITY_MAP_OPAQUE = 0,
+        OPACITY_MAP_MASK,
+        OPACITY_MAP_BLEND,
+    };
+    static std::string getOpacityMapModeName(OpacityMapMode mode);
+    // find the enum value from a string, return true if match found
+    static bool getOpacityMapModeFromName(const std::string& modeName, OpacityMapMode& mode);
 
     // The signature is the Flags
     Flags _flags;
@@ -94,6 +104,27 @@ public:
         Builder& withGlossy() { _flags.set(GLOSSY_VAL_BIT); return (*this); }
 
         Builder& withTranslucentFactor() { _flags.set(OPACITY_VAL_BIT); return (*this); }
+        Builder& withTranslucentMap() { _flags.set(OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
+        Builder& withMaskMap() { _flags.set(OPACITY_MASK_MAP_BIT); return (*this); }
+        Builder& withOpacityMapMode(OpacityMapMode mode) {
+            switch (mode) {
+            case OPACITY_MAP_OPAQUE:
+                _flags.reset(OPACITY_TRANSLUCENT_MAP_BIT);
+                _flags.reset(OPACITY_MASK_MAP_BIT);
+                break;
+            case OPACITY_MAP_MASK:
+                _flags.reset(OPACITY_TRANSLUCENT_MAP_BIT);
+                _flags.set(OPACITY_MASK_MAP_BIT);
+                break;
+            case OPACITY_MAP_BLEND:
+                _flags.set(OPACITY_TRANSLUCENT_MAP_BIT);
+                _flags.reset(OPACITY_MASK_MAP_BIT);
+                break;
+            };
+            _flags.set(OPACITY_MAP_MODE_BIT); // Intentionally set the mode!
+            return (*this);
+        }
+        Builder& withOpacityCutoff() { _flags.set(OPACITY_CUTOFF_VAL_BIT); return (*this); }
 
         Builder& withScattering() { _flags.set(SCATTERING_VAL_BIT); return (*this); }
 
@@ -102,12 +133,9 @@ public:
         Builder& withMetallicMap() { _flags.set(METALLIC_MAP_BIT); return (*this); }
         Builder& withRoughnessMap() { _flags.set(ROUGHNESS_MAP_BIT); return (*this); }
 
-        Builder& withTranslucentMap() { _flags.set(OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
-        Builder& withMaskMap() { _flags.set(OPACITY_MASK_MAP_BIT); return (*this); }
-
         Builder& withNormalMap() { _flags.set(NORMAL_MAP_BIT); return (*this); }
         Builder& withOcclusionMap() { _flags.set(OCCLUSION_MAP_BIT); return (*this); }
-        Builder& withLightmapMap() { _flags.set(LIGHTMAP_MAP_BIT); return (*this); }
+        Builder& withLightMap() { _flags.set(LIGHT_MAP_BIT); return (*this); }
         Builder& withScatteringMap() { _flags.set(SCATTERING_MAP_BIT); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
@@ -151,14 +179,17 @@ public:
     void setOpacityMaskMap(bool value) { _flags.set(OPACITY_MASK_MAP_BIT, value); }
     bool isOpacityMaskMap() const { return _flags[OPACITY_MASK_MAP_BIT]; }
 
+    void setOpacityCutoff(bool value) { _flags.set(OPACITY_CUTOFF_VAL_BIT, value); }
+    bool isOpacityCutoff() const { return _flags[OPACITY_CUTOFF_VAL_BIT]; }
+
     void setNormalMap(bool value) { _flags.set(NORMAL_MAP_BIT, value); }
     bool isNormalMap() const { return _flags[NORMAL_MAP_BIT]; }
 
     void setOcclusionMap(bool value) { _flags.set(OCCLUSION_MAP_BIT, value); }
     bool isOcclusionMap() const { return _flags[OCCLUSION_MAP_BIT]; }
 
-    void setLightmapMap(bool value) { _flags.set(LIGHTMAP_MAP_BIT, value); }
-    bool isLightmapMap() const { return _flags[LIGHTMAP_MAP_BIT]; }
+    void setLightMap(bool value) { _flags.set(LIGHT_MAP_BIT, value); }
+    bool isLightMap() const { return _flags[LIGHT_MAP_BIT]; }
 
     void setScattering(bool value) { _flags.set(SCATTERING_VAL_BIT, value); }
     bool isScattering() const { return _flags[SCATTERING_VAL_BIT]; }
@@ -171,6 +202,26 @@ public:
 
 
     // Translucency and Opacity Heuristics are combining several flags:
+    void setOpacityMapMode(OpacityMapMode mode) {
+        switch (mode) {
+        case OPACITY_MAP_OPAQUE:
+            _flags.reset(OPACITY_TRANSLUCENT_MAP_BIT);
+            _flags.reset(OPACITY_MASK_MAP_BIT);
+            break;
+        case OPACITY_MAP_MASK:
+            _flags.reset(OPACITY_TRANSLUCENT_MAP_BIT);
+            _flags.set(OPACITY_MASK_MAP_BIT);
+            break;
+        case OPACITY_MAP_BLEND:
+            _flags.set(OPACITY_TRANSLUCENT_MAP_BIT);
+            _flags.reset(OPACITY_MASK_MAP_BIT);
+            break;
+        };
+        _flags.set(OPACITY_MAP_MODE_BIT); // Intentionally set the mode!
+    }
+    bool isOpacityMapMode() const { return _flags[OPACITY_MAP_MODE_BIT]; }
+    OpacityMapMode getOpacityMapMode() const { return (isOpacityMaskMap() ? OPACITY_MAP_MASK : (isTranslucentMap() ? OPACITY_MAP_BLEND : OPACITY_MAP_OPAQUE)); }
+
     bool isTranslucent() const { return isTranslucentFactor() || isTranslucentMap(); }
     bool isOpaque() const { return !isTranslucent(); }
     bool isSurfaceOpaque() const { return isOpaque() && !isOpacityMaskMap(); }
@@ -229,14 +280,20 @@ public:
         Builder& withoutMaskMap()       { _value.reset(MaterialKey::OPACITY_MASK_MAP_BIT); _mask.set(MaterialKey::OPACITY_MASK_MAP_BIT); return (*this); }
         Builder& withMaskMap()        { _value.set(MaterialKey::OPACITY_MASK_MAP_BIT);  _mask.set(MaterialKey::OPACITY_MASK_MAP_BIT); return (*this); }
 
+        Builder& withoutOpacityMapMode() { _value.reset(MaterialKey::OPACITY_MAP_MODE_BIT); _mask.set(MaterialKey::OPACITY_MAP_MODE_BIT); return (*this); }
+        Builder& withOpacityMapMode() { _value.set(MaterialKey::OPACITY_MAP_MODE_BIT);  _mask.set(MaterialKey::OPACITY_MAP_MODE_BIT); return (*this); }
+
+        Builder& withoutOpacityCutoff() { _value.reset(MaterialKey::OPACITY_CUTOFF_VAL_BIT); _mask.set(MaterialKey::OPACITY_CUTOFF_VAL_BIT); return (*this); }
+        Builder& withOpacityCutoff() { _value.set(MaterialKey::OPACITY_CUTOFF_VAL_BIT);  _mask.set(MaterialKey::OPACITY_CUTOFF_VAL_BIT); return (*this); }
+
         Builder& withoutNormalMap()       { _value.reset(MaterialKey::NORMAL_MAP_BIT); _mask.set(MaterialKey::NORMAL_MAP_BIT); return (*this); }
         Builder& withNormalMap()        { _value.set(MaterialKey::NORMAL_MAP_BIT);  _mask.set(MaterialKey::NORMAL_MAP_BIT); return (*this); }
 
         Builder& withoutOcclusionMap()       { _value.reset(MaterialKey::OCCLUSION_MAP_BIT); _mask.set(MaterialKey::OCCLUSION_MAP_BIT); return (*this); }
         Builder& withOcclusionMap()        { _value.set(MaterialKey::OCCLUSION_MAP_BIT);  _mask.set(MaterialKey::OCCLUSION_MAP_BIT); return (*this); }
 
-        Builder& withoutLightmapMap()       { _value.reset(MaterialKey::LIGHTMAP_MAP_BIT); _mask.set(MaterialKey::LIGHTMAP_MAP_BIT); return (*this); }
-        Builder& withLightmapMap()        { _value.set(MaterialKey::LIGHTMAP_MAP_BIT);  _mask.set(MaterialKey::LIGHTMAP_MAP_BIT); return (*this); }
+        Builder& withoutLightMap()       { _value.reset(MaterialKey::LIGHT_MAP_BIT); _mask.set(MaterialKey::LIGHT_MAP_BIT); return (*this); }
+        Builder& withLightMap()        { _value.set(MaterialKey::LIGHT_MAP_BIT);  _mask.set(MaterialKey::LIGHT_MAP_BIT); return (*this); }
 
         Builder& withoutScattering()       { _value.reset(MaterialKey::SCATTERING_VAL_BIT); _mask.set(MaterialKey::SCATTERING_VAL_BIT); return (*this); }
         Builder& withScattering()        { _value.set(MaterialKey::SCATTERING_VAL_BIT);  _mask.set(MaterialKey::SCATTERING_VAL_BIT); return (*this); }
@@ -271,6 +328,7 @@ public:
 
     Material();
     Material(const Material& material);
+    virtual ~Material() = default;
     Material& operator= (const Material& material);
 
     const MaterialKey& getKey() const { return _key; }
@@ -282,6 +340,14 @@ public:
     static const float DEFAULT_OPACITY;
     void setOpacity(float opacity);
     float getOpacity() const { return _opacity; }
+
+    static const MaterialKey::OpacityMapMode DEFAULT_OPACITY_MAP_MODE;
+    void setOpacityMapMode(MaterialKey::OpacityMapMode opacityMapMode);
+    MaterialKey::OpacityMapMode getOpacityMapMode() const;
+
+    static const float DEFAULT_OPACITY_CUTOFF;
+    void setOpacityCutoff(float opacityCutoff);
+    float getOpacityCutoff() const { return _opacityCutoff; }
 
     void setUnlit(bool value);
     bool isUnlit() const { return _key.isUnlit(); }
@@ -310,7 +376,8 @@ public:
 
     // Albedo maps cannot have opacity detected until they are loaded
     // This method allows const changing of the key/schemaBuffer without touching the map
-    void resetOpacityMap() const;
+    // return true if the opacity changed, flase otherwise
+    bool resetOpacityMap() const;
 
     // conversion from legacy material properties to PBR equivalent
     static float shininessToRoughness(float shininess) { return 1.0f - shininess / 100.0f; }
@@ -343,11 +410,19 @@ public:
     bool getPropertyFallthrough(uint property) { return _propertyFallthroughs[property]; }
     void setPropertyDoesFallthrough(uint property) { _propertyFallthroughs[property] = true; }
 
+    virtual bool isProcedural() const { return false; }
+    virtual bool isEnabled() const { return true; }
+    virtual bool isReady() const { return true; }
+    virtual QString getProceduralString() const { return QString(); }
+
+    static const std::string HIFI_PBR;
+    static const std::string HIFI_SHADER_SIMPLE;
+
 protected:
     std::string _name { "" };
 
 private:
-    std::string _model { "hifi_pbr" };
+    std::string _model { HIFI_PBR };
     mutable MaterialKey _key { 0 };
 
     // Material properties
@@ -357,6 +432,7 @@ private:
     float _roughness { DEFAULT_ROUGHNESS };
     float _metallic { DEFAULT_METALLIC };
     float _scattering { DEFAULT_SCATTERING };
+    float _opacityCutoff { DEFAULT_OPACITY_CUTOFF };
     std::array<glm::mat4, NUM_TEXCOORD_TRANSFORMS> _texcoordTransforms;
     glm::vec2 _lightmapParams { 0.0, 1.0 };
     glm::vec2 _materialParams { 0.0, 1.0 };
@@ -365,7 +441,7 @@ private:
     bool _defaultFallthrough { false };
     std::unordered_map<uint, bool> _propertyFallthroughs { NUM_TOTAL_FLAGS };
 
-    mutable QMutex _textureMapsMutex { QMutex::Recursive };
+    mutable std::recursive_mutex _textureMapsMutex;
 };
 typedef std::shared_ptr<Material> MaterialPointer;
 
@@ -425,18 +501,8 @@ public:
 
         float _metallic { Material::DEFAULT_METALLIC }; // Not Metallic
         float _scattering { Material::DEFAULT_SCATTERING }; // Scattering info
-#if defined(__clang__)
-        __attribute__((unused))
-#endif
-        glm::vec2 _spare { 0.0f }; // Padding
-
+        float _opacityCutoff { Material::DEFAULT_OPACITY_CUTOFF }; // Opacity cutoff applyed when using opacityMap as Mask 
         uint32_t _key { 0 }; // a copy of the materialKey
-#if defined(__clang__)
-        __attribute__((unused))
-#endif
-        glm::vec3 _spare2 { 0.0f };
-
-        // for alignment beauty, Material size == Mat4x4
 
         // Texture Coord Transform Array
         glm::mat4 _texcoordTransforms[Material::NUM_TEXCOORD_TRANSFORMS];

@@ -50,7 +50,6 @@ signals:
 
 class RenderShadowTask {
 public:
-
     // There is one AABox per shadow cascade
     using CascadeBoxes = render::VaryingArray<AABox, SHADOW_CASCADE_MAX_COUNT>;
     using Input = render::VaryingSet2<LightStage::FramePointer, LightingModelPointer>;
@@ -74,29 +73,33 @@ public:
     };
 
     CullFunctor _cullFunctor;
-
 };
 
 class RenderShadowSetupConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(float constantBias0 MEMBER constantBias0 NOTIFY dirty)
-        Q_PROPERTY(float constantBias1 MEMBER constantBias1 NOTIFY dirty)
-        Q_PROPERTY(float constantBias2 MEMBER constantBias2 NOTIFY dirty)
-        Q_PROPERTY(float constantBias3 MEMBER constantBias3 NOTIFY dirty)
-        Q_PROPERTY(float slopeBias0 MEMBER slopeBias0 NOTIFY dirty)
-        Q_PROPERTY(float slopeBias1 MEMBER slopeBias1 NOTIFY dirty)
-        Q_PROPERTY(float slopeBias2 MEMBER slopeBias2 NOTIFY dirty)
-        Q_PROPERTY(float slopeBias3 MEMBER slopeBias3 NOTIFY dirty)
-public:
+    Q_PROPERTY(float constantBias0 MEMBER constantBias0 NOTIFY dirty)
+    Q_PROPERTY(float constantBias1 MEMBER constantBias1 NOTIFY dirty)
+    Q_PROPERTY(float constantBias2 MEMBER constantBias2 NOTIFY dirty)
+    Q_PROPERTY(float constantBias3 MEMBER constantBias3 NOTIFY dirty)
+    Q_PROPERTY(float slopeBias0 MEMBER slopeBias0 NOTIFY dirty)
+    Q_PROPERTY(float slopeBias1 MEMBER slopeBias1 NOTIFY dirty)
+    Q_PROPERTY(float slopeBias2 MEMBER slopeBias2 NOTIFY dirty)
+    Q_PROPERTY(float slopeBias3 MEMBER slopeBias3 NOTIFY dirty)
+    Q_PROPERTY(float biasInput MEMBER biasInput NOTIFY dirty)
+    Q_PROPERTY(float maxDistance MEMBER maxDistance NOTIFY dirty)
 
-    float constantBias0{ 0.15f };
-    float constantBias1{ 0.15f };
-    float constantBias2{ 0.175f };
-    float constantBias3{ 0.2f };
-    float slopeBias0{ 0.4f };
-    float slopeBias1{ 0.45f };
-    float slopeBias2{ 0.65f };
-    float slopeBias3{ 0.7f };
+public:
+    // Set to > 0 to experiment with these values
+    float constantBias0 { 0.0f };
+    float constantBias1 { 0.0f };
+    float constantBias2 { 0.0f };
+    float constantBias3 { 0.0f };
+    float slopeBias0 { 0.0f };
+    float slopeBias1 { 0.0f };
+    float slopeBias2 { 0.0f };
+    float slopeBias3 { 0.0f };
+    float biasInput { 0.0f };
+    float maxDistance { 0.0f };
 
 signals:
     void dirty();
@@ -110,11 +113,10 @@ public:
     using JobModel = render::Job::ModelIO<RenderShadowSetup, Input, Output, Config>;
 
     RenderShadowSetup();
-    void configure(const Config& configuration);
+    void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
 
 private:
-
     ViewFrustumPointer _cameraFrustum;
     ViewFrustumPointer _coarseShadowFrustum;
     struct {
@@ -125,8 +127,21 @@ private:
     LightStage::ShadowFrame::Object _globalShadowObject;
     LightStage::ShadowFramePointer _shadowFrameCache;
 
+    // Values from config
+    float constantBias0;
+    float constantBias1;
+    float constantBias2;
+    float constantBias3;
+    float slopeBias0;
+    float slopeBias1;
+    float slopeBias2;
+    float slopeBias3;
+    float biasInput;
+    float maxDistance;
+
     void setConstantBias(int cascadeIndex, float value);
     void setSlopeBias(int cascadeIndex, float value);
+    void calculateBiases(float biasInput);
 };
 
 class RenderShadowCascadeSetup {

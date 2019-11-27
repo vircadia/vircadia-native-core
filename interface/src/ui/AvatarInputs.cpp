@@ -11,7 +11,6 @@
 
 #include <AudioClient.h>
 #include <SettingHandle.h>
-#include <trackers/FaceTracker.h>
 #include <UsersScriptingInterface.h>
 
 #include "Application.h"
@@ -20,6 +19,7 @@
 static AvatarInputs* INSTANCE{ nullptr };
 
 Setting::Handle<bool> showAudioToolsSetting { QStringList { "AvatarInputs", "showAudioTools" }, true };
+Setting::Handle<bool> showBubbleToolsSetting{ QStringList { "AvatarInputs", "showBubbleTools" }, true };
 
 AvatarInputs* AvatarInputs::getInstance() {
     if (!INSTANCE) {
@@ -31,6 +31,7 @@ AvatarInputs* AvatarInputs::getInstance() {
 
 AvatarInputs::AvatarInputs(QObject* parent) : QObject(parent) {
     _showAudioTools = showAudioToolsSetting.get();
+    _showBubbleTools = showBubbleToolsSetting.get();
     auto nodeList = DependencyManager::get<NodeList>();
     auto usersScriptingInterface = DependencyManager::get<UsersScriptingInterface>();
     connect(nodeList.data(), &NodeList::ignoreRadiusEnabledChanged, this, &AvatarInputs::ignoreRadiusEnabledChanged);
@@ -74,8 +75,6 @@ void AvatarInputs::update() {
         return;
     }
 
-    AI_UPDATE(cameraEnabled, !Menu::getInstance()->isOptionChecked(MenuOption::NoFaceTracking));
-    AI_UPDATE(cameraMuted, Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking));
     AI_UPDATE(isHMD, qApp->isHMDMode());
 }
 
@@ -88,15 +87,17 @@ void AvatarInputs::setShowAudioTools(bool showAudioTools) {
     emit showAudioToolsChanged(_showAudioTools);
 }
 
-bool AvatarInputs::getIgnoreRadiusEnabled() const {
-    return DependencyManager::get<NodeList>()->getIgnoreRadiusEnabled();
+void AvatarInputs::setShowBubbleTools(bool showBubbleTools) {
+    if (_showBubbleTools == showBubbleTools)
+        return;
+
+    _showBubbleTools = showBubbleTools;
+    showBubbleToolsSetting.set(_showBubbleTools);
+    emit showBubbleToolsChanged(_showBubbleTools);
 }
 
-void AvatarInputs::toggleCameraMute() {
-    FaceTracker* faceTracker = qApp->getSelectedFaceTracker();
-    if (faceTracker) {
-        faceTracker->toggleMute();
-    }
+bool AvatarInputs::getIgnoreRadiusEnabled() const {
+    return DependencyManager::get<NodeList>()->getIgnoreRadiusEnabled();
 }
 
 void AvatarInputs::resetSensors() {

@@ -242,6 +242,7 @@ bool OctreePersistThread::backupCurrentFile() {
 }
 
 void OctreePersistThread::process() {
+    _tree->preUpdate();
     _tree->update();
 
     auto now = std::chrono::steady_clock::now();

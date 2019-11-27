@@ -34,7 +34,7 @@ if (WIN32)
   list(APPEND CMAKE_PREFIX_PATH "${WINDOW_SDK_PATH}")
 
   # /wd4351 disables warning C4351: new behavior: elements of array will be default initialized
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /wd4351")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP${HIFI_MAX_BUILD_CORES} /wd4351")
   # /LARGEADDRESSAWARE enables 32-bit apps to use more than 2GB of memory.
   # Caveats: http://stackoverflow.com/questions/2288728/drawbacks-of-using-largeaddressaware-for-32-bit-windows-executables
   # TODO: Remove when building 64-bit.
@@ -88,11 +88,9 @@ if (APPLE)
   exec_program(sw_vers ARGS -productVersion  OUTPUT_VARIABLE OSX_VERSION)
   string(REGEX MATCH "^[0-9]+\\.[0-9]+" OSX_VERSION ${OSX_VERSION})
   message(STATUS "Detected OS X version = ${OSX_VERSION}")
+  message(STATUS "OS X deployment target = ${CMAKE_OSX_DEPLOYMENT_TARGET}")
 
-  set(OSX_SDK "${OSX_VERSION}" CACHE String "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
-
-  # set our OS X deployment target
-  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.9)
+  set(OSX_SDK "${OSX_VERSION}" CACHE STRING "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
 
   # find the SDK path for the desired SDK
   find_path(

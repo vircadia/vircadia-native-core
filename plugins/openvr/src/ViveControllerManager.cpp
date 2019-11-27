@@ -1299,27 +1299,33 @@ void ViveControllerManager::InputDevice::setConfigFromString(const QString& valu
 }
 
 /**jsdoc
- * <p>The <code>Controller.Hardware.Vive</code> object has properties representing Vive. The property values are integer IDs,
- * uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or 
- * <code>Controller.Standard</code> items in a {@link RouteObject} mapping.</p>
+ * <p>The <code>Controller.Hardware.Vive</code> object has properties representing the Vive. The property values are integer 
+ * IDs, uniquely identifying each output. <em>Read-only.</em></p>
+ * <p>These outputs can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject} 
+ * mapping.</p>
  * <table>
  *   <thead>
  *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
+ *     <tr><td colspan="4"><strong>Buttons</strong></td></tr>
+ *     <tr><td><code>LeftApplicationMenu</code></td><td>number</td><td>number</td><td>Left application menu button pressed.
+ *       </td></tr>
+ *     <tr><td><code>RightApplicationMenu</code></td><td>number</td><td>number</td><td>Right application menu button pressed.
+ *       </td></tr>
  *     <tr><td colspan="4"><strong>Touch Pad (Sticks)</strong></td></tr>
  *     <tr><td><code>LX</code></td><td>number</td><td>number</td><td>Left touch pad x-axis scale.</td></tr>
  *     <tr><td><code>LY</code></td><td>number</td><td>number</td><td>Left touch pad y-axis scale.</td></tr>
  *     <tr><td><code>RX</code></td><td>number</td><td>number</td><td>Right stick x-axis scale.</td></tr>
  *     <tr><td><code>RY</code></td><td>number</td><td>number</td><td>Right stick y-axis scale.</td></tr>
  *     <tr><td><code>LS</code></td><td>number</td><td>number</td><td>Left touch pad pressed.</td></tr>
- *     <tr><td><code>LS_CENTER</code></td><td>number</td><td>number</td><td>Left touch pad center pressed.</td></tr>
- *     <tr><td><code>LS_X</code></td><td>number</td><td>number</td><td>Left touch pad pressed x-coordinate.</td></tr>
- *     <tr><td><code>LS_Y</code></td><td>number</td><td>number</td><td>Left touch pad pressed y-coordinate.</td></tr>
+ *     <tr><td><code>LSCenter</code></td><td>number</td><td>number</td><td>Left touch pad center pressed.</td></tr>
+ *     <tr><td><code>LSX</code></td><td>number</td><td>number</td><td>Left touch pad pressed x-coordinate.</td></tr>
+ *     <tr><td><code>LSY</code></td><td>number</td><td>number</td><td>Left touch pad pressed y-coordinate.</td></tr>
  *     <tr><td><code>RS</code></td><td>number</td><td>number</td><td>Right touch pad pressed.</td></tr>
- *     <tr><td><code>RS_CENTER</code></td><td>number</td><td>number</td><td>Right touch pad center pressed.</td></tr>
- *     <tr><td><code>RS_X</code></td><td>number</td><td>number</td><td>Right touch pad pressed x-coordinate.</td></tr>
- *     <tr><td><code>RS_Y</code></td><td>number</td><td>number</td><td>Right touch pad pressed y-coordinate.</td></tr>
+ *     <tr><td><code>RSCenter</code></td><td>number</td><td>number</td><td>Right touch pad center pressed.</td></tr>
+ *     <tr><td><code>RSX</code></td><td>number</td><td>number</td><td>Right touch pad pressed x-coordinate.</td></tr>
+ *     <tr><td><code>RSY</code></td><td>number</td><td>number</td><td>Right touch pad pressed y-coordinate.</td></tr>
  *     <tr><td><code>LSTouch</code></td><td>number</td><td>number</td><td>Left touch pad is touched.</td></tr>
  *     <tr><td><code>RSTouch</code></td><td>number</td><td>number</td><td>Right touch pad is touched.</td></tr>
  *     <tr><td colspan="4"><strong>Triggers</strong></td></tr>

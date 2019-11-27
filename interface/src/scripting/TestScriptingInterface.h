@@ -165,14 +165,14 @@ public slots:
 
     /**jsdoc
      * Set number of cycles texture size is required to be stable
-     * @function Entities.setMinimumGPUTextureMemStabilityCount
+     * @function Test.setMinimumGPUTextureMemStabilityCount
     * @param {number} count - Number of cycles to wait
      */
     Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int count);
 
     /**jsdoc
      * Check whether all textures have been loaded.
-     * @function Entities.isTextureLoadingComplete
+     * @function Test.isTextureLoadingComplete
      * @returns {boolean} <code>true</code> texture memory usage is not increasing
      */
     Q_INVOKABLE bool isTextureLoadingComplete();

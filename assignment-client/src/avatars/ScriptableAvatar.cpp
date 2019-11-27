@@ -144,10 +144,10 @@ void ScriptableAvatar::update(float deltatime) {
             }
             _animationDetails.currentFrame = currentFrame;
 
-            const QVector<HFMJoint>& modelJoints = _bind->getHFMModel().joints;
+            const std::vector<HFMJoint>& modelJoints = _bind->getHFMModel().joints;
             QStringList animationJointNames = _animation->getJointNames();
 
-            const int nJoints = modelJoints.size();
+            const auto nJoints = (int)modelJoints.size();
             if (_jointData.size() != nJoints) {
                 _jointData.resize(nJoints);
             }
@@ -277,18 +277,6 @@ void ScriptableAvatar::setJointMappingsFromNetworkReply() {
         }
     }
     networkReply->deleteLater();
-}
-
-void ScriptableAvatar::setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement) {
-    _headData->setHasProceduralBlinkFaceMovement(hasProceduralBlinkFaceMovement);
-}
-
-void ScriptableAvatar::setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement) {
-    _headData->setHasProceduralEyeFaceMovement(hasProceduralEyeFaceMovement);
-}
-
-void ScriptableAvatar::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) {
-    _headData->setHasAudioEnabledFaceMovement(hasAudioEnabledFaceMovement);
 }
 
 AvatarEntityMap ScriptableAvatar::getAvatarEntityData() const {

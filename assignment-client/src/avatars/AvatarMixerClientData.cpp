@@ -74,12 +74,19 @@ int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData
             case PacketType::BulkAvatarTraitsAck:
                 processBulkAvatarTraitsAckMessage(*packet);
                 break;
+            case PacketType::ChallengeOwnership:
+                _avatar->processChallengeResponse(*packet);
+                break;
             default:
                 Q_UNREACHABLE();
         }
         _packetQueue.pop();
     }
     assert(_packetQueue.empty());
+
+    if (_avatar) {
+        _avatar->processCertifyEvents();
+    }
 
     return packetsProcessed;
 }
@@ -92,6 +99,7 @@ namespace {
         glm::vec3 position;
         bool isInPriorityZone { false };
         float zoneVolume { std::numeric_limits<float>::max() };
+        EntityItemID id {};
 
         static bool operation(const OctreeElementPointer& element, void* extraData) {
             auto findPriorityZone = static_cast<FindPriorityZone*>(extraData);
@@ -106,6 +114,7 @@ namespace {
                             if (volume < findPriorityZone->zoneVolume) { // Smaller volume wins
                                 findPriorityZone->isInPriorityZone = zoneItem->getAvatarPriority() == COMPONENT_MODE_ENABLED;
                                 findPriorityZone->zoneVolume = volume;
+                                findPriorityZone->id = zoneItem->getEntityItemID();
                             }
                         }
                     }
@@ -145,7 +154,15 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
         EntityTree& entityTree = *slaveSharedData.entityTree;
         FindPriorityZone findPriorityZone { newPosition } ;
         entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
-        _avatar->setHasPriority(findPriorityZone.isInPriorityZone);
+        bool currentlyHasPriority = findPriorityZone.isInPriorityZone;
+        if (currentlyHasPriority != _avatar->getHasPriority()) {
+            _avatar->setHasPriority(currentlyHasPriority);
+            auto nodeList = DependencyManager::get<NodeList>();
+            auto packet = NLPacket::create(PacketType::AvatarZonePresence, 2 * NUM_BYTES_RFC4122_UUID, true);
+            packet->write(_avatar->getSessionUUID().toRfc4122());
+            packet->write(findPriorityZone.id.toRfc4122());
+            nodeList->sendPacket(std::move(packet), nodeList->getDomainSockAddr());
+        }
         _avatar->setNeedsHeroCheck(false);
     }
 
@@ -200,6 +217,8 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                 if (traitType == AvatarTraits::SkeletonModelURL) {
                     // special handling for skeleton model URL, since we need to make sure it is in the whitelist
                     checkSkeletonURLAgainstWhitelist(slaveSharedData, sendingNode, packetTraitVersion);
+                    // Deferred for UX work. With no PoP check, no need to get the .fst.
+                    _avatar->fetchAvatarFST();
                 }
 
                 anyTraitsChanged = true;
@@ -420,7 +439,7 @@ void AvatarMixerClientData::resetSentTraitData(Node::LocalID nodeLocalID) {
     _lastSentTraitsTimestamps[nodeLocalID] = TraitsCheckTimestamp();
     _perNodeSentTraitVersions[nodeLocalID].reset();
     _perNodeAckedTraitVersions[nodeLocalID].reset();
-    for (auto && pendingTraitVersions : _perNodePendingTraitVersions) {
+    for (auto&& pendingTraitVersions : _perNodePendingTraitVersions) {
         pendingTraitVersions.second[nodeLocalID].reset();
     }
 }
@@ -480,4 +499,8 @@ void AvatarMixerClientData::cleanupKilledNode(const QUuid&, Node::LocalID nodeLo
     removeLastBroadcastTime(nodeLocalID);
     _lastSentTraitsTimestamps.erase(nodeLocalID);
     _perNodeSentTraitVersions.erase(nodeLocalID);
+    _perNodeAckedTraitVersions.erase(nodeLocalID);
+    for (auto&& pendingTraitVersions : _perNodePendingTraitVersions) {
+        pendingTraitVersions.second.erase(nodeLocalID);
+    }
 }

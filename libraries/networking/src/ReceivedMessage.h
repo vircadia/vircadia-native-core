@@ -48,6 +48,8 @@ public:
     // Get the number of packets that were used to send this message
     qint64 getNumPackets() const { return _numPackets; }
 
+    qint64 getFirstPacketReceiveTime() const { return _firstPacketReceiveTime; }
+
     qint64 getSize() const { return _data.size(); }
 
     qint64 getBytesLeftToRead() const { return _data.size() -  _position; }
@@ -92,6 +94,7 @@ private:
 
     std::atomic<qint64> _position { 0 };
     std::atomic<qint64> _numPackets { 0 };
+    std::atomic<quint64> _firstPacketReceiveTime { 0 };
 
     NLPacket::LocalID _sourceID { NLPacket::NULL_LOCAL_ID };
     PacketType _packetType;

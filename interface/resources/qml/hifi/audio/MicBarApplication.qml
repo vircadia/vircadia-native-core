@@ -24,9 +24,23 @@ Rectangle {
     property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
     readonly property var userSpeakingLevel: 0.4;
     property bool gated: false;
+
+    Timer {
+        // used to hold the muted warning.
+        id: mutedTimer
+
+        interval: 2000;
+        running: false;
+        repeat: false;
+        property bool isRunning: false;
+        onTriggered: {
+            isRunning = false;
+        }
+    }
+
     Component.onCompleted: {
-        AudioScriptingInterface.noiseGateOpened.connect(function() { gated = false; });
-        AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
+        AudioScriptingInterface.noiseGateOpened.connect(function() { micBar.gated = false; });
+        AudioScriptingInterface.noiseGateClosed.connect(function() { micBar.gated = true; });
         HMD.displayModeChanged.connect(function() {
             muted = AudioScriptingInterface.muted;
             pushToTalk = AudioScriptingInterface.pushToTalk;
@@ -54,13 +68,27 @@ Rectangle {
     opacity: 0.7;
 
     onLevelChanged: {
-        var rectOpacity = (muted && (level >= userSpeakingLevel)) ? 1.0 : 0.7;
+        var mutedAndSpeaking = (muted && (level >= userSpeakingLevel));
+        if (!mutedTimer.isRunning && !pushToTalk) {
+            if (mutedAndSpeaking) {
+                mutedTimer.start();
+                mutedTimer.isRunning = true;
+                statusText.text = "MUTED";
+            } else {
+                statusText.text = "";
+            }
+        }
+        var rectOpacity = mutedAndSpeaking ? 1.0 : 0.7;
         if (pushToTalk && !pushingToTalk) {
             rectOpacity = (mouseArea.containsMouse) ? 1.0 : 0.7;
         } else if (mouseArea.containsMouse && rectOpacity != 1.0) {
             rectOpacity = 1.0;
         }
         micBar.opacity = rectOpacity;
+    }
+
+    onPushToTalkChanged: {
+        statusText.text = pushToTalk ? HMD.active ? "PTT" : "PTT-(T)" : "";
     }
 
     color: "#00000000";
@@ -123,7 +151,7 @@ Rectangle {
         readonly property string yellow: "#C0C000";
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
-        readonly property string icon: (muted || clipping) ? mutedColor : gated ? gatedColor : unmutedColor;
+        readonly property string icon: (muted || clipping) ? mutedColor : micBar.gated ? gatedColor : unmutedColor;
     }
 
     Item {
@@ -141,7 +169,7 @@ Rectangle {
             Image {
                 id: image;
                 source: (pushToTalk) ? pushToTalkIcon : muted ? mutedIcon :
-                    clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon;
+                    clipping ? clippingIcon : micBar.gated ? gatedIcon : unmutedIcon;
                 width: 29;
                 height: 32;
                 anchors {
@@ -190,7 +218,6 @@ Rectangle {
             color: pushToTalk ? (pushingToTalk ? colors.unmutedColor : colors.mutedColor) : (level >= userSpeakingLevel && muted) ? colors.mutedColor : colors.unmutedColor;
             font.bold: true
 
-            text: pushToTalk ? (HMD.active ? "PTT" : "PTT-(T)") : (muted ? "MUTED" : "MUTE");
             size: 12;
         }
     }

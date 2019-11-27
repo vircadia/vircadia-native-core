@@ -12,12 +12,32 @@
 #ifndef hifi_ComponentMode_h
 #define hifi_ComponentMode_h
 
+#include <QString>
+
 enum ComponentMode {
     COMPONENT_MODE_INHERIT,
     COMPONENT_MODE_DISABLED,
     COMPONENT_MODE_ENABLED,
 
     COMPONENT_MODE_ITEM_COUNT
+};
+
+enum AvatarPriorityMode {
+    AVATAR_PRIORITY_INHERIT,
+    AVATAR_PRIORITY_CROWD,
+    AVATAR_PRIORITY_HERO,
+
+    AVATAR_PRIORITY_ITEM_COUNT
+};
+
+class ComponentModeHelpers {
+public:
+    static QString getNameForComponentMode(ComponentMode mode);
+};
+
+class AvatarPriorityModeHelpers {
+public:
+    static QString getNameForAvatarPriorityMode(AvatarPriorityMode mode);
 };
 
 #endif // hifi_ComponentMode_h

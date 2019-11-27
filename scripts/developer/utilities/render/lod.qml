@@ -80,7 +80,7 @@ Item {
             valueVar: LODManager["lodAngleDeg"]
             valueVarSetter: (function (v) { LODManager["lodAngleDeg"] = v })
             max: 90.0
-            min: 0.5
+            min: 0.01
             integral: false
 
             anchors.left: parent.left
@@ -239,6 +239,7 @@ Item {
             object: LODManager
             valueScale: 1.0
             valueUnit: "deg"
+            valueNumDigits: 2
             plots: [
                 {
                     prop: "lodAngleDeg",

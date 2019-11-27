@@ -32,19 +32,19 @@ namespace gpu {
 
 struct ContextStats {
 public:
-    int _ISNumFormatChanges = 0;
-    int _ISNumInputBufferChanges = 0;
-    int _ISNumIndexBufferChanges = 0;
+    uint32_t _ISNumFormatChanges { 0 };
+    uint32_t _ISNumInputBufferChanges { 0 };
+    uint32_t _ISNumIndexBufferChanges { 0 };
 
-    int _RSNumResourceBufferBounded = 0;
-    int _RSNumTextureBounded = 0;
-    int _RSAmountTextureMemoryBounded = 0;
+    uint32_t _RSNumResourceBufferBounded { 0 };
+    uint32_t _RSNumTextureBounded { 0 };
+    uint64_t _RSAmountTextureMemoryBounded { 0 };
 
-    int _DSNumAPIDrawcalls = 0;
-    int _DSNumDrawcalls = 0;
-    int _DSNumTriangles = 0;
+    uint32_t _DSNumAPIDrawcalls { 0 };
+    uint32_t _DSNumDrawcalls { 0 };
+    uint32_t _DSNumTriangles { 0 };
 
-    int _PSNumSetPipelines = 0;
+    uint32_t _PSNumSetPipelines { 0 };
 
     ContextStats() {}
     ContextStats(const ContextStats& stats) = default;

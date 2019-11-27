@@ -10,14 +10,13 @@
 
 #include <AudioClient.h>
 #include <avatar/AvatarManager.h>
-#include <devices/DdeFaceTracker.h>
 #include <ScriptEngines.h>
 #include <OffscreenUi.h>
 #include <Preferences.h>
-#include <RenderShadowTask.h>
 #include <plugins/PluginUtils.h>
 #include <display-plugins/CompositorHelper.h>
-
+#include <display-plugins/hmd/HmdDisplayPlugin.h>
+#include "scripting/RenderScriptingInterface.h"
 #include "Application.h"
 #include "DialogsManager.h"
 #include "LODManager.h"
@@ -58,18 +57,19 @@ void setupPreferences() {
     static const QString GRAPHICS_QUALITY { "Graphics Quality" };
     {
         auto getter = []()->float {
-            return DependencyManager::get<LODManager>()->getWorldDetailQuality();
+            return (int)DependencyManager::get<LODManager>()->getWorldDetailQuality();
         };
 
-        auto setter = [](float value) {
-            DependencyManager::get<LODManager>()->setWorldDetailQuality(value);
+        auto setter = [](int value) {
+            DependencyManager::get<LODManager>()->setWorldDetailQuality(static_cast<WorldDetailQuality>(value));
         };
 
-        auto wodSlider = new SliderPreference(GRAPHICS_QUALITY, "World Detail", getter, setter);
-        wodSlider->setMin(0.25f);
-        wodSlider->setMax(0.75f);
-        wodSlider->setStep(0.25f);
-        preferences->addPreference(wodSlider);
+        auto wodButtons = new RadioButtonsPreference(GRAPHICS_QUALITY, "World Detail", getter, setter);
+        QStringList items;
+        items << "Low World Detail" << "Medium World Detail" << "High World Detail";
+        wodButtons->setHeading("World Detail");
+        wodButtons->setItems(items);
+        preferences->addPreference(wodButtons);
 
         auto getterShadow = []()->bool {
             auto menu = Menu::getInstance();
@@ -102,6 +102,32 @@ void setupPreferences() {
 
         preference->setItems(refreshRateProfiles);
         preferences->addPreference(preference);
+
+        auto getterMaterialProceduralShaders = []() -> bool {
+            auto menu = Menu::getInstance();
+            return menu->isOptionChecked(MenuOption::MaterialProceduralShaders);
+        };
+        auto setterMaterialProceduralShaders = [](bool value) {
+            auto menu = Menu::getInstance();
+            menu->setIsOptionChecked(MenuOption::MaterialProceduralShaders, value);
+        };
+        preferences->addPreference(new CheckPreference(GRAPHICS_QUALITY, "Enable Procedural Materials", getterMaterialProceduralShaders, setterMaterialProceduralShaders));
+    }
+    {
+        // Expose the Viewport Resolution Scale
+        auto getter = []()->float {
+            return RenderScriptingInterface::getInstance()->getViewportResolutionScale();
+        };
+
+        auto setter = [](float value) {
+            RenderScriptingInterface::getInstance()->setViewportResolutionScale(value);
+        };
+
+        auto scaleSlider = new SliderPreference(GRAPHICS_QUALITY, "Resolution Scale", getter, setter);
+        scaleSlider->setMin(0.25f);
+        scaleSlider->setMax(1.0f);
+        scaleSlider->setStep(0.02f);
+        preferences->addPreference(scaleSlider);
     }
 
     // UI
@@ -110,6 +136,12 @@ void setupPreferences() {
         auto getter = []()->bool { return qApp->getSettingConstrainToolbarPosition(); };
         auto setter = [](bool value) { qApp->setSettingConstrainToolbarPosition(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Constrain Toolbar Position to Horizontal Center", getter, setter));
+    }
+
+    {
+        auto getter = []()->bool { return qApp->getAwayStateWhenFocusLostInVREnabled(); };
+        auto setter = [](bool value) { qApp->setAwayStateWhenFocusLostInVREnabled(value); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Go into away state when interface window loses focus in VR", getter, setter));
     }
 
     {
@@ -225,7 +257,7 @@ void setupPreferences() {
                                 "installation and system details, and crash events. By allowing High Fidelity to collect "
                                 "this information you are helping to improve the product. ", getter, setter));
     }
-    
+
     static const QString AVATAR_TUNING { "Avatar Tuning" };
     {
         auto getter = [myAvatar]()->QString { return myAvatar->getDominantHand(); };
@@ -241,8 +273,8 @@ void setupPreferences() {
         preference->setStep(0.05f);
         preference->setDecimals(2);
         preferences->addPreference(preference);
-        
-        // When the Interface is first loaded, this section setupPreferences(); is loaded - 
+
+        // When the Interface is first loaded, this section setupPreferences(); is loaded -
         // causing the myAvatar->getDomainMinScale() and myAvatar->getDomainMaxScale() to get set to incorrect values
         // which can't be changed across domain switches. Having these values loaded up when you load the Dialog each time
         // is a way around this, therefore they're not specified here but in the QML.
@@ -261,18 +293,6 @@ void setupPreferences() {
         auto setter = [myAvatar](bool value) { myAvatar->setCollisionsEnabled(value); };
         auto preference = new CheckPreference(AVATAR_TUNING, "Enable Avatar collisions", getter, setter);
         preferences->addPreference(preference);
-    }
-
-    static const QString FACE_TRACKING{ "Face Tracking" };
-    {
-        auto getter = []()->float { return DependencyManager::get<DdeFaceTracker>()->getEyeClosingThreshold(); };
-        auto setter = [](float value) { DependencyManager::get<DdeFaceTracker>()->setEyeClosingThreshold(value); };
-        preferences->addPreference(new SliderPreference(FACE_TRACKING, "Eye Closing Threshold", getter, setter));
-    }
-    {
-        auto getter = []()->float { return FaceTracker::getEyeDeflection(); };
-        auto setter = [](float value) { FaceTracker::setEyeDeflection(value); };
-        preferences->addPreference(new SliderPreference(FACE_TRACKING, "Eye Deflection", getter, setter));
     }
 
     static const QString VR_MOVEMENT{ "VR Movement" };
@@ -301,8 +321,14 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = [myAvatar]()->bool { return myAvatar->hoverWhenUnsupported(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setHoverWhenUnsupported(value); };
+        auto preference = new CheckPreference(VR_MOVEMENT, "Hover When Unsupported", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
         auto getter = [myAvatar]()->int { return myAvatar->getMovementReference(); };
-        auto setter = [myAvatar](int value) { myAvatar->setMovementReference(value);  };
+        auto setter = [myAvatar](int value) { myAvatar->setMovementReference(value); };
         //auto preference = new CheckPreference(VR_MOVEMENT, "Hand-Relative Movement", getter, setter);
         auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Movement Direction", getter, setter);
         QStringList items;
@@ -344,6 +370,33 @@ void setupPreferences() {
         preference->setMax(30.0f);
         preference->setStep(1);
         preference->setDecimals(2);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = []()->bool {
+            return qApp->getVisionSqueeze().getVisionSqueezeEnabled();
+        };
+        auto setter = [](bool value) {
+            qApp->getVisionSqueeze().setVisionSqueezeEnabled(value);
+        };
+        auto preference = new CheckPreference(VR_MOVEMENT, "Enable HMD Comfort Mode", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        const float sliderPositions = 5.0f;
+        auto getter = [sliderPositions]()->float {
+            return roundf(sliderPositions * qApp->getVisionSqueeze().getVisionSqueezeRatioX());
+        };
+        auto setter = [sliderPositions](float value) {
+            float ratio = value / sliderPositions;
+            qApp->getVisionSqueeze().setVisionSqueezeRatioX(ratio);
+            qApp->getVisionSqueeze().setVisionSqueezeRatioY(ratio);
+        };
+        auto preference = new SpinnerSliderPreference(VR_MOVEMENT, "Comfort Mode", getter, setter);
+        preference->setMin(0.0f);
+        preference->setMax(sliderPositions);
+        preference->setStep(1.0f);
+        preference->setDecimals(0);
         preferences->addPreference(preference);
     }
     {
@@ -508,6 +561,5 @@ void setupPreferences() {
             preference->setStep(10);
             preferences->addPreference(preference);
         }
-
     }
 }

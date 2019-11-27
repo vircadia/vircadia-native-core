@@ -12,8 +12,12 @@ var self = this;
                         Returns: <span style="font-weight: normal;">
                         <?js returns.forEach(function(r) { ?>
                             <?js= self.partial('returns.tmpl', r) ?>
-                        <?js });
-                    } ?></span>           
+                        <?js }); ?>
+                        </span>
+                    <?js } ?>
+                    <?js if (data.kind === 'typedef' && data.type && data.type.names) { ?>
+                        <br />Type: <?js= self.partial('type.tmpl', data.type.names) ?>
+                    <?js } ?>
                 </th>
             </tr>
         </thead>
@@ -21,23 +25,23 @@ var self = this;
             <tr>
                 <td>
                     <?js if (data.kind !== 'module' && !data.hideconstructor) { ?>
-                        <p>
-                            <?js= data.description ?>
-                            <?js= this.partial('details.tmpl', data) ?>
-                        </p>
+                        <?js if (data.description) { ?>
+                            <?js= self.partial('description.tmpl', data.description) ?>
+                        <?js } ?>
+                        <?js= this.partial('details.tmpl', data) ?>
                     <?js } else { ?>
                         <p style="color:red;">&nbsp;</p>
                     <?js } ?>                    
 
                     <?js if (data.exceptions && exceptions.length) { ?>
-                    <h3 class="subHeading">Throws:</h3>
+                    <h3 class="subHeading">Throws</h3>
                     <?js if (exceptions.length > 1) { ?><ul><?js
                     exceptions.forEach(function(r) { ?>
                         <li><?js= self.partial('exceptions.tmpl', r) ?></li>
                     <?js });
                     ?></ul><?js } else {
                     exceptions.forEach(function(r) { ?>
-                        <p><?js= self.partial('exceptions.tmpl', r) ?></p>
+                        <?js= self.partial('exceptions.tmpl', r) ?>
                     <?js });
                     } } ?>
 
@@ -63,7 +67,7 @@ var self = this;
     <?js= self.partial('augments.tmpl', data) ?>
 <?js } ?>
 
-<?js if (kind === 'event' && data.type && data.type.names) {?>
+<?js if (data.kind === 'event' && data.type && data.type.names) {?>
     <h5>Type:</h5>
     <ul>
         <li>

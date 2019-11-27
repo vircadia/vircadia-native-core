@@ -61,8 +61,9 @@ public:
     virtual scriptable::ScriptableModelBase getScriptableModel() override { return scriptable::ScriptableModelBase(); }
 
     static glm::vec4 calculatePulseColor(const glm::vec4& color, const PulsePropertyGroup& pulseProperties, quint64 start);
+    static glm::vec3 calculatePulseColor(const glm::vec3& color, const PulsePropertyGroup& pulseProperties, quint64 start);
 
-    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) override;
+    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
     virtual Item::Bound getBound() override;
 
 protected:
@@ -100,7 +101,7 @@ protected:
     virtual void doRender(RenderArgs* args) = 0;
 
     virtual bool isFading() const { return _isFading; }
-    void updateModelTransformAndBound();
+    virtual void updateModelTransformAndBound();
     virtual bool isTransparent() const { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
     inline bool isValidRenderItem() const { return _renderItemID != Item::INVALID_ITEM_ID; }
 
@@ -109,22 +110,12 @@ protected:
     virtual void setPrimitiveMode(PrimitiveMode value) { _primitiveMode = value; }
     virtual void setCullWithParent(bool value) { _cullWithParent = value; }
 
-    template <typename F, typename T>
-    T withReadLockResult(const std::function<T()>& f) {
-        T result;
-        withReadLock([&] {
-            result = f();
-        });
-        return result;
-    }
-
 signals:
     void requestRenderUpdate();
 
 protected:
     template<typename T>
     std::shared_ptr<T> asTypedEntity() { return std::static_pointer_cast<T>(_entity); }
-        
 
     static void makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters);
     const Transform& getModelTransform() const;
@@ -145,7 +136,6 @@ protected:
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     bool _cauterized { false };
     bool _moving { false };
-    bool _needsRenderUpdate { false };
     // Only touched on the rendering thread
     bool _renderUpdateQueued{ false };
     Transform _renderTransform;
@@ -155,7 +145,6 @@ protected:
 
     quint64 _created;
 
-private:
     // The base class relies on comparing the model transform to the entity transform in order 
     // to trigger an update, so the member must not be visible to derived classes as a modifiable
     // transform

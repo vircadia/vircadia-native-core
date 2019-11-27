@@ -33,7 +33,7 @@ const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor
 const int WAIT_FOR_CHILD_MSECS = 1000;
 
 #ifdef Q_OS_WIN
-HANDLE PROCESS_GROUP = createProcessGroup();
+void* PROCESS_GROUP = createProcessGroup();
 #endif
 
 AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmentClientForks,

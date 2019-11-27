@@ -10,14 +10,31 @@ endif()
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/macros/TargetPython.cmake")
 target_python()
 
-if (HIFI_ANDROID )
+if (WIN32 AND NOT HIFI_ANDROID)
+    # Force x64 toolset
+    set(CMAKE_GENERATOR_TOOLSET "host=x64" CACHE STRING "64-bit toolset" FORCE)
+endif()
+
+# set our OS X deployment target
+# (needs to be set before first project() call and before prebuild.py)
+# Will affect VCPKG dependencies
+if (APPLE)
+  set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.11)
+endif()
+
+set(RELEASE_TYPE "$ENV{RELEASE_TYPE}")
+if ((NOT "${RELEASE_TYPE}" STREQUAL "PRODUCTION") AND (NOT "${RELEASE_TYPE}" STREQUAL "PR"))
+    set(RELEASE_TYPE "DEV")
+endif()
+
+if (HIFI_ANDROID)
     execute_process(
-        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --android ${HIFI_ANDROID_APP} --build-root ${CMAKE_BINARY_DIR}
+        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --release-type ${RELEASE_TYPE} --android ${HIFI_ANDROID_APP} --build-root ${CMAKE_BINARY_DIR}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 else()
     execute_process(
-        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --build-root ${CMAKE_BINARY_DIR}
+        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --release-type ${RELEASE_TYPE} --build-root ${CMAKE_BINARY_DIR}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
     # squelch the Policy CMP0074 warning without requiring an update to cmake 3.12.
@@ -29,11 +46,23 @@ endif()
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/vcpkg.cmake")
     message(FATAL_ERROR "vcpkg configuration missing.")
 endif()
-
 include("${CMAKE_BINARY_DIR}/vcpkg.cmake")
+
+if (HIFI_ANDROID)
+  set(QT_CMAKE_PREFIX_PATH "$ENV{HIFI_ANDROID_PRECOMPILED}/qt/lib/cmake")
+else() 
+  if(NOT EXISTS "${CMAKE_BINARY_DIR}/qt.cmake")
+      message(FATAL_ERROR "qt configuration missing.")
+  endif()
+  include("${CMAKE_BINARY_DIR}/qt.cmake")
+endif()
+
+option(VCPKG_APPLOCAL_DEPS OFF)
+
 project(hifi)
 include("cmake/init.cmake")
 include("cmake/compiler.cmake")
+option(VCPKG_APPLOCAL_DEPS OFF)
 
 add_paths_to_fixup_libs(${VCPKG_INSTALL_ROOT}/bin)
 add_paths_to_fixup_libs(${VCPKG_INSTALL_ROOT}/debug/bin)
@@ -55,7 +84,7 @@ endif()
 # Use default time server if none defined in environment
 set_from_env(TIMESERVER_URL TIMESERVER_URL "http://sha256timestamp.ws.symantec.com/sha256/timestamp")
 
-set(HIFI_USE_OPTIMIZED_IK OFF)
+set(HIFI_USE_OPTIMIZED_IK_OPTION OFF)
 set(BUILD_CLIENT_OPTION ON)
 set(BUILD_SERVER_OPTION ON)
 set(BUILD_TESTS_OPTION OFF)
@@ -86,9 +115,9 @@ if (ANDROID)
   set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
   add_definitions(-DHIFI_ANDROID_APP=\"${HIFI_ANDROID_APP}\")
   if (
-      (${HIFI_ANDROID_APP} STREQUAL "questInterface") OR 
+      (${HIFI_ANDROID_APP} STREQUAL "questInterface") OR
       (${HIFI_ANDROID_APP} STREQUAL "questFramePlayer") OR
-      (${HIFI_ANDROID_APP} STREQUAL "framePlayer") 
+      (${HIFI_ANDROID_APP} STREQUAL "framePlayer")
     )
     # We know the quest hardware has this extension, so we can force the use of instanced stereo
     add_definitions(-DHAVE_EXT_clip_cull_distance)
@@ -98,18 +127,18 @@ if (ANDROID)
     # We can also use our own foveated textures
     add_definitions(-DHAVE_QCOM_texture_foveated)
 
-    # if set, the application itself or some library it depends on MUST implement 
+    # if set, the application itself or some library it depends on MUST implement
     # `DisplayPluginList getDisplayPlugins()` and `InputPluginList getInputPlugins()`
-    add_definitions(-DCUSTOM_INPUT_PLUGINS) 
-    add_definitions(-DCUSTOM_DISPLAY_PLUGINS) 
+    add_definitions(-DCUSTOM_INPUT_PLUGINS)
+    add_definitions(-DCUSTOM_DISPLAY_PLUGINS)
     set(PLATFORM_PLUGIN_LIBRARIES oculusMobile oculusMobilePlugin)
   endif()
 
   # Allow client code to use preprocessor macros to distinguish between quest and non-quest builds
   if (${HIFI_ANDROID_APP} STREQUAL "questInterface")
-    add_definitions(-DANDROID_APP_QUEST_INTERFACE) 
+    add_definitions(-DANDROID_APP_QUEST_INTERFACE)
   elseif(${HIFI_ANDROID_APP} STREQUAL "interface")
-    add_definitions(-DANDROID_APP_INTERFACE) 
+    add_definitions(-DANDROID_APP_INTERFACE)
   endif()
 else ()
   set(PLATFORM_QT_COMPONENTS WebEngine Xml)
@@ -119,7 +148,7 @@ if (USE_GLES AND (NOT ANDROID))
   set(DISABLE_QML_OPTION ON)
 endif()
 
-option(HIFI_USE_OPTIMIZED_IK "USE OPTIMIZED IK" ${HIFI_USE_OPTIMIZED_IK_OPTION})
+option(HIFI_USE_OPTIMIZED_IK "Use optimized IK" ${HIFI_USE_OPTIMIZED_IK_OPTION})
 option(BUILD_CLIENT "Build client components" ${BUILD_CLIENT_OPTION})
 option(BUILD_SERVER "Build server components" ${BUILD_SERVER_OPTION})
 option(BUILD_TESTS "Build tests" ${BUILD_TESTS_OPTION})
@@ -127,6 +156,7 @@ option(BUILD_MANUAL_TESTS "Build manual tests" ${BUILD_MANUAL_TESTS_OPTION})
 option(BUILD_TOOLS "Build tools" ${BUILD_TOOLS_OPTION})
 option(BUILD_INSTALLER "Build installer" ${BUILD_INSTALLER_OPTION})
 option(USE_GLES "Use OpenGL ES" ${GLES_OPTION})
+option(USE_KHR_ROBUSTNESS "Use KHR_robustness" OFF)
 option(DISABLE_QML "Disable QML" ${DISABLE_QML_OPTION})
 option(DISABLE_KTX_CACHE "Disable KTX Cache" OFF)
 option(
@@ -136,6 +166,10 @@ option(
 )
 
 set(PLATFORM_QT_GL OpenGL)
+
+if (USE_KHR_ROBUSTNESS)
+  add_definitions(-DUSE_KHR_ROBUSTNESS)
+endif()
 
 if (USE_GLES)
   add_definitions(-DUSE_GLES)
@@ -150,7 +184,7 @@ foreach(PLATFORM_QT_COMPONENT ${PLATFORM_QT_COMPONENTS})
   list(APPEND PLATFORM_QT_LIBRARIES "Qt5::${PLATFORM_QT_COMPONENT}")
 endforeach()
 
-MESSAGE(STATUS "USE OPTIMIZED IK:      " ${HIFI_USE_OPTIMIZED_IK})
+MESSAGE(STATUS "Use optimized IK:      " ${HIFI_USE_OPTIMIZED_IK})
 MESSAGE(STATUS "Build server:          " ${BUILD_SERVER})
 MESSAGE(STATUS "Build client:          " ${BUILD_CLIENT})
 MESSAGE(STATUS "Build tests:           " ${BUILD_TESTS})
@@ -187,6 +221,8 @@ GroupSources("scripts")
 GroupSources("unpublishedScripts")
 unset(JS_SRC)
 
+set_packaging_parameters()
+
 # Locate the required Qt build on the filesystem
 setup_qt()
 list(APPEND CMAKE_PREFIX_PATH "${QT_CMAKE_PREFIX_PATH}")
@@ -196,6 +232,13 @@ find_package( Threads )
 add_definitions(-DGLM_FORCE_RADIANS)
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 add_definitions(-DGLM_FORCE_CTOR_INIT)
+add_definitions(-DGLM_LANG_STL11_FORCED) # Workaround for GLM not detecting support for C++11 templates on Android
+
+if (WIN32)
+    # Deal with fakakta Visual Studo 2017 bug
+    add_definitions(-DQT_NO_FLOAT16_OPERATORS)
+endif()
+
 if (HIFI_USE_OPTIMIZED_IK)
   MESSAGE(STATUS "SET THE USE IK DEFINITION ")
   add_definitions(-DHIFI_USE_OPTIMIZED_IK)
@@ -207,8 +250,6 @@ set_property(DIRECTORY PROPERTY EP_PREFIX ${EXTERNAL_PROJECT_PREFIX})
 setup_externals_binary_dir()
 
 option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
-
-set_packaging_parameters()
 
 # FIXME hack to work on the proper Android toolchain
 if (ANDROID)
@@ -228,6 +269,7 @@ endif()
 
 if (BUILD_CLIENT)
   add_subdirectory(interface)
+  add_subdirectory(screenshare)
   set_target_properties(interface PROPERTIES FOLDER "Apps")
 
   option(USE_SIXENSE "Build Interface with sixense library/plugin" OFF)
@@ -243,11 +285,11 @@ add_subdirectory(tools)
 
 if (BUILD_TESTS)
   # Turn on testing so that add_test works
-  # MUST be in the root cmake file for ctest to work 
+  # MUST be in the root cmake file for ctest to work
   include(CTest)
   enable_testing()
   add_subdirectory(tests)
-  if (BUILD_MANUAL_TESTS) 
+  if (BUILD_MANUAL_TESTS)
     add_subdirectory(tests-manual)
   endif()
 endif()

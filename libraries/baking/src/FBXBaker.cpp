@@ -90,11 +90,11 @@ void FBXBaker::replaceMeshNodeWithDraco(FBXNode& meshNode, const QByteArray& dra
     }
 }
 
-void FBXBaker::rewriteAndBakeSceneModels(const QVector<hfm::Mesh>& meshes, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) {
+void FBXBaker::rewriteAndBakeSceneModels(const std::vector<hfm::Mesh>& meshes, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) {
     std::vector<int> meshIndexToRuntimeOrder;
-    auto meshCount = (int)meshes.size();
+    auto meshCount = (uint32_t)meshes.size();
     meshIndexToRuntimeOrder.resize(meshCount);
-    for (int i = 0; i < meshCount; i++) {
+    for (uint32_t i = 0; i < meshCount; i++) {
         meshIndexToRuntimeOrder[meshes[i].meshIndex] = i;
     }
     

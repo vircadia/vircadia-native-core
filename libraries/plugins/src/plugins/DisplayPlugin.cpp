@@ -35,15 +35,6 @@ void DisplayPlugin::waitForPresent() {
     }
 }
 
-std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> DisplayPlugin::getHUDOperator() {
-    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> hudOperator;
-    {
-        QMutexLocker locker(&_presentMutex);
-        hudOperator = _hudOperator;
-    }
-    return hudOperator;
-}
-
 glm::mat4 HmdDisplay::getEyeToHeadTransform(Eye eye) const {
     static const glm::mat4 xform;
     return xform;

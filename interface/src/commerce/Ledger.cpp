@@ -317,13 +317,13 @@ void Ledger::accountSuccess(QNetworkReply* reply) {
     const QByteArray locker = data["locker"].toString().toUtf8();
     bool isOverride = wallet->wasSoftReset();
 
-    wallet->setSalt(salt);
     wallet->setIv(iv);
     wallet->setCKey(ckey);
     if (!locker.isEmpty()) {
         wallet->setWallet(locker);
         wallet->setPassphrase("ACCOUNT"); // We only locker wallets that have been converted to account-based auth.
     }
+    wallet->setSalt(salt);
 
     QString keyStatus = "ok";
     QStringList localPublicKeys = wallet->listPublicKeys();

@@ -25,8 +25,13 @@ public:
     OctreePacketProcessor();
     ~OctreePacketProcessor();
 
-    void startEntitySequence();
-    bool isLoadSequenceComplete() const { return _safeLanding->isLoadSequenceComplete(); }
+    void startSafeLanding();
+    void updateSafeLanding();
+    void stopSafeLanding();
+    void resetSafeLanding();
+    bool safeLandingIsActive() const;
+    bool safeLandingIsComplete() const;
+
     float domainLoadingProgress() const { return _safeLanding->loadingProgressPercentage(); }
 
 signals:
@@ -39,6 +44,7 @@ private slots:
     void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
 private:
+    OCTREE_PACKET_SEQUENCE _safeLandingSequenceStart { SafeLanding::INVALID_SEQUENCE };
     std::unique_ptr<SafeLanding> _safeLanding;
 };
 #endif  // hifi_OctreePacketProcessor_h

@@ -210,7 +210,6 @@ qint64 writeStringToStream(const QString& string, QDataStream& stream) {
 
 int64_t AudioInjector::injectNextFrame() {
     if (stateHas(AudioInjectorState::NetworkInjectionFinished)) {
-        qCDebug(audio)  << "AudioInjector::injectNextFrame called but AudioInjector has finished and was not restarted. Returning.";
         return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
     }
 

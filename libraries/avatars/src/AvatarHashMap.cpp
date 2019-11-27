@@ -23,6 +23,8 @@
 
 #include "Profile.h"
 
+static const QString VERIFY_FAIL_MODEL { "/meshes/verifyFailed.fst" };
+
 void AvatarReplicas::addReplica(const QUuid& parentID, AvatarSharedPointer replica) {
     if (parentID == QUuid()) {
         return;
@@ -278,6 +280,10 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
 
         return avatar;
     } else {
+        // Shouldn't happen if mixer functioning correctly - debugging for BUGZ-781:
+        qCDebug(avatars) << "Discarding received avatar data" << sessionUUID << (sessionUUID == _lastOwnerSessionUUID ? "(is self)" : "")
+            << "isIgnoringNode = " << nodeList->isIgnoringNode(sessionUUID);
+
         // create a dummy AvatarData class to throw this data on the ground
         AvatarData dummyData;
         int bytesRead = dummyData.parseDataFromBuffer(byteArray);

@@ -1,4 +1,7 @@
+# Updated June 6th, 2019, to force new vckpg hash
+#
 # Common Ambient Variables:
+#
 #   CURRENT_BUILDTREES_DIR    = ${VCPKG_ROOT_DIR}\buildtrees\${PORT}
 #   CURRENT_PACKAGES_DIR      = ${VCPKG_ROOT_DIR}\packages\${PORT}_${TARGET_TRIPLET}
 #   CURRENT_PORT_DIR          = ${VCPKG_ROOT_DIR}\ports\${PORT}
@@ -9,6 +12,7 @@
 #   VCPKG_ROOT_DIR            = <C:\path\to\current\vcpkg>
 #   VCPKG_TARGET_ARCHITECTURE = target architecture (x64, x86, arm)
 #
+
 include(vcpkg_common_functions)
 
 if (VCPKG_LIBRARY_LINKAGE STREQUAL dynamic)
@@ -23,16 +27,16 @@ vcpkg_from_github(
     REF ab8f16961e19a86ee20c6a1d61f662392524cc77
     SHA512 927742db29867517283d45e475f0c534a9a57e165cae221f26e08e88057253a1682ac9919b2dc547b9cf388ba0b931b175623461d44f28c9184796ba90b1ed55
     HEAD_REF master
+    PATCHES "bullet-git-fix-build-clang-8.patch"
 )
-
 
 vcpkg_configure_cmake(
     SOURCE_PATH ${SOURCE_PATH}
     OPTIONS
         -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON
         -DUSE_MSVC_RUNTIME_LIBRARY_DLL=ON
-        -DUSE_GLUT=0 
-        -DUSE_DX11=0	
+        -DUSE_GLUT=0
+        -DUSE_DX11=0
         -DBUILD_DEMOS=OFF
         -DBUILD_OPENGL3_DEMOS=OFF
         -DBUILD_BULLET3=OFF

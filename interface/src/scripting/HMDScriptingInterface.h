@@ -1,4 +1,4 @@
-
+//
 //  HMDScriptingInterface.h
 //  interface/src/scripting
 //
@@ -25,7 +25,7 @@ class QScriptEngine;
 #include <QReadWriteLock>
 
 /**jsdoc
- * The HMD API provides access to the HMD used in VR display mode.
+ * The <code>HMD</code> API provides access to the HMD used in VR display mode.
  *
  * @namespace HMD
  *
@@ -62,10 +62,29 @@ class QScriptEngine;
  * @property {Uuid} miniTabletScreenID - The UUID of the mini tablet's screen entity. <code>null</code> if not in HMD mode.
  * @property {number} miniTabletHand - The hand that the mini tablet is displayed on: <code>0</code> for left hand, 
  *     <code>1</code> for right hand, <code>-1</code> if not in HMD mode.
- * @property {bool} miniTabletEnabled=true - <code>true</code> if the mini tablet is enabled to be displayed, otherwise 
+ * @property {boolean} miniTabletEnabled=true - <code>true</code> if the mini tablet is enabled to be displayed, otherwise 
  *     <code>false</code>.
  * @property {Rect} playArea=0,0,0,0 - The size and position of the HMD play area in sensor coordinates. <em>Read-only.</em>
  * @property {Vec3[]} sensorPositions=[]] - The positions of the VR system sensors in sensor coordinates. <em>Read-only.</em>
+ *
+ * @property {number} visionSqueezeRatioX=0.0 - The amount of vision squeeze for the x-axis when moving, range <code>0.0</code> 
+ *     &ndash; <code>1.0</code>.
+ * @property {number} visionSqueezeRatioY=0.0 - The amount of vision squeeze for the y-axis when moving, range <code>0.0</code> 
+ *     &ndash; <code>1.0</code>. 
+ * @property {number} visionSqueezeTurningXFactor=0.51 - The additional amount of vision squeeze for the x-axis when turning,
+ *     range <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {number} visionSqueezeTurningYFactor=0.36 - <em>Currently unused.</em>
+ * @property {number} visionSqueezeUnSqueezeDelay=0.2 - The delay in undoing the vision squeeze effect after motion stops, in
+ *     seconds.
+ * @property {number} visionSqueezeUnSqueezeSpeed=3.0 - How quickly the vision squeeze effect fades, once 
+ *     <code>visionSqueezeUnSqueezeDelay</code> has passed.
+ * @property {number} visionSqueezeTransition=0.25 - How tightly vision is squeezed, range <code>0.01</code> &ndash; 
+ *     <code>0.7</code>.
+ * @property {number} visionSqueezePerEye=1 - <code>1</code> if each eye gets a tube to see through, <code>0</code> if the face 
+ *     gets a tube.
+ * @property {number} visionSqueezeGroundPlaneY=0.0 - Adjusts how far below the camera the vision squeeze grid is displayed at.
+ * @property {number} visionSqueezeSpotlightSize=6.0 - The diameter of the circle of vision squeeze grid that is illuminated 
+ *     around the camera.
  */
 class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Dependency {
     Q_OBJECT
@@ -84,10 +103,21 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(QVariant playArea READ getPlayAreaRect);
     Q_PROPERTY(QVector<glm::vec3> sensorPositions READ getSensorPositions);
 
+    Q_PROPERTY(float visionSqueezeRatioX READ getVisionSqueezeRatioX WRITE setVisionSqueezeRatioX);
+    Q_PROPERTY(float visionSqueezeRatioY READ getVisionSqueezeRatioY WRITE setVisionSqueezeRatioY);
+    Q_PROPERTY(float visionSqueezeUnSqueezeDelay READ getVisionSqueezeUnSqueezeDelay WRITE setVisionSqueezeUnSqueezeDelay);
+    Q_PROPERTY(float visionSqueezeUnSqueezeSpeed READ getVisionSqueezeUnSqueezeSpeed WRITE setVisionSqueezeUnSqueezeSpeed);
+    Q_PROPERTY(float visionSqueezeTransition READ getVisionSqueezeTransition WRITE setVisionSqueezeTransition);
+    Q_PROPERTY(int visionSqueezePerEye READ getVisionSqueezePerEye WRITE setVisionSqueezePerEye);
+    Q_PROPERTY(float visionSqueezeGroundPlaneY READ getVisionSqueezeGroundPlaneY WRITE setVisionSqueezeGroundPlaneY);
+    Q_PROPERTY(float visionSqueezeSpotlightSize READ getVisionSqueezeSpotlightSize WRITE setVisionSqueezeSpotlightSize);
+    Q_PROPERTY(float visionSqueezeTurningXFactor READ getVisionSqueezeTurningXFactor WRITE setVisionSqueezeTurningXFactor);
+    Q_PROPERTY(float visionSqueezeTurningYFactor READ getVisionSqueezeTurningYFactor WRITE setVisionSqueezeTurningYFactor);
+
 public:
 
     /**jsdoc
-     * Calculate the intersection of a ray with the HUD overlay.
+     * Calculates the intersection of a ray with the HUD overlay.
      * @function HMD.calculateRayUICollisionPoint
      * @param {Vec3} position - The origin of the ray.
      * @param {Vec3} direction - The direction of the ray.
@@ -115,7 +145,7 @@ public:
     glm::vec3 calculateParabolaUICollisionPoint(const glm::vec3& position, const glm::vec3& velocity, const glm::vec3& acceleration, float& parabolicDistance) const;
 
     /**jsdoc
-     * Get the 2D HUD overlay coordinates of a 3D point on the HUD overlay.
+     * Gets the 2D HUD overlay coordinates of a 3D point on the HUD overlay.
      * 2D HUD overlay coordinates are pixels with the origin at the top left of the overlay.
      * @function HMD.overlayFromWorldPoint
      * @param {Vec3} position - The point on the HUD overlay in world coordinates.
@@ -141,7 +171,7 @@ public:
     Q_INVOKABLE glm::vec2 overlayFromWorldPoint(const glm::vec3& position) const;
 
     /**jsdoc
-     * Get the 3D world coordinates of a 2D point on the HUD overlay.
+     * Gets the 3D world coordinates of a 2D point on the HUD overlay.
      * 2D HUD overlay coordinates are pixels with the origin at the top left of the overlay.
      * @function HMD.worldPointFromOverlay
      * @param {Vec2} coordinates - The point on the HUD overlay in HUD coordinates.
@@ -150,7 +180,7 @@ public:
     Q_INVOKABLE glm::vec3 worldPointFromOverlay(const glm::vec2& overlay) const;
 
     /**jsdoc
-     * Get the 2D point on the HUD overlay represented by given spherical coordinates. 
+     * Gets the 2D point on the HUD overlay represented by given spherical coordinates. 
      * 2D HUD overlay coordinates are pixels with the origin at the top left of the overlay.
      * Spherical coordinates are polar coordinates in radians with <code>{ x: 0, y: 0 }</code> being the center of the HUD 
      * overlay.
@@ -161,7 +191,7 @@ public:
     Q_INVOKABLE glm::vec2 sphericalToOverlay(const glm::vec2 & sphericalPos) const;
 
     /**jsdoc
-     * Get the spherical coordinates of a 2D point on the HUD overlay.
+     * Gets the spherical coordinates of a 2D point on the HUD overlay.
      * 2D HUD overlay coordinates are pixels with the origin at the top left of the overlay.
      * Spherical coordinates are polar coordinates in radians with <code>{ x: 0, y: 0 }</code> being the center of the HUD
      * overlay.
@@ -172,21 +202,21 @@ public:
     Q_INVOKABLE glm::vec2 overlayToSpherical(const glm::vec2 & overlayPos) const;
 
     /**jsdoc
-     * Recenter the HMD HUD to the current HMD position and orientation.
+     * Recenters the HMD HUD to the current HMD position and orientation.
      * @function HMD.centerUI
      */
     Q_INVOKABLE void centerUI();
 
 
     /**jsdoc
-     * Get the name of the HMD audio input device.
+     * Gets the name of the HMD audio input device.
      * @function HMD.preferredAudioInput
      * @returns {string} The name of the HMD audio input device if in HMD mode, otherwise an empty string.
      */
     Q_INVOKABLE QString preferredAudioInput() const;
 
     /**jsdoc
-     * Get the name of the HMD audio output device.
+     * Gets the name of the HMD audio output device.
      * @function HMD.preferredAudioOutput
      * @returns {string} The name of the HMD audio output device if in HMD mode, otherwise an empty string.
      */
@@ -194,10 +224,10 @@ public:
 
 
     /**jsdoc
-     * Check whether there is an HMD available.
+     * Checks whether there is an HMD available.
      * @function HMD.isHMDAvailable
      * @param {string} [name=""] - The name of the HMD to check for, e.g., <code>"Oculus Rift"</code>. The name is the same as 
-     *     may be displayed in Interface's "Display" menu. If no name is specified then any HMD matches.
+     *     may be displayed in Interface's "Display" menu. If no name is specified, then any HMD matches.
      * @returns {boolean} <code>true</code> if an HMD of the specified <code>name</code> is available, otherwise 
      *     <code>false</code>.
      * @example <caption>Report on HMD availability.</caption>
@@ -208,10 +238,10 @@ public:
     Q_INVOKABLE bool isHMDAvailable(const QString& name = "");
 
     /**jsdoc
-     * Check whether there is an HMD head controller available.
+     * Checks whether there is an HMD head controller available.
      * @function HMD.isHeadControllerAvailable
      * @param {string} [name=""] - The name of the HMD head controller to check for, e.g., <code>"Oculus"</code>. If no name is 
-     *     specified then any HMD head controller matches.
+     *     specified, then any HMD head controller matches.
      * @returns {boolean} <code>true</code> if an HMD head controller of the specified <code>name</code> is available, 
      *     otherwise <code>false</code>.
      * @example <caption>Report HMD head controller availability.</caption>
@@ -222,10 +252,10 @@ public:
     Q_INVOKABLE bool isHeadControllerAvailable(const QString& name = "");
 
     /**jsdoc
-     * Check whether there are HMD hand controllers available.
+     * Checks whether there are HMD hand controllers available.
      * @function HMD.isHandControllerAvailable
      * @param {string} [name=""] - The name of the HMD hand controller to check for, e.g., <code>"Oculus"</code>. If no name is 
-     *     specified then any HMD hand controller matches.
+     *     specified, then any HMD hand controller matches.
      * @returns {boolean} <code>true</code> if an HMD hand controller of the specified <code>name</code> is available, 
      *     otherwise <code>false</code>.
      * @example <caption>Report HMD hand controller availability.</caption>
@@ -236,7 +266,7 @@ public:
     Q_INVOKABLE bool isHandControllerAvailable(const QString& name = "");
 
     /**jsdoc
-     * Check whether there are specific HMD controllers available.
+     * Checks whether there are specific HMD controllers available.
      * @function HMD.isSubdeviceContainingNameAvailable
      * @param {string} name - The name of the HMD controller to check for, e.g., <code>"OculusTouch"</code>.
      * @returns {boolean} <code>true</code> if an HMD controller with a name containing the specified <code>name</code> is 
@@ -248,7 +278,7 @@ public:
     Q_INVOKABLE bool isSubdeviceContainingNameAvailable(const QString& name);
 
     /**jsdoc
-     * Signal that models of the HMD hand controllers being used should be displayed. The models are displayed at their actual, 
+     * Signals that models of the HMD hand controllers being used should be displayed. The models are displayed at their actual, 
      * real-world locations.
      * @function HMD.requestShowHandControllers
      * @example <caption>Show your hand controllers for 10 seconds.</caption>
@@ -260,14 +290,14 @@ public:
     Q_INVOKABLE void requestShowHandControllers();
 
     /**jsdoc
-     * Signal that it is no longer necessary to display models of the HMD hand controllers being used. If no other scripts 
+     * Signals that it is no longer necessary to display models of the HMD hand controllers being used. If no other scripts 
      * want the models displayed then they are no longer displayed.
      * @function HMD.requestHideHandControllers
      */
     Q_INVOKABLE void requestHideHandControllers();
 
     /**jsdoc
-     * Check whether any script wants models of the HMD hand controllers displayed. Requests are made and canceled using 
+     * Checks whether any script wants models of the HMD hand controllers displayed. Requests are made and canceled using 
      * {@link HMD.requestShowHandControllers|requestShowHandControllers} and 
      * {@link HMD.requestHideHandControllers|requestHideHandControllers}.
      * @function HMD.shouldShowHandControllers
@@ -292,8 +322,8 @@ public:
 
 
     /**jsdoc
-     * Suppress the activation of the HMD-provided keyboard, if any. Successful calls should be balanced with a call to 
-     * {@link HMD.unspressKeyboard|unspressKeyboard} within a reasonable amount of time.
+     * Suppresses the activation of the HMD-provided keyboard, if any. Successful calls should be balanced with a call to 
+     * {@link HMD.unsuppressKeyboard|unsuppressKeyboard} within a reasonable amount of time.
      * @function HMD.suppressKeyboard
      * @returns {boolean} <code>true</code> if the current HMD provides a keyboard and it was successfully suppressed (e.g., it 
      * isn't being displayed), otherwise <code>false</code>. 
@@ -307,14 +337,14 @@ public:
     Q_INVOKABLE bool suppressKeyboard();
 
     /**jsdoc
-     * Unsuppress the activation of the HMD-provided keyboard, if any.
+     * Unsuppresses the activation of the HMD-provided keyboard, if any.
      * @function HMD.unsuppressKeyboard
      */
     /// Enable the keyboard following a suppressKeyboard call
     Q_INVOKABLE void unsuppressKeyboard();
 
     /**jsdoc
-     * Check whether the HMD-provided keyboard, if any, is visible.
+     * Checks whether the HMD-provided keyboard, if any, is visible.
      * @function HMD.isKeyboardVisible
      * @returns {boolean} <code>true</code> if the current HMD provides a keyboard and it is visible, otherwise 
      * <code>false</code>.
@@ -338,6 +368,27 @@ public:
      *     contextual mode, set the world or local position and orientation of the <code>HMD.tabletID</code> overlay.
      */
     Q_INVOKABLE void openTablet(bool contextualMode = false);
+
+    float getVisionSqueezeRatioX() const;
+    float getVisionSqueezeRatioY() const;
+    void setVisionSqueezeRatioX(float value);
+    void setVisionSqueezeRatioY(float value);
+    float getVisionSqueezeUnSqueezeDelay() const;
+    void setVisionSqueezeUnSqueezeDelay(float value);
+    float getVisionSqueezeUnSqueezeSpeed() const;
+    void setVisionSqueezeUnSqueezeSpeed(float value);
+    float getVisionSqueezeTransition() const;
+    void setVisionSqueezeTransition(float value);
+    int getVisionSqueezePerEye() const;
+    void setVisionSqueezePerEye(int value);
+    float getVisionSqueezeGroundPlaneY() const;
+    void setVisionSqueezeGroundPlaneY(float value);
+    float getVisionSqueezeSpotlightSize() const;
+    void setVisionSqueezeSpotlightSize(float value);
+    float getVisionSqueezeTurningXFactor() const;
+    void setVisionSqueezeTurningXFactor(float value);
+    float getVisionSqueezeTurningYFactor() const;
+    void setVisionSqueezeTurningYFactor(float value);
 
 signals:
     /**jsdoc
@@ -375,9 +426,29 @@ signals:
      */
     bool miniTabletEnabledChanged(bool enabled);
 
+    /**jsdoc
+     * Triggered when the altering the mode for going into an away state when the interface focus is lost in VR.
+     * @function HMD.awayStateWhenFocusLostInVRChanged
+     * @param {boolean} enabled - <code>true</code> if the setting to go into an away state in VR when the interface focus is lost is enabled, otherwise <code>false</code>.
+     * @returns {Signal}
+     */
+    bool awayStateWhenFocusLostInVRChanged(bool enabled);
+
 public:
     HMDScriptingInterface();
+
+    /**jsdoc
+     * Gets the position on the HUD overlay that your HMD is looking at, in HUD coordinates.
+     * @function HMD.getHUDLookAtPosition2D
+     * @returns {Vec2} The position on the HUD overlay that your HMD is looking at, in pixels.
+     */
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
+
+    /**jsdoc
+     * Gets the position on the HUD overlay that your HMD is looking at, in world coordinates.
+     * @function HMD.getHUDLookAtPosition3D
+     * @returns {Vec3} The position on the HUD overlay the your HMD is looking at, in world coordinates.
+     */
     static QScriptValue getHUDLookAtPosition3D(QScriptContext* context, QScriptEngine* engine);
 
     bool isMounted() const override;
@@ -410,6 +481,9 @@ public:
 
     void setMiniTabletEnabled(bool enabled);
     bool getMiniTabletEnabled();
+
+    void setAwayStateWhenFocusLostInVREnabled(bool enabled);
+    bool getAwayStateWhenFocusLostInVREnabled();
 
     QVariant getPlayAreaRect();
     QVector<glm::vec3> getSensorPositions();

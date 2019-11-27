@@ -20,6 +20,7 @@ import hifi_singleton
 import hifi_utils
 import hifi_android
 import hifi_vcpkg
+import hifi_qt
 
 import argparse
 import concurrent
@@ -91,10 +92,11 @@ def parse_args():
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--force-bootstrap', action='store_true')
     parser.add_argument('--force-build', action='store_true')
+    parser.add_argument('--release-type', type=str, default="DEV", help="DEV, PR, or PRODUCTION")
     parser.add_argument('--vcpkg-root', type=str, help='The location of the vcpkg distribution')
     parser.add_argument('--build-root', required=True, type=str, help='The location of the cmake build')
     parser.add_argument('--ports-path', type=str, default=defaultPortsPath)
-    parser.add_argument('--ci-build', action='store_true')
+    parser.add_argument('--ci-build', action='store_true', default=os.getenv('CI_BUILD') is not None)
     if True:
         args = parser.parse_args()
     else:
@@ -113,14 +115,32 @@ def main():
     args = parse_args()
 
     if args.ci_build:
-        logging.basicConfig(datefmt='%s', format='%(asctime)s %(guid)s %(message)s', level=logging.INFO)
+        logging.basicConfig(datefmt='%H:%M:%S', format='%(asctime)s %(guid)s %(message)s', level=logging.INFO)
 
     logger.info('sha=%s' % headSha())
     logger.info('start')
 
+    # OS dependent information
+    system = platform.system()
+    if 'Windows' == system and 'CI_BUILD' in os.environ and os.environ["CI_BUILD"] == "Github":
+        logger.info("Downloading NSIS")
+        with timer('NSIS'):
+            hifi_utils.downloadAndExtract('https://hifi-public.s3.amazonaws.com/dependencies/NSIS-hifi-plugins-1.0.tgz', "C:/Program Files (x86)")
+
+    qtInstallPath = ''
+    # If not android, install our Qt build
+    if not args.android:
+        qt = hifi_qt.QtDownloader(args)
+        qtInstallPath = qt.cmakePath
+        with hifi_singleton.Singleton(qt.lockFile) as lock:
+            with timer('Qt'):
+                qt.installQt()
+                qt.writeConfig()
+
     # Only allow one instance of the program to run at a time
     pm = hifi_vcpkg.VcpkgRepo(args)
     with hifi_singleton.Singleton(pm.lockFile) as lock:
+
         with timer('Bootstraping'):
             if not pm.upToDate():
                 pm.bootstrap()
@@ -134,7 +154,7 @@ def main():
         #  * build host tools, like spirv-cross and scribe
         #  * build client dependencies like openssl and nvtt
         with timer('Setting up dependencies'):
-            pm.setupDependencies()
+            pm.setupDependencies(qt=qtInstallPath)
 
         # wipe out the build directories (after writing the tag, since failure 
         # here shouldn't invalidte the vcpkg install)

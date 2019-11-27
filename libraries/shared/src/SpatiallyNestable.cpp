@@ -758,7 +758,11 @@ const Transform SpatiallyNestable::getTransform() const {
     bool success;
     Transform result = getTransform(success);
     if (!success) {
-        qCDebug(shared) << "getTransform failed for" << getID();
+        // There is a known issue related to child entities not being deleted
+        // when their parent is removed. This has the side-effect that the
+        // logs will be spammed with the following message. Until this is
+        // fixed, this log message will be suppressed.
+        //qCDebug(shared) << "getTransform failed for" << getID();
     }
     return result;
 }
@@ -1344,7 +1348,20 @@ SpatiallyNestablePointer SpatiallyNestable::findByID(QUuid id, bool& success) {
     return parentWP.lock();
 }
 
-
+/**jsdoc
+ * <p>An in-world item may be one of the following types:</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"entity"</code></td><td>The item is an entity.</td></tr>
+ *     <tr><td><code>"avatar"</code></td><td>The item is an avatar.</td></tr>
+ *     <tr><td><code>"unknown"</code></td><td>The item cannot be found.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Entities.NestableType
+ */
 QString SpatiallyNestable::nestableTypeToString(NestableType nestableType) {
     switch(nestableType) {
         case NestableType::Entity:

@@ -33,6 +33,7 @@ namespace baker {
         hfm::Model::Pointer getHFMModel() const;
         MaterialMapping getMaterialMapping() const;
         const std::vector<hifi::ByteArray>& getDracoMeshes() const;
+        std::vector<bool> getDracoErrors() const;
         // This is a ByteArray and not a std::string because the character sequence can contain the null character (particularly for FBX materials)
         std::vector<std::vector<hifi::ByteArray>> getDracoMaterialLists() const;
 

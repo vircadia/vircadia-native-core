@@ -50,6 +50,7 @@ const QString ModelEntityItem::getTextures() const {
 
 void ModelEntityItem::setTextures(const QString& textures) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _textures != textures;
         _textures = textures;
     });
 }
@@ -294,9 +295,8 @@ void ModelEntityItem::setModelURL(const QString& url) {
     withWriteLock([&] {
         if (_modelURL != url) {
             _modelURL = url;
-            if (_shapeType == SHAPE_TYPE_STATIC_MESH) {
-                _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
-            }
+            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            _needsRenderUpdate = true;
         }
     });
 }
@@ -329,11 +329,8 @@ const Transform ModelEntityItem::getTransform(bool& success, int depth) const {
 void ModelEntityItem::setCompoundShapeURL(const QString& url) {
     withWriteLock([&] {
         if (_compoundShapeURL.get() != url) {
-            ShapeType oldType = computeTrueShapeType();
             _compoundShapeURL.set(url);
-            if (oldType != computeTrueShapeType()) {
-                _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
-            }
+            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
         }
     });
 }
@@ -419,11 +416,6 @@ void ModelEntityItem::setAnimationFPS(float value) {
     withWriteLock([&] {
         _animationProperties.setFPS(value);
     });
-}
-
-// virtual
-bool ModelEntityItem::shouldBePhysical() const {
-    return !isDead() && getShapeType() != SHAPE_TYPE_NONE && QUrl(_modelURL).isValid();
 }
 
 void ModelEntityItem::resizeJointArrays(int newSize) {
@@ -586,6 +578,7 @@ bool ModelEntityItem::getRelayParentJoints() const {
 
 void ModelEntityItem::setGroupCulled(bool value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _groupCulled != value;
         _groupCulled = value;
     });
 }

@@ -27,33 +27,13 @@
 #include "ThreadSafeDynamicsWorld.h"
 #include "PhysicsLogging.h"
 
-static bool flipNormalsMyAvatarVsBackfacingTriangles(btManifoldPoint& cp,
-        const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
-        const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) {
-    if (colObj1Wrap->getCollisionShape()->getShapeType() == TRIANGLE_SHAPE_PROXYTYPE) {
-        auto triShape = static_cast<const btTriangleShape*>(colObj1Wrap->getCollisionShape());
-        const btVector3* v = triShape->m_vertices1;
-        btVector3 faceNormal = colObj1Wrap->getWorldTransform().getBasis() * btCross(v[1] - v[0], v[2] - v[0]);
-        float nDotF = btDot(faceNormal, cp.m_normalWorldOnB);
-        if (nDotF <= 0.0f) {
-            faceNormal.normalize();
-            // flip the contact normal to be aligned with the face normal
-            cp.m_normalWorldOnB += -2.0f * nDotF * faceNormal;
-        }
-    }
-    // return value is currently ignored but to be future-proof: return false when not modifying friction
-    return false;
-}
-
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
         _myAvatarController(nullptr) {
 }
 
 PhysicsEngine::~PhysicsEngine() {
-    if (_myAvatarController) {
-        _myAvatarController->setDynamicsWorld(nullptr);
-    }
+    _myAvatarController = nullptr;
     delete _collisionConfig;
     delete _collisionDispatcher;
     delete _broadphaseFilter;
@@ -178,8 +158,6 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     int32_t group, mask;
     motionState->computeCollisionGroupAndMask(group, mask);
     _dynamicsWorld->addRigidBody(body, group, mask);
-
-    motionState->clearIncomingDirtyFlags();
 }
 
 QList<EntityDynamicPointer> PhysicsEngine::removeDynamicsForBody(btRigidBody* body) {
@@ -252,41 +230,13 @@ void PhysicsEngine::removeSetOfObjects(const SetOfMotionStates& objects) {
         }
         object->clearIncomingDirtyFlags();
     }
+    _activeStaticBodies.clear();
 }
 
 void PhysicsEngine::addObjects(const VectorOfMotionStates& objects) {
     for (auto object : objects) {
         addObjectToDynamicsWorld(object);
     }
-}
-
-VectorOfMotionStates PhysicsEngine::changeObjects(const VectorOfMotionStates& objects) {
-    VectorOfMotionStates stillNeedChange;
-    for (auto object : objects) {
-        uint32_t flags = object->getIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
-        if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
-            if (object->handleHardAndEasyChanges(flags, this)) {
-                object->clearIncomingDirtyFlags();
-            } else {
-                stillNeedChange.push_back(object);
-            }
-        } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            object->handleEasyChanges(flags);
-            object->clearIncomingDirtyFlags();
-        }
-        if (object->getMotionType() == MOTION_TYPE_STATIC && object->isActive()) {
-            _activeStaticBodies.insert(object->getRigidBody());
-        }
-    }
-    // active static bodies have changed (in an Easy way) and need their Aabbs updated
-    // but we've configured Bullet to NOT update them automatically (for improved performance)
-    // so we must do it ourselves
-    std::set<btRigidBody*>::const_iterator itr = _activeStaticBodies.begin();
-    while (itr != _activeStaticBodies.end()) {
-        _dynamicsWorld->updateSingleAabb(*itr);
-        ++itr;
-    }
-    return stillNeedChange;
 }
 
 void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
@@ -320,7 +270,6 @@ void PhysicsEngine::processTransaction(PhysicsEngine::Transaction& transaction) 
             body->setMotionState(nullptr);
             delete body;
         }
-        object->clearIncomingDirtyFlags();
     }
 
     // adds
@@ -328,34 +277,16 @@ void PhysicsEngine::processTransaction(PhysicsEngine::Transaction& transaction) 
         addObjectToDynamicsWorld(object);
     }
 
-    // changes
-    std::vector<ObjectMotionState*> failedChanges;
-    for (auto object : transaction.objectsToChange) {
-        uint32_t flags = object->getIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
-        if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
-            if (object->handleHardAndEasyChanges(flags, this)) {
-                object->clearIncomingDirtyFlags();
-            } else {
-                failedChanges.push_back(object);
-            }
-        } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            object->handleEasyChanges(flags);
-            object->clearIncomingDirtyFlags();
-        }
-        if (object->getMotionType() == MOTION_TYPE_STATIC && object->isActive()) {
-            _activeStaticBodies.insert(object->getRigidBody());
-        }       
+    // reinserts
+    for (auto object : transaction.objectsToReinsert) {
+        reinsertObject(object);
     }
-    // activeStaticBodies have changed (in an Easy way) and need their Aabbs updated
-    // but we've configured Bullet to NOT update them automatically (for improved performance)
-    // so we must do it ourselves
-    std::set<btRigidBody*>::const_iterator itr = _activeStaticBodies.begin();
-    while (itr != _activeStaticBodies.end()) {
-        _dynamicsWorld->updateSingleAabb(*itr);
-        ++itr;
+
+    for (auto object : transaction.activeStaticObjects) {
+        btRigidBody* body = object->getRigidBody();
+        _dynamicsWorld->updateSingleAabb(body);
+        _activeStaticBodies.insert(body);
     }
-    // we replace objectsToChange with any that failed
-    transaction.objectsToChange.swap(failedChanges);
 }
 
 void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
@@ -384,27 +315,6 @@ void PhysicsEngine::stepSimulation() {
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
-    if (_myAvatarController) {
-        DETAILED_PROFILE_RANGE(simulation_physics, "avatarController");
-        BT_PROFILE("avatarController");
-        // TODO: move this stuff outside and in front of stepSimulation, because
-        // the updateShapeIfNecessary() call needs info from MyAvatar and should
-        // be done on the main thread during the pre-simulation stuff
-        if (_myAvatarController->needsRemoval()) {
-            _myAvatarController->setDynamicsWorld(nullptr);
-
-            // We must remove any existing contacts for the avatar so that any new contacts will have
-            // valid data.  MyAvatar's RigidBody is the ONLY one in the simulation that does not yet
-            // have a MotionState so we pass nullptr to removeContacts().
-            removeContacts(nullptr);
-        }
-        _myAvatarController->updateShapeIfNecessary();
-        if (_myAvatarController->needsAddition()) {
-            _myAvatarController->setDynamicsWorld(_dynamicsWorld);
-        }
-        _myAvatarController->preSimulation();
-    }
-
     auto onSubStep = [this]() {
         this->updateContactMap();
         this->doOwnershipInfectionForConstraints();
@@ -413,15 +323,11 @@ void PhysicsEngine::stepSimulation() {
     int numSubsteps = _dynamicsWorld->stepSimulationWithSubstepCallback(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS,
                                                                         PHYSICS_ENGINE_FIXED_SUBSTEP, onSubStep);
     if (numSubsteps > 0) {
-        BT_PROFILE("postSimulation");
-        if (_myAvatarController) {
-            _myAvatarController->postSimulation();
-        }
         _hasOutgoingChanges = true;
-    }
-
-    if (_physicsDebugDraw->getDebugMode()) {
-        _dynamicsWorld->debugDrawWorld();
+        if (_physicsDebugDraw->getDebugMode()) {
+            BT_PROFILE("debugDrawWorld");
+            _dynamicsWorld->debugDrawWorld();
+        }
     }
 }
 
@@ -783,15 +689,7 @@ void PhysicsEngine::bumpAndPruneContacts(ObjectMotionState* motionState) {
 }
 
 void PhysicsEngine::setCharacterController(CharacterController* character) {
-    if (_myAvatarController != character) {
-        if (_myAvatarController) {
-            // remove the character from the DynamicsWorld immediately
-            _myAvatarController->setDynamicsWorld(nullptr);
-            _myAvatarController = nullptr;
-        }
-        // the character will be added to the DynamicsWorld later
-        _myAvatarController = character;
-    }
+    _myAvatarController = character;
 }
 
 EntityDynamicPointer PhysicsEngine::getDynamicByID(const QUuid& dynamicID) const {
@@ -921,14 +819,11 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
     }
 }
 
-void PhysicsEngine::enableGlobalContactAddedCallback(bool enabled) {
-	if (enabled) {
-        // register contact filter to help MyAvatar pass through backfacing triangles
-        gContactAddedCallback = flipNormalsMyAvatarVsBackfacingTriangles;
-	} else {
-        // deregister contact filter
-        gContactAddedCallback = nullptr;
-    }
+void PhysicsEngine::setContactAddedCallback(PhysicsEngine::ContactAddedCallback newCb) {
+    // gContactAddedCallback is a special feature hook in Bullet
+    // if non-null AND one of the colliding objects has btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK flag set
+    // then it is called whenever a new candidate contact point is created
+    gContactAddedCallback = newCb;
 }
 
 struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {

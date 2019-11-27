@@ -4,5 +4,6 @@
         "COMPRESSED_SRGB8_ETC2": "Default-Sky-9-cubemap_COMPRESSED_SRGB8_ETC2.ktx"
     },
     "original": "Default-Sky-9-cubemap.jpg",
-    "uncompressed": "Default-Sky-9-cubemap.ktx"
+    "uncompressed": "Default-Sky-9-cubemap.ktx",
+    "version": 1
 }

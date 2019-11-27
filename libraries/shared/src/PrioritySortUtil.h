@@ -45,7 +45,7 @@ namespace PrioritySortUtil {
     class PriorityQueue {
     public:
         PriorityQueue() = delete;
-        PriorityQueue(const ConicalViewFrustums& views) : _views(views) { }
+        PriorityQueue(const ConicalViewFrustums& views) : _views(views), _usecCurrentTime(usecTimestampNow()) { }
         PriorityQueue(const ConicalViewFrustums& views, float angularWeight, float centerWeight, float ageWeight)
             : _views(views), _angularWeight(angularWeight), _centerWeight(centerWeight), _ageWeight(ageWeight)
             , _usecCurrentTime(usecTimestampNow()) {

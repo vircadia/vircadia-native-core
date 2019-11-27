@@ -35,7 +35,8 @@ Column {
                         "Emissive:LightingModel:enableEmissive", 
                         "Lightmap:LightingModel:enableLightmap",
                         "Background:LightingModel:enableBackground",      
-                        "Haze:LightingModel:enableHaze",                        
+                        "Haze:LightingModel:enableHaze", 
+                        "Bloom:LightingModel:enableBloom", 
                         "AO:LightingModel:enableAmbientOcclusion",
                         "Textures:LightingModel:enableMaterialTexturing"                     
                 ]

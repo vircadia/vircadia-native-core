@@ -62,6 +62,7 @@ public:
     virtual bool isReadyToComputeShape() const override { return false; }
     virtual void setShapeType(ShapeType type) override;
     virtual ShapeType getShapeType() const override;
+    bool shouldBePhysical() const override { return false; }
 
     QString getCompoundShapeURL() const;
     virtual void setCompoundShapeURL(const QString& url);
@@ -166,7 +167,7 @@ protected:
     static bool _zonesArePickable;
 
     void fetchCollisionGeometryResource();
-    GeometryResource::Pointer _shapeResource;
+    ModelResource::Pointer _shapeResource;
 
 };
 

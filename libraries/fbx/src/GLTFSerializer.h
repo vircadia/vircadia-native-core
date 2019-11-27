@@ -38,15 +38,15 @@ struct GLTFAsset {
 
 struct GLTFNode {
     QString name;
-    int camera;
-    int mesh;
+    int camera{ -1 };
+    int mesh{ -1 };
     QVector<int> children;
     QVector<double> translation;
     QVector<double> rotation;
     QVector<double> scale;
     QVector<double> matrix;
-    QVector<glm::mat4> transforms;
-    int skin;
+    glm::mat4 transform;
+    int skin { -1 };
     QVector<int> skeletons;
     QString jointName;
     QMap<QString, bool> defined;
@@ -85,6 +85,8 @@ struct GLTFNode {
             qCDebug(modelformat) << "skeletons: " << skeletons;
         }
     }
+
+    void normalizeTransform();
 };
 
 // Meshes
@@ -460,15 +462,56 @@ struct GLTFMaterial {
 // Accesors
 
 namespace GLTFAccessorType {
-    enum Values {
-        SCALAR = 0,
-        VEC2,
-        VEC3,
-        VEC4,
-        MAT2,
-        MAT3,
-        MAT4
+    enum Value {
+        SCALAR = 1,
+        VEC2 = 2,
+        VEC3 = 3,
+        VEC4 = 4,
+        MAT2 = 5,
+        MAT3 = 9,
+        MAT4 = 16
     };
+
+    inline int count(Value value) {
+        if (value == MAT2) {
+            return 4;
+        }
+        return (int)value;
+    }
+}
+
+namespace GLTFVertexAttribute {
+    enum Value {
+        UNKNOWN = -1,
+        POSITION = 0, 
+        NORMAL, 
+        TANGENT, 
+        TEXCOORD_0, 
+        TEXCOORD_1, 
+        COLOR_0, 
+        JOINTS_0, 
+        WEIGHTS_0,
+    };
+    inline Value fromString(const QString& key) {
+        if (key == "POSITION") {
+            return POSITION;
+        } else if (key == "NORMAL") {
+            return NORMAL;
+        } else if (key == "TANGENT") {
+            return TANGENT;
+        } else if (key == "TEXCOORD_0") {
+            return TEXCOORD_0;
+        } else if (key == "TEXCOORD_1") {
+            return TEXCOORD_1;
+        } else if (key == "COLOR_0") {
+            return COLOR_0;
+        } else if (key == "JOINTS_0") {
+            return JOINTS_0;
+        } else if (key == "WEIGHTS_0") {
+            return WEIGHTS_0;
+        }
+        return UNKNOWN;
+    }
 }
 namespace GLTFAccessorComponentType {
     enum Values {
@@ -481,6 +524,49 @@ namespace GLTFAccessorComponentType {
     };
 }
 struct GLTFAccessor {
+    struct GLTFAccessorSparse {
+        struct GLTFAccessorSparseIndices {
+            int bufferView;
+            int byteOffset{ 0 };
+            int componentType;
+
+            QMap<QString, bool> defined;
+            void dump() {
+                if (defined["bufferView"]) {
+                    qCDebug(modelformat) << "bufferView: " << bufferView;
+                }
+                if (defined["byteOffset"]) {
+                    qCDebug(modelformat) << "byteOffset: " << byteOffset;
+                }
+                if (defined["componentType"]) {
+                    qCDebug(modelformat) << "componentType: " << componentType;
+                }
+            }
+        };
+        struct GLTFAccessorSparseValues {
+            int bufferView;
+            int byteOffset{ 0 };
+
+            QMap<QString, bool> defined;
+            void dump() {
+                if (defined["bufferView"]) {
+                    qCDebug(modelformat) << "bufferView: " << bufferView;
+                }
+                if (defined["byteOffset"]) {
+                    qCDebug(modelformat) << "byteOffset: " << byteOffset;
+                }
+            }
+        };
+
+        int count;
+        GLTFAccessorSparseIndices indices;
+        GLTFAccessorSparseValues values;
+
+        QMap<QString, bool> defined;
+        void dump() {
+        
+        }
+    };
     int bufferView;
     int byteOffset { 0 };
     int componentType; //required
@@ -489,6 +575,7 @@ struct GLTFAccessor {
     bool normalized{ false };
     QVector<double> max;
     QVector<double> min;
+    GLTFAccessorSparse sparse;
     QMap<QString, bool> defined;
     void dump() {
         if (defined["bufferView"]) {
@@ -520,6 +607,10 @@ struct GLTFAccessor {
             foreach(float m, min) {
                 qCDebug(modelformat) << m;
             }
+        }
+        if (defined["sparse"]) {
+            qCDebug(modelformat) << "sparse: ";
+            sparse.dump();
         }
     }
 };
@@ -712,6 +803,13 @@ struct GLTFFile {
             foreach(auto tex, textures) tex.dump();
         }
     }
+
+
+    void populateMaterialNames();
+    void sortNodes();
+    void normalizeNodeTransforms();
+private:
+    void reorderNodes(const std::unordered_map<int, int>& reorderMap);
 };
 
 class GLTFSerializer : public QObject, public HFMSerializer {
@@ -726,7 +824,7 @@ private:
     hifi::URL _url;
     hifi::ByteArray _glbBinary;
 
-    glm::mat4 getModelTransform(const GLTFNode& node);
+    const glm::mat4& getModelTransform(const GLTFNode& node);
     void getSkinInverseBindMatrices(std::vector<std::vector<float>>& inverseBindMatrixValues);
     void generateTargetData(int index, float weight, QVector<glm::vec3>& returnVector);
 
@@ -763,6 +861,11 @@ private:
                             int& outidx, QMap<QString, bool>& defined);
 
     bool setAsset(const QJsonObject& object);
+
+    GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseIndices createAccessorSparseIndices(const QJsonObject& object);
+    GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseValues createAccessorSparseValues(const QJsonObject& object);
+    GLTFAccessor::GLTFAccessorSparse createAccessorSparse(const QJsonObject& object);
+
     bool addAccessor(const QJsonObject& object);
     bool addAnimation(const QJsonObject& object);
     bool addBufferView(const QJsonObject& object);
@@ -782,10 +885,16 @@ private:
     template<typename T, typename L>
     bool readArray(const hifi::ByteArray& bin, int byteOffset, int count,
                    QVector<L>& outarray, int accessorType);
-    
+
     template<typename T>
     bool addArrayOfType(const hifi::ByteArray& bin, int byteOffset, int count,
                         QVector<T>& outarray, int accessorType, int componentType);
+
+    template <typename T>
+    bool addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& outarray);
+
+    template <typename T>
+    bool addArrayFromAttribute(GLTFVertexAttribute::Value vertexAttribute, GLTFAccessor& accessor, QVector<T>& outarray);
 
     void retriangulate(const QVector<int>& in_indices, const QVector<glm::vec3>& in_vertices, 
                        const QVector<glm::vec3>& in_normals, QVector<int>& out_indices, 

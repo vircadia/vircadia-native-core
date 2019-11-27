@@ -26,9 +26,8 @@ public:
                                bool isVisibleInSecondaryCamera, bool drawInFront, bool enabled);
             ~ParabolaRenderItem() {}
 
-            static gpu::PipelinePointer _parabolaPipeline;
-            static gpu::PipelinePointer _transparentParabolaPipeline;
-            const gpu::PipelinePointer getParabolaPipeline();
+            static std::map<std::pair<bool, bool>, gpu::PipelinePointer> _parabolaPipelines;
+            gpu::PipelinePointer getParabolaPipeline(bool forward) const;
 
             void render(RenderArgs* args);
             render::Item::Bound& editBound() { return _bound; }
@@ -101,6 +100,8 @@ public:
 
     ParabolaPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover, const PointerTriggers& triggers,
         bool faceAvatar, bool followNormal, float followNormalStrength, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled);
+
+    PickQuery::PickType getType() const override;
 
     QVariantMap toVariantMap() const override;
 
