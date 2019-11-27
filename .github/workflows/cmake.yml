@@ -207,6 +207,8 @@ jobs:
         fetch-depth: 1
     - name: Install python modules 
       run: pip install awscli boto3 PyGithub
+    - name: Install apt packages
+      run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
     - name: Configure CMake (Linux)
