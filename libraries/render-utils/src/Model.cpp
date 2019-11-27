@@ -965,9 +965,11 @@ void Model::setCullWithParent(bool cullWithParent) {
         _cullWithParent = cullWithParent;
 
         render::Transaction transaction;
-        foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [cullWithParent](ModelMeshPartPayload& data) {
+        auto renderItemsKey = _renderItemKeyGlobalFlags;
+        for(auto item : _modelMeshRenderItemIDs) {
+            transaction.updateItem<ModelMeshPartPayload>(item, [cullWithParent, renderItemsKey](ModelMeshPartPayload& data) {
                 data.setCullWithParent(cullWithParent);
+                data.updateKey(renderItemsKey);
             });
         }
         AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);

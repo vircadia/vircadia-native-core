@@ -1060,7 +1060,7 @@ void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
     if (!_cullWithParent && _model && _model->isGroupCulled()) {
         builder.withMetaCullGroup();
     } else if (_cullWithParent) {
-        builder.withoutSubMetaCulled();
+        builder.withSubMetaCulled();
     }
 
     if (didVisualGeometryRequestSucceed) {
