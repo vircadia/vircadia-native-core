@@ -165,8 +165,10 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
             _avatar->setHasPriority(currentlyHasPriority);
         }
         bool isInScreenshareZone = findContainingZone.isInScreenshareZone;
-        if (isInScreenshareZone != _avatar->isInScreenshareZone()) {
+        if (isInScreenshareZone != _avatar->isInScreenshareZone()
+            || findContainingZone.screenshareZoneid != _avatar->getScreenshareZone()) {
             _avatar->setInScreenshareZone(isInScreenshareZone);
+            _avatar->setScreenshareZone(findContainingZone.screenshareZoneid);
             const QUuid& zoneId = isInScreenshareZone ? findContainingZone.screenshareZoneid : QUuid();
             auto nodeList = DependencyManager::get<NodeList>();
             auto packet = NLPacket::create(PacketType::AvatarZonePresence, 2 * NUM_BYTES_RFC4122_UUID, true);

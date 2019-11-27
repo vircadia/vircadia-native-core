@@ -45,6 +45,8 @@ public:
 
     bool isInScreenshareZone() const { return _inScreenshareZone; }
     void setInScreenshareZone(bool value = true) { _inScreenshareZone = value; }
+    const QUuid& getScreenshareZone() const { return _screenshareZone; }
+    void setScreenshareZone(QUuid zone) { _screenshareZone = zone; }
 
 private:
     bool _needsHeroCheck { false };
@@ -69,6 +71,7 @@ private:
     bool _certifyFailed { false };
     bool _needsIdentityUpdate { false };
     bool _inScreenshareZone { false };
+    QUuid _screenshareZone;
 
     bool generateFSTHash();
     bool validateFSTHash(const QString& publicKey) const;
