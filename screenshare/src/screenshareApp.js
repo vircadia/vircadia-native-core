@@ -190,6 +190,10 @@ function stopSharing() {
 
 // Callback to start publishing after we have setup the chromium stream
 function gotStream(stream) {
+    if (localStream) {
+        stopSharing();
+    }
+
     localStream = stream;
     startTokboxPublisher(localStream);
 
@@ -208,6 +212,9 @@ function onAccessApproved(desktop_id) {
         console.log('Desktop Capture access rejected.');
         return;
     }
+
+
+
     document.getElementById('screenshare').style.visibility = "block";
     desktopSharing = true;
     navigator.webkitGetUserMedia({
