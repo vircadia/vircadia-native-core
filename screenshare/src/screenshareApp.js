@@ -258,11 +258,15 @@ var publisher;
 function startTokboxPublisher(stream) {
     publisher = document.createElement("div");
     var publisherOptions = {
-        videoSource: stream.getVideoTracks()[0],
+        audioFallbackEnabled: false,
         audioSource: null,
+        fitMode: 'contain',
+        frameRate: 30,
+        height: 720,
         insertMode: 'append',
-        width: 1280,
-        height: 720
+        publishAudio: false,
+        videoSource: stream.getVideoTracks()[0],
+        width: 1280
     };
 
     publisher = OT.initPublisher(publisher, publisherOptions, function(error){
