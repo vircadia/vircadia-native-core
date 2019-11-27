@@ -335,9 +335,9 @@ AudioClient::AudioClient() {
     connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioClient::handleMismatchAudioFormat);
 
     // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
-    getAvailableDevices(QAudio::AudioInput, QString());
-    getAvailableDevices(QAudio::AudioOutput, QString());
-    
+    defaultAudioDeviceName(QAudio::AudioInput);
+    defaultAudioDeviceName(QAudio::AudioOutput);
+
     // start a thread to detect any device changes
     _checkDevicesTimer = new QTimer(this);
     const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
@@ -787,8 +787,11 @@ void AudioClient::start() {
         inputName = _hmdInputName;
         outputName = _hmdOutputName;
     }
+    
+    //initialize input to the dummy device to prevent starves
+    switchInputToAudioDevice(HifiAudioDeviceInfo());
+    switchOutputToAudioDevice(defaultAudioDeviceForMode(QAudio::AudioOutput, QString())); 
 
-  
 #if defined(Q_OS_ANDROID)
     connect(&_checkInputTimer, &QTimer::timeout, this, &AudioClient::checkInputTimeout);
     _checkInputTimer.start(CHECK_INPUT_READS_MSECS);
