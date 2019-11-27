@@ -24,7 +24,9 @@ private: \
     type _##name{ initialValue };
 
 /**jsdoc
- * The <code>Stats</code> API provides and statistics on Interface and domain operation, per the statistics overlay.
+ * The <code>Stats</code> API provides statistics on Interface and domain operation, per the statistics overlay.
+ *
+ * <p><strong>Note:</strong> This API is primarily an internal diagnostics tool and is provided "as is".</p>
  *
  * @namespace Stats
  *
