@@ -279,7 +279,7 @@ void ScriptableAvatar::setJointMappingsFromNetworkReply() {
     networkReply->deleteLater();
 }
 
-AvatarEntityMap ScriptableAvatar::getAvatarEntityData() const {
+AvatarEntityMap ScriptableAvatar::getAvatarEntityDataNonDefault() const {
     // DANGER: Now that we store the AvatarEntityData in packed format this call is potentially Very Expensive!
     // Avoid calling this method if possible.
     AvatarEntityMap data;

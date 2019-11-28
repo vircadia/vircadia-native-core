@@ -1861,7 +1861,8 @@ public:
      * var avatarEntityData = MyAvatar.getAvatarEntityData();
      * print("Avatar entities: " + JSON.stringify(avatarEntityData));
      */
-    AvatarEntityMap getAvatarEntityData() const override;
+
+    AvatarEntityMap getAvatarEntityDataNonDefault() const override;
 
     /**jsdoc
      * Sets all avatar entities from an object.

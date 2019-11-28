@@ -154,7 +154,7 @@ void AvatarBookmarks::deleteBookmark() {
 
 void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities) {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto currentAvatarEntities = myAvatar->getAvatarEntityData();
+    auto currentAvatarEntities = myAvatar->getAvatarEntityDataNonDefault();
     std::set<QUuid> newAvatarEntities;
 
     // Update or add all the new avatar entities
@@ -296,7 +296,7 @@ QVariantMap AvatarBookmarks::getAvatarDataToBookmark() {
 
     if (entityTree) {
         QScriptEngine scriptEngine;
-        auto avatarEntities = myAvatar->getAvatarEntityData();
+        auto avatarEntities = myAvatar->getAvatarEntityDataNonDefault();
         for (auto entityID : avatarEntities.keys()) {
             auto entity = entityTree->findEntityByID(entityID);
             if (!entity || !isWearableEntity(entity)) {

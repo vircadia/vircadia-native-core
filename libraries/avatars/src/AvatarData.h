@@ -1390,7 +1390,9 @@ public:
     /**jsdoc
      * @comment Documented in derived classes' JSDoc because implementations are different.
      */
-    Q_INVOKABLE virtual AvatarEntityMap getAvatarEntityData() const;
+
+    // Get avatar entity data with non-default property values. Used internally.
+    virtual AvatarEntityMap getAvatarEntityDataNonDefault() const;
 
     /**jsdoc
      * @comment Documented in derived classes' JSDoc because implementations are different.

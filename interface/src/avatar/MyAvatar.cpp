@@ -1810,7 +1810,7 @@ void MyAvatar::prepareAvatarEntityDataForReload() {
     _reloadAvatarEntityDataFromSettings = true;
 }
 
-AvatarEntityMap MyAvatar::getAvatarEntityData() const {
+AvatarEntityMap MyAvatar::getAvatarEntityDataNonDefault() const {
     // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
     updateStaleAvatarEntityBlobs();
     AvatarEntityMap result;

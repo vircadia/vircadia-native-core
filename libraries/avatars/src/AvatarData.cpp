@@ -3046,7 +3046,7 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFr
     }
 }
 
-AvatarEntityMap AvatarData::getAvatarEntityData() const {
+AvatarEntityMap AvatarData::getAvatarEntityDataNonDefault() const {
     // overridden where needed
     // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
     return AvatarEntityMap();
