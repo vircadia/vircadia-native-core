@@ -2064,6 +2064,11 @@ bool AudioClient::switchOutputToAudioDevice(const HifiAudioDeviceInfo outputDevi
     Lock localAudioLock(_localAudioMutex);
     _localSamplesAvailable.exchange(0, std::memory_order_release);
 
+    //wait on local injectors prep to finish running
+    if ( !_localPrepInjectorFuture.isFinished()) {
+        _localPrepInjectorFuture.waitForFinished();
+    }
+
     // cleanup any previously initialized device
     if (_audioOutput) {
         _audioOutputIODevice.close();
@@ -2342,9 +2347,9 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
             qCDebug(audiostream, "Read %d samples from injectors (%d available, %d requested)", injectorSamplesPopped, _localInjectorsStream.samplesAvailable(), samplesRequested);
         }
     }
-
+    
     // prepare injectors for the next callback
-    QtConcurrent::run(QThreadPool::globalInstance(), [this] {
+     _audio->_localPrepInjectorFuture = QtConcurrent::run(QThreadPool::globalInstance(), [this] {
         _audio->prepareLocalAudioInjectors();
     });
 
