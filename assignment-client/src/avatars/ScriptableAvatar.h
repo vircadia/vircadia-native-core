@@ -173,7 +173,7 @@ public:
      * Gets details of all avatar entities.
      * <p><strong>Warning:</strong> Potentially an expensive call. Do not use if possible.</p>
      * @function Avatar.getAvatarEntityData
-     * @returns {AvatarEntityMap} Details of the avatar entities.
+     * @returns {AvatarEntityMap} Details of all avatar entities.
      * @example <caption>Report the current avatar entities.</caption>
      * var avatarEntityData = Avatar.getAvatarEntityData();
      * print("Avatar entities: " + JSON.stringify(avatarEntityData));

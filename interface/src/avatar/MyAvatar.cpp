@@ -1810,6 +1810,46 @@ void MyAvatar::prepareAvatarEntityDataForReload() {
     _reloadAvatarEntityDataFromSettings = true;
 }
 
+AvatarEntityMap MyAvatar::getAvatarEntityData() const {
+    // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
+    AvatarEntityMap data;
+
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (!entityTree) {
+        return data;
+    }
+
+    QList<QUuid> avatarEntityIDs;
+    _avatarEntitiesLock.withReadLock([&] {
+        avatarEntityIDs = _packedAvatarEntityData.keys();
+    });
+    for (const auto& entityID : avatarEntityIDs) {
+        auto entity = entityTree->findEntityByID(entityID);
+        if (!entity) {
+            continue;
+        }
+
+        EncodeBitstreamParams params;
+        auto desiredProperties = entity->getEntityProperties(params);
+        desiredProperties += PROP_LOCAL_POSITION;
+        desiredProperties += PROP_LOCAL_ROTATION;
+        desiredProperties += PROP_LOCAL_VELOCITY;
+        desiredProperties += PROP_LOCAL_ANGULAR_VELOCITY;
+        desiredProperties += PROP_LOCAL_DIMENSIONS;
+        EntityItemProperties properties = entity->getProperties(desiredProperties);
+
+        QByteArray blob;
+        {
+            std::lock_guard<std::mutex> guard(_scriptEngineLock);
+            EntityItemProperties::propertiesToBlob(*_scriptEngine, getID(), properties, blob, true);
+        }
+
+        data[entityID] = blob;
+    }
+    return data;
+}
+
 AvatarEntityMap MyAvatar::getAvatarEntityDataNonDefault() const {
     // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
     updateStaleAvatarEntityBlobs();

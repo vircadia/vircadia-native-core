@@ -118,7 +118,8 @@ class EntityItemProperties {
     friend class MaterialEntityItem;
 public:
     static bool blobToProperties(QScriptEngine& scriptEngine, const QByteArray& blob, EntityItemProperties& properties);
-    static void propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, QByteArray& blob);
+    static void propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, 
+        QByteArray& blob, bool allProperties = false);
 
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
     virtual ~EntityItemProperties() = default;

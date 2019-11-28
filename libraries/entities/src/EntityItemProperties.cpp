@@ -5097,10 +5097,13 @@ bool EntityItemProperties::blobToProperties(QScriptEngine& scriptEngine, const Q
     return true;
 }
 
-void EntityItemProperties::propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, QByteArray& blob) {
+void EntityItemProperties::propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, 
+            const EntityItemProperties& properties, QByteArray& blob, bool allProperties) {
     // DANGER: this method is NOT efficient.
     // begin recipe for extracting unfortunately-formatted-binary-blob from EntityItem
-    QScriptValue scriptValue = EntityItemNonDefaultPropertiesToScriptValue(&scriptEngine, properties);
+    QScriptValue scriptValue = allProperties
+        ? EntityItemPropertiesToScriptValue(&scriptEngine, properties)
+        : EntityItemNonDefaultPropertiesToScriptValue(&scriptEngine, properties);
     QVariant variantProperties = scriptValue.toVariant();
     QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
     // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar
