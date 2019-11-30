@@ -11,6 +11,7 @@ COPY ./assignment-client /etc/hifi/server/
 #COPY ./oven /etc/hifi/server/
 COPY ./domain-server /etc/hifi/server/
 COPY ./plugins/hifiCodec/libhifiCodec.so /etc/hifi/server/plugins/
+RUN true
 COPY ./plugins/pcmCodec/libpcmCodec.so /etc/hifi/server/plugins/
 # Dummy statement
 RUN true
