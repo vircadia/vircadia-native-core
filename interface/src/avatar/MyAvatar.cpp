@@ -2562,6 +2562,9 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
             auto desiredProperties = entity->getEntityProperties(params);
             desiredProperties += PROP_LOCAL_POSITION;
             desiredProperties += PROP_LOCAL_ROTATION;
+            desiredProperties += PROP_LOCAL_VELOCITY;
+            desiredProperties += PROP_LOCAL_ANGULAR_VELOCITY;
+            desiredProperties += PROP_LOCAL_DIMENSIONS;
             QVariantMap avatarEntityData;
             avatarEntityData["id"] = entityID;
             EntityItemProperties entityProperties = entity->getProperties(desiredProperties);

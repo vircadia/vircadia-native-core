@@ -299,7 +299,16 @@ AvatarEntityMap ScriptableAvatar::getAvatarEntityDataInternal(bool allProperties
         for (const auto& itr : _entities) {
             QUuid id = itr.first;
             EntityItemPointer entity = itr.second;
-            EntityItemProperties properties = entity->getProperties();
+
+            EncodeBitstreamParams params;
+            auto desiredProperties = entity->getEntityProperties(params);
+            desiredProperties += PROP_LOCAL_POSITION;
+            desiredProperties += PROP_LOCAL_ROTATION;
+            desiredProperties += PROP_LOCAL_VELOCITY;
+            desiredProperties += PROP_LOCAL_ANGULAR_VELOCITY;
+            desiredProperties += PROP_LOCAL_DIMENSIONS;
+            EntityItemProperties properties = entity->getProperties(desiredProperties);
+
             QByteArray blob;
             EntityItemProperties::propertiesToBlob(_scriptEngine, sessionID, properties, blob, allProperties);
             data[id] = blob;
