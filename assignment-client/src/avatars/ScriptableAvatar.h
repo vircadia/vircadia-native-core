@@ -178,8 +178,11 @@ public:
      * var avatarEntityData = Avatar.getAvatarEntityData();
      * print("Avatar entities: " + JSON.stringify(avatarEntityData));
      */
+    Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const override;
 
     AvatarEntityMap getAvatarEntityDataNonDefault() const override;
+
+    AvatarEntityMap getAvatarEntityDataInternal(bool allProperties) const;
 
     /**jsdoc
      * Sets all avatar entities from an object.
