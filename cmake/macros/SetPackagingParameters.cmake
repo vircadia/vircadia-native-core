@@ -91,13 +91,11 @@ macro(SET_PACKAGING_PARAMETERS)
   endif ()
 
   if ((PRODUCTION_BUILD OR PR_BUILD) AND NOT STABLE_BUILD)
-    set(GIT_PR_COMMIT $ENV{GIT_PR_COMMIT})
-    #set(GIT_COMMIT_HASH ${GIT_PR_COMMIT})
-    string(SUBSTRING ${GIT_PR_COMMIT} 0 7 GIT_COMMIT_HASH)
+    set(GIT_COMMIT_SHORT $ENV{GIT_COMMIT_SHORT})
     # append the abbreviated commit SHA to the build version
     # since this is a PR build or master/nightly builds
     set(BUILD_VERSION_NO_SHA ${BUILD_VERSION})
-    set(BUILD_VERSION "${BUILD_VERSION}-${GIT_COMMIT_HASH}")
+    set(BUILD_VERSION "${BUILD_VERSION}-${GIT_COMMIT_SHORT}")
 
     # pass along a release number without the SHA in case somebody
     # wants to compare master or PR builds as integers

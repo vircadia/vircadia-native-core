@@ -257,6 +257,11 @@ if (ANDROID)
   return()
 endif()
 
+if (BUILD_GPU_FRAME_PLAYER_ONLY)
+    # This is for CI build testing
+    add_subdirectory(tools/gpu-frame-player)
+else()
+
 # add subdirectories for all targets
 if (BUILD_SERVER)
   add_subdirectory(assignment-client)
@@ -282,6 +287,8 @@ endif()
 
 # BUILD_TOOLS option will be handled inside the tools's CMakeLists.txt because 'scribe' tool is required for build anyway
 add_subdirectory(tools)
+
+endif()
 
 if (BUILD_TESTS)
   # Turn on testing so that add_test works
