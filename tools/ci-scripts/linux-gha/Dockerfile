@@ -18,6 +18,7 @@ RUN true
 COPY ./*.so /lib/
 RUN ln -sf /lib/libquazip5.so /lib/libquazip5.so.1
 COPY ./domain-server/resources/ /etc/hifi/server/resources/
+RUN true
 COPY ./hifi.conf /etc/supervisor/conf.d/hifi.conf
 RUN for fn in /usr/local/Qt5.12.3/5.12.3/gcc_64/plugins/imageformats/*.so; do \
     if [ ! -x $fn ]; then ln -s $fn /etc/hifi/server/imageformats; fi; done
