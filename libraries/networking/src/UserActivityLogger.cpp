@@ -35,6 +35,9 @@ void UserActivityLogger::disable(bool disable) {
 }
 
 void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCallbackParameters params) {
+//  qCDebug(networking).nospace() << ">>> UserActivityLogger::logAction(" << action << "," << QJsonDocument(details).toJson();
+// This logs what the UserActivityLogger would normally send to centralized servers.
+  return;
     if (_disabled.get()) {
         return;
     }
