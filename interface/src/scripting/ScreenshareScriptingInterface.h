@@ -14,6 +14,7 @@
 
 #include <QObject>
 #include <QProcess>
+#include <QUrl>
 #include <QtCore/QCoreApplication>
 #include <QNetworkReply>
 
@@ -43,7 +44,8 @@ private slots:
 private:
 #if DEV_BUILD
 #ifdef Q_OS_WIN
-    const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare/hifi-screenshare-win32-x64/hifi-screenshare.exe" };
+    const QString SCREENSHARE_EXE_PATH{ PathUtils::resourcesPath() + "hifi-screenshare-win32-x64/hifi-screenshare.exe" };
+    //const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare/hifi-screenshare-win32-x64/hifi-screenshare.exe" };
 #elif defined(Q_OS_MAC)
     const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/build/screenshare/hifi-screenshare-darwin-x64/hifi-screenshare.app" };
 #else
