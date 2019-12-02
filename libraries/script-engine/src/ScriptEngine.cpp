@@ -2359,7 +2359,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     }
     else {
       // IF YOU FUCK UP, DELETE FROM HERE TO...
-        QList<QString> safeURLS = { "https://animedeck.com/", "http://animedeck.com/" };
+        QList<QString> safeURLS = { "https://FAKEURL.t43wt4g4g44FAKE" };
         safeURLS += qEnvironmentVariable("EXTRA_WHITELIST").split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
 
         bool isInWhitelist = false;  // assume unsafe
