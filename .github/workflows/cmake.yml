@@ -115,7 +115,7 @@ jobs:
           working-directory: ${{runner.workspace}}/build
           run: cmake --build . --config $BUILD_TYPE --target assignment-client
         - name: Build Installer (macOS)
-          if: matrix.os == 'macOS-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || githu b.event.label.name == 'rebuild')
+          if: matrix.os == 'macOS-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild')
           working-directory: ${{runner.workspace}}/build
           run: cmake --build . --config $BUILD_TYPE --target package
           
