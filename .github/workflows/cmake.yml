@@ -43,6 +43,8 @@ env:
   # CMAKE_BACKTRACE_TOKEN: ${MASKED_CMAKE_BACKTRACE_TOKEN}
   # CMAKE_BACKTRACE_SYMBOLS_TOKEN: ${MASKED_BACKTRACE_UPLOAD_TOKEN}
 
+  LINUX_DOCKER_IMAGE_NAME: "linux-hifi-gha:${{ github.event.number }}"
+
 # Mac OS
 #PLATFORM_CMAKE_GENERATOR=Xcode
 #PLATFORM_BUILD_ARGUMENTS=--config Release --target package
@@ -72,161 +74,106 @@ env:
 #STABLE_BUILD=0
 
 jobs:
-  build_client_mac:
-    runs-on: macOS-latest
-    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild'
-    steps:
-    - uses: actions/checkout@v1
-      with: 
-        submodules: true
-        fetch-depth: 1
-    - name: Install python modules
-      run: pip3 install awscli boto3 PyGithub
-    - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build
-    - name: Configure CMake
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DCLIENT_ONLY:BOOLEAN=TRUE -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode -DVCPKG_APPLOCAL_DEPS=OFF
-    - name: Build Console
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
-    - name: Build Application
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
-    - name: Build Installer
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target package
+    build:
+      strategy:
+        matrix:
+          os: [windows-latest, macOS-latest, ubuntu-latest]
 
-  build_full_mac:
-    runs-on: macOS-latest
-    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild'
-    steps:
-    - uses: actions/checkout@v1
-      with: 
-        submodules: true
-        fetch-depth: 1
-    - name: Install python modules
-      run: pip3 install awscli boto3 PyGithub
-    - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build
-    - name: Configure CMake
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode -DVCPKG_APPLOCAL_DEPS=OFF
-    - name: Build Console
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
-    - name: Build Application
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
-    - name: Build Domain Server
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target domain-server
-    - name: Build Assignment Client
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target assignment-client
-    - name: Build Installer
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target package
+      runs-on: ${{ matrix.os }}
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v1
+          with: 
+            submodules: true
+            fetch-depth: 1
+        - name: Install python modules
+          run: pip3 install awscli boto3 PyGithub
+        - name: Create Build Environment
+          run: cmake -E make_directory ${{runner.workspace}}/build
 
-  build_client_win32:
-    runs-on: windows-latest
-    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild'
-    steps:
-    - uses: actions/checkout@v1
-      with: 
-        submodules: true
-        fetch-depth: 1
-    - name: Install python modules
-      run: pip install awscli boto3 PyGithub
-    - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build
-    - name: Configure CMake
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCLIENT_ONLY:BOOLEAN=TRUE -A x64 
-    - name: Build Console
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
-    - name: Build Application
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
-    - name: Build Installer
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target package
+  #build_full_mac:
+        - name: Configure CMake (macOS)
+          if: matrix.os == 'macOS-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild')
+          working-directory: ${{runner.workspace}}/build
+          run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode -DVCPKG_APPLOCAL_DEPS=OFF
+       - name: Build Console (macOS)
+         if: matrix.os == 'macOS-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild')
+         working-directory: ${{runner.workspace}}/build
+         run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+      - name: Build Application (macOS)
+        if: matrix.os == 'macOS-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild')
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+      - name: Build Domain Server (macOS)
+        if: matrix.os == 'macOS-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild')
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config $BUILD_TYPE --target domain-server
+      - name: Build Assignment Client (macOS)
+        if: matrix.os == 'macOS-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild')
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config $BUILD_TYPE --target assignment-client
+      - name: Build Installer (macOS)
+        if: matrix.os == 'macOS-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild')
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config $BUILD_TYPE --target package
           
-  build_full_win32:
-    runs-on: windows-latest
-    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild'
-    steps:
-    - uses: actions/checkout@v1
-      with: 
-        submodules: true
-        fetch-depth: 1
-    - name: Install python modules
-      run: pip install awscli boto3 PyGithub
-    - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build
-    - name: Configure CMake
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -A x64 
-    - name: Build Console
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
-    - name: Build Application
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
-    - name: Build Domain Server
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target domain-server
-    - name: Build Assignment Client
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target assignment-client
-    - name: Build Installer
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target package
-  build_full_linux:
-    runs-on: ubuntu-latest
-    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-linux' || github.event.label.name == 'rebuild'
-    env:
-      DOCKER_IMAGE_NAME: "linux-hifi-gha:${{ github.event.number }}"
-    steps:
-    - uses: actions/checkout@v1
-      with: 
-        submodules: true
-        fetch-depth: 1
-    - name: Install python modules 
-      run: pip install awscli boto3 PyGithub
-    - name: Install apt packages
-      run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
-    - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build
-    - name: Configure CMake (Linux)
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_TOOLS:BOOLEAN=false
-    - name: Build
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      # Parallel make:
-      run: cmake --build . -- -j3
-    - name: Build Ubuntu Docker
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: |
-          cp $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/hifi.conf .
-          docker build -t $DOCKER_IMAGE_NAME -f $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/Dockerfile ./
-    - name: Export Docker image
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: docker save -o ${{runner.workspace}}/build/hifi_docker_image.tar $DOCKER_IMAGE_NAME
+  #build_full_win32:
+   
+      - name: Configure CMake (Windows)
+        if: matrix.os == 'windows-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild')
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -A x64 
+      - name: Build Console (Windows)
+        if: matrix.os == 'windows-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild')
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+      - name: Build Application (Windows)
+        if: matrix.os == 'windows-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild')
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+      - name: Build Domain Server (Windows)
+        if: matrix.os == 'windows-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild')
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config $BUILD_TYPE --target domain-server
+      - name: Build Assignment Client (Windows)
+        if: matrix.os == 'windows-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild')
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config $BUILD_TYPE --target assignment-client
+      - name: Build Installer (Windows)
+        if: matrix.os == 'windows-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild')
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config $BUILD_TYPE --target package
+  #build_full_linux:
+
+      - name: Configure CMake (Linux)
+        if: matrix.os == 'ubuntu-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-linux' || github.event.label.name == 'rebuild')
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_TOOLS:BOOLEAN=false
+      - name: Build (Linux)
+        if: matrix.os == 'ubuntu-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-linux' || github.event.label.name == 'rebuild')
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        # Parallel make:
+        run: cmake --build . -- -j3
+      - name: Build Ubuntu Docker (Linux)
+        if: matrix.os == 'ubuntu-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-linux' || github.event.label.name == 'rebuild')
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: |
+            cp $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/hifi.conf .
+            docker build -t $LINUX_DOCKER_IMAGE_NAME -f $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/Dockerfile ./
+      - name: Export Docker image (Linux)
+        if: matrix.os == 'ubuntu-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-linux' || github.event.label.name == 'rebuild')
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: docker save -o ${{runner.workspace}}/build/hifi_docker_image.tar $LINUX_DOCKER_IMAGE_NAME
+
