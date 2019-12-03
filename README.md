@@ -24,3 +24,13 @@ The whitelist checks against the domains literally, so you have to be precise to
 Too many of us have our own personal combinations of High Fidelity from C++ modifications to different default scripts, all of which are lost to time as their fullest potential is never truly shared and propagated through the system.
 
 The goal of this repo is to give a common area to PR the very best of our findings and creations so that we may effectively take each necessary step towards our common goal of living in a true metaverse.
+
+### Why High Fidelity?
+
+Because of all the options, it is the only starting point that is open-source, cross-platform, fully VR integrated + fully desktop integrated with an aim for quality visuals and performance. IT also does us the service of providing a foundation to start from such as entity management, full body IK, etc.
+
+WebXR offers the open-source and decentralized aspect but does not have any of the full featured starting points such as avatars, IK, etc.
+
+Platforms like NeosVR or VRChat are unusable from go due to their fundamental closed-source and centralized nature. A metaverse to live on cannot have the keys handed over to any one entity, if any at all.
+
+So the necessary desire is to use High Fidelity as our foundation as a community of one, of all to build a metaverse worth living in.
