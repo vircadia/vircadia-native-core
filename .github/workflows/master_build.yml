@@ -107,7 +107,7 @@ jobs:
       shell: bash
       id: buildenv1
       run: |
-        echo ::set-env name=UPLOAD_PREFIX::master/$RELEASE_NUMBER
+        echo ::set-env name=UPLOAD_PREFIX::master
         echo ::set-env name=GIT_COMMIT_SHORT::`echo $GIT_COMMIT | cut -c1-7`
         # Linux build variables
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
