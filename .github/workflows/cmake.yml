@@ -87,7 +87,7 @@ jobs:
             submodules: true
             fetch-depth: 1
         - name: Install python modules
-          run: pip3 install awscli boto3 PyGithub
+          run: pip install awscli boto3 PyGithub
         - name: Create Build Environment
           run: cmake -E make_directory ${{runner.workspace}}/build
 
