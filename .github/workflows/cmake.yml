@@ -122,94 +122,94 @@ jobs:
           echo ::set-env name=HF_PFX_PASSPHRASE::${{secrets.pfx_key}}
           echo "::set-env name=HF_PFX_FILE::${{runner.workspace}}\build\codesign.pfx"
         fi          
-      - name: Checkout
-        uses: actions/checkout@v1
-        with: 
-          submodules: true
-          fetch-depth: 1
-      - name: Install python modules
-        run: $PYTHON_EXEC -m pip install boto3 PyGithub
-      - name: Create Build Environment
-        run: cmake -E make_directory ${{runner.workspace}}/build
+    - name: Checkout
+      uses: actions/checkout@v1
+      with: 
+        submodules: true
+        fetch-depth: 1
+    - name: Install python modules
+      run: $PYTHON_EXEC -m pip install boto3 PyGithub
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
 
-      - name: Install apt packages (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
-      - name: Configure CMake
-        working-directory: ${{runner.workspace}}/build
-        run: |
+    - name: Install apt packages (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+    - name: Configure CMake
+      working-directory: ${{runner.workspace}}/build
+      run: |
                 echo '${{ toJson(env) }}'
                 uname
                 cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCLIENT_ONLY:BOOLEAN=$CLIENT_ONLY $CMAKE_EXTRA
 # macOS
-      - name: Build Console (macOS)
-        if: matrix.os == 'macOS-latest'
-        working-directory: ${{runner.workspace}}/build
-        run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
-      - name: Build Application (macOS)
-        if: matrix.os == 'macOS-latest'
-        working-directory: ${{runner.workspace}}/build
-        run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
-      - name: Build Domain Server (macOS)
-        if: matrix.os == 'macOS-latest'
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: cmake --build . --config $BUILD_TYPE --target domain-server
-      - name: Build Assignment Client (macOS)
-        if: matrix.os == 'macOS-latest'
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: cmake --build . --config $BUILD_TYPE --target assignment-client
-      - name: Build Installer (macOS)
-        if: matrix.os == 'macOS-latest'
-        working-directory: ${{runner.workspace}}/build
-        run: cmake --build . --config $BUILD_TYPE --target package
+    - name: Build Console (macOS)
+      if: matrix.os == 'macOS-latest'
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+    - name: Build Application (macOS)
+      if: matrix.os == 'macOS-latest'
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+    - name: Build Domain Server (macOS)
+      if: matrix.os == 'macOS-latest'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target domain-server
+    - name: Build Assignment Client (macOS)
+      if: matrix.os == 'macOS-latest'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target assignment-client
+    - name: Build Installer (macOS)
+      if: matrix.os == 'macOS-latest'
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target package
           
 #build_full_win32:
    
-      - name: Build Console (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
-      - name: Build Application (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
-      - name: Build Domain Server (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: cmake --build . --config $BUILD_TYPE --target domain-server
-      - name: Build Assignment Client (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: cmake --build . --config $BUILD_TYPE --target assignment-client
-      - name: Build Installer (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: cmake --build . --config $BUILD_TYPE --target package
+    - name: Build Console (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+    - name: Build Application (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+    - name: Build Domain Server (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target domain-server
+    - name: Build Assignment Client (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target assignment-client
+    - name: Build Installer (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target package
 #build_full_linux:
 
-      - name: Build (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        # Parallel make:
-        run: cmake --build . -- -j3
-      - name: Build Ubuntu Docker (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: |
-            cp $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/hifi.conf .
-            docker build -t $LINUX_DOCKER_IMAGE_NAME -f $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/Dockerfile ./
-      - name: Export Docker image (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: docker save -o ${{runner.workspace}}/build/hifi_docker_image.tar $LINUX_DOCKER_IMAGE_NAME
+    - name: Build (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      # Parallel make:
+      run: cmake --build . -- -j3
+    - name: Build Ubuntu Docker (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: |
+        cp $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/hifi.conf .
+        docker build -t $LINUX_DOCKER_IMAGE_NAME -f $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/Dockerfile ./
+    - name: Export Docker image (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: docker save -o ${{runner.workspace}}/build/hifi_docker_image.tar $LINUX_DOCKER_IMAGE_NAME
 
