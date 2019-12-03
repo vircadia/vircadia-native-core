@@ -153,6 +153,9 @@ jobs:
           run: cmake --build . --config $BUILD_TYPE --target package
   #build_full_linux:
 
+        - name: Install apt packages (Linux)
+          if: matrix.os == 'ubuntu-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-linux' || github.event.label.name == 'rebuild')
+          run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
         - name: Configure CMake (Linux)
           if: matrix.os == 'ubuntu-latest' && (github.event.action != 'labeled' || github.event.label.name == 'rebuild-linux' || github.event.label.name == 'rebuild')
           shell: bash
