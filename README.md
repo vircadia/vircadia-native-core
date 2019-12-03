@@ -18,3 +18,9 @@ This build has been tested on Windows 10 Pro 64-bit w/ Nvidia graphics drivers.
 The **Start - NO STEAMVR** batch file launches and sets the whitelist environment variable for you (you have to edit in your whitelisted domains), however if you are unable to launch from the batch file and have to launch interface.exe directly then you must set the Windows environment variable "**EXTRA_WHITELIST**" with your whitelisted domains comma separated like so: "**https://kasen.io/,http://kasen.io/**" 
 
 The whitelist checks against the domains literally, so you have to be precise to ensure security and functionality. For example, the difference between "http://" and "https://" matters as those will be seen as two different domains in the eyes of the whitelist.
+
+### Boot to Metaverse: The Goal
+
+Too many of us have our own personal combinations of High Fidelity from C++ modifications to different default scripts, all of which are lost to time as their fullest potential is never truly shared and propagated through the system.
+
+The goal of this repo is to give a common area to PR the very best of our findings and creations so that we may effectively take each necessary step towards our common goal of living in a true metaverse.
