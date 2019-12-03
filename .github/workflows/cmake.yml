@@ -127,14 +127,14 @@ jobs:
       with: 
         submodules: true
         fetch-depth: 1
+    - name: Install apt packages (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt install -y python3-setuptools-scm mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
     - name: Install python modules
       run: $PYTHON_EXEC -m pip install boto3 PyGithub
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
 
-    - name: Install apt packages (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build
       run: |
