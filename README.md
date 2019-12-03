@@ -15,7 +15,9 @@ This build has been tested on Windows 10 Pro 64-bit w/ Nvidia graphics drivers.
 
 ### Whitelist Instructions
 
-The **Start - NO STEAMVR** batch file launches and sets the whitelist environment variable for you (you have to edit in your whitelisted domains), however if you are unable to launch from the batch file and have to launch interface.exe directly then you must set the Windows environment variable "**EXTRA_WHITELIST**" with your whitelisted domains comma separated like so: "**https://kasen.io/,http://kasen.io/**" 
+The whitelist checks every entity-script attempting to run on your client against a list of domains, their subfolders, or the specific script URL entirely.
+
+The **Start - NO STEAMVR** batch file launches and sets the whitelist environment variable for you (you have to edit in your whitelisted domains), however if you launch interface.exe directly then you must set the Windows environment variable "**EXTRA_WHITELIST**" with your whitelisted domains comma separated like so: "**https://kasen.io/,http://kasen.io/,https://exampledomain.com/scriptFolder/**" 
 
 The whitelist checks against the domains literally, so you have to be precise to ensure security and functionality. For example, the difference between "http://" and "https://" matters as those will be seen as two different domains in the eyes of the whitelist.
 
@@ -27,7 +29,7 @@ The goal of this repo is to give a common area to PR the very best of our findin
 
 ### Why High Fidelity?
 
-Because of all the options, it is the only starting point that is open-source, cross-platform, fully VR integrated + fully desktop integrated with an aim for quality visuals and performance. IT also does us the service of providing a foundation to start from such as entity management, full body IK, etc.
+Because of all the options, it is the only starting point that is open-source, cross-platform, fully VR integrated + fully desktop integrated with an aim for quality visuals and performance. It also does us the service of providing a foundation to start from such as entity management, full body IK, etc.
 
 WebXR offers the open-source and decentralized aspect but does not have any of the full featured starting points such as avatars, IK, etc.
 
