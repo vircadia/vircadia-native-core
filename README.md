@@ -2,7 +2,7 @@
 
 ### [Download (Windows 64-bit, .zip)](https://realities.dev/cdn/hifi-community/v0860-kasen-VS-release+freshstart/Packaged_Release.zip)
 
-#### Changes for **v0.86.0 R1** consist of:
+#### Changes for **v0.86.0 K1** consist of:
 
 * Audio Buffer choppy audio bugfix by increasing the buffer size.
 * User Activity Logger disabled, option in code to log the reports to console.
