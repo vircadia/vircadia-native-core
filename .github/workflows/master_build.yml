@@ -72,7 +72,7 @@ jobs:
     steps:
     - name: Generate build number
       id: buildnumber
-      uses: jherico/build-number@v3
+      uses: highfidelity/build-number@v3
       with:
         token: ${{secrets.github_token}}
     - name: Upload build number
@@ -100,7 +100,7 @@ jobs:
         name: BUILD_NUMBER
     - name: Restore build number
       id: buildnumber
-      uses: jherico/build-number@v3
+      uses: highfidelity/build-number@v3
       with:
         output_name: RELEASE_NUMBER
     - name: Configure Build Environment 1
