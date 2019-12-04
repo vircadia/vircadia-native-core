@@ -133,14 +133,17 @@ jobs:
     - name: Install python modules
       shell: bash
       run: |
-              uname
-              echo '${{ toJson(env) }}'
-              pip install boto3 PyGithub
+        if [ "`uname`" == Darwin ]; then
+          pip3 install boto3 PyGithub
+        else
+          pip install boto3 PyGithub
+        fi
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
 
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build
+      shell: bash
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCLIENT_ONLY:BOOLEAN=$CLIENT_ONLY $CMAKE_EXTRA
 # macOS
     - name: Build Console (macOS)
@@ -209,7 +212,7 @@ jobs:
         cp $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/hifi.conf .
         docker build -t $LINUX_DOCKER_IMAGE_NAME -f $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/Dockerfile ./
     - name: Export Docker image (Linux)
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-latest' && env.RELEASE_TYPE == 'PRODUCTION'
       shell: bash
       working-directory: ${{runner.workspace}}/build
       run: docker save -o ${{runner.workspace}}/build/hifi_docker_image.tar $LINUX_DOCKER_IMAGE_NAME
