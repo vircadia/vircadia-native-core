@@ -162,11 +162,6 @@ jobs:
           
 #build_full_win32:
    
-    - name: Build Console (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
     - name: Build Application (Windows)
       if: matrix.os == 'windows-latest'
       shell: bash
@@ -182,6 +177,11 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}/build
       run: cmake --build . --config $BUILD_TYPE --target assignment-client
+    - name: Build Console (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
     - name: Build Installer (Windows)
       if: matrix.os == 'windows-latest'
       shell: bash
