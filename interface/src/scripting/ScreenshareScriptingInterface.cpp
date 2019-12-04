@@ -90,7 +90,8 @@ static const EntityTypes::EntityType LOCAL_SCREENSHARE_WEB_ENTITY_TYPE = EntityT
 static const uint8_t LOCAL_SCREENSHARE_WEB_ENTITY_FPS = 30;
 // This is going to be a good amount of work to make this work dynamically for any screensize.
 // V1 will have only hardcoded values.
-static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION(0.0128f, -0.0918f, 0.0771f);
+// The `z` value here is dynamic.
+static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION(0.0128f, -0.0918f, 0.0f);
 static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_DIMENSIONS(3.6790f, 2.0990f, 0.0100f);
 static const QString LOCAL_SCREENSHARE_WEB_ENTITY_URL =
     "https://content.highfidelity.com/Experiences/Releases/usefulUtilities/smartBoard/screenshareViewer/screenshareClient.html";
@@ -124,7 +125,7 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
         // Ensure that the screenshare executable exists where we expect it to.
         // Error out and reset the screen share state machine if the executable doesn't exist.
         QFileInfo screenshareExecutable(SCREENSHARE_EXE_PATH);
-        if (!screenshareExecutable.exists() || !screenshareExecutable.isFile()) {
+        if (!screenshareExecutable.exists() || !(screenshareExecutable.isFile() || screenshareExecutable.isBundle())) {
             qDebug() << "Screenshare executable doesn't exist at" << SCREENSHARE_EXE_PATH;
             stopScreenshare();
             emit screenshareError();
@@ -241,7 +242,9 @@ void ScreenshareScriptingInterface::handleSuccessfulScreenshareInfoGet(QNetworkR
     EntityItemProperties localScreenshareWebEntityProps;
     localScreenshareWebEntityProps.setType(LOCAL_SCREENSHARE_WEB_ENTITY_TYPE);
     localScreenshareWebEntityProps.setMaxFPS(LOCAL_SCREENSHARE_WEB_ENTITY_FPS);
-    localScreenshareWebEntityProps.setLocalPosition(LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION);
+    glm::vec3 localPosition(LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION);
+    localPosition.z = _localWebEntityZOffset;
+    localScreenshareWebEntityProps.setLocalPosition(localPosition);
     localScreenshareWebEntityProps.setSourceUrl(LOCAL_SCREENSHARE_WEB_ENTITY_URL);
     localScreenshareWebEntityProps.setParentID(_smartboardEntityID);
     localScreenshareWebEntityProps.setDimensions(LOCAL_SCREENSHARE_WEB_ENTITY_DIMENSIONS);

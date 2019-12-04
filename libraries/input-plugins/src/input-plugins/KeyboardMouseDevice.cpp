@@ -138,23 +138,28 @@ bool KeyboardMouseDevice::isWheelByTouchPad(QWheelEvent* event) {
     QPoint delta = event->angleDelta();
     int deltaValueX = abs(delta.x());
     int deltaValueY = abs(delta.y());
-    const int MAX_WHEEL_DELTA_REPEAT = 20;
     const int COMMON_WHEEL_DELTA_VALUE = 120;
-    if (deltaValueX != 0) {
-        if (abs(_lastWheelDelta.x()) == deltaValueX) {
-            _wheelDeltaRepeatCount.setX(_wheelDeltaRepeatCount.x() + 1);
-        } else {
-            _wheelDeltaRepeatCount.setX(0);
+    // If deltaValueX or deltaValueY are multiple of 120 they are triggered by a mouse wheel
+    bool isMouseWheel = (deltaValueX + deltaValueY) % COMMON_WHEEL_DELTA_VALUE == 0;
+    if (!isMouseWheel) {
+        // We track repetition in wheel values to detect non-standard mouse wheels
+        const int MAX_WHEEL_DELTA_REPEAT = 10;
+        if (deltaValueX != 0) {
+            if (abs(_lastWheelDelta.x()) == deltaValueX) {
+                _wheelDeltaRepeatCount.setX(_wheelDeltaRepeatCount.x() + 1);
+            } else {
+                _wheelDeltaRepeatCount.setX(0);
+            }
+            return _wheelDeltaRepeatCount.x() < MAX_WHEEL_DELTA_REPEAT;
         }
-        return deltaValueX != COMMON_WHEEL_DELTA_VALUE && _wheelDeltaRepeatCount.x() < MAX_WHEEL_DELTA_REPEAT;
-    }
-    if (deltaValueY != 0) {
-        if (abs(_lastWheelDelta.y()) == deltaValueY) {
-            _wheelDeltaRepeatCount.setY(_wheelDeltaRepeatCount.y() + 1);
-        } else {
-            _wheelDeltaRepeatCount.setY(0);
+        if (deltaValueY != 0) {
+            if (abs(_lastWheelDelta.y()) == deltaValueY) {
+                _wheelDeltaRepeatCount.setY(_wheelDeltaRepeatCount.y() + 1);
+            } else {
+                _wheelDeltaRepeatCount.setY(0);
+            }
+            return _wheelDeltaRepeatCount.y() < MAX_WHEEL_DELTA_REPEAT;
         }
-        return deltaValueY != COMMON_WHEEL_DELTA_VALUE && _wheelDeltaRepeatCount.y() < MAX_WHEEL_DELTA_REPEAT;
     }
     return false;
 }
@@ -166,8 +171,9 @@ void KeyboardMouseDevice::wheelEvent(QWheelEvent* event) {
         QPoint delta = event->angleDelta();
         float deltaX = (float)delta.x();
         float deltaY = (float)delta.y();
-        _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_POS).getChannel()].value = (deltaX > 0 ? deltaX : 0.0f);
-        _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_NEG).getChannel()].value = (deltaX < 0 ? -deltaX : 0.0f);
+        const float WHEEL_X_ATTENUATION = 0.3f;
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_POS).getChannel()].value = (deltaX > 0 ? WHEEL_X_ATTENUATION * deltaX : 0.0f);
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_NEG).getChannel()].value = (deltaX < 0 ? -WHEEL_X_ATTENUATION * deltaX : 0.0f);
         // Y mouse is inverted positive is pointing up the screen
         const float WHEEL_Y_ATTENUATION = 0.02f;
         _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_POS).getChannel()].value = (deltaY < 0 ? -WHEEL_Y_ATTENUATION * deltaY : 0.0f);
