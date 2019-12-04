@@ -185,7 +185,10 @@ if (BUILD_TOOLS AND NPM_EXECUTABLE)
   add_dependencies(resources jsdoc)
 endif()
 
-add_dependencies(${TARGET_NAME} resources screenshare)
+if (WIN32 OR APPLE)
+    add_dependencies(${TARGET_NAME} resources screenshare)
+endif()
+
 
 if (WIN32)
   # These are external plugins, but we need to do the 'add dependency' here so that their
