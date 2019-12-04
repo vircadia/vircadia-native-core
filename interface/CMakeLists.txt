@@ -323,7 +323,7 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/scripts"
       "${RESOURCES_DEV_DIR}/scripts"
-
+    # copy screenshare app to the resource folder
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_CURRENT_BINARY_DIR}/../screenshare/hifi-screenshare-darwin-x64/hifi-screenshare.app"
       "${RESOURCES_DEV_DIR}/hifi-screenshare.app"
@@ -351,7 +351,7 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
-      )
+    )
 
   # call the fixup_interface macro to add required bundling commands for installation
   fixup_interface()

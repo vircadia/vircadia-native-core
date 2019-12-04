@@ -14,7 +14,6 @@
 
 #include <QObject>
 #include <QProcess>
-#include <QUrl>
 #include <QtCore/QCoreApplication>
 #include <QNetworkReply>
 
@@ -46,7 +45,7 @@ private:
 #ifdef Q_OS_WIN
     const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare/hifi-screenshare-win32-x64/hifi-screenshare.exe" };
 #elif defined(Q_OS_MAC)
-    const QString SCREENSHARE_EXE_PATH{ PathUtils::resourcesPath() + "hifi-screenshare.app" };
+    const QString SCREENSHARE_EXE_PATH{ PathUtils::resourcesPath() + "/../hifi-screenshare.app" };
 #else
     // This path won't exist on other platforms, so the Screenshare Scripting Interface will exit early when invoked.
     const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare/hifi-screenshare-other-os/hifi-screenshare" };
@@ -55,7 +54,7 @@ private:
 #ifdef Q_OS_WIN
     const QString SCREENSHARE_EXE_PATH{ QCoreApplication::applicationDirPath() + "/hifi-screenshare/hifi-screenshare.exe" };
 #elif defined(Q_OS_MAC)
-    const QString SCREENSHARE_EXE_PATH{ PathUtils::resourcesPath() + "hifi-screenshare.app" };
+    const QString SCREENSHARE_EXE_PATH{ PathUtils::resourcesPath() + "/../hifi-screenshare.app" };
 #else
     // This path won't exist on other platforms, so the Screenshare Scripting Interface will exit early when invoked.
     const QString SCREENSHARE_EXE_PATH{ QCoreApplication::applicationDirPath() + "/hifi-screenshare/hifi-screenshare" };
