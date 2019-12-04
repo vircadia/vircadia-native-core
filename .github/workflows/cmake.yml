@@ -70,6 +70,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macOS-latest, ubuntu-latest]
+      fail-fast: false
 
     runs-on: ${{ matrix.os }}
     if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
@@ -154,16 +155,6 @@ jobs:
       if: matrix.os == 'macOS-latest'
       working-directory: ${{runner.workspace}}/build
       run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
-    - name: Build Domain Server (macOS)
-      if: matrix.os == 'macOS-latest'
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target domain-server
-    - name: Build Assignment Client (macOS)
-      if: matrix.os == 'macOS-latest'
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target assignment-client
     - name: Build Installer (macOS)
       if: matrix.os == 'macOS-latest'
       working-directory: ${{runner.workspace}}/build
