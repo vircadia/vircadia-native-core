@@ -2,7 +2,7 @@
 
 ### [Download (Windows 64-bit, .zip)](https://realities.dev/cdn/hifi-community/v0860-kasen-VS-release+freshstart/Packaged_Release.zip)
 
-#### Changes for **v0.86.0** consist of:
+#### Changes for **v0.86.0 R1** consist of:
 
 * Audio Buffer choppy audio bugfix by increasing the buffer size.
 * User Activity Logger disabled, option in code to log the reports to console.
@@ -17,7 +17,16 @@ This build has been tested on Windows 10 Pro 64-bit w/ Nvidia graphics drivers.
 
 The whitelist checks every entity-script attempting to run on your client against a list of domains, their subfolders, or the specific script URL entirely.
 
-The **Start - NO STEAMVR** batch file launches and sets the whitelist environment variable for you (you have to edit in your whitelisted domains), however if you launch interface.exe directly then you must set the Windows environment variable "**EXTRA_WHITELIST**" with your whitelisted domains comma separated like so: "**https://kasen.io/,http://kasen.io/,https://exampledomain.com/scriptFolder/**" 
+The **Start** batch file launches and sets the whitelist environment variable for you (you have to edit in your whitelisted domains), however if you launch interface.exe directly then you must set the Windows environment variable "**EXTRA_WHITELIST**" with your whitelisted domains comma separated like so: "**https://kasen.io/,http://kasen.io/,https://exampledomain.com/scriptFolder/**" 
+
+Alternatively you can make a batch file placed in the same folder as interface.exe that sets the whitelist environment variable temporarily:
+
+```
+set "EXTRA_WHITELIST=http://mpassets.highfidelity.com/,https://raw.githubusercontent.com/highfidelity/,https://hifi-content.s3.amazonaws.com/"
+interface.exe
+```
+
+By default, we are whitelisting High Fidelity's current known CDN domains so we can see their own/hosted entity-script related content.
 
 The whitelist checks against the domains literally, so you have to be precise to ensure security and functionality. For example, the difference between "http://" and "https://" matters as those will be seen as two different domains in the eyes of the whitelist.
 
@@ -36,3 +45,7 @@ WebXR offers the open-source and decentralized aspect but does not have any of t
 Platforms like NeosVR or VRChat are unusable from go due to their fundamental closed-source and centralized nature. A metaverse to live on cannot have the keys handed over to any one entity, if any at all.
 
 So the necessary desire is to use High Fidelity as our foundation as a community of one, of all to build a metaverse worth living in.
+
+### Contributors
+
+A special thanks to the contributors of the community edition.
