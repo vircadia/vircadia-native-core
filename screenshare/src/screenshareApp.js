@@ -223,10 +223,9 @@ function onAccessApproved(desktop_id) {
             mandatory: {
                 chromeMediaSource: 'desktop',
                 chromeMediaSourceId: desktop_id,
-                minWidth: 1280,
                 maxWidth: 1280,
-                minHeight: 720,
-                maxHeight: 720
+                maxHeight: 720,
+                maxFrameRate: 7
             }
         }
     }, gotStream, handleError);
@@ -261,7 +260,7 @@ function startTokboxPublisher(stream) {
         audioFallbackEnabled: false,
         audioSource: null,
         fitMode: 'contain',
-        frameRate: 30,
+        frameRate: 7,
         height: 720,
         insertMode: 'append',
         publishAudio: false,
