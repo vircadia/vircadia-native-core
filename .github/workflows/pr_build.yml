@@ -1,0 +1,88 @@
+name: Pull Request CI Build
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+env:
+  APP_NAME: interface
+  BUILD_TYPE: Release
+  CI_BUILD: Github
+  GIT_COMMIT: ${{ github.sha }}
+  GIT_COMMIT_SHORT: ${{ github.sha }}
+  HIFI_VCPKG_BOOTSTRAP: true
+  RELEASE_TYPE: PR
+  RELEASE_NUMBER: ${{ github.event.number }}
+  VERSION_CODE: ${{ github.event.number }}
+
+  # OSX specific variables
+  DEVELOPER_DIR: /Applications/Xcode_11.2.app/Contents/Developer
+  MACOSX_DEPLOYMENT_TARGET: '10.11'
+
+  # WIN32 specific variables
+  PreferredToolArchitecture: X64
+
+jobs:
+  build_full_mac:
+    runs-on: macOS-latest
+    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild'
+    steps:
+    - uses: actions/checkout@v1
+      with: 
+        submodules: true
+        fetch-depth: 1
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+    - name: Configure CMake
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode -DVCPKG_APPLOCAL_DEPS=OFF
+    - name: Build Console
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+    - name: Build Application
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+    - name: Build Domain Server
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target domain-server
+    - name: Build Assignment Client
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target assignment-client
+    - name: Build Installer
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target package
+
+  build_full_win32:
+    runs-on: windows-latest
+    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild'
+    steps:
+    - uses: actions/checkout@v1
+      with: 
+        submodules: true
+        fetch-depth: 1
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -A x64 
+    - name: Build Console
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+    - name: Build Application
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+    - name: Build Domain Server
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target domain-server
+    - name: Build Assignment Client
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target assignment-client
+    - name: Build Installer
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE --target package

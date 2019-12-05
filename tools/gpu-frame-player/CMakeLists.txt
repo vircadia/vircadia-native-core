@@ -25,3 +25,17 @@ target_opengl()
 #target_vulkan()
 
 package_libraries_for_deployment()
+
+if (BUILD_GPU_FRAME_PLAYER_ONLY)
+
+# setup install of executable and things copied by fixup/windeployqt
+install(
+    DIRECTORY "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
+    DESTINATION "."
+    COMPONENT "client"
+    PATTERN "*.pdb" EXCLUDE
+    PATTERN "*.lib" EXCLUDE
+    PATTERN "*.exp" EXCLUDE
+)
+
+endif()
