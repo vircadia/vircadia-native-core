@@ -41,6 +41,8 @@ private slots:
     void handleFailedScreenshareInfoGet(QNetworkReply* reply);
 
 private:
+    void processAvatarZonePresencePacketOnClient(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+
 #if DEV_BUILD
 #ifdef Q_OS_WIN
     const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare/hifi-screenshare-win32-x64/hifi-screenshare.exe" };
@@ -82,6 +84,9 @@ private:
     QUuid _screenshareZoneID;
     QUuid _smartboardEntityID;
     bool _isPresenter{ false };
+
+    QUuid _lastAuthorizedZoneID;
+    bool _waitingForAuthorization{ false };
 };
 
 #endif // hifi_ScreenshareScriptingInterface_h

@@ -3634,10 +3634,10 @@ void DomainServer::processAvatarZonePresencePacket(QSharedPointer<ReceivedMessag
         return;
     }
     static const int SCREENSHARE_EXPIRATION_SECONDS = 24 * 60 * 60;
-    screensharePresence(zone.isNull() ? "" : zone.toString(), verifiedUsername, SCREENSHARE_EXPIRATION_SECONDS);
+    screensharePresence(zone.isNull() ? "" : zone.toString(), verifiedUsername, avatar, SCREENSHARE_EXPIRATION_SECONDS);
 }
 
-void DomainServer::screensharePresence(QString roomname, QString username, int expirationSeconds) {
+void DomainServer::screensharePresence(QString roomname, QString username, QUuid avatarID, int expirationSeconds) {
     if (!DependencyManager::get<AccountManager>()->hasValidAccessToken()) {
         static std::once_flag presenceAuthorityWarning;
         std::call_once(presenceAuthorityWarning, [] {
@@ -3649,6 +3649,10 @@ void DomainServer::screensharePresence(QString roomname, QString username, int e
     callbackParams.callbackReceiver = this;
     callbackParams.jsonCallbackMethod = "handleSuccessfulScreensharePresence";
     callbackParams.errorCallbackMethod = "handleFailedScreensharePresence";
+    QJsonObject callbackData;
+    callbackData.insert("roomname", roomname);
+    callbackData.insert("avatarID", avatarID.toString());
+    callbackParams.callbackData = callbackData;
     const QString PATH = "api/v1/domains/%1/screenshare";
     QString domain_id = uuidStringWithoutCurlyBraces(getID());
     QJsonObject json, screenshare;
@@ -3666,11 +3670,17 @@ void DomainServer::screensharePresence(QString roomname, QString username, int e
         );
 }
 
-void DomainServer::handleSuccessfulScreensharePresence(QNetworkReply* requestReply) {
+void DomainServer::handleSuccessfulScreensharePresence(QNetworkReply* requestReply, QJsonObject callbackData) {
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply->readAll()).object();
     if (jsonObject["status"].toString() != "success") {
         qCWarning(domain_server) << "screensharePresence api call failed:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
+        return;
     }
+
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    auto packet = NLPacket::create(PacketType::AvatarZonePresence, NUM_BYTES_RFC4122_UUID, true);
+    packet->write(QUuid(callbackData["roomname"].toString()).toRfc4122());
+    nodeList->sendPacket(std::move(packet), *(nodeList->nodeWithUUID(QUuid(callbackData["avatarID"].toString()))));
 }
 
 void DomainServer::handleFailedScreensharePresence(QNetworkReply* requestReply) {

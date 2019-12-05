@@ -37,14 +37,41 @@ ScreenshareScriptingInterface::ScreenshareScriptingInterface() {
     _requestScreenshareInfoRetryTimer->setSingleShot(true);
     _requestScreenshareInfoRetryTimer->setInterval(SCREENSHARE_INFO_REQUEST_RETRY_TIMEOUT_MS);
     connect(_requestScreenshareInfoRetryTimer, &QTimer::timeout, this, &ScreenshareScriptingInterface::requestScreenshareInfo);
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    PacketReceiver& packetReceiver = nodeList->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::AvatarZonePresence, this, "processAvatarZonePresencePacketOnClient");
 };
 
 ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {
     stopScreenshare();
 }
 
+void ScreenshareScriptingInterface::processAvatarZonePresencePacketOnClient(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    QUuid zone = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+    if (zone.isNull()) {
+        qWarning() << "Ignoring avatar zone presence packet that doesn't specify a zone.";
+        return;
+    }
+
+    _lastAuthorizedZoneID = zone;
+
+    if (_waitingForAuthorization) {
+        requestScreenshareInfo();
+    }
+}
+
 static const int MAX_NUM_SCREENSHARE_INFO_REQUEST_RETRIES = 5;
 void ScreenshareScriptingInterface::requestScreenshareInfo() {
+    if (_screenshareZoneID != _lastAuthorizedZoneID) {
+        qDebug() << "Client not yet authorized to screenshare. Waiting for authorization message from domain server...";
+        _waitingForAuthorization = true;
+        return;
+    }
+
+    _waitingForAuthorization = false;
+
     _requestScreenshareInfoRetries++;
 
     if (_requestScreenshareInfoRetries >= MAX_NUM_SCREENSHARE_INFO_REQUEST_RETRIES) {
@@ -174,6 +201,7 @@ void ScreenshareScriptingInterface::stopScreenshare() {
     _projectAPIKey = "";
     _sessionID = "";
     _isPresenter = false;
+    _waitingForAuthorization = false;
 }
 
 // Called when the Metaverse returns the information necessary to start/view a screen share.

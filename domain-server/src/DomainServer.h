@@ -78,7 +78,7 @@ public:
 
     bool isAssetServerEnabled();
 
-    void screensharePresence(QString roomname, QString username, int expiration_seconds = 0);
+    void screensharePresence(QString roomname, QString username, QUuid avatarID, int expiration_seconds = 0);
 
 public slots:
     /// Called by NodeList to inform us a node has been added
@@ -132,7 +132,7 @@ private slots:
     void handleSuccessfulICEServerAddressUpdate(QNetworkReply* requestReply);
     void handleFailedICEServerAddressUpdate(QNetworkReply* requestReply);
 
-    void handleSuccessfulScreensharePresence(QNetworkReply* requestReply);
+    void handleSuccessfulScreensharePresence(QNetworkReply* requestReply, QJsonObject callbackData);
     void handleFailedScreensharePresence(QNetworkReply* requestReply);
 
     void updateReplicatedNodes();
