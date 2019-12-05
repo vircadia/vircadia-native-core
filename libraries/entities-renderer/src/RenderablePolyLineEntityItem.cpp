@@ -97,9 +97,11 @@ void PolyLineEntityRenderer::buildPipelines() {
 }
 
 ItemKey PolyLineEntityRenderer::getKey() {
-    auto builder = isTransparent() ?
-        ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer()) :
-        ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+    auto builder = ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
+    if (isTransparent()) {
+        builder.withTransparent();
+    }
 
     if (_cullWithParent) {
         builder.withSubMetaCulled();

@@ -172,7 +172,7 @@ void FetchSpatialTree::run(const RenderContextPointer& renderContext, const Inpu
 void CullSpatialSelection::configure(const Config& config) {
     _justFrozeFrustum = _justFrozeFrustum || (config.freezeFrustum && !_freezeFrustum);
     _freezeFrustum = config.freezeFrustum;
-    _skipCulling = config.skipCulling;
+    _overrideSkipCulling = config.skipCulling;
 }
 
 void CullSpatialSelection::run(const RenderContextPointer& renderContext,
@@ -209,7 +209,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
         // filter individually against the _filter
         // visibility cull if partially selected ( octree cell contianing it was partial)
         // distance cull if was a subcell item ( octree cell is way bigger than the item bound itself, so now need to test per item)
-        if (_skipCulling) {
+        if (_skipCulling || _overrideSkipCulling) {
             // inside & fit items: filter only, culling is disabled
             {
                 PerformanceTimer perfTimer("insideFitItems");
@@ -442,71 +442,5 @@ void ApplyCullFunctorOnItemBounds::run(const RenderContextPointer& renderContext
 
     if (inputFrustum != nullptr) {
         args->popViewFrustum();
-    }
-}
-
-void FilterSpatialSelection::run(const RenderContextPointer& renderContext,
-                               const Inputs& inputs, ItemBounds& outItems) {
-    assert(renderContext->args);
-    auto& scene = renderContext->_scene;
-    auto& inSelection = inputs.get0();
-
-    // Now we have a selection of items to render
-    outItems.clear();
-    outItems.reserve(inSelection.numItems());
-
-    const auto filter = inputs.get1();
-    if (!filter.selectsNothing()) {
-        // Now get the bound, and
-        // filter individually against the _filter
-
-        // inside & fit items: filter only
-        {
-            PerformanceTimer perfTimer("insideFitItems");
-            for (auto id : inSelection.insideItems) {
-                auto& item = scene->getItem(id);
-                if (filter.test(item.getKey())) {
-                    ItemBound itemBound(id, item.getBound());
-                    outItems.emplace_back(itemBound);
-                }
-            }
-        }
-
-        // inside & subcell items: filter only
-        {
-            PerformanceTimer perfTimer("insideSmallItems");
-            for (auto id : inSelection.insideSubcellItems) {
-                auto& item = scene->getItem(id);
-                if (filter.test(item.getKey())) {
-                    ItemBound itemBound(id, item.getBound());
-                    outItems.emplace_back(itemBound);
-
-                }
-            }
-        }
-
-        // partial & fit items: filter only
-        {
-            PerformanceTimer perfTimer("partialFitItems");
-            for (auto id : inSelection.partialItems) {
-                auto& item = scene->getItem(id);
-                if (filter.test(item.getKey())) {
-                    ItemBound itemBound(id, item.getBound());
-                    outItems.emplace_back(itemBound);
-                }
-            }
-        }
-
-        // partial & subcell items: filter only
-        {
-            PerformanceTimer perfTimer("partialSmallItems");
-            for (auto id : inSelection.partialSubcellItems) {
-                auto& item = scene->getItem(id);
-                if (filter.test(item.getKey())) {
-                    ItemBound itemBound(id, item.getBound());
-                    outItems.emplace_back(itemBound);
-                }
-            }
-        }
     }
 }
