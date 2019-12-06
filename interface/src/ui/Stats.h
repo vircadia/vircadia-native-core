@@ -174,10 +174,16 @@ private: \
  *     second.
  *     <code>-1</code> if not connected to an audio mixer.
  *     <em>Read-only.</em>
- * @property {number} audioAudioInboundPPS -  The number of non-silent audio packets being received by the user, in packets per 
+ * @property {number} audioInboundPPS -  The number of non-silent audio packets being received by the user, in packets per
  *     second.
  *     <code>-1</code> if not connected to an audio mixer.
  *     <em>Read-only.</em>
+ * @property {number} audioAudioInboundPPS -  The number of non-silent audio packets being received by the user, in packets per
+ *     second.
+ *     <code>-1</code> if not connected to an audio mixer.
+ *     <em>Read-only.</em>
+ *     <p class="important">Deprecated: This property is deprecated and will be removed. Use <code>audioInboundPPS</code> 
+ *     instead.</p>
  * @property {number} audioSilentInboundPPS -  The number of silent audio packets being received by the user, in packets per 
  *     second.
  *     <code>-1</code> if not connected to an audio mixer.
@@ -506,6 +512,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, audioMixerPps, 0)
     STATS_PROPERTY(int, audioOutboundPPS, 0)
     STATS_PROPERTY(int, audioSilentOutboundPPS, 0)
+    STATS_PROPERTY(int, audioInboundPPS, 0)
     STATS_PROPERTY(int, audioAudioInboundPPS, 0)
     STATS_PROPERTY(int, audioSilentInboundPPS, 0)
     STATS_PROPERTY(int, audioPacketLoss, 0)
@@ -993,9 +1000,18 @@ signals:
     void audioSilentOutboundPPSChanged();
 
     /**jsdoc
+     * Triggered when the value of the <code>audioInboundPPS</code> property changes.
+     * @function Stats.audioInboundPPSChanged
+     * @returns {Signal}
+     */
+    void audioInboundPPSChanged();
+
+    /**jsdoc
      * Triggered when the value of the <code>audioAudioInboundPPS</code> property changes.
      * @function Stats.audioAudioInboundPPSChanged
      * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed. Use 
+     *     {@link Stats.audioInboundPPSChanged|audioInboundPPSChanged} instead.
      */
     void audioAudioInboundPPSChanged();
 
