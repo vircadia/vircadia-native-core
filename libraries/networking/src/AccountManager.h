@@ -30,9 +30,9 @@
 class JSONCallbackParameters {
 public:
     JSONCallbackParameters(QObject* callbackReceiver = nullptr,
-                           const QString& jsonCallbackMethod = QString(),
-                           const QString& errorCallbackMethod = QString(),
-                           const QJsonObject& callbackData = QJsonObject());
+        const QString& jsonCallbackMethod = QString(),
+        const QString& errorCallbackMethod = QString(),
+        const QJsonObject& callbackData = QJsonObject());
 
     bool isEmpty() const { return !callbackReceiver; }
 

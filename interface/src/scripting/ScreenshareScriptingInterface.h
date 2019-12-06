@@ -18,6 +18,7 @@
 #include <QNetworkReply>
 
 #include <PathUtils.h>
+#include <ReceivedMessage.h>
 
 class ScreenshareScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -36,13 +37,12 @@ signals:
     void localWebEntityZOffsetChanged(const float& newZOffset);
 
 private slots:
+    void processAvatarZonePresencePacketOnClient(QSharedPointer<ReceivedMessage> message);
     void onWebEventReceived(const QUuid& entityID, const QVariant& message);
     void handleSuccessfulScreenshareInfoGet(QNetworkReply* reply);
     void handleFailedScreenshareInfoGet(QNetworkReply* reply);
 
 private:
-    void processAvatarZonePresencePacketOnClient(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-
 #if DEV_BUILD
 #ifdef Q_OS_WIN
     const QString SCREENSHARE_EXE_PATH{ PathUtils::projectRootPath() + "/screenshare/hifi-screenshare-win32-x64/hifi-screenshare.exe" };

@@ -52,16 +52,6 @@ const int PULL_SETTINGS_RETRY_INTERVAL = 2 * MSECS_PER_SECOND;
 const int MAX_PULL_RETRIES = 10;
 
 JSONCallbackParameters::JSONCallbackParameters(QObject* callbackReceiver,
-                                               const QString& jsonCallbackMethod,
-                                               const QString& errorCallbackMethod) :
-    callbackReceiver(callbackReceiver),
-    jsonCallbackMethod(jsonCallbackMethod),
-    errorCallbackMethod(errorCallbackMethod)
-{
-
-}
-
-JSONCallbackParameters::JSONCallbackParameters(QObject* callbackReceiver,
     const QString& jsonCallbackMethod,
     const QString& errorCallbackMethod,
     const QJsonObject& callbackData) :

@@ -18,6 +18,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
+#include <NodeList.h>
 #include <UUID.h>
 
 #include "EntityScriptingInterface.h"
@@ -47,7 +48,7 @@ ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {
     stopScreenshare();
 }
 
-void ScreenshareScriptingInterface::processAvatarZonePresencePacketOnClient(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+void ScreenshareScriptingInterface::processAvatarZonePresencePacketOnClient(QSharedPointer<ReceivedMessage> message) {
     QUuid zone = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
     if (zone.isNull()) {
