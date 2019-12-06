@@ -23,13 +23,6 @@ if (WIN32)
 
 	set(EXECUTABLE_PATH "${SCREENSHARE_DESTINATION}/${SCREENSHARE_EXEC_NAME}")
 	optional_win_executable_signing()
-elseif (APPLE)
-	set(PACKAGED_SCREENSHARE_FOLDER "hifi-screenshare-darwin-x64/${SCREENSHARE_EXEC_NAME}")
-	install(
-		DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_SCREENSHARE_FOLDER}"
-		USE_SOURCE_PERMISSIONS
-		DESTINATION ${SCREENSHARE_INSTALL_DIR}
-	)
 endif()
 
 # DO build the Screenshare Electron app when building the `ALL_BUILD` target.

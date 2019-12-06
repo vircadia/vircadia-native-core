@@ -57,6 +57,7 @@ exports.handlers = {
             '../../libraries/physics/src',
             '../../libraries/platform/src/platform/backend',
             '../../libraries/plugins/src/plugins',
+            '../../libraries/procedural/src/procedural',
             '../../libraries/pointers/src',
             '../../libraries/render-utils/src',
             '../../libraries/script-engine/src',

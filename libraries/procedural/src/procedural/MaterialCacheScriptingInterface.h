@@ -24,7 +24,7 @@ class MaterialCacheScriptingInterface : public ScriptableResourceCache, public D
     // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
 
     /**jsdoc
-     * The <code>TextureCache</code> API manages texture cache resources.
+     * The <code>MaterialCache</code> API manages material cache resources.
      *
      * @namespace MaterialCache
      *
@@ -36,6 +36,10 @@ class MaterialCacheScriptingInterface : public ScriptableResourceCache, public D
      * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
      * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
      * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
+     * @property {number} numGlobalQueriesPending - Total number of global queries pending (across all resource cache managers).
+     *     <em>Read-only.</em>
+     * @property {number} numGlobalQueriesLoading - Total number of global queries loading (across all resource cache managers).
+     *     <em>Read-only.</em>
      *
      * @borrows ResourceCache.getResourceList as getResourceList
      * @borrows ResourceCache.updateTotalSize as updateTotalSize
