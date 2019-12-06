@@ -635,7 +635,7 @@ public slots:
      *     "avatarMixerOutPps"
      * ];
      * 
-     * // update the statistics for the script.
+     * // Update the statistics for the script.
      * Stats.forceUpdateStats();
      * 
      * // Report the statistics.
