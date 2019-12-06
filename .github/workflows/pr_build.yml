@@ -99,7 +99,7 @@ jobs:
       run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
     - name: Install python modules
       shell: bash
-      run: pip3 install boto3 PyGithub
+      run: pip install boto3 PyGithub
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
     - name: Configure CMake
