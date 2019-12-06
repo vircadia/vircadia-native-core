@@ -230,8 +230,6 @@ jobs:
       if: matrix.os == 'ubuntu-latest' && matrix.build_type == 'full'
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      env:
-        DOCKER_EXPORT
       run: |
         DOCKER_EXPORT_NAME=HighFidelity-Beta-$RELEASE_NUMBER-$GIT_COMMIT_SHORT-docker.tar
         cp $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/hifi.conf .
