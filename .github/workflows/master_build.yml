@@ -189,7 +189,7 @@ jobs:
     - name: Install Python modules
       if: matrix.os != 'ubuntu-latest'
       shell: bash
-      run: 
+      run: |
         if [ "`uname`" == Linux ]; then
           pip install boto3 PyGithub
         else
