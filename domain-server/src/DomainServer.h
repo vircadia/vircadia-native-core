@@ -78,7 +78,7 @@ public:
 
     bool isAssetServerEnabled();
 
-    void screensharePresence(QString roomname, QString username, QUuid avatarID, int expiration_seconds = 0);
+    void screensharePresence(QString roomname, QUuid avatarID, int expiration_seconds = 0);
 
 public slots:
     /// Called by NodeList to inform us a node has been added

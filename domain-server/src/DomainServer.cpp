@@ -3616,28 +3616,18 @@ void DomainServer::handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMes
 }
 
 void DomainServer::processAvatarZonePresencePacket(QSharedPointer<ReceivedMessage> message) {
-    QUuid avatar = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-    QUuid zone = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    QUuid avatarID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    QUuid zoneID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-    if (avatar.isNull()) {
+    if (avatarID.isNull()) {
         qCWarning(domain_server) << "Ignoring null avatar presence";
         return;
     }
-    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    auto matchingNode = limitedNodeList->nodeWithUUID(avatar);
-    if (!matchingNode) {
-        qCWarning(domain_server) << "Ignoring avatar presence for unknown avatar" << avatar;
-        return;
-    }
-    QString verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
-    if (verifiedUsername.isEmpty()) { // Silently bail for users who are not logged in.
-        return;
-    }
     static const int SCREENSHARE_EXPIRATION_SECONDS = 24 * 60 * 60;
-    screensharePresence(zone.isNull() ? "" : zone.toString(), verifiedUsername, avatar, SCREENSHARE_EXPIRATION_SECONDS);
+    screensharePresence(zoneID.isNull() ? "" : zoneID.toString(), avatarID, SCREENSHARE_EXPIRATION_SECONDS);
 }
 
-void DomainServer::screensharePresence(QString roomname, QString username, QUuid avatarID, int expirationSeconds) {
+void DomainServer::screensharePresence(QString roomname, QUuid avatarID, int expirationSeconds) {
     if (!DependencyManager::get<AccountManager>()->hasValidAccessToken()) {
         static std::once_flag presenceAuthorityWarning;
         std::call_once(presenceAuthorityWarning, [] {
@@ -3645,10 +3635,25 @@ void DomainServer::screensharePresence(QString roomname, QString username, QUuid
         });
         return;
     }
+
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    auto matchingNode = limitedNodeList->nodeWithUUID(avatarID);
+    if (!matchingNode) {
+        qCWarning(domain_server) << "Ignoring avatar presence for unknown avatar ID" << avatarID;
+        return;
+    }
+    QString verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
+    if (verifiedUsername.isEmpty()) { // Silently bail for users who are not logged in.
+        return;
+    }
+
     JSONCallbackParameters callbackParams;
     callbackParams.callbackReceiver = this;
     callbackParams.jsonCallbackMethod = "handleSuccessfulScreensharePresence";
     callbackParams.errorCallbackMethod = "handleFailedScreensharePresence";
+    // Construct `callbackData`, which is data that will be available to the callback functions.
+    // In this case, the "success" callback needs access to the "roomname" (the zone ID) and the 
+    // relevant avatar's UUID.
     QJsonObject callbackData;
     callbackData.insert("roomname", roomname);
     callbackData.insert("avatarID", avatarID.toString());
@@ -3656,7 +3661,7 @@ void DomainServer::screensharePresence(QString roomname, QString username, QUuid
     const QString PATH = "api/v1/domains/%1/screenshare";
     QString domain_id = uuidStringWithoutCurlyBraces(getID());
     QJsonObject json, screenshare;
-    screenshare["username"] = username;
+    screenshare["username"] = verifiedUsername;
     screenshare["roomname"] = roomname;
     if (expirationSeconds > 0) {
         screenshare["expiration"] = expirationSeconds;
@@ -3677,6 +3682,7 @@ void DomainServer::handleSuccessfulScreensharePresence(QNetworkReply* requestRep
         return;
     }
 
+    // Tell the client that we just authorized to screenshare which zone ID in which they are authorized to screenshare.
     auto nodeList = DependencyManager::get<LimitedNodeList>();
     auto packet = NLPacket::create(PacketType::AvatarZonePresence, NUM_BYTES_RFC4122_UUID, true);
     packet->write(QUuid(callbackData["roomname"].toString()).toRfc4122());
