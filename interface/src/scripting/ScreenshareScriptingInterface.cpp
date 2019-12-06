@@ -18,6 +18,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
+#include <NodeList.h>
 #include <UUID.h>
 
 #include "EntityScriptingInterface.h"
@@ -37,14 +38,48 @@ ScreenshareScriptingInterface::ScreenshareScriptingInterface() {
     _requestScreenshareInfoRetryTimer->setSingleShot(true);
     _requestScreenshareInfoRetryTimer->setInterval(SCREENSHARE_INFO_REQUEST_RETRY_TIMEOUT_MS);
     connect(_requestScreenshareInfoRetryTimer, &QTimer::timeout, this, &ScreenshareScriptingInterface::requestScreenshareInfo);
+
+    // This packet listener handles the packet containing information about the latest zone ID in which we are allowed to share.
+    auto nodeList = DependencyManager::get<NodeList>();
+    PacketReceiver& packetReceiver = nodeList->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::AvatarZonePresence, this, "processAvatarZonePresencePacketOnClient");
 };
 
 ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {
     stopScreenshare();
 }
 
+void ScreenshareScriptingInterface::processAvatarZonePresencePacketOnClient(QSharedPointer<ReceivedMessage> message) {
+    QUuid zone = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+    if (zone.isNull()) {
+        qWarning() << "Ignoring avatar zone presence packet that doesn't specify a zone.";
+        return;
+    }
+
+    // Set the last known authorized screenshare zone ID to the zone that the Domain Server just told us about.
+    _lastAuthorizedZoneID = zone;
+
+    // If we had previously started the screenshare process but knew that we weren't going to be authorized to screenshare,
+    // let's continue the screenshare process here.
+    if (_waitingForAuthorization) {
+        requestScreenshareInfo();
+    }
+}
+
 static const int MAX_NUM_SCREENSHARE_INFO_REQUEST_RETRIES = 5;
 void ScreenshareScriptingInterface::requestScreenshareInfo() {
+    // If the screenshare zone that we're currently in (i.e. `startScreenshare()` was called) is different from
+    // the zone in which we are authorized to screenshare...
+    // ...return early here and wait for the DS to send us a packet containing this zone's ID.
+    if (_screenshareZoneID != _lastAuthorizedZoneID) {
+        qDebug() << "Client not yet authorized to screenshare. Waiting for authorization message from domain server...";
+        _waitingForAuthorization = true;
+        return;
+    }
+
+    _waitingForAuthorization = false;
+
     _requestScreenshareInfoRetries++;
 
     if (_requestScreenshareInfoRetries >= MAX_NUM_SCREENSHARE_INFO_REQUEST_RETRIES) {
@@ -174,6 +209,7 @@ void ScreenshareScriptingInterface::stopScreenshare() {
     _projectAPIKey = "";
     _sessionID = "";
     _isPresenter = false;
+    _waitingForAuthorization = false;
 }
 
 // Called when the Metaverse returns the information necessary to start/view a screen share.
