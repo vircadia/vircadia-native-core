@@ -437,6 +437,40 @@ class MyAvatar : public Avatar {
 public:
 
     /**jsdoc
+     * The <code>DriveKeys</code> API provides constant numeric values that represent different logical keys that drive your 
+     * avatar and camera.
+     *
+     * @namespace DriveKeys
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     * @hifi-avatar
+     *
+     * @property {number} TRANSLATE_X - Move the user's avatar in the direction of its x-axis, if the camera isn't in 
+     *     independent or mirror modes.
+     * @property {number} TRANSLATE_Y - Move the user's avatar in the direction of its y-axis, if the camera isn't in 
+     *     independent or mirror modes.
+     * @property {number} TRANSLATE_Z - Move the user's avatar in the direction of its z-axis, if the camera isn't in 
+     *     independent or mirror modes.
+     * @property {number} YAW - Rotate the user's avatar about its y-axis at a rate proportional to the control value, if the 
+     *     camera isn't in independent or mirror modes.
+     * @property {number} STEP_TRANSLATE_X - No action.
+     * @property {number} STEP_TRANSLATE_Y - No action.
+     * @property {number} STEP_TRANSLATE_Z - No action.
+     * @property {number} STEP_YAW - Rotate the user's avatar about its y-axis in a step increment, if the camera isn't in 
+     *     independent or mirror modes.
+     * @property {number} PITCH - Rotate the user's avatar head and attached camera about its negative x-axis (i.e., positive 
+     *     values pitch down) at a rate proportional to the control value, if the camera isn't in HMD, independent, or mirror 
+     *     modes.
+     * @property {number} ZOOM - Zoom the camera in or out.
+     * @property {number} DELTA_YAW - Rotate the user's avatar about its y-axis by an amount proportional to the control value, 
+     *     if the camera isn't in independent or mirror modes.
+     * @property {number} DELTA_PITCH - Rotate the user's avatar head and attached camera about its negative x-axis (i.e., 
+     *     positive values pitch down) by an amount proportional to the control value, if the camera isn't in HMD, independent, 
+     *     or mirror modes.
+     */
+
+    /**jsdoc
      * <p>Logical keys that drive your avatar and camera.</p>
      * <table>
      *   <thead>
