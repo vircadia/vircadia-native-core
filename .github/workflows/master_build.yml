@@ -9,7 +9,8 @@ env:
   #APP_NAME: gpu-frame-player
   APP_NAME: interface
   BUILD_TYPE: Release
-  BUCKET_NAME: hifi-gh-builds
+  #BUCKET_NAME: hifi-gh-builds
+  BUCKET_NAME: hifi-content/simon
   CI_BUILD: Github
   CMAKE_BACKTRACE_URL: https://highfidelity.sp.backtrace.io:6098
   CMAKE_BACKTRACE_TOKEN: ${{ secrets.backtrace_token }}
@@ -113,7 +114,7 @@ jobs:
         echo ::set-env name=GIT_COMMIT_SHORT::`echo $GIT_COMMIT | cut -c1-7`
         # Linux build variables
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          echo ::set-env name=INSTALLER_EXT::tgz
+          echo ::set-env name=INSTALLER_EXT::tar.gz
         fi
         # Mac build variables
         if [ "${{ matrix.os }}" = "macOS-latest" ]; then
@@ -151,6 +152,7 @@ jobs:
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
           echo ::set-env name=PYTHON_EXEC::python3
           echo ::set-env name=CMAKE_EXTRA::"-DBUILD_TOOLS:BOOLEAN=FALSE"
+          echo ::set-env name=CMAKE_BUILD_ARGS::-j3
         fi
         # Mac build variables
         if [ "${{ matrix.os }}" = "macOS-latest" ]; then
@@ -200,9 +202,8 @@ jobs:
     - name: Build Application
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME -- $CMAKE_BUILD_ARGS
     - name: Build Console
-      if: matrix.os != 'ubuntu-latest'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
@@ -210,12 +211,12 @@ jobs:
       if: matrix.build_type == 'full'
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target domain-server
+      run: cmake --build . --config $BUILD_TYPE --target domain-server -- $CMAKE_BUILD_ARGS
     - name: Build Assignment Client (FullBuild)
       if: matrix.build_type == 'full'
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target assignment-client
+      run: cmake --build . --config $BUILD_TYPE --target assignment-client -- $CMAKE_BUILD_ARGS
     - name: Build Installer
       working-directory: ${{runner.workspace}}/build
       shell: bash
@@ -229,17 +230,21 @@ jobs:
       if: matrix.os == 'ubuntu-latest' && matrix.build_type == 'full'
       shell: bash
       working-directory: ${{runner.workspace}}/build
+      env:
+        DOCKER_EXPORT
       run: |
+        DOCKER_EXPORT_NAME=HighFidelity-Beta-$RELEASE_NUMBER-$GIT_COMMIT_SHORT-docker.tar
         cp $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/hifi.conf .
-        docker build -t HighFidelity-Beta:$RELEASE_NUMBER -f $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/Dockerfile ./
+        docker build -t highfidelity-beta:$RELEASE_NUMBER -f $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/Dockerfile ./
+        docker save -o $DOCKER_EXPORT_NAME highfidelity-beta:$RELEASE_NUMBER
+        gzip $DOCKER_EXPORT_NAME
     - name: Upload Artifact
-      if: matrix.os != 'ubuntu-latest'
       shell: bash
-      working-directory: ${{runner.workspace}}/build	
-      env:	
+      working-directory: ${{runner.workspace}}/build
+      env:
         AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key_id }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}	
-      run: $PYTHON_EXEC $GITHUB_WORKSPACE/tools/ci-scripts/upload.py 
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
+      run: $PYTHON_EXEC $GITHUB_WORKSPACE/tools/ci-scripts/upload.py
     - name: Archive Symbols
       if: (matrix.os == 'windows-latest') || (matrix.os == 'macOS-latest')
       working-directory: ${{runner.workspace}}
