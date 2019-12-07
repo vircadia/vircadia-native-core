@@ -84,6 +84,11 @@
 #include "../../midi/src/Midi.h"        // FIXME why won't a simpler include work?
 #include "MIDIEvent.h"
 
+#include "SettingHandle.h"
+// #include "SettingManager.h"
+// #include "SettingInterface.h"
+// #include "SettingHelpers.h"
+
 const QString ScriptEngine::_SETTINGS_ENABLE_EXTENDED_EXCEPTIONS {
     "com.highfidelity.experimental.enableExtendedJSExceptions"
 };
@@ -2362,10 +2367,30 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         QList<QString> safeURLS = { "https://FAKEURL.t43wt4g4g44FAKE" };
         safeURLS += qEnvironmentVariable("EXTRA_WHITELIST").split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
 
+        // PULL SAFEURLS FROM INTERFACE.JSON Settings
+        
+        QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
+        // qDebug() << "raw value" << raw;
+        // qDebug() << "raw value as list" << raw.toList();
+        QStringList settingsSafeURLS = raw.toString().split(QRegExp("[\r\n]+"));
+        safeURLS += settingsSafeURLS;
+        
+        // QVariantList settingsSafeURLS = Setting::Handle<QVariantList>("private/settingsSafeURLS").get();
+        // qCDebug(scriptengine) << "ESWsafeURLS" << safeURLS;
+        
+        // for (QVariantList::iterator surl = settingsSafeURLS.begin(); surl != settingsSafeURLS.end(); surl++)
+        // {
+        //     safeURLS += (*surl).toString();
+        // }
+        
+        // for (const auto& s : settingsSafeURLS) safeURLS << s.toString();
+        
+        // END PULL SAFEURLS FROM INTERFACE.JSON Settings
+        
         bool isInWhitelist = false;  // assume unsafe
         for (const auto& str : safeURLS) {
             // qDebug() << "CHECKING" << entityID.toString() << scriptOrURL << "AGAINST" << str;
-            qDebug() << "SCRIPTOURL STARTSWITH" << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
+            qCDebug(scriptengine) << "SCRIPT URL STARTSWITH" << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
                      << scriptOrURL.startsWith(str);
             if (scriptOrURL.startsWith(str)) {
                 isInWhitelist = true;
@@ -2373,7 +2398,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
             }
         }
         if (!isInWhitelist) {
-            qDebug() << "(disabled entity script)" << entityID.toString() << scriptOrURL;
+            qCDebug(scriptengine) << "(disabled entity script)" << entityID.toString() << scriptOrURL;
             exception = makeError("UNSAFE_ENTITY_SCRIPTS == 0");
         } else {
             QTimer timeout;
