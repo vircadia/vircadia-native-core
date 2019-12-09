@@ -35,7 +35,7 @@
 /**jsdoc
  * The <code>OffscreenFlags</code> API enables gamepad joystick navigation of UI.
  *
- * <p><em>This API no longer works.</em></p>
+ * <p><em>This API currently has no effect and is not used.</em></p>
  *
  * @namespace OffscreenFlags
  * 
@@ -47,8 +47,6 @@
  *     doesn't.
  * @property {boolean} navigationFocusDisabled - <code>true</code> if UI joystick navigation focus is disabled, 
  *     <code>false</code> if it isn't.
- *
- * @deprecated This API is deprecated and will be removed.
  */
 
 // Needs to match the constants in resources/qml/Global.js
