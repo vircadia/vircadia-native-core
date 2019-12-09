@@ -24,8 +24,6 @@ Rectangle {
   
   function getWhitelistAsText() {
     var whitelist = Settings.getValue("private/settingsSafeURLS");
-    // var arrayWhitelist = whitelist.split(/\s*,\s*/);
-    // var whitelistText = arrayWhitelist.join("\n");
     return whitelist;
   }
   
@@ -86,10 +84,8 @@ Rectangle {
     
     Button {
       id: saveChanges
-      // anchors.top: whitelistTextArea.bottom;
       anchors.topMargin: 5;
       anchors.leftMargin: 20;
-      // anchors.right: whitelistTextArea.right;
       anchors.rightMargin: 20;
       x: textAreaRectangle.x + textAreaRectangle.width - width - 5;
       y: textAreaRectangle.y + textAreaRectangle.height - height;

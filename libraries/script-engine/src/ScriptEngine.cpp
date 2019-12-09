@@ -2370,20 +2370,8 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         // PULL SAFEURLS FROM INTERFACE.JSON Settings
         
         QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
-        // qDebug() << "raw value" << raw;
-        // qDebug() << "raw value as list" << raw.toList();
         QStringList settingsSafeURLS = raw.toString().split(QRegExp("[\r\n]+"));
         safeURLS += settingsSafeURLS;
-        
-        // QVariantList settingsSafeURLS = Setting::Handle<QVariantList>("private/settingsSafeURLS").get();
-        // qCDebug(scriptengine) << "ESWsafeURLS" << safeURLS;
-        
-        // for (QVariantList::iterator surl = settingsSafeURLS.begin(); surl != settingsSafeURLS.end(); surl++)
-        // {
-        //     safeURLS += (*surl).toString();
-        // }
-        
-        // for (const auto& s : settingsSafeURLS) safeURLS << s.toString();
         
         // END PULL SAFEURLS FROM INTERFACE.JSON Settings
         
