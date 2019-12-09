@@ -2370,7 +2370,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         // PULL SAFEURLS FROM INTERFACE.JSON Settings
         
         QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
-        QStringList settingsSafeURLS = raw.toString().split(QRegExp("[\r\n]+"));
+        QStringList settingsSafeURLS = raw.toString().split(QRegExp("\\s*[,\r\n]+\\s*"));
         safeURLS += settingsSafeURLS;
         
         // END PULL SAFEURLS FROM INTERFACE.JSON Settings
@@ -2378,10 +2378,11 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         bool isInWhitelist = false;  // assume unsafe
         for (const auto& str : safeURLS) {
             // qDebug() << "CHECKING" << entityID.toString() << scriptOrURL << "AGAINST" << str;
-            qCDebug(scriptengine) << "SCRIPT URL STARTSWITH" << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
+            qCDebug(scriptengine) << "Script URL: " << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
                      << scriptOrURL.startsWith(str);
             if (scriptOrURL.startsWith(str)) {
                 isInWhitelist = true;
+                qCDebug(scriptengine) << "Script approved.";
                 break;  // bail early since we found a match
             }
         }

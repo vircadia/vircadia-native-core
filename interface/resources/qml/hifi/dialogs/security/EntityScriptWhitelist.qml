@@ -24,13 +24,13 @@ Rectangle {
   
   function getWhitelistAsText() {
     var whitelist = Settings.getValue("private/settingsSafeURLS");
-    return whitelist;
+    var arrayWhitelist = whitelist.split(",");
+    var whitelistText = arrayWhitelist.join("\n");
+    return whitelistText;
   }
   
   function setWhiteListAsText(whitelistText) {
-    console.info('SETTINGCURRENTVALUE: ', Settings.getValue('private/settingsSafeURLS'), whitelistText.text)
     Settings.setValue("private/settingsSafeURLS", whitelistText.text);
-    console.info('SETVALUE: ', Settings.getValue('private/settingsSafeURLS'), whitelistText.text)
   }
   
   anchors.fill: parent
