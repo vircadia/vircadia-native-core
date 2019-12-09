@@ -437,37 +437,71 @@ class MyAvatar : public Avatar {
 public:
 
     /**jsdoc
+     * The <code>DriveKeys</code> API provides constant numeric values that represent different logical keys that drive your 
+     * avatar and camera.
+     *
+     * @namespace DriveKeys
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     * @hifi-avatar
+     *
+     * @property {number} TRANSLATE_X - Move the user's avatar in the direction of its x-axis, if the camera isn't in 
+     *     independent or mirror modes.
+     * @property {number} TRANSLATE_Y - Move the user's avatar in the direction of its y-axis, if the camera isn't in 
+     *     independent or mirror modes.
+     * @property {number} TRANSLATE_Z - Move the user's avatar in the direction of its z-axis, if the camera isn't in 
+     *     independent or mirror modes.
+     * @property {number} YAW - Rotate the user's avatar about its y-axis at a rate proportional to the control value, if the 
+     *     camera isn't in independent or mirror modes.
+     * @property {number} STEP_TRANSLATE_X - No action.
+     * @property {number} STEP_TRANSLATE_Y - No action.
+     * @property {number} STEP_TRANSLATE_Z - No action.
+     * @property {number} STEP_YAW - Rotate the user's avatar about its y-axis in a step increment, if the camera isn't in 
+     *     independent or mirror modes.
+     * @property {number} PITCH - Rotate the user's avatar head and attached camera about its negative x-axis (i.e., positive 
+     *     values pitch down) at a rate proportional to the control value, if the camera isn't in HMD, independent, or mirror 
+     *     modes.
+     * @property {number} ZOOM - Zoom the camera in or out.
+     * @property {number} DELTA_YAW - Rotate the user's avatar about its y-axis by an amount proportional to the control value, 
+     *     if the camera isn't in independent or mirror modes.
+     * @property {number} DELTA_PITCH - Rotate the user's avatar head and attached camera about its negative x-axis (i.e., 
+     *     positive values pitch down) by an amount proportional to the control value, if the camera isn't in HMD, independent, 
+     *     or mirror modes.
+     */
+
+    /**jsdoc
      * <p>Logical keys that drive your avatar and camera.</p>
      * <table>
      *   <thead>
-     *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
+     *     <tr><th>Value</th><th>Description</th></tr>
      *   </thead>
      *   <tbody>
-     *     <tr><td><code>0</code></td><td>TRANSLATE_X</td><td>Move the user's avatar in the direction of its x-axis, if the 
-     *       camera isn't in independent or mirror modes.</td></tr>
-     *     <tr><td><code>1</code></td><td>TRANSLATE_Y</td><td>Move the user's avatar in the direction of its y-axis, if the 
-     *       camera isn't in independent or mirror modes.</td></tr>
-     *     <tr><td><code>2</code></td><td>TRANSLATE_Z</td><td>Move the user's avatar in the direction of its z-axis, if the 
-     *       camera isn't in independent or mirror modes</td></tr>
-     *     <tr><td><code>3</code></td><td>YAW</td><td>Rotate the user's avatar about its y-axis at a rate proportional to the 
-     *       control value, if the camera isn't in independent or mirror modes.</td></tr>
-     *     <tr><td><code>4</code></td><td>STEP_TRANSLATE_X</td><td>No action.</td></tr>
-     *     <tr><td><code>5</code></td><td>STEP_TRANSLATE_Y</td><td>No action.</td></tr>
-     *     <tr><td><code>6</code></td><td>STEP_TRANSLATE_Z</td><td>No action.</td></tr>
-     *     <tr><td><code>7</code></td><td>STEP_YAW</td><td>Rotate the user's avatar about its y-axis in a step increment, if 
-     *       the camera isn't in independent or mirror modes.</td></tr>
-     *     <tr><td><code>8</code></td><td>PITCH</td><td>Rotate the user's avatar head and attached camera about its negative 
-     *       x-axis (i.e., positive values pitch down) at a rate proportional to the control value, if the camera isn't in HMD, 
-     *       independent, or mirror modes.</td></tr>
-     *     <tr><td><code>9</code></td><td>ZOOM</td><td>Zoom the camera in or out.</td></tr>
-     *     <tr><td><code>10</code></td><td>DELTA_YAW</td><td>Rotate the user's avatar about its y-axis by an amount proportional 
-     *       to the control value, if the camera isn't in independent or mirror modes.</td></tr>
-     *     <tr><td><code>11</code></td><td>DELTA_PITCH</td><td>Rotate the user's avatar head and attached camera about its 
-     *       negative x-axis (i.e., positive values pitch down) by an amount proportional to the control value, if the camera 
-     *       isn't in HMD, independent, or mirror modes.</td></tr>
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.TRANSLATE_X}</code></td><td>Move the user's avatar in the direction of its 
+     *       x-axis, if the camera isn't in independent or mirror modes.</td></tr>
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.TRANSLATE_Y}</code></td><td>Move the user's avatar in the direction of its 
+     *       -axis, if the camera isn't in independent or mirror modes.</td></tr>
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.TRANSLATE_Z}</code></td><td>Move the user's avatar in the direction of its 
+     *       z-axis, if the camera isn't in independent or mirror modes.</td></tr>
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.YAW}</code></td><td>Rotate the user's avatar about its y-axis at a rate 
+     *       proportional to the control value, if the camera isn't in independent or mirror modes.</td></tr>
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.STEP_TRANSLATE_X}</code></td><td>No action.</td></tr>
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.STEP_TRANSLATE_Y}</code></td><td>No action.</td></tr>
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.STEP_TRANSLATE_Z}</code></td><td>No action.</td></tr>
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.STEP_YAW}</code></td><td>Rotate the user's avatar about its y-axis in a 
+     *       step increment, if the camera isn't in independent or mirror modes.</td></tr>
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.PITCH}</code></td><td>Rotate the user's avatar head and attached camera 
+     *       about its negative x-axis (i.e., positive values pitch down) at a rate proportional to the control value, if the 
+     *       camera isn't in HMD, independent, or mirror modes.</td></tr>
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.ZOOM}</code></td><td>Zoom the camera in or out.</td></tr>
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.DELTA_YAW}</code></td><td>Rotate the user's avatar about its y-axis by an 
+     *       amount proportional to the control value, if the camera isn't in independent or mirror modes.</td></tr>
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.DELTA_PITCH}</code></td><td>Rotate the user's avatar head and attached 
+     *       camera about its negative x-axis (i.e., positive values pitch down) by an amount proportional to the control 
+     *       value, if the camera isn't in HMD, independent, or mirror modes.</td></tr>
      *   </tbody>
      * </table>
-     * @typedef {number} MyAvatar.DriveKeys
+     * @typedef {number} DriveKey
      */
     enum DriveKeys {
         TRANSLATE_X = 0,
@@ -1019,7 +1053,7 @@ public:
     /**jsdoc
      * Gets the value of a drive key, regardless of whether it is disabled.
      * @function MyAvatar.getRawDriveKey
-     * @param {MyAvatar.DriveKeys} key - The drive key.
+     * @param {DriveKey} key - The drive key.
      * @returns {number} The value of the drive key.
      */
     Q_INVOKABLE float getRawDriveKey(DriveKeys key) const;
@@ -1029,11 +1063,10 @@ public:
     /**jsdoc
      * Disables the action associated with a drive key.
      * @function MyAvatar.disableDriveKey
-     * @param {MyAvatar.DriveKeys} key - The drive key to disable.
+     * @param {DriveKey} key - The drive key to disable.
      * @example <caption>Disable rotating your avatar using the keyboard for a couple of seconds.</caption>
-     * var YAW = 3;
      * print("Disable");
-     * MyAvatar.disableDriveKey(YAW);
+     * MyAvatar.disableDriveKey(DriveKeys.YAW);
      * Script.setTimeout(function () {
      *     print("Enable");
      *     MyAvatar.enableDriveKey(YAW);
@@ -1045,14 +1078,14 @@ public:
      * Enables the action associated with a drive key. The action may have been disabled with 
      * {@link MyAvatar.disableDriveKey|disableDriveKey}.
      * @function MyAvatar.enableDriveKey
-     * @param {MyAvatar.DriveKeys} key - The drive key to enable.
+     * @param {DriveKey} key - The drive key to enable.
      */
     Q_INVOKABLE void enableDriveKey(DriveKeys key);
 
     /**jsdoc
      * Checks whether a drive key is disabled.
      * @function MyAvatar.isDriveKeyDisabled
-     * @param {DriveKeys} key - The drive key to check.
+     * @param {DriveKey} key - The drive key to check.
      * @returns {boolean} <code>true</code> if the drive key is disabled, <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool isDriveKeyDisabled(DriveKeys key) const;
