@@ -69,7 +69,7 @@ const QString GET_PLACE = "/api/v1/places/%1";
  */
 
 /**jsdoc
- * The <code>AddressMAnager</code> API provides facilities related to your current location in the metaverse.
+ * The <code>AddressManager</code> API provides facilities related to your current location in the metaverse.
  *
  * @namespace AddressManager
  *
