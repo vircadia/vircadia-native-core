@@ -2363,31 +2363,31 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         }
     }
     else {
-      // IF YOU FUCK UP, DELETE FROM HERE TO...
-        QList<QString> safeURLS = { "https://FAKEURL.t43wt4g4g44FAKE" };
-        safeURLS += qEnvironmentVariable("EXTRA_WHITELIST").split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
+      // ENTITY SCRIPT WHITELIST STARTS HERE
+        QString whitelistPrefix = "[WHITELIST ENTITY SCRIPTS]";
+        QList<QString> safeURLS = { "" };
+        safeURLS += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
 
         // PULL SAFEURLS FROM INTERFACE.JSON Settings
         
         QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
-        QStringList settingsSafeURLS = raw.toString().split(QRegExp("\\s*[,\r\n]+\\s*"));
+        QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), QString::SkipEmptyParts);
         safeURLS += settingsSafeURLS;
         
         // END PULL SAFEURLS FROM INTERFACE.JSON Settings
         
         bool isInWhitelist = false;  // assume unsafe
         for (const auto& str : safeURLS) {
-            // qDebug() << "CHECKING" << entityID.toString() << scriptOrURL << "AGAINST" << str;
-            qCDebug(scriptengine) << "Script URL: " << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
+            qCDebug(scriptengine) << whitelistPrefix << "Script URL: " << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
                      << scriptOrURL.startsWith(str);
-            if (scriptOrURL.startsWith(str)) {
+            if (!str.isEmpty() && scriptOrURL.startsWith(str)) {
                 isInWhitelist = true;
-                qCDebug(scriptengine) << "Script approved.";
+                qCDebug(scriptengine) << whitelistPrefix << "Script approved.";
                 break;  // bail early since we found a match
             }
         }
         if (!isInWhitelist) {
-            qCDebug(scriptengine) << "(disabled entity script)" << entityID.toString() << scriptOrURL;
+            qCDebug(scriptengine) << whitelistPrefix << "(disabled entity script)" << entityID.toString() << scriptOrURL;
             exception = makeError("UNSAFE_ENTITY_SCRIPTS == 0");
         } else {
             QTimer timeout;
@@ -2410,7 +2410,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
                 exception = testConstructor;
             }
         }
-      // DELETE UP TO HERE, THEN UNCOMMENT BELOW.
+      // ENTITY SCRIPT WHITELIST ENDS HERE, uncomment below for original full disabling.
 
       // qDebug() << "(disabled entity script)" << entityID.toString() << scriptOrURL;
       // exception = makeError("UNSAFE_ENTITY_SCRIPTS == 0");
