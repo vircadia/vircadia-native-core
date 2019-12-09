@@ -189,7 +189,11 @@ jobs:
       run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
     - name: Install Python modules
       shell: bash
-      run: $PYTHON_EXEC -m pip install boto3 PyGithub
+      run: |
+        if [ "`uname`" == Linux ]; then
+          $PYTHON_EXEC -m pip install setuptools
+        fi
+        $PYTHON_EXEC -m pip install boto3 PyGithub
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build
       shell: bash
