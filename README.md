@@ -2,7 +2,9 @@
 
 ### [Download (Windows 64-bit, .zip)](https://realities.dev/cdn/hifi-community/v0860-kasen-VS-release+freshstart/Packaged_Release.zip)
 
-#### Changes for **v0.86.0 K1** consist of:
+#### Changes for **v0.86.0** consist of:
+
+#### Added in K1 (12/3/19)
 
 * Audio Buffer choppy audio bugfix by increasing the buffer size.
 * User Activity Logger disabled, option in code to log the reports to console.
@@ -11,13 +13,21 @@
 * Entity Script Whitelist, no scripts are whitelisted by default.
 * Background CMD outputs full log, instant close of application on closing of the CMD-line.
 
+#### Added in K2 (12/8/19)
+
+* QML Interface to access and save whitelist live to interface.json
+* Add "VideoDecodeStats" to .gitignore
+* Fix VCPKG SDL2 to port files from 2.0.8 to 2.0.10 to fix CMake build issues.
+
 This build has been tested on Windows 10 Pro 64-bit w/ Nvidia graphics drivers.
 
 ### Whitelist Instructions
 
 The whitelist checks every entity-script attempting to run on your client against a list of domains, their subfolders, or the specific script URL entirely.
 
-The **Start** batch file launches and sets the whitelist environment variable for you (you have to edit in your whitelisted domains), however if you launch interface.exe directly then you must set the Windows environment variable "**EXTRA_WHITELIST**" with your whitelisted domains comma separated like so: "**https://kasen.io/,http://kasen.io/,https://exampledomain.com/scriptFolder/**" 
+The Interface has the whitelist settings under "**Settings -> Entity Script Whitelist**" for you to configure live. The whitelist checks against the domains literally, so you have to be precise to ensure security and functionality. For example, the difference between "http://" and "https://" matters as those will be seen as two different domains in the eyes of the whitelist.
+
+You can also set the Windows environment variable "**EXTRA_WHITELIST**" with your whitelisted domains comma separated like so: "**https://kasen.io/,http://kasen.io/,https://exampledomain.com/scriptFolder/**" 
 
 Alternatively you can make a batch file placed in the same folder as interface.exe that sets the whitelist environment variable temporarily:
 
@@ -25,10 +35,6 @@ Alternatively you can make a batch file placed in the same folder as interface.e
 set "EXTRA_WHITELIST=http://mpassets.highfidelity.com/,https://raw.githubusercontent.com/highfidelity/,https://hifi-content.s3.amazonaws.com/"
 interface.exe
 ```
-
-By default, we are whitelisting High Fidelity's current known CDN domains so we can see their own/hosted entity-script related content.
-
-The whitelist checks against the domains literally, so you have to be precise to ensure security and functionality. For example, the difference between "http://" and "https://" matters as those will be seen as two different domains in the eyes of the whitelist.
 
 ### Boot to Metaverse: The Goal
 

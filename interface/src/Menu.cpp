@@ -286,6 +286,20 @@ Menu::Menu() {
 			hmd->toggleShouldShowTablet();
 		}
     });
+    
+    // Settings > Entity Script Whitelist
+    action = addActionToQMenuAndActionHash(settingsMenu, "Entity Script Whitelist");
+    connect(action, &QAction::triggered, [] {
+        auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+        auto hmd = DependencyManager::get<HMDScriptingInterface>();
+        
+        DependencyManager::get<OffscreenUi>()->clearCache();
+        tablet->pushOntoStack("hifi/dialogs/security/EntityScriptWhitelist.qml");
+
+        if (!hmd->getShouldShowTablet()) {
+            hmd->toggleShouldShowTablet();
+        }
+    });
 
     // Settings > Developer Menu
     addCheckableActionToQMenuAndActionHash(settingsMenu, "Developer Menu", 0, false, this, SLOT(toggleDeveloperMenus()));
