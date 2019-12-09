@@ -10,7 +10,7 @@ env:
   APP_NAME: interface
   BUILD_TYPE: Release
   #BUCKET_NAME: hifi-gh-builds
-  BUCKET_NAME: hifi-content/simon
+  BUCKET_NAME: hifi-content
   CI_BUILD: Github
   CMAKE_BACKTRACE_URL: https://highfidelity.sp.backtrace.io:6098
   CMAKE_BACKTRACE_TOKEN: ${{ secrets.backtrace_token }}
@@ -110,7 +110,8 @@ jobs:
       shell: bash
       id: buildenv1
       run: |
-        echo ::set-env name=UPLOAD_PREFIX::master
+        #echo ::set-env name=UPLOAD_PREFIX::master
+        echo ::set-env name=UPLOAD_PREFIX::simon/master
         echo ::set-env name=GIT_COMMIT_SHORT::`echo $GIT_COMMIT | cut -c1-7`
         # Linux build variables
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
@@ -187,14 +188,8 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
     - name: Install Python modules
-      if: matrix.os != 'ubuntu-latest'
       shell: bash
-      run: |
-        if [ "`uname`" == Linux ]; then
-          pip install boto3 PyGithub
-        else
-          $PYTHON_EXEC -m pip install boto3 PyGithub
-        fi
+      run: $PYTHON_EXEC -m pip install boto3 PyGithub
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build
       shell: bash
