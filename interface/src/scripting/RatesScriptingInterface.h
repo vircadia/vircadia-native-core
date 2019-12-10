@@ -25,7 +25,7 @@
  *
  * @property {number} render - The rate at which new GPU frames are being created, in Hz.
  *     <em>Read-only.</em>
- * @property {number} present - The rate at which the display plugin is presenting to the display device, in Hz
+ * @property {number} present - The rate at which the display plugin is presenting to the display device, in Hz.
  *     <em>Read-only.</em>
  * @property {number} newFrame - The rate at which the display plugin is presenting new GPU frames, in Hz.
  *     <em>Read-only.</em>
