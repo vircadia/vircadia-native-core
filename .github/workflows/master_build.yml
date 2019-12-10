@@ -9,8 +9,7 @@ env:
   #APP_NAME: gpu-frame-player
   APP_NAME: interface
   BUILD_TYPE: Release
-  #BUCKET_NAME: hifi-gh-builds
-  BUCKET_NAME: hifi-content
+  BUCKET_NAME: hifi-gh-builds
   CI_BUILD: Github
   CMAKE_BACKTRACE_URL: https://highfidelity.sp.backtrace.io:6098
   CMAKE_BACKTRACE_TOKEN: ${{ secrets.backtrace_token }}
@@ -85,14 +84,12 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, macOS-latest, ubuntu-latest]
+        os: [windows-latest, macOS-latest]
         build_type: [full, client]
         #os: [windows-latest, macOS-latest, ubuntu-latest]
         # exclude:
         #   - os: ubuntu-latest
         #     build_type: client
-      fail-fast: false
-
     runs-on: ${{matrix.os}}
     if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild'
     needs: generate_build_number
@@ -110,12 +107,11 @@ jobs:
       shell: bash
       id: buildenv1
       run: |
-        #echo ::set-env name=UPLOAD_PREFIX::master
-        echo ::set-env name=UPLOAD_PREFIX::simon/master
+        echo ::set-env name=UPLOAD_PREFIX::master
         echo ::set-env name=GIT_COMMIT_SHORT::`echo $GIT_COMMIT | cut -c1-7`
         # Linux build variables
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          echo ::set-env name=INSTALLER_EXT::tar.gz
+          echo ::set-env name=INSTALLER_EXT::tgz
         fi
         # Mac build variables
         if [ "${{ matrix.os }}" = "macOS-latest" ]; then
@@ -135,7 +131,7 @@ jobs:
           echo "::set-env name=SYMBOL_REGEX::\(exe\|dll\|pdb\)"
           echo "::set-output name=symbols_archive::${{ steps.buildnumber.outputs.build_number }}-${{ matrix.build_type }}-win-symbols.zip"
         fi
-    # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
+    # Configureation is broken into two steps because you can't set an env var and also reference it in the same step
     - name: Configure Build Environment 2
       shell: bash
       run: |
@@ -152,8 +148,7 @@ jobs:
         # Linux build variables
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
           echo ::set-env name=PYTHON_EXEC::python3
-          echo ::set-env name=CMAKE_EXTRA::"-DBUILD_TOOLS:BOOLEAN=FALSE"
-          echo ::set-env name=CMAKE_BUILD_ARGS::-j3
+          echo ::set-env name=CMAKE_EXTRA::""
         fi
         # Mac build variables
         if [ "${{ matrix.os }}" = "macOS-latest" ]; then
@@ -184,16 +179,10 @@ jobs:
         $mypwd=ConvertTo-SecureString -String ${{ secrets.pfx_key }} -Force -AsPlainText
         Import-PfxCertificate -Password $mypwd -CertStoreLocation Cert:\CurrentUser\My -FilePath ${{runner.workspace}}\build\codesign.pfx
         Import-PfxCertificate -Password $mypwd -CertStoreLocation Cert:\LocalMachine\My -FilePath ${{runner.workspace}}\build\codesign.pfx
-    - name: Install apt packages (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
     - name: Install Python modules
+      if: matrix.os != 'ubuntu-latest'
       shell: bash
-      run: |
-        if [ "`uname`" == Linux ]; then
-          $PYTHON_EXEC -m pip install setuptools
-        fi
-        $PYTHON_EXEC -m pip install boto3 PyGithub
+      run: $PYTHON_EXEC -m pip install boto3 PyGithub
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build
       shell: bash
@@ -201,7 +190,7 @@ jobs:
     - name: Build Application
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME -- $CMAKE_BUILD_ARGS
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
     - name: Build Console
       working-directory: ${{runner.workspace}}/build
       shell: bash
@@ -210,12 +199,12 @@ jobs:
       if: matrix.build_type == 'full'
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target domain-server -- $CMAKE_BUILD_ARGS
+      run: cmake --build . --config $BUILD_TYPE --target domain-server
     - name: Build Assignment Client (FullBuild)
       if: matrix.build_type == 'full'
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target assignment-client -- $CMAKE_BUILD_ARGS
+      run: cmake --build . --config $BUILD_TYPE --target assignment-client
     - name: Build Installer
       working-directory: ${{runner.workspace}}/build
       shell: bash
@@ -225,23 +214,14 @@ jobs:
       shell: powershell
       working-directory: C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64
       run: .\signtool.exe sign /fd sha256 /f ${{runner.workspace}}\build\codesign.pfx /p ${{secrets.pfx_key}} /tr http://sha256timestamp.ws.symantec.com/sha256/timestamp /td SHA256 ${{runner.workspace}}\build\${env:INSTALLER}
-    - name: Build Ubuntu Docker (Linux)
-      if: matrix.os == 'ubuntu-latest' && matrix.build_type == 'full'
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: |
-        DOCKER_EXPORT_NAME=HighFidelity-Beta-$RELEASE_NUMBER-$GIT_COMMIT_SHORT-docker.tar
-        cp $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/hifi.conf .
-        docker build -t highfidelity-beta:$RELEASE_NUMBER -f $GITHUB_WORKSPACE/tools/ci-scripts/linux-gha/Dockerfile ./
-        docker save -o $DOCKER_EXPORT_NAME highfidelity-beta:$RELEASE_NUMBER
-        gzip $DOCKER_EXPORT_NAME
     - name: Upload Artifact
+      if: matrix.os != 'ubuntu-latest'
       shell: bash
-      working-directory: ${{runner.workspace}}/build
-      env:
+      working-directory: ${{runner.workspace}}/build	
+      env:	
         AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key_id }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
-      run: $PYTHON_EXEC $GITHUB_WORKSPACE/tools/ci-scripts/upload.py
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}	
+      run: $PYTHON_EXEC $GITHUB_WORKSPACE/tools/ci-scripts/upload.py 
     - name: Archive Symbols
       if: (matrix.os == 'windows-latest') || (matrix.os == 'macOS-latest')
       working-directory: ${{runner.workspace}}
