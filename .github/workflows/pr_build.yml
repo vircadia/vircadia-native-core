@@ -2,7 +2,7 @@ name: Pull Request CI Build
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    types: [opened, synchronize, reopened]
 
 env:
   APP_NAME: interface
@@ -25,7 +25,6 @@ env:
 jobs:
   build_full_mac:
     runs-on: macOS-latest
-    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild'
     steps:
     - uses: actions/checkout@v1
       with: 
@@ -54,7 +53,6 @@ jobs:
 
   build_full_win32:
     runs-on: windows-latest
-    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild'
     steps:
     - uses: actions/checkout@v1
       with: 
@@ -89,7 +87,6 @@ jobs:
 
   build_full_linux:
     runs-on: ubuntu-latest
-    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-linux' || github.event.label.name == 'rebuild'
     steps:
     - uses: actions/checkout@v1
       with: 
