@@ -18,6 +18,7 @@
 #include <QNetworkReply>
 
 #include <PathUtils.h>
+#include <ReceivedMessage.h>
 
 class ScreenshareScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -36,6 +37,7 @@ signals:
     void localWebEntityZOffsetChanged(const float& newZOffset);
 
 private slots:
+    void processAvatarZonePresencePacketOnClient(QSharedPointer<ReceivedMessage> message);
     void onWebEventReceived(const QUuid& entityID, const QVariant& message);
     void handleSuccessfulScreenshareInfoGet(QNetworkReply* reply);
     void handleFailedScreenshareInfoGet(QNetworkReply* reply);
@@ -82,6 +84,9 @@ private:
     QUuid _screenshareZoneID;
     QUuid _smartboardEntityID;
     bool _isPresenter{ false };
+
+    QUuid _lastAuthorizedZoneID;
+    bool _waitingForAuthorization{ false };
 };
 
 #endif // hifi_ScreenshareScriptingInterface_h

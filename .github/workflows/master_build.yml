@@ -91,7 +91,6 @@ jobs:
         #   - os: ubuntu-latest
         #     build_type: client
     runs-on: ${{matrix.os}}
-    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild'
     needs: generate_build_number
     steps:
     - name: Download build number

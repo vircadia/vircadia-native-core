@@ -9,11 +9,11 @@ env:
   BUILD_TYPE: Release
   CI_BUILD: Github
   GIT_COMMIT: ${{ github.sha }}
-  GIT_COMMIT_SHORT: ${{ github.sha }}
   HIFI_VCPKG_BOOTSTRAP: true
   RELEASE_TYPE: PR
   RELEASE_NUMBER: ${{ github.event.number }}
   VERSION_CODE: ${{ github.event.number }}
+
 
   # OSX specific variables
   DEVELOPER_DIR: /Applications/Xcode_11.2.app/Contents/Developer
@@ -21,6 +21,8 @@ env:
 
   # WIN32 specific variables
   PreferredToolArchitecture: X64
+  GIT_COMMIT_SHORT: ${{ github.sha }}
+
 
 jobs:
   build:
