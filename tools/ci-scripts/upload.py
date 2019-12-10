@@ -11,7 +11,7 @@ def main():
     bucket_name = os.environ['BUCKET_NAME']
     upload_prefix = os.environ['UPLOAD_PREFIX']
     release_number = os.environ['RELEASE_NUMBER']
-    full_prefix = upload_prefix + '/' + release_number[0:-2] + '/' + release_number + '/'
+    full_prefix = upload_prefix + '/' + release_number[0:-2] + '/' + release_number
     S3 = boto3.client('s3')
     path = os.path.join(os.getcwd(), os.environ['ARTIFACT_PATTERN'])
     files = glob.glob(path, recursive=False)
