@@ -504,12 +504,6 @@ public:
      * @function Script.print
      * @param {string} message - The message to print.
      */
-    /**jsdoc
-     * Prints a message to the program log.
-     * <p>This is an alias of {@link Script.print}.</p>
-     * @function print
-     * @param {string} message - The message to print.
-     */
     Q_INVOKABLE void print(const QString& message);
 
     /**jsdoc
