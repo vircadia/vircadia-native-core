@@ -499,8 +499,8 @@ public:
     Q_INVOKABLE void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
 
     /**jsdoc
-     * Prints a message to the program log.
-     * <p>Alternatively, you can use {@link print}, {@link console.log}, or one of the other {@link console} methods.</p>
+     * Prints a message to the program log and emits {@link Script.printedMessage}.
+     * <p>Alternatively, you can use {@link print} or one of the {@link console} API methods.</p>
      * @function Script.print
      * @param {string} message - The message to print.
      */
@@ -763,7 +763,8 @@ signals:
 
     /**jsdoc
      * Triggered when the script prints a message to the program log via {@link  print}, {@link Script.print}, 
-     * {@link console.log}, or {@link console.debug}.
+     * {@link console.log}, {@link console.debug}, {@link console.group}, {@link console.groupEnd}, {@link console.time}, or 
+     * {@link console.timeEnd}.
      * @function Script.printedMessage
      * @param {string} message - The message.
      * @param {string} scriptName - The name of the script that generated the message.
@@ -772,7 +773,8 @@ signals:
     void printedMessage(const QString& message, const QString& scriptName);
 
     /**jsdoc
-     * Triggered when the script generates an error or {@link console.error} is called.
+     * Triggered when the script generates an error, {@link console.error} or {@link console.exception} is called, or 
+     * {@link console.assert} is called and fails.
      * @function Script.errorMessage
      * @param {string} message - The error message.
      * @param {string} scriptName - The name of the script that generated the error message.
