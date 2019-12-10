@@ -30,6 +30,7 @@ jobs:
         matrix:
           os: [windows-latest, macOS-latest]
           build_type: [full]
+        fail-fast: false
     runs-on: ${{matrix.os}}
     if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
     steps:
@@ -94,3 +95,27 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target package
+
+  build_full_linux:
+    runs-on: ubuntu-latest
+    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
+    steps:
+    - uses: actions/checkout@v1
+      with: 
+        submodules: true
+        fetch-depth: 1
+    - name: Install apt packages
+      run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+    - name: Install python modules
+      shell: bash
+      run: pip install boto3 PyGithub
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+    - name: Configure CMake
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_TOOLS:BOOLEAN=FALSE
+    - name:
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . -- -j3
