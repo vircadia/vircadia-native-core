@@ -29,9 +29,31 @@ Rectangle {
     return whitelistText;
   }
   
-  function setWhiteListAsText(whitelistText) {
+  function setWhitelistAsText(whitelistText) {
     Settings.setValue("private/settingsSafeURLS", whitelistText.text);
+    
+    var originalSetString = whitelistText.text;
+    var originalSet = originalSetString.split(' ').join('');
+    
+    var check = Settings.getValue("private/settingsSafeURLS");
+    var arrayCheck = check.split(",");
+    var textCheck = arrayCheck.join("\n");
+    
+    if(textCheck == originalSet) {
+      setWhitelistSuccess(true);
+    } else {
+      setWhitelistSuccess(false);
+    }
   }
+  
+  function setWhitelistSuccess(success) {
+    if(success) {
+      notificationText.text = "Successfully saved settings.";
+    } else {
+      notificationText.text = "Error! Settings not saved.";
+    }
+  }
+  
   
   anchors.fill: parent
   width: parent.width;
@@ -74,6 +96,7 @@ Rectangle {
       TextArea {
         id: whitelistTextArea
         text: getWhitelistAsText();
+        onTextChanged: notificationText.text = "";
         width: parent.width;
         height: parent.height;
         font.family: "Ubuntu";
@@ -87,7 +110,7 @@ Rectangle {
       anchors.topMargin: 5;
       anchors.leftMargin: 20;
       anchors.rightMargin: 20;
-      x: textAreaRectangle.x + textAreaRectangle.width - width - 5;
+      x: textAreaRectangle.x + textAreaRectangle.width - width - 15;
       y: textAreaRectangle.y + textAreaRectangle.height - height;
       contentItem: Text {
         text: saveChanges.text
@@ -100,7 +123,41 @@ Rectangle {
         elide: Text.ElideRight
       }
       text: "Save Changes"
-      onClicked: setWhiteListAsText(whitelistTextArea)
+      onClicked: setWhitelistAsText(whitelistTextArea)
+      
+      HifiStylesUit.RalewayRegular {
+          id: notificationText;
+          text: ""
+          // Text size
+          size: 14;
+          // Style
+          color: "white";
+          elide: Text.ElideLeft;
+          // Anchors
+          anchors.right: parent.right;
+          anchors.rightMargin: 130;
+      }
+    }
+    
+    HifiStylesUit.RalewayRegular {
+        id: descriptionText;
+        text: "Separate your URLs by line, not commas. Example:
+        https://google.com/
+        https://bing.com/
+        https://mydomain.here/
+        \nEnsure there are no spaces or whitespace."
+        // Text size
+        size: 16;
+        // Style
+        color: "white";
+        elide: Text.ElideRight;
+        // Anchors
+        anchors.top: parent.bottom;
+        anchors.topMargin: 90;
+        anchors.left: parent.left;
+        anchors.leftMargin: 20;
+        anchors.right: parent.right;
+        anchors.rightMargin: 20;
     }
   }
 }
