@@ -293,7 +293,7 @@ void MaterialEntityItem::setHasVertexShader(bool hasVertexShader) {
     if (hasVertexShader && !prevHasVertexShader) {
         setLocalPosition(glm::vec3(0.0f));
         setLocalOrientation(glm::quat());
-        setUnscaledDimensions(EntityTree::getUnscaledDimensionsForEntityID(getParentID()));
+        setUnscaledDimensions(EntityTree::getUnscaledDimensionsForID(getParentID()));
     } else if (!hasVertexShader && prevHasVertexShader) {
         setUnscaledDimensions(_desiredDimensions);
     }
