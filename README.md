@@ -1,6 +1,6 @@
 # HiFi Community Edition
 
-### [Download (Windows 64-bit, .zip)](https://realities.dev/cdn/hifi-community/v0860-kasen-VS-release+freshstart/Packaged_Release.zip)
+### [Download v0.86.0 K1 (Windows 64-bit, .zip)](https://realities.dev/cdn/hifi-community/v0860-kasen-VS-release+freshstart/Packaged_Release.zip)
 
 #### Changes for **v0.86.0** consist of:
 
@@ -13,11 +13,13 @@
 * Entity Script Whitelist, no scripts are whitelisted by default.
 * Background CMD outputs full log, instant close of application on closing of the CMD-line.
 
-#### Added in K2 (12/8/19)
+#### Added in K2 (TBD)
 
-* QML Interface to access and save whitelist live to interface.json
-* Add "VideoDecodeStats" to .gitignore
+* QML Interface to access and save whitelist live to interface.json.
+* Add "VideoDecodeStats" to .gitignore.
 * Fix VCPKG SDL2 to port files from 2.0.8 to 2.0.10 to fix CMake build issues.
+* Added Github link to "About High Fidelity".
+* Removed environment variable requirement for "procedural shader materials".
 
 This build has been tested on Windows 10 Pro 64-bit w/ Nvidia graphics drivers.
 
@@ -25,7 +27,17 @@ This build has been tested on Windows 10 Pro 64-bit w/ Nvidia graphics drivers.
 
 The whitelist checks every entity-script attempting to run on your client against a list of domains, their subfolders, or the specific script URL entirely.
 
-The Interface has the whitelist settings under "**Settings -> Entity Script Whitelist**" for you to configure live. The whitelist checks against the domains literally, so you have to be precise to ensure security and functionality. For example, the difference between "http://" and "https://" matters as those will be seen as two different domains in the eyes of the whitelist.
+The Interface has the whitelist settings under "**Settings -> Entity Script Whitelist**" for you to configure live. The whitelist checks against the domains literally, so you have to be precise to ensure security and functionality. For example, the difference between "http://" and "https://" matters as those will be seen as two different domains in the eyes of the whitelist. Separate each URL by a new line.
+
+Do not use spaces or commas in the whitelist interface, you will only separate by commas and not new lines in the environment variables.
+
+It is recommended that you add High Fidelity's CDN URLs ahead of time to ensure general content works right off the bat: 
+
+```
+http://mpassets.highfidelity.com/
+https://raw.githubusercontent.com/highfidelity/
+https://hifi-content.s3.amazonaws.com/
+```
 
 You can also set the Windows environment variable "**EXTRA_WHITELIST**" with your whitelisted domains comma separated like so: "**https://kasen.io/,http://kasen.io/,https://exampledomain.com/scriptFolder/**" 
 
@@ -35,6 +47,10 @@ Alternatively you can make a batch file placed in the same folder as interface.e
 set "EXTRA_WHITELIST=http://mpassets.highfidelity.com/,https://raw.githubusercontent.com/highfidelity/,https://hifi-content.s3.amazonaws.com/"
 interface.exe
 ```
+
+### How to build interface.exe
+
+[For Windows](https://github.com/kasenvr/hifi-community/blob/kasen/core/BUILD_WIN.md)
 
 ### Boot to Metaverse: The Goal
 
