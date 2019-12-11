@@ -2107,7 +2107,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return false;
     });
-    EntityTree::setGetUnscaledDimensionsForEntityIDOperator([this](const QUuid& id) {
+    EntityTree::setGetUnscaledDimensionsForIDOperator([this](const QUuid& id) {
         if (_aboutToQuit) {
             return glm::vec3(1.0f);
         }
