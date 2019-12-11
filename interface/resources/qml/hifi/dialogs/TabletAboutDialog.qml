@@ -58,6 +58,18 @@ Rectangle {
             onLinkActivated: {
                 HiFiAbout.openUrl("https:/www.highfidelity.com");
             }
+            
+        }
+        RalewayRegular {
+            textFormat: Text.StyledText
+            linkColor: "#00B4EF"
+            color: "white"
+            text: "<a href=\"https:/github.com/kasenvr/hifi-community\">HiFi Community Github</a>."
+            size: 20
+            onLinkActivated: {
+                HiFiAbout.openUrl("https:/github.com/kasenvr/hifi-community");
+            }
+            
         }
         Item { height: 40; width: 1 }
         Row {
