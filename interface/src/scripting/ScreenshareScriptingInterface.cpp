@@ -18,6 +18,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
+#include <NodeList.h>
 #include <UUID.h>
 
 #include "EntityScriptingInterface.h"
@@ -37,14 +38,48 @@ ScreenshareScriptingInterface::ScreenshareScriptingInterface() {
     _requestScreenshareInfoRetryTimer->setSingleShot(true);
     _requestScreenshareInfoRetryTimer->setInterval(SCREENSHARE_INFO_REQUEST_RETRY_TIMEOUT_MS);
     connect(_requestScreenshareInfoRetryTimer, &QTimer::timeout, this, &ScreenshareScriptingInterface::requestScreenshareInfo);
+
+    // This packet listener handles the packet containing information about the latest zone ID in which we are allowed to share.
+    auto nodeList = DependencyManager::get<NodeList>();
+    PacketReceiver& packetReceiver = nodeList->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::AvatarZonePresence, this, "processAvatarZonePresencePacketOnClient");
 };
 
 ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {
     stopScreenshare();
 }
 
+void ScreenshareScriptingInterface::processAvatarZonePresencePacketOnClient(QSharedPointer<ReceivedMessage> message) {
+    QUuid zone = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+    if (zone.isNull()) {
+        qWarning() << "Ignoring avatar zone presence packet that doesn't specify a zone.";
+        return;
+    }
+
+    // Set the last known authorized screenshare zone ID to the zone that the Domain Server just told us about.
+    _lastAuthorizedZoneID = zone;
+
+    // If we had previously started the screenshare process but knew that we weren't going to be authorized to screenshare,
+    // let's continue the screenshare process here.
+    if (_waitingForAuthorization) {
+        requestScreenshareInfo();
+    }
+}
+
 static const int MAX_NUM_SCREENSHARE_INFO_REQUEST_RETRIES = 5;
 void ScreenshareScriptingInterface::requestScreenshareInfo() {
+    // If the screenshare zone that we're currently in (i.e. `startScreenshare()` was called) is different from
+    // the zone in which we are authorized to screenshare...
+    // ...return early here and wait for the DS to send us a packet containing this zone's ID.
+    if (_screenshareZoneID != _lastAuthorizedZoneID) {
+        qDebug() << "Client not yet authorized to screenshare. Waiting for authorization message from domain server...";
+        _waitingForAuthorization = true;
+        return;
+    }
+
+    _waitingForAuthorization = false;
+
     _requestScreenshareInfoRetries++;
 
     if (_requestScreenshareInfoRetries >= MAX_NUM_SCREENSHARE_INFO_REQUEST_RETRIES) {
@@ -90,7 +125,8 @@ static const EntityTypes::EntityType LOCAL_SCREENSHARE_WEB_ENTITY_TYPE = EntityT
 static const uint8_t LOCAL_SCREENSHARE_WEB_ENTITY_FPS = 30;
 // This is going to be a good amount of work to make this work dynamically for any screensize.
 // V1 will have only hardcoded values.
-static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION(0.0128f, -0.0918f, 0.0771f);
+// The `z` value here is dynamic.
+static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION(0.0128f, -0.0918f, 0.0f);
 static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_DIMENSIONS(3.6790f, 2.0990f, 0.0100f);
 static const QString LOCAL_SCREENSHARE_WEB_ENTITY_URL =
     "https://content.highfidelity.com/Experiences/Releases/usefulUtilities/smartBoard/screenshareViewer/screenshareClient.html";
@@ -124,7 +160,7 @@ void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZon
         // Ensure that the screenshare executable exists where we expect it to.
         // Error out and reset the screen share state machine if the executable doesn't exist.
         QFileInfo screenshareExecutable(SCREENSHARE_EXE_PATH);
-        if (!screenshareExecutable.exists() || !screenshareExecutable.isFile()) {
+        if (!screenshareExecutable.exists() || !(screenshareExecutable.isFile() || screenshareExecutable.isBundle())) {
             qDebug() << "Screenshare executable doesn't exist at" << SCREENSHARE_EXE_PATH;
             stopScreenshare();
             emit screenshareError();
@@ -173,6 +209,7 @@ void ScreenshareScriptingInterface::stopScreenshare() {
     _projectAPIKey = "";
     _sessionID = "";
     _isPresenter = false;
+    _waitingForAuthorization = false;
 }
 
 // Called when the Metaverse returns the information necessary to start/view a screen share.
@@ -241,7 +278,9 @@ void ScreenshareScriptingInterface::handleSuccessfulScreenshareInfoGet(QNetworkR
     EntityItemProperties localScreenshareWebEntityProps;
     localScreenshareWebEntityProps.setType(LOCAL_SCREENSHARE_WEB_ENTITY_TYPE);
     localScreenshareWebEntityProps.setMaxFPS(LOCAL_SCREENSHARE_WEB_ENTITY_FPS);
-    localScreenshareWebEntityProps.setLocalPosition(LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION);
+    glm::vec3 localPosition(LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION);
+    localPosition.z = _localWebEntityZOffset;
+    localScreenshareWebEntityProps.setLocalPosition(localPosition);
     localScreenshareWebEntityProps.setSourceUrl(LOCAL_SCREENSHARE_WEB_ENTITY_URL);
     localScreenshareWebEntityProps.setParentID(_smartboardEntityID);
     localScreenshareWebEntityProps.setDimensions(LOCAL_SCREENSHARE_WEB_ENTITY_DIMENSIONS);

@@ -7,6 +7,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+const { remote } = require('electron');
+
 // Helpers
 function handleError(error) {
     if (error) {
@@ -188,6 +190,10 @@ function stopSharing() {
 
 // Callback to start publishing after we have setup the chromium stream
 function gotStream(stream) {
+    if (localStream) {
+        stopSharing();
+    }
+
     localStream = stream;
     startTokboxPublisher(localStream);
 
@@ -206,6 +212,9 @@ function onAccessApproved(desktop_id) {
         console.log('Desktop Capture access rejected.');
         return;
     }
+
+
+
     document.getElementById('screenshare').style.visibility = "block";
     desktopSharing = true;
     navigator.webkitGetUserMedia({
@@ -214,13 +223,13 @@ function onAccessApproved(desktop_id) {
             mandatory: {
                 chromeMediaSource: 'desktop',
                 chromeMediaSourceId: desktop_id,
-                minWidth: 1280,
                 maxWidth: 1280,
-                minHeight: 720,
-                maxHeight: 720
+                maxHeight: 720,
+                maxFrameRate: 7
             }
         }
     }, gotStream, handleError);
+    remote.getCurrentWindow().minimize();
 }
 
 
@@ -248,11 +257,15 @@ var publisher;
 function startTokboxPublisher(stream) {
     publisher = document.createElement("div");
     var publisherOptions = {
-        videoSource: stream.getVideoTracks()[0],
+        audioFallbackEnabled: false,
         audioSource: null,
+        fitMode: 'contain',
+        frameRate: 7,
+        height: 720,
         insertMode: 'append',
-        width: 1280,
-        height: 720
+        publishAudio: false,
+        videoSource: stream.getVideoTracks()[0],
+        width: 1280
     };
 
     publisher = OT.initPublisher(publisher, publisherOptions, function(error){

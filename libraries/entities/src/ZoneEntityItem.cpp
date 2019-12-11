@@ -71,6 +71,7 @@ EntityItemProperties ZoneEntityItem::getProperties(const EntityPropertyFlags& de
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(hazeMode, getHazeMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(bloomMode, getBloomMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(avatarPriority, getAvatarPriority);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(screenshare, getScreenshare);
 
     return properties;
 }
@@ -118,6 +119,7 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(bloomMode, setBloomMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(avatarPriority, setAvatarPriority);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(screenshare, setScreenshare);
 
     somethingChanged = somethingChanged || _keyLightPropertiesChanged || _ambientLightPropertiesChanged ||
         _skyboxPropertiesChanged || _hazePropertiesChanged || _bloomPropertiesChanged;
@@ -194,6 +196,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint32_t, setHazeMode);
     READ_ENTITY_PROPERTY(PROP_BLOOM_MODE, uint32_t, setBloomMode);
     READ_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, uint32_t, setAvatarPriority);
+    READ_ENTITY_PROPERTY(PROP_SCREENSHARE, uint32_t, setScreenshare);
 
     return bytesRead;
 }
@@ -214,6 +217,7 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_GHOSTING_ALLOWED;
     requestedProperties += PROP_FILTER_URL;
     requestedProperties += PROP_AVATAR_PRIORITY;
+    requestedProperties += PROP_SCREENSHARE;
 
     requestedProperties += PROP_KEY_LIGHT_MODE;
     requestedProperties += PROP_AMBIENT_LIGHT_MODE;
@@ -260,6 +264,7 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)getHazeMode());
     APPEND_ENTITY_PROPERTY(PROP_BLOOM_MODE, (uint32_t)getBloomMode());
     APPEND_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, getAvatarPriority());
+    APPEND_ENTITY_PROPERTY(PROP_SCREENSHARE, getScreenshare());
 }
 
 void ZoneEntityItem::debugDump() const {
@@ -471,9 +476,9 @@ bool ZoneEntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
 
     static const QString AVATAR_PRIORITY_PROPERTY = "avatarPriority";
 
-    // If set ignore only priority-inherit zones:
+    // If set match zones of interest to avatar mixer:
     if (jsonFilters.contains(AVATAR_PRIORITY_PROPERTY) && jsonFilters[AVATAR_PRIORITY_PROPERTY].toBool()
-        && _avatarPriority != COMPONENT_MODE_INHERIT) {
+        && (_avatarPriority != COMPONENT_MODE_INHERIT || _screenshare != COMPONENT_MODE_INHERIT)) {
         return true;
     }
 

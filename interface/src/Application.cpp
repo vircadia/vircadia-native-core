@@ -3395,6 +3395,10 @@ void Application::initializeUi() {
 
 
     setIsInterstitialMode(true);
+
+#if defined(DISABLE_QML) && defined(Q_OS_LINUX)
+    resumeAfterLoginDialogActionTaken();
+#endif
 }
 
 
@@ -5662,6 +5666,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
         return;
     }
 
+#if !defined(DISABLE_QML)
     if (!isHMDMode() && getDesktopTabletBecomesToolbarSetting()) {
         auto toolbar = DependencyManager::get<ToolbarScriptingInterface>()->getToolbar("com.highfidelity.interface.toolbar.system");
         toolbar->writeProperty("visible", true);
@@ -5671,6 +5676,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
     }
 
     updateSystemTabletMode();
+#endif
 
     {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
