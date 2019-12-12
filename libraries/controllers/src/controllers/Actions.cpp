@@ -176,8 +176,8 @@ namespace controller {
      *       person view.</td></tr>
      *     <tr><td><code>BoomOut</code></td><td>number</td><td>number</td><td>Zoom camera out from first person to third 
      *       person view.</td></tr>
-     *     <tr><td><code>CycleCamera</code></td><td>number</td><td>number</td><td>Cycle the camera view from first person, to 
-     *       third person, to full screen mirror, then back to first person and repeat.</td></tr>
+     *     <tr><td><code>CycleCamera</code></td><td>number</td><td>number</td><td>Cycle the camera view from first person look 
+     *       at, to (third person) look at, to selfie if in desktop mode, then back to first person and repeat.</td></tr>
      *     <tr><td><code>ContextMenu</code></td><td>number</td><td>number</td><td>Show/hide the tablet.</td></tr>
      *     <tr><td><code>ToggleMute</code></td><td>number</td><td>number</td><td>Toggle the microphone mute.</td></tr>
      *     <tr><td><code>TogglePushToTalk</code></td><td>number</td><td>number</td><td>Toggle push to talk.</td></tr>
