@@ -16,6 +16,16 @@
 
 #include <NodeList.h>
 
+/**jsdoc
+ * The <code>EntityScriptServerLog</code> API makes server log file output written by server entity scripts available to client 
+ * scripts.
+ *
+ * @namespace EntityScriptServerLog
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-avatar
+ */
 class EntityScriptServerLogClient : public QObject, public Dependency {
     Q_OBJECT
 
@@ -23,6 +33,21 @@ public:
     EntityScriptServerLogClient();
 
 signals:
+
+    /**jsdoc
+     * Triggered when one or more lines are written to the server log by server entity scripts.
+     * @function EntityScriptServerLog.receivedNewLogLines
+     * @param {string} logLines - The server log lines written by server entity scripts. If there are multiple lines they are 
+     *     separated by <code>"\n"</code>s.
+     * @example <caption>Echo server entity script program log output to Interface's program log.</caption>
+     * EntityScriptServerLog.receivedNewLogLines.connect(function (logLines) {
+     *     print("Log lines from server entity scripts:", logLines);
+     * });
+     * @example <caption>A server entity script to test with. Copy the code into an entity's "Server Script" property.</caption>
+     * (function () {
+     *     print("Hello from a server entity script!");
+     * })
+     */
     void receivedNewLogLines(QString logLines);
 
 protected:

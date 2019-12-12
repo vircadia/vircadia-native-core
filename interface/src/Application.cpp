@@ -184,6 +184,7 @@
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/DesktopScriptingInterface.h"
+#include "scripting/ScreenshareScriptingInterface.h"
 #include "scripting/AccountServicesScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -967,6 +968,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<KeyboardScriptingInterface>();
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
+    DependencyManager::set<ScreenshareScriptingInterface>();
     PlatformHelper::setup();
     
     QObject::connect(PlatformHelper::instance(), &PlatformHelper::systemWillWake, [] {
@@ -2107,6 +2109,23 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return false;
     });
+    EntityTree::setGetUnscaledDimensionsForIDOperator([this](const QUuid& id) {
+        if (_aboutToQuit) {
+            return glm::vec3(1.0f);
+        }
+
+        auto entity = getEntities()->getEntity(id);
+        if (entity) {
+            return entity->getUnscaledDimensions();
+        }
+
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto avatar = static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(id));
+        if (avatar) {
+            return avatar->getSNScale();
+        }
+        return glm::vec3(1.0f);
+    });
     Procedural::opaqueStencil = [](gpu::StatePointer state) { PrepareStencil::testMaskDrawShape(*state); };
     Procedural::transparentStencil = [](gpu::StatePointer state) { PrepareStencil::testMask(*state); };
 
@@ -2919,6 +2938,7 @@ Application::~Application() {
     DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<OctreeStatsProvider>();
     DependencyManager::destroy<GeometryCache>();
+    DependencyManager::destroy<ScreenshareScriptingInterface>();
 
     DependencyManager::get<ResourceManager>()->cleanup();
 
@@ -3392,6 +3412,10 @@ void Application::initializeUi() {
 
 
     setIsInterstitialMode(true);
+
+#if defined(DISABLE_QML) && defined(Q_OS_LINUX)
+    resumeAfterLoginDialogActionTaken();
+#endif
 }
 
 
@@ -3430,7 +3454,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
     surfaceContext->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
-
+    surfaceContext->setContextProperty("Screenshare", DependencyManager::get<ScreenshareScriptingInterface>().data());
     surfaceContext->setContextProperty("Camera", &_myCamera);
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -3536,6 +3560,7 @@ void Application::userKickConfirmation(const QUuid& nodeID) {
 }
 
 void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties) {
+    surfaceContext->setContextProperty("Screenshare", DependencyManager::get<ScreenshareScriptingInterface>().data());
     surfaceContext->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     surfaceContext->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
@@ -4867,6 +4892,9 @@ void Application::touchEndEvent(QTouchEvent* event) {
 }
 
 void Application::touchGestureEvent(QGestureEvent* event) {
+    if (_keyboardMouseDevice->isActive()) {
+        _keyboardMouseDevice->touchGestureEvent(event);
+    }
     if (_touchscreenDevice && _touchscreenDevice->isActive()) {
         _touchscreenDevice->touchGestureEvent(event);
     }
@@ -5655,6 +5683,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
         return;
     }
 
+#if !defined(DISABLE_QML)
     if (!isHMDMode() && getDesktopTabletBecomesToolbarSetting()) {
         auto toolbar = DependencyManager::get<ToolbarScriptingInterface>()->getToolbar("com.highfidelity.interface.toolbar.system");
         toolbar->writeProperty("visible", true);
@@ -5664,6 +5693,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
     }
 
     updateSystemTabletMode();
+#endif
 
     {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
@@ -5814,12 +5844,7 @@ void Application::centerUI() {
 
 void Application::cycleCamera() {
     auto menu = Menu::getInstance();
-    if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
-
-        menu->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-        menu->setIsOptionChecked(MenuOption::FirstPersonLookAt, true);
-
-    } else if (menu->isOptionChecked(MenuOption::FirstPersonLookAt)) {
+    if (menu->isOptionChecked(MenuOption::FirstPersonLookAt)) {
 
         menu->setIsOptionChecked(MenuOption::FirstPersonLookAt, false);
         menu->setIsOptionChecked(MenuOption::LookAtCamera, true);
@@ -5827,12 +5852,16 @@ void Application::cycleCamera() {
     } else if (menu->isOptionChecked(MenuOption::LookAtCamera)) {
 
         menu->setIsOptionChecked(MenuOption::LookAtCamera, false);
-        menu->setIsOptionChecked(MenuOption::SelfieCamera, true);
+        if (menu->getActionForOption(MenuOption::SelfieCamera)->isVisible()) {
+            menu->setIsOptionChecked(MenuOption::SelfieCamera, true);
+        } else {
+            menu->setIsOptionChecked(MenuOption::FirstPersonLookAt, true);
+        }
 
     } else if (menu->isOptionChecked(MenuOption::SelfieCamera)) {
 
         menu->setIsOptionChecked(MenuOption::SelfieCamera, false);
-        menu->setIsOptionChecked(MenuOption::FullscreenMirror, true);
+        menu->setIsOptionChecked(MenuOption::FirstPersonLookAt, true);
 
     }
     cameraMenuChanged(); // handle the menu change
@@ -6258,7 +6287,7 @@ void Application::update(float deltaTime) {
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
-                if (deltaTime > FLT_EPSILON) {
+                if (deltaTime > FLT_EPSILON && userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z)  == 0.0f) {
                     myAvatar->setDriveKey(MyAvatar::PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
                     myAvatar->setDriveKey(MyAvatar::YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
                     myAvatar->setDriveKey(MyAvatar::DELTA_PITCH, -1.0f * userInputMapper->getActionState(controller::Action::DELTA_PITCH));
@@ -7314,6 +7343,7 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptEngine
     scriptEngine->registerGlobalObject("AvatarList", DependencyManager::get<AvatarManager>().data());
 
     scriptEngine->registerGlobalObject("Camera", &_myCamera);
+    scriptEngine->registerGlobalObject("Screenshare", DependencyManager::get<ScreenshareScriptingInterface>().data());
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     scriptEngine->registerGlobalObject("SpeechRecognizer", DependencyManager::get<SpeechRecognizer>().data());

@@ -2,8 +2,8 @@
 //  BuildGraphicsMeshTask.h
 //  model-baker/src/model-baker
 //
-//  Created by Sabrina Shanman on 2018/12/06.
-//  Copyright 2018 High Fidelity, Inc.
+//  Created by Sabrina Shanman on 2019/09/16.
+//  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,6 +15,7 @@
 
 #include <LogHandler.h>
 #include "ModelBakerLogging.h"
+#include <hfm/HFMModelMath.h>
 #include "ModelMath.h"
 
 using vec2h = glm::tvec2<glm::detail::hdata>;
@@ -27,7 +28,7 @@ glm::vec3 normalizeDirForPacking(const glm::vec3& dir) {
     return dir;
 }
 
-void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphicsMeshPointer, const baker::MeshNormals& meshNormals, const baker::MeshTangents& meshTangentsIn) {
+void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphicsMeshPointer, const baker::MeshNormals& meshNormals, const baker::MeshTangents& meshTangentsIn, uint16_t numDeformerControllers) {
     auto graphicsMesh = std::make_shared<graphics::Mesh>();
 
     // Fill tangents with a dummy value to force tangents to be present if there are normals
@@ -86,25 +87,24 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
 
     // Support for 4 skinning clusters:
     // 4 Indices are uint8 ideally, uint16 if more than 256.
-    const auto clusterIndiceElement = (hfmMesh.clusters.size() < UINT8_MAX ? gpu::Element(gpu::VEC4, gpu::UINT8, gpu::XYZW) : gpu::Element(gpu::VEC4, gpu::UINT16, gpu::XYZW));
+    const auto clusterIndiceElement = ((numDeformerControllers < (uint16_t)UINT8_MAX) ? gpu::Element(gpu::VEC4, gpu::UINT8, gpu::XYZW) : gpu::Element(gpu::VEC4, gpu::UINT16, gpu::XYZW));
     // 4 Weights are normalized 16bits
     const auto clusterWeightElement = gpu::Element(gpu::VEC4, gpu::NUINT16, gpu::XYZW);
 
-    // Cluster indices and weights must be the same sizes
-    const int NUM_CLUSTERS_PER_VERT = 4;
-    const int numVertClusters = (hfmMesh.clusterIndices.size() == hfmMesh.clusterWeights.size() ? hfmMesh.clusterIndices.size() / NUM_CLUSTERS_PER_VERT : 0);
-    const int clusterIndicesSize = numVertClusters * clusterIndiceElement.getSize();
-    const int clusterWeightsSize = numVertClusters * clusterWeightElement.getSize();
+    // Record cluster sizes
+    const size_t numVertClusters = hfmMesh.clusterWeightsPerVertex == 0 ? 0 : hfmMesh.clusterIndices.size() / hfmMesh.clusterWeightsPerVertex;
+    const size_t clusterIndicesSize = numVertClusters * clusterIndiceElement.getSize();
+    const size_t clusterWeightsSize = numVertClusters * clusterWeightElement.getSize();
 
     // Decide on where to put what seequencially in a big buffer:
-    const int positionsOffset = 0;
-    const int normalsAndTangentsOffset = positionsOffset + positionsSize;
-    const int colorsOffset = normalsAndTangentsOffset + normalsAndTangentsSize;
-    const int texCoordsOffset = colorsOffset + colorsSize;
-    const int texCoords1Offset = texCoordsOffset + texCoordsSize;
-    const int clusterIndicesOffset = texCoords1Offset + texCoords1Size;
-    const int clusterWeightsOffset = clusterIndicesOffset + clusterIndicesSize;
-    const int totalVertsSize = clusterWeightsOffset + clusterWeightsSize;
+    const size_t positionsOffset = 0;
+    const size_t normalsAndTangentsOffset = positionsOffset + positionsSize;
+    const size_t colorsOffset = normalsAndTangentsOffset + normalsAndTangentsSize;
+    const size_t texCoordsOffset = colorsOffset + colorsSize;
+    const size_t texCoords1Offset = texCoordsOffset + texCoordsSize;
+    const size_t clusterIndicesOffset = texCoords1Offset + texCoords1Size;
+    const size_t clusterWeightsOffset = clusterIndicesOffset + clusterIndicesSize;
+    const size_t totalVertsSize = clusterWeightsOffset + clusterWeightsSize;
 
     // Copy all vertex data in a single buffer
     auto vertBuffer = std::make_shared<gpu::Buffer>();
@@ -181,22 +181,22 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
 
     // Clusters data
     if (clusterIndicesSize > 0) {
-        if (hfmMesh.clusters.size() < UINT8_MAX) {
+        if (numDeformerControllers < (uint16_t)UINT8_MAX) {
             // yay! we can fit the clusterIndices within 8-bits
-            int32_t numIndices = hfmMesh.clusterIndices.size();
-            QVector<uint8_t> clusterIndices;
-            clusterIndices.resize(numIndices);
+            int32_t numIndices = (int32_t)hfmMesh.clusterIndices.size();
+            std::vector<uint8_t> packedDeformerIndices;
+            packedDeformerIndices.resize(numIndices);
             for (int32_t i = 0; i < numIndices; ++i) {
                 assert(hfmMesh.clusterIndices[i] <= UINT8_MAX);
-                clusterIndices[i] = (uint8_t)(hfmMesh.clusterIndices[i]);
+                packedDeformerIndices[i] = (uint8_t)(hfmMesh.clusterIndices[i]);
             }
-            vertBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (const gpu::Byte*) clusterIndices.constData());
+            vertBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (const gpu::Byte*) packedDeformerIndices.data());
         } else {
-            vertBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (const gpu::Byte*) hfmMesh.clusterIndices.constData());
+            vertBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (const gpu::Byte*) hfmMesh.clusterIndices.data());
         }
     }
     if (clusterWeightsSize > 0) {
-        vertBuffer->setSubData(clusterWeightsOffset, clusterWeightsSize, (const gpu::Byte*) hfmMesh.clusterWeights.constData());
+        vertBuffer->setSubData(clusterWeightsOffset, clusterWeightsSize, (const gpu::Byte*) hfmMesh.clusterWeights.data());
     }
 
 
@@ -206,7 +206,7 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
     auto vertexBufferStream = std::make_shared<gpu::BufferStream>();
 
     gpu::BufferPointer attribBuffer;
-    int totalAttribBufferSize = totalVertsSize;
+    size_t totalAttribBufferSize = totalVertsSize;
     gpu::uint8 posChannel = 0;
     gpu::uint8 tangentChannel = posChannel;
     gpu::uint8 attribChannel = posChannel;
@@ -377,6 +377,17 @@ void BuildGraphicsMeshTask::run(const baker::BakeContextPointer& context, const 
     const auto& meshIndicesToModelNames = input.get2();
     const auto& normalsPerMesh = input.get3();
     const auto& tangentsPerMesh = input.get4();
+    const auto& shapes = input.get5();
+    const auto& skinDeformers = input.get6();
+
+    // Currently, there is only (at most) one skinDeformer per mesh
+    // An undefined shape.skinDeformer has the value hfm::UNDEFINED_KEY
+    std::vector<uint32_t> skinDeformerPerMesh;
+    skinDeformerPerMesh.resize(meshes.size(), hfm::UNDEFINED_KEY);
+    for (const auto& shape : shapes) {
+        uint32_t skinDeformerIndex = shape.skinDeformer;
+        skinDeformerPerMesh[shape.mesh] = skinDeformerIndex;
+    }
 
     auto& graphicsMeshes = output;
 
@@ -384,9 +395,16 @@ void BuildGraphicsMeshTask::run(const baker::BakeContextPointer& context, const 
     for (int i = 0; i < n; i++) {
         graphicsMeshes.emplace_back();
         auto& graphicsMesh = graphicsMeshes[i];
-        
+
+        uint16_t numDeformerControllers = 0;
+        uint32_t skinDeformerIndex = skinDeformerPerMesh[i];
+        if (skinDeformerIndex != hfm::UNDEFINED_KEY) {
+            const hfm::SkinDeformer& skinDeformer = skinDeformers[skinDeformerIndex];
+            numDeformerControllers = (uint16_t)skinDeformer.clusters.size();
+        }
+
         // Try to create the graphics::Mesh
-        buildGraphicsMesh(meshes[i], graphicsMesh, baker::safeGet(normalsPerMesh, i), baker::safeGet(tangentsPerMesh, i));
+        buildGraphicsMesh(meshes[i], graphicsMesh, baker::safeGet(normalsPerMesh, i), baker::safeGet(tangentsPerMesh, i), numDeformerControllers);
 
         // Choose a name for the mesh
         if (graphicsMesh) {

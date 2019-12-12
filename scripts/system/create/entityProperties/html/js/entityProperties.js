@@ -497,6 +497,12 @@ const GROUPS = [
                 options: { inherit: "Inherit", crowd: "Crowd", hero: "Hero" },
                 propertyID: "avatarPriority",
             },
+            {
+                label: "Screen-share",
+                type: "dropdown",
+                options: { inherit: "Inherit", disabled: "Off", enabled: "On" },
+                propertyID: "screenshare",
+            }
 
         ]
     },
@@ -1544,16 +1550,6 @@ const GROUPS = [
                 decimals: 4,
                 unit: "m/s<sup>2</sup>",
                 propertyID: "gravity",
-            },
-            {
-                label: "Acceleration",
-                type: "vec3",
-                vec3Type: "xyz",
-                subLabels: [ "x", "y", "z" ],
-                step: 0.1,
-                decimals: 4,
-                unit: "m/s<sup>2</sup>",
-                propertyID: "acceleration",
             },
         ]
     },

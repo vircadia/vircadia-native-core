@@ -93,7 +93,7 @@ public slots:
      * @param {Graphics.Model} model
      * @returns {string}
      */
-    QString exportModelToOBJ(const scriptable::ScriptableModel& in);
+    QString exportModelToOBJ(const scriptable::ScriptableModelPointer& model);
 
 private:
     scriptable::ModelProviderPointer getModelProvider(const QUuid& uuid);

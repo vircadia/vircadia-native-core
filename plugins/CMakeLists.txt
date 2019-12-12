@@ -36,6 +36,12 @@ if (NOT SERVER_ONLY AND NOT ANDROID)
   add_subdirectory(${DIR})
   set(DIR "hifiLeapMotion")
   add_subdirectory(${DIR})
+
+  if (WIN32)
+    set(DIR "hifiOsc")
+    add_subdirectory(${DIR})
+  endif()
+
 endif()
 
 # server-side plugins

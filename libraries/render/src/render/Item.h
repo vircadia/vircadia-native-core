@@ -625,7 +625,7 @@ template <> const ShapeKey shapeGetShapeKey(const PayloadProxyInterface::Pointer
 
 
 typedef Item::PayloadPointer PayloadPointer;
-typedef std::vector< PayloadPointer > Payloads;
+typedef std::vector<PayloadPointer> Payloads;
 
 // A map of items by ShapeKey to optimize rendering pipeline assignments
 using ShapeBounds = std::unordered_map<ShapeKey, ItemBounds, ShapeKey::Hash, ShapeKey::KeyEqual>;

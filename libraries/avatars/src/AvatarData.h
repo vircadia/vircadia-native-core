@@ -532,19 +532,22 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     size in the virtual world. <em>Read-only.</em>
      * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't. 
      *     <em>Read-only.</em>
-     * @property {boolean} hasScriptedBlendshapes=false - Set this to true before using the {@link MyAvatar.setBlendshape} method,
-     *     after you no longer want scripted control over the blendshapes set to back to false.<br />  NOTE: this property will
-     *     automatically become true if the Controller system has valid facial blendshape actions.
-     * @property {boolean} hasProceduralBlinkFaceMovement=true - By default avatars will blink automatically by animating facial
-     *     blendshapes. Set this property to <code>false</code> to disable this automatic blinking. This can be useful if you
-     *     wish to fully control the blink facial blendshapes via the {@link MyAvatar.setBlendshape} method.
-     * @property {boolean} hasProceduralEyeFaceMovement=true - By default the avatar eye facial blendshapes will be adjusted
-     *     automatically as the eyes move. This will prevent the iris is never obscured by the upper or lower lids. Set this
-     *     property to <code>false</code> to disable this automatic movement. This can be useful if you wish to fully control
-     *     the eye blendshapes via the {@link MyAvatar.setBlendshape} method.
-     * @property {boolean} hasAudioEnabledFaceMovement=true - By default the avatar mouth blendshapes will animate based on
-     *     the microphone audio. Set this property to <code>false</code> to disable that animaiton. This can be useful if you
-     *     wish to fully control the blink facial blendshapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> if blend shapes are controlled by scripted actions, 
+     *     otherwise <code>false</code>. Set this to <code>true</code> before using the {@link MyAvatar.setBlendshape} method, 
+     *     and set back to <code>false</code> after you no longer want scripted control over the blend shapes.
+     *     <p><strong>Note:</strong> This property will automatically be set to true if the Controller system has valid facial 
+     *     blend shape actions.</p>
+     * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating 
+     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code> if 
+     *     you wish to fully control the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes 
+     *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property 
+     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set this property to  
+     *     <code>false</code> if you wish to fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate 
+     *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set 
+     *     this property to <code>false</code> if you wish to fully control the mouth facial blend shapes via the 
+     *     {@link MyAvatar.setBlendshape} method.
      */
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getDomainLimitedScale WRITE setTargetScale)
@@ -1130,9 +1133,9 @@ public:
 
 
     /**jsdoc
-     * Sets the value of a blendshape to animate your avatar's face. To enable other users to see the resulting animation of 
-     * your avatar's face, set {@link Avatar.hasScriptedBlendshapes} to true while using this API and back to false when your
-     * animation is complete.
+     * Sets the value of a blend shape to animate your avatar's face. In order for other users to see the resulting animations 
+     * on your avatar's face, set {@link Avatar.hasScriptedBlendshapes} to <code>true</code>. When you are done using this API, 
+     * set {@link Avatar.hasScriptedBlendshapes} back to <code>false</code> when the animation is complete. 
      * @function Avatar.setBlendshape
      * @param {string} name - The name of the blendshape, per the 
      *     {@link https://docs.highfidelity.com/create/avatars/avatar-standards.html#blendshapes Avatar Standards}.
@@ -1171,7 +1174,7 @@ public:
     /**jsdoc
      * @function Avatar.updateAvatarEntity
      * @param {Uuid} entityID - The entity ID.
-     * @param {Array.<byte>} entityData - Entity data.
+     * @param {ArrayBuffer} entityData - Entity data.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE virtual void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
@@ -1179,7 +1182,7 @@ public:
     /**jsdoc
      * @function Avatar.clearAvatarEntity
      * @param {Uuid} entityID - The entity ID.
-     * @param {boolean} [requiresRemovalFromTree=true] - Requires removal from tree.
+     * @param {boolean} [requiresRemovalFromTree=true] - unused
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE virtual void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true);
@@ -1387,7 +1390,11 @@ public:
     /**jsdoc
      * @comment Documented in derived classes' JSDoc because implementations are different.
      */
+    // Get avatar entity data with all property values. Used in API.
     Q_INVOKABLE virtual AvatarEntityMap getAvatarEntityData() const;
+
+    // Get avatar entity data with non-default property values. Used internally.
+    virtual AvatarEntityMap getAvatarEntityDataNonDefault() const;
 
     /**jsdoc
      * @comment Documented in derived classes' JSDoc because implementations are different.
@@ -1957,6 +1964,18 @@ Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& results);
 void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& results);
 
+/**jsdoc
+ * @typedef {object} ParabolaToAvatarIntersectionResult
+ * @property {boolean} intersects
+ * @property {Uuid} avatarID
+ * @property {number} distance
+ * @property {number} parabolicDistance
+ * @property {BoxFace} face
+ * @property {Vec3} intersection
+ * @property {Vec3} surfaceNormal
+ * @property {any} extraInfo
+ * @deprecated {@link AvatarManager.findParabolaIntersectionVector} is deprecated and will be removed.
+ */
 class ParabolaToAvatarIntersectionResult {
 public:
     bool intersects { false };

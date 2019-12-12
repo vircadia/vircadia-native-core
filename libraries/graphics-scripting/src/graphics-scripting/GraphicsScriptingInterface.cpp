@@ -258,8 +258,8 @@ scriptable::ScriptableMeshPointer GraphicsScriptingInterface::newMesh(const QVar
     return scriptable::make_scriptowned<scriptable::ScriptableMesh>(mesh, nullptr);
 }
 
-QString GraphicsScriptingInterface::exportModelToOBJ(const scriptable::ScriptableModel& _in) {
-    const auto& in = _in.getConstMeshes();
+QString GraphicsScriptingInterface::exportModelToOBJ(const scriptable::ScriptableModelPointer& model) {
+    const auto& in = model->getConstMeshes();
     if (in.size()) {
         QList<scriptable::MeshPointer> meshes;
         foreach (auto meshProxy, in) {
@@ -495,6 +495,11 @@ namespace scriptable {
                 obj.setProperty("materialParams", FALLTHROUGH);
             }
 
+            if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::Material::CULL_FACE_MODE)) {
+                obj.setProperty("cullFaceMode", FALLTHROUGH);
+            } else if (!material.cullFaceMode.isEmpty()) {
+                obj.setProperty("cullFaceMode", material.cullFaceMode);
+            }
         } else if (material.model.toStdString() == graphics::Material::HIFI_SHADER_SIMPLE) {
             obj.setProperty("procedural", material.procedural);
         }

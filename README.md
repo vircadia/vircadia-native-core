@@ -2,6 +2,10 @@
 
 ### [Download v0.86.0 K1 (Windows 64-bit, .zip)](https://realities.dev/cdn/hifi-community/v0860-kasen-VS-release+freshstart/Packaged_Release.zip)
 
+This repository contains the source to many of the components in our 
+alpha-stage virtual world. The project embraces distributed development.  
+If you find a small bug and have a fix, pull requests are welcome. 
+
 #### Changes for **v0.86.0** consist of:
 
 #### Added in K1 (12/3/19)

@@ -187,7 +187,10 @@ endif ()
 #  add_dependencies(resources jsdoc)
 #endif()
 
-add_dependencies(${TARGET_NAME} resources)
+if (WIN32 OR APPLE)
+    add_dependencies(${TARGET_NAME} resources screenshare)
+endif()
+
 
 if (WIN32)
   # These are external plugins, but we need to do the 'add dependency' here so that their
@@ -325,6 +328,10 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/scripts"
       "${RESOURCES_DEV_DIR}/scripts"
+    # copy screenshare app to the resource folder
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${CMAKE_CURRENT_BINARY_DIR}/../screenshare/hifi-screenshare-darwin-x64/hifi-screenshare.app"
+      "${RESOURCES_DEV_DIR}/hifi-screenshare.app"
     # copy JSDoc files beside the executable
     #COMMAND "${CMAKE_COMMAND}" -E copy_directory
     #  "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
@@ -349,7 +356,7 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
-  )
+    )
 
   # call the fixup_interface macro to add required bundling commands for installation
   fixup_interface()

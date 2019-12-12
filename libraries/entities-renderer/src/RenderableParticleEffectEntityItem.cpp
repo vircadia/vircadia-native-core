@@ -151,11 +151,17 @@ void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEn
 
 ItemKey ParticleEffectEntityRenderer::getKey() {
     // FIXME: implement isTransparent() for particles and an opaque pipeline
-    if (_visible) {
-        return ItemKey::Builder::transparentShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
-    } else {
-        return ItemKey::Builder().withInvisible().withTagBits(getTagMask()).withLayer(getHifiRenderLayer()).build();
+    auto builder = ItemKey::Builder::transparentShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
+    if (!_visible) {
+        builder.withInvisible();
     }
+
+    if (_cullWithParent) {
+        builder.withSubMetaCulled();
+    }
+
+    return builder.build();
 }
 
 ShapeKey ParticleEffectEntityRenderer::getShapeKey() {
@@ -194,7 +200,7 @@ float importanceSample3DDimension(float startDim) {
 }
 
 ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
-                                                                                       const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource,
+                                                                                       const ShapeType& shapeType, const ModelResource::Pointer& geometryResource,
                                                                                        const TriangleInfo& triangleInfo) {
     CpuParticle particle;
 
@@ -379,7 +385,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
 
     particle::Properties particleProperties;
     ShapeType shapeType;
-    GeometryResource::Pointer geometryResource;
+    ModelResource::Pointer geometryResource;
     withReadLock([&] {
         particleProperties = _particleProperties;
         shapeType = _shapeType;
@@ -482,7 +488,7 @@ void ParticleEffectEntityRenderer::fetchGeometryResource() {
     if (hullURL.isEmpty()) {
         _geometryResource.reset();
     } else {
-        _geometryResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
+        _geometryResource = DependencyManager::get<ModelCache>()->getCollisionModelResource(hullURL);
     }
 }
 
@@ -490,7 +496,7 @@ void ParticleEffectEntityRenderer::fetchGeometryResource() {
 void ParticleEffectEntityRenderer::computeTriangles(const hfm::Model& hfmModel) {
     PROFILE_RANGE(render, __FUNCTION__);
 
-    int numberOfMeshes = hfmModel.meshes.size();
+    uint32_t numberOfMeshes = (uint32_t)hfmModel.meshes.size();
 
     _hasComputedTriangles = true;
     _triangleInfo.triangles.clear();
@@ -500,11 +506,11 @@ void ParticleEffectEntityRenderer::computeTriangles(const hfm::Model& hfmModel) 
     float minArea = FLT_MAX;
     AABox bounds;
 
-    for (int i = 0; i < numberOfMeshes; i++) {
+    for (uint32_t i = 0; i < numberOfMeshes; i++) {
         const HFMMesh& mesh = hfmModel.meshes.at(i);
 
-        const int numberOfParts = mesh.parts.size();
-        for (int j = 0; j < numberOfParts; j++) {
+        const uint32_t numberOfParts = (uint32_t)mesh.parts.size();
+        for (uint32_t j = 0; j < numberOfParts; j++) {
             const HFMMeshPart& part = mesh.parts.at(j);
 
             const int INDICES_PER_TRIANGLE = 3;

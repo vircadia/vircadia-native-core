@@ -13,6 +13,7 @@ valgrind*/
 ext/
 Makefile
 *.user
+qt*/
 
 # Android Studio
 *.iml

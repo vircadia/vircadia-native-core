@@ -27,7 +27,7 @@ const float Material::DEFAULT_ROUGHNESS { 1.0f };
 const float Material::DEFAULT_SCATTERING{ 0.0f };
 const MaterialKey::OpacityMapMode Material::DEFAULT_OPACITY_MAP_MODE{ MaterialKey::OPACITY_MAP_OPAQUE };
 const float Material::DEFAULT_OPACITY_CUTOFF { 0.5f };
-
+const MaterialKey::CullFaceMode Material::DEFAULT_CULL_FACE_MODE { MaterialKey::CULL_BACK };
 
 std::string MaterialKey::getOpacityMapModeName(OpacityMapMode mode) {
     const std::string names[3] = { "OPACITY_MAP_OPAQUE", "OPACITY_MAP_MASK", "OPACITY_MAP_BLEND" };
@@ -38,6 +38,21 @@ bool MaterialKey::getOpacityMapModeFromName(const std::string& modeName, Materia
     for (int i = OPACITY_MAP_OPAQUE; i <= OPACITY_MAP_BLEND; i++) {
         mode = (MaterialKey::OpacityMapMode) i;
         if (modeName == getOpacityMapModeName(mode)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string MaterialKey::getCullFaceModeName(CullFaceMode mode) {
+    const std::string names[3] = { "CULL_NONE", "CULL_FRONT", "CULL_BACK" };
+    return names[mode];
+}
+
+bool MaterialKey::getCullFaceModeFromName(const std::string& modeName, CullFaceMode& mode) {
+    for (int i = CULL_NONE; i < NUM_CULL_FACE_MODES; i++) {
+        mode = (CullFaceMode)i;
+        if (modeName == getCullFaceModeName(mode)) {
             return true;
         }
     }
@@ -67,6 +82,7 @@ Material::Material(const Material& material) :
     _texcoordTransforms(material._texcoordTransforms),
     _lightmapParams(material._lightmapParams),
     _materialParams(material._materialParams),
+    _cullFaceMode(material._cullFaceMode),
     _textureMaps(material._textureMaps),
     _defaultFallthrough(material._defaultFallthrough),
     _propertyFallthroughs(material._propertyFallthroughs)
@@ -89,6 +105,7 @@ Material& Material::operator=(const Material& material) {
     _texcoordTransforms = material._texcoordTransforms;
     _lightmapParams = material._lightmapParams;
     _materialParams = material._materialParams;
+    _cullFaceMode = material._cullFaceMode;
     _textureMaps = material._textureMaps;
 
     _defaultFallthrough = material._defaultFallthrough;
@@ -144,7 +161,7 @@ void Material::setOpacityMapMode(MaterialKey::OpacityMapMode opacityMapMode) {
     _key.setOpacityMapMode(opacityMapMode);
 }
 
-MaterialKey::OpacityMapMode  Material::getOpacityMapMode() const {
+MaterialKey::OpacityMapMode Material::getOpacityMapMode() const {
     return _key.getOpacityMapMode();
 }
 
@@ -209,8 +226,7 @@ bool Material::resetOpacityMap() const {
             }
         }
     }
-    auto newious = _key.getOpacityMapMode();
-    if (previous != newious) {
+    if (previous != _key.getOpacityMapMode()) {
         //opacity change detected for this material
         return true;
     }

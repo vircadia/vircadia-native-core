@@ -61,12 +61,12 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     const auto currentKeyLight = setupOutput.getN<RenderShadowSetup::Output>(4);
     // Fetch and cull the items from the scene
 
-    static const auto shadowCasterReceiverFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(tagBits, tagMask);
+    static const auto shadowCasterReceiverFilter = ItemFilter::Builder::visibleWorldItems().withOpaque().withoutLayered().withTagBits(tagBits, tagMask);
 
     const auto fetchInput = FetchSpatialTree::Inputs(shadowCasterReceiverFilter, queryResolution).asVarying();
     const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowTree", fetchInput);
-    const auto selectionInputs = FilterSpatialSelection::Inputs(shadowSelection, shadowCasterReceiverFilter).asVarying();
-    const auto shadowItems = task.addJob<FilterSpatialSelection>("FilterShadowSelection", selectionInputs);
+    const auto selectionInputs = CullSpatialSelection::Inputs(shadowSelection, shadowCasterReceiverFilter).asVarying();
+    const auto shadowItems = task.addJob<CullSpatialSelection>("FilterShadowSelection", selectionInputs, nullptr, true, RenderDetails::SHADOW);
 
     // Cull objects that are not visible in camera view. Hopefully the cull functor only performs LOD culling, not
     // frustum culling or this will make shadow casters out of the camera frustum disappear.
@@ -258,8 +258,8 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
                 ShapeKey::Builder().withDeformed(), ShapeKey::Builder().withDeformed().withFade(),
                 ShapeKey::Builder().withDeformed().withDualQuatSkinned(), ShapeKey::Builder().withDeformed().withDualQuatSkinned().withFade(),
                 ShapeKey::Builder().withOwnPipeline(), ShapeKey::Builder().withOwnPipeline().withFade(),
-                ShapeKey::Builder().withOwnPipeline().withDeformed(), ShapeKey::Builder().withOwnPipeline().withDeformed().withFade(),
-                ShapeKey::Builder().withOwnPipeline().withDeformed().withDualQuatSkinned(), ShapeKey::Builder().withOwnPipeline().withDeformed().withDualQuatSkinned().withFade(),
+                ShapeKey::Builder().withDeformed().withOwnPipeline(), ShapeKey::Builder().withDeformed().withOwnPipeline().withFade(),
+                ShapeKey::Builder().withDeformed().withDualQuatSkinned().withOwnPipeline(), ShapeKey::Builder().withDeformed().withDualQuatSkinned().withOwnPipeline().withFade(),
             };
             std::vector<std::vector<ShapeKey>> sortedShapeKeys(keys.size());
 

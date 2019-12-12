@@ -68,7 +68,7 @@ public:
     void dump(const AnimPoseVec& poses) const;
 
     std::vector<int> lookUpJointIndices(const std::vector<QString>& jointNames) const;
-    const HFMCluster getClusterBindMatricesOriginalValues(const int meshIndex, const int clusterIndex) const { return _clusterBindMatrixOriginalValues[meshIndex][clusterIndex]; }
+    const HFMCluster getClusterBindMatricesOriginalValues(int skinDeformerIndex, int clusterIndex) const { return _clusterBindMatrixOriginalValues[skinDeformerIndex][clusterIndex]; }
 
 protected:
     void buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets);

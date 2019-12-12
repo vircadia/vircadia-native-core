@@ -20,9 +20,9 @@
 <@if HIFI_USE_DEFORMED or HIFI_USE_DEFORMEDDQ@>
     <@include MeshDeformer.slh@>
     <@if HIFI_USE_DEFORMED@>
-        <$declareMeshDeformer(1, _SCRIBE_NULL, 1, _SCRIBE_NULL, 1)$>
+        <$declareMeshDeformer(1, 1, 1, _SCRIBE_NULL, 1)$>
     <@else@>
-        <$declareMeshDeformer(1, _SCRIBE_NULL, 1, 1, 1)$>
+        <$declareMeshDeformer(1, 1, 1, 1, 1)$>
     <@endif@>
     <$declareMeshDeformerActivation(1, 1)$>
 <@endif@>
@@ -34,24 +34,56 @@ layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
 layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
+<@include procedural/ProceduralCommon.slh@>
+
+#line 1001
+//PROCEDURAL_BLOCK_BEGIN
+
+void getProceduralVertex(inout ProceduralVertexData proceduralData) {}
+
+//PROCEDURAL_BLOCK_END
+
+#line 2030
 void main(void) {
     vec4 positionMS = inPosition;
     vec3 normalMS = inNormal.xyz;
+    vec3 tangentMS = inTangent.xyz;
+    vec4 color = color_sRGBAToLinear(inColor);
+    vec2 texCoord0 = inTexCoord0.st;
 
 <@if HIFI_USE_DEFORMED or HIFI_USE_DEFORMEDDQ@>
-        evalMeshDeformer(inPosition, positionMS, inNormal.xyz, normalMS,
+        evalMeshDeformer(inPosition, positionMS, inNormal.xyz, normalMS, inTangent.xyz, tangentMS,
                          meshDeformer_doSkinning(_drawCallInfo.y), inSkinClusterIndex, inSkinClusterWeight,
                          meshDeformer_doBlendshape(_drawCallInfo.y), gl_VertexID);
 <@endif@>
 
+#if defined(PROCEDURAL_V1) || defined(PROCEDURAL_V2) || defined(PROCEDURAL_V3)
+    ProceduralVertexData proceduralData = ProceduralVertexData(
+        positionMS,
+        inPosition,
+        normalMS,
+        inNormal.xyz,
+        tangentMS,
+        inTangent.xyz,
+        color,
+        texCoord0
+    );
+
+    getProceduralVertex(proceduralData);
+
+    positionMS = proceduralData.position;
+    normalMS = proceduralData.normal;
+    color = proceduralData.color;
+    texCoord0 = proceduralData.texCoord0;
+#endif
+
     _positionMS = positionMS;
     _normalMS = normalMS;
+    _color = color;
+    _texCoord01 = vec4(texCoord0, 0.0, 0.0);
 
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, positionMS, _positionES, gl_Position)$>
     <$transformModelToWorldDir(cam, obj, normalMS, _normalWS)$>
-
-    _color = color_sRGBAToLinear(inColor);
-    _texCoord01 = vec4(inTexCoord0.st, 0.0, 0.0);
 }

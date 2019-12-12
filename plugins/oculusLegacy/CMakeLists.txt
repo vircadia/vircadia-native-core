@@ -9,7 +9,7 @@
 #  Windows doesn't need this, and building it currently make Linux unstable.
 #  if (NOT WIN32)
 
-if (APPLE)
+if (FALSE AND APPLE)
 
     set(TARGET_NAME oculusLegacy)
     setup_hifi_plugin()

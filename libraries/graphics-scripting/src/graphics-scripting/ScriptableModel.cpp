@@ -45,6 +45,7 @@ scriptable::ScriptableMaterial& scriptable::ScriptableMaterial::operator=(const 
         occlusionMap = material.occlusionMap;
         lightMap = material.lightMap;
         scatteringMap = material.scatteringMap;
+        cullFaceMode = material.cullFaceMode;
     } else if (model.toStdString() == graphics::Material::HIFI_SHADER_SIMPLE) {
         procedural = material.procedural;
     }
@@ -131,6 +132,8 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
             for (int i = 0; i < graphics::Material::NUM_TEXCOORD_TRANSFORMS; i++) {
                 texCoordTransforms[i] = material->getTexCoordTransform(i);
             }
+
+            cullFaceMode = QString(graphics::MaterialKey::getCullFaceModeName(material->getCullFaceMode()).c_str());
         } else if (model.toStdString() == graphics::Material::HIFI_SHADER_SIMPLE) {
             procedural = material->getProceduralString();
         }

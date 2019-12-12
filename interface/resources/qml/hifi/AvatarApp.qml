@@ -777,9 +777,7 @@ Rectangle {
                                 hoverEnabled: true
 
                                 onClicked: {
-                                    popup.showBuyAvatars(function() {
-                                        emitSendToScript({'method' : 'navigate', 'url' : 'hifi://BodyMart'})
-                                    }, function(link) {
+                                    popup.showBuyAvatars(null, function(link) {
                                         emitSendToScript({'method' : 'navigate', 'url' : link})
                                     });
                                 }

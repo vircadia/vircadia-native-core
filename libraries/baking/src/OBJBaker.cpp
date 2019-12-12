@@ -37,10 +37,10 @@ const QByteArray MESH = "Mesh";
 
 void OBJBaker::bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) {
     // Write OBJ Data as FBX tree nodes
-    createFBXNodeTree(_rootNode, hfmModel, dracoMeshes[0]);
+    createFBXNodeTree(_rootNode, hfmModel, dracoMeshes[0], dracoMaterialLists[0]);
 }
 
-void OBJBaker::createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& hfmModel, const hifi::ByteArray& dracoMesh) {
+void OBJBaker::createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& hfmModel, const hifi::ByteArray& dracoMesh, const std::vector<hifi::ByteArray>& dracoMaterialList) {
     // Make all generated nodes children of rootNode
     rootNode.children = { FBXNode(), FBXNode(), FBXNode() };
     FBXNode& globalSettingsNode = rootNode.children[0];
@@ -100,19 +100,22 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& h
     }
 
     // Generating Objects node's child - Material node
-    auto& meshParts = hfmModel->meshes[0].parts;
-    for (auto& meshPart : meshParts) {
+
+    // Each material ID should only appear once thanks to deduplication in BuildDracoMeshTask, but we want to make sure they are created in the right order
+    std::unordered_map<QString, uint32_t> materialIDToIndex;
+    for (uint32_t materialIndex = 0; materialIndex < hfmModel->materials.size(); ++materialIndex) {
+        const auto& material = hfmModel->materials[materialIndex];
+        materialIDToIndex[material.materialID] = materialIndex;
+    }
+
+    // Create nodes for each material in the material list
+    for (const auto& dracoMaterial : dracoMaterialList) {
+        const QString materialID = QString(dracoMaterial);
+        const uint32_t materialIndex = materialIDToIndex[materialID];
+        const auto& material = hfmModel->materials[materialIndex];
         FBXNode materialNode;
         materialNode.name = MATERIAL_NODE_NAME;
-        if (hfmModel->materials.size() == 1) {
-            // case when no material information is provided, OBJSerializer considers it as a single default material
-            for (auto& materialID : hfmModel->materials.keys()) {
-                setMaterialNodeProperties(materialNode, materialID, hfmModel);
-            }
-        } else {
-            setMaterialNodeProperties(materialNode, meshPart.materialID, hfmModel);
-        }
-
+        setMaterialNodeProperties(materialNode, material.materialID, material, hfmModel);
         objectNode.children.append(materialNode);
     }
 
@@ -153,12 +156,10 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& h
 }
 
 // Set properties for material nodes
-void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material, const hfm::Model::Pointer& hfmModel) {
+void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, const QString& materialName, const hfm::Material& material, const hfm::Model::Pointer& hfmModel) {
     auto materialID = nextNodeID();
     _materialIDs.push_back(materialID);
-    materialNode.properties = { materialID, material, MESH };
-
-    HFMMaterial currentMaterial = hfmModel->materials[material];
+    materialNode.properties = { materialID, materialName, MESH };
 
     // Setting the hierarchy: Material -> Properties70 -> P -> Properties
     FBXNode properties70Node;
@@ -170,7 +171,7 @@ void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material
         pNodeDiffuseColor.name = P_NODE_NAME;
         pNodeDiffuseColor.properties.append({
             "DiffuseColor", "Color", "", "A",
-            currentMaterial.diffuseColor[0], currentMaterial.diffuseColor[1], currentMaterial.diffuseColor[2]
+            material.diffuseColor[0], material.diffuseColor[1], material.diffuseColor[2]
         });
     }
     properties70Node.children.append(pNodeDiffuseColor);
@@ -181,7 +182,7 @@ void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material
         pNodeSpecularColor.name = P_NODE_NAME;
         pNodeSpecularColor.properties.append({
             "SpecularColor", "Color", "", "A",
-            currentMaterial.specularColor[0], currentMaterial.specularColor[1], currentMaterial.specularColor[2]
+            material.specularColor[0], material.specularColor[1], material.specularColor[2]
         });
     }
     properties70Node.children.append(pNodeSpecularColor);
@@ -192,7 +193,7 @@ void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material
         pNodeShininess.name = P_NODE_NAME;
         pNodeShininess.properties.append({
             "Shininess", "Number", "", "A",
-            currentMaterial.shininess
+            material.shininess
         });
     }
     properties70Node.children.append(pNodeShininess);
@@ -203,7 +204,7 @@ void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material
         pNodeOpacity.name = P_NODE_NAME;
         pNodeOpacity.properties.append({
             "Opacity", "Number", "", "A",
-            currentMaterial.opacity
+            material.opacity
         });
     }
     properties70Node.children.append(pNodeOpacity);

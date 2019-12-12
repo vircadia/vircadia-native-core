@@ -16,17 +16,14 @@
 #include <unordered_set>
 
 #include <QtCore/QObject>
-#include <QSet>
 #include <QVector>
 
 #include <PerfStat.h>
 
-#include "EntityDynamicInterface.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
 
 using EntitySimulationPointer = std::shared_ptr<EntitySimulation>;
-using SetOfEntities = QSet<EntityItemPointer>;
 using VectorOfEntities = QVector<EntityItemPointer>;
 
 // the EntitySimulation needs to know when these things change on an entity,
@@ -47,8 +44,8 @@ const int DIRTY_SIMULATION_FLAGS =
 
 class EntitySimulation : public QObject, public std::enable_shared_from_this<EntitySimulation> {
 public:
-    EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL), _nextExpiry(std::numeric_limits<uint64_t>::max()) { }
-    virtual ~EntitySimulation() { setEntityTree(NULL); }
+    EntitySimulation() : _mutex(QMutex::Recursive), _nextExpiry(std::numeric_limits<uint64_t>::max()), _entityTree(nullptr) { }
+    virtual ~EntitySimulation() { setEntityTree(nullptr); }
 
     inline EntitySimulationPointer getThisPointer() const {
         return std::const_pointer_cast<EntitySimulation>(shared_from_this());
@@ -57,12 +54,12 @@ public:
     /// \param tree pointer to EntityTree which is stored internally
     void setEntityTree(EntityTreePointer tree);
 
-    void updateEntities();
+    virtual void updateEntities();
 
-    virtual void addDynamic(EntityDynamicPointer dynamic);
-    virtual void removeDynamic(const QUuid dynamicID);
-    virtual void removeDynamics(QList<QUuid> dynamicIDsToRemove);
-    virtual void applyDynamicChanges();
+    // FIXME: remove these
+    virtual void addDynamic(EntityDynamicPointer dynamic) {}
+    virtual void removeDynamic(const QUuid dynamicID) {}
+    virtual void applyDynamicChanges() {};
 
     /// \param entity pointer to EntityItem to be added
     /// \sideeffect sets relevant backpointers in entity, but maybe later when appropriate data structures are locked
@@ -72,27 +69,22 @@ public:
     /// call this whenever an entity was changed from some EXTERNAL event (NOT by the EntitySimulation itself)
     void changeEntity(EntityItemPointer entity);
 
-    void clearEntities();
+    virtual void clearEntities();
 
     void moveSimpleKinematics(uint64_t now);
 
     EntityTreePointer getEntityTree() { return _entityTree; }
 
-    virtual void takeDeadEntities(SetOfEntities& entitiesToDelete);
-
-    /// \param entity pointer to EntityItem that needs to be put on the entitiesToDelete list and removed from others.
     virtual void prepareEntityForDelete(EntityItemPointer entity);
 
     void processChangedEntities();
+    virtual void queueEraseDomainEntity(const QUuid& id) const { }
 
 protected:
-    // These pure virtual methods are protected because they are not to be called will-nilly. The base class
-    // calls them in the right places.
-    virtual void updateEntitiesInternal(uint64_t now) = 0;
-    virtual void addEntityInternal(EntityItemPointer entity) = 0;
-    virtual void removeEntityInternal(EntityItemPointer entity);
+    virtual void addEntityToInternalLists(EntityItemPointer entity);
+    virtual void removeEntityFromInternalLists(EntityItemPointer entity);
     virtual void processChangedEntity(const EntityItemPointer& entity);
-    virtual void clearEntitiesInternal() = 0;
+    virtual void processDeadEntities();
 
     void expireMortalEntities(uint64_t now);
     void callUpdateOnEntitiesThatNeedIt(uint64_t now);
@@ -102,27 +94,21 @@ protected:
 
     SetOfEntities _entitiesToSort; // entities moved by simulation (and might need resort in EntityTree)
     SetOfEntities _simpleKinematicEntities; // entities undergoing non-colliding kinematic motion
-    QList<EntityDynamicPointer> _dynamicsToAdd;
-    QSet<QUuid> _dynamicsToRemove;
-    QMutex _dynamicsMutex { QMutex::Recursive };
-
-protected:
-    SetOfEntities _deadEntities; // dead entities that might still be in the _entityTree
+    SetOfEntities _deadEntitiesToRemoveFromTree;
 
 private:
     void moveSimpleKinematics();
-
-    // back pointer to EntityTree structure
-    EntityTreePointer _entityTree;
 
     // We maintain multiple lists, each for its distinct purpose.
     // An entity may be in more than one list.
     std::unordered_set<EntityItemPointer> _changedEntities; // all changes this frame
     SetOfEntities _allEntities; // tracks all entities added the simulation
+    SetOfEntities _entitiesToUpdate; // entities that need to call EntityItem::update()
     SetOfEntities _mortalEntities; // entities that have an expiry
     uint64_t _nextExpiry;
 
-    SetOfEntities _entitiesToUpdate; // entities that need to call EntityItem::update()
+    // back pointer to EntityTree structure
+    EntityTreePointer _entityTree;
 };
 
 #endif // hifi_EntitySimulation_h

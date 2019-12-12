@@ -43,6 +43,7 @@ const Transform& EntityRenderer::getModelTransform() const {
 
 void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters) {
     auto nodeList = DependencyManager::get<NodeList>();
+    // DANGER: nodeList->getSessionUUID() will return null id when not connected to domain.
     const QUuid& myNodeID = nodeList->getSessionUUID();
 
     statusGetters.push_back([entity]() -> render::Item::Status::Value {
@@ -103,9 +104,9 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
             (unsigned char)render::Item::Status::Icon::HAS_ACTIONS);
     });
 
-    statusGetters.push_back([entity, myNodeID] () -> render::Item::Status::Value {
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
         if (entity->isAvatarEntity()) {
-            if (entity->getOwningAvatarID() == myNodeID) {
+            if (entity->isMyAvatarEntity()) {
                 return render::Item::Status::Value(1.0f, render::Item::Status::Value::GREEN,
                     (unsigned char)render::Item::Status::Icon::ENTITY_HOST_TYPE);
             } else {
@@ -174,6 +175,10 @@ ItemKey EntityRenderer::getKey() {
         builder.withTransparent();
     } else if (_canCastShadow) {
         builder.withShadowCaster();
+    }
+
+    if (_cullWithParent) {
+        builder.withSubMetaCulled();
     }
 
     if (!_visible) {
@@ -419,6 +424,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         setRenderLayer(entity->getRenderLayer());
         setPrimitiveMode(entity->getPrimitiveMode());
         _canCastShadow = entity->getCanCastShadow();
+        setCullWithParent(entity->getCullWithParent());
         _cauterized = entity->getCauterized();
         entity->setNeedsRenderUpdate(false);
     });

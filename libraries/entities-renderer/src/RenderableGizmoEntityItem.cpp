@@ -253,7 +253,7 @@ void GizmoEntityRenderer::doRender(RenderArgs* args) {
         });
 
         bool wireframe = render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES;
-        geometryCache->bindSimpleProgram(batch, false, isTransparent(), false, wireframe, true, true, forward);
+        geometryCache->bindSimpleProgram(batch, false, isTransparent(), wireframe, true, true, forward, graphics::MaterialKey::CULL_NONE);
 
         batch.setModelTransform(transform);
 

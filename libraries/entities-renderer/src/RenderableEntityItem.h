@@ -108,6 +108,7 @@ protected:
     virtual void setIsVisibleInSecondaryCamera(bool value) { _isVisibleInSecondaryCamera = value; }
     virtual void setRenderLayer(RenderLayer value) { _renderLayer = value; }
     virtual void setPrimitiveMode(PrimitiveMode value) { _primitiveMode = value; }
+    virtual void setCullWithParent(bool value) { _cullWithParent = value; }
 
 signals:
     void requestRenderUpdate();
@@ -130,6 +131,7 @@ protected:
     bool _visible { false };
     bool _isVisibleInSecondaryCamera { false };
     bool _canCastShadow { false };
+    bool _cullWithParent { false };
     RenderLayer _renderLayer { RenderLayer::WORLD };
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     bool _cauterized { false };

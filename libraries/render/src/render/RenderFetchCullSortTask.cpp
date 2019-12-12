@@ -27,7 +27,7 @@ void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varyin
     const auto fetchInput = FetchSpatialTree::Inputs(filter, glm::ivec2(0,0)).asVarying();
     const auto spatialSelection = task.addJob<FetchSpatialTree>("FetchSceneSelection", fetchInput);
     const auto cullInputs = CullSpatialSelection::Inputs(spatialSelection, spatialFilter).asVarying();
-    const auto culledSpatialSelection = task.addJob<CullSpatialSelection>("CullSceneSelection", cullInputs, cullFunctor, RenderDetails::ITEM);
+    const auto culledSpatialSelection = task.addJob<CullSpatialSelection>("CullSceneSelection", cullInputs, cullFunctor, false, RenderDetails::ITEM);
 
     // Layered objects are not culled
     const ItemFilter layeredFilter = ItemFilter::Builder::visibleWorldItems().withTagBits(tagBits, tagMask);

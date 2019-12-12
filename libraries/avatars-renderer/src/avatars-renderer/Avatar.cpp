@@ -333,18 +333,22 @@ void Avatar::setTargetScale(float targetScale) {
 }
 
 void Avatar::removeAvatarEntitiesFromTree() {
+    if (_packedAvatarEntityData.empty()) {
+        return;
+    }
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
-        QList<QUuid> avatarEntityIDs;
-        _avatarEntitiesLock.withReadLock([&] {
-            avatarEntityIDs = _packedAvatarEntityData.keys();
-        });
-        entityTree->withWriteLock([&] {
-            for (const auto& entityID : avatarEntityIDs) {
-                entityTree->deleteEntity(entityID, true, true);
-            }
-        });
+        std::vector<EntityItemID> ids;
+        ids.reserve(_packedAvatarEntityData.size());
+        PackedAvatarEntityMap::const_iterator itr = _packedAvatarEntityData.constBegin();
+        while (itr != _packedAvatarEntityData.constEnd()) {
+            ids.push_back(itr.key());
+            ++itr;
+        }
+        bool force = true;
+        bool ignoreWarnings = true;
+        entityTree->deleteEntitiesByID(ids, force, ignoreWarnings); // locks tree
     }
 }
 
@@ -791,7 +795,7 @@ void Avatar::render(RenderArgs* renderArgs) {
                 pointerTransform.setTranslation(position);
                 pointerTransform.setRotation(rotation);
                 batch.setModelTransform(pointerTransform);
-                geometryCache->bindSimpleProgram(batch, false, false, true, false, false, true, renderArgs->_renderMethod == render::Args::FORWARD);
+                geometryCache->bindSimpleProgram(batch, false, false, false, false, true, renderArgs->_renderMethod == render::Args::FORWARD);
                 geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor, _leftPointerGeometryID);
             }
         }
@@ -815,7 +819,7 @@ void Avatar::render(RenderArgs* renderArgs) {
                 pointerTransform.setTranslation(position);
                 pointerTransform.setRotation(rotation);
                 batch.setModelTransform(pointerTransform);
-                geometryCache->bindSimpleProgram(batch, false, false, true, false, false, true, renderArgs->_renderMethod == render::Args::FORWARD);
+                geometryCache->bindSimpleProgram(batch, false, false, false, false, true, renderArgs->_renderMethod == render::Args::FORWARD);
                 geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor, _rightPointerGeometryID);
             }
         }
@@ -939,7 +943,7 @@ void Avatar::simulateAttachments(float deltaTime) {
         bool texturesLoaded = _attachmentModelsTexturesLoaded.at(i);
 
         // Watch for texture loading
-        if (!texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+        if (!texturesLoaded && model->getNetworkModel() && model->getNetworkModel()->areTexturesLoaded()) {
             _attachmentModelsTexturesLoaded[i] = true;
             model->updateRenderItems();
         }
@@ -1103,7 +1107,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const
 
         {
             PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderBevelCornersRect");
-            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, true, true, true, true, forward);
+            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, true, true, true, forward);
             DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
                 bevelDistance, backgroundColor, _nameRectGeometryID);
         }
@@ -2121,6 +2125,8 @@ void Avatar::updateAttachmentRenderIDs() {
 
 void Avatar::updateDescendantRenderIDs() {
     _subItemLock.withWriteLock([&] {
+        auto oldRenderingDescendantEntityIDs = _renderingDescendantEntityIDs;
+        _renderingDescendantEntityIDs.clear();
         _descendantRenderIDs.clear();
         auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
         EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
@@ -2130,7 +2136,12 @@ void Avatar::updateDescendantRenderIDs() {
                     if (object && object->getNestableType() == NestableType::Entity) {
                         EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                         if (entity->isVisible()) {
-                            auto renderer = entityTreeRenderer->renderableForEntityId(object->getID());
+                            auto id = object->getID();
+                            _renderingDescendantEntityIDs.insert(id);
+                            oldRenderingDescendantEntityIDs.erase(id);
+                            entity->setCullWithParent(true);
+
+                            auto renderer = entityTreeRenderer->renderableForEntityId(id);
                             if (renderer) {
                                 render::ItemIDs renderableSubItems;
                                 uint32_t numRenderableSubItems = renderer->metaFetchMetaSubItems(renderableSubItems);
@@ -2141,6 +2152,13 @@ void Avatar::updateDescendantRenderIDs() {
                         }
                     }
                 });
+
+                for (auto& oldRenderingDescendantEntityID : oldRenderingDescendantEntityIDs) {
+                    auto entity = entityTree->findEntityByEntityItemID(oldRenderingDescendantEntityID);
+                    if (entity) {
+                        entity->setCullWithParent(false);
+                    }
+                }
             });
         }
     });

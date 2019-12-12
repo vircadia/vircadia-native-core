@@ -60,6 +60,17 @@ LAYOUT_STD140(binding=PROCEDURAL_BUFFER_INPUTS) uniform standardInputsBuffer {
 #define iChannelResolution standardInputs.channelResolution
 #define iWorldOrientation standardInputs.worldOrientation
 
+struct ProceduralVertexData {
+    vec4 position;
+    vec4 nonSkinnedPosition;    // input only
+    vec3 normal;
+    vec3 nonSkinnedNormal;      // input only
+    vec3 tangent;               // input only
+    vec3 nonSkinnedTangent;     // input only
+    vec4 color;
+    vec2 texCoord0;
+};
+
 struct ProceduralFragment {
     vec3 normal;
     vec3 diffuse;
