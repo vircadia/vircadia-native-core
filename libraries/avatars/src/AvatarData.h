@@ -1174,7 +1174,7 @@ public:
     /**jsdoc
      * @function Avatar.updateAvatarEntity
      * @param {Uuid} entityID - The entity ID.
-     * @param {Array.<byte>} entityData - Entity data.
+     * @param {ArrayBuffer} entityData - Entity data.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE virtual void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
@@ -1960,6 +1960,18 @@ Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& results);
 void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& results);
 
+/**jsdoc
+ * @typedef {object} ParabolaToAvatarIntersectionResult
+ * @property {boolean} intersects
+ * @property {Uuid} avatarID
+ * @property {number} distance
+ * @property {number} parabolicDistance
+ * @property {BoxFace} face
+ * @property {Vec3} intersection
+ * @property {Vec3} surfaceNormal
+ * @property {any} extraInfo
+ * @deprecated {@link AvatarManager.findParabolaIntersectionVector} is deprecated and will be removed.
+ */
 class ParabolaToAvatarIntersectionResult {
 public:
     bool intersects { false };
