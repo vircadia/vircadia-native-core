@@ -177,6 +177,10 @@ ItemKey EntityRenderer::getKey() {
         builder.withShadowCaster();
     }
 
+    if (_cullWithParent) {
+        builder.withSubMetaCulled();
+    }
+
     if (!_visible) {
         builder.withInvisible();
     }
@@ -420,6 +424,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         setRenderLayer(entity->getRenderLayer());
         setPrimitiveMode(entity->getPrimitiveMode());
         _canCastShadow = entity->getCanCastShadow();
+        setCullWithParent(entity->getCullWithParent());
         _cauterized = entity->getCauterized();
         entity->setNeedsRenderUpdate(false);
     });
