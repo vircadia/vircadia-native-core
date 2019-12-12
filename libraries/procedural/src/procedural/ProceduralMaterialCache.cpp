@@ -143,7 +143,7 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  * @property {string} opacityMap - The URL of the opacity texture image. Set the value the same as the <code>albedoMap</code> 
  *     value for transparency. 
  *     <code>"hifi_pbr"</code> model only.
- * @property {number|string} opacityMapMode - The mode defining the interpretation of the opacity map. Values can be:
+ * @property {string} opacityMapMode - The mode defining the interpretation of the opacity map. Values can be:
  *     <ul>
  *         <li><code>"OPACITY_MAP_OPAQUE"</code> for ignoring the <code>opacityMap</code> information.</li>
  *         <li><code>"OPACITY_MAP_MASK"</code> for using the <code>opacityMap</code> as a mask, where only the texel greater 
@@ -155,6 +155,13 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  * @property {number|string} opacityCutoff - The opacity cutoff threshold used to determine the opaque texels of the 
  *     <code>opacityMap</code> when <code>opacityMapMode</code> is <code>"OPACITY_MAP_MASK"</code>, range <code>0.0</code> 
  *     &ndash; <code>1.0</code>.
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} cullFaceMode - The mode defining which side of the geometry should be rendered. Values can be:
+ *     <ul>
+ *         <li><code>"CULL_NONE"</code> for rendering both sides of the geometry.</li>
+ *         <li><code>"CULL_FRONT"</code> for culling the front faces of the geometry.</li>
+ *         <li><code>"CULL_BACK"</code> (the default) for culling the back faces of the geometry.</li>
+ *     </ul>
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {string} roughnessMap - The URL of the roughness texture image. You can use this or <code>glossMap</code>, but not 
  *     both. 
@@ -290,7 +297,20 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                 } else if (value.isDouble()) {
                     material->setOpacityCutoff(value.toDouble());
                 }
-            } else if (key == "scattering") {
+            } else if (key == "cullFaceMode") {
+                auto value = materialJSON.value(key);
+                if (value.isString()) {
+                    auto valueString = value.toString();
+                    if (valueString == FALLTHROUGH) {
+                        material->setPropertyDoesFallthrough(graphics::Material::ExtraFlagBit::CULL_FACE_MODE);
+                    } else {
+                        graphics::MaterialKey::CullFaceMode mode;
+                        if (graphics::MaterialKey::getCullFaceModeFromName(valueString.toStdString(), mode)) {
+                            material->setCullFaceMode(mode);
+                        }
+                    }
+                }
+           } else if (key == "scattering") {
                 auto value = materialJSON.value(key);
                 if (value.isString() && value.toString() == FALLTHROUGH) {
                     material->setPropertyDoesFallthrough(graphics::MaterialKey::FlagBit::SCATTERING_VAL_BIT);

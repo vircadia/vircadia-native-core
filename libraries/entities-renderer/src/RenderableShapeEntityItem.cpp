@@ -200,6 +200,7 @@ ShapeKey ShapeEntityRenderer::getShapeKey() {
         if (drawMaterialKey.isUnlit()) {
             builder.withUnlit();
         }
+        builder.withCullFaceMode(mat->second.getCullFaceMode());
     } else if (pipelineType == Pipeline::PROCEDURAL) {
         builder.withOwnPipeline();
     }
@@ -263,7 +264,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         render::ShapePipelinePointer pipeline = geometryCache->getShapePipelinePointer(outColor.a < 1.0f, false,
-            renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD);
+            renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD, materials.top().material->getCullFaceMode());
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
         } else {

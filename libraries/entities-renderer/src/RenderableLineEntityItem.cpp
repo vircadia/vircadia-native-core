@@ -50,7 +50,7 @@ void LineEntityRenderer::doRender(RenderArgs* args) {
     transform.setRotation(modelTransform.getRotation());
     batch.setModelTransform(transform);
     if (_linePoints.size() > 1) {
-        DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, true, false, false, true,
+        DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, false, true,
             _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD);
         DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
     }
