@@ -731,6 +731,13 @@ void ScriptEngine::init() {
     QScriptValue webSocketConstructorValue = newFunction(WebSocketClass::constructor);
     globalObject().setProperty("WebSocket", webSocketConstructorValue);
 
+    /**jsdoc
+     * Prints a message to the program log and emits {@link Script.printedMessage}.
+     * The message logged is the message values separated by spaces.
+     * <p>Alternatively, you can use {@link Script.print} or one of the {@link console} API methods.</p>
+     * @function print
+     * @param {...*} [message] - The message values to print.
+     */
     globalObject().setProperty("print", newFunction(debugPrint));
 
     QScriptValue audioEffectOptionsConstructorValue = newFunction(AudioEffectOptions::constructor);

@@ -89,10 +89,13 @@ QVariantMap PointerScriptingInterface::getPointerScriptParameters(unsigned int u
  * @property {Pointers.StylusPointerModel} [model] - Override some or all of the default stylus model properties.
  * @property {boolean} [hover=false] - <code>true</code> if the pointer generates {@link Entities} hover events, 
  *     <code>false</code> if it doesn't.
- * @property {PickType} pointerType - The type of pointer when getting these properties from {@link Pointers.getPointerProperties} or {@link Pointers.getPointerScriptParameters}. A stylus pointer's type is {@link PickType.Stylus}.
- * @property {number} [pickID] - Returned from {@link Pointers.getPointerProperties}. The ID of the pick created alongside this pointer.
+ * @property {PickType} pointerType - The type of the stylus pointer returned from {@link Pointers.getPointerProperties} 
+ *     or {@link Pointers.getPointerScriptParameters}. A stylus pointer's type is {@link PickType(0)|PickType.Stylus}.
+ * @property {number} [pickID] - The ID of the pick created alongside this pointer, returned from 
+ *     {@link Pointers.getPointerProperties}. 
  * @see {@link Picks.StylusPickProperties} for additional properties from the underlying stylus pick.
  */
+ 
 /**jsdoc
  * The properties of a stylus pointer model.
  * @typedef {object} Pointers.StylusPointerModel
@@ -208,8 +211,10 @@ std::shared_ptr<Pointer> PointerScriptingInterface::buildStylus(const QVariant& 
  *     <code>false</code> if it doesn't.
  * @property {Pointers.Trigger[]} [triggers=[]] - A list of ways that a {@link Controller} action or function should trigger 
  *     events on the entity or overlay currently intersected.
- * @property {PickType} pointerType - The type of pointer when getting these properties from {@link Pointers.getPointerProperties} or {@link Pointers.getPointerScriptParameters}. A laser pointer's type is {@link PickType.Ray}.
- * @property {number} [pickID] - Returned from {@link Pointers.getPointerProperties}. The ID of the pick created alongside this pointer.
+ * @property {PickType} pointerType - The type of pointer returned from {@link Pointers.getPointerProperties} or 
+ *     {@link Pointers.getPointerScriptParameters}. A laser pointer's type is {@link PickType(0)|PickType.Ray}.
+ * @property {number} [pickID] - The ID of the pick created alongside this pointer, returned from 
+ *     {@link Pointers.getPointerProperties}. 
  * @see {@link Picks.RayPickProperties} for additional properties from the underlying ray pick.
  */
 std::shared_ptr<Pointer> PointerScriptingInterface::buildLaserPointer(const QVariant& properties) {
@@ -401,8 +406,10 @@ std::shared_ptr<Pointer> PointerScriptingInterface::buildLaserPointer(const QVar
  *     <code>false</code> if it doesn't.
  * @property {Pointers.Trigger[]} [triggers=[]] - A list of ways that a {@link Controller} action or function should trigger
  *     events on the entity or overlay currently intersected.
- * @property {PickType} pointerType - The type of pointer when getting these properties from {@link Pointers.getPointerProperties} or {@link Pointers.getPointerScriptParameters}. A parabola pointer's type is {@link PickType.Parabola}.
- * @property {number} [pickID] - Returned from {@link Pointers.getPointerProperties}. The ID of the pick created alongside this pointer.
+ * @property {PickType} pointerType - The type of pointer returned from {@link Pointers.getPointerProperties} or 
+ *     {@link Pointers.getPointerScriptParameters}. A parabola pointer's type is {@link PickType(0)|PickType.Parabola}.
+ * @property {number} [pickID] - The ID of the pick created alongside this pointer, returned from 
+ *     {@link Pointers.getPointerProperties}. 
  * @see {@link Picks.ParabolaPickProperties} for additional properties from the underlying parabola pick.
  */
 std::shared_ptr<Pointer> PointerScriptingInterface::buildParabolaPointer(const QVariant& properties) {

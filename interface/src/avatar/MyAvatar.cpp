@@ -2443,7 +2443,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
             if (_fullAvatarModelName.isEmpty()) {
                 // Store the FST file name into preferences
-                const auto& mapping = _skeletonModel->getGeometry()->getMapping();
+                const auto& mapping = _skeletonModel->getNetworkModel()->getMapping();
                 if (mapping.value("name").isValid()) {
                     _fullAvatarModelName = mapping.value("name").toString();
                 }
@@ -2451,7 +2451,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
             initHeadBones();
             _skeletonModel->setCauterizeBoneSet(_headBoneSet);
-            _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
+            _fstAnimGraphOverrideUrl = _skeletonModel->getNetworkModel()->getAnimGraphOverrideUrl();
             initAnimGraph();
             initFlowFromFST();
         }
@@ -3508,8 +3508,46 @@ void MyAvatar::updateOrientation(float deltaTime) {
             }
             setWorldOrientation(glm::slerp(getWorldOrientation(), faceRotation, blend));
         } else if (isRotatingWhileSeated) {
-            float rotatingWhileSeatedYaw = -getDriveKey(TRANSLATE_X) * _yawSpeed * deltaTime;
-            setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, rotatingWhileSeatedYaw, 0.0f))));
+            float direction = -getDriveKey(TRANSLATE_X);
+            float seatedTargetSpeed = direction * _yawSpeed * deltaTime;  //deg/renderframe
+
+            const float SEATED_ROTATION_ACCEL_SCALE = 3.5;
+
+            float blend = deltaTime * SEATED_ROTATION_ACCEL_SCALE;
+            if (blend > 1.0f) {
+                blend = 1.0f;
+            }
+
+            //init, accelerate or clamp rotation at target speed
+            if (fabsf(_seatedBodyYawDelta) > 0.0f) {
+                if (fabsf(_seatedBodyYawDelta) >= fabsf(seatedTargetSpeed)) {
+                    _seatedBodyYawDelta = seatedTargetSpeed;
+                } else {
+                    _seatedBodyYawDelta += blend * direction;
+                }
+            } else {
+                _seatedBodyYawDelta = blend * direction;
+            }
+
+            setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, _seatedBodyYawDelta, 0.0f))));
+
+        } else if (_seatedBodyYawDelta != 0.0f) {
+            //decelerate from seated rotation
+            const float ROTATION_DECAY_TIMESCALE = 0.25f;
+            float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
+            if (attenuation < 0.0f) {
+                attenuation = 0.0f;
+            }
+            _seatedBodyYawDelta *= attenuation;
+
+            float MINIMUM_ROTATION_RATE = 2.0f;
+            if (fabsf(_seatedBodyYawDelta) < MINIMUM_ROTATION_RATE * deltaTime) {
+                _seatedBodyYawDelta = 0.0f;
+            }
+
+            setWorldOrientation(getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, _seatedBodyYawDelta, 0.0f))));
+        } else {
+            _seatedBodyYawDelta = 0.0f;
         }
     }
 
@@ -3568,24 +3606,28 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
         const float DEFAULT_REORIENT_ANGLE = 65.0f;
         const float FIRST_PERSON_REORIENT_ANGLE = 95.0f;
-        const float TRIGGER_REORIENT_ANGLE = 45.0f;
+        const float TRIGGER_REORIENT_ANGLE = 135.0f;
         const float FIRST_PERSON_TRIGGER_REORIENT_ANGLE = 65.0f;
         glm::vec3 ajustedYawVector = cameraYawVector;
-        float limitAngle = 0.0f;
-        float triggerAngle = -glm::sin(glm::radians(TRIGGER_REORIENT_ANGLE));
+        float triggerAngle = glm::cos(glm::radians(TRIGGER_REORIENT_ANGLE));
+        float limitAngle = triggerAngle;
         if (mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT) {
-            limitAngle = glm::sin(glm::radians(90.0f - FIRST_PERSON_TRIGGER_REORIENT_ANGLE));
+            limitAngle = glm::cos(glm::radians(FIRST_PERSON_TRIGGER_REORIENT_ANGLE));
             triggerAngle = limitAngle;
         }
         float reorientAngle = mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT ? FIRST_PERSON_REORIENT_ANGLE : DEFAULT_REORIENT_ANGLE;
+        if (frontBackDot < 0.0f) {
+            ajustedYawVector = (leftRightDot < 0.0f ? -avatarVectorRight : avatarVectorRight);
+        }
         if (frontBackDot < limitAngle) {
-            if (frontBackDot < 0.0f) {
-                ajustedYawVector = (leftRightDot < 0.0f ? -avatarVectorRight : avatarVectorRight);
-            }
+
             if (!isRotatingWhileSeated) {
-                if (frontBackDot < triggerAngle) {
+                if (frontBackDot < triggerAngle && _seatedBodyYawDelta == 0.0f) {
                     _shouldTurnToFaceCamera = true;
                     _firstPersonSteadyHeadTimer = 0.0f;
+                } else {
+                    setWorldOrientation(previousOrientation);
+                    _seatedBodyYawDelta = 0.0f;
                 }
             } else {
                 setWorldOrientation(previousOrientation);
@@ -6550,22 +6592,23 @@ void MyAvatar::updateEyesLookAtPosition(float deltaTime) {
     int rightEyeJointIndex = getJointIndex("RightEye");
     bool eyesAreOverridden = getIsJointOverridden(leftEyeJointIndex) ||
         getIsJointOverridden(rightEyeJointIndex);
+    const float DEFAULT_GAZE_DISTANCE = 20.0f;  // meters
     if (eyesAreOverridden) {
         // A script has set the eye rotations, so use these to set lookAtSpot
         glm::quat leftEyeRotation = getAbsoluteJointRotationInObjectFrame(leftEyeJointIndex);
         glm::quat rightEyeRotation = getAbsoluteJointRotationInObjectFrame(rightEyeJointIndex);
-        glm::vec3 leftVec = getWorldOrientation() * leftEyeRotation * IDENTITY_FORWARD;
-        glm::vec3 rightVec = getWorldOrientation() * rightEyeRotation * IDENTITY_FORWARD;
+        glm::vec3 leftVec = getWorldOrientation() * leftEyeRotation * Vectors::UNIT_Z;
+        glm::vec3 rightVec = getWorldOrientation() * rightEyeRotation * Vectors::UNIT_Z;
         glm::vec3 leftEyePosition = myHead->getLeftEyePosition();
         glm::vec3 rightEyePosition = myHead->getRightEyePosition();
         float t1, t2;
         bool success = findClosestApproachOfLines(leftEyePosition, leftVec, rightEyePosition, rightVec, t1, t2);
-        if (success) {
+        if (success && t1 > 0 && t2 > 0) {
             glm::vec3 leftFocus = leftEyePosition + leftVec * t1;
             glm::vec3 rightFocus = rightEyePosition + rightVec * t2;
             lookAtSpot = (leftFocus + rightFocus) / 2.0f; // average
         } else {
-            lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * 1000.0f;
+            lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * DEFAULT_GAZE_DISTANCE;
         }
     } else if (_scriptControlsEyesLookAt) {
         if (_scriptEyesControlTimer < MAX_LOOK_AT_TIME_SCRIPT_CONTROL) {
@@ -6579,19 +6622,18 @@ void MyAvatar::updateEyesLookAtPosition(float deltaTime) {
         controller::Pose rightEyePose = getControllerPoseInAvatarFrame(controller::Action::RIGHT_EYE);
         if (leftEyePose.isValid() && rightEyePose.isValid()) {
             // an eye tracker is in use, set lookAtSpot from this
-            glm::vec3 leftVec = getWorldOrientation() * leftEyePose.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
-            glm::vec3 rightVec = getWorldOrientation() * rightEyePose.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
-
+            glm::vec3 leftVec = getWorldOrientation() * leftEyePose.rotation * Vectors::UNIT_Z;
+            glm::vec3 rightVec = getWorldOrientation() * rightEyePose.rotation * Vectors::UNIT_Z;
             glm::vec3 leftEyePosition = myHead->getLeftEyePosition();
             glm::vec3 rightEyePosition = myHead->getRightEyePosition();
             float t1, t2;
             bool success = findClosestApproachOfLines(leftEyePosition, leftVec, rightEyePosition, rightVec, t1, t2);
-            if (success) {
+            if (success && t1 > 0 && t2 > 0) {
                 glm::vec3 leftFocus = leftEyePosition + leftVec * t1;
                 glm::vec3 rightFocus = rightEyePosition + rightVec * t2;
                 lookAtSpot = (leftFocus + rightFocus) / 2.0f; // average
             } else {
-                lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * 1000.0f;
+                lookAtSpot = myHead->getEyePosition() + glm::normalize(leftVec) * DEFAULT_GAZE_DISTANCE;
             }
         } else {
             // no script override, no eye tracker, so do procedural eye motion

@@ -23,8 +23,12 @@ class HFWebEngineProfile : public ContextAwareProfile {
 public:
     static void registerWithContext(QQmlContext* parent);
 
+    static void clearCache();
+
 protected:
     HFWebEngineProfile(QQmlContext* parent);
+    virtual ~HFWebEngineProfile();
+
     class RequestInterceptor : public Parent::RequestInterceptor {
     public:
         RequestInterceptor(ContextAwareProfile* parent) : Parent::RequestInterceptor(parent) {}

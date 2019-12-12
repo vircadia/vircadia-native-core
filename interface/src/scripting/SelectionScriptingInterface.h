@@ -26,7 +26,7 @@ class GameplayObjects {
 public:
     GameplayObjects();
 
-    bool getContainsData() const { return containsData; }
+    bool getContainsData() const { return _containsData; }
 
     std::vector<QUuid> getAvatarIDs() const { return _avatarIDs; }
     bool addToGameplayObjects(const QUuid& avatarID);
@@ -37,7 +37,7 @@ public:
     bool removeFromGameplayObjects(const EntityItemID& entityID);
 
 private:
-    bool containsData { false };
+    bool _containsData { false };
     std::vector<QUuid> _avatarIDs;
     std::vector<EntityItemID> _entityIDs;
 };

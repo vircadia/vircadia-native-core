@@ -49,10 +49,10 @@ const QString GET_PLACE = "/api/v1/places/%1";
  * @property {Uuid} domainID - A UUID uniquely identifying the domain you're visiting. Is {@link Uuid(0)|Uuid.NULL} if you're not
  *     connected to the domain or are in a serverless domain.
  *     <em>Read-only.</em>
- * @property {string} hostname - The name of the domain for your current metaverse address (e.g., <code>"AvatarIsland"</code>,
+ * @property {string} hostname - The name of the domain for your current metaverse address (e.g., <code>"DomainName"</code>,
  *     <code>localhost</code>, or an IP address). Is blank if you're in a serverless domain.
  *     <em>Read-only.</em>
- * @property {string} href - Your current metaverse address (e.g., <code>"hifi://avatarisland/15,-10,26/0,0,0,1"</code>)
+ * @property {string} href - Your current metaverse address (e.g., <code>"hifi://domainname/15,-10,26/0,0,0,1"</code>)
  *     regardless of whether or not you're connected to the domain. Starts with <code>"file:///"</code> if you're in a 
  *     serverless domain.
  *     <em>Read-only.</em>
@@ -62,10 +62,70 @@ const QString GET_PLACE = "/api/v1/places/%1";
  *     (e.g., <code>"/15,-10,26/0,0,0,1"</code>).
  *     <em>Read-only.</em>
  * @property {string} placename - The place name in your current <code>href</code> metaverse address
- *     (e.g., <code>"AvatarIsland"</code>). Is blank if your <code>hostname</code> is an IP address.
+ *     (e.g., <code>"DomainName"</code>). Is blank if your <code>hostname</code> is an IP address.
  *     <em>Read-only.</em>
  * @property {string} protocol - The protocol of your current <code>href</code> metaverse address (e.g., <code>"hifi"</code>).
  *     <em>Read-only.</em>
+ */
+
+/**jsdoc
+ * The <code>AddressManager</code> API provides facilities related to your current location in the metaverse.
+ *
+ * @namespace AddressManager
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-avatar
+ *
+ * @deprecated This API is deprecated and will be removed. Use the {@link location} or {@link Window|Window.location} APIs 
+ * instead.
+ *
+ * @property {Uuid} domainID - A UUID uniquely identifying the domain you're visiting. Is {@link Uuid(0)|Uuid.NULL} if you're not
+ *     connected to the domain or are in a serverless domain.
+ *     <em>Read-only.</em>
+ * @property {string} hostname - The name of the domain for your current metaverse address (e.g., <code>"DomainName"</code>,
+ *     <code>localhost</code>, or an IP address). Is blank if you're in a serverless domain.
+ *     <em>Read-only.</em>
+ * @property {string} href - Your current metaverse address (e.g., <code>"hifi://domainname/15,-10,26/0,0,0,1"</code>)
+ *     regardless of whether or not you're connected to the domain. Starts with <code>"file:///"</code> if you're in a
+ *     serverless domain.
+ *     <em>Read-only.</em>
+ * @property {boolean} isConnected - <code>true</code> if you're connected to the domain in your current <code>href</code>
+ *     metaverse address, otherwise <code>false</code>.
+ * @property {string} pathname - The location and orientation in your current <code>href</code> metaverse address
+ *     (e.g., <code>"/15,-10,26/0,0,0,1"</code>).
+ *     <em>Read-only.</em>
+ * @property {string} placename - The place name in your current <code>href</code> metaverse address
+ *     (e.g., <code>"DomainName"</code>). Is blank if your <code>hostname</code> is an IP address.
+ *     <em>Read-only.</em>
+ * @property {string} protocol - The protocol of your current <code>href</code> metaverse address (e.g., <code>"hifi"</code>).
+ *     <em>Read-only.</em>
+ *
+ * @borrows location.handleLookupString as handleLookupString
+ * @borrows location.goToViewpointForPath as goToViewpointForPath
+ * @borrows location.goBack as goBack
+ * @borrows location.goForward as goForward
+ * @borrows location.goToLocalSandbox as goToLocalSandbox
+ * @borrows location.goToEntry as goToEntry
+ * @borrows location.goToUser as goToUser
+ * @borrows location.goToLastAddress as goToLastAddress
+ * @borrows location.canGoBack as canGoBack
+ * @borrows location.refreshPreviousLookup as refreshPreviousLookup
+ * @borrows location.storeCurrentAddress as storeCurrentAddress
+ * @borrows location.copyAddress as copyAddress
+ * @borrows location.copyPath as copyPath
+ * @borrows location.lookupShareableNameForDomainID as lookupShareableNameForDomainID
+ *
+ * @borrows location.lookupResultsFinished as lookupResultsFinished
+ * @borrows location.lookupResultIsOffline as lookupResultIsOffline
+ * @borrows location.lookupResultIsNotFound as lookupResultIsNotFound
+ * @borrows location.possibleDomainChangeRequired as possibleDomainChangeRequired
+ * @borrows location.locationChangeRequired as locationChangeRequired
+ * @borrows location.possibleDomainChangeRequiredViaICEForID as possibleDomainChangeRequiredViaICEForID
+ * @borrows location.pathChangeRequired as pathChangeRequired
+ * @borrows location.hostChanged as hostChanged
+ * @borrows location.goBackPossible as goBackPossible
+ * @borrows location.goForwardPossible as goForwardPossible
  */
 
 class AddressManager : public QObject, public Dependency {

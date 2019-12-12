@@ -20,24 +20,17 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
 
     _geometryOffset = hfmModel.offset;
 
-    // convert to std::vector of joints
-    std::vector<HFMJoint> joints;
-    joints.reserve(hfmModel.joints.size());
-    for (auto& joint : hfmModel.joints) {
-        joints.push_back(joint);
-    }
-    buildSkeletonFromJoints(joints, hfmModel.jointRotationOffsets);
+    buildSkeletonFromJoints(hfmModel.joints, hfmModel.jointRotationOffsets);
 
     // we make a copy of the inverseBindMatrices in order to prevent mutating the model bind pose
     // when we are dealing with a joint offset in the model
-    for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
-        const HFMMesh& mesh = hfmModel.meshes.at(i);
+    for (uint32_t i = 0; i < (uint32_t)hfmModel.skinDeformers.size(); i++) {
+        const auto& deformer = hfmModel.skinDeformers[i];
         std::vector<HFMCluster> dummyClustersList;
 
-        for (int j = 0; j < mesh.clusters.size(); j++) {
-            std::vector<glm::mat4> bindMatrices;
+        for (uint32_t j = 0; j < (uint32_t)deformer.clusters.size(); j++) {
             // cast into a non-const reference, so we can mutate the FBXCluster
-            HFMCluster& cluster = const_cast<HFMCluster&>(mesh.clusters.at(j));
+            HFMCluster& cluster = const_cast<HFMCluster&>(deformer.clusters.at(j));
 
             HFMCluster localCluster;
             localCluster.jointIndex = cluster.jointIndex;
