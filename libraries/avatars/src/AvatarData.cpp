@@ -3052,6 +3052,12 @@ AvatarEntityMap AvatarData::getAvatarEntityData() const {
     return AvatarEntityMap();
 }
 
+AvatarEntityMap AvatarData::getAvatarEntityDataNonDefault() const {
+    // overridden where needed
+    // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
+    return AvatarEntityMap();
+}
+
 void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
     // overridden where needed
     // avatarEntityData is expected to be a map of QByteArrays
