@@ -15,6 +15,7 @@
 #include <unordered_set>
 
 #include <gpu/Batch.h>
+#include <graphics/Material.h>
 
 #include "Args.h"
 
@@ -34,8 +35,9 @@ public:
         DUAL_QUAT_SKINNED,
         DEPTH_BIAS,
         WIREFRAME,
-        NO_CULL_FACE,
         FADE,
+        CULL_FACE_NONE, // if neither of these are set, we're CULL_FACE_BACK
+        CULL_FACE_FRONT,
 
         OWN_PIPELINE,
         INVALID,
@@ -81,8 +83,28 @@ public:
         Builder& withDualQuatSkinned() { _flags.set(DUAL_QUAT_SKINNED); return (*this); }
         Builder& withDepthBias() { _flags.set(DEPTH_BIAS); return (*this); }
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
-        Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); return (*this); }
         Builder& withFade() { _flags.set(FADE); return (*this); }
+
+        Builder& withoutCullFace() { return withCullFaceMode(graphics::MaterialKey::CullFaceMode::CULL_NONE); }
+        Builder& withCullFaceMode(graphics::MaterialKey::CullFaceMode cullFaceMode) {
+            switch (cullFaceMode) {
+                case graphics::MaterialKey::CullFaceMode::CULL_NONE:
+                    _flags.set(CULL_FACE_NONE);
+                    _flags.reset(CULL_FACE_FRONT);
+                    break;
+                case graphics::MaterialKey::CullFaceMode::CULL_FRONT:
+                    _flags.reset(CULL_FACE_NONE);
+                    _flags.set(CULL_FACE_FRONT);
+                    break;
+                case graphics::MaterialKey::CullFaceMode::CULL_BACK:
+                    _flags.reset(CULL_FACE_NONE);
+                    _flags.reset(CULL_FACE_FRONT);
+                    break;
+                default:
+                    break;
+            }
+            return (*this);
+        }
 
         Builder& withOwnPipeline() { _flags.set(OWN_PIPELINE); return (*this); }
         Builder& invalidate() { _flags.set(INVALID); return (*this); }
@@ -137,8 +159,27 @@ public:
             Builder& withWireframe() { _flags.set(WIREFRAME); _mask.set(WIREFRAME); return (*this); }
             Builder& withoutWireframe() { _flags.reset(WIREFRAME); _mask.set(WIREFRAME); return (*this); }
 
-            Builder& withCullFace() { _flags.reset(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
-            Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
+            Builder& withCullFaceMode(graphics::MaterialKey::CullFaceMode cullFaceMode) {
+                switch (cullFaceMode) {
+                    case graphics::MaterialKey::CullFaceMode::CULL_NONE:
+                        _flags.set(CULL_FACE_NONE);
+                        _flags.reset(CULL_FACE_FRONT);
+                        break;
+                    case graphics::MaterialKey::CullFaceMode::CULL_FRONT:
+                        _flags.reset(CULL_FACE_NONE);
+                        _flags.set(CULL_FACE_FRONT);
+                        break;
+                    case graphics::MaterialKey::CullFaceMode::CULL_BACK:
+                        _flags.reset(CULL_FACE_NONE);
+                        _flags.reset(CULL_FACE_FRONT);
+                        break;
+                    default:
+                        break;
+                }
+                _mask.set(CULL_FACE_NONE);
+                _mask.set(CULL_FACE_FRONT);
+                return (*this);
+            }
 
             Builder& withFade() { _flags.set(FADE); _mask.set(FADE); return (*this); }
             Builder& withoutFade() { _flags.reset(FADE); _mask.set(FADE); return (*this); }
@@ -168,7 +209,7 @@ public:
     bool isDualQuatSkinned() const { return _flags[DUAL_QUAT_SKINNED]; }
     bool isDepthBiased() const { return _flags[DEPTH_BIAS]; }
     bool isWireframe() const { return _flags[WIREFRAME]; }
-    bool isCullFace() const { return !_flags[NO_CULL_FACE]; }
+    bool isCullFace() const { return !_flags[CULL_FACE_NONE] && !_flags[CULL_FACE_FRONT]; }
     bool isFaded() const { return _flags[FADE]; }
 
     bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }

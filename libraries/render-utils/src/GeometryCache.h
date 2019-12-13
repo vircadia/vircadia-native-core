@@ -162,18 +162,19 @@ public:
     static const int UNKNOWN_ID;
 
     // Bind the pipeline and get the state to render static geometry
-    void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool transparent = false, bool culled = true,
-                                          bool unlit = false, bool depthBias = false, bool isAntiAliased = true, bool forward = false);
+    void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool transparent = false, bool unlit = false, bool depthBias = false,
+        bool isAntiAliased = true, bool forward = false, graphics::MaterialKey::CullFaceMode cullFaceMode = graphics::MaterialKey::CullFaceMode::CULL_BACK);
     // Get the pipeline to render static geometry
-    static gpu::PipelinePointer getSimplePipeline(bool textured = false, bool transparent = false, bool culled = true,
-                                          bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true, bool forward = false);
+    static gpu::PipelinePointer getSimplePipeline(bool textured = false, bool transparent = false, bool unlit = false, bool depthBias = false,
+        bool fading = false, bool isAntiAliased = true, bool forward = false, graphics::MaterialKey::CullFaceMode cullFaceMode = graphics::MaterialKey::CullFaceMode::CULL_BACK);
 
     void bindWebBrowserProgram(gpu::Batch& batch, bool transparent, bool forward);
     gpu::PipelinePointer getWebBrowserProgram(bool transparent, bool forward);
     static std::map<std::pair<bool, bool>, gpu::PipelinePointer> _webPipelines;
 
     static void initializeShapePipelines();
-    render::ShapePipelinePointer getShapePipelinePointer(bool transparent, bool unlit, bool forward) { return _shapePipelines[std::make_tuple(transparent, unlit, forward)]; }
+    render::ShapePipelinePointer getShapePipelinePointer(bool transparent, bool unlit, bool forward,
+        graphics::MaterialKey::CullFaceMode cullFaceMode = graphics::MaterialKey::CULL_BACK) { return _shapePipelines[std::make_tuple(transparent, unlit, forward, cullFaceMode)]; }
 
     // Static (instanced) geometry
     void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
@@ -456,13 +457,13 @@ private:
     static gpu::ShaderPointer _forwardSimpleFadeShader;
     static gpu::ShaderPointer _forwardUnlitFadeShader;
 
-    static std::map<std::tuple<bool, bool, bool>, render::ShapePipelinePointer> _shapePipelines;
+    static std::map<std::tuple<bool, bool, bool, graphics::MaterialKey::CullFaceMode>, render::ShapePipelinePointer> _shapePipelines;
     static QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 
-    static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false, bool forward = false);
-    static render::ShapePipelinePointer getFadingShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false, bool forward = false);
+    static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool unlit = false,
+        bool depthBias = false, bool forward = false, graphics::MaterialKey::CullFaceMode cullFaceMode = graphics::MaterialKey::CullFaceMode::CULL_BACK);
+    static render::ShapePipelinePointer getFadingShapePipeline(bool textured = false, bool transparent = false, bool unlit = false,
+        bool depthBias = false, bool forward = false, graphics::MaterialKey::CullFaceMode cullFaceMode = graphics::MaterialKey::CullFaceMode::CULL_BACK);
 };
 
 #endif // hifi_GeometryCache_h

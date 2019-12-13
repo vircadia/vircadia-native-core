@@ -259,46 +259,44 @@ void addPlumberPipeline(ShapePlumber& plumber,
 
     gpu::ShaderPointer program = gpu::Shader::createProgram(programId);
 
-    for (int i = 0; i < 8; i++) {
-        bool isCulled = (i & 1);
-        bool isBiased = (i & 2);
-        bool isWireframed = (i & 4);
+    for (int i = 0; i < 4; i++) {
+        bool isBiased = (i & 1);
+        bool isWireframed = (i & 2);
+        for (int cullFaceMode = graphics::MaterialKey::CullFaceMode::CULL_NONE; cullFaceMode < graphics::MaterialKey::CullFaceMode::NUM_CULL_FACE_MODES; cullFaceMode++) {
+            auto state = std::make_shared<gpu::State>();
+            key.isTranslucent() ? PrepareStencil::testMask(*state) : PrepareStencil::testMaskDrawShape(*state);
 
-        auto state = std::make_shared<gpu::State>();
-        key.isTranslucent() ? PrepareStencil::testMask(*state) : PrepareStencil::testMaskDrawShape(*state);
+            // Depth test depends on transparency
+            state->setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
+            state->setBlendFunction(key.isTranslucent(),
+                    gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                    gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-        // Depth test depends on transparency
-        state->setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
-        state->setBlendFunction(key.isTranslucent(),
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+            ShapeKey::Builder builder(key);
+            builder.withCullFaceMode((graphics::MaterialKey::CullFaceMode)cullFaceMode);
+            state->setCullMode((gpu::State::CullMode)cullFaceMode);
+            if (isWireframed) {
+                builder.withWireframe();
+                state->setFillMode(gpu::State::FILL_LINE);
+            }
+            if (isBiased) {
+                builder.withDepthBias();
+                state->setDepthBias(1.0f);
+                state->setDepthBiasSlopeScale(1.0f);
+            }
 
-        ShapeKey::Builder builder(key);
-        if (!isCulled) {
-            builder.withoutCullFace();
+            auto baseBatchSetter = (forceLightBatchSetter || key.isTranslucent()) ? &lightBatchSetter : &batchSetter;
+            render::ShapePipeline::BatchSetter finalBatchSetter;
+            if (extraBatchSetter) {
+                finalBatchSetter = [baseBatchSetter, extraBatchSetter](const ShapePipeline& pipeline, gpu::Batch& batch, render::Args* args) {
+                    baseBatchSetter(pipeline, batch, args);
+                    extraBatchSetter(pipeline, batch, args);
+                };
+            } else {
+                finalBatchSetter = baseBatchSetter;
+            }
+            plumber.addPipeline(builder.build(), program, state, finalBatchSetter, itemSetter);
         }
-        state->setCullMode(isCulled ? gpu::State::CULL_BACK : gpu::State::CULL_NONE);
-        if (isWireframed) {
-            builder.withWireframe();
-            state->setFillMode(gpu::State::FILL_LINE);
-        }
-        if (isBiased) {
-            builder.withDepthBias();
-            state->setDepthBias(1.0f);
-            state->setDepthBiasSlopeScale(1.0f);
-        }
-
-        auto baseBatchSetter = (forceLightBatchSetter || key.isTranslucent()) ? &lightBatchSetter : &batchSetter;
-        render::ShapePipeline::BatchSetter finalBatchSetter;
-        if (extraBatchSetter) {
-            finalBatchSetter = [baseBatchSetter, extraBatchSetter](const ShapePipeline& pipeline, gpu::Batch& batch, render::Args* args) {
-                baseBatchSetter(pipeline, batch, args);
-                extraBatchSetter(pipeline, batch, args);
-            };
-        } else {
-            finalBatchSetter = baseBatchSetter;
-        }
-        plumber.addPipeline(builder.build(), program, state, finalBatchSetter, itemSetter);
     }
 }
 
@@ -387,8 +385,10 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
     std::call_once(once, [] {
         for (int i = 0; i < graphics::Material::NUM_TOTAL_FLAGS; i++) {
             // The opacity mask/map are derived from the albedo map
+            // FIXME: OPACITY_MAP_MODE_BIT is supposed to support fallthrough
             if (i != graphics::MaterialKey::OPACITY_MASK_MAP_BIT &&
-                    i != graphics::MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT) {
+                    i != graphics::MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT &&
+                    i != graphics::MaterialKey::OPACITY_MAP_MODE_BIT) {
                 allFlags.insert(i);
             }
         }
@@ -642,6 +642,12 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         wasSet = true;
                     }
                     break;
+                case graphics::Material::CULL_FACE_MODE:
+                    if (!fallthrough) {
+                        multiMaterial.setCullFaceMode(material->getCullFaceMode());
+                        wasSet = true;
+                    }
+                    break;
                 default:
                     break;
             }
@@ -683,6 +689,8 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
             case graphics::Material::MATERIAL_PARAMS:
                 // these are initialized to the correct default values in Schema()
                 break;
+            case graphics::Material::CULL_FACE_MODE:
+                multiMaterial.setCullFaceMode(graphics::Material::DEFAULT_CULL_FACE_MODE);
             case graphics::MaterialKey::ALBEDO_MAP_BIT:
                 if (schemaKey.isAlbedoMap()) {
                     drawMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, textureCache->getWhiteTexture());

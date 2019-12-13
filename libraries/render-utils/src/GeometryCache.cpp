@@ -723,7 +723,7 @@ gpu::ShaderPointer GeometryCache::_forwardUnlitShader;
 gpu::ShaderPointer GeometryCache::_forwardSimpleFadeShader;
 gpu::ShaderPointer GeometryCache::_forwardUnlitFadeShader;
 
-std::map<std::tuple<bool, bool, bool>, render::ShapePipelinePointer> GeometryCache::_shapePipelines;
+std::map<std::tuple<bool, bool, bool, graphics::MaterialKey::CullFaceMode>, render::ShapePipelinePointer> GeometryCache::_shapePipelines;
 
 GeometryCache::GeometryCache() :
 _nextID(0) {
@@ -776,15 +776,18 @@ void GeometryCache::initializeShapePipelines() {
             bool transparent = i & 1;
             bool unlit = i & 2;
             bool forward = i & 4;
-            _shapePipelines[std::make_tuple(transparent, unlit, forward)] = getShapePipeline(false, transparent, true, unlit, false, forward);
+            for (int cullFaceMode = graphics::MaterialKey::CullFaceMode::CULL_NONE; cullFaceMode < graphics::MaterialKey::CullFaceMode::NUM_CULL_FACE_MODES; cullFaceMode++) {
+                auto cullMode = (graphics::MaterialKey::CullFaceMode)cullFaceMode;
+                _shapePipelines[std::make_tuple(transparent, unlit, forward, cullMode)] = getShapePipeline(false, transparent, unlit, false, forward, cullMode);
+            }
         }
     }
 }
 
-render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool transparent, bool culled,
-    bool unlit, bool depthBias, bool forward) {
+render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool transparent, bool unlit, bool depthBias, bool forward,
+        graphics::MaterialKey::CullFaceMode cullFaceMode) {
 
-    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, false, true, forward), nullptr,
+    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, unlit, depthBias, false, true, forward, cullFaceMode), nullptr,
         [](const render::ShapePipeline& pipeline, gpu::Batch& batch, render::Args* args) {
             batch.setResourceTexture(gr::Texture::MaterialAlbedo, DependencyManager::get<TextureCache>()->getWhiteTexture());
             DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(args, batch);
@@ -792,12 +795,12 @@ render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool
     );
 }
 
-render::ShapePipelinePointer GeometryCache::getFadingShapePipeline(bool textured, bool transparent, bool culled,
-    bool unlit, bool depthBias, bool forward) {
+render::ShapePipelinePointer GeometryCache::getFadingShapePipeline(bool textured, bool transparent, bool unlit, bool depthBias, bool forward,
+        graphics::MaterialKey::CullFaceMode cullFaceMode) {
     auto fadeEffect = DependencyManager::get<FadeEffect>();
     auto fadeBatchSetter = fadeEffect->getBatchSetter();
     auto fadeItemSetter = fadeEffect->getItemUniformSetter();
-    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, true, true, forward), nullptr,
+    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, unlit, depthBias, true, true, forward, cullFaceMode), nullptr,
         [fadeBatchSetter, fadeItemSetter](const render::ShapePipeline& shapePipeline, gpu::Batch& batch, render::Args* args) {
             batch.setResourceTexture(gr::Texture::MaterialAlbedo, DependencyManager::get<TextureCache>()->getWhiteTexture());
             fadeBatchSetter(shapePipeline, batch, args);
@@ -2049,54 +2052,60 @@ void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bo
 class SimpleProgramKey {
 public:
     enum FlagBit {
-        IS_TEXTURED_FLAG = 0,
-        IS_TRANSPARENT_FLAG,
-        IS_CULLED_FLAG,
-        IS_UNLIT_FLAG,
-        HAS_DEPTH_BIAS_FLAG,
-        IS_FADING_FLAG,
-        IS_ANTIALIASED_FLAG,
-        IS_FORWARD_FLAG,
+        IS_TEXTURED_BIT = 0,
+        IS_TRANSPARENT_BIT,
+        IS_UNLIT_BIT,
+        IS_DEPTH_BIASED_BIT,
+        IS_FADING_BIT,
+        IS_ANTIALIASED_BIT,
+        IS_FORWARD_BIT,
+        IS_CULL_FACE_NONE_BIT,   // if neither of these are set, we're CULL_FACE_BACK
+        IS_CULL_FACE_FRONT_BIT,
 
         NUM_FLAGS,
     };
+    typedef std::bitset<NUM_FLAGS> Flags;
 
-    enum Flag {
-        IS_TEXTURED = (1 << IS_TEXTURED_FLAG),
-        IS_TRANSPARENT = (1 << IS_TRANSPARENT_FLAG),
-        IS_CULLED = (1 << IS_CULLED_FLAG),
-        IS_UNLIT = (1 << IS_UNLIT_FLAG),
-        HAS_DEPTH_BIAS = (1 << HAS_DEPTH_BIAS_FLAG),
-        IS_FADING = (1 << IS_FADING_FLAG),
-        IS_ANTIALIASED = (1 << IS_ANTIALIASED_FLAG),
-        IS_FORWARD = (1 << IS_FORWARD_FLAG),
-    };
-    typedef unsigned short Flags;
-
-    bool isFlag(short flagNum) const { return bool((_flags & flagNum) != 0); }
-
-    bool isTextured() const { return isFlag(IS_TEXTURED); }
-    bool isTransparent() const { return isFlag(IS_TRANSPARENT); }
-    bool isCulled() const { return isFlag(IS_CULLED); }
-    bool isUnlit() const { return isFlag(IS_UNLIT); }
-    bool hasDepthBias() const { return isFlag(HAS_DEPTH_BIAS); }
-    bool isFading() const { return isFlag(IS_FADING); }
-    bool isAntiAliased() const { return isFlag(IS_ANTIALIASED); }
-    bool isForward() const { return isFlag(IS_FORWARD); }
+    bool isTextured() const { return _flags[IS_TEXTURED_BIT]; }
+    bool isTransparent() const { return _flags[IS_TRANSPARENT_BIT]; }
+    bool isUnlit() const { return _flags[IS_UNLIT_BIT]; }
+    bool hasDepthBias() const { return _flags[IS_DEPTH_BIASED_BIT]; }
+    bool isFading() const { return _flags[IS_FADING_BIT]; }
+    bool isAntiAliased() const { return _flags[IS_ANTIALIASED_BIT]; }
+    bool isForward() const { return _flags[IS_FORWARD_BIT]; }
+    bool isCullFaceNone() const { return _flags[IS_CULL_FACE_NONE_BIT]; }
+    bool isCullFaceFront() const { return _flags[IS_CULL_FACE_FRONT_BIT]; }
 
     Flags _flags = 0;
-#if defined(__clang__)
-    __attribute__((unused))
-#endif
-    short _spare = 0; // Padding
 
-    int getRaw() const { return *reinterpret_cast<const int*>(this); }
+    unsigned long getRaw() const { return _flags.to_ulong(); }
 
+    SimpleProgramKey(bool textured = false, bool transparent = false, bool unlit = false, bool depthBias = false, bool fading = false,
+        bool isAntiAliased = true, bool forward = false, graphics::MaterialKey::CullFaceMode cullFaceMode = graphics::MaterialKey::CULL_BACK) {
+        _flags.set(IS_TEXTURED_BIT, textured);
+        _flags.set(IS_TRANSPARENT_BIT, transparent);
+        _flags.set(IS_UNLIT_BIT, unlit);
+        _flags.set(IS_DEPTH_BIASED_BIT, depthBias);
+        _flags.set(IS_FADING_BIT, fading);
+        _flags.set(IS_ANTIALIASED_BIT, isAntiAliased);
+        _flags.set(IS_FORWARD_BIT, forward);
 
-    SimpleProgramKey(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true, bool forward = false) {
-        _flags = (textured ? IS_TEXTURED : 0) | (transparent ? IS_TRANSPARENT : 0) | (culled ? IS_CULLED : 0) |
-            (unlit ? IS_UNLIT : 0) | (depthBias ? HAS_DEPTH_BIAS : 0) | (fading ? IS_FADING : 0) | (isAntiAliased ? IS_ANTIALIASED : 0) | (forward ? IS_FORWARD : 0);
+        switch (cullFaceMode) {
+            case graphics::MaterialKey::CullFaceMode::CULL_NONE:
+                _flags.set(IS_CULL_FACE_NONE_BIT);
+                _flags.reset(IS_CULL_FACE_FRONT_BIT);
+                break;
+            case graphics::MaterialKey::CullFaceMode::CULL_FRONT:
+                _flags.reset(IS_CULL_FACE_NONE_BIT);
+                _flags.set(IS_CULL_FACE_FRONT_BIT);
+                break;
+            case graphics::MaterialKey::CullFaceMode::CULL_BACK:
+                _flags.reset(IS_CULL_FACE_NONE_BIT);
+                _flags.reset(IS_CULL_FACE_FRONT_BIT);
+                break;
+            default:
+                break;
+        }
     }
 
     SimpleProgramKey(int bitmask) : _flags(bitmask) {}
@@ -2141,8 +2150,9 @@ gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent, bool 
     return _webPipelines[{ transparent, forward }];
 }
 
-void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool isAntiAliased, bool forward) {
-    batch.setPipeline(getSimplePipeline(textured, transparent, culled, unlit, depthBiased, false, isAntiAliased, forward));
+void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool unlit, bool depthBiased, bool isAntiAliased,
+        bool forward, graphics::MaterialKey::CullFaceMode cullFaceMode) {
+    batch.setPipeline(getSimplePipeline(textured, transparent, unlit, depthBiased, false, isAntiAliased, forward, cullFaceMode));
 
     // If not textured, set a default albedo map
     if (!textured) {
@@ -2151,8 +2161,9 @@ void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool tra
     }
 }
 
-gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool fading, bool isAntiAliased, bool forward) {
-    SimpleProgramKey config { textured, transparent, culled, unlit, depthBiased, fading, isAntiAliased, forward };
+gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transparent, bool unlit, bool depthBiased, bool fading, bool isAntiAliased,
+        bool forward, graphics::MaterialKey::CullFaceMode cullFaceMode) {
+    SimpleProgramKey config { textured, transparent, unlit, depthBiased, fading, isAntiAliased, forward, cullFaceMode };
 
     // If the pipeline already exists, return it
     auto it = _simplePrograms.find(config);
@@ -2189,10 +2200,12 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
 
     // If the pipeline did not exist, make it
     auto state = std::make_shared<gpu::State>();
-    if (config.isCulled()) {
-        state->setCullMode(gpu::State::CULL_BACK);
-    } else {
+    if (config.isCullFaceNone()) {
         state->setCullMode(gpu::State::CULL_NONE);
+    } else if (config.isCullFaceFront()) {
+        state->setCullMode(gpu::State::CULL_FRONT);
+    } else {
+        state->setCullMode(gpu::State::CULL_BACK);
     }
     state->setDepthTest(true, true, gpu::LESS_EQUAL);
     if (config.hasDepthBias()) {

@@ -147,6 +147,9 @@ ShapeKey MeshPartPayload::getShapeKey() const {
         if (drawMaterialKey.isUnlit()) {
             builder.withUnlit();
         }
+        if (material) {
+            builder.withCullFaceMode(material->getCullFaceMode());
+        }
     }
 
     return builder.build();
@@ -418,6 +421,9 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, PrimitiveMode pr
         }
         if (isUnlit) {
             builder.withUnlit();
+        }
+        if (material) {
+            builder.withCullFaceMode(material->getCullFaceMode());
         }
     }
 
