@@ -168,12 +168,12 @@ render::hifi::Layer EntityRenderer::getHifiRenderLayer() const {
 }
 
 ItemKey EntityRenderer::getKey() {
-    auto builder = ItemKey::Builder().withTypeShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+    ItemKey::Builder builder =
+        ItemKey::Builder().withTypeShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
     if (isTransparent()) {
         builder.withTransparent();
-    }
-
-    if (_canCastShadow) {
+    } else if (_canCastShadow) {
         builder.withShadowCaster();
     }
 
@@ -181,7 +181,11 @@ ItemKey EntityRenderer::getKey() {
         builder.withSubMetaCulled();
     }
 
-    return builder.build();
+    if (!_visible) {
+        builder.withInvisible();
+    }
+
+    return builder;
 }
 
 uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {

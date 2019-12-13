@@ -3030,10 +3030,10 @@ bool EntityItem::getCullWithParent() const {
 }
 
 void EntityItem::setCullWithParent(bool value) {
-    if (_cullWithParent != value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _cullWithParent != value;
         _cullWithParent = value;
-        emit requestRenderUpdate();
-    }
+    });
 }
 
 bool EntityItem::isChildOfMyAvatar() const {

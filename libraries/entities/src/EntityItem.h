@@ -579,7 +579,6 @@ public:
 
 signals:
     void spaceUpdate(std::pair<int32_t, glm::vec4> data);
-    void requestRenderUpdate();
 
 protected:
     QHash<ChangeHandlerId, ChangeHandlerCallback> _changeHandlers;
