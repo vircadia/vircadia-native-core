@@ -68,6 +68,18 @@ void WebSocketClass::close(QWebSocketProtocol::CloseCode closeCode, QString reas
     _webSocket->close(closeCode, reason);
 }
 
+/**jsdoc
+ * Called when the connection closes.
+ * @callback WebSocket~onCloseCallback
+ * @param {WebSocket.CloseData} data - Information on the connection closure.
+ */
+/**jsdoc
+ * Information on a connection being closed.
+ * @typedef {object} WebSocket.CloseData
+ * @property {WebSocket.CloseCode} code - The reason why the connection was closed.
+ * @property {string} reason - Description of the reason why the connection was closed.
+ * @property {boolean} wasClean - <code>true</code> if the connection closed cleanly, <code>false</code> if it didn't.
+ */
 void WebSocketClass::handleOnClose() {
     bool hasError = (_webSocket->error() != QAbstractSocket::UnknownSocketError);
     if (_onCloseEvent.isFunction()) {
@@ -81,12 +93,26 @@ void WebSocketClass::handleOnClose() {
     }
 }
 
+/**jsdoc
+ * Called when an error occurs.
+ * @callback WebSocket~onErrorCallback
+ */
 void WebSocketClass::handleOnError(QAbstractSocket::SocketError error) {
     if (_onErrorEvent.isFunction()) {
         _onErrorEvent.call();
     }
 }
 
+/**jsdoc
+ * Triggered when a message is received.
+ * @callback WebSocket~onMessageCallback
+ * @param {WebSocket.MessageData} message - The message received.
+ */
+/**jsdoc
+ * A message received on a WebSocket connection.
+ * @typedef {object} WebSocket.MessageData
+ * @property {string} data - The message content.
+ */
 void WebSocketClass::handleOnMessage(const QString& message) {
     if (_onMessageEvent.isFunction()) {
         QScriptValueList args;
@@ -97,6 +123,10 @@ void WebSocketClass::handleOnMessage(const QString& message) {
     }
 }
 
+/**jsdoc
+ * Called when the connection opens.
+ * @callback WebSocket~onOpenCallback
+ */
 void WebSocketClass::handleOnOpen() {
     if (_onOpenEvent.isFunction()) {
         _onOpenEvent.call();
