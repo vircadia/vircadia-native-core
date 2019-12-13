@@ -100,25 +100,24 @@ namespace render {
     };
 
     class CullSpatialSelection {
-        bool _freezeFrustum{ false }; // initialized by Config
-        bool _justFrozeFrustum{ false };
-        bool _skipCulling{ false };
-        ViewFrustum _frozenFrustum;
     public:
         using Config = CullSpatialSelectionConfig;
         using Inputs = render::VaryingSet2<ItemSpatialTree::ItemSelection, ItemFilter>;
         using JobModel = Job::ModelIO<CullSpatialSelection, Inputs, ItemBounds, Config>;
 
-        CullSpatialSelection(CullFunctor cullFunctor, RenderDetails::Type type) :
-            _cullFunctor{ cullFunctor },
+        CullSpatialSelection(CullFunctor cullFunctor, bool skipCulling, RenderDetails::Type type) :
+            _cullFunctor(cullFunctor),
+            _skipCulling(skipCulling),
             _detailType(type) {}
 
-        CullSpatialSelection(CullFunctor cullFunctor) :
-            _cullFunctor{ cullFunctor } {
-        }
-
         CullFunctor _cullFunctor;
+        bool _skipCulling { false };
         RenderDetails::Type _detailType{ RenderDetails::OTHER };
+
+        bool _freezeFrustum { false }; // initialized by Config
+        bool _justFrozeFrustum { false };
+        bool _overrideSkipCulling { false };
+        ViewFrustum _frozenFrustum;
 
         void configure(const Config& config);
         void run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemBounds& outItems);
@@ -145,15 +144,6 @@ namespace render {
         CullFunctor _cullFunctor;
         RenderDetails::Type _detailType{ RenderDetails::OTHER };
 
-    };
-
-    class FilterSpatialSelection {
-    public:
-        using Inputs = render::VaryingSet2<ItemSpatialTree::ItemSelection, ItemFilter>;
-        using JobModel = Job::ModelIO<FilterSpatialSelection, Inputs, ItemBounds>;
-
-        FilterSpatialSelection() {}
-        void run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemBounds& outItems);
     };
 
     class ApplyCullFunctorOnItemBounds {

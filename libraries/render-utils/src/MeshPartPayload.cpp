@@ -106,6 +106,10 @@ void MeshPartPayload::updateKey(const render::ItemKey& key) {
         builder.withTransparent();
     }
 
+    if (_cullWithParent) {
+        builder.withSubMetaCulled();
+    }
+
     _itemKey = builder.build();
 }
 
@@ -366,6 +370,10 @@ void ModelMeshPartPayload::updateKey(const render::ItemKey& key) {
     auto matKey = _drawMaterials.getMaterialKey();
     if (matKey.isTranslucent()) {
         builder.withTransparent();
+    }
+
+    if (_cullWithParent) {
+        builder.withSubMetaCulled();
     }
 
     _itemKey = builder.build();

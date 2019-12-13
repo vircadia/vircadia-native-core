@@ -151,11 +151,17 @@ void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEn
 
 ItemKey ParticleEffectEntityRenderer::getKey() {
     // FIXME: implement isTransparent() for particles and an opaque pipeline
-    if (_visible) {
-        return ItemKey::Builder::transparentShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
-    } else {
-        return ItemKey::Builder().withInvisible().withTagBits(getTagMask()).withLayer(getHifiRenderLayer()).build();
+    auto builder = ItemKey::Builder::transparentShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
+    if (!_visible) {
+        builder.withInvisible();
     }
+
+    if (_cullWithParent) {
+        builder.withSubMetaCulled();
+    }
+
+    return builder.build();
 }
 
 ShapeKey ParticleEffectEntityRenderer::getShapeKey() {
