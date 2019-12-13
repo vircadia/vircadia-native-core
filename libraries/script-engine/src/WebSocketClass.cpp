@@ -119,7 +119,7 @@ void WebSocketClass::handleOnClose() {
  *     <tr><td><code>9</code></td><td>SocketAddressNotAvailableError</td><td>The address specified does not belong to the 
  *       host.</td></tr>
  *     <tr><td><code>10</code></td><td>UnsupportedSocketOperationError</td><td>The requested socket operation is not supported
-*        by the local OS.</td></tr>
+ *       by the local OS.</td></tr>
  *     <tr><td><code>11</code></td><td>ProxyAuthenticationRequiredError</td><td>The socket is using a proxy and requires 
  *       authentication.</td></tr>
  *     <tr><td><code>12</code></td><td>SslHandshakeFailedError</td><td>The SSL/TLS handshake failed.</td></tr>
@@ -129,7 +129,7 @@ void WebSocketClass::handleOnClose() {
  *     <tr><td><code>15</code></td><td>ProxyConnectionClosedError</td><td>The connection to the proxy server was unexpectedly 
  *       closed.</td></tr>
  *     <tr><td><code>16</code></td><td>ProxyConnectionTimeoutError</td><td>The connection to the proxy server timed
-*        out.</td></tr>
+ *       out.</td></tr>
  *     <tr><td><code>17</code></td><td>ProxyNotFoundError</td><td>The proxy address was not found.</td></tr>
  *     <tr><td><code>18</code></td><td>ProxyProtocolError</td><td>Connection to the proxy server failed because the server 
  *       response could not be understood.</td></tr>
