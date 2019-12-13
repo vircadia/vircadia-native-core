@@ -186,24 +186,24 @@ public slots:
      * @example <caption>Send and receive messages with a QML window.</caption>
      * // JavaScript file.
      * 
-     * var qmlWindow = Desktop.createWindow(Script.resolvePath("QMLWindow.qml"), {
-     *     title: "QML Window",
+     * var interactiveWindow = Desktop.createWindow(Script.resolvePath("InteractiveWindow.qml"), {
+     *     title: "Interactive Window",
      *     size: { x: 400, y: 300 }
      * });
      * 
-     * qmlWindow.fromQml.connect(function (message) {
+     * interactiveWindow.fromQml.connect(function (message) {
      *     print("Message received: " + message);
      * });
      * 
      * Script.setTimeout(function () {
-     *     qmlWindow.sendToQml("Hello world!");
+     *     interactiveWindow.sendToQml("Hello world!");
      * }, 2000);
      * 
      * Script.scriptEnding.connect(function () {
-     *     qmlWindow.close();
+     *     interactiveWindow.close();
      * });
      * @example
-     * // QML file, "QMLWindow.qml".
+     * // QML file, "InteractiveWindow.qml".
      * 
      * import QtQuick 2.5
      * import QtQuick.Controls 1.4
@@ -227,7 +227,7 @@ public slots:
 
     /**jsdoc
      * Sends a message to an embedded HTML web page. To receive the message, the HTML page's script must connect to the 
-     * <code>EventBridge</code> that is automatically provided to the script:
+     * <code>EventBridge</code> that is automatically provided for the script:
      * <pre class="prettyprint"><code>EventBridge.scriptEventReceived.connect(function(message) {
      *     ...
      * });</code></pre>
@@ -239,8 +239,8 @@ public slots:
 
     /**jsdoc
      * @function InteractiveWindow.emitWebEvent
-     * @param {object|string} message - The message.
-     * @deprecated This function is deprecated and will be removed from the API.
+     * @param {object|string} message - Message.
+     * @deprecated This function is deprecated and will be removed.
      */
     void emitWebEvent(const QVariant& webMessage);
 
@@ -318,9 +318,9 @@ signals:
 
     /**jsdoc
      * @function InteractiveWindow.scriptEventReceived
-     * @param {object} message - The message.
+     * @param {object} message - Message.
      * @returns {Signal}
-     * @deprecated This signal is deprecated and will be removed from the API.
+     * @deprecated This signal is deprecated and will be removed.
      */
     // InteractiveWindow content may include WebView requiring EventBridge.
     void scriptEventReceived(const QVariant& message);
@@ -337,9 +337,8 @@ signals:
 protected slots:
     /**jsdoc
      * @function InteractiveWindow.qmlToScript
-     * @param {object} message
-     * @returns {Signal}
-     * @deprecated This signal is deprecated and will be removed from the API.
+     * @param {object} message - Message.
+     * @deprecated This method is deprecated and will be removed.
      */
     void qmlToScript(const QVariant& message);
 
