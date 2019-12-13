@@ -579,6 +579,7 @@ public:
 
 signals:
     void spaceUpdate(std::pair<int32_t, glm::vec4> data);
+    void requestRenderUpdate();
 
 protected:
     QHash<ChangeHandlerId, ChangeHandlerCallback> _changeHandlers;
@@ -766,6 +767,8 @@ protected:
     QHash<QUuid, EntityDynamicPointer> _grabActions;
 
     bool _cullWithParent { false };
+    
+    mutable bool _needsRenderUpdate { false };
 
 private:
     static std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&)> _getBillboardRotationOperator;

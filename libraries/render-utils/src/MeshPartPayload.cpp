@@ -189,7 +189,7 @@ void MeshPartPayload::render(RenderArgs* args) {
 
     if (!_drawMaterials.empty() && _drawMaterials.top().material && _drawMaterials.top().material->isProcedural() &&
             _drawMaterials.top().material->isReady()) {
-        if (!(enableMaterialProceduralShaders && ENABLE_MATERIAL_PROCEDURAL_SHADERS)) {
+        if (!enableMaterialProceduralShaders) {
             return;
         }
         auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(_drawMaterials.top().material);

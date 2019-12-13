@@ -75,9 +75,12 @@ public:
 
     void setCullWithParent(bool value) { _cullWithParent = value; }
 
+    static bool enableMaterialProceduralShaders;
+
 protected:
     render::ItemKey _itemKey{ render::ItemKey::Builder::opaqueShape().build() };
     bool _cullWithParent { false };
+    uint64_t _created;
 };
 
 namespace render {
