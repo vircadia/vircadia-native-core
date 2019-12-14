@@ -477,17 +477,17 @@ void ViveControllerManager::updateEyeTracker(float deltaTime, const controller::
 
     // in the data from sranipal, left=+x, up=+y, forward=+z
     mat4 localLeftEyeMat = glm::lookAt(vec3(0.0f, 0.0f, 0.0f),
-                                       glm::vec3(-eyeDataBuffer.leftEyeGaze[0],
+                                       glm::vec3(eyeDataBuffer.leftEyeGaze[0],
                                                  eyeDataBuffer.leftEyeGaze[1],
-                                                 eyeDataBuffer.leftEyeGaze[2]),
+                                                 -eyeDataBuffer.leftEyeGaze[2]),
                                        vec3(0.0f, 1.0f, 0.0f));
     quat localLeftEyeRot = glm::quat_cast(localLeftEyeMat);
     quat avatarLeftEyeRot = _inputDevice->_poseStateMap[controller::HEAD].rotation * localLeftEyeRot;
 
     mat4 localRightEyeMat = glm::lookAt(vec3(0.0f, 0.0f, 0.0f),
-                                        glm::vec3(-eyeDataBuffer.rightEyeGaze[0],
+                                        glm::vec3(eyeDataBuffer.rightEyeGaze[0],
                                                   eyeDataBuffer.rightEyeGaze[1],
-                                                  eyeDataBuffer.rightEyeGaze[2]),
+                                                  -eyeDataBuffer.rightEyeGaze[2]),
                                         vec3(0.0f, 1.0f, 0.0f));
     quat localRightEyeRot = glm::quat_cast(localRightEyeMat);
     quat avatarRightEyeRot = _inputDevice->_poseStateMap[controller::HEAD].rotation * localRightEyeRot;
