@@ -3182,13 +3182,37 @@ static const QUrl AUTHORIZED_EXTERNAL_QML_SOURCE { "https://content.highfidelity
 
 void Application::initializeUi() {
 
+    
     // Allow remote QML content from trusted sources ONLY
     {
         auto defaultUrlValidator = OffscreenQmlSurface::getUrlValidator();
-        auto newValidator = [=](const QUrl& url)->bool {
-            if (AUTHORIZED_EXTERNAL_QML_SOURCE.isParentOf(url)) {
-                return true;
+        auto newValidator = [=](const QUrl& url) -> bool {
+            QString whitelistPrefix = "[WHITELIST ENTITY SCRIPTS]";
+            QList<QString> safeURLS = { "" };
+            safeURLS += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
+
+            // PULL SAFEURLS FROM INTERFACE.JSON Settings
+
+            QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
+            QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), QString::SkipEmptyParts);
+            safeURLS += settingsSafeURLS;
+
+            // END PULL SAFEURLS FROM INTERFACE.JSON Settings
+
+            bool isInWhitelist = false;  // assume unsafe
+            for (const auto& str : safeURLS) {
+                qDebug() << "url.toString().startsWith(str) = " << url.toString().startsWith(str);
+                qDebug() << "str.endsWith('.qml ') = " << str.endsWith(".qml");
+                if (!str.isEmpty() && str.endsWith(".qml") && url.toString().endsWith(".qml") &&
+                    url.toString().startsWith(str)) {
+                    qDebug() << "found matching url!" << url.host();
+                    isInWhitelist = true;
+                    return true;
+                    break;  // bail early since we found a match
+                }
             }
+
+            qDebug() << "no matching url :c" << url.host();
             return defaultUrlValidator(url);
         };
         OffscreenQmlSurface::setUrlValidator(newValidator);
