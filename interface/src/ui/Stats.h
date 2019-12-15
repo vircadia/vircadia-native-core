@@ -72,14 +72,14 @@ private: \
 
  * @property {number} gameLoopRate - The rate at which the game loop is running, in Hz.
  *     <em>Read-only.</em>
- * @property {number} refreshRateTarget - The current refresh rate target per the current <code>refreshRateMode</code> and 
- *      <code>refreshRateRegime</code> if in desktop mode; a higher rate if in VR mode. 
+ * @property {number} refreshRateTarget - The current target refresh rate, in Hz, per the current <code>refreshRateMode</code> 
+ *     and <code>refreshRateRegime</code> if in desktop mode; a higher rate if in VR mode. 
  *     <em>Read-only.</em>
- * @property {RefreshRateProfile} refreshRateMode - The current refresh rate profile.
+ * @property {RefreshRateProfileName} refreshRateMode - The current refresh rate profile.
  *     <em>Read-only.</em>
- * @property {RefreshRateRegime} refreshRateRegime - The current refresh rate regime.
+ * @property {RefreshRateRegimeName} refreshRateRegime - The current refresh rate regime.
  *     <em>Read-only.</em>
- * @property {UXMode} uxMode - The user experience (UX) mode that Interface is running in.
+ * @property {UXModeName} uxMode - The user experience (UX) mode that Interface is running in.
  *     <em>Read-only.</em>
  * @property {number} avatarCount - The number of avatars in the domain other than the client's.
  *     <em>Read-only.</em>
