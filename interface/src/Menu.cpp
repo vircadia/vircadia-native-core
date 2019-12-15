@@ -772,6 +772,7 @@ Menu::Menu() {
     // Help > About High Fidelity
     action = addActionToQMenuAndActionHash(helpMenu, "About High Fidelity");
     connect(action, &QAction::triggered, [] {
+        DependencyManager::get<OffscreenUi>()->clearCache();
         qApp->showDialog(QString("hifi/dialogs/AboutDialog.qml"),
             QString("hifi/dialogs/TabletAboutDialog.qml"), "AboutDialog");
     });
@@ -808,7 +809,7 @@ Menu::Menu() {
     // Help > Report a Bug!
     action = addActionToQMenuAndActionHash(helpMenu, "Report a Bug!");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("mailto:support@highfidelity.com"));
+        QDesktopServices::openUrl(QUrl("https://github.com/kasenvr/hifi-community/issues"));
     });
 }
 

@@ -53,18 +53,7 @@ Rectangle {
             textFormat: Text.StyledText
             linkColor: "#00B4EF"
             color: "white"
-            text: "<a href=\"https:/www.highfidelity.com\">www.highfidelity.com</a>."
-            size: 20
-            onLinkActivated: {
-                HiFiAbout.openUrl("https:/www.highfidelity.com");
-            }
-            
-        }
-        RalewayRegular {
-            textFormat: Text.StyledText
-            linkColor: "#00B4EF"
-            color: "white"
-            text: "<a href=\"https:/github.com/kasenvr/hifi-community\">HiFi Community Github</a>."
+            text: "<a href=\"https:/github.com/kasenvr/hifi-community\">Project Athena Github</a>."
             size: 20
             onLinkActivated: {
                 HiFiAbout.openUrl("https:/github.com/kasenvr/hifi-community");

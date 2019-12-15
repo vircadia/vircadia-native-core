@@ -1,6 +1,8 @@
-# HiFi Community Edition
+# Project Athena
 
-### [Download v0.86.0 K1 (Windows 64-bit, .zip)](https://realities.dev/cdn/hifi-community/v0860-kasen-VS-release+freshstart/Packaged_Release.zip)
+### [Download ALPHA-DEV v0.86.0 K1 (Windows 64-bit, .zip)](https://realities.dev/cdn/hifi-community/v0860-kasen-VS-release+freshstart/Packaged_Release.zip)
+
+This build has been tested on Windows 10 Pro 64-bit w/ Nvidia graphics drivers.
 
 #### Changes for **v0.86.0** consist of:
 
@@ -15,13 +17,23 @@
 
 #### Added in K2 (TBD)
 
-* QML Interface to access and save whitelist live to interface.json.
-* Add "VideoDecodeStats" to .gitignore.
-* Fix VCPKG SDL2 to port files from 2.0.8 to 2.0.10 to fix CMake build issues.
-* Added Github link to "About High Fidelity".
+##### Features
 * Removed environment variable requirement for "procedural shader materials".
+* QML Interface to access, save, and load whitelist live from interface.json.
+* QML whitelist now allows external QML scripts when full URL to the file is given in the list.
+* Added procedural vertex shader support. https://github.com/kasenvr/hifi-community/pull/15
+* glTF AlphaModes are now supported. https://github.com/kasenvr/hifi-community/pull/15
+* Material entities can specify face culling method. https://github.com/kasenvr/hifi-community/pull/15
+* gLTF double-sided property is now supported. https://github.com/kasenvr/hifi-community/pull/15
 
-This build has been tested on Windows 10 Pro 64-bit w/ Nvidia graphics drivers.
+##### Bugs and Housekeeping
+* Add "VideoDecodeStats" to .gitignore.
+* Added Github link to "About High Fidelity" and removed High Fidelity's link, updated the support link.
+* Fix VCPKG SDL2 to port files from 2.0.8 to 2.0.10 to fix CMake build issues.
+* Fix wearables not disappearing with avatar. https://github.com/kasenvr/hifi-community/pull/15
+
+##### Server
+* Added custom support selection which allows for multi-server deployment on the same operating system. https://github.com/kasenvr/hifi-community/pull/15
 
 ### Whitelist Instructions
 
@@ -58,7 +70,7 @@ Too many of us have our own personal combinations of High Fidelity from C++ modi
 
 The goal of this repo is to give a common area to PR the very best of our findings and creations so that we may effectively take each necessary step towards our common goal of living in a true metaverse.
 
-### Why High Fidelity?
+### Why High Fidelity's Engine?
 
 Because of all the options, it is the only starting point that is open-source, cross-platform, fully VR integrated + fully desktop integrated with an aim for quality visuals and performance. It also does us the service of providing a foundation to start from such as entity management, full body IK, etc.
 
@@ -68,6 +80,8 @@ Platforms like NeosVR or VRChat are unusable from go due to their fundamental cl
 
 So the necessary desire is to use High Fidelity as our foundation as a community of one, of all to build a metaverse worth living in.
 
-### Contributors
+### Contribution
 
-A special thanks to the contributors of the community edition.
+A special thanks to the contributors of the Project Athena.
+
+[Contribution & Governance Model](CONTRIBUTING.md)
