@@ -19,10 +19,9 @@ static const int VR_TARGET_RATE = 90;
 
 /**jsdoc
  * <p>Refresh rate profile.</p>
- *
  * <table>
  *   <thead>
- *     <tr><th>Refresh Rate Profile</th><th>Description</th></tr>
+ *     <tr><th>Value</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
  *     <tr><td><code>"Eco"</code></td><td>Low refresh rate, which is reduced when Interface doesn't have focus or is 
@@ -32,18 +31,16 @@ static const int VR_TARGET_RATE = 90;
  *     <tr><td><code>"Realtime"</code></td><td>High refresh rate, even when Interface doesn't have focus or is minimized.
  *   </tbody>
  * </table>
- *
- * @typedef {string} RefreshRateProfile
+ * @typedef {string} RefreshRateProfileName
  */
 static const std::array<std::string, RefreshRateManager::RefreshRateProfile::PROFILE_NUM> REFRESH_RATE_PROFILE_TO_STRING =
     { { "Eco", "Interactive", "Realtime" } };
 
 /**jsdoc
  * <p>Interface states that affect the refresh rate.</p>
- *
  * <table>
  *   <thead>
- *     <tr><th>Refresh Rate Regime</th><th>Description</th></tr>
+ *     <tr><th>Value</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
  *     <tr><td><code>"FocusActive"</code></td><td>Interface has focus and the user is active or is in VR.</td></tr>
@@ -54,26 +51,23 @@ static const std::array<std::string, RefreshRateManager::RefreshRateProfile::PRO
  *     <tr><td><code>"ShutDown"</code></td><td>Interface is shutting down.</td></tr>
  *   </tbody>
  * </table>
- *
- * @typedef {string} RefreshRateRegime
+ * @typedef {string} RefreshRateRegimeName
  */
 static const std::array<std::string, RefreshRateManager::RefreshRateRegime::REGIME_NUM> REFRESH_RATE_REGIME_TO_STRING =
     { { "FocusActive", "FocusInactive", "Unfocus", "Minimized", "StartUp", "ShutDown" } };
 
 /**jsdoc
- * <p>Interface operates in different modes to provide different user experiences (UX).</p>
- *
+ * <p>User experience (UX) modes.</p>
  * <table>
  *   <thead>
- *     <tr><th>UX Mode</th><th>Description</th></tr>
+ *     <tr><th>Value</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
- *     <tr><td><code>"Desktop"</code></td><td>Desktop user experience mode.</td></tr>
- *     <tr><td><code>"VR"</code></td><td>VR user experience mode.</td></tr>
+ *     <tr><td><code>"Desktop"</code></td><td>Desktop user experience.</td></tr>
+ *     <tr><td><code>"VR"</code></td><td>VR user experience.</td></tr>
  *   </tbody>
  * </table>
- *
- * @typedef {string} UXMode
+ * @typedef {string} UXModeName
  */
 static const std::array<std::string, RefreshRateManager::UXMode::UX_NUM> UX_MODE_TO_STRING =
     { { "Desktop", "VR" } };
