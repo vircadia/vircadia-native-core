@@ -21,7 +21,7 @@ static const int VR_TARGET_RATE = 90;
  * <p>Refresh rate profile.</p>
  * <table>
  *   <thead>
- *     <tr><th>Refresh Rate Profile</th><th>Description</th></tr>
+ *     <tr><th>Value</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
  *     <tr><td><code>"Eco"</code></td><td>Low refresh rate, which is reduced when Interface doesn't have focus or is 
@@ -40,7 +40,7 @@ static const std::array<std::string, RefreshRateManager::RefreshRateProfile::PRO
  * <p>Interface states that affect the refresh rate.</p>
  * <table>
  *   <thead>
- *     <tr><th>Refresh Rate Regime</th><th>Description</th></tr>
+ *     <tr><th>Value</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
  *     <tr><td><code>"FocusActive"</code></td><td>Interface has focus and the user is active or is in VR.</td></tr>
@@ -60,7 +60,7 @@ static const std::array<std::string, RefreshRateManager::RefreshRateRegime::REGI
  * <p>User experience (UX) modes.</p>
  * <table>
  *   <thead>
- *     <tr><th>UX Mode</th><th>Description</th></tr>
+ *     <tr><th>Value</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
  *     <tr><td><code>"Desktop"</code></td><td>Desktop user experience.</td></tr>

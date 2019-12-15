@@ -179,7 +179,6 @@ public:
 
     /**jsdoc
      * Sets the target desktop LOD FPS.
-     * <p>Note: Called by {@link LODManager.
      * @function LODManager.setDesktopLODTargetFPS
      * @param {number} value - The target desktop LOD FPS, in Hz.
      */
@@ -325,8 +324,7 @@ signals:
     void LODDecreased();
 
     /**jsdoc
-     * Triggered when whether the LOD is being automatically adjusted changes. 
-     * Use {@link LODManager.getAutomaticLODAdjust|getAutomaticLODAdjust} to get whether the LOD is being automatically adjusted.
+     * Triggered when whether or not the LOD is being automatically adjusted changes. 
      * @function LODManager.autoLODChanged
      * @returns {Signal}
      */
