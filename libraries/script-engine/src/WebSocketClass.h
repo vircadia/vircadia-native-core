@@ -17,9 +17,9 @@
 #include <QWebSocket>
 
 /**jsdoc
- * Provides a bi-direcctional, event-driven communication session between the script and another WebSocket connection. It is a 
+ * Provides a bi-directional, event-driven communication session between the script and another WebSocket connection. It is a 
  * near-complete implementation of the WebSocket API described in the Mozilla docs: 
- * <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSocket">https://developer.mozilla.org/en-US/docs/Web/API/WebSocket</a>.</p>
+ * <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSocket">https://developer.mozilla.org/en-US/docs/Web/API/WebSocket</a>.
  *
  * <p>Constructed by <code>new WebSocket(...)</code> in Interface, client entity, avatar, and server entity scripts, or the 
  * {@link WebSocketServer} class in server entity and assignment client scripts.
