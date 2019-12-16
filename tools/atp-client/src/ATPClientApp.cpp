@@ -20,6 +20,7 @@
 
 #include <NetworkLogging.h>
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 #include <SharedLogging.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
@@ -144,7 +145,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
 
     auto accountManager = DependencyManager::get<AccountManager>();
     accountManager->setIsAgent(true);
-    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
+    accountManager->setAuthURL(MetaverseAPI::getCurrentMetaverseServerURL());
 
     auto nodeList = DependencyManager::get<NodeList>();
 

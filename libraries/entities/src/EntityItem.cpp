@@ -15,6 +15,7 @@
 #include <QtEndian>
 #include <QJsonDocument>
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 #include <NetworkAccessManager.h>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
@@ -3207,7 +3208,7 @@ void EntityItem::retrieveMarketplacePublicKey() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest;
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
+    QUrl requestURL = MetaverseAPI::getCurrentMetaverseServerURL();
     requestURL.setPath("/api/v1/commerce/marketplace_key");
     QJsonObject request;
     networkRequest.setUrl(requestURL);

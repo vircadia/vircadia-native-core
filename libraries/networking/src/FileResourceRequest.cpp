@@ -22,6 +22,7 @@
 #include "NetworkLogging.h"
 #include "ResourceManager.h"
 #include "NetworkingConstants.h"
+#include "MetaverseAPI.h"
 
 void FileResourceRequest::doSend() {
     auto statTracker = DependencyManager::get<StatTracker>();
