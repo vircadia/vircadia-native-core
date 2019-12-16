@@ -9,7 +9,7 @@ if (WIN32)
 
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL https://public.highfidelity.com/dependencies/OVRPlatformSDK_v1.10.0.zip
+    URL "${EXTERNAL_BUILD_ASSETS}/dependencies/OVRPlatformSDK_v1.10.0.zip"
     URL_MD5 e6c8264af16d904e6506acd5172fa0a9
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""

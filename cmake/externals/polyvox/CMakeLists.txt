@@ -7,7 +7,7 @@ set(CMAKE_BUILD_TYPE Release)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL https://public.highfidelity.com/dependencies/polyvox-master-2015-7-15.zip
+  URL "${EXTERNAL_BUILD_ASSETS}/dependencies/polyvox-master-2015-7-15.zip"
   URL_MD5 9ec6323b87e849ae36e562ae1c7494a9
   CMAKE_ARGS -DENABLE_EXAMPLES=OFF -DENABLE_BINDINGS=OFF -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build

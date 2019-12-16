@@ -9,6 +9,7 @@ import tempfile
 import json
 import xml.etree.ElementTree as ET
 import functools
+from os import path
 
 print = functools.partial(print, flush=True)
 
@@ -36,6 +37,7 @@ endif()
         self.sourcePortsPath = args.ports_path
         self.id = hifi_utils.hashFolder(self.sourcePortsPath)[:8]
         self.configFilePath = os.path.join(args.build_root, 'vcpkg.cmake')
+        self.assets_url = self.readVar('EXTERNAL_BUILD_ASSETS')
 
         # OS dependent information
         system = platform.system()
@@ -72,19 +74,19 @@ endif()
         if 'Windows' == system:
             self.exe = os.path.join(self.path, 'vcpkg.exe')
             self.bootstrapCmd = 'bootstrap-vcpkg.bat'
-            self.vcpkgUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/vcpkg-win32.tar.gz?versionId=YZYkDejDRk7L_hrK_WVFthWvisAhbDzZ'
+            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/vcpkg-win32.tar.gz%3FversionId=YZYkDejDRk7L_hrK_WVFthWvisAhbDzZ'
             self.vcpkgHash = '3e0ff829a74956491d57666109b3e6b5ce4ed0735c24093884317102387b2cb1b2cd1ff38af9ed9173501f6e32ffa05cc6fe6d470b77a71ca1ffc3e0aa46ab9e'
             self.hostTriplet = 'x64-windows'
         elif 'Darwin' == system:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmd = 'bootstrap-vcpkg.sh'
-            self.vcpkgUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/vcpkg-osx.tar.gz?versionId=_fhqSxjfrtDJBvEsQ8L_ODcdUjlpX9cc'
+            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/vcpkg-osx.tar.gz%3FversionId=_fhqSxjfrtDJBvEsQ8L_ODcdUjlpX9cc'
             self.vcpkgHash = '519d666d02ef22b87c793f016ca412e70f92e1d55953c8f9bd4ee40f6d9f78c1df01a6ee293907718f3bbf24075cc35492fb216326dfc50712a95858e9cbcb4d'
             self.hostTriplet = 'x64-osx'
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmd = 'bootstrap-vcpkg.sh'
-            self.vcpkgUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/vcpkg-linux.tar.gz?versionId=97Nazh24etEVKWz33XwgLY0bvxEfZgMU'
+            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/vcpkg-linux.tar.gz%3FversionId=97Nazh24etEVKWz33XwgLY0bvxEfZgMU'
             self.vcpkgHash = '6a1ce47ef6621e699a4627e8821ad32528c82fce62a6939d35b205da2d299aaa405b5f392df4a9e5343dd6a296516e341105fbb2dd8b48864781d129d7fba10d'
             self.hostTriplet = 'x64-linux'
 
@@ -93,6 +95,10 @@ endif()
             self.androidPackagePath = os.getenv('HIFI_ANDROID_PRECOMPILED', os.path.join(self.path, 'android'))
         else:
             self.triplet = self.hostTriplet
+
+    def readVar(self, var):
+        with open(os.path.join(self.args.build_root, '_env', var + ".txt")) as fp:
+            return fp.read()
 
     def upToDate(self):
         # Prevent doing a clean if we've explcitly set a directory for vcpkg
@@ -115,6 +121,17 @@ endif()
             return False
         return True
 
+    def copyEnv(self):
+        print("Passing on variables to vcpkg")
+        srcEnv = os.path.join(self.args.build_root, "_env")
+        destEnv = os.path.join(self.path, "_env")
+
+        if path.exists(destEnv):
+            shutil.rmtree(destEnv)
+
+        shutil.copytree(srcEnv, destEnv)
+
+
     def clean(self):
         print("Cleaning vcpkg installation at {}".format(self.path))
         if os.path.isdir(self.path):
@@ -124,6 +141,7 @@ endif()
     # Make sure the VCPKG prerequisites are all there.
     def bootstrap(self):
         if self.upToDate():
+            self.copyEnv()
             return
 
         self.clean()
@@ -160,6 +178,7 @@ endif()
         if (os.path.isdir(portsPath)):
             shutil.rmtree(portsPath, ignore_errors=True)
         shutil.copytree(self.sourcePortsPath, portsPath)
+        self.copyEnv()
 
     def run(self, commands):
         actualCommands = [self.exe, '--vcpkg-root', self.path]
@@ -199,7 +218,7 @@ endif()
         # vcpkg prebuilt
         if not os.path.isdir(os.path.join(self.path, 'installed', 'arm64-android')):
             dest = os.path.join(self.path, 'installed')
-            url = "https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/vcpkg-arm64-android.tar.gz"
+            url = self.assets_url + "/dependencies/vcpkg/vcpkg-arm64-android.tar.gz"
             # FIXME I don't know why the hash check frequently fails here.  If you examine the file later it has the right hash
             #hash = "832f82a4d090046bdec25d313e20f56ead45b54dd06eee3798c5c8cbdd64cce4067692b1c3f26a89afe6ff9917c10e4b601c118bea06d23f8adbfe5c0ec12bc3"
             #hifi_utils.downloadAndExtract(url, dest, hash)
@@ -263,14 +282,14 @@ endif()
 
             url = 'NOT DEFINED'
             if platform.system() == 'Windows':
-                url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-windows3.tar.gz'
+                url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-windows3.tar.gz'
             elif platform.system() == 'Darwin':
-                url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz?versionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
+                url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz%3FversionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
             elif platform.system() == 'Linux':
                 if platform.linux_distribution()[1][:3] == '16.':
-                    url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
+                    url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
                 elif platform.linux_distribution()[1][:3] == '18.':
-                    url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
+                    url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
                 else:
                     print('UNKNOWN LINUX VERSION!!!')
                     return;

@@ -3,7 +3,7 @@ set(EXTERNAL_NAME GifCreator)
 include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL https://public.highfidelity.com/dependencies/GifCreator.zip
+  URL "${EXTERNAL_BUILD_ASSETS}/dependencies/GifCreator.zip"
   URL_MD5 8ac8ef5196f47c658dce784df5ecdb70
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
