@@ -99,7 +99,7 @@ void WebSocketClass::handleOnClose() {
  * @param {WebSocket.SocketError} error - The error.
  */
 /**jsdoc
- * Information on a socket error.
+ * <p>The type of socket error.</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
