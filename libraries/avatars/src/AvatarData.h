@@ -1174,7 +1174,7 @@ public:
     /**jsdoc
      * @function Avatar.updateAvatarEntity
      * @param {Uuid} entityID - The entity ID.
-     * @param {Array.<byte>} entityData - Entity data.
+     * @param {ArrayBuffer} entityData - Entity data.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE virtual void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
@@ -1964,6 +1964,7 @@ Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& results);
 void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& results);
 
+// No JSDoc because it's not provided as a type to the script engine.
 class ParabolaToAvatarIntersectionResult {
 public:
     bool intersects { false };

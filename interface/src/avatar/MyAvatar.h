@@ -1928,7 +1928,7 @@ public:
      * @param {boolean} isActive - <code>true</code> if flow simulation is enabled on the joint, <code>false</code> if it isn't.
      * @param {boolean} isCollidable - <code>true</code> to enable collisions in the flow simulation, <code>false</code> to 
      *     disable.
-     * @param {Object<JointName, MyAvatar.FlowPhysicsOptions>} [physicsConfig>] - Physics configurations for particular entity 
+     * @param {Object<JointName, MyAvatar.FlowPhysicsOptions>} [physicsConfig] - Physics configurations for particular entity 
      *     and avatar joints.
      * @param {Object<JointName, MyAvatar.FlowCollisionsOptions>} [collisionsConfig] - Collision configurations for particular 
      *     entity and avatar joints.
