@@ -422,6 +422,12 @@ public:
      * <pre class="prettyprint"><code>EventBridge.scriptEventReceived.connect(function(message) {
      *     ...
      * });</code></pre>
+     * <p><strong>Warning:</strong> The <code>EventBridge</code> object is not necessarily set up immediately ready for the web 
+     * page's script to use. A simple workaround that normally works is to add a delay before calling 
+     * <code>EventBridge.scriptEventReceived.connect(...)</code>. A better solution is to periodically call 
+     * <code>EventBridge.scriptEventReceived.connect(...)</code> and then <code>EventBridge.emitWebEvent(...)</code> to send a 
+     * message to the Interface script, and have that send a message back using <code>emitScriptEvent(...)</code>; when the 
+     * return message is received, the <codE>EventBridge</code> is ready for use.</p>
      * @function TabletProxy#emitScriptEvent
      * @param {string|object} message - The message to send to the web page.
      */
