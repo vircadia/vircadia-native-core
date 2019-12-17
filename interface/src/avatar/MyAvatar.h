@@ -1839,12 +1839,13 @@ public:
     Q_INVOKABLE void releaseEyesLookAtControl();
 
     /**jsdoc
-    * Aims the pointing directional blending towards the provided target point. The "point" reaction should be triggered 
-    * before using this method with the code <code>MyAvatar.beginReaction("point")</code>.
-    * @function MyAvatar.setPointAt
-    * @param {Vec3} pointAtTarget - The target point in world coordinates.
-    * @returns {boolean} <code>true</code> if the target point lays in front of the avatar, <code>false</code> if it doesn't.
-    */
+     * Sets the point-at target for the <code>"point"</code> reaction that may be started with {@link MyAvatar.beginReaction}. 
+     * The point-at target is set only if it is in front of the avatar.
+     * <p>Note: The <code>"point"</code> reaction should be started before calling this method.</p>
+     * @function MyAvatar.setPointAt
+     * @param {Vec3} pointAtTarget - The target to point at, in world coordinates.
+     * @returns {boolean} <code>true</code> if the target point was set, <code>false</code> if it wasn't.
+     */
     Q_INVOKABLE bool setPointAt(const glm::vec3& pointAtTarget);
 
     glm::quat getLookAtRotation() { return _lookAtYaw * _lookAtPitch; }
@@ -2348,43 +2349,52 @@ public slots:
     virtual void setModelScale(float scale) override;
 
     /**jsdoc
-     * MyAvatar.getTriggerReactions
-     * Returns a list of reactions names that can be triggered using MyAvatar.triggerReaction().
-     * @returns {string[]} Array of reaction names.
+     * Gets the list of reactions names that can be triggered using {@link MyAvatar.triggerReaction}.
+     * <p>See also: {@link MyAvatar.getBeginEndReactions}.
+     * @function MyAvatar.getTriggerReactions
+     * @returns {string[]} List of reaction names that can be triggered using {@link MyAvatar.triggerReaction}.
+     * @example <caption>List the available trigger reactions.</caption>
+     * print("Trigger reactions:", JSON.stringify(MyAvatar.getTriggerReactions()));
      */
     QStringList getTriggerReactions() const;
 
 
     /**jsdoc
-     * MyAvatar.getBeginReactions
-     * Returns a list of reactions names that can be enabled using MyAvatar.beginReaction() and MyAvatar.endReaction().
-     * @returns {string[]} Array of reaction names.
+     * Gets the list of reactions names that can be enabled using {@link MyAvatar.beginReaction} and 
+     * {@link MyAvatar.endReaction}.
+     * <p>See also: {@link MyAvatar.getTriggerReactions}.
+     * @function MyAvatar.getBeginEndReactions
+     * @returns {string[]} List of reaction names that can be enabled using {@link MyAvatar.beginReaction} and
+     *     {@link MyAvatar.endReaction}.
+     * @example <caption>List the available begin-end reactions.</caption>
+     * print("Begin-end reactions:", JSON.stringify(MyAvatar.getBeginEndReactions()));
      */
     QStringList getBeginEndReactions() const;
 
     /**jsdoc
-     * MyAvatar.triggerReaction
-     * Plays the given reaction on the avatar, once the reaction is complete it will automatically complete.  Only reaction names returned from MyAvatar.getTriggerReactions() are available.
-     * @param {string} reactionName - reaction name
-     * @returns {bool} false if the given reaction is not supported.
+     * Plays a reaction on the avatar. Once the reaction is complete it will stop playing.
+     * <p>Only reaction names returned by {@link MyAvatar.getTriggerReactions} are available.</p>
+     * @function MyAvatar.triggerReaction
+     * @param {string} reactionName - The reaction to trigger.
+     * @returns {boolean} <code>true</code> if the reaction was played, <code>false</code> if the reaction is not supported.
      */
     bool triggerReaction(QString reactionName);
 
     /**jsdoc
-     * MyAvatar.beginReaction
-     * Plays the given reaction on the avatar.  The avatar will continue to play the reaction until stopped via the MyAvatar.endReaction() call or superseeded by another reaction.
-     * Only reaction names returned from MyAvatar.getBeginEndReactions() are available.
-     * NOTE: the caller is responsible for calling the corresponding MyAvatar.endReaction(), otherwise the avatar might become stuck in the reaction forever.
-     * @param {string} reactionName - reaction name
-     * @returns {bool} false if the given reaction is not supported.
+     * Starts playing a reaction on the avatar. The reaction will continue to play until stopped using 
+     * {@link MyAvatar.endReaction} or superseded by another reaction.
+     * <p>Only reactions returned by {@link MyAvatar.getBeginEndReactions} are available.</p>
+     * @function MyAvatar.beginReaction
+     * @param {string} reactionName - The reaction to start playing.
+     * @returns {boolean} <code>true</code> if the reaction was started, <code>false</code> if the reaction is not supported.
      */
     bool beginReaction(QString reactionName);
 
     /**jsdoc
-     * MyAvatar.endReaction
-     * Used to stop a given reaction that was started via MyAvatar.beginReaction().
-     * @param {string} reactionName - reaction name
-     * @returns {bool} false if the given reaction is not supported.
+     * Stops playing a reaction that was started using {@link MyAvatar.beginReaction}.
+     * @function MyAvatar.endReaction
+     * @param {string} reactionName - The reaction to stop playing.
+     * @returns {boolean} <code>true</code> if the reaction was stopped, <code>false</code> if the reaction is not supported.
      */
     bool endReaction(QString reactionName);
 
