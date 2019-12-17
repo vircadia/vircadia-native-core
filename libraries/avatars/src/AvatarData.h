@@ -533,21 +533,21 @@ class AvatarData : public QObject, public SpatiallyNestable {
      * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't. 
      *     <em>Read-only.</em>
      * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> if blend shapes are controlled by scripted actions, 
-     *     otherwise <code>false</code>. Set this to <code>true</code> before using the {@link MyAvatar.setBlendshape} method, 
+     *     otherwise <code>false</code>. Set this to <code>true</code> before using the {@link Avatar.setBlendshape} method, 
      *     and set back to <code>false</code> after you no longer want scripted control over the blend shapes.
-     *     <p><strong>Note:</strong> This property will automatically be set to true if the Controller system has valid facial 
-     *     blend shape actions.</p>
+     *     <p><strong>Note:</strong> This property will automatically be set to <code>true</code> if the controller system has 
+     *     valid facial blend shape actions.</p>
      * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating 
-     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code> if 
-     *     you wish to fully control the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
+     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code> 
+     *     to fully control the blink facial blend shapes via the {@link Avatar.setBlendshape} method.
      * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes 
      *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property 
      *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set this property to  
-     *     <code>false</code> if you wish to fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
+     *     <code>false</code> to fully control the eye blend shapes via the {@link Avatar.setBlendshape} method.
      * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate 
      *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set 
-     *     this property to <code>false</code> if you wish to fully control the mouth facial blend shapes via the 
-     *     {@link MyAvatar.setBlendshape} method.
+     *     this property to <code>false</code> to fully control the mouth facial blend shapes via the 
+     *     {@link Avatar.setBlendshape} method.
      */
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getDomainLimitedScale WRITE setTargetScale)
@@ -1134,8 +1134,8 @@ public:
 
     /**jsdoc
      * Sets the value of a blend shape to animate your avatar's face. In order for other users to see the resulting animations 
-     * on your avatar's face, set {@link Avatar.hasScriptedBlendshapes} to <code>true</code>. When you are done using this API, 
-     * set {@link Avatar.hasScriptedBlendshapes} back to <code>false</code> when the animation is complete. 
+     * on your avatar's face, set <code>hasScriptedBlendshapes</code> to <code>true</code>. When you are done using this API, 
+     * set <code>hasScriptedBlendshapes</code> back to <code>false</code> when the animation is complete. 
      * @function Avatar.setBlendshape
      * @param {string} name - The name of the blendshape, per the 
      *     {@link https://docs.highfidelity.com/create/avatars/avatar-standards.html#blendshapes Avatar Standards}.
@@ -1188,12 +1188,12 @@ public:
     Q_INVOKABLE virtual void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true);
 
     /**jsdoc
-     * <p class="important">Deprecated: This method is deprecated and will be removed.</p>
-     * Use Avatar.hasScriptedBlendshapes property instead.
-     * Enables blendshapes set using {@link Avatar.setBlendshape} or {@link MyAvatar.setBlendshape} to be transmitted to other 
+     * Enables blend shapes set using {@link Avatar.setBlendshape} or {@link MyAvatar.setBlendshape} to be transmitted to other 
      * users so that they can see the animation of your avatar's face.
+     * <p class="important">Deprecated: This method is deprecated and will be removed. Use the 
+     * <code>Avatar.hasScriptedBlendshapes</code> or <code>MyAvatar.hasScriptedBlendshapes</code>  property instead.</p>
      * @function Avatar.setForceFaceTrackerConnected
-     * @param {boolean} connected - <code>true</code> to enable blendshape changes to be transmitted to other users, 
+     * @param {boolean} connected - <code>true</code> to enable blend shape changes to be transmitted to other users, 
      *     <code>false</code> to disable.
      */
     Q_INVOKABLE void setForceFaceTrackerConnected(bool connected) { setHasScriptedBlendshapes(connected); }
