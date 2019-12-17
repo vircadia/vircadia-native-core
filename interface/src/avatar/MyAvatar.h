@@ -657,7 +657,7 @@ public:
      * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target 
      * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different, 
      * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
-     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function MyAvatar.overrideAnimation
      * @param {string} url - The URL to the animation file. Animation files may be in glTF or FBX format, but only need to 
      *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs 
@@ -765,7 +765,7 @@ public:
      * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target
      * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different,
      * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
-     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards.html">Avatar Standards</a>.
      * @function MyAvatar.overrideRoleAnimation
      * @param {string} role - The animation role to override
      * @param {string} url - The URL to the animation file. Animation files need to be in glTF or FBX format, but only need to 
