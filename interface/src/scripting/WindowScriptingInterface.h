@@ -818,8 +818,12 @@ signals:
     /**jsdoc
      * Triggered when "minimized" state of the Interface window changes.
      * @function Window.minimizedChanged
-     * @param {bool} isMinimized - true if the Interface window is now minimized; false otherwise.
+     * @param {boolean} isMinimized - <code>true</code> if the Interface window is minimized, <code>false</code> if it isn't.
      * @returns {Signal}
+     * @example <caption>Report the "minimized" state of the Interface window when it changes.</caption>
+     * function onWindowMinimizedChanged(minimized) {
+     *     print("Window minimized: " + minimized);
+     * }
      *
      * Window.minimizedChanged.connect(onWindowMinimizedChanged);
      */
