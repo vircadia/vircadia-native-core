@@ -286,9 +286,9 @@ class MyAvatar : public Avatar {
      * @property {number} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting
      *     (avatar leaning is disabled, recentering is enabled), <code>false</code> if the user wearing the HMD is
      *     determined to be standing (avatar leaning is enabled, and avatar recenters if it leans too far).
-     *     If <code>userRecenterModel == 2</code> (i.e., auto) the property value automatically updates as the user sits
+     *     If <code>userRecenterModel == 2</code> (i.e., "auto") the property value automatically updates as the user sits
      *     or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the current
-     *     siting / standing state, which is updated when the user next sits or stands unless
+     *     sitting / standing state, which is updated when the user next sits or stands unless
      *     <code>isSitStandStateLocked == true</code>.
      * @property {boolean} isSitStandStateLocked - <code>true</code> to lock the avatar sitting/standing state, i.e., use this 
      *     to disable automatically changing state.
@@ -1953,8 +1953,8 @@ public:
     /**jsdoc
      * Starts a sitting action for the avatar.
      * @function MyAvatar.beginSit
-     * @param {Vec3} position - The point in space where the avatar will sit.
-     * @param {Quat} rotation - Initial absolute orientation of the avatar once is seated.
+     * @param {Vec3} position - The position where the avatar should sit.
+     * @param {Quat} rotation - The initial orientation of the seated avatar.
      */
     Q_INVOKABLE void beginSit(const glm::vec3& position, const glm::quat& rotation);
 
@@ -1962,15 +1962,14 @@ public:
      * Ends a sitting action for the avatar.
      * @function MyAvatar.endSit
      * @param {Vec3} position - The position of the avatar when standing up.
-     * @param {Quat} rotation - The absolute rotation of the avatar once the sitting action ends.
+     * @param {Quat} rotation - The orientation of the avatar when standing up.
      */
     Q_INVOKABLE void endSit(const glm::vec3& position, const glm::quat& rotation);
 
     /**jsdoc
-     * Gets whether the avatar is in a seated pose. The seated pose is set by calling the 
-     * MyAvatar::beginSit method.
+     * Gets whether the avatar is in a seated pose. The seated pose is set by calling {@link MyAvatar.beginSit}.
      * @function MyAvatar.isSeated
-     * @returns {boolean} <code>true</code> if the avatar is in a seated pose. 
+     * @returns {boolean} <code>true</code> if the avatar is in a seated pose, <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool isSeated() { return _characterController.getSeated(); }
 
