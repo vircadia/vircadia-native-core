@@ -3025,6 +3025,17 @@ void EntityItem::setCanCastShadow(bool value) {
     });
 }
 
+bool EntityItem::getCullWithParent() const {
+    return _cullWithParent;
+}
+
+void EntityItem::setCullWithParent(bool value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _cullWithParent != value;
+        _cullWithParent = value;
+    });
+}
+
 bool EntityItem::isChildOfMyAvatar() const {
     QUuid ancestorID = findAncestorOfType(NestableType::Avatar);
     return !ancestorID.isNull() && (ancestorID == Physics::getSessionUUID() || ancestorID == AVATAR_SELF_ID);

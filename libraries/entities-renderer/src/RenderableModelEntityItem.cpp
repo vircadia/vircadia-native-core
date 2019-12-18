@@ -1057,8 +1057,10 @@ ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Pare
 void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
     auto builder = ItemKey::Builder().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
 
-    if (_model && _model->isGroupCulled()) {
+    if (!_cullWithParent && _model && _model->isGroupCulled()) {
         builder.withMetaCullGroup();
+    } else if (_cullWithParent) {
+        builder.withSubMetaCulled();
     }
 
     if (didVisualGeometryRequestSucceed) {
@@ -1494,6 +1496,14 @@ void ModelEntityRenderer::setPrimitiveMode(PrimitiveMode value) {
     Parent::setPrimitiveMode(value);
     if (_model) {
         _model->setPrimitiveMode(_primitiveMode);
+    }
+}
+
+void ModelEntityRenderer::setCullWithParent(bool value) {
+    Parent::setCullWithParent(value);
+    setKey(_didLastVisualGeometryRequestSucceed);
+    if (_model) {
+        _model->setCullWithParent(_cullWithParent);
     }
 }
 

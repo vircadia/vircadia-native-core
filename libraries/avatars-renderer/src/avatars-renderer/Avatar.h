@@ -782,6 +782,7 @@ protected:
     render::ItemIDs _attachmentRenderIDs;
     void updateDescendantRenderIDs();
     render::ItemIDs _descendantRenderIDs;
+    std::unordered_set<EntityItemID> _renderingDescendantEntityIDs;
     uint32_t _lastAncestorChainRenderableVersion { 0 };
 };
 

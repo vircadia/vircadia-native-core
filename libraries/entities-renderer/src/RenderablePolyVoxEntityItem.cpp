@@ -1783,6 +1783,16 @@ PolyVoxEntityRenderer::PolyVoxEntityRenderer(const EntityItemPointer& entity) : 
     _params = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
 }
 
+ItemKey PolyVoxEntityRenderer::getKey() {
+    auto builder = ItemKey::Builder::opaqueShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
+    if (_cullWithParent) {
+        builder.withSubMetaCulled();
+    }
+
+    return builder.build();
+}
+
 ShapeKey PolyVoxEntityRenderer::getShapeKey() {
     auto builder = ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER);
     if (_primitiveMode == PrimitiveMode::LINES) {

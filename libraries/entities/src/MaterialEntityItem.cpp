@@ -139,10 +139,10 @@ void MaterialEntityItem::debugDump() const {
 
 void MaterialEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     _desiredDimensions = value;
-    if (_materialMappingMode == MaterialMappingMode::UV) {
-        EntityItem::setUnscaledDimensions(ENTITY_ITEM_DEFAULT_DIMENSIONS);
-    } else if (_materialMappingMode == MaterialMappingMode::PROJECTED) {
+    if (_hasVertexShader || _materialMappingMode == MaterialMappingMode::PROJECTED) {
         EntityItem::setUnscaledDimensions(value);
+    } else if (_materialMappingMode == MaterialMappingMode::UV) {
+        EntityItem::setUnscaledDimensions(ENTITY_ITEM_DEFAULT_DIMENSIONS);
     }
 }
 
@@ -264,6 +264,13 @@ void MaterialEntityItem::setMaterialRepeat(bool value) {
     });
 }
 
+void MaterialEntityItem::setParentID(const QUuid& parentID) {
+    if (parentID != getParentID()) {
+        EntityItem::setParentID(parentID);
+        _hasVertexShader = false;
+    }
+}
+
 AACube MaterialEntityItem::calculateInitialQueryAACube(bool& success) {
     AACube aaCube = EntityItem::calculateInitialQueryAACube(success);
     // A Material entity's queryAACube contains its parent's queryAACube
@@ -277,4 +284,17 @@ AACube MaterialEntityItem::calculateInitialQueryAACube(bool& success) {
         }
     }
     return aaCube;
+}
+
+void MaterialEntityItem::setHasVertexShader(bool hasVertexShader) {
+    bool prevHasVertexShader = _hasVertexShader;
+    _hasVertexShader = hasVertexShader;
+
+    if (hasVertexShader && !prevHasVertexShader) {
+        setLocalPosition(glm::vec3(0.0f));
+        setLocalOrientation(glm::quat());
+        setUnscaledDimensions(EntityTree::getUnscaledDimensionsForID(getParentID()));
+    } else if (!hasVertexShader && prevHasVertexShader) {
+        setUnscaledDimensions(_desiredDimensions);
+    }
 }

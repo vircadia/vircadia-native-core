@@ -200,11 +200,24 @@ ShapeKey ShapeEntityRenderer::getShapeKey() {
         if (drawMaterialKey.isUnlit()) {
             builder.withUnlit();
         }
+        builder.withCullFaceMode(mat->second.getCullFaceMode());
     } else if (pipelineType == Pipeline::PROCEDURAL) {
         builder.withOwnPipeline();
     }
 
     return builder.build();
+}
+
+Item::Bound ShapeEntityRenderer::getBound() {
+    auto mat = _materials.find("0");
+    if (mat != _materials.end() && mat->second.top().material && mat->second.top().material->isProcedural() &&
+        mat->second.top().material->isReady()) {
+        auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(mat->second.top().material);
+        if (procedural->hasVertexShader() && procedural->hasBoundOperator()) {
+           return procedural->getBound();
+        }
+    }
+    return Parent::getBound();
 }
 
 void ShapeEntityRenderer::doRender(RenderArgs* args) {
@@ -251,7 +264,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         render::ShapePipelinePointer pipeline = geometryCache->getShapePipelinePointer(outColor.a < 1.0f, false,
-            renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD);
+            renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD, materials.top().material->getCullFaceMode());
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
         } else {

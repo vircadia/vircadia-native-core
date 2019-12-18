@@ -43,7 +43,7 @@ public:
     // Render Item interface
     virtual render::ItemKey getKey() const;
     virtual render::Item::Bound getBound() const;
-    virtual render::ShapeKey getShapeKey() const; // shape interface
+    virtual render::ShapeKey getShapeKey() const;
     virtual void render(RenderArgs* args);
 
     // ModelMeshPartPayload functions to perform render
@@ -73,10 +73,13 @@ public:
     void addMaterial(graphics::MaterialLayer material);
     void removeMaterial(graphics::MaterialPointer material);
 
+    void setCullWithParent(bool value) { _cullWithParent = value; }
+
     static bool enableMaterialProceduralShaders;
 
 protected:
     render::ItemKey _itemKey{ render::ItemKey::Builder::opaqueShape().build() };
+    bool _cullWithParent { false };
     uint64_t _created;
 };
 
@@ -106,7 +109,7 @@ public:
     void updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform);
 
     // Render Item interface
-    render::ShapeKey getShapeKey() const override; // shape interface
+    render::ShapeKey getShapeKey() const override;
     void render(RenderArgs* args) override;
 
     void setShapeKey(bool invalidateShapeKey, PrimitiveMode primitiveMode, bool useDualQuaternionSkinning);

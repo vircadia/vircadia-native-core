@@ -305,6 +305,9 @@ public:
     bool getCanCastShadow() const;
     void setCanCastShadow(bool value);
 
+    bool getCullWithParent() const;
+    void setCullWithParent(bool value);
+
     void setCauterized(bool value);
     bool getCauterized() const;
 
@@ -762,6 +765,8 @@ protected:
 
     QHash<QUuid, EntityDynamicPointer> _grabActions;
 
+    bool _cullWithParent { false };
+    
     mutable bool _needsRenderUpdate { false };
 
 private:

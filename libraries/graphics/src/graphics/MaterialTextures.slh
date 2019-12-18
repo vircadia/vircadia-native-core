@@ -214,18 +214,18 @@ vec3 fetchLightMap(vec2 uv) {
 }
 <@endfunc@>
 
-<@func evalMaterialOpacityMask(fetchedOpacity, materialOpacityCutoff, opacity)@>
+<@func evalMaterialOpacityMask(fetchedOpacity, materialOpacityCutoff, materialOpacity, matKey, opacity)@>
 {
-    // This path only valid for opaque or texel opaque material 
-    <$opacity$> = step(<$materialOpacityCutoff$>, <$fetchedOpacity$>);
+    // This path only valid for opaque or texel opaque material
+    <$opacity$> = mix(<$materialOpacity$>,
+                      step(<$materialOpacityCutoff$>, <$fetchedOpacity$>),
+                      float((<$matKey$> & OPACITY_MASK_MAP_BIT) != 0));
 }
 <@endfunc@>
-
 
 <@func evalMaterialOpacity(fetchedOpacity, materialOpacityCutoff, materialOpacity, matKey, opacity)@>
 {
     // This path only valid for transparent material
-    // Assert that float((<$matKey$> & (OPACITY_TRANSLUCENT_MAP_BIT | OPACITY_MASK_MAP_BIT)) != 0)) == 1.0
     <$opacity$> = mix(<$fetchedOpacity$>,
                           step(<$materialOpacityCutoff$>, <$fetchedOpacity$>),
                           float((<$matKey$> & OPACITY_MASK_MAP_BIT) != 0))

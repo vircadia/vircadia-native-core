@@ -225,18 +225,17 @@ int GLTFSerializer::getAccessorType(const QString& type)
     return GLTFAccessorType::SCALAR;
 }
 
-int GLTFSerializer::getMaterialAlphaMode(const QString& type)
-{
+graphics::MaterialKey::OpacityMapMode GLTFSerializer::getMaterialAlphaMode(const QString& type) {
     if (type == "OPAQUE") {
-        return GLTFMaterialAlphaMode::OPAQUE;
+        return graphics::MaterialKey::OPACITY_MAP_OPAQUE;
     }
     if (type == "MASK") {
-        return GLTFMaterialAlphaMode::MASK;
+        return graphics::MaterialKey::OPACITY_MAP_MASK;
     }
     if (type == "BLEND") {
-        return GLTFMaterialAlphaMode::BLEND;
+        return graphics::MaterialKey::OPACITY_MAP_BLEND;
     }
-    return GLTFMaterialAlphaMode::OPAQUE;
+    return graphics::MaterialKey::OPACITY_MAP_BLEND;
 }
 
 int GLTFSerializer::getCameraType(const QString& type)
@@ -484,9 +483,9 @@ bool GLTFSerializer::addMaterial(const QJsonObject& object) {
     getIndexFromObject(object, "normalTexture", material.normalTexture, material.defined);
     getIndexFromObject(object, "occlusionTexture", material.occlusionTexture, material.defined);
     getBoolVal(object, "doubleSided", material.doubleSided, material.defined);
-    QString alphamode;
-    if (getStringVal(object, "alphaMode", alphamode, material.defined)) {
-        material.alphaMode = getMaterialAlphaMode(alphamode);
+    QString alphaMode;
+    if (getStringVal(object, "alphaMode", alphaMode, material.defined)) {
+        material.alphaMode = getMaterialAlphaMode(alphaMode);
     }
     getDoubleVal(object, "alphaCutoff", material.alphaCutoff, material.defined);
     QJsonObject jsMetallicRoughness;
@@ -1764,62 +1763,72 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
     return fbxtex;
 }
 
-void GLTFSerializer::setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material) {
+void GLTFSerializer::setHFMMaterial(HFMMaterial& hfmMat, const GLTFMaterial& material) {
+    if (material.defined["alphaMode"]) {
+        hfmMat._material->setOpacityMapMode(material.alphaMode);
+    } else {
+        hfmMat._material->setOpacityMapMode(graphics::MaterialKey::OPACITY_MAP_OPAQUE); // GLTF defaults to opaque
+    }
 
+    if (material.defined["alphaCutoff"]) {
+        hfmMat._material->setOpacityCutoff(material.alphaCutoff);
+    }
+
+    if (material.defined["doubleSided"] && material.doubleSided) {
+        hfmMat._material->setCullFaceMode(graphics::MaterialKey::CullFaceMode::CULL_NONE);
+    }
 
     if (material.defined["emissiveFactor"] && material.emissiveFactor.size() == 3) {
-        glm::vec3 emissive = glm::vec3(material.emissiveFactor[0], 
-                                       material.emissiveFactor[1], 
-                                       material.emissiveFactor[2]);
-        fbxmat._material->setEmissive(emissive);
+        glm::vec3 emissive = glm::vec3(material.emissiveFactor[0], material.emissiveFactor[1], material.emissiveFactor[2]);
+        hfmMat._material->setEmissive(emissive);
     }
 
     if (material.defined["emissiveTexture"]) {
-        fbxmat.emissiveTexture = getHFMTexture(_file.textures[material.emissiveTexture]);
-        fbxmat.useEmissiveMap = true;
+        hfmMat.emissiveTexture = getHFMTexture(_file.textures[material.emissiveTexture]);
+        hfmMat.useEmissiveMap = true;
     }
     
     if (material.defined["normalTexture"]) {
-        fbxmat.normalTexture = getHFMTexture(_file.textures[material.normalTexture]);
-        fbxmat.useNormalMap = true;
+        hfmMat.normalTexture = getHFMTexture(_file.textures[material.normalTexture]);
+        hfmMat.useNormalMap = true;
     }
     
     if (material.defined["occlusionTexture"]) {
-        fbxmat.occlusionTexture = getHFMTexture(_file.textures[material.occlusionTexture]);
-        fbxmat.useOcclusionMap = true;
+        hfmMat.occlusionTexture = getHFMTexture(_file.textures[material.occlusionTexture]);
+        hfmMat.useOcclusionMap = true;
     }
 
     if (material.defined["pbrMetallicRoughness"]) {
-        fbxmat.isPBSMaterial = true;
-        
+        hfmMat.isPBSMaterial = true;
+
         if (material.pbrMetallicRoughness.defined["metallicFactor"]) {
-            fbxmat.metallic = material.pbrMetallicRoughness.metallicFactor;
+            hfmMat.metallic = material.pbrMetallicRoughness.metallicFactor;
         }
         if (material.pbrMetallicRoughness.defined["baseColorTexture"]) {
-            fbxmat.opacityTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
-            fbxmat.albedoTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
-            fbxmat.useAlbedoMap = true;
+            hfmMat.opacityTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
+            hfmMat.albedoTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
+            hfmMat.useAlbedoMap = true;
         }
         if (material.pbrMetallicRoughness.defined["metallicRoughnessTexture"]) {
-            fbxmat.roughnessTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
-            fbxmat.roughnessTexture.sourceChannel = image::ColorChannel::GREEN;
-            fbxmat.useRoughnessMap = true;
-            fbxmat.metallicTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
-            fbxmat.metallicTexture.sourceChannel = image::ColorChannel::BLUE;
-            fbxmat.useMetallicMap = true;
+            hfmMat.roughnessTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
+            hfmMat.roughnessTexture.sourceChannel = image::ColorChannel::GREEN;
+            hfmMat.useRoughnessMap = true;
+            hfmMat.metallicTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
+            hfmMat.metallicTexture.sourceChannel = image::ColorChannel::BLUE;
+            hfmMat.useMetallicMap = true;
         }
         if (material.pbrMetallicRoughness.defined["roughnessFactor"]) {
-            fbxmat._material->setRoughness(material.pbrMetallicRoughness.roughnessFactor);
+            hfmMat._material->setRoughness(material.pbrMetallicRoughness.roughnessFactor);
         }
         if (material.pbrMetallicRoughness.defined["baseColorFactor"] && 
             material.pbrMetallicRoughness.baseColorFactor.size() == 4) {
-            glm::vec3 dcolor =  glm::vec3(material.pbrMetallicRoughness.baseColorFactor[0], 
-                                          material.pbrMetallicRoughness.baseColorFactor[1], 
-                                          material.pbrMetallicRoughness.baseColorFactor[2]);
-            fbxmat.diffuseColor = dcolor;
-            fbxmat._material->setAlbedo(dcolor);
-            fbxmat._material->setOpacity(material.pbrMetallicRoughness.baseColorFactor[3]);
-        }   
+            glm::vec3 dcolor =
+                glm::vec3(material.pbrMetallicRoughness.baseColorFactor[0], material.pbrMetallicRoughness.baseColorFactor[1],
+                          material.pbrMetallicRoughness.baseColorFactor[2]);
+            hfmMat.diffuseColor = dcolor;
+            hfmMat._material->setAlbedo(dcolor);
+            hfmMat._material->setOpacity(material.pbrMetallicRoughness.baseColorFactor[3]);
+        }
     }
 
 }

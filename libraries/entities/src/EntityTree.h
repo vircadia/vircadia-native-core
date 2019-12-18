@@ -271,6 +271,9 @@ public:
     static void setEmitScriptEventOperator(std::function<void(const QUuid&, const QVariant&)> emitScriptEventOperator) { _emitScriptEventOperator = emitScriptEventOperator; }
     static void emitScriptEvent(const QUuid& id, const QVariant& message);
 
+    static void setGetUnscaledDimensionsForIDOperator(std::function<glm::vec3(const QUuid&)> getUnscaledDimensionsForIDOperator) { _getUnscaledDimensionsForIDOperator = getUnscaledDimensionsForIDOperator; }
+    static glm::vec3 getUnscaledDimensionsForID(const QUuid& id);
+
     std::map<QString, QString> getNamedPaths() const { return _namedPaths; }
 
     void updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
@@ -386,6 +389,7 @@ private:
     static std::function<QSizeF(const QUuid&, const QString&)> _textSizeOperator;
     static std::function<bool()> _areEntityClicksCapturedOperator;
     static std::function<void(const QUuid&, const QVariant&)> _emitScriptEventOperator;
+    static std::function<glm::vec3(const QUuid&)> _getUnscaledDimensionsForIDOperator;
 
     std::vector<int32_t> _staleProxies;
 
