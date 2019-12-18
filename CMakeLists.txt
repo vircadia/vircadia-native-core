@@ -17,7 +17,7 @@ endif()
 #
 # 1. This file (CMakeLists.txt) runs first and is authoritative. It is the one
 #    that reads the environment, sets variables and sets a default value.
-# 2. It writes the contents of the variables to 
+# 2. It writes the contents of the variables to
 #    $CMAKE_CURRENT_BINARY_DIR/_env/$VARNAME
 # 3. hifi_vcpkg.py takes the _env directory, and copies it to the vcpkg dir.
 #    This solves the issue of CMakeLists.txt not knowing where the vcpkg dir is.
