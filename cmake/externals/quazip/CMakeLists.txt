@@ -18,7 +18,7 @@ endif ()
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL https://public.highfidelity.com/dependencies/quazip-0.7.3.zip
+  URL "${EXTERNAL_BUILD_ASSETS}/dependencies/quazip-0.7.3.zip"
   URL_MD5 ed03754d39b9da1775771819b8001d45
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
   CMAKE_ARGS ${QUAZIP_CMAKE_ARGS}

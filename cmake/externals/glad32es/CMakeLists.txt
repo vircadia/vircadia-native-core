@@ -5,7 +5,7 @@ include(SelectLibraryConfigurations)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL https://public.highfidelity.com/dependencies/glad/glad32es.zip
+  URL "${EXTERNAL_BUILD_ASSETS}/dependencies/glad/glad32es.zip"
   URL_MD5 6a641d8c49dee4c895fa59315f5682a6
   CONFIGURE_COMMAND CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DCMAKE_POSITION_INDEPENDENT_CODE=ON
   LOG_DOWNLOAD 1
