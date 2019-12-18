@@ -527,7 +527,7 @@ public:
      *     <tr><td><code>0</code></td><td>ForceSit</td><td>Assumes the user is seated in the real world. Disables avatar 
      *       leaning regardless of what the avatar is doing in the virtual world (i.e., avatar always recenters).</td></tr>
      *     <tr><td><code>1</code></td><td>ForceStand</td><td>Assumes the user is standing in the real world. Enables avatar 
-     *       leaning regardless of what the avatar is doing in the virtual world (i.e. avatar leans, then if leans too far it 
+     *       leaning regardless of what the avatar is doing in the virtual world (i.e., avatar leans, then if leans too far it 
      *       recenters).</td></tr>
      *     <tr><td><code>2</code></td><td>Auto</td><td>Interface detects when the user is standing or seated in the real world. 
      *       Avatar leaning is disabled when the user is sitting (i.e., avatar always recenters), and avatar leaning is enabled 
@@ -1792,47 +1792,47 @@ public:
     void prepareAvatarEntityDataForReload();
 
     /**jsdoc
-    * Turns the avatar's head until it faces the target point within a +90/-90 degree range.
-    * Once this method is called, API calls will have full control of the head for a limited time.
-    * If this method is not called for two seconds, the engine will regain control of the head.
-    * @function MyAvatar.setHeadLookAt
-    * @param {Vec3} lookAtTarget - The target point in world coordinates.
-    */
+     * Turns the avatar's head until it faces the target point within a +90/-90 degree range.
+     * Once this method is called, API calls will have full control of the head for a limited time.
+     * If this method is not called for 2 seconds, the engine will regain control of the head.
+     * @function MyAvatar.setHeadLookAt
+     * @param {Vec3} lookAtTarget - The target point in world coordinates.
+     */
     Q_INVOKABLE void setHeadLookAt(const glm::vec3& lookAtTarget);
 
     /**jsdoc
-    * Returns the current target point of the head's look direction in world coordinates.
-    * @function MyAvatar.getHeadLookAt
-    * @returns {Vec3} The head's "look at" target in world coordinates.
-    */
+     * Returns the current target point of the head's look direction in world coordinates.
+     * @function MyAvatar.getHeadLookAt
+     * @returns {Vec3} The head's look-at target in world coordinates.
+     */
     Q_INVOKABLE glm::vec3 getHeadLookAt() { return _lookAtCameraTarget; }
 
     /**jsdoc
-    * Returns control of the avatar's head to the engine, and releases control from API calls.
-    * @function MyAvatar.releaseHeadLookAtControl
-    */
+     * Returns control of the avatar's head to the engine, and releases control from API calls.
+     * @function MyAvatar.releaseHeadLookAtControl
+     */
     Q_INVOKABLE void releaseHeadLookAtControl();
 
     /**jsdoc
-    * Forces the avatar's eyes to look at a specified location. Once this method is called, API calls 
-    * have full control of the eyes for a limited time. If this method is not called for two seconds, 
-    * the engine regains control of the eyes.
-    * @function MyAvatar.setEyesLookAt
-    * @param {Vec3} lookAtTarget - The target point in world coordinates.
-    */
+     * Forces the avatar's eyes to look at a specified location. Once this method is called, API calls
+     * have full control of the eyes for a limited time. If this method is not called for two seconds, 
+     * the engine regains control of the eyes.
+     * @function MyAvatar.setEyesLookAt
+     * @param {Vec3} lookAtTarget - The target point in world coordinates.
+     */
     Q_INVOKABLE void setEyesLookAt(const glm::vec3& lookAtTarget);
 
     /**jsdoc
-    * Returns the current target point of the eyes look direction in world coordinates.
-    * @function MyAvatar.getEyesLookAt
-    * @returns {Vec3} The eyes' "look at" target in world coordinates.
-    */
+     * Returns the current target point of the eyes look direction in world coordinates.
+     * @function MyAvatar.getEyesLookAt
+     * @returns {Vec3} The eyes' look-at target in world coordinates.
+     */
     Q_INVOKABLE glm::vec3 getEyesLookAt() { return _eyesLookAtTarget.get(); }
 
     /**jsdoc
-    * Returns control of the avatar's eyes to the engine, and releases control from API calls.
-    * @function MyAvatar.releaseEyesLookAtControl
-    */
+     * Returns control of the avatar's eyes to the engine, and releases control from API calls.
+     * @function MyAvatar.releaseEyesLookAtControl
+     */
     Q_INVOKABLE void releaseEyesLookAtControl();
 
     /**jsdoc

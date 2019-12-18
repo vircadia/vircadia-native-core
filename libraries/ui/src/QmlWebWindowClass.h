@@ -106,7 +106,7 @@
  * }, 2000);
  *
  * @example
- * // HTML file, "OverlayWebWindow.qml".
+ * // HTML file, "OverlayWebWindow.html".
  *
  * <!DOCTYPE html>
  * <html>
