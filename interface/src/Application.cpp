@@ -3182,7 +3182,6 @@ static const QUrl AUTHORIZED_EXTERNAL_QML_SOURCE { "https://content.highfidelity
 
 void Application::initializeUi() {
 
-    
     // Allow remote QML content from trusted sources ONLY
     {
         auto defaultUrlValidator = OffscreenQmlSurface::getUrlValidator();
@@ -3201,18 +3200,15 @@ void Application::initializeUi() {
 
             bool isInWhitelist = false;  // assume unsafe
             for (const auto& str : safeURLS) {
-                qDebug() << "url.toString().startsWith(str) = " << url.toString().startsWith(str);
-                qDebug() << "str.endsWith('.qml ') = " << str.endsWith(".qml");
                 if (!str.isEmpty() && str.endsWith(".qml") && url.toString().endsWith(".qml") &&
                     url.toString().startsWith(str)) {
-                    qDebug() << "found matching url!" << url.host();
+                    qCDebug(interfaceapp) << "Found matching url!" << url.host();
                     isInWhitelist = true;
                     return true;
-                    break;  // bail early since we found a match
                 }
             }
 
-            qDebug() << "no matching url :c" << url.host();
+            qCDebug(interfaceapp) << "No matching url" << url.host();
             return defaultUrlValidator(url);
         };
         OffscreenQmlSurface::setUrlValidator(newValidator);
