@@ -53,6 +53,20 @@ Item {
                 spacing: 0
 
                 HifiControlsUit.RadioButton {
+                    id: performanceEco
+                    colorScheme: hifi.colorSchemes.dark
+                    height: 18
+                    fontSize: 16
+                    leftPadding: 0
+                    text: "Battery saver"
+                    checked: Performance.getPerformancePreset() === PerformanceEnums.ECO
+                    onClicked: {
+                        Performance.setPerformancePreset(PerformanceEnums.ECO);
+                        root.refreshAllDropdowns();
+                    }
+                }
+
+                HifiControlsUit.RadioButton {
                     id: performanceLow
                     colorScheme: hifi.colorSchemes.dark
                     height: 18

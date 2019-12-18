@@ -175,6 +175,15 @@ Flickable {
                 spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
 
                 SimplifiedControls.RadioButton {
+                    id: performanceEco
+                    text: "Battery Saver"
+                    checked: Performance.getPerformancePreset() === PerformanceEnums.ECO
+                    onClicked: {
+                        Performance.setPerformancePreset(PerformanceEnums.ECO);
+                    }
+                }
+
+                SimplifiedControls.RadioButton {
                     id: performanceLow
                     text: "Low Quality" + (PlatformInfo.getTierProfiled() === PerformanceEnums.LOW ? " (Recommended)" : "")
                     checked: Performance.getPerformancePreset() === PerformanceEnums.LOW
