@@ -117,7 +117,7 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
             DependencyManager::get<LODManager>()->setWorldDetailQuality(WORLD_DETAIL_LOW);
 
         break;
-        case PerformancePreset::ECO:
+        case PerformancePreset::BATT:
             RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::FORWARD);
             RenderScriptingInterface::getInstance()->setShadowsEnabled(false);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::ECO);

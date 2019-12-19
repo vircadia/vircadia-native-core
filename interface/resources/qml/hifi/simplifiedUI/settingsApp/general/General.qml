@@ -177,9 +177,9 @@ Flickable {
                 SimplifiedControls.RadioButton {
                     id: performanceEco
                     text: "Battery Saver"
-                    checked: Performance.getPerformancePreset() === PerformanceEnums.ECO
+                    checked: Performance.getPerformancePreset() === PerformanceEnums.BATT
                     onClicked: {
-                        Performance.setPerformancePreset(PerformanceEnums.ECO);
+                        Performance.setPerformancePreset(PerformanceEnums.BATT);
                     }
                 }
 

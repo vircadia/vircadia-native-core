@@ -59,9 +59,9 @@ Item {
                     fontSize: 16
                     leftPadding: 0
                     text: "Battery saver"
-                    checked: Performance.getPerformancePreset() === PerformanceEnums.ECO
+                    checked: Performance.getPerformancePreset() === PerformanceEnums.BATT
                     onClicked: {
-                        Performance.setPerformancePreset(PerformanceEnums.ECO);
+                        Performance.setPerformancePreset(PerformanceEnums.BATT);
                         root.refreshAllDropdowns();
                     }
                 }

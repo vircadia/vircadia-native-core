@@ -28,6 +28,7 @@ public:
     // PerformanceManager PerformancePreset tri state level enums
     enum PerformancePreset {
         UNKNOWN = PerformanceManager::PerformancePreset::UNKNOWN,
+        BATT = PerformanceManager::PerformancePreset::BATT,
         LOW = PerformanceManager::PerformancePreset::LOW,
         MID = PerformanceManager::PerformancePreset::MID,
         HIGH = PerformanceManager::PerformancePreset::HIGH,
