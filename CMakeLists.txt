@@ -82,7 +82,7 @@ if(NOT EXISTS "${CMAKE_BINARY_DIR}/vcpkg.cmake")
 endif()
 include("${CMAKE_BINARY_DIR}/vcpkg.cmake")
 
-project(hifi)
+project(athena)
 include("cmake/init.cmake")
 include("cmake/compiler.cmake")
 
