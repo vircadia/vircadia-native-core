@@ -112,7 +112,7 @@ bool isHMDInErrorState = false;
 
 vr::IVRSystem* acquireOpenVrSystem() {
     bool hmdPresent = vr::VR_IsHmdPresent();
-    if (hmdPresent && (!isHMDConnected)) {
+    if (hmdPresent && (!isHMDInErrorState)) {
         Lock lock(mutex);
         if (!activeHmd) {
             #if DEV_BUILD
@@ -126,7 +126,7 @@ vr::IVRSystem* acquireOpenVrSystem() {
             #endif
 
             if (eError == 108) { // vr::HmdError_Init_HmdNotFound
-                isHMDConnected = true;
+                isHMDInErrorState = true;
                 activeHmd = nullptr;
                 #if DEV_BUILD
                     qCDebug(displayplugins) << "OpenVR: No HMD connected, setting nullptr!";
