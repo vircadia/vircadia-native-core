@@ -1,57 +1,61 @@
 <template>
-  <v-container>
-    <v-layout
-      wrap
-    >
-		<v-card
-	class="mx-auto"
-	max-width="344"
->
-	<v-img
-		src="https://cdn.vuetifyjs.com/images/cards/sunshine.jpg"
-		height="200px"
-	></v-img>
+		<v-container id="helloWorldContainer" style="">
+		<v-layout wrap>
+		<v-row no-gutters>
+        <template v-for="n in 7">
+          <v-col class="" :key="n">
+						<v-card class="mx-0" width="290" style="margin-top: 10px;">
+							<v-img
+								src="http://virtualrealitytimes.com/wp-content/uploads/2017/08/high-fidelity-og.jpg"
+								height="200px"
+							></v-img>
 
-	<v-card-title>
-		The-Spot
-	</v-card-title>
+							<v-card-title>
+								The-Spot
+							</v-card-title>
 
-	<v-card-subtitle>
-		1,000 miles of wonder
-	</v-card-subtitle>
+							<v-card-subtitle>
+								5 people
+							</v-card-subtitle>
 
-	<v-card-actions>
-		<v-btn text>Share</v-btn>
+							<v-card-actions>
+								<v-btn text>Share</v-btn>
 
-		<v-btn
-			color="purple"
-			text
-		>
-			Explore
-		</v-btn>
+								<v-btn color="purple" text>
+									Explore
+								</v-btn>
 
-		<v-spacer></v-spacer>
+								<v-spacer></v-spacer>
 
-		<v-btn
-			icon
-			@click="show = !show"
-		>
-			<v-icon>{{ show ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
-		</v-btn>
-	</v-card-actions>
+								<v-btn
+									icon
+									@click="show = !show"
+								>
+									<v-icon>{{ show ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+								</v-btn>
+							</v-card-actions>
 
-	<v-expand-transition>
-		<div v-show="show">
-			<v-divider></v-divider>
+							<v-expand-transition>
+								<div v-show="show">
+									<v-divider></v-divider>
 
-			<v-card-text>
-				I'm a thing. But, like most politicians, he promised more than he could deliver. You won't have time for sleeping, soldier, not with all the bed making you'll be doing. Then we'll go with that data file! Hey, you add a one and two zeros to that or we walk! You're going to do his laundry? I've got to find a way to escape.
-			</v-card-text>
-		</div>
-	</v-expand-transition>
-</v-card>
-    </v-layout>
-  </v-container>
+									<v-card-text>
+										I'm a thing. But, like most politicians, he promised more than he could deliver. You won't have time for sleeping, soldier, not with all the bed making you'll be doing. Then we'll go with that data file! Hey, you add a one and two zeros to that or we walk! You're going to do his laundry? I've got to find a way to escape.
+									</v-card-text>
+								</div>
+							</v-expand-transition>
+						</v-card>
+          </v-col>
+          <v-responsive
+            v-if="n === 3"
+            :key="`width-${n}`"
+            width="100%"
+          ></v-responsive>
+        </template>
+      </v-row>
+				
+			</v-layout>
+		</v-container>
 </template>
 
 <script>
@@ -60,56 +64,7 @@ export default {
   name: 'HelloWorld',
 
   data: () => ({
-    ecosystem: [
-      {
-        text: 'vuetify-loader',
-        href: 'https://github.com/vuetifyjs/vuetify-loader',
-      },
-      {
-        text: 'github',
-        href: 'https://github.com/vuetifyjs/vuetify',
-      },
-      {
-        text: 'awesome-vuetify',
-        href: 'https://github.com/vuetifyjs/awesome-vuetify',
-      },
-    ],
-    importantLinks: [
-      {
-        text: 'Documentation',
-        href: 'https://vuetifyjs.com',
-      },
-      {
-        text: 'Chat',
-        href: 'https://community.vuetifyjs.com',
-      },
-      {
-        text: 'Made with Vuetify',
-        href: 'https://madewithvuejs.com/vuetify',
-      },
-      {
-        text: 'Twitter',
-        href: 'https://twitter.com/vuetifyjs',
-      },
-      {
-        text: 'Articles',
-        href: 'https://medium.com/vuetify',
-      },
-    ],
-    whatsNext: [
-      {
-        text: 'Explore components',
-        href: 'https://vuetifyjs.com/components/api-explorer',
-      },
-      {
-        text: 'Select a layout',
-        href: 'https://vuetifyjs.com/layout/pre-defined',
-      },
-      {
-        text: 'Frequently Asked Questions',
-        href: 'https://vuetifyjs.com/getting-started/frequently-asked-questions',
-      },
-    ],
+    show: false,
   }),
 };
 </script>

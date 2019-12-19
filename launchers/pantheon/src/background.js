@@ -23,11 +23,12 @@ function createWindow () {
     icon: path.join(__static, '/resources/launcher.ico'), 
     resizable: false,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      devTools: true
     } 
   })
   
-  win.setMenu(null);
+  // win.setMenu(null);
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
@@ -91,3 +92,24 @@ if (isDevelopment) {
     })
   }
 }
+
+const { ipcMain } = require('electron')
+
+ipcMain.on('launch-interface', (event, arg) => {
+  var interface_exe = require('child_process').execFile;
+  var executablePath = "E:\\Development\\High_Fidelity\\v0860-kasen-VS-release+freshstart\\build\\interface\\Packaged_Release\\Release\\interface.exe";
+  var parameters;
+  
+  // arg is expected to be true or false with regards to SteamVR being enabled or not, later on it may be an object or array and we will handle it accordingly.
+  if(arg) {
+    parameters = ['--disable-displays', 'OpenVR (Vive)', '--disable-inputs', 'OpenVR (Vive)'];
+  } else {
+    parameters = [""];
+  }
+
+  interface_exe(executablePath, parameters, function(err, data) {
+       console.log(err)
+       console.log(data.toString());
+  });
+})
+

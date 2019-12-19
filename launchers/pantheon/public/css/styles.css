@@ -6,3 +6,33 @@ h2 {
   font-family: 'Raleway', sans-serif;
 }
 
+#titleURL {
+  color: white;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+#navBar {
+  position: fixed;
+  top: 0px;
+  z-index: 99;
+}
+
+#mainContent {
+  background-image: url('../resources/bg_temp.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  
+  margin: 0;
+  padding: 50px 0 60px 0 !important;
+}
+
+/* Transitions */
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity .5s;
+}
+.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+  opacity: 0;
+}
