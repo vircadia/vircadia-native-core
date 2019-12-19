@@ -108,7 +108,7 @@ QString getVrSettingString(const char* section, const char* setting) {
     return result;
 }
 
-bool isHMDConnected = false;
+bool isHMDInErrorState = false;
 
 vr::IVRSystem* acquireOpenVrSystem() {
     bool hmdPresent = vr::VR_IsHmdPresent();
