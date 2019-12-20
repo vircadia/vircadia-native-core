@@ -1,0 +1,161 @@
+var notificationList = [];
+
+var sizeData = {30: {widthMul: 1.8, heightMul: 2.05, split: 35, size: 30}};
+
+var offset = 10;
+
+
+init();
+
+function init(){
+    Messages.messageReceived.connect(messageReceived);
+}
+
+function messageReceived(channel, message, sender, local) {
+    if (local) {
+        if (channel === "Floof-Notif") {
+            var cmd = {FAILED: true};
+            try {
+                cmd = JSON.parse(message);
+            } catch (e) {
+                //
+            }
+            if (!cmd.FAILED) {
+                if (cmd.type === "options") {
+                    if (cmd.offset) {
+                        notifCore.setOffset(cmd.offset);
+                    }
+                } else {
+                    notifCore.add(cmd.text, cmd.sender, cmd.colour);
+                }
+            }
+        }
+    }
+}
+
+var notifCore = {
+    setOffset: function (offsetHeight) {
+        if (offsetHeight === -1) {
+            offset = 10;
+        } else {
+            offset = offsetHeight;
+        }
+    },
+    add: function (text, sender, colour) {
+        sender = sender ? sender : "NoName";
+        colour = colour ? colour : {};
+        colour.text = colour.text ? colour.text : {red: 255, green: 255, blue: 255};
+        colour.bg = colour.bg ? colour.bg : {red: 10, green: 10, blue: 10};
+        var lines = text.split("\n");
+        for (var i = lines.length - 1; i >= 0; i--) {
+            if (i === 0) {
+                notif("[" + time() + "] " + sender + ": " + lines[i], colour);
+            } else {
+                notif(lines[i], colour);
+            }
+        }
+    }
+};
+
+function time() {
+    var d = new Date();
+    var h = (d.getHours()).toString();
+    var m = (d.getMinutes()).toString();
+    var s = (d.getSeconds()).toString();
+    var h2 = ("0" + h).slice(-2);
+    var m2 = ("0" + m).slice(-2);
+    var s2 = ("0" + s).slice(-2);
+    s2 += (d.getMilliseconds() / 1000).toFixed(2).slice(1);
+    return h2 + ":" + m2 + ":" + s2;
+}
+
+function findIndex(id) {
+    var index = -1;
+    notificationList.forEach(function (noti, i) {
+        if (noti.id === id) {
+            index = i;
+        }
+    });
+    return index;
+}
+
+function cleanUp() {
+    try {
+        Messages.messageReceived.disconnect(messageReceived);
+    } catch (e) {
+        // empty
+    }
+    notificationList.forEach(function (noti) {
+        Overlays.deleteOverlay(noti.id);
+    });
+}
+
+function notif(text, colour) {
+
+    var noti = {
+        text: " " + text + " ",
+        time: 10 * 1000,
+        timeout: null,
+        timer: null,
+        fade: null,
+        colour: colour,
+        alpha: {text: 1, bg: 0.9}
+    };
+    noti.id = Overlays.addOverlay("text", {
+        text: '',
+        font: {size: sizeData[30].size},
+        x: 0,
+        y: Window.innerHeight,
+        color: colour.text,
+        backgroundColor: colour.bg,
+        backgroundAlpha: noti.alpha.bg,
+        alpha: noti.alpha.text
+    });
+    var ts = Overlays.textSize(noti.id, noti.text);
+    ts.height *= sizeData[30].heightMul;
+    ts.width *= sizeData[30].widthMul;
+    ts.y = Window.innerHeight - (sizeData[30].split * (notificationList.length)) - offset;
+    ts.text = noti.text;
+    Overlays.editOverlay(noti.id, ts);
+    console.log("added overlay");
+
+    noti.update = function () {
+        var i = notificationList.length - findIndex(noti.id);
+        Overlays.editOverlay(noti.id, {
+            y: Window.innerHeight - (sizeData[30].split * (i)) - offset
+        });
+    };
+
+    noti.startFade = function () {
+        noti.fade = Script.setInterval(noti.fadeOut, 50);
+    };
+
+    noti.fadeOut = function () {
+        noti.alpha.text -= 0.1;
+        noti.alpha.bg -= 0.1;
+        Overlays.editOverlay(noti.id, {
+            alpha: noti.alpha.text,
+            backgroundAlpha: noti.alpha.bg
+        });
+
+        if (Math.max(noti.alpha.text, noti.alpha.bg) <= 0) {
+            Script.clearInterval(noti.fade);
+            noti.end();
+        }
+    };
+
+    noti.end = function () {
+        console.log("removed overlay");
+        Script.clearInterval(noti.timer);
+        Script.clearTimeout(noti.timeout);
+        Overlays.deleteOverlay(noti.id);
+        notificationList.splice(findIndex(noti.id), 1);
+    };
+
+    noti.timer = Script.setInterval(noti.update, 10);
+    noti.timeout = Script.setTimeout(noti.startFade, noti.time);
+
+    notificationList.push(noti);
+}
+
+Script.scriptEnding.connect(cleanUp);
