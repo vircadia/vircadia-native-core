@@ -2,8 +2,10 @@ var notificationList = [];
 
 var sizeData = {30: {widthMul: 1.8, heightMul: 2.05, split: 35, size: 30}};
 
-var offset = 10;
+var DEFAULT_SIZE = 30;
+var DEFAULT_OFFSET = 10;
 
+var offset = DEFAULT_OFFSET;
 
 init();
 
@@ -23,20 +25,20 @@ function messageReceived(channel, message, sender, local) {
             if (!cmd.FAILED) {
                 if (cmd.type === "options") {
                     if (cmd.offset) {
-                        notifCore.setOffset(cmd.offset);
+                        notificationCore.setOffset(cmd.offset);
                     }
                 } else {
-                    notifCore.add(cmd.text, cmd.sender, cmd.colour);
+                    notificationCore.add(cmd.text, cmd.sender, cmd.colour);
                 }
             }
         }
     }
 }
 
-var notifCore = {
+var notificationCore = {
     setOffset: function (offsetHeight) {
         if (offsetHeight === -1) {
-            offset = 10;
+            offset = DEFAULT_OFFSET;
         } else {
             offset = offsetHeight;
         }
@@ -103,7 +105,7 @@ function notif(text, colour) {
     };
     noti.id = Overlays.addOverlay("text", {
         text: '',
-        font: {size: sizeData[30].size},
+        font: {size: sizeData[DEFAULT_SIZE].size},
         x: 0,
         y: Window.innerHeight,
         color: colour.text,
@@ -111,18 +113,18 @@ function notif(text, colour) {
         backgroundAlpha: noti.alpha.bg,
         alpha: noti.alpha.text
     });
+
     var ts = Overlays.textSize(noti.id, noti.text);
-    ts.height *= sizeData[30].heightMul;
-    ts.width *= sizeData[30].widthMul;
-    ts.y = Window.innerHeight - (sizeData[30].split * (notificationList.length)) - offset;
+    ts.height *= sizeData[DEFAULT_SIZE].heightMul;
+    ts.width *= sizeData[DEFAULT_SIZE].widthMul;
+    ts.y = Window.innerHeight - (sizeData[DEFAULT_SIZE].split * (notificationList.length)) - offset;
     ts.text = noti.text;
     Overlays.editOverlay(noti.id, ts);
-    console.log("added overlay");
 
     noti.update = function () {
         var i = notificationList.length - findIndex(noti.id);
         Overlays.editOverlay(noti.id, {
-            y: Window.innerHeight - (sizeData[30].split * (i)) - offset
+            y: Window.innerHeight - (sizeData[DEFAULT_SIZE].split * (i)) - offset
         });
     };
 
