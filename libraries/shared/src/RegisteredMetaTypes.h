@@ -687,7 +687,8 @@ namespace graphics {
 using MeshPointer = std::shared_ptr<graphics::Mesh>;
 
 /**jsdoc
- * A handle for a mesh in an entity, such as returned by {@link Entities.getMeshes}.
+ * A mesh, such as returned by {@link Entities.getMeshes} or {@link Model} API functions.
+ *
  * @class MeshProxy
  *
  * @hifi-interface
@@ -705,16 +706,16 @@ public:
     virtual MeshPointer getMeshPointer() const = 0;
     
     /**jsdoc
-     * Get the number of vertices in the mesh.
+     * Gets the number of vertices in the mesh.
      * @function MeshProxy#getNumVertices
      * @returns {number} Integer number of vertices in the mesh.
      */
     Q_INVOKABLE virtual int getNumVertices() const = 0;
 
     /**jsdoc
-     * Get the position of a vertex in the mesh.
+     * Gets the position of a vertex in the mesh.
      * @function MeshProxy#getPos
-     * @param {number} index - Integer index of the mesh vertex.
+     * @param {number} index - Integer index of the vertex.
      * @returns {Vec3} Local position of the vertex relative to the mesh.
      */
     Q_INVOKABLE virtual glm::vec3 getPos(int index) const = 0;
