@@ -112,7 +112,7 @@ bool isHMDInErrorState = false;
 
 vr::IVRSystem* acquireOpenVrSystem() {
     bool hmdPresent = vr::VR_IsHmdPresent();
-    if (hmdPresent && (!isHMDInErrorState)) {
+    if (hmdPresent && !isHMDInErrorState) {
         Lock lock(mutex);
         if (!activeHmd) {
             #if DEV_BUILD
