@@ -108,11 +108,11 @@ QString getVrSettingString(const char* section, const char* setting) {
     return result;
 }
 
-bool isHMDConnected = false;
+bool isHMDInErrorState = false;
 
 vr::IVRSystem* acquireOpenVrSystem() {
     bool hmdPresent = vr::VR_IsHmdPresent();
-    if (hmdPresent && (!isHMDConnected)) {
+    if (hmdPresent && !isHMDInErrorState) {
         Lock lock(mutex);
         if (!activeHmd) {
             #if DEV_BUILD
@@ -125,8 +125,8 @@ vr::IVRSystem* acquireOpenVrSystem() {
                 qCDebug(displayplugins) << "OpenVR display: HMD is " << activeHmd << " error is " << eError;
             #endif
 
-            if (eError == 108) { // vr::HmdError_Init_HmdNotFound
-                isHMDConnected = true;
+            if (eError == vr::VRInitError_Init_HmdNotFound) {
+                isHMDInErrorState = true;
                 activeHmd = nullptr;
                 #if DEV_BUILD
                     qCDebug(displayplugins) << "OpenVR: No HMD connected, setting nullptr!";
