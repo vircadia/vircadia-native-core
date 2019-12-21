@@ -76,7 +76,7 @@ sudo apt-get install nodejs
 
 Clone this repository:
 ```bash
-git clone https://github.com/highfidelity/hifi.git
+git clone https://github.com/kasenvr/project-athena.git
 ```
 
 To compile a RELEASE version checkout the tag you need getting a list of all tags:

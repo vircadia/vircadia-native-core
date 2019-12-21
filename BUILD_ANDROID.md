@@ -62,7 +62,7 @@ The above code to suppress modules is not necessary, but will speed up the build
 
 ### Clone the repository
 
-`git clone https://github.com/highfidelity/hifi.git `
+`git clone https://github.com/kasenvr/project-athena.git`
 
 # Building & Running
 
