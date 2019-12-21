@@ -1,4 +1,4 @@
 Source: hifi-deps
-Version: 0.3
+Version: 0.4
 Description: Collected dependencies for High Fidelity applications
-Build-Depends: bullet3, draco, etc2comp, glm, nvtt, openexr (!android), openssl (windows), tbb (!android&!osx), zlib, webrtc (!android)
+Build-Depends: bullet3, draco, etc2comp, glm, nvtt, openexr (!android), openssl (windows), opus, tbb (!android&!osx), zlib, webrtc (!android)
