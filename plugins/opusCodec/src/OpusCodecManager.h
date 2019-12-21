@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi__opusCodecManager_h
-#define hifi__opusCodecManager_h
+#ifndef hifi__OpusCodecManager_h
+#define hifi__OpusCodecManager_h
 
 #include <plugins/CodecPlugin.h>
 
@@ -34,18 +34,6 @@ public:
     virtual Decoder* createDecoder(int sampleRate, int numChannels) override;
     virtual void releaseEncoder(Encoder* encoder) override;
     virtual void releaseDecoder(Decoder* decoder) override;
-
-    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override {
-        encodedBuffer = decodedBuffer;
-    }
-
-    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override {
-        decodedBuffer = encodedBuffer;
-    }
-
-    virtual void lostFrame(QByteArray& decodedBuffer) override {
-        memset(decodedBuffer.data(), 0, decodedBuffer.size());
-    }
 
 private:
     static const char* NAME;

@@ -22,6 +22,15 @@
 #include <opus/opus_multistream.h>
 #include <opus/opus_projection.h>
 
+#define FRAME_SIZE 960
+#define SAMPLE_RATE 48000
+#define CHANNELS 2
+#define APPLICATION OPUS_APPLICATION_AUDIO
+#define BITRATE 64000
+
+#define MAX_FRAME_SIZE 6*FRAME_SIZE
+#define MAX_PACKET_SIZE 3*1276
+
 const char* OpusCodec::NAME { "opus" };
 
 void OpusCodec::init() {
@@ -45,9 +54,23 @@ bool OpusCodec::isSupported() const {
 }
 
 
+class OpusEncoder : public Encoder {
+public:
+    OpusEncoder(int sampleRate, int numChannels) {
+        
+    }
+
+    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override {
+        encodedBuffer.resize(_encodedSize);
+    }
+
+private:
+    int _encodedSize;
+};
+
 
 Encoder* OpusCodec::createEncoder(int sampleRate, int numChannels) {
-    return this;
+    return new OpusEncoder(sampleRate, numChannels);
 }
 
 Decoder* OpusCodec::createDecoder(int sampleRate, int numChannels) {
@@ -55,9 +78,9 @@ Decoder* OpusCodec::createDecoder(int sampleRate, int numChannels) {
 }
 
 void OpusCodec::releaseEncoder(Encoder* encoder) {
-    // do nothing
+    delete encoder;
 }
 
 void OpusCodec::releaseDecoder(Decoder* decoder) {
-    // do nothing
+    delete decoder;
 }
