@@ -454,27 +454,27 @@ Var GAClientID
 !macroend
 
 !macro GoogleAnalytics Category Action Label Value
-  ${If} "@GA_TRACKING_ID@" != ""
-    Push $0
-    Push $1
+;  ${If} "@GA_TRACKING_ID@" != ""
+;    Push $0
+;    Push $1
 
-    StrCpy $0 "https://google-analytics.com/collect?v=1&tid=@GA_TRACKING_ID@"
-    StrCpy $0 "$0&cid=$GAClientID&t=event&ec=${Category}&ea=${Action}"
+;    StrCpy $0 "https://google-analytics.com/collect?v=1&tid=@GA_TRACKING_ID@"
+;    StrCpy $0 "$0&cid=$GAClientID&t=event&ec=${Category}&ea=${Action}"
 
-    ${If} "${Label}" != ""
-      StrCpy $0 "$0&el=${Label}"
-    ${EndIf}
-    ${If} "${Value}" != ""
-      StrCpy $0 "$0&ev=${Value}"
-    ${EndIf}
+;    ${If} "${Label}" != ""
+;      StrCpy $0 "$0&el=${Label}"
+;    ${EndIf}
+;    ${If} "${Value}" != ""
+;      StrCpy $0 "$0&ev=${Value}"
+;    ${EndIf}
 
-    GetTempFileName $1
-    inetc::get /SILENT $0 $1 /END
-    Delete $1
+;    GetTempFileName $1
+;    inetc::get /SILENT $0 $1 /END
+;    Delete $1
 
-    Pop $1
-    Pop $0
-  ${EndIf}
+;    Pop $1
+;    Pop $0
+;  ${EndIf}
 !macroend
 
 ;--------------------------------
