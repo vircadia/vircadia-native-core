@@ -161,7 +161,7 @@
 ;General
 
   ; hide install details since we show an image slideshow in their place
-  ShowInstDetails nevershow
+  ShowInstDetails hide
 
   ; leverage the UAC NSIS plugin to promote uninstaller to elevated privileges
   !include UAC.nsh
@@ -421,7 +421,7 @@ Function GetCampaignName
     Pop $0 ; Discard Path
     Pop $0 ; Recover filename
     ; Parse campaign out of the filename
-    ${RECaptureMatches} $0 "HighFidelity-([^-]*-)Beta-.*" $0 0
+    ${RECaptureMatches} $0 "ProjectAthena-([^-]*-)Beta-.*" $0 0
     ${If} $0 == 1
       Pop $0 ; Recover campaign name
       StrCpy $0 $0 -1 0 ; Remove trailing - and copy to _RetVar
@@ -528,7 +528,7 @@ Var GAClientID
   Page custom PostInstallOptionsPage ReadPostInstallOptions
 
   !define MUI_PAGE_CUSTOMFUNCTION_PRE PageInstallFilesPre
-  !define MUI_PAGE_CUSTOMFUNCTION_SHOW StartInstallSlideshow
+  ; !define MUI_PAGE_CUSTOMFUNCTION_SHOW StartInstallSlideshow
   !insertmacro MUI_PAGE_INSTFILES
 
   !insertmacro MUI_UNPAGE_CONFIRM
@@ -657,7 +657,7 @@ FunctionEnd
 Function PageWelcomePre
   !insertmacro LogStep "Installer" "Welcome" "" ""
   !insertmacro GoogleAnalytics "Installer" "Welcome" "" ""
-  !insertmacro DownloadSlideshowImages
+  ; !insertmacro DownloadSlideshowImages
 FunctionEnd
 Function PageLicensePre
   !insertmacro LogStep "Installer" "License" "" ""
@@ -1085,7 +1085,7 @@ Function HandlePostInstallOptions
       ClearErrors
 
       ; copy the data from production build to this PR build
-      CopyFiles "$APPDATA\High Fidelity\*" $0
+      CopyFiles "$APPDATA\Project Athena\*" $0
 
       ; handle an error in copying files
       IfErrors 0 NoError
@@ -1325,7 +1325,7 @@ Section "-Core installation"
   @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
 
   ; see if we have a campaign that we might need to grab special content for
-  Call OptionallyDownloadCampaignServerless
+  ; Call OptionallyDownloadCampaignServerless
 
   ; Handle whichever post install options were set
   Call HandlePostInstallOptions
