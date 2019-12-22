@@ -59,12 +59,12 @@ QVariant toVariant(const AABox& box) {
 /**jsdoc
  * Details of a buffer element's format.
  * @typedef {object} Graphics.BufferElementFormat
- * @property {string} type
- * @property {string} semantic
- * @property {string} dimension
- * @property {number} scalarCount
- * @property {number} byteSize
- * @property {number} BYTES_PER_ELEMENT
+ * @property {string} type - Type.
+ * @property {string} semantic - Semantic.
+ * @property {string} dimension - Dimension.
+ * @property {number} scalarCount - Scalar count.
+ * @property {number} byteSize - Byte size.
+ * @property {number} BYTES_PER_ELEMENT - Bytes per element.
  */
 QVariant toVariant(const gpu::Element& element) {
     return QVariantMap{

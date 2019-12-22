@@ -130,12 +130,12 @@ int scriptable::ScriptableMesh::getSlotNumber(const QString& attributeName) cons
 /**jsdoc
  * Details of buffer's format.
  * @typedef {object} Graphics.BufferFormat
- * @property {number} slot
- * @property {number} length
- * @property {number} byteLength
- * @property {number} offset
- * @property {number} stride
- * @property {Graphics.BufferElementFormat} element
+ * @property {number} slot - Slot.
+ * @property {number} length - Length.
+ * @property {number} byteLength - Byte length.
+ * @property {number} offset - Offset.
+ * @property {number} stride - Stride.
+ * @property {Graphics.BufferElementFormat} element - Element format.
  */
 QVariantMap scriptable::ScriptableMesh::getBufferFormats() const {
     QVariantMap result;
