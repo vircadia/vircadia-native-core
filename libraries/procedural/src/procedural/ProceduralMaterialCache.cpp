@@ -145,7 +145,7 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  *     <code>"hifi_pbr"</code> model only.
  * @property {string} opacityMapMode - The mode defining the interpretation of the opacity map. Values can be:
  *     <ul>
- *         <li><code>"OPACITY_MAP_OPAQUE"</code> for ignoring the <code>opacityMap</code> information.</li>
+ *         <li><code>"OPACITY_MAP_OPAQUE"</code> for ignoring the opacity map information.</li>
  *         <li><code>"OPACITY_MAP_MASK"</code> for using the <code>opacityMap</code> as a mask, where only the texel greater 
  *         than <code>opacityCutoff</code> are visible and rendered opaque.</li>
  *         <li><code>"OPACITY_MAP_BLEND"</code> for using the <code>opacityMap</code> for alpha blending the material surface 
@@ -153,14 +153,14 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  *     </ul>
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {number|string} opacityCutoff - The opacity cutoff threshold used to determine the opaque texels of the 
- *     <code>opacityMap</code> when <code>opacityMapMode</code> is <code>"OPACITY_MAP_MASK"</code>, range <code>0.0</code> 
+ *     <code>opacityMap</code> when <code>opacityMapMode</code> is <code>"OPACITY_MAP_MASK"</code>. Range <code>0.0</code> 
  *     &ndash; <code>1.0</code>.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} cullFaceMode - The mode defining which side of the geometry should be rendered. Values can be:
+ * @property {string} cullFaceMode="CULL_BACK" - The mode defining which side of the geometry should be rendered. Values can be:
  *     <ul>
- *         <li><code>"CULL_NONE"</code> for rendering both sides of the geometry.</li>
- *         <li><code>"CULL_FRONT"</code> for culling the front faces of the geometry.</li>
- *         <li><code>"CULL_BACK"</code> (the default) for culling the back faces of the geometry.</li>
+ *         <li><code>"CULL_NONE"</code> to render both sides of the geometry.</li>
+ *         <li><code>"CULL_FRONT"</code> to cull the front faces of the geometry.</li>
+ *         <li><code>"CULL_BACK"</code> (the default) to cull the back faces of the geometry.</li>
  *     </ul>
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {string} roughnessMap - The URL of the roughness texture image. You can use this or <code>glossMap</code>, but not 
