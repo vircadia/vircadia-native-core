@@ -217,6 +217,7 @@ Q_DECLARE_METATYPE(TabletButtonsProxyModel*);
  * <p>Retrieve an existing tablet or create a new tablet using {@link Tablet.getTablet}.</p>
  *
  * @class TabletProxy
+ * @hideconstructor
  *
  * @hifi-interface
  * @hifi-client-entity
@@ -586,6 +587,7 @@ Q_DECLARE_METATYPE(TabletProxy*);
  * <p>Create a new button using {@link TabletProxy#addButton}.</p>
  *
  * @class TabletButtonProxy
+ * @hideconstructor
  *
  * @hifi-interface
  * @hifi-client-entity

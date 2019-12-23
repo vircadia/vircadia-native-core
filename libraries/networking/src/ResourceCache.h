@@ -95,6 +95,7 @@ class ScriptableResource : public QObject {
      * {@link ModelCache.prefetch}, {@link SoundCache.prefetch}, or {@link TextureCache.prefetch}.
      *
      * @class ResourceObject
+     * @hideconstructor
      *
      * @hifi-interface
      * @hifi-client-entity

@@ -61,6 +61,8 @@ XMlHttpRequest.getResponseHeader(QString) function
  * the Mozilla docs:
  * <a href="https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest">https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest</a>.
  * 
+ * <p>Create using <code>new XMLHttpRequest(...)</code>.</p>
+ *
  * @class XMLHttpRequest
  *
  * @hifi-interface

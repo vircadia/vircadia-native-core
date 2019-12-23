@@ -26,6 +26,8 @@ class QScriptContext;
  * control is defined by a "WebView.qml" file included in the Interface install.) Alternatively, an {@link OverlayWebWindow} 
  * can be used for HTML-based windows.</p>
  *
+ * <p>Create using <code>new OverlayWindow(...)</code>.</p>
+ *
  * @class OverlayWindow
  * @param {string|OverlayWindow.Properties} [titleOrProperties="WebWindow"] - The window's title or initial property values.
  * @param {string} [source] - The source of the QML to display. Not used unless the first parameter is the window title.

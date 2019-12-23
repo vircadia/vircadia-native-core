@@ -42,9 +42,10 @@ class AudioStreamStatsInterface : public QObject {
     /**jsdoc
      * Statistics for an audio stream.
      *
-     * <p>Provided in the {@link AudioStats} API.</p>
+     * <p>Provided in properties of the {@link AudioStats} API.</p>
      *
      * @class AudioStats.AudioStreamStats
+     * @hideconstructor
      *
      * @hifi-interface
      * @hifi-client-entity

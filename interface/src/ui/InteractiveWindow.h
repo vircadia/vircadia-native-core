@@ -110,6 +110,7 @@ using namespace InteractiveWindowEnums;
  * <p>Create using {@link Desktop.createWindow}.</p>
  *
  * @class InteractiveWindow
+ * @hideconstructor
  *
  * @hifi-interface
  * @hifi-client-entity
