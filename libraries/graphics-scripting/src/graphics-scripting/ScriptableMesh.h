@@ -34,6 +34,7 @@ namespace scriptable {
      * <p>Created using the {@link Graphics} API, {@link GraphicsModel.cloneModel}, or {@link GraphicsMesh.cloneMesh}.</p>
      *
      * @class GraphicsMesh
+     * @hideconstructor
      *
      * @hifi-interface
      * @hifi-client-entity

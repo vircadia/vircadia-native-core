@@ -25,6 +25,7 @@ namespace scriptable {
      * <p>Created using the {@link Graphics} API or {@link GraphicsModel.cloneModel}.</p>
      *
      * @class GraphicsModel
+     * @hideconstructor
      *
      * @hifi-interface
      * @hifi-client-entity

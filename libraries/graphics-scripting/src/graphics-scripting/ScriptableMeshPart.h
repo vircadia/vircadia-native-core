@@ -17,6 +17,7 @@ namespace scriptable {
      * {@link GraphicsMeshPart.cloneMeshPart}.</p>
      *
      * @class GraphicsMeshPart
+     * @hideconstructor
      *
      * @hifi-interface
      * @hifi-client-entity
