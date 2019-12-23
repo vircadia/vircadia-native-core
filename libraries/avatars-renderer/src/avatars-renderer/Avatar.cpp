@@ -1920,6 +1920,13 @@ void Avatar::setParentJointIndex(quint16 parentJointIndex) {
     }
 }
 
+/**jsdoc
+ * Information about a joint in an avatar's skeleton hierarchy.
+ * @typedef {object} SkeletonJoint
+ * @property {string} name - Joint name.
+ * @property {number} index - Joint index.
+ * @property {number} parentIndex - Index of this joint's parent (-1 if no parent).
+ */
 QList<QVariant> Avatar::getSkeleton() {
     SkeletonModelPointer skeletonModel = _skeletonModel;
     if (skeletonModel) {

@@ -1183,7 +1183,7 @@ public:
     /**jsdoc
      * Gets information on the avatar your avatar is currently looking at.
      * @function MyAvatar.getTargetAvatar
-     * @returns {AvatarData} Information on the avatar being looked at.
+     * @returns {ScriptAvatar} Information on the avatar being looked at, <code>null</code> if no avatar is being looked at.
      */
     // FIXME: The return type doesn't have a conversion to a script value so the function always returns undefined in 
     // JavaScript. Note: When fixed, JSDoc is needed for the return type.
