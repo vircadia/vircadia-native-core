@@ -4,9 +4,7 @@
 
 This build has been tested on Windows 10 Pro 64-bit w/ Nvidia graphics drivers.
 
-#### Changes for **v0.86.0** consist of:
-
-#### Added in K1 (12/3/19)
+#### v0.86.0 K1 (12/3/19)
 
 * Audio Buffer choppy audio bugfix by increasing the buffer size.
 * User Activity Logger disabled, option in code to log the reports to console.
@@ -15,25 +13,10 @@ This build has been tested on Windows 10 Pro 64-bit w/ Nvidia graphics drivers.
 * Entity Script Whitelist, no scripts are whitelisted by default.
 * Background CMD outputs full log, instant close of application on closing of the CMD-line.
 
-#### Added in K2 (TBD)
+#### v0.86.0 K2 (TBD)
 
-##### Features
-* Removed environment variable requirement for "procedural shader materials".
-* QML Interface to access, save, and load whitelist live from interface.json.
-* QML whitelist now allows external QML scripts when full URL to the file is given in the list.
-* Added procedural vertex shader support. https://github.com/kasenvr/hifi-community/pull/15
-* glTF AlphaModes are now supported. https://github.com/kasenvr/hifi-community/pull/15
-* Material entities can specify face culling method. https://github.com/kasenvr/hifi-community/pull/15
-* gLTF double-sided property is now supported. https://github.com/kasenvr/hifi-community/pull/15
-
-##### Bugs and Housekeeping
-* Add "VideoDecodeStats" to .gitignore.
-* Added Github link to "About High Fidelity" and removed High Fidelity's link, updated the support link.
-* Fix VCPKG SDL2 to port files from 2.0.8 to 2.0.10 to fix CMake build issues.
-* Fix wearables not disappearing with avatar. https://github.com/kasenvr/hifi-community/pull/15
-
-##### Server
-* Added custom support selection which allows for multi-server deployment on the same operating system. https://github.com/kasenvr/hifi-community/pull/15
+##### Features, Bugs, and Housekeeping
+Check out the releases page for more information!
 
 ### Whitelist Instructions
 
@@ -43,15 +26,7 @@ The Interface has the whitelist settings under "**Settings -> Entity Script Whit
 
 Do not use spaces or commas in the whitelist interface, you will only separate by commas and not new lines in the environment variables.
 
-It is recommended that you add High Fidelity's CDN URLs ahead of time to ensure general content works right off the bat: 
-
-```
-http://mpassets.highfidelity.com/
-https://raw.githubusercontent.com/highfidelity/
-https://hifi-content.s3.amazonaws.com/
-```
-
-You can also set the Windows environment variable "**EXTRA_WHITELIST**" with your whitelisted domains comma separated like so: "**https://kasen.io/,http://kasen.io/,https://exampledomain.com/scriptFolder/**" 
+You can also set the Windows environment variable "**EXTRA_WHITELIST**" with your whitelisted domains comma separated like so: "**http://mpassets.highfidelity.com/,https://raw.githubusercontent.com/highfidelity/,https://hifi-content.s3.amazonaws.com/**" 
 
 Alternatively you can make a batch file placed in the same folder as interface.exe that sets the whitelist environment variable temporarily:
 
@@ -62,7 +37,8 @@ interface.exe
 
 ### How to build interface.exe
 
-[For Windows](https://github.com/kasenvr/hifi-community/blob/kasen/core/BUILD_WIN.md)
+[For Windows](https://github.com/kasenvr/project-athena/blob/kasen/core/BUILD_WIN.md)
+[For Linux](https://github.com/kasenvr/project-athena/blob/kasen/core/BUILD_LINUX.md)
 
 ### Boot to Metaverse: The Goal
 
@@ -84,4 +60,4 @@ So the necessary desire is to use High Fidelity as our foundation as a community
 
 A special thanks to the contributors of the Project Athena.
 
-[Contribution & Governance Model](CONTRIBUTING.md)
+[Contribution](CONTRIBUTING.md)
