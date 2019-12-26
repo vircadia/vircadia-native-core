@@ -454,27 +454,27 @@ Var GAClientID
 !macroend
 
 !macro GoogleAnalytics Category Action Label Value
-;  ${If} "@GA_TRACKING_ID@" != ""
-;    Push $0
-;    Push $1
+  ${If} "@GA_TRACKING_ID@" != ""
+    Push $0
+    Push $1
 
-;    StrCpy $0 "https://google-analytics.com/collect?v=1&tid=@GA_TRACKING_ID@"
-;    StrCpy $0 "$0&cid=$GAClientID&t=event&ec=${Category}&ea=${Action}"
+    StrCpy $0 "https://google-analytics.com/collect?v=1&tid=@GA_TRACKING_ID@"
+    StrCpy $0 "$0&cid=$GAClientID&t=event&ec=${Category}&ea=${Action}"
 
-;    ${If} "${Label}" != ""
-;      StrCpy $0 "$0&el=${Label}"
-;    ${EndIf}
-;    ${If} "${Value}" != ""
-;      StrCpy $0 "$0&ev=${Value}"
-;    ${EndIf}
+    ${If} "${Label}" != ""
+      StrCpy $0 "$0&el=${Label}"
+    ${EndIf}
+    ${If} "${Value}" != ""
+      StrCpy $0 "$0&ev=${Value}"
+    ${EndIf}
 
-;    GetTempFileName $1
-;    inetc::get /SILENT $0 $1 /END
-;    Delete $1
+    GetTempFileName $1
+    inetc::get /SILENT $0 $1 /END
+    Delete $1
 
-;    Pop $1
-;    Pop $0
-;  ${EndIf}
+    Pop $1
+    Pop $0
+  ${EndIf}
 !macroend
 
 ;--------------------------------
@@ -652,35 +652,35 @@ Var Express
 
 Function OnUserAbort
   !insertmacro LogStep "Installer" "Abort" "User Abort" ""
-  !insertmacro GoogleAnalytics "Installer" "Abort" "User Abort" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Abort" "User Abort" ""
 FunctionEnd
 Function PageWelcomePre
   !insertmacro LogStep "Installer" "Welcome" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Welcome" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Welcome" "" ""
   ; !insertmacro DownloadSlideshowImages
 FunctionEnd
 Function PageLicensePre
   !insertmacro LogStep "Installer" "License" "" ""
-  !insertmacro GoogleAnalytics "Installer" "License" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "License" "" ""
 FunctionEnd
 Function PageDirectoryPre
   !insertmacro MaybeSkipPage
   !insertmacro LogStep "Installer" "Directory" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Directory" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Directory" "" ""
 FunctionEnd
 Function PageStartMenuPre
   !insertmacro MaybeSkipPage
   !insertmacro LogStep "Installer" "StartMenu" "" ""
-  !insertmacro GoogleAnalytics "Installer" "StartMenu" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "StartMenu" "" ""
 FunctionEnd
 Function PageComponentsPre
   !insertmacro MaybeSkipPage
   !insertmacro LogStep "Installer" "Components" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Components" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Components" "" ""
 FunctionEnd
 Function PageInstallFilesPre
   !insertmacro LogStep "Installer" "Install" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Install" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Install" "" ""
 FunctionEnd
 
 !macro SetInstallOption Checkbox OptionName Default
@@ -702,7 +702,7 @@ FunctionEnd
 
 Function InstallTypesPage
   !insertmacro LogStep "Installer" "Install Types" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Install Types" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Install Types" "" ""
 
   !insertmacro MUI_HEADER_TEXT "Choose Installation Type" "Express or Custom Install"
 
@@ -813,7 +813,7 @@ Function PostInstallOptionsPage
 
   !insertmacro MaybeSkipPage
   !insertmacro LogStep "Installer" "Post Install Options" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Post Install Options" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Post Install Options" "" ""
 
   !insertmacro MUI_HEADER_TEXT "Setup Options" ""
 
@@ -1331,7 +1331,7 @@ Section "-Core installation"
   Call HandlePostInstallOptions
 
   !insertmacro LogStep "Installer" "Done" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Done" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Done" "" ""
 SectionEnd
 
 !include nsProcess.nsh
@@ -1358,7 +1358,7 @@ SectionEnd
         /SD IDCANCEL IDRETRY Prompt_${UniqueID} IDCANCEL 0
       ${EndIf}
 
-      !insertmacro GoogleAnalytics "Installer" "Abort" "${displayName} Running" ""
+      ; !insertmacro GoogleAnalytics "Installer" "Abort" "${displayName} Running" ""
 
       ; If the user decided to cancel, stop the current installer/uninstaller
       Abort
@@ -1602,7 +1602,7 @@ Function .onInit
   !insertmacro InitGAClientID
   !insertmacro GetCampaignName $CampaignName
 
-  !insertmacro GoogleAnalytics "Installer" "Start" "$CampaignName" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Start" "$CampaignName" ""
 
   ; make sure none of the installed applications are still running
   ${LogText} "Checking For Running Applications"
