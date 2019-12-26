@@ -1,5 +1,5 @@
 ::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 
 h2 {
@@ -10,6 +10,10 @@ h2 {
   color: white;
   cursor: pointer;
   text-decoration: none;
+}
+
+#titleIMG {
+  cursor: pointer;
 }
 
 #navBar {
@@ -24,8 +28,36 @@ h2 {
   background-position: center;
   background-attachment: fixed;
   
+  /* background: linear-gradient(90deg, #00d2ff 0%, #3a47d5 100%);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite; */
+  
   margin: 0;
   padding: 50px 0 60px 0 !important;
+}
+
+/* @keyframes gradientBG {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+} */
+
+/* HelloWorld.vue */
+
+#helloWorldContainer {
+  padding-left: 60px;
+}
+
+/* Cards */
+
+.world-cards {
+  margin-top: 20px;
 }
 
 /* Transitions */

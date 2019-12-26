@@ -7,6 +7,7 @@ import {
 } from 'vue-cli-plugin-electron-builder/lib'
 import path from 'path'
 const isDevelopment = process.env.NODE_ENV !== 'production'
+const storage = require('electron-json-storage');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -93,23 +94,56 @@ if (isDevelopment) {
   }
 }
 
+// Settings.JSON bootstrapping
+// storage.setDataPath(app.getAppPath() + "/settings");
+
+console.log("App Path: " + storage.getDataPath());
+
+if(process.env.LAST_ATHENA_INSTALLED) {
+  var lastInstalled = process.env.LAST_ATHENA_INSTALLED;
+  storage.set('athena_interface.location', lastInstalled, function(error) {
+    if (error) throw error;
+  });
+}
+
+function getSetting(setting) {
+  return new Promise((resolve, reject) => {
+    var returnValue;
+    storage.get(setting, function(error, data) {
+      if (error) {
+        returnValue = "ERROR: INTERFACE.EXE NOT FOUND."; 
+        throw error;
+        resolve(returnValue);
+      }
+      returnValue = data.toString();
+      resolve(returnValue);
+    });
+  }) 
+}
+
 const { ipcMain } = require('electron')
 
 ipcMain.on('launch-interface', (event, arg) => {
   var interface_exe = require('child_process').execFile;
-  var executablePath = "E:\\Development\\High_Fidelity\\v0860-kasen-VS-release+freshstart\\build\\interface\\Packaged_Release\\Release\\interface.exe";
+  // var executablePath = "E:\\Development\\High_Fidelity\\v0860-kasen-VS-release+freshstart\\build\\interface\\Packaged_Release\\Release\\interface.exe";
+  var executablePath = arg.exec;
   var parameters;
   
   // arg is expected to be true or false with regards to SteamVR being enabled or not, later on it may be an object or array and we will handle it accordingly.
-  if(arg) {
+  if(arg.steamVR) {
     parameters = ['--disable-displays', 'OpenVR (Vive)', '--disable-inputs', 'OpenVR (Vive)'];
   } else {
     parameters = [""];
   }
 
   interface_exe(executablePath, parameters, function(err, data) {
-       console.log(err)
-       console.log(data.toString());
+    console.log(err)
+    console.log(data.toString());
   });
+  
 })
 
+ipcMain.on('getAthenaLocation', async (event, arg) => {
+  var athenaLocation = await getSetting('athena_interface.location');
+  event.returnValue = athenaLocation;
+})

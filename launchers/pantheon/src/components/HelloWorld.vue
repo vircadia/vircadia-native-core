@@ -4,7 +4,7 @@
 		<v-row no-gutters>
         <template v-for="n in 7">
           <v-col class="" :key="n">
-						<v-card class="mx-0" width="290" style="margin-top: 10px;">
+						<v-card class="mx-0 world-cards" width="240">
 							<v-img
 								src="http://virtualrealitytimes.com/wp-content/uploads/2017/08/high-fidelity-og.jpg"
 								height="200px"

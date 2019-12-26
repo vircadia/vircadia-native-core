@@ -9,7 +9,9 @@
       <div class="d-flex align-center">
         <v-img
           alt="Project Athena Logo"
+					id="titleIMG"
           class="shrink mr-2"
+					v-on:click="launchBrowser('https://projectathena.io/')"
           contain
           src="./assets/logo_256_256.png"
           transition="scale-transition"
@@ -56,23 +58,24 @@
     </v-app-bar>
 		
 		<v-bottom-navigation v-model="bottomNav" id="navBar">
-      <v-btn value="recent">
+      <v-btn disabled value="recent">
         <span>Recent</span>
         <v-icon>mdi-history</v-icon>
       </v-btn>
   
-      <v-btn v-on:click="showTab = 'FavoriteWorlds'" value="favorites">
+      <v-btn disabled v-on:click="showTab = 'FavoriteWorlds'" value="favorites">
         <span>Favorites</span>
         <v-icon>mdi-heart</v-icon>
       </v-btn>
   
-      <v-btn v-on:click="showTab = 'HelloWorld'" value="nearby">
+      <v-btn disabled v-on:click="showTab = 'HelloWorld'" value="nearby">
         <span>Worlds</span>
         <v-icon>mdi-map-search-outline</v-icon>
       </v-btn>
     </v-bottom-navigation>
 		
     <v-content class="" id="mainContent">
+			<!-- <iframe id="mainIframe" src="https://projectathena.io/" style="width: 100%; height: 100%;"></iframe>  -->
 			<transition name="fade" mode="out-in">
 				<component v-bind:is="showTab"></component>
 			</transition>
@@ -97,16 +100,19 @@ export default {
 			if(!this.noSteamVR) {
 				this.noSteamVR = false;
 			} 
+			
 			const { ipcRenderer } = require('electron');
-			ipcRenderer.send('launch-interface', this.noSteamVR);
+			var exeLoc = ipcRenderer.sendSync('getAthenaLocation');
+			ipcRenderer.send('launch-interface', { "exec": exeLoc, "steamVR": this.noSteamVR});
 		},
 		launchBrowser: function(url) {
 			const { shell } = require('electron')
 			shell.openExternal(url);
-		}
+		},
 	},
   data: () => ({
-		showTab: 'HelloWorld',
+		showTab: 'NOTHING',
+		// showTab: 'HelloWorld',
 		noSteamVR: false,
   }),
 };
