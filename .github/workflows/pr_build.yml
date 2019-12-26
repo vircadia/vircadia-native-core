@@ -95,6 +95,11 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target package
+    - name: Output Installer Logs
+      if: failure() && matrix.os == 'windows-latest'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
 
   build_full_linux:
     runs-on: ubuntu-latest
