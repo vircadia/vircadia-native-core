@@ -44,6 +44,19 @@ vue add electron-builder
 
 ### Test, Run, and Build
 
+#### On first setup
+
+We need to get the modules and dependencies installed.
+
+If you use Yarn:
+```
+yarn install
+```
+or if you use NPM:
+```
+npm install
+```
+
 #### To start a development server:
 
 If you use Yarn:
