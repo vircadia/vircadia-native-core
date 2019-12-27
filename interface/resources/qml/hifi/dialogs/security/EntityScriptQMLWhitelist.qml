@@ -1,5 +1,5 @@
 //
-//  ScriptWhitelist.qml
+//  EntityScriptQMLWhitelist.qml
 //  interface/resources/qml/hifi/dialogs/security
 //
 //  Created by Kasen IO on 2019.12.05 | realities.dev | kasenvr@gmail.com
@@ -145,7 +145,9 @@ Rectangle {
         https://google.com/
         https://bing.com/
         https://mydomain.here/
-        \nEnsure there are no spaces or whitespace."
+        \nEnsure there are no spaces or whitespace.
+        \nFor QML files, you can only whitelist each file individually 
+        ending with '.qml'."
         // Text size
         size: 16;
         // Style

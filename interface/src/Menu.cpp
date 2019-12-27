@@ -288,13 +288,12 @@ Menu::Menu() {
     });
     
     // Settings > Entity Script Whitelist
-    action = addActionToQMenuAndActionHash(settingsMenu, "Entity Script Whitelist");
+    action = addActionToQMenuAndActionHash(settingsMenu, "Entity Script / QML Whitelist");
     connect(action, &QAction::triggered, [] {
         auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
         auto hmd = DependencyManager::get<HMDScriptingInterface>();
         
-        DependencyManager::get<OffscreenUi>()->clearCache();
-        tablet->pushOntoStack("hifi/dialogs/security/EntityScriptWhitelist.qml");
+        tablet->pushOntoStack("hifi/dialogs/security/EntityScriptQMLWhitelist.qml");
 
         if (!hmd->getShouldShowTablet()) {
             hmd->toggleShouldShowTablet();
@@ -772,7 +771,6 @@ Menu::Menu() {
     // Help > About High Fidelity
     action = addActionToQMenuAndActionHash(helpMenu, "About High Fidelity");
     connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->clearCache();
         qApp->showDialog(QString("hifi/dialogs/AboutDialog.qml"),
             QString("hifi/dialogs/TabletAboutDialog.qml"), "AboutDialog");
     });
