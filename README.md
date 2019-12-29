@@ -1,10 +1,10 @@
-# HiFi Community Edition
+# Project Athena
 
-### [Download v0.86.0 K1 (Windows 64-bit, .zip)](https://realities.dev/cdn/hifi-community/v0860-kasen-VS-release+freshstart/Packaged_Release.zip)
+### [Download ALPHA-DEV v0.86.0 K1 (Windows 64-bit, .zip)](https://realities.dev/cdn/hifi-community/v0860-kasen-VS-release+freshstart/Packaged_Release.zip)
 
-#### Changes for **v0.86.0** consist of:
+This build has been tested on Windows 10 Pro 64-bit w/ Nvidia graphics drivers.
 
-#### Added in K1 (12/3/19)
+#### v0.86.0 K1 (12/3/19)
 
 * Audio Buffer choppy audio bugfix by increasing the buffer size.
 * User Activity Logger disabled, option in code to log the reports to console.
@@ -13,15 +13,10 @@
 * Entity Script Whitelist, no scripts are whitelisted by default.
 * Background CMD outputs full log, instant close of application on closing of the CMD-line.
 
-#### Added in K2 (TBD)
+#### v0.86.0 K2 (TBD)
 
-* QML Interface to access and save whitelist live to interface.json.
-* Add "VideoDecodeStats" to .gitignore.
-* Fix VCPKG SDL2 to port files from 2.0.8 to 2.0.10 to fix CMake build issues.
-* Added Github link to "About High Fidelity".
-* Removed environment variable requirement for "procedural shader materials".
-
-This build has been tested on Windows 10 Pro 64-bit w/ Nvidia graphics drivers.
+##### Features, Bugs, and Housekeeping
+Check out the releases page for more information!
 
 ### Whitelist Instructions
 
@@ -31,15 +26,7 @@ The Interface has the whitelist settings under "**Settings -> Entity Script Whit
 
 Do not use spaces or commas in the whitelist interface, you will only separate by commas and not new lines in the environment variables.
 
-It is recommended that you add High Fidelity's CDN URLs ahead of time to ensure general content works right off the bat: 
-
-```
-http://mpassets.highfidelity.com/
-https://raw.githubusercontent.com/highfidelity/
-https://hifi-content.s3.amazonaws.com/
-```
-
-You can also set the Windows environment variable "**EXTRA_WHITELIST**" with your whitelisted domains comma separated like so: "**https://kasen.io/,http://kasen.io/,https://exampledomain.com/scriptFolder/**" 
+You can also set the Windows environment variable "**EXTRA_WHITELIST**" with your whitelisted domains comma separated like so: "**http://mpassets.highfidelity.com/,https://raw.githubusercontent.com/highfidelity/,https://hifi-content.s3.amazonaws.com/**" 
 
 Alternatively you can make a batch file placed in the same folder as interface.exe that sets the whitelist environment variable temporarily:
 
@@ -50,7 +37,8 @@ interface.exe
 
 ### How to build interface.exe
 
-[For Windows](https://github.com/kasenvr/hifi-community/blob/kasen/core/BUILD_WIN.md)
+[For Windows](https://github.com/kasenvr/project-athena/blob/kasen/core/BUILD_WIN.md)
+[For Linux](https://github.com/kasenvr/project-athena/blob/kasen/core/BUILD_LINUX.md)
 
 ### Boot to Metaverse: The Goal
 
@@ -58,7 +46,7 @@ Too many of us have our own personal combinations of High Fidelity from C++ modi
 
 The goal of this repo is to give a common area to PR the very best of our findings and creations so that we may effectively take each necessary step towards our common goal of living in a true metaverse.
 
-### Why High Fidelity?
+### Why High Fidelity's Engine?
 
 Because of all the options, it is the only starting point that is open-source, cross-platform, fully VR integrated + fully desktop integrated with an aim for quality visuals and performance. It also does us the service of providing a foundation to start from such as entity management, full body IK, etc.
 
@@ -68,6 +56,8 @@ Platforms like NeosVR or VRChat are unusable from go due to their fundamental cl
 
 So the necessary desire is to use High Fidelity as our foundation as a community of one, of all to build a metaverse worth living in.
 
-### Contributors
+### Contribution
 
-A special thanks to the contributors of the community edition.
+A special thanks to the contributors of the Project Athena.
+
+[Contribution](CONTRIBUTING.md)
