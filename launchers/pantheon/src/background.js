@@ -8,6 +8,9 @@ import {
 import path from 'path'
 const isDevelopment = process.env.NODE_ENV !== 'production'
 const storage = require('electron-json-storage');
+const electronDl = require('electron-dl');
+ 
+electronDl();
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -98,28 +101,62 @@ if (isDevelopment) {
 // Settings.JSON bootstrapping
 // storage.setDataPath(app.getAppPath() + "/settings");
 
-console.log("App Path: " + storage.getDataPath());
+console.log("Data Path: " + storage.getDataPath());
 
-if(process.env.LAST_ATHENA_INSTALLED) {
-  var lastInstalled = process.env.LAST_ATHENA_INSTALLED;
-  storage.set('athena_interface.location', lastInstalled, function(error) {
-    if (error) throw error;
-  });
+// if(process.env.LAST_ATHENA_INSTALLED) {
+//   var lastInstalled = process.env.LAST_ATHENA_INSTALLED;
+//   storage.set('athena_interface.location', lastInstalled, function(error) {
+//     if (error) throw error;
+//   });
+// }
+
+function setLibraryDialog() {
+  const {dialog} = require('electron') 
+  
+  dialog.showOpenDialog(win, {
+    title: "Select the Athena Interface app library folder",
+    properties: ['openDirectory'],
+  }).then(result => {
+    console.log(result.canceled)
+    console.log(result.filePaths)
+    if(!result.canceled && result.filePaths[0]) {
+      storage.set('athena_interface.library', result.filePaths[0], function(error) {
+        if (error) {
+          throw error;
+        } else {
+          return true;
+        }
+      });
+    } else {
+      return false;
+    }
+  }).catch(err => {
+    console.log(err)
+    return false;
+  })
 }
 
-function getSetting(setting) {
-  return new Promise((resolve, reject) => {
-    var returnValue;
+async function getSetting(setting) {
+  var returnValue;
+  
+  let storagePromise = new Promise((res, rej) => {
     storage.get(setting, function(error, data) {
       if (error) {
-        returnValue = "ERROR: INTERFACE.EXE NOT FOUND."; 
         throw error;
-        resolve(returnValue);
+        returnValue = false;
+        rej("Error: " + error);
+      } else if (data == {}) {
+        returnValue = false;
+        rej("Not found.")
       }
       returnValue = data.toString();
-      resolve(returnValue);
+      res("Success!");
     });
-  }) 
+  });
+  
+  // because async won't work otherwise. 
+  let result = await storagePromise; 
+  return returnValue;
 }
 
 const { ipcMain } = require('electron')
@@ -146,5 +183,56 @@ ipcMain.on('launch-interface', (event, arg) => {
 
 ipcMain.on('getAthenaLocation', async (event, arg) => {
   var athenaLocation = await getSetting('athena_interface.location');
+  console.log(athenaLocation);
   event.returnValue = athenaLocation;
 })
+
+ipcMain.on('setAthenaLocation', async (event, arg) => {
+  const {dialog} = require('electron') 
+  
+  dialog.showOpenDialog(win, {
+    title: "Select the Athena Interface executable",
+    properties: ['openFile'],
+    filters: [
+      { name: 'Interface Executable', extensions: ['exe'] },
+    ]
+  }).then(result => {
+    console.log(result.canceled)
+    console.log(result.filePaths)
+    if(!result.canceled && result.filePaths[0]) {
+      storage.set('athena_interface.location', result.filePaths[0], function(error) {
+        if (error) throw error;
+      });
+    } else {
+      return;
+    }
+  }).catch(err => {
+    console.log(err)
+    return;
+  })
+  
+})
+
+ipcMain.on('setLibraryFolder', (event, arg) => {
+  setLibraryDialog();
+})
+
+ipcMain.on('installAthena', (event, arg) => {
+  var libraryPath;
+  var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
+  
+  getSetting('athena_interface.library').then(function(results){
+    if(results) {
+      libraryPath = results;
+      console.log("How many times?" + libraryPath);
+      electronDl.download(win, downloadURL, {
+        directory: libraryPath,
+        showBadge: true,
+        filename: "waifu.jpg"
+      });
+    } else {
+      setLibraryDialog();
+    }
+  });
+})
+

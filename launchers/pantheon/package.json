@@ -18,7 +18,9 @@
     "core-js": "^3.4.3",
     "decompress-zip": "^0.2.2",
     "electron": "^7.1.5",
+    "electron-dl": "^2.0.0",
     "electron-json-storage": "^4.1.8",
+    "material-design-icons-iconfont": "^5.0.1",
     "roboto-fontface": "*",
     "vue": "^2.6.10",
     "vuetify": "^2.1.0"
