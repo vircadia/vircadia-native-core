@@ -3,7 +3,7 @@ include(vcpkg_common_functions)
 
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
-    REPO highfidelity/scribe
+    REPO kasenvr/scribe
     REF 1bd638a36ca771e5a68d01985b6389b71835cbd2
     SHA512 dbe241d86df3912e544f6b9839873f9875df54efc93822b145e7b13243eaf2e3d690bc8a28b1e52d05bdcd7e68fca6b0b2f5c43ffd0f56a9b7a50d54dcf9e31e
     HEAD_REF master
