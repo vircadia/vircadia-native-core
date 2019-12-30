@@ -15,6 +15,11 @@
 				<span>Worlds</span>
 				<v-icon>mdi-map-search-outline</v-icon>
 			</v-btn>
+			
+			<v-btn v-on:click="showTab = 'Settings'" value="settings">
+				<span>Settings</span>
+				<v-icon>mdi-settings-outline</v-icon>
+			</v-btn>
 		</v-bottom-navigation>
 		
     <v-app-bar
@@ -22,6 +27,8 @@
       color="#182b49"
       dark
 			:bottom=true
+			:fixed=true
+			style="top: initial !important;"
     >
       <div class="d-flex align-center">
         <v-img
@@ -52,30 +59,14 @@
       <v-spacer></v-spacer>
 
 			<v-checkbox id="noSteamVR" class="mr-3 mt-7" v-model="noSteamVR" label="No SteamVR" value="true"></v-checkbox>
-			<v-btn
-				v-on:click.native="selectInterface()"
-				:right=true
-				class=""
-				color="rgba(0,0,0,0.7)"
-				tile=true
-			>
-				<v-icon>settings_applications</v-icon>
-			</v-btn>
-			<v-btn
-				v-on:click.native="setLibrary()"
-				:right=true
-				class=""
-				color="green"
-				tile=true
-			>
-				<v-icon>folder</v-icon>
-			</v-btn>
+
 			<v-btn
 				v-on:click.native="installInterface()"
 				:right=true
 				class=""
 				color="blue"
-				tile=true
+				:tile=true
+				disabled
 			>
 				<v-icon>cloud_download</v-icon>
 			</v-btn>
@@ -84,7 +75,7 @@
 				:right=true
 				class=""
 				color="rgba(133, 0, 140, 0.8)"
-				tile=true
+				:tile=true
 			>
 				<span class="mr-2">Launch</span>
 				<v-icon>mdi-play</v-icon>
@@ -105,13 +96,15 @@
 <script>
 import HelloWorld from './components/HelloWorld';
 import FavoriteWorlds from './components/FavoriteWorlds';
+import Settings from './components/Settings';
 
 export default {
   name: 'App',
 
   components: {
 		HelloWorld,
-		FavoriteWorlds
+		FavoriteWorlds,
+		Settings
   },
 	methods: {
 		launchInterface: function() {
@@ -126,14 +119,6 @@ export default {
 		launchBrowser: function(url) {
 			const { shell } = require('electron')
 			shell.openExternal(url);
-		},
-		selectInterface: function() {
-			const { ipcRenderer } = require('electron');
-			ipcRenderer.send('setAthenaLocation');
-		},
-		setLibrary: function() {
-			const { ipcRenderer } = require('electron');
-			ipcRenderer.send('setLibraryFolder');
 		},
 		installInterface: function() {
 			const { ipcRenderer } = require('electron');
