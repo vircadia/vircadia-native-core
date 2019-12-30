@@ -26,8 +26,8 @@ env:
   # Settings for uploading 
   APP_NAME: interface
   #APP_NAME: gpu-frame-player
-  BUCKET_NAME: hifi-public
-  UPLOAD_PREFIX: austin/builds
+  BUCKET_NAME: athena-public
+  UPLOAD_PREFIX: pr-builds/${{ github.repository }}
 
   # OSX specific variables
   DEVELOPER_DIR: /Applications/Xcode_11.2.app/Contents/Developer
@@ -35,9 +35,9 @@ env:
   # WIN32 specific variables
   PreferredToolArchitecture: X64
 
-  BS_USERNAME: gustavo@highfidelity.io
-  BS_PASSWORD: ${MASKED_BUGSPLAT_PASSWORD}
-  CMAKE_BACKTRACE_URL: https://highfidelity.sp.backtrace.io:6098
+  #BS_USERNAME: gustavo@highfidelity.io
+  #BS_PASSWORD: ${MASKED_BUGSPLAT_PASSWORD}
+  #CMAKE_BACKTRACE_URL: https://highfidelity.sp.backtrace.io:6098
   GA_TRACKING_ID: UA-39558647-8
   OCULUS_APP_ID: '1255907384473836'
   # CMAKE_BACKTRACE_TOKEN: ${MASKED_CMAKE_BACKTRACE_TOKEN}
