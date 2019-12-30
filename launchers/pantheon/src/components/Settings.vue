@@ -67,6 +67,13 @@
                   prepend-icon="lock"
                   type="password"
                 />
+								
+								<v-text-field
+									label="Metaverse Server"
+									name="metaverse"
+									prepend-icon="mdi-earth"
+									type="text"
+								/>
               </v-form>
             </v-card-text>
             <v-card-actions>
