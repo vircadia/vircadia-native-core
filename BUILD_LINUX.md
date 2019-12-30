@@ -2,7 +2,7 @@
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Linux specific instructions are found in this file.
 
-## Ubuntu 16.04/18.04 specific build guide
+## Ubuntu 16.04/18.04/Mint 19 Tara specific build guide
 ### Ubuntu 16.04 only
 Add the following line to *.bash_profile*  
 `export QT_QPA_FONTDIR=/usr/share/fonts/truetype/dejavu/`
@@ -33,7 +33,7 @@ Verify by g++ --version
 ```bash
 sudo apt-get install cmake -y
 ```
-Verify by git --version  
+Verify by cmake --version  
 1. *Ubuntu 16.04* cmake  
 ```bash
 wget https://cmake.org/files/v3.14/cmake-3.14.2-Linux-x86_64.sh
@@ -82,20 +82,21 @@ git clone https://github.com/kasenvr/project-athena.git
 To compile a RELEASE version checkout the tag you need getting a list of all tags:
 ```bash
 git fetch -a
-git tags
+git tag
 ```
 
 Then checkout last tag with:
 ```bash
-git checkout tags/v0.79.0
+git checkout tag/1.0
 ```
 
 ### Compiling
 
 Create the build directory:
 ```bash
-mkdir -p hifi/build
-cd hifi/build
+cd project-athena
+mkdir  build
+cd build
 ```
 
 Prepare makefiles:
