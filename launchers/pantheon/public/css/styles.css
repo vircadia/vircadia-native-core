@@ -58,6 +58,14 @@ h2 {
 
 .world-cards {
   margin-top: 20px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* FavoriteWorlds.vue */
+
+#hfavoriteWorldsContainer {
+  padding-left: 60px;
 }
 
 /* Transitions */

@@ -9,6 +9,10 @@ import path from 'path'
 const isDevelopment = process.env.NODE_ENV !== 'production'
 const storage = require('electron-json-storage');
 const electronDl = require('electron-dl');
+const { readdirSync } = require('fs')
+const { forEach } = require('p-iteration');
+
+var glob = require('glob');
  
 electronDl();
 
@@ -110,8 +114,75 @@ console.log("Data Path: " + storage.getDataPath());
 //   });
 // }
 
+var requireInterfaceSelection;
+var defaultDataPath = storage.getDefaultDataPath();
+
+getLibraryInterfaces().then(function(results) {
+  console.info("Success",results);
+  generateInterfaceList(results);
+});
+
+async function generateInterfaceList(interfaces) {
+  var interfacesObject = {};
+  var dataPath;
+  console.info("Interfaces", interfaces);
+  for (var i = 0; i < interfaces.length; i++) {
+    console.info("WTF?",interfaces[i])
+    var client = interfaces[i];
+    dataPath = client + "launcher_settings";
+    storage.setDataPath(dataPath);
+    
+    console.info("Well:",dataPath, "Becomes:", storage.getDataPath(), "Based on:", client);
+    
+    getSetting('interface_package').then(function(pkg){
+      // var appName = pkg.package.name;
+      // interfacesObject.appName.dir = app;
+      console.info("This comes first...");
+    });
+  }
+  
+  console.info(interfacesObject);
+}
+
+var getDirectories = function (src, callback) {
+  if(glob(src + '/*/launcher_settings/interface_package.json')) {
+    glob(src + '/*/', callback);
+  }
+};
+
+async function getLibraryInterfaces() {
+  var interfaces = [];
+  
+  let getLibraryPromise = new Promise((res, rej) => {
+    var res_p = res;
+    var rej_p = rej;
+    getSetting('athena_interface.library').then(function(libraryPath){
+      if(libraryPath) {
+        getDirectories(libraryPath, function (err, res) {
+          if (err) {
+            console.log('Error', err);
+            rej_p("Error: " + error);
+          } else {
+            interfaces.push(res);
+            res_p("Success!");
+          }
+        });
+      } else {
+        interfaces = ["Select a library folder."];
+        rej_p("Select a library folder.");
+      }
+    });
+  });
+  
+  let result = await getLibraryPromise; 
+  return interfaces;
+}
+
 function setLibraryDialog() {
   const {dialog} = require('electron') 
+  
+  storage.setDataPath(defaultDataPath);
+  requireInterfaceSelection = true;
   
   dialog.showOpenDialog(win, {
     title: "Select the Athena Interface app library folder",
@@ -165,15 +236,16 @@ ipcMain.on('launch-interface', (event, arg) => {
   var interface_exe = require('child_process').execFile;
   // var executablePath = "E:\\Development\\High_Fidelity\\v0860-kasen-VS-release+freshstart\\build\\interface\\Packaged_Release\\Release\\interface.exe";
   var executablePath = arg.exec;
-  var parameters;
+  var parameters = [""];
   
   // arg is expected to be true or false with regards to SteamVR being enabled or not, later on it may be an object or array and we will handle it accordingly.
   if(arg.steamVR) {
-    parameters = ['--disable-displays', 'OpenVR (Vive)', '--disable-inputs', 'OpenVR (Vive)'];
-  } else {
-    parameters = [""];
+    parameters += ['--disable-displays', 'OpenVR (Vive)', '--disable-inputs', 'OpenVR (Vive)'];
   }
-
+  if(arg.allowMultipleInterfaces) {
+    parameters += ['uhh, what was the flag again?'];
+  }
+  
   interface_exe(executablePath, parameters, function(err, data) {
     console.log(err)
     console.log(data.toString());
@@ -182,9 +254,10 @@ ipcMain.on('launch-interface', (event, arg) => {
 })
 
 ipcMain.on('getAthenaLocation', async (event, arg) => {
-  var athenaLocation = await getSetting('athena_interface.location');
-  console.log(athenaLocation);
-  event.returnValue = athenaLocation;
+  var athenaLocation = await getSetting('interface_package');
+  var athenaLocationExe = athenaLocation.interface.location;
+  console.log(athenaLocationExe)
+  event.returnValue = athenaLocationExe;
 })
 
 ipcMain.on('setAthenaLocation', async (event, arg) => {
@@ -193,6 +266,7 @@ ipcMain.on('setAthenaLocation', async (event, arg) => {
   dialog.showOpenDialog(win, {
     title: "Select the Athena Interface executable",
     properties: ['openFile'],
+    defaultPath: storage.getDataPath(),
     filters: [
       { name: 'Interface Executable', extensions: ['exe'] },
     ]
@@ -217,9 +291,22 @@ ipcMain.on('setLibraryFolder', (event, arg) => {
   setLibraryDialog();
 })
 
+ipcMain.on('setCurrentInterface', (event, arg) => {
+  if(arg.folder) {
+    storage.setDataPath(arg.folder + "/launcher_settings");
+  }
+})
+
+ipcMain.on('isInterfaceSelectionRequired', (event, arg) => {
+  event.returnValue = requireInterfaceSelection;
+})
+
 ipcMain.on('installAthena', (event, arg) => {
   var libraryPath;
   var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
+  
+  storage.setDataPath(defaultDataPath);
+  requireInterfaceSelection = true;
   
   getSetting('athena_interface.library').then(function(results){
     if(results) {

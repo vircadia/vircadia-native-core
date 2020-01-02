@@ -20,10 +20,13 @@
     "electron": "^7.1.5",
     "electron-dl": "^2.0.0",
     "electron-json-storage": "^4.1.8",
+    "glob": "^7.1.6",
     "material-design-icons-iconfont": "^5.0.1",
+    "p-iteration": "^1.1.8",
     "roboto-fontface": "*",
     "vue": "^2.6.10",
-    "vuetify": "^2.1.0"
+    "vuetify": "^2.1.0",
+    "vuex": "^3.1.2"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^4.1.0",

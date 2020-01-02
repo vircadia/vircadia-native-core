@@ -6,7 +6,7 @@
 				<v-icon>mdi-history</v-icon>
 			</v-btn>
 	
-			<v-btn disabled v-on:click="showTab = 'FavoriteWorlds'" value="favorites">
+			<v-btn v-on:click="showTab = 'FavoriteWorlds'" value="favorites">
 				<span>Favorites</span>
 				<v-icon>mdi-heart</v-icon>
 			</v-btn>
@@ -126,8 +126,8 @@ export default {
 		},
 	},
   data: () => ({
-		showTab: 'NOTHING',
-		// showTab: 'HelloWorld',
+		showTab: 'FavoriteWorlds',
+		allowMultipleInterfaces: false,
 		noSteamVR: false,
   }),
 };
