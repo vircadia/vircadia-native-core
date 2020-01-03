@@ -9,7 +9,7 @@ import 'material-design-icons-iconfont/dist/material-design-icons.css'
 Vue.config.productionTip = false
 
 new Vue({
-  vuetify,
-  store,
-  render: h => h(App)
+	vuetify,
+	store,
+	render: h => h(App)
 }).$mount('#app')

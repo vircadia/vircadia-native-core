@@ -18,12 +18,21 @@
 							<v-toolbar-title>Settings</v-toolbar-title>
 							<v-spacer />
 							
+							<v-btn
+								color="purple"
+								:tile=true
+								v-on:click.native="populateInterfaceList()"
+							>
+								<v-icon>mdi-refresh</v-icon>
+							</v-btn>
+							
 							<v-menu
 								transition="slide-y-transition"
 								bottom
 							>
 								<template v-slot:activator="{ on }">
 									<v-btn
+										:tile=true
 										v-on="on"
 									>
 									Set Client & Profile
@@ -33,8 +42,9 @@
 									<v-list-item
 										v-for="(item, i) in interfaceFolders"
 										:key="i"
+										@click="selectInterface(item)"
 									>
-									<v-list-item-title>{{ item.folder }}</v-list-item-title>
+									<v-list-item-title>{{ item.name }}</v-list-item-title>
 									</v-list-item>
 								</v-list>
 							</v-menu>
@@ -46,7 +56,7 @@
 						<v-layout row pr-5 pt-5 pl-10>
 							<v-flex md6>
 								<v-btn 
-									v-on:click.native="selectInterface()"
+									v-on:click.native="selectInterfaceExe()"
 									:right=true
 									class=""
 									:tile=true
@@ -116,11 +126,39 @@
 </template>
 
 <script>
+var store_p;
+var vue_this;
+
+const { ipcRenderer } = require('electron');
+ipcRenderer.on('interface-list', (event, arg) => {
+	vue_this.interfaceFolders = [];
+	console.info("what?", arg);
+	store_p.commit('populateInterfaceList', arg);
+	var populatedList = store_p.state.populatedInterfaceList;
+	populatedList.forEach(function(i){
+		var appName = Object.keys(i)[0];
+		var appLoc = i[appName].location;
+		var appObject = { "name": appName, "folder": appLoc };
+		vue_this.interfaceFolders.push(appObject);
+		console.info(i);
+		console.info(Object.keys(i)[0]);
+		console.info(appLoc);
+	});
+});
+
+ipcRenderer.on('interface-selection-required', (event, arg) => {
+	console.info(arg);
+});
 
 export default {
 	name: 'Settings',
 	methods: {
-		selectInterface: function() {
+		selectInterface: function(selected) {
+			this.interfaceSelectionRequired = false;
+			const { ipcRenderer } = require('electron');			
+			ipcRenderer.send('setCurrentInterface', selected.folder);
+		},
+		selectInterfaceExe: function() {
 			const { ipcRenderer } = require('electron');
 			ipcRenderer.send('setAthenaLocation');
 		},
@@ -128,19 +166,28 @@ export default {
 			const { ipcRenderer } = require('electron');
 			ipcRenderer.send('setLibraryFolder');
 		},
+		populateInterfaceList: function() {
+			const { ipcRenderer } = require('electron');
+			ipcRenderer.invoke('populateInterfaceList');
+		},
 		multipleInterfaces: function() {
 			this.$store.commit('setAllowMultipleInterfaces', this.allowMultipleInterfaces);
+		},
+		isInterfaceSelectionRequired: function() {
+			
 		},
 	},
 	data: () => ({
 		show: false,
 		allowMultipleInterfaces: false,
-		interfaceFolders: [
-			{ folder: 'Click Me' },
-			{ folder: 'Click Me' },
-			{ folder: 'Click Me' },
-			{ folder: 'Click Me 2' },
-		],
+		interfaceFolders: [],
+		selectedInterface: null,
+		interfaceSelectionRequired: true,
 	}),
+	created: function () {
+		store_p = this.$store;
+		vue_this = this;
+		this.populateInterfaceList();
+	}
 };
 </script>

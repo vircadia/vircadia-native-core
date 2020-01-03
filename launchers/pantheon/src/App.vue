@@ -99,22 +99,24 @@ import FavoriteWorlds from './components/FavoriteWorlds';
 import Settings from './components/Settings';
 
 export default {
-  name: 'App',
-
-  components: {
+	name: 'App',
+	components: {
 		HelloWorld,
 		FavoriteWorlds,
 		Settings
-  },
+	},
 	methods: {
 		launchInterface: function() {
 			if(!this.noSteamVR) {
 				this.noSteamVR = false;
 			} 
-			
+			var allowMulti = false;
+			if(this.$store.state.allowMultipleInterfaces) {
+				allowMulti = true;
+			}
 			const { ipcRenderer } = require('electron');
 			var exeLoc = ipcRenderer.sendSync('getAthenaLocation');
-			ipcRenderer.send('launch-interface', { "exec": exeLoc, "steamVR": this.noSteamVR});
+			ipcRenderer.send('launch-interface', { "exec": exeLoc, "steamVR": this.noSteamVR, "allowMultipleInterfaces": allowMulti});
 		},
 		launchBrowser: function(url) {
 			const { shell } = require('electron')
@@ -127,7 +129,6 @@ export default {
 	},
   data: () => ({
 		showTab: 'FavoriteWorlds',
-		allowMultipleInterfaces: false,
 		noSteamVR: false,
   }),
 };

@@ -114,34 +114,41 @@ console.log("Data Path: " + storage.getDataPath());
 //   });
 // }
 
-var requireInterfaceSelection;
-var defaultDataPath = storage.getDefaultDataPath();
+var storagePath = {
+	default: storage.getDefaultDataPath(),
+	interface: null,
+	interfaceSettings: null,
+};
 
-getLibraryInterfaces().then(function(results) {
-  console.info("Success",results);
-  generateInterfaceList(results);
-});
+// storage.set('testObject', { foo: 'bar' }, { dataPath: storagePath.default }, function(error) {
+//   if (error) throw error;
+// });
+
+var requireInterfaceSelection;
 
 async function generateInterfaceList(interfaces) {
-  var interfacesObject = {};
+  var interfacesArray = [];
   var dataPath;
-  console.info("Interfaces", interfaces);
-  for (var i = 0; i < interfaces.length; i++) {
-    console.info("WTF?",interfaces[i])
+  
+  for (var i in interfaces) {
     var client = interfaces[i];
     dataPath = client + "launcher_settings";
-    storage.setDataPath(dataPath);
     
-    console.info("Well:",dataPath, "Becomes:", storage.getDataPath(), "Based on:", client);
+    console.info("Well:",dataPath, "Based on:", client);
     
-    getSetting('interface_package').then(function(pkg){
-      // var appName = pkg.package.name;
-      // interfacesObject.appName.dir = app;
-      console.info("This comes first...");
+    await getSetting('interface_package', dataPath).then(function(pkg){
+		var appName = pkg.package.name;
+		var appObject = { 
+			[appName]: {
+				"location": client,
+			}
+		};
+		interfacesArray.push(appObject);
+		console.info(interfacesArray);
     });
   }
-  
-  console.info(interfacesObject);
+  return interfacesArray;
+  console.info(interfacesArray);
 }
 
 var getDirectories = function (src, callback) {
@@ -151,28 +158,29 @@ var getDirectories = function (src, callback) {
 };
 
 async function getLibraryInterfaces() {
-  var interfaces = [];
-  
-  let getLibraryPromise = new Promise((res, rej) => {
-    var res_p = res;
-    var rej_p = rej;
-    getSetting('athena_interface.library').then(function(libraryPath){
-      if(libraryPath) {
-        getDirectories(libraryPath, function (err, res) {
-          if (err) {
-            console.log('Error', err);
-            rej_p("Error: " + error);
-          } else {
-            interfaces.push(res);
-            res_p("Success!");
-          }
-        });
-      } else {
-        interfaces = ["Select a library folder."];
-        rej_p("Select a library folder.");
-      }
-    });
-  });
+	var interfaces = [];
+
+	let getLibraryPromise = new Promise((res, rej) => {
+		var res_p = res;
+		var rej_p = rej;
+		getSetting('athena_interface.library', storagePath.default).then(function(libraryPath){
+			if(libraryPath) {
+				getDirectories(libraryPath, function (err, res) {
+					if (err) {
+						console.log('Error', err);
+						rej_p("Error: " + error);
+					} else {
+						interfaces = res;
+						res_p("Success!");
+					}
+				});
+			} else {
+				interfaces = ["Select a library folder."];
+				rej_p("Select a library folder.");
+			}
+			
+		});
+	});
   
   let result = await getLibraryPromise; 
   return interfaces;
@@ -180,10 +188,7 @@ async function getLibraryInterfaces() {
 
 function setLibraryDialog() {
   const {dialog} = require('electron') 
-  
-  storage.setDataPath(defaultDataPath);
-  requireInterfaceSelection = true;
-  
+
   dialog.showOpenDialog(win, {
     title: "Select the Athena Interface app library folder",
     properties: ['openDirectory'],
@@ -191,7 +196,7 @@ function setLibraryDialog() {
     console.log(result.canceled)
     console.log(result.filePaths)
     if(!result.canceled && result.filePaths[0]) {
-      storage.set('athena_interface.library', result.filePaths[0], function(error) {
+      storage.set('athena_interface.library', result.filePaths[0], {dataPath: storagePath.default}, function(error) {
         if (error) {
           throw error;
         } else {
@@ -207,11 +212,11 @@ function setLibraryDialog() {
   })
 }
 
-async function getSetting(setting) {
+async function getSetting(setting, storageDataPath) {
   var returnValue;
   
   let storagePromise = new Promise((res, rej) => {
-    storage.get(setting, function(error, data) {
+    storage.get(setting, {dataPath: storageDataPath}, function(error, data) {
       if (error) {
         throw error;
         returnValue = false;
@@ -220,7 +225,7 @@ async function getSetting(setting) {
         returnValue = false;
         rej("Not found.")
       }
-      returnValue = data.toString();
+      returnValue = data;
       res("Success!");
     });
   });
@@ -243,7 +248,7 @@ ipcMain.on('launch-interface', (event, arg) => {
     parameters += ['--disable-displays', 'OpenVR (Vive)', '--disable-inputs', 'OpenVR (Vive)'];
   }
   if(arg.allowMultipleInterfaces) {
-    parameters += ['uhh, what was the flag again?'];
+    parameters += ['--allowMultipleInstances'];
   }
   
   interface_exe(executablePath, parameters, function(err, data) {
@@ -254,10 +259,10 @@ ipcMain.on('launch-interface', (event, arg) => {
 })
 
 ipcMain.on('getAthenaLocation', async (event, arg) => {
-  var athenaLocation = await getSetting('interface_package');
-  var athenaLocationExe = athenaLocation.interface.location;
-  console.log(athenaLocationExe)
-  event.returnValue = athenaLocationExe;
+	var athenaLocation = await getSetting('athena_interface.location', storagePath.interfaceSettings);
+	var athenaLocationExe = athenaLocation.toString();
+	console.log(athenaLocationExe);
+	event.returnValue = athenaLocationExe;
 })
 
 ipcMain.on('setAthenaLocation', async (event, arg) => {
@@ -274,7 +279,7 @@ ipcMain.on('setAthenaLocation', async (event, arg) => {
     console.log(result.canceled)
     console.log(result.filePaths)
     if(!result.canceled && result.filePaths[0]) {
-      storage.set('athena_interface.location', result.filePaths[0], function(error) {
+      	storage.set('athena_interface.location', result.filePaths[0], {dataPath: storagePath.interfaceSettings}, function(error) {
         if (error) throw error;
       });
     } else {
@@ -288,27 +293,39 @@ ipcMain.on('setAthenaLocation', async (event, arg) => {
 })
 
 ipcMain.on('setLibraryFolder', (event, arg) => {
-  setLibraryDialog();
+	setLibraryDialog();
 })
 
 ipcMain.on('setCurrentInterface', (event, arg) => {
-  if(arg.folder) {
-    storage.setDataPath(arg.folder + "/launcher_settings");
-  }
+	if(arg) {
+		storage.setDataPath(arg + "/launcher_settings");
+		storagePath.interface = arg;
+		storagePath.interfaceSettings = arg + "/launcher_settings";
+		console.info("storagePath:", JSON.stringify(storagePath));
+	}
 })
 
-ipcMain.on('isInterfaceSelectionRequired', (event, arg) => {
-  event.returnValue = requireInterfaceSelection;
+ipcMain.handle('isInterfaceSelectionRequired', (event, arg) => {
+	if(storagePath.interface == null || storagePath.interfaceSettings == null) {
+		event.sender.send('interface-selection-required', true);
+	} else {
+		event.sender.send('interface-selection-required', false);
+	}
+})
+
+ipcMain.handle('populateInterfaceList', (event, arg) => {
+	getLibraryInterfaces().then(async function(results) {
+		var generatedList = await generateInterfaceList(results);
+		// console.info("Returning...", generatedList, "typeof", typeof generatedList, "results", results);
+		event.sender.send('interface-list', generatedList);
+	});
 })
 
 ipcMain.on('installAthena', (event, arg) => {
   var libraryPath;
   var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
   
-  storage.setDataPath(defaultDataPath);
-  requireInterfaceSelection = true;
-  
-  getSetting('athena_interface.library').then(function(results){
+  getSetting('athena_interface.library', storagePath.interfaceSettings).then(function(results){
     if(results) {
       libraryPath = results;
       console.log("How many times?" + libraryPath);
