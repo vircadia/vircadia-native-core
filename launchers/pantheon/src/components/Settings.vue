@@ -83,7 +83,7 @@
 						
 						<v-layout row pr-5 pt-5 pl-10>
 							<v-flex md6>
-								<v-checkbox id="multipleInterfaces" class="mr-3 mt-3" v-model="allowMultipleInterfaces" @click="multipleInterfaces" label="Allow Multiple Interfaces" value="true"></v-checkbox>
+								<v-checkbox color="blue" id="multipleInterfaces" class="mr-3 mt-3" v-model="allowMultipleInterfaces" @click="multipleInterfaces" label="Allow Multiple Interfaces" value="true"></v-checkbox>
 							</v-flex>
 						</v-layout> 
 						
@@ -116,12 +116,43 @@
 						</v-card-text>
 						<v-card-actions>
 							<v-spacer />
-							<v-btn color="primary">Login</v-btn>
+							<v-btn disabled color="primary">Login</v-btn>
 						</v-card-actions>
 					</v-card>
 				</v-row>
 			</v-container>
 		</v-content>
+		<v-dialog
+			width="500"
+			v-model="showRequireInterface"
+		>
+			<v-card>
+				<v-card-title
+					class="headline"
+					primary-title
+					dark
+				>
+					Notice
+				</v-card-title>
+		
+				<v-card-text>
+					Please select an interface by clicking "Set Client & Profile". If the list is empty, select a library. If there is nothing in your library, download Athena to it.
+				</v-card-text>
+		
+				<v-divider></v-divider>
+		
+				<v-card-actions>
+					<v-spacer></v-spacer>
+					<v-btn
+						color="primary"
+						text
+						@click="showRequireInterface = false"
+					>
+						Okay
+					</v-btn>
+				</v-card-actions>
+			</v-card>
+		</v-dialog>
 	</v-app>
 </template>
 
@@ -132,7 +163,6 @@ var vue_this;
 const { ipcRenderer } = require('electron');
 ipcRenderer.on('interface-list', (event, arg) => {
 	vue_this.interfaceFolders = [];
-	console.info("what?", arg);
 	store_p.commit('populateInterfaceList', arg);
 	var populatedList = store_p.state.populatedInterfaceList;
 	populatedList.forEach(function(i){
@@ -140,17 +170,16 @@ ipcRenderer.on('interface-list', (event, arg) => {
 		var appLoc = i[appName].location;
 		var appObject = { "name": appName, "folder": appLoc };
 		vue_this.interfaceFolders.push(appObject);
-		console.info(i);
-		console.info(Object.keys(i)[0]);
-		console.info(appLoc);
+		// console.info(i);
+		// console.info(Object.keys(i)[0]);
+		// console.info(appLoc);
 	});
 });
 
 ipcRenderer.on('interface-selection-required', (event, arg) => {
 	console.info(arg);
 });
-
-export default {
+export default {	
 	name: 'Settings',
 	methods: {
 		selectInterface: function(selected) {
@@ -159,8 +188,12 @@ export default {
 			ipcRenderer.send('setCurrentInterface', selected.folder);
 		},
 		selectInterfaceExe: function() {
-			const { ipcRenderer } = require('electron');
-			ipcRenderer.send('setAthenaLocation');
+			if(this.interfaceSelectionRequired) {
+				this.showRequireInterface = true;
+			} else {
+				const { ipcRenderer } = require('electron');
+				ipcRenderer.send('setAthenaLocation');
+			}
 		},
 		setLibrary: function() {
 			const { ipcRenderer } = require('electron');
@@ -179,6 +212,7 @@ export default {
 	},
 	data: () => ({
 		show: false,
+		showRequireInterface: false,
 		allowMultipleInterfaces: false,
 		interfaceFolders: [],
 		selectedInterface: null,

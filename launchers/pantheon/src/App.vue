@@ -59,17 +59,49 @@
       <v-spacer></v-spacer>
 
 			<v-checkbox id="noSteamVR" class="mr-3 mt-7" v-model="noSteamVR" label="No SteamVR" value="true"></v-checkbox>
-
-			<v-btn
-				v-on:click.native="installInterface()"
-				:right=true
-				class=""
-				color="blue"
-				:tile=true
-				disabled
-			>
-				<v-icon>cloud_download</v-icon>
-			</v-btn>
+			
+			
+			<v-tooltip top>	
+				<template v-slot:activator="{ on }">
+					<v-btn
+						v-on:click.native="installInterface()"
+						v-on="on"
+						:right=true
+						class=""
+						color="green"
+						:tile=true
+						:disabled="disableInstallIcon"
+					>
+						<v-icon>unarchive</v-icon>
+					</v-btn>
+				</template>
+				<span>Install</span>
+			</v-tooltip>
+			<v-tooltip top>
+				<template v-slot:activator="{ on }">
+					<v-btn
+						v-on:click.native="downloadInterface()"
+						v-on="on"
+						:right=true
+						class=""
+						color="blue"
+						:tile=true
+					>
+						<v-progress-circular
+							:size="25"
+							:width="5"
+							:rotate="90"
+							:value="downloadProgress"
+							color="red"
+							v-if="showCloudDownload"
+						>
+						</v-progress-circular>
+						<v-icon v-if="showCloudIcon">cloud_download</v-icon>
+					</v-btn>
+				</template>
+				<span>Download</span>
+			</v-tooltip>
+			
 			<v-btn
 				v-on:click.native="launchInterface()"
 				:right=true
@@ -94,6 +126,24 @@
 </template>
 
 <script>
+var vue_this;
+const { ipcRenderer } = require('electron');
+ipcRenderer.on('download-installer-progress', (event, arg) => {
+	var downloadProgress = arg.percent;
+	if(downloadProgress < 1) { // If downloading...
+		vue_this.showCloudIcon = false;
+		vue_this.showCloudDownload = true;
+		vue_this.isDownloading = true;
+	} else { // When done.
+		vue_this.showCloudIcon = true;
+		vue_this.showCloudDownload = false;
+		vue_this.disableInstallIcon = false;
+		vue_this.isDownloading = false;
+	}
+	console.info(downloadProgress);
+	vue_this.downloadProgress = downloadProgress * 100;
+});
+
 import HelloWorld from './components/HelloWorld';
 import FavoriteWorlds from './components/FavoriteWorlds';
 import Settings from './components/Settings';
@@ -122,14 +172,33 @@ export default {
 			const { shell } = require('electron')
 			shell.openExternal(url);
 		},
+		downloadInterface: function() {
+			if(!this.isDownloading) {
+				const { ipcRenderer } = require('electron');
+				ipcRenderer.send('downloadAthena');
+			}
+		},
 		installInterface: function() {
 			const { ipcRenderer } = require('electron');
 			ipcRenderer.send('installAthena');
-		},
+		}
 	},
-  data: () => ({
+	created: function () {
+		vue_this = this;
+	},
+	watch: {
+		noSteamVR: function (newValue, oldValue) {
+			this.$store.commit('setSteamVR', newValue);
+		}
+	},
+	data: () => ({
 		showTab: 'FavoriteWorlds',
 		noSteamVR: false,
-  }),
+		downloadProgress: 0,
+		isDownloading: false,
+		showCloudIcon: true,
+		showCloudDownload: false,
+		disableInstallIcon: false,
+	}),
 };
 </script>

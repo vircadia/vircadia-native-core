@@ -89,29 +89,29 @@ export default {
   data: () => ({
     show: false,
 		worlds: [
-			{
-				name: 'Athena Start',
-				url: 'serverless',
-				img: 'http://virtualrealitytimes.com/wp-content/uploads/2017/08/high-fidelity-og.jpg'
-			},
+			// {
+			// 	name: 'Athena Start',
+			// 	url: 'serverless',
+			// 	img: 'http://virtualrealitytimes.com/wp-content/uploads/2017/08/high-fidelity-og.jpg'
+			// },
 			{
 				name: 'The-Spot',
-				url: 'the-spot.projectathena.dev',
+				url: 'hifi://the-spot.projectathena.dev',
 				img: 'http://virtualrealitytimes.com/wp-content/uploads/2017/08/high-fidelity-og.jpg'
 			},
 			{
 				name: 'Franny',
-				url: 'franny.projectathena.dev',
+				url: 'hifi://franny.projectathena.dev',
 				img: 'http://virtualrealitytimes.com/wp-content/uploads/2017/08/high-fidelity-og.jpg'
 			},
 			{
 				name: 'ThePalace',
-				url: 'thepalace.projectathena.dev',
+				url: 'hifi://thepalace.projectathena.dev',
 				img: 'http://virtualrealitytimes.com/wp-content/uploads/2017/08/high-fidelity-og.jpg'
 			},
 			{
 				name: 'Music',
-				url: 'music.projectathena.dev',
+				url: 'hifi://music.projectathena.dev',
 				img: 'http://virtualrealitytimes.com/wp-content/uploads/2017/08/high-fidelity-og.jpg'
 			},
 		]

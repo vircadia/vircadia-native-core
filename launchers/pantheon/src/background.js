@@ -321,22 +321,46 @@ ipcMain.handle('populateInterfaceList', (event, arg) => {
 	});
 })
 
-ipcMain.on('installAthena', (event, arg) => {
-  var libraryPath;
-  var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
+ipcMain.on('downloadAthena', (event, arg) => {
+  	var libraryPath;
+  	// var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
+	var downloadURL = "http://ipv4.download.thinkbroadband.com/100MB.zip";
+	// var downloadURL = "http://home.darlingvr.club/hifi-community/fix-scaled-walk-speed/HighFidelity-Beta-v0.86.0-7364ac5.exe";
   
-  getSetting('athena_interface.library', storagePath.interfaceSettings).then(function(results){
+  getSetting('athena_interface.library', storagePath.default).then(function(results){
     if(results) {
       libraryPath = results;
       console.log("How many times?" + libraryPath);
       electronDl.download(win, downloadURL, {
         directory: libraryPath,
         showBadge: true,
-        filename: "waifu.jpg"
+        filename: "Setup_Latest.exe",
+		onProgress: currentProgress => {
+			console.info(currentProgress);
+			var percent = currentProgress.percent;
+			win.webContents.send('download-installer-progress', {
+				percent
+			});
+        },
       });
     } else {
       setLibraryDialog();
     }
   });
 })
+
+ipcMain.on('installAthena', (event, arg) => {
+	getSetting('athena_interface.library', storagePath.default).then(function(libPath){
+		var installer_exe = require('child_process').execFile;
+		var executablePath = libPath + "/Setup_Latest.exe";
+		var installPath = libPath + "/testInterface";
+		var parameters = [""];
+		// parameters += ['/s', "/D=", installPath];
+
+		installer_exe(executablePath, parameters, function(err, data) {
+			console.log(err)
+			console.log(data.toString());
+		});
+	});
+});
 
