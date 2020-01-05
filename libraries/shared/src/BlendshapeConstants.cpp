@@ -76,3 +76,11 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     "UserBlendshape9",
     ""
 };
+
+QMap<QString, int> blendshapeLookupMap = [] {
+    QMap<QString, int> toReturn;
+    for (int i = 0; i < (int)Blendshapes::BlendshapeCount; i++) {
+        toReturn[FACESHIFT_BLENDSHAPES[i]] = i;
+    }
+    return toReturn;
+}();

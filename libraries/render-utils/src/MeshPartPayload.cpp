@@ -450,6 +450,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, PrimitiveMode pr
         }
     }
 
+    _prevUseDualQuaternionSkinning = useDualQuaternionSkinning;
     _shapeKey = builder.build();
 }
 
@@ -559,6 +560,14 @@ void ModelMeshPartPayload::setBlendshapeBuffer(const std::unordered_map<int, gpu
         auto blendshapeBuffer = blendshapeBuffers.find(_meshIndex);
         if (blendshapeBuffer != blendshapeBuffers.end()) {
             _meshBlendshapeBuffer = blendshapeBuffer->second;
+            if (_isSkinned || (_isBlendShaped && _meshBlendshapeBuffer)) {
+                ShapeKey::Builder builder(_shapeKey);
+                builder.withDeformed();
+                if (_prevUseDualQuaternionSkinning) {
+                    builder.withDualQuatSkinned();
+                }
+                _shapeKey = builder.build();
+            }
         }
     }
 }

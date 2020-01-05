@@ -145,6 +145,7 @@ private:
     gpu::BufferPointer _meshBlendshapeBuffer;
     int _meshNumVertices;
     render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
+    bool _prevUseDualQuaternionSkinning { false };
     bool _cauterized { false };
 
 };
