@@ -160,7 +160,7 @@ function restoreCameraState() {
 }
 
 function handleModes() {
-    var newMode = (mode == noMode) ? noMode : detachedMode;
+    var newMode = (mode === noMode) ? noMode : detachedMode;
     if (alt) {
         if (control) {
             if (shift) {
@@ -174,32 +174,32 @@ function handleModes() {
     }
 
     // if entering detachMode
-    if (newMode == detachedMode && mode != detachedMode) {
+    if (newMode === detachedMode && mode !== detachedMode) {
         avatarPosition = MyAvatar.position;
         avatarOrientation = MyAvatar.orientation;
     }
     // if leaving detachMode
-    if (mode == detachedMode && newMode == detachedMode &&
-        (avatarPosition.x != MyAvatar.position.x ||
-            avatarPosition.y != MyAvatar.position.y ||
-            avatarPosition.z != MyAvatar.position.z ||
-            avatarOrientation.x != MyAvatar.orientation.x ||
-            avatarOrientation.y != MyAvatar.orientation.y ||
-            avatarOrientation.z != MyAvatar.orientation.z ||
-            avatarOrientation.w != MyAvatar.orientation.w)) {
+    if (mode === detachedMode && newMode === detachedMode &&
+        (avatarPosition.x !== MyAvatar.position.x ||
+            avatarPosition.y !== MyAvatar.position.y ||
+            avatarPosition.z !== MyAvatar.position.z ||
+            avatarOrientation.x !== MyAvatar.orientation.x ||
+            avatarOrientation.y !== MyAvatar.orientation.y ||
+            avatarOrientation.z !== MyAvatar.orientation.z ||
+            avatarOrientation.w !== MyAvatar.orientation.w)) {
         newMode = noMode;
     }
 
-    if (mode == noMode && newMode != noMode && Camera.mode == "independent") {
+    if (mode === noMode && newMode !== noMode && Camera.mode === "independent") {
         newMode = noMode;
     }
 
     // if leaving noMode
-    if (mode == noMode && newMode != noMode) {
+    if (mode === noMode && newMode !== noMode) {
         saveCameraState();
     }
     // if entering noMode
-    if (newMode == noMode && mode != noMode) {
+    if (newMode === noMode && mode !== noMode) {
         restoreCameraState();
     }
 
@@ -209,15 +209,15 @@ function handleModes() {
 function keyPressEvent(event) {
     var changed = false;
 
-    if (event.text == "ALT") {
+    if (event.text === "ALT") {
         alt = true;
         changed = true;
     }
-    if (event.text == "CONTROL") {
+    if (event.text === "CONTROL") {
         control = true;
         changed = true;
     }
-    if (event.text == "SHIFT") {
+    if (event.text === "SHIFT") {
         shift = true;
         changed = true;
     }
@@ -230,17 +230,17 @@ function keyPressEvent(event) {
 function keyReleaseEvent(event) {
     var changed = false;
 
-    if (event.text == "ALT") {
+    if (event.text === "ALT") {
         alt = false;
         changed = true;
         mode = noMode;
         restoreCameraState();
     }
-    if (event.text == "CONTROL") {
+    if (event.text === "CONTROL") {
         control = false;
         changed = true;
     }
-    if (event.text == "SHIFT") {
+    if (event.text === "SHIFT") {
         shift = false;
         changed = true;
     }
@@ -293,14 +293,14 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseMoveEvent(event) {
-    if (isActive && mode != noMode && !rotatingTowardsTarget) {
-        if (mode == radialMode) {
+    if (isActive && mode !== noMode && !rotatingTowardsTarget) {
+        if (mode === radialMode) {
             handleRadialMode(event.x - mouseLastX, event.y - mouseLastY);
         }
-        if (mode == orbitMode) {
+        if (mode === orbitMode) {
             handleOrbitMode(event.x - mouseLastX, event.y - mouseLastY);
         }
-        if (mode == panningMode) {
+        if (mode === panningMode) {
             handlePanMode(event.x - mouseLastX, event.y - mouseLastY);
         }
     }
@@ -316,12 +316,13 @@ function update() {
 }
 
 function rotateTowardsTarget() {
-    var newOrientation = Quat.mix(Camera.getOrientation(), targetCamOrientation, 0.1);
+    var MIX_FACTOR = 0.1;
+    var newOrientation = Quat.mix(Camera.getOrientation(), targetCamOrientation, MIX_FACTOR);
     Camera.setOrientation(newOrientation);
 }
 
 function scriptEnding() {
-    if (mode != noMode) {
+    if (mode !== noMode) {
         restoreCameraState();
     }
 }
