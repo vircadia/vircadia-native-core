@@ -128,6 +128,22 @@ Item {
                     onClicked: AvatarPackagerCore.currentAvatarProject.openInInventory()
                 }
             }
+            // FIXME: Remove if "Upload" button is reinstated.
+            HifiControls.Button {
+                id: openDirectoryButton
+                visible: AvatarPackagerCore.currentAvatarProject
+                enabled: true
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.right: parent.right
+                text: qsTr("Open Project Folder")
+                color: hifi.buttons.blue
+                colorScheme: root.colorScheme
+                width: 200
+                height: 40
+                onClicked: {
+                    fileDialogHelper.openDirectory(fileDialogHelper.pathToUrl(AvatarPackagerCore.currentAvatarProject.projectFolderPath));
+                }
+            }
         }
 
         Rectangle {
