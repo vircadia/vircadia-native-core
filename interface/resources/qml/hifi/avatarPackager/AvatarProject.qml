@@ -292,11 +292,56 @@ Item {
         color: 'white'
         size: 20
 
-        anchors.left: parent.left
-        anchors.right: parent.right
+        anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: errorsGlyph.bottom
 
         wrapMode: Text.Wrap
+    }
+
+    RalewayRegular {
+        id: notForSaleMessage
+
+        visible: root.hasSuccessfullyUploaded
+
+        color: 'white'
+        linkColor: '#00B4EF'
+        size: 20
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: doctorStatusMessage.bottom
+        anchors.topMargin: 10
+
+        anchors.bottomMargin: 24
+
+        wrapMode: Text.Wrap
+        text: "This item is not for sale yet, <a href='#'>learn more</a>."
+
+        onLinkActivated: {
+            Qt.openUrlExternally("https://docs.projectathena.dev/sell/add-item/upload-avatar.html");
+        }
+    }
+
+    RalewayRegular {
+        id: showErrorsLink
+
+        color: 'white'
+        linkColor: '#00B4EF'
+
+        visible: AvatarPackagerCore.currentAvatarProject && AvatarPackagerCore.currentAvatarProject.hasErrors
+
+        anchors {
+            top: notForSaleMessage.bottom
+            horizontalCenter: parent.horizontalCenter
+        }
+
+        size: 28
+
+        text: "<a href='toggle'>View all errors</a>"
+
+        onLinkActivated: {
+            avatarPackager.state = AvatarPackagerState.avatarDoctorErrorReport;
+        }
     }
 
     RalewayRegular {
@@ -326,8 +371,7 @@ Item {
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: doctorStatusMessage.bottom
-
+        anchors.bottom: showFilesText.top
         anchors.bottomMargin: 24
 
         wrapMode: Text.Wrap
@@ -335,53 +379,6 @@ Item {
         // FIXME: Restore original text if ability to upload to hosted location is added.
         //text: "You can upload your files to our servers to always access them, and to make your avatar visible to other users."
         text: "Your files are ready to be uploaded to a server to make your avatar visible to other users."
-    }
-
-    RalewayRegular {
-        id: notForSaleMessage
-
-        visible: root.hasSuccessfullyUploaded
-
-        color: 'white'
-        linkColor: '#00B4EF'
-        size: 20
-
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: infoMessage.bottom
-        anchors.topMargin: 10
-
-        anchors.bottomMargin: 24
-
-        wrapMode: Text.Wrap
-        text: "This item is not for sale yet, <a href='#'>learn more</a>."
-
-        onLinkActivated: {
-            Qt.openUrlExternally("https://docs.projectathena.dev/sell/add-item/upload-avatar.html");
-        }
-    }
-
-    RalewayRegular {
-        id: showErrorsLink
-
-        color: 'white'
-        linkColor: '#00B4EF'
-
-        visible: AvatarPackagerCore.currentAvatarProject && AvatarPackagerCore.currentAvatarProject.hasErrors
-
-        anchors {
-            top: notForSaleMessage.visible ? notForSaleMessage.bottom : infoMessage .bottom
-            bottom: showFilesText.top
-            horizontalCenter: parent.horizontalCenter
-        }
-
-        size: 28
-
-        text: "<a href='toggle'>View all errors</a>"
-
-        onLinkActivated: {
-            avatarPackager.state = AvatarPackagerState.avatarDoctorErrorReport;
-        }
     }
 
     HifiControls.Button {
