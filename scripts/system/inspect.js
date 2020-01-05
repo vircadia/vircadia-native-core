@@ -233,8 +233,6 @@ function keyReleaseEvent(event) {
     if (event.text === "ALT") {
         alt = false;
         changed = true;
-        mode = noMode;
-        restoreCameraState();
     }
     if (event.text === "CONTROL") {
         control = false;
