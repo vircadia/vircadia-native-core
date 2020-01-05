@@ -39,7 +39,7 @@ var X_AXIS = {
     z: 0
 };
 
-var LOOK_AT_TIME = 500;
+var LOOK_AT_TIME = 100; // ms
 
 var alt = false;
 var shift = false;
