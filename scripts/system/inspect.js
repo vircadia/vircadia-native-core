@@ -5,13 +5,16 @@
 //  Created by Clément Brisset on March 20, 2014
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  Allows you to inspect non moving objects (Voxels or Avatars) using Atl, Control (Command on Mac) and Shift
+//  Enables you to inspect entities and avatars using Alt and key combinations:
+//  - Alt + mouse up/down zooms in/out.
+//  - Alt + mouse left/right orbits left/right.
+//  - Alt + Ctrl + mouse up/down/left/right: orbits over / under / left / right.
+//  - Alt + Ctrl + Shift + mouse up/down/left/right: pans down / up / right / left.
 //
-//  radial mode = hold ALT
-//  orbit mode  = hold ALT + CONTROL
-//  pan mode    = hold ALT + CONTROL + SHIFT
-//  Once you are in a mode left click on the object to inspect and hold the click
-//  Dragging the mouse will move your camera according to the mode you are in.
+//  Your camera stays where it is when you release the Alt key, enabling you to Alt + left - click on another entity or 
+//  avatar to further move your view.
+//
+//  Press Esc or move your avatar to revert back to your default view.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
