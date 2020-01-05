@@ -44,7 +44,11 @@ Item {
             HifiControls.Button {
                 id: uploadButton
 
+                // FIXME: Re-enable if ability to upload to hosted location is added.
+                /*
                 visible: AvatarPackagerCore.currentAvatarProject && !AvatarPackagerCore.currentAvatarProject.fst.hasMarketplaceID && !root.hasSuccessfullyUploaded
+                */
+                visible: false
                 enabled: Account.loggedIn
 
                 anchors.verticalCenter: parent.verticalCenter
@@ -62,7 +66,11 @@ Item {
             HifiControls.Button {
                 id: updateButton
 
+                // FIXME: Re-enable if ability to upload to hosted location is added.
+                /*
                 visible: AvatarPackagerCore.currentAvatarProject && AvatarPackagerCore.currentAvatarProject.fst.hasMarketplaceID && !root.hasSuccessfullyUploaded
+                */
+                visible: false
                 enabled: Account.loggedIn
 
                 anchors.verticalCenter: parent.verticalCenter
@@ -79,7 +87,12 @@ Item {
             }
             Item {
                 anchors.fill: parent
+
+                // FIXME: Re-enable if ability to upload to hosted location is added.
+                /*
                 visible: root.hasSuccessfullyUploaded
+                */
+                visible: false;
 
                 HifiControls.Button {
                     enabled: Account.loggedIn
@@ -303,7 +316,9 @@ Item {
 
         wrapMode: Text.Wrap
 
-        text: "You can upload your files to our servers to always access them, and to make your avatar visible to other users."
+        // FIXME: Restore original text if ability to upload to hosted location is added.
+        //text: "You can upload your files to our servers to always access them, and to make your avatar visible to other users."
+        text: "Your files are ready to be uploaded to a server to make your avatar visible to other users."
     }
 
     RalewayRegular {
@@ -389,8 +404,13 @@ Item {
     Rectangle {
         id: loginRequiredMessage
 
+        // FIXME: Re-enable if ability to upload to hosted location is added.
+        /*
         visible: !Account.loggedIn
         height: !Account.loggedIn ? loginRequiredTextRow.height + 20 : 0
+        */
+        visible: false
+        height: 0
 
         anchors {
             bottom: parent.bottom
