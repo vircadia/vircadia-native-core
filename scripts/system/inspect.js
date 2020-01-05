@@ -203,6 +203,10 @@ function handleModes() {
     }
 
     mode = newMode;
+
+    // Don't go "away" when press Esc key while inspecting.
+    var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
+    Messages.sendMessage(CHANNEL_AWAY_ENABLE, mode === noMode ? "enable" : "disable" , true);
 }
 
 function keyPressEvent(event) {
