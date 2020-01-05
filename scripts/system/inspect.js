@@ -25,6 +25,9 @@ var ALTITUDE_RATE = 200.0;
 var RADIUS_RATE = 1.0 / 100.0;
 var PAN_RATE = 250.0;
 
+var AVATAR_POSITION_SLOP = 0.1;
+var AVATAR_ROTATION_SLOP = 0.09; // 5 degrees
+
 var Y_AXIS = {
     x: 0,
     y: 1,
@@ -179,14 +182,10 @@ function handleModes() {
         avatarOrientation = MyAvatar.orientation;
     }
     // if leaving detachMode
-    if (mode === detachedMode && newMode === detachedMode &&
-        (avatarPosition.x !== MyAvatar.position.x ||
-            avatarPosition.y !== MyAvatar.position.y ||
-            avatarPosition.z !== MyAvatar.position.z ||
-            avatarOrientation.x !== MyAvatar.orientation.x ||
-            avatarOrientation.y !== MyAvatar.orientation.y ||
-            avatarOrientation.z !== MyAvatar.orientation.z ||
-            avatarOrientation.w !== MyAvatar.orientation.w)) {
+    if (mode === detachedMode && newMode === detachedMode && (
+        Vec3.length(Vec3.subtract(avatarPosition, MyAvatar.position)) > AVATAR_POSITION_SLOP
+        || Vec3.length(Vec3.subtract(Quat.getFront(avatarOrientation), Quat.getFront(MyAvatar.orientation)))
+            > AVATAR_ROTATION_SLOP)) {
         newMode = noMode;
     }
 
