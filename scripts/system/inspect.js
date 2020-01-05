@@ -222,6 +222,12 @@ function keyPressEvent(event) {
         changed = true;
     }
 
+    if (mode !== noMode && !alt && !control && !shift && /^ESC|LEFT|RIGHT|UP|DOWN|[wasdWASD]$/.test(event.text)) {
+        mode = noMode;
+        restoreCameraState();
+        changed = true;
+    }
+
     if (changed) {
         handleModes();
     }
