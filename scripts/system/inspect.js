@@ -147,6 +147,11 @@ function handlePanMode(dx, dy) {
     Camera.setOrientation(orientationOf(vector));
 }
 
+function enableAway(enable) {
+    var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
+    Messages.sendMessage(CHANNEL_AWAY_ENABLE, enable ? "enable" : "disable", true);
+}
+
 function saveCameraState() {
     oldMode = Camera.mode;
     oldPosition = Camera.getPosition();
@@ -204,9 +209,7 @@ function handleModes() {
 
     mode = newMode;
 
-    // Don't go "away" when press Esc key while inspecting.
-    var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
-    Messages.sendMessage(CHANNEL_AWAY_ENABLE, mode === noMode ? "enable" : "disable" , true);
+    enableAway(mode === noMode);
 }
 
 function keyPressEvent(event) {
@@ -331,6 +334,7 @@ function rotateTowardsTarget() {
 function scriptEnding() {
     if (mode !== noMode) {
         restoreCameraState();
+        enableAway(true);
     }
 }
 
