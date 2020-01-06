@@ -2377,20 +2377,20 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         // END PULL SAFEURLS FROM INTERFACE.JSON Settings
         
         bool isInWhitelist = false;  // assume unsafe
-		
-		if (ScriptEngine::getContext() == "entity_server") {
-			isInWhitelist = true;
-		} else {
-			for (const auto& str : safeURLS) {
-				qCDebug(scriptengine) << whitelistPrefix << "Script URL: " << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
-					<< scriptOrURL.startsWith(str);
-				if (!str.isEmpty() && scriptOrURL.startsWith(str)) {
-					isInWhitelist = true;
-					qCDebug(scriptengine) << whitelistPrefix << "Script approved.";
-					break; // bail early since we found a match
-				}
-			}
-		}
+
+        if (ScriptEngine::getContext() == "entity_server") {
+            isInWhitelist = true;
+        } else {
+            for (const auto& str : safeURLS) {
+                qCDebug(scriptengine) << whitelistPrefix << "Script URL: " << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
+                    << scriptOrURL.startsWith(str);
+                if (!str.isEmpty() && scriptOrURL.startsWith(str)) {
+                    isInWhitelist = true;
+                    qCDebug(scriptengine) << whitelistPrefix << "Script approved.";
+                    break; // bail early since we found a match
+                }
+            }
+        }
 
         if (!isInWhitelist) {
             qCDebug(scriptengine) << whitelistPrefix << "(disabled entity script)" << entityID.toString() << scriptOrURL;
