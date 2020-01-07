@@ -58,8 +58,8 @@ void WebSocketClass::send(QScriptValue message) {
         QByteArray ba = qscriptvalue_cast<QByteArray>(message);
         _webSocket->sendBinaryMessage(ba);
     } else {
-    _webSocket->sendTextMessage(message.toString());
-}
+        _webSocket->sendTextMessage(message.toString());
+    }
 }
 
 void WebSocketClass::close() {
