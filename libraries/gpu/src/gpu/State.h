@@ -46,7 +46,7 @@ public:
 
     typedef ::gpu::ComparisonFunction ComparisonFunction;
 
-    enum FillMode : uint8
+    enum FillMode
     {
         FILL_POINT = 0,
         FILL_LINE,
@@ -55,7 +55,7 @@ public:
         NUM_FILL_MODES,
     };
 
-    enum CullMode : uint8
+    enum CullMode
     {
         CULL_NONE = 0,
         CULL_FRONT,
@@ -64,7 +64,7 @@ public:
         NUM_CULL_MODES,
     };
 
-    enum StencilOp : uint16
+    enum StencilOp
     {
         STENCIL_OP_KEEP = 0,
         STENCIL_OP_ZERO,
@@ -78,7 +78,7 @@ public:
         NUM_STENCIL_OPS,
     };
 
-    enum BlendArg : uint16
+    enum BlendArg
     {
         ZERO = 0,
         ONE,
@@ -99,7 +99,7 @@ public:
         NUM_BLEND_ARGS,
     };
 
-    enum BlendOp : uint16
+    enum BlendOp
     {
         BLEND_OP_ADD = 0,
         BLEND_OP_SUBTRACT,
@@ -110,7 +110,7 @@ public:
         NUM_BLEND_OPS,
     };
 
-    enum ColorMask : uint8
+    enum ColorMask
     {
         WRITE_NONE = 0,
         WRITE_RED = 1,
@@ -139,8 +139,6 @@ public:
         bool operator==(const DepthTest& right) const { return getRaw() == right.getRaw(); }
         bool operator!=(const DepthTest& right) const { return getRaw() != right.getRaw(); }
     };
-
-    static_assert(sizeof(DepthTest) == sizeof(uint32_t), "DepthTest size check");
 
     struct StencilTest {
         ComparisonFunction function : 4;
@@ -281,20 +279,6 @@ public:
 
         Flags flags;
     };
-
-    static_assert(offsetof(Data, depthBias) == 0, "Data offsets");
-    static_assert(offsetof(Data, depthBiasSlopeScale) == 4, "Data offsets");
-    static_assert(offsetof(Data, depthTest) == 8, "Data offsets");
-    static_assert(offsetof(Data, stencilActivation) == 12, "Data offsets");
-    static_assert(offsetof(Data, stencilTestFront) == 16, "Data offsets");
-    static_assert(offsetof(Data, stencilTestBack) == 20, "Data offsets");
-    static_assert(offsetof(Data, sampleMask) == 24, "Data offsets");
-    static_assert(offsetof(Data, blendFunction) == 28, "Data offsets");
-    static_assert(offsetof(Data, fillMode) == 32, "Data offsets");
-    static_assert(offsetof(Data, cullMode) == 33, "Data offsets");
-    static_assert(offsetof(Data, colorWriteMask) == 34, "Data offsets");
-    static_assert(offsetof(Data, flags) == 35, "Data offsets");
-    static_assert(sizeof(Data) == 36, "Data Size Check");
 
     std::string getKey() const;
 

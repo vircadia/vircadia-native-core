@@ -377,7 +377,7 @@ public:
 };
 
   
-enum ComparisonFunction : uint16 {
+enum ComparisonFunction {
     NEVER = 0,
     LESS,
     EQUAL,
