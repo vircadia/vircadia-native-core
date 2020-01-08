@@ -129,7 +129,7 @@ var requireInterfaceSelection;
 async function generateInterfaceList(interfaces) {
   var interfacesArray = [];
   var dataPath;
-  
+  console.info("nani",interfaces);
   for (var i in interfaces) {
     var client = interfaces[i];
     dataPath = client + "launcher_settings";
@@ -143,18 +143,44 @@ async function generateInterfaceList(interfaces) {
 				"location": client,
 			}
 		};
+		console.info("Interfaces Array:", interfacesArray);
 		interfacesArray.push(appObject);
-		console.info(interfacesArray);
     });
   }
+  console.info("Interfaces Array:", interfacesArray);
   return interfacesArray;
-  console.info(interfacesArray);
 }
 
-var getDirectories = function (src, callback) {
-  if(glob(src + '/*/launcher_settings/interface_package.json')) {
-    glob(src + '/*/', callback);
-  }
+// var getDirectories = function (src, callback) {
+// 	if(glob(src + '/*/launcher_settings/interface_package.json')) {
+// 		glob(src + '/*/', callback);
+// 	}
+// };
+
+async function getDirectories (src) {
+	var interfacesToReturn = [];
+	
+	let getDirectoriesPromise = new Promise((res, rej) => {
+		var res_p = res;
+		var rej_p = rej;
+		glob(src + '/*/launcher_settings/interface_package.json', function(err, folders) {
+			console.log(folders);
+			if(folders) {
+				folders.forEach(function (folder) {
+					var folderToReturn = folder.replace("launcher_settings/interface_package.json", "");
+					console.info("Foreach?", folder, "cleaned:", folderToReturn);
+					interfacesToReturn.push(folderToReturn);
+				});
+				res_p();
+			} else {
+				rej_p("Failed to load directories.");
+			}
+		});
+	});
+	
+	let result = await getDirectoriesPromise; 
+	console.info("Interfaces to Return:", interfacesToReturn);
+	return interfacesToReturn;
 };
 
 async function getLibraryInterfaces() {
@@ -163,27 +189,23 @@ async function getLibraryInterfaces() {
 	let getLibraryPromise = new Promise((res, rej) => {
 		var res_p = res;
 		var rej_p = rej;
-		getSetting('athena_interface.library', storagePath.default).then(function(libraryPath){
+		getSetting('athena_interface.library', storagePath.default).then(async function(libraryPath){
 			if(libraryPath) {
-				getDirectories(libraryPath, function (err, res) {
-					if (err) {
-						console.log('Error', err);
-						rej_p("Error: " + error);
-					} else {
-						interfaces = res;
-						res_p("Success!");
-					}
+				await getDirectories(libraryPath).then(function(interfacesList){
+					interfaces = interfacesList;
+					console.info("Did I do it?", interfacesList);
+					res_p();
 				});
 			} else {
 				interfaces = ["Select a library folder."];
 				rej_p("Select a library folder.");
 			}
-			
+
 		});
 	});
-  
-  let result = await getLibraryPromise; 
-  return interfaces;
+
+	let result = await getLibraryPromise; 
+	return interfaces;
 }
 
 function setLibraryDialog() {
@@ -193,8 +215,8 @@ function setLibraryDialog() {
     title: "Select the Athena Interface app library folder",
     properties: ['openDirectory'],
   }).then(result => {
-    console.log(result.canceled)
-    console.log(result.filePaths)
+    console.log("Cancelled set library dialog: " + result.canceled)
+    console.log("Selected library: " + result.filePaths)
     if(!result.canceled && result.filePaths[0]) {
       storage.set('athena_interface.library', result.filePaths[0], {dataPath: storagePath.default}, function(error) {
         if (error) {
@@ -237,24 +259,49 @@ async function getSetting(setting, storageDataPath) {
 
 const { ipcMain } = require('electron')
 
+ipcMain.on('save-state', (event, arg) => {
+	storage.set('athena_launcher.state', arg, {dataPath: storagePath.default}, function(error) {
+		if (error) throw error;
+	});
+})
+
+ipcMain.on('load-state', (event, arg) => {
+	getSetting('athena_launcher.state', storagePath.default).then(function(results){
+		if(results) {
+			win.webContents.send('state-loaded', {
+				results
+			});
+		}
+	});
+})
+
+ipcMain.on('set-metaverse-server', (event, arg) => {
+	if(arg != "") {
+		process.env.HIFI_METAVERSE_URL = arg;
+	} else {
+		delete process.env.HIFI_METAVERSE_URL;
+	}
+	console.info("Current env:", process.env.HIFI_METAVERSE_URL)
+})
+
 ipcMain.on('launch-interface', (event, arg) => {
-  var interface_exe = require('child_process').execFile;
-  // var executablePath = "E:\\Development\\High_Fidelity\\v0860-kasen-VS-release+freshstart\\build\\interface\\Packaged_Release\\Release\\interface.exe";
-  var executablePath = arg.exec;
-  var parameters = [""];
-  
-  // arg is expected to be true or false with regards to SteamVR being enabled or not, later on it may be an object or array and we will handle it accordingly.
-  if(arg.steamVR) {
-    parameters += ['--disable-displays', 'OpenVR (Vive)', '--disable-inputs', 'OpenVR (Vive)'];
-  }
-  if(arg.allowMultipleInterfaces) {
-    parameters += ['--allowMultipleInstances'];
-  }
-  
-  interface_exe(executablePath, parameters, function(err, data) {
-    console.log(err)
-    console.log(data.toString());
-  });
+	var interface_exe = require('child_process').execFile;
+	// var executablePath = "E:\\Development\\High_Fidelity\\v0860-kasen-VS-release+freshstart\\build\\interface\\Packaged_Release\\Release\\interface.exe";
+	var executablePath = arg.exec;
+	var parameters = [""];
+
+	// arg is expected to be true or false with regards to SteamVR being enabled or not, later on it may be an object or array and we will handle it accordingly.
+	if(arg.steamVR) {
+		parameters += ['--disable-displays', 'OpenVR (Vive)', '--disable-inputs', 'OpenVR (Vive)'];
+	}
+	if(arg.allowMultipleInstances) {
+		parameters += ['--allowMultipleInstances'];
+	}
+
+	interface_exe(executablePath, parameters, function(err, data) {
+		console.log(err)
+		console.log(data.toString());
+	});
   
 })
 
@@ -279,9 +326,9 @@ ipcMain.on('setAthenaLocation', async (event, arg) => {
     console.log(result.canceled)
     console.log(result.filePaths)
     if(!result.canceled && result.filePaths[0]) {
-      	storage.set('athena_interface.location', result.filePaths[0], {dataPath: storagePath.interfaceSettings}, function(error) {
-        if (error) throw error;
-      });
+		storage.set('athena_interface.location', result.filePaths[0], {dataPath: storagePath.interfaceSettings}, function(error) {
+			if (error) throw error;
+		});
     } else {
       return;
     }
@@ -324,43 +371,47 @@ ipcMain.handle('populateInterfaceList', (event, arg) => {
 ipcMain.on('downloadAthena', (event, arg) => {
   	var libraryPath;
   	// var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
-	var downloadURL = "http://ipv4.download.thinkbroadband.com/100MB.zip";
+	var downloadURL = "https://realities.dev/cdn/athena/test/Athena_Alpha_K2PR-1-6-20.exe";
 	// var downloadURL = "http://home.darlingvr.club/hifi-community/fix-scaled-walk-speed/HighFidelity-Beta-v0.86.0-7364ac5.exe";
   
-  getSetting('athena_interface.library', storagePath.default).then(function(results){
-    if(results) {
-      libraryPath = results;
-      console.log("How many times?" + libraryPath);
-      electronDl.download(win, downloadURL, {
-        directory: libraryPath,
-        showBadge: true,
-        filename: "Setup_Latest.exe",
-		onProgress: currentProgress => {
-			console.info(currentProgress);
-			var percent = currentProgress.percent;
-			win.webContents.send('download-installer-progress', {
-				percent
+	getSetting('athena_interface.library', storagePath.default).then(function(results){
+		if(results) {
+			libraryPath = results;
+			console.log("How many times?" + libraryPath);
+				electronDl.download(win, downloadURL, {
+				directory: libraryPath,
+				showBadge: true,
+				filename: "Athena_Setup_Latest.exe",
+				onProgress: currentProgress => {
+					console.info(currentProgress);
+					var percent = currentProgress.percent;
+					win.webContents.send('download-installer-progress', {
+						percent
+					});
+				},
 			});
-        },
-      });
-    } else {
-      setLibraryDialog();
-    }
-  });
+		} else {
+			setLibraryDialog();
+		}
+	});
 })
 
 ipcMain.on('installAthena', (event, arg) => {
 	getSetting('athena_interface.library', storagePath.default).then(function(libPath){
 		var installer_exe = require('child_process').execFile;
-		var executablePath = libPath + "/Setup_Latest.exe";
+		var executablePath = libPath + "/Athena_Setup_Latest.exe";
 		var installPath = libPath + "/testInterface";
 		var parameters = [""];
-		// parameters += ['/s', "/D=", installPath];
+		// parameters += ['/s', '/D=' + installPath];
+		
+		console.info("Here:", executablePath, installPath, parameters)
 
 		installer_exe(executablePath, parameters, function(err, data) {
 			console.log(err)
 			console.log(data.toString());
 		});
+	}).catch(function(caught) {
+		
 	});
 });
 

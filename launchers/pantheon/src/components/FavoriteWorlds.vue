@@ -97,22 +97,22 @@ export default {
 			{
 				name: 'The-Spot',
 				url: 'hifi://the-spot.projectathena.dev',
-				img: 'http://virtualrealitytimes.com/wp-content/uploads/2017/08/high-fidelity-og.jpg'
+				img: 'https://images.pexels.com/photos/220201/pexels-photo-220201.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=750&w=1260'
 			},
 			{
 				name: 'Franny',
 				url: 'hifi://franny.projectathena.dev',
-				img: 'http://virtualrealitytimes.com/wp-content/uploads/2017/08/high-fidelity-og.jpg'
+				img: 'https://images.pexels.com/photos/220201/pexels-photo-220201.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=750&w=1260'
 			},
 			{
 				name: 'ThePalace',
 				url: 'hifi://thepalace.projectathena.dev',
-				img: 'http://virtualrealitytimes.com/wp-content/uploads/2017/08/high-fidelity-og.jpg'
+				img: 'https://images.pexels.com/photos/220201/pexels-photo-220201.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=750&w=1260'
 			},
 			{
 				name: 'Music',
 				url: 'hifi://music.projectathena.dev',
-				img: 'http://virtualrealitytimes.com/wp-content/uploads/2017/08/high-fidelity-og.jpg'
+				img: 'https://images.pexels.com/photos/220201/pexels-photo-220201.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=750&w=1260'
 			},
 		]
   }),

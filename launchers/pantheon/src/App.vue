@@ -1,6 +1,6 @@
 <template>
   <v-app>
-		<v-bottom-navigation v-model="bottomNav" id="navBar">
+		<v-bottom-navigation id="navBar">
 			<v-btn disabled value="recent">
 				<span>Recent</span>
 				<v-icon>mdi-history</v-icon>
@@ -57,26 +57,7 @@
       </div>
 
       <v-spacer></v-spacer>
-
-			<v-checkbox id="noSteamVR" class="mr-3 mt-7" v-model="noSteamVR" label="No SteamVR" value="true"></v-checkbox>
 			
-			
-			<v-tooltip top>	
-				<template v-slot:activator="{ on }">
-					<v-btn
-						v-on:click.native="installInterface()"
-						v-on="on"
-						:right=true
-						class=""
-						color="green"
-						:tile=true
-						:disabled="disableInstallIcon"
-					>
-						<v-icon>unarchive</v-icon>
-					</v-btn>
-				</template>
-				<span>Install</span>
-			</v-tooltip>
 			<v-tooltip top>
 				<template v-slot:activator="{ on }">
 					<v-btn
@@ -87,6 +68,7 @@
 						color="blue"
 						:tile=true
 					>
+                        <span style="font-size: 12px;">Download<br/>Interface</span>
 						<v-progress-circular
 							:size="25"
 							:width="5"
@@ -94,13 +76,34 @@
 							:value="downloadProgress"
 							color="red"
 							v-if="showCloudDownload"
+                            class="ml-2"
 						>
 						</v-progress-circular>
-						<v-icon v-if="showCloudIcon">cloud_download</v-icon>
+						<v-icon class="ml-2" v-if="showCloudIcon">cloud_download</v-icon>
 					</v-btn>
 				</template>
 				<span>Download</span>
 			</v-tooltip>
+            
+            <v-tooltip top>	
+                <template v-slot:activator="{ on }">
+                    <v-btn
+                        v-on:click.native="installInterface()"
+                        v-on="on"
+                        :right=true
+                        class=""
+                        color="green"
+                        :tile=true
+                        :disabled="disableInstallIcon"
+                    >
+                        <span style="font-size: 12px;">Install<br/>Interface</span>
+                        <v-icon class="ml-2">unarchive</v-icon>
+                    </v-btn>
+                </template>
+                <span>Install</span>
+            </v-tooltip>
+
+            <v-checkbox id="noSteamVR" class="ml-5 mr-3 mt-7" v-model="noSteamVR" label="No SteamVR" value="true"></v-checkbox>
 			
 			<v-btn
 				v-on:click.native="launchInterface()"
@@ -121,6 +124,45 @@
 				<component v-bind:is="showTab"></component>
 			</transition>
     </v-content>
+    
+    <v-dialog
+        width="500"
+        v-model="showDownloadDone"
+    >
+        <v-card>
+            <v-card-title
+                class="headline"
+                primary-title
+                dark
+            >
+                Notice
+            </v-card-title>
+    
+            <v-card-text>
+                The latest version of Interface is done downloading! You can install it now or press the install button in the bar below later.
+            </v-card-text>
+    
+            <v-divider></v-divider>
+    
+            <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn
+                    color="primary"
+                    text
+                    @click="installInterface()"
+                >
+                    Install
+                </v-btn>
+                <v-btn
+                    color="primary"
+                    text
+                    @click="showDownloadDone = false"
+                >
+                    Dismiss
+                </v-btn>
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
 		
   </v-app>
 </template>
@@ -139,9 +181,41 @@ ipcRenderer.on('download-installer-progress', (event, arg) => {
 		vue_this.showCloudDownload = false;
 		vue_this.disableInstallIcon = false;
 		vue_this.isDownloading = false;
+        vue_this.showDownloadDone = true;
 	}
 	console.info(downloadProgress);
 	vue_this.downloadProgress = downloadProgress * 100;
+});
+
+ipcRenderer.on('state-loaded', (event, arg) => {
+	console.info("STATE LOADED:", arg);
+	
+	if(arg.results.noSteamVR) {
+		vue_this.$store.commit('mutate', {
+			property: 'noSteamVR', 
+			with: arg.results.noSteamVR
+		});
+		vue_this.noSteamVR = arg.results.noSteamVR;
+	}
+	if(arg.results.allowMultipleInstances) {
+		vue_this.$store.commit('mutate', {
+			property: 'allowMultipleInstances', 
+			with: arg.results.allowMultipleInstances
+		});
+	}
+	if(arg.results.selectedInterface) {
+		vue_this.$store.commit('mutate', {
+			property: 'selectedInterface', 
+			with: arg.results.selectedInterface
+		});
+	}
+	if(arg.results.metaverseServer) {
+		vue_this.$store.commit('mutate', {
+			property: 'metaverseServer', 
+			with: arg.results.metaverseServer
+		});
+		ipcRenderer.send('set-metaverse-server', arg.results.metaverseServer);
+	}
 });
 
 import HelloWorld from './components/HelloWorld';
@@ -161,12 +235,14 @@ export default {
 				this.noSteamVR = false;
 			} 
 			var allowMulti = false;
-			if(this.$store.state.allowMultipleInterfaces) {
+			if(this.$store.state.allowMultipleInstances) {
 				allowMulti = true;
 			}
 			const { ipcRenderer } = require('electron');
-			var exeLoc = ipcRenderer.sendSync('getAthenaLocation');
-			ipcRenderer.send('launch-interface', { "exec": exeLoc, "steamVR": this.noSteamVR, "allowMultipleInterfaces": allowMulti});
+			var exeLoc = ipcRenderer.sendSync('getAthenaLocation'); // todo: check if that location exists first when using that, we need to default to using folder path + /interface.exe otherwise.
+            if(exeLoc) {
+                ipcRenderer.send('launch-interface', { "exec": exeLoc, "steamVR": this.noSteamVR, "allowMultipleInstances": allowMulti});
+            }
 		},
 		launchBrowser: function(url) {
 			const { shell } = require('electron')
@@ -184,21 +260,46 @@ export default {
 		}
 	},
 	created: function () {
+		const { ipcRenderer } = require('electron');
 		vue_this = this;
+		
+		ipcRenderer.send('load-state');
+		
+		// Load saved selected interface.	
+		if (this.$store.selectedInterface) {
+			ipcRenderer.send('setCurrentInterface', this.$store.state.selectedInterface.folder);
+			this.$store.commit('mutate', {
+				property: 'interfaceSelectionRequired', 
+				with: false
+			});
+		}
+	},
+	computed: {
+		interfaceSelected () {
+			return this.$store.state.selectedInterface;
+		}
 	},
 	watch: {
 		noSteamVR: function (newValue, oldValue) {
-			this.$store.commit('setSteamVR', newValue);
+			this.$store.commit('mutate', {
+				property: 'noSteamVR', 
+				with: newValue
+			});
+		},
+		interfaceSelected (newVal, oldVal) {
+			// console.log(`We have ${newVal} now!`);
 		}
 	},
 	data: () => ({
 		showTab: 'FavoriteWorlds',
 		noSteamVR: false,
+		allowMultipleInstances: false,
 		downloadProgress: 0,
 		isDownloading: false,
 		showCloudIcon: true,
 		showCloudDownload: false,
 		disableInstallIcon: false,
+        showDownloadDone: false,
 	}),
 };
 </script>

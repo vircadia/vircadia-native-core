@@ -35,7 +35,7 @@
 										:tile=true
 										v-on="on"
 									>
-									Set Client & Profile
+                                        Select Interface
 									</v-btn>
 								</template>
 								<v-list>
@@ -83,11 +83,11 @@
 						
 						<v-layout row pr-5 pt-5 pl-10>
 							<v-flex md6>
-								<v-checkbox color="blue" id="multipleInterfaces" class="mr-3 mt-3" v-model="allowMultipleInterfaces" @click="multipleInterfaces" label="Allow Multiple Interfaces" value="true"></v-checkbox>
+								<v-checkbox color="blue" id="multipleInterfaces" class="mr-3 mt-3" v-model="allowMultipleInstances" @click="multipleInterfaces" label="Allow Multiple Interfaces" value="true"></v-checkbox>
 							</v-flex>
 						</v-layout> 
 						
-						<h2 class="ml-3 mt-6">Login to Metaverse</h2>
+						<h2 class="ml-3 mt-6">Metaverse</h2>
 						
 						<v-card-text>
 							<v-form>
@@ -96,6 +96,7 @@
 									name="username"
 									prepend-icon="person"
 									type="text"
+									disabled
 								/>
 
 								<v-text-field
@@ -104,6 +105,7 @@
 									name="password"
 									prepend-icon="lock"
 									type="password"
+									disabled
 								/>
 								
 								<v-text-field
@@ -111,12 +113,13 @@
 									name="metaverse"
 									prepend-icon="mdi-earth"
 									type="text"
+									v-model="metaverseServer"
 								/>
 							</v-form>
 						</v-card-text>
 						<v-card-actions>
 							<v-spacer />
-							<v-btn disabled color="primary">Login</v-btn>
+							<v-btn @click="setMetaverseServer()" color="primary">Save</v-btn>
 						</v-card-actions>
 					</v-card>
 				</v-row>
@@ -136,7 +139,7 @@
 				</v-card-title>
 		
 				<v-card-text>
-					Please select an interface by clicking "Set Client & Profile". If the list is empty, select a library. If there is nothing in your library, download Athena to it.
+					Please select an interface by clicking "Select Interface". If the list is empty, select a library folder then click the download button in the bottom right.
 				</v-card-text>
 		
 				<v-divider></v-divider>
@@ -163,7 +166,10 @@ var vue_this;
 const { ipcRenderer } = require('electron');
 ipcRenderer.on('interface-list', (event, arg) => {
 	vue_this.interfaceFolders = [];
-	store_p.commit('populateInterfaceList', arg);
+	store_p.commit('mutate', {
+		property: 'populatedInterfaceList', 
+		with: arg
+	});
 	var populatedList = store_p.state.populatedInterfaceList;
 	populatedList.forEach(function(i){
 		var appName = Object.keys(i)[0];
@@ -183,12 +189,20 @@ export default {
 	name: 'Settings',
 	methods: {
 		selectInterface: function(selected) {
-			this.interfaceSelectionRequired = false;
+			this.$store.commit('mutate', {
+				property: 'interfaceSelectionRequired', 
+				with: false
+			});
+			this.$store.commit('mutate', {
+				property: 'selectedInterface', 
+				with: { name: selected.name, folder: selected.folder }
+			});
 			const { ipcRenderer } = require('electron');			
 			ipcRenderer.send('setCurrentInterface', selected.folder);
 		},
 		selectInterfaceExe: function() {
-			if(this.interfaceSelectionRequired) {
+			console.info("nani?",this.$store.state.interfaceSelectionRequired);
+			if(this.$store.state.interfaceSelectionRequired) {
 				this.showRequireInterface = true;
 			} else {
 				const { ipcRenderer } = require('electron');
@@ -204,24 +218,43 @@ export default {
 			ipcRenderer.invoke('populateInterfaceList');
 		},
 		multipleInterfaces: function() {
-			this.$store.commit('setAllowMultipleInterfaces', this.allowMultipleInterfaces);
+			this.$store.commit('mutate', {
+				property: 'allowMultipleInstances', 
+				with: this.allowMultipleInstances
+			});
 		},
-		isInterfaceSelectionRequired: function() {
-			
-		},
+		setMetaverseServer: function() {
+			this.$store.commit('mutate', {
+				property: 'metaverseServer', 
+				with: this.metaverseServer
+			});
+			const { ipcRenderer } = require('electron');
+			ipcRenderer.send('set-metaverse-server', this.$store.state.metaverseServer);
+		}
 	},
 	data: () => ({
 		show: false,
 		showRequireInterface: false,
-		allowMultipleInterfaces: false,
+		allowMultipleInstances: false,
 		interfaceFolders: [],
-		selectedInterface: null,
-		interfaceSelectionRequired: true,
+		metaverseServer: "metaverse.projectathena.io"
 	}),
 	created: function () {
 		store_p = this.$store;
 		vue_this = this;
+		this.allowMultipleInstances = this.$store.state.allowMultipleInstances;
 		this.populateInterfaceList();
+		if(this.$store.state.metaverseServer) {
+			this.metaverseServer = this.$store.state.metaverseServer;
+		}
+		if(this.$store.state.selectedInterface) {
+			this.$store.commit('mutate', {
+				property: 'interfaceSelectionRequired', 
+				with: false
+			});
+			const { ipcRenderer } = require('electron');			
+			ipcRenderer.send('setCurrentInterface', this.$store.state.selectedInterface.folder);
+		}
 	}
 };
 </script>
