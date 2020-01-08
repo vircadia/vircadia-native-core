@@ -5,43 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Title</title>
 
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!--Import materialize.css-->
+    <link type="text/css" rel="stylesheet" href="css/materialize.css" media="screen,projection"/>
+
+
     <link href="https://fonts.googleapis.com/css?family=Raleway:300,400,600,700" rel="stylesheet">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-    <script src="toast.min.js"></script>
 
     <style>
         html {
             height: 100%;
         }
-
-        /* Style the tab */
-        div.tab {
-            overflow: hidden;
-            border: 1px solid #ccc;
-            background-color: #f1f1f1;
-        }
-
-        /* Style the buttons inside the tab */
-        div.tab button {
-            background-color: inherit;
-            float: left;
-            border: none;
-            outline: none;
-            cursor: pointer;
-            padding: 14px 16px;
-            transition: 0.3s;
-        }
-
-        /* Change background color of buttons on hover */
-        div.tab button:hover {
-            background-color: #ddd;
-        }
-
-        /* Create an active/current tablink class */
-        div.tab button.active {
-            background-color: #ccc;
-        }
-
 
         div.dockButton {
 
@@ -97,25 +73,14 @@
             min-height: 100vh;
             font-size: 20px;
             width: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .TopBar {
-            height: 40px;
-            background: linear-gradient(#2b2b2b, #1e1e1e);
-            font-weight: bold;
-            padding: 10px 10px 10px 10px;
-            display: flex;
-            align-items: center;
-            width: 100vw;
-            font-size: 28px;
+            height: 100%;
         }
 
         .ChatLog {
-            height: calc(100vh - 169px);
-            width: calc(100vw - 40px);
-            padding: 20px;
+            height: calc(100vh - 128px);
+            /*height: calc(100vh - 103px);
+            width: calc(100vw - 40px);*/
+            padding: 20px !important;
             font-size: 20px;
             color: white;
             background-color: black;
@@ -137,6 +102,7 @@
 
         .LogLogLine {
             margin-bottom: 15px;
+            padding: 10px !important;
         }
 
         .LogLogLineMessage {
@@ -145,15 +111,17 @@
 
         .ChatInput {
             color: #252525;
-            /*background: linear-gradient(#575757 20%, #252525 100%);*/
+            background: #252525;
             height: 60px !important;
         }
 
         .ChatInputText {
-            padding: 5px 0px 0px 5px;
-            height: 60px !important;
+            padding: 5px !important;
+            height: 50px !important;
             width: 100vw;
             font-size: 20px !important;
+            background-color: white !important;
+            border: white !important;
         }
 
         .responsive {
@@ -162,47 +130,76 @@
             height: auto;
         }
 
+        .row .col {
+            padding: 0;
+        }
+
+        .switch label .lever {
+            content: "";
+            display: inline-block;
+            position: relative;
+            width: 36px;
+            height: 14px;
+            background-color: rgba(0, 0, 0, 0.38);
+            border-radius: 15px;
+            margin-right: 10px;
+            -webkit-transition: background 0.3s ease;
+            transition: background 0.3s ease;
+            vertical-align: middle;
+            margin: 0 16px;
+        }
+
+        .muteSwitch label input[type=checkbox]:checked + .lever:after {
+            background-color: #a62113 !important;
+        }
+
     </style>
-
 </head>
-
 <body>
 
+<div class="Content row">
 
-<div class="Content">
-    <div id="TopBar" class="TopBar">
-        <div class="tab">
-            <button class="tablinks" onclick="switchTab(event, 'Local')" id="defaultOpen">Local</button>
-            <button class="tablinks" onclick="switchTab(event, 'Domain')">Domain</button>
-            <button class="tablinks" onclick="switchTab(event, 'FluffyDev')">FluffyDev</button>
+    <div class="col s12 valign-wrapper" style="padding: 10px ">
+        <ul class="tabs tabs-fixed-width z-depth-2 col s6" id="tabs">
+            <li class="tab col s2"><a class="black-text active" href="#Local">Local</a></li>
+            <li class="tab col s2"><a class="black-text" href="#Domain">Domain</a></li>
+            <li class="tab col s2"><a class="black-text" href="#Grid">Grid</a></li>
+        </ul>
+        <span class="col s1">
+        </span>
+        <div class="switch muteSwitch col s2">
+            <label>
+                <span style="font-size: 20px" id="muteText">Mute</span>
+                <input type="checkbox" id="muteInput" onclick="muteSwitchToggle()">
+                <span class="lever waves-light"></span>
+            </label>
         </div>
-        <div class="topBarFiller">
-        </div>
-        <div class="dockButton">
-            <button class="dockButton_" onclick="redock()">Redock</button>
-        </div>
-    </div>
 
-    <div id="Local" class="TabContent ChatLog">
+        <span class="col s1">
+        </span>
+        <a class="waves-effect waves-light btn col s2" onclick="redock()">Redock</a>
     </div>
+    <div id="Local" class="ChatLog col s12"></div>
+    <div id="Domain" class="col s12 ChatLog"></div>
+    <div id="Grid" class="col s12 ChatLog"></div>
+    <input type="text" class="ChatInputText col s12" id="ChatInputText" size="256">
 
-    <div id="Domain" class="TabContent ChatLog">
-    </div>
-
-    <div id="FluffyDev" class="TabContent ChatLog">
-    </div>
-
-    <div class="ChatInput">
-        <input type="text" class="ChatInputText" id="ChatInputText" size="256">
-    </div>
 </div>
+
 </body>
 
 <script>
+    var muted = {"Local": false, "Domain": false, "Grid": false};
+    var instance;
+    var appUUID;
+    var messageData = {}; // The data that is sent along with the message.
+    var $ChatLog; // The scrolling chat log.
+    var $ChatInputText; // The text field for entering text.
+    var userName;
 
-
+    //Start George Function
+    //Function provided by George Deac
     //linky function
-    //$('#ChatInputText').twemojiPicker();
     (function ($) {
 
         "use strict";
@@ -211,8 +208,9 @@
             return this.each(function () {
                 var $el = $(this),
                     linkifiedContent = _linkify($el, options);
+                var formattedContent = replaceFormatting(linkifiedContent);
 
-                $el.html(linkifiedContent);
+                $el.html(formattedContent);
             });
         };
 
@@ -284,13 +282,13 @@
                     case ext == "JPG":
                     case ext == "GIF":
                     case ext == "JPEG":
-                        elContent = elContent.replace(this, "<br/><img src='" + this + "'class=\"responsive\"><br/><a href=\"javascript:gotoClipboard('" + this + "');\" target='_blank'>" + this + "</a>");
+                        elContent = elContent.replace(this, "<br/><img src='" + this + "'class=\"responsive z-depth-2\"><br/><a href=\"javascript:gotoClipboard('" + this + "');\" target='_blank'>" + this + "</a>");
                         break;
                     case ext == "iframe":
-                        elContent = elContent.replace(this, "<br/><iframe src='" + this + "'width=\"440\" height=\"248\" frameborder=\"0\"></iframe>");
+                        elContent = elContent.replace(this, "<br/><iframe class=\"z-depth-2\" src='" + this + "'width=\"440\" height=\"248\" frameborder=\"0\"></iframe>");
                         break;
                     case ext == "webm":
-                        elContent = elContent.replace(this, "<br/><video controls class=\"responsive\"><source src='" + this + "' type='video/" + ext + "'></video><br/><a href=\"javascript:gotoClipboard('" + this + "');\">" + this + "</a>");
+                        elContent = elContent.replace(this, "<br/><video controls class=\"z-depth-2 responsive\"><source src='" + this + "' type='video/" + ext + "'></video><br/><a href=\"javascript:gotoClipboard('" + this + "');\">" + this + "</a>");
                         break;
                     case protocol === "HIFI":
                     case protocol === "hifi":
@@ -299,7 +297,7 @@
                     case !!this.match(/^(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?(?=.*v=((\w|-){11}))(?:\S+)?$/):
                         var youtubeMatch = this.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
                         if (youtubeMatch && youtubeMatch[2].length == 11 && this.match(/^(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?(?=.*v=((\w|-){11}))(?:\S+)?$/)) {
-                            elContent = "<br/><iframe width='420' height='236' src='https://www.youtube.com/embed/" + youtubeMatch[2] + "' frameborder='0'></iframe><br/><a href=\"javascript:gotoURL('" + this + "');\">" + this + "</a>";
+                            elContent = "<br/><iframe class=\"z-depth-2\" width='420' height='236' src='https://www.youtube.com/embed/" + youtubeMatch[2] + "' frameborder='0'></iframe><br/><a href=\"javascript:gotoURL('" + this + "');\">" + this + "</a>";
                             break;
                         }
                     // else fall through to default
@@ -328,8 +326,67 @@
 
     }(jQuery));
 
+    //End George Function
 
-    var appUUID;
+    function replaceFormatting(text) {
+        var found = false;
+        if (text.indexOf("**") !== -1) {
+            var firstMatch = text.indexOf("**") + 2;
+            var secondMatch = text.indexOf("**", firstMatch);
+            if (firstMatch !== -1 && secondMatch !== -1) {
+                found = true;
+                var part1 = text.substring(0, firstMatch - 2);
+                var part2 = text.substring(firstMatch, secondMatch);
+                var part3 = text.substring(secondMatch + 2);
+                text = part1 + "<i>" + part2 + "</i>" + part3;
+            }
+        } else if (text.indexOf("*") !== -1) {
+            var firstMatch = text.indexOf("*") + 1;
+            var secondMatch = text.indexOf("*", firstMatch);
+            if (firstMatch !== -1 && secondMatch !== -1) {
+                found = true;
+                var part1 = text.substring(0, firstMatch - 1);
+                var part2 = text.substring(firstMatch, secondMatch);
+                var part3 = text.substring(secondMatch + 1);
+                text = part1 + "<b>" + part2 + "</b>" + part3;
+            }
+        } else if (text.indexOf("__") !== -1) {
+            var firstMatch = text.indexOf("__") + 2;
+            var secondMatch = text.indexOf("__", firstMatch);
+            if (firstMatch !== -1 && secondMatch !== -1) {
+                found = true;
+                var part1 = text.substring(0, firstMatch - 2);
+                var part2 = text.substring(firstMatch, secondMatch);
+                var part3 = text.substring(secondMatch + 2);
+                text = part1 + "<ins>" + part2 + "</ins>" + part3;
+            }
+        } else if (text.indexOf("_") !== -1) {
+            var firstMatch = text.indexOf("_") + 1;
+            var secondMatch = text.indexOf("_", firstMatch);
+            if (firstMatch !== -1 && secondMatch !== -1) {
+                found = true;
+                var part1 = text.substring(0, firstMatch - 1);
+                var part2 = text.substring(firstMatch, secondMatch);
+                var part3 = text.substring(secondMatch + 1);
+                text = part1 + "<i>" + part2 + "</i>" + part3;
+            }
+        } else if (text.indexOf("~~") !== -1) {
+            var firstMatch = text.indexOf("~~") + 2;
+            var secondMatch = text.indexOf("~~", firstMatch);
+            if (firstMatch !== -1 && secondMatch !== -1) {
+                found = true;
+                var part1 = text.substring(0, firstMatch - 2);
+                var part2 = text.substring(firstMatch, secondMatch);
+                var part3 = text.substring(secondMatch + 2);
+                text = part1 + "<del>" + part2 + "</del>" + part3;
+            }
+        }
+        if (found) {
+            return replaceFormatting(text);
+        } else {
+            return text;
+        }
+    }
 
     function gotoHiFi(url) {
         emitWebEvent({type: "CMD", cmd: "GOTO", url: url});
@@ -340,15 +397,7 @@
     }
 
     function gotoClipboard(url) {
-        var options = {
-            style: {
-                main: {
-                    background: "#9c27b0",
-                    color: "white"
-                }
-            }
-        };
-        iqwerty.toast.Toast('Copied URL to Clipboard',options);
+        M.toast({html: 'Copied URL to Clipboard', classes: 'rounded pink white-text'});
         emitWebEvent({type: "CMD", cmd: "COPY", url: url});
     }
 
@@ -375,22 +424,8 @@
         return "#" + red + green + blue;
     }
 
-
-    var messageData = {}; // The data that is sent along with the message.
-    var $ChatLog; // The scrolling chat log.
-    var $ChatInputText; // The text field for entering text.
-    var userName;
-
-
     function getCurrTab() {
-
-        var TabContent = document.getElementsByClassName("TabContent");
-        for (var i = 0; i < TabContent.length; i++) {
-            if (TabContent[i].style.display === "inline") {
-                return TabContent[i];
-            }
-        }
-
+        return instance.$activeTabLink.html();
     }
 
     function redock() {
@@ -398,57 +433,25 @@
         location.reload();
     }
 
-    function switchTab(evt, tabName) {
-        // Declare all variables
-        var i, TabContent, tablinks;
-
-        // Get all elements with class="tabcontent" and hide them
-        TabContent = document.getElementsByClassName("TabContent");
-        for (i = 0; i < TabContent.length; i++) {
-            TabContent[i].style.display = "none";
-        }
-
-        // Get all elements with class="tablinks" and remove the class "active"
-        tablinks = document.getElementsByClassName("tablinks");
-        for (i = 0; i < tablinks.length; i++) {
-            tablinks[i].className = tablinks[i].className.replace(" active", "");
-        }
-
-        // Show the current tab, and add an "active" class to the button that opened the tab
-        document.getElementById(tabName).style.display = "inline";
-        evt.currentTarget.className += " active";
-        scrollChatLog(tabName);
-    }
-
     function logMessage(userName, message, logScreen, colour) {
         var LogScreen = $("#" + logScreen);
-
-        /*EventBridge.emitWebEvent(
-            JSON.stringify({
-                type: "sendMessage",
-                userName: userName,
-                message: message,
-                chatID: LogScreen.id
-            }));*/
-
         var $logLine =
             $('<div/>')
                 .addClass('LogLogLine')
+                .addClass('card-panel')
+                .addClass('blue-grey')
+                .addClass('darken-4')
+                .addClass('z-depth-2')
                 .data('chat-message', message).css("color", rgbToHex(colour))
                 .appendTo(LogScreen);
-        var $logLineMessage =
-            $('<b/>')
-                .addClass('LogLogLineMessage')
-                .text(userName + ": ").css("color", rgbToHex(colour))
-                .appendTo(LogScreen);
-        var $logLineMessage2 =
-            $('<span/>')
-                .addClass('LogLogLineMessage')
-                .text(message).css("color", rgbToHex(colour)).linky()
-                .appendTo(LogScreen);/*
-        $logLineMessage2.html($logLineMessage2.html().replace(/(http:\/\/[^\s]+)/g, "<a href='$1' target='_blank'>$1</a>"));
-        $logLineMessage2.html($logLineMessage2.html().replace(/(https:\/\/[^\s]+)/g, "<a href='$1' target='_blank'>$1</a>"));
-        $logLineMessage2.html($logLineMessage2.html().replace(/(hifi:\/\/[^\s]+)/g, "<a href='$1' target='_blank'>$1</a>"));*/
+        $('<b/>')
+            .addClass('LogLogLineMessage')
+            .text(userName + ": ").css("color", rgbToHex(colour))
+            .appendTo($logLine);
+        $('<span/>')
+            .addClass('LogLogLineMessage')
+            .text(message).css("color", rgbToHex(colour)).linky()
+            .appendTo($logLine);
     }
 
     function scrollChatLog(chatID) {
@@ -468,70 +471,96 @@
         return h2 + ":" + m2 + ":" + s2;
     }
 
+    var muteInput;
+    var muteText;
+
+    function muteSwitchToggle() {
+        muted[getCurrTab()] = muteInput.checked;
+        muteText.classList.add(muteInput.checked ? "red-text" : "white-text");
+        muteText.classList.remove(!muteInput.checked ? "red-text" : "white-text");
+        emitWebEvent({type: "CMD", cmd: "MUTED", muted: muted});
+    }
+
     function main() {
+
+        muteInput = document.getElementById("muteInput");
+        muteText = document.getElementById("muteText");
+
+        instance = M.Tabs.init(document.getElementById("tabs"), {
+            "onShow": function (e) {
+                scrollChatLog(getCurrTab());
+                muteInput.checked = muted[getCurrTab()];
+                muteText.classList.add(muteInput.checked ? "red-text" : "white-text");
+                muteText.classList.remove(!muteInput.checked ? "red-text" : "white-text");
+            }
+        });
+        instance.select("Local");
+
+        $('.modal').modal();
 
         var parsedUrl = new URL(window.location.href);
         appUUID = parsedUrl.searchParams.get("appUUID");
 
-        //console.log("ChatPage: main");
-
         $ChatLog = $('#Local');
         $ChatInputText = $('#ChatInputText');
 
-        // Whenever the chat log resizes, or the input text gets or loses focus,
-        // scroll the chat log to the last line.
-        $ChatInputText.on('focus blur', function (event) {
-            //console.log("ChatInputText focus blur", $ChatInputText, event);
-            scrollChatLog(getCurrTab().id);
+        $ChatInputText.on('focus', function (event) {
+            scrollChatLog(getCurrTab());
         });
 
-        // Track when the user is typing, and handle the message when the user hits return.
         $ChatInputText.on('keydown', function (event) {
             if (event.keyCode === 13) {
                 var message = $ChatInputText.val().substr(0, 256);
                 $ChatInputText.val('');
                 if (message !== '') {
+                    var tab = getCurrTab();
+                    if (tab === "Grid") {
+                        emitWebEvent({type: "WEBMSG", message: message, tab: tab, time: time()});
+                    } else {
+                        emitWebEvent({type: "MSG", message: message, tab: tab, time: time()});
+                    }
 
-                    emitWebEvent({type: "MSG", message: message, tab: getCurrTab().id, time: time()});
-
-                    console.log("getCurrTab: ", getCurrTab().id);
+                    console.log("getCurrTab: ", getCurrTab());
                 }
             }
         });
 
-        // Start out with the input text in focus.
         $ChatInputText.focus();
-
-        // Hook up a handler for events that come from hifi.
 
         if (window.qt) {
             setTimeout(function () {
                 console.log("connecting to eventbridge");
                 EventBridge.scriptEventReceived.connect(function (message) {
-
-                    var temp = [];
-
+                    var cmd = [];
                     try {
-                        temp = JSON.parse(message);
+                        cmd = JSON.parse(message);
                     } catch (e) {
                         //
                     }
-
-                    if (temp.length === 1) {
-                        var temp2 = temp[0];
-                        logMessage("[" + temp2[0] + "] " + temp2[2], temp2[1], temp2[4], temp2[3]);
-                        scrollChatLog(temp2[4]);
-                    } else if (temp.length > 1) {
-                        temp.forEach(function (msg) {
-                            logMessage("[" + msg[0] + "] " + msg[2], msg[1], msg[4], msg[3]);
-                            scrollChatLog(msg[4]);
-                        });
+                    if (cmd.type === "MSG") {
+                        var temp = cmd.data;
+                        if (temp.length === 1) {
+                            var temp2 = temp[0];
+                            logMessage("[" + temp2[0] + "] " + temp2[2], temp2[1], temp2[4], temp2[3]);
+                            scrollChatLog(temp2[4]);
+                        } else if (temp.length > 1) {
+                            temp.forEach(function (msg) {
+                                logMessage("[" + msg[0] + "] " + msg[2], msg[1], msg[4], msg[3]);
+                                scrollChatLog(msg[4]);
+                            });
+                        }
+                    } else if (cmd.type === "CMD") {
+                        if (cmd.cmd === "MUTED") {
+                            muted = cmd.muted;
+                            muteInput.checked = muted[getCurrTab()];
+                            muteText.classList.add(muteInput.checked ? "red-text" : "white-text");
+                            muteText.classList.remove(!muteInput.checked ? "red-text" : "white-text");
+                        }
                     }
                 });
             }, 100); // Delay to allow everything to settle
         }
 
-        // Start out with the input text in focus.
         $ChatInputText.focus();
 
         if (window.qt) {
@@ -544,10 +573,8 @@
         }
     }
 
-    // Start up once the document is loaded.
     $(document).ready(main);
-
-    document.getElementById("defaultOpen").click();
 </script>
+<script type="text/javascript" src="js/materialize.min.js"></script>
 
 </html>

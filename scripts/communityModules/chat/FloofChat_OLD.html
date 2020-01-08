@@ -5,12 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Title</title>
 
-    <!--Import Google Icon Font-->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!--Import materialize.css-->
-    <link type="text/css" rel="stylesheet" href="css/materialize.css" media="screen,projection"/>
-
-
     <link href="https://fonts.googleapis.com/css?family=Raleway:300,400,600,700" rel="stylesheet">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <script src="toast.min.js"></script>
@@ -18,6 +12,34 @@
     <style>
         html {
             height: 100%;
+        }
+
+        /* Style the tab */
+        div.tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+        }
+
+        /* Style the buttons inside the tab */
+        div.tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+        }
+
+        /* Change background color of buttons on hover */
+        div.tab button:hover {
+            background-color: #ddd;
+        }
+
+        /* Create an active/current tablink class */
+        div.tab button.active {
+            background-color: #ccc;
         }
 
 
@@ -75,15 +97,25 @@
             min-height: 100vh;
             font-size: 20px;
             width: 100%;
-            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
 
+        .TopBar {
+            height: 40px;
+            background: linear-gradient(#2b2b2b, #1e1e1e);
+            font-weight: bold;
+            padding: 10px 10px 10px 10px;
+            display: flex;
+            align-items: center;
+            width: 100vw;
+            font-size: 28px;
+        }
 
         .ChatLog {
-            height: calc(100vh - 128px);
-            /*height: calc(100vh - 103px);
-            width: calc(100vw - 40px);*/
-            padding: 20px !important;
+            height: calc(100vh - 169px);
+            width: calc(100vw - 40px);
+            padding: 20px;
             font-size: 20px;
             color: white;
             background-color: black;
@@ -105,7 +137,6 @@
 
         .LogLogLine {
             margin-bottom: 15px;
-            padding: 10px !important;
         }
 
         .LogLogLineMessage {
@@ -114,27 +145,21 @@
 
         .ChatInput {
             color: #252525;
-            background: #252525;
+            /*background: linear-gradient(#575757 20%, #252525 100%);*/
             height: 60px !important;
         }
 
         .ChatInputText {
-            padding: 5px !important;
-            height: 50px !important;
+            padding: 5px 0px 0px 5px;
+            height: 60px !important;
             width: 100vw;
             font-size: 20px !important;
-            background-color: white !important;
-            border: white !important;
         }
 
         .responsive {
             width: 100%;
             max-width: 420px;
             height: auto;
-        }
-
-        .row .col {
-            padding: 0;
         }
 
     </style>
@@ -144,28 +169,37 @@
 <body>
 
 
-<div class="Content row">
-
-    <div class="col s12 valign-wrapper" style="padding: 10px ">
-        <ul class="tabs tabs-fixed-width z-depth-2 col s6" id="tabs">
-            <li class="tab col s2"><a class="black-text active" href="#Local">Local</a></li>
-            <li class="tab col s2"><a class="black-text" href="#Domain">Domain</a></li>
-            <li class="tab col s2"><a class="black-text" href="#FluffyDev">FluffyDev</a></li>
-        </ul>
-        <span class="col s4"></span>
-        <a class="waves-effect waves-light btn col s2" onclick="redock()">Redock</a>
+<div class="Content">
+    <div id="TopBar" class="TopBar">
+        <div class="tab">
+            <button class="tablinks" onclick="switchTab(event, 'Local')" id="defaultOpen">Local</button>
+            <button class="tablinks" onclick="switchTab(event, 'Domain')">Domain</button>
+            <button class="tablinks" onclick="switchTab(event, 'FluffyDev')">FluffyDev</button>
+        </div>
+        <div class="topBarFiller">
+        </div>
+        <div class="dockButton">
+            <button class="dockButton_" onclick="redock()">Redock</button>
+        </div>
     </div>
-    <div id="Local" class="ChatLog col s12">Test 1</div>
-    <div id="Domain" class="col s12 ChatLog">Test 2</div>
-    <div id="FluffyDev" class="col s12 ChatLog">Test 3</div>
-    <input type="text" class="ChatInputText col s12" id="ChatInputText" size="256">
 
+    <div id="Local" class="TabContent ChatLog">
+    </div>
+
+    <div id="Domain" class="TabContent ChatLog">
+    </div>
+
+    <div id="FluffyDev" class="TabContent ChatLog">
+    </div>
+
+    <div class="ChatInput">
+        <input type="text" class="ChatInputText" id="ChatInputText" size="256">
+    </div>
 </div>
-
 </body>
 
 <script>
-    var instance;
+
 
     //linky function
     //$('#ChatInputText').twemojiPicker();
@@ -250,13 +284,13 @@
                     case ext == "JPG":
                     case ext == "GIF":
                     case ext == "JPEG":
-                        elContent = elContent.replace(this, "<br/><img src='" + this + "'class=\"responsive z-depth-2\"><br/><a href=\"javascript:gotoClipboard('" + this + "');\" target='_blank'>" + this + "</a>");
+                        elContent = elContent.replace(this, "<br/><img src='" + this + "'class=\"responsive\"><br/><a href=\"javascript:gotoClipboard('" + this + "');\" target='_blank'>" + this + "</a>");
                         break;
                     case ext == "iframe":
-                        elContent = elContent.replace(this, "<br/><iframe class=\"z-depth-2\" src='" + this + "'width=\"440\" height=\"248\" frameborder=\"0\"></iframe>");
+                        elContent = elContent.replace(this, "<br/><iframe src='" + this + "'width=\"440\" height=\"248\" frameborder=\"0\"></iframe>");
                         break;
                     case ext == "webm":
-                        elContent = elContent.replace(this, "<br/><video controls class=\"z-depth-2 responsive\"><source src='" + this + "' type='video/" + ext + "'></video><br/><a href=\"javascript:gotoClipboard('" + this + "');\">" + this + "</a>");
+                        elContent = elContent.replace(this, "<br/><video controls class=\"responsive\"><source src='" + this + "' type='video/" + ext + "'></video><br/><a href=\"javascript:gotoClipboard('" + this + "');\">" + this + "</a>");
                         break;
                     case protocol === "HIFI":
                     case protocol === "hifi":
@@ -265,7 +299,7 @@
                     case !!this.match(/^(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?(?=.*v=((\w|-){11}))(?:\S+)?$/):
                         var youtubeMatch = this.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
                         if (youtubeMatch && youtubeMatch[2].length == 11 && this.match(/^(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?(?=.*v=((\w|-){11}))(?:\S+)?$/)) {
-                            elContent = "<br/><iframe class=\"z-depth-2\" width='420' height='236' src='https://www.youtube.com/embed/" + youtubeMatch[2] + "' frameborder='0'></iframe><br/><a href=\"javascript:gotoURL('" + this + "');\">" + this + "</a>";
+                            elContent = "<br/><iframe width='420' height='236' src='https://www.youtube.com/embed/" + youtubeMatch[2] + "' frameborder='0'></iframe><br/><a href=\"javascript:gotoURL('" + this + "');\">" + this + "</a>";
                             break;
                         }
                     // else fall through to default
@@ -314,8 +348,7 @@
                 }
             }
         };
-        M.toast({html: 'Copied URL to Clipboard', classes: 'rounded pink white-text'});
-        //iqwerty.toast.Toast('Copied URL to Clipboard', options);
+        iqwerty.toast.Toast('Copied URL to Clipboard',options);
         emitWebEvent({type: "CMD", cmd: "COPY", url: url});
     }
 
@@ -350,12 +383,41 @@
 
 
     function getCurrTab() {
-        return instance.$activeTabLink.html();
+
+        var TabContent = document.getElementsByClassName("TabContent");
+        for (var i = 0; i < TabContent.length; i++) {
+            if (TabContent[i].style.display === "inline") {
+                return TabContent[i];
+            }
+        }
+
     }
 
     function redock() {
         emitWebEvent({type: "CMD", cmd: "REDOCK"});
         location.reload();
+    }
+
+    function switchTab(evt, tabName) {
+        // Declare all variables
+        var i, TabContent, tablinks;
+
+        // Get all elements with class="tabcontent" and hide them
+        TabContent = document.getElementsByClassName("TabContent");
+        for (i = 0; i < TabContent.length; i++) {
+            TabContent[i].style.display = "none";
+        }
+
+        // Get all elements with class="tablinks" and remove the class "active"
+        tablinks = document.getElementsByClassName("tablinks");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+
+        // Show the current tab, and add an "active" class to the button that opened the tab
+        document.getElementById(tabName).style.display = "inline";
+        evt.currentTarget.className += " active";
+        scrollChatLog(tabName);
     }
 
     function logMessage(userName, message, logScreen, colour) {
@@ -372,22 +434,18 @@
         var $logLine =
             $('<div/>')
                 .addClass('LogLogLine')
-                .addClass('card-panel')
-                .addClass('blue-grey')
-                .addClass('darken-4')
-                .addClass('z-depth-2')
                 .data('chat-message', message).css("color", rgbToHex(colour))
                 .appendTo(LogScreen);
         var $logLineMessage =
             $('<b/>')
                 .addClass('LogLogLineMessage')
                 .text(userName + ": ").css("color", rgbToHex(colour))
-                .appendTo($logLine);
+                .appendTo(LogScreen);
         var $logLineMessage2 =
             $('<span/>')
                 .addClass('LogLogLineMessage')
                 .text(message).css("color", rgbToHex(colour)).linky()
-                .appendTo($logLine);/*
+                .appendTo(LogScreen);/*
         $logLineMessage2.html($logLineMessage2.html().replace(/(http:\/\/[^\s]+)/g, "<a href='$1' target='_blank'>$1</a>"));
         $logLineMessage2.html($logLineMessage2.html().replace(/(https:\/\/[^\s]+)/g, "<a href='$1' target='_blank'>$1</a>"));
         $logLineMessage2.html($logLineMessage2.html().replace(/(hifi:\/\/[^\s]+)/g, "<a href='$1' target='_blank'>$1</a>"));*/
@@ -412,13 +470,6 @@
 
     function main() {
 
-        instance = M.Tabs.init(document.getElementById("tabs"), {
-            "onShow": function (e) {
-                scrollChatLog(getCurrTab());
-            }
-        });
-        instance.select("Local");
-
         var parsedUrl = new URL(window.location.href);
         appUUID = parsedUrl.searchParams.get("appUUID");
 
@@ -429,9 +480,9 @@
 
         // Whenever the chat log resizes, or the input text gets or loses focus,
         // scroll the chat log to the last line.
-        $ChatInputText.on('focus', function (event) {
+        $ChatInputText.on('focus blur', function (event) {
             //console.log("ChatInputText focus blur", $ChatInputText, event);
-            scrollChatLog(getCurrTab());
+            scrollChatLog(getCurrTab().id);
         });
 
         // Track when the user is typing, and handle the message when the user hits return.
@@ -441,9 +492,9 @@
                 $ChatInputText.val('');
                 if (message !== '') {
 
-                    emitWebEvent({type: "MSG", message: message, tab: getCurrTab(), time: time()});
+                    emitWebEvent({type: "MSG", message: message, tab: getCurrTab().id, time: time()});
 
-                    console.log("getCurrTab: ", getCurrTab());
+                    console.log("getCurrTab: ", getCurrTab().id);
                 }
             }
         });
@@ -496,8 +547,7 @@
     // Start up once the document is loaded.
     $(document).ready(main);
 
-    //document.getElementById("defaultOpen").click();
+    document.getElementById("defaultOpen").click();
 </script>
-<script type="text/javascript" src="js/materialize.min.js"></script>
 
 </html>

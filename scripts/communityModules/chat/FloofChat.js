@@ -22,8 +22,23 @@ var chatBar;
 var chatHistory;
 var historyLog = [];
 
+
 var visible = false;
 var historyVisible = false;
+var settingsRoot = "FloofChat";
+
+var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain": false, "Grid": false});
+
+var ws;
+var wsReady = false;
+var webSocketURL = "ws://gridchat.darlingvr.club:8090";
+var shutdownBool = false;
+
+var defaultColour = {red: 255, green: 255, blue: 255};
+var colours = {};
+colours["localChatColour"] = Settings.getValue(settingsRoot + "/localChatColour", defaultColour);
+colours["domainChatColour"] = Settings.getValue(settingsRoot + "/domainChatColour", defaultColour);
+colours["gridChatColour"] = Settings.getValue(settingsRoot + "/gridChatColour", defaultColour);
 
 init();
 
@@ -31,7 +46,7 @@ function init() {
     Messages.subscribe("Chat");
     historyLog = [];
     try {
-        historyLog = JSON.parse(Settings.getValue("HistoryLog", "[]"));
+        historyLog = JSON.parse(Settings.getValue(settingsRoot + "/HistoryLog", "[]"));
     } catch (e) {
         //
     }
@@ -39,7 +54,6 @@ function init() {
     setupHistoryWindow(false);
 
     chatBar = new OverlayWindow({
-        // source: "http://localhost:8000/fluffytest.qml",
         source: Paths.defaultScripts + '/communityModules/chat/FloofChat.qml?' + Date.now(),
         width: 360,
         height: 180
@@ -50,32 +64,79 @@ function init() {
     chatBar.sendToQml(JSON.stringify({visible: false}));
     Controller.keyPressEvent.connect(keyPressEvent);
     Messages.messageReceived.connect(messageReceived);
+
+    connectWebSocket();
 }
 
-function setupHistoryWindow(popout) {
-    if (!popout) {
-        chatHistory = new OverlayWebWindow({
-            title: 'Chat History',
-            source: ROOT + "FloofChat2.html?appUUID=" + appUUID + "&" + Date.now(),
-            width: 900,
-            height: 700,
-            visible: false
-        });
-        chatHistory.setPosition({x: 0, y: Window.innerHeight - 700});
-        chatHistory.webEventReceived.connect(onWebEventReceived);
-        chatHistory.closed.connect(toggleChatHistory);
+function connectWebSocket(timeout) {
+    ws = new WebSocket(webSocketURL);
+    ws.onmessage = function incoming(_data) {
+        var message = _data.data;
+        var cmd = {FAILED: true};
+        try {
+            cmd = JSON.parse(message);
+        } catch (e) {
+            //
+        }
+        if (!cmd.FAILED) {
+            addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+            if (!muted["Grid"]) {
+                Messages.sendLocalMessage("Floof-Notif", JSON.stringify({
+                    sender: "(G) " + cmd.displayName,
+                    text: replaceFormatting(cmd.message),
+                    colour: {text: cmd.colour}
+                }));
+            }
+        }
+    };
+
+    ws.onopen = function open() {
+        wsReady = true;
+    };
+
+    ws.onclose = function close() {
+        wsReady = false;
+        console.log('disconnected');
+
+        timeout = timeout | 0;
+        if (!shutdownBool && timeout < (30 * 1000)) {
+            Script.setTimeout(function () {
+                connectWebSocket(timeout);
+            }, timeout + 1000);
+        } else {
+            wsReady = -1;
+        }
+    };
+}
+
+
+function sendWS(msg, timeout) {
+    if (wsReady === true) {
+        ws.send(JSON.stringify(msg));
     } else {
-        chatHistory = Desktop.createWindow(Paths.defaultScripts + '/communityModules/chat/webview.qml?' + Date.now(), {
-            title: "Chat History",
-            additionalFlags: Desktop.CLOSE_BUTTON_HIDES,
-            presentationMode: Desktop.PresentationMode.NATIVE,
-            visible: false,
-            size: {x: 900, y: 700},
-            position: {x: 0, y: Window.innerHeight - 700}
-        });
-        chatHistory.webEventReceived.connect(onWebEventReceived);
-        chatHistory.closed.connect(toggleChatHistory);
+        timeout = timeout | 0;
+        if (!shutdownBool && timeout < (30 * 1000)) {
+            Script.setTimeout(function () {
+                if (wsReady === -1) {
+                    connectWebSocket();
+                }
+                sendWS(msg, timeout);
+            }, timeout + 1000);
+        }
     }
+}
+
+function setupHistoryWindow() {
+    chatHistory = new OverlayWebWindow({
+        title: 'Chat History',
+        source: ROOT + "FloofChat.html?appUUID=" + appUUID + "&" + Date.now(),
+        width: 900,
+        height: 700,
+        visible: false
+    });
+    chatHistory.setPosition({x: 0, y: Window.innerHeight - 700});
+    chatHistory.webEventReceived.connect(onWebEventReceived);
+    chatHistory.closed.connect(toggleChatHistory);
 }
 
 function emitScriptEvent(obj) {
@@ -89,19 +150,35 @@ function toggleChatHistory() {
     chatHistory.visible = historyVisible;
 }
 
+function chatColour(tab) {
+    if (tab === "Local") {
+        return colours["localChatColour"];
+    } else if (tab === "Domain") {
+        return colours["domainChatColour"];
+    } else if (tab === "Grid") {
+        return colours["gridChatColour"];
+    } else {
+        return defaultColour;
+    }
+}
+
 function onWebEventReceived(event) {
-    console.log("event " + event);
     event = JSON.parse(event);
     if (event.type === "ready") {
-        chatHistory.emitScriptEvent(JSON.stringify(historyLog));
+        chatHistory.emitScriptEvent(JSON.stringify({type: "MSG", data: historyLog}));
+        chatHistory.emitScriptEvent(JSON.stringify({type: "CMD", cmd: "MUTED", muted: muted}));
     }
     if (event.type === "CMD") {
+        if (event.cmd === "MUTED") {
+            muted = event.muted;
+            Settings.setValue(settingsRoot + "/muted", muted);
+        }
+        if (event.cmd === "COLOUR") {
+            Settings.setValue(settingsRoot + "/" + event.colourType + "Colour", event.colour);
+            colours[event.colourType] = event.colour;
+        }
         if (event.cmd === "REDOCK") {
-            if(popout){
-                
-            }else{
-                chatHistory.setPosition({x: 0, y: Window.innerHeight - 700});
-            }
+            chatHistory.setPosition({x: 0, y: Window.innerHeight - 700});
         }
         if (event.cmd === "GOTO") {
             var result = Window.confirm("Do you want to goto " + event.url.split("/")[2] + " ?");
@@ -122,13 +199,24 @@ function onWebEventReceived(event) {
             Window.copyToClipboard(event.url);
         }
     }
+    if (event.type === "WEBMSG") {
+        if (event.message === "") return;
+        sendWS({
+            uuid: "",
+            type: "WebChat",
+            channel: event.tab,
+            colour: chatColour(event.tab),
+            message: event.message,
+            displayName: MyAvatar.displayName
+        });
+    }
     if (event.type === "MSG") {
         if (event.message === "") return;
         Messages.sendMessage("Chat", JSON.stringify({
             type: "TransmitChatMessage",
             position: MyAvatar.position,
             channel: event.tab,
-            colour: {red: 222, green: 222, blue: 222},
+            colour: chatColour(event.tab),
             message: event.message,
             displayName: MyAvatar.displayName
         }));
@@ -136,9 +224,68 @@ function onWebEventReceived(event) {
     }
 }
 
-function messageReceived(channel, message, sender, local) {
-    if (channel === "Chat" || channel === "Support") {
+function replaceFormatting(text) {
+    var found = false;
+    if (text.indexOf("**") !== -1) {
+        var firstMatch = text.indexOf("**") + 2;
+        var secondMatch = text.indexOf("**", firstMatch);
+        if (firstMatch !== -1 && secondMatch !== -1) {
+            found = true;
+            var part1 = text.substring(0, firstMatch - 2);
+            var part2 = text.substring(firstMatch, secondMatch);
+            var part3 = text.substring(secondMatch + 2);
+            text = part1 + "<i>" + part2 + "</i>" + part3;
+        }
+    } else if (text.indexOf("*") !== -1) {
+        var firstMatch = text.indexOf("*") + 1;
+        var secondMatch = text.indexOf("*", firstMatch);
+        if (firstMatch !== -1 && secondMatch !== -1) {
+            found = true;
+            var part1 = text.substring(0, firstMatch - 1);
+            var part2 = text.substring(firstMatch, secondMatch);
+            var part3 = text.substring(secondMatch + 1);
+            text = part1 + "<b>" + part2 + "</b>" + part3;
+        }
+    } else if (text.indexOf("__") !== -1) {
+        var firstMatch = text.indexOf("__") + 2;
+        var secondMatch = text.indexOf("__", firstMatch);
+        if (firstMatch !== -1 && secondMatch !== -1) {
+            found = true;
+            var part1 = text.substring(0, firstMatch - 2);
+            var part2 = text.substring(firstMatch, secondMatch);
+            var part3 = text.substring(secondMatch + 2);
+            text = part1 + "<u>" + part2 + "</u>" + part3;
+        }
+    } else if (text.indexOf("_") !== -1) {
+        var firstMatch = text.indexOf("_") + 1;
+        var secondMatch = text.indexOf("_", firstMatch);
+        if (firstMatch !== -1 && secondMatch !== -1) {
+            found = true;
+            var part1 = text.substring(0, firstMatch - 1);
+            var part2 = text.substring(firstMatch, secondMatch);
+            var part3 = text.substring(secondMatch + 1);
+            text = part1 + "<i>" + part2 + "</i>" + part3;
+        }
+    } else if (text.indexOf("~~") !== -1) {
+        var firstMatch = text.indexOf("~~") + 2;
+        var secondMatch = text.indexOf("~~", firstMatch);
+        if (firstMatch !== -1 && secondMatch !== -1) {
+            found = true;
+            var part1 = text.substring(0, firstMatch - 2);
+            var part2 = text.substring(firstMatch, secondMatch);
+            var part3 = text.substring(secondMatch + 2);
+            text = part1 + "<s>" + part2 + "</s>" + part3;
+        }
+    }
+    if (found) {
+        return replaceFormatting(text);
+    } else {
+        return text;
+    }
+}
 
+function messageReceived(channel, message) {
+    if (channel === "Chat") {
         var cmd = {FAILED: true};
         try {
             cmd = JSON.parse(message);
@@ -153,20 +300,44 @@ function messageReceived(channel, message, sender, local) {
                 if (!cmd.hasOwnProperty("colour")) {
                     cmd.colour = {red: 222, green: 222, blue: 222};
                 }
+                if (cmd.message.indexOf("/me") === 0) {
+                    cmd.message = cmd.message.replace("/me", cmd.displayName);
+                    cmd.displayName = "";
+                }
                 if (cmd.channel === "Local") {
                     if (Vec3.withinEpsilon(MyAvatar.position, cmd.position, 20)) {
                         addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+                        if (!muted["Local"]) {
+                            Messages.sendLocalMessage("Floof-Notif", JSON.stringify({
+                                sender: "(L) " + cmd.displayName,
+                                text: replaceFormatting(cmd.message),
+                                colour: {text: cmd.colour}
+                            }));
+                        }
+                    }
+                } else if (cmd.channel === "Domain") {
+                    addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+                    if (!muted["Domain"]) {
                         Messages.sendLocalMessage("Floof-Notif", JSON.stringify({
-                            sender: "L " + cmd.displayName,
-                            text: cmd.message,
+                            sender: "(D) " + cmd.displayName,
+                            text: replaceFormatting(cmd.message),
+                            colour: {text: cmd.colour}
+                        }));
+                    }
+                } else if (cmd.channel === "Grid") {
+                    addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+                    if (!muted["Grid"]) {
+                        Messages.sendLocalMessage("Floof-Notif", JSON.stringify({
+                            sender: "(G) " + cmd.displayName,
+                            text: replaceFormatting(cmd.message),
                             colour: {text: cmd.colour}
                         }));
                     }
                 } else {
                     addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
                     Messages.sendLocalMessage("Floof-Notif", JSON.stringify({
-                        sender: ((cmd.channel === "Domain") ? "D " : "") + cmd.displayName,
-                        text: cmd.message,
+                        sender: cmd.displayName,
+                        text: replaceFormatting(cmd.message),
                         colour: {text: cmd.colour}
                     }));
                 }
@@ -189,12 +360,15 @@ function time() {
 
 function addToLog(msg, dp, colour, tab) {
     historyLog.push([time(), msg, dp, colour, tab]);
-    chatHistory.emitScriptEvent(JSON.stringify([[time(), msg, dp, colour, tab]]));
+    chatHistory.emitScriptEvent(JSON.stringify({type: "MSG", data: [[time(), msg, dp, colour, tab]]}));
     if (historyLog.length > 500) {
         historyLog.pop();
     }
-    Settings.setValue("HistoryLog", JSON.stringify(historyLog))
+    Settings.setValue(settingsRoot + "/HistoryLog", JSON.stringify(historyLog))
 }
+
+const CONTROL = 67108864;
+const SHIFT = 33554432;
 
 function fromQml(message) {
     var cmd = {FAILED: true};
@@ -204,21 +378,29 @@ function fromQml(message) {
         //
     }
     if (!cmd.FAILED) {
-        console.log(JSON.stringify(cmd.event));
         if (cmd.type === "MSG") {
             if (cmd.message !== "") {
-                if (cmd.event.modifiers === 67108864) {
+                if (cmd.event.modifiers === CONTROL) {
                     Messages.sendMessage("Chat", JSON.stringify({
-                        type: "TransmitChatMessage", channel: "Domain", colour: {red: 222, green: 222, blue: 222},
+                        type: "TransmitChatMessage", channel: "Domain", colour: chatColour("Domain"),
                         message: cmd.message,
                         displayName: MyAvatar.displayName
                     }));
+                } else if (cmd.event.modifiers === CONTROL + SHIFT) {
+                    sendWS({
+                        uuid: "",
+                        type: "WebChat",
+                        channel: "Grid",
+                        colour: chatColour("Grid"),
+                        message: cmd.message,
+                        displayName: MyAvatar.displayName
+                    });
                 } else {
                     Messages.sendMessage("Chat", JSON.stringify({
                         type: "TransmitChatMessage",
                         channel: "Local",
                         position: MyAvatar.position,
-                        colour: {red: 222, green: 222, blue: 222},
+                        colour: chatColour("Local"),
                         message: cmd.message,
                         displayName: MyAvatar.displayName
                     }));
@@ -229,13 +411,6 @@ function fromQml(message) {
             if (cmd.cmd === "Clicked") {
                 toggleChatHistory()
             }
-
-            /*
-            Messages.sendLocalMessage("Floof-Notif", JSON.stringify({
-                sender: "Chat",
-                text: msg,
-                colour: {text: {red: 200, green: 200, blue: 200}}
-            }));*/
         }
     }
 }
@@ -254,7 +429,6 @@ function setVisible(_visible) {
         }));
         chatBar.sendToQml(JSON.stringify({visible: false}));
     }
-
     visible = _visible;
 }
 
@@ -269,7 +443,6 @@ function keyPressEvent(event) {
         setVisible(false);
     }
 }
-
 
 function shutdown() {
     try {
