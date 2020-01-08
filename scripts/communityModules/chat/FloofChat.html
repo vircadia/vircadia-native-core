@@ -85,9 +85,7 @@
         }
 
         .ChatLog {
-            height: calc(100vh - 128px);
-            /*height: calc(100vh - 103px);
-            width: calc(100vw - 40px);*/
+            height: calc(100vh - 137px);
             padding: 20px !important;
             font-size: 20px;
             color: white;
@@ -126,10 +124,13 @@
         .ChatInputText {
             padding: 5px !important;
             height: 50px !important;
-            width: 100vw;
+            width: calc(100vw - 20px) !important;
             font-size: 20px !important;
             background-color: white !important;
-            border: white !important;
+            border-style: solid !important;
+            border-color: #232323 !important;
+            border-width: 5px 5px 5px 5px !important;
+
         }
 
         .responsive {
@@ -175,7 +176,7 @@
 <body>
 
 <div class="Content row">
-    <div class="col s12 valign-wrapper" style="padding: 10px ">
+    <div class="col s12 valign-wrapper" style="padding: 10px;">
         <ul class="tabs tabs-fixed-width z-depth-2 col s6" id="tabs">
             <li class="tab col s2"><a class="black-text active" href="#Local">Local</a></li>
             <li class="tab col s2"><a class="black-text" href="#Domain">Domain</a></li>
@@ -198,7 +199,7 @@
     <div id="Local" class="ChatLog col s12"></div>
     <div id="Domain" class="col s12 ChatLog"></div>
     <div id="Grid" class="col s12 ChatLog"></div>
-    <input type="text" class="ChatInputText col s12" id="ChatInputText" size="256">
+    <input type="text" class="ChatInputText col s12" id="ChatInputText" size="256" placeholder="Type here">
 </div>
 
 </body>
