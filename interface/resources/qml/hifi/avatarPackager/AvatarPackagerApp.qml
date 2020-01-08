@@ -229,7 +229,7 @@ Item {
         }
 
         function openDocs() {
-            Qt.openUrlExternally("https://docs.highfidelity.com/create/avatars/package-avatar.html");
+            Qt.openUrlExternally("https://docs.projectathena.dev/create/avatars/package-avatar.html");
         }
 
         function openVideo() {
