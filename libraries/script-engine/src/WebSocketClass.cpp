@@ -16,6 +16,8 @@
 
 #include "ScriptEngine.h"
 
+#include "ScriptEngineLogging.h"
+
 WebSocketClass::WebSocketClass(QScriptEngine* engine, QString url) :
     _webSocket(new QWebSocket()),
     _engine(engine)
@@ -109,10 +111,10 @@ void WebSocketClass::handleOnBinaryMessage(const QByteArray& message) {
         QScriptValue arg = _engine->newObject();
         QScriptValue data = _engine->newVariant(QVariant::fromValue(message));
         QScriptValue ctor = _engine->globalObject().property("ArrayBuffer");
-        ArrayBufferClass* array = qscriptvalue_cast<ArrayBufferClass*>(ctor.data());
+        auto array = qscriptvalue_cast<ArrayBufferClass*>(ctor.data());
         QScriptValue arrayBuffer;
         if (!array) {
-            qWarning() << "WebSocketClass::handleOnBinaryMessage !ArrayBuffer";
+            qCWarning(scriptengine) << "WebSocketClass::handleOnBinaryMessage !ArrayBuffer";
         } else {
             arrayBuffer = _engine->newObject(array, data);
         }
