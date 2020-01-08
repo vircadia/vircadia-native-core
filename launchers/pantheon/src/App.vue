@@ -240,8 +240,11 @@ export default {
 			}
 			const { ipcRenderer } = require('electron');
 			var exeLoc = ipcRenderer.sendSync('getAthenaLocation'); // todo: check if that location exists first when using that, we need to default to using folder path + /interface.exe otherwise.
-            if(exeLoc) {
+            console.info("exeLoc:",exeLoc);
+            if(exeLoc != "false") {
                 ipcRenderer.send('launch-interface', { "exec": exeLoc, "steamVR": this.noSteamVR, "allowMultipleInstances": allowMulti});
+            } else {
+                this.selectInterfaceExe();
             }
 		},
 		launchBrowser: function(url) {
@@ -257,7 +260,11 @@ export default {
 		installInterface: function() {
 			const { ipcRenderer } = require('electron');
 			ipcRenderer.send('installAthena');
-		}
+		},
+        selectInterfaceExe: function() {
+            const { ipcRenderer } = require('electron');
+            ipcRenderer.send('setAthenaLocation');
+        }
 	},
 	created: function () {
 		const { ipcRenderer } = require('electron');

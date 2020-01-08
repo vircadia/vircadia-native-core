@@ -1,5 +1,5 @@
 ::-webkit-scrollbar {
-  display: none;
+	display: none;
 }
 
 h2 {
@@ -7,33 +7,33 @@ h2 {
 }
 
 #titleURL {
-  color: white;
-  cursor: pointer;
-  text-decoration: none;
+	color: white;
+	cursor: pointer;
+	text-decoration: none;
 }
 
 #titleIMG {
-  cursor: pointer;
+	cursor: pointer;
 }
 
 #navBar {
-  position: fixed;
-  top: 0px;
-  z-index: 99;
+	position: fixed;
+	top: 0px;
+	z-index: 99;
 }
 
 #mainContent {
-  background-image: url('../resources/bg1.jpg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+	background-image: url('../resources/bg2.jpg');
+	background-size: cover;
+	background-position: center;
+	background-attachment: fixed;
   
-  /* background: linear-gradient(90deg, #00d2ff 0%, #3a47d5 100%);
-  background-size: 400% 400%;
-  animation: gradientBG 15s ease infinite; */
-  
-  margin: 0;
-  padding: 50px 0 60px 0 !important;
+	/* background: linear-gradient(90deg, #00d2ff 0%, #3a47d5 100%);
+	background-size: 400% 400%;
+	animation: gradientBG 15s ease infinite; */
+
+	margin: 0;
+	padding: 50px 0 60px 0 !important;
 }
 
 /* @keyframes gradientBG {
@@ -48,31 +48,42 @@ h2 {
     }
 } */
 
+.bodyText {
+	font-size: 15px;
+	font-family: 'Raleway', sans-serif;
+}
+
+pre {
+	font-family: "Courier New" Courier monospace;
+	margin-left: 12px;
+	background-color: rgba(0, 0, 0, 0.1);
+}
+
 /* HelloWorld.vue */
 
 #helloWorldContainer {
-  padding-left: 60px;
+	padding-left: 60px;
 }
 
 /* Cards */
 
 .world-cards {
-  margin-top: 20px;
-  margin-left: auto;
-  margin-right: auto;
+	margin-top: 20px;
+	margin-left: auto;
+	margin-right: auto;
 }
 
 /* FavoriteWorlds.vue */
 
 #hfavoriteWorldsContainer {
-  padding-left: 60px;
+	padding-left: 60px;
 }
 
 /* Transitions */
 
 .fade-enter-active, .fade-leave-active {
-  transition: opacity .5s;
+	transition: opacity .5s;
 }
 .fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
-  opacity: 0;
+	opacity: 0;
 }

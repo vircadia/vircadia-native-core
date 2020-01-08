@@ -53,7 +53,9 @@
 						
 						<h2 class="ml-3 mt-3">General</h2>
 						
-						<v-layout row pr-5 pt-5 pl-10>
+                        <h3 class="mx-7 mt-5">Launch Settings</h3>
+                        
+						<v-layout row pr-5 pt-5 pl-12>
 							<v-flex md6>
 								<v-btn 
 									v-on:click.native="selectInterfaceExe()"
@@ -61,13 +63,26 @@
 									class=""
 									:tile=true
 								>
-									<span class="mr-2">Select Interface executable</span>
+									<span class="mr-2">Select Interface Executable</span>
 									<v-icon>settings_applications</v-icon>
 								</v-btn>
 							</v-flex>
 						</v-layout>
-						
-						<v-layout row pr-5 pt-5 pl-10>
+                        
+                        <v-layout row pr-5 pt-5 pl-12>
+                            <v-flex md6>
+                                <v-checkbox color="blue" id="multipleInterfaces" class="mr-3 mt-3" v-model="allowMultipleInstances" @click="multipleInterfaces" label="Allow Multiple Instances" value="true"></v-checkbox>
+                            </v-flex>
+                        </v-layout> 
+
+                        
+						<h3 class="mx-7 mt-5">Library</h3>
+                        
+                        <p class="mx-7 mt-3 bodyText">The library folder is the directory that all of your various Athena version installations are located.<br />
+                            For example, if you had Athena installed to: <pre>C:\Program Files (x86)\Athena-K2-RC1</pre> then you would make your library folder: <pre>C:\Program Files (x86)</pre>
+                        </p>
+                        
+						<v-layout row pr-5 pt-5 pl-12>
 							<v-flex md6>
 								<v-btn
 									v-on:click.native="setLibrary()"
@@ -78,12 +93,6 @@
 									<span class="mr-2">Set Library Folder</span>
 									<v-icon>folder</v-icon>
 								</v-btn>
-							</v-flex>
-						</v-layout> 
-						
-						<v-layout row pr-5 pt-5 pl-10>
-							<v-flex md6>
-								<v-checkbox color="blue" id="multipleInterfaces" class="mr-3 mt-3" v-model="allowMultipleInstances" @click="multipleInterfaces" label="Allow Multiple Interfaces" value="true"></v-checkbox>
 							</v-flex>
 						</v-layout> 
 						
@@ -201,7 +210,6 @@ export default {
 			ipcRenderer.send('setCurrentInterface', selected.folder);
 		},
 		selectInterfaceExe: function() {
-			console.info("nani?",this.$store.state.interfaceSelectionRequired);
 			if(this.$store.state.interfaceSelectionRequired) {
 				this.showRequireInterface = true;
 			} else {

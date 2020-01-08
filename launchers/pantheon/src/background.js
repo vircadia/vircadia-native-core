@@ -129,13 +129,10 @@ var requireInterfaceSelection;
 async function generateInterfaceList(interfaces) {
   var interfacesArray = [];
   var dataPath;
-  console.info("nani",interfaces);
   for (var i in interfaces) {
     var client = interfaces[i];
     dataPath = client + "launcher_settings";
-    
-    console.info("Well:",dataPath, "Based on:", client);
-    
+        
     await getSetting('interface_package', dataPath).then(function(pkg){
 		var appName = pkg.package.name;
 		var appObject = { 
@@ -143,11 +140,9 @@ async function generateInterfaceList(interfaces) {
 				"location": client,
 			}
 		};
-		console.info("Interfaces Array:", interfacesArray);
 		interfacesArray.push(appObject);
     });
   }
-  console.info("Interfaces Array:", interfacesArray);
   return interfacesArray;
 }
 
@@ -168,7 +163,6 @@ async function getDirectories (src) {
 			if(folders) {
 				folders.forEach(function (folder) {
 					var folderToReturn = folder.replace("launcher_settings/interface_package.json", "");
-					console.info("Foreach?", folder, "cleaned:", folderToReturn);
 					interfacesToReturn.push(folderToReturn);
 				});
 				res_p();
@@ -179,7 +173,6 @@ async function getDirectories (src) {
 	});
 	
 	let result = await getDirectoriesPromise; 
-	console.info("Interfaces to Return:", interfacesToReturn);
 	return interfacesToReturn;
 };
 
@@ -193,7 +186,6 @@ async function getLibraryInterfaces() {
 			if(libraryPath) {
 				await getDirectories(libraryPath).then(function(interfacesList){
 					interfaces = interfacesList;
-					console.info("Did I do it?", interfacesList);
 					res_p();
 				});
 			} else {
@@ -209,52 +201,56 @@ async function getLibraryInterfaces() {
 }
 
 function setLibraryDialog() {
-  const {dialog} = require('electron') 
+	const {dialog} = require('electron') 
 
-  dialog.showOpenDialog(win, {
-    title: "Select the Athena Interface app library folder",
-    properties: ['openDirectory'],
-  }).then(result => {
-    console.log("Cancelled set library dialog: " + result.canceled)
-    console.log("Selected library: " + result.filePaths)
-    if(!result.canceled && result.filePaths[0]) {
-      storage.set('athena_interface.library', result.filePaths[0], {dataPath: storagePath.default}, function(error) {
-        if (error) {
-          throw error;
-        } else {
-          return true;
-        }
-      });
-    } else {
-      return false;
-    }
-  }).catch(err => {
-    console.log(err)
-    return false;
-  })
+	dialog.showOpenDialog(win, {
+		title: "Select the Athena Interface app library folder",
+		properties: ['openDirectory'],
+	}).then(result => {
+		console.log("Cancelled set library dialog: " + result.canceled)
+		console.log("Selected library: " + result.filePaths)
+		if(!result.canceled && result.filePaths[0]) {
+			storage.set('athena_interface.library', result.filePaths[0], {dataPath: storagePath.default}, function(error) {
+				if (error) {
+					throw error;
+				} else {
+					return true;
+				}
+			});
+		} else {
+			return false;
+		}
+	}).catch(err => {
+		console.log(err)
+		return false;
+	})
 }
 
 async function getSetting(setting, storageDataPath) {
-  var returnValue;
-  
-  let storagePromise = new Promise((res, rej) => {
-    storage.get(setting, {dataPath: storageDataPath}, function(error, data) {
-      if (error) {
-        throw error;
-        returnValue = false;
-        rej("Error: " + error);
-      } else if (data == {}) {
-        returnValue = false;
-        rej("Not found.")
-      }
-      returnValue = data;
-      res("Success!");
-    });
-  });
-  
-  // because async won't work otherwise. 
-  let result = await storagePromise; 
-  return returnValue;
+	var returnValue;
+
+	let storagePromise = new Promise((res, rej) => {
+		storage.get(setting, {dataPath: storageDataPath}, function(error, data) {
+			if (error) {
+				throw error;
+				returnValue = false;
+				rej("Error: " + error);
+			} else if (Object.entries(data).length==0) {
+				returnValue = false;
+				rej("Not found.")
+			} else {
+				returnValue = data;
+				res("Success!");
+			}
+		});
+	}).catch(err => {
+	  console.log(err)
+	})
+
+	// because async won't work otherwise. 
+	let result = await storagePromise; 
+	console.info("getSetting Return Value:",returnValue)
+	return returnValue;
 }
 
 const { ipcMain } = require('electron')
@@ -308,7 +304,7 @@ ipcMain.on('launch-interface', (event, arg) => {
 ipcMain.on('getAthenaLocation', async (event, arg) => {
 	var athenaLocation = await getSetting('athena_interface.location', storagePath.interfaceSettings);
 	var athenaLocationExe = athenaLocation.toString();
-	console.log(athenaLocationExe);
+	console.info("AthenaLocationExe:",athenaLocationExe);
 	event.returnValue = athenaLocationExe;
 })
 
@@ -326,7 +322,13 @@ ipcMain.on('setAthenaLocation', async (event, arg) => {
     console.log(result.canceled)
     console.log(result.filePaths)
     if(!result.canceled && result.filePaths[0]) {
-		storage.set('athena_interface.location', result.filePaths[0], {dataPath: storagePath.interfaceSettings}, function(error) {
+		var storageSavePath;
+		if (storagePath.interfaceSettings) {
+			storageSavePath = storagePath.interfaceSettings;
+		} else {
+			storageSavePath = storagePath.defaultPath;
+		}
+		storage.set('athena_interface.location', result.filePaths[0], {dataPath: storageSavePath}, function(error) {
 			if (error) throw error;
 		});
     } else {
