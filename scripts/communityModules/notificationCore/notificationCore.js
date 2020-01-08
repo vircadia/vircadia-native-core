@@ -147,7 +147,6 @@ function notif(text, colour) {
     };
 
     noti.end = function () {
-        console.log("removed overlay");
         Script.clearInterval(noti.timer);
         Script.clearTimeout(noti.timeout);
         Overlays.deleteOverlay(noti.id);
