@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<head>
+<head draggable="false">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Title</title>
@@ -15,6 +15,14 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 
     <style>
+        .disabledrag {
+            -webkit-user-drag: none !important;
+            -khtml-user-drag: none !important;
+            -moz-user-drag: none !important;
+            -o-user-drag: none !important;
+            user-drag: none !important;
+        }
+
         html {
             height: 100%;
         }
@@ -153,12 +161,20 @@
             background-color: #a62113 !important;
         }
 
+        body,img,a,div {
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-user-drag: none;
+            user-drag: none;
+            -webkit-touch-callout: none;
+        }
     </style>
 </head>
 <body>
 
 <div class="Content row">
-
     <div class="col s12 valign-wrapper" style="padding: 10px ">
         <ul class="tabs tabs-fixed-width z-depth-2 col s6" id="tabs">
             <li class="tab col s2"><a class="black-text active" href="#Local">Local</a></li>
@@ -183,7 +199,6 @@
     <div id="Domain" class="col s12 ChatLog"></div>
     <div id="Grid" class="col s12 ChatLog"></div>
     <input type="text" class="ChatInputText col s12" id="ChatInputText" size="256">
-
 </div>
 
 </body>
