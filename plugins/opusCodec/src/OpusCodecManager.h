@@ -14,7 +14,7 @@
 
 #include <plugins/CodecPlugin.h>
 
-class OpusCodec : public CodecPlugin, public Encoder, public Decoder {
+class AthenaOpusCodec : public CodecPlugin {
     Q_OBJECT
 
 public:
@@ -34,6 +34,7 @@ public:
     virtual Decoder* createDecoder(int sampleRate, int numChannels) override;
     virtual void releaseEncoder(Encoder* encoder) override;
     virtual void releaseDecoder(Decoder* decoder) override;
+
 
 private:
     static const char* NAME;

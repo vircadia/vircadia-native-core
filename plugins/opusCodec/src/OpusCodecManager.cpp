@@ -22,6 +22,9 @@
 #include <opus/opus_multistream.h>
 #include <opus/opus_projection.h>
 
+#include "OpusEncoder.h"
+#include "OpusDecoder.h"
+
 #define FRAME_SIZE 960
 #define SAMPLE_RATE 48000
 #define CHANNELS 2
@@ -31,56 +34,41 @@
 #define MAX_FRAME_SIZE 6*FRAME_SIZE
 #define MAX_PACKET_SIZE 3*1276
 
-const char* OpusCodec::NAME { "opus" };
+const char* AthenaOpusCodec::NAME { "opus" };
 
-void OpusCodec::init() {
+void AthenaOpusCodec::init() {
 }
 
-void OpusCodec::deinit() {
+void AthenaOpusCodec::deinit() {
 }
 
-bool OpusCodec::activate() {
+bool AthenaOpusCodec::activate() {
     CodecPlugin::activate();
     return true;
 }
 
-void OpusCodec::deactivate() {
+void AthenaOpusCodec::deactivate() {
     CodecPlugin::deactivate();
 }
 
 
-bool OpusCodec::isSupported() const {
+bool AthenaOpusCodec::isSupported() const {
     return true;
 }
 
 
-class OpusEncoder : public Encoder {
-public:
-    OpusEncoder(int sampleRate, int numChannels) {
-        
-    }
-
-    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override {
-        encodedBuffer.resize(_encodedSize);
-    }
-
-private:
-    int _encodedSize;
-};
-
-
-Encoder* OpusCodec::createEncoder(int sampleRate, int numChannels) {
-    return new OpusEncoder(sampleRate, numChannels);
+Encoder* AthenaOpusCodec::createEncoder(int sampleRate, int numChannels) {
+    return new AthenaOpusEncoder(sampleRate, numChannels);
 }
 
-Decoder* OpusCodec::createDecoder(int sampleRate, int numChannels) {
-    return this;
+Decoder* AthenaOpusCodec::createDecoder(int sampleRate, int numChannels) {
+    return new AthenaOpusDecoder(sampleRate, numChannels);
 }
 
-void OpusCodec::releaseEncoder(Encoder* encoder) {
+void AthenaOpusCodec::releaseEncoder(Encoder* encoder) {
     delete encoder;
 }
 
-void OpusCodec::releaseDecoder(Decoder* decoder) {
+void AthenaOpusCodec::releaseDecoder(Decoder* decoder) {
     delete decoder;
 }
