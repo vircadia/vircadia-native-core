@@ -361,8 +361,8 @@ function time() {
 function addToLog(msg, dp, colour, tab) {
     historyLog.push([time(), msg, dp, colour, tab]);
     chatHistory.emitScriptEvent(JSON.stringify({type: "MSG", data: [[time(), msg, dp, colour, tab]]}));
-    if (historyLog.length > 500) {
-        historyLog.pop();
+    while(historyLog.length > 500) {
+        historyLog.shift();
     }
     Settings.setValue(settingsRoot + "/HistoryLog", JSON.stringify(historyLog))
 }
