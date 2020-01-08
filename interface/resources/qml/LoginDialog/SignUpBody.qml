@@ -395,7 +395,7 @@ Item {
                     text: signUpBody.termsContainerText
                     Component.onCompleted: {
                         // with the link.
-                        termsText.text = qsTr("By signing up, you agree to <a href='https://projectathena.io/termsofservice'>High Fidelity's Terms of Service</a>")
+                        termsText.text = qsTr("By signing up, you agree to <a href='https://projectathena.io/termsofservice'>Project Athena's Terms of Service</a>")
                     }
                 }
 
