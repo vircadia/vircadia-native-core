@@ -2386,7 +2386,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         QString domainSafeIP = nodeList->getDomainHandler().getHostname();
         QString domainSafeURL = "hifi://" + currentDomain;
         for (const auto& str : safeURLS) {
-            if(domainSafeURL.startsWith(str) || domainSafeIP.startsWith(str)) {
+            if (domainSafeURL.startsWith(str) || domainSafeIP.startsWith(str)) {
                 qCDebug(scriptengine) << whitelistPrefix << "Whitelist Bypassed. Current Domain Host: " 
                     << nodeList->getDomainHandler().getHostname()
                     << "Current Domain: " << currentDomain;
@@ -2396,9 +2396,9 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         // END CURRENT DOMAIN WHITELIST BYPASS
 
         // START CHECKING AGAINST THE WHITELIST
-        if (ScriptEngine::getContext() == "entity_server" || passList == true) { // If running on the server or waved through, do not engage whitelist.
+        if (ScriptEngine::getContext() == "entity_server") { // If running on the server, do not engage whitelist.
             passList = true;
-        } else {
+        } else if (!passList) { // If waved through, do not engage whitelist.
             for (const auto& str : safeURLS) {
                 qCDebug(scriptengine) << whitelistPrefix << "Script URL: " << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
                     << scriptOrURL.startsWith(str);
