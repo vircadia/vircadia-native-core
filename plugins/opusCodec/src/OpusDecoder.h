@@ -22,6 +22,7 @@ private:
     OpusDecoder *_decoder = nullptr;
     int _opus_sample_rate = 0;
     int _opus_num_channels = 0;
+    int _decoded_size = 0;
 };
 
 

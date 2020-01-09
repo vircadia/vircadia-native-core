@@ -1,5 +1,6 @@
 #include <PerfStat.h>
 #include <QtCore/QLoggingCategory>
+#include <AudioConstants.h>
 
 
 
@@ -45,7 +46,7 @@ AthenaOpusDecoder::AthenaOpusDecoder(int sampleRate, int numChannels)
     }
 
 
-    qCDebug(decoder) << "Opus decoder initialized";
+    qCDebug(decoder) << "Opus decoder initialized, sampleRate = " << sampleRate << "; numChannels = " << numChannels;
 }
 
 AthenaOpusDecoder::~AthenaOpusDecoder()
@@ -61,10 +62,14 @@ void AthenaOpusDecoder::decode(const QByteArray &encodedBuffer, QByteArray &deco
 
     PerformanceTimer perfTimer("AthenaOpusDecoder::decode");
 
-    decodedBuffer.resize( 65536 ); // Brute force, yeah!
+
+    int buffer_size = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * static_cast<int>(sizeof(int16_t)) * _opus_num_channels;
+
+    decodedBuffer.resize( buffer_size );
     int frame_size = decodedBuffer.size() / _opus_num_channels / static_cast<int>(sizeof( opus_int16 ));
 
-    int frames = opus_decode( _decoder, reinterpret_cast<const unsigned char*>(encodedBuffer.data()), encodedBuffer.length(), reinterpret_cast<opus_int16*>(decodedBuffer.data()), frame_size, 1 );
+    qCDebug(decoder) << "Opus decode: encodedBytes = " << encodedBuffer.length() << "; decodedBufferBytes = " << decodedBuffer.size() << "; frameCount = " << frame_size;
+    int frames = opus_decode( _decoder, reinterpret_cast<const unsigned char*>(encodedBuffer.data()), encodedBuffer.length(), reinterpret_cast<opus_int16*>(decodedBuffer.data()), frame_size, 0 );
 
     if ( frames >= 0 ) {
         qCDebug(decoder) << "Decoded " << frames << " Opus frames";
@@ -81,7 +86,8 @@ void AthenaOpusDecoder::lostFrame(QByteArray &decodedBuffer)
 
     PerformanceTimer perfTimer("AthenaOpusDecoder::lostFrame");
 
-    decodedBuffer.resize( 65536 ); // Brute force, yeah!
+    int buffer_size = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * static_cast<int>(sizeof(int16_t)) * _opus_num_channels;
+    decodedBuffer.resize( buffer_size );
     int frame_size = decodedBuffer.size() / _opus_num_channels / static_cast<int>(sizeof( opus_int16 ));
 
     int frames = opus_decode( _decoder, nullptr, 0, reinterpret_cast<opus_int16*>(decodedBuffer.data()), frame_size, 1 );
