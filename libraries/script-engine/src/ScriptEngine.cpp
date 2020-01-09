@@ -86,6 +86,8 @@
 
 #include "SettingHandle.h"
 #include <AddressManager.h>
+#include <NetworkingConstants.h>
+
 
 const QString ScriptEngine::_SETTINGS_ENABLE_EXTENDED_EXCEPTIONS {
     "com.highfidelity.experimental.enableExtendedJSExceptions"
@@ -2359,14 +2361,13 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         } else if (testConstructor.isError()) {
             exception = testConstructor;
         }
-    }
-    else {
+    } else {
         // ENTITY SCRIPT WHITELIST STARTS HERE
         auto nodeList = DependencyManager::get<NodeList>();
         bool passList = false;  // assume unsafe
         QString whitelistPrefix = "[WHITELIST ENTITY SCRIPTS]";
-        QList<QString> safeURLS = { "file:///", "atp:", "cache:" };
-        safeURLS += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
+        QList<QString> safeURLPrefixes = { "file:///", "atp:", "cache:" };
+        safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
 
         // IF WHITELIST IS DISABLED IN SETTINGS
         bool whitelistEnabled = Setting::Handle<bool>("private/whitelistEnabled", true).get();
@@ -2377,15 +2378,15 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         // PULL SAFEURLS FROM INTERFACE.JSON Settings
         QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
         QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), QString::SkipEmptyParts);
-        safeURLS += settingsSafeURLS;
+        safeURLPrefixes += settingsSafeURLS;
         // END PULL SAFEURLS FROM INTERFACE.JSON Settings
         
         // GET CURRENT DOMAIN WHITELIST BYPASS, IN CASE AN ENTIRE DOMAIN IS WHITELISTED
         QString currentDomain = DependencyManager::get<AddressManager>()->getDomainURL().host();
         
         QString domainSafeIP = nodeList->getDomainHandler().getHostname();
-        QString domainSafeURL = "hifi://" + currentDomain;
-        for (const auto& str : safeURLS) {
+        QString domainSafeURL = URL_SCHEME_HIFI + "://" + currentDomain;
+        for (const auto& str : safeURLPrefixes) {
             if (domainSafeURL.startsWith(str) || domainSafeIP.startsWith(str)) {
                 qCDebug(scriptengine) << whitelistPrefix << "Whitelist Bypassed. Current Domain Host: " 
                     << nodeList->getDomainHandler().getHostname()
@@ -2399,7 +2400,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         if (ScriptEngine::getContext() == "entity_server") { // If running on the server, do not engage whitelist.
             passList = true;
         } else if (!passList) { // If waved through, do not engage whitelist.
-            for (const auto& str : safeURLS) {
+            for (const auto& str : safeURLPrefixes) {
                 qCDebug(scriptengine) << whitelistPrefix << "Script URL: " << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
                     << scriptOrURL.startsWith(str);
                 if (!str.isEmpty() && scriptOrURL.startsWith(str)) {
