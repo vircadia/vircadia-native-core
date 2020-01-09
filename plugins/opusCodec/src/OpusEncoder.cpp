@@ -51,7 +51,7 @@ AthenaOpusEncoder::AthenaOpusEncoder(int sampleRate, int numChannels)
     setApplication(DEFAULT_APPLICATION);
     setSignal(DEFAULT_SIGNAL);
 
-    qCDebug(encoder) << "Opus encoder initialized";
+    qCDebug(encoder) << "Opus encoder initialized, sampleRate = " << sampleRate << "; numChannels = " << numChannels;
 }
 
 AthenaOpusEncoder::~AthenaOpusEncoder()
