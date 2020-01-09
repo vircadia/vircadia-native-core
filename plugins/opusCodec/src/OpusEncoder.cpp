@@ -72,7 +72,7 @@ void AthenaOpusEncoder::encode(const QByteArray& decodedBuffer, QByteArray& enco
     int bytes = opus_encode(_encoder, reinterpret_cast<const opus_int16*>(decodedBuffer.constData()), frame_size, reinterpret_cast<unsigned char*>(encodedBuffer.data()), encodedBuffer.size() );
 
     if ( bytes >= 0 ) {
-        qCDebug(encoder) << "Encoded " << decodedBuffer.length() << " bytes into " << bytes << " opus bytes";
+        //qCDebug(encoder) << "Encoded " << decodedBuffer.length() << " bytes into " << bytes << " opus bytes";
         encodedBuffer.resize(bytes);
     } else {
         encodedBuffer.resize(0);

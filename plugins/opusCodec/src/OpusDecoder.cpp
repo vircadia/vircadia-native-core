@@ -71,7 +71,7 @@ void AthenaOpusDecoder::decode(const QByteArray &encodedBuffer, QByteArray &deco
     int decoded_frames = opus_decode( _decoder, reinterpret_cast<const unsigned char*>(encodedBuffer.data()), encodedBuffer.length(), reinterpret_cast<opus_int16*>(decodedBuffer.data()), buffer_frames, 0 );
 
     if ( decoded_frames >= 0 ) {
-        qCDebug(decoder) << "Decoded " << decoded_frames << " Opus frames, " << buffer_frames << " expected";
+        //qCDebug(decoder) << "Decoded " << decoded_frames << " Opus frames, " << buffer_frames << " expected";
 
         if ( decoded_frames < buffer_frames ) {
             qCWarning(decoder) << "Opus decoder returned " << decoded_frames << ", but " << buffer_frames << " were expected!";
@@ -102,8 +102,7 @@ void AthenaOpusDecoder::lostFrame(QByteArray &decodedBuffer)
     int decoded_frames = opus_decode( _decoder, nullptr, 0, reinterpret_cast<opus_int16*>(decodedBuffer.data()), buffer_frames, 1 );
 
     if ( decoded_frames >= 0 ) {
-
-        qCDebug(decoder) << "Produced " << decoded_frames << " opus frames from a lost frame, " << buffer_frames << " expected";
+        //qCDebug(decoder) << "Produced " << decoded_frames << " opus frames from a lost frame, " << buffer_frames << " expected";
 
         if ( decoded_frames < buffer_frames ) {
             qCWarning(decoder) << "Opus decoder returned " << decoded_frames << ", but " << buffer_frames << " were expected!";
@@ -118,6 +117,7 @@ void AthenaOpusDecoder::lostFrame(QByteArray &decodedBuffer)
         qCCritical(decoder) << "Failed to decode lost frame: " << error_to_string(decoded_frames);
         decodedBuffer.fill('\0');
     }
+
 }
 
 
