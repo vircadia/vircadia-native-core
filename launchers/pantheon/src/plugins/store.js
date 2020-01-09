@@ -12,6 +12,7 @@ export const store = new Vuex.Store({
 		metaverseServer: "",
 		populatedInterfaceList: [],
 		noSteamVR: false,
+		currentLibraryFolder: "No library folder selected.",
 	},
 	mutations: {
 		mutate(state, payload) {

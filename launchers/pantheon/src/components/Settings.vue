@@ -22,6 +22,7 @@
 								color="purple"
 								:tile=true
 								v-on:click.native="populateInterfaceList()"
+                                style="display: none;"
 							>
 								<v-icon>mdi-refresh</v-icon>
 							</v-btn>
@@ -34,6 +35,7 @@
 									<v-btn
 										:tile=true
 										v-on="on"
+                                        @mouseover="populateInterfaceList()"
 									>
                                         Select Interface
 									</v-btn>
@@ -84,15 +86,21 @@
                         
 						<v-layout row pr-5 pt-5 pl-12>
 							<v-flex md6>
-								<v-btn
-									v-on:click.native="setLibrary()"
-									:right=true
-									class=""
-									:tile=true
-								>
-									<span class="mr-2">Set Library Folder</span>
-									<v-icon>folder</v-icon>
-								</v-btn>
+                                <v-tooltip top>
+                                    <template v-slot:activator="{ on }">
+                                        <v-btn
+                                            v-on:click.native="setLibrary()"
+                                            :right=true
+                                            class=""
+                                            :tile=true
+                                            v-on="on"
+                                        >
+                                            <span class="mr-2">Set Library Folder</span>
+                                            <v-icon>folder</v-icon>
+                                        </v-btn>
+                                    </template>
+                                    <span>{{ currentFolder }}</span>
+                                </v-tooltip>
 							</v-flex>
 						</v-layout> 
 						
@@ -191,6 +199,14 @@ ipcRenderer.on('interface-list', (event, arg) => {
 	});
 });
 
+ipcRenderer.on('current-library-folder', (event, arg) => {
+    store_p.commit('mutate', {
+        property: 'currentLibraryFolder', 
+        with: arg.libraryPath
+    });
+    vue_this.currentFolder = arg.libraryPath;
+});
+
 ipcRenderer.on('interface-selection-required', (event, arg) => {
 	console.info(arg);
 });
@@ -206,24 +222,25 @@ export default {
 				property: 'selectedInterface', 
 				with: { name: selected.name, folder: selected.folder }
 			});
-			const { ipcRenderer } = require('electron');			
 			ipcRenderer.send('setCurrentInterface', selected.folder);
 		},
 		selectInterfaceExe: function() {
 			if(this.$store.state.interfaceSelectionRequired) {
 				this.showRequireInterface = true;
 			} else {
-				const { ipcRenderer } = require('electron');
 				ipcRenderer.send('setAthenaLocation');
 			}
 		},
 		setLibrary: function() {
-			const { ipcRenderer } = require('electron');
 			ipcRenderer.send('setLibraryFolder');
 		},
+        getLibraryFolder: function() {
+			ipcRenderer.send('getLibraryFolder');
+        },
 		populateInterfaceList: function() {
-			const { ipcRenderer } = require('electron');
-			ipcRenderer.invoke('populateInterfaceList');
+            if(this.debounce()) {
+                ipcRenderer.invoke('populateInterfaceList');
+            }
 		},
 		multipleInterfaces: function() {
 			this.$store.commit('mutate', {
@@ -236,25 +253,43 @@ export default {
 				property: 'metaverseServer', 
 				with: this.metaverseServer
 			});
-			const { ipcRenderer } = require('electron');
 			ipcRenderer.send('set-metaverse-server', this.$store.state.metaverseServer);
-		}
+		},
+        debounce: function() {
+            if(this.readyToUseAgain) {
+                console.log("Ready.");
+                this.readyToUseAgain = false;
+                setTimeout(function() {
+                    vue_this.readyToUseAgain = true;
+                }, 2000); // 2000ms before firing again.
+                return true;
+            } else {
+                console.log("Not ready.");
+                return false;
+            }
+        }
 	},
 	data: () => ({
 		show: false,
 		showRequireInterface: false,
 		allowMultipleInstances: false,
 		interfaceFolders: [],
-		metaverseServer: "metaverse.projectathena.io"
+		metaverseServer: "metaverse.projectathena.io",
+        currentFolder: "",
+        readyToUseAgain: true,
 	}),
 	created: function () {
+        const { ipcRenderer } = require('electron');
 		store_p = this.$store;
 		vue_this = this;
+        
 		this.allowMultipleInstances = this.$store.state.allowMultipleInstances;
 		this.populateInterfaceList();
+        
 		if(this.$store.state.metaverseServer) {
 			this.metaverseServer = this.$store.state.metaverseServer;
 		}
+        
 		if(this.$store.state.selectedInterface) {
 			this.$store.commit('mutate', {
 				property: 'interfaceSelectionRequired', 
@@ -263,6 +298,8 @@ export default {
 			const { ipcRenderer } = require('electron');			
 			ipcRenderer.send('setCurrentInterface', this.$store.state.selectedInterface.folder);
 		}
+        
+        this.currentFolder = this.$store.state.currentLibraryFolder;
 	}
 };
 </script>

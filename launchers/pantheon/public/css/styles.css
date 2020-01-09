@@ -24,10 +24,15 @@ h2 {
 
 #mainContent {
 	background-image: url('../resources/bg2.jpg');
-	background-size: cover;
+	/* background-size: cover;
 	background-position: center;
+	background-attachment: fixed; */
+	
 	background-attachment: fixed;
-  
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: cover;
+	  
 	/* background: linear-gradient(90deg, #00d2ff 0%, #3a47d5 100%);
 	background-size: 400% 400%;
 	animation: gradientBG 15s ease infinite; */
@@ -54,8 +59,14 @@ h2 {
 }
 
 pre {
-	font-family: "Courier New" Courier monospace;
+	font-family: "Ubuntu" Ubuntu monospace;
+	color: #e64a19;
 	margin-left: 12px;
+	margin-top: 6px;
+	margin-bottom: 6px;
+	padding-left: 6px;
+	padding-right: 6px;
+	font-size: 14px;
 	background-color: rgba(0, 0, 0, 0.1);
 }
 
@@ -75,8 +86,8 @@ pre {
 
 /* FavoriteWorlds.vue */
 
-#hfavoriteWorldsContainer {
-	padding-left: 60px;
+#favoriteWorldsContainer {
+
 }
 
 /* Transitions */

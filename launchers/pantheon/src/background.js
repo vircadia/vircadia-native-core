@@ -214,6 +214,10 @@ function setLibraryDialog() {
 				if (error) {
 					throw error;
 				} else {
+					var libraryPath = result.filePaths[0];
+					win.webContents.send('current-library-folder', {
+						libraryPath
+					});
 					return true;
 				}
 			});
@@ -343,6 +347,14 @@ ipcMain.on('setAthenaLocation', async (event, arg) => {
 
 ipcMain.on('setLibraryFolder', (event, arg) => {
 	setLibraryDialog();
+})
+
+ipcMain.on('getLibraryFolder', (event, arg) => {
+	getSetting('athena_interface.library', storagePath.default).then(async function(libraryPath){
+		win.webContents.send('current-library-folder', {
+			libraryPath
+		});
+	});
 })
 
 ipcMain.on('setCurrentInterface', (event, arg) => {

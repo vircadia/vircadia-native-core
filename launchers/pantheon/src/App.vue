@@ -163,6 +163,12 @@
             </v-card-actions>
         </v-card>
     </v-dialog>
+    
+    <v-content class="">
+        <transition name="fade" mode="out-in">
+            <component v-bind:is="showDialog"></component>
+        </transition>
+    </v-content>
 		
   </v-app>
 </template>
@@ -222,12 +228,15 @@ import HelloWorld from './components/HelloWorld';
 import FavoriteWorlds from './components/FavoriteWorlds';
 import Settings from './components/Settings';
 
+import RequireLibrary from './components/Dialogs/RequireLibrary'
+
 export default {
 	name: 'App',
 	components: {
 		HelloWorld,
 		FavoriteWorlds,
-		Settings
+		Settings,
+        RequireLibrary
 	},
 	methods: {
 		launchInterface: function() {
@@ -299,6 +308,7 @@ export default {
 	},
 	data: () => ({
 		showTab: 'FavoriteWorlds',
+        showDialog: 'RequireLibrary',
 		noSteamVR: false,
 		allowMultipleInstances: false,
 		downloadProgress: 0,
