@@ -7,7 +7,7 @@
 
 class AthenaOpusEncoder : public Encoder {
 public:
-    const int DEFAULT_BITRATE     = 44100;
+    const int DEFAULT_BITRATE     = 128000;
     const int DEFAULT_COMPLEXITY  = 10;
     const int DEFAULT_APPLICATION = OPUS_APPLICATION_VOIP;
     const int DEFAULT_SIGNAL      = OPUS_AUTO;
