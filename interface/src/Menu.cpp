@@ -776,22 +776,22 @@ Menu::Menu() {
     });
     helpMenu->addSeparator();
 
-    // Help > HiFi Docs
+    // Help > Athena Docs
     action = addActionToQMenuAndActionHash(helpMenu, "Online Documentation");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://docs.highfidelity.com/"));
+        QDesktopServices::openUrl(QUrl("https://docs.projectathena.dev/"));
     });
 
-    // Help > HiFi Forum
-    action = addActionToQMenuAndActionHash(helpMenu, "Online Forums");
+    // Help > Athena Forum
+    /* action = addActionToQMenuAndActionHash(helpMenu, "Online Forums");
     connect(action, &QAction::triggered, qApp, [] {
         QDesktopServices::openUrl(QUrl("https://forums.highfidelity.com/"));
-    });
+    }); */
 
     // Help > Scripting Reference
     action = addActionToQMenuAndActionHash(helpMenu, "Online Script Reference");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://docs.highfidelity.com/api-reference"));
+        QDesktopServices::openUrl(QUrl("https://apidocs.projectathena.dev/"));
     });
 
     addActionToQMenuAndActionHash(helpMenu, "Controls Reference", 0, qApp, SLOT(showHelp()));
@@ -801,7 +801,7 @@ Menu::Menu() {
     // Help > Release Notes
     action = addActionToQMenuAndActionHash(helpMenu, "Release Notes");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://docs.highfidelity.com/release-notes.html"));
+        QDesktopServices::openUrl(QUrl("https://docs.projectathena.dev/release-notes.html"));
     });
 
     // Help > Report a Bug!
