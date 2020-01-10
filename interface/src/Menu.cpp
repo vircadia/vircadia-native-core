@@ -768,8 +768,8 @@ Menu::Menu() {
     // Help/Application menu ----------------------------------
     MenuWrapper * helpMenu = addMenu("Help");
 
-    // Help > About High Fidelity
-    action = addActionToQMenuAndActionHash(helpMenu, "About High Fidelity");
+    // Help > About Project Athena
+    action = addActionToQMenuAndActionHash(helpMenu, "About Project Athena");
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/AboutDialog.qml"),
             QString("hifi/dialogs/TabletAboutDialog.qml"), "AboutDialog");
@@ -807,7 +807,7 @@ Menu::Menu() {
     // Help > Report a Bug!
     action = addActionToQMenuAndActionHash(helpMenu, "Report a Bug!");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://github.com/kasenvr/hifi-community/issues"));
+        QDesktopServices::openUrl(QUrl("https://github.com/kasenvr/project-athena/issues"));
     });
 }
 

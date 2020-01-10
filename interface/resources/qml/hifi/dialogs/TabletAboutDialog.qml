@@ -25,7 +25,7 @@ Rectangle {
         Image {
             sourceSize.width: 295
             sourceSize.height: 75
-            source: "../../../images/about-highfidelity.png"
+            source: "../../../images/about-projectathena.png"
         }
         Item { height: 30; width: 1 }
         Column {
@@ -56,9 +56,9 @@ Rectangle {
             text: "<a href=\"https:/github.com/kasenvr/hifi-community\">Project Athena Github</a>."
             size: 20
             onLinkActivated: {
-                HiFiAbout.openUrl("https:/github.com/kasenvr/hifi-community");
+                HiFiAbout.openUrl("https:/github.com/kasenvr/project-athena");
             }
-            
+
         }
         Item { height: 40; width: 1 }
         Row {
@@ -93,17 +93,31 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
+        Row {
+            spacing: 5
+            Image {
+                sourceSize.width: 34
+                sourceSize.height: 25
+                source: "../../../images/about-opus.png"
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        HiFiAbout.openUrl("http://opus-codec.org/");
+                    }
+                }
+            }
+            RalewayRegular {
+                color: "white"
+                text: "Built using the Opus codec."
+                size: 12
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
         Item { height: 20; width: 1 }
         RalewayRegular {
-            textFormat: Text.StyledText
-            linkColor: "#00B4EF"
             color: "white"
-            property string link: "https://eos.io/"
-            text: "Blockchain technology from <a href=\"" + link + "\">EOS</a>."
+            text: "© 2019 - 2020 Project Athena Contributors"
             size: 14
-            onLinkActivated: {
-                HiFiAbout.openUrl(link);
-            }
         }
         RalewayRegular {
             color: "white"
