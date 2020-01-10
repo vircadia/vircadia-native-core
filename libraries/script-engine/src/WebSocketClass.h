@@ -123,6 +123,7 @@ private slots:
     void handleOnClose();
     void handleOnError(QAbstractSocket::SocketError error);
     void handleOnMessage(const QString& message);
+    void handleOnBinaryMessage(const QByteArray& message);
     void handleOnOpen();
 
 };
