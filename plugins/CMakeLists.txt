@@ -39,10 +39,10 @@ if (NOT SERVER_ONLY AND NOT ANDROID)
 endif()
 
 # server-side plugins
-set(DIR "pcmCodec")
-add_subdirectory(${DIR})
-set(DIR "hifiCodec")
-add_subdirectory(${DIR})
+# set(DIR "pcmCodec")
+# add_subdirectory(${DIR})
+# set(DIR "hifiCodec")
+# add_subdirectory(${DIR})
 set(DIR "opusCodec")
 add_subdirectory(${DIR})
 
