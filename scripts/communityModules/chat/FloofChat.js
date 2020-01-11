@@ -4,6 +4,8 @@ var ROOT = Script.resolvePath('').split("FloofChat.js")[0];
 var H_KEY = 72;
 var ENTER_KEY = 16777220;
 var ESC_KEY = 16777216;
+var CONTROL_KEY = 67108864;
+var SHIFT_KEY = 33554432;
 var FLOOF_CHAT_CHANNEL = "Chat";
 var FLOOF_NOTIFICATION_CHANNEL = "Floof-Notif";
 
@@ -36,7 +38,7 @@ var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain"
 
 var ws;
 var wsReady = false;
-var WEB_SOCKET_URL = "ws://gridchat.darlingvr.club:8090";
+var WEB_SOCKET_URL = "ws://gridchat.darlingvr.club:8090";  // WebSocket for Grid chat.
 var shutdownBool = false;
 
 var defaultColour = {red: 255, green: 255, blue: 255};
@@ -133,7 +135,7 @@ function sendWS(msg, timeout) {
 
 function setupHistoryWindow() {
     chatHistory = new OverlayWebWindow({
-        title: 'Chat History',
+        title: 'Chat',
         source: ROOT + "FloofChat.html?appUUID=" + appUUID + "&" + Date.now(),
         width: 900,
         height: 700,
@@ -313,7 +315,7 @@ function messageReceived(channel, message) {
                     if (Vec3.withinEpsilon(MyAvatar.position, cmd.position, 20)) {
                         addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
                         if (!muted["Local"]) {
-                            Messages.sendLocalMessage("Floof-Notif", JSON.stringify({
+                            Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                                 sender: "(L) " + cmd.displayName,
                                 text: replaceFormatting(cmd.message),
                                 colour: {text: cmd.colour}
@@ -323,7 +325,7 @@ function messageReceived(channel, message) {
                 } else if (cmd.channel === "Domain") {
                     addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
                     if (!muted["Domain"]) {
-                        Messages.sendLocalMessage("Floof-Notif", JSON.stringify({
+                        Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                             sender: "(D) " + cmd.displayName,
                             text: replaceFormatting(cmd.message),
                             colour: {text: cmd.colour}
@@ -332,7 +334,7 @@ function messageReceived(channel, message) {
                 } else if (cmd.channel === "Grid") {
                     addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
                     if (!muted["Grid"]) {
-                        Messages.sendLocalMessage("Floof-Notif", JSON.stringify({
+                        Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                             sender: "(G) " + cmd.displayName,
                             text: replaceFormatting(cmd.message),
                             colour: {text: cmd.colour}
@@ -340,7 +342,7 @@ function messageReceived(channel, message) {
                     }
                 } else {
                     addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
-                    Messages.sendLocalMessage("Floof-Notif", JSON.stringify({
+                    Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                         sender: cmd.displayName,
                         text: replaceFormatting(cmd.message),
                         colour: {text: cmd.colour}
@@ -372,9 +374,6 @@ function addToLog(msg, dp, colour, tab) {
     Settings.setValue(settingsRoot + "/HistoryLog", JSON.stringify(historyLog))
 }
 
-const CONTROL = 67108864;
-const SHIFT = 33554432;
-
 function fromQml(message) {
     var cmd = {FAILED: true};
     try {
@@ -385,13 +384,13 @@ function fromQml(message) {
     if (!cmd.FAILED) {
         if (cmd.type === "MSG") {
             if (cmd.message !== "") {
-                if (cmd.event.modifiers === CONTROL) {
-                    Messages.sendMessage("Chat", JSON.stringify({
+                if (cmd.event.modifiers === CONTROL_KEY) {
+                    Messages.sendMessage(FLOOF_CHAT_CHANNEL, JSON.stringify({
                         type: "TransmitChatMessage", channel: "Domain", colour: chatColour("Domain"),
                         message: cmd.message,
                         displayName: MyAvatar.displayName
                     }));
-                } else if (cmd.event.modifiers === CONTROL + SHIFT) {
+                } else if (cmd.event.modifiers === CONTROL_KEY + SHIFT_KEY) {
                     sendWS({
                         uuid: "",
                         type: "WebChat",
@@ -401,7 +400,7 @@ function fromQml(message) {
                         displayName: MyAvatar.displayName
                     });
                 } else {
-                    Messages.sendMessage("Chat", JSON.stringify({
+                    Messages.sendMessage(FLOOF_CHAT_CHANNEL, JSON.stringify({
                         type: "TransmitChatMessage",
                         channel: "Local",
                         position: MyAvatar.position,
@@ -422,13 +421,13 @@ function fromQml(message) {
 
 function setVisible(_visible) {
     if (_visible) {
-        Messages.sendLocalMessage("Floof-Notif", JSON.stringify({
+        Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
             type: "options",
             offset: 64
         }));
         chatBar.sendToQml(JSON.stringify({visible: true}));
     } else {
-        Messages.sendLocalMessage("Floof-Notif", JSON.stringify({
+        Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
             type: "options",
             offset: -1
         }));
