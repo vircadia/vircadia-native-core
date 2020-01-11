@@ -1,3 +1,4 @@
+"use strict";
 var notificationList = [];
 
 var sizeData = {30: {widthMul: 1.8, heightMul: 2.05, split: 35, size: 30}};

@@ -1,4 +1,5 @@
 /* globals OverlayWindow */
+"use strict";
 
 var ROOT = Script.resolvePath('').split("FloofChat.js")[0];
 var H_KEY = 72;
