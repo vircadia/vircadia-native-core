@@ -4,6 +4,7 @@ var sizeData = {30: {widthMul: 1.8, heightMul: 2.05, split: 35, size: 30}};
 
 var DEFAULT_SIZE = 30;
 var DEFAULT_OFFSET = 10;
+var FLOOF_NOTIFICATION_CHANNEL = "Floof-Notif";
 
 var offset = DEFAULT_OFFSET;
 
@@ -15,7 +16,7 @@ function init(){
 
 function messageReceived(channel, message, sender, local) {
     if (local) {
-        if (channel === "Floof-Notif") {
+        if (channel === FLOOF_NOTIFICATION_CHANNEL) {
             var cmd = {FAILED: true};
             try {
                 cmd = JSON.parse(message);

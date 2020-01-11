@@ -1,6 +1,11 @@
 /* globals OverlayWindow */
 
 var ROOT = Script.resolvePath('').split("FloofChat.js")[0];
+var H_KEY = 72;
+var ENTER_KEY = 16777220;
+var ESC_KEY = 16777216;
+var FLOOF_CHAT_CHANNEL = "Chat";
+var FLOOF_NOTIFICATION_CHANNEL = "Floof-Notif";
 
 Script.scriptEnding.connect(function () {
     shutdown();
@@ -9,7 +14,7 @@ Script.scriptEnding.connect(function () {
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var button = tablet.addButton({
     icon: ROOT + "chat.png",
-    text: "Chat\nHistory"
+    text: "CHAT"
 });
 
 Script.scriptEnding.connect(function () { // So if anything errors out the tablet/toolbar button gets removed!
@@ -31,7 +36,7 @@ var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain"
 
 var ws;
 var wsReady = false;
-var webSocketURL = "ws://gridchat.darlingvr.club:8090";
+var WEB_SOCKET_URL = "ws://gridchat.darlingvr.club:8090";
 var shutdownBool = false;
 
 var defaultColour = {red: 255, green: 255, blue: 255};
@@ -43,7 +48,7 @@ colours["gridChatColour"] = Settings.getValue(settingsRoot + "/gridChatColour", 
 init();
 
 function init() {
-    Messages.subscribe("Chat");
+    Messages.subscribe(FLOOF_CHAT_CHANNEL);
     historyLog = [];
     try {
         historyLog = JSON.parse(Settings.getValue(settingsRoot + "/HistoryLog", "[]"));
@@ -69,7 +74,7 @@ function init() {
 }
 
 function connectWebSocket(timeout) {
-    ws = new WebSocket(webSocketURL);
+    ws = new WebSocket(WEB_SOCKET_URL);
     ws.onmessage = function incoming(_data) {
         var message = _data.data;
         var cmd = {FAILED: true};
@@ -81,7 +86,7 @@ function connectWebSocket(timeout) {
         if (!cmd.FAILED) {
             addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
             if (!muted["Grid"]) {
-                Messages.sendLocalMessage("Floof-Notif", JSON.stringify({
+                Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                     sender: "(G) " + cmd.displayName,
                     text: replaceFormatting(cmd.message),
                     colour: {text: cmd.colour}
@@ -361,7 +366,7 @@ function time() {
 function addToLog(msg, dp, colour, tab) {
     historyLog.push([time(), msg, dp, colour, tab]);
     chatHistory.emitScriptEvent(JSON.stringify({type: "MSG", data: [[time(), msg, dp, colour, tab]]}));
-    while(historyLog.length > 500) {
+    while (historyLog.length > 500) {
         historyLog.shift();
     }
     Settings.setValue(settingsRoot + "/HistoryLog", JSON.stringify(historyLog))
@@ -433,13 +438,13 @@ function setVisible(_visible) {
 }
 
 function keyPressEvent(event) {
-    if (event.key === 72 && !event.isAutoRepeat && event.isControl) {
+    if (event.key === H_KEY && !event.isAutoRepeat && event.isControl) {
         toggleChatHistory()
     }
-    if (event.key === 16777220 && !event.isAutoRepeat && !visible) {
+    if (event.key === ENTER_KEY && !event.isAutoRepeat && !visible) {
         setVisible(true);
     }
-    if (event.key === 16777216 && !event.isAutoRepeat && visible) {
+    if (event.key === ESC_KEY && !event.isAutoRepeat && visible) {
         setVisible(false);
     }
 }
