@@ -146,7 +146,7 @@ body {
     background-color: #a62113 !important;
 }
 
-body, img, a, div {
+img, a{
     -moz-user-select: none;
     -webkit-user-select: none;
     -ms-user-select: none;
