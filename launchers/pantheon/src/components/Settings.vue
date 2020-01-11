@@ -80,7 +80,7 @@
                         
 						<h3 class="mx-7 mt-5">Library</h3>
                         
-                        <p class="mx-7 mt-3 bodyText">The library folder is the directory that all of your various Athena version installations are located.<br />
+                        <p class="mx-7 mt-3 bodyText">The library folder is the directory that all of your Athena installations are located.<br />
                             For example, if you had Athena installed to: <pre>C:\Program Files (x86)\Athena-K2-RC1</pre> then you would make your library folder: <pre>C:\Program Files (x86)</pre>
                         </p>
                         
@@ -298,6 +298,8 @@ export default {
 			const { ipcRenderer } = require('electron');			
 			ipcRenderer.send('setCurrentInterface', this.$store.state.selectedInterface.folder);
 		}
+        
+        ipcRenderer.send('getLibraryFolder');
         
         this.currentFolder = this.$store.state.currentLibraryFolder;
 	}

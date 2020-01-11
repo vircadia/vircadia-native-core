@@ -8,6 +8,7 @@ import {
 import path from 'path'
 const isDevelopment = process.env.NODE_ENV !== 'production'
 const storage = require('electron-json-storage');
+const {shell} = require('electron')
 const electronDl = require('electron-dl');
 const { readdirSync } = require('fs')
 const { forEach } = require('p-iteration');
@@ -118,11 +119,10 @@ var storagePath = {
 	default: storage.getDefaultDataPath(),
 	interface: null,
 	interfaceSettings: null,
+	currentLibrary: null,
 };
 
-// storage.set('testObject', { foo: 'bar' }, { dataPath: storagePath.default }, function(error) {
-//   if (error) throw error;
-// });
+shell.openItem(storagePath.default);
 
 var requireInterfaceSelection;
 
@@ -354,6 +354,7 @@ ipcMain.on('getLibraryFolder', (event, arg) => {
 		win.webContents.send('current-library-folder', {
 			libraryPath
 		});
+		storagePath.currentLibrary = libraryPath;
 	});
 })
 

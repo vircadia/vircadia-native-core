@@ -60,14 +60,15 @@ h2 {
 
 pre {
 	font-family: "Ubuntu" Ubuntu monospace;
-	color: #e64a19;
+	color: #f45905;
+	font-weight: bolder;
 	margin-left: 12px;
 	margin-top: 6px;
 	margin-bottom: 6px;
 	padding-left: 6px;
 	padding-right: 6px;
 	font-size: 14px;
-	background-color: rgba(0, 0, 0, 0.1);
+	background-color: rgba(0, 0, 0, 0.7);
 }
 
 /* HelloWorld.vue */
