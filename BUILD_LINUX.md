@@ -2,7 +2,7 @@
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Linux specific instructions are found in this file.
 
-## Ubuntu 16.04/18.04/Mint 19 Tara specific build guide
+## Ubuntu 16.04/18.04 specific build guide
 ### Ubuntu 16.04 only
 Add the following line to *.bash_profile*  
 `export QT_QPA_FONTDIR=/usr/share/fonts/truetype/dejavu/`
