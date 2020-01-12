@@ -75,11 +75,15 @@ public:
 
     void setCullWithParent(bool value) { _cullWithParent = value; }
 
+    void setRenderWithZones(const QVector<QUuid>& renderWithZones) { _renderWithZones = renderWithZones; }
+    bool passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const;
+
     static bool enableMaterialProceduralShaders;
 
 protected:
     render::ItemKey _itemKey{ render::ItemKey::Builder::opaqueShape().build() };
     bool _cullWithParent { false };
+    QVector<QUuid> _renderWithZones;
     uint64_t _created;
 };
 
@@ -88,6 +92,7 @@ namespace render {
     template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload);
     template <> const ShapeKey shapeGetShapeKey(const MeshPartPayload::Pointer& payload);
     template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args);
+    template <> bool payloadPassesZoneOcclusionTest(const MeshPartPayload::Pointer& payload, const std::unordered_set<QUuid>& containingZones);
 }
 
 class ModelMeshPartPayload : public MeshPartPayload {
@@ -154,6 +159,7 @@ namespace render {
     template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload);
     template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload);
     template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
+    template <> bool payloadPassesZoneOcclusionTest(const ModelMeshPartPayload::Pointer& payload, const std::unordered_set<QUuid>& containingZones);
 }
 
 #endif // hifi_MeshPartPayload_h

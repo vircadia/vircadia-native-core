@@ -421,6 +421,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RENDER_LAYER, renderLayer);
     CHECK_PROPERTY_CHANGE(PROP_PRIMITIVE_MODE, primitiveMode);
     CHECK_PROPERTY_CHANGE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
+    CHECK_PROPERTY_CHANGE(PROP_RENDER_WITH_ZONES, renderWithZones);
     changedProperties += _grab.getChangedProperties();
 
     // Physics
@@ -792,6 +793,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} cloneAvatarEntity=false - <code>true</code> if clones created from this entity will be created as 
  *     avatar entities, <code>false</code> if they won't be.
  * @property {Uuid} cloneOriginID - The ID of the entity that this entity was cloned from.
+ *
+ * @property {Uuid[]} renderWithZones=[]] - A list of entity IDs representing with which zones this entity should render.
+ *     If it is empty, this entity will render normally.  Otherwise, this entity will only render if your avatar is within
+ *     one of the zones in this list.
  *
  * @property {Entities.Grab} grab - The entity's grab-related properties.
  *
@@ -1583,6 +1588,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_RENDER_LAYER, renderLayer, getRenderLayerAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_PRIMITIVE_MODE, primitiveMode, getPrimitiveModeAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RENDER_WITH_ZONES, renderWithZones);
     _grab.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
     // Physics
@@ -2000,6 +2006,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(renderLayer, RenderLayer);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(primitiveMode, PrimitiveMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(ignorePickIntersection, bool, setIgnorePickIntersection);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(renderWithZones, qVectorQUuid, setRenderWithZones);
     _grab.copyFromScriptValue(object, _defaultSettings);
 
     // Physics
@@ -2293,6 +2300,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(renderLayer);
     COPY_PROPERTY_IF_CHANGED(primitiveMode);
     COPY_PROPERTY_IF_CHANGED(ignorePickIntersection);
+    COPY_PROPERTY_IF_CHANGED(renderWithZones);
     _grab.merge(other._grab);
 
     // Physics
@@ -2585,6 +2593,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_RENDER_LAYER, RenderLayer, renderLayer, RenderLayer);
         ADD_PROPERTY_TO_MAP(PROP_PRIMITIVE_MODE, PrimitiveMode, primitiveMode, PrimitiveMode);
         ADD_PROPERTY_TO_MAP(PROP_IGNORE_PICK_INTERSECTION, IgnorePickIntersection, ignorePickIntersection, bool);
+        ADD_PROPERTY_TO_MAP(PROP_RENDER_WITH_ZONES, RenderWithZones, renderWithZones, QVector<QUuid>);
         { // Grab
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_GRABBABLE, Grab, grab, Grabbable, grabbable);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_KINEMATIC, Grab, grab, GrabKinematic, grabKinematic);
@@ -3073,6 +3082,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)properties.getRenderLayer());
             APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)properties.getPrimitiveMode());
             APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, properties.getIgnorePickIntersection());
+            APPEND_ENTITY_PROPERTY(PROP_RENDER_WITH_ZONES, properties.getRenderWithZones());
             _staticGrab.setProperties(properties);
             _staticGrab.appendToEditPacket(packetData, requestedProperties, propertyFlags,
                                            propertiesDidntFit, propertyCount, appendState);
@@ -3562,6 +3572,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RENDER_WITH_ZONES, QVector<QUuid>, setRenderWithZones);
     properties.getGrab().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
     // Physics
@@ -3979,6 +3990,7 @@ void EntityItemProperties::markAllChanged() {
     _renderLayerChanged = true;
     _primitiveModeChanged = true;
     _ignorePickIntersectionChanged = true;
+    _renderWithZonesChanged = true;
     _grab.markAllChanged();
 
     // Physics
@@ -4380,6 +4392,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (ignorePickIntersectionChanged()) {
         out += "ignorePickIntersection";
+    }
+    if (renderWithZonesChanged()) {
+        out += "renderWithZones";
     }
     getGrab().listChangedProperties(out);
 

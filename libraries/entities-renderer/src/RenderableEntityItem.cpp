@@ -128,7 +128,7 @@ std::shared_ptr<T> make_renderer(const EntityItemPointer& entity) {
     return std::shared_ptr<T>(new T(entity), [](T* ptr) { ptr->deleteLater(); });
 }
 
-EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entity->getCreated()), _entity(entity) {}
+EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entity->getCreated()), _entity(entity), _entityID(entity->getID()) {}
 
 EntityRenderer::~EntityRenderer() {}
 
@@ -194,6 +194,23 @@ uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
         return 1;
     }
     return 0;
+}
+
+bool EntityRenderer::passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const {
+    auto renderWithZones = resultWithReadLock<QVector<QUuid>>([&] {
+        return _renderWithZones;
+    });
+    if (!renderWithZones.isEmpty()) {
+        if (!containingZones.empty()) {
+            for (auto renderWithZone : renderWithZones) {
+                if (containingZones.find(renderWithZone) != containingZones.end()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    return true;
 }
 
 void EntityRenderer::render(RenderArgs* args) {
@@ -385,6 +402,10 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
         return true;
     }
 
+    if (entity->needsZoneOcclusionUpdate()) {
+        return true;
+    }
+
     return false;
 }
 
@@ -426,6 +447,10 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         _canCastShadow = entity->getCanCastShadow();
         setCullWithParent(entity->getCullWithParent());
         _cauterized = entity->getCauterized();
+        if (entity->needsZoneOcclusionUpdate()) {
+            entity->resetNeedsZoneOcclusionUpdate();
+            setRenderWithZones(entity->getRenderWithZones());
+        }
         entity->setNeedsRenderUpdate(false);
     });
 }

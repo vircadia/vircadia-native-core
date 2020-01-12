@@ -577,6 +577,11 @@ public:
     bool needsRenderUpdate() const { return resultWithReadLock<bool>([&] { return _needsRenderUpdate; }); }
     void setNeedsRenderUpdate(bool needsRenderUpdate) { withWriteLock([&] { _needsRenderUpdate = needsRenderUpdate; }); }
 
+    void setRenderWithZones(const QVector<QUuid>& renderWithZones);
+    QVector<QUuid> getRenderWithZones() const;
+    bool needsZoneOcclusionUpdate() const { return _needsZoneOcclusionUpdate; }
+    void resetNeedsZoneOcclusionUpdate() { withWriteLock([&] { _needsZoneOcclusionUpdate = false; }); }
+
 signals:
     void spaceUpdate(std::pair<int32_t, glm::vec4> data);
 
@@ -764,6 +769,9 @@ protected:
     GrabPropertyGroup _grabProperties;
 
     QHash<QUuid, EntityDynamicPointer> _grabActions;
+
+    QVector<QUuid> _renderWithZones;
+    mutable bool _needsZoneOcclusionUpdate { false };
 
     bool _cullWithParent { false };
     

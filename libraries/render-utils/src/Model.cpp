@@ -976,6 +976,16 @@ void Model::setCullWithParent(bool cullWithParent) {
     }
 }
 
+void Model::setRenderWithZones(const QVector<QUuid>& renderWithZones) {
+    render::Transaction transaction;
+    for(auto item : _modelMeshRenderItemIDs) {
+        transaction.updateItem<ModelMeshPartPayload>(item, [renderWithZones](ModelMeshPartPayload& data) {
+            data.setRenderWithZones(renderWithZones);
+        });
+    }
+    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+}
+
 const render::ItemKey Model::getRenderItemKeyGlobalFlags() const {
     return _renderItemKeyGlobalFlags;
 }

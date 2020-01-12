@@ -192,6 +192,7 @@ public:
     DEFINE_PROPERTY_REF_ENUM(PROP_RENDER_LAYER, RenderLayer, renderLayer, RenderLayer, RenderLayer::WORLD);
     DEFINE_PROPERTY_REF_ENUM(PROP_PRIMITIVE_MODE, PrimitiveMode, primitiveMode, PrimitiveMode, PrimitiveMode::SOLID);
     DEFINE_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, IgnorePickIntersection, ignorePickIntersection, bool, false);
+    DEFINE_PROPERTY_REF(PROP_RENDER_WITH_ZONES, RenderWithZones, renderWithZones, QVector<QUuid>, QVector<QUuid>());
     DEFINE_PROPERTY_GROUP(Grab, grab, GrabPropertyGroup);
 
     // Physics
