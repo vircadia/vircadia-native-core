@@ -61,6 +61,20 @@ var mode = noMode;
 
 var isAwayEnabled = true;
 
+var EDIT_CAMERA_MANAGER_CHANNEL = "Edit-Camera-Manager-Channel";
+var isEditUsingCamera = false;
+Messages.messageReceived.connect(function (channel, data, senderID, localOnly) {
+    if (channel === EDIT_CAMERA_MANAGER_CHANNEL && senderID === MyAvatar.sessionUUID && localOnly) {
+        var message;
+        try {
+            message = JSON.parse(data);
+            isEditUsingCamera = message.enabled;
+        } catch (e) {
+            // Ignore.
+        }
+    }
+});
+
 var pick = Picks.createPick(PickType.Ray, {
     filter: Picks.PICK_DOMAIN_ENTITIES | Picks.PICK_AVATAR_ENTITIES | Picks.PICK_AVATARS | Picks.INCLUDE_VISIBLE
         | Picks.PICK_INCLUDE_COLLIDABLE | Picks.PICK_INCLUDE_NONCOLLIDABLE | Picks.PICK_PRECISE,
@@ -183,6 +197,10 @@ function restoreCameraState() {
 }
 
 function handleModes() {
+    if (isEditUsingCamera) {
+        return;
+    }
+
     var newMode = (mode === noMode) ? noMode : detachedMode;
     if (alt) {
         if (control) {
@@ -231,6 +249,9 @@ function keyPressEvent(event) {
     var changed = false;
 
     if (event.text === "ALT") {
+        if (isEditUsingCamera) {
+            return;
+        }
         alt = true;
         changed = true;
         Picks.enablePick(pick);
