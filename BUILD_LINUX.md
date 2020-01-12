@@ -95,7 +95,7 @@ git checkout tag/1.0
 Create the build directory:
 ```bash
 cd project-athena
-mkdir  build
+mkdir build
 cd build
 ```
 
