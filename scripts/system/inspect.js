@@ -59,6 +59,8 @@ var detachedMode = 4;
 
 var mode = noMode;
 
+var isAwayEnabled = true;
+
 var pick = Picks.createPick(PickType.Ray, {
     filter: Picks.PICK_DOMAIN_ENTITIES | Picks.PICK_AVATAR_ENTITIES | Picks.PICK_AVATARS | Picks.INCLUDE_VISIBLE
         | Picks.PICK_INCLUDE_COLLIDABLE | Picks.PICK_INCLUDE_NONCOLLIDABLE | Picks.PICK_PRECISE,
@@ -158,8 +160,11 @@ function handlePanMode(dx, dy) {
 }
 
 function enableAway(enable) {
-    var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
-    Messages.sendMessage(CHANNEL_AWAY_ENABLE, enable ? "enable" : "disable", true);
+    if (enable !== isAwayEnabled) {
+        var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
+        Messages.sendMessage(CHANNEL_AWAY_ENABLE, enable ? "enable" : "disable", true);
+    }
+    isAwayEnabled = enable;
 }
 
 function saveCameraState() {
