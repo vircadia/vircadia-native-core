@@ -59,6 +59,13 @@ var detachedMode = 4;
 
 var mode = noMode;
 
+var pick = Picks.createPick(PickType.Ray, {
+    filter: Picks.PICK_DOMAIN_ENTITIES | Picks.PICK_AVATAR_ENTITIES | Picks.PICK_AVATARS
+        | Picks.PICK_INCLUDE_COLLIDABLE | Picks.PICK_INCLUDE_NONCOLLIDABLE | Picks.PICK_PRECISE,
+    joint: "Mouse",
+    enabled: false
+});
+
 var mouseLastX = 0;
 var mouseLastY = 0;
 
@@ -221,6 +228,7 @@ function keyPressEvent(event) {
     if (event.text === "ALT") {
         alt = true;
         changed = true;
+        Picks.enablePick(pick);
     }
     if (event.text === "CONTROL") {
         control = true;
@@ -248,6 +256,7 @@ function keyReleaseEvent(event) {
     if (event.text === "ALT") {
         alt = false;
         changed = true;
+        Picks.disablePick(pick);
     }
     if (event.text === "CONTROL") {
         control = false;
@@ -268,34 +277,32 @@ function mousePressEvent(event) {
         mouseLastX = event.x;
         mouseLastY = event.y;
 
-        // Compute trajectories related values
-        var pickRay = Camera.computePickRay(mouseLastX, mouseLastY);
-        var modelIntersection = Entities.findRayIntersection(pickRay, true);
-        var avatarIntersection = AvatarList.findRayIntersection(pickRay);
+        position = Camera.position;
 
-        position = Camera.getPosition();
-
-        if (avatarIntersection.intersects || (modelIntersection.intersects && modelIntersection.accurate)) {
-            if (avatarIntersection.intersects) {
-                center = avatarIntersection.intersection;
-            } else {
-                center = modelIntersection.intersection;
-            }
-            // We've selected our target, now orbit towards it automatically
-            rotatingTowardsTarget = true;
-            // calculate our target cam rotation
-            Script.setTimeout(function () {
-                rotatingTowardsTarget = false;
-            }, LOOK_AT_TIME);
-
-            vector = Vec3.subtract(position, center);
-            targetCamOrientation = orientationOf(vector);
-            radius = Vec3.length(vector);
-            azimuth = Math.atan2(vector.z, vector.x);
-            altitude = Math.asin(vector.y / Vec3.length(vector));
-
-            isActive = true;
+        var pickResult = Picks.getPrevPickResult(pick);
+        if (pickResult.intersects) {
+            // Orbit about intersection.
+            center = pickResult.intersection;
+        } else {
+            // Orbit about point in space.
+            var ORBIT_DISTANCE = 10.0;
+            center = Vec3.sum(position, Vec3.multiply(ORBIT_DISTANCE, pickResult.searchRay.direction));
         }
+
+        // We've selected our target, now orbit towards it automatically
+        rotatingTowardsTarget = true;
+        // calculate our target cam rotation
+        Script.setTimeout(function () {
+            rotatingTowardsTarget = false;
+        }, LOOK_AT_TIME);
+
+        vector = Vec3.subtract(position, center);
+        targetCamOrientation = orientationOf(vector);
+        radius = Vec3.length(vector);
+        azimuth = Math.atan2(vector.z, vector.x);
+        altitude = Math.asin(vector.y / Vec3.length(vector));
+
+        isActive = true;
     }
 }
 
