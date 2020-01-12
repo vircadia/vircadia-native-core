@@ -128,6 +128,8 @@ ShadowRectangle {
         }
     }
 
+    // FIXME: Link to a Project Athena version of the video.
+    /*
     RalewayButton {
         id: video
         visible: false
@@ -140,6 +142,12 @@ ShadowRectangle {
         text: qsTr("Video")
 
         onClicked: videoButtonClicked()
+    }
+    */
+    // Temporary placeholder for video button.
+    Rectangle {
+      id: video
+      visible: false
     }
 
     RalewayButton {

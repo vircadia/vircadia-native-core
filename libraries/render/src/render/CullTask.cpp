@@ -94,6 +94,10 @@ void FetchSpatialTree::configure(const Config& config) {
 }
 
 void FetchSpatialTree::run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemSpatialTree::ItemSelection& outSelection) {
+    if (!renderContext){
+        return;
+    }
+    
     // start fresh
     outSelection.clear();
 
@@ -105,6 +109,10 @@ void FetchSpatialTree::run(const RenderContextPointer& renderContext, const Inpu
         assert(renderContext->args->hasViewFrustum());
         RenderArgs* args = renderContext->args;
         auto& scene = renderContext->_scene;
+
+        if (!args) {
+            return;
+        }
 
         auto queryFrustum = args->getViewFrustum();
         // Eventually use a frozen frustum
