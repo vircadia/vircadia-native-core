@@ -118,7 +118,7 @@ Windows.ScrollingWindow {
         id: eventBridgeConnection
         target: eventBridge
         onWebEventReceived: {
-            if (message.slice(0, 17) === "CLARA.IO DOWNLOAD") {
+            if (typeof message === "string" && message.slice(0, 17) === "CLARA.IO DOWNLOAD") {
                 ApplicationInterface.addAssetToWorldFromURL(message.slice(18));
             }
         }
