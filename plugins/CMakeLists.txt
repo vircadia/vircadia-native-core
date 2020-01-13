@@ -45,8 +45,6 @@ endif()
 # add_subdirectory(${DIR})
 set(DIR "opusCodec")
 add_subdirectory(${DIR})
-set(DIR "opusCodec")
-add_subdirectory(${DIR})
 
 # example plugins
 set(DIR "KasenAPIExample")
