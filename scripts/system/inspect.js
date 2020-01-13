@@ -354,6 +354,11 @@ function mouseMoveEvent(event) {
     mouseLastY = event.y;
 }
 
+function onCameraModeUpdated(newMode) {
+    mode = noMode;
+    handleModes();
+}
+
 function update() {
     handleModes();
     if (rotatingTowardsTarget) {
@@ -380,6 +385,8 @@ Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
+
+Camera.modeUpdated.connect(onCameraModeUpdated);
 
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
