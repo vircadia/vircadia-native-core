@@ -194,7 +194,7 @@
                 var part1 = text.substring(0, firstMatch - 2);
                 var part2 = text.substring(firstMatch, secondMatch);
                 var part3 = text.substring(secondMatch + 2);
-                text = part1 + "<i>" + part2 + "</i>" + part3;
+                text = part1 + "<b>" + part2 + "</b>" + part3;
             }
         } else if (text.indexOf("*") !== -1) {
             var firstMatch = text.indexOf("*") + 1;
@@ -204,7 +204,7 @@
                 var part1 = text.substring(0, firstMatch - 1);
                 var part2 = text.substring(firstMatch, secondMatch);
                 var part3 = text.substring(secondMatch + 1);
-                text = part1 + "<b>" + part2 + "</b>" + part3;
+                text = part1 + "<i>" + part2 + "</i>" + part3;
             }
         } else if (text.indexOf("__") !== -1) {
             var firstMatch = text.indexOf("__") + 2;

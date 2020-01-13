@@ -170,6 +170,51 @@ function chatColour(tab) {
     }
 }
 
+var chatBarChannel = "Local";
+
+
+function gotoConfirm(url) {
+    var result = Window.confirm("Do you want to goto " + ((url.indexOf("/") !== -1) ? url.split("/")[2] : url) + " ?");
+    if (result) {
+        location = url;
+    }
+}
+
+function processChat(cmd) {
+    var msg = cmd.message;
+    if (msg.indexOf("/") === 0) {
+        msg = msg.substring(1);
+        var commandList = msg.split(" ");
+        var cmd1 = commandList[0].toLowerCase();
+        if (cmd1 === "l") {
+            chatBarChannel = "Local";
+            msg = "";
+        }
+        if (cmd1 === "d") {
+            chatBarChannel = "Domain";
+            msg = "";
+        }
+        if (cmd1 === "g") {
+            chatBarChannel = "Grid";
+            msg = "";
+        }
+
+        if (cmd1 === "goto") {
+            gotoConfirm(commandList[1]);
+            msg = "";
+        }
+
+        if (cmd1 === "me") {
+            var tempList = commandList;
+            tempList.shift();
+            msg = cmd.avatarName + " " + tempList.join(" ");
+            cmd.avatarName = "";
+        }
+    }
+    cmd.message = msg;
+    return cmd;
+}
+
 function onWebEventReceived(event) {
     event = JSON.parse(event);
     if (event.type === "ready") {
@@ -189,10 +234,7 @@ function onWebEventReceived(event) {
             chatHistory.setPosition({x: 0, y: Window.innerHeight - 700});
         }
         if (event.cmd === "GOTO") {
-            var result = Window.confirm("Do you want to goto " + event.url.split("/")[2] + " ?");
-            if (result) {
-                location = event.url;
-            }
+            gotoConfirm(event.url);
         }
         if (event.cmd === "URL") {
             new OverlayWebWindow({
@@ -208,6 +250,8 @@ function onWebEventReceived(event) {
         }
     }
     if (event.type === "WEBMSG") {
+        event.avatarName = MyAvatar.displayName;
+        event = processChat(event);
         if (event.message === "") return;
         sendWS({
             uuid: "",
@@ -215,10 +259,12 @@ function onWebEventReceived(event) {
             channel: event.tab,
             colour: chatColour(event.tab),
             message: event.message,
-            displayName: MyAvatar.displayName
+            displayName: event.avatarName
         });
     }
     if (event.type === "MSG") {
+        event.avatarName = MyAvatar.displayName;
+        event = processChat(event);
         if (event.message === "") return;
         Messages.sendMessage("Chat", JSON.stringify({
             type: "TransmitChatMessage",
@@ -226,7 +272,7 @@ function onWebEventReceived(event) {
             channel: event.tab,
             colour: chatColour(event.tab),
             message: event.message,
-            displayName: MyAvatar.displayName
+            displayName: event.avatarName
         }));
         setVisible(false);
     }
@@ -242,7 +288,7 @@ function replaceFormatting(text) {
             var part1 = text.substring(0, firstMatch - 2);
             var part2 = text.substring(firstMatch, secondMatch);
             var part3 = text.substring(secondMatch + 2);
-            text = part1 + "<i>" + part2 + "</i>" + part3;
+            text = part1 + "<b>" + part2 + "</b>" + part3;
         }
     } else if (text.indexOf("*") !== -1) {
         var firstMatch = text.indexOf("*") + 1;
@@ -252,7 +298,7 @@ function replaceFormatting(text) {
             var part1 = text.substring(0, firstMatch - 1);
             var part2 = text.substring(firstMatch, secondMatch);
             var part3 = text.substring(secondMatch + 1);
-            text = part1 + "<b>" + part2 + "</b>" + part3;
+            text = part1 + "<i>" + part2 + "</i>" + part3;
         }
     } else if (text.indexOf("__") !== -1) {
         var firstMatch = text.indexOf("__") + 2;
@@ -386,28 +432,37 @@ function fromQml(message) {
         if (cmd.type === "MSG") {
             if (cmd.message !== "") {
                 if (cmd.event.modifiers === CONTROL_KEY) {
+                    cmd.avatarName = MyAvatar.displayName;
+                    cmd = processChat(cmd);
+                    if (cmd.message === "") return;
                     Messages.sendMessage(FLOOF_CHAT_CHANNEL, JSON.stringify({
                         type: "TransmitChatMessage", channel: "Domain", colour: chatColour("Domain"),
                         message: cmd.message,
-                        displayName: MyAvatar.displayName
+                        displayName: cmd.avatarName
                     }));
                 } else if (cmd.event.modifiers === CONTROL_KEY + SHIFT_KEY) {
+                    cmd.avatarName = MyAvatar.displayName;
+                    cmd = processChat(cmd);
+                    if (cmd.message === "") return;
                     sendWS({
                         uuid: "",
                         type: "WebChat",
                         channel: "Grid",
                         colour: chatColour("Grid"),
                         message: cmd.message,
-                        displayName: MyAvatar.displayName
+                        displayName: cmd.avatarName
                     });
                 } else {
+                    cmd.avatarName = MyAvatar.displayName;
+                    cmd = processChat(cmd);
+                    if (cmd.message === "") return;
                     Messages.sendMessage(FLOOF_CHAT_CHANNEL, JSON.stringify({
                         type: "TransmitChatMessage",
-                        channel: "Local",
+                        channel: chatBarChannel,
                         position: MyAvatar.position,
-                        colour: chatColour("Local"),
+                        colour: chatColour(chatBarChannel),
                         message: cmd.message,
-                        displayName: MyAvatar.displayName
+                        displayName: cmd.avatarName
                     }));
                 }
             }
