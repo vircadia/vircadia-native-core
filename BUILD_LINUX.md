@@ -63,9 +63,9 @@ sudo apt-get install libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-de
 ```bash
 sudo apt-get -y install libpulse0 libnss3 libnspr4 libfontconfig1 libxcursor1 libxcomposite1 libxtst6 libxslt1.1
 ```
-1.  Install Python 3:
+1.  Install Python 3 and required packages
 ```bash
-sudo apt-get install python3.6
+sudo apt-get install python3 python3-distro
 ```
 1.  Install node, required to build the jsdoc documentation
 ```bash
