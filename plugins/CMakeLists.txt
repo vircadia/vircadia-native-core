@@ -38,11 +38,11 @@ if (NOT SERVER_ONLY AND NOT ANDROID)
   add_subdirectory(${DIR})
 endif()
 
-# server-side plugins
-# set(DIR "pcmCodec")
-# add_subdirectory(${DIR})
-# set(DIR "hifiCodec")
-# add_subdirectory(${DIR})
+server-side plugins
+set(DIR "pcmCodec")
+add_subdirectory(${DIR})
+set(DIR "hifiCodec")
+add_subdirectory(${DIR})
 set(DIR "opusCodec")
 add_subdirectory(${DIR})
 
