@@ -288,13 +288,12 @@ Menu::Menu() {
     });
     
     // Settings > Entity Script Whitelist
-    action = addActionToQMenuAndActionHash(settingsMenu, "Entity Script Whitelist");
+    action = addActionToQMenuAndActionHash(settingsMenu, "Entity Script / QML Whitelist");
     connect(action, &QAction::triggered, [] {
         auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
         auto hmd = DependencyManager::get<HMDScriptingInterface>();
         
-        DependencyManager::get<OffscreenUi>()->clearCache();
-        tablet->pushOntoStack("hifi/dialogs/security/EntityScriptWhitelist.qml");
+        tablet->pushOntoStack("hifi/dialogs/security/EntityScriptQMLWhitelist.qml");
 
         if (!hmd->getShouldShowTablet()) {
             hmd->toggleShouldShowTablet();
@@ -808,7 +807,7 @@ Menu::Menu() {
     // Help > Report a Bug!
     action = addActionToQMenuAndActionHash(helpMenu, "Report a Bug!");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("mailto:support@highfidelity.com"));
+        QDesktopServices::openUrl(QUrl("https://github.com/kasenvr/hifi-community/issues"));
     });
 }
 

@@ -32,7 +32,7 @@ These are not placed in your normal build tree when doing an out of source build
 
 #### CMake
 
-Hifi uses CMake to generate build files and project files for your platform.
+Athena uses CMake to generate build files and project files for your platform.
 
 #### Qt
 CMake will download Qt 5.12.3 using vcpkg.  
@@ -47,7 +47,7 @@ This can either be entered directly into your shell session before you build or 
 
 #### Vcpkg
 
-Hifi uses vcpkg to download and build dependencies.
+Athena uses vcpkg to download and build dependencies.
 You do not need to install vcpkg.
 
 Building the dependencies can be lengthy and the resulting files will be stored in your OS temp directory.

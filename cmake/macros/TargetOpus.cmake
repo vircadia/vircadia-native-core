@@ -5,7 +5,7 @@
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 #
-macro(TARGET_opus)
+macro(TARGET_OPUS)
     if (ANDROID)
         # no idea if this is correct
         target_link_libraries(${TARGET_NAME})

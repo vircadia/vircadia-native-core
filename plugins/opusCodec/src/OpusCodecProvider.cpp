@@ -17,20 +17,20 @@
 
 #include "OpusCodecManager.h"
 
-class OpusCodecProvider : public QObject, public CodecProvider {
+class AthenaOpusCodecProvider : public QObject, public CodecProvider {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID CodecProvider_iid FILE "plugin.json")
     Q_INTERFACES(CodecProvider)
 
 public:
-    OpusCodecProvider(QObject* parent = nullptr) : QObject(parent) {}
-    virtual ~OpusCodecProvider() {}
+    AthenaOpusCodecProvider(QObject* parent = nullptr) : QObject(parent) {}
+    virtual ~AthenaOpusCodecProvider() {}
 
     virtual CodecPluginList getCodecPlugins() override {
         static std::once_flag once;
         std::call_once(once, [&] {
 
-            CodecPluginPointer opusCodec(new OpusCodec());
+            CodecPluginPointer opusCodec(new AthenaOpusCodec());
             if (opusCodec->isSupported()) {
                 _codecPlugins.push_back(opusCodec);
             }

@@ -14,7 +14,7 @@
 
 #include <plugins/CodecPlugin.h>
 
-class OpusCodec : public CodecPlugin, public Encoder, public Decoder {
+class AthenaOpusCodec : public CodecPlugin {
     Q_OBJECT
 
 public:
