@@ -174,7 +174,7 @@ var chatBarChannel = "Local";
 
 
 function gotoConfirm(url) {
-    var result = Window.confirm("Do you want to goto " + ((url.indexOf("/") !== -1) ? url.split("/")[2] : url) + " ?");
+    var result = Window.confirm("Do you want to go to '" + ((url.indexOf("/") !== -1) ? url.split("/")[2] : url) + "'?");
     if (result) {
         location = url;
     }
