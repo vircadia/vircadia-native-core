@@ -1,5 +1,5 @@
 //
-//  PhysicsBoundary.h
+//  PhysicsBoundary.cpp
 //
 //  Created by Andrew Meadows 2018.04.05
 //  Copyright 2018 High Fidelity, Inc.
