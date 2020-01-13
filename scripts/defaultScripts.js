@@ -37,7 +37,9 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/keyboardShortcuts/keyboardShortcuts.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
-    "system/controllers/controllerScripts.js"
+    "system/controllers/controllerScripts.js",
+    "communityModules/notificationCore/notificationCore.js",
+    "communityModules/chat/FloofChat.js"
     //"system/chat.js"
 ];
 
