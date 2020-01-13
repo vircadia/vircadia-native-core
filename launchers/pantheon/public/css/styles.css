@@ -22,23 +22,14 @@ h2 {
 	z-index: 99;
 }
 
-#mainContent {
-	background-image: url('../resources/bg2.jpg');
-	/* background-size: cover;
-	background-position: center;
-	background-attachment: fixed; */
-	
-	background-attachment: fixed;
-	background-position: center;
-	background-repeat: no-repeat;
-	background-size: cover;
-	  
+#mainContent {	  
 	/* background: linear-gradient(90deg, #00d2ff 0%, #3a47d5 100%);
 	background-size: 400% 400%;
 	animation: gradientBG 15s ease infinite; */
 
+	padding-top: 50px !important;
+	padding-bottom: 0px !important;
 	margin: 0;
-	padding: 50px 0 60px 0 !important;
 }
 
 /* @keyframes gradientBG {
@@ -65,10 +56,9 @@ pre {
 	margin-left: 12px;
 	margin-top: 6px;
 	margin-bottom: 6px;
-	padding-left: 6px;
-	padding-right: 6px;
+	padding: 10px;
 	font-size: 14px;
-	background-color: rgba(0, 0, 0, 0.7);
+	background-color: rgba(0, 0, 0, 0.85);
 }
 
 /* HelloWorld.vue */
@@ -88,7 +78,12 @@ pre {
 /* FavoriteWorlds.vue */
 
 #favoriteWorldsContainer {
-
+	background-image: url('../resources/bg2.jpg');
+	background-attachment: fixed;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: cover;
+	max-width: none !important;
 }
 
 /* Transitions */

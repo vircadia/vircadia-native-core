@@ -199,17 +199,10 @@ ipcRenderer.on('interface-list', (event, arg) => {
 	});
 });
 
-ipcRenderer.on('current-library-folder', (event, arg) => {
-    store_p.commit('mutate', {
-        property: 'currentLibraryFolder', 
-        with: arg.libraryPath
-    });
-    vue_this.currentFolder = arg.libraryPath;
-});
-
 ipcRenderer.on('interface-selection-required', (event, arg) => {
 	console.info(arg);
 });
+
 export default {	
 	name: 'Settings',
 	methods: {
@@ -228,7 +221,7 @@ export default {
 			if(this.$store.state.interfaceSelectionRequired) {
 				this.showRequireInterface = true;
 			} else {
-				ipcRenderer.send('setAthenaLocation');
+				ipcRenderer.send('set-athena-location');
 			}
 		},
 		setLibrary: function() {
@@ -278,10 +271,20 @@ export default {
         currentFolder: "",
         readyToUseAgain: true,
 	}),
+    computed: {
+        librarySelected () {
+            return this.$store.state.currentLibraryFolder;
+        }
+    },
+    watch: {
+        librarySelected (newVal, oldVal) {
+            this.currentFolder = newVal;
+        }
+    },
 	created: function () {
+        store_p = this.$store;
+        vue_this = this;
         const { ipcRenderer } = require('electron');
-		store_p = this.$store;
-		vue_this = this;
         
 		this.allowMultipleInstances = this.$store.state.allowMultipleInstances;
 		this.populateInterfaceList();
@@ -289,17 +292,6 @@ export default {
 		if(this.$store.state.metaverseServer) {
 			this.metaverseServer = this.$store.state.metaverseServer;
 		}
-        
-		if(this.$store.state.selectedInterface) {
-			this.$store.commit('mutate', {
-				property: 'interfaceSelectionRequired', 
-				with: false
-			});
-			const { ipcRenderer } = require('electron');			
-			ipcRenderer.send('setCurrentInterface', this.$store.state.selectedInterface.folder);
-		}
-        
-        ipcRenderer.send('getLibraryFolder');
         
         this.currentFolder = this.$store.state.currentLibraryFolder;
 	}

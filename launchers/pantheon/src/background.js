@@ -10,6 +10,7 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 const storage = require('electron-json-storage');
 const {shell} = require('electron')
 const electronDl = require('electron-dl');
+const commander = require('commander');
 const { readdirSync } = require('fs')
 const { forEach } = require('p-iteration');
 
@@ -122,7 +123,7 @@ var storagePath = {
 	currentLibrary: null,
 };
 
-shell.openItem(storagePath.default);
+// shell.openItem(storagePath.default);
 
 var requireInterfaceSelection;
 
@@ -131,26 +132,30 @@ async function generateInterfaceList(interfaces) {
   var dataPath;
   for (var i in interfaces) {
     var client = interfaces[i];
-    dataPath = client + "launcher_settings";
-        
-    await getSetting('interface_package', dataPath).then(function(pkg){
-		var appName = pkg.package.name;
-		var appObject = { 
-			[appName]: {
-				"location": client,
-			}
-		};
-		interfacesArray.push(appObject);
-    });
+    // dataPath = client + "launcher_settings";
+	dataPath = client;
+
+    // await getSetting('interface_package', dataPath).then(function(pkg){
+	// 	var appName = pkg.package.name;
+	// 	var appObject = { 
+	// 		[appName]: {
+	// 			"location": client,
+	// 		}
+	// 	};
+	// 	interfacesArray.push(appObject);
+    // });
+	
+	
+	var appName = "Athena Interface";
+	var appObject = { 
+		[appName]: {
+			"location": client,
+		}
+	};
+	interfacesArray.push(appObject);
   }
   return interfacesArray;
 }
-
-// var getDirectories = function (src, callback) {
-// 	if(glob(src + '/*/launcher_settings/interface_package.json')) {
-// 		glob(src + '/*/', callback);
-// 	}
-// };
 
 async function getDirectories (src) {
 	var interfacesToReturn = [];
@@ -158,11 +163,24 @@ async function getDirectories (src) {
 	let getDirectoriesPromise = new Promise((res, rej) => {
 		var res_p = res;
 		var rej_p = rej;
-		glob(src + '/*/launcher_settings/interface_package.json', function(err, folders) {
+		// glob(src + '/*/launcher_settings/interface_package.json', function(err, folders) {
+		// 	console.log(folders);
+		// 	if(folders) {
+		// 		folders.forEach(function (folder) {
+		// 			var folderToReturn = folder.replace("launcher_settings/interface_package.json", "");
+		// 			interfacesToReturn.push(folderToReturn);
+		// 		});
+		// 		res_p();
+		// 	} else {
+		// 		rej_p("Failed to load directories.");
+		// 	}
+		// });
+		
+		glob(src + '/*/interface.exe', function(err, folders) {
 			console.log(folders);
 			if(folders) {
 				folders.forEach(function (folder) {
-					var folderToReturn = folder.replace("launcher_settings/interface_package.json", "");
+					var folderToReturn = folder.replace("interface.exe", "");
 					interfacesToReturn.push(folderToReturn);
 				});
 				res_p();
@@ -204,7 +222,7 @@ function setLibraryDialog() {
 	const {dialog} = require('electron') 
 
 	dialog.showOpenDialog(win, {
-		title: "Select the Athena Interface app library folder",
+		title: "Select A Folder",
 		properties: ['openDirectory'],
 	}).then(result => {
 		console.log("Cancelled set library dialog: " + result.canceled)
@@ -240,6 +258,7 @@ async function getSetting(setting, storageDataPath) {
 				returnValue = false;
 				rej("Error: " + error);
 			} else if (Object.entries(data).length==0) {
+				// console.info("Requested:", setting, "Got data:", data, "Object.entries:", Object.entries(data).length);
 				returnValue = false;
 				rej("Not found.")
 			} else {
@@ -248,7 +267,7 @@ async function getSetting(setting, storageDataPath) {
 			}
 		});
 	}).catch(err => {
-	  console.log(err)
+	  console.info("Attempted to retrieve:", setting, "from:", storageDataPath, "but got:", err)
 	})
 
 	// because async won't work otherwise. 
@@ -288,31 +307,34 @@ ipcMain.on('launch-interface', (event, arg) => {
 	var interface_exe = require('child_process').execFile;
 	// var executablePath = "E:\\Development\\High_Fidelity\\v0860-kasen-VS-release+freshstart\\build\\interface\\Packaged_Release\\Release\\interface.exe";
 	var executablePath = arg.exec;
-	var parameters = [""];
+	var parameters = [];
 
 	// arg is expected to be true or false with regards to SteamVR being enabled or not, later on it may be an object or array and we will handle it accordingly.
 	if(arg.steamVR) {
-		parameters += ['--disable-displays', 'OpenVR (Vive)', '--disable-inputs', 'OpenVR (Vive)'];
+		parameters.push('--disable-displays=\"OpenVR (Vive)\"');
+		parameters.push('--disable-inputs=\"OpenVR (Vive)\"');
 	}
 	if(arg.allowMultipleInstances) {
-		parameters += ['--allowMultipleInstances'];
+		parameters.push('--allowMultipleInstances');
 	}
+		
+	console.info("Nani?",parameters, "type?", typeof parameters);
 
-	interface_exe(executablePath, parameters, function(err, data) {
+	interface_exe(executablePath, parameters, function(err, stdout, data) {
 		console.log(err)
-		console.log(data.toString());
+		console.log(stdout.toString());
 	});
   
 })
 
-ipcMain.on('getAthenaLocation', async (event, arg) => {
+ipcMain.on('get-athena-location', async (event, arg) => {
 	var athenaLocation = await getSetting('athena_interface.location', storagePath.interfaceSettings);
 	var athenaLocationExe = athenaLocation.toString();
 	console.info("AthenaLocationExe:",athenaLocationExe);
 	event.returnValue = athenaLocationExe;
 })
 
-ipcMain.on('setAthenaLocation', async (event, arg) => {
+ipcMain.on('set-athena-location', async (event, arg) => {
   const {dialog} = require('electron') 
   
   dialog.showOpenDialog(win, {
@@ -383,7 +405,7 @@ ipcMain.handle('populateInterfaceList', (event, arg) => {
 	});
 })
 
-ipcMain.on('downloadAthena', (event, arg) => {
+ipcMain.on('download-athena', (event, arg) => {
   	var libraryPath;
   	// var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
 	var downloadURL = "https://realities.dev/cdn/athena/test/Athena_Alpha_K2PR-1-6-20.exe";
@@ -392,7 +414,6 @@ ipcMain.on('downloadAthena', (event, arg) => {
 	getSetting('athena_interface.library', storagePath.default).then(function(results){
 		if(results) {
 			libraryPath = results;
-			console.log("How many times?" + libraryPath);
 				electronDl.download(win, downloadURL, {
 				directory: libraryPath,
 				showBadge: true,
@@ -417,7 +438,6 @@ ipcMain.on('installAthena', (event, arg) => {
 		var executablePath = libPath + "/Athena_Setup_Latest.exe";
 		var installPath = libPath + "/testInterface";
 		var parameters = [""];
-		// parameters += ['/s', '/D=' + installPath];
 		
 		console.info("Here:", executablePath, installPath, parameters)
 

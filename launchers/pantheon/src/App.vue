@@ -105,16 +105,22 @@
 
             <v-checkbox id="noSteamVR" class="ml-5 mr-3 mt-7" v-model="noSteamVR" label="No SteamVR" value="true"></v-checkbox>
 			
-			<v-btn
-				v-on:click.native="launchInterface()"
-				:right=true
-				class=""
-				color="rgba(133, 0, 140, 0.8)"
-				:tile=true
-			>
-				<span class="mr-2">Launch</span>
-				<v-icon>mdi-play</v-icon>
-			</v-btn>
+            <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                    <v-btn
+                        v-on:click.native="launchInterface()"
+                        v-on="on"
+                        :right=true
+                        class=""
+                        color="rgba(133, 0, 140, 0.8)"
+                        :tile=true
+                    >
+                        <span class="mr-2">Launch</span>
+                        <v-icon>mdi-play</v-icon>
+                    </v-btn>
+                </template>
+                <span>Launch</span>
+            </v-tooltip>
 
     </v-app-bar>
 		
@@ -224,6 +230,13 @@ ipcRenderer.on('state-loaded', (event, arg) => {
 	}
 });
 
+ipcRenderer.on('current-library-folder', (event, arg) => {
+    vue_this.$store.commit('mutate', {
+        property: 'currentLibraryFolder', 
+        with: arg.libraryPath
+    });
+});
+
 import HelloWorld from './components/HelloWorld';
 import FavoriteWorlds from './components/FavoriteWorlds';
 import Settings from './components/Settings';
@@ -248,9 +261,12 @@ export default {
 				allowMulti = true;
 			}
 			const { ipcRenderer } = require('electron');
-			var exeLoc = ipcRenderer.sendSync('getAthenaLocation'); // todo: check if that location exists first when using that, we need to default to using folder path + /interface.exe otherwise.
+			// var exeLoc = ipcRenderer.sendSync('get-athena-location'); // todo: check if that location exists first when using that, we need to default to using folder path + /interface.exe otherwise.
+            if(this.$store.state.selectedInterface.folder) {
+                var exeLoc = this.$store.state.selectedInterface.folder + "interface.exe";
+            }
             console.info("exeLoc:",exeLoc);
-            if(exeLoc != "false") {
+            if(exeLoc) {
                 ipcRenderer.send('launch-interface', { "exec": exeLoc, "steamVR": this.noSteamVR, "allowMultipleInstances": allowMulti});
             } else {
                 this.selectInterfaceExe();
@@ -263,7 +279,7 @@ export default {
 		downloadInterface: function() {
 			if(!this.isDownloading) {
 				const { ipcRenderer } = require('electron');
-				ipcRenderer.send('downloadAthena');
+				ipcRenderer.send('download-athena');
 			}
 		},
 		installInterface: function() {
@@ -272,7 +288,7 @@ export default {
 		},
         selectInterfaceExe: function() {
             const { ipcRenderer } = require('electron');
-            ipcRenderer.send('setAthenaLocation');
+            ipcRenderer.send('set-athena-location');
         }
 	},
 	created: function () {
@@ -289,6 +305,17 @@ export default {
 				with: false
 			});
 		}
+        
+        if(this.$store.state.selectedInterface) {
+            this.$store.commit('mutate', {
+                property: 'interfaceSelectionRequired', 
+                with: false
+            });
+            const { ipcRenderer } = require('electron');			
+            ipcRenderer.send('setCurrentInterface', this.$store.state.selectedInterface.folder);
+        }
+        
+        ipcRenderer.send('getLibraryFolder');
 	},
 	computed: {
 		interfaceSelected () {
