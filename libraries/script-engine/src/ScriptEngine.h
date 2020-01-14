@@ -320,13 +320,13 @@ public:
     // NOTE - these are intended to be public interfaces available to scripts
 
     /**jsdoc
-     * Adds a function to the list of functions called when an entity event occurs on a particular entity.
+     * Adds a function to the list of functions called when a particular event occurs on a particular entity.
      * <p>See also, the {@link Entities} API.</p>
      * @function Script.addEventHandler
      * @param {Uuid} entityID - The ID of the entity.
-     * @param {Script.EntityEvent} eventName - The name of the entity event.
-     * @param {function} handler - The function to call when the entity event occurs on the entity. It can be either the name 
-     *     of a function or an in-line definition.
+     * @param {Script.EntityEvent} eventName - The name of the event.
+     * @param {Script~entityEventCallback|Script~pointerEventCallback|Script~collisionEventCallback} handler - The function to 
+     *     call when the event occurs on the entity. It can be either the name of a function or an in-line definition.
      * @example <caption>Report when a mouse press occurs on a particular entity.</caption>
      * var entityID = Entities.addEntity({
      *     type: "Box",

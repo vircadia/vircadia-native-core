@@ -356,17 +356,17 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
  *       new x-coordinate value.</td></tr>
  *     <tr><td><code>MouseY</code></td><td>number</td><td>number</td><td>The mouse y-coordinate changed. The data value is its 
  *       new y-coordinate value.</td></tr>
- *     <tr><td><code>MouseWheelRight</code></td><td>number</td><td>number</td><td>The mouse wheel rotated right. The data value 
- *       is the number of units rotated (typically <code>1.0</code>).</td></tr>
- *     <tr><td><code>MouseWheelLeft</code></td><td>number</td><td>number</td><td>The mouse wheel rotated left. The data value 
- *       is the number of units rotated (typically <code>1.0</code>).</td></tr>
- *     <tr><td><code>MouseWheelUp</code></td><td>number</td><td>number</td><td>The mouse wheel rotated up. The data value 
- *       is the number of units rotated (typically <code>1.0</code>).
+ *     <tr><td><code>MouseWheelRight</code></td><td>number</td><td>number</td><td>The mouse wheel rotated right or two-finger 
+ *       swipe moved right. The data value is the number of units moved (typically <code>1.0</code>).</td></tr>
+ *     <tr><td><code>MouseWheelLeft</code></td><td>number</td><td>number</td><td>The mouse wheel rotated left or two-finger 
+ *       swipe moved left. The data value is the number of units moved (typically <code>1.0</code>).</td></tr>
+ *     <tr><td><code>MouseWheelUp</code></td><td>number</td><td>number</td><td>The mouse wheel rotated up or two-finger swipe 
+ *       moved up. The data value is the number of units move3d (typically <code>1.0</code>).
  *       <p><strong>Warning:</strong> The mouse wheel in an ordinary mouse generates left/right wheel events instead of 
  *       up/down.</p>
  *       </td></tr>
- *     <tr><td><code>MouseWheelDown</code></td><td>number</td><td>number</td><td>The mouse wheel rotated down. The data value 
- *       is the number of units rotated (typically <code>1.0</code>).
+ *     <tr><td><code>MouseWheelDown</code></td><td>number</td><td>number</td><td>The mouse wheel rotated down or two-finger 
+ *       swipe moved down. The data value is the number of units moved (typically <code>1.0</code>).
  *       <p><strong>Warning:</strong> The mouse wheel in an ordinary mouse generates left/right wheel events instead of 
  *       up/down.</p>
  *       </td></tr>
@@ -378,7 +378,11 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
  *       moved up. The data value is how far the average position of all touch points moved.</td></tr>
  *     <tr><td><code>TouchpadDown</code></td><td>number</td><td>number</td><td>The average touch on a touch-enabled device 
  *       moved down. The data value is how far the average position of all touch points moved.</td></tr>
-  *   </tbody>
+ *     <tr><td><code>GesturePinchOut</code></td><td>number</td><td>number</td><td>The average of two touches on a touch-enabled 
+ *       device moved out. The data value is how far the average positions of the touch points moved out.</td></tr>
+ *     <tr><td><code>GesturePinchOut</code></td><td>number</td><td>number</td><td>The average of two touches on a touch-enabled
+ *       device moved in. The data value is how far the average positions of the touch points moved in.</td></tr>
+ *   </tbody>
  * </table>
  * @typedef {object} Controller.Hardware-Keyboard
  */

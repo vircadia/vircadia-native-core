@@ -148,21 +148,21 @@ class MyAvatar : public Avatar {
      *     size in the virtual world. <em>Read-only.</em>
      * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't.
      *     <em>Read-only.</em>
-     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> if blend shapes are controlled by scripted actions, 
-     *     otherwise <code>false</code>. Set this to <code>true</code> before using the {@link MyAvatar.setBlendshape} method, 
+     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> if blend shapes are controlled by scripted actions,
+     *     otherwise <code>false</code>. Set this to <code>true</code> before using the {@link MyAvatar.setBlendshape} method,
      *     and set back to <code>false</code> after you no longer want scripted control over the blend shapes.
-     *     <p><strong>Note:</strong> This property will automatically be set to true if the Controller system has valid facial 
-     *     blend shape actions.</p>
-     * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating 
-     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code> if 
-     *     you wish to fully control the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
-     * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes 
-     *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property 
-     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set this property to  
-     *     <code>false</code> if you wish to fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
-     * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate 
-     *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set 
-     *     this property to <code>false</code> if you wish to fully control the mouth facial blend shapes via the 
+     *     <p><strong>Note:</strong> This property will automatically be set to <code>true</code> if the controller system has
+     *     valid facial blend shape actions.</p>
+     * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating
+     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code>
+     *     to fully control the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes
+     *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property
+     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set this property to
+     *     <code>false</code> to fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate
+     *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set
+     *     this property to <code>false</code> to fully control the mouth facial blend shapes via the
      *     {@link MyAvatar.setBlendshape} method.
      *
      * @comment IMPORTANT: This group of properties is copied from Avatar.h; they should NOT be edited here.
@@ -286,9 +286,9 @@ class MyAvatar : public Avatar {
      * @property {number} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting
      *     (avatar leaning is disabled, recentering is enabled), <code>false</code> if the user wearing the HMD is
      *     determined to be standing (avatar leaning is enabled, and avatar recenters if it leans too far).
-     *     If <code>userRecenterModel == 2</code> (i.e., auto) the property value automatically updates as the user sits
+     *     If <code>userRecenterModel == 2</code> (i.e., "auto") the property value automatically updates as the user sits
      *     or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the current
-     *     siting / standing state, which is updated when the user next sits or stands unless
+     *     sitting / standing state, which is updated when the user next sits or stands unless
      *     <code>isSitStandStateLocked == true</code>.
      * @property {boolean} isSitStandStateLocked - <code>true</code> to lock the avatar sitting/standing state, i.e., use this 
      *     to disable automatically changing state.
@@ -321,10 +321,7 @@ class MyAvatar : public Avatar {
      * @borrows Avatar.setAttachmentsVariant as setAttachmentsVariant
      * @borrows Avatar.updateAvatarEntity as updateAvatarEntity
      * @borrows Avatar.clearAvatarEntity as clearAvatarEntity
-     * @borrows Avatar.hasScriptedBlendshapes as hasScriptedBlendshapes
-     * @borrows Avatar.hasProceduralBlinkFaceMovement as hasProceduralBlinkFaceMovement
-     * @borrows Avatar.hasProceduralEyeFaceMovement as hasProceduralEyeFaceMovement
-     * @borrows Avatar.hasAudioEnabledFaceMovement as hasAudioEnabledFaceMovement
+     * @borrows Avatar.setForceFaceTrackerConnected as setForceFaceTrackerConnected
      * @borrows Avatar.setSkeletonModelURL as setSkeletonModelURL
      * @borrows Avatar.getAttachmentData as getAttachmentData
      * @borrows Avatar.setAttachmentData as setAttachmentData
@@ -530,7 +527,7 @@ public:
      *     <tr><td><code>0</code></td><td>ForceSit</td><td>Assumes the user is seated in the real world. Disables avatar 
      *       leaning regardless of what the avatar is doing in the virtual world (i.e., avatar always recenters).</td></tr>
      *     <tr><td><code>1</code></td><td>ForceStand</td><td>Assumes the user is standing in the real world. Enables avatar 
-     *       leaning regardless of what the avatar is doing in the virtual world (i.e. avatar leans, then if leans too far it 
+     *       leaning regardless of what the avatar is doing in the virtual world (i.e., avatar leans, then if leans too far it 
      *       recenters).</td></tr>
      *     <tr><td><code>2</code></td><td>Auto</td><td>Interface detects when the user is standing or seated in the real world. 
      *       Avatar leaning is disabled when the user is sitting (i.e., avatar always recenters), and avatar leaning is enabled 
@@ -657,7 +654,7 @@ public:
      * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target 
      * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different, 
      * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
-     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function MyAvatar.overrideAnimation
      * @param {string} url - The URL to the animation file. Animation files may be in glTF or FBX format, but only need to 
      *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs 
@@ -765,7 +762,7 @@ public:
      * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target
      * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different,
      * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
-     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards.html">Avatar Standards</a>.
      * @function MyAvatar.overrideRoleAnimation
      * @param {string} role - The animation role to override
      * @param {string} url - The URL to the animation file. Animation files need to be in glTF or FBX format, but only need to 
@@ -1186,7 +1183,7 @@ public:
     /**jsdoc
      * Gets information on the avatar your avatar is currently looking at.
      * @function MyAvatar.getTargetAvatar
-     * @returns {AvatarData} Information on the avatar being looked at.
+     * @returns {ScriptAvatar} Information on the avatar being looked at, <code>null</code> if no avatar is being looked at.
      */
     // FIXME: The return type doesn't have a conversion to a script value so the function always returns undefined in 
     // JavaScript. Note: When fixed, JSDoc is needed for the return type.
@@ -1795,56 +1792,57 @@ public:
     void prepareAvatarEntityDataForReload();
 
     /**jsdoc
-    * Turns the avatar's head until it faces the target point within a +90/-90 degree range.
-    * Once this method is called, API calls will have full control of the head for a limited time.
-    * If this method is not called for two seconds, the engine will regain control of the head.
-    * @function MyAvatar.setHeadLookAt
-    * @param {Vec3} lookAtTarget - The target point in world coordinates.
-    */
+     * Turns the avatar's head until it faces the target point within a +90/-90 degree range.
+     * Once this method is called, API calls will have full control of the head for a limited time.
+     * If this method is not called for 2 seconds, the engine will regain control of the head.
+     * @function MyAvatar.setHeadLookAt
+     * @param {Vec3} lookAtTarget - The target point in world coordinates.
+     */
     Q_INVOKABLE void setHeadLookAt(const glm::vec3& lookAtTarget);
 
     /**jsdoc
-    * Returns the current target point of the head's look direction in world coordinates.
-    * @function MyAvatar.getHeadLookAt
-    * @returns {Vec3} The head's "look at" target in world coordinates.
-    */
+     * Returns the current target point of the head's look direction in world coordinates.
+     * @function MyAvatar.getHeadLookAt
+     * @returns {Vec3} The head's look-at target in world coordinates.
+     */
     Q_INVOKABLE glm::vec3 getHeadLookAt() { return _lookAtCameraTarget; }
 
     /**jsdoc
-    * Returns control of the avatar's head to the engine, and releases control from API calls.
-    * @function MyAvatar.releaseHeadLookAtControl
-    */
+     * Returns control of the avatar's head to the engine, and releases control from API calls.
+     * @function MyAvatar.releaseHeadLookAtControl
+     */
     Q_INVOKABLE void releaseHeadLookAtControl();
 
     /**jsdoc
-    * Forces the avatar's eyes to look at a specified location. Once this method is called, API calls 
-    * have full control of the eyes for a limited time. If this method is not called for two seconds, 
-    * the engine regains control of the eyes.
-    * @function MyAvatar.setEyesLookAt
-    * @param {Vec3} lookAtTarget - The target point in world coordinates.
-    */
+     * Forces the avatar's eyes to look at a specified location. Once this method is called, API calls
+     * have full control of the eyes for a limited time. If this method is not called for two seconds, 
+     * the engine regains control of the eyes.
+     * @function MyAvatar.setEyesLookAt
+     * @param {Vec3} lookAtTarget - The target point in world coordinates.
+     */
     Q_INVOKABLE void setEyesLookAt(const glm::vec3& lookAtTarget);
 
     /**jsdoc
-    * Returns the current target point of the eyes look direction in world coordinates.
-    * @function MyAvatar.getEyesLookAt
-    * @returns {Vec3} The eyes' "look at" target in world coordinates.
-    */
+     * Returns the current target point of the eyes look direction in world coordinates.
+     * @function MyAvatar.getEyesLookAt
+     * @returns {Vec3} The eyes' look-at target in world coordinates.
+     */
     Q_INVOKABLE glm::vec3 getEyesLookAt() { return _eyesLookAtTarget.get(); }
 
     /**jsdoc
-    * Returns control of the avatar's eyes to the engine, and releases control from API calls.
-    * @function MyAvatar.releaseEyesLookAtControl
-    */
+     * Returns control of the avatar's eyes to the engine, and releases control from API calls.
+     * @function MyAvatar.releaseEyesLookAtControl
+     */
     Q_INVOKABLE void releaseEyesLookAtControl();
 
     /**jsdoc
-    * Aims the pointing directional blending towards the provided target point. The "point" reaction should be triggered 
-    * before using this method with the code <code>MyAvatar.beginReaction("point")</code>.
-    * @function MyAvatar.setPointAt
-    * @param {Vec3} pointAtTarget - The target point in world coordinates.
-    * @returns {boolean} <code>true</code> if the target point lays in front of the avatar, <code>false</code> if it doesn't.
-    */
+     * Sets the point-at target for the <code>"point"</code> reaction that may be started with {@link MyAvatar.beginReaction}. 
+     * The point-at target is set only if it is in front of the avatar.
+     * <p>Note: The <code>"point"</code> reaction should be started before calling this method.</p>
+     * @function MyAvatar.setPointAt
+     * @param {Vec3} pointAtTarget - The target to point at, in world coordinates.
+     * @returns {boolean} <code>true</code> if the target point was set, <code>false</code> if it wasn't.
+     */
     Q_INVOKABLE bool setPointAt(const glm::vec3& pointAtTarget);
 
     glm::quat getLookAtRotation() { return _lookAtYaw * _lookAtPitch; }
@@ -1928,7 +1926,7 @@ public:
      * @param {boolean} isActive - <code>true</code> if flow simulation is enabled on the joint, <code>false</code> if it isn't.
      * @param {boolean} isCollidable - <code>true</code> to enable collisions in the flow simulation, <code>false</code> to 
      *     disable.
-     * @param {Object<JointName, MyAvatar.FlowPhysicsOptions>} [physicsConfig>] - Physics configurations for particular entity 
+     * @param {Object<JointName, MyAvatar.FlowPhysicsOptions>} [physicsConfig] - Physics configurations for particular entity 
      *     and avatar joints.
      * @param {Object<JointName, MyAvatar.FlowCollisionsOptions>} [collisionsConfig] - Collision configurations for particular 
      *     entity and avatar joints.
@@ -1952,8 +1950,8 @@ public:
     /**jsdoc
      * Starts a sitting action for the avatar.
      * @function MyAvatar.beginSit
-     * @param {Vec3} position - The point in space where the avatar will sit.
-     * @param {Quat} rotation - Initial absolute orientation of the avatar once is seated.
+     * @param {Vec3} position - The position where the avatar should sit.
+     * @param {Quat} rotation - The initial orientation of the seated avatar.
      */
     Q_INVOKABLE void beginSit(const glm::vec3& position, const glm::quat& rotation);
 
@@ -1961,15 +1959,14 @@ public:
      * Ends a sitting action for the avatar.
      * @function MyAvatar.endSit
      * @param {Vec3} position - The position of the avatar when standing up.
-     * @param {Quat} rotation - The absolute rotation of the avatar once the sitting action ends.
+     * @param {Quat} rotation - The orientation of the avatar when standing up.
      */
     Q_INVOKABLE void endSit(const glm::vec3& position, const glm::quat& rotation);
 
     /**jsdoc
-     * Gets whether the avatar is in a seated pose. The seated pose is set by calling the 
-     * MyAvatar::beginSit method.
+     * Gets whether the avatar is in a seated pose. The seated pose is set by calling {@link MyAvatar.beginSit}.
      * @function MyAvatar.isSeated
-     * @returns {boolean} <code>true</code> if the avatar is in a seated pose. 
+     * @returns {boolean} <code>true</code> if the avatar is in a seated pose, <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool isSeated() { return _characterController.getSeated(); }
 
@@ -2072,8 +2069,8 @@ public slots:
      * @param {boolean} [hasOrientation=false] - Set to <code>true</code> to set the orientation of the avatar.
      * @param {Quat} [orientation=Quat.IDENTITY] - The new orientation for the avatar.
      * @param {boolean} [shouldFaceLocation=false] - Set to <code>true</code> to position the avatar a short distance away from 
-     * @param {boolean} [withSafeLanding=true] - Set to <code>false</code> MyAvatar::safeLanding will not be called (used when teleporting).
      *     the new position and orientate the avatar to face the position.
+     * @param {boolean} [withSafeLanding=true] - Set to <code>false</code> to disable safe landing when teleporting.
      */
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
@@ -2348,43 +2345,52 @@ public slots:
     virtual void setModelScale(float scale) override;
 
     /**jsdoc
-     * MyAvatar.getTriggerReactions
-     * Returns a list of reactions names that can be triggered using MyAvatar.triggerReaction().
-     * @returns {string[]} Array of reaction names.
+     * Gets the list of reactions names that can be triggered using {@link MyAvatar.triggerReaction}.
+     * <p>See also: {@link MyAvatar.getBeginEndReactions}.
+     * @function MyAvatar.getTriggerReactions
+     * @returns {string[]} List of reaction names that can be triggered using {@link MyAvatar.triggerReaction}.
+     * @example <caption>List the available trigger reactions.</caption>
+     * print("Trigger reactions:", JSON.stringify(MyAvatar.getTriggerReactions()));
      */
     QStringList getTriggerReactions() const;
 
 
     /**jsdoc
-     * MyAvatar.getBeginReactions
-     * Returns a list of reactions names that can be enabled using MyAvatar.beginReaction() and MyAvatar.endReaction().
-     * @returns {string[]} Array of reaction names.
+     * Gets the list of reactions names that can be enabled using {@link MyAvatar.beginReaction} and 
+     * {@link MyAvatar.endReaction}.
+     * <p>See also: {@link MyAvatar.getTriggerReactions}.
+     * @function MyAvatar.getBeginEndReactions
+     * @returns {string[]} List of reaction names that can be enabled using {@link MyAvatar.beginReaction} and
+     *     {@link MyAvatar.endReaction}.
+     * @example <caption>List the available begin-end reactions.</caption>
+     * print("Begin-end reactions:", JSON.stringify(MyAvatar.getBeginEndReactions()));
      */
     QStringList getBeginEndReactions() const;
 
     /**jsdoc
-     * MyAvatar.triggerReaction
-     * Plays the given reaction on the avatar, once the reaction is complete it will automatically complete.  Only reaction names returned from MyAvatar.getTriggerReactions() are available.
-     * @param {string} reactionName - reaction name
-     * @returns {bool} false if the given reaction is not supported.
+     * Plays a reaction on the avatar. Once the reaction is complete it will stop playing.
+     * <p>Only reaction names returned by {@link MyAvatar.getTriggerReactions} are available.</p>
+     * @function MyAvatar.triggerReaction
+     * @param {string} reactionName - The reaction to trigger.
+     * @returns {boolean} <code>true</code> if the reaction was played, <code>false</code> if the reaction is not supported.
      */
     bool triggerReaction(QString reactionName);
 
     /**jsdoc
-     * MyAvatar.beginReaction
-     * Plays the given reaction on the avatar.  The avatar will continue to play the reaction until stopped via the MyAvatar.endReaction() call or superseeded by another reaction.
-     * Only reaction names returned from MyAvatar.getBeginEndReactions() are available.
-     * NOTE: the caller is responsible for calling the corresponding MyAvatar.endReaction(), otherwise the avatar might become stuck in the reaction forever.
-     * @param {string} reactionName - reaction name
-     * @returns {bool} false if the given reaction is not supported.
+     * Starts playing a reaction on the avatar. The reaction will continue to play until stopped using 
+     * {@link MyAvatar.endReaction} or superseded by another reaction.
+     * <p>Only reactions returned by {@link MyAvatar.getBeginEndReactions} are available.</p>
+     * @function MyAvatar.beginReaction
+     * @param {string} reactionName - The reaction to start playing.
+     * @returns {boolean} <code>true</code> if the reaction was started, <code>false</code> if the reaction is not supported.
      */
     bool beginReaction(QString reactionName);
 
     /**jsdoc
-     * MyAvatar.endReaction
-     * Used to stop a given reaction that was started via MyAvatar.beginReaction().
-     * @param {string} reactionName - reaction name
-     * @returns {bool} false if the given reaction is not supported.
+     * Stops playing a reaction that was started using {@link MyAvatar.beginReaction}.
+     * @function MyAvatar.endReaction
+     * @param {string} reactionName - The reaction to stop playing.
+     * @returns {boolean} <code>true</code> if the reaction was stopped, <code>false</code> if the reaction is not supported.
      */
     bool endReaction(QString reactionName);
 

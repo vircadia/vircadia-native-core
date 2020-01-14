@@ -52,8 +52,9 @@
  *     <em>Read-only.</em>
  *     <p><strong>Warning:</strong> Not yet implemented.</p>
  *
- * @property {FilterFlags} PICK_BYPASS_IGNORE - Allows pick to intersect entities even when their ignorePickIntersection property is 'true'.
- *     For debug purposes. <em>Read-only.</em>
+ * @property {FilterFlags} PICK_BYPASS_IGNORE - Allows pick to intersect entities even when their 
+ *     <code>ignorePickIntersection</code> property value is <code>true</code>. For debug purposes.
+ *     <em>Read-only.</em>
  *
  * @property {IntersectionType} INTERSECTED_NONE - Intersected nothing. <em>Read-only.</em>
  * @property {IntersectionType} INTERSECTED_ENTITY - Intersected an entity. <em>Read-only.</em>
