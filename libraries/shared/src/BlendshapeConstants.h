@@ -19,7 +19,7 @@
 
 /// The names of the blendshapes expected by Faceshift, terminated with an empty string.
 extern const char* FACESHIFT_BLENDSHAPES[];
-extern QMap<QString, int> blendshapeLookupMap;
+extern const QMap<QString, int> BLENDSHAPE_LOOKUP_MAP;
 
 enum class Blendshapes : int {
     EyeBlink_L = 0,

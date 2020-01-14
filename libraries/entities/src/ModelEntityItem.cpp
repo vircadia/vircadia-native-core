@@ -769,8 +769,8 @@ void ModelEntityItem::setBlendshapeCoefficients(const QString& blendshapeCoeffic
     withWriteLock([&] {
         for (auto& blendshape : newCoefficientsMap.keys()) {
             auto newCoefficient = newCoefficientsMap[blendshape];
-            auto blendshapeIter = blendshapeLookupMap.find(blendshape);
-            if (newCoefficient.canConvert<float>() && blendshapeIter != blendshapeLookupMap.end()) {
+            auto blendshapeIter = BLENDSHAPE_LOOKUP_MAP.find(blendshape);
+            if (newCoefficient.canConvert<float>() && blendshapeIter != BLENDSHAPE_LOOKUP_MAP.end()) {
                 float newCoefficientValue = newCoefficient.toFloat();
                 _blendshapeCoefficientsVector[blendshapeIter.value()] = newCoefficientValue;
                 _blendshapeCoefficientsMap[blendshape] = newCoefficientValue;

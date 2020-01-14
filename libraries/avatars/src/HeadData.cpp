@@ -102,8 +102,8 @@ const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
 void HeadData::setBlendshape(QString name, float val) {
 
     // Check to see if the named blendshape exists, and then set its value if it does
-    auto it = blendshapeLookupMap.find(name);
-    if (it != blendshapeLookupMap.end()) {
+    auto it = BLENDSHAPE_LOOKUP_MAP.find(name);
+    if (it != BLENDSHAPE_LOOKUP_MAP.end()) {
         if (_blendshapeCoefficients.size() <= it.value()) {
             _blendshapeCoefficients.resize(it.value() + 1);
         }
@@ -128,8 +128,8 @@ void HeadData::setBlendshape(QString name, float val) {
 }
 
 int HeadData::getBlendshapeIndex(const QString& name) {
-    auto it = blendshapeLookupMap.find(name);
-    int index = it != blendshapeLookupMap.end() ? it.value() : -1;
+    auto it = BLENDSHAPE_LOOKUP_MAP.find(name);
+    int index = it != BLENDSHAPE_LOOKUP_MAP.end() ? it.value() : -1;
     return index;
 }
 
@@ -148,8 +148,8 @@ static const QString JSON_AVATAR_HEAD_LOOKAT = QStringLiteral("lookAt");
 QJsonObject HeadData::toJson() const {
     QJsonObject headJson;
     QJsonObject blendshapesJson;
-    for (auto name : blendshapeLookupMap.keys()) {
-        auto index = blendshapeLookupMap[name];
+    for (auto name : BLENDSHAPE_LOOKUP_MAP.keys()) {
+        auto index = BLENDSHAPE_LOOKUP_MAP[name];
         float value = 0.0f;
         if (index < _blendshapeCoefficients.size()) {
             value += _blendshapeCoefficients[index];
