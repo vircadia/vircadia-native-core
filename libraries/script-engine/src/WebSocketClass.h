@@ -21,7 +21,7 @@
  * near-complete implementation of the WebSocket API described in the Mozilla docs: 
  * <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSocket">https://developer.mozilla.org/en-US/docs/Web/API/WebSocket</a>.
  *
- * <p>Constructed by <code>new WebSocket(...)</code> in Interface, client entity, avatar, and server entity scripts, or the 
+ * <p>Create using <code>new WebSocket(...)</code> in Interface, client entity, avatar, and server entity scripts, or the 
  * {@link WebSocketServer} class in server entity and assignment client scripts.
  *
  * <p><strong>Note:</strong> Does not support secure, <code>wss:</code> protocol.</p>

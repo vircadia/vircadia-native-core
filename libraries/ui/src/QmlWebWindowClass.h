@@ -14,6 +14,8 @@
 /**jsdoc
  * A <code>OverlayWebWindow</code> displays an HTML window inside Interface.
  *
+ * <p>Create using <code>new OverlayWebWindow(...)</code>.</p>
+ *
  * @class OverlayWebWindow
  * @param {string|OverlayWindow.Properties} [titleOrProperties="WebWindow"] - The window's title or initial property values.
  * @param {string} [source="about:blank"] - The URL of the HTML to display. Not used unless the first parameter is the window 
