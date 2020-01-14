@@ -18,6 +18,7 @@
 #include <vector>
 #include <unordered_map>
 #include <bitset>
+#include <QString>
 
 // Why a macro and not a fancy template you will ask me ?
 // Because some of the fields are bool packed tightly in the State::Cache class
@@ -134,10 +135,19 @@ public:
         ComparisonFunction getFunction() const { return function; }
         uint8 getWriteMask() const { return writeMask; }
 
-        int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
-        DepthTest(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
-        bool operator==(const DepthTest& right) const { return getRaw() == right.getRaw(); }
-        bool operator!=(const DepthTest& right) const { return getRaw() != right.getRaw(); }
+        bool operator==(const DepthTest& right) const {
+            return writeMask == right.writeMask && enabled == right.enabled && function == right.function;
+        }
+
+        bool operator!=(const DepthTest& right) const {
+            return writeMask != right.writeMask || enabled != right.enabled || function != right.function;
+        }
+
+        operator QString() const {
+            return QString("{ writeMask = %1, enabled = %2, function = %3 }").arg(writeMask).arg(enabled).arg(function);
+
+        }
+
     };
 
     struct StencilTest {
@@ -279,8 +289,6 @@ public:
 
         Flags flags;
     };
-
-    std::string getKey() const;
 
     // The unique default values for all the fields
     static const Data DEFAULT;
