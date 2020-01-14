@@ -15,24 +15,8 @@
 
 #include <PerfStat.h>
 
-// Not sure how many of these are needed, but here they are.
-#include <opus/opus.h>
-#include <opus/opus_types.h>
-#include <opus/opus_defines.h>
-#include <opus/opus_multistream.h>
-#include <opus/opus_projection.h>
-
 #include "OpusEncoder.h"
 #include "OpusDecoder.h"
-
-#define FRAME_SIZE 960
-#define SAMPLE_RATE 48000
-#define CHANNELS 2
-#define APPLICATION OPUS_APPLICATION_AUDIO
-#define BITRATE 64000
-
-#define MAX_FRAME_SIZE 6*FRAME_SIZE
-#define MAX_PACKET_SIZE 3*1276
 
 const char* AthenaOpusCodec::NAME { "opus" };
 

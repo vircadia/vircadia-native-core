@@ -1,7 +1,6 @@
 #ifndef OPUSENCODER_H
 #define OPUSENCODER_H
 #include <plugins/CodecPlugin.h>
-#include "OpusWrapper.h"
 #include "opus/opus.h"
 
 

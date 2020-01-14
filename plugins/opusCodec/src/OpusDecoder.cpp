@@ -2,8 +2,6 @@
 #include <QtCore/QLoggingCategory>
 #include <AudioConstants.h>
 
-
-
 #include "OpusDecoder.h"
 
 static QLoggingCategory decoder("AthenaOpusDecoder");

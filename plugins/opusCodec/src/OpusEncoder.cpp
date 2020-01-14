@@ -3,7 +3,6 @@
 #include <QtCore/QLoggingCategory>
 
 #include "OpusEncoder.h"
-#include "OpusWrapper.h"
 #include "opus/opus.h"
 
 static QLoggingCategory encoder("AthenaOpusEncoder");
