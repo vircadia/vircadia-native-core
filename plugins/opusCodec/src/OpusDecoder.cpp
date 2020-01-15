@@ -110,7 +110,7 @@ void AthenaOpusDecoder::lostFrame(QByteArray &decodedBuffer)
 
     int buffer_size = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * static_cast<int>(sizeof(int16_t))
         * _opus_num_channels;
-    decodedBuffer.resize( buffer_size );
+    decodedBuffer.resize(buffer_size);
     int buffer_frames = decodedBuffer.size() / _opus_num_channels / static_cast<int>(sizeof( opus_int16 ));
 
     int decoded_frames = opus_decode( _decoder, nullptr, 0, reinterpret_cast<opus_int16*>(decodedBuffer.data()),
@@ -137,5 +137,4 @@ void AthenaOpusDecoder::lostFrame(QByteArray &decodedBuffer)
     }
 
 }
-
 
