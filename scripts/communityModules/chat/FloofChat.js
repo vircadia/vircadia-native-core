@@ -179,11 +179,16 @@ var chatBarChannel = "Local";
 
 function go2(msg) {
     var dest = false;
-    var domainsList = Script.require("http://metaverse.darlingvr.club:8081/goto.json");
+    var domainsList = [];
+    try {
+        domainsList = Script.require("http://metaverse.darlingvr.club:8081/goto.json");
+    } catch (e) {
+        //
+    }
     domainsList.forEach(function (domain) {
-        if (domain["Domain Name"].toLowerCase().indexOf(msg.toLowerCase()) !== -1) {
+        if (domain["Domain Name"].toLowerCase().indexOf(msg.toLowerCase()) !== -1 && !dest) {
             dest = {"name": domain["Domain Name"], "url": domain["Visit"]};
-            return;
+
         }
     });
     return dest;
