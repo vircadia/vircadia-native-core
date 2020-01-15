@@ -1,9 +1,18 @@
+//
+//  OpusCodecManager.h
+//  plugins/opusCodec/src
+//
+//  Copyright 2020 Dale Glass
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include <PerfStat.h>
 #include <QtCore/QLoggingCategory>
+#include <opus/opus.h>
 
 #include "OpusEncoder.h"
-#include "opus/opus.h"
 
 static QLoggingCategory encoder("AthenaOpusEncoder");
 
@@ -68,7 +77,8 @@ void AthenaOpusEncoder::encode(const QByteArray& decodedBuffer, QByteArray& enco
     encodedBuffer.resize( decodedBuffer.size() );
     int frame_size = decodedBuffer.length()/ _opus_channels / static_cast<int>(sizeof(opus_int16));
 
-    int bytes = opus_encode(_encoder, reinterpret_cast<const opus_int16*>(decodedBuffer.constData()), frame_size, reinterpret_cast<unsigned char*>(encodedBuffer.data()), encodedBuffer.size() );
+    int bytes = opus_encode(_encoder, reinterpret_cast<const opus_int16*>(decodedBuffer.constData()), frame_size,
+        reinterpret_cast<unsigned char*>(encodedBuffer.data()), encodedBuffer.size() );
 
     if ( bytes >= 0 ) {
         //qCDebug(encoder) << "Encoded " << decodedBuffer.length() << " bytes into " << bytes << " opus bytes";
@@ -76,7 +86,8 @@ void AthenaOpusEncoder::encode(const QByteArray& decodedBuffer, QByteArray& enco
     } else {
         encodedBuffer.resize(0);
 
-        qCWarning(encoder) << "Error when encoding " << decodedBuffer.length() << " bytes of audio: " << error_to_string(bytes);
+        qCWarning(encoder) << "Error when encoding " << decodedBuffer.length() << " bytes of audio: "
+            << error_to_string(bytes);
     }
 
 }
@@ -94,8 +105,9 @@ void AthenaOpusEncoder::setComplexity(int complexity)
     assert(_encoder);
     int ret = opus_encoder_ctl(_encoder, OPUS_SET_COMPLEXITY(complexity));
 
-    if ( ret != OPUS_OK )
+    if (ret != OPUS_OK) {
         qCWarning(encoder) << "Error when setting complexity to " << complexity << ": " << error_to_string(ret);
+    }
 }
 
 int AthenaOpusEncoder::getBitrate() const
@@ -110,8 +122,10 @@ void AthenaOpusEncoder::setBitrate(int bitrate)
 {
     assert(_encoder);
     int ret = opus_encoder_ctl(_encoder, OPUS_SET_BITRATE(bitrate));
-    if ( ret != OPUS_OK )
+
+    if (ret != OPUS_OK) {
         qCWarning(encoder) << "Error when setting bitrate to " << bitrate << ": " << error_to_string(ret);
+    }
 }
 
 int AthenaOpusEncoder::getVBR() const
@@ -126,8 +140,10 @@ void AthenaOpusEncoder::setVBR(int vbr)
 {
     assert(_encoder);
     int ret = opus_encoder_ctl(_encoder, OPUS_SET_VBR(vbr));
-    if ( ret != OPUS_OK )
+
+    if (ret != OPUS_OK) {
         qCWarning(encoder) << "Error when setting VBR to " << vbr << ": " << error_to_string(ret);
+    }
 }
 
 int AthenaOpusEncoder::getVBRConstraint() const
@@ -142,8 +158,10 @@ void AthenaOpusEncoder::setVBRConstraint(int vbr_const)
 {
     assert(_encoder);
     int ret = opus_encoder_ctl(_encoder, OPUS_SET_VBR_CONSTRAINT(vbr_const));
-    if ( ret != OPUS_OK )
+    
+    if (ret != OPUS_OK) {
         qCWarning(encoder) << "Error when setting VBR constraint to " << vbr_const << ": " << error_to_string(ret);
+    }
 }
 
 int AthenaOpusEncoder::getMaxBandwidth() const
@@ -158,8 +176,10 @@ void AthenaOpusEncoder::setMaxBandwidth(int maxbw)
 {
     assert(_encoder);
     int ret = opus_encoder_ctl(_encoder, OPUS_SET_MAX_BANDWIDTH(maxbw));
-    if ( ret != OPUS_OK )
+    
+    if (ret != OPUS_OK) {
         qCWarning(encoder) << "Error when setting max bandwidth to " << maxbw << ": " << error_to_string(ret);
+    }
 }
 
 int AthenaOpusEncoder::getBandwidth() const
@@ -174,8 +194,10 @@ void AthenaOpusEncoder::setBandwidth(int bw)
 {
     assert(_encoder);
     int ret = opus_encoder_ctl(_encoder, OPUS_SET_BANDWIDTH(bw));
-    if ( ret != OPUS_OK )
+
+    if (ret != OPUS_OK) {
         qCWarning(encoder) << "Error when setting bandwidth to " << bw << ": " << error_to_string(ret);
+    }
 }
 
 int AthenaOpusEncoder::getSignal() const
@@ -190,8 +212,10 @@ void AthenaOpusEncoder::setSignal(int signal)
 {
     assert(_encoder);
     int ret = opus_encoder_ctl(_encoder, OPUS_SET_SIGNAL(signal));
-    if ( ret != OPUS_OK )
+
+    if (ret != OPUS_OK) {
         qCWarning(encoder) << "Error when setting signal to " << signal << ": " << error_to_string(ret);
+    }
 }
 
 int AthenaOpusEncoder::getApplication() const
@@ -202,12 +226,14 @@ int AthenaOpusEncoder::getApplication() const
     return ret;
 }
 
-void AthenaOpusEncoder::setApplication(int app)
+void AthenaOpusEncoder::setApplication(int application)
 {
     assert(_encoder);
-    int ret = opus_encoder_ctl(_encoder, OPUS_SET_APPLICATION(app));
-    if ( ret != OPUS_OK )
-        qCWarning(encoder) << "Error when setting application to " << app << ": " << error_to_string(ret);
+    int ret = opus_encoder_ctl(_encoder, OPUS_SET_APPLICATION(application));
+
+    if (ret != OPUS_OK) {
+        qCWarning(encoder) << "Error when setting application to " << application << ": " << error_to_string(ret);
+    }
 }
 
 int AthenaOpusEncoder::getLookahead() const
@@ -230,8 +256,10 @@ void AthenaOpusEncoder::setInbandFEC(int fec)
 {
     assert(_encoder);
     int ret = opus_encoder_ctl(_encoder, OPUS_SET_INBAND_FEC(fec));
-    if ( ret != OPUS_OK )
+
+    if (ret != OPUS_OK) {
         qCWarning(encoder) << "Error when setting inband FEC to " << fec << ": " << error_to_string(ret);
+    }
 }
 
 int AthenaOpusEncoder::getExpectedPacketLossPercent() const
@@ -246,8 +274,10 @@ void AthenaOpusEncoder::setExpectedPacketLossPercent(int perc)
 {
     assert(_encoder);
     int ret = opus_encoder_ctl(_encoder, OPUS_SET_PACKET_LOSS_PERC(perc));
-    if ( ret != OPUS_OK )
+
+    if (ret != OPUS_OK) {
         qCWarning(encoder) << "Error when setting loss percent to " << perc << ": " << error_to_string(ret);
+    }
 }
 
 int AthenaOpusEncoder::getDTX() const
@@ -262,8 +292,8 @@ void AthenaOpusEncoder::setDTX(int dtx)
 {
     assert(_encoder);
     int ret = opus_encoder_ctl(_encoder, OPUS_SET_DTX(dtx));
-    if ( ret != OPUS_OK )
+
+    if (ret != OPUS_OK) {
         qCWarning(encoder) << "Error when setting DTX to " << dtx << ": " << error_to_string(ret);
+    }
 }
-
-

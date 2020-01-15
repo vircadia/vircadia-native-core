@@ -1,7 +1,17 @@
+//
+//  OpusCodecManager.h
+//  plugins/opusCodec/src
+//
+//  Copyright 2020 Dale Glass
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 #ifndef OPUSENCODER_H
 #define OPUSENCODER_H
 #include <plugins/CodecPlugin.h>
-#include "opus/opus.h"
+#include <opus/opus.h>
 
 
 class AthenaOpusEncoder : public Encoder {
@@ -61,7 +71,7 @@ private:
     int _opus_expected_loss = 0;
 
 
-    OpusEncoder *_encoder = nullptr;
+    OpusEncoder* _encoder = nullptr;
 };
 
 
