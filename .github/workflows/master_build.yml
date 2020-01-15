@@ -163,7 +163,7 @@ jobs:
       if: matrix.os[1] == 'windows'
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: rm -rf ${{runner.workspace}}/*
+      run: rm -rf build hifi symbols-temp
     - uses: actions/checkout@v1
       with: 
         submodules: true
