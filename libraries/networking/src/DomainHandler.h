@@ -31,6 +31,7 @@
 #include "Node.h"
 #include "ReceivedMessage.h"
 #include "NetworkingConstants.h"
+#include "MetaverseAPI.h"
 
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 
     QProcessEnvironment::systemEnvironment()

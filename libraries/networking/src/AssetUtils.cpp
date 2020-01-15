@@ -21,6 +21,7 @@
 #include "NetworkAccessManager.h"
 #include "NetworkLogging.h"
 #include "NetworkingConstants.h"
+#include "MetaverseAPI.h"
 
 #include "ResourceManager.h"
 

@@ -111,6 +111,7 @@
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 #include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
@@ -1216,7 +1217,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager->setIsAgent(true);
-    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
+    accountManager->setAuthURL(MetaverseAPI::getCurrentMetaverseServerURL());
     if (!accountManager->hasKeyPair()) {
         accountManager->generateNewUserKeypair();
     }
@@ -3184,7 +3185,7 @@ void Application::showLoginScreen() {
         QJsonObject loginData = {};
         loginData["action"] = "login dialog popped up";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-        _window->setWindowTitle("High Fidelity");
+        _window->setWindowTitle("Project Athena");
     } else {
         resumeAfterLoginDialogActionTaken();
     }
@@ -7066,7 +7067,7 @@ void Application::updateWindowTitle() const {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
 
-    QString buildVersion = " - Project Athena v0.86.0 K2 - "
+    QString buildVersion = " - Project Athena Interface v0.86.0 K2 - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
 
@@ -8503,7 +8504,7 @@ void Application::loadAddAvatarBookmarkDialog() const {
 void Application::loadAvatarBrowser() const {
     auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     // construct the url to the marketplace item
-    QString url = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace?category=avatars";
+    QString url = MetaverseAPI::getCurrentMetaverseServerURL().toString() + "/marketplace?category=avatars";
 
     QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
     tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);

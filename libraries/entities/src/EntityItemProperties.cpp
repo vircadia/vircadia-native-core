@@ -1366,7 +1366,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * var METERS_TO_INCHES = 39.3701;
  * var entity = Entities.addEntity({
  *     type: "Web",
- *     sourceUrl: "https://highfidelity.com/",
+ *     sourceUrl: "https://projectathena.io/",
  *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -4 })),
  *     rotation: MyAvatar.orientation,
  *     dimensions: {

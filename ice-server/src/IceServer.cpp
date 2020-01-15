@@ -22,6 +22,7 @@
 #include <LimitedNodeList.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -209,7 +210,7 @@ void IceServer::requestDomainPublicKey(const QUuid& domainID) {
     // send a request to the metaverse API for the public key for this domain
     auto& networkAccessManager = NetworkAccessManager::getInstance();
 
-    QUrl publicKeyURL { NetworkingConstants::METAVERSE_SERVER_URL() };
+    QUrl publicKeyURL{ MetaverseAPI::getCurrentMetaverseServerURL() };
     QString publicKeyPath = QString("/api/v1/domains/%1/public_key").arg(uuidStringWithoutCurlyBraces(domainID));
     publicKeyURL.setPath(publicKeyPath);
 

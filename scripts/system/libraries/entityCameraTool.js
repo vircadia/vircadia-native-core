@@ -68,6 +68,8 @@ CameraManager = function() {
 
     that.enabled = false;
     that.mode = MODE_INACTIVE;
+    var EDIT_CAMERA_MANAGER_CHANNEL = "Edit-Camera-Manager-Channel";
+    Messages.sendLocalMessage(EDIT_CAMERA_MANAGER_CHANNEL, JSON.stringify({ enabled: false }));
 
     var actions = {
         orbitLeft: 0,
@@ -153,6 +155,7 @@ CameraManager = function() {
 
         that.enabled = true;
         that.mode = MODE_INACTIVE;
+        Messages.sendLocalMessage(EDIT_CAMERA_MANAGER_CHANNEL, JSON.stringify({ enabled: true }));
 
         // Pick a point INITIAL_ZOOM_DISTANCE in front of the camera to use as a focal point
         that.zoomDistance = INITIAL_ZOOM_DISTANCE;
@@ -193,6 +196,7 @@ CameraManager = function() {
 
         that.enabled = false;
         that.mode = MODE_INACTIVE;
+        Messages.sendLocalMessage(EDIT_CAMERA_MANAGER_CHANNEL, JSON.stringify({ enabled: false }));
 
         if (!ignoreCamera) {
             Camera.mode = that.previousCameraMode;
