@@ -13,7 +13,7 @@
 
 
 #include <plugins/CodecPlugin.h>
-#include "opus/opus.h"
+#include <opus/opus.h>
 
 
 class AthenaOpusDecoder : public Decoder {
@@ -23,16 +23,16 @@ public:
 
 
     virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override;
-    virtual void lostFrame( QByteArray &decodedBuffer) override;
+    virtual void lostFrame(QByteArray &decodedBuffer) override;
 
 
 private:
     int _encodedSize;
 
     OpusDecoder *_decoder = nullptr;
-    int _opus_sample_rate = 0;
-    int _opus_num_channels = 0;
-    int _decoded_size = 0;
+    int _opusSampleRate = 0;
+    int _opusNumChannels = 0;
+    int _decodedSize = 0;
 };
 
 

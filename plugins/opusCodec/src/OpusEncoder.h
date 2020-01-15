@@ -58,7 +58,7 @@ public:
     void setInbandFEC(int fec);
 
     int getExpectedPacketLossPercent() const;
-    void setExpectedPacketLossPercent(int perc);
+    void setExpectedPacketLossPercentage(int percent);
 
     int getDTX() const;
     void setDTX(int dtx);
@@ -66,9 +66,9 @@ public:
 
 private:
 
-    int _opus_sample_rate = 0;
-    int _opus_channels = 0;
-    int _opus_expected_loss = 0;
+    int _opusSampleRate = 0;
+    int _opusChannels = 0;
+    int _opusExpectedLoss = 0;
 
 
     OpusEncoder* _encoder = nullptr;
