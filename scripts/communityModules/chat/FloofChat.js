@@ -28,12 +28,17 @@ var appUUID = Uuid.generate();
 
 var chatBar;
 var chatHistory;
+var chatBarHistoryLimit = Settings.getValue(settingsRoot + "/chatBarHistoryLimit", 256);
+var chatHistoryLimit = Settings.getValue(settingsRoot + "/chatHistoryLimit", 500);
+var chatBarHistory = Settings.getValue(settingsRoot + "/chatBarHistory", ["Meow :3"]);
 var historyLog = [];
-
 
 var visible = false;
 var historyVisible = false;
 var settingsRoot = "FloofChat";
+
+var darlingGotoUrl = "http://metaverse.darlingvr.club:8081/goto.json";
+var gotoJSONUrl = Settings.getValue(settingsRoot + "/gotoJSONUrl", darlingGotoUrl);
 
 var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain": false, "Grid": false});
 
@@ -69,7 +74,7 @@ function init() {
 
     button.clicked.connect(toggleChatHistory);
     chatBar.fromQml.connect(fromQml);
-    chatBar.sendToQml(JSON.stringify({visible: false}));
+    chatBar.sendToQml(JSON.stringify({visible: false, history: chatBarHistory}));
     Controller.keyPressEvent.connect(keyPressEvent);
     Messages.messageReceived.connect(messageReceived);
 
@@ -172,42 +177,72 @@ function chatColour(tab) {
 
 var chatBarChannel = "Local";
 
+function go2(msg) {
+    var dest = false;
+    var domainsList = Script.require("http://metaverse.darlingvr.club:8081/goto.json");
+    domainsList.forEach(function (domain) {
+        if (domain["Domain Name"].toLowerCase().indexOf(msg.toLowerCase()) !== -1) {
+            dest = {"name": domain["Domain Name"], "url": domain["Visit"]};
+            return;
+        }
+    });
+    return dest;
+}
 
-function gotoConfirm(url) {
-    var result = Window.confirm("Do you want to go to '" + ((url.indexOf("/") !== -1) ? url.split("/")[2] : url) + "'?");
+function gotoConfirm(url, name, confirm) {
+    confirm = confirm === undefined ? true : confirm;
+    name = name === undefined ? url : name;
+    var result = true;
+    if (confirm) {
+        result = Window.confirm("Do you want to go to '" + ((name.indexOf("/") !== -1) ? url.split("/")[2] : name) + "'?");
+    }
     if (result) {
         location = url;
     }
 }
 
 function processChat(cmd) {
+
+    function commandResult() {
+        msg = "";
+        setVisible(false);
+    }
+
     var msg = cmd.message;
     if (msg.indexOf("/") === 0) {
         msg = msg.substring(1);
         var commandList = msg.split(" ");
+        var tempList = commandList.join(";'#[]").split(";'#[]");
+        tempList.shift();
+        var restOfMsg = tempList.join(" ");
+
+        msg = "/" + msg;
         var cmd1 = commandList[0].toLowerCase();
         if (cmd1 === "l") {
             chatBarChannel = "Local";
-            msg = "";
+            commandResult();
         }
         if (cmd1 === "d") {
             chatBarChannel = "Domain";
-            msg = "";
+            commandResult();
         }
         if (cmd1 === "g") {
             chatBarChannel = "Grid";
-            msg = "";
+            commandResult();
         }
 
-        if (cmd1 === "goto") {
-            gotoConfirm(commandList[1]);
-            msg = "";
+        if (cmd1 === "goto" || cmd1 === "gotos") {
+            var result = go2(restOfMsg);
+            if (result) {
+                gotoConfirm(result.url, result.name, (cmd1 === "goto"));
+            } else {
+                gotoConfirm(commandList[1], undefined, (cmd1 === "goto"));
+            }
+            commandResult();
         }
 
         if (cmd1 === "me") {
-            var tempList = commandList;
-            tempList.shift();
-            msg = cmd.avatarName + " " + tempList.join(" ");
+            msg = cmd.avatarName + " " + restOfMsg;
             cmd.avatarName = "";
         }
     }
@@ -415,10 +450,18 @@ function time() {
 function addToLog(msg, dp, colour, tab) {
     historyLog.push([time(), msg, dp, colour, tab]);
     chatHistory.emitScriptEvent(JSON.stringify({type: "MSG", data: [[time(), msg, dp, colour, tab]]}));
-    while (historyLog.length > 500) {
+    while (historyLog.length > chatHistoryLimit) {
         historyLog.shift();
     }
     Settings.setValue(settingsRoot + "/HistoryLog", JSON.stringify(historyLog))
+}
+
+function addToChatBarHistory(msg) {
+    chatBarHistory.unshift(cmd.message);
+    while (chatBarHistory.length > chatBarHistoryLimit) {
+        chatBarHistory.pop();
+    }
+    Settings.setValue(settingsRoot + "/chatBarHistory", chatBarHistory);
 }
 
 function fromQml(message) {
@@ -431,6 +474,7 @@ function fromQml(message) {
     if (!cmd.FAILED) {
         if (cmd.type === "MSG") {
             if (cmd.message !== "") {
+                addToChatBarHistory(cmd.message);
                 if (cmd.event.modifiers === CONTROL_KEY) {
                     cmd.avatarName = MyAvatar.displayName;
                     cmd = processChat(cmd);
