@@ -462,7 +462,7 @@ function addToLog(msg, dp, colour, tab) {
 }
 
 function addToChatBarHistory(msg) {
-    chatBarHistory.unshift(cmd.message);
+    chatBarHistory.unshift(msg);
     while (chatBarHistory.length > chatBarHistoryLimit) {
         chatBarHistory.pop();
     }
