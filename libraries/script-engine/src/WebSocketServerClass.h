@@ -20,6 +20,8 @@
 /**jsdoc
  * Manages {@link WebSocket}s in server entity and assignment client scripts.
  *
+ * <p>Create using <code>new WebSocketServer(...)</code>.</p>
+ *
  * @class WebSocketServer
  *
  * @hifi-server-entity

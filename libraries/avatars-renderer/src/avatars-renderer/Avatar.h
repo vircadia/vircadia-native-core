@@ -207,7 +207,7 @@ public:
     /**jsdoc
      * Gets the default rotation of a joint (in the current avatar) relative to its parent.
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function MyAvatar.getDefaultJointRotation
      * @param {number} index - The joint index.
      * @returns {Quat} The default rotation of the joint if the joint index is valid, otherwise {@link Quat(0)|Quat.IDENTITY}.
@@ -218,7 +218,7 @@ public:
      * Gets the default translation of a joint (in the current avatar) relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function MyAvatar.getDefaultJointTranslation
      * @param {number} index - The joint index.
      * @returns {Vec3} The default translation of the joint (in model coordinates) if the joint index is valid, otherwise 
@@ -480,14 +480,7 @@ public:
     /**jsdoc
      * Gets information on all the joints in the avatar's skeleton.
      * @function MyAvatar.getSkeleton
-     * @returns {MyAvatar.SkeletonJoint[]} Information about each joint in the avatar's skeleton.
-     */
-    /**jsdoc
-     * Information about a single joint in an Avatar's skeleton hierarchy.
-     * @typedef {object} MyAvatar.SkeletonJoint
-     * @property {string} name - Joint name.
-     * @property {number} index - Joint index.
-     * @property {number} parentIndex - Index of this joint's parent (-1 if no parent).
+     * @returns {SkeletonJoint[]} Information about each joint in the avatar's skeleton.
      */
     Q_INVOKABLE QList<QVariant> getSkeleton();
 

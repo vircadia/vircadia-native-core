@@ -111,7 +111,7 @@ public:
      * Gets information about an avatar.
      * @function AvatarList.getAvatar
      * @param {Uuid} avatarID - The ID of the avatar.
-     * @returns {AvatarData} Information about the avatar.
+     * @returns {ScriptAvatar} Information about the avatar.
      */
     // Null/Default-constructed QUuids will return MyAvatar
     Q_INVOKABLE virtual ScriptAvatarData* getAvatar(QUuid avatarID) { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }

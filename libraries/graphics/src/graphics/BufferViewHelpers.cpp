@@ -34,6 +34,50 @@ namespace buffer_helpers {
 const std::array<const char*, 4> XYZW = { { "x", "y", "z", "w" } };
 const std::array<const char*, 4> ZERO123 = { { "0", "1", "2", "3" } };
 
+/**jsdoc
+ * <p>The type name of a graphics buffer.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"position"</code></td><td>Position buffer.</td></tr>
+ *     <tr><td><code>"normal"</code></td><td>normal buffer.</td></tr>
+ *     <tr><td><code>"tangent"</code></td><td>Tangent buffer.</td></tr>
+ *     <tr><td><code>"color"</code></td><td>Color buffer.</td></tr>
+ *     <tr><td><code>"skin_cluster_index"</code></td><td>Skin cluster index buffer.</td></tr>
+ *     <tr><td><code>"skin_cluster_weight"</code></td><td>Skin cluster weight buffer.</td></tr>
+ *     <tr><td><code>"texcoord0"</code></td><td>First UV coordinates buffer.</td></tr>
+ *     <tr><td><code>"texcoord1"</code></td><td>Second UV coordinates buffer.</td></tr>
+ *     <tr><td><code>"texcoord2"</code></td><td>Third UV coordinates buffer.</td></tr>
+ *     <tr><td><code>"texcoord3"</code></td><td>Fourth UV coordinates buffer.</td></tr>
+ *     <tr><td><code>"texcoord4"</code></td><td>Fifth UV coordinates buffer.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Graphics.BufferTypeName
+ */
+/**jsdoc
+ * <p>The type of a graphics buffer value as accessed by JavaScript.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Type</th><th>Name</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td>{@link Vec3}</td><td><code>"position"</code></td><td>Position buffer.</td></tr>
+ *     <tr><td>{@link Vec3}</td><td><code>"normal"</code></td><td>normal buffer.</td></tr>
+ *     <tr><td>{@link Vec3}</td><td><code>"tangent"</code></td><td>Tangent buffer.</td></tr>
+ *     <tr><td>{@link Vec4}</td><td><code>"color"</code></td><td>Color buffer.</td></tr>
+ *     <tr><td>{@link Vec4}</td><td><code>"skin_cluster_index"</code></td><td>Skin cluster index buffer.</td></tr>
+ *     <tr><td>{@link Vec4}</td><td><code>"skin_cluster_weight"</code></td><td>Skin cluster weight buffer.</td></tr>
+ *     <tr><td>{@link Vec2}</td><td><code>"texcoord0"</code></td><td>First UV coordinates buffer.</td></tr>
+ *     <tr><td>{@link Vec2}</td><td><code>"texcoord1"</code></td><td>Second UV coordinates buffer.</td></tr>
+ *     <tr><td>{@link Vec2}</td><td><code>"texcoord2"</code></td><td>Third UV coordinates buffer.</td></tr>
+ *     <tr><td>{@link Vec2}</td><td><code>"texcoord3"</code></td><td>Fourth UV coordinates buffer.</td></tr>
+ *     <tr><td>{@link Vec2}</td><td><code>"texcoord4"</code></td><td>Fifth UV coordinates buffer.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {Vec3|vec2} Graphics.BufferType
+ */
 QMap<QString,int> ATTRIBUTES{
     {"position", gpu::Stream::POSITION },
     {"normal", gpu::Stream::NORMAL },

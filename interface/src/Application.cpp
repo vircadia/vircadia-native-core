@@ -693,10 +693,17 @@ private:
  *   </thead>
  *   <tbody>
  *     <tr><td><code>CameraFirstPerson</code></td><td>number</td><td>number</td><td>The camera is in first-person mode.
- *       </td></tr>
+ *       <em>Legacy first person camera mode.</em></td></tr>
+ *     <tr><td><code>CameraFirstPersonLookAt</code></td><td>number</td><td>number</td><td>The camera is in first-person mode.
+ *       <em>Default first person camera mode.</em></td></tr>
  *     <tr><td><code>CameraThirdPerson</code></td><td>number</td><td>number</td><td>The camera is in third-person mode.
- *       </td></tr>
- *     <tr><td><code>CameraFSM</code></td><td>number</td><td>number</td><td>The camera is in full screen mirror mode.</td></tr>
+ *       <em>Legacy third person camera mode.</em></td></tr>
+ *     <tr><td><code>CameraLookAt</code></td><td>number</td><td>number</td><td>The camera is in third-person mode.
+ *       <em>Default third person camera mode.</em></td></tr>
+ *     <tr><td><code>CameraFSM</code></td><td>number</td><td>number</td><td>The camera is in full screen mirror mode.
+ *       <em>Legacy "look at myself" behavior.</em></td></tr>
+ *     <tr><td><code>CameraSelfie</code></td><td>number</td><td>number</td><td>The camera is in selfie mode.
+ *       <em>Default "look at myself" camera mode.</em></td></tr>
  *     <tr><td><code>CameraIndependent</code></td><td>number</td><td>number</td><td>The camera is in independent mode.</td></tr>
  *     <tr><td><code>CameraEntity</code></td><td>number</td><td>number</td><td>The camera is in entity mode.</td></tr>
  *     <tr><td><code>InHMD</code></td><td>number</td><td>number</td><td>The user is in HMD mode.</td></tr>
