@@ -64,11 +64,11 @@ jobs:
         echo ::set-env name=ARTIFACT_PATTERN::HighFidelity-Beta-*.$INSTALLER_EXT
         # Build type variables
         echo ::set-env name=INSTALLER::HighFidelity-Beta-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
-    - name: Clear Build Directory
+    - name: Clear Working Directory
       if: matrix.os[1] == 'windows'
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: rm -rf ${{runner.workspace}}/*
+      run: rm -rf ./*
     - uses: actions/checkout@v1
       with: 
         submodules: true
