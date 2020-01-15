@@ -16,6 +16,7 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 #include "AccountManager.h"
 #include <QJsonObject>
 #include <QJsonDocument>
@@ -1464,7 +1465,7 @@ void EntityTree::startDynamicDomainVerificationOnServer(float minimumAgeToRemove
         QNetworkRequest networkRequest;
         networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-        QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
+        QUrl requestURL = MetaverseAPI::getCurrentMetaverseServerURL();
         requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
         QJsonObject request;
         request["certificate_id"] = certificateID;
@@ -1687,7 +1688,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
     QNetworkRequest networkRequest;
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
+    QUrl requestURL = MetaverseAPI::getCurrentMetaverseServerURL();
     requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
     QJsonObject request;
     request["certificate_id"] = certID;

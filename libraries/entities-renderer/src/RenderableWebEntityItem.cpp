@@ -28,6 +28,7 @@
 
 #include "EntitiesRendererLogging.h"
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 
 using namespace render;
 using namespace render::entities;

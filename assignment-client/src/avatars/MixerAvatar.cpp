@@ -22,6 +22,7 @@
 #include <ResourceManager.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 #include <EntityItem.h>
 #include <EntityItemProperties.h>
 #include "ClientTraitsHandler.h"
@@ -235,7 +236,7 @@ void MixerAvatar::requestCurrentOwnership() {
     QNetworkRequest networkRequest;
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
+    QUrl requestURL = MetaverseAPI::getCurrentMetaverseServerURL();
     requestURL.setPath(POP_MARKETPLACE_API);
     networkRequest.setUrl(requestURL);
 
