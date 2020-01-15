@@ -28,7 +28,7 @@ jobs:
   build:
     strategy:
         matrix:
-          os: [windows-latest, macOS-latest]
+          os: [[self-hosted, windows], macOS-latest]
           build_type: [full]
         fail-fast: false
     runs-on: ${{matrix.os}}
@@ -51,7 +51,7 @@ jobs:
           echo ::set-env name=CMAKE_EXTRA::"-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode"
         fi
         # Windows build variables
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+        if [ "${{ matrix.os[1] }}" = "windows" ]; then
           echo ::set-env name=PYTHON_EXEC::python
           echo ::set-env name=INSTALLER_EXT::exe
           echo ::set-env name=CMAKE_EXTRA::"-A x64"
@@ -95,6 +95,11 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target package
+    - name: Output Installer Logs
+      if: failure() && matrix.os[1] == 'windows'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
 
   build_full_linux:
     runs-on: ubuntu-latest
