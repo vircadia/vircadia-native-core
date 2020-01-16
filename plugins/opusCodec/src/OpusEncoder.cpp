@@ -147,7 +147,7 @@ int AthenaOpusEncoder::getVBRConstraint() const {
 void AthenaOpusEncoder::setVBRConstraint(int vbr_const) {
     assert(_encoder);
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_VBR_CONSTRAINT(vbr_const));
-    
+
     if (errorCode != OPUS_OK) {
         qCWarning(encoder) << "Error when setting VBR constraint to " << vbr_const << ": " << errorToString(errorCode);
     }
@@ -163,7 +163,7 @@ int AthenaOpusEncoder::getMaxBandwidth() const {
 void AthenaOpusEncoder::setMaxBandwidth(int maxBandwidth) {
     assert(_encoder);
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_MAX_BANDWIDTH(maxBandwidth));
-    
+
     if (errorCode != OPUS_OK) {
         qCWarning(encoder) << "Error when setting max bandwidth to " << maxBandwidth << ": " << errorToString(errorCode);
     }
