@@ -632,7 +632,7 @@ function isReturnedDataEmptyHistory(data) {
     var historyArray = data.data.history;
     return historyArray.length === 0;
 }
-
+/*
 var DEVELOPER_MENU = "Developer";
 var MARKETPLACE_ITEM_TESTER_LABEL = "Marketplace Item Tester";
 var MARKETPLACE_ITEM_TESTER_QML_SOURCE = "hifi/commerce/marketplaceItemTester/MarketplaceItemTester.qml";
@@ -662,7 +662,7 @@ function uninstallMarketplaceItemTester() {
         Menu.removeMenuItem(DEVELOPER_MENU, MARKETPLACE_ITEM_TESTER_LABEL);
     }
 }
-
+*/
 var BUTTON_NAME = "INVENTORY";
 var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
 var SENDASSET_QML_SOURCE = "hifi/commerce/common/sendAsset/SendAsset.qml";
@@ -701,7 +701,7 @@ function startup() {
         notificationPollCaresAboutSince: notificationPollCaresAboutSinceArray
     });
     GlobalServices.myUsernameChanged.connect(onUsernameChanged);
-    installMarketplaceItemTester();
+    // installMarketplaceItemTester();
 }
 
 var isUpdateOverlaysWired = false;
@@ -725,7 +725,7 @@ function off() {
 function shutdown() {
     GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
     deleteSendMoneyParticleEffect();
-    uninstallMarketplaceItemTester();
+    // uninstallMarketplaceItemTester();
     off();
 }
 
