@@ -138,12 +138,12 @@ public:
         bool operator==(const DepthTest& right) const {
             return
                     writeMask == right.writeMask &&
-                    enabled   == right.enabled &&
-                    function  == right.function;
+                    enabled == right.enabled &&
+                    function == right.function;
         }
 
         bool operator!=(const DepthTest& right) const {
-            return !(right == *this);
+            return !(*this == right);
         }
 
         operator QString() const {
@@ -179,12 +179,12 @@ public:
 
         bool operator==(const StencilTest& right) const {
             return
-                    function    == right.function &&
-                    failOp      == right.failOp &&
+                    function == right.function &&
+                    failOp == right.failOp &&
                     depthFailOp == right.depthFailOp &&
-                    passOp      == right.passOp &&
-                    reference   == right.reference &&
-                    readMask    == right.readMask;
+                    passOp == right.passOp &&
+                    reference == right.reference &&
+                    readMask == right.readMask;
 
         }
 
@@ -209,12 +209,12 @@ public:
         bool operator==(const StencilActivation& right) const {
             return
                 frontWriteMask == right.frontWriteMask &&
-                backWriteMask  == right.backWriteMask &&
-                enabled        == right.enabled;
+                backWriteMask == right.backWriteMask &&
+                enabled == right.enabled;
         }
 
         bool operator!=(const StencilActivation& right) const {
-            return !(right == *this);
+            return !(*this == right);
         }
     };
 
@@ -256,18 +256,18 @@ public:
 
         bool operator==(const BlendFunction& right) const {
             return
-                    enabled      == right.enabled &&
-                    sourceColor  == right.sourceColor &&
-                    sourceAlpha  == right.sourceAlpha &&
-                    destColor    == right.destColor &&
-                    destAlpha    == right.destAlpha &&
-                    opColor      == right.opColor &&
-                    opAlpha      == right.opAlpha;
+                    enabled == right.enabled &&
+                    sourceColor == right.sourceColor &&
+                    sourceAlpha == right.sourceAlpha &&
+                    destColor == right.destColor &&
+                    destAlpha == right.destAlpha &&
+                    opColor == right.opColor &&
+                    opAlpha == right.opAlpha;
 
         }
 
         bool operator!=(const BlendFunction& right) const {
-            return !(right == *this);
+            return !(*this == right);
         }
     };
 
@@ -285,17 +285,17 @@ public:
 
         bool operator==(const Flags& right) const {
             return
-                    frontFaceClockwise    == right.frontFaceClockwise &&
-                    depthClampEnable      == right.depthClampEnable &&
-                    scissorEnable         == right.scissorEnable &&
-                    multisampleEnable     == right.multisampleEnable &&
-                    antialisedLineEnable  == right.antialisedLineEnable &&
+                    frontFaceClockwise == right.frontFaceClockwise &&
+                    depthClampEnable == right.depthClampEnable &&
+                    scissorEnable == right.scissorEnable &&
+                    multisampleEnable == right.multisampleEnable &&
+                    antialisedLineEnable == right.antialisedLineEnable &&
                     alphaToCoverageEnable == right.alphaToCoverageEnable;
 
         }
 
         bool operator!=(const Flags& right) const {
-            return !(right == *this);
+            return !(*this == right);
         }
     };
 
