@@ -56,7 +56,7 @@ jobs:
           echo ::set-env name=INSTALLER_EXT::exe
           echo ::set-env name=CMAKE_EXTRA::"-A x64"
         fi
-    # Configureation is broken into two steps because you can't set an env var and also reference it in the same step
+    # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
     - name: Configure Build Environment 2
       shell: bash
       run: |
@@ -64,6 +64,11 @@ jobs:
         echo ::set-env name=ARTIFACT_PATTERN::HighFidelity-Beta-*.$INSTALLER_EXT
         # Build type variables
         echo ::set-env name=INSTALLER::HighFidelity-Beta-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+    - name: Clear Working Directory
+      if: matrix.os[1] == 'windows'
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: rm -rf ./*
     - uses: actions/checkout@v1
       with: 
         submodules: true

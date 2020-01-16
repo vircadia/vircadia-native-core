@@ -130,7 +130,7 @@ jobs:
           echo "::set-env name=SYMBOL_REGEX::\(exe\|dll\|pdb\)"
           echo "::set-output name=symbols_archive::${{ steps.buildnumber.outputs.build_number }}-${{ matrix.build_type }}-win-symbols.zip"
         fi
-    # Configureation is broken into two steps because you can't set an env var and also reference it in the same step
+    # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
     - name: Configure Build Environment 2
       shell: bash
       run: |
@@ -159,6 +159,11 @@ jobs:
           echo ::set-env name=HF_PFX_PASSPHRASE::${{secrets.pfx_key}}
           echo "::set-env name=HF_PFX_FILE::${{runner.workspace}}\build\codesign.pfx"
         fi          
+    - name: Clear Working Directory
+      if: matrix.os[1] == 'windows'
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: rm -rf ./*
     - uses: actions/checkout@v1
       with: 
         submodules: true
@@ -228,7 +233,7 @@ jobs:
       run: |
         SYMBOLS_TEMP="symbols-temp"
         mkdir $SYMBOLS_TEMP
-        find "${{runner.workspace}}/build" \( -path '*/tools/gpu-frame-player/*' -or -path '*/interface/*' -or -path '*/plugins/*' \) -regex ".*\.$SYMBOL_REGEX" -exec cp -r {} $SYMBOLS_TEMP \;
+        find "./build" \( -path '*/tools/gpu-frame-player/*' -or -path '*/interface/*' -or -path '*/plugins/*' \) -regex ".*\.$SYMBOL_REGEX" -exec cp -r {} $SYMBOLS_TEMP \;
         cd $SYMBOLS_TEMP
         $ZIP_COMMAND $ZIP_ARGS ../${{ steps.buildenv1.outputs.symbols_archive }} .
     - name: Upload Symbols
