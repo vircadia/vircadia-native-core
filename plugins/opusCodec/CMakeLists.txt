@@ -12,5 +12,5 @@ link_hifi_libraries(shared audio plugins)
 target_opus()
 
 if (BUILD_SERVER)
-  install_beside_console()
+    install_beside_console()
 endif ()

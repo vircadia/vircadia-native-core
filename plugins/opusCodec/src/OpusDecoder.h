@@ -29,7 +29,7 @@ public:
 private:
     int _encodedSize;
 
-    OpusDecoder *_decoder = nullptr;
+    OpusDecoder* _decoder = nullptr;
     int _opusSampleRate = 0;
     int _opusNumChannels = 0;
     int _decodedSize = 0;

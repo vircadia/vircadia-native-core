@@ -41,7 +41,7 @@ static QString errorToString(int error) {
 
 AthenaOpusEncoder::AthenaOpusEncoder(int sampleRate, int numChannels) {
     _opusSampleRate = sampleRate;
-    _opusChannels    = numChannels;
+    _opusChannels = numChannels;
 
     int error;
 
@@ -72,8 +72,8 @@ void AthenaOpusEncoder::encode(const QByteArray& decodedBuffer, QByteArray& enco
     PerformanceTimer perfTimer("AthenaOpusEncoder::encode");
     assert(_encoder);
 
-    encodedBuffer.resize( decodedBuffer.size() );
-    int frameSize = decodedBuffer.length()/ _opusChannels / static_cast<int>(sizeof(opus_int16));
+    encodedBuffer.resize(decodedBuffer.size());
+    int frameSize = decodedBuffer.length() / _opusChannels / static_cast<int>(sizeof(opus_int16));
 
     int bytes = opus_encode(_encoder, reinterpret_cast<const opus_int16*>(decodedBuffer.constData()), frameSize,
         reinterpret_cast<unsigned char*>(encodedBuffer.data()), encodedBuffer.size() );
@@ -231,28 +231,28 @@ int AthenaOpusEncoder::getInbandFEC() const {
     return fec;
 }
 
-void AthenaOpusEncoder::setInbandFEC(int fec) {
+void AthenaOpusEncoder::setInbandFEC(int inBandFEC) {
     assert(_encoder);
-    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_INBAND_FEC(fec));
+    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_INBAND_FEC(inBandFEC));
 
     if (errorCode != OPUS_OK) {
-        qCWarning(encoder) << "Error when setting inband FEC to " << fec << ": " << errorToString(errorCode);
+        qCWarning(encoder) << "Error when setting inband FEC to " << inBandFEC << ": " << errorToString(errorCode);
     }
 }
 
-int AthenaOpusEncoder::getExpectedPacketLossPercent() const {
+int AthenaOpusEncoder::getExpectedPacketLossPercentage() const {
     assert(_encoder);
     int lossPercentage;
     opus_encoder_ctl(_encoder, OPUS_GET_PACKET_LOSS_PERC(&lossPercentage));
     return lossPercentage;
 }
 
-void AthenaOpusEncoder::setExpectedPacketLossPercentage(int percent) {
+void AthenaOpusEncoder::setExpectedPacketLossPercentage(int percentage) {
     assert(_encoder);
-    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_PACKET_LOSS_PERC(percent));
+    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_PACKET_LOSS_PERC(percentage));
 
     if (errorCode != OPUS_OK) {
-        qCWarning(encoder) << "Error when setting loss percent to " << percent << ": " << errorToString(errorCode);
+        qCWarning(encoder) << "Error when setting loss percent to " << percentage << ": " << errorToString(errorCode);
     }
 }
 

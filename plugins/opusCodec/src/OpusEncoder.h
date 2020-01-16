@@ -38,27 +38,27 @@ public:
     void setVBR(int vbr);
 
     int getVBRConstraint() const;
-    void setVBRConstraint(int vbr_const);
+    void setVBRConstraint(int vbrConstraint);
 
     int getMaxBandwidth() const;
-    void setMaxBandwidth(int maxbw);
+    void setMaxBandwidth(int maxBandwidth);
 
     int getBandwidth() const;
-    void setBandwidth(int bw);
+    void setBandwidth(int bandwidth);
 
     int getSignal() const;
     void setSignal(int signal);
 
     int getApplication() const;
-    void setApplication(int app);
+    void setApplication(int application);
 
     int getLookahead() const;
 
     int getInbandFEC() const;
-    void setInbandFEC(int fec);
+    void setInbandFEC(int inBandFEC);
 
-    int getExpectedPacketLossPercent() const;
-    void setExpectedPacketLossPercentage(int percent);
+    int getExpectedPacketLossPercentage() const;
+    void setExpectedPacketLossPercentage(int percentage);
 
     int getDTX() const;
     void setDTX(int dtx);
