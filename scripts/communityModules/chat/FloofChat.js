@@ -188,7 +188,6 @@ function go2(msg) {
     domainsList.forEach(function (domain) {
         if (domain["Domain Name"].toLowerCase().indexOf(msg.toLowerCase()) !== -1 && !dest) {
             dest = {"name": domain["Domain Name"], "url": domain["Visit"]};
-
         }
     });
     return dest;
@@ -217,7 +216,7 @@ function processChat(cmd) {
     if (msg.indexOf("/") === 0) {
         msg = msg.substring(1);
         var commandList = msg.split(" ");
-        var tempList = commandList.join(";'#[]").split(";'#[]");
+        var tempList = commandList.concat();
         tempList.shift();
         var restOfMsg = tempList.join(" ");
 

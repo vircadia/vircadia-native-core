@@ -30,19 +30,19 @@ Rectangle {
         } catch(e){
             //
         }
-        if(!data.failed){
-            if(data.cmd){
+        if (!data.failed) {
+            if (data.cmd) {
                 JSConsole.executeCommand(data.msg);
             }
             console.log(data.visible);
-            if(data.visible){
+            if (data.visible) {
                 thing.visible = true;
                 textArea.focus = true;
-            } else if(!data.visible){
+            } else if (!data.visible) {
                 thing.visible = false;
                 textArea.focus = false;
             }
-            if(data.history){
+            if (data.history) {
                 history = data.history;
             }
         }
@@ -69,36 +69,36 @@ Rectangle {
             clip: false
             font.pointSize: 20
 
-            function _onEnterPressed(event){
-                sendMessage(JSON.stringify({type:"MSG",message:text,event:event}));
+            function _onEnterPressed(event) {
+                sendMessage(JSON.stringify({type:"MSG", message:text, event:event}));
                 history.unshift(text);
                 text = "";
                 hist = -1;
             }
 
-            function upPressed(event){
+            function upPressed(event) {
                 hist++;
-                if(hist > history.length-1){
+                if (hist > history.length-1) {
                     hist = history.length-1;
                 }
                 text = history[hist];
             }
-            function downPressed(event){
+            function downPressed(event) {
                 hist--;
-                if(hist<-1){
+                if (hist < -1) {
                     hist = -1;
                 }
-                if(hist===-1){
+                if (hist === -1) {
                     text = "";
                  } else{
                     text = history[hist];
                  }
             }
 
-            Keys.onReturnPressed: { _onEnterPressed(event) }
-            Keys.onEnterPressed: { _onEnterPressed(event) }
-            Keys.onUpPressed: { upPressed(event) }
-            Keys.onDownPressed: { downPressed(event) }
+            Keys.onReturnPressed: { _onEnterPressed(event); }
+            Keys.onEnterPressed: { _onEnterPressed(event); }
+            Keys.onUpPressed: { upPressed(event); }
+            Keys.onDownPressed: { downPressed(event); }
         }
 
         MouseArea {
