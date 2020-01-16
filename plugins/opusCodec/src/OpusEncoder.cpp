@@ -160,12 +160,12 @@ int AthenaOpusEncoder::getMaxBandwidth() const {
     return returnValue;
 }
 
-void AthenaOpusEncoder::setMaxBandwidth(int maxbw) {
+void AthenaOpusEncoder::setMaxBandwidth(int maxBandwidth) {
     assert(_encoder);
-    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_MAX_BANDWIDTH(maxbw));
+    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_MAX_BANDWIDTH(maxBandwidth));
     
     if (errorCode != OPUS_OK) {
-        qCWarning(encoder) << "Error when setting max bandwidth to " << maxbw << ": " << errorToString(errorCode);
+        qCWarning(encoder) << "Error when setting max bandwidth to " << maxBandwidth << ": " << errorToString(errorCode);
     }
 }
 

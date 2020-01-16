@@ -57,8 +57,9 @@ AthenaOpusDecoder::AthenaOpusDecoder(int sampleRate, int numChannels) {
 }
 
 AthenaOpusDecoder::~AthenaOpusDecoder() {
-    if (_decoder)
+    if (_decoder) {
         opus_decoder_destroy(_decoder);
+    }
 
 }
 
@@ -71,7 +72,7 @@ void AthenaOpusDecoder::decode(const QByteArray &encodedBuffer, QByteArray &deco
         * _opusNumChannels;
 
     decodedBuffer.resize(bufferSize);
-    int bufferFrames = decodedBuffer.size() / _opusNumChannels / static_cast<int>(sizeof( opus_int16 ));
+    int bufferFrames = decodedBuffer.size() / _opusNumChannels / static_cast<int>(sizeof(opus_int16));
 
     qCDebug(decoder) << "Opus decode: encodedBytes = " << encodedBuffer.length() << "; decodedBufferBytes = "
         << decodedBuffer.size() << "; frameCount = " << bufferFrames;
@@ -109,7 +110,7 @@ void AthenaOpusDecoder::lostFrame(QByteArray &decodedBuffer) {
     int bufferFrames = decodedBuffer.size() / _opusNumChannels / static_cast<int>(sizeof(opus_int16));
 
     int decoded_frames = opus_decode(_decoder, nullptr, 0, reinterpret_cast<opus_int16*>(decodedBuffer.data()),
-        bufferFrames, 1 );
+        bufferFrames, 1);
 
     if (decoded_frames >= 0) {
 
