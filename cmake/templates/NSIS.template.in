@@ -424,7 +424,7 @@ Function GetCampaignName
     Pop $0 ; Discard Path
     Pop $0 ; Recover filename
     ; Parse campaign out of the filename
-    ${RECaptureMatches} $0 "ProjectAthena-([^-]*-)Beta-.*" $0 0
+    ${RECaptureMatches} $0 "ProjectAthena-([^-]*-)Alpha-.*" $0 0
     ${If} $0 == 1
       Pop $0 ; Recover campaign name
       StrCpy $0 $0 -1 0 ; Remove trailing - and copy to _RetVar
