@@ -3185,7 +3185,7 @@ void Application::showLoginScreen() {
         QJsonObject loginData = {};
         loginData["action"] = "login dialog popped up";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-        _window->setWindowTitle("Project Athena");
+        _window->setWindowTitle("High Fidelity");
     } else {
         resumeAfterLoginDialogActionTaken();
     }
@@ -7067,7 +7067,7 @@ void Application::updateWindowTitle() const {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
 
-    QString buildVersion = " - Project Athena Interface v0.86.0 K2 - "
+    QString buildVersion = " - Project Athena v0.86.0 K2 - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
 
