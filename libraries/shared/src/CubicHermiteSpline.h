@@ -19,6 +19,8 @@ public:
 
     CubicHermiteSplineFunctor(const CubicHermiteSplineFunctor& orig) : _p0(orig._p0), _m0(orig._m0), _p1(orig._p1), _m1(orig._m1) {}
 
+    CubicHermiteSplineFunctor& operator=(const CubicHermiteSplineFunctor&) = default;
+
     virtual ~CubicHermiteSplineFunctor() {}
 
     // evalute the hermite curve at parameter t (0..1)
@@ -84,6 +86,8 @@ public:
     CubicHermiteSplineFunctorWithArcLength(const CubicHermiteSplineFunctorWithArcLength& orig) : CubicHermiteSplineFunctor(orig) {
         memcpy(_values, orig._values, sizeof(float) * (NUM_SUBDIVISIONS + 1));
     }
+
+    CubicHermiteSplineFunctorWithArcLength& operator=(const CubicHermiteSplineFunctorWithArcLength&) = default;
 
     // given the spline parameter (0..1) output the arcLength of the spline up to that point.
     float arcLength(float t) const {

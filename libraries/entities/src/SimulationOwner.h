@@ -112,6 +112,7 @@ public:
 
     SimulationOwner();
     SimulationOwner(const QUuid& id, uint8_t priority);
+    SimulationOwner(const SimulationOwner &) = default;
 
     const QUuid& getID() const { return _id; }
     const uint64_t& getExpiry() const { return _expiry; }
