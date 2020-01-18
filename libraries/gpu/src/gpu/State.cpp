@@ -94,20 +94,3 @@ static std::string hex(T t) {
     stream << std::hex << t;
     return stream.str();
 }
-
-std::string State::getKey() const {
-    std::string key;
-    key = hex(*(int*)&_values.depthBias);
-    key += ":" + hex(*(int*)&_values.depthBiasSlopeScale);
-    key += ":" + hex(_values.depthTest.getRaw());
-    key += ":" + hex(_values.stencilActivation.getRaw());
-    key += ":" + hex(_values.stencilTestFront.getRaw());
-    key += ":" + hex(_values.stencilTestBack.getRaw());
-    key += ":" + hex(_values.blendFunction.getRaw());
-    key += ":" + hex(_values.sampleMask);
-    // fillMode, cullMode, colorMaskWrite and the flags consume 32 bits alltogether
-    static_assert(0 == offsetof(State::Data, fillMode) % 4, "Validate fillMode offset");
-    key += ":" + hex(*(int*)&_values.fillMode);
-    return key;
-}
-
