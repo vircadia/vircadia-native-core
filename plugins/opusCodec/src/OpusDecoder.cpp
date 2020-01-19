@@ -73,9 +73,6 @@ void AthenaOpusDecoder::decode(const QByteArray &encodedBuffer, QByteArray &deco
 
     decodedBuffer.resize(bufferSize);
     int bufferFrames = decodedBuffer.size() / _opusNumChannels / static_cast<int>(sizeof(opus_int16));
-
-    qCDebug(decoder) << "Opus decode: encodedBytes = " << encodedBuffer.length() << "; decodedBufferBytes = "
-        << decodedBuffer.size() << "; frameCount = " << bufferFrames;
     int decoded_frames = opus_decode(_decoder, reinterpret_cast<const unsigned char*>(encodedBuffer.data()),
         encodedBuffer.length(), reinterpret_cast<opus_int16*>(decodedBuffer.data()), bufferFrames, 0);
 
