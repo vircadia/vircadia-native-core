@@ -40,12 +40,12 @@ wget https://cmake.org/files/v3.14/cmake-3.14.2-Linux-x86_64.sh
 sudo sh cmake-3.14.2-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
 ```
 #### Install build dependencies:
--  OpenSSL  
+-  OpenSSL:
 ```bash
 sudo apt-get install libssl-dev
 ```
 Verify with `openssl version`  
-- OpenGL
+- OpenGL:
 ```bash
 sudo apt-get install libgl1-mesa-dev -y
 sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.346.35 /usr/lib/x86_64-linux-gnu/libGL.so.1.2.0
@@ -57,32 +57,32 @@ sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.346.35 /usr/lib/x86_64-linux-gnu/l
 ```bash
 sudo apt-get -y install libpulse0 libnss3 libnspr4 libfontconfig1 libxcursor1 libxcomposite1 libxtst6 libxslt1.1
 ```
--  Misc dependencies
+-  Misc dependencies:
 ```bash
 sudo apt-get install libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack0 libjack-dev libxrandr-dev libudev-dev libssl-dev zlib1g-dev
 ```
--  Install Python 3 and required packages
+-  Install Python 3 and required packages:
 ```bash
 sudo apt-get install python python3 python3-distro
 ```
--  Install node, required to build the jsdoc documentation
+-  Install node, required to build the jsdoc documentation:
 ```bash
 sudo apt-get install nodejs
 ```
 
-### Get code and checkout the tag you need
+### Get code and checkout the branch you need
 
 Clone this repository:
 ```bash
 git clone https://github.com/kasenvr/project-athena.git
 ```
 
-To compile a RELEASE version checkout the tag you need getting a list of all tags:
+To compile a DEV version checkout the branch you need. To get a list of all tags:
 ```bash
 git fetch -a
 ```
 
-Then checkout last tag with:
+Then checkout the main branch with:
 ```bash
 git checkout kasen/core
 ```
@@ -121,7 +121,7 @@ core machine, you could use:
 make -j4 interface
 ```
 
-In a server, it does not make sense to compile interface
+In a server, it does not make sense to compile interface.
 
 ### Running the software
 
@@ -150,7 +150,7 @@ Go to localhost in the running interface.
 
 #### Notes
 
-If your goal is to setup a development environment, it is desirable to set the
+If your goal is to setup a development environment, it is desirable to set up the
 directory that vcpkg builds to via the `HIFI_VCPKG_BASE` environment variable.
 By default, vcpkg will build in the system `/tmp` directory.
 
