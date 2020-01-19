@@ -150,7 +150,7 @@ Go to localhost in the running interface.
 
 #### Notes
 
-If your goal is to setup a development environment, it is desirable to set up the
+If your goal is to set up a development environment, it is desirable to set the
 directory that vcpkg builds to via the `HIFI_VCPKG_BASE` environment variable.
 By default, vcpkg will build in the system `/tmp` directory.
 
