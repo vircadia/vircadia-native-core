@@ -326,7 +326,7 @@ Item {
         text: "This item is not for sale yet, <a href='#'>learn more</a>."
 
         onLinkActivated: {
-            Qt.openUrlExternally("https://docs.highfidelity.com/sell/add-item/upload-avatar.html");
+            Qt.openUrlExternally("https://docs.projectathena.dev/sell/add-item/upload-avatar.html");
         }
     }
 

@@ -87,7 +87,7 @@ public slots:
     /**jsdoc
      * Gets the default rotation of a joint in the avatar relative to its parent.
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
+     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function ScriptAvatar.getDefaultJointRotation
      * @param {number} index - The joint index.
      * @returns {Quat} The default rotation of the joint if avatar data are available and the joint index is valid, otherwise 
@@ -99,7 +99,7 @@ public slots:
      * Gets the default translation of a joint in the avatar relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
+     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function ScriptAvatar.getDefaultJointTranslation
      * @param {number} index - The joint index.
      * @returns {Vec3} The default translation of the joint (in model coordinates) if avatar data are available and the joint 
