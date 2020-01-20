@@ -87,8 +87,8 @@ public slots:
      *     type: "Model",
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(Camera.orientation, { x: -0.5, y: 0, z: -3 })),
      *     rotation: MyAvatar.orientation,
-     *     modelURL: "http://content.highfidelity.com/seefo/production/puck-attach/vive_tracker_puck.obj",
-     *     dimensions: { x: 0.945, y: 0.921, z: 0.423 },
+     *     modelURL: "https://apidocs.projectathena.dev/models/cowboy-hat.fbx",
+     *     dimensions: { x: 0.8569, y: 0.3960, z: 1.0744 },
      *     lifetime: 300  // Delete after 5 minutes.
      * });
      * var shapeEntityID = Entities.addEntity({

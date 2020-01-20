@@ -665,7 +665,7 @@ public:
      * @param {number} firstFrame - The frame to start the animation at.
      * @param {number} lastFrame - The frame to end the animation at.
      * @example <caption> Play a clapping animation on your avatar for three seconds. </caption>
-     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+     * var ANIM_URL = "https://apidocs.projectathena.dev/models/ClapHands_Standing.fbx";
      * MyAvatar.overrideAnimation(ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreAnimation();
@@ -688,7 +688,7 @@ public:
      * @param {number} firstFrame - The frame to start the animation at.
      * @param {number} lastFrame - The frame to end the animation at.
      * @example <caption> Override left hand animation for three seconds.</caption>
-     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+     * var ANIM_URL = "https://apidocs.projectathena.dev/models/ClapHands_Standing.fbx";
      * MyAvatar.overrideHandAnimation(isLeft, ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreHandAnimation();
@@ -705,7 +705,7 @@ public:
      * animation, this function has no effect.</p>
      * @function MyAvatar.restoreAnimation
      * @example <caption> Play a clapping animation on your avatar for three seconds. </caption>
-     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+     * var ANIM_URL = "https://apidocs.projectathena.dev/models/ClapHands_Standing.fbx";
      * MyAvatar.overrideAnimation(ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreAnimation();
@@ -722,7 +722,7 @@ public:
      * @function MyAvatar.restoreHandAnimation
      * @param isLeft {boolean} Set to true if using the left hand
      * @example <caption> Override left hand animation for three seconds. </caption>
-     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+     * var ANIM_URL = "https://apidocs.projectathena.dev/models/ClapHands_Standing.fbx";
      * MyAvatar.overrideHandAnimation(isLeft, ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreHandAnimation();
@@ -780,7 +780,7 @@ public:
      * hanging at its sides when it is not moving, the avatar will stand and clap its hands. Note that just as it did before, as soon as the avatar
      * starts to move, the animation will smoothly blend into the walk animation used by the "walkFwd" animation role.</caption>
      * // An animation of the avatar clapping its hands while standing. Restore default after 30s.
-     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+     * var ANIM_URL = "https://apidocs.projectathena.dev/models/ClapHands_Standing.fbx";
      * MyAvatar.overrideRoleAnimation("idleStand", ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreRoleAnimation();
