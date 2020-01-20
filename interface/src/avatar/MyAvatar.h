@@ -154,12 +154,12 @@ class MyAvatar : public Avatar {
      *     <p><strong>Note:</strong> This property will automatically be set to <code>true</code> if the controller system has
      *     valid facial blend shape actions.</p>
      * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating
-     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code>
-     *     to fully control the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
+     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set to <code>false</code> to fully control 
+     *     the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
      * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes
      *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property
-     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set this property to
-     *     <code>false</code> to fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
+     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set to <code>false</code> to 
+     *     fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
      * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate
      *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set
      *     this property to <code>false</code> to fully control the mouth facial blend shapes via the
@@ -1793,15 +1793,15 @@ public:
 
     /**jsdoc
      * Turns the avatar's head until it faces the target point within a +90/-90 degree range.
-     * Once this method is called, API calls will have full control of the head for a limited time.
-     * If this method is not called for 2 seconds, the engine will regain control of the head.
+     * Once this method is called, API calls have full control of the head for a limited time.
+     * If this method is not called for 2 seconds, the engine regains control of the head.
      * @function MyAvatar.setHeadLookAt
      * @param {Vec3} lookAtTarget - The target point in world coordinates.
      */
     Q_INVOKABLE void setHeadLookAt(const glm::vec3& lookAtTarget);
 
     /**jsdoc
-     * Returns the current target point of the head's look direction in world coordinates.
+     * Gets the current target point of the head's look direction in world coordinates.
      * @function MyAvatar.getHeadLookAt
      * @returns {Vec3} The head's look-at target in world coordinates.
      */
@@ -1815,7 +1815,7 @@ public:
 
     /**jsdoc
      * Forces the avatar's eyes to look at a specified location. Once this method is called, API calls
-     * have full control of the eyes for a limited time. If this method is not called for two seconds, 
+     * full control of the eyes for a limited time. If this method is not called for 2 seconds, 
      * the engine regains control of the eyes.
      * @function MyAvatar.setEyesLookAt
      * @param {Vec3} lookAtTarget - The target point in world coordinates.
@@ -1823,7 +1823,7 @@ public:
     Q_INVOKABLE void setEyesLookAt(const glm::vec3& lookAtTarget);
 
     /**jsdoc
-     * Returns the current target point of the eyes look direction in world coordinates.
+     * Gets the current target point of the eyes look direction in world coordinates.
      * @function MyAvatar.getEyesLookAt
      * @returns {Vec3} The eyes' look-at target in world coordinates.
      */

@@ -19,7 +19,7 @@
 /**jsdoc
  * Information about an avatar.
  *
- * <p>Created using {@link MyAvatar.getTargetAvatar} or {@link AvatarList.getAvatar}.</p>
+ * <p>Create using {@link MyAvatar.getTargetAvatar} or {@link AvatarList.getAvatar}.</p>
  *
  * @class ScriptAvatar
  * @hideconstructor
@@ -152,7 +152,7 @@ public slots:
 
 
     /**jsdoc
-     * Gets the ID of the entity of avatar that the avatar is parented to.
+     * Gets the ID of the entity or avatar that the avatar is parented to.
      * @function ScriptAvatar.getParentID
      * @returns {Uuid} The ID of the entity or avatar that the avatar is parented to. {@link Uuid(0)|Uuid.NULL} if not parented 
      *     or avatar data aren't available.

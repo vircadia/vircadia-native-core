@@ -248,7 +248,7 @@ signals:
     void sessionDisplayNameChanged();
 
     /**jsdoc
-     * Triggered when the avatar's model (i.e., <code>skeletonModelURL</code> property value) is changed.
+     * Triggered when the avatar's model (i.e., <code>skeletonModelURL</code> property value) changes.
      * @function ScriptAvatar.skeletonModelURLChanged
      * @returns {Signal}
      */

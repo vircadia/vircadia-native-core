@@ -538,12 +538,12 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     <p><strong>Note:</strong> This property will automatically be set to <code>true</code> if the controller system has 
      *     valid facial blend shape actions.</p>
      * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating 
-     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code> 
-     *     to fully control the blink facial blend shapes via the {@link Avatar.setBlendshape} method.
+     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set to <code>false</code> to fully control 
+     *     the blink facial blend shapes via the {@link Avatar.setBlendshape} method.
      * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes 
      *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property 
-     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set this property to  
-     *     <code>false</code> to fully control the eye blend shapes via the {@link Avatar.setBlendshape} method.
+     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set to <code>false</code> to
+     *     fully control the eye blend shapes via the {@link Avatar.setBlendshape} method.
      * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate 
      *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set 
      *     this property to <code>false</code> to fully control the mouth facial blend shapes via the 
@@ -1542,7 +1542,7 @@ signals:
     void sessionDisplayNameChanged();
 
     /**jsdoc
-     * Triggered when the avatar's model (i.e., <code>skeletonModelURL</code> property value) is changed.
+     * Triggered when the avatar's model (i.e., <code>skeletonModelURL</code> property value) changes.
      * @function Avatar.skeletonModelURLChanged
      * @returns {Signal}
      * @example <caption>Report when your avatar's skeleton model changes.</caption>

@@ -13,7 +13,7 @@ namespace scriptable {
     /**jsdoc
      * A handle to in-memory mesh part data in a {@link GraphicsModel}.
      *
-     * <p>Created using the {@link Graphics} API, {@link GraphicsModel.cloneModel}, {@link GraphicsMesh.cloneMesh}, or 
+     * <p>Create using the {@link Graphics} API, {@link GraphicsModel.cloneModel}, {@link GraphicsMesh.cloneMesh}, or 
      * {@link GraphicsMeshPart.cloneMeshPart}.</p>
      *
      * @class GraphicsMeshPart

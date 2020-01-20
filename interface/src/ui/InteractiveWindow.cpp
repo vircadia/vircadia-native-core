@@ -145,7 +145,7 @@ void InteractiveWindow::emitMainWindowResizeEvent() {
  * @property {InteractiveWindow.Flags} [additionalFlags=0] - Customizes window behavior.
  * @property {InteractiveWindow.OverrideFlags} [overrideFlags=0] - Customizes window controls.
 
-  * @property {InteractiveWindow.RelativePositionAnchor} [relativePositionAnchor] - he anchor for the 
+  * @property {InteractiveWindow.RelativePositionAnchor} [relativePositionAnchor] - The anchor for the 
   *     <code>relativePosition</code>, if used.
   * @property {Vec2} [relativePosition] - The position of the window, relative to the <code>relativePositionAnchor</code>, in 
   *     pixels. Excludes the window frame.

@@ -82,15 +82,15 @@
  *     <p><strong>Note:</strong> This property will automatically be set to true if the Controller system has valid facial 
  *     blend shape actions.</p>
  * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating 
- *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code> if 
- *     you wish to fully control the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
+ *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set to <code>false</code> to fully control 
+ *     the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
  * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes 
  *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property 
- *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set this property to  
- *     <code>false</code> if you wish to fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
+ *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set to <code>false</code> to 
+ *     fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
  * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate 
  *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set 
- *     this property to <code>false</code> if you wish to fully control the mouth facial blend shapes via the 
+ *     this property to <code>false</code> to fully control the mouth facial blend shapes via the 
  *     {@link MyAvatar.setBlendshape} method.
  *
  * @example <caption>Create a scriptable avatar.</caption>

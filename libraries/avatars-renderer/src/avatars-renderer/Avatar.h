@@ -442,7 +442,7 @@ public:
     void setOrientationViaScript(const glm::quat& orientation) override;
 
     /**jsdoc
-     * Gets the ID of the entity of avatar that the avatar is parented to.
+     * Gets the ID of the entity or avatar that the avatar is parented to.
      * @function MyAvatar.getParentID
      * @returns {Uuid} The ID of the entity or avatar that the avatar is parented to. {@link Uuid(0)|Uuid.NULL} if not parented.
      */
@@ -450,7 +450,7 @@ public:
     Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
 
     /**jsdoc
-     * Sets the ID of the entity of avatar that the avatar is parented to.
+     * Sets the ID of the entity or avatar that the avatar is parented to.
      * @function MyAvatar.setParentID
      * @param {Uuid} parentID - The ID of the entity or avatar that the avatar should be parented to. Set to 
      *    {@link Uuid(0)|Uuid.NULL} to unparent.
