@@ -2333,7 +2333,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     if (isURL) {
         setParentURL(scriptOrURL);
     }
-
+    
     // SANITY/PERFORMANCE CHECK USING SANDBOX
     const int SANDBOX_TIMEOUT = 0.25 * MSECS_PER_SECOND;
     BaseScriptEngine sandbox;
@@ -2369,11 +2369,23 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         QList<QString> safeURLPrefixes = { "file:///", "atp:", "cache:" };
         safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
 
-        // IF WHITELIST IS DISABLED IN SETTINGS
-        bool whitelistEnabled = Setting::Handle<bool>("private/whitelistEnabled", true).get();
+        // ENTITY SCRIPT WHITELIST TOGGLE CHECK
+        Setting::Handle<bool> whitelistEnabledSetting{"private/whitelistEnabled", true}; // Assume it is enabled.
+        bool whitelistEnabled = whitelistEnabledSetting.get();
+        
+        // QVariant whitelistEnabledExists = Setting::Handle<QVariant>("private/whitelistEnabled", false).get();
+        if (whitelistEnabled) {
+            whitelistEnabledSetting.set(true);
+            qCDebug(scriptengine) << "Whitelist toggle setting does not exist. Creating setting now.";
+        } else {
+            qCDebug(scriptengine) << "Whitelist toggle setting does not exist. Creating setting now.";
+            whitelistEnabledSetting.set(false);
+        }
+        
         if (!whitelistEnabled) {
             passList = true;
         }
+        qCDebug(scriptengine) << "Whitelist Enabled: " << whitelistEnabled;
         
         // PULL SAFEURLS FROM INTERFACE.JSON Settings
         QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();

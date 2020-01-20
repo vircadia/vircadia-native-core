@@ -8,7 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-// Security Settings for the Entity Script Whitelist
+// Security Settings for the Entity Script QML Whitelist
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.8
@@ -21,38 +21,55 @@ import "../../../windows"
 
 
 Rectangle {
+	id: "parentBody";
+	property var checkboxReady: "false";
   
-  function getWhitelistAsText() {
-    var whitelist = Settings.getValue("private/settingsSafeURLS");
-    var arrayWhitelist = whitelist.split(",");
-    var whitelistText = arrayWhitelist.join("\n");
-    return whitelistText;
-  }
+	function getWhitelistAsText() {
+		var whitelist = Settings.getValue("private/settingsSafeURLS");
+		var arrayWhitelist = whitelist.split(",");
+		var whitelistText = arrayWhitelist.join("\n");
+		return whitelistText;
+	}
   
-  function setWhitelistAsText(whitelistText) {
-    Settings.setValue("private/settingsSafeURLS", whitelistText.text);
-    
-    var originalSetString = whitelistText.text;
-    var originalSet = originalSetString.split(' ').join('');
-    
-    var check = Settings.getValue("private/settingsSafeURLS");
-    var arrayCheck = check.split(",");
-    var textCheck = arrayCheck.join("\n");
-    
-    if(textCheck == originalSet) {
-      setWhitelistSuccess(true);
-    } else {
-      setWhitelistSuccess(false);
-    }
-  }
+	function setWhitelistAsText(whitelistText) {
+		Settings.setValue("private/settingsSafeURLS", whitelistText.text);
+
+		var originalSetString = whitelistText.text;
+		var originalSet = originalSetString.split(' ').join('');
+
+		var check = Settings.getValue("private/settingsSafeURLS");
+		var arrayCheck = check.split(",");
+		var textCheck = arrayCheck.join("\n");
+
+		if (textCheck == originalSet) {
+			setWhitelistSuccess(true);
+		} else {
+			setWhitelistSuccess(false);
+		}
+	}
   
-  function setWhitelistSuccess(success) {
-    if(success) {
-      notificationText.text = "Successfully saved settings.";
-    } else {
-      notificationText.text = "Error! Settings not saved.";
-    }
-  }
+	function setWhitelistSuccess(success) {
+		if (success) {
+			notificationText.text = "Successfully saved settings.";
+		} else {
+			notificationText.text = "Error! Settings not saved.";
+		}
+	}
+  
+	function toggleWhitelist(enabled) {
+		Settings.setValue("private/whitelistEnabled", enabled);
+		console.info("NANI?",enabled);
+	}
+	
+	function initCheckbox() {
+		var check = Settings.getValue("private/whitelistEnabled");
+		
+		console.info("Triggered init. Val:", check);
+		if (check == "true") {
+			whiteListEnabled.checked = "true";
+			parentBody.checkboxReady = "true";
+		}
+	}
   
   
   anchors.fill: parent
@@ -60,23 +77,51 @@ Rectangle {
   height: 120;
   color: "#80010203";
 
-  HifiStylesUit.RalewayRegular {
-      id: titleText;
-      text: "Entity Script Whitelist"
-      // Text size
-      size: 24;
-      // Style
-      color: "white";
-      elide: Text.ElideRight;
-      // Anchors
-      anchors.top: parent.top;
-      anchors.left: parent.left;
-      anchors.leftMargin: 20;
-      anchors.right: parent.right;
-      anchors.rightMargin: 20;
-      height: 60;
-  }
-  
+	HifiStylesUit.RalewayRegular {
+		id: titleText;
+		text: "Entity Script / QML Whitelist"
+		// Text size
+		size: 24;
+		// Style
+		color: "white";
+		elide: Text.ElideRight;
+		// Anchors
+		anchors.top: parent.top;
+		anchors.left: parent.left;
+		anchors.leftMargin: 20;
+		anchors.right: parent.right;
+		anchors.rightMargin: 20;
+		height: 60;
+
+		CheckBox {
+			Component.onCompleted: {
+				initCheckbox();
+			}
+			
+			id: whiteListEnabled;
+			
+			anchors.right: parent.right;
+			anchors.top: parent.top;
+			anchors.topMargin: 10;
+			onCheckedChanged: {
+				console.info("Triggered.0");
+				if (parentBody.checkboxReady == "true") {
+					console.info("Resolved.0");
+					toggleWhitelist(whiteListEnabled.checked)
+				}
+			}
+			
+			Label {
+			    text: "Enabled"
+				color: "white"
+				font.pixelSize: 18;
+				anchors.right: parent.left;
+				anchors.top: parent.top;
+				anchors.topMargin: 10;
+			}
+		}
+	}
+
   Rectangle {
     id: textAreaRectangle;
     color: "black";
@@ -129,30 +174,39 @@ Rectangle {
           id: notificationText;
           text: ""
           // Text size
-          size: 14;
+          size: 16;
           // Style
           color: "white";
           elide: Text.ElideLeft;
           // Anchors
-          anchors.right: parent.right;
-          anchors.rightMargin: 130;
+          anchors.right: parent.left;
+          anchors.rightMargin: 10;
       }
     }
     
     HifiStylesUit.RalewayRegular {
         id: descriptionText;
-        text: "Separate your URLs by line, not commas. Example:
-        https://google.com/
-        https://bing.com/
-        https://mydomain.here/
-        \nEnsure there are no spaces or whitespace.
-        \nFor QML files, you can only whitelist each file individually 
-        ending with '.qml'."
+        text: 
+"The whitelist checks scripts/QML as it is loaded.<br/>
+Therefore, if a script is cached or has no reason to load again,<br/>
+then removing it from the whitelist will not be effective until<br/>
+it is reloaded.<br/>
+Separate your whitelisted domains by line, not commas. e.g.
+<blockquote>
+	<b>https://google.com/</b><br/>
+	<b>hifi://the-spot/</b><br/>
+	<b>127.0.0.1</b><br/>
+	<b>https://mydomain.here/</b>
+</blockquote>
+Ensure there are no spaces or whitespace.<br/><br/>
+For QML files, you can only whitelist each file individually <br/>
+ending with '.qml'."
         // Text size
         size: 16;
         // Style
         color: "white";
         elide: Text.ElideRight;
+		textFormat: Text.RichText;
         // Anchors
         anchors.top: parent.bottom;
         anchors.topMargin: 90;
