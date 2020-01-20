@@ -2051,7 +2051,8 @@ public slots:
     float getGravity();
 
     /**jsdoc
-     * Moves the avatar to a new position and/or orientation in the domain, while taking into account Avatar leg-length.
+     * Moves the avatar to a new position and/or orientation in the domain, with safe landing, while taking into account avatar 
+     * leg length.
      * @function MyAvatar.goToFeetLocation
      * @param {Vec3} position - The new position for the avatar, in world coordinates.
      * @param {boolean} [hasOrientation=false] - Set to <code>true</code> to set the orientation of the avatar.
@@ -2076,14 +2077,14 @@ public slots:
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
                       bool shouldFaceLocation = false, bool withSafeLanding = true);
     /**jsdoc
-     * Moves the avatar to a new position and (optional) orientation in the domain.
+     * Moves the avatar to a new position and (optional) orientation in the domain, with safe landing.
      * @function MyAvatar.goToLocation
      * @param {MyAvatar.GoToProperties} target - The goto target.
      */
     void goToLocation(const QVariant& properties);
 
     /**jsdoc
-     * Moves the avatar to a new position and then enables collisions.
+     * Moves the avatar to a new position, with safe landing, and enables collisions.
      * @function MyAvatar.goToLocationAndEnableCollisions
      * @param {Vec3} position - The new position for the avatar, in world coordinates.
      */
