@@ -115,8 +115,8 @@ make interface
 
 The commands above will compile with a single thread. If you have enough memory,
 you can decrease your build time using the `-j` flag. Since most x64 CPUs
-support two threads per core, this works out to CPU_COUNT*2. If you have a 2
-core machine, you could use:
+support two threads per core, this works out to CPU_COUNT*2. As an example, if
+you have a 2 core machine, you could use:
 ```
 make -j4 interface
 ```
@@ -151,7 +151,8 @@ Go to localhost in the running interface.
 #### Notes
 
 If your goal is to set up a development environment, it is desirable to set the
-directory that vcpkg builds to via the `HIFI_VCPKG_BASE` environment variable.
+directory that vcpkg builds into with the `HIFI_VCPKG_BASE` environment variable.
+For example, you might set `HIFI_VCPKG_BASE` to `/home/$USER/vcpkg`.
 By default, vcpkg will build in the system `/tmp` directory.
 
 ##### Ubuntu 18.04 only
