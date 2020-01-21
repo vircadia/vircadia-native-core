@@ -55,18 +55,17 @@
     var urlRegEx = /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;,:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+,~%\/\.\w\-]*)?\??(?:[\-\+=&;,:%@\.\w]*)#?(?:[\.\!\/\\\w]*))?)/g;
 
     function reverseMatches(msg) {
-        var con = [];
+        var result = [];
         var matches = msg.match(urlRegEx);
         if (matches === null) {
             matches = [];
         }
         for (var i = 0; i <= matches.length; i++) {
-            var sp = msg.split(matches[i], 2);
-            console.log(sp);
-            con.push(sp[0]);
-            msg = sp[1];
+            var split = msg.split(matches[i], 2);
+            result.push(split[0]);
+            msg = split[1];
         }
-        return con;
+        return result;
     }
 
     //Start George Function
@@ -83,25 +82,25 @@
 
                 var match = content.match(urlRegEx);
                 var matchLength = match === null ? 0 : match.length;
-                var cons = reverseMatches(content);
+                var messageParts = reverseMatches(content);
 
-                var con = [];
-                var tent = [];
-                var con_tent = [];
+                var messageFormatted = [];
+                var urlLinkified = [];
+                var completeMessage = [];
 
                 for (var i = 0; i < matchLength; i++) {
-                    tent.push(_linkify(match[i], options));
+                    urlLinkified.push(_linkify(match[i], options));
                 }
 
-                for (var i = 0; i < cons.length; i++) {
-                    con.push(replaceFormatting(cons[i]));
+                for (var i = 0; i < messageParts.length; i++) {
+                    messageFormatted.push(replaceFormatting(messageParts[i]));
                 }
 
                 for (var i = 0; i < con.length; i++) {
-                    con_tent.push(con[i], tent[i]);
+                    completeMessage.push(messageFormatted[i], urlLinkified[i]);
                 }
 
-                $el.html(con_tent.join(""));
+                $el.html(completeMessage.join(""));
             });
         };
 
