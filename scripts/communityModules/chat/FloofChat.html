@@ -52,6 +52,22 @@
     var $ChatLog; // The scrolling chat log.
     var $ChatInputText; // The text field for entering text.
     var userName;
+    var urlRegEx = /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;,:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+,~%\/\.\w\-]*)?\??(?:[\-\+=&;,:%@\.\w]*)#?(?:[\.\!\/\\\w]*))?)/g;
+
+    function reverseMatches(msg) {
+        var con = [];
+        var matches = msg.match(urlRegEx);
+        if (matches === null) {
+            matches = [];
+        }
+        for (var i = 0; i <= matches.length; i++) {
+            var sp = msg.split(matches[i], 2);
+            console.log(sp);
+            con.push(sp[0]);
+            msg = sp[1];
+        }
+        return con;
+    }
 
     //Start George Function
     //Function provided by George Deac
@@ -62,11 +78,30 @@
 
         $.fn.linky = function (options) {
             return this.each(function () {
-                var $el = $(this),
-                    linkifiedContent = _linkify($el, options);
-                var formattedContent = replaceFormatting(linkifiedContent);
+                var $el = $(this);
+                var content = $el.html();
 
-                $el.html(formattedContent);
+                var match = content.match(urlRegEx);
+                var matchLength = match === null ? 0 : match.length;
+                var cons = reverseMatches(content);
+
+                var con = [];
+                var tent = [];
+                var con_tent = [];
+
+                for (var i = 0; i < matchLength; i++) {
+                    tent.push(_linkify(match[i], options));
+                }
+
+                for (var i = 0; i < cons.length; i++) {
+                    con.push(replaceFormatting(cons[i]));
+                }
+
+                for (var i = 0; i < con.length; i++) {
+                    con_tent.push(con[i], tent[i]);
+                }
+
+                $el.html(con_tent.join(""));
             });
         };
 
@@ -92,9 +127,8 @@
                     linkTo: "twitter" // Let's default to Twitter
                 },
                 extendedOptions = $.extend(defaultOptions, options),
-                elContent = $el.html(),
+                elContent = $el,
                 // Regular expression courtesy of Matthew O'Riordan, see: http://goo.gl/3syEKK
-                urlRegEx = /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;,:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+,~%\/\.\w\-]*)?\??(?:[\-\+=&;,:%@\.\w]*)#?(?:[\.\!\/\\\w]*))?)/g,
                 matches;
 
             // Linkifying URLs
@@ -121,7 +155,7 @@
         // For any URLs present, unless they are already identified within
         // an `a` element, linkify them.
         function _linkifyUrls(matches, $el) {
-            var elContent = $el.html();
+            var elContent = $el;
 
             $.each(matches, function () {
 
