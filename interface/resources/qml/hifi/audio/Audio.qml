@@ -44,7 +44,6 @@ Rectangle {
         return (root.parent !== null) && root.parent.objectName == "loader";
     }
 
-
     property bool isVR: AudioScriptingInterface.context === "VR"
     property real rightMostInputLevelPos: root.width
     //placeholder for control sizes and paddings
@@ -128,7 +127,8 @@ Rectangle {
             anchors.top: flickView.top;
             anchors.right: flickView.right;
             anchors.bottom: flickView.bottom;
-            anchors.rightMargin: -verticalScrollWidth; //compensate flickView's right margin
+            anchors.rightMargin: 2
+
             background: Item {
                 implicitWidth: verticalScrollWidth;
                 Rectangle {
