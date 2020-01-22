@@ -117,15 +117,16 @@ Item {
                 anchors.top: scrollView.top
                 anchors.right: scrollView.right
                 anchors.bottom: scrollView.bottom
-                anchors.rightMargin: 2
+                z: 100  // Display over top of separators.
 
                 background: Item {
                     implicitWidth: verticalScrollWidth
                     Rectangle {
-                        color: hifi.colors.darkGray30;
+                        color: hifi.colors.baseGrayShadow
                         radius: 4
                         anchors {
                             fill: parent
+                            bottomMargin: 1
                         }
                     }
                 }
@@ -136,7 +137,6 @@ Item {
                         color: hifi.colors.white30
                         anchors {
                             fill: parent
-                            leftMargin: 1  // Finesse size and position.
                             topMargin: 1
                             bottomMargin: 1
                         }
