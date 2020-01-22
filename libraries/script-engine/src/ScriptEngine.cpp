@@ -2374,9 +2374,9 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         bool whitelistEnabled = _whitelistEnabled.get();
                 
         if (!whitelistEnabled) {
+            qCDebug(scriptengine) << "Whitelist Enabled: " << whitelistEnabled;
             passList = true;
         }
-        qCDebug(scriptengine) << "Whitelist Enabled: " << whitelistEnabled;
         
         // PULL SAFEURLS FROM INTERFACE.JSON Settings
         QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
@@ -2391,7 +2391,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         QString domainSafeURL = URL_SCHEME_HIFI + "://" + currentDomain;
         for (const auto& str : safeURLPrefixes) {
             if (domainSafeURL.startsWith(str) || domainSafeIP.startsWith(str)) {
-                qCDebug(scriptengine) << whitelistPrefix << "Whitelist Bypassed. Current Domain Host: " 
+                qCDebug(scriptengine) << whitelistPrefix << "Whitelist Bypassed, entire domain is whitelisted. Current Domain Host: " 
                     << nodeList->getDomainHandler().getHostname()
                     << "Current Domain: " << currentDomain;
                 passList = true;

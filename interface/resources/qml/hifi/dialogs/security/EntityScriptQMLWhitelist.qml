@@ -57,13 +57,12 @@ Rectangle {
   
 	function toggleWhitelist(enabled) {
 		Settings.setValue("private/whitelistEnabled", enabled);
-		console.info("NANI?",enabled);
+		console.info("Toggling Whitelist to:", enabled);
 	}
 		
 	function initCheckbox() {
 		var check = Settings.getValue("private/whitelistEnabled");
 		
-		console.info("Triggered init. Val:", check);
 		if (check == true) {
 			whitelistEnabled.toggle();
 		}
@@ -102,7 +101,6 @@ Rectangle {
             anchors.top: parent.top;
             anchors.topMargin: 10;
             onToggled: {
-                console.info("Triggered.0");
                 toggleWhitelist(whitelistEnabled.checked)
             }
   
