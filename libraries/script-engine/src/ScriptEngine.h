@@ -975,8 +975,6 @@ protected:
 
     QWeakPointer<ScriptEngines> _scriptEngines;
     
-    Setting::Handle<bool> _whitelistEnabled{"private/whitelistEnabled", false };
-
 };
 
 ScriptEnginePointer scriptEngineFactory(ScriptEngine::Context context,
