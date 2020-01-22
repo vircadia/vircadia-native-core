@@ -1,9 +1,5 @@
 # Project Athena
 
-### [Download ALPHA-DEV v0.86.0 K1 (Windows 64-bit, .zip)](https://realities.dev/cdn/hifi-community/v0860-kasen-VS-release+freshstart/Packaged_Release.zip)
-
-This build has been tested on Windows 10 Pro 64-bit w/ Nvidia graphics drivers.
-
 #### v0.86.0 K1 (12/3/19)
 
 * Audio Buffer choppy audio bugfix by increasing the buffer size.
