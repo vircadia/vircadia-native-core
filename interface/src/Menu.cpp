@@ -293,7 +293,6 @@ Menu::Menu() {
         auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
         auto hmd = DependencyManager::get<HMDScriptingInterface>();
         
-        DependencyManager::get<OffscreenUi>()->clearCache();
         tablet->pushOntoStack("hifi/dialogs/security/EntityScriptQMLWhitelist.qml");
 
         if (!hmd->getShouldShowTablet()) {
