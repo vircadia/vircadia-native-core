@@ -973,9 +973,10 @@ protected:
 
     Setting::Handle<bool> _enableExtendedJSExceptions { _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS, true };
 
-    Setting::Handle<bool> whitelistEnabledSetting { "DELME/whitelistEnabled", false };  // Set to false if not exist.
-
     QWeakPointer<ScriptEngines> _scriptEngines;
+    
+    Setting::Handle<bool> _whitelistEnabled{"private/whitelistEnabled", false };
+
 };
 
 ScriptEnginePointer scriptEngineFactory(ScriptEngine::Context context,

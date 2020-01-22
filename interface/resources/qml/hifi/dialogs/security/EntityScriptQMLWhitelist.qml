@@ -21,8 +21,7 @@ import "../../../windows"
 
 
 Rectangle {
-	id: "parentBody";
-	property var checkboxReady: "false";
+	id: parentBody;
   
 	function getWhitelistAsText() {
 		var whitelist = Settings.getValue("private/settingsSafeURLS");
@@ -60,14 +59,13 @@ Rectangle {
 		Settings.setValue("private/whitelistEnabled", enabled);
 		console.info("NANI?",enabled);
 	}
-	
+		
 	function initCheckbox() {
 		var check = Settings.getValue("private/whitelistEnabled");
 		
 		console.info("Triggered init. Val:", check);
-		if (check == "true") {
-			whiteListEnabled.checked = "true";
-			parentBody.checkboxReady = "true";
+		if (check == true) {
+			whitelistEnabled.toggle();
 		}
 	}
   
@@ -94,32 +92,29 @@ Rectangle {
 		height: 60;
 
 		CheckBox {
-			Component.onCompleted: {
-				initCheckbox();
-			}
-			
-			id: whiteListEnabled;
-			
-			anchors.right: parent.right;
-			anchors.top: parent.top;
-			anchors.topMargin: 10;
-			onCheckedChanged: {
-				console.info("Triggered.0");
-				if (parentBody.checkboxReady == "true") {
-					console.info("Resolved.0");
-					toggleWhitelist(whiteListEnabled.checked)
-				}
-			}
-			
-			Label {
-			    text: "Enabled"
-				color: "white"
-				font.pixelSize: 18;
-				anchors.right: parent.left;
-				anchors.top: parent.top;
-				anchors.topMargin: 10;
-			}
-		}
+            Component.onCompleted: {
+                initCheckbox();
+            }
+  
+            id: whitelistEnabled;
+  
+            anchors.right: parent.right;
+            anchors.top: parent.top;
+            anchors.topMargin: 10;
+            onToggled: {
+                console.info("Triggered.0");
+                toggleWhitelist(whitelistEnabled.checked)
+            }
+  
+            Label {
+                text: "Enabled"
+                color: "white"
+                font.pixelSize: 18;
+                anchors.right: parent.left;
+                anchors.top: parent.top;
+                anchors.topMargin: 10;
+            }
+        }
 	}
 
   Rectangle {
