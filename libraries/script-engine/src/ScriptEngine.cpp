@@ -2370,17 +2370,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
 
         // ENTITY SCRIPT WHITELIST TOGGLE CHECK
-        Setting::Handle<bool> whitelistEnabledSetting{"private/whitelistEnabled", true}; // Assume it is enabled.
         bool whitelistEnabled = whitelistEnabledSetting.get();
-        
-        // QVariant whitelistEnabledExists = Setting::Handle<QVariant>("private/whitelistEnabled", false).get();
-        if (whitelistEnabled) {
-            whitelistEnabledSetting.set(true);
-            qCDebug(scriptengine) << "Whitelist toggle setting does not exist. Creating setting now.";
-        } else {
-            qCDebug(scriptengine) << "Whitelist toggle setting does not exist. Creating setting now.";
-            whitelistEnabledSetting.set(false);
-        }
         
         if (!whitelistEnabled) {
             passList = true;
