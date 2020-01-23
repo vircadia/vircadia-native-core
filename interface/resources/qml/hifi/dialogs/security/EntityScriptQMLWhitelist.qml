@@ -38,11 +38,7 @@ Rectangle {
         var check = Settings.getValue("private/settingsSafeURLS");
         var arrayCheck = check.split(",").join("\n");
 
-        if (arrayCheck === originalSet) {
-            setWhitelistSuccess(true);
-        } else {
-            setWhitelistSuccess(false);
-        }
+        setWhitelistSuccess(arrayCheck === originalSet);
     }
 
     function setWhitelistSuccess(success) {
