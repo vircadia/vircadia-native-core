@@ -21,52 +21,50 @@ import "../../../windows"
 
 
 Rectangle {
-	id: parentBody;
-  
-	function getWhitelistAsText() {
-		var whitelist = Settings.getValue("private/settingsSafeURLS");
-		var arrayWhitelist = whitelist.split(",");
-		var whitelistText = arrayWhitelist.join("\n");
-		return whitelistText;
-	}
-  
-	function setWhitelistAsText(whitelistText) {
-		Settings.setValue("private/settingsSafeURLS", whitelistText.text);
+    id: parentBody;
 
-		var originalSetString = whitelistText.text;
-		var originalSet = originalSetString.split(' ').join('');
+    function getWhitelistAsText() {
+        var whitelist = Settings.getValue("private/settingsSafeURLS");
+        var arrayWhitelist = whitelist.split(",").join("\n");
+        return arrayWhitelist;
+    }
 
-		var check = Settings.getValue("private/settingsSafeURLS");
-		var arrayCheck = check.split(",");
-		var textCheck = arrayCheck.join("\n");
+    function setWhitelistAsText(whitelistText) {
+        Settings.setValue("private/settingsSafeURLS", whitelistText.text);
 
-		if (textCheck == originalSet) {
-			setWhitelistSuccess(true);
-		} else {
-			setWhitelistSuccess(false);
-		}
-	}
-  
-	function setWhitelistSuccess(success) {
-		if (success) {
-			notificationText.text = "Successfully saved settings.";
-		} else {
-			notificationText.text = "Error! Settings not saved.";
-		}
-	}
-  
-	function toggleWhitelist(enabled) {
-		Settings.setValue("private/whitelistEnabled", enabled);
-		console.info("Toggling Whitelist to:", enabled);
-	}
-		
-	function initCheckbox() {
-		var check = Settings.getValue("private/whitelistEnabled");
-		
-		if (check == true) {
-			whitelistEnabled.toggle();
-		}
-	}
+        var originalSetString = whitelistText.text;
+        var originalSet = originalSetString.split(' ').join('');
+
+        var check = Settings.getValue("private/settingsSafeURLS");
+        var arrayCheck = check.split(",").join("\n");
+
+        if (arrayCheck === originalSet) {
+            setWhitelistSuccess(true);
+        } else {
+            setWhitelistSuccess(false);
+        }
+    }
+
+    function setWhitelistSuccess(success) {
+        if (success) {
+            notificationText.text = "Successfully saved settings.";
+        } else {
+            notificationText.text = "Error! Settings not saved.";
+        }
+    }
+
+    function toggleWhitelist(enabled) {
+        Settings.setValue("private/whitelistEnabled", enabled);
+        console.info("Toggling Whitelist to:", enabled);
+    }
+
+    function initCheckbox() {
+        var check = Settings.getValue("private/whitelistEnabled", false);
+
+        if (check) {
+            whitelistEnabled.toggle();
+        }
+    }
   
   
   anchors.fill: parent
@@ -180,7 +178,7 @@ Rectangle {
     HifiStylesUit.RalewayRegular {
         id: descriptionText;
         text: 
-"The whitelist checks scripts/QML as it is loaded.<br/>
+"The whitelist checks scripts & QML as they are loaded.<br/>
 Therefore, if a script is cached or has no reason to load again,<br/>
 then removing it from the whitelist will not be effective until<br/>
 it is reloaded.<br/>

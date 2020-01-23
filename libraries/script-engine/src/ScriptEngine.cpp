@@ -2333,7 +2333,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     if (isURL) {
         setParentURL(scriptOrURL);
     }
-    
+
     // SANITY/PERFORMANCE CHECK USING SANDBOX
     const int SANDBOX_TIMEOUT = 0.25 * MSECS_PER_SECOND;
     BaseScriptEngine sandbox;
@@ -2370,8 +2370,8 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
 
         // ENTITY SCRIPT WHITELIST TOGGLE CHECK
-        Setting::Handle<bool> _whitelistEnabled{"private/whitelistEnabled", false };
-        bool whitelistEnabled = _whitelistEnabled.get();
+        Setting::Handle<bool> whitelistEnabled{"private/whitelistEnabled", false };
+        bool whitelistEnabled = whitelistEnabled.get();
                 
         if (!whitelistEnabled) {
             qCDebug(scriptengine) << "Whitelist Enabled: " << whitelistEnabled;

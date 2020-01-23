@@ -974,7 +974,6 @@ protected:
     Setting::Handle<bool> _enableExtendedJSExceptions { _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS, true };
 
     QWeakPointer<ScriptEngines> _scriptEngines;
-    
 };
 
 ScriptEnginePointer scriptEngineFactory(ScriptEngine::Context context,
