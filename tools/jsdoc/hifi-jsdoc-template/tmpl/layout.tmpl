@@ -25,6 +25,16 @@
 			min-height: 0 !important;
 		}
 	</style>
+	<script>
+	//We are running the check here to preload the theme because it may load the incorrect one first for a split second.
+		var darkDisabled = JSON.parse(localStorage.getItem('darkDisabled'));
+		if (darkDisabled == null) {
+			localStorage.setItem('darkDisabled', JSON.stringify("false"));
+		} else {
+			var nightSheet = document.querySelector('[href="styles/night.css"]');
+			nightSheet.disabled = darkDisabled;
+		}
+	</script>
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
     <link href="images/fav-icon.ico" rel="shortcut icon">
 </head>
@@ -105,13 +115,7 @@
 
 		}),
 		created: function () {
-			var darkDisabled = JSON.parse(localStorage.getItem('darkDisabled'));
-			if (darkDisabled == null) {
-				localStorage.setItem('darkDisabled', JSON.stringify("false"));
-			} else {
-				var nightSheet = document.querySelector('[href="styles/night.css"]');
-				nightSheet.disabled = darkDisabled;
-			}
+
 		},
 		methods: {
 			toggleNightMode: function() {
