@@ -3,7 +3,7 @@ html {
 }
 
 body h1 {
-	color: white;
+	color: #eaeaea;
 }
 
 body {
@@ -63,5 +63,5 @@ table tr:nth-child(2n) {
 }
 
 .important {
-	color: #BF2424 !important;
+	color: #F91E1E !important;
 }

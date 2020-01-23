@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <title><?js= title ?></title>
 	
-	<script src="scripts/vue_dev.js"></script>
+	<script src="scripts/vue.min.js"></script>
 	<script src="scripts/vuetify.js"></script>
     
     <script src="scripts/prettify/prettify.js"></script>
@@ -31,6 +31,11 @@
 <body>
 
 <div class="nav-header">
+    <p><a href="https://projectathena.io"><img src="images/project-athena-logo.png" width="214px" /></a></p>
+    <?js if (env.conf.docdash.search) { ?>
+    <input type="text" class="search-input" id="nav-search" placeholder="Search API Docs ..." />
+    <?js } ?>
+    <p><a href="https://docs.projectathena.dev">Looking for <strong>Project Athena</strong><br /> Documentation?</a></p>
 	<div id="app">
 		<v-app dark>
 			<v-btn @click="toggleNightMode" text dark>
@@ -39,11 +44,6 @@
 			</v-btn>
 		</v-app>
 	</div>
-    <p><a href="https://projectathena.io"><img src="images/project-athena-logo.png" width="214px" /></a></p>
-    <?js if (env.conf.docdash.search) { ?>
-    <input type="text" class="search-input" id="nav-search" placeholder="Search API Docs ..." />
-    <?js } ?>
-    <p><a href="https://docs.projectathena.dev">Looking for <strong>Project Athena</strong><br /> Documentation?</a></p>
 </div>
 
 <nav>
@@ -102,14 +102,25 @@
 			},
 		}),
 		data: () => ({
-			nightMode: false,
+
 		}),
+		created: function () {
+			var darkDisabled = JSON.parse(localStorage.getItem('darkDisabled'));
+			if (darkDisabled == null) {
+				localStorage.setItem('darkDisabled', JSON.stringify("false"));
+			}
+		},
 		methods: {
 			toggleNightMode: function() {
-				this.darkDisabled = !this.darkDisabled;
+				var darkDisabled = JSON.parse(localStorage.getItem('darkDisabled'));
+				localStorage.setItem('darkDisabled', JSON.stringify(!darkDisabled));
+				darkDisabled = !darkDisabled;
+				
+				console.info("Dark mode disabled state is now...", darkDisabled);
+				
 				var nightSheet = document.querySelector('[href="styles/night.css"]');
 				nightSheet.removeAttribute('disabled');
-				nightSheet.disabled = this.darkDisabled;
+				nightSheet.disabled = darkDisabled;
 			}
 		},
 	})
