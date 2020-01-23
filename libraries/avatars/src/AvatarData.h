@@ -793,7 +793,7 @@ public:
      * @param {Quat} rotation - The rotation of the joint relative to its parent.
      * @param {Vec3} translation - The translation of the joint relative to its parent, in model coordinates.
      * @example <caption>Set your avatar to it's default T-pose for a while.<br />
-     * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/images/t-pose.png" /></caption>
+     * <img alt="Avatar in T-pose" src="https://apidocs.projectathena.dev/images/t-pose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
      * var i, length, rotation, translation;
      * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
@@ -857,7 +857,7 @@ public:
 
     /**jsdoc
      * Gets the rotation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.
+     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
      * @function Avatar.getJointRotation
      * @param {number} index - The index of the joint.
      * @returns {Quat} The rotation of the joint relative to its parent.
@@ -868,7 +868,7 @@ public:
      * Gets the translation of a joint relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see 
-     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
+     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function Avatar.getJointTranslation
      * @param {number} index - The index of the joint.
      * @returns {Vec3} The translation of the joint relative to its parent, in model coordinates.
@@ -901,7 +901,7 @@ public:
      * @param {string} name - The name of the joint.
      * @param {Quat} rotation - The rotation of the joint relative to its parent.
      * @example <caption>Set your avatar to its default T-pose then rotate its right arm.<br />
-     * <img alt="Avatar in T-pose with arm rotated" src="https://docs.highfidelity.com/images/armpose.png" /></caption>
+     * <img alt="Avatar in T-pose with arm rotated" src="https://apidocs.projectathena.dev/images/armpose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
      * var i, length, rotation, translation;
      * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
@@ -936,7 +936,7 @@ public:
      * @param {Vec3} translation - The translation of the joint relative to its parent, in model coordinates.
      * @example <caption>Stretch your avatar's neck. Depending on the avatar you are using, you will either see a gap between 
      * the head and body or you will see the neck stretched.<br />
-     * <img alt="Avatar with neck stretched" src="https://docs.highfidelity.com/images/stretched-neck.png" /></caption>
+     * <img alt="Avatar with neck stretched" src="https://apidocs.projectathena.dev/images/stretched-neck.png" /></caption>
      * // Stretch your avatar's neck.
      * MyAvatar.setJointTranslation("Neck", Vec3.multiply(2, MyAvatar.getJointTranslation("Neck")));
      * 
@@ -978,7 +978,7 @@ public:
 
     /**jsdoc
      * Gets the rotation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.
+     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
      * @function Avatar.getJointRotation
      * @param {string} name - The name of the joint.
      * @returns {Quat} The rotation of the joint relative to its parent.
@@ -993,7 +993,7 @@ public:
      * Gets the translation of a joint relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
+     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function Avatar.getJointTranslation
      * @param {number} name - The name of the joint.
      * @returns {Vec3} The translation of the joint relative to its parent, in model coordinates.
@@ -1038,7 +1038,7 @@ public:
      * @param {Quat[]} jointRotations - The rotations for all joints in the avatar. The values are in the same order as the 
      * array returned by {@link MyAvatar.getJointNames}, or {@link Avatar.getJointNames} if using the <code>Avatar</code> API.
      * @example <caption>Set your avatar to its default T-pose then rotate its right arm.<br />
-     * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/images/armpose.png" /></caption>
+     * <img alt="Avatar in T-pose" src="https://apidocs.projectathena.dev/images/armpose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
      * var i, length, rotation, translation;
      * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
@@ -1135,7 +1135,7 @@ public:
      * animation is complete.
      * @function Avatar.setBlendshape
      * @param {string} name - The name of the blendshape, per the 
-     *     {@link https://docs.highfidelity.com/create/avatars/avatar-standards.html#blendshapes Avatar Standards}.
+     *     {@link https://docs.projectathena.dev/create/avatars/avatar-standards.html#blendshapes Avatar Standards}.
      * @param {number} value - A value between <code>0.0</code> and <code>1.0</code>.
      * @example <caption>Open your avatar's mouth wide.</caption>
      * MyAvatar.hasScriptedBlendshapes = true;
