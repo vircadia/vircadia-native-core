@@ -46,6 +46,10 @@ thead {
 	background: #1f3341 !important;
 }
 
+thead tr {
+	color: white !important;
+}
+
 table tr:nth-child(2n) {
 	background: #1f3341 !important;
 }
@@ -56,4 +60,8 @@ table tr:nth-child(2n) {
 
 #main a, #main a:visited, #main a:active, #main a:hover {
 	color: #69d3ff !important;
+}
+
+.important {
+	color: #BF2424 !important;
 }
