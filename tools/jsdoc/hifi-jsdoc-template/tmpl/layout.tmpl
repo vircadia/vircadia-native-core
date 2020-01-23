@@ -108,6 +108,9 @@
 			var darkDisabled = JSON.parse(localStorage.getItem('darkDisabled'));
 			if (darkDisabled == null) {
 				localStorage.setItem('darkDisabled', JSON.stringify("false"));
+			} else {
+				var nightSheet = document.querySelector('[href="styles/night.css"]');
+				nightSheet.disabled = darkDisabled;
 			}
 		},
 		methods: {
@@ -115,11 +118,8 @@
 				var darkDisabled = JSON.parse(localStorage.getItem('darkDisabled'));
 				localStorage.setItem('darkDisabled', JSON.stringify(!darkDisabled));
 				darkDisabled = !darkDisabled;
-				
-				console.info("Dark mode disabled state is now...", darkDisabled);
-				
+								
 				var nightSheet = document.querySelector('[href="styles/night.css"]');
-				nightSheet.removeAttribute('disabled');
 				nightSheet.disabled = darkDisabled;
 			}
 		},
