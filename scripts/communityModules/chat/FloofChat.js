@@ -112,10 +112,15 @@ function connectWebSocket(timeout) {
         console.log('disconnected');
 
         timeout = timeout | 0;
-        if (!shutdownBool && timeout < (30 * 1000)) {
+        if (!shutdownBool) {
+            if (timeout > (30 * 1000)) {
+                timeout = 30 * 1000;
+            } else if (timeout < (30 * 1000)) {
+                timeout += 1000;
+            }
             Script.setTimeout(function () {
                 connectWebSocket(timeout);
-            }, timeout + 1000);
+            }, timeout);
         } else {
             wsReady = -1;
         }
@@ -128,13 +133,18 @@ function sendWS(msg, timeout) {
         ws.send(JSON.stringify(msg));
     } else {
         timeout = timeout | 0;
-        if (!shutdownBool && timeout < (30 * 1000)) {
+        if (!shutdownBool) {
+            if (timeout > (30 * 1000)) {
+                timeout = 30 * 1000;
+            } else if (timeout < (30 * 1000)) {
+                timeout += 1000;
+            }
             Script.setTimeout(function () {
                 if (wsReady === -1) {
                     connectWebSocket();
                 }
                 sendWS(msg, timeout);
-            }, timeout + 1000);
+            }, timeout);
         }
     }
 }
@@ -181,7 +191,7 @@ function go2(msg) {
     var dest = false;
     var domainsList = [];
     try {
-        domainsList = Script.require("http://metaverse.darlingvr.club:8081/goto.json");
+        domainsList = Script.require(gotoJSONUrl + "?" + Date.now());
     } catch (e) {
         //
     }
