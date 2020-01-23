@@ -4,6 +4,9 @@
     <?js if (!env.conf.docdash) { env.conf.docdash = {};} ?>
     <meta charset="utf-8">
     <title><?js= title ?></title>
+	
+	<script src="scripts/vue_dev.js"></script>
+	<script src="scripts/vuetify.js"></script>
     
     <script src="scripts/prettify/prettify.js"></script>
     <script src="scripts/prettify/lang-css.js"></script>
@@ -12,11 +15,22 @@
     <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/prettify.css">
     <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+	<link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+	<link href="styles/materialdesignicons.min.css" rel="stylesheet">
+	<link href="styles/vuetify.min.css" rel="stylesheet">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
     <link href="images/fav-icon.ico" rel="shortcut icon">
 </head>
-<body>
+<body id="app">
 
 <div class="nav-header">
+	<div>
+		<v-app>
+			<v-content>
+				<v-container>Hello world</v-container>
+			</v-content>
+		</v-app>
+	</div>
     <p><a href="https://projectathena.io"><img src="images/project-athena-logo.png" width="214px" /></a></p>
     <?js if (env.conf.docdash.search) { ?>
     <input type="text" class="search-input" id="nav-search" placeholder="Search API Docs ..." />
@@ -70,6 +84,13 @@
         <?js } ?>
     <?js } ?>
 <?js } ?>
+
+<script>
+  new Vue({
+	el: '#app',
+	vuetify: new Vuetify(),
+  })
+</script>
 
 <!-- Start Google Analytics Tag -->
 <!--
