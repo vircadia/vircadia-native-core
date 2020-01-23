@@ -1,0 +1,59 @@
+html {
+	background-color: #061F2F;
+}
+
+body h1 {
+	color: white;
+}
+
+body {
+	color: #d3d4d4 !important;
+}
+
+section {
+	background-color: #061F2F;
+}
+
+code {
+	background-color: #0a121b !important;
+}
+
+/* Prettify */
+
+.typ {
+	color: #f8c555 !important;
+}
+
+.pun {
+	color: #c1f1f0 !important;
+}
+
+.pln {
+	color: #c1f1f0 !important;
+}
+
+.kwd {
+	color: #e8a0e8 !important;
+}
+
+.str {
+	color: #f08d49 !important;
+}
+
+/* JSDoc */
+
+thead {
+	background: #1f3341 !important;
+}
+
+table tr:nth-child(2n) {
+	background: #1f3341 !important;
+}
+
+.name code {
+	color: #e8a0e8 !important;
+}
+
+#main a, #main a:visited, #main a:active, #main a:hover {
+	color: #69d3ff !important;
+}

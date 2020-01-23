@@ -15,20 +15,28 @@
     <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/prettify.css">
     <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+	<link type="text/css" rel="stylesheet" href="styles/night.css">
 	<link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Two+Tone|Material+Icons+Round|Material+Icons+Sharp" rel="stylesheet">
 	<link href="styles/materialdesignicons.min.css" rel="stylesheet">
-	<link href="styles/vuetify.min.css" rel="stylesheet">
+	<link href="styles/vuetify.css" rel="stylesheet">
+	<style>
+		.v-application--wrap {
+			min-height: 0 !important;
+		}
+	</style>
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
     <link href="images/fav-icon.ico" rel="shortcut icon">
 </head>
-<body id="app">
+<body>
 
 <div class="nav-header">
-	<div>
-		<v-app>
-			<v-content>
-				<v-container>Hello world</v-container>
-			</v-content>
+	<div id="app">
+		<v-app dark>
+			<v-btn @click="toggleNightMode" text dark>
+				Toggle
+				<v-icon class="ml-2">mdi-theme-light-dark</v-icon>
+			</v-btn>
 		</v-app>
 	</div>
     <p><a href="https://projectathena.io"><img src="images/project-athena-logo.png" width="214px" /></a></p>
@@ -86,10 +94,25 @@
 <?js } ?>
 
 <script>
-  new Vue({
-	el: '#app',
-	vuetify: new Vuetify(),
-  })
+	new Vue({
+		el: '#app',
+		vuetify: new Vuetify({
+			theme: {
+				dark: true,
+			},
+		}),
+		data: () => ({
+			nightMode: false,
+		}),
+		methods: {
+			toggleNightMode: function() {
+				this.darkDisabled = !this.darkDisabled;
+				var nightSheet = document.querySelector('[href="styles/night.css"]');
+				nightSheet.removeAttribute('disabled');
+				nightSheet.disabled = this.darkDisabled;
+			}
+		},
+	})
 </script>
 
 <!-- Start Google Analytics Tag -->
