@@ -34,7 +34,7 @@
 	//We are running the check here to preload the theme because it may load the incorrect one first for a split second.
 		var darkDisabled = JSON.parse(localStorage.getItem('darkDisabled'));
 		if (darkDisabled == null) {
-			localStorage.setItem('darkDisabled', JSON.stringify("false"));
+			localStorage.setItem('darkDisabled', JSON.stringify(false));
 		} else {
 			var nightSheet = document.querySelector('[href="styles/night.css"]');
 			nightSheet.disabled = darkDisabled;
@@ -120,7 +120,7 @@
 
 		}),
 		created: function () {
-
+			
 		},
 		methods: {
 			toggleNightMode: function() {
