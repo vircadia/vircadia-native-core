@@ -14,11 +14,6 @@ section {
 	background-color: #061F2F;
 }
 
-code {
-	background-color: #0a121b !important;
-	padding: 3px;
-}
-
 /* Prettify */
 
 .typ {
@@ -45,6 +40,14 @@ code {
 	color: #9d9d9d !important;
 }
 
+.prettyprint code {
+	background-color: #0a121b;
+}
+
+tr td a code {
+	font-weight: bold;
+}
+
 /* JSDoc */
 
 thead {
@@ -61,6 +64,11 @@ table tr:nth-child(2n) {
 
 .name code {
 	color: #e8a0e8 !important;
+	font-weight: bold;
+}
+
+.signature {
+	font-weight: bold;
 }
 
 #main a, #main a:visited, #main a:active, #main a:hover {
