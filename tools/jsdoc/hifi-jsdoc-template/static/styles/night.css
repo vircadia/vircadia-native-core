@@ -16,6 +16,7 @@ section {
 
 code {
 	background-color: #0a121b !important;
+	padding: 3px;
 }
 
 /* Prettify */
@@ -38,6 +39,10 @@ code {
 
 .str {
 	color: #f08d49 !important;
+}
+
+.com {
+	color: #9d9d9d !important;
 }
 
 /* JSDoc */
