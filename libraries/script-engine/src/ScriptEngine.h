@@ -417,7 +417,7 @@ public:
 
     /**jsdoc
      * Provides access to methods or objects provided in an external JavaScript or JSON file. 
-     * See {@link https://docs.highfidelity.com/script/js-tips.html} for further details.
+     * See {@link https://docs.projectathena.dev/script/js-tips.html} for further details.
      * @function Script.require
      * @param {string} module - The module to use. May be a JavaScript file, a JSON file, or the name of a system module such 
      *     as <code>"appUi"</code> (i.e., the "appUi.js" system module JavaScript file).
