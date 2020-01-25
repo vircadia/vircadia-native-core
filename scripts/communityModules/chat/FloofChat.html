@@ -70,40 +70,6 @@
 
     //Start George Function
     //Function provided by George Deac
-  
-  // Note soundcloud and vimeo integration is disabled since we cannot support mp4/mp3 encoding at this time
-	// Soundcloud oembed jQuery api script modified for embdeding by class name
-	/*
-	document.addEventListener("DOMContentLoaded", function(event) {
-		(function ($) {
-			$.fn.scembed = function(){
-			var datasource  = 'https://soundcloud.com/oembed';
-			return this.each(function () {
-				var container = $(this);
-				var mediasource = $(container).attr("sc_url");
-				var params = 'url=' + mediasource + '&format=json&iframe=true&maxwidth=480&maxheight=120&auto_play=false&show_comments=false';
-				$.ajaxopts = $.extend($.ajaxopts, {
-									url: datasource,
-									data: params,
-									dataType: 'json',
-									success: function (data, status, raw) {
-										$(container).html(data.html);
-									},
-									error: function (data, e1, e2) {
-										$(container).html("Can't retrieve player for " + mediasource);
-									},
-								});
-				$.ajax($.ajaxopts);
-				});
-			};
-		})(jQuery);
-
-		$(function(){
-			$("div.sc-embed").scembed();
-		});
-	});
-*/
-  
     //linky function
     (function ($) {
 
@@ -223,18 +189,6 @@
                             elContent = "<br/><iframe class=\"z-depth-2\" width='420' height='236' src='https://www.youtube.com/embed/" + youtubeMatch[2] + "' frameborder='0'></iframe><br/><a href=\"javascript:gotoURL('" + this + "');\">" + this + "</a>";
                             break;
                         }
-				        	  //case !!this.match(/(https?:\/\/)?(www\.)?(vimeo\.com)/):
-				        	  //	var vimeoMatch = this.match(/^.*(vimeo\.com\/)((channels\/[A-z]+\/)|(groups\/[A-z]+\/videos\/))?([0-9]+)/);
-				        	  //	if(vimeoMatch && vimeoMatch[5]){
-				        	  //		elContent = "<br/><iframe title=\"vimeo-player\" src='https://player.vimeo.com/video/"+ vimeoMatch[5] + "' width='420' height='236' frameborder='0' allowfullscreen></iframe><br/><a href=\"javascript:gotoURL('" + this + "');\">" + this + "</a>";
-				        	  //		break;
-				        	  //	}
-				        	  //case !!this.match(/(https?:\/\/)?(www\.)?(snd\.sc|soundcloud\.com)/):
-                             	//	sndscMatch = matches.match(/^.*(https?:\/\/)?(www\.)?(snd\.sc|soundcloud\.com)([^#\&\?]*).*/);
-				        	  //	if(sndscMatch && sndscMatch[4]){
-				        	  //		elContent = "<br/><div class='sc-embed' sc_url='https://soundcloud.com"+ sndscMatch[4] + "'></div><br/><a href=\"javascript:gotoURL('" + this + "');\">" + this + "</a>";
-				        	  //		break;
-				        	  //	}
                     // else fall through to default
                     default:
                         elContent = elContent.replace(this, "<br/><a href=\"javascript:gotoURL('" + this + "');\">" + this + "</a>");
