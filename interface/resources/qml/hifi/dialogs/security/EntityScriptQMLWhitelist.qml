@@ -176,7 +176,7 @@ Rectangle {
         text: 
 "The whitelist checks scripts & QML as they are loaded.<br/>
 Therefore, if a script is cached or has no reason to load again,<br/>
-then removing it from the whitelist will not be effective until<br/>
+removing it from the whitelist will have no effect until<br/>
 it is reloaded.<br/>
 Separate your whitelisted domains by line, not commas. e.g.
 <blockquote>
