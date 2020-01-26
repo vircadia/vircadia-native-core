@@ -172,7 +172,7 @@
     
     <v-content class="">
         <transition name="fade" mode="out-in">
-            <component v-bind:is="showDialog"></component>
+            <RequireLibrary v-model="showDialog"></RequireLibrary>
         </transition>
     </v-content>
 		
@@ -351,7 +351,7 @@ export default {
 	},
 	data: () => ({
 		showTab: 'FavoriteWorlds',
-        showDialog: 'RequireLibrary',
+        showDialog: true,
 		noSteamVR: false,
 		allowMultipleInstances: false,
 		downloadProgress: 0,

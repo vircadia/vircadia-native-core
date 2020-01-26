@@ -1,6 +1,7 @@
 <template>
     <v-dialog
         width="500"
+        v-model="show"
     >
         <v-card>
             <v-card-title
@@ -44,7 +45,7 @@ export default {
   name: 'RequireLibrary',
 
   data: () => ({
-    
+      show: true,
   }),
 };
 </script>
