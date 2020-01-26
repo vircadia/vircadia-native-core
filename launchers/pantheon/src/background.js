@@ -2,9 +2,11 @@
 
 import { app, protocol, BrowserWindow } from 'electron'
 import {
-  createProtocol,
-  installVueDevtools
+	createProtocol,
 } from 'vue-cli-plugin-electron-builder/lib'
+import {
+	installVueDevtools
+} from 'vue-cli-plugin-electron-builder/lib/installVueDevtools/index.js'
 import path from 'path'
 const isDevelopment = process.env.NODE_ENV !== 'production'
 const storage = require('electron-json-storage');
@@ -81,7 +83,8 @@ app.on('ready', async () => {
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     try {
-		// await installVueDevtools()
+		console.info("Installing VueDevTools, if this does not work, Electron will not generate an interface.");
+		await installVueDevtools()
 	} catch (e) {
 		// console.error('Vue Devtools failed to install:', e.toString())
 	}
@@ -198,7 +201,7 @@ async function getDirectories (src) {
 	
 	let result = await getDirectoriesPromise; 
 	return interfacesToReturn;
-};
+}
 
 async function getLibraryInterfaces() {
 	var interfaces = [];
@@ -269,9 +272,9 @@ async function getSetting(setting, storageDataPath) {
 	let storagePromise = new Promise((res, rej) => {
 		storage.get(setting, {dataPath: storageDataPath}, function(error, data) {
 			if (error) {
-				throw error;
 				returnValue = false;
 				rej("Error: " + error);
+				throw error;
 			} else if (Object.entries(data).length==0) {
 				// console.info("Requested:", setting, "Got data:", data, "Object.entries:", Object.entries(data).length);
 				returnValue = false;
@@ -282,7 +285,7 @@ async function getSetting(setting, storageDataPath) {
 			}
 		});
 	}).catch(err => {
-	  console.info("Attempted to retrieve:", setting, "from:", storageDataPath, "but got:", err)
+		console.info("Attempted to retrieve:", setting, "from:", storageDataPath, "but got:", err)
 	})
 
 	// because async won't work otherwise. 
@@ -326,8 +329,8 @@ ipcMain.on('launch-interface', (event, arg) => {
 
 	// arg is expected to be true or false with regards to SteamVR being enabled or not, later on it may be an object or array and we will handle it accordingly.
 	if(arg.steamVR) {
-		parameters.push('--disable-displays=\"OpenVR (Vive)\"');
-		parameters.push('--disable-inputs=\"OpenVR (Vive)\"');
+		parameters.push('--disable-displays="OpenVR (Vive)"');
+		parameters.push('--disable-inputs="OpenVR (Vive)"');
 	}
 	if(arg.allowMultipleInstances) {
 		parameters.push('--allowMultipleInstances');
@@ -421,8 +424,8 @@ ipcMain.handle('populateInterfaceList', (event, arg) => {
 })
 
 ipcMain.on('download-athena', (event, arg) => {
-  	var libraryPath;
-  	// var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
+	var libraryPath;
+	// var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
 	var downloadURL = "https://realities.dev/cdn/athena/test/Athena_Alpha_K2PR-1-6-20.exe";
 	// var downloadURL = "http://home.darlingvr.club/hifi-community/fix-scaled-walk-speed/HighFidelity-Beta-v0.86.0-7364ac5.exe";
   

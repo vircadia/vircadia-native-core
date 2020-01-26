@@ -247,7 +247,7 @@ ipcRenderer.on('interface-list', (event, arg) => {
         console.info(Object.keys(arg[0])[0]);
         console.info(exeLoc);
     } else {
-        
+        // TO DO
     }
 });
 
@@ -287,13 +287,13 @@ export default {
                 allowMulti = true;
             }
             ipcRenderer.send('launch-interface', { "exec": exeLoc, "steamVR": this.noSteamVR, "allowMultipleInstances": allowMulti});
-        }
+        },
 		launchBrowser: function(url) {
-			const { shell } = require('electron')
+			const { shell } = require('electron');
 			shell.openExternal(url);
 		},
 		downloadInterface: function() {
-			if(!this.isDownloading) {
+			if (!this.isDownloading) {
 				const { ipcRenderer } = require('electron');
 				ipcRenderer.send('download-athena');
 			}
