@@ -13,6 +13,7 @@ const electronDl = require('electron-dl');
 const commander = require('commander');
 const { readdirSync } = require('fs')
 const { forEach } = require('p-iteration');
+const fs = require('fs');
 
 var glob = require('glob');
  
@@ -116,12 +117,17 @@ console.log("Data Path: " + storage.getDataPath());
 //   });
 // }
 
+
+
 var storagePath = {
 	default: storage.getDefaultDataPath(),
 	interface: null,
 	interfaceSettings: null,
 	currentLibrary: null,
 };
+
+// We are going to default the library to storage.getDefaultDataPath().
+setLibrary(storagePath.default);
 
 // shell.openItem(storagePath.default);
 
@@ -218,6 +224,20 @@ async function getLibraryInterfaces() {
 	return interfaces;
 }
 
+function setLibrary(libPath) {
+	storage.set('athena_interface.library', libPath, {dataPath: storagePath.default}, function(error) {
+		if (error) {
+			throw error;
+		} else {
+			win.webContents.send('current-library-folder', {
+				libPath
+			});
+			storagePath.currentLibrary = libPath;
+			return true;
+		}
+	});
+}
+
 function setLibraryDialog() {
 	const {dialog} = require('electron') 
 
@@ -228,17 +248,7 @@ function setLibraryDialog() {
 		console.log("Cancelled set library dialog: " + result.canceled)
 		console.log("Selected library: " + result.filePaths)
 		if(!result.canceled && result.filePaths[0]) {
-			storage.set('athena_interface.library', result.filePaths[0], {dataPath: storagePath.default}, function(error) {
-				if (error) {
-					throw error;
-				} else {
-					var libraryPath = result.filePaths[0];
-					win.webContents.send('current-library-folder', {
-						libraryPath
-					});
-					return true;
-				}
-			});
+			setLibrary(result.filePaths[0]);
 		} else {
 			return false;
 		}
@@ -246,6 +256,11 @@ function setLibraryDialog() {
 		console.log(err)
 		return false;
 	})
+}
+
+function getLatestVersionJSON() {
+	// let rawdata = fs.readFileSync('athenaMeta.json');
+	// let athenaMeta = JSON.parse(rawdata);
 }
 
 async function getSetting(setting, storageDataPath) {

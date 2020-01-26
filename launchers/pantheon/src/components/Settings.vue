@@ -73,7 +73,7 @@
                         
                         <v-layout row pr-5 pt-5 pl-12>
                             <v-flex md6>
-                                <v-checkbox color="blue" id="multipleInterfaces" class="mr-3 mt-3" v-model="allowMultipleInstances" @click="multipleInterfaces" label="Allow Multiple Instances" value="true"></v-checkbox>
+                                <v-checkbox color="blue" id="multipleInterfaces" class="mr-3 mt-3" v-model="allowMultipleInstances" @click="multipleInstances" label="Allow Multiple Instances" value="true"></v-checkbox>
                             </v-flex>
                         </v-layout> 
 
@@ -235,7 +235,7 @@ export default {
                 ipcRenderer.invoke('populateInterfaceList');
             }
 		},
-		multipleInterfaces: function() {
+		multipleInstances: function() {
 			this.$store.commit('mutate', {
 				property: 'allowMultipleInstances', 
 				with: this.allowMultipleInstances

@@ -78,7 +78,7 @@ pre {
 /* FavoriteWorlds.vue */
 
 #favoriteWorldsContainer {
-	background-image: url('../resources/bg2.jpg');
+	background-image: url('../resources/mtnbg.jpg');
 	background-attachment: fixed;
 	background-position: center;
 	background-repeat: no-repeat;

@@ -108,7 +108,7 @@
             <v-tooltip top>
                 <template v-slot:activator="{ on }">
                     <v-btn
-                        v-on:click.native="launchInterface()"
+                        v-on:click.native="attemptLaunchInterface()"
                         v-on="on"
                         :right=true
                         class=""
@@ -237,6 +237,20 @@ ipcRenderer.on('current-library-folder', (event, arg) => {
     });
 });
 
+ipcRenderer.on('interface-list', (event, arg) => {
+    if(arg[0]) {
+        var appName = Object.keys(arg[0])[0];
+        var appLoc = arg[0][appName].location;
+        var exeLoc = appLoc + "/interface.exe";
+        vue_this.launchInterface(exeLoc);
+        console.info(arg[0]);
+        console.info(Object.keys(arg[0])[0]);
+        console.info(exeLoc);
+    } else {
+        
+    }
+});
+
 import HelloWorld from './components/HelloWorld';
 import FavoriteWorlds from './components/FavoriteWorlds';
 import Settings from './components/Settings';
@@ -252,26 +266,28 @@ export default {
         RequireLibrary
 	},
 	methods: {
-		launchInterface: function() {
-			if(!this.noSteamVR) {
-				this.noSteamVR = false;
-			} 
-			var allowMulti = false;
-			if(this.$store.state.allowMultipleInstances) {
-				allowMulti = true;
-			}
-			const { ipcRenderer } = require('electron');
+		attemptLaunchInterface: function() {
 			// var exeLoc = ipcRenderer.sendSync('get-athena-location'); // todo: check if that location exists first when using that, we need to default to using folder path + /interface.exe otherwise.
-            if(this.$store.state.selectedInterface.folder) {
-                var exeLoc = this.$store.state.selectedInterface.folder + "interface.exe";
+            var exeLoc;
+            if (this.$store.state.selectedInterface.folder) {
+                exeLoc = this.$store.state.selectedInterface.folder + "interface.exe";
             }
             console.info("exeLoc:",exeLoc);
             if(exeLoc) {
-                ipcRenderer.send('launch-interface', { "exec": exeLoc, "steamVR": this.noSteamVR, "allowMultipleInstances": allowMulti});
+                this.launchInterface(exeLoc);
             } else {
-                this.selectInterfaceExe();
+                // this.selectInterfaceExe();
+                // No, no more... we'll just default to selecting the first interface we find. You can select on your own time. UX baby.
+                ipcRenderer.invoke('populateInterfaceList');
             }
 		},
+        launchInterface: function(exeLoc) {
+            var allowMulti = false;
+            if(this.$store.state.allowMultipleInstances) {
+                allowMulti = true;
+            }
+            ipcRenderer.send('launch-interface', { "exec": exeLoc, "steamVR": this.noSteamVR, "allowMultipleInstances": allowMulti});
+        }
 		launchBrowser: function(url) {
 			const { shell } = require('electron')
 			shell.openExternal(url);
