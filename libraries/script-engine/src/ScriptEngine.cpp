@@ -2371,10 +2371,8 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
         // ENTITY SCRIPT WHITELIST TOGGLE CHECK
         Setting::Handle<bool> whitelistEnabled {"private/whitelistEnabled", false };
-        bool isWhitelistEnabled = whitelistEnabled.get();
                 
-        if (!isWhitelistEnabled) {
-            qCDebug(scriptengine) << "Whitelist Enabled: " << isWhitelistEnabled;
+        if (!whitelistEnabled.get()) {
             passList = true;
         }
         
