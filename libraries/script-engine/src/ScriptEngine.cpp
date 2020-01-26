@@ -2370,7 +2370,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
 
         // ENTITY SCRIPT WHITELIST TOGGLE CHECK
-        Setting::Handle<bool> whitelistEnabled{"private/whitelistEnabled", false };
+        Setting::Handle<bool> whitelistEnabled {"private/whitelistEnabled", false };
         bool isWhitelistEnabled = whitelistEnabled.get();
                 
         if (!isWhitelistEnabled) {
