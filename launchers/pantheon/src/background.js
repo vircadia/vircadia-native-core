@@ -2,11 +2,9 @@
 
 import { app, protocol, BrowserWindow } from 'electron'
 import {
+	installVueDevtools,
 	createProtocol,
 } from 'vue-cli-plugin-electron-builder/lib'
-import {
-	installVueDevtools
-} from 'vue-cli-plugin-electron-builder/lib/installVueDevtools/index.js'
 import path from 'path'
 const isDevelopment = process.env.NODE_ENV !== 'production'
 const storage = require('electron-json-storage');
@@ -83,8 +81,8 @@ app.on('ready', async () => {
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     try {
-		console.info("Installing VueDevTools, if this does not work, Electron will not generate an interface.");
-		await installVueDevtools()
+		// console.info("Installing VueDevTools, if this does not work, Electron will not generate an interface.");
+		// await installVueDevtools()
 	} catch (e) {
 		// console.error('Vue Devtools failed to install:', e.toString())
 	}
@@ -426,7 +424,7 @@ ipcMain.handle('populateInterfaceList', (event, arg) => {
 ipcMain.on('download-athena', (event, arg) => {
 	var libraryPath;
 	// var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
-	var downloadURL = "https://realities.dev/cdn/athena/test/Athena_Alpha_K2PR-1-6-20.exe";
+	var downloadURL = "https://projectathena.io/cdn/athena/launcher/ProjectAthena-Alpha-v0.86.0-8b03d1b.exe";
 	// var downloadURL = "http://home.darlingvr.club/hifi-community/fix-scaled-walk-speed/HighFidelity-Beta-v0.86.0-7364ac5.exe";
   
 	getSetting('athena_interface.library', storagePath.default).then(function(results){
@@ -450,14 +448,20 @@ ipcMain.on('download-athena', (event, arg) => {
 	});
 })
 
-ipcMain.on('installAthena', (event, arg) => {
+ipcMain.on('install-athena', (event, arg) => {
 	getSetting('athena_interface.library', storagePath.default).then(function(libPath){
 		var installer_exe = require('child_process').execFile;
 		var executablePath = libPath + "/Athena_Setup_Latest.exe";
-		var installPath = libPath + "/testInterface";
+		var installPath = libPath + "/Athena_Interface_Latest";
 		var parameters = [""];
 		
-		console.info("Here:", executablePath, installPath, parameters)
+		if (!fs.existsSync(executablePath)) {
+			// Notify main window of the issue.
+			win.webContents.send('no-installer-found');
+			return;
+		}
+		
+		console.info("Installing, params:", executablePath, installPath, parameters)
 
 		installer_exe(executablePath, parameters, function(err, data) {
 			console.log(err)

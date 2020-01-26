@@ -6,17 +6,17 @@
 				<v-icon>mdi-history</v-icon>
 			</v-btn>
 	
-			<v-btn v-on:click="showTab = 'FavoriteWorlds'" value="favorites">
+			<v-btn disabled v-on:click="toggleTab('Settings')" value="favorites">
 				<span>Favorites</span>
 				<v-icon>mdi-heart</v-icon>
 			</v-btn>
 	
-			<v-btn disabled v-on:click="showTab = 'HelloWorld'" value="nearby">
+			<v-btn disabled v-on:click="toggleTab('Settings')" value="nearby">
 				<span>Worlds</span>
 				<v-icon>mdi-map-search-outline</v-icon>
 			</v-btn>
 			
-			<v-btn v-on:click="showTab = 'Settings'" value="settings">
+			<v-btn v-on:click="toggleTab('Settings')" value="settings">
 				<span>Settings</span>
 				<v-icon>mdi-settings-outline</v-icon>
 			</v-btn>
@@ -131,48 +131,9 @@
 			</transition>
     </v-content>
     
-    <v-dialog
-        width="500"
-        v-model="showDownloadDone"
-    >
-        <v-card>
-            <v-card-title
-                class="headline"
-                primary-title
-                dark
-            >
-                Notice
-            </v-card-title>
-    
-            <v-card-text>
-                The latest version of Interface is done downloading! You can install it now or press the install button in the bar below later.
-            </v-card-text>
-    
-            <v-divider></v-divider>
-    
-            <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn
-                    color="primary"
-                    text
-                    @click="installInterface()"
-                >
-                    Install
-                </v-btn>
-                <v-btn
-                    color="primary"
-                    text
-                    @click="showDownloadDone = false"
-                >
-                    Dismiss
-                </v-btn>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
-    
     <v-content class="">
         <transition name="fade" mode="out-in">
-            <RequireLibrary v-model="showDialog"></RequireLibrary>
+            <component @hideDialog="shouldShowDialog = false" v-if="shouldShowDialog" v-bind:is="showDialog"></component>
         </transition>
     </v-content>
 		
@@ -188,12 +149,13 @@ ipcRenderer.on('download-installer-progress', (event, arg) => {
 		vue_this.showCloudIcon = false;
 		vue_this.showCloudDownload = true;
 		vue_this.isDownloading = true;
+        vue_this.disableInstallIcon = true;
 	} else { // When done.
 		vue_this.showCloudIcon = true;
 		vue_this.showCloudDownload = false;
 		vue_this.disableInstallIcon = false;
 		vue_this.isDownloading = false;
-        vue_this.showDownloadDone = true;
+        vue_this.openDialog('DownloadComplete', true);
 	}
 	console.info(downloadProgress);
 	vue_this.downloadProgress = downloadProgress * 100;
@@ -247,15 +209,22 @@ ipcRenderer.on('interface-list', (event, arg) => {
         console.info(Object.keys(arg[0])[0]);
         console.info(exeLoc);
     } else {
-        // TO DO
+        vue_this.openDialog('NoInterfaceFound', true);
     }
+});
+
+ipcRenderer.on('no-installer-found', (event, arg) => {
+    vue_this.openDialog('NoInstallerFound', true);
 });
 
 import HelloWorld from './components/HelloWorld';
 import FavoriteWorlds from './components/FavoriteWorlds';
 import Settings from './components/Settings';
+// Dialogs
+import DownloadComplete from './components/Dialogs/DownloadComplete'
+import NoInstallerFound from './components/Dialogs/NoInstallerFound'
+import NoInterfaceFound from './components/Dialogs/NoInterfaceFound'
 
-import RequireLibrary from './components/Dialogs/RequireLibrary'
 
 export default {
 	name: 'App',
@@ -263,16 +232,36 @@ export default {
 		HelloWorld,
 		FavoriteWorlds,
 		Settings,
-        RequireLibrary
+        // Dialogs
+        DownloadComplete,
+        NoInstallerFound,
+        NoInterfaceFound
 	},
 	methods: {
+        toggleTab: function(tab) {
+            if(this.showTab == tab) {
+                this.showTab = "";
+            } else {
+                this.showTab = tab;
+            }
+        },
+        openDialog: function(which, shouldShow) {
+            // We want to reset the element first.
+            this.showDialog = "";
+            this.shouldShowDialog = false;
+            // console.info(this.showDialog, this.shouldShowDialog);
+            
+            this.showDialog = which;
+            this.shouldShowDialog = shouldShow;
+            // console.info(this.showDialog, this.shouldShowDialog);
+        },
 		attemptLaunchInterface: function() {
 			// var exeLoc = ipcRenderer.sendSync('get-athena-location'); // todo: check if that location exists first when using that, we need to default to using folder path + /interface.exe otherwise.
             var exeLoc;
-            if (this.$store.state.selectedInterface.folder) {
+            if (this.$store.state.selectedInterface) {
                 exeLoc = this.$store.state.selectedInterface.folder + "interface.exe";
             }
-            console.info("exeLoc:",exeLoc);
+            console.info("Attempting to launch interface, found exeLoc:",exeLoc);
             if(exeLoc) {
                 this.launchInterface(exeLoc);
             } else {
@@ -300,7 +289,7 @@ export default {
 		},
 		installInterface: function() {
 			const { ipcRenderer } = require('electron');
-			ipcRenderer.send('installAthena');
+			ipcRenderer.send('install-athena');
 		},
         selectInterfaceExe: function() {
             const { ipcRenderer } = require('electron');
@@ -350,8 +339,10 @@ export default {
 		}
 	},
 	data: () => ({
-		showTab: 'FavoriteWorlds',
-        showDialog: true,
+		// showTab: 'FavoriteWorlds',
+        showTab: '',
+        showDialog: '',
+        shouldShowDialog: false,
 		noSteamVR: false,
 		allowMultipleInstances: false,
 		downloadProgress: 0,
@@ -359,7 +350,6 @@ export default {
 		showCloudIcon: true,
 		showCloudDownload: false,
 		disableInstallIcon: false,
-        showDownloadDone: false,
 	}),
 };
 </script>

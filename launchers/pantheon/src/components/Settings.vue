@@ -182,21 +182,23 @@ var vue_this;
 
 const { ipcRenderer } = require('electron');
 ipcRenderer.on('interface-list', (event, arg) => {
-	vue_this.interfaceFolders = [];
-	store_p.commit('mutate', {
-		property: 'populatedInterfaceList', 
-		with: arg
-	});
-	var populatedList = store_p.state.populatedInterfaceList;
-	populatedList.forEach(function(i){
-		var appName = Object.keys(i)[0];
-		var appLoc = i[appName].location;
-		var appObject = { "name": appName, "folder": appLoc };
-		vue_this.interfaceFolders.push(appObject);
-		// console.info(i);
-		// console.info(Object.keys(i)[0]);
-		// console.info(appLoc);
-	});
+    if (vue_this) { // Make sure this page is open!
+        vue_this.interfaceFolders = [];
+        store_p.commit('mutate', {
+            property: 'populatedInterfaceList', 
+            with: arg
+        });
+        var populatedList = store_p.state.populatedInterfaceList;
+        populatedList.forEach(function(i){
+            var appName = Object.keys(i)[0];
+            var appLoc = i[appName].location;
+            var appObject = { "name": appName, "folder": appLoc };
+            vue_this.interfaceFolders.push(appObject);
+            // console.info(i);
+            // console.info(Object.keys(i)[0]);
+            // console.info(appLoc);
+        });
+    }
 });
 
 ipcRenderer.on('interface-selection-required', (event, arg) => {

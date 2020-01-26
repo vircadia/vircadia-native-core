@@ -1,7 +1,8 @@
 <template>
     <v-dialog
         width="500"
-        v-model="show"
+        persistent
+        v-model="showNoInterfaceFound"
     >
         <v-card>
             <v-card-title
@@ -9,11 +10,12 @@
                 primary-title
                 dark
             >
-                Notice
+                <v-icon color="red" class="mr-2">mdi-message-alert</v-icon>
+                No Interface Found
             </v-card-title>
     
             <v-card-text>
-                The latest version of Interface is done downloading! You can install it now or press the install button in the bar below later.
+                No Interface was found. Try downloading and installing it.
             </v-card-text>
     
             <v-divider></v-divider>
@@ -23,14 +25,7 @@
                 <v-btn
                     color="primary"
                     text
-                    @click="installInterface()"
-                >
-                    Install
-                </v-btn>
-                <v-btn
-                    color="primary"
-                    text
-                    @click="showDownloadDone = false"
+                    @click="$emit('hideDialog')"
                 >
                     Dismiss
                 </v-btn>
@@ -42,10 +37,13 @@
 
 <script>
 export default {
-  name: 'RequireLibrary',
+    name: 'NoInterfaceFound',
 
-  data: () => ({
-      show: true,
-  }),
+    data: () => ({
+        showNoInterfaceFound: true,
+    }),
+    created: function () {
+
+    },
 };
 </script>
