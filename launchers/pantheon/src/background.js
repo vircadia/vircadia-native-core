@@ -8,12 +8,12 @@ import {
 import path from 'path'
 const isDevelopment = process.env.NODE_ENV !== 'production'
 const storage = require('electron-json-storage');
-const {shell} = require('electron')
+const { shell } = require('electron')
 const electronDl = require('electron-dl');
-const commander = require('commander');
 const { readdirSync } = require('fs')
 const { forEach } = require('p-iteration');
 const fs = require('fs');
+const fetch = require('node-fetch');
 
 var glob = require('glob');
  
@@ -27,51 +27,51 @@ let win
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: { secure: true, standard: true } }])
 
 function createWindow () {
-  // Create the browser window.
-  win = new BrowserWindow({ 
-    width: 1000, 
-    height: 800, 
-    icon: path.join(__static, '/resources/launcher.ico'), 
-    resizable: false,
-    webPreferences: {
-      nodeIntegration: true,
-      devTools: true
-    } 
-  })
+	// Create the browser window.
+	win = new BrowserWindow({ 
+		width: 1000, 
+		height: 800, 
+		icon: path.join(__static, '/resources/launcher.ico'), 
+		resizable: false,
+		webPreferences: {
+			nodeIntegration: true,
+			devTools: true
+		} 
+	})
 
-  // This line disables the default menu behavior on Windows.
-  win.setMenu(null);
+	// This line disables the default menu behavior on Windows.
+	win.setMenu(null);
 
-  if (process.env.WEBPACK_DEV_SERVER_URL) {
-    // Load the url of the dev server if in development mode
-    win.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
-    if (!process.env.IS_TEST) win.webContents.openDevTools()
-  } else {
-    createProtocol('app')
-    // Load the index.html when not in development
-    win.loadURL('app://./index.html')
-  }
+	if (process.env.WEBPACK_DEV_SERVER_URL) {
+		// Load the url of the dev server if in development mode
+		win.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
+	if (!process.env.IS_TEST) win.webContents.openDevTools()
+	} else {
+		createProtocol('app')
+		// Load the index.html when not in development
+		win.loadURL('app://./index.html')
+	}
 
-  win.on('closed', () => {
-    win = null
-  })
+	win.on('closed', () => {
+	win = null
+	})
 }
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
-  // On macOS it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
+	// On macOS it is common for applications and their menu bar
+	// to stay active until the user quits explicitly with Cmd + Q
+	if (process.platform !== 'darwin') {
+		app.quit()
+	}
 })
 
 app.on('activate', () => {
-  // On macOS it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (win === null) {
-    createWindow()
-  }
+	// On macOS it's common to re-create a window in the app when the
+	// dock icon is clicked and there are no other windows open.
+	if (win === null) {
+		createWindow()
+	}
 })
 
 // This method will be called when Electron has finished
@@ -259,9 +259,15 @@ function setLibraryDialog() {
 	})
 }
 
+// getLatestVersionJSON();
 function getLatestVersionJSON() {
-	// let rawdata = fs.readFileSync('athenaMeta.json');
+	// let rawdata = fs.readFileSync('https://projectathena.io/cdn/athena/launcher/athenaMeta.json');
 	// let athenaMeta = JSON.parse(rawdata);
+	
+	// fetch('https://projectathena.io/cdn/athena/launcher/athenaMeta.json')
+    // .then(res => res.json())
+    // .then(json => console.info("Retrieved JSON:", athenaMeta));
+	
 }
 
 async function getSetting(setting, storageDataPath) {
@@ -326,20 +332,21 @@ ipcMain.on('launch-interface', (event, arg) => {
 	var parameters = [];
 
 	// arg is expected to be true or false with regards to SteamVR being enabled or not, later on it may be an object or array and we will handle it accordingly.
-	if(arg.steamVR) {
+	if (arg.steamVR) {
 		parameters.push('--disable-displays="OpenVR (Vive)"');
 		parameters.push('--disable-inputs="OpenVR (Vive)"');
 	}
-	if(arg.allowMultipleInstances) {
+	
+	if (arg.allowMultipleInstances) {
 		parameters.push('--allowMultipleInstances');
 	}
 		
-	console.info("Nani?",parameters, "type?", typeof parameters);
+	console.info("Nani?", parameters, "type?", Array.isArray(parameters));
 
-	interface_exe(executablePath, parameters, function(err, stdout, data) {
-		console.log(err)
-		console.log(stdout.toString());
-	});
+	// interface_exe(executablePath, parameters, { windowsVerbatimArguments: true }, function(err, stdout, data) {
+	// 	console.log(err)
+	// 	console.log(stdout.toString());
+	// });
   
 })
 
@@ -420,6 +427,15 @@ ipcMain.handle('populateInterfaceList', (event, arg) => {
 		event.sender.send('interface-list', generatedList);
 	});
 })
+
+ipcMain.handle('get-interface-list-for-launch', (event, arg) => {
+	getLibraryInterfaces().then(async function(results) {
+		var generatedList = await generateInterfaceList(results);
+		// console.info("Returning...", generatedList, "typeof", typeof generatedList, "results", results);
+		event.sender.send('interface-list-for-launch', generatedList);
+	});
+})
+
 
 ipcMain.on('download-athena', (event, arg) => {
 	var libraryPath;

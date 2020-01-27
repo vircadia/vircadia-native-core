@@ -15,7 +15,6 @@
   "main": "background.js",
   "dependencies": {
     "@mdi/font": "^3.6.95",
-    "commander": "^4.1.0",
     "core-js": "^3.6.4",
     "decompress-zip": "^0.2.2",
     "electron-dl": "^2.0.0",
@@ -23,6 +22,7 @@
     "extract-zip": "^1.6.7",
     "glob": "^7.1.6",
     "material-design-icons-iconfont": "^5.0.1",
+    "node-fetch": "^2.6.0",
     "p-iteration": "^1.1.8",
     "roboto-fontface": "*",
     "vue": "^2.6.10",
@@ -65,5 +65,6 @@
   "browserslist": [
     "> 1%",
     "last 2 versions"
-  ]
+  ],
+  "optionalDependencies": {}
 }

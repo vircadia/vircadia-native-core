@@ -199,15 +199,15 @@ ipcRenderer.on('current-library-folder', (event, arg) => {
     });
 });
 
-ipcRenderer.on('interface-list', (event, arg) => {
+ipcRenderer.on('interface-list-for-launch', (event, arg) => {
     if(arg[0]) {
         var appName = Object.keys(arg[0])[0];
         var appLoc = arg[0][appName].location;
         var exeLoc = appLoc + "/interface.exe";
         vue_this.launchInterface(exeLoc);
-        console.info(arg[0]);
-        console.info(Object.keys(arg[0])[0]);
-        console.info(exeLoc);
+        // console.info(arg[0]);
+        // console.info(Object.keys(arg[0])[0]);
+        // console.info(exeLoc);
     } else {
         vue_this.openDialog('NoInterfaceFound', true);
     }
@@ -267,7 +267,7 @@ export default {
             } else {
                 // this.selectInterfaceExe();
                 // No, no more... we'll just default to selecting the first interface we find. You can select on your own time. UX baby.
-                ipcRenderer.invoke('populateInterfaceList');
+                ipcRenderer.invoke('get-interface-list-for-launch');
             }
 		},
         launchInterface: function(exeLoc) {
@@ -339,7 +339,6 @@ export default {
 		}
 	},
 	data: () => ({
-		// showTab: 'FavoriteWorlds',
         showTab: '',
         showDialog: '',
         shouldShowDialog: false,
