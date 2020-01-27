@@ -34,7 +34,7 @@ function createWindow () {
 		resizable: false,
 		webPreferences: {
 			nodeIntegration: true,
-			devTools: true
+			devTools: true,
 		} 
 	})
 
@@ -126,9 +126,6 @@ var storagePath = {
 	currentLibrary: null,
 };
 
-// We are going to default the library to storage.getDefaultDataPath().
-setLibrary(storagePath.default);
-
 // shell.openItem(storagePath.default);
 
 var requireInterfaceSelection;
@@ -212,6 +209,7 @@ async function getLibraryInterfaces() {
 					interfaces = interfacesList;
 					res_p();
 				});
+				console.info("Nani Lib Path?", libraryPath);
 			} else {
 				interfaces = ["Select a library folder."];
 				rej_p("Select a library folder.");
@@ -230,7 +228,7 @@ function setLibrary(libPath) {
 			throw error;
 		} else {
 			win.webContents.send('current-library-folder', {
-				libPath
+				"libraryPath": libPath
 			});
 			storagePath.currentLibrary = libPath;
 			return true;
@@ -335,7 +333,7 @@ ipcMain.on('set-metaverse-server', (event, arg) => {
 	} else {
 		delete process.env.HIFI_METAVERSE_URL;
 	}
-	console.info("Current env:", process.env.HIFI_METAVERSE_URL)
+	console.info("Current Metaverse Server:", process.env.HIFI_METAVERSE_URL)
 })
 
 ipcMain.on('launch-interface', (event, arg) => {
@@ -407,6 +405,10 @@ ipcMain.on('setLibraryFolder', (event, arg) => {
 	setLibraryDialog();
 })
 
+ipcMain.on('set-library-folder-default', (event, arg) => {
+	setLibrary(storagePath.default);
+})
+
 ipcMain.on('getLibraryFolder', (event, arg) => {
 	getSetting('athena_interface.library', storagePath.default).then(async function(libraryPath){
 		win.webContents.send('current-library-folder', {
@@ -436,7 +438,7 @@ ipcMain.handle('isInterfaceSelectionRequired', (event, arg) => {
 ipcMain.handle('populateInterfaceList', (event, arg) => {
 	getLibraryInterfaces().then(async function(results) {
 		var generatedList = await generateInterfaceList(results);
-		// console.info("Returning...", generatedList, "typeof", typeof generatedList, "results", results);
+		console.info("Returning...", generatedList, "typeof", typeof generatedList, "results", results);
 		event.sender.send('interface-list', generatedList);
 	});
 })

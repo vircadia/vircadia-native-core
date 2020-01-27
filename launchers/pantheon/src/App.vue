@@ -190,6 +190,14 @@ ipcRenderer.on('state-loaded', (event, arg) => {
 		});
 		ipcRenderer.send('set-metaverse-server', arg.results.metaverseServer);
 	}
+    if(arg.results.currentLibraryFolder) {
+        vue_this.$store.commit('mutate', {
+			property: 'currentLibraryFolder', 
+			with: arg.results.currentLibraryFolder
+		});
+	} else {
+        ipcRenderer.send('set-library-folder-default');
+    }
 });
 
 ipcRenderer.on('current-library-folder', (event, arg) => {

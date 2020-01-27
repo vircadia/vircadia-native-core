@@ -85,7 +85,7 @@
                         </p>
                         
 						<v-layout row pr-5 pt-5 pl-12>
-							<v-flex md6>
+							<v-flex md6 style="text-align: center;">
                                 <v-tooltip top>
                                     <template v-slot:activator="{ on }">
                                         <v-btn
@@ -102,6 +102,17 @@
                                     <span>{{ currentFolder }}</span>
                                 </v-tooltip>
 							</v-flex>
+                            <v-flex md6 style="text-align: center;">
+                                <v-btn
+                                    v-on:click.native="setLibraryDefault()"
+                                    :right=true
+                                    class=""
+                                    :tile=true
+                                >
+                                    <span class="mr-2">Default</span>
+                                    <v-icon>folder</v-icon>
+                                </v-btn>
+                            </v-flex>
 						</v-layout> 
 						
 						<h2 class="ml-3 mt-6">Metaverse</h2>
@@ -229,6 +240,9 @@ export default {
 		setLibrary: function() {
 			ipcRenderer.send('setLibraryFolder');
 		},
+        setLibraryDefault: function() {
+            ipcRenderer.send('set-library-folder-default');
+        },
         getLibraryFolder: function() {
 			ipcRenderer.send('getLibraryFolder');
         },
@@ -269,7 +283,7 @@ export default {
 		showRequireInterface: false,
 		allowMultipleInstances: false,
 		interfaceFolders: [],
-		metaverseServer: "metaverse.projectathena.io",
+		metaverseServer: "metaverse.highfidelity.com", // Default metaverse API URL
         currentFolder: "",
         readyToUseAgain: true,
 	}),
@@ -291,10 +305,11 @@ export default {
 		this.allowMultipleInstances = this.$store.state.allowMultipleInstances;
 		this.populateInterfaceList();
         
-		if(this.$store.state.metaverseServer) {
+		if (this.$store.state.metaverseServer) {
 			this.metaverseServer = this.$store.state.metaverseServer;
 		}
         
+        this.setMetaverseServer();
         this.currentFolder = this.$store.state.currentLibraryFolder;
 	}
 };
