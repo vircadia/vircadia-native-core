@@ -22,7 +22,6 @@
     "extract-zip": "^1.6.7",
     "glob": "^7.1.6",
     "material-design-icons-iconfont": "^5.0.1",
-    "node-fetch": "^2.6.0",
     "p-iteration": "^1.1.8",
     "roboto-fontface": "*",
     "vue": "^2.6.10",

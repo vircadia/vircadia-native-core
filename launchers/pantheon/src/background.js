@@ -13,7 +13,6 @@ const electronDl = require('electron-dl');
 const { readdirSync } = require('fs')
 const { forEach } = require('p-iteration');
 const fs = require('fs');
-const fetch = require('node-fetch');
 
 var glob = require('glob');
  
@@ -88,7 +87,7 @@ app.on('ready', async () => {
 	}
 
   }
-  createWindow()
+  createWindow();
 })
 
 // Exit cleanly on request from parent process in development mode.
@@ -259,15 +258,29 @@ function setLibraryDialog() {
 	})
 }
 
-// getLatestVersionJSON();
-function getLatestVersionJSON() {
-	// let rawdata = fs.readFileSync('https://projectathena.io/cdn/athena/launcher/athenaMeta.json');
-	// let athenaMeta = JSON.parse(rawdata);
+async function getLatestVersionJSON() {
+	var metaURL = 'https://projectathena.io/cdn/athena/launcher/athenaMeta.json';
+		
+	await electronDl.download(win, metaURL, {
+		directory: storagePath.default,
+		showBadge: false,
+		filename: "athenaMeta.json",
+		onProgress: currentProgress => {
+			var percent = currentProgress.percent;
+			// console.info("DLing meta:", percent);
+		},
+	});
 	
-	// fetch('https://projectathena.io/cdn/athena/launcher/athenaMeta.json')
-    // .then(res => res.json())
-    // .then(json => console.info("Retrieved JSON:", athenaMeta));
+	var athenaMetaFile = storagePath.default + '/athenaMeta.json';
+	let rawdata = fs.readFileSync(athenaMetaFile);
+	let athenaMetaJSON = JSON.parse(rawdata);
 	
+	if (athenaMetaJSON.latest) {
+		console.info("Athena Meta JSON:", athenaMetaJSON);
+		return athenaMetaJSON.latest;
+	} else {
+		return false;
+	}
 }
 
 async function getSetting(setting, storageDataPath) {
@@ -437,31 +450,33 @@ ipcMain.handle('get-interface-list-for-launch', (event, arg) => {
 })
 
 
-ipcMain.on('download-athena', (event, arg) => {
+ipcMain.on('download-athena', async (event, arg) => {
 	var libraryPath;
 	// var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
-	var downloadURL = "https://projectathena.io/cdn/athena/launcher/ProjectAthena-Alpha-v0.86.0-8b03d1b.exe";
-	// var downloadURL = "http://home.darlingvr.club/hifi-community/fix-scaled-walk-speed/HighFidelity-Beta-v0.86.0-7364ac5.exe";
-  
-	getSetting('athena_interface.library', storagePath.default).then(function(results){
-		if(results) {
-			libraryPath = results;
+	var downloadURL = await getLatestVersionJSON();
+	if (downloadURL) {
+		getSetting('athena_interface.library', storagePath.default).then(function(results){
+			if(results) {
+				libraryPath = results;
 				electronDl.download(win, downloadURL, {
-				directory: libraryPath,
-				showBadge: true,
-				filename: "Athena_Setup_Latest.exe",
-				onProgress: currentProgress => {
-					console.info(currentProgress);
-					var percent = currentProgress.percent;
-					win.webContents.send('download-installer-progress', {
-						percent
-					});
-				},
-			});
-		} else {
-			setLibraryDialog();
-		}
-	});
+					directory: libraryPath,
+					showBadge: true,
+					filename: "Athena_Setup_Latest.exe",
+					onProgress: currentProgress => {
+						console.info(currentProgress);
+						var percent = currentProgress.percent;
+						win.webContents.send('download-installer-progress', {
+							percent
+						});
+					},
+				});
+			} else {
+				setLibraryDialog();
+			}
+		});
+	} else {
+		console.info("Failed to retrieve download URL.");
+	}
 })
 
 ipcMain.on('install-athena', (event, arg) => {
