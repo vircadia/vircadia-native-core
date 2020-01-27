@@ -63,41 +63,41 @@ Rectangle {
     }
   
   
-  anchors.fill: parent
-  width: parent.width;
-  height: 120;
-  color: "#80010203";
+    anchors.fill: parent
+    width: parent.width;
+    height: 120;
+    color: "#80010203";
 
-	HifiStylesUit.RalewayRegular {
-		id: titleText;
-		text: "Entity Script / QML Whitelist"
-		// Text size
-		size: 24;
-		// Style
-		color: "white";
-		elide: Text.ElideRight;
-		// Anchors
-		anchors.top: parent.top;
-		anchors.left: parent.left;
-		anchors.leftMargin: 20;
-		anchors.right: parent.right;
-		anchors.rightMargin: 20;
-		height: 60;
+    HifiStylesUit.RalewayRegular {
+        id: titleText;
+        text: "Entity Script / QML Whitelist"
+        // Text size
+        size: 24;
+        // Style
+        color: "white";
+        elide: Text.ElideRight;
+        // Anchors
+        anchors.top: parent.top;
+        anchors.left: parent.left;
+        anchors.leftMargin: 20;
+        anchors.right: parent.right;
+        anchors.rightMargin: 20;
+        height: 60;
 
-		CheckBox {
+        CheckBox {
             Component.onCompleted: {
                 initCheckbox();
             }
-  
+
             id: whitelistEnabled;
-  
+
             anchors.right: parent.right;
             anchors.top: parent.top;
             anchors.topMargin: 10;
             onToggled: {
                 toggleWhitelist(whitelistEnabled.checked)
             }
-  
+
             Label {
                 text: "Enabled"
                 color: "white"
@@ -107,100 +107,100 @@ Rectangle {
                 anchors.topMargin: 10;
             }
         }
-	}
+    }
 
-  Rectangle {
-    id: textAreaRectangle;
-    color: "black";
-    width: parent.width;
-    height: 250;
-    anchors.top: titleText.bottom;
-    
-    ScrollView {
-      id: textAreaScrollView
-      anchors.fill: parent;
-      width: parent.width
-      height: parent.height
-      contentWidth: parent.width
-      contentHeight: parent.height
-      clip: false;
-      
-      TextArea {
-        id: whitelistTextArea
-        text: getWhitelistAsText();
-        onTextChanged: notificationText.text = "";
+    Rectangle {
+        id: textAreaRectangle;
+        color: "black";
         width: parent.width;
-        height: parent.height;
-        font.family: "Ubuntu";
-        font.pointSize: 12;
-        color: "white";
-      }
-    }
+        height: 250;
+        anchors.top: titleText.bottom;
     
-    Button {
-      id: saveChanges
-      anchors.topMargin: 5;
-      anchors.leftMargin: 20;
-      anchors.rightMargin: 20;
-      x: textAreaRectangle.x + textAreaRectangle.width - width - 15;
-      y: textAreaRectangle.y + textAreaRectangle.height - height;
-      contentItem: Text {
-        text: saveChanges.text
-        font.family: "Ubuntu";
-        font.pointSize: 12;
-        opacity: enabled ? 1.0 : 0.3
-        color: "black"
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        elide: Text.ElideRight
-      }
-      text: "Save Changes"
-      onClicked: setWhitelistAsText(whitelistTextArea)
-      
-      HifiStylesUit.RalewayRegular {
-          id: notificationText;
-          text: ""
-          // Text size
-          size: 16;
-          // Style
-          color: "white";
-          elide: Text.ElideLeft;
-          // Anchors
-          anchors.right: parent.left;
-          anchors.rightMargin: 10;
-      }
+        ScrollView {
+            id: textAreaScrollView
+            anchors.fill: parent;
+            width: parent.width
+            height: parent.height
+            contentWidth: parent.width
+            contentHeight: parent.height
+            clip: false;
+
+            TextArea {
+                id: whitelistTextArea
+                text: getWhitelistAsText();
+                onTextChanged: notificationText.text = "";
+                width: parent.width;
+                height: parent.height;
+                font.family: "Ubuntu";
+                font.pointSize: 12;
+                color: "white";
+            }
+        }
+        
+        Button {
+            id: saveChanges
+            anchors.topMargin: 5;
+            anchors.leftMargin: 20;
+            anchors.rightMargin: 20;
+            x: textAreaRectangle.x + textAreaRectangle.width - width - 15;
+            y: textAreaRectangle.y + textAreaRectangle.height - height;
+            contentItem: Text {
+                text: saveChanges.text
+                font.family: "Ubuntu";
+                font.pointSize: 12;
+                opacity: enabled ? 1.0 : 0.3
+                color: "black"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+            }
+            text: "Save Changes"
+            onClicked: setWhitelistAsText(whitelistTextArea)
+          
+            HifiStylesUit.RalewayRegular {
+                id: notificationText;
+                text: ""
+                // Text size
+                size: 16;
+                // Style
+                color: "white";
+                elide: Text.ElideLeft;
+                // Anchors
+                anchors.right: parent.left;
+                anchors.rightMargin: 10;
+            }
+        }
+        
+        HifiStylesUit.RalewayRegular {
+            id: descriptionText;
+            text: 
+    "The whitelist checks scripts and QML as they are loaded.<br/>
+    Therefore, if a script is cached or has no reason to load again,<br/>
+    removing it from the whitelist will have no effect until<br/>
+    it is reloaded.<br/>
+    Separate your whitelisted domains by line, not commas. e.g.
+    <blockquote>
+        <b>https://google.com/</b><br/>
+        <b>hifi://the-spot/</b><br/>
+        <b>127.0.0.1</b><br/>
+        <b>https://mydomain.here/</b>
+    </blockquote>
+    Ensure there are no spaces or whitespace.<br/><br/>
+    For QML files, you can only whitelist each file individually<br/>
+    ending with '.qml'."
+            // Text size
+            size: 16;
+            // Style
+            color: "white";
+            elide: Text.ElideRight;
+            textFormat: Text.RichText;
+            // Anchors
+            anchors.top: parent.bottom;
+            anchors.topMargin: 90;
+            anchors.left: parent.left;
+            anchors.leftMargin: 20;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+        }
     }
-    
-    HifiStylesUit.RalewayRegular {
-        id: descriptionText;
-        text: 
-"The whitelist checks scripts & QML as they are loaded.<br/>
-Therefore, if a script is cached or has no reason to load again,<br/>
-removing it from the whitelist will have no effect until<br/>
-it is reloaded.<br/>
-Separate your whitelisted domains by line, not commas. e.g.
-<blockquote>
-	<b>https://google.com/</b><br/>
-	<b>hifi://the-spot/</b><br/>
-	<b>127.0.0.1</b><br/>
-	<b>https://mydomain.here/</b>
-</blockquote>
-Ensure there are no spaces or whitespace.<br/><br/>
-For QML files, you can only whitelist each file individually <br/>
-ending with '.qml'."
-        // Text size
-        size: 16;
-        // Style
-        color: "white";
-        elide: Text.ElideRight;
-		textFormat: Text.RichText;
-        // Anchors
-        anchors.top: parent.bottom;
-        anchors.topMargin: 90;
-        anchors.left: parent.left;
-        anchors.leftMargin: 20;
-        anchors.right: parent.right;
-        anchors.rightMargin: 20;
-    }
-  }
 }
