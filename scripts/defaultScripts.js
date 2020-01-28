@@ -39,7 +39,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
     "communityModules/notificationCore/notificationCore.js",
-    "communityModules/chat/FloofChat.js"
+    {"stable": "communityModules/chat/FloofChat.js", "beta": "https://content.fluffy.ws/scripts/chat/FloofChat.js"}
     //"system/chat.js"
 ];
 
@@ -53,7 +53,8 @@ var MENU_CATEGORY = "Developer > Scripting";
 var MENU_ITEM = "Debug defaultScripts.js";
 
 var SETTINGS_KEY = '_debugDefaultScriptsIsChecked';
-var previousSetting = Settings.getValue(SETTINGS_KEY);
+var SETTINGS_KEY_BETA = '_betaDefaultScriptsIsChecked';
+var previousSetting = Settings.getValue(SETTINGS_KEY, false);
 
 if (previousSetting === '' || previousSetting === false || previousSetting === 'false') {
     previousSetting = false;
@@ -71,23 +72,31 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
         isChecked: previousSetting,
     });
 }
-
 function loadSeparateDefaults() {
     var currentlyRunningScripts = ScriptDiscoveryService.getRunning();
 
     for (var i in DEFAULT_SCRIPTS_SEPARATE) {
         var shouldLoadCurrentDefaultScript = true;
+        var scriptItem = DEFAULT_SCRIPTS_SEPARATE[i];
+        if (typeof scriptItem === "object") {
+            if (previousSettingBeta) {
+                console.info("Loading Beta item " + scriptItem.beta);
+                scriptItem = scriptItem.beta;
+            } else {
+                scriptItem = scriptItem.stable;
+            }
+        }
 
         for (var j = 0; j < currentlyRunningScripts.length; j++) {
             var currentRunningScriptObject = currentlyRunningScripts[j];
-            var currentDefaultScriptName = DEFAULT_SCRIPTS_SEPARATE[i].substr((DEFAULT_SCRIPTS_SEPARATE[i].lastIndexOf("/") + 1), DEFAULT_SCRIPTS_SEPARATE[i].length);
+            var currentDefaultScriptName = scriptItem.substr((scriptItem.lastIndexOf("/") + 1), scriptItem.length);
             if (currentDefaultScriptName === currentRunningScriptObject.name) {
                 shouldLoadCurrentDefaultScript = false;
             }
         }
 
         if (shouldLoadCurrentDefaultScript) {
-            Script.load(DEFAULT_SCRIPTS_SEPARATE[i]);
+            Script.load(scriptItem);
         }
     }
 }
@@ -161,7 +170,7 @@ function removeMenuItem() {
     }
 }
 
-Script.scriptEnding.connect(function() {
+Script.scriptEnding.connect(function () {
     removeMenuItem();
 });
 
