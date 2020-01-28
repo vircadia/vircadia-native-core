@@ -54,7 +54,8 @@ var MENU_ITEM = "Debug defaultScripts.js";
 
 var SETTINGS_KEY = '_debugDefaultScriptsIsChecked';
 var SETTINGS_KEY_BETA = '_betaDefaultScriptsIsChecked';
-var previousSetting = Settings.getValue(SETTINGS_KEY, false);
+var previousSetting = Settings.getValue(SETTINGS_KEY, false);;
+var previousSettingBeta = Settings.getValue(SETTINGS_KEY_BETA, false);
 
 if (previousSetting === '' || previousSetting === false || previousSetting === 'false') {
     previousSetting = false;
@@ -91,7 +92,7 @@ function loadSeparateDefaults() {
             var currentRunningScriptObject = currentlyRunningScripts[j];
             var currentDefaultScriptName = scriptItem.substr((scriptItem.lastIndexOf("/") + 1), scriptItem.length);
             if (currentDefaultScriptName === currentRunningScriptObject.name) {
-                shouldLoadCurrentDefaultScript = false;
+                ScriptDiscoveryService.stopScript(currentRunningScriptObject.url);
             }
         }
 
