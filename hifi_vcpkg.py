@@ -86,8 +86,7 @@ endif()
             self.vcpkgHash = 'a650db47a63ccdc9904b68ddd16af74772e7e78170b513ea8de5a3b47d032751a3b73dcc7526d88bcb500753ea3dd9880639ca842bb176e2bddb1710f9a58cd3'
             self.hostTriplet = 'x64-windows'
             if ('CI_BUILD' in os.environ) and os.environ["CI_BUILD"] == "Github" and (not self.noClean):
-                #self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-win32.zip%3FversionId=LtGKnBydCxteY3Ub1W_UNBN5sH.Ccp5g"
-                self.prebuildArchive = "https://ipfs.io/ipfs/QmayBaq4DGnFULMWmsvjWyq3yU6HwuANpHD2M8bpVUVd6j/vcpkg-win32-release.zip" #temp hosted smaller archive
+                self.prebuiltArchive = "https://ipfs.io/ipfs/QmayBaq4DGnFULMWmsvjWyq3yU6HwuANpHD2M8bpVUVd6j/vcpkg-win32-release.zip"
         elif 'Darwin' == system:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '--allowAppleClang' ]
