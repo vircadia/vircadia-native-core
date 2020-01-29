@@ -28,7 +28,7 @@ if [ -d "/var/lib/athena/$1" ]; then
 fi
 
 mkdir -p /var/lib/athena/$1/.local/share
-ln -s ../.. /var/lib/athena/$1/.local/share/High\ Fidelity\ -\ dev
+ln -s ../.. /var/lib/athena/$1/.local/share/Project\ Athena\ -\ dev
 mkdir -p /var/lib/athena/$1/domain-server
 echo "{\"metaverse\": {\"local_port\": $(($2 + 2))},\"version\": 2.4}" > /var/lib/athena/$1/domain-server/config.json
 chown -R athena.athena /var/lib/athena/$1

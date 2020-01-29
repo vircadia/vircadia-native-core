@@ -29,7 +29,7 @@ Project Athena allows creation and sharing of VR experiences.
 %install
 rm -rf $RPM_BUILD_ROOT
 install -d $RPM_BUILD_ROOT/etc/athena
-install -m 0755 -t $RPM_BUILD_ROOT/etc/athena $ATHENA/source/rpm/new-server
+install -m 0755 -t $RPM_BUILD_ROOT/etc/athena $ATHENA/source/pkg-scripts/new-server
 install -d $RPM_BUILD_ROOT/usr/share/athena
 install -m 0755 $ATHENA/build/assignment-client/assignment-client $RPM_BUILD_ROOT/usr/share/athena
 install -m 0755 $ATHENA/build/domain-server/domain-server $RPM_BUILD_ROOT/usr/share/athena
@@ -39,14 +39,14 @@ install -d $RPM_BUILD_ROOT/usr/share/athena/lib
 install -m 0644 -t $RPM_BUILD_ROOT/usr/share/athena/lib $ATHENA/qt5-install/lib/*.so.*.*.*
 install -m 0644 -t $RPM_BUILD_ROOT/usr/share/athena/lib $ATHENA/build/ext/makefiles/quazip/project/lib/*.so.*.*.*
 install -d $RPM_BUILD_ROOT/usr/lib/systemd/system
-install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/rpm/athena-assignment-client.service
-install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/rpm/athena-assignment-client@.service
-install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/rpm/athena-domain-server.service
-install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/rpm/athena-domain-server@.service
-#install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/rpm/athena-ice-server.service
-#install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/rpm/athena-ice-server@.service
-install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/rpm/athena-server.target
-install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/rpm/athena-server@.target
+install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/pkg-scripts/athena-assignment-client.service
+install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/pkg-scripts/athena-assignment-client@.service
+install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/pkg-scripts/athena-domain-server.service
+install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/pkg-scripts/athena-domain-server@.service
+#install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/pkg-scripts/athena-ice-server.service
+#install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/pkg-scripts/athena-ice-server@.service
+install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/pkg-scripts/athena-server.target
+install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $ATHENA/source/pkg-scripts/athena-server@.target
 cp -a $ATHENA/source/domain-server/resources $RPM_BUILD_ROOT/usr/share/athena
 
 
