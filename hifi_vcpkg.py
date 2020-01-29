@@ -9,7 +9,6 @@ import tempfile
 import json
 import xml.etree.ElementTree as ET
 import functools
-import distro
 from os import path
 
 print = functools.partial(print, flush=True)
