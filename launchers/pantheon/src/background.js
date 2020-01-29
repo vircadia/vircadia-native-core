@@ -256,7 +256,7 @@ function setLibraryDialog() {
 	})
 }
 
-async function getLatestVersionJSON() {
+async function getLatestMetaJSON() {
 	var metaURL = 'https://projectathena.io/cdn/athena/launcher/athenaMeta.json';
 		
 	await electronDl.download(win, metaURL, {
@@ -273,12 +273,18 @@ async function getLatestVersionJSON() {
 	let rawdata = fs.readFileSync(athenaMetaFile);
 	let athenaMetaJSON = JSON.parse(rawdata);
 	
-	if (athenaMetaJSON.latest) {
+	if (athenaMetaJSON.latest.url) {
 		console.info("Athena Meta JSON:", athenaMetaJSON);
-		return athenaMetaJSON.latest;
+		return athenaMetaJSON.latest.url;
 	} else {
 		return false;
 	}
+}
+
+async function checkForInterfaceUpdates() {
+	var athenaMeta = await getLatestMetaJSON();
+	
+	// TO DO, DOWNLOADING IS CURRENTLY IN A NON-WORKING STATE BECAUSE I CHANGED THE FUNCTION NAME.
 }
 
 async function getSetting(setting, storageDataPath) {
@@ -354,10 +360,10 @@ ipcMain.on('launch-interface', (event, arg) => {
 		
 	console.info("Nani?", parameters, "type?", Array.isArray(parameters));
 
-	// interface_exe(executablePath, parameters, { windowsVerbatimArguments: true }, function(err, stdout, data) {
-	// 	console.log(err)
-	// 	console.log(stdout.toString());
-	// });
+	interface_exe(executablePath, parameters, { windowsVerbatimArguments: true }, function(err, stdout, data) {
+		console.log(err)
+		console.log(stdout.toString());
+	});
   
 })
 
@@ -481,9 +487,14 @@ ipcMain.on('download-athena', async (event, arg) => {
 	}
 })
 
+var installer_exe = require('child_process').execFile;
+
+installer_exe.on('exit', (code) => {
+  console.info(`Installer exited with code ${code}`);
+});
+
 ipcMain.on('install-athena', (event, arg) => {
 	getSetting('athena_interface.library', storagePath.default).then(function(libPath){
-		var installer_exe = require('child_process').execFile;
 		var executablePath = libPath + "/Athena_Setup_Latest.exe";
 		var installPath = libPath + "/Athena_Interface_Latest";
 		var parameters = [""];

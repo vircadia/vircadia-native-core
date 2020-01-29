@@ -103,8 +103,74 @@
                 <span>Install</span>
             </v-tooltip>
 
-            <v-checkbox id="noSteamVR" class="ml-5 mr-3 mt-7" v-model="noSteamVR" label="No SteamVR" value="true"></v-checkbox>
-			
+
+            <div class="text-center">
+            <v-menu top offset-y :close-on-content-click="false">
+                <template v-slot:activator="{ on }">
+                    <v-btn
+                        color="primary"
+                        dark
+                        :tile=true
+                        v-on="on"
+                    >
+                    Options
+                    </v-btn>
+                </template>
+                <div style="background: rgba(255,255,255,0.8);">
+                    <!-- <v-checkbox id="noSteamVR" class="" v-model="noSteamVR" label="No SteamVR" value="true"></v-checkbox> -->
+                    <!-- <v-checkbox color="blue" id="multipleInterfaces" class="" v-model="allowMultipleInstances" @click="multipleInstances" label="Allow Multiple Instances" value="true"></v-checkbox> -->
+                </div>
+                <v-list
+                    subheader
+                    two-line
+                    flat
+                >
+                    <v-subheader>Launch Options</v-subheader>
+
+                    <v-list-item-group
+                        multiple
+                        v-model="launchOptions"
+                    >
+                        <v-list-item>
+                            <template>
+                                <v-list-item-action>
+                                    <v-checkbox
+                                        color="primary"
+                                        :true-value="allowMultipleInstances"
+                                        :input-value="allowMultipleInstances"
+                                        v-model="allowMultipleInstances"
+                                    ></v-checkbox>
+                                </v-list-item-action>
+
+                                <v-list-item-content>
+                                    <v-list-item-title>Simultaneous Interfaces</v-list-item-title>
+                                    <v-list-item-subtitle>Allow multiple interfaces to be run simultaneously.</v-list-item-subtitle>
+                                </v-list-item-content>
+                            </template>
+                        </v-list-item>
+                        <v-list-item>
+                            <template>
+                                <v-list-item-action>
+                                    <v-checkbox
+                                        color="primary"
+                                        :true-value="noSteamVR"
+                                        :input-value="noSteamVR"
+                                        v-model="noSteamVR"
+                                    ></v-checkbox>
+                                </v-list-item-action>
+
+                                <v-list-item-content>
+                                    <v-list-item-title>Disable SteamVR</v-list-item-title>
+                                    <v-list-item-subtitle>Disable launching and attaching SteamVR with interface.</v-list-item-subtitle>
+                                </v-list-item-content>
+                            </template>
+                        </v-list-item>
+
+                    </v-list-item-group>
+                </v-list>
+            </v-menu>
+            </div>
+
             <v-tooltip top>
                 <template v-slot:activator="{ on }">
                     <v-btn
@@ -176,6 +242,7 @@ ipcRenderer.on('state-loaded', (event, arg) => {
 			property: 'allowMultipleInstances', 
 			with: arg.results.allowMultipleInstances
 		});
+        vue_this.allowMultipleInstances = arg.results.allowMultipleInstances;
 	}
 	if(arg.results.selectedInterface) {
 		vue_this.$store.commit('mutate', {
@@ -302,13 +369,14 @@ export default {
         selectInterfaceExe: function() {
             const { ipcRenderer } = require('electron');
             ipcRenderer.send('set-athena-location');
-        }
+        },
 	},
 	created: function () {
 		const { ipcRenderer } = require('electron');
 		vue_this = this;
 		
 		ipcRenderer.send('load-state');
+        ipcRenderer.send('getLibraryFolder');
 		
 		// Load saved selected interface.	
 		if (this.$store.selectedInterface) {
@@ -326,9 +394,7 @@ export default {
             });
             const { ipcRenderer } = require('electron');			
             ipcRenderer.send('setCurrentInterface', this.$store.state.selectedInterface.folder);
-        }
-        
-        ipcRenderer.send('getLibraryFolder');
+        }    
 	},
 	computed: {
 		interfaceSelected () {
@@ -342,6 +408,12 @@ export default {
 				with: newValue
 			});
 		},
+        allowMultipleInstances: function (newValue, oldValue) {
+            this.$store.commit('mutate', {
+                property: 'allowMultipleInstances', 
+                with: newValue
+            });
+        },
 		interfaceSelected (newVal, oldVal) {
 			// console.log(`We have ${newVal} now!`);
 		}
@@ -357,6 +429,7 @@ export default {
 		showCloudIcon: true,
 		showCloudDownload: false,
 		disableInstallIcon: false,
+        launchOptions: [],
 	}),
 };
 </script>

@@ -55,7 +55,7 @@
 						
 						<h2 class="ml-3 mt-3">General</h2>
 						
-                        <h3 class="mx-7 mt-5">Launch Settings</h3>
+                        <h3 class="mx-7 mt-5">Launch Settings for {{ selectedInterface }}</h3>
                         
 						<v-layout row pr-5 pt-5 pl-12>
 							<v-flex md6>
@@ -65,23 +65,17 @@
 									class=""
 									:tile=true
 								>
-									<span class="mr-2">Select Interface Executable</span>
+									<span class="mr-2">Locate Interface .exe</span>
 									<v-icon>settings_applications</v-icon>
 								</v-btn>
 							</v-flex>
 						</v-layout>
-                        
-                        <v-layout row pr-5 pt-5 pl-12>
-                            <v-flex md6>
-                                <v-checkbox color="blue" id="multipleInterfaces" class="mr-3 mt-3" v-model="allowMultipleInstances" @click="multipleInstances" label="Allow Multiple Instances" value="true"></v-checkbox>
-                            </v-flex>
-                        </v-layout> 
 
+						<h3 class="mx-7 mt-5">Installation Path</h3>
                         
-						<h3 class="mx-7 mt-5">Library</h3>
-                        
-                        <p class="mx-7 mt-3 bodyText">The library folder is the directory that all of your Athena installations are located.<br />
-                            For example, if you had Athena installed to: <pre>C:\Program Files (x86)\Athena-K2-RC1</pre> then you would make your library folder: <pre>C:\Program Files (x86)</pre>
+                        <p class="mx-7 mt-3 bodyText">The installs folder is the directory that your Athena installations are located in.<br />
+                            For example, if you had Athena installed to: <pre>C:\Program Files (x86)\Athena-K2-RC1</pre> then you would make your installs folder: <pre>C:\Program Files (x86)</pre><br />
+                            The launcher will detect the installations, to select one, click "Select Interface".
                         </p>
                         
 						<v-layout row pr-5 pt-5 pl-12>
@@ -95,7 +89,7 @@
                                             :tile=true
                                             v-on="on"
                                         >
-                                            <span class="mr-2">Set Library Folder</span>
+                                            <span class="mr-2">Set Installs Folder</span>
                                             <v-icon>folder</v-icon>
                                         </v-btn>
                                     </template>
@@ -228,6 +222,7 @@ export default {
 				property: 'selectedInterface', 
 				with: { name: selected.name, folder: selected.folder }
 			});
+            this.selectedInterface = selected.name;
 			ipcRenderer.send('setCurrentInterface', selected.folder);
 		},
 		selectInterfaceExe: function() {
@@ -250,12 +245,6 @@ export default {
             if(this.debounce()) {
                 ipcRenderer.invoke('populateInterfaceList');
             }
-		},
-		multipleInstances: function() {
-			this.$store.commit('mutate', {
-				property: 'allowMultipleInstances', 
-				with: this.allowMultipleInstances
-			});
 		},
 		setMetaverseServer: function() {
 			this.$store.commit('mutate', {
@@ -281,11 +270,11 @@ export default {
 	data: () => ({
 		show: false,
 		showRequireInterface: false,
-		allowMultipleInstances: false,
 		interfaceFolders: [],
 		metaverseServer: "metaverse.highfidelity.com", // Default metaverse API URL
         currentFolder: "",
         readyToUseAgain: true,
+        selectedInterface: "[No Interface Selected]",
 	}),
     computed: {
         librarySelected () {
@@ -302,7 +291,6 @@ export default {
         vue_this = this;
         const { ipcRenderer } = require('electron');
         
-		this.allowMultipleInstances = this.$store.state.allowMultipleInstances;
 		this.populateInterfaceList();
         
 		if (this.$store.state.metaverseServer) {
