@@ -54,7 +54,7 @@ var MENU_ITEM = "Debug defaultScripts.js";
 
 var SETTINGS_KEY = '_debugDefaultScriptsIsChecked';
 var SETTINGS_KEY_BETA = '_betaDefaultScriptsIsChecked';
-var previousSetting = Settings.getValue(SETTINGS_KEY, false);;
+var previousSetting = Settings.getValue(SETTINGS_KEY, false);
 var previousSettingBeta = Settings.getValue(SETTINGS_KEY_BETA, false);
 
 if (previousSetting === '' || previousSetting === false || previousSetting === 'false') {
@@ -73,6 +73,7 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
         isChecked: previousSetting,
     });
 }
+
 function loadSeparateDefaults() {
     var currentlyRunningScripts = ScriptDiscoveryService.getRunning();
 
@@ -81,7 +82,7 @@ function loadSeparateDefaults() {
         var scriptItem = DEFAULT_SCRIPTS_SEPARATE[i];
         if (typeof scriptItem === "object") {
             if (previousSettingBeta) {
-                console.info("Loading Beta item " + scriptItem.beta);
+                console.log("Loading Beta item " + scriptItem.beta);
                 scriptItem = scriptItem.beta;
             } else {
                 scriptItem = scriptItem.stable;
@@ -92,7 +93,11 @@ function loadSeparateDefaults() {
             var currentRunningScriptObject = currentlyRunningScripts[j];
             var currentDefaultScriptName = scriptItem.substr((scriptItem.lastIndexOf("/") + 1), scriptItem.length);
             if (currentDefaultScriptName === currentRunningScriptObject.name) {
-                ScriptDiscoveryService.stopScript(currentRunningScriptObject.url);
+                if (currentRunningScriptObject.url !== scriptItem) {
+                    ScriptDiscoveryService.stopScript(currentRunningScriptObject.url);
+                } else {
+                    shouldLoadCurrentDefaultScript = false;
+                }
             }
         }
 
