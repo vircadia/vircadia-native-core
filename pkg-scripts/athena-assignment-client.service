@@ -6,13 +6,13 @@ PartOf=athena-server.target
 [Service]
 Restart=always
 
-WorkingDirectory=/var/lib/athena
-Environment="LD_LIBRARY_PATH=/usr/share/athena/lib"
+WorkingDirectory=/opt/athena
+Environment="LD_LIBRARY_PATH=/opt/athena/lib"
 User=athena
 Group=athena
 #LimitCORE=infinity
-#ExecStart=/usr/share/athena/assignment-client -n 6
-ExecStart=/usr/share/athena/assignment-client --min 6 --max 20
+#ExecStart=/opt/athena/assignment-client -n 6
+ExecStart=/opt/athena/assignment-client --min 6 --max 20
 
 [Install]
 WantedBy=multi-user.target
