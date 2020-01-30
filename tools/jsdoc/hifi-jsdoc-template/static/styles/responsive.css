@@ -1,0 +1,12 @@
+.nav-header {
+	display: none;
+}
+
+nav {
+	display: none !important;
+}
+
+#main {
+	margin-left: 15px !important;
+	margin-right: 15px !important;
+}

@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <title><?js= title ?></title>
 	
-	<script src="scripts/vue_dev.js"></script>
+	<script src="scripts/vue.min.js"></script>
 	<script src="scripts/vuetify.js"></script>
     
     <script src="scripts/prettify/prettify.js"></script>
@@ -17,6 +17,7 @@
     <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
 	<link type="text/css" rel="stylesheet" href="styles/night.css">
 	<link type="text/css" rel="stylesheet" href="styles/responsive.css">
+	<link type="text/css" rel="stylesheet" href="styles/main.css">
 	<link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Two+Tone|Material+Icons+Round|Material+Icons+Sharp" rel="stylesheet">
 	<link href="styles/materialdesignicons.min.css" rel="stylesheet">
@@ -54,29 +55,28 @@
 </head>
 <body>
 <v-app dark>
-<div id="app">
-	<div class="nav-header">
-	    <p><a href="https://projectathena.io"><img src="images/project-athena-logo.png" width="214px" /></a></p>
-	    <?js if (env.conf.docdash.search) { ?>
-	    <input type="text" class="search-input" id="nav-search" placeholder="Search API Docs ..." />
-	    <?js } ?>
-	    <p><a href="https://docs.projectathena.dev">Looking for <strong>Project Athena</strong><br /> Documentation?</a></p>
-			<v-btn @click="toggleNightMode" text dark>
-				Toggle
-				<v-icon class="ml-2">mdi-theme-light-dark</v-icon>
-			</v-btn>
+	<div id="vue-menu">
+		<template>
+		<v-btn @click="toggleResponsive" fab dark style="position: fixed; right: 15px; top: 15px;">
+			<v-icon class="ml-4">mdi-monitor-cellphone</v-icon>
+		</v-btn>
+			<div class="nav-header">
+			    <p><a href="https://projectathena.io"><img src="images/project-athena-logo.png" width="214px" /></a></p>
+			    <?js if (env.conf.docdash.search) { ?>
+			    <input type="text" class="search-input" id="nav-search" placeholder="Search API Docs ..." />
+			    <?js } ?>
+			    <p><a href="https://docs.projectathena.dev">Looking for <strong>Project Athena</strong><br /> Documentation?</a></p>
+					<v-btn @click="toggleNightMode" text dark>
+						Toggle
+						<v-icon class="ml-2">mdi-theme-light-dark</v-icon>
+					</v-btn>
+			</div>
+			<nav>
+			    <?js= this.nav ?>
+			</nav>
+		</template>
 	</div>
-
-	<v-btn @click="toggleResponsive" text dark>
-		Toggle
-		<v-icon class="ml-4">mdi-monitor-cellphone</v-icon>
-	</v-btn>
-</div>
 </v-app>
-
-<nav>
-    <?js= this.nav ?>
-</nav>
 
 <div id="main">
     <h1 class="page-title"><?js= title ?></h1>
@@ -123,7 +123,7 @@
 
 <script>
 	new Vue({
-		el: '#app',
+		el: '#vue-menu',
 		vuetify: new Vuetify({
 			theme: {
 				dark: true,
