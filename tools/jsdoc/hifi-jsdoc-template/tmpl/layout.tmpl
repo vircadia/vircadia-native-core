@@ -44,21 +44,21 @@
 		
 		var responsiveDisabled = JSON.parse(localStorage.getItem('responsiveDisabled'));
 		if (responsiveDisabled == null) {
-			localStorage.setItem('responsiveDisabled', JSON.stringify(false));
+			localStorage.setItem('responsiveDisabled', JSON.stringify(true));
 		} else {
 			var responsiveSheet = document.querySelector('[href="styles/responsive.css"]');
 			responsiveSheet.disabled = responsiveDisabled;
 		}
 	</script>
-	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
-    <link href="images/fav-icon.ico" rel="shortcut icon">
+	<!-- <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui"> -->
+	<link href="images/fav-icon.ico" rel="shortcut icon">
 </head>
 <body>
 <v-app dark>
 	<div id="vue-menu">
 		<template>
-		<v-btn @click="toggleResponsive" fab dark style="position: fixed; right: 15px; top: 15px;">
-			<v-icon class="ml-4">mdi-monitor-cellphone</v-icon>
+		<v-btn @click="toggleResponsive" fab large dark style="position: fixed; right: 15px; top: 15px;">
+			<v-icon class="ml-4">mdi-backburger</v-icon>
 		</v-btn>
 			<div class="nav-header">
 			    <p><a href="https://projectathena.io"><img src="images/project-athena-logo.png" width="214px" /></a></p>
@@ -66,10 +66,10 @@
 			    <input type="text" class="search-input" id="nav-search" placeholder="Search API Docs ..." />
 			    <?js } ?>
 			    <p><a href="https://docs.projectathena.dev">Looking for <strong>Project Athena</strong><br /> Documentation?</a></p>
-					<v-btn @click="toggleNightMode" text dark>
-						Toggle
-						<v-icon class="ml-2">mdi-theme-light-dark</v-icon>
-					</v-btn>
+				<v-btn @click="toggleNightMode" text dark>
+					<span>Toggle</span>
+					<v-icon style="margin-left: 5px;">mdi-theme-light-dark</v-icon>
+				</v-btn>
 			</div>
 			<nav>
 			    <?js= this.nav ?>
