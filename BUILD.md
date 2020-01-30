@@ -44,6 +44,7 @@ This can either be entered directly into your shell session before you build or 
     export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.12.3/clang_64/lib/cmake/
     export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.12.3/lib/cmake
     export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
+    export QT_CMAKE_PREFIX_PATH=$path_to_qt5_cloned_git/qt5/qtbase/lib/cmake
 
 #### Vcpkg
 
