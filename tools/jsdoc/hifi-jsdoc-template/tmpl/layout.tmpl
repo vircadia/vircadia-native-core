@@ -43,7 +43,7 @@
     }
 
     var responsiveDisabled = JSON.parse(localStorage.getItem('responsiveDisabled'));
-    if (responsiveDisabled == null) {
+    if (responsiveDisabled === null) {
         localStorage.setItem('responsiveDisabled', JSON.stringify(true));
     } else {
         var responsiveSheet = document.querySelector('[href="styles/responsive.css"]');
