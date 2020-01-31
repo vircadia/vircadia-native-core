@@ -21,4 +21,4 @@ include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
 setup_memory_debugger()
 
 # append OpenSSL to our list of libraries to link
-target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES})
+target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES} -lpthread -lm)
