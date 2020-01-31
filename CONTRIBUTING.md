@@ -25,6 +25,7 @@ Contributing
   ```
   
   Resolve any conflicts that arise with this step.
+  
 7. Push to your fork
   
   ```
@@ -37,8 +38,10 @@ Contributing
 Reporting Bugs
 ===
 1. Always update to the latest code on master, we make many merges every day and it is possible the bug has already been fixed!
-2. Search [issues](https://github.com/kasenvr/project-athena/issues) to make sure that somebody has not already reported the same bug. [Add](https://github.com/kasenvr/project-athena/issues/new) your report to the issues list!
+2. Search [issues](https://github.com/kasenvr/project-athena/issues) to make sure that somebody has not already reported the same bug. 
+3. [Add](https://github.com/kasenvr/project-athena/issues/new) your report to the issues list!
 
-Requesting a feature
+Requesting a Feature
 ===
-1. Search [issues](https://github.com/kasenvr/project-athena/issues) to make sure that somebody has not already requested the same feature. [Add](https://github.com/kasenvr/project-athena/issues/new) your request to the issues list!
+1. Search [issues](https://github.com/kasenvr/project-athena/issues) to make sure that somebody has not already requested the same feature. 
+2. [Add](https://github.com/kasenvr/project-athena/issues/new) your request to the issues list!
