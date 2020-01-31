@@ -4059,7 +4059,7 @@ void Application::setIsServerlessMode(bool serverlessDomain) {
     }
 }
 
-std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl domainURL) {
+std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl domainURL, QByteArray data) {
     QUuid serverlessSessionID = QUuid::createUuid();
     getMyAvatar()->setSessionUUID(serverlessSessionID);
     auto nodeList = DependencyManager::get<NodeList>();
@@ -4070,14 +4070,13 @@ std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl dom
     permissions.setAll(true);
     nodeList->setPermissions(permissions);
 
-    // we can't import directly into the main tree because we would need to lock it, and
-    // Octree::readFromURL calls loop.exec which can run code which will also attempt to lock the tree.
+    // FIXME: Lock the main tree and import directly into it.
     EntityTreePointer tmpTree(new EntityTree());
     tmpTree->setIsServerlessMode(true);
     tmpTree->createRootElement();
     auto myAvatar = getMyAvatar();
     tmpTree->setMyAvatar(myAvatar);
-    bool success = tmpTree->readFromURL(domainURL.toString());
+    bool success = tmpTree->readFromByteArray(domainURL.toString(), data);
     if (success) {
         tmpTree->reaverageOctreeElements();
         tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), 0, 0, 0);
@@ -4100,12 +4099,26 @@ void Application::loadServerlessDomain(QUrl domainURL) {
         return;
     }
 
-    auto namedPaths = prepareServerlessDomainContents(domainURL);
-    auto nodeList = DependencyManager::get<NodeList>();
+    QString trimmedUrl = domainURL.toString().trimmed();
+    bool DEFAULT_IS_OBSERVABLE = true;
+    const qint64 DEFAULT_CALLER_ID = -1;
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        this, trimmedUrl, DEFAULT_IS_OBSERVABLE, DEFAULT_CALLER_ID, "Application::loadServerlessDomain");
 
-    nodeList->getDomainHandler().connectedToServerless(namedPaths);
+    if (!request) {
+        return;
+    }
 
-    _fullSceneReceivedCounter++;
+    connect(request, &ResourceRequest::finished, this, [=]() {
+        if (request->getResult() == ResourceRequest::Success) {
+            auto namedPaths = prepareServerlessDomainContents(domainURL, request->getData());
+            auto nodeList = DependencyManager::get<NodeList>();
+            nodeList->getDomainHandler().connectedToServerless(namedPaths);
+            _fullSceneReceivedCounter++;
+        }
+        request->deleteLater();
+    });
+    request->send();
 }
 
 void Application::loadErrorDomain(QUrl domainURL) {
@@ -4114,16 +4127,7 @@ void Application::loadErrorDomain(QUrl domainURL) {
         return;
     }
 
-    if (domainURL.isEmpty()) {
-        return;
-    }
-
-    auto namedPaths = prepareServerlessDomainContents(domainURL);
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    nodeList->getDomainHandler().loadedErrorDomain(namedPaths);
-
-    _fullSceneReceivedCounter++;
+    loadServerlessDomain(domainURL);
 }
 
 bool Application::importImage(const QString& urlString) {

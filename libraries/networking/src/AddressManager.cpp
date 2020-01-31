@@ -358,11 +358,8 @@ bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger) {
         emit lookupResultsFinished();
 
         return true;
-    } else if (lookupUrl.scheme() == HIFI_URL_SCHEME_FILE) {
-        // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
-        // be loaded over http(s)
-        // lookupUrl.scheme() == URL_SCHEME_HTTP ||
-        // lookupUrl.scheme() == HIFI_URL_SCHEME_HTTPS ||
+    } else if (lookupUrl.scheme() == HIFI_URL_SCHEME_FILE || lookupUrl.scheme() == HIFI_URL_SCHEME_HTTPS
+            || lookupUrl.scheme() == HIFI_URL_SCHEME_HTTP) {
         // TODO once a file can return a connection refusal if there were to be some kind of load error, we'd
         // need to store the previous domain tried in _lastVisitedURL. For now , do not store it.
 
