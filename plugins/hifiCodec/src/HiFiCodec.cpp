@@ -13,6 +13,7 @@
 
 #include <AudioCodec.h>
 #include <AudioConstants.h>
+#include <PerfStat.h>
 
 
 const char* HiFiCodec::NAME { "hifiAC" };
@@ -44,6 +45,8 @@ public:
     }
 
     virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override {
+        PerformanceTimer perfTimer("HiFiEncoder::encode");
+
         encodedBuffer.resize(_encodedSize);
         AudioEncoder::process((const int16_t*)decodedBuffer.constData(), (int16_t*)encodedBuffer.data(), AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
     }
@@ -58,11 +61,15 @@ public:
     }
 
     virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override {
+        PerformanceTimer perfTimer("HiFiEncoder::decode");
+
         decodedBuffer.resize(_decodedSize);
         AudioDecoder::process((const int16_t*)encodedBuffer.constData(), (int16_t*)decodedBuffer.data(), AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL, true);
     }
 
     virtual void lostFrame(QByteArray& decodedBuffer) override {
+        PerformanceTimer perfTimer("HiFiEncoder::lostFrame");
+
         decodedBuffer.resize(_decodedSize);
         // this performs packet loss interpolation
         AudioDecoder::process(nullptr, (int16_t*)decodedBuffer.data(), AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL, false);
