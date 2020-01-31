@@ -1,0 +1,23 @@
+Collection of scripts to create server distribution packages.  Most of these scripts assume
+use of the build script at https://github.com/daleglass/athena-builder, specifically that
+the following directory structure exists
+
+base folder/
+	source/		git checkout
+	build/		result of cmake build
+	qt5-install/	installed or built Qt5 installation
+
+
+Ubuntu:
+	DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
+
+	This script will retrieve the current git commit date and hash and assemble a version from it.
+	It will attempt construct a .deb file in the pkg-scripts folder, assuming the Athena base folder
+	is located at ../..
+
+Amazon Linux 2:
+	ATHENA=~/Athena rpmbuild --target x86_64 -bb ./athena-server.spec
+
+	This command takes an ATHENA environment variable set to the base folder and attempts to build
+	an .rpm file.  The result will be in ~/rpmbuild/RPMS.  The version number is currently
+	hardcoded inside of the athena-server.spec file
