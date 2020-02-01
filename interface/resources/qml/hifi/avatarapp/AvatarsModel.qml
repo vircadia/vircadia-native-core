@@ -21,17 +21,47 @@ ListModel {
 
         return marketItemUrl;
     }
+	
+	function makeMarketThumbnailUrl(marketId) {
+        var avatarThumbnailUrl = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/%marketId%/large/hifi-mp-%marketId%.jpg"
+            .split('%marketId%').join(marketId);
+            
+        return avatarThumbnailUrl;
+    }
+	
+    function trimFileExtension(url) {
+        url = url.substring(0, (url.indexOf("#") == -1) ? url.length : url.indexOf("#"));
+        url = url.substring(0, (url.indexOf("?") == -1) ? url.length : url.indexOf("?"));
+        url = url.substring(0, url.lastIndexOf("."));
+
+        return url;
+    }
+	
+	function imageExists(image_url){
+
+        var http = new XMLHttpRequest();
+
+        http.open('HEAD', image_url, false);
+        http.send();
+
+        return http.status != 404;
+
+    }
 
     function makeThumbnailUrl(avatarUrl) {
         var marketId = extractMarketId(avatarUrl);
-        if (marketId === '') {
+        if (marketId !== '') {
+            return makeMarketThumbnailUrl(marketId);
+        }
+        
+        var avatarThumbnailFileUrl = trimFileExtension(avatarUrl)+".jpg";
+        var exists= imageExists(avatarThumbnailFileUrl);
+        
+        if (!exists) {
             return '';
         }
-
-        var avatarThumbnailUrl = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/%marketId%/large/hifi-mp-%marketId%.jpg"
-            .split('%marketId%').join(marketId);
-
-        return avatarThumbnailUrl;
+        
+        return avatarThumbnailFileUrl;
     }
 
     function makeAvatarObject(avatar, avatarName) {
