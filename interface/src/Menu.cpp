@@ -287,7 +287,7 @@ Menu::Menu() {
 		}
     });
     
-    // Settings > Entity Script Whitelist
+    // Settings > Entity Script / QML Whitelist
     action = addActionToQMenuAndActionHash(settingsMenu, "Entity Script / QML Whitelist");
     connect(action, &QAction::triggered, [] {
         auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");

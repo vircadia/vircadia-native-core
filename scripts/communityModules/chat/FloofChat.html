@@ -52,6 +52,21 @@
     var $ChatLog; // The scrolling chat log.
     var $ChatInputText; // The text field for entering text.
     var userName;
+    var urlRegEx = /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;,:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+,~%\/\.\w\-]*)?\??(?:[\-\+=&;,:%@\.\w]*)#?(?:[\.\!\/\\\w]*))?)/g;
+
+    function reverseMatches(msg) {
+        var result = [];
+        var matches = msg.match(urlRegEx);
+        if (matches === null) {
+            matches = [];
+        }
+        for (var i = 0; i <= matches.length; i++) {
+            var split = msg.split(matches[i], 2);
+            result.push(split[0]);
+            msg = split[1];
+        }
+        return result;
+    }
 
     //Start George Function
     //Function provided by George Deac
@@ -62,11 +77,30 @@
 
         $.fn.linky = function (options) {
             return this.each(function () {
-                var $el = $(this),
-                    linkifiedContent = _linkify($el, options);
-                var formattedContent = replaceFormatting(linkifiedContent);
+                var $el = $(this);
+                var content = $el.html();
 
-                $el.html(formattedContent);
+                var match = content.match(urlRegEx);
+                var matchLength = match === null ? 0 : match.length;
+                var messageParts = reverseMatches(content);
+
+                var messageFormatted = [];
+                var urlLinkified = [];
+                var completeMessage = [];
+
+                for (var i = 0; i < matchLength; i++) {
+                    urlLinkified.push(_linkify(match[i], options));
+                }
+
+                for (var i = 0; i < messageParts.length; i++) {
+                    messageFormatted.push(replaceFormatting(messageParts[i]));
+                }
+
+                for (var i = 0; i < messageFormatted.length; i++) {
+                    completeMessage.push(messageFormatted[i], urlLinkified[i]);
+                }
+
+                $el.html(completeMessage.join(""));
             });
         };
 
@@ -92,9 +126,8 @@
                     linkTo: "twitter" // Let's default to Twitter
                 },
                 extendedOptions = $.extend(defaultOptions, options),
-                elContent = $el.html(),
+                elContent = $el,
                 // Regular expression courtesy of Matthew O'Riordan, see: http://goo.gl/3syEKK
-                urlRegEx = /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;,:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+,~%\/\.\w\-]*)?\??(?:[\-\+=&;,:%@\.\w]*)#?(?:[\.\!\/\\\w]*))?)/g,
                 matches;
 
             // Linkifying URLs
@@ -121,7 +154,7 @@
         // For any URLs present, unless they are already identified within
         // an `a` element, linkify them.
         function _linkifyUrls(matches, $el) {
-            var elContent = $el.html();
+            var elContent = $el;
 
             $.each(matches, function () {
 
@@ -150,9 +183,9 @@
                     case protocol === "hifi":
                         elContent = elContent.replace(this, "<br/><a href=\"javascript:gotoHiFi('" + this + "');\">" + this + "</a>");
                         break;
-                    case !!this.match(/^(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?(?=.*v=((\w|-){11}))(?:\S+)?$/):
+					          case !!this.match(/(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([^& \n<]+)(?:[^ \n<]+)?/g):
                         var youtubeMatch = this.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
-                        if (youtubeMatch && youtubeMatch[2].length == 11 && this.match(/^(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?(?=.*v=((\w|-){11}))(?:\S+)?$/)) {
+                        if (youtubeMatch && youtubeMatch[2].length == 11) {
                             elContent = "<br/><iframe class=\"z-depth-2\" width='420' height='236' src='https://www.youtube.com/embed/" + youtubeMatch[2] + "' frameborder='0'></iframe><br/><a href=\"javascript:gotoURL('" + this + "');\">" + this + "</a>";
                             break;
                         }

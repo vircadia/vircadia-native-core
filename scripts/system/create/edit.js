@@ -427,7 +427,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
             y: 0.9,
             z: 0.01
         },
-        sourceUrl: "https://projectathena.io/",
+        sourceUrl: "https://highfidelity.com/",
         dpi: 30,
     },
     ParticleEffect: {

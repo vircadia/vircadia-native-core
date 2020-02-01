@@ -3185,7 +3185,7 @@ void Application::showLoginScreen() {
         QJsonObject loginData = {};
         loginData["action"] = "login dialog popped up";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-        _window->setWindowTitle("Project Athena");
+        _window->setWindowTitle("High Fidelity");
     } else {
         resumeAfterLoginDialogActionTaken();
     }
@@ -7067,7 +7067,7 @@ void Application::updateWindowTitle() const {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
 
-    QString buildVersion = " - Project Athena Interface v0.86.0 K2 - "
+    QString buildVersion = " - Project Athena v0.86.0 K2 - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
 
@@ -7750,7 +7750,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
             static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
                 "If you want to save what you have now, create a backup before proceeding. For more information about backing up "
                 "and restoring content, visit the documentation page at: ", MAX_CHARACTERS_PER_LINE) +
-                "\nhttps://docs.highfidelity.com/create-and-explore/start-working-in-your-sandbox/restoring-sandbox-content";
+                "\nhttps://docs.projectathena.dev/host/maintain-domain/backup-domain.html";
 
             ModalDialogListener* dig = OffscreenUi::asyncQuestion("Are you sure you want to replace this domain's content set?",
                                                                   infoText, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);

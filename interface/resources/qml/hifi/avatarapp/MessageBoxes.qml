@@ -7,7 +7,7 @@ MessageBox {
         popup.onButton2Clicked = callback;
         popup.titleText = 'Specify Avatar URL'
         popup.bodyText = 'This will not overwrite your existing favorite if you are wearing one.<br>' +
-                '<a href="https://docs.highfidelity.com/create-and-explore/avatars/create-avatars">' +
+                '<a href="https://docs.projectathena.dev/create/avatars/create-avatars.html">' +
                 'Learn to make a custom avatar by opening this link on your desktop.' +
                 '</a>'
         popup.inputText.visible = true;

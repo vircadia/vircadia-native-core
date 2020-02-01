@@ -18,6 +18,7 @@
 #include <vector>
 #include <unordered_map>
 #include <bitset>
+#include <QString>
 
 // Why a macro and not a fancy template you will ask me ?
 // Because some of the fields are bool packed tightly in the State::Cache class
@@ -46,7 +47,7 @@ public:
 
     typedef ::gpu::ComparisonFunction ComparisonFunction;
 
-    enum FillMode : uint8
+    enum FillMode
     {
         FILL_POINT = 0,
         FILL_LINE,
@@ -55,7 +56,7 @@ public:
         NUM_FILL_MODES,
     };
 
-    enum CullMode : uint8
+    enum CullMode
     {
         CULL_NONE = 0,
         CULL_FRONT,
@@ -64,7 +65,7 @@ public:
         NUM_CULL_MODES,
     };
 
-    enum StencilOp : uint16
+    enum StencilOp
     {
         STENCIL_OP_KEEP = 0,
         STENCIL_OP_ZERO,
@@ -78,7 +79,7 @@ public:
         NUM_STENCIL_OPS,
     };
 
-    enum BlendArg : uint16
+    enum BlendArg
     {
         ZERO = 0,
         ONE,
@@ -99,7 +100,7 @@ public:
         NUM_BLEND_ARGS,
     };
 
-    enum BlendOp : uint16
+    enum BlendOp
     {
         BLEND_OP_ADD = 0,
         BLEND_OP_SUBTRACT,
@@ -110,7 +111,7 @@ public:
         NUM_BLEND_OPS,
     };
 
-    enum ColorMask : uint8
+    enum ColorMask
     {
         WRITE_NONE = 0,
         WRITE_RED = 1,
@@ -134,19 +135,27 @@ public:
         ComparisonFunction getFunction() const { return function; }
         uint8 getWriteMask() const { return writeMask; }
 
-        int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
-        DepthTest(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
-        bool operator==(const DepthTest& right) const { return getRaw() == right.getRaw(); }
-        bool operator!=(const DepthTest& right) const { return getRaw() != right.getRaw(); }
+        bool operator==(const DepthTest& right) const {
+            return
+                    writeMask == right.writeMask &&
+                    enabled == right.enabled &&
+                    function == right.function;
+        }
+
+        bool operator!=(const DepthTest& right) const {
+            return !(*this == right);
+        }
+
+        operator QString() const {
+            return QString("{ writeMask = %1, enabled = %2, function = %3 }").arg(writeMask).arg(enabled).arg(function);
+        }
     };
 
-    static_assert(sizeof(DepthTest) == sizeof(uint32_t), "DepthTest size check");
-
     struct StencilTest {
-        ComparisonFunction function : 4;
-        StencilOp failOp : 4;
-        StencilOp depthFailOp : 4;
-        StencilOp passOp : 4;
+        ComparisonFunction function;
+        StencilOp failOp;
+        StencilOp depthFailOp;
+        StencilOp passOp;
         int8 reference{ 0 };
         uint8 readMask{ 0xff };
 
@@ -168,47 +177,56 @@ public:
         int8 getReference() const { return reference; }
         uint8 getReadMask() const { return readMask; }
 
-        int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
-        StencilTest(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
-        bool operator==(const StencilTest& right) const { return getRaw() == right.getRaw(); }
-        bool operator!=(const StencilTest& right) const { return getRaw() != right.getRaw(); }
+        bool operator==(const StencilTest& right) const {
+            return
+                    function == right.function &&
+                    failOp == right.failOp &&
+                    depthFailOp == right.depthFailOp &&
+                    passOp == right.passOp &&
+                    reference == right.reference &&
+                    readMask == right.readMask;
+
+        }
+
+        bool operator!=(const StencilTest &right) const { return !(right==*this); }
     };
-    static_assert(sizeof(StencilTest) == sizeof(uint32_t), "StencilTest size check");
 
     StencilTest stencilTestFront;
 
     struct StencilActivation {
         uint8 frontWriteMask = 0xFF;
         uint8 backWriteMask = 0xFF;
-        bool enabled : 1;
-        uint8 _spare1 : 7;
-        uint8 _spare2{ 0 };
+        bool enabled;
 
     public:
         StencilActivation(bool enabled = false, uint8 frontWriteMask = 0xFF, uint8 backWriteMask = 0xFF) :
-            frontWriteMask(frontWriteMask), backWriteMask(backWriteMask), enabled(enabled), _spare1{ 0 } {}
+            frontWriteMask(frontWriteMask), backWriteMask(backWriteMask), enabled(enabled) {}
 
         bool isEnabled() const { return enabled; }
         uint8 getWriteMaskFront() const { return frontWriteMask; }
         uint8 getWriteMaskBack() const { return backWriteMask; }
 
-        int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
-        StencilActivation(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
-        bool operator==(const StencilActivation& right) const { return getRaw() == right.getRaw(); }
-        bool operator!=(const StencilActivation& right) const { return getRaw() != right.getRaw(); }
-    };
+        bool operator==(const StencilActivation& right) const {
+            return
+                frontWriteMask == right.frontWriteMask &&
+                backWriteMask == right.backWriteMask &&
+                enabled == right.enabled;
+        }
 
-    static_assert(sizeof(StencilActivation) == sizeof(uint32_t), "StencilActivation size check");
+        bool operator!=(const StencilActivation& right) const {
+            return !(*this == right);
+        }
+    };
 
     struct BlendFunction {
         // Using uint8 here will make the structure as a whole not align to 32 bits
-        uint16 enabled : 8;
-        BlendArg sourceColor : 4;
-        BlendArg sourceAlpha : 4;
-        BlendArg destColor : 4;
-        BlendArg destAlpha : 4;
-        BlendOp opColor : 4;
-        BlendOp opAlpha : 4;
+        uint16 enabled;
+        BlendArg sourceColor;
+        BlendArg sourceAlpha;
+        BlendArg destColor;
+        BlendArg destAlpha;
+        BlendOp opColor;
+        BlendOp opAlpha;
 
     public:
         BlendFunction(bool enabled,
@@ -219,7 +237,7 @@ public:
                       BlendOp operationAlpha,
                       BlendArg destinationAlpha) :
             enabled(enabled),
-            sourceColor(sourceColor), sourceAlpha(sourceAlpha), 
+            sourceColor(sourceColor), sourceAlpha(sourceAlpha),
             destColor(destinationColor), destAlpha(destinationAlpha),
             opColor(operationColor), opAlpha(operationAlpha) {}
 
@@ -236,31 +254,50 @@ public:
         BlendArg getDestinationAlpha() const { return destAlpha; }
         BlendOp getOperationAlpha() const { return opAlpha; }
 
-        int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
-        BlendFunction(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
-        bool operator==(const BlendFunction& right) const { return getRaw() == right.getRaw(); }
-        bool operator!=(const BlendFunction& right) const { return getRaw() != right.getRaw(); }
-    };
+        bool operator==(const BlendFunction& right) const {
+            return
+                    enabled == right.enabled &&
+                    sourceColor == right.sourceColor &&
+                    sourceAlpha == right.sourceAlpha &&
+                    destColor == right.destColor &&
+                    destAlpha == right.destAlpha &&
+                    opColor == right.opColor &&
+                    opAlpha == right.opAlpha;
 
-    static_assert(sizeof(BlendFunction) == sizeof(uint32_t), "BlendFunction size check");
+        }
+
+        bool operator!=(const BlendFunction& right) const {
+            return !(*this == right);
+        }
+    };
 
     struct Flags {
         Flags() :
             frontFaceClockwise(false), depthClampEnable(false), scissorEnable(false), multisampleEnable(true),
-            antialisedLineEnable(true), alphaToCoverageEnable(false), _spare1(0) {}
-        bool frontFaceClockwise : 1;
-        bool depthClampEnable : 1;
-        bool scissorEnable : 1;
-        bool multisampleEnable : 1;
-        bool antialisedLineEnable : 1;
-        bool alphaToCoverageEnable : 1;
-        uint8 _spare1 : 2;
+            antialisedLineEnable(true), alphaToCoverageEnable(false) {}
+        bool frontFaceClockwise;
+        bool depthClampEnable;
+        bool scissorEnable;
+        bool multisampleEnable;
+        bool antialisedLineEnable;
+        bool alphaToCoverageEnable;
 
-        bool operator==(const Flags& right) const { return *(uint8*)this == *(uint8*)&right; }
-        bool operator!=(const Flags& right) const { return *(uint8*)this != *(uint8*)&right; }
+
+        bool operator==(const Flags& right) const {
+            return
+                    frontFaceClockwise == right.frontFaceClockwise &&
+                    depthClampEnable == right.depthClampEnable &&
+                    scissorEnable == right.scissorEnable &&
+                    multisampleEnable == right.multisampleEnable &&
+                    antialisedLineEnable == right.antialisedLineEnable &&
+                    alphaToCoverageEnable == right.alphaToCoverageEnable;
+
+        }
+
+        bool operator!=(const Flags& right) const {
+            return !(*this == right);
+        }
     };
-
-    static_assert(sizeof(Flags) == sizeof(uint8), "Flags size check");
 
     // The Data class is the full explicit description of the State class fields value.
     // Useful for having one const static called Default for reference or for the gpu::Backend to keep track of the current value
@@ -281,22 +318,6 @@ public:
 
         Flags flags;
     };
-
-    static_assert(offsetof(Data, depthBias) == 0, "Data offsets");
-    static_assert(offsetof(Data, depthBiasSlopeScale) == 4, "Data offsets");
-    static_assert(offsetof(Data, depthTest) == 8, "Data offsets");
-    static_assert(offsetof(Data, stencilActivation) == 12, "Data offsets");
-    static_assert(offsetof(Data, stencilTestFront) == 16, "Data offsets");
-    static_assert(offsetof(Data, stencilTestBack) == 20, "Data offsets");
-    static_assert(offsetof(Data, sampleMask) == 24, "Data offsets");
-    static_assert(offsetof(Data, blendFunction) == 28, "Data offsets");
-    static_assert(offsetof(Data, fillMode) == 32, "Data offsets");
-    static_assert(offsetof(Data, cullMode) == 33, "Data offsets");
-    static_assert(offsetof(Data, colorWriteMask) == 34, "Data offsets");
-    static_assert(offsetof(Data, flags) == 35, "Data offsets");
-    static_assert(sizeof(Data) == 36, "Data Size Check");
-
-    std::string getKey() const;
 
     // The unique default values for all the fields
     static const Data DEFAULT;
