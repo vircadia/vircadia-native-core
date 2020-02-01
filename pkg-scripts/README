@@ -16,8 +16,39 @@ Ubuntu:
 	is located at ../..
 
 Amazon Linux 2:
-	ATHENA=~/Athena rpmbuild --target x86_64 -bb ./athena-server.spec
+	./athena-server.spec
 
-	This command takes an ATHENA environment variable set to the base folder and attempts to build
-	an .rpm file.  The result will be in ~/rpmbuild/RPMS.  The version number is currently
-	hardcoded inside of the athena-server.spec file
+	This script will retrieve the current git commit date and hash and assemble a version from it.
+	It will attempt construct a .deb file in the pkg-scripts folder, assuming the Athena base folder
+	is located at ../..
+
+Results:
+	The following directory structure is created for binaries:
+		/opt/athena - executables
+		/opt/athena/lib - private shared libraries required for executables
+		/opt/athena/resources - files required by domain-server administrative website
+		/opt/athena/plugins - files required by assignment-client, mainly for audio codecs
+
+	The following systemd services are installed in /usr/lib/systemd/system:
+		athena-assignment-client.service
+		athena-domain-server.service
+		athena-server.target - used to launch/shutdown the two prior services
+		athena-assignment-client@.service
+		athena-domain-server@.service
+		athena-server@.target - used to launch/shutdown the two prior services
+
+		The top three services in this list are the "normal" services that launch Athena
+		in the typical fashion.  The bottom three services are "template" services designed
+		to permit multiple services to be installed and running on a single machine.
+
+		The script "/opt/athena/new-server serverName basePort" will do the necessary
+		setup for a new domain with the specified server name and port.  Upon installation
+		the package will create and launch a domain named "default" at base port 40100.
+		The domain name here has nothing to do with the name people will use to find your
+		domain and has nothing to do with "place names", it is only used to locate the files
+		used to configure and run the domain on your server.
+
+	The server stores its files in the following locations:
+		/var/lib/athena/.local - "unnamed" services (the default location for Athena servers)
+		/var/lib/athena/serverName - "named" (template) domains
+		/etc/opt/athena - environment variables when launching named domains
