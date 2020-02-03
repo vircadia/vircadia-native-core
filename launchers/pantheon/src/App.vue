@@ -85,7 +85,7 @@
 				<span>Download</span>
 			</v-tooltip>
             
-            <v-tooltip top>	
+            <!-- <v-tooltip top>	
                 <template v-slot:activator="{ on }">
                     <v-btn
                         v-on:click.native="installInterface()"
@@ -101,7 +101,7 @@
                     </v-btn>
                 </template>
                 <span>Install</span>
-            </v-tooltip>
+            </v-tooltip> -->
 
 
             <div class="text-center">
@@ -142,7 +142,7 @@
                                     ></v-checkbox>
                                 </v-list-item-action>
 
-                                <v-list-item-content>
+                                <v-list-item-content @click="allowMultipleInstances = !allowMultipleInstances">
                                     <v-list-item-title>Simultaneous Interfaces</v-list-item-title>
                                     <v-list-item-subtitle>Allow multiple interfaces to be run simultaneously.</v-list-item-subtitle>
                                 </v-list-item-content>
@@ -159,7 +159,7 @@
                                     ></v-checkbox>
                                 </v-list-item-action>
 
-                                <v-list-item-content>
+                                <v-list-item-content @click="noSteamVR = !noSteamVR">
                                     <v-list-item-title>Disable SteamVR</v-list-item-title>
                                     <v-list-item-subtitle>Disable launching and attaching SteamVR with interface.</v-list-item-subtitle>
                                 </v-list-item-content>
@@ -209,22 +209,42 @@
 <script>
 var vue_this;
 const { ipcRenderer } = require('electron');
+
+var downloaderDebounceReady = true;
+function downloaderDebounce() {
+    if(downloaderDebounceReady) {
+        console.log("Ready.");
+        downloaderDebounceReady = false;
+        setTimeout(function() {
+            downloaderDebounceReady = true;
+        }, 5000); // ms before firing again.
+        return true;
+    } else {
+        console.log("Not ready.");
+        return false;
+    }
+}
+
 ipcRenderer.on('download-installer-progress', (event, arg) => {
 	var downloadProgress = arg.percent;
-	if(downloadProgress < 1) { // If downloading...
+	if (downloadProgress < 1 && downloadProgress > 0) { // If downloading...
 		vue_this.showCloudIcon = false;
 		vue_this.showCloudDownload = true;
 		vue_this.isDownloading = true;
         vue_this.disableInstallIcon = true;
-	} else { // When done.
-		vue_this.showCloudIcon = true;
-		vue_this.showCloudDownload = false;
-		vue_this.disableInstallIcon = false;
-		vue_this.isDownloading = false;
-        vue_this.openDialog('DownloadComplete', true);
+        
+        vue_this.downloadProgress = downloadProgress * 100;
+	} else if (downloadProgress == 1) { // When done.
+        if (downloaderDebounce()) {
+            vue_this.installInterface();
+            vue_this.showCloudIcon = true;
+            vue_this.showCloudDownload = false;
+            vue_this.disableInstallIcon = false;
+            vue_this.isDownloading = false;
+            // vue_this.openDialog('DownloadComplete', true);
+        }
 	}
 	console.info(downloadProgress);
-	vue_this.downloadProgress = downloadProgress * 100;
 });
 
 ipcRenderer.on('state-loaded', (event, arg) => {
@@ -249,6 +269,7 @@ ipcRenderer.on('state-loaded', (event, arg) => {
 			property: 'selectedInterface', 
 			with: arg.results.selectedInterface
 		});
+        ipcRenderer.send('set-current-interface', vue_this.$store.state.selectedInterface.folder);
 	}
 	if(arg.results.metaverseServer) {
 		vue_this.$store.commit('mutate', {
@@ -272,6 +293,10 @@ ipcRenderer.on('current-library-folder', (event, arg) => {
         property: 'currentLibraryFolder', 
         with: arg.libraryPath
     });
+});
+
+ipcRenderer.on('need-interface-selection', (event, arg) => {
+    console.info("Need interface selection, nothing programmed yet.");
 });
 
 ipcRenderer.on('interface-list-for-launch', (event, arg) => {
@@ -377,24 +402,6 @@ export default {
 		
 		ipcRenderer.send('load-state');
         ipcRenderer.send('getLibraryFolder');
-		
-		// Load saved selected interface.	
-		if (this.$store.selectedInterface) {
-			ipcRenderer.send('setCurrentInterface', this.$store.state.selectedInterface.folder);
-			this.$store.commit('mutate', {
-				property: 'interfaceSelectionRequired', 
-				with: false
-			});
-		}
-        
-        if(this.$store.state.selectedInterface) {
-            this.$store.commit('mutate', {
-                property: 'interfaceSelectionRequired', 
-                with: false
-            });
-            const { ipcRenderer } = require('electron');			
-            ipcRenderer.send('setCurrentInterface', this.$store.state.selectedInterface.folder);
-        }    
 	},
 	computed: {
 		interfaceSelected () {
@@ -403,16 +410,20 @@ export default {
 	},
 	watch: {
 		noSteamVR: function (newValue, oldValue) {
-			this.$store.commit('mutate', {
-				property: 'noSteamVR', 
-				with: newValue
-			});
+            if(newValue != oldValue) {
+                this.$store.commit('mutate', {
+                    property: 'noSteamVR', 
+                    with: newValue
+                });
+            }
 		},
         allowMultipleInstances: function (newValue, oldValue) {
-            this.$store.commit('mutate', {
-                property: 'allowMultipleInstances', 
-                with: newValue
-            });
+            if(newValue != oldValue) {
+                this.$store.commit('mutate', {
+                    property: 'allowMultipleInstances', 
+                    with: newValue
+                });
+            }
         },
 		interfaceSelected (newVal, oldVal) {
 			// console.log(`We have ${newVal} now!`);

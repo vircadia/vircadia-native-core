@@ -13,8 +13,11 @@ const electronDl = require('electron-dl');
 const { readdirSync } = require('fs')
 const { forEach } = require('p-iteration');
 const fs = require('fs');
+const compareVersions = require('compare-versions');
 
 var glob = require('glob');
+
+const cp = require('child_process');
  
 electronDl();
 
@@ -92,32 +95,23 @@ app.on('ready', async () => {
 
 // Exit cleanly on request from parent process in development mode.
 if (isDevelopment) {
-  if (process.platform === 'win32') {
-    process.on('message', data => {
-      if (data === 'graceful-exit') {
-        app.quit()
-      }
-    })
-  } else {
-    process.on('SIGTERM', () => {
-      app.quit()
-    })
-  }
+    if (process.platform === 'win32') {
+        process.on('message', data => {
+            if (data === 'graceful-exit') {
+                app.quit()
+            }
+        })
+    } else {
+        process.on('SIGTERM', () => {
+            app.quit()
+        })
+    }
 }
 
 // Settings.JSON bootstrapping
 // storage.setDataPath(app.getAppPath() + "/settings");
 
 console.log("Data Path: " + storage.getDataPath());
-
-// if(process.env.LAST_ATHENA_INSTALLED) {
-//   var lastInstalled = process.env.LAST_ATHENA_INSTALLED;
-//   storage.set('athena_interface.location', lastInstalled, function(error) {
-//     if (error) throw error;
-//   });
-// }
-
-
 
 var storagePath = {
 	default: storage.getDefaultDataPath(),
@@ -126,38 +120,38 @@ var storagePath = {
 	currentLibrary: null,
 };
 
-// shell.openItem(storagePath.default);
-
+var currentInterface;
 var requireInterfaceSelection;
 
-async function generateInterfaceList(interfaces) {
-  var interfacesArray = [];
-  var dataPath;
-  for (var i in interfaces) {
-    var client = interfaces[i];
-    // dataPath = client + "launcher_settings";
-	dataPath = client;
+// shell.openItem(storagePath.default);
 
-    // await getSetting('interface_package', dataPath).then(function(pkg){
-	// 	var appName = pkg.package.name;
-	// 	var appObject = { 
-	// 		[appName]: {
-	// 			"location": client,
-	// 		}
-	// 	};
-	// 	interfacesArray.push(appObject);
-    // });
-	
-	
-	var appName = "Athena Interface";
-	var appObject = { 
-		[appName]: {
-			"location": client,
-		}
-	};
-	interfacesArray.push(appObject);
-  }
-  return interfacesArray;
+async function generateInterfaceList(interfaces) {
+    var interfacesArray = [];
+    var dataPath;
+    for (var i in interfaces) {
+        var client = interfaces[i];
+        dataPath = client + "launcher_settings";
+        // dataPath = client;
+
+        await getSetting('interface_package', dataPath).then(function(pkg){
+            var appName = pkg.package.name;
+            var appObject = { 
+                [appName]: {
+                    "location": client,
+                }
+            };
+            interfacesArray.push(appObject);
+        });
+
+        // var appName = "Athena Interface";
+        // var appObject = { 
+        // 	[appName]: {
+        // 		"location": client,
+        // 	}
+        // };
+        // interfacesArray.push(appObject);
+    }
+    return interfacesArray;
 }
 
 async function getDirectories (src) {
@@ -166,24 +160,13 @@ async function getDirectories (src) {
 	let getDirectoriesPromise = new Promise((res, rej) => {
 		var res_p = res;
 		var rej_p = rej;
-		// glob(src + '/*/launcher_settings/interface_package.json', function(err, folders) {
-		// 	console.log(folders);
-		// 	if(folders) {
-		// 		folders.forEach(function (folder) {
-		// 			var folderToReturn = folder.replace("launcher_settings/interface_package.json", "");
-		// 			interfacesToReturn.push(folderToReturn);
-		// 		});
-		// 		res_p();
-		// 	} else {
-		// 		rej_p("Failed to load directories.");
-		// 	}
-		// });
-		
-		glob(src + '/*/interface.exe', function(err, folders) {
+        
+        // THIS CODE ACTUALLY LOOKS FOR A PACKAGE.JSON TO REGISTER
+		glob(src + '/*/launcher_settings/interface_package.json', function(err, folders) {
 			console.log(folders);
 			if(folders) {
 				folders.forEach(function (folder) {
-					var folderToReturn = folder.replace("interface.exe", "");
+					var folderToReturn = folder.replace("launcher_settings/interface_package.json", "");
 					interfacesToReturn.push(folderToReturn);
 				});
 				res_p();
@@ -191,8 +174,23 @@ async function getDirectories (src) {
 				rej_p("Failed to load directories.");
 			}
 		});
+		
+        // THIS CODE ONLY LOOKS FOR INTERFACE.EXE
+        
+		// glob(src + '/*/interface.exe', function(err, folders) {
+		// 	console.log(folders);
+		// 	if(folders) {
+		// 		folders.forEach(function (folder) {
+		// 			var folderToReturn = folder.replace("interface.exe", "");
+		// 			interfacesToReturn.push(folderToReturn);
+		// 		});
+		// 		res_p();
+		// 	} else {
+		// 		rej_p("Failed to load directories.");
+		// 	}
+		// });
 	});
-	
+    	
 	let result = await getDirectoriesPromise; 
 	return interfacesToReturn;
 }
@@ -214,7 +212,6 @@ async function getLibraryInterfaces() {
 				interfaces = ["Select a library folder."];
 				rej_p("Select a library folder.");
 			}
-
 		});
 	});
 
@@ -256,6 +253,19 @@ function setLibraryDialog() {
 	})
 }
 
+async function getCurrentInterfaceJSON() {
+    var interfacePackageJSON = storagePath.interfaceSettings + '/interface_package.json';
+    let rawdata = fs.readFileSync(interfacePackageJSON);
+    let interfaceJSON = JSON.parse(rawdata);
+    
+    if (interfaceJSON) {
+        console.info("Interface Package JSON:", interfaceJSON);
+        return interfaceJSON;
+    } else {
+        return false;
+    }
+}
+
 async function getLatestMetaJSON() {
 	var metaURL = 'https://projectathena.io/cdn/athena/launcher/athenaMeta.json';
 		
@@ -273,9 +283,9 @@ async function getLatestMetaJSON() {
 	let rawdata = fs.readFileSync(athenaMetaFile);
 	let athenaMetaJSON = JSON.parse(rawdata);
 	
-	if (athenaMetaJSON.latest.url) {
+	if (athenaMetaJSON) {
 		console.info("Athena Meta JSON:", athenaMetaJSON);
-		return athenaMetaJSON.latest.url;
+		return athenaMetaJSON;
 	} else {
 		return false;
 	}
@@ -283,8 +293,42 @@ async function getLatestMetaJSON() {
 
 async function checkForInterfaceUpdates() {
 	var athenaMeta = await getLatestMetaJSON();
-	
-	// TO DO, DOWNLOADING IS CURRENTLY IN A NON-WORKING STATE BECAUSE I CHANGED THE FUNCTION NAME.
+    var interfacePackage = await getCurrentInterfaceJSON();
+    
+	if (athenaMeta.latest.version && interfacePackage.package.version) {
+        var versionCompare = compareVersions(athenaMeta.latest.version, interfacePackage.package.version);
+        console.info("Compare Versions: ", versionCompare);
+        if (versionCompare == 1) {
+            return athenaMeta.latest.url;
+        } else {
+            // Version check failed, interface is either equal to or above the server's version.
+            return false;
+        }
+    } else {
+        // Failed to retrieve either or both the server meta and interface meta .JSON files.
+        return false;
+    }
+}
+
+async function shouldUpdate() {
+    if (storagePath.interfaceSettings) {
+        // This means to update because an interface exists and is selected.
+        console.info("Should update: true");
+        var checkForUpdates = await checkForInterfaceUpdates();
+        if (checkForUpdates) {
+            return checkForUpdates;
+        } else {
+            // This means to simply download and install a new one because update is not necessary.
+            console.info("Should update: false");
+            var metaJSON = await getLatestMetaJSON();
+            return metaJSON.latest.url;
+        }
+    } else {
+        // This means to simply download and install a new one because update is not necessary.
+        console.info("Should update: false");
+        var metaJSON = await getLatestMetaJSON();
+        return metaJSON.latest.url;
+    }
 }
 
 async function getSetting(setting, storageDataPath) {
@@ -391,12 +435,12 @@ ipcMain.on('set-athena-location', async (event, arg) => {
 		var storageSavePath;
 		if (storagePath.interfaceSettings) {
 			storageSavePath = storagePath.interfaceSettings;
+            storage.set('athena_interface.location', result.filePaths[0], {dataPath: storageSavePath}, function(error) {
+                if (error) throw error;
+            });
 		} else {
-			storageSavePath = storagePath.defaultPath;
-		}
-		storage.set('athena_interface.location', result.filePaths[0], {dataPath: storageSavePath}, function(error) {
-			if (error) throw error;
-		});
+            win.webContents.send('need-interface-selection');
+        }
     } else {
       return;
     }
@@ -424,11 +468,12 @@ ipcMain.on('getLibraryFolder', (event, arg) => {
 	});
 })
 
-ipcMain.on('setCurrentInterface', (event, arg) => {
-	if(arg) {
+ipcMain.on('set-current-interface', (event, arg) => {
+	if (arg) {
 		storage.setDataPath(arg + "/launcher_settings");
 		storagePath.interface = arg;
 		storagePath.interfaceSettings = arg + "/launcher_settings";
+        console.info("InterfaceSettings:", storagePath.interfaceSettings);
 		console.info("storagePath:", JSON.stringify(storagePath));
 	}
 })
@@ -461,7 +506,9 @@ ipcMain.handle('get-interface-list-for-launch', (event, arg) => {
 ipcMain.on('download-athena', async (event, arg) => {
 	var libraryPath;
 	// var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
-	var downloadURL = await getLatestVersionJSON();
+
+	var downloadURL = await shouldUpdate();
+    console.info("DLURL:", downloadURL);
 	if (downloadURL) {
 		getSetting('athena_interface.library', storagePath.default).then(function(results){
 			if(results) {
@@ -483,15 +530,11 @@ ipcMain.on('download-athena', async (event, arg) => {
 			}
 		});
 	} else {
-		console.info("Failed to retrieve download URL.");
+		console.info("Failed to download.");
 	}
 })
 
-var installer_exe = require('child_process').execFile;
-
-installer_exe.on('exit', (code) => {
-  console.info(`Installer exited with code ${code}`);
-});
+var installer_exe = cp.execFile;
 
 ipcMain.on('install-athena', (event, arg) => {
 	getSetting('athena_interface.library', storagePath.default).then(function(libPath){
@@ -511,6 +554,7 @@ ipcMain.on('install-athena', (event, arg) => {
 			console.log(err)
 			console.log(data.toString());
 		});
+		
 	}).catch(function(caught) {
 		
 	});

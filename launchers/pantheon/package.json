@@ -15,6 +15,7 @@
   "main": "background.js",
   "dependencies": {
     "@mdi/font": "^3.6.95",
+    "compare-versions": "^3.5.1",
     "core-js": "^3.6.4",
     "decompress-zip": "^0.2.2",
     "electron-dl": "^2.0.0",

@@ -18,64 +18,12 @@
 							<v-toolbar-title>Settings</v-toolbar-title>
 							<v-spacer />
 							
-							<v-btn
-								color="purple"
-								:tile=true
-								v-on:click.native="populateInterfaceList()"
-                                style="display: none;"
-							>
-								<v-icon>mdi-refresh</v-icon>
-							</v-btn>
-							
-							<v-menu
-								transition="slide-y-transition"
-								bottom
-							>
-								<template v-slot:activator="{ on }">
-									<v-btn
-										:tile=true
-										v-on="on"
-                                        @mouseover="populateInterfaceList()"
-									>
-                                        Select Interface
-									</v-btn>
-								</template>
-								<v-list>
-									<v-list-item
-										v-for="(item, i) in interfaceFolders"
-										:key="i"
-										@click="selectInterface(item)"
-									>
-									<v-list-item-title>{{ item.name }}</v-list-item-title>
-									</v-list-item>
-								</v-list>
-							</v-menu>
-							
 						</v-toolbar>
-						
-						<h2 class="ml-3 mt-3">General</h2>
-						
-                        <h3 class="mx-7 mt-5">Launch Settings for {{ selectedInterface }}</h3>
                         
-						<v-layout row pr-5 pt-5 pl-12>
-							<v-flex md6>
-								<v-btn 
-									v-on:click.native="selectInterfaceExe()"
-									:right=true
-									class=""
-									:tile=true
-								>
-									<span class="mr-2">Locate Interface .exe</span>
-									<v-icon>settings_applications</v-icon>
-								</v-btn>
-							</v-flex>
-						</v-layout>
-
-						<h3 class="mx-7 mt-5">Installation Path</h3>
+                        <h3 class="mx-7 mt-5">Installation Path</h3>
                         
                         <p class="mx-7 mt-3 bodyText">The installs folder is the directory that your Athena installations are located in.<br />
-                            For example, if you had Athena installed to: <pre>C:\Program Files (x86)\Athena-K2-RC1</pre> then you would make your installs folder: <pre>C:\Program Files (x86)</pre><br />
-                            The launcher will detect the installations, to select one, click "Select Interface".
+                            The launcher will detect the installations, select one from the "Interface List".
                         </p>
                         
 						<v-layout row pr-5 pt-5 pl-12>
@@ -108,8 +56,93 @@
                                 </v-btn>
                             </v-flex>
 						</v-layout> 
+                        
+                        <h3 class="mx-7 mt-5">Current Path</h3>
+                        
+                        <pre style="width: 100%; overflow: auto; margin-left: 0px;">{{currentFolder}}</pre>
 						
-						<h2 class="ml-3 mt-6">Metaverse</h2>
+                        <v-toolbar
+                            color="primary"
+                            dark
+                            flat
+                            class="mt-7"
+                        >
+                            <v-toolbar-title>Interface Settings</v-toolbar-title>
+                            <v-spacer />
+                            
+                            <v-btn
+                                color="purple"
+                                :tile=true
+                                v-on:click.native="populateInterfaceList()"
+                            >
+                                <v-icon>mdi-refresh</v-icon>
+                            </v-btn>
+                        </v-toolbar>
+                        
+						<h2 class="ml-3 mt-3">Interface List</h2>
+                        
+                        <v-list style="max-height: 200px" class="overflow-y-auto">
+                            <v-subheader>Select an Interface to use. Scroll down for more.</v-subheader>
+                            
+                            <v-divider
+                                class="mx-3"
+                            ></v-divider>
+                            
+                            <div v-if="interfaceFolders.length > 0">
+                                <v-list-item-group v-model="interfaceFoldersIndex" mandatory color="primary">
+                                    <v-list-item
+                                        v-for="(item, i) in interfaceFolders"
+                                        :key="i"
+                                        @click="selectInterface(item)"
+                                    >
+                                        <v-list-item-content>
+                                            <v-list-item-title v-html="item.name"></v-list-item-title>
+                                        </v-list-item-content>
+                                    </v-list-item>
+                                </v-list-item-group>
+                            </div>
+                            <div v-else>
+                                <v-list-item-group v-model="interfaceFoldersIndex" mandatory color="primary">
+                                    <v-list-item>
+                                        <v-list-item-content>
+                                            <v-list-item-title>No Interfaces found.</v-list-item-title>
+                                        </v-list-item-content>
+                                    </v-list-item>
+                                </v-list-item-group>
+                            </div>
+                            
+
+                        </v-list>
+                        
+                        <v-divider
+                            class="mx-3"
+                        ></v-divider>
+						
+                        <h3 class="mx-7 mt-5">Settings for {{ selectedInterface }}</h3>
+                        
+						<v-layout row pr-5 pt-5 pl-12>
+							<v-flex md6>
+								<v-btn 
+									v-on:click.native="selectInterfaceExe()"
+									:right=true
+									class=""
+									:tile=true
+								>
+									<span class="mr-2">Locate Interface .exe</span>
+									<v-icon>settings_applications</v-icon>
+								</v-btn>
+							</v-flex>
+						</v-layout>
+						
+                        <v-toolbar
+                            color="primary"
+                            dark
+                            flat
+                            class="mt-7"
+                        >
+                            <v-toolbar-title>Metaverse Settings</v-toolbar-title>
+
+                        </v-toolbar>
 						
 						<v-card-text>
 							<v-form>
@@ -141,7 +174,7 @@
 						</v-card-text>
 						<v-card-actions>
 							<v-spacer />
-							<v-btn @click="setMetaverseServer()" color="primary">Save</v-btn>
+							<v-btn @click="setMetaverseServer()" color="primary">Save Metaverse Settings</v-btn>
 						</v-card-actions>
 					</v-card>
 				</v-row>
@@ -161,7 +194,7 @@
 				</v-card-title>
 		
 				<v-card-text>
-					Please select an interface by clicking "Select Interface". If the list is empty, select a library folder then click the download button in the bottom right.
+					Please select an interface by clicking "Select Interface". If the list is empty, then click the download button in the bottom right.
 				</v-card-text>
 		
 				<v-divider></v-divider>
@@ -223,7 +256,8 @@ export default {
 				with: { name: selected.name, folder: selected.folder }
 			});
             this.selectedInterface = selected.name;
-			ipcRenderer.send('setCurrentInterface', selected.folder);
+            console.info("Set", this.selectedInterface, "from...", selected.name);
+			ipcRenderer.send('set-current-interface', selected.folder);
 		},
 		selectInterfaceExe: function() {
 			if(this.$store.state.interfaceSelectionRequired) {
@@ -271,10 +305,12 @@ export default {
 		show: false,
 		showRequireInterface: false,
 		interfaceFolders: [],
-		metaverseServer: "metaverse.highfidelity.com", // Default metaverse API URL
+        interfaceFoldersIndex: 0,
         currentFolder: "",
+		metaverseServer: "https://metaverse.highfidelity.com", // Default metaverse API URL
         readyToUseAgain: true,
         selectedInterface: "[No Interface Selected]",
+        inactive: false,
 	}),
     computed: {
         librarySelected () {
@@ -298,6 +334,7 @@ export default {
 		}
         
         this.setMetaverseServer();
+        this.selectedInterface = this.$store.state.selectedInterface.name;
         this.currentFolder = this.$store.state.currentLibraryFolder;
 	}
 };
