@@ -34,17 +34,29 @@
     </style>
     <script>
     //We are running the check here to preload the theme because it may load the incorrect one first for a split second.
-    var darkDisabled = JSON.parse(localStorage.getItem('darkDisabled'));
-    if (darkDisabled == null) {
-        localStorage.setItem('darkDisabled', JSON.stringify(false));
+    var isLocalStorageSupported = false;
+    try { // Edge browsing files on local file system doesn't support localStorage.
+        if (localStorage) {
+            isLocalStorageSupported = true;
+        }
+    } catch (e) {
+        // nop
+    }
+    
+    var defaultDarkDisabled = false;
+    var darkDisabled = isLocalStorageSupported ? JSON.parse(localStorage.getItem('darkDisabled')) : defaultDarkDisabled;
+    if (darkDisabled === null) {
+        localStorage.setItem('darkDisabled', JSON.stringify(defaultDarkDisabled));
     } else {
         var nightSheet = document.querySelector('[href="styles/night.css"]');
         nightSheet.disabled = darkDisabled;
     }
 
-    var responsiveDisabled = JSON.parse(localStorage.getItem('responsiveDisabled'));
+    var defaultResponsiveDisabled = true;
+    var responsiveDisabled = 
+        isLocalStorageSupported ? JSON.parse(localStorage.getItem('responsiveDisabled')) : defaultResponsiveDisabled;
     if (responsiveDisabled === null) {
-        localStorage.setItem('responsiveDisabled', JSON.stringify(true));
+        localStorage.setItem('responsiveDisabled', JSON.stringify(defaultResponsiveDisabled));
     } else {
         var responsiveSheet = document.querySelector('[href="styles/responsive.css"]');
         responsiveSheet.disabled = responsiveDisabled;
