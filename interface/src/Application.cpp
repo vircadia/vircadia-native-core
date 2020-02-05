@@ -3185,7 +3185,7 @@ void Application::showLoginScreen() {
         QJsonObject loginData = {};
         loginData["action"] = "login dialog popped up";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-        _window->setWindowTitle("High Fidelity");
+        _window->setWindowTitle("Project Athena");
     } else {
         resumeAfterLoginDialogActionTaken();
     }
