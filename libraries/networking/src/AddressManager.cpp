@@ -157,6 +157,7 @@ void AddressManager::storeCurrentAddress() {
     auto url = currentAddress();
 
     if (url.scheme() == HIFI_URL_SCHEME_FILE ||
+        url.scheme() == HIFI_URL_SCHEME_HTTP || url.scheme() == HIFI_URL_SCHEME_HTTPS ||
         (url.scheme() == URL_SCHEME_HIFI && !url.host().isEmpty())) {
         // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
         // be loaded over http(s)
