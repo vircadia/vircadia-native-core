@@ -512,27 +512,6 @@ std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
 ThreadSafeMovingAverage<int, DeadlockWatchdogThread::HEARTBEAT_SAMPLES> DeadlockWatchdogThread::_movingAverage;
 
-bool isDomainURL(QUrl url) {
-    if (!url.isValid()) {
-        return false;
-    }
-    if (url.scheme() == URL_SCHEME_HIFI) {
-        return true;
-    }
-    if (url.scheme() != HIFI_URL_SCHEME_FILE) {
-        // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
-        // be loaded over http(s)
-        // && url.scheme() != HIFI_URL_SCHEME_HTTP &&
-        // url.scheme() != HIFI_URL_SCHEME_HTTPS
-        return false;
-    }
-    if (url.path().endsWith(".json", Qt::CaseInsensitive) ||
-        url.path().endsWith(".json.gz", Qt::CaseInsensitive)) {
-        return true;
-    }
-    return false;
-}
-
 #ifdef Q_OS_WIN
 static const UINT UWM_IDENTIFY_INSTANCES =
     RegisterWindowMessage("UWM_IDENTIFY_INSTANCES_{8AB82783-B74A-4258-955B-8188C22AA0D6}_" + qgetenv("USERNAME"));
@@ -564,14 +543,6 @@ public:
                 return true;
             }
 
-            if (message->message == WM_COPYDATA) {
-                COPYDATASTRUCT* pcds = (COPYDATASTRUCT*)(message->lParam);
-                QUrl url = QUrl((const char*)(pcds->lpData));
-                if (isDomainURL(url)) {
-                    DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
-                    return true;
-                }
-            }
             // Attempting to close MIDI interfaces of a hot-unplugged device can result in audio-driver deadlock.
             // Detecting MIDI devices that have been added/removed after starting Inteface has been disabled.
             // https://support.microsoft.com/en-us/help/4460006/midi-device-app-hangs-when-former-midi-api-is-used
