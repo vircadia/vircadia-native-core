@@ -9263,7 +9263,7 @@ void Application::readArgumentsFromLocalSocket() const {
 
     // If we received a message, try to open it as a URL
     if (message.length() > 0) {
-        DependencyManager::get<WindowScriptingInterface>()->openUrl(QString::fromUtf8(message));
+        DependencyManager::get<AddressManager>()->handleLookupString(QString::fromUtf8(message));
     }
 }
 
