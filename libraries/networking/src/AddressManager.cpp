@@ -361,8 +361,9 @@ bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger) {
         return true;
     } else if (lookupUrl.scheme() == HIFI_URL_SCHEME_FILE || lookupUrl.scheme() == HIFI_URL_SCHEME_HTTPS
             || lookupUrl.scheme() == HIFI_URL_SCHEME_HTTP) {
-        // TODO once a file can return a connection refusal if there were to be some kind of load error, we'd
-        // need to store the previous domain tried in _lastVisitedURL. For now , do not store it.
+               
+        // Save the last visited domain URL.
+        _lastVisitedURL = lookupUrl;
 
         _previousAPILookup.clear();
         _shareablePlaceName.clear();
