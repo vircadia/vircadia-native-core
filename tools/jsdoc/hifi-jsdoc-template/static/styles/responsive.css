@@ -1,0 +1,17 @@
+.nav-header {
+	display: none;
+}
+
+nav {
+	display: none !important;
+}
+
+section {
+	margin-right: 0px !important;
+}
+
+#main {
+	margin-left: 15px !important;
+	margin-right: 15px !important;
+	overflow: auto;
+}
