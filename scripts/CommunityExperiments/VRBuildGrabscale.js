@@ -90,7 +90,7 @@ function createGizmo() {
     });
     gizmoShapeIDs.push(gizmoCenterID);
   
-    var tempRotation = Quat.fromPitchYawRollRadians( 0, 0, 0 );
+    var tempRotation = Quat.fromPitchYawRollRadians(0, 0, 0);
     gizmoXaxisID = Entities.addEntity({
         type: "Shape",        
         shape: "Cylinder",                       
@@ -108,7 +108,7 @@ function createGizmo() {
     });
     gizmoShapeIDs.push(gizmoXaxisID);
 
-    tempRotation = Quat.fromPitchYawRollRadians( 0 , 0 ,-Math.PI/2 );  
+    tempRotation = Quat.fromPitchYawRollRadians(0 , 0 ,-Math.PI/2);  
     gizmoYaxisID = Entities.addEntity({
         type: "Shape",        
         shape: "Cylinder",                       
@@ -285,8 +285,7 @@ function getJointIndex() {
         LEFT_JOINT = MyAvatar.getJointIndex("LeftHand");        
     }
     if (LEFT_JOINT === -1 || RIGHT_JOINT === -1) {
-        Window.alert("Avatar has no hand Joints aborting VRBuildGrabScale");
-        Script.stop();
+        Window.alert("Avatar has no hand Joints");        
     }
 }
 
@@ -450,11 +449,13 @@ function startBuilding() {
 Script.scriptEnding.connect(function () {
     Entities.deleteEntity(overlayID);     
     Entities.deleteEntity(gizmoCenterID);
+    Messages.messageReceived.disconnect(onMessageReceived);
+    Messages.unsubscribe(channelName);
     Script.update.disconnect(startBuilding);
 });
 
-function onMessageReceived(channel, message) {
-    if (channel === channelName) {   
+function onMessageReceived(channel, message, senderID) {
+    if (channel === channelName && senderID === MyAvatar.sessionUUID) {   
         var action = JSON.parse(message).action;
         var actionHand = JSON.parse(message).joint;  
         if (action === "grab") {
@@ -487,7 +488,9 @@ function onMessageReceived(channel, message) {
 }
 
 MyAvatar.onLoadComplete.connect(function () { 
-    print("avatar model changed");
+    if (WANT_DEBUG) {
+        print("avatar model changed");
+    }
     getJointIndex();
 });
 
