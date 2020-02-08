@@ -24,10 +24,14 @@ vcpkg_configure_cmake(
 vcpkg_install_cmake()
 
 if (WIN32)
-    file(MAKE_DIRECTORY ${CURRENT_PACKAGES_DIR}/bin)
-    file(RENAME ${CURRENT_PACKAGES_DIR}/lib/quazip5.dll ${CURRENT_PACKAGES_DIR}/bin/quazip5.dll)
-    file(MAKE_DIRECTORY ${CURRENT_PACKAGES_DIR}/debug/bin)
-    file(RENAME ${CURRENT_PACKAGES_DIR}/debug/lib/quazip5d.dll ${CURRENT_PACKAGES_DIR}/debug/bin/quazip5.dll)
+    if (NOT DEFINED VCPKG_BUILD_TYPE OR VCPKG_BUILD_TYPE STREQUAL "release")
+        file(MAKE_DIRECTORY ${CURRENT_PACKAGES_DIR}/bin)
+        file(RENAME ${CURRENT_PACKAGES_DIR}/lib/quazip5.dll ${CURRENT_PACKAGES_DIR}/bin/quazip5.dll)
+    endif()
+    if (NOT DEFINED VCPKG_BUILD_TYPE OR VCPKG_BUILD_TYPE STREQUAL "debug")
+        file(MAKE_DIRECTORY ${CURRENT_PACKAGES_DIR}/debug/bin)
+        file(RENAME ${CURRENT_PACKAGES_DIR}/debug/lib/quazip5d.dll ${CURRENT_PACKAGES_DIR}/debug/bin/quazip5.dll)
+    endif()
 elseif(DEFINED VCPKG_TARGET_IS_LINUX)
     # We only want static libs.
     file(GLOB QUAZIP5_DYNAMIC_LIBS ${CURRENT_PACKAGES_DIR}/lib/libquazip5.so* ${CURRENT_PACKAGES_DIR}/debug/lib/libquazip5d.so*)
