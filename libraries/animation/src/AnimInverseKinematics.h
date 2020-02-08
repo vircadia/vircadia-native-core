@@ -162,6 +162,7 @@ protected:
                     const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn,
                     const QString& poleVectorEnabledVar, const QString& poleReferenceVectorVar, const QString& poleVectorVar);
         IKTargetVar(const IKTargetVar& orig);
+        AnimInverseKinematics::IKTargetVar& operator=(const AnimInverseKinematics::IKTargetVar&) = default;
 
         QString jointName;
         QString positionVar;
