@@ -21,6 +21,7 @@ get_filename_component(CMAKE_TOOLCHAIN_FILE "{}" ABSOLUTE CACHE)
 get_filename_component(CMAKE_TOOLCHAIN_FILE_UNCACHED "{}" ABSOLUTE)
 set(VCPKG_INSTALL_ROOT "{}")
 set(VCPKG_TOOLS_DIR "{}")
+set(VCPKG_TARGET_TRIPLET "{}")
 """
 
     CMAKE_TEMPLATE_NON_ANDROID = """
@@ -34,7 +35,11 @@ endif()
         self.args = args
         # our custom ports, relative to the script location
         self.sourcePortsPath = args.ports_path
-        self.id = hifi_utils.hashFolder(self.sourcePortsPath)[:8]
+        self.vcpkgBuildType = args.vcpkg_build_type
+        if (self.vcpkgBuildType):
+            self.id = hifi_utils.hashFolder(self.sourcePortsPath)[:8] + "-" + self.vcpkgBuildType
+        else:
+            self.id = hifi_utils.hashFolder(self.sourcePortsPath)[:8]
         self.configFilePath = os.path.join(args.build_root, 'vcpkg.cmake')
         self.assets_url = self.readVar('EXTERNAL_BUILD_ASSETS')
 
@@ -81,15 +86,15 @@ endif()
 
         if 'Windows' == system:
             self.exe = os.path.join(self.path, 'vcpkg.exe')
-            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.bat') ]
+            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.bat'), '-disableMetrics' ]
             self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-win32-client.zip%3FversionId=tSFzbw01VkkVFeRQ6YuAY4dro2HxJR9U'
             self.vcpkgHash = 'a650db47a63ccdc9904b68ddd16af74772e7e78170b513ea8de5a3b47d032751a3b73dcc7526d88bcb500753ea3dd9880639ca842bb176e2bddb1710f9a58cd3'
             self.hostTriplet = 'x64-windows'
             if ('CI_BUILD' in os.environ) and os.environ["CI_BUILD"] == "Github" and (not self.noClean):
-                self.prebuiltArchive = "https://ipfs.io/ipfs/QmayBaq4DGnFULMWmsvjWyq3yU6HwuANpHD2M8bpVUVd6j/vcpkg-win32-release.zip"
+                self.prebuiltArchive = "https://ipfs.io/ipfs/QmcBggttJQb1vYeyz29FXfaxnJ5c1HfZW72xNQepnENude/vcpkg-win32-a2623c6a-release.zip"
         elif 'Darwin' == system:
             self.exe = os.path.join(self.path, 'vcpkg')
-            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '--allowAppleClang' ]
+            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '--allowAppleClang', '-disableMetrics' ]
             self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-osx-client.tgz%3FversionId=j0b4azo_zTlH_Q9DElEWOz1UMYZ2nqQw'
             self.vcpkgHash = '519d666d02ef22b87c793f016ca412e70f92e1d55953c8f9bd4ee40f6d9f78c1df01a6ee293907718f3bbf24075cc35492fb216326dfc50712a95858e9cbcb4d'
             self.hostTriplet = 'x64-osx'
@@ -97,7 +102,7 @@ endif()
                 self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-osx.tgz%3FversionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
-            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh') ]
+            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
             self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-linux-client.tgz%3FversionId=y7mct0gFicEXz5hJy3KROBugcLR56YWf'
             self.vcpkgHash = '6a1ce47ef6621e699a4627e8821ad32528c82fce62a6939d35b205da2d299aaa405b5f392df4a9e5343dd6a296516e341105fbb2dd8b48864781d129d7fba10d'
             self.hostTriplet = 'x64-linux'
@@ -111,6 +116,10 @@ endif()
     def readVar(self, var):
         with open(os.path.join(self.args.build_root, '_env', var + ".txt")) as fp:
             return fp.read()
+
+    def writeVar(self, var, value):
+        with open(os.path.join(self.args.build_root, '_env', var + ".txt"), 'w') as fp:
+            fp.write(value)
 
     def upToDate(self):
         # Prevent doing a clean if we've explcitly set a directory for vcpkg
@@ -201,6 +210,19 @@ endif()
         print(actualCommands)
         hifi_utils.executeSubprocess(actualCommands, folder=self.path, env=self.buildEnv)
 
+    def copyTripletForBuildType(self, triplet):
+        print('Copying triplet ' + triplet + ' to have build type ' + self.vcpkgBuildType)
+        tripletPath = os.path.join(self.path, 'triplets', triplet + '.cmake')
+        tripletForBuildTypePath = os.path.join(self.path, 'triplets', self.getTripletWithBuildType(triplet) + '.cmake')
+        shutil.copy(tripletPath, tripletForBuildTypePath)
+        with open(tripletForBuildTypePath, "a") as tripletForBuildTypeFile:
+            tripletForBuildTypeFile.write("set(VCPKG_BUILD_TYPE " + self.vcpkgBuildType + ")\n")
+
+    def getTripletWithBuildType(self, triplet):
+        if (not self.vcpkgBuildType):
+            return triplet
+        return triplet + '-' + self.vcpkgBuildType
+
     def setupDependencies(self, qt=None):
         if self.prebuiltArchive:
             if not os.path.isfile(self.prebuildTagFile):
@@ -219,12 +241,16 @@ endif()
             self.setupAndroidDependencies()
 
         print("Installing host tools")
-        self.run(['install', '--triplet', self.hostTriplet, 'hifi-host-tools'])
+        if (self.vcpkgBuildType):
+            self.copyTripletForBuildType(self.hostTriplet)
+        self.run(['install', '--triplet', self.getTripletWithBuildType(self.hostTriplet), 'hifi-host-tools'])    
 
         # If not android, install the hifi-client-deps libraries
         if not self.args.android:
             print("Installing build dependencies")
-            self.run(['install', '--triplet', self.triplet, 'hifi-client-deps'])
+            if (self.vcpkgBuildType):
+                self.copyTripletForBuildType(self.triplet)
+            self.run(['install', '--triplet', self.getTripletWithBuildType(self.triplet), 'hifi-client-deps'])
 
     def cleanBuilds(self):
         if self.noClean:
@@ -271,12 +297,32 @@ endif()
         with open(self.prebuildTagFile, 'w') as f:
             f.write(self.tagContents)
 
+    def fixupCmakeScript(self):
+        cmakeScript = os.path.join(self.path, 'scripts/buildsystems/vcpkg.cmake')
+        newCmakeScript = cmakeScript + '.new'
+        isFileChanged = False
+        removalPrefix = "set(VCPKG_TARGET_TRIPLET "
+        # Open original file in read only mode and dummy file in write mode
+        with open(cmakeScript, 'r') as read_obj, open(newCmakeScript, 'w') as write_obj:
+            # Line by line copy data from original file to dummy file
+            for line in read_obj:
+                if not line.startswith(removalPrefix):
+                    write_obj.write(line)
+                else:
+                    isFileChanged = True
+     
+        if isFileChanged:
+            shutil.move(newCmakeScript, cmakeScript)
+        else:
+            os.remove(newCmakeScript)
+ 
+
     def writeConfig(self):
         print("Writing cmake config to {}".format(self.configFilePath))
         # Write out the configuration for use by CMake
         cmakeScript = os.path.join(self.path, 'scripts/buildsystems/vcpkg.cmake')
-        installPath = os.path.join(self.path, 'installed', self.triplet)
-        toolsPath = os.path.join(self.path, 'installed', self.hostTriplet, 'tools')
+        installPath = os.path.join(self.path, 'installed', self.getTripletWithBuildType(self.triplet))
+        toolsPath = os.path.join(self.path, 'installed', self.getTripletWithBuildType(self.hostTriplet), 'tools')
 
         cmakeTemplate = VcpkgRepo.CMAKE_TEMPLATE
         if self.args.android:
@@ -284,7 +330,7 @@ endif()
             cmakeTemplate += 'set(HIFI_ANDROID_PRECOMPILED "{}")\n'.format(precompiled)
         else:
             cmakeTemplate += VcpkgRepo.CMAKE_TEMPLATE_NON_ANDROID
-        cmakeConfig = cmakeTemplate.format(cmakeScript, cmakeScript, installPath, toolsPath).replace('\\', '/')
+        cmakeConfig = cmakeTemplate.format(cmakeScript, cmakeScript, installPath, toolsPath, self.getTripletWithBuildType(self.hostTriplet)).replace('\\', '/')
         with open(self.configFilePath, 'w') as f:
             f.write(cmakeConfig)
 

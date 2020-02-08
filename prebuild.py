@@ -94,6 +94,7 @@ def parse_args():
     parser.add_argument('--force-build', action='store_true')
     parser.add_argument('--release-type', type=str, default="DEV", help="DEV, PR, or PRODUCTION")
     parser.add_argument('--vcpkg-root', type=str, help='The location of the vcpkg distribution')
+    parser.add_argument('--vcpkg-build-type', type=str, help='Could be `release` or `debug`. By default it doesn`t set the build-type')
     parser.add_argument('--build-root', required=True, type=str, help='The location of the cmake build')
     parser.add_argument('--ports-path', type=str, default=defaultPortsPath)
     parser.add_argument('--ci-build', action='store_true', default=os.getenv('CI_BUILD') is not None)
@@ -139,6 +140,10 @@ def main():
 
     # Only allow one instance of the program to run at a time
     pm = hifi_vcpkg.VcpkgRepo(args)
+
+    if qtInstallPath != '':
+        pm.writeVar('QT_CMAKE_PREFIX_PATH', qtInstallPath)
+
     with hifi_singleton.Singleton(pm.lockFile) as lock:
 
         with timer('Bootstraping'):
@@ -171,6 +176,9 @@ def main():
             # Determine the Qt package path
             qtPath = os.path.join(pm.androidPackagePath, 'qt')
             hifi_android.QtPackager(appPath, qtPath).bundle()
+
+        # Fixup the vcpkg cmake to not reset VCPKG_TARGET_TRIPLET
+        pm.fixupCmakeScript()
 
         # Write the vcpkg config to the build directory last
         with timer('Writing configuration'):
