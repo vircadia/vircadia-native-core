@@ -22,7 +22,7 @@ ListModel {
         return marketItemUrl;
     }
 	
-	function makeMarketThumbnailUrl(marketId) {
+    function makeMarketThumbnailUrl(marketId) {
         var avatarThumbnailUrl = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/%marketId%/large/hifi-mp-%marketId%.jpg"
             .split('%marketId%').join(marketId);
             
@@ -30,14 +30,14 @@ ListModel {
     }
 	
     function trimFileExtension(url) {
-        url = url.substring(0, (url.indexOf("#") == -1) ? url.length : url.indexOf("#"));
-        url = url.substring(0, (url.indexOf("?") == -1) ? url.length : url.indexOf("?"));
-        url = url.substring(0, url.lastIndexOf("."));
+        var trimmedUrl = url.substring(0, (url.indexOf("#") == -1) ? url.length : url.indexOf("#"));
+        trimmedUrl = trimmedUrl.substring(0, (trimmedUrl.indexOf("?") == -1) ? trimmedUrl.length : trimmedUrl.indexOf("?"));
+        trimmedUrl = trimmedUrl.substring(0, trimmedUrl.lastIndexOf("."));
 
-        return url;
+        return trimmedUrl;
     }
 	
-	function imageExists(image_url){
+    function imageExists(image_url){
 
         var http = new XMLHttpRequest();
 
@@ -55,9 +55,9 @@ ListModel {
         }
         
         var avatarThumbnailFileUrl = trimFileExtension(avatarUrl)+".jpg";
-        var exists= imageExists(avatarThumbnailFileUrl);
+        var thumbnailExist = imageExists(avatarThumbnailFileUrl);
         
-        if (!exists) {
+        if (!thumbnailExist) {
             return '';
         }
         
