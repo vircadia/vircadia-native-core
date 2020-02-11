@@ -22,7 +22,7 @@ yarn global add @vue/cli
 
 After installation, you will have access to the vue binary in your command line. You can verify that it is properly installed by simply running vue, which should present you with a help message listing all available commands.
 
-You can check you have the right version with this command:
+You can check the version with this command:
 
 ```
 vue --version
@@ -59,6 +59,8 @@ npm install
 
 #### To start a development server:
 
+You will need to run any of these commands with administrative privileges.
+
 If you use Yarn:
 ```
 yarn electron:serve
@@ -77,4 +79,7 @@ or with NPM:
 ```
 npm run electron:build
 ```
+
+Building the launcher will generate an installer executable and an unpacked folder that allows you to run the built launcher without running the setup. You can find the build artifacts in the **dist_electron** folder. 
+
 To see more documentation on the Vue CLI Plugin Electron Builder, visit this [website](https://nklayman.github.io/vue-cli-plugin-electron-builder/guide/guide.html).

@@ -10,12 +10,13 @@ module.exports = {
 					"installerIcon": "src/assets/logo_256_256.ico",
 					"uninstallerIcon": "src/assets/logo_256_256.ico",
 					"uninstallDisplayName": "Uninstall Athena Launcher",
+                    "createStartMenuShortcut": true,
 				},
 				"win": {
 					"target": "nsis",
 					"icon": "src/assets/logo_256_256.ico",
 					"publisherName": "https://projectathena.io/",
-					"requestedExecutionLevel": "requireAdministrator"
+					"requestedExecutionLevel": "requireAdministrator",
 				},
 				"linux": {
 					"target": [

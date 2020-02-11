@@ -57,33 +57,26 @@
       </div>
 
       <v-spacer></v-spacer>
-			
-			<v-tooltip top>
-				<template v-slot:activator="{ on }">
-					<v-btn
-						v-on:click.native="downloadInterface()"
-						v-on="on"
-						:right=true
-						class=""
-						color="blue"
-						:tile=true
+				<v-btn
+					v-on:click.native="downloadInterface()"
+					:right=true
+					color="blue"
+					:tile=true
+                    :disabled="isDownloading"
+				>
+                    <span style="font-size: 12px;">{{downloadText}}</span>
+					<v-progress-circular
+						:size="25"
+						:width="5"
+						:rotate="90"
+						:value="downloadProgress"
+						color="red"
+						v-if="showCloudDownload"
+                        class="ml-2"
 					>
-                        <span style="font-size: 12px;">Download<br/>Interface</span>
-						<v-progress-circular
-							:size="25"
-							:width="5"
-							:rotate="90"
-							:value="downloadProgress"
-							color="red"
-							v-if="showCloudDownload"
-                            class="ml-2"
-						>
-						</v-progress-circular>
-						<v-icon class="ml-2" v-if="showCloudIcon">cloud_download</v-icon>
-					</v-btn>
-				</template>
-				<span>Download</span>
-			</v-tooltip>
+					</v-progress-circular>
+					<v-icon class="ml-2" v-if="showCloudIcon">cloud_download</v-icon>
+				</v-btn>
             
             <!-- <v-tooltip top>	
                 <template v-slot:activator="{ on }">
@@ -102,7 +95,6 @@
                 </template>
                 <span>Install</span>
             </v-tooltip> -->
-
 
             <div class="text-center">
             <v-menu top offset-y :close-on-content-click="false">
@@ -171,22 +163,16 @@
             </v-menu>
             </div>
 
-            <v-tooltip top>
-                <template v-slot:activator="{ on }">
-                    <v-btn
-                        v-on:click.native="attemptLaunchInterface()"
-                        v-on="on"
-                        :right=true
-                        class=""
-                        color="rgba(133, 0, 140, 0.8)"
-                        :tile=true
-                    >
-                        <span class="mr-2">Launch</span>
-                        <v-icon>mdi-play</v-icon>
-                    </v-btn>
-                </template>
-                <span>Launch</span>
-            </v-tooltip>
+            <v-btn
+                v-on:click.native="attemptLaunchInterface()"
+                :right=true
+                class=""
+                color="rgba(133, 0, 140, 0.8)"
+                :tile=true
+            >
+                <span class="mr-2">Launch</span>
+                <v-icon>mdi-play</v-icon>
+            </v-btn>
 
     </v-app-bar>
 		
@@ -232,6 +218,7 @@ ipcRenderer.on('download-installer-progress', (event, arg) => {
 		vue_this.showCloudDownload = true;
 		vue_this.isDownloading = true;
         vue_this.disableInstallIcon = true;
+        vue_this.downloadText = "Downloading";
         
         vue_this.downloadProgress = downloadProgress * 100;
 	} else if (downloadProgress == 1) { // When done.
@@ -241,6 +228,7 @@ ipcRenderer.on('download-installer-progress', (event, arg) => {
             vue_this.showCloudDownload = false;
             vue_this.disableInstallIcon = false;
             vue_this.isDownloading = false;
+            vue_this.downloadText = "Download Interface";
             // vue_this.openDialog('DownloadComplete', true);
         }
 	}
@@ -437,6 +425,7 @@ export default {
 		allowMultipleInstances: false,
 		downloadProgress: 0,
 		isDownloading: false,
+        downloadText: "Download Interface",
 		showCloudIcon: true,
 		showCloudDownload: false,
 		disableInstallIcon: false,

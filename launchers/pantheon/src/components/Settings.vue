@@ -23,7 +23,7 @@
                         <h3 class="mx-7 mt-5">Installation Path</h3>
                         
                         <p class="mx-7 mt-3 bodyText">The installs folder is the directory that your Athena installations are located in.<br />
-                            The launcher will detect the installations, select one from the "Interface List".
+                            The launcher will detect the installations.
                         </p>
                         
 						<v-layout row pr-5 pt-5 pl-12>
@@ -59,7 +59,7 @@
                         
                         <h3 class="mx-7 mt-5">Current Path</h3>
                         
-                        <pre style="width: 100%; overflow: auto; margin-left: 0px;">{{currentFolder}}</pre>
+                        <pre style="width: 100%; overflow: auto; margin-left: 0px;">{{ currentFolder }}</pre>
 						
                         <v-toolbar
                             color="primary"
@@ -336,6 +336,10 @@ export default {
         this.setMetaverseServer();
         this.selectedInterface = this.$store.state.selectedInterface.name;
         this.currentFolder = this.$store.state.currentLibraryFolder;
+        
+        if (this.currentFolder == "") {
+            this.setLibraryDefault();
+        }
 	}
 };
 </script>
