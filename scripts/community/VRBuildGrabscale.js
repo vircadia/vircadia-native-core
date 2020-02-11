@@ -285,7 +285,7 @@ function getJointIndex() {
         LEFT_JOINT = MyAvatar.getJointIndex("LeftHand");        
     }
     if (LEFT_JOINT === -1 || RIGHT_JOINT === -1) {
-        Window.alert("Avatar has no hand Joints");        
+        print("Avatar has no hand Joints");        
     }
 }
 
