@@ -287,6 +287,7 @@ async function getLatestMetaJSON() {
 		console.info("Athena Meta JSON:", athenaMetaJSON);
 		return athenaMetaJSON;
 	} else {
+        console.error("Failed to download Athena Meta JSON");
 		return false;
 	}
 }
@@ -295,7 +296,7 @@ async function checkForInterfaceUpdates() {
 	var athenaMeta = await getLatestMetaJSON();
     var interfacePackage = await getCurrentInterfaceJSON();
     
-	if (athenaMeta.latest.version && interfacePackage.package.version) {
+    if (athenaMeta && athenaMeta.latest.version && interfacePackage && interfacePackage.package.version) {
         var versionCompare = compareVersions(athenaMeta.latest.version, interfacePackage.package.version);
         console.info("Compare Versions: ", versionCompare);
         if (versionCompare == 1) {
@@ -311,6 +312,7 @@ async function checkForInterfaceUpdates() {
 }
 
 async function shouldUpdate() {
+    var metaJSON;
     if (storagePath.interfaceSettings) {
         // This means to update because an interface exists and is selected.
         console.info("Should update: true");
@@ -320,14 +322,22 @@ async function shouldUpdate() {
         } else {
             // This means to simply download and install a new one because update is not necessary.
             console.info("Should update: false");
-            var metaJSON = await getLatestMetaJSON();
-            return metaJSON.latest.url;
+            metaJSON = await getLatestMetaJSON();
+            if (metaJSON) {
+                return metaJSON.latest.url;
+            } else {
+                return false;
+            }
         }
     } else {
         // This means to simply download and install a new one because update is not necessary.
         console.info("Should update: false");
-        var metaJSON = await getLatestMetaJSON();
-        return metaJSON.latest.url;
+        metaJSON = await getLatestMetaJSON();
+        if (metaJSON) {
+            return metaJSON.latest.url;
+        } else {
+            return false;
+        }
     }
 }
 
