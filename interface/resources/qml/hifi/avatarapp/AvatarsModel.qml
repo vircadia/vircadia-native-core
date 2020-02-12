@@ -30,21 +30,21 @@ ListModel {
     }
 	
     function trimFileExtension(url) {
-        var trimmedUrl = url.substring(0, (url.indexOf("#") == -1) ? url.length : url.indexOf("#"));
-        trimmedUrl = trimmedUrl.substring(0, (trimmedUrl.indexOf("?") == -1) ? trimmedUrl.length : trimmedUrl.indexOf("?"));
+        var trimmedUrl = url.substring(0, (url.indexOf("#") === -1) ? url.length : url.indexOf("#"));
+        trimmedUrl = trimmedUrl.substring(0, (trimmedUrl.indexOf("?") === -1) ? trimmedUrl.length : trimmedUrl.indexOf("?"));
         trimmedUrl = trimmedUrl.substring(0, trimmedUrl.lastIndexOf("."));
 
         return trimmedUrl;
     }
 	
-    function imageExists(image_url){
+    function imageExists(imageUrl) {
 
         var http = new XMLHttpRequest();
 
-        http.open('HEAD', image_url, false);
+        http.open('HEAD', imageUrl, false);
         http.send();
 
-        return http.status != 404;
+        return http.status !== 404;
 
     }
 
@@ -54,7 +54,7 @@ ListModel {
             return makeMarketThumbnailUrl(marketId);
         }
         
-        var avatarThumbnailFileUrl = trimFileExtension(avatarUrl)+".jpg";
+        var avatarThumbnailFileUrl = trimFileExtension(avatarUrl) + ".jpg";
         var thumbnailExist = imageExists(avatarThumbnailFileUrl);
         
         if (!thumbnailExist) {
