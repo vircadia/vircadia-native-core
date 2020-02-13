@@ -216,7 +216,6 @@ ipcRenderer.on('download-installer-progress', (event, arg) => {
 	if (downloadProgress < 1 && downloadProgress > 0) { // If downloading...
 		vue_this.showCloudIcon = false;
 		vue_this.showCloudDownload = true;
-		vue_this.isDownloading = true;
         vue_this.disableInstallIcon = true;
         vue_this.downloadText = "Downloading";
         
@@ -378,6 +377,7 @@ export default {
 		},
 		downloadInterface: function() {
 			if (!this.isDownloading) {
+                this.isDownloading = true;
 				const { ipcRenderer } = require('electron');
 				ipcRenderer.send('download-athena');
 			}
