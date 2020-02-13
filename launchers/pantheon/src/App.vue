@@ -235,6 +235,11 @@ ipcRenderer.on('download-installer-progress', (event, arg) => {
 	console.info(downloadProgress);
 });
 
+ipcRenderer.on('download-installer-failed', (event) => {
+    vue_this.isDownloading = false;
+    vue_this.openDialog('DownloadFailed', true);
+});
+
 ipcRenderer.on('state-loaded', (event, arg) => {
 	console.info("STATE LOADED:", arg);
 	
@@ -310,6 +315,7 @@ import FavoriteWorlds from './components/FavoriteWorlds';
 import Settings from './components/Settings';
 // Dialogs
 import DownloadComplete from './components/Dialogs/DownloadComplete'
+import DownloadFailed from './components/Dialogs/DownloadFailed'
 import NoInstallerFound from './components/Dialogs/NoInstallerFound'
 import NoInterfaceFound from './components/Dialogs/NoInterfaceFound'
 
@@ -322,6 +328,7 @@ export default {
 		Settings,
         // Dialogs
         DownloadComplete,
+        DownloadFailed,
         NoInstallerFound,
         NoInterfaceFound
 	},

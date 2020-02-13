@@ -1,6 +1,6 @@
 'use strict'
 
-import { app, protocol, BrowserWindow } from 'electron'
+import { app, protocol, BrowserWindow, DownloadItem } from 'electron'
 import {
 	installVueDevtools,
 	createProtocol,
@@ -515,8 +515,6 @@ ipcMain.handle('get-interface-list-for-launch', (event, arg) => {
 
 ipcMain.on('download-athena', async (event, arg) => {
 	var libraryPath;
-	// var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
-
 	var downloadURL = await shouldUpdate();
     console.info("DLURL:", downloadURL);
 	if (downloadURL) {
@@ -534,6 +532,9 @@ ipcMain.on('download-athena', async (event, arg) => {
 							percent
 						});
 					},
+                    // FIXME: electron-dl currently displays its own "download interrupted" message box if file not found or 
+                    // download interrupted. It would be nicer to display our own, download-installer-failed, message box.
+                    // https://github.com/sindresorhus/electron-dl/issues/105
 				});
 			} else {
 				setLibraryDialog();
@@ -541,6 +542,7 @@ ipcMain.on('download-athena', async (event, arg) => {
 		});
 	} else {
 		console.info("Failed to download.");
+        win.webContents.send('download-installer-failed');
 	}
 })
 
