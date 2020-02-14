@@ -62,7 +62,7 @@
 					:right=true
 					color="blue"
 					:tile=true
-                    :disabled="isDownloading"
+                    :depressed="isDownloading"
 				>
                     <span style="font-size: 12px;">{{downloadText}}</span>
 					<v-progress-circular
@@ -227,12 +227,20 @@ ipcRenderer.on('download-installer-progress', (event, arg) => {
             vue_this.showCloudDownload = false;
             vue_this.disableInstallIcon = false;
             vue_this.isDownloading = false;
+            vue_this.closeDialog();  // "Cancel Download" dialog may be open.
             vue_this.downloadText = "Download Interface";
             // vue_this.openDialog('DownloadComplete', true);
         }
 	}
 	console.info(downloadProgress);
 });
+
+ipcRenderer.on('download-cancelled', (event) => {
+    vue_this.showCloudIcon = true;
+    vue_this.showCloudDownload = false;
+    vue_this.disableInstallIcon = false;
+    vue_this.isDownloading = false;
+})
 
 ipcRenderer.on('download-installer-failed', (event) => {
     vue_this.isDownloading = false;
@@ -313,6 +321,7 @@ import HelloWorld from './components/HelloWorld';
 import FavoriteWorlds from './components/FavoriteWorlds';
 import Settings from './components/Settings';
 // Dialogs
+import CancelDownload from './components/Dialogs/CancelDownload'
 import DownloadComplete from './components/Dialogs/DownloadComplete'
 import DownloadFailed from './components/Dialogs/DownloadFailed'
 import NoInstallerFound from './components/Dialogs/NoInstallerFound'
@@ -326,6 +335,7 @@ export default {
 		FavoriteWorlds,
 		Settings,
         // Dialogs
+        CancelDownload,
         DownloadComplete,
         DownloadFailed,
         NoInstallerFound,
@@ -348,6 +358,10 @@ export default {
             this.showDialog = which;
             this.shouldShowDialog = shouldShow;
             // console.info(this.showDialog, this.shouldShowDialog);
+        },
+        closeDialog: function () {
+            this.showDialog = "";
+            this.shouldShowDialog = false;
         },
 		attemptLaunchInterface: function() {
 			// var exeLoc = ipcRenderer.sendSync('get-athena-location'); // todo: check if that location exists first when using that, we need to default to using folder path + /interface.exe otherwise.
@@ -380,6 +394,8 @@ export default {
                 this.isDownloading = true;
 				const { ipcRenderer } = require('electron');
 				ipcRenderer.send('download-athena');
+            } else {
+                vue_this.openDialog('CancelDownload', true);
 			}
 		},
 		installInterface: function() {

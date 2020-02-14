@@ -20,6 +20,7 @@ var glob = require('glob');
 const cp = require('child_process');
  
 electronDl();
+var electronDlItem = null;
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -525,13 +526,22 @@ ipcMain.on('download-athena', async (event, arg) => {
 					directory: libraryPath,
 					showBadge: true,
 					filename: "Athena_Setup_Latest.exe",
+                    onStarted: downloadItem => {
+                        electronDlItem = downloadItem;
+                    },
 					onProgress: currentProgress => {
 						console.info(currentProgress);
 						var percent = currentProgress.percent;
+                        if (percent === 100) {
+                            electronDlItem = null;
+                        }
 						win.webContents.send('download-installer-progress', {
 							percent
 						});
 					},
+                    onCancel: downloadItem => {
+                        electronDlItem = null;
+                    }
                     // FIXME: electron-dl currently displays its own "download interrupted" message box if file not found or 
                     // download interrupted. It would be nicer to display our own, download-installer-failed, message box.
                     // https://github.com/sindresorhus/electron-dl/issues/105
@@ -544,7 +554,14 @@ ipcMain.on('download-athena', async (event, arg) => {
 		console.info("Failed to download.");
         win.webContents.send('download-installer-failed');
 	}
-})
+});
+
+ipcMain.on('cancel-download', async (event) => {
+    if (electronDlItem) {
+        electronDlItem.cancel();
+        win.webContents.send('download-cancelled');
+    }
+});
 
 var installer_exe = cp.execFile;
 
