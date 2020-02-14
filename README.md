@@ -2,7 +2,7 @@
 
 ### What is this?
 
-Project Athena is a 3D social software project seeking to incrementally bring about a truly free and open metaverse. (Desktop, VR, XR)
+Project Athena is a 3D social software project seeking to incrementally bring about a truly free and open metaverse, in desktop and XR.
 
 ### [Download](https://projectathena.io/download-athena/)
 
