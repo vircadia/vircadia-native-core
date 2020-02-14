@@ -17,7 +17,7 @@ Check out the releases page for more information!
 
 * Audio Buffer choppy audio bugfix by increasing the buffer size.
 * User Activity Logger disabled, option in code to log the reports to console.
-* CMakeLists.txt configured to work for Polyvox, Interface JSDocs. (may be obsolete)
+* CMakeLists.txt configured to work for Polyvox, Interface JSDocs. (May be obsolete.)
 * Custom Application Title.
 * Entity Script Whitelist, no scripts are whitelisted by default.
 * Background CMD outputs full log, instant close of application on closing of the CMD-line.
