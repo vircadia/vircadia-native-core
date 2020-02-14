@@ -227,8 +227,8 @@ ipcRenderer.on('download-installer-progress', (event, arg) => {
             vue_this.showCloudDownload = false;
             vue_this.disableInstallIcon = false;
             vue_this.isDownloading = false;
-            vue_this.closeDialog();  // "Cancel Download" dialog may be open.
             vue_this.downloadText = "Download Interface";
+            vue_this.closeDialog();  // "Cancel Download" dialog may be open.
             // vue_this.openDialog('DownloadComplete', true);
         }
 	}
@@ -240,10 +240,12 @@ ipcRenderer.on('download-cancelled', (event) => {
     vue_this.showCloudDownload = false;
     vue_this.disableInstallIcon = false;
     vue_this.isDownloading = false;
+    vue_this.downloadText = "Download Interface";
 })
 
 ipcRenderer.on('download-installer-failed', (event) => {
     vue_this.isDownloading = false;
+    vue_this.downloadText = "Download Interface";
     vue_this.openDialog('DownloadFailed', true);
 });
 
