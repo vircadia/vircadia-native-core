@@ -62,7 +62,7 @@ var distanceToGizmoZmin = 0;
 var isScaleModeX = false;
 var isScaleModeY = false;
 var isScaleModeZ = false;
-var getClosest = [];
+var gizmoEndpoints = [];
 
 var overlayID = Overlays.addOverlay("text3d", {
     text: "hover",
@@ -328,18 +328,12 @@ function hideGizmo() {
 
 function showGizmo() {
     for (var i in gizmoShapeIDs) {
-        Entities.editEntity(gizmoShapeIDs[i],{visible: true});
+        Entities.editEntity(gizmoShapeIDs[i], { visible: true});
     }
 }
 
-function isEntityAGizmo(checkID) {
-    var check = false;       
-    for (var i in gizmoShapeIDs) {          
-        if (gizmoShapeIDs[i] === checkID) {
-            check = true;
-        }
-    }           
-    return check;            
+function isGizmo(id) {
+    return gizmoShapeIDs.indexOf(id) !== -1;        
 }
 
 function startScaling() {    
@@ -413,12 +407,12 @@ function startBuilding() {
         updateGizmoPositionRotation(entityPosition,entityRotation);
         var localPositions = Entities.getMultipleEntityProperties(ENTITIES_TO_UPDATE, "localPosition");
         for (var i = 0; i < localPositions.length; i++) {
-            getClosest[i] = Vec3.distance(handPositionLeft,
+            gizmoEndpoints[i] = Vec3.distance(handPositionLeft,
                 Entities.localToWorldPosition(localPositions[i].localPosition, ENTITIES_TO_UPDATE[i], -1));
         }
-        minimum = Math.min(getClosest[0],getClosest[1],getClosest[2],getClosest[3],getClosest[4],getClosest[5]);        
+        minimum = Math.min(gizmoEndpoints[0],gizmoEndpoints[1],gizmoEndpoints[2],gizmoEndpoints[3],gizmoEndpoints[4],gizmoEndpoints[5]);        
        
-        index = getClosest.indexOf(minimum);
+        index = gizmoEndpoints.indexOf(minimum);
         if (index === 0 || index === 1) {
             if (!isDirectionFound) {
                 isScaleModeX = true;
@@ -446,7 +440,7 @@ function startBuilding() {
     }
 }
 
-Script.scriptEnding.connect(function () {
+Script.scriptEnding.connect(function() {
     Entities.deleteEntity(overlayID);     
     Entities.deleteEntity(gizmoCenterID);
     Messages.messageReceived.disconnect(onMessageReceived);
@@ -461,14 +455,14 @@ function onMessageReceived(channel, message, senderID) {
         if (action === "grab") {
             if (actionHand === "LeftHand") {
                 grabbedLeftEntityID = JSON.parse(message).grabbedEntity;
-                var checkLeft = isEntityAGizmo(grabbedLeftEntityID);
+                var checkLeft = isGizmo(grabbedLeftEntityID);
                 if (!checkLeft) {
                     isGrabLeftInProgress = true;
                 }
             }
             if (actionHand === "RightHand") {
                 grabbedRightEntityID = JSON.parse(message).grabbedEntity;
-                var checkRight = isEntityAGizmo(grabbedRightEntityID);
+                var checkRight = isGizmo(grabbedRightEntityID);
                 if (!checkRight) {                         
                     isGrabRightInProgress = true;                
                 }                             
