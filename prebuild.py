@@ -162,7 +162,7 @@ def main():
             pm.setupDependencies(qt=qtInstallPath)
 
         # wipe out the build directories (after writing the tag, since failure 
-        # here shouldn't invalidte the vcpkg install)
+        # here shouldn't invalidate the vcpkg install)
         with timer('Cleaning builds'):
             pm.cleanBuilds()
 
@@ -179,6 +179,9 @@ def main():
 
         # Fixup the vcpkg cmake to not reset VCPKG_TARGET_TRIPLET
         pm.fixupCmakeScript()
+
+        # Cleanup downloads and packages folders in vcpkg to make it smaller for CI
+        pm.cleanupDevelopmentFiles()
 
         # Write the vcpkg config to the build directory last
         with timer('Writing configuration'):

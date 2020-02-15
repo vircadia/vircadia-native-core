@@ -34,12 +34,6 @@ env:
   MACOSX_DEPLOYMENT_TARGET: '10.11'
   # WIN32 specific variables
   PreferredToolArchitecture: X64
-
-  #BS_USERNAME: gustavo@highfidelity.io
-  #BS_PASSWORD: ${MASKED_BUGSPLAT_PASSWORD}
-  #CMAKE_BACKTRACE_URL: https://highfidelity.sp.backtrace.io:6098
-  GA_TRACKING_ID: UA-39558647-8
-  OCULUS_APP_ID: '1255907384473836'
   # CMAKE_BACKTRACE_TOKEN: ${MASKED_CMAKE_BACKTRACE_TOKEN}
   # CMAKE_BACKTRACE_SYMBOLS_TOKEN: ${MASKED_BACKTRACE_UPLOAD_TOKEN}
 
@@ -89,38 +83,38 @@ jobs:
         LABEL_PREFIX: rebuild
       run: python "$GITHUB_WORKSPACE/tools/ci-scripts/remove-labels.py" 
 
-  build_client_mac:
-    runs-on: macOS-latest
-    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild'
-    steps:
-    - uses: actions/checkout@v1
-      with: 
-        submodules: true
-        fetch-depth: 1
-    - name: Install python modules
-      run: pip3 install awscli boto3 PyGithub
-    - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build
-    - name: Configure CMake
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DCLIENT_ONLY:BOOLEAN=TRUE -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode -DVCPKG_APPLOCAL_DEPS=OFF
-    - name: Build Console
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
-    - name: Build Application
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
-    - name: Build Installer
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target package
-    - name: Upload Artifact
-      working-directory: ${{runner.workspace}}/build
-      env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-        GITHUB_TOKEN: ${{ secrets.github_ci_token }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
-        ARTIFACT_PATTERN: HighFidelity-Beta-Interface-PR${{ github.event.number }}-*.dmg
-      run: python3 "$GITHUB_WORKSPACE/tools/ci-scripts/upload.py" 
+  # build_client_mac:
+  #   runs-on: macOS-latest
+  #   if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-mac' || github.event.label.name == 'rebuild'
+  #   steps:
+  #   - uses: actions/checkout@v1
+  #     with: 
+  #       submodules: true
+  #       fetch-depth: 1
+  #   - name: Install python modules
+  #     run: pip3 install awscli boto3 PyGithub
+  #   - name: Create Build Environment
+  #     run: cmake -E make_directory ${{runner.workspace}}/build
+  #   - name: Configure CMake
+  #     working-directory: ${{runner.workspace}}/build
+  #     run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DCLIENT_ONLY:BOOLEAN=TRUE -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode -DVCPKG_APPLOCAL_DEPS=OFF
+  #   - name: Build Console
+  #     working-directory: ${{runner.workspace}}/build
+  #     run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+  #   - name: Build Application
+  #     working-directory: ${{runner.workspace}}/build
+  #     run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+  #   - name: Build Installer
+  #     working-directory: ${{runner.workspace}}/build
+  #     run: cmake --build . --config $BUILD_TYPE --target package
+  #   - name: Upload Artifact
+  #     working-directory: ${{runner.workspace}}/build
+  #     env:
+  #       GITHUB_CONTEXT: ${{ toJson(github) }}
+  #       GITHUB_TOKEN: ${{ secrets.github_ci_token }}
+  #       AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
+  #       ARTIFACT_PATTERN: HighFidelity-Beta-Interface-PR${{ github.event.number }}-*.dmg
+  #     run: python3 "$GITHUB_WORKSPACE/tools/ci-scripts/upload.py" 
 
   build_full_mac:
     runs-on: macOS-latest
@@ -163,43 +157,43 @@ jobs:
         ARTIFACT_PATTERN: HighFidelity-Beta-PR${{ github.event.number }}-*.dmg
       run: python3 "$GITHUB_WORKSPACE/tools/ci-scripts/upload.py" 
 
-  build_client_win32:
-    runs-on: windows-latest
-    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild'
-    steps:
-    - uses: actions/checkout@v1
-      with: 
-        submodules: true
-        fetch-depth: 1
-    - name: Install python modules
-      run: pip install awscli boto3 PyGithub
-    - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build
-    - name: Configure CMake
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCLIENT_ONLY:BOOLEAN=TRUE -DVCPKG_BUILD_TYPE=release -A x64
-    - name: Build Console
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
-    - name: Build Application
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
-    - name: Build Installer
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target package
-    - name: Upload Artifact
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-        GITHUB_TOKEN: ${{ secrets.github_ci_token }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
-        ARTIFACT_PATTERN: HighFidelity-Beta-Interface-PR${{ github.event.number }}-*.exe
-      run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload.py" 
+  # build_client_win32:
+  #   runs-on: windows-latest
+  #   if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild'
+  #   steps:
+  #   - uses: actions/checkout@v1
+  #     with: 
+  #       submodules: true
+  #       fetch-depth: 1
+  #   - name: Install python modules
+  #     run: pip install awscli boto3 PyGithub
+  #   - name: Create Build Environment
+  #     run: cmake -E make_directory ${{runner.workspace}}/build
+  #   - name: Configure CMake
+  #     shell: bash
+  #     working-directory: ${{runner.workspace}}/build
+  #     run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCLIENT_ONLY:BOOLEAN=TRUE -DVCPKG_BUILD_TYPE=release -A x64
+  #   - name: Build Console
+  #     shell: bash
+  #     working-directory: ${{runner.workspace}}/build
+  #     run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+  #   - name: Build Application
+  #     shell: bash
+  #     working-directory: ${{runner.workspace}}/build
+  #     run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+  #   - name: Build Installer
+  #     shell: bash
+  #     working-directory: ${{runner.workspace}}/build
+  #     run: cmake --build . --config $BUILD_TYPE --target package
+  #   - name: Upload Artifact
+  #     shell: bash
+  #     working-directory: ${{runner.workspace}}/build
+  #     env:
+  #       GITHUB_CONTEXT: ${{ toJson(github) }}
+  #       GITHUB_TOKEN: ${{ secrets.github_ci_token }}
+  #       AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
+  #       ARTIFACT_PATTERN: HighFidelity-Beta-Interface-PR${{ github.event.number }}-*.exe
+  #     run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload.py" 
           
   build_full_win32:
     runs-on: windows-latest
