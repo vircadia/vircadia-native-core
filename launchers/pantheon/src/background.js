@@ -281,10 +281,12 @@ async function getLatestMetaJSON() {
         },
 		onProgress: currentProgress => {
 			var percent = currentProgress.percent;
-            if (percent === 1 && electronDlItem && electronDlItem.getURL() === metaURL) {
-                electronDlItem = null;
+            if (electronDlItem && electronDlItem.getURL() === metaURL) {
+                if (percent === 1) {
+                    electronDlItem = null;
+                }
+                // console.info("DLing meta:", percent);
             }
-			// console.info("DLing meta:", percent);
 		},
         onCancel: downloadItem => {
             electronDlItem = null;
@@ -568,13 +570,15 @@ ipcMain.on('download-athena', async (event, arg) => {
 					onProgress: currentProgress => {
 						console.info(currentProgress);
 						var percent = currentProgress.percent;
-                        if (percent === 1 && electronDlItem && electronDlItem.getURL() === downloadURL) {
-                            electronDlItem = null;
-                            launchInstaller();
+                        if (electronDlItem && electronDlItem.getURL() === downloadURL) {
+                            win.webContents.send('download-installer-progress', {
+                                percent
+                            });
+                            if (percent === 1) {
+                                electronDlItem = null;
+                                launchInstaller();
+                            }
                         }
-						win.webContents.send('download-installer-progress', {
-							percent
-						});
 					},
                     onCancel: downloadItem => {
                         electronDlItem = null;
