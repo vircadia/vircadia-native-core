@@ -274,10 +274,21 @@ async function getLatestMetaJSON() {
 		directory: storagePath.default,
 		showBadge: false,
 		filename: "athenaMeta.json",
+        // onStarted etc. event listeners are added to the downloader, not replaced in the downloader, so we need to use the 
+        // downloadItem to check which download is progressing.
+        onStarted: downloadItem => {
+            electronDlItem = downloadItem;
+        },
 		onProgress: currentProgress => {
 			var percent = currentProgress.percent;
+            if (percent === 1 && electronDlItem && electronDlItem.getURL() === metaURL) {
+                electronDlItem = null;
+            }
 			// console.info("DLing meta:", percent);
 		},
+        onCancel: downloadItem => {
+            electronDlItem = null;
+        }
 	});
 	
 	var athenaMetaFile = storagePath.default + '/athenaMeta.json';
@@ -549,13 +560,15 @@ ipcMain.on('download-athena', async (event, arg) => {
 					directory: libraryPath,
 					showBadge: true,
 					filename: "Athena_Setup_Latest.exe",
+                    // onStarted etc. event listeners are added to the downloader, not replaced in the downloader, so we need to
+                    // use the downloadItem to check which download is progressing.
                     onStarted: downloadItem => {
                         electronDlItem = downloadItem;
                     },
 					onProgress: currentProgress => {
 						console.info(currentProgress);
 						var percent = currentProgress.percent;
-                        if (percent === 1 && electronDlItem) {
+                        if (percent === 1 && electronDlItem && electronDlItem.getURL() === downloadURL) {
                             electronDlItem = null;
                             launchInstaller();
                         }
