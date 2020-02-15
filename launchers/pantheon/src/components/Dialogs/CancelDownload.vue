@@ -1,3 +1,12 @@
+<!--
+//  CancelDownload.vue
+//
+//  Created by David Rowe on 14 Feb 2020.
+//  Copyright 2020 Project Athena and contributors.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+-->
 <template>
     <v-dialog
         width="500"
