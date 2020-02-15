@@ -99,6 +99,8 @@ endif()
             self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-osx-client.tgz%3FversionId=j0b4azo_zTlH_Q9DElEWOz1UMYZ2nqQw'
             self.vcpkgHash = '519d666d02ef22b87c793f016ca412e70f92e1d55953c8f9bd4ee40f6d9f78c1df01a6ee293907718f3bbf24075cc35492fb216326dfc50712a95858e9cbcb4d'
             self.hostTriplet = 'x64-osx'
+            # Potential fix for a vcpkg build issue on OSX (see https://github.com/microsoft/vcpkg/issues/9029)
+            self.bootstrapEnv['CXXFLAGS'] = '-D_CTERMID_H_'
             #if usePrebuilt:
             #    self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-osx.tgz%3FversionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
         else:
