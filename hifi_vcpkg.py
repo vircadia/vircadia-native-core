@@ -91,16 +91,16 @@ endif()
             self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-win32-client.zip%3FversionId=tSFzbw01VkkVFeRQ6YuAY4dro2HxJR9U'
             self.vcpkgHash = 'a650db47a63ccdc9904b68ddd16af74772e7e78170b513ea8de5a3b47d032751a3b73dcc7526d88bcb500753ea3dd9880639ca842bb176e2bddb1710f9a58cd3'
             self.hostTriplet = 'x64-windows'
-            if usePrebuilt:
-                self.prebuiltArchive = "https://ipfs.io/ipfs/QmcBggttJQb1vYeyz29FXfaxnJ5c1HfZW72xNQepnENude/vcpkg-win32-a2623c6a-release.zip"
+            #if usePrebuilt:
+            #    self.prebuiltArchive = "https://ipfs.io/ipfs/QmcBggttJQb1vYeyz29FXfaxnJ5c1HfZW72xNQepnENude/vcpkg-win32-a2623c6a-release.zip"
         elif 'Darwin' == system:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '--allowAppleClang', '-disableMetrics' ]
             self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-osx-client.tgz%3FversionId=j0b4azo_zTlH_Q9DElEWOz1UMYZ2nqQw'
             self.vcpkgHash = '519d666d02ef22b87c793f016ca412e70f92e1d55953c8f9bd4ee40f6d9f78c1df01a6ee293907718f3bbf24075cc35492fb216326dfc50712a95858e9cbcb4d'
             self.hostTriplet = 'x64-osx'
-            if usePrebuilt:
-                self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-osx.tgz%3FversionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
+            #if usePrebuilt:
+            #    self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-osx.tgz%3FversionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
@@ -261,6 +261,12 @@ endif()
         if os.path.isdir(builddir):
             print("Wiping build trees")
             shutil.rmtree(builddir, ignore_errors=True)
+
+    # Removes large files used to build the vcpkg, for CI purposes.
+    def cleanupDevelopmentFiles(self):
+        shutil.rmtree(os.path.join(self.path, "downloads"), ignore_errors=True)
+        shutil.rmtree(os.path.join(self.path, "packages"), ignore_errors=True)
+
 
     def setupAndroidDependencies(self):
         # vcpkg prebuilt
