@@ -196,21 +196,6 @@
 var vue_this;
 const { ipcRenderer } = require('electron');
 
-var downloaderDebounceReady = true;
-function downloaderDebounce() {
-    if(downloaderDebounceReady) {
-        console.log("Ready.");
-        downloaderDebounceReady = false;
-        setTimeout(function() {
-            downloaderDebounceReady = true;
-        }, 5000); // ms before firing again.
-        return true;
-    } else {
-        console.log("Not ready.");
-        return false;
-    }
-}
-
 ipcRenderer.on('download-installer-progress', (event, arg) => {
 	var downloadProgress = arg.percent;
 	if (downloadProgress < 1 && downloadProgress > 0) { // If downloading...
@@ -221,16 +206,13 @@ ipcRenderer.on('download-installer-progress', (event, arg) => {
         
         vue_this.downloadProgress = downloadProgress * 100;
 	} else if (downloadProgress == 1) { // When done.
-        if (downloaderDebounce()) {
-            vue_this.installInterface();
-            vue_this.showCloudIcon = true;
-            vue_this.showCloudDownload = false;
-            vue_this.disableInstallIcon = false;
-            vue_this.isDownloading = false;
-            vue_this.downloadText = "Download Interface";
-            vue_this.closeDialog();  // "Cancel Download" dialog may be open.
-            // vue_this.openDialog('DownloadComplete', true);
-        }
+        vue_this.showCloudIcon = true;
+        vue_this.showCloudDownload = false;
+        vue_this.disableInstallIcon = false;
+        vue_this.isDownloading = false;
+        vue_this.downloadText = "Download Interface";
+        vue_this.closeDialog();  // "Cancel Download" dialog may be open.
+        // vue_this.openDialog('DownloadComplete', true);
 	}
 	console.info(downloadProgress);
 });

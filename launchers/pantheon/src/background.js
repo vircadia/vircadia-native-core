@@ -514,6 +514,29 @@ ipcMain.handle('get-interface-list-for-launch', (event, arg) => {
 })
 
 
+var installer_exe = cp.execFile;
+
+function launchInstaller() {
+    getSetting('athena_interface.library', storagePath.default).then(function (libPath) {
+        var executablePath = libPath + "/Athena_Setup_Latest.exe";
+        var installPath = libPath + "/Athena_Interface_Latest";
+        var parameters = [""];
+
+        if (!fs.existsSync(executablePath)) {
+            // Notify main window of the issue.
+            win.webContents.send('no-installer-found');
+            return;
+        }
+
+        console.info("Installing, params:", executablePath, installPath, parameters)
+
+        installer_exe(executablePath, parameters, function (err, data) {
+            console.log(err)
+            console.log(data.toString());
+        });
+    });
+};
+
 ipcMain.on('download-athena', async (event, arg) => {
 	var libraryPath;
 	var downloadURL = await shouldUpdate();
@@ -532,8 +555,9 @@ ipcMain.on('download-athena', async (event, arg) => {
 					onProgress: currentProgress => {
 						console.info(currentProgress);
 						var percent = currentProgress.percent;
-                        if (percent === 100) {
+                        if (percent === 1 && electronDlItem) {
                             electronDlItem = null;
+                            launchInstaller();
                         }
 						win.webContents.send('download-installer-progress', {
 							percent
@@ -563,29 +587,6 @@ ipcMain.on('cancel-download', async (event) => {
     }
 });
 
-var installer_exe = cp.execFile;
-
 ipcMain.on('install-athena', (event, arg) => {
-	getSetting('athena_interface.library', storagePath.default).then(function(libPath){
-		var executablePath = libPath + "/Athena_Setup_Latest.exe";
-		var installPath = libPath + "/Athena_Interface_Latest";
-		var parameters = [""];
-		
-		if (!fs.existsSync(executablePath)) {
-			// Notify main window of the issue.
-			win.webContents.send('no-installer-found');
-			return;
-		}
-		
-		console.info("Installing, params:", executablePath, installPath, parameters)
-
-		installer_exe(executablePath, parameters, function(err, data) {
-			console.log(err)
-			console.log(data.toString());
-		});
-		
-	}).catch(function(caught) {
-		
-	});
+    launchInstaller();
 });
-
