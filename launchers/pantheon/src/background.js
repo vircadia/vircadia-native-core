@@ -333,25 +333,15 @@ async function shouldUpdate() {
         var checkForUpdates = await checkForInterfaceUpdates();
         if (checkForUpdates) {
             return checkForUpdates;
-        } else {
-            // This means to simply download and install a new one because update is not necessary.
-            console.info("Should update: false");
-            metaJSON = await getLatestMetaJSON();
-            if (metaJSON) {
-                return metaJSON.latest.url;
-            } else {
-                return false;
-            }
         }
+    }
+    // This means to simply download and install a new one because update is not necessary.
+    console.info("Should update: false");
+    metaJSON = await getLatestMetaJSON();
+    if (metaJSON) {
+        return metaJSON.latest.url;
     } else {
-        // This means to simply download and install a new one because update is not necessary.
-        console.info("Should update: false");
-        metaJSON = await getLatestMetaJSON();
-        if (metaJSON) {
-            return metaJSON.latest.url;
-        } else {
-            return false;
-        }
+        return false;
     }
 }
 
