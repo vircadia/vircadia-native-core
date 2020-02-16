@@ -1,6 +1,6 @@
 'use strict'
 
-import { app, protocol, BrowserWindow } from 'electron'
+import { app, protocol, BrowserWindow, DownloadItem } from 'electron'
 import {
 	installVueDevtools,
 	createProtocol,
@@ -20,6 +20,7 @@ var glob = require('glob');
 const cp = require('child_process');
  
 electronDl();
+var electronDlItem = null;
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -273,10 +274,23 @@ async function getLatestMetaJSON() {
 		directory: storagePath.default,
 		showBadge: false,
 		filename: "athenaMeta.json",
+        // onStarted etc. event listeners are added to the downloader, not replaced in the downloader, so we need to use the 
+        // downloadItem to check which download is progressing.
+        onStarted: downloadItem => {
+            electronDlItem = downloadItem;
+        },
 		onProgress: currentProgress => {
 			var percent = currentProgress.percent;
-			// console.info("DLing meta:", percent);
+            if (electronDlItem && electronDlItem.getURL() === metaURL) {
+                if (percent === 1) {
+                    electronDlItem = null;
+                }
+                // console.info("DLing meta:", percent);
+            }
 		},
+        onCancel: downloadItem => {
+            electronDlItem = null;
+        }
 	});
 	
 	var athenaMetaFile = storagePath.default + '/athenaMeta.json';
@@ -287,6 +301,7 @@ async function getLatestMetaJSON() {
 		console.info("Athena Meta JSON:", athenaMetaJSON);
 		return athenaMetaJSON;
 	} else {
+        console.error("Failed to download Athena Meta JSON");
 		return false;
 	}
 }
@@ -295,7 +310,7 @@ async function checkForInterfaceUpdates() {
 	var athenaMeta = await getLatestMetaJSON();
     var interfacePackage = await getCurrentInterfaceJSON();
     
-	if (athenaMeta.latest.version && interfacePackage.package.version) {
+    if (athenaMeta && athenaMeta.latest.version && interfacePackage && interfacePackage.package.version) {
         var versionCompare = compareVersions(athenaMeta.latest.version, interfacePackage.package.version);
         console.info("Compare Versions: ", versionCompare);
         if (versionCompare == 1) {
@@ -311,23 +326,22 @@ async function checkForInterfaceUpdates() {
 }
 
 async function shouldUpdate() {
+    var metaJSON;
     if (storagePath.interfaceSettings) {
         // This means to update because an interface exists and is selected.
         console.info("Should update: true");
         var checkForUpdates = await checkForInterfaceUpdates();
         if (checkForUpdates) {
             return checkForUpdates;
-        } else {
-            // This means to simply download and install a new one because update is not necessary.
-            console.info("Should update: false");
-            var metaJSON = await getLatestMetaJSON();
-            return metaJSON.latest.url;
         }
-    } else {
-        // This means to simply download and install a new one because update is not necessary.
-        console.info("Should update: false");
-        var metaJSON = await getLatestMetaJSON();
+    }
+    // This means to simply download and install a new one because update is not necessary.
+    console.info("Should update: false");
+    metaJSON = await getLatestMetaJSON();
+    if (metaJSON) {
         return metaJSON.latest.url;
+    } else {
+        return false;
     }
 }
 
@@ -503,10 +517,31 @@ ipcMain.handle('get-interface-list-for-launch', (event, arg) => {
 })
 
 
+var installer_exe = cp.execFile;
+
+function launchInstaller() {
+    getSetting('athena_interface.library', storagePath.default).then(function (libPath) {
+        var executablePath = libPath + "/Athena_Setup_Latest.exe";
+        var installPath = libPath + "/Athena_Interface_Latest";
+        var parameters = [""];
+
+        if (!fs.existsSync(executablePath)) {
+            // Notify main window of the issue.
+            win.webContents.send('no-installer-found');
+            return;
+        }
+
+        console.info("Installing, params:", executablePath, installPath, parameters)
+
+        installer_exe(executablePath, parameters, function (err, data) {
+            console.log(err)
+            console.log(data.toString());
+        });
+    });
+};
+
 ipcMain.on('download-athena', async (event, arg) => {
 	var libraryPath;
-	// var downloadURL = "https://files.yande.re/sample/a7e8adac62ee05c905056fcfb235f951/yande.re%20572549%20sample%20bikini%20breast_hold%20cleavage%20jahy%20jahy-sama_wa_kujikenai%21%20konbu_wakame%20swimsuits.jpg";
-
 	var downloadURL = await shouldUpdate();
     console.info("DLURL:", downloadURL);
 	if (downloadURL) {
@@ -517,13 +552,30 @@ ipcMain.on('download-athena', async (event, arg) => {
 					directory: libraryPath,
 					showBadge: true,
 					filename: "Athena_Setup_Latest.exe",
+                    // onStarted etc. event listeners are added to the downloader, not replaced in the downloader, so we need to
+                    // use the downloadItem to check which download is progressing.
+                    onStarted: downloadItem => {
+                        electronDlItem = downloadItem;
+                    },
 					onProgress: currentProgress => {
 						console.info(currentProgress);
 						var percent = currentProgress.percent;
-						win.webContents.send('download-installer-progress', {
-							percent
-						});
+                        if (electronDlItem && electronDlItem.getURL() === downloadURL) {
+                            win.webContents.send('download-installer-progress', {
+                                percent
+                            });
+                            if (percent === 1) {
+                                electronDlItem = null;
+                                launchInstaller();
+                            }
+                        }
 					},
+                    onCancel: downloadItem => {
+                        electronDlItem = null;
+                    }
+                    // FIXME: electron-dl currently displays its own "download interrupted" message box if file not found or 
+                    // download interrupted. It would be nicer to display our own, download-installer-failed, message box.
+                    // https://github.com/sindresorhus/electron-dl/issues/105
 				});
 			} else {
 				setLibraryDialog();
@@ -531,32 +583,17 @@ ipcMain.on('download-athena', async (event, arg) => {
 		});
 	} else {
 		console.info("Failed to download.");
+        win.webContents.send('download-installer-failed');
 	}
-})
-
-var installer_exe = cp.execFile;
-
-ipcMain.on('install-athena', (event, arg) => {
-	getSetting('athena_interface.library', storagePath.default).then(function(libPath){
-		var executablePath = libPath + "/Athena_Setup_Latest.exe";
-		var installPath = libPath + "/Athena_Interface_Latest";
-		var parameters = [""];
-		
-		if (!fs.existsSync(executablePath)) {
-			// Notify main window of the issue.
-			win.webContents.send('no-installer-found');
-			return;
-		}
-		
-		console.info("Installing, params:", executablePath, installPath, parameters)
-
-		installer_exe(executablePath, parameters, function(err, data) {
-			console.log(err)
-			console.log(data.toString());
-		});
-		
-	}).catch(function(caught) {
-		
-	});
 });
 
+ipcMain.on('cancel-download', async (event) => {
+    if (electronDlItem) {
+        electronDlItem.cancel();
+        win.webContents.send('download-cancelled');
+    }
+});
+
+ipcMain.on('install-athena', (event, arg) => {
+    launchInstaller();
+});

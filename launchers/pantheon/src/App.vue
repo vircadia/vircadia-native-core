@@ -62,7 +62,7 @@
 					:right=true
 					color="blue"
 					:tile=true
-                    :disabled="isDownloading"
+                    :depressed="isDownloading"
 				>
                     <span style="font-size: 12px;">{{downloadText}}</span>
 					<v-progress-circular
@@ -196,43 +196,38 @@
 var vue_this;
 const { ipcRenderer } = require('electron');
 
-var downloaderDebounceReady = true;
-function downloaderDebounce() {
-    if(downloaderDebounceReady) {
-        console.log("Ready.");
-        downloaderDebounceReady = false;
-        setTimeout(function() {
-            downloaderDebounceReady = true;
-        }, 5000); // ms before firing again.
-        return true;
-    } else {
-        console.log("Not ready.");
-        return false;
-    }
-}
-
 ipcRenderer.on('download-installer-progress', (event, arg) => {
 	var downloadProgress = arg.percent;
 	if (downloadProgress < 1 && downloadProgress > 0) { // If downloading...
 		vue_this.showCloudIcon = false;
 		vue_this.showCloudDownload = true;
-		vue_this.isDownloading = true;
         vue_this.disableInstallIcon = true;
         vue_this.downloadText = "Downloading";
-        
         vue_this.downloadProgress = downloadProgress * 100;
 	} else if (downloadProgress == 1) { // When done.
-        if (downloaderDebounce()) {
-            vue_this.installInterface();
-            vue_this.showCloudIcon = true;
-            vue_this.showCloudDownload = false;
-            vue_this.disableInstallIcon = false;
-            vue_this.isDownloading = false;
-            vue_this.downloadText = "Download Interface";
-            // vue_this.openDialog('DownloadComplete', true);
-        }
+        vue_this.showCloudIcon = true;
+        vue_this.showCloudDownload = false;
+        vue_this.disableInstallIcon = false;
+        vue_this.isDownloading = false;
+        vue_this.downloadText = "Download Interface";
+        vue_this.closeDialog();  // "Cancel Download" dialog may be open.
+        // vue_this.openDialog('DownloadComplete', true);
 	}
 	console.info(downloadProgress);
+});
+
+ipcRenderer.on('download-cancelled', (event) => {
+    vue_this.showCloudIcon = true;
+    vue_this.showCloudDownload = false;
+    vue_this.disableInstallIcon = false;
+    vue_this.isDownloading = false;
+    vue_this.downloadText = "Download Interface";
+})
+
+ipcRenderer.on('download-installer-failed', (event) => {
+    vue_this.isDownloading = false;
+    vue_this.downloadText = "Download Interface";
+    vue_this.openDialog('DownloadFailed', true);
 });
 
 ipcRenderer.on('state-loaded', (event, arg) => {
@@ -309,7 +304,9 @@ import HelloWorld from './components/HelloWorld';
 import FavoriteWorlds from './components/FavoriteWorlds';
 import Settings from './components/Settings';
 // Dialogs
+import CancelDownload from './components/Dialogs/CancelDownload'
 import DownloadComplete from './components/Dialogs/DownloadComplete'
+import DownloadFailed from './components/Dialogs/DownloadFailed'
 import NoInstallerFound from './components/Dialogs/NoInstallerFound'
 import NoInterfaceFound from './components/Dialogs/NoInterfaceFound'
 
@@ -321,7 +318,9 @@ export default {
 		FavoriteWorlds,
 		Settings,
         // Dialogs
+        CancelDownload,
         DownloadComplete,
+        DownloadFailed,
         NoInstallerFound,
         NoInterfaceFound
 	},
@@ -342,6 +341,10 @@ export default {
             this.showDialog = which;
             this.shouldShowDialog = shouldShow;
             // console.info(this.showDialog, this.shouldShowDialog);
+        },
+        closeDialog: function () {
+            this.showDialog = "";
+            this.shouldShowDialog = false;
         },
 		attemptLaunchInterface: function() {
 			// var exeLoc = ipcRenderer.sendSync('get-athena-location'); // todo: check if that location exists first when using that, we need to default to using folder path + /interface.exe otherwise.
@@ -371,8 +374,11 @@ export default {
 		},
 		downloadInterface: function() {
 			if (!this.isDownloading) {
+                this.isDownloading = true;
 				const { ipcRenderer } = require('electron');
 				ipcRenderer.send('download-athena');
+            } else {
+                vue_this.openDialog('CancelDownload', true);
 			}
 		},
 		installInterface: function() {

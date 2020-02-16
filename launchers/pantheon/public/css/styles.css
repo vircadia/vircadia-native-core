@@ -102,3 +102,9 @@ pre {
 .fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
 	opacity: 0;
 }
+
+/* App.vue */
+
+.v-application .blue.v-btn--depressed {
+    background-color: #34455f !important;
+}

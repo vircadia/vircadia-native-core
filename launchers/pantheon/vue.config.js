@@ -9,7 +9,7 @@ module.exports = {
 					"artifactName": "AthenaLauncherSetup.${ext}",
 					"installerIcon": "src/assets/logo_256_256.ico",
 					"uninstallerIcon": "src/assets/logo_256_256.ico",
-					"uninstallDisplayName": "Uninstall Athena Launcher",
+					"uninstallDisplayName": "Athena Launcher",
                     "createStartMenuShortcut": true,
 				},
 				"win": {
