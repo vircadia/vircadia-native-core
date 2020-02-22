@@ -62,3 +62,11 @@ endif ()
 if (APPLE)
   set(CMAKE_XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS "--deep")
 endif()
+
+if (UNIX)
+  # Static libs result in duplicated constructor and destructor calls on Linux
+  # and crashes on exit, and perhaps loss of global state on plugin loads.
+  #
+  # This will need to be looked at closely before Linux can have a static build.
+  set(BUILD_SHARED_LIBS ON)
+endif ()

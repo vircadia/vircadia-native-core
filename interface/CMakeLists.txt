@@ -142,6 +142,9 @@ if (APPLE)
   list(APPEND INTERFACE_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME})
 endif()
 
+if (UNIX)
+  set(BUILD_SHARED_LIBS ON)
+endif ()
 
 # create the executable, make it a bundle on OS X
 if (APPLE)
