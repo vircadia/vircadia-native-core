@@ -1,14 +1,17 @@
 #!/bin/sh
 
-ATHENA=`realpath ../..`
-GITDATE=`git log -n 1 --format=raw | grep author | cut -d' ' -f 4 | xargs -I {} date -d @{} +"%Y%m%d"`
-GITCOMMIT=`git rev-parse HEAD | cut -c 1-7`
+if [ "$ATHENA" = "" ]; then
+	        ATHENA=`realpath ../..`
+fi
+GITDATE=`git -C $ATHENA/source log -n 1 --format=raw | grep author | cut -d">" -f 2 | cut -d" " -f 2 | xargs -I {} date -d @{} +"%Y%m%d"`
+GITCOMMIT=`git -C $ATHENA/source rev-parse HEAD | cut -c 1-7`
 VERSION=0.86.0_K1_${GITDATE}_${GITCOMMIT}
 
 DEPENDS=mesa-libGL,`ls \
 		$ATHENA/build/assignment-client/assignment-client \
 		$ATHENA/build/domain-server/domain-server \
 		$ATHENA/build/tools/oven/oven \
+		$ATHENA/build/libraries/*/*.so \
 		$ATHENA/qt5-install/lib/libQt5Network.so.*.*.* \
 		$ATHENA/qt5-install/lib/libQt5Core.so.*.*.* \
 		$ATHENA/qt5-install/lib/libQt5Widgets.so.*.*.* \

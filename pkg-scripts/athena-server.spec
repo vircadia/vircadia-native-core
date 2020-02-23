@@ -40,6 +40,9 @@ strip --strip-all $RPM_BUILD_ROOT/opt/athena/*
 chrpath -d $RPM_BUILD_ROOT/opt/athena/*
 install -m 0755 -t $RPM_BUILD_ROOT/opt/athena $ATHENA/source/pkg-scripts/new-server
 install -d $RPM_BUILD_ROOT/opt/athena/lib
+install -m 0644 -t $RPM_BUILD_ROOT/opt/athena/lib $ATHENA/build/libraries/*/*.so
+strip --strip-all $RPM_BUILD_ROOT/opt/athena/lib/*
+chrpath -d $RPM_BUILD_ROOT/opt/athena/lib/*
 install -m 0644 -t $RPM_BUILD_ROOT/opt/athena/lib $ATHENA/qt5-install/lib/libQt5Network.so.*.*.*
 install -m 0644 -t $RPM_BUILD_ROOT/opt/athena/lib $ATHENA/qt5-install/lib/libQt5Core.so.*.*.*
 install -m 0644 -t $RPM_BUILD_ROOT/opt/athena/lib $ATHENA/qt5-install/lib/libQt5Widgets.so.*.*.*
