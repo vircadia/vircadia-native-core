@@ -106,6 +106,8 @@ function handleAvatarNametagMode(newAvatarNameTagMode) {
 
 var nameTag = startup();
 
-// if (module) {
-//     module.exports = nameTag;
-// }
+try {
+    module.exports = nameTag;
+} catch (e) {
+    // module doesn't exist when script run outside of simplified UI.
+}
