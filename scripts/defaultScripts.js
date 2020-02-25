@@ -39,7 +39,8 @@ var DEFAULT_SCRIPTS_COMBINED = [
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
     "communityModules/notificationCore/notificationCore.js",
-    "communityModules/chat/FloofChat.js"
+    "communityModules/chat/FloofChat.js",
+    "simplifiedUI/ui/simplifiedNametag/simplifiedNametag.js"
     //"system/chat.js"
 ];
 
