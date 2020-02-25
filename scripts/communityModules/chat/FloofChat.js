@@ -44,7 +44,7 @@ var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain"
 
 var ws;
 var wsReady = false;
-var WEB_SOCKET_URL = "ws://gridchat.darlingvr.club:8090";  // WebSocket for Grid chat.
+var WEB_SOCKET_URL = "ws://chat.projectathena.io:8880";  // WebSocket for Grid chat.
 var shutdownBool = false;
 
 var defaultColour = {red: 255, green: 255, blue: 255};

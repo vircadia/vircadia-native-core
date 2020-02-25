@@ -48,6 +48,7 @@ public:
         webMediaTypes(mediaType.webMediaTypes),
         fileSignatures(mediaType.fileSignatures) {
     }
+    MediaType& operator=(const MediaType&) = default;
 
     static MediaType NONE;
 

@@ -59,7 +59,7 @@ namespace image {
         Image() : _dims(0,0) {}
         Image(int width, int height, Format format);
         Image(const QImage& data) : _packedData(data), _dims(data.width(), data.height()), _format((Format)data.format()) {}
-
+        Image(const Image &other) = default;
         void operator=(const QImage& other) {
             _packedData = other;
             _floatData.clear();
