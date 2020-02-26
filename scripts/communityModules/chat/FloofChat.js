@@ -37,8 +37,8 @@ var visible = false;
 var historyVisible = false;
 var settingsRoot = "FloofChat";
 
-var darlingGotoUrl = "http://metaverse.darlingvr.club:8081/goto.json";
-var gotoJSONUrl = Settings.getValue(settingsRoot + "/gotoJSONUrl", darlingGotoUrl);
+var athenaGotoUrl = "https://staging-metaverse.projectathena.io/d-goto/app/goto.json";
+var gotoJSONUrl = Settings.getValue(settingsRoot + "/gotoJSONUrl", athenaGotoUrl);
 
 var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain": false, "Grid": false});
 
