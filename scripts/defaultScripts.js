@@ -35,12 +35,12 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/miniTablet.js",
     "system/audioMuteOverlay.js",
     "system/keyboardShortcuts/keyboardShortcuts.js",
-    "https://kasenvr.github.io/community-apps/more/app-more.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
     "communityModules/notificationCore/notificationCore.js",
     "simplifiedUI/ui/simplifiedNametag/simplifiedNametag.js",
+    {"stable": "system/more/app-more.js", "beta": "https://kasenvr.github.io/community-apps/more/app-more.js"},
     {"stable": "communityModules/chat/FloofChat.js", "beta": "https://content.fluffy.ws/scripts/chat/FloofChat.js"}
     //"system/chat.js"
 ];
