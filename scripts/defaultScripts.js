@@ -54,6 +54,9 @@ if (Window.interstitialModeEnabled) {
 var MENU_CATEGORY = "Developer > Scripting";
 var MENU_ITEM = "Debug defaultScripts.js";
 
+var MENU_BETA_DEFAULT_SCRIPTS_CATEGORY = "Developer > Scripting";
+var MENU_BETA_DEFAULT_SCRIPTS_ITEM = "Enable Beta Default Scripts";
+
 var SETTINGS_KEY = '_debugDefaultScriptsIsChecked';
 var SETTINGS_KEY_BETA = '_betaDefaultScriptsIsChecked';
 var previousSetting = Settings.getValue(SETTINGS_KEY, false);
@@ -67,12 +70,29 @@ if (previousSetting === true || previousSetting === 'true') {
     previousSetting = true;
 }
 
+if (previousSettingBeta === '' || previousSettingBeta === false || previousSettingBeta === 'false') {
+    previousSettingBeta = false;
+}
+
+if (previousSettingBeta === true || previousSettingBeta === 'true') {
+    previousSettingBeta = true;
+}
+
 if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_ITEM)) {
     Menu.addMenuItem({
         menuName: MENU_CATEGORY,
         menuItemName: MENU_ITEM,
         isCheckable: true,
         isChecked: previousSetting,
+    });
+}
+
+if (Menu.menuExists(MENU_BETA_DEFAULT_SCRIPTS_CATEGORY) && !Menu.menuItemExists(MENU_BETA_DEFAULT_SCRIPTS_CATEGORY, MENU_BETA_DEFAULT_SCRIPTS_ITEM)) {
+    Menu.addMenuItem({
+        menuName: MENU_BETA_DEFAULT_SCRIPTS_CATEGORY,
+        menuItemName: MENU_BETA_DEFAULT_SCRIPTS_ITEM,
+        isCheckable: true,
+        isChecked: previousSettingBeta,
     });
 }
 
@@ -169,17 +189,28 @@ function menuItemEvent(menuItem) {
             Settings.setValue(SETTINGS_KEY, false);
         }
         Menu.triggerOption("Reload All Scripts");
+    } 
+    if (menuItem === MENU_BETA_DEFAULT_SCRIPTS_ITEM) {
+        var isChecked = Menu.isOptionChecked(MENU_BETA_DEFAULT_SCRIPTS_ITEM);
+        if (isChecked === true) {
+            Settings.setValue(SETTINGS_KEY_BETA, true);
+        } else if (isChecked === false) {
+            Settings.setValue(SETTINGS_KEY_BETA, false);
+        }
     }
 }
 
-function removeMenuItem() {
+function removeMenuItems() {
     if (!Menu.isOptionChecked(MENU_ITEM)) {
         Menu.removeMenuItem(MENU_CATEGORY, MENU_ITEM);
+    }
+    if (!Menu.isOptionChecked(MENU_BETA_DEFAULT_SCRIPTS_ITEM)) {
+        Menu.removeMenuItem(MENU_BETA_DEFAULT_SCRIPTS_CATEGORY, MENU_BETA_DEFAULT_SCRIPTS_ITEM);
     }
 }
 
 Script.scriptEnding.connect(function () {
-    removeMenuItem();
+    removeMenuItems();
 });
 
 Menu.menuItemEvent.connect(menuItemEvent);
