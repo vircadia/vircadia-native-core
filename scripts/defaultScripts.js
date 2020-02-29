@@ -83,17 +83,18 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
         menuName: MENU_CATEGORY,
         menuItemName: MENU_ITEM,
         isCheckable: true,
-        isChecked: previousSetting,
+        isChecked: previousSetting
     });
 }
 
-if (Menu.menuExists(MENU_BETA_DEFAULT_SCRIPTS_CATEGORY) && !Menu.menuItemExists(MENU_BETA_DEFAULT_SCRIPTS_CATEGORY, MENU_BETA_DEFAULT_SCRIPTS_ITEM)) {
-    Menu.addMenuItem({
-        menuName: MENU_BETA_DEFAULT_SCRIPTS_CATEGORY,
-        menuItemName: MENU_BETA_DEFAULT_SCRIPTS_ITEM,
-        isCheckable: true,
-        isChecked: previousSettingBeta,
-    });
+if (Menu.menuExists(MENU_BETA_DEFAULT_SCRIPTS_CATEGORY) 
+    && !Menu.menuItemExists(MENU_BETA_DEFAULT_SCRIPTS_CATEGORY, MENU_BETA_DEFAULT_SCRIPTS_ITEM)) {
+        Menu.addMenuItem({
+            menuName: MENU_BETA_DEFAULT_SCRIPTS_CATEGORY,
+            menuItemName: MENU_BETA_DEFAULT_SCRIPTS_ITEM,
+            isCheckable: true,
+            isChecked: previousSettingBeta
+        });
 }
 
 function loadSeparateDefaults() {
@@ -183,18 +184,18 @@ loadSeparateDefaults();
 function menuItemEvent(menuItem) {
     if (menuItem === MENU_ITEM) {
         var isChecked = Menu.isOptionChecked(MENU_ITEM);
-        if (isChecked === true) {
+        if (isChecked) {
             Settings.setValue(SETTINGS_KEY, true);
-        } else if (isChecked === false) {
+        } else {
             Settings.setValue(SETTINGS_KEY, false);
         }
         Menu.triggerOption("Reload All Scripts");
     } 
     if (menuItem === MENU_BETA_DEFAULT_SCRIPTS_ITEM) {
         var isChecked = Menu.isOptionChecked(MENU_BETA_DEFAULT_SCRIPTS_ITEM);
-        if (isChecked === true) {
+        if (isChecked) {
             Settings.setValue(SETTINGS_KEY_BETA, true);
-        } else if (isChecked === false) {
+        } else {
             Settings.setValue(SETTINGS_KEY_BETA, false);
         }
     }
