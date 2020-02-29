@@ -1,3 +1,10 @@
+//VERSION 2.0
+//	Modified by Alezia Kurdis on on 02/27/2020
+//  for "Project Athena"
+//  
+//  Addition of a tab mechanism instead of collapsible sections to reduce the scrolling.
+//
+//VERSION 1.0
 //  entityProperties.js
 //
 //  Created by Ryan Huffman on 13 Nov 2014
@@ -9,6 +16,8 @@
 
 /* global alert, augmentSpinButtons, clearTimeout, console, document, Element, 
    EventBridge, JSONEditor, openEventBridge, setTimeout, window, _, $ */
+
+var currentTab = "base";
 
 const DEGREES_TO_RADIANS = Math.PI / 180.0;
 
@@ -40,6 +49,7 @@ const PROPERTY_MULTI_DISPLAY_MODE = Object.freeze({
 const GROUPS = [
     {
         id: "base",
+		label: "ENTITY",
         properties: [
             {
                 label: NO_SELECTION,
@@ -112,12 +122,12 @@ const GROUPS = [
                     lines: "Wireframe",
                 },
                 propertyID: "primitiveMode",
-            },
+            }
         ]
     },
     {
         id: "shape",
-        addToGroup: "base",
+		label: "SHAPE",		
         properties: [
             {
                 label: "Shape",
@@ -132,12 +142,12 @@ const GROUPS = [
                 label: "Color",
                 type: "color",
                 propertyID: "color",
-            },
+            }
         ]
     },
     {
         id: "text",
-        addToGroup: "base",
+		label: "TEXT",		
         properties: [
             {
                 label: "Text",
@@ -220,12 +230,12 @@ const GROUPS = [
                 label: "Unlit",
                 type: "bool",
                 propertyID: "unlit",
-            },
+            }
         ]
     },
     {
         id: "zone",
-        addToGroup: "base",
+		label: "ZONE",		
         properties: [
             {
                 label: "Shape Type",
@@ -255,7 +265,13 @@ const GROUPS = [
                 label: "Filter",
                 type: "string",
                 propertyID: "filterURL",
-            },
+            }
+        ]
+    },
+    {
+        id: "zone_key_light",
+		label: "ZONE KEY LIGHT",		
+        properties: [
             {
                 label: "Key Light",
                 type: "dropdown",
@@ -324,7 +340,13 @@ const GROUPS = [
                 decimals: 2,
                 propertyID: "keyLight.shadowMaxDistance",
                 showPropertyRule: { "keyLightMode": "enabled" },
-            },
+            }	
+        ]
+    },	
+    {
+        id: "zone_skybox",
+		label: "ZONE SKYBOX",		
+        properties: [
             {
                 label: "Skybox",
                 type: "dropdown",
@@ -342,7 +364,13 @@ const GROUPS = [
                 type: "string",
                 propertyID: "skybox.url",
                 showPropertyRule: { "skyboxMode": "enabled" },
-            },
+            }	
+        ]
+    },	
+    {
+        id: "zone_ambient_light",
+		label: "ZONE AMBIENT LIGHT",		
+        properties: [
             {
                 label: "Ambient Light",
                 type: "dropdown",
@@ -371,7 +399,13 @@ const GROUPS = [
                              className: "black", onClick: copySkyboxURLToAmbientURL } ],
                 propertyID: "copyURLToAmbient",
                 showPropertyRule: { "ambientLightMode": "enabled" },
-            },
+            }		
+        ]
+    },	
+    {
+        id: "zone_haze",
+		label: "ZONE HAZE",		
+        properties: [
             {
                 label: "Haze",
                 type: "dropdown",
@@ -454,7 +488,13 @@ const GROUPS = [
                 decimals: 0,
                 propertyID: "haze.hazeGlareAngle",
                 showPropertyRule: { "hazeMode": "enabled" },
-            },
+            }		
+        ]
+    },
+    {
+        id: "zone_bloom",
+		label: "ZONE BLOOM",		
+        properties: [
             {
                 label: "Bloom",
                 type: "dropdown",
@@ -490,19 +530,24 @@ const GROUPS = [
                 decimals: 3,
                 propertyID: "bloom.bloomSize",
                 showPropertyRule: { "bloomMode": "enabled" },
-            },
+            }		
+        ]
+    },	
+    {
+        id: "zone_avatar_priority",
+		label: "ZONE AVATAR PRIORITY",		
+        properties: [
             {
                 label: "Avatar Priority",
                 type: "dropdown",
                 options: { inherit: "Inherit", crowd: "Crowd", hero: "Hero" },
                 propertyID: "avatarPriority",
-            },
-
+            }		
         ]
-    },
+    },		
     {
         id: "model",
-        addToGroup: "base",
+		label: "MODEL",		
         properties: [
             {
                 label: "Model",
@@ -587,12 +632,12 @@ const GROUPS = [
                 label: "Group Culled",
                 type: "bool",
                 propertyID: "groupCulled",
-            },
+            }
         ]
     },
     {
         id: "image",
-        addToGroup: "base",
+		label: "IMAGE",		
         properties: [
             {
                 label: "Image",
@@ -630,12 +675,12 @@ const GROUPS = [
                 label: "Keep Aspect Ratio",
                 type: "bool",
                 propertyID: "keepAspectRatio",
-            },
+            }
         ]
     },
     {
         id: "web",
-        addToGroup: "base",
+		label: "WEB",		
         properties: [
             {
                 label: "Source",
@@ -675,12 +720,12 @@ const GROUPS = [
                 type: "string",
                 propertyID: "scriptURL",
                 placeholder: "URL",
-            },
+            }
         ]
     },
     {
         id: "light",
-        addToGroup: "base",
+		label: "LIGHT",		
         properties: [
             {
                 label: "Light Color",
@@ -726,12 +771,12 @@ const GROUPS = [
                 step: 0.01,
                 decimals: 2,
                 propertyID: "cutoff",
-            },
+            }
         ]
     },
     {
         id: "material",
-        addToGroup: "base",
+		label: "MATERIAL",		
         properties: [
             {
                 label: "Material URL",
@@ -800,12 +845,12 @@ const GROUPS = [
                 label: "Material Repeat",
                 type: "bool",
                 propertyID: "materialRepeat",
-            },
+            }
         ]
     },
     {
         id: "grid",
-        addToGroup: "base",
+		label: "GRID",		
         properties: [
             {
                 label: "Color",
@@ -833,12 +878,12 @@ const GROUPS = [
                 step: 0.01,
                 decimals: 2,
                 propertyID: "minorGridEvery",
-            },
+            }
         ]
     },
     {
         id: "particles",
-        addToGroup: "base",
+		label: "PARTICLES",		
         properties: [
             {
                 label: "Emit",
@@ -864,13 +909,13 @@ const GROUPS = [
                 type: "texture",
                 propertyID: "particleTextures",
                 propertyName: "textures", // actual entity property name
-            },
+            }
         ]
     },
     {
-        id: "particles_emit",
-        label: "EMIT",
-        isMinor: true,
+        id: "particles_emit",		
+        label: "PARTICLES EMIT",
+        //isMinor: true,
         properties: [
             {
                 label: "Emit Rate",
@@ -937,13 +982,13 @@ const GROUPS = [
                 label: "Trails",
                 type: "bool",
                 propertyID: "emitterShouldTrail",
-            },
+            }
         ]
     },
     {
-        id: "particles_size",
-        label: "SIZE",
-        isMinor: true,
+        id: "particles_size",	
+        label: "PARTICLES SIZE",
+        //isMinor: true,
         properties: [
             {
                 type: "triple",
@@ -972,7 +1017,7 @@ const GROUPS = [
                         decimals: 2,
                         propertyID: "radiusFinish",
                         fallbackProperty: "particleRadius",
-                    },
+                    }
                 ]
             },
             {
@@ -981,13 +1026,13 @@ const GROUPS = [
                 step: 0.01,
                 decimals: 2,
                 propertyID: "radiusSpread",
-            },
+            }
         ]
     },
     {
         id: "particles_color",
-        label: "COLOR",
-        isMinor: true,
+        label: "PARTICLES COLOR",
+        //isMinor: true,
         properties: [
             {
                 type: "triple",
@@ -1011,20 +1056,20 @@ const GROUPS = [
                         type: "color",
                         propertyID: "colorFinish",
                         fallbackProperty: "color",
-                    },
+                    }
                 ]
             },
             {
                 label: "Color Spread",
                 type: "color",
                 propertyID: "colorSpread",
-            },
+            }
         ]
     },
     {
         id: "particles_alpha",
-        label: "ALPHA",
-        isMinor: true,
+        label: "PARTICLES ALPHA",
+        //isMinor: true,
         properties: [
             {
                 type: "triple",
@@ -1053,7 +1098,7 @@ const GROUPS = [
                         decimals: 3,
                         propertyID: "alphaFinish",
                         fallbackProperty: "alpha",
-                    },
+                    }
                 ]
             },
             {
@@ -1062,13 +1107,13 @@ const GROUPS = [
                 step: 0.001,
                 decimals: 3,
                 propertyID: "alphaSpread",
-            },
+            }
         ]
     },
     {
         id: "particles_acceleration",
-        label: "ACCELERATION",
-        isMinor: true,
+        label: "PARTICLES ACCELERATION",
+        //isMinor: true,
         properties: [
             {
                 label: "Emit Acceleration",
@@ -1087,13 +1132,13 @@ const GROUPS = [
                 round: 100,
                 subLabels: [ "x", "y", "z" ],
                 propertyID: "accelerationSpread",
-            },
+            }
         ]
     },
     {
         id: "particles_spin",
-        label: "SPIN",
-        isMinor: true,
+        label: "PARTICLES SPIN",
+        //isMinor: true,
         properties: [
             {
                 type: "triple",
@@ -1128,7 +1173,7 @@ const GROUPS = [
                         unit: "deg",
                         propertyID: "spinFinish",
                         fallbackProperty: "particleSpin",
-                    },
+                    }
                 ]
             },
             {
@@ -1144,13 +1189,13 @@ const GROUPS = [
                 label: "Rotate with Entity",
                 type: "bool",
                 propertyID: "rotateWithEntity",
-            },
+            }
         ]
     },
     {
         id: "particles_constraints",
-        label: "CONSTRAINTS",
-        isMinor: true,
+        label: "PARTICLES CONSTRAINTS",
+		//isMinor: true,
         properties: [
             {
                 type: "triple",
@@ -1174,7 +1219,7 @@ const GROUPS = [
                         multiplier: DEGREES_TO_RADIANS,
                         unit: "deg",
                         propertyID: "polarFinish",
-                    },
+                    }
                 ],
             },
             {
@@ -1199,7 +1244,7 @@ const GROUPS = [
                         multiplier: DEGREES_TO_RADIANS,
                         unit: "deg",
                         propertyID: "azimuthFinish",
-                    },
+                    }
                 ]
             }
         ]
@@ -1299,7 +1344,7 @@ const GROUPS = [
                 buttons: [ { id: "selection", label: "Selection to Grid", className: "black", onClick: moveSelectionToGrid },
                            { id: "all", label: "All to Grid", className: "black", onClick: moveAllToGrid } ],
                 propertyID: "alignToGrid",
-            },
+            }
         ]
     },
     {
@@ -1404,7 +1449,7 @@ const GROUPS = [
                            { id: "edit", label: "Edit as JSON", className: "blue", onClick: newJSONEditor },
                            { id: "save", label: "Save User Data", className: "black", onClick: saveUserData } ],
                 propertyID: "userData",
-            },
+            }
         ]
     },
     {
@@ -1469,7 +1514,7 @@ const GROUPS = [
                 label: "Dynamic",
                 type: "bool",
                 propertyID: "dynamic",
-            },
+            }
         ]
     },
     {
@@ -1554,7 +1599,7 @@ const GROUPS = [
                 decimals: 4,
                 unit: "m/s<sup>2</sup>",
                 propertyID: "acceleration",
-            },
+            }
         ]
     },
 ];
@@ -1563,14 +1608,16 @@ const GROUPS_PER_TYPE = {
   None: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
   Shape: [ 'base', 'shape', 'spatial', 'behavior', 'collision', 'physics' ],
   Text: [ 'base', 'text', 'spatial', 'behavior', 'collision', 'physics' ],
-  Zone: [ 'base', 'zone', 'spatial', 'behavior', 'physics' ],
+  Zone: [ 'base', 'zone', 'zone_key_light', 'zone_skybox', 'zone_ambient_light', 'zone_haze', 
+			'zone_bloom', 'zone_avatar_priority', 'spatial', 'behavior', 'physics' ],
   Model: [ 'base', 'model', 'spatial', 'behavior', 'collision', 'physics' ],
   Image: [ 'base', 'image', 'spatial', 'behavior', 'collision', 'physics' ],
   Web: [ 'base', 'web', 'spatial', 'behavior', 'collision', 'physics' ],
   Light: [ 'base', 'light', 'spatial', 'behavior', 'collision', 'physics' ],
   Material: [ 'base', 'material', 'spatial', 'behavior' ],
   ParticleEffect: [ 'base', 'particles', 'particles_emit', 'particles_size', 'particles_color', 'particles_alpha', 
-                    'particles_acceleration', 'particles_spin', 'particles_constraints', 'spatial', 'behavior', 'physics' ],
+                    'particles_acceleration', 'particles_spin', 'particles_constraints', 'spatial', 'behavior', 'physics' ],							
+  PolyLine: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
   PolyLine: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
   PolyVox: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
   Grid: [ 'base', 'grid', 'spatial', 'behavior', 'physics' ],
@@ -1842,9 +1889,15 @@ function resetServerScriptStatus() {
 function showGroupsForType(type) {
     if (type === "Box" || type === "Sphere") {
         showGroupsForTypes(["Shape"]);
+		showOnTheSamePage("Shape");
         return;
     }
+	if (type === "None"){
+        showGroupsForTypes(["None"]);
+        return;		
+	}
     showGroupsForTypes([type]);
+	showOnTheSamePage(type);
 }
 
 function getGroupsForTypes(types) {
@@ -1858,9 +1911,15 @@ function getGroupsForTypes(types) {
 function showGroupsForTypes(types) {
     Object.entries(elGroups).forEach(([groupKey, elGroup]) => {
         if (types.map(type => GROUPS_PER_TYPE[type].includes(groupKey)).every(function (hasGroup) { return hasGroup; })) {
-            elGroup.style.display = "block";
+            elGroup.style.display = "none";
+			if(types != "None"){
+				document.getElementById("tab-" + groupKey).style.display = "block";
+			}else{
+				document.getElementById("tab-" + groupKey).style.display = "none";
+			}
         } else {
             elGroup.style.display = "none";
+			document.getElementById("tab-" + groupKey).style.display = "none";
         }
     });
 }
@@ -3678,6 +3737,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
 
         const shownGroups = getGroupsForTypes(entityTypes);
         showGroupsForTypes(entityTypes);
+		showOnTheSamePage(entityTypes);
 
         const lockedMultiValue = getMultiplePropertyValue('locked');
 
@@ -3954,32 +4014,24 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
 
 function loaded() {
     openEventBridge(function() {
-        let elPropertiesList = document.getElementById("properties-list");
-        
+        let elPropertiesList = document.getElementById("properties-pages");
+        let tabs = "";
+		
         GROUPS.forEach(function(group) {
             let elGroup;
-            if (group.addToGroup !== undefined) {
-                let fieldset = document.getElementById("properties-" + group.addToGroup);
-                elGroup = document.createElement('div');
-                fieldset.appendChild(elGroup);
-            } else {
-                elGroup = document.createElement('div');
-                elGroup.className = 'section ' + (group.isMinor ? "minor" : "major");
-                elGroup.setAttribute("id", "properties-" + group.id);
-                elPropertiesList.appendChild(elGroup);
-            }       
 
+			elGroup = document.createElement('div');
+			elGroup.className = 'section ' + "major";				
+			elGroup.setAttribute("id", "properties-" + group.id);
+			elPropertiesList.appendChild(elGroup);
+         
+			
             if (group.label !== undefined) {
                 let elLegend = document.createElement('div');
-                elLegend.className = "section-header";
-
-                elLegend.appendChild(createElementFromHTML(`<div class="label">${group.label}</div>`));
-
-                let elSpan = document.createElement('span');
-                elSpan.className = "collapse-icon";
-                elSpan.innerText = "M";
-                elLegend.appendChild(elSpan);
-                elGroup.appendChild(elLegend);
+				elLegend.className = "tab-section-header";
+                elLegend.appendChild(createElementFromHTML(`<div class="labelTabHeader">${group.label}</div>`));
+                elGroup.appendChild(elLegend);				
+				tabs = tabs +'<button id="tab-'+ group.id +'" onclick="showPage(' + "'" + group.id  + "'" + ');"><img src="tabs/'+ group.id +'.png"></button>';
             }
                 
             group.properties.forEach(function(propertyData) {
@@ -3991,7 +4043,7 @@ function loaded() {
                 propertyElementID = propertyElementID.replace('.', '-');
                 
                 let elContainer, elLabel;
-                
+                				
                 if (propertyData.replaceID === undefined) {
                     // Create subheader, or create new property and append it.
                     if (propertyType === "sub-header") {
@@ -4107,9 +4159,6 @@ function loaded() {
             
             elGroups[group.id] = elGroup;
         });
-
-        let minorSections = document.querySelectorAll(".section.minor");
-        minorSections[minorSections.length - 1].className += " last";
 
         updateVisibleSpaceModeProperties();
         
@@ -4252,7 +4301,7 @@ function loaded() {
         elDiv.insertBefore(elStaticMaterialData, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditor, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditorStatus, elMaterialData);
-        
+        /*
         // Collapsible sections
         let elCollapsible = document.getElementsByClassName("collapse-icon");
 
@@ -4268,7 +4317,8 @@ function loaded() {
             let curCollapsibleElement = elCollapsible[collapseIndex];
             curCollapsibleElement.addEventListener("click", toggleCollapsedEvent, true);
         }
-        
+        */
+		
         // Textarea scrollbars
         let elTextareas = document.getElementsByTagName("TEXTAREA");
 
@@ -4422,12 +4472,17 @@ function loaded() {
                 e.target.select();
             };
         }
-        
+		
+        document.getElementById("tabs").innerHTML = tabs;
+		
         bindAllNonJSONEditorElements(); 
 
         showGroupsForType("None");
+		showPage("base");
         resetProperties();
-        disableProperties();        
+        disableProperties();
+		
+        
     });
 
     augmentSpinButtons();
@@ -4441,4 +4496,24 @@ function loaded() {
     setTimeout(function() {
         EventBridge.emitWebEvent(JSON.stringify({ type: 'propertiesPageReady' }));
     }, 1000);
+}
+
+function showOnTheSamePage(entityType) {
+	if(GROUPS_PER_TYPE[entityType].includes(currentTab) == false){
+		currentTab = "base";
+	}
+	showPage(currentTab);
+}
+
+function showPage(id) {
+	currentTab = id;
+    Object.entries(elGroups).forEach(([groupKey, elGroup]) => {
+        if (groupKey == id) {
+            elGroup.style.display = "block";
+			document.getElementById("tab-" + groupKey).style.backgroundColor = "#2E2E2E";
+        } else {
+            elGroup.style.display = "none";
+			document.getElementById("tab-" + groupKey).style.backgroundColor = "#404040";
+        }
+    });
 }
