@@ -3,8 +3,12 @@
 //  Created by Darlingnotin in 2019.
 //  Copyright 2019 Darlingnotin
 //
+//  App maintained in: https://github.com/kasenvr/Decentralized_GoTo_Experimental
+//  App copied to: https://github.com/kasenvr/project-athena
+//
 //  Distributed under the ISC license.
 //  See the accompanying file LICENSE or https://opensource.org/licenses/ISC
+
 (function () {
     var defaultGoToJSON = "https://metaverse.projectathena.io/interim/d-goto/app/goto.json";
     
