@@ -1063,14 +1063,7 @@ const GROUPS = [
                 label: "Color Spread",
                 type: "color",
                 propertyID: "colorSpread",
-            }
-        ]
-    },
-    {
-        id: "particles_alpha",
-        label: "PARTICLES ALPHA",
-        //isMinor: true,
-        properties: [
+            },
             {
                 type: "triple",
                 label: "Alpha",
@@ -1107,12 +1100,12 @@ const GROUPS = [
                 step: 0.001,
                 decimals: 3,
                 propertyID: "alphaSpread",
-            }
+            }			
         ]
     },
     {
-        id: "particles_acceleration",
-        label: "PARTICLES ACCELERATION",
+        id: "particles_behavior",
+        label: "PARTICLES BEHAVIOR",
         //isMinor: true,
         properties: [
             {
@@ -1132,14 +1125,7 @@ const GROUPS = [
                 round: 100,
                 subLabels: [ "x", "y", "z" ],
                 propertyID: "accelerationSpread",
-            }
-        ]
-    },
-    {
-        id: "particles_spin",
-        label: "PARTICLES SPIN",
-        //isMinor: true,
-        properties: [
+            },
             {
                 type: "triple",
                 label: "Spin",
@@ -1415,6 +1401,19 @@ const GROUPS = [
                 propertyID: "ignorePickIntersection",
             },
             {
+                label: "Lifetime",
+                type: "number",
+                unit: "s",
+                propertyID: "lifetime",
+            }
+        ]
+    },
+,
+    {
+        id: "scripts",
+        label: "SCRIPTS",
+        properties: [
+            {
                 label: "Script",
                 type: "string",
                 buttons: [ { id: "reload", label: "F", className: "glyph", onClick: reloadScripts } ],
@@ -1437,12 +1436,6 @@ const GROUPS = [
                 selectionVisibility: PROPERTY_SELECTION_VISIBILITY.SINGLE_SELECTION,
             },
             {
-                label: "Lifetime",
-                type: "number",
-                unit: "s",
-                propertyID: "lifetime",
-            },
-            {
                 label: "User Data",
                 type: "textarea",
                 buttons: [ { id: "clear", label: "Clear User Data", className: "red", onClick: clearUserData }, 
@@ -1451,7 +1444,7 @@ const GROUPS = [
                 propertyID: "userData",
             }
         ]
-    },
+    },	
     {
         id: "collision",
         label: "COLLISION",
@@ -1605,23 +1598,23 @@ const GROUPS = [
 ];
 
 const GROUPS_PER_TYPE = {
-  None: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
-  Shape: [ 'base', 'shape', 'spatial', 'behavior', 'collision', 'physics' ],
-  Text: [ 'base', 'text', 'spatial', 'behavior', 'collision', 'physics' ],
+  None: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
+  Shape: [ 'base', 'shape', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
+  Text: [ 'base', 'text', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   Zone: [ 'base', 'zone', 'zone_key_light', 'zone_skybox', 'zone_ambient_light', 'zone_haze', 
-			'zone_bloom', 'zone_avatar_priority', 'spatial', 'behavior', 'physics' ],
-  Model: [ 'base', 'model', 'spatial', 'behavior', 'collision', 'physics' ],
-  Image: [ 'base', 'image', 'spatial', 'behavior', 'collision', 'physics' ],
-  Web: [ 'base', 'web', 'spatial', 'behavior', 'collision', 'physics' ],
-  Light: [ 'base', 'light', 'spatial', 'behavior', 'collision', 'physics' ],
-  Material: [ 'base', 'material', 'spatial', 'behavior' ],
-  ParticleEffect: [ 'base', 'particles', 'particles_emit', 'particles_size', 'particles_color', 'particles_alpha', 
-                    'particles_acceleration', 'particles_spin', 'particles_constraints', 'spatial', 'behavior', 'physics' ],							
-  PolyLine: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
-  PolyLine: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
-  PolyVox: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
-  Grid: [ 'base', 'grid', 'spatial', 'behavior', 'physics' ],
-  Multiple: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
+			'zone_bloom', 'zone_avatar_priority', 'spatial', 'behavior', 'scripts', 'physics' ],
+  Model: [ 'base', 'model', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
+  Image: [ 'base', 'image', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
+  Web: [ 'base', 'web', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
+  Light: [ 'base', 'light', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
+  Material: [ 'base', 'material', 'spatial', 'behavior', 'scripts' ],
+  ParticleEffect: [ 'base', 'particles', 'particles_emit', 'particles_size', 'particles_color', 
+                    'particles_behavior', 'particles_constraints', 'spatial', 'behavior', 'scripts', 'physics' ],							
+  PolyLine: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
+  PolyLine: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
+  PolyVox: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
+  Grid: [ 'base', 'grid', 'spatial', 'behavior', 'scripts', 'physics' ],
+  Multiple: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
 };
 
 const EDITOR_TIMEOUT_DURATION = 1500;
