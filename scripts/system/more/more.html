@@ -9,217 +9,229 @@
 -->
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="UTF-8">
-		<script type="text/javascript" src="https://kasenvr.github.io/community-apps/applications/metadata.js"></script>
-		<script>
-			//Parameters
-			function findGetParameter(parameterName) {
-				var result = null,
-					tmp = [];
-				var items = location.search.substr(1).split("&");
-				for (var index = 0; index < items.length; index++) {
-					tmp = items[index].split("=");
-					if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
-				}
-				return result;
-			}
-	
-			var offset = findGetParameter("offset");
-			if(offset === null){offset = 0;}
-			offset = parseInt(offset);
-			
-			var perpage = findGetParameter("perpage");
-			if(perpage === null){perpage = 25;}
-			perpage = parseInt(perpage);
-			
-			var search = findGetParameter("search");
-			if(search === null){search = "";}			
-	
-			//Search
-			function doSearch(keyword){
-				location.href = "more.html?offset=0&search=" + encodeURI(keyword);
-			}
+    <head>
+        <meta charset="UTF-8">
+        <script>
+            //Paths
+            var currentPath = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            var rootPath;
+            var metadataScript = document.createElement("script");
+            
+            if (currentPath.includes("kasenvr.github.io") || !currentPath.includes("file:/")) { // Loading app from repo or filesystem.
+                rootPath = currentPath.replace("more/more.html", "applications/");
+                metadataScript.src = "../applications/metadata.js";
+                console.info("Loading apps and metadata locally.");
+            } else {
+                rootPath = "https://kasenvr.github.io/community-apps/applications/";
+                metadataScript.src = "https://kasenvr.github.io/community-apps/applications/metadata.js";
+                console.info("Loading apps and metadata remotely.");
+            }
 
-			function clearSearch(){
-				location.href = "more.html?offset=0";
-			}
-			
-			//Paths
-			var currentPath = window.location.protocol + "//" + window.location.host + window.location.pathname;
-			var rootPath = "https://kasenvr.github.io/community-apps/applications/";
-			
-			//Running scripts 
-			var buttonList = [];
-			
-			function requestRunningScriptData() {
-				var readyEvent = {
-					"action": "requestRunningScriptData"
-				};
-				EventBridge.emitWebEvent(JSON.stringify(readyEvent));
-			}
+            document.getElementsByTagName("head")[0].appendChild(metadataScript);
+            
+            //Parameters
+            function findGetParameter(parameterName) {
+                var result = null,
+                    tmp = [];
+                var items = location.search.substr(1).split("&");
+                for (var index = 0; index < items.length; index++) {
+                    tmp = items[index].split("=");
+                    if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
+                }
+                return result;
+            }
+    
+            var offset = findGetParameter("offset");
+            if(offset === null){offset = 0;}
+            offset = parseInt(offset);
+            
+            var perpage = findGetParameter("perpage");
+            if(perpage === null){perpage = 25;}
+            perpage = parseInt(perpage);
+            
+            var search = findGetParameter("search");
+            if(search === null){search = "";}            
+    
+            //Search
+            function doSearch(keyword){
+                location.href = "more.html?offset=0&search=" + encodeURI(keyword);
+            }
 
-			EventBridge.scriptEventReceived.connect(function(message){
-				//update the buttons
-				buttonList.forEach(function(item){
-					var btn = "";
-					if (message.indexOf(item.url) != -1) {
-						//Means already running
-						btn = "<button class='uninstall' onclick='uninstall(" + '"' + item.url + '"' + ", " + '"' + item.id + '"' + ");'>Uninstall</button>";
-					} else {
-						//Means not already installed
-						btn = "<button class='install' onclick='install(" + '"' + item.url + '"' + ", " + '"' + item.id + '"' + ");'>Install</button>";
-					}
-					
-					document.getElementById(item.id).innerHTML = btn;
-				});
+            function clearSearch(){
+                location.href = "more.html?offset=0";
+            }
+            
+            //Running scripts 
+            var buttonList = [];
+            
+            function requestRunningScriptData() {
+                var readyEvent = {
+                    "action": "requestRunningScriptData"
+                };
+                EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+            }
+
+            EventBridge.scriptEventReceived.connect(function(message){
+                //update the buttons
+                buttonList.forEach(function(item){
+                    var btn = "";
+                    if (message.indexOf(item.url) != -1) {
+                        //Means already running
+                        btn = "<button class='uninstall' onclick='uninstall(" + '"' + item.url + '"' + ", " + '"' + item.id + '"' + ");'>Uninstall</button>";
+                    } else {
+                        //Means not already installed
+                        btn = "<button class='install' onclick='install(" + '"' + item.url + '"' + ", " + '"' + item.id + '"' + ");'>Install</button>";
+                    }
+                    
+                    document.getElementById(item.id).innerHTML = btn;
+                });
             });
 
-			function install(script, btnId){
-				//then change btn appearence
-				var btn = "<button class='processing' >Processing...</button>";
-				document.getElementById(btnId).innerHTML = btn;
+            function install(script, btnId){
+                //then change btn appearence
+                var btn = "<button class='processing' >Processing...</button>";
+                document.getElementById(btnId).innerHTML = btn;
 
-				//Action
-				var readyEvent = {
-					"action": "installScript",
-					"script": script
-				};
-				
-				EventBridge.emitWebEvent(JSON.stringify(readyEvent));
-
-			}
-
-			function uninstall(script, btnId){
-				//then change btn appearence
-				var btn = "<button class='processing' >Processing...</button>";
-				document.getElementById(btnId).innerHTML = btn;
-				
-				//Action
-				var readyEvent = {
-					"action": "uninstallScript",
-					"script": script
-				};
+                //Action
+                var readyEvent = {
+                    "action": "installScript",
+                    "script": script
+                };
                 
-				EventBridge.emitWebEvent(JSON.stringify(readyEvent));
-			}
+                EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+
+            }
+
+            function uninstall(script, btnId){
+                //then change btn appearence
+                var btn = "<button class='processing' >Processing...</button>";
+                document.getElementById(btnId).innerHTML = btn;
+                
+                //Action
+                var readyEvent = {
+                    "action": "uninstallScript",
+                    "script": script
+                };
+                
+                EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+            }
             
-		</script>    
+        </script>    
         
         <link href="https://fonts.googleapis.com/css?family=Merriweather|Quicksand:400,700&display=swap" rel="stylesheet">
         <link href="css/styles.css" rel="stylesheet">
         
-	</head>
-	<body><form name = "searchbar">
-		<h1 class="mainTitle">Add more functionalities...</h1>
-		<p class="mainDesc">Want to add your own app? Read the <a href="../web/index.html">guide</a>!</p>
-		<table style = "width:100%;">
-			<tr >
-				<td style = "vertical-align:middle; text-align:left;">
-					<table>
-						<tr>
-							<td style = "vertical-align:middle; text-align:left;">
-								<div class = "searchbox">
-									<input class = "searchtextbox" name = "searchtextbox" size = "26" maxlength="32"> <a href="#" onclick='clearSearch();'><img src="del-x-16.png"></a>
-								</div>
-							</td>
-							<td style = "vertical-align:middle; text-align:left;">
-								<a href = "#" onclick = 'doSearch(document.searchbar.searchtextbox.value);'><img src="search-32.png"></a>
-							</td>
-						</tr>
-					</table>
-				</td>
-				<td style = "vertical-align:middle; text-align:right;">
-					<div id = 'pager_top'  style = "vertical-align: middle;"></div>
-				</td>				
-			</tr>
-		</table>
-		</form><br>
-		<div id = "data"></div>
-		<div style="width:98%; text-align:right;"><div style = "vertical-align: middle;" id = 'pager_footer'></div>		
-		
-		<script>
-			document.searchbar.searchtextbox.value = search;
+    </head>
+    <body><form name = "searchbar">
+        <h1 class="mainTitle">Add more functionalities...</h1>
+        <p class="mainDesc">Want to add your own app? Read the <a href="../web/index.html">guide</a>!</p>
+        <table style = "width:100%;">
+            <tr >
+                <td style = "vertical-align:middle; text-align:left;">
+                    <table>
+                        <tr>
+                            <td style = "vertical-align:middle; text-align:left;">
+                                <div class = "searchbox">
+                                    <input class = "searchtextbox" name = "searchtextbox" size = "26" maxlength="32"> <a href="#" onclick='clearSearch();'><img src="del-x-16.png"></a>
+                                </div>
+                            </td>
+                            <td style = "vertical-align:middle; text-align:left;">
+                                <a href = "#" onclick = 'doSearch(document.searchbar.searchtextbox.value);'><img src="search-32.png"></a>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td style = "vertical-align:middle; text-align:right;">
+                    <div id = 'pager_top'  style = "vertical-align: middle;"></div>
+                </td>                
+            </tr>
+        </table>
+        </form><br>
+        <div id = "data"></div>
+        <div style="width:98%; text-align:right;"><div style = "vertical-align: middle;" id = 'pager_footer'></div>        
+        
+        <script>
+            document.searchbar.searchtextbox.value = search;
 
-			function DisplayApp(item) {
-				pageContent = pageContent + "<a name = '" + window.btoa(item.name) + "'><table class='item'><tr>";
-				pageContent = pageContent + "<td><div class='iconContainer'><img src='" + rootPath + item.icon + "' style='width:50px;'><br><font class = 'caption'>" + item.caption + "</font></div></td>";
-				var btn = "";
-				var absoluteJsFile = rootPath + item.jsfile;
-			
-				var btn = "<button class='install' onclick = 'install(" + '"' + absoluteJsFile + " ," + window.btoa(item.name) + '"' + ");'>Install</button>";
-				var btndata = {
-					"url": absoluteJsFile,
-					"id": window.btoa(item.name)
-					};
-				buttonList.push(btndata);
-				
-				pageContent = pageContent + "<td><font class='appname'>" + item.name + "<br></font><font class = 'appdesc'>" + item.description + "<br></font><div id = '"+ window.btoa(item.name) +"' align='right'>" + btn + "</div></td>";
-				pageContent = pageContent + "</tr></table><br><br>";				
-			}
-
-			var counterDir = -1;
-			var counterDisp = 0;
-			var index = 0;
-			var lowItem = "";
-			var needNext = false;
-			var pageContent = "";
-			
-			for (index = 0; index < metadata.applications.length; index++){
-				lowItem = metadata.applications[index].name.toLowerCase();
-				if (lowItem.indexOf(search.toLowerCase()) != -1 && metadata.applications[index].isActive == true){ 
-					counterDir = counterDir + 1;
-					if ((counterDir >= offset) && (counterDir < (offset + perpage))){
-						DisplayApp(metadata.applications[index]);
-						counterDisp = counterDisp + 1;
-					}
-					if (counterDir >= (offset + perpage)){
-						needNext = true;
-						break;
-					}
-				}
-			}
-			
-			//pager
+            function DisplayApp(item) {
+                pageContent = pageContent + "<a name = '" + window.btoa(item.name) + "'><table class='item'><tr>";
+                pageContent = pageContent + "<td><div class='iconContainer'><img src='" + rootPath + item.icon + "' style='width:50px;'><br><font class = 'caption'>" + item.caption + "</font></div></td>";
+                var btn = "";
+                var absoluteJsFile = rootPath + item.jsfile;
             
-			function pagetoPrevious(){
-				offset = offset - perpage;
-				if (offset < 0){
-					offset = 0;
-				}
-				location.href = "more.html?offset=" + offset + "&perpage=" + perpage + "&search=" + encodeURI(search);			
-			}
-			
-			function pagetoNext(){
-				offset = offset + perpage;
-				location.href = "more.html?offset=" + offset + "&perpage=" + perpage + "&search=" + encodeURI(search);
-			}
-			
-			var pagerPrevious = "<a href='#' onclick='pagetoPrevious();'><img src='minus-16.png'></a>";
-			if (offset <= 0){
-				pagerPrevious = "<img src='blank_minus-16.png'>";
-			}
-			
-			var pagerNext = "<a href='#' onclick='pagetoNext();'><img src='plus-16.png'></a>";
-			if (needNext == false){
-				pagerNext = "<img src='blank_plus-16.png'>";
-			}			
-			
-			var countA = offset + 1;
-			
-			var countB = offset + counterDisp;
-			
-			var pagerHtml = pagerPrevious + "<font class='pager'>&nbsp;&nbsp;" + countA + " - " + countB  + "&nbsp;&nbsp;</font>" + pagerNext; 
+                var btn = "<button class='install' onclick = 'install(" + '"' + absoluteJsFile + " ," + window.btoa(item.name) + '"' + ");'>Install</button>";
+                var btndata = {
+                    "url": absoluteJsFile,
+                    "id": window.btoa(item.name)
+                    };
+                buttonList.push(btndata);
+                
+                pageContent = pageContent + "<td><font class='appname'>" + item.name + "<br></font><font class = 'appdesc'>" + item.description + "<br></font><div id = '"+ window.btoa(item.name) +"' align='right'>" + btn + "</div></td>";
+                pageContent = pageContent + "</tr></table><br><br>";                
+            }
 
-			if (counterDisp > 0 ){
-				document.getElementById("pager_top").innerHTML = pagerHtml;
-				document.getElementById("data").innerHTML = pageContent;
-				document.getElementById("pager_footer").innerHTML = pagerHtml;
-			}else{
-				document.getElementById("data").innerHTML = "<hr><div align='center'><font class='noresult'><br><br><br><br>Sorry, no result found.<br><br><br><br><br><br></font></div><hr>";
-			}
-			
-			requestRunningScriptData();
-		</script>
-	</body>
+            var counterDir = -1;
+            var counterDisp = 0;
+            var index = 0;
+            var lowItem = "";
+            var needNext = false;
+            var pageContent = "";
+            
+            for (index = 0; index < metadata.applications.length; index++){
+                lowItem = metadata.applications[index].name.toLowerCase();
+                if (lowItem.indexOf(search.toLowerCase()) != -1 && metadata.applications[index].isActive == true){ 
+                    counterDir = counterDir + 1;
+                    if ((counterDir >= offset) && (counterDir < (offset + perpage))){
+                        DisplayApp(metadata.applications[index]);
+                        counterDisp = counterDisp + 1;
+                    }
+                    if (counterDir >= (offset + perpage)){
+                        needNext = true;
+                        break;
+                    }
+                }
+            }
+            
+            //pager
+            
+            function pagetoPrevious(){
+                offset = offset - perpage;
+                if (offset < 0){
+                    offset = 0;
+                }
+                location.href = "more.html?offset=" + offset + "&perpage=" + perpage + "&search=" + encodeURI(search);            
+            }
+            
+            function pagetoNext(){
+                offset = offset + perpage;
+                location.href = "more.html?offset=" + offset + "&perpage=" + perpage + "&search=" + encodeURI(search);
+            }
+            
+            var pagerPrevious = "<a href='#' onclick='pagetoPrevious();'><img src='minus-16.png'></a>";
+            if (offset <= 0){
+                pagerPrevious = "<img src='blank_minus-16.png'>";
+            }
+            
+            var pagerNext = "<a href='#' onclick='pagetoNext();'><img src='plus-16.png'></a>";
+            if (needNext == false){
+                pagerNext = "<img src='blank_plus-16.png'>";
+            }            
+            
+            var countA = offset + 1;
+            
+            var countB = offset + counterDisp;
+            
+            var pagerHtml = pagerPrevious + "<font class='pager'>&nbsp;&nbsp;" + countA + " - " + countB  + "&nbsp;&nbsp;</font>" + pagerNext; 
+
+            if (counterDisp > 0 ){
+                document.getElementById("pager_top").innerHTML = pagerHtml;
+                document.getElementById("data").innerHTML = pageContent;
+                document.getElementById("pager_footer").innerHTML = pagerHtml;
+            }else{
+                document.getElementById("data").innerHTML = "<hr><div align='center'><font class='noresult'><br><br><br><br>Sorry, no result found.<br><br><br><br><br><br></font></div><hr>";
+            }
+            
+            requestRunningScriptData();
+        </script>
+    </body>
 </html>
