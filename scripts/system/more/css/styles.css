@@ -32,10 +32,6 @@ h1 {
     text-shadow: 3px 3px 3px rgba(63,64,76,1);
 }
 
-h1.mainTitle {
-    
-}
-
 p.mainDesc {
     font-size: 16px;
 }
@@ -136,8 +132,8 @@ button.install {
 }
 
 button.install:hover {
-  background-color: #10afe3; 
-  border: 2px solid #10afe3;
+    background-color: #10afe3; 
+    border: 2px solid #10afe3;
 }
 
 button.uninstall {
@@ -153,8 +149,8 @@ button.uninstall {
 }
 
 button.uninstall:hover {
-  background-color: #e34c22; 
-  border: 2px solid #e34c22;
+    background-color: #e34c22; 
+    border: 2px solid #e34c22;
 }
 
 button.processing {

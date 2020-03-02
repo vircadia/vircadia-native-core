@@ -6,12 +6,16 @@
 //  Created by Keb Helion, February 2020.
 //  Copyright 2020 Project Athena and contributors.
 //
+//  App maintained in: https://github.com/kasenvr/community-apps
+//  App copied to: https://github.com/kasenvr/project-athena
+//
 //  This script adds a "More Apps" selector to "Project Athena" to allow the user to add optional functionalities to the tablet.
 //  This application has been designed to work directly from the Github repository.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//    
+//   
+ 
 (function() {
     var ROOT = Script.resolvePath('').split("app-more.js")[0];
     var APP_NAME = "MORE...";
@@ -34,7 +38,7 @@
     
     
     function clicked() {
-        if (Appstatus == true) {
+        if (Appstatus) {
             tablet.webEventReceived.disconnect(onMoreAppWebEventReceived);
             tablet.gotoHomeScreen();
             Appstatus = false;
@@ -67,7 +71,7 @@
             
             if (eventzget.action === "installScript") {
                 
-                if (lastProcessing.action == eventzget.action && lastProcessing.script == eventzget.script) {
+                if (lastProcessing.action === eventzget.action && lastProcessing.script === eventzget.script) {
                     return;
                 } else {
                     ScriptDiscoveryService.loadOneScript(eventzget.script);
@@ -83,7 +87,7 @@
 
             if (eventzget.action === "uninstallScript") {
                 
-                if (lastProcessing.action == eventzget.action && lastProcessing.script == eventzget.script) {
+                if (lastProcessing.action === eventzget.action && lastProcessing.script === eventzget.script) {
                     return;
                 } else {
                     ScriptDiscoveryService.stopScript(eventzget.script, false);
@@ -107,7 +111,7 @@
 
 
     function onScreenChanged(type, url) {
-        if (type == "Web" && url.indexOf(APP_URL) != -1) {
+        if (type === "Web" && url.indexOf(APP_URL) !== -1) {
             //Active
             //print("MORE... ACTIVE");
             Appstatus = true;

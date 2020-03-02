@@ -39,21 +39,29 @@
                 var items = location.search.substr(1).split("&");
                 for (var index = 0; index < items.length; index++) {
                     tmp = items[index].split("=");
-                    if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
+                    if (tmp[0] === parameterName) {
+                        result = decodeURIComponent(tmp[1])
+                    };
                 }
                 return result;
             }
     
             var offset = findGetParameter("offset");
-            if(offset === null){offset = 0;}
+            if (offset === null) {
+                offset = 0;
+            }
             offset = parseInt(offset);
             
             var perpage = findGetParameter("perpage");
-            if(perpage === null){perpage = 25;}
+            if (perpage === null) {
+                perpage = 25;
+            }
             perpage = parseInt(perpage);
             
             var search = findGetParameter("search");
-            if(search === null){search = "";}            
+            if (search === null) {
+                search = "";
+            }            
     
             //Search
             function doSearch(keyword){
@@ -78,7 +86,7 @@
                 //update the buttons
                 buttonList.forEach(function(item){
                     var btn = "";
-                    if (message.indexOf(item.url) != -1) {
+                    if (message.indexOf(item.url) !== -1) {
                         //Means already running
                         btn = "<button class='uninstall' onclick='uninstall(" + '"' + item.url + '"' + ", " + '"' + item.id + '"' + ");'>Uninstall</button>";
                     } else {
@@ -125,30 +133,31 @@
         <link href="css/styles.css" rel="stylesheet">
         
     </head>
-    <body><form name = "searchbar">
-        <h1 class="mainTitle">Add more functionalities...</h1>
-        <p class="mainDesc">Want to add your own app? Read the <a href="../web/index.html">guide</a>!</p>
-        <table style = "width:100%;">
-            <tr >
-                <td style = "vertical-align:middle; text-align:left;">
-                    <table>
-                        <tr>
-                            <td style = "vertical-align:middle; text-align:left;">
-                                <div class = "searchbox">
-                                    <input class = "searchtextbox" name = "searchtextbox" size = "26" maxlength="32"> <a href="#" onclick='clearSearch();'><img src="del-x-16.png"></a>
-                                </div>
-                            </td>
-                            <td style = "vertical-align:middle; text-align:left;">
-                                <a href = "#" onclick = 'doSearch(document.searchbar.searchtextbox.value);'><img src="search-32.png"></a>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-                <td style = "vertical-align:middle; text-align:right;">
-                    <div id = 'pager_top'  style = "vertical-align: middle;"></div>
-                </td>                
-            </tr>
-        </table>
+    <body>
+        <form name = "searchbar">
+            <h1 class="mainTitle">Add more functionalities...</h1>
+            <p class="mainDesc">Want to add your own app? Read the <a href="https://kasenvr.github.io/community-apps/web/index.html">guide</a>!</p>
+            <table style = "width:100%;">
+                <tr >
+                    <td style = "vertical-align:middle; text-align:left;">
+                        <table>
+                            <tr>
+                                <td style = "vertical-align:middle; text-align:left;">
+                                    <div class = "searchbox">
+                                        <input class = "searchtextbox" name = "searchtextbox" size = "26" maxlength="32"> <a href="#" onclick='clearSearch();'><img src="del-x-16.png"></a>
+                                    </div>
+                                </td>
+                                <td style = "vertical-align:middle; text-align:left;">
+                                    <a href = "#" onclick = 'doSearch(document.searchbar.searchtextbox.value);'><img src="search-32.png"></a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td style = "vertical-align:middle; text-align:right;">
+                        <div id = 'pager_top'  style = "vertical-align: middle;"></div>
+                    </td>                
+                </tr>
+            </table>
         </form><br>
         <div id = "data"></div>
         <div style="width:98%; text-align:right;"><div style = "vertical-align: middle;" id = 'pager_footer'></div>        
@@ -182,13 +191,13 @@
             
             for (index = 0; index < metadata.applications.length; index++){
                 lowItem = metadata.applications[index].name.toLowerCase();
-                if (lowItem.indexOf(search.toLowerCase()) != -1 && metadata.applications[index].isActive == true){ 
+                if (lowItem.indexOf(search.toLowerCase()) !== -1 && metadata.applications[index].isActive) { 
                     counterDir = counterDir + 1;
-                    if ((counterDir >= offset) && (counterDir < (offset + perpage))){
+                    if ((counterDir >= offset) && (counterDir < (offset + perpage))) {
                         DisplayApp(metadata.applications[index]);
                         counterDisp = counterDisp + 1;
                     }
-                    if (counterDir >= (offset + perpage)){
+                    if (counterDir >= (offset + perpage)) {
                         needNext = true;
                         break;
                     }
@@ -197,7 +206,7 @@
             
             //pager
             
-            function pagetoPrevious(){
+            function pagetoPrevious() {
                 offset = offset - perpage;
                 if (offset < 0){
                     offset = 0;
@@ -205,18 +214,18 @@
                 location.href = "more.html?offset=" + offset + "&perpage=" + perpage + "&search=" + encodeURI(search);            
             }
             
-            function pagetoNext(){
+            function pagetoNext() {
                 offset = offset + perpage;
                 location.href = "more.html?offset=" + offset + "&perpage=" + perpage + "&search=" + encodeURI(search);
             }
             
             var pagerPrevious = "<a href='#' onclick='pagetoPrevious();'><img src='minus-16.png'></a>";
-            if (offset <= 0){
+            if (offset <= 0) {
                 pagerPrevious = "<img src='blank_minus-16.png'>";
             }
             
             var pagerNext = "<a href='#' onclick='pagetoNext();'><img src='plus-16.png'></a>";
-            if (needNext == false){
+            if (!needNext) {
                 pagerNext = "<img src='blank_plus-16.png'>";
             }            
             
@@ -226,11 +235,11 @@
             
             var pagerHtml = pagerPrevious + "<font class='pager'>&nbsp;&nbsp;" + countA + " - " + countB  + "&nbsp;&nbsp;</font>" + pagerNext; 
 
-            if (counterDisp > 0 ){
+            if (counterDisp > 0 ) {
                 document.getElementById("pager_top").innerHTML = pagerHtml;
                 document.getElementById("data").innerHTML = pageContent;
                 document.getElementById("pager_footer").innerHTML = pagerHtml;
-            }else{
+            } else {
                 document.getElementById("data").innerHTML = "<hr><div align='center'><font class='noresult'><br><br><br><br>Sorry, no result found.<br><br><br><br><br><br></font></div><hr>";
             }
             
