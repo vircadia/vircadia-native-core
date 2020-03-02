@@ -38,8 +38,8 @@
         ui = new AppUi({
             buttonName: "Explore",
             home: Script.resolvePath("decentralizedGoTo.html"),
-            icon: Script.resolvePath("goto-a.svg"),
-            activeIcon: Script.resolvePath("goto-a-msg.svg")
+            icon: Script.resolvePath("Explore.svg"),
+            activeIcon: Script.resolvePath("Explore.svg")
         });
     }
 
