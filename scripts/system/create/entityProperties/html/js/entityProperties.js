@@ -1,5 +1,5 @@
 //VERSION 2.0
-//	Modified by Alezia Kurdis on on 02/27/2020
+//    Modified by Alezia Kurdis on on 02/27/2020
 //  for "Project Athena"
 //  
 //  Addition of a tab mechanism instead of collapsible sections to reduce the scrolling.
@@ -49,7 +49,7 @@ const PROPERTY_MULTI_DISPLAY_MODE = Object.freeze({
 const GROUPS = [
     {
         id: "base",
-		label: "ENTITY",
+        label: "ENTITY",
         properties: [
             {
                 label: NO_SELECTION,
@@ -127,7 +127,7 @@ const GROUPS = [
     },
     {
         id: "shape",
-		label: "SHAPE",		
+        label: "SHAPE",        
         properties: [
             {
                 label: "Shape",
@@ -147,7 +147,7 @@ const GROUPS = [
     },
     {
         id: "text",
-		label: "TEXT",		
+        label: "TEXT",        
         properties: [
             {
                 label: "Text",
@@ -235,7 +235,7 @@ const GROUPS = [
     },
     {
         id: "zone",
-		label: "ZONE",		
+        label: "ZONE",        
         properties: [
             {
                 label: "Shape Type",
@@ -270,7 +270,7 @@ const GROUPS = [
     },
     {
         id: "zone_key_light",
-		label: "ZONE KEY LIGHT",		
+        label: "ZONE KEY LIGHT",        
         properties: [
             {
                 label: "Key Light",
@@ -340,12 +340,12 @@ const GROUPS = [
                 decimals: 2,
                 propertyID: "keyLight.shadowMaxDistance",
                 showPropertyRule: { "keyLightMode": "enabled" },
-            }	
+            }    
         ]
-    },	
+    },    
     {
         id: "zone_skybox",
-		label: "ZONE SKYBOX",		
+        label: "ZONE SKYBOX",        
         properties: [
             {
                 label: "Skybox",
@@ -364,12 +364,12 @@ const GROUPS = [
                 type: "string",
                 propertyID: "skybox.url",
                 showPropertyRule: { "skyboxMode": "enabled" },
-            }	
+            }    
         ]
-    },	
+    },    
     {
         id: "zone_ambient_light",
-		label: "ZONE AMBIENT LIGHT",		
+        label: "ZONE AMBIENT LIGHT",        
         properties: [
             {
                 label: "Ambient Light",
@@ -399,12 +399,12 @@ const GROUPS = [
                              className: "black", onClick: copySkyboxURLToAmbientURL } ],
                 propertyID: "copyURLToAmbient",
                 showPropertyRule: { "ambientLightMode": "enabled" },
-            }		
+            }        
         ]
-    },	
+    },    
     {
         id: "zone_haze",
-		label: "ZONE HAZE",		
+        label: "ZONE HAZE",        
         properties: [
             {
                 label: "Haze",
@@ -488,12 +488,12 @@ const GROUPS = [
                 decimals: 0,
                 propertyID: "haze.hazeGlareAngle",
                 showPropertyRule: { "hazeMode": "enabled" },
-            }		
+            }        
         ]
     },
     {
         id: "zone_bloom",
-		label: "ZONE BLOOM",		
+        label: "ZONE BLOOM",        
         properties: [
             {
                 label: "Bloom",
@@ -530,24 +530,24 @@ const GROUPS = [
                 decimals: 3,
                 propertyID: "bloom.bloomSize",
                 showPropertyRule: { "bloomMode": "enabled" },
-            }		
+            }        
         ]
-    },	
+    },    
     {
         id: "zone_avatar_priority",
-		label: "ZONE AVATAR PRIORITY",		
+        label: "ZONE AVATAR PRIORITY",        
         properties: [
             {
                 label: "Avatar Priority",
                 type: "dropdown",
                 options: { inherit: "Inherit", crowd: "Crowd", hero: "Hero" },
                 propertyID: "avatarPriority",
-            }		
+            }        
         ]
-    },		
+    },        
     {
         id: "model",
-		label: "MODEL",		
+        label: "MODEL",        
         properties: [
             {
                 label: "Model",
@@ -637,7 +637,7 @@ const GROUPS = [
     },
     {
         id: "image",
-		label: "IMAGE",		
+        label: "IMAGE",        
         properties: [
             {
                 label: "Image",
@@ -680,7 +680,7 @@ const GROUPS = [
     },
     {
         id: "web",
-		label: "WEB",		
+        label: "WEB",        
         properties: [
             {
                 label: "Source",
@@ -725,7 +725,7 @@ const GROUPS = [
     },
     {
         id: "light",
-		label: "LIGHT",		
+        label: "LIGHT",        
         properties: [
             {
                 label: "Light Color",
@@ -776,7 +776,7 @@ const GROUPS = [
     },
     {
         id: "material",
-		label: "MATERIAL",		
+        label: "MATERIAL",        
         properties: [
             {
                 label: "Material URL",
@@ -850,7 +850,7 @@ const GROUPS = [
     },
     {
         id: "grid",
-		label: "GRID",		
+        label: "GRID",        
         properties: [
             {
                 label: "Color",
@@ -883,7 +883,7 @@ const GROUPS = [
     },
     {
         id: "particles",
-		label: "PARTICLES",		
+        label: "PARTICLES",        
         properties: [
             {
                 label: "Emit",
@@ -913,7 +913,7 @@ const GROUPS = [
         ]
     },
     {
-        id: "particles_emit",		
+        id: "particles_emit",        
         label: "PARTICLES EMIT",
         //isMinor: true,
         properties: [
@@ -986,7 +986,7 @@ const GROUPS = [
         ]
     },
     {
-        id: "particles_size",	
+        id: "particles_size",    
         label: "PARTICLES SIZE",
         //isMinor: true,
         properties: [
@@ -1100,7 +1100,7 @@ const GROUPS = [
                 step: 0.001,
                 decimals: 3,
                 propertyID: "alphaSpread",
-            }			
+            }            
         ]
     },
     {
@@ -1181,7 +1181,7 @@ const GROUPS = [
     {
         id: "particles_constraints",
         label: "PARTICLES CONSTRAINTS",
-		//isMinor: true,
+        //isMinor: true,
         properties: [
             {
                 type: "triple",
@@ -1444,7 +1444,7 @@ const GROUPS = [
                 propertyID: "userData",
             }
         ]
-    },	
+    },    
     {
         id: "collision",
         label: "COLLISION",
@@ -1602,14 +1602,14 @@ const GROUPS_PER_TYPE = {
   Shape: [ 'base', 'shape', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   Text: [ 'base', 'text', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   Zone: [ 'base', 'zone', 'zone_key_light', 'zone_skybox', 'zone_ambient_light', 'zone_haze', 
-			'zone_bloom', 'zone_avatar_priority', 'spatial', 'behavior', 'scripts', 'physics' ],
+            'zone_bloom', 'zone_avatar_priority', 'spatial', 'behavior', 'scripts', 'physics' ],
   Model: [ 'base', 'model', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   Image: [ 'base', 'image', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   Web: [ 'base', 'web', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   Light: [ 'base', 'light', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   Material: [ 'base', 'material', 'spatial', 'behavior', 'scripts' ],
   ParticleEffect: [ 'base', 'particles', 'particles_emit', 'particles_size', 'particles_color', 
-                    'particles_behavior', 'particles_constraints', 'spatial', 'behavior', 'scripts', 'physics' ],							
+                    'particles_behavior', 'particles_constraints', 'spatial', 'behavior', 'scripts', 'physics' ],                            
   PolyLine: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   PolyLine: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   PolyVox: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
@@ -1882,15 +1882,15 @@ function resetServerScriptStatus() {
 function showGroupsForType(type) {
     if (type === "Box" || type === "Sphere") {
         showGroupsForTypes(["Shape"]);
-		showOnTheSamePage("Shape");
+        showOnTheSamePage("Shape");
         return;
     }
-	if (type === "None"){
+    if (type === "None"){
         showGroupsForTypes(["None"]);
-        return;		
-	}
+        return;        
+    }
     showGroupsForTypes([type]);
-	showOnTheSamePage(type);
+    showOnTheSamePage(type);
 }
 
 function getGroupsForTypes(types) {
@@ -1905,14 +1905,14 @@ function showGroupsForTypes(types) {
     Object.entries(elGroups).forEach(([groupKey, elGroup]) => {
         if (types.map(type => GROUPS_PER_TYPE[type].includes(groupKey)).every(function (hasGroup) { return hasGroup; })) {
             elGroup.style.display = "none";
-			if(types != "None"){
-				document.getElementById("tab-" + groupKey).style.display = "block";
-			}else{
-				document.getElementById("tab-" + groupKey).style.display = "none";
-			}
+            if(types != "None"){
+                document.getElementById("tab-" + groupKey).style.display = "block";
+            }else{
+                document.getElementById("tab-" + groupKey).style.display = "none";
+            }
         } else {
             elGroup.style.display = "none";
-			document.getElementById("tab-" + groupKey).style.display = "none";
+            document.getElementById("tab-" + groupKey).style.display = "none";
         }
     });
 }
@@ -3730,7 +3730,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
 
         const shownGroups = getGroupsForTypes(entityTypes);
         showGroupsForTypes(entityTypes);
-		showOnTheSamePage(entityTypes);
+        showOnTheSamePage(entityTypes);
 
         const lockedMultiValue = getMultiplePropertyValue('locked');
 
@@ -4009,22 +4009,22 @@ function loaded() {
     openEventBridge(function() {
         let elPropertiesList = document.getElementById("properties-pages");
         let tabs = "";
-		
+        
         GROUPS.forEach(function(group) {
             let elGroup;
 
-			elGroup = document.createElement('div');
-			elGroup.className = 'section ' + "major";				
-			elGroup.setAttribute("id", "properties-" + group.id);
-			elPropertiesList.appendChild(elGroup);
+            elGroup = document.createElement('div');
+            elGroup.className = 'section ' + "major";                
+            elGroup.setAttribute("id", "properties-" + group.id);
+            elPropertiesList.appendChild(elGroup);
          
-			
+            
             if (group.label !== undefined) {
                 let elLegend = document.createElement('div');
-				elLegend.className = "tab-section-header";
+                elLegend.className = "tab-section-header";
                 elLegend.appendChild(createElementFromHTML(`<div class="labelTabHeader">${group.label}</div>`));
-                elGroup.appendChild(elLegend);				
-				tabs = tabs +'<button id="tab-'+ group.id +'" onclick="showPage(' + "'" + group.id  + "'" + ');"><img src="tabs/'+ group.id +'.png"></button>';
+                elGroup.appendChild(elLegend);                
+                tabs = tabs +'<button id="tab-'+ group.id +'" onclick="showPage(' + "'" + group.id  + "'" + ');"><img src="tabs/'+ group.id +'.png"></button>';
             }
                 
             group.properties.forEach(function(propertyData) {
@@ -4036,7 +4036,7 @@ function loaded() {
                 propertyElementID = propertyElementID.replace('.', '-');
                 
                 let elContainer, elLabel;
-                				
+                                
                 if (propertyData.replaceID === undefined) {
                     // Create subheader, or create new property and append it.
                     if (propertyType === "sub-header") {
@@ -4311,7 +4311,7 @@ function loaded() {
             curCollapsibleElement.addEventListener("click", toggleCollapsedEvent, true);
         }
         */
-		
+        
         // Textarea scrollbars
         let elTextareas = document.getElementsByTagName("TEXTAREA");
 
@@ -4465,16 +4465,16 @@ function loaded() {
                 e.target.select();
             };
         }
-		
+        
         document.getElementById("tabs").innerHTML = tabs;
-		
+        
         bindAllNonJSONEditorElements(); 
 
         showGroupsForType("None");
-		showPage("base");
+        showPage("base");
         resetProperties();
         disableProperties();
-		
+        
         
     });
 
@@ -4492,21 +4492,21 @@ function loaded() {
 }
 
 function showOnTheSamePage(entityType) {
-	if(GROUPS_PER_TYPE[entityType].includes(currentTab) == false){
-		currentTab = "base";
-	}
-	showPage(currentTab);
+    if(GROUPS_PER_TYPE[entityType].includes(currentTab) == false){
+        currentTab = "base";
+    }
+    showPage(currentTab);
 }
 
 function showPage(id) {
-	currentTab = id;
+    currentTab = id;
     Object.entries(elGroups).forEach(([groupKey, elGroup]) => {
         if (groupKey == id) {
             elGroup.style.display = "block";
-			document.getElementById("tab-" + groupKey).style.backgroundColor = "#2E2E2E";
+            document.getElementById("tab-" + groupKey).style.backgroundColor = "#2E2E2E";
         } else {
             elGroup.style.display = "none";
-			document.getElementById("tab-" + groupKey).style.backgroundColor = "#404040";
+            document.getElementById("tab-" + groupKey).style.backgroundColor = "#404040";
         }
     });
 }
