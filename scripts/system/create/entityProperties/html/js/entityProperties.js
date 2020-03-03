@@ -1,5 +1,5 @@
 //VERSION 2.0
-//    Modified by Alezia Kurdis on on 02/27/2020
+//  Modified by Alezia Kurdis on on 02/27/2020
 //  for "Project Athena"
 //  
 //  Addition of a tab mechanism instead of collapsible sections to reduce the scrolling.
@@ -147,7 +147,7 @@ const GROUPS = [
     },
     {
         id: "text",
-        label: "TEXT",        
+        label: "TEXT",
         properties: [
             {
                 label: "Text",
@@ -235,7 +235,7 @@ const GROUPS = [
     },
     {
         id: "zone",
-        label: "ZONE",        
+        label: "ZONE",
         properties: [
             {
                 label: "Shape Type",
@@ -270,7 +270,7 @@ const GROUPS = [
     },
     {
         id: "zone_key_light",
-        label: "ZONE KEY LIGHT",        
+        label: "ZONE KEY LIGHT",
         properties: [
             {
                 label: "Key Light",
@@ -345,7 +345,7 @@ const GROUPS = [
     },    
     {
         id: "zone_skybox",
-        label: "ZONE SKYBOX",        
+        label: "ZONE SKYBOX",
         properties: [
             {
                 label: "Skybox",
@@ -364,12 +364,12 @@ const GROUPS = [
                 type: "string",
                 propertyID: "skybox.url",
                 showPropertyRule: { "skyboxMode": "enabled" },
-            }    
+            }
         ]
-    },    
+    },
     {
         id: "zone_ambient_light",
-        label: "ZONE AMBIENT LIGHT",        
+        label: "ZONE AMBIENT LIGHT",
         properties: [
             {
                 label: "Ambient Light",
@@ -399,12 +399,12 @@ const GROUPS = [
                              className: "black", onClick: copySkyboxURLToAmbientURL } ],
                 propertyID: "copyURLToAmbient",
                 showPropertyRule: { "ambientLightMode": "enabled" },
-            }        
+            }
         ]
-    },    
+    },
     {
         id: "zone_haze",
-        label: "ZONE HAZE",        
+        label: "ZONE HAZE",
         properties: [
             {
                 label: "Haze",
@@ -488,12 +488,12 @@ const GROUPS = [
                 decimals: 0,
                 propertyID: "haze.hazeGlareAngle",
                 showPropertyRule: { "hazeMode": "enabled" },
-            }        
+            }
         ]
     },
     {
         id: "zone_bloom",
-        label: "ZONE BLOOM",        
+        label: "ZONE BLOOM",
         properties: [
             {
                 label: "Bloom",
@@ -530,24 +530,24 @@ const GROUPS = [
                 decimals: 3,
                 propertyID: "bloom.bloomSize",
                 showPropertyRule: { "bloomMode": "enabled" },
-            }        
+            }
         ]
-    },    
+    },
     {
         id: "zone_avatar_priority",
-        label: "ZONE AVATAR PRIORITY",        
+        label: "ZONE AVATAR PRIORITY",
         properties: [
             {
                 label: "Avatar Priority",
                 type: "dropdown",
                 options: { inherit: "Inherit", crowd: "Crowd", hero: "Hero" },
                 propertyID: "avatarPriority",
-            }        
+            }
         ]
-    },        
+    },
     {
         id: "model",
-        label: "MODEL",        
+        label: "MODEL",
         properties: [
             {
                 label: "Model",
@@ -637,7 +637,7 @@ const GROUPS = [
     },
     {
         id: "image",
-        label: "IMAGE",        
+        label: "IMAGE",
         properties: [
             {
                 label: "Image",
@@ -680,7 +680,7 @@ const GROUPS = [
     },
     {
         id: "web",
-        label: "WEB",        
+        label: "WEB",
         properties: [
             {
                 label: "Source",
@@ -725,7 +725,7 @@ const GROUPS = [
     },
     {
         id: "light",
-        label: "LIGHT",        
+        label: "LIGHT",
         properties: [
             {
                 label: "Light Color",
@@ -776,7 +776,7 @@ const GROUPS = [
     },
     {
         id: "material",
-        label: "MATERIAL",        
+        label: "MATERIAL",
         properties: [
             {
                 label: "Material URL",
@@ -850,7 +850,7 @@ const GROUPS = [
     },
     {
         id: "grid",
-        label: "GRID",        
+        label: "GRID",
         properties: [
             {
                 label: "Color",
@@ -883,7 +883,7 @@ const GROUPS = [
     },
     {
         id: "particles",
-        label: "PARTICLES",        
+        label: "PARTICLES",
         properties: [
             {
                 label: "Emit",
@@ -913,7 +913,7 @@ const GROUPS = [
         ]
     },
     {
-        id: "particles_emit",        
+        id: "particles_emit",
         label: "PARTICLES EMIT",
         //isMinor: true,
         properties: [
@@ -986,7 +986,7 @@ const GROUPS = [
         ]
     },
     {
-        id: "particles_size",    
+        id: "particles_size",
         label: "PARTICLES SIZE",
         //isMinor: true,
         properties: [
@@ -1100,7 +1100,7 @@ const GROUPS = [
                 step: 0.001,
                 decimals: 3,
                 propertyID: "alphaSpread",
-            }            
+            }
         ]
     },
     {
@@ -1444,7 +1444,7 @@ const GROUPS = [
                 propertyID: "userData",
             }
         ]
-    },    
+    },
     {
         id: "collision",
         label: "COLLISION",
@@ -1609,7 +1609,7 @@ const GROUPS_PER_TYPE = {
   Light: [ 'base', 'light', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   Material: [ 'base', 'material', 'spatial', 'behavior', 'scripts' ],
   ParticleEffect: [ 'base', 'particles', 'particles_emit', 'particles_size', 'particles_color', 
-                    'particles_behavior', 'particles_constraints', 'spatial', 'behavior', 'scripts', 'physics' ],                            
+                    'particles_behavior', 'particles_constraints', 'spatial', 'behavior', 'scripts', 'physics' ],
   PolyLine: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   PolyLine: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   PolyVox: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
@@ -1698,7 +1698,7 @@ function isFlagSet(value, flag) {
  */
 
 function getPropertyInputElement(propertyID) {
-    let property = properties[propertyID];          
+    let property = properties[propertyID];
     switch (property.data.type) {
         case 'string':
         case 'number':
@@ -1783,7 +1783,7 @@ function setPropertyVisibility(property, visible) {
 
 function resetProperties() {
     for (let propertyID in properties) { 
-        let property = properties[propertyID];      
+        let property = properties[propertyID];
         let propertyData = property.data;
         
         switch (propertyData.type) {
@@ -1860,7 +1860,7 @@ function resetProperties() {
                 break;
             }
         }
-        
+
         let showPropertyRules = properties[propertyID].showPropertyRules;
         if (showPropertyRules !== undefined) {
             for (let propertyToHide in showPropertyRules) {
@@ -1885,7 +1885,7 @@ function showGroupsForType(type) {
         showOnTheSamePage("Shape");
         return;
     }
-    if (type === "None"){
+    if (type === "None") {
         showGroupsForTypes(["None"]);
         return;        
     }
@@ -1905,9 +1905,9 @@ function showGroupsForTypes(types) {
     Object.entries(elGroups).forEach(([groupKey, elGroup]) => {
         if (types.map(type => GROUPS_PER_TYPE[type].includes(groupKey)).every(function (hasGroup) { return hasGroup; })) {
             elGroup.style.display = "none";
-            if(types != "None"){
+            if (types !== "None") {
                 document.getElementById("tab-" + groupKey).style.display = "block";
-            }else{
+            } else {
                 document.getElementById("tab-" + groupKey).style.display = "none";
             }
         } else {
@@ -2309,7 +2309,7 @@ function updateCheckedSubProperty(propertyName, propertyMultiValue, subPropertyE
  * PROPERTY ELEMENT CREATION FUNCTIONS
  */
 
-function createStringProperty(property, elProperty) {    
+function createStringProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
     
@@ -2322,12 +2322,12 @@ function createStringProperty(property, elProperty) {
                ${propertyData.readOnly ? 'readonly' : ''}/>
         `);
 
-    
+
     elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
     if (propertyData.onChange !== undefined) {
         elInput.addEventListener('change', propertyData.onChange);
     }
-    
+
 
     let elMultiDiff = document.createElement('span');
     elMultiDiff.className = "multi-diff";
@@ -2338,7 +2338,7 @@ function createStringProperty(property, elProperty) {
     if (propertyData.buttons !== undefined) {
         addButtons(elProperty, elementID, propertyData.buttons, false);
     }
-    
+
     return elInput;
 }
 
@@ -2346,9 +2346,9 @@ function createBoolProperty(property, elProperty) {
     let propertyName = property.name;
     let elementID = property.elementID;
     let propertyData = property.data;
-    
+
     elProperty.className = "checkbox";
-                        
+
     if (propertyData.glyph !== undefined) {
         let elSpan = document.createElement('span');
         elSpan.innerHTML = propertyData.glyph;
@@ -2577,7 +2577,7 @@ function createVec3Property(property, elProperty) {
     let propertyData = property.data;
 
     elProperty.className = propertyData.vec3Type + " fstuple";
-    
+
     let elNumberX = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.X_NUMBER]);
     let elNumberY = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER]);
     let elNumberZ = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.Z_NUMBER]);
@@ -2592,7 +2592,7 @@ function createVec3Property(property, elProperty) {
     elNumberX.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'x'));
     elNumberY.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'y'));
     elNumberZ.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'z'));
-    
+
     let elResult = [];
     elResult[VECTOR_ELEMENTS.X_NUMBER] = elNumberX;
     elResult[VECTOR_ELEMENTS.Y_NUMBER] = elNumberY;
@@ -2600,11 +2600,11 @@ function createVec3Property(property, elProperty) {
     return elResult;
 }
 
-function createVec2Property(property, elProperty) {  
+function createVec2Property(property, elProperty) {
     let propertyData = property.data;
     
     elProperty.className = propertyData.vec2Type + " fstuple";
-                        
+
     let elTuple = document.createElement('div');
     elTuple.className = "tuple";
     
@@ -2641,19 +2641,19 @@ function createColorProperty(property, elProperty) {
     let propertyName = property.name;
     let elementID = property.elementID;
     let propertyData = property.data;
-    
+
     elProperty.className += " rgb fstuple";
-    
+
     let elColorPicker = document.createElement('div');
     elColorPicker.className = "color-picker";
     elColorPicker.setAttribute("id", elementID);
-    
+
     let elTuple = document.createElement('div');
     elTuple.className = "tuple";
-    
+
     elProperty.appendChild(elColorPicker);
     elProperty.appendChild(elTuple);
-    
+
     if (propertyData.min === undefined) {
         propertyData.min = COLOR_MIN;
     }
@@ -2663,19 +2663,19 @@ function createColorProperty(property, elProperty) {
     if (propertyData.step === undefined) {
         propertyData.step = COLOR_STEP;
     }
-    
+
     let elNumberR = createTupleNumberInput(property, "red");
     let elNumberG = createTupleNumberInput(property, "green");
     let elNumberB = createTupleNumberInput(property, "blue");
     elTuple.appendChild(elNumberR.elDiv);
     elTuple.appendChild(elNumberG.elDiv);
     elTuple.appendChild(elNumberB.elDiv);
-    
+
     let valueChangeFunction = createEmitColorPropertyUpdateFunction(property);
     elNumberR.setValueChangeFunction(valueChangeFunction);
     elNumberG.setValueChangeFunction(valueChangeFunction);
     elNumberB.setValueChangeFunction(valueChangeFunction);
-    
+
     let colorPickerID = "#" + elementID;
     colorPickers[colorPickerID] = $(colorPickerID).colpick({
         colorScheme: 'dark',
@@ -2704,7 +2704,7 @@ function createColorProperty(property, elProperty) {
             }
         }
     });
-    
+
     let elResult = [];
     elResult[COLOR_ELEMENTS.COLOR_PICKER] = elColorPicker;
     elResult[COLOR_ELEMENTS.RED_NUMBER] = elNumberR;
@@ -2729,26 +2729,26 @@ function createDropdownProperty(property, propertyID, elProperty) {
         option.text = propertyData.options[optionKey];
         elInput.add(option);
     }
-    
+
     elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
 
     elProperty.appendChild(elInput);
-    
+
     return elInput;
 }
 
-function createTextareaProperty(property, elProperty) {   
+function createTextareaProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
-    
+
     elProperty.className = "textarea";
-    
+
     let elInput = document.createElement('textarea');
     elInput.setAttribute("id", elementID);
     if (propertyData.readOnly) {
         elInput.readOnly = true;
-    }                   
-    
+    }
+
     elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
 
     let elMultiDiff = document.createElement('span');
@@ -2756,42 +2756,42 @@ function createTextareaProperty(property, elProperty) {
 
     elProperty.appendChild(elInput);
     elProperty.appendChild(elMultiDiff);
-                        
+
     if (propertyData.buttons !== undefined) {
         addButtons(elProperty, elementID, propertyData.buttons, true);
     }
-    
+
     return elInput;
 }
 
-function createIconProperty(property, elProperty) { 
+function createIconProperty(property, elProperty) {
     let elementID = property.elementID;
 
     elProperty.className = "value";
-    
+
     let elSpan = document.createElement('span');
     elSpan.setAttribute("id", elementID + "-icon");
     elSpan.className = 'icon';
 
     elProperty.appendChild(elSpan);
-    
+
     return elSpan;
 }
 
-function createTextureProperty(property, elProperty) { 
+function createTextureProperty(property, elProperty) {
     let elementID = property.elementID;
-    
+
     elProperty.className = "texture";
-    
+
     let elDiv = document.createElement("div");
     let elImage = document.createElement("img");
     elDiv.className = "texture-image no-texture";
     elDiv.appendChild(elImage);
-    
+
     let elInput = document.createElement('input');
     elInput.setAttribute("id", elementID);
     elInput.setAttribute("type", "text"); 
-    
+
     let imageLoad = function(url) {
         elDiv.style.display = null;
         if (url.slice(0, 5).toLowerCase() === "atp:/") {
@@ -2828,7 +2828,7 @@ function createTextureProperty(property, elProperty) {
     elMultiDiff.className = "multi-diff";
     elProperty.appendChild(elMultiDiff);
     elProperty.appendChild(elDiv);
-   
+
     let elResult = [];
     elResult[TEXTURE_ELEMENTS.IMAGE] = elImage;
     elResult[TEXTURE_ELEMENTS.TEXT_INPUT] = elInput;
@@ -2844,23 +2844,23 @@ function createButtonsProperty(property, elProperty) {
     if (propertyData.buttons !== undefined) {
         addButtons(elProperty, elementID, propertyData.buttons, false);
     }
-    
+
     return elProperty;
 }
 
 function createDynamicMultiselectProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
-        
+
     elProperty.className = "dynamic-multiselect";
-    
+
     let elDivOptions = document.createElement('div');
     elDivOptions.setAttribute("id", elementID + "-options");
     elDivOptions.style = "overflow-y:scroll;max-height:160px;";
-    
+
     let elDivButtons = document.createElement('div');
     elDivButtons.setAttribute("id", elDivOptions.getAttribute("id") + "-buttons");
-        
+
     let elLabel = document.createElement('label');
     elLabel.innerText = "No Options";
     elDivOptions.appendChild(elLabel);
@@ -2868,10 +2868,10 @@ function createDynamicMultiselectProperty(property, elProperty) {
     let buttons = [ { id: "selectAll", label: "Select All", className: "black", onClick: selectAllMaterialTarget }, 
                     { id: "clearAll", label: "Clear All", className: "black", onClick: clearAllMaterialTarget } ];
     addButtons(elDivButtons, elementID, buttons, false);
-    
+
     elProperty.appendChild(elDivOptions);
     elProperty.appendChild(elDivButtons);
-    
+
     return elDivOptions;
 }
 
@@ -2889,13 +2889,13 @@ function createTupleNumberInput(property, subLabel) {
     let propertyElementID = property.elementID;
     let propertyData = property.data;
     let elementID = propertyElementID + "-" + subLabel.toLowerCase();
-    
+
     let elLabel = document.createElement('label');
     elLabel.className = "sublabel " + subLabel;
     elLabel.innerText = subLabel[0].toUpperCase() + subLabel.slice(1);
     elLabel.setAttribute("for", elementID);
     elLabel.style.visibility = "visible";
-    
+
     let dragStartFunction = createDragStartFunction(property);
     let dragEndFunction = createDragEndFunction(property);
     let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, propertyData.step, 
@@ -2903,14 +2903,14 @@ function createTupleNumberInput(property, subLabel) {
     elDraggableNumber.elInput.setAttribute("id", elementID);
     elDraggableNumber.elDiv.className += " fstuple";
     elDraggableNumber.elDiv.insertBefore(elLabel, elDraggableNumber.elLeftArrow);
-    
+
     return elDraggableNumber;
 }
 
 function addButtons(elProperty, propertyID, buttons, newRow) {
     let elDiv = document.createElement('div');
     elDiv.className = "row";
-    
+
     buttons.forEach(function(button) {
         let elButton = document.createElement('input');
         elButton.className = button.className;
@@ -2932,7 +2932,7 @@ function addButtons(elProperty, propertyID, buttons, newRow) {
 }
 
 function createProperty(propertyData, propertyElementID, propertyName, propertyID, elProperty) {
-    let property = { 
+    let property = {
         data: propertyData, 
         elementID: propertyElementID, 
         name: propertyName,
@@ -3523,15 +3523,15 @@ function requestMaterialTarget() {
         entityID: getFirstSelectedID(),
     }));
 }
- 
+
 function setMaterialTargetData(materialTargetData) {
     let elDivOptions = getPropertyInputElement("parentMaterialName");
     resetDynamicMultiselectProperty(elDivOptions);
-    
+
     if (materialTargetData === undefined) {
         return;
     }
-    
+
     elDivOptions.firstChild.style.display = "none"; // hide "No Options" text
     elDivOptions.parentNode.lastChild.style.display = null; // show Select/Clear all buttons
 
@@ -3539,7 +3539,7 @@ function setMaterialTargetData(materialTargetData) {
     for (let i = 0; i < numMeshes; ++i) {
         addMaterialTarget(elDivOptions, i, false);
     }
-    
+
     let materialNames = materialTargetData.materialNames;
     let materialNamesAdded = [];
     for (let i = 0; i < materialNames.length; ++i) {
@@ -3549,7 +3549,7 @@ function setMaterialTargetData(materialTargetData) {
             materialNamesAdded.push(materialName);
         }
     }
-    
+
     materialTargetPropertyUpdate(elDivOptions.propertyValue);
 }
 
@@ -3557,12 +3557,12 @@ function addMaterialTarget(elDivOptions, targetID, isMaterialName) {
     let elementID = elDivOptions.getAttribute("id");
     elementID += isMaterialName ? "-material-" : "-mesh-";
     elementID += targetID;
-    
+
     let elDiv = document.createElement('div');
     elDiv.className = "materialTargetDiv";
     elDiv.onclick = onToggleMaterialTarget;
     elDivOptions.appendChild(elDiv);
-    
+
     let elInput = document.createElement('input');
     elInput.className = "materialTargetInput";
     elInput.setAttribute("type", "checkbox");
@@ -3570,12 +3570,12 @@ function addMaterialTarget(elDivOptions, targetID, isMaterialName) {
     elInput.setAttribute("targetID", targetID);
     elInput.setAttribute("isMaterialName", isMaterialName);
     elDiv.appendChild(elInput);
-    
+
     let elLabel = document.createElement('label');
     elLabel.setAttribute("for", elementID);
     elLabel.innerText = isMaterialName ? "Material " + targetID : "Mesh Index " + targetID;
     elDiv.appendChild(elLabel);
-    
+
     return elDiv;
 }
 
@@ -3608,7 +3608,7 @@ function clearAllMaterialTarget() {
 function sendMaterialTargetProperty() {
     let elDivOptions = getPropertyInputElement("parentMaterialName");   
     let elInputs = elDivOptions.getElementsByClassName("materialTargetInput");
-    
+
     let materialTargetList = [];
     for (let i = 0; i < elInputs.length; ++i) {
         let elInput = elInputs[i];
@@ -3621,26 +3621,26 @@ function sendMaterialTargetProperty() {
             }
         }
     }
-    
+
     let propertyValue = materialTargetList.join(",");
     if (propertyValue.length > 1) {
         propertyValue = "[" + propertyValue + "]";
     }
-    
+
     updateProperty("parentMaterialName", propertyValue, false);
 }
 
 function materialTargetPropertyUpdate(propertyValue) {
     let elDivOptions = getPropertyInputElement("parentMaterialName");
     let elInputs = elDivOptions.getElementsByClassName("materialTargetInput");
-    
+
     if (propertyValue.startsWith('[')) {
         propertyValue = propertyValue.substring(1, propertyValue.length);
     }
     if (propertyValue.endsWith(']')) {
         propertyValue = propertyValue.substring(0, propertyValue.length - 1);
     }
-    
+
     let materialTargets = propertyValue.split(",");
     for (let i = 0; i < elInputs.length; ++i) {
         let elInput = elInputs[i];
@@ -3651,7 +3651,7 @@ function materialTargetPropertyUpdate(propertyValue) {
         }
         elInput.checked = materialTargets.indexOf(materialTargetName) >= 0;
     }
-    
+
     elDivOptions.propertyValue = propertyValue;
 }
 
@@ -4014,29 +4014,29 @@ function loaded() {
             let elGroup;
 
             elGroup = document.createElement('div');
-            elGroup.className = 'section ' + "major";                
+            elGroup.className = 'section ' + "major";
             elGroup.setAttribute("id", "properties-" + group.id);
             elPropertiesList.appendChild(elGroup);
-         
-            
+
             if (group.label !== undefined) {
                 let elLegend = document.createElement('div');
                 elLegend.className = "tab-section-header";
                 elLegend.appendChild(createElementFromHTML(`<div class="labelTabHeader">${group.label}</div>`));
-                elGroup.appendChild(elLegend);                
+                elGroup.appendChild(elLegend);
                 tabs = tabs +'<button id="tab-'+ group.id +'" onclick="showPage(' + "'" + group.id  + "'" + ');"><img src="tabs/'+ group.id +'.png"></button>';
+                //tabs = tabs +'<button id="tab-'+ group.id +'" title="' + group.label + '" onclick="showPage(' + "'" + group.id  + "'" + ');"><img src="tabs/'+ group.id +'.png"></button>';
             }
-                
+
             group.properties.forEach(function(propertyData) {
                 let propertyType = propertyData.type;
-                let propertyID = propertyData.propertyID;               
+                let propertyID = propertyData.propertyID;
                 let propertyName = propertyData.propertyName !== undefined ? propertyData.propertyName : propertyID;
                 let propertySpaceMode = propertyData.spaceMode !== undefined ? propertyData.spaceMode : PROPERTY_SPACE_MODE.ALL;
                 let propertyElementID = "property-" + propertyID;
                 propertyElementID = propertyElementID.replace('.', '-');
-                
+
                 let elContainer, elLabel;
-                                
+
                 if (propertyData.replaceID === undefined) {
                     // Create subheader, or create new property and append it.
                     if (propertyType === "sub-header") {
@@ -4126,15 +4126,15 @@ function loaded() {
                     property.elContainer = elContainer;
                     property.spaceMode = propertySpaceMode;
                     property.group_id = group.id;
-                    
+
                     if (property.type !== 'placeholder') {
                         properties[propertyID] = property;
-                    }           
+                    }
                     if (propertyData.type === 'number' || propertyData.type === 'number-draggable' || 
                         propertyData.type === 'vec2' || propertyData.type === 'vec3' || propertyData.type === 'rect') {
                         propertyRangeRequests.push(propertyID);
                     }
-                    
+
                     let showPropertyRule = propertyData.showPropertyRule;
                     if (showPropertyRule !== undefined) {
                         let dependentProperty = Object.keys(showPropertyRule)[0];
@@ -4149,12 +4149,12 @@ function loaded() {
                     }
                 }
             });
-            
+
             elGroups[group.id] = elGroup;
         });
 
         updateVisibleSpaceModeProperties();
-        
+
         if (window.EventBridge !== undefined) {
             EventBridge.scriptEventReceived.connect(function(data) {
                 data = JSON.parse(data);
@@ -4233,7 +4233,7 @@ function loaded() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'tooltipsRequest' }));
             EventBridge.emitWebEvent(JSON.stringify({ type: 'propertyRangeRequest', properties: propertyRangeRequests }));
         }
-        
+
         // Server Script Status
         let elServerScriptStatusOuter = document.getElementById('div-property-serverScriptStatus');
         let elServerScriptStatusContainer = document.getElementById('div-property-serverScriptStatus').childNodes[1];
@@ -4242,7 +4242,7 @@ function loaded() {
         let elServerScriptStatus = document.createElement('div');
         elServerScriptStatus.setAttribute("id", serverScriptStatusElementID);
         elServerScriptStatusContainer.appendChild(elServerScriptStatus);
-        
+
         // Server Script Error
         let elServerScripts = getPropertyInputElement("serverScripts");
         let elDiv = document.createElement('div');
@@ -4252,11 +4252,11 @@ function loaded() {
         elServerScriptError.setAttribute("id", serverScriptErrorElementID);
         elDiv.appendChild(elServerScriptError);
         elServerScriptStatusContainer.appendChild(elDiv);
-        
+
         let elScript = getPropertyInputElement("script");
         elScript.parentNode.className = "url refresh";
         elServerScripts.parentNode.className = "url refresh";
-            
+
         // User Data
         let userDataProperty = properties["userData"];
         let elUserData = userDataProperty.elInput;
@@ -4275,7 +4275,7 @@ function loaded() {
         elDiv.insertBefore(elStaticUserData, elUserData);
         elDiv.insertBefore(elUserDataEditor, elUserData);
         elDiv.insertBefore(elUserDataEditorStatus, elUserData);
-        
+
         // Material Data
         let materialDataProperty = properties["materialData"];
         let elMaterialData = materialDataProperty.elInput;
@@ -4311,7 +4311,7 @@ function loaded() {
             curCollapsibleElement.addEventListener("click", toggleCollapsedEvent, true);
         }
         */
-        
+
         // Textarea scrollbars
         let elTextareas = document.getElementsByTagName("TEXTAREA");
 
@@ -4328,7 +4328,7 @@ function loaded() {
             event; mouseup is a partial stand-in but doesn't handle resizing if mouse moves outside textarea rectangle. */
             curTextAreaElement.addEventListener("mouseup", textareaOnChangeEvent, false);
         }
-        
+
         // Dropdowns
         // For each dropdown the following replacement is created in place of the original dropdown...
         // Structure created:
@@ -4340,7 +4340,7 @@ function loaded() {
         //              <li>...</li>
         //          </ul>
         //      </dd>
-        //  </dl>    
+        //  </dl>
         let elDropdowns = document.getElementsByTagName("select");
         for (let dropDownIndex = 0; dropDownIndex < elDropdowns.length; ++dropDownIndex) {
             let elDropdown = elDropdowns[dropDownIndex];
@@ -4389,7 +4389,7 @@ function loaded() {
                 li.addEventListener("click", setDropdownValue);
                 ul.appendChild(li);
             }
-            
+
             let propertyID = elDropdown.getAttribute("propertyID");
             let property = properties[propertyID];
             property.elInput = dt;
@@ -4450,14 +4450,14 @@ function loaded() {
                 }
             }));
         }, false);
-        
+
         window.onblur = function() {
             // Fake a change event
             let ev = document.createEvent("HTMLEvents");
             ev.initEvent("change", true, true);
             document.activeElement.dispatchEvent(ev);
         };
-        
+
         // For input and textarea elements, select all of the text on focus
         let els = document.querySelectorAll("input, textarea");
         for (let i = 0; i < els.length; ++i) {
@@ -4465,17 +4465,16 @@ function loaded() {
                 e.target.select();
             };
         }
-        
+
         document.getElementById("tabs").innerHTML = tabs;
-        
-        bindAllNonJSONEditorElements(); 
+
+        bindAllNonJSONEditorElements();
 
         showGroupsForType("None");
         showPage("base");
         resetProperties();
         disableProperties();
-        
-        
+
     });
 
     augmentSpinButtons();
@@ -4492,7 +4491,7 @@ function loaded() {
 }
 
 function showOnTheSamePage(entityType) {
-    if(GROUPS_PER_TYPE[entityType].includes(currentTab) == false){
+    if (!GROUPS_PER_TYPE[entityType].includes(currentTab)) {
         currentTab = "base";
     }
     showPage(currentTab);
@@ -4501,7 +4500,7 @@ function showOnTheSamePage(entityType) {
 function showPage(id) {
     currentTab = id;
     Object.entries(elGroups).forEach(([groupKey, elGroup]) => {
-        if (groupKey == id) {
+        if (groupKey === id) {
             elGroup.style.display = "block";
             document.getElementById("tab-" + groupKey).style.backgroundColor = "#2E2E2E";
         } else {
