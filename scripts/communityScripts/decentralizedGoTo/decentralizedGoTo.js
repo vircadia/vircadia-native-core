@@ -17,19 +17,19 @@
     var AppUi = Script.require('appUi');
     var goToAddresses;
     var permission;
-    Menu.addMenu("GoTo");
-    Menu.addMenuItem("GoTo", "Subscribe to new GoTo provider");
-    Menu.addMenu("GoTo > Unsubscribe from GoTo provider");
+    Menu.addMenu("Explore");
+    Menu.addMenuItem("Explore", "Subscribe to new GoTo provider");
+    Menu.addMenu("Explore > Unsubscribe from GoTo provider");
     var goToAddress = Settings.getValue("goToDecentral", "");
     for (var i = 0; i < goToAddress.length; i++) {
-        Menu.addMenuItem("GoTo > Unsubscribe from GoTo provider", goToAddress[i]);
+        Menu.addMenuItem("Explore > Unsubscribe from GoTo provider", goToAddress[i]);
     }
     var ui;
     function startup() {
         goToAddress = Settings.getValue("goToDecentral", "");
         if (goToAddress == "") {
             var initialGoToList = Script.resolvePath(defaultGoToJSON);
-            Menu.addMenuItem("GoTo > Unsubscribe from GoTo provider", initialGoToList);
+            Menu.addMenuItem("Explore > Unsubscribe from GoTo provider", initialGoToList);
             goToAddressNow = [
                 initialGoToList
             ];
@@ -117,7 +117,7 @@
             }
         } else {
             goToAddresses = Settings.getValue("goToDecentral", "");
-            Menu.removeMenuItem("GoTo > Unsubscribe from GoTo provider", menuItem);
+            Menu.removeMenuItem("Explore > Unsubscribe from GoTo provider", menuItem);
             goToAddresses.remove(menuItem);
             Settings.setValue("goToDecentral", goToAddresses);
         }
@@ -139,7 +139,7 @@
 
     Script.scriptEnding.connect(function () {
         Messages.unsubscribe("goTo");
-        Menu.removeMenu("GoTo");
+        Menu.removeMenu("Explore");
         tablet.webEventReceived.disconnect(onWebEventReceived);
         Menu.menuItemEvent.disconnect(onMenuItemEvent);
     });
