@@ -4491,7 +4491,15 @@ function loaded() {
 }
 
 function showOnTheSamePage(entityType) {
-    if (!GROUPS_PER_TYPE[entityType].includes(currentTab)) {
+    var i;
+    var numbType = entityType.length;
+    var matchingType = 0;
+    for (i = 0; i < numbType; i++) {
+        if (GROUPS_PER_TYPE[entityType[i]].includes(currentTab)) {
+            matchingType = matchingType + 1;
+        }
+    }
+    if (matchingType !== numbType) {
         currentTab = "base";
     }
     showPage(currentTab);
