@@ -62,19 +62,19 @@ var SETTINGS_KEY_BETA = '_betaDefaultScriptsIsChecked';
 var previousSetting = Settings.getValue(SETTINGS_KEY, false);
 var previousSettingBeta = Settings.getValue(SETTINGS_KEY_BETA, false);
 
-if (previousSetting === '' || previousSetting === false || previousSetting === 'false') {
+if (previousSetting === '' || previousSetting === 'false') {
     previousSetting = false;
 }
 
-if (previousSetting === true || previousSetting === 'true') {
+if (previousSetting === 'true') {
     previousSetting = true;
 }
 
-if (previousSettingBeta === '' || previousSettingBeta === false || previousSettingBeta === 'false') {
+if (previousSettingBeta === '' || previousSettingBeta === 'false') {
     previousSettingBeta = false;
 }
 
-if (previousSettingBeta === true || previousSettingBeta === 'true') {
+if (previousSettingBeta === 'true') {
     previousSettingBeta = true;
 }
 
