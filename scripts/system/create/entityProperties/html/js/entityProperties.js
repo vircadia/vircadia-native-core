@@ -33,7 +33,7 @@ const PROPERTY_SELECTION_VISIBILITY = Object.freeze({
     SINGLE_SELECTION: 1,
     MULTIPLE_SELECTIONS: 2,
     MULTI_DIFF_SELECTIONS: 4,
-    ANY_SELECTIONS: 7, /* SINGLE_SELECTION | MULTIPLE_SELECTIONS | MULTI_DIFF_SELECTIONS */
+    ANY_SELECTIONS: 7 /* SINGLE_SELECTION | MULTIPLE_SELECTIONS | MULTI_DIFF_SELECTIONS */
 });
 
 // Multiple-selection behavior
@@ -43,7 +43,7 @@ const PROPERTY_MULTI_DISPLAY_MODE = Object.freeze({
      * Comma separated values
      * Limited for properties with type "string" or "textarea" and readOnly enabled
      */
-    COMMA_SEPARATED_VALUES: 1,
+    COMMA_SEPARATED_VALUES: 1
 });
 
 const GROUPS = [
@@ -915,7 +915,6 @@ const GROUPS = [
     {
         id: "particles_emit",
         label: "PARTICLES EMIT",
-        //isMinor: true,
         properties: [
             {
                 label: "Emit Rate",
@@ -988,7 +987,6 @@ const GROUPS = [
     {
         id: "particles_size",
         label: "PARTICLES SIZE",
-        //isMinor: true,
         properties: [
             {
                 type: "triple",
@@ -1032,7 +1030,6 @@ const GROUPS = [
     {
         id: "particles_color",
         label: "PARTICLES COLOR",
-        //isMinor: true,
         properties: [
             {
                 type: "triple",
@@ -1106,7 +1103,6 @@ const GROUPS = [
     {
         id: "particles_behavior",
         label: "PARTICLES BEHAVIOR",
-        //isMinor: true,
         properties: [
             {
                 label: "Emit Acceleration",
@@ -1181,7 +1177,6 @@ const GROUPS = [
     {
         id: "particles_constraints",
         label: "PARTICLES CONSTRAINTS",
-        //isMinor: true,
         properties: [
             {
                 type: "triple",
@@ -1408,7 +1403,6 @@ const GROUPS = [
             }
         ]
     },
-,
     {
         id: "scripts",
         label: "SCRIPTS",
@@ -4008,8 +4002,8 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
 function loaded() {
     openEventBridge(function() {
         let elPropertiesList = document.getElementById("properties-pages");
-        let tabs = "";
-        
+        let elTabs = document.getElementById("tabs");
+
         GROUPS.forEach(function(group) {
             let elGroup;
 
@@ -4023,8 +4017,7 @@ function loaded() {
                 elLegend.className = "tab-section-header";
                 elLegend.appendChild(createElementFromHTML(`<div class="labelTabHeader">${group.label}</div>`));
                 elGroup.appendChild(elLegend);
-                tabs = tabs +'<button id="tab-'+ group.id +'" onclick="showPage(' + "'" + group.id  + "'" + ');"><img src="tabs/'+ group.id +'.png"></button>';
-                //tabs = tabs +'<button id="tab-'+ group.id +'" title="' + group.label + '" onclick="showPage(' + "'" + group.id  + "'" + ');"><img src="tabs/'+ group.id +'.png"></button>';
+                elTabs.appendChild(createElementFromHTML('<button id="tab-'+ group.id +'" onclick="showPage(' + "'" + group.id  + "'" + ');"><img src="tabs/'+ group.id +'.png"></button>'));
             }
 
             group.properties.forEach(function(propertyData) {
@@ -4294,23 +4287,6 @@ function loaded() {
         elDiv.insertBefore(elStaticMaterialData, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditor, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditorStatus, elMaterialData);
-        /*
-        // Collapsible sections
-        let elCollapsible = document.getElementsByClassName("collapse-icon");
-
-        let toggleCollapsedEvent = function(event) {
-            let element = this.parentNode.parentNode;
-            let isCollapsed = element.dataset.collapsed !== "true";
-            element.dataset.collapsed = isCollapsed ? "true" : false;
-            element.setAttribute("collapsed", isCollapsed ? "true" : "false");
-            this.textContent = isCollapsed ? "L" : "M";
-        };
-
-        for (let collapseIndex = 0, numCollapsibles = elCollapsible.length; collapseIndex < numCollapsibles; ++collapseIndex) {
-            let curCollapsibleElement = elCollapsible[collapseIndex];
-            curCollapsibleElement.addEventListener("click", toggleCollapsedEvent, true);
-        }
-        */
 
         // Textarea scrollbars
         let elTextareas = document.getElementsByTagName("TEXTAREA");
@@ -4466,8 +4442,6 @@ function loaded() {
             };
         }
 
-        document.getElementById("tabs").innerHTML = tabs;
-
         bindAllNonJSONEditorElements();
 
         showGroupsForType("None");
@@ -4491,15 +4465,14 @@ function loaded() {
 }
 
 function showOnTheSamePage(entityType) {
-    var i;
-    var numbType = entityType.length;
-    var matchingType = 0;
-    for (i = 0; i < numbType; i++) {
+    let numberOfTypes = entityType.length;
+    let matchingType = 0;
+    for (let i = 0; i < numberOfTypes; i++) {
         if (GROUPS_PER_TYPE[entityType[i]].includes(currentTab)) {
             matchingType = matchingType + 1;
         }
     }
-    if (matchingType !== numbType) {
+    if (matchingType !== numberOfTypes) {
         currentTab = "base";
     }
     showPage(currentTab);
