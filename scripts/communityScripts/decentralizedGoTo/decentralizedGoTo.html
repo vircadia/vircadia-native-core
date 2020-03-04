@@ -95,8 +95,7 @@
             }
         }
 
-        function choose(choice) {
-            var url = choice;
+        function navigateTo(url) {
             var readyEvent = {
                 "action": "goToUrl",
                 "visit": url,
@@ -158,7 +157,7 @@
                 for (var j = 0; j < col.length; j++) {
                     var tabCell = tr.insertCell(-1);
                     if (j == 2) {
-                        var url = "<input id=\"Button\" class=\"myButton\" type=\"button\" onclick=\"choose('" + myAddress[i][col[j]] + "')\" value=\"Visit\" />";
+                        var url = "<input id=\"Button\" class=\"myButton\" type=\"button\" onclick=\"navigateTo('" + myAddress[i][col[j]] + "')\" value=\"Visit\" />";
                         tabCell.innerHTML = url;
                     } else {
                         tabCell.innerHTML = myAddress[i][col[j]];
