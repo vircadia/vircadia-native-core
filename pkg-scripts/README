@@ -7,20 +7,26 @@ base folder/
 	build/		result of cmake build
 	qt5-install/	installed or built Qt5 installation
 
+These scripts assume that the current directory is the pkg-scripts folder inside of the source directory
+and that the base folder can be reached by going to "../..".  This may not work if pkg-scripts is a symlink;
+adding an ATHENA=~/Athena to the beginning of the commandline will override where it looks for the base folder
 
 Ubuntu:
 	DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
 
 	This script will retrieve the current git commit date and hash and assemble a version from it.
-	It will attempt construct a .deb file in the pkg-scripts folder, assuming the Athena base folder
-	is located at ../..
+	It will attempt construct a .deb file in the pkg-scripts folder
 
 Amazon Linux 2:
 	./athena-server.spec
 
 	This script will retrieve the current git commit date and hash and assemble a version from it.
-	It will attempt construct a .deb file in the pkg-scripts folder, assuming the Athena base folder
-	is located at ../..
+	It will attempt construct a .deb file in the pkg-scripts folder
+
+Docker:
+	./make-docker-server
+
+	This script will attempt to create a docker container
 
 Results:
 	The following directory structure is created for binaries:
