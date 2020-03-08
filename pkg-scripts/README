@@ -18,10 +18,10 @@ Ubuntu:
 	It will attempt construct a .deb file in the pkg-scripts folder
 
 Amazon Linux 2:
-	./athena-server.spec
+	./make-rpm-server
 
 	This script will retrieve the current git commit date and hash and assemble a version from it.
-	It will attempt construct a .deb file in the pkg-scripts folder
+	It will attempt construct an .rpm file in the pkg-scripts folder
 
 Docker:
 	./make-docker-server
