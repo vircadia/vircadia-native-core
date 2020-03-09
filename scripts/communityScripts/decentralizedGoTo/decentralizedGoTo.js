@@ -35,11 +35,16 @@
             ];
             Settings.setValue("goToDecentral", goToAddressNow);
         }
+
+        var scriptDir = Script.resolvePath("");
+        scriptDir = scriptDir.slice(0, scriptDir.lastIndexOf("/") + 1);
+
         ui = new AppUi({
-            buttonName: "Explore",
+            buttonName: "EXPLORE",
             home: Script.resolvePath("decentralizedGoTo.html"),
-            icon: Script.resolvePath("Explore.svg"),
-            activeIcon: Script.resolvePath("Explore.svg")
+            icon: "explore-i.svg",
+            activeIcon: "explore-a.svg",
+            graphicsDirectory: scriptDir
         });
     }
 
