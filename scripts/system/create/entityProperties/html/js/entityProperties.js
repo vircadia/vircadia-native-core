@@ -1741,12 +1741,6 @@ function disableChildren(el, selector) {
 function enableProperties() {
     enableChildren(document.getElementById("properties-list"), ENABLE_DISABLE_SELECTOR);
     enableChildren(document, ".colpick");
-    
-    let elLocked = getPropertyInputElement("locked");
-    if (elLocked.checked === false) {
-        removeStaticUserData();
-        removeStaticMaterialData();
-    }
 }
 
 function disableProperties() {
@@ -1754,16 +1748,6 @@ function disableProperties() {
     disableChildren(document, ".colpick");
     for (let pickKey in colorPickers) {
         colorPickers[pickKey].colpickHide();
-    }
-    
-    let elLocked = getPropertyInputElement("locked");
-    if (elLocked.checked === true) {
-        if ($('#property-userData-editor').css('display') === "block") {
-            showStaticUserData();
-        }
-        if ($('#property-materialData-editor').css('display') === "block") {
-            showStaticMaterialData();
-        }
     }
 }
 
@@ -3217,19 +3201,6 @@ function hideUserDataSaved() {
     $('#property-userData-saved').hide();
 }
 
-function showStaticUserData() {
-    if (editor !== null) {
-        let $propertyUserDataStatic = $('#property-userData-static');
-        $propertyUserDataStatic.show();
-        $propertyUserDataStatic.css('height', $('#property-userData-editor').height());
-        $propertyUserDataStatic.text(editor.getText());
-    }
-}
-
-function removeStaticUserData() {
-    $('#property-userData-static').hide();
-}
-
 function setEditorJSON(json) {
     editor.set(json);
     if (editor.hasOwnProperty('expandAll')) {
@@ -3380,19 +3351,6 @@ function hideMaterialDataTextArea() {
 
 function hideMaterialDataSaved() {
     $('#property-materialData-saved').hide();
-}
-
-function showStaticMaterialData() {
-    if (materialEditor !== null) {
-        let $propertyMaterialDataStatic = $('#property-materialData-static');
-        $propertyMaterialDataStatic.show();
-        $propertyMaterialDataStatic.css('height', $('#property-materialData-editor').height());
-        $propertyMaterialDataStatic.text(materialEditor.getText());
-    }
-}
-
-function removeStaticMaterialData() {
-    $('#property-materialData-static').hide();
 }
 
 function setMaterialEditorJSON(json) {
@@ -3935,7 +3893,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
 
             }
         }
-        if (json !== null) {
+        if (json !== null && !lockedMultiValue.isMultiDiffValue && !lockedMultiValue.value) {
             if (editor === null) {
                 createJSONEditor();
             }
@@ -3967,7 +3925,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
 
             }
         }
-        if (materialJson !== null) {
+        if (materialJson !== null && !lockedMultiValue.isMultiDiffValue && !lockedMultiValue.value) {
             if (materialEditor === null) {
                 createJSONMaterialEditor();
             }
@@ -4255,8 +4213,6 @@ function loaded() {
         let elUserData = userDataProperty.elInput;
         let userDataElementID = userDataProperty.elementID;
         elDiv = elUserData.parentNode;
-        let elStaticUserData = document.createElement('div');
-        elStaticUserData.setAttribute("id", userDataElementID + "-static");
         let elUserDataEditor = document.createElement('div');
         elUserDataEditor.setAttribute("id", userDataElementID + "-editor");
         let elUserDataEditorStatus = document.createElement('div');
@@ -4265,7 +4221,6 @@ function loaded() {
         elUserDataSaved.setAttribute("id", userDataElementID + "-saved");
         elUserDataSaved.innerText = "Saved!";
         elDiv.childNodes[JSON_EDITOR_ROW_DIV_INDEX].appendChild(elUserDataSaved);
-        elDiv.insertBefore(elStaticUserData, elUserData);
         elDiv.insertBefore(elUserDataEditor, elUserData);
         elDiv.insertBefore(elUserDataEditorStatus, elUserData);
 
@@ -4274,8 +4229,6 @@ function loaded() {
         let elMaterialData = materialDataProperty.elInput;
         let materialDataElementID = materialDataProperty.elementID;
         elDiv = elMaterialData.parentNode;
-        let elStaticMaterialData = document.createElement('div');
-        elStaticMaterialData.setAttribute("id", materialDataElementID + "-static");
         let elMaterialDataEditor = document.createElement('div');
         elMaterialDataEditor.setAttribute("id", materialDataElementID + "-editor");
         let elMaterialDataEditorStatus = document.createElement('div');
@@ -4284,7 +4237,6 @@ function loaded() {
         elMaterialDataSaved.setAttribute("id", materialDataElementID + "-saved");
         elMaterialDataSaved.innerText = "Saved!";
         elDiv.childNodes[JSON_EDITOR_ROW_DIV_INDEX].appendChild(elMaterialDataSaved);
-        elDiv.insertBefore(elStaticMaterialData, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditor, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditorStatus, elMaterialData);
 
