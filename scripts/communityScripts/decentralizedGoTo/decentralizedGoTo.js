@@ -42,8 +42,6 @@
         ui = new AppUi({
             buttonName: "EXPLORE",
             home: Script.resolvePath("decentralizedGoTo.html"),
-            icon: "explore-i.svg",
-            activeIcon: "explore-a.svg",
             graphicsDirectory: scriptDir
         });
     }
