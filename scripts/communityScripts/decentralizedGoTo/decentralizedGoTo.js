@@ -109,6 +109,8 @@
     }
 
     function onMenuItemEvent(menuItem) {
+        var menuItemList = JSON.stringify(Settings.getValue("goToDecentral", ""));
+        var menuItemExists = menuItemList.indexOf(menuItem) !== -1;
         if (menuItem == "Subscribe to new GoTo provider") {
             goToAddress = Settings.getValue("goToDecentral", "");
             var arrayLength = goToAddress.length;
@@ -116,9 +118,9 @@
             if (prom) {
                 goToAddress[arrayLength] = prom;
                 Settings.setValue("goToDecentral", goToAddress);
-                Menu.addMenuItem("GoTo > Unsubscribe from GoTo provider", prom);
+                Menu.addMenuItem("Explore > Unsubscribe from GoTo provider", prom);
             }
-        } else {
+        } else if (menuItemExists) {
             goToAddresses = Settings.getValue("goToDecentral", "");
             Menu.removeMenuItem("Explore > Unsubscribe from GoTo provider", menuItem);
             goToAddresses.remove(menuItem);
