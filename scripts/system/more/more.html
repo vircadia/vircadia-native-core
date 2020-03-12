@@ -94,7 +94,7 @@
                 //update the buttons
                 buttonList.forEach(function(item){
                     var btn = "";
-                    if (message.indexOf(item.url) != -1) {
+                    if (message.indexOf(item.url) !== -1) {
                         //Means already running
                         btn = "<button class='uninstall' onclick='uninstall(" + '"' + item.url + '"' + ", " + '"' + item.id + '"' + ");'>Uninstall</button>";
                     } else {
@@ -198,7 +198,7 @@
             
             for (index = 0; index < metadata.applications.length; index++) {
                 lowItem = metadata.applications[index].name.toLowerCase();
-                if (lowItem.indexOf(search.toLowerCase()) != -1 && metadata.applications[index].isActive == true) { 
+                if (lowItem.indexOf(search.toLowerCase()) !== -1 && metadata.applications[index].isActive == true) { 
                     counterDir = counterDir + 1;
                     if ((counterDir >= offset) && (counterDir < (offset + perpage))) {
                         DisplayApp(metadata.applications[index]);

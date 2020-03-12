@@ -34,7 +34,7 @@
     
     
     function clicked() {
-        if (Appstatus == true) {
+        if (Appstatus) {
             tablet.webEventReceived.disconnect(onMoreAppWebEventReceived);
             tablet.gotoHomeScreen();
             Appstatus = false;
@@ -67,7 +67,7 @@
             
             if (eventzget.action === "installScript") {
                 
-                if (lastProcessing.action == eventzget.action && lastProcessing.script == eventzget.script) {
+                if (lastProcessing.action === eventzget.action && lastProcessing.script === eventzget.script) {
                     return;
                 } else {
                     ScriptDiscoveryService.loadOneScript(eventzget.script);
@@ -83,7 +83,7 @@
 
             if (eventzget.action === "uninstallScript") {
                 
-                if (lastProcessing.action == eventzget.action && lastProcessing.script == eventzget.script) {
+                if (lastProcessing.action === eventzget.action && lastProcessing.script === eventzget.script) {
                     return;
                 } else {
                     ScriptDiscoveryService.stopScript(eventzget.script, false);
@@ -107,7 +107,7 @@
 
 
     function onScreenChanged(type, url) {
-        if (type == "Web" && url.indexOf(APP_URL) != -1) {
+        if (type === "Web" && url.indexOf(APP_URL) !== -1) {
             //Active
             //print("MORE... ACTIVE");
             Appstatus = true;
