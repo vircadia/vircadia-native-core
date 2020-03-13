@@ -54,7 +54,16 @@
 
     function sendRunningScriptList() {
         var currentlyRunningScripts = ScriptDiscoveryService.getRunning();
-        tablet.emitScriptEvent(JSON.stringify(currentlyRunningScripts));
+        var newMessage = "RSL4MOREAPP:";
+        var runningScriptJson;
+        for (var j = 0; j < currentlyRunningScripts.length; j++) {
+            runningScriptJson = currentlyRunningScripts[j].url;
+            if (runningScriptJson.indexOf("https://kasenvr.github.io/community-apps/applications") !== -1) {
+                newMessage = newMessage + "_" + runningScriptJson;
+            }
+        }
+
+        tablet.emitScriptEvent(newMessage);
     }
 
     function onMoreAppWebEventReceived(eventz) {
@@ -77,7 +86,7 @@
                     
                     Script.setTimeout(function() {
                         sendRunningScriptList(); 
-                    }, 2000);
+                    }, 1500);
                 }
             }
 
@@ -93,7 +102,7 @@
                     
                     Script.setTimeout(function() {
                         sendRunningScriptList(); 
-                    }, 2000);
+                    }, 1500);
                 }    
             }            
 

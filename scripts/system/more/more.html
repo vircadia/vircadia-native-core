@@ -92,18 +92,20 @@
 
             EventBridge.scriptEventReceived.connect(function(message){
                 //update the buttons
-                buttonList.forEach(function(item){
-                    var btn = "";
-                    if (message.indexOf(item.url) !== -1) {
-                        //Means already running
-                        btn = "<button class='uninstall' onclick='uninstall(" + '"' + item.url + '"' + ", " + '"' + item.id + '"' + ");'>Uninstall</button>";
-                    } else {
-                        //Means not already installed
-                        btn = "<button class='install' onclick='install(" + '"' + item.url + '"' + ", " + '"' + item.id + '"' + ");'>Install</button>";
-                    }
-                    
-                    document.getElementById(item.id).innerHTML = btn;
-                });
+                if (message.indexOf("RSL4MOREAPP:") !== -1){
+                    buttonList.forEach(function(item){
+                        var btn = "";
+                        if (message.indexOf(item.url) !== -1) {
+                            //Means already running
+                            btn = "<button class='uninstall' onclick='uninstall(" + '"' + item.url + '"' + ", " + '"' + item.id + '"' + ");'>Uninstall</button>";
+                        } else {
+                            //Means not already installed
+                            btn = "<button class='install' onclick='install(" + '"' + item.url + '"' + ", " + '"' + item.id + '"' + ");'>Install</button>";
+                        }
+                        
+                        document.getElementById(item.id).innerHTML = btn;
+                    });
+                }
             });
 
             function install(script, btnId){
@@ -143,7 +145,7 @@
     </head>
     <body><form name = "searchbar">
         <h1 class="mainTitle">Add more functionalities...</h1>
-        <p class="mainDesc">Want to add your own app? Read the <a href="../web/index.html">guide</a>!</p>
+        <p class="mainDesc">Want to add your own app? Read the <a href="https://kasenvr.github.io/community-apps/web/index.html">guide</a>!</p>
         <table style = "width:100%;">
             <tr >
                 <td style = "vertical-align:middle; text-align:left;">
@@ -167,25 +169,26 @@
         </table>
         </form><br>
         <div id = "data"></div>
-        <div style="width:98%; text-align:right;"><div style = "vertical-align: middle;" id = 'pager_footer'></div>        
-        
+        <div style="width:98%; text-align:right;">
+            <div style = "vertical-align: middle;" id = 'pager_footer'><!-- More info placeholder --></div>
+        </div>
         <script>
             document.searchbar.searchtextbox.value = search;
 
             function DisplayApp(item) {
-                pageContent = pageContent + "<a name = '" + window.btoa(item.name) + "'><table class='item'><tr>";
+                pageContent = pageContent + "<a name = '" + window.btoa(item.directory) + "'><table class='item'><tr>";
                 pageContent = pageContent + "<td><div class='iconContainer'><img src='" + rootPath + item.icon + "' style='width:50px;'><br><font class = 'caption'>" + item.caption + "</font></div></td>";
                 var btn = "";
                 var absoluteJsFile = rootPath + item.jsfile;
             
-                var btn = "<button class='install' onclick = 'install(" + '"' + absoluteJsFile + " ," + window.btoa(item.name) + '"' + ");'>Install</button>";
+                var btn = "<button class='install' onclick = 'install(" + '"' + absoluteJsFile + " ," + window.btoa(item.directory) + '"' + ");'>Install</button>";
                 var btndata = {
                     "url": absoluteJsFile,
-                    "id": window.btoa(item.name)
+                    "id": window.btoa(item.directory)
                     };
                 buttonList.push(btndata);
                 
-                pageContent = pageContent + "<td><font class='appname'>" + item.name + "<br></font><font class = 'appdesc'>" + item.description + "<br></font><div id = '"+ window.btoa(item.name) +"' align='right'>" + btn + "</div></td>";
+                pageContent = pageContent + "<td><font class='appname'>" + item.name + "<br></font><font class = 'appdesc'>" + item.description + "<br></font><div id = '"+ window.btoa(item.directory) +"' align='right'>" + btn + "</div></td>";
                 pageContent = pageContent + "</tr></table><br><br>";                
             }
 
