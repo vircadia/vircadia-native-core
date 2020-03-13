@@ -28,13 +28,13 @@
             
             if (currentPath.includes("kasenvr.github.io") || !currentPath.includes("file:/")) { // Loading app from repo or filesystem.
                 rootPath = currentPath.replace("more/more.html", "applications/");
-                if (metadataScript.src != "../applications/metadata.js") {
+                if (metadataScript.src !== "../applications/metadata.js") {
                     metadataScript.src = "../applications/metadata.js";
                     console.info("Loading apps and metadata locally.");        
                 }
             } else {
                 rootPath = "https://kasenvr.github.io/community-apps/applications/";
-                if (metadataScript.src != "https://kasenvr.github.io/community-apps/applications/metadata.js") {
+                if (metadataScript.src !== "https://kasenvr.github.io/community-apps/applications/metadata.js") {
                     metadataScript.src = "https://kasenvr.github.io/community-apps/applications/metadata.js";
                     console.info("Loading apps and metadata remotely.");
                 }
