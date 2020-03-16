@@ -165,7 +165,7 @@
                 </td>
             </tr>
         </table>
-        </form><!--br-->
+        </form>
         <div id = "data"></div>
         <div style="width:98%; text-align:right;">
             <div style = "vertical-align: middle;" id = 'pager_footer'></div>
@@ -188,7 +188,7 @@
             document.searchbar.searchtextbox.value = search;
             var pageContent = "";
             
-            function DisplayApp(item) {
+            function displayApp(item) {
                 pageContent = pageContent + "<a name = '" + window.btoa(item.directory) + "'><table class='item'><tr>";
                 pageContent = pageContent + "<td><div class='iconContainer'><img src='" + rootPath + item.icon + "' style='width:50px;'><br><font class = 'caption'>" + item.caption + "</font></div></td>";
                 var btn = "";
