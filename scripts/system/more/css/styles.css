@@ -3,7 +3,7 @@
 
     Created by Kalila L. on 23 Feb 2020.
     Copyright 2020 Project Athena and contributors.
-    
+
     Distributed under the Apache License, Version 2.0.
     See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
@@ -20,7 +20,7 @@ body {
     text-transform: none;
 }
 
-h1 {
+font.mainTitle {
     font-family: 'Quicksand', sans-serif;
     font-size: 28px;
     color: #ffffff;
@@ -33,7 +33,9 @@ h1 {
 }
 
 p.mainDesc {
-    font-size: 16px;
+    font-family: 'Merriweather', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 p a {

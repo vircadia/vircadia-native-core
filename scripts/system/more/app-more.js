@@ -18,7 +18,7 @@
     var APP_URL = ROOT + "more.html";
     var APP_ICON_INACTIVE = ROOT + "appicon_i.png";
     var APP_ICON_ACTIVE = ROOT + "appicon_a.png";
-    var Appstatus = false;
+    var appStatus = false;
     var lastProcessing = {
             "action": "",
             "script": ""
@@ -30,24 +30,21 @@
         text: APP_NAME,
         icon: APP_ICON_INACTIVE,
         activeIcon: APP_ICON_ACTIVE
-    });
-    
+    });   
     
     function clicked() {
-        if (Appstatus) {
+        if (appStatus) {
             tablet.webEventReceived.disconnect(onMoreAppWebEventReceived);
             tablet.gotoHomeScreen();
-            Appstatus = false;
+            appStatus = false;
         } else {
-            tablet.gotoWebScreen(APP_URL);            
-            tablet.webEventReceived.connect(onMoreAppWebEventReceived);        
-            Appstatus = true;
+            tablet.gotoWebScreen(APP_URL);
+            tablet.webEventReceived.connect(onMoreAppWebEventReceived);
+            appStatus = true;
         }
-            
         button.editProperties({
-            isActive: Appstatus
+            isActive: appStatus
         });
-
     }
     
     button.clicked.connect(clicked);
@@ -59,87 +56,63 @@
         for (var j = 0; j < currentlyRunningScripts.length; j++) {
             runningScriptJson = currentlyRunningScripts[j].url;
             if (runningScriptJson.indexOf("https://kasenvr.github.io/community-apps/applications") !== -1) {
-                newMessage = newMessage + "_" + runningScriptJson;
+                newMessage += "_" + runningScriptJson;
             }
         }
-
         tablet.emitScriptEvent(newMessage);
     }
 
-    function onMoreAppWebEventReceived(eventz) {
-        
-        if (typeof eventz === "string") {
-            var eventzget = JSON.parse(eventz);
-            
-            //print("EVENT ACTION: " + eventzget.action);
-            //print("EVENT SCRIPT: " + eventzget.script);
-            
-            if (eventzget.action === "installScript") {
-                
-                if (lastProcessing.action === eventzget.action && lastProcessing.script === eventzget.script) {
-                    return;
-                } else {
-                    ScriptDiscoveryService.loadOneScript(eventzget.script);
-                
-                    lastProcessing.action = eventzget.action;
-                    lastProcessing.script = eventzget.script;
-                    
+    function onMoreAppWebEventReceived(message) {       
+        if (typeof message === "string") {
+            var instruction = JSON.parse(message);
+
+            if (instruction.action === "installScript") {
+                if (lastProcessing.action !== instruction.action || lastProcessing.script !== instruction.script) {
+                    ScriptDiscoveryService.loadOneScript(instruction.script);
+                    lastProcessing.action = instruction.action;
+                    lastProcessing.script = instruction.script;
                     Script.setTimeout(function() {
                         sendRunningScriptList(); 
                     }, 1500);
                 }
             }
 
-            if (eventzget.action === "uninstallScript") {
-                
-                if (lastProcessing.action === eventzget.action && lastProcessing.script === eventzget.script) {
-                    return;
-                } else {
-                    ScriptDiscoveryService.stopScript(eventzget.script, false);
-                    
-                    lastProcessing.action = eventzget.action;
-                    lastProcessing.script = eventzget.script;
-                    
+            if (instruction.action === "uninstallScript") {
+                if (lastProcessing.action !== instruction.action || lastProcessing.script !== instruction.script) {
+                    ScriptDiscoveryService.stopScript(instruction.script, false);
+                    lastProcessing.action = instruction.action;
+                    lastProcessing.script = instruction.script;
                     Script.setTimeout(function() {
                         sendRunningScriptList(); 
                     }, 1500);
-                }    
-            }            
+                }
+            }
 
-            if (eventzget.action === "requestRunningScriptData") {
+            if (instruction.action === "requestRunningScriptData") {
                 sendRunningScriptList();
-            }    
-
+            }
         }
-        
     }
-
 
     function onScreenChanged(type, url) {
         if (type === "Web" && url.indexOf(APP_URL) !== -1) {
-            //Active
-            //print("MORE... ACTIVE");
-            Appstatus = true;
+            appStatus = true;
         } else {
-            //Inactive
-            //print("MORE... INACTIVE");
-            Appstatus = false;
-        }
-        
+            appStatus = false;
+        }       
         button.editProperties({
-            isActive: Appstatus
+            isActive: appStatus
         });
     }
-    
-    
+
     function cleanup() {
-        if (Appstatus) {
+        if (appStatus) {
             tablet.gotoHomeScreen();
             tablet.webEventReceived.disconnect(onMoreAppWebEventReceived);
         }
         tablet.screenChanged.disconnect(onScreenChanged);
         tablet.removeButton(button);
     }
-    
+
     Script.scriptEnding.connect(cleanup);
 }());

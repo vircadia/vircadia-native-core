@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <!--
 //  more.html
 //
@@ -11,26 +12,25 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 -->
-<!DOCTYPE html>
 <html>
     <head>
         <meta charset="UTF-8">
         <script id="metadataScriptTag" type="text/javascript" src="https://kasenvr.github.io/community-apps/applications/metadata.js"></script>
         <script>
             //Defaults
-            DEFAULT_PER_PAGE = 3;
-            DEFAULT_OFFSET = 0;
-            
+            var DEFAULT_PER_PAGE = 3;
+            var DEFAULT_OFFSET = 0;
+
             //Paths
             var currentPath = window.location.protocol + "//" + window.location.host + window.location.pathname;
             var rootPath;
             var metadataScript = document.getElementById("metadataScriptTag");
-            
+
             if (currentPath.includes("kasenvr.github.io") || !currentPath.includes("file:/")) { // Loading app from repo or filesystem.
                 rootPath = currentPath.replace("more/more.html", "applications/");
                 if (metadataScript.src !== "../applications/metadata.js") {
                     metadataScript.src = "../applications/metadata.js";
-                    console.info("Loading apps and metadata locally.");        
+                    console.info("Loading apps and metadata locally.");
                 }
             } else {
                 rootPath = "https://kasenvr.github.io/community-apps/applications/";
@@ -41,7 +41,7 @@
             }
 
             document.getElementsByTagName("head")[0].appendChild(metadataScript);
-            
+
             //Parameters
             function findGetParameter(parameterName) {
                 var result = null,
@@ -69,15 +69,20 @@
             var search = findGetParameter("search");
             if (search === null) {
                 search = "";
-            }            
+            }
     
             //Search
             function doSearch(keyword) {
-                location.href = "more.html?offset=0&search=" + encodeURI(keyword);
+                offset = 0;
+                search = keyword;
+                listBuilder(keyword, offset, perpage);
             }
 
             function clearSearch() {
-                location.href = "more.html?offset=0";
+                offset = 0;
+                document.searchbar.searchtextbox.value = "";
+                search = "";
+                listBuilder("", offset, perpage);
             }
             
             //Running scripts 
@@ -102,33 +107,28 @@
                             //Means not already installed
                             btn = "<button class='install' onclick='install(" + '"' + item.url + '"' + ", " + '"' + item.id + '"' + ");'>Install</button>";
                         }
-                        
+
                         document.getElementById(item.id).innerHTML = btn;
                     });
                 }
             });
 
             function install(script, btnId){
-                //then change btn appearence
                 var btn = "<button class='processing' >Processing...</button>";
                 document.getElementById(btnId).innerHTML = btn;
 
-                //Action
                 var readyEvent = {
                     "action": "installScript",
                     "script": script
                 };
                 
                 EventBridge.emitWebEvent(JSON.stringify(readyEvent));
-
             }
 
             function uninstall(script, btnId){
-                //then change btn appearence
                 var btn = "<button class='processing' >Processing...</button>";
                 document.getElementById(btnId).innerHTML = btn;
-                
-                //Action
+
                 var readyEvent = {
                     "action": "uninstallScript",
                     "script": script
@@ -136,16 +136,14 @@
                 
                 EventBridge.emitWebEvent(JSON.stringify(readyEvent));
             }
-            
-        </script>    
+        </script>
         
         <link href="https://fonts.googleapis.com/css?family=Merriweather|Quicksand:400,700&display=swap" rel="stylesheet">
         <link href="css/styles.css" rel="stylesheet">
-        
+
     </head>
-    <body><form name = "searchbar">
-        <h1 class="mainTitle">Add more functionalities...</h1>
-        <p class="mainDesc">Want to add your own app? Read the <a href="https://kasenvr.github.io/community-apps/web/index.html">guide</a>!</p>
+    <body><form name = "searchbar" onsubmit="submitForm(event);">
+        <font class="mainTitle">Add more functionalities...</font><br>
         <table style = "width:100%;">
             <tr >
                 <td style = "vertical-align:middle; text-align:left;">
@@ -153,7 +151,7 @@
                         <tr>
                             <td style = "vertical-align:middle; text-align:left;">
                                 <div class = "searchbox">
-                                    <input class = "searchtextbox" name = "searchtextbox" size = "26" maxlength="32"> <a href="#" onclick='clearSearch();'><img src="del-x-16.png"></a>
+                                    <input class = "searchtextbox" name = "searchtextbox" size = "26" maxlength="32" onkeypress="monitorEnter(event, this);"> <a href="#" onclick='clearSearch();'><img src="del-x-16.png"></a>
                                 </div>
                             </td>
                             <td style = "vertical-align:middle; text-align:left;">
@@ -164,96 +162,115 @@
                 </td>
                 <td style = "vertical-align:middle; text-align:right;">
                     <div id = 'pager_top'  style = "vertical-align: middle;"></div>
-                </td>                
+                </td>
             </tr>
         </table>
-        </form><br>
+        </form><!--br-->
         <div id = "data"></div>
         <div style="width:98%; text-align:right;">
-            <div style = "vertical-align: middle;" id = 'pager_footer'><!-- More info placeholder --></div>
+            <div style = "vertical-align: middle;" id = 'pager_footer'></div>
         </div>
-        <script>
+        <hr>
+        <p class="mainDesc">Want to contribute and add your own app?<br>
+        Read the <a href="https://kasenvr.github.io/community-apps/web/index.html">guide</a>!</p>
+        <script>        
+             function monitorEnter(e) {
+                var code = (e.keyCode ? e.keyCode : e.which);
+                if (code == 13) { 
+                    doSearch(document.searchbar.searchtextbox.value);
+                }
+            } 
+            
+            function submitForm(event){
+                event.preventDefault();
+            } 
+            
             document.searchbar.searchtextbox.value = search;
-
+            var pageContent = "";
+            
             function DisplayApp(item) {
                 pageContent = pageContent + "<a name = '" + window.btoa(item.directory) + "'><table class='item'><tr>";
                 pageContent = pageContent + "<td><div class='iconContainer'><img src='" + rootPath + item.icon + "' style='width:50px;'><br><font class = 'caption'>" + item.caption + "</font></div></td>";
                 var btn = "";
                 var absoluteJsFile = rootPath + item.jsfile;
-            
+
                 var btn = "<button class='install' onclick = 'install(" + '"' + absoluteJsFile + " ," + window.btoa(item.directory) + '"' + ");'>Install</button>";
                 var btndata = {
                     "url": absoluteJsFile,
                     "id": window.btoa(item.directory)
                     };
                 buttonList.push(btndata);
-                
-                pageContent = pageContent + "<td><font class='appname'>" + item.name + "<br></font><font class = 'appdesc'>" + item.description + "<br></font><div id = '"+ window.btoa(item.directory) +"' align='right'>" + btn + "</div></td>";
-                pageContent = pageContent + "</tr></table><br><br>";                
-            }
 
-            var counterDir = -1;
-            var counterDisp = 0;
-            var index = 0;
-            var lowItem = "";
-            var needNext = false;
-            var pageContent = "";
+                pageContent = pageContent + "<td><font class='appname'>" + item.name + "<br></font><font class = 'appdesc'>" + item.description + "<br></font><div id = '"+ window.btoa(item.directory) +"' align='right'>" + btn + "</div></td>";
+                pageContent = pageContent + "</tr></table><br>";                
+            }
             
-            for (index = 0; index < metadata.applications.length; index++) {
-                lowItem = metadata.applications[index].name.toLowerCase();
-                if (lowItem.indexOf(search.toLowerCase()) !== -1 && metadata.applications[index].isActive == true) { 
-                    counterDir = counterDir + 1;
-                    if ((counterDir >= offset) && (counterDir < (offset + perpage))) {
-                        DisplayApp(metadata.applications[index]);
-                        counterDisp = counterDisp + 1;
-                    }
-                    if (counterDir >= (offset + perpage)) {
-                        needNext = true;
-                        break;
+            function listBuilder(searchKeyword, listOffset, listPerPage) {
+                buttonList = [];
+                var counterDir = -1;
+                var counterDisp = 0;
+                var index = 0;
+                var lowItem = "";
+                var needNext = false;
+                pageContent = "";
+                
+                for (index = 0; index < metadata.applications.length; index++) {
+                    lowItem = metadata.applications[index].name.toLowerCase();
+                    if (lowItem.indexOf(searchKeyword.toLowerCase()) !== -1 && metadata.applications[index].isActive == true) { 
+                        counterDir = counterDir + 1;
+                        if ((counterDir >= listOffset) && (counterDir < (listOffset + listPerPage))) {
+                            DisplayApp(metadata.applications[index]);
+                            counterDisp = counterDisp + 1;
+                        }
+                        if (counterDir >= (listOffset + listPerPage)) {
+                            needNext = true;
+                            break;
+                        }
                     }
                 }
+               
+                var pagerPrevious = "<a href='#' onclick='pagetoPrevious();'><img src='minus-16.png'></a>";
+                if (listOffset <= 0) {
+                    pagerPrevious = "<img src='blank_minus-16.png'>";
+                }
+                
+                var pagerNext = "<a href='#' onclick='pagetoNext();'><img src='plus-16.png'></a>";
+                if (needNext == false) {
+                    pagerNext = "<img src='blank_plus-16.png'>";
+                }            
+                
+                var countA = listOffset + 1;
+                
+                var countB = listOffset + counterDisp;
+                
+                var pagerHtml = pagerPrevious + "<font class='pager'>&nbsp;&nbsp;" + countA + " - " + countB  + "&nbsp;&nbsp;</font>" + pagerNext; 
+
+                if (counterDisp > 0 ) {
+                    document.getElementById("pager_top").innerHTML = pagerHtml;
+                    document.getElementById("data").innerHTML = pageContent;
+                    document.getElementById("pager_footer").innerHTML = pagerHtml;
+                } else {
+                    document.getElementById("data").innerHTML = "<hr><div align='center'><font class='noresult'><br><br><br><br>Sorry, no result found.<br><br><br><br><br><br></font></div><hr>";
+                }
+                requestRunningScriptData();            
             }
             
             //pager
-            
             function pagetoPrevious(){
                 offset = offset - perpage;
                 if (offset < 0) {
                     offset = 0;
                 }
-                location.href = "more.html?offset=" + offset + "&perpage=" + perpage + "&search=" + encodeURI(search);            
+                listBuilder(search, offset, perpage);           
             }
             
             function pagetoNext(){
                 offset = offset + perpage;
-                location.href = "more.html?offset=" + offset + "&perpage=" + perpage + "&search=" + encodeURI(search);
+                listBuilder(search, offset, perpage);
             }
-            
-            var pagerPrevious = "<a href='#' onclick='pagetoPrevious();'><img src='minus-16.png'></a>";
-            if (offset <= 0) {
-                pagerPrevious = "<img src='blank_minus-16.png'>";
-            }
-            
-            var pagerNext = "<a href='#' onclick='pagetoNext();'><img src='plus-16.png'></a>";
-            if (needNext == false) {
-                pagerNext = "<img src='blank_plus-16.png'>";
-            }            
-            
-            var countA = offset + 1;
-            
-            var countB = offset + counterDisp;
-            
-            var pagerHtml = pagerPrevious + "<font class='pager'>&nbsp;&nbsp;" + countA + " - " + countB  + "&nbsp;&nbsp;</font>" + pagerNext; 
 
-            if (counterDisp > 0 ) {
-                document.getElementById("pager_top").innerHTML = pagerHtml;
-                document.getElementById("data").innerHTML = pageContent;
-                document.getElementById("pager_footer").innerHTML = pagerHtml;
-            } else {
-                document.getElementById("data").innerHTML = "<hr><div align='center'><font class='noresult'><br><br><br><br>Sorry, no result found.<br><br><br><br><br><br></font></div><hr>";
-            }
-            
-            requestRunningScriptData();
+            listBuilder(search, offset, perpage);
+
         </script>
     </body>
 </html>
