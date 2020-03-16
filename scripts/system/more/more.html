@@ -219,7 +219,7 @@
                     if (lowItem.indexOf(searchKeyword.toLowerCase()) !== -1 && metadata.applications[index].isActive == true) { 
                         counterDir = counterDir + 1;
                         if ((counterDir >= listOffset) && (counterDir < (listOffset + listPerPage))) {
-                            DisplayApp(metadata.applications[index]);
+                            displayApp(metadata.applications[index]);
                             counterDisp = counterDisp + 1;
                         }
                         if (counterDir >= (listOffset + listPerPage)) {
