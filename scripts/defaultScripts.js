@@ -41,6 +41,7 @@ var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
     "communityModules/notificationCore/notificationCore.js",
     "simplifiedUI/ui/simplifiedNametag/simplifiedNametag.js",
+    {"stable": "communityScripts/decentralizedGoTo/decentralizedGoTo.js", "beta": "https://metaverse.projectathena.io/interim/d-goto/app/decentralizedGoTo.js"},
     {"stable": "communityModules/chat/FloofChat.js", "beta": "https://content.fluffy.ws/scripts/chat/FloofChat.js"}
     //"system/chat.js"
 ];
