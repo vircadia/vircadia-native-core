@@ -142,7 +142,17 @@ const GROUPS = [
                 label: "Color",
                 type: "color",
                 propertyID: "color",
-            }
+            },
+            {
+                label: "Alpha",
+                type: "number-draggable",
+                min: 0,
+                max: 1,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "shapeAlpha",
+                propertyName: "alpha",
+            },            
         ]
     },
     {
