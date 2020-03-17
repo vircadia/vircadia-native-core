@@ -5,6 +5,9 @@
     "color": {
         "tooltip": "The RGB value of this entity."
     },
+    "shapeAlpha": {
+        "tooltip": "The alpha of this entity."
+    },
     "text": {
         "tooltip": "The text to display on the entity."
     },
