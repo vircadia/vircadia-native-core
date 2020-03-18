@@ -26,6 +26,18 @@
     "lineHeight": {
         "tooltip": "The height of each line of text. This determines the size of the text."
     },
+    "font": {
+        "tooltip": "The font to render the text. Supported values: \"Courier\", \"Inconsolata\", \"Roboto\", \"Timeless\", or a URL to a .sdff file."
+    },
+    "textEffect": {
+        "tooltip": "The effect that is applied to the text."
+    },
+    "textEffectColor": {
+        "tooltip": "The color of the text effect."
+    },
+    "textEffectThickness": {
+        "tooltip": "The magnitude of the text effect."
+    },
     "textBillboardMode": {
         "tooltip": "If enabled, determines how the entity will face the camera.",
         "jsPropertyName": "billboardMode"
@@ -224,6 +236,9 @@
     "webBillboardMode": {
         "tooltip": "If enabled, determines how the entity will face the camera.",
         "jsPropertyName": "billboardMode"
+    },
+    "inputMode": {
+        "tooltip": "The user input mode to use."
     },
     "showKeyboardFocusHighlight": {
         "tooltip": "If enabled, highlights when it has keyboard focus."
