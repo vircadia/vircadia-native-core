@@ -1,7 +1,6 @@
 //  entityProperties.js
 //
 //  Created by Ryan Huffman on 13 Nov 2014
-//  Modified by David Back on 19 Oct 2018
 //  Copyright 2014 High Fidelity, Inc.
 //  Copyright 2020 Project Athena contributors.
 //
@@ -196,6 +195,36 @@ const GROUPS = [
                 propertyID: "lineHeight",
             },
             {
+                label: "Font",
+                type: "string",
+                propertyID: "font",
+            },
+            {
+                label: "Effect",
+                type: "dropdown",
+                options: {
+                    none: "None",
+                    outline: "Outline",
+                    outlineFill: "Outline with fill",
+                    shadow: "Shadow"
+                },
+                propertyID: "textEffect",
+            },
+            {
+                label: "Effect Color",
+                type: "color",
+                propertyID: "textEffectColor",
+            },
+            {
+                label: "Effect Thickness",
+                type: "number-draggable",
+                min: 0.0,
+                max: 0.5,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "textEffectThickness",
+            },
+            {
                 label: "Billboard Mode",
                 type: "dropdown",
                 options: { none: "None", yaw: "Yaw", full: "Full"},
@@ -292,7 +321,7 @@ const GROUPS = [
             {
                 label: "Light Intensity",
                 type: "number-draggable",
-                min: 0,
+                min: -40,
                 max: 40,
                 step: 0.01,
                 decimals: 2,
@@ -384,7 +413,7 @@ const GROUPS = [
             {
                 label: "Ambient Intensity",
                 type: "number-draggable",
-                min: 0,
+                min: -200,
                 max: 200,
                 step: 0.1,
                 decimals: 2,
@@ -737,6 +766,15 @@ const GROUPS = [
                 propertyName: "billboardMode", // actual entity property name
             },
             {
+                label: "Input Mode",
+                type: "dropdown",
+                options: {
+                    touch: "Touch events",
+                    mouse: "Mouse events"
+                },
+                propertyID: "inputMode",
+            },
+            {
                 label: "Focus Highlight",
                 type: "bool",
                 propertyID: "showKeyboardFocusHighlight",
@@ -762,7 +800,7 @@ const GROUPS = [
             {
                 label: "Intensity",
                 type: "number-draggable",
-                min: 0,
+                min: -1000,
                 max: 10000,
                 step: 0.1,
                 decimals: 2,
@@ -1627,7 +1665,7 @@ const GROUPS_PER_TYPE = {
   Image: [ 'base', 'image', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   Web: [ 'base', 'web', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   Light: [ 'base', 'light', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
-  Material: [ 'base', 'material', 'spatial', 'behavior', 'scripts' ],
+  Material: [ 'base', 'material', 'spatial', 'behavior', 'scripts', 'physics' ],
   ParticleEffect: [ 'base', 'particles', 'particles_emit', 'particles_size', 'particles_color', 
                     'particles_behavior', 'particles_constraints', 'spatial', 'behavior', 'scripts', 'physics' ],
   PolyLine: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
