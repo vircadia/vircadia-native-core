@@ -199,6 +199,9 @@
         "tooltip": "The tint to be applied to the image.",
         "jsPropertyName": "color"
     },
+    "imageAlpha": {
+        "tooltip": "The alpha of the image."
+    },    
     "emissive": {
         "tooltip": "If enabled, the image will display at full brightness."
     },
@@ -218,6 +221,13 @@
     "dpi": {
         "tooltip": "The resolution to display the page at, in pixels per inch. Use this to resize your web source in the frame."
     },
+    "webBillboardMode": {
+        "tooltip": "If enabled, determines how the entity will face the camera.",
+        "jsPropertyName": "billboardMode"
+    },
+    "showKeyboardFocusHighlight": {
+        "tooltip": "If enabled, highlights when it has keyboard focus."
+    },    
     "isEmitting": {
         "tooltip": "If enabled, then particles are emitted."
     },
