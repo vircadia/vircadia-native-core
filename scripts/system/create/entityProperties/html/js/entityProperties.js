@@ -1,15 +1,9 @@
-//VERSION 2.0
-//  Modified by Alezia Kurdis on on 02/27/2020
-//  for "Project Athena"
-//  
-//  Addition of a tab mechanism instead of collapsible sections to reduce the scrolling.
-//
-//VERSION 1.0
 //  entityProperties.js
 //
 //  Created by Ryan Huffman on 13 Nov 2014
 //  Modified by David Back on 19 Oct 2018
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Project Athena contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -662,6 +656,16 @@ const GROUPS = [
                 propertyName: "color", // actual entity property name
             },
             {
+                label: "Alpha",
+                type: "number-draggable",
+                min: 0,
+                max: 1,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "imageAlpha",
+                propertyName: "alpha",
+            },            
+            {
                 label: "Emissive",
                 type: "bool",
                 propertyID: "emissive",
@@ -725,6 +729,18 @@ const GROUPS = [
                 decimals: 0,
                 propertyID: "maxFPS",
             },
+            {
+                label: "Billboard Mode",
+                type: "dropdown",
+                options: { none: "None", yaw: "Yaw", full: "Full"},
+                propertyID: "webBillboardMode",
+                propertyName: "billboardMode", // actual entity property name
+            },
+            {
+                label: "Focus Highlight",
+                type: "bool",
+                propertyID: "showKeyboardFocusHighlight",
+            },            
             {
                 label: "Script URL",
                 type: "string",
@@ -1870,7 +1886,7 @@ function resetServerScriptStatus() {
 function showGroupsForType(type) {
     if (type === "Box" || type === "Sphere") {
         showGroupsForTypes(["Shape"]);
-        showOnTheSamePage("Shape");
+        showOnTheSamePage(["Shape"]);
         return;
     }
     if (type === "None") {
@@ -1878,7 +1894,7 @@ function showGroupsForType(type) {
         return;        
     }
     showGroupsForTypes([type]);
-    showOnTheSamePage(type);
+    showOnTheSamePage([type]);
 }
 
 function getGroupsForTypes(types) {
