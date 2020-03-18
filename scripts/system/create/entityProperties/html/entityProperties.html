@@ -1,18 +1,14 @@
 <!--
-//VERSION 2.0
-//  Modified by Alezia Kurdis on on 02/27/2020
-//  for "Project Athena"
 //
-//  Addition of a tab mechanism instead of collapsible sections to reduce the scrolling.
-//
-//VERSION 1.0
 //  entityProperties.html
 //
 //  Created by Ryan Huffman on 13 Nov 2014
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Project Athena contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 -->
 <html>
     <head>
@@ -21,7 +17,7 @@
         <link rel="stylesheet" type="text/css" href="../../../html/css/edit-style.css">
         <link rel="stylesheet" type="text/css" href="../../../html/css/colpick.css">
         <link rel="stylesheet" type="text/css" href="../../../html/css/jsoneditor.css">
-        <link rel="stylesheet" type="text/css" href="tabs/tabs.css">    
+        <link rel="stylesheet" type="text/css" href="../../../html/css/tabs.css">    
         <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
         <script src="../../../html/js/jquery-2.1.4.min.js"></script>
         <script type="text/javascript" src="../../../html/js/colpick.js"></script>
@@ -50,13 +46,13 @@
                     </div>
                 </div>
             </div>
-            <table style="width:100%; min-height: 352px; display: block;">
-                <tr style="width:100%;">
-                    <td style="width:32px; vertical-align:top; background-color:#575757; padding:0px; border:0px;">
+            <table class="tabsTableFrame">
+                <tr  class="tabsTrFrame">
+                    <td class = "tabsFrame">
                         <div id="tabs" class="tabsContainer"></div>
                     </td>
-                    <td style="width:100%; vertical-align: top; border:0px;">
-                        <div id="properties-pages" style="min-height: 352px; display: block;">
+                    <td class="tabsPropertiesFrame">
+                        <div class="tabsPropertiesPage" id="properties-pages">
                             <!-- each property is added at runtime in entityProperties -->
                         </div>
                     </td>
