@@ -205,7 +205,7 @@ const GROUPS = [
                 options: {
                     none: "None",
                     outline: "Outline",
-                    outlineFill: "Outline with fill",
+                    "outline fill": "Outline with fill",
                     shadow: "Shadow"
                 },
                 propertyID: "textEffect",
