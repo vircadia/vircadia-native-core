@@ -1,5 +1,5 @@
 #!/bin/sh
-# prerm script for athena-server
+# prerm script for vircadia-server
 #
 # see: dh_installdeb(1)
 
@@ -19,7 +19,7 @@ set -e
 
 case "$1" in
     remove)
-	find -P /opt/athena/lib -type l -delete
+	find -P /opt/vircadia/lib -type l -delete
     ;;
 
     upgrade|deconfigure)

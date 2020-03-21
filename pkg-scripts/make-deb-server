@@ -10,7 +10,7 @@ VERSION=0.86.0-k2-$GITDATE-$GITCOMMIT
 
 sudo apt-get install chrpath binutils dh-make
 
-DEB_BUILD_ROOT=temp-make-deb/athena-server-$VERSION-0ubuntu1
+DEB_BUILD_ROOT=temp-make-deb/vircadia-server-$VERSION-0ubuntu1
 rm -r temp-make-deb
 mkdir -p $DEB_BUILD_ROOT
 
@@ -45,56 +45,47 @@ strip --strip-all $DEB_BUILD_ROOT/plugins/*/*.so
 
 #begin the debian package construction
 cd $DEB_BUILD_ROOT
-dh_make -p athena-server_$VERSION-0ubuntu1 -c apache -s --createorig -y
+dh_make -p vircadia-server_$VERSION-0ubuntu1 -c apache -s --createorig -y
 
-cp $ATHENA/source/pkg-scripts/athena-assignment-client.service debian
-cp $ATHENA/source/pkg-scripts/athena-assignment-client@.service debian
-cp $ATHENA/source/pkg-scripts/athena-domain-server.service debian
-cp $ATHENA/source/pkg-scripts/athena-domain-server@.service debian
-#cp $ATHENA/source/pkg-scripts/athena-ice-server.service debian
-#cp $ATHENA/source/pkg-scripts/athena-ice-server@.service debian
-cp $ATHENA/source/pkg-scripts/athena-server.target debian
-cp $ATHENA/source/pkg-scripts/athena-server@.target debian
+cp $ATHENA/source/pkg-scripts/vircadia-assignment-client.service debian
+cp $ATHENA/source/pkg-scripts/vircadia-assignment-client@.service debian
+cp $ATHENA/source/pkg-scripts/vircadia-domain-server.service debian
+cp $ATHENA/source/pkg-scripts/vircadia-domain-server@.service debian
+#cp $ATHENA/source/pkg-scripts/vircadia-ice-server.service debian
+#cp $ATHENA/source/pkg-scripts/vircadia-ice-server@.service debian
+cp $ATHENA/source/pkg-scripts/vircadia-server.target debian
+cp $ATHENA/source/pkg-scripts/vircadia-server@.target debian
 
 cp $ATHENA/source/pkg-scripts/server-control debian/control
 cp $ATHENA/source/pkg-scripts/server-prerm debian/prerm
 cp $ATHENA/source/pkg-scripts/server-postinst debian/postinst
 cp $ATHENA/source/LICENSE debian/copyright
 
-echo /etc/opt/athena > debian/dirs
-echo /var/lib/athena >> debian/dirs
+echo /etc/opt/vircadia > debian/dirs
+echo /var/lib/vircadia >> debian/dirs
 
 echo README.md > debian/docs
 echo README_hifi.md >> debian/docs
 
-echo assignment-client opt/athena > debian/install
-echo domain-server opt/athena >> debian/install
-echo oven opt/athena >> debian/install
-#echo ice-server opt/athena >> debian/install
-echo new-server opt/athena >> debian/install
+echo assignment-client opt/vircadia > debian/install
+echo domain-server opt/vircadia >> debian/install
+echo oven opt/vircadia >> debian/install
+#echo ice-server opt/vircadia >> debian/install
+echo new-server opt/vircadia >> debian/install
 for so in *.so.*.*.*; do
-	echo $so opt/athena/lib >> debian/install
+	echo $so opt/vircadia/lib >> debian/install
 done
 for so in *.so; do
-	echo $so opt/athena/lib >> debian/install
+	echo $so opt/vircadia/lib >> debian/install
 done
 #for service in *.service; do
-#	echo $service opt/athena/systemd >> debian/install
+#	echo $service opt/vircadia/systemd >> debian/install
 #done
 #for target in *.target; do
-#	echo $target opt/athena/systemd >> debian/install
+#	echo $target opt/vircadia/systemd >> debian/install
 #done
-find resources -type f -exec sh -c 'echo {} opt/athena/$(dirname "{}") >> debian/install' \;
-find plugins -type f -exec sh -c 'echo {} opt/athena/$(dirname "{}") >> debian/install' \;
-
-#echo usr/lib/systemd/system/athena-assignment-client.service opt/athena/systemd/athena-assignment-client.service > debian/athena-server.links
-#echo usr/lib/systemd/system/athena-assignment-client@.service opt/athena/systemd/athena-assignment-client@.service >> debian/athena-server.links
-#echo usr/lib/systemd/system/athena-domain-server.service opt/athena/systemd/athena-domain-server.service >> debian/athena-server.links
-#echo usr/lib/systemd/system/athena-domain-server@.service opt/athena/systemd/athena-domain-server@.service >> debian/athena-server.links
-##echo usr/lib/systemd/system/athena-ice-server.service opt/athena/systemd/athena-ice-server.service >> debian/athena-server.links
-##echo usr/lib/systemd/system/athena-ice-server@.service opt/athena/systemd/athena-ice-server@.service >> debian/athena-server.links
-#echo usr/lib/systemd/system/athena-server.target opt/athena/systemd/athena-server.target >> debian/athena-server.links
-#echo usr/lib/systemd/system/athena-server@.target opt/athena/systemd/athena-server@.target >> debian/athena-server.links
+find resources -type f -exec sh -c 'echo {} opt/vircadia/$(dirname "{}") >> debian/install' \;
+find plugins -type f -exec sh -c 'echo {} opt/vircadia/$(dirname "{}") >> debian/install' \;
 
 SOFILES=`ls *.so *.so.*.*.* | sed 's/\./\\\./g' | paste -d'|' -s`
 

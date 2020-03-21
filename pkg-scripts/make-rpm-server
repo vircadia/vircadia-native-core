@@ -52,5 +52,5 @@ DEPENDS=mesa-libGL,`ls \
 sudo yum install chrpath
 
 export VERSION DEPENDS ATHENA
-rpmbuild --target x86_64 -bb ./athena-server.spec
+rpmbuild --target x86_64 -bb ./vircadia-server.spec
 mv ~/rpmbuild/RPMS/x86_64/*.rpm .

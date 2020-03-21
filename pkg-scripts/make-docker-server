@@ -15,7 +15,7 @@ rm -r temp-make-dock
 mkdir -p $DOCK_BUILD_ROOT
 cp $ATHENA/source/pkg-scripts/Dockerfile.templ $DOCK_BUILD_ROOT/Dockerfile
 cp $ATHENA/source/pkg-scripts/docker-entrypoint.sh $DOCK_BUILD_ROOT/entrypoint.sh
-cp $ATHENA/source/pkg-scripts/docker-athena-supervisor.conf $DOCK_BUILD_ROOT/athena.conf
+cp $ATHENA/source/pkg-scripts/docker-vircadia-supervisor.conf $DOCK_BUILD_ROOT/vircadia.conf
 
 # copy the files over
 mkdir -p $DOCK_BUILD_ROOT/opt
@@ -57,4 +57,4 @@ SOFILES=`ls $DOCK_BUILD_ROOT/lib | sed 's/\./\\\./g' | paste -d'|' -s`
 DEPENDS=`find $DOCK_BUILD_ROOT/opt $DOCK_BUILD_ROOT/lib -type f -executable -exec sh -c 'objdump -p {} | grep NEEDED' \; | awk '{print $2}' | sort | uniq | egrep -v "^($SOFILES)$" | xargs -n 1 -I {} sh -c 'dpkg -S {} | head -n 1' | cut -d ':' -f 1 | sort | uniq | paste -d' ' -s`
 
 cd $DOCK_BUILD_ROOT
-docker build -t odysseus654/athena-server --build-arg "DEPENDS=$DEPENDS" --build-arg "GITSRC=$GITSRC" --build-arg "GITDATE=$GITDATE" --build-arg "GITCOMMIT=$GITCOMMIT" .
+docker build -t odysseus654/vircadia-server --build-arg "DEPENDS=$DEPENDS" --build-arg "GITSRC=$GITSRC" --build-arg "GITDATE=$GITDATE" --build-arg "GITCOMMIT=$GITCOMMIT" .
