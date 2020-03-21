@@ -3,10 +3,10 @@
         "tooltip": "The shape of this entity's geometry."
     },
     "color": {
-        "tooltip": "The RGB value of this entity."
+        "tooltip": "The color of this entity."
     },
     "shapeAlpha": {
-        "tooltip": "The alpha of this entity."
+        "tooltip": "Set the opacity of the entity between 0.0 fully transparent and 1.0 completely opaque."
     },
     "text": {
         "tooltip": "The text to display on the entity."
@@ -15,13 +15,13 @@
         "tooltip": "The color of the text."
     },
     "textAlpha": {
-        "tooltip": "The alpha of the text."
+        "tooltip": "Set the opacity of the text between 0.0 fully transparent and 1.0 completely opaque."
     },
     "backgroundColor": {
         "tooltip": "The color of the background."
     },
     "backgroundAlpha": {
-        "tooltip": "The alpha of the background."
+        "tooltip": "Set the opacity of the background between 0.0 fully transparent and 1.0 completely opaque."
     },
     "lineHeight": {
         "tooltip": "The height of each line of text. This determines the size of the text."
@@ -212,7 +212,7 @@
         "jsPropertyName": "color"
     },
     "imageAlpha": {
-        "tooltip": "The alpha of the image."
+        "tooltip": "Set the opacity of the image between 0.0 fully transparent and 1.0 completely opaque."
     },    
     "emissive": {
         "tooltip": "If enabled, the image will display at full brightness."
@@ -319,20 +319,20 @@
         "tooltip": "The spread in color that each particle is given, resulting in a variety of colors."
     },
     "particleAlphaTriple": {
-        "tooltip": "The alpha of each particle.",
+        "tooltip": "Set the opacity of the each particle between 0.0 fully transparent and 1.0 completely opaque.",
         "jsPropertyName": "alpha"
     },
     "alpha": {
-        "tooltip": "The alpha of each particle."
+        "tooltip": "Set the opacity of the each particle between 0.0 fully transparent and 1.0 completely opaque."
     },
     "alphaStart": {
-        "tooltip": "The start alpha of each particle."
+        "tooltip": "Set the initial opacity level of the each particle between 0.0 fully transparent and 1.0 completely opaque."
     },
     "alphaFinish": {
-        "tooltip": "The finish alpha of each particle."
+        "tooltip": "Set the final opacity level of the each particle between 0.0 fully transparent and 1.0 completely opaque."
     },
     "alphaSpread": {
-        "tooltip": "The spread in alpha that each particle is given, resulting in a variety of alphas."
+        "tooltip": "The spread in opacity that each particle is given, resulting in a variety of opacity levels."
     },
     "emitAcceleration": {
         "tooltip": "The acceleration that is applied to each particle during its lifetime."
@@ -602,7 +602,7 @@
         "tooltip": "The tint of the web entity."
     },
     "webAlpha": {
-        "tooltip": "The alpha of the web entity."
+        "tooltip": "Set the opacity of the web entity between 0.0 fully transparent and 1.0 completely opaque."
     },
     "maxFPS": {
         "tooltip": "The FPS at which to render the web entity. Higher values will have a performance impact."
