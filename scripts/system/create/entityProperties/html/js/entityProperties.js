@@ -620,7 +620,7 @@ const GROUPS = [
                 propertyID: "animation.loop",
             },
             {
-                label: "Allow Transition",
+                label: "Allow Translation",
                 type: "bool",
                 propertyID: "animation.allowTranslation",
             },
