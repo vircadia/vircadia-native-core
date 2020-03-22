@@ -35,7 +35,7 @@ void OctreePacketProcessor::handleOctreePacket(QSharedPointer<ReceivedMessage> m
 }
 
 void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::PipelineWarnings.toUtf8().constData())),
                             "OctreePacketProcessor::processPacket()");
 
 #ifndef Q_OS_ANDROID

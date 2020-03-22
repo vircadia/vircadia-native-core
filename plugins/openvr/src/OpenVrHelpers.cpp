@@ -225,7 +225,7 @@ void enableOpenVrKeyboard(PluginContainer* container) {
 
 
     auto menu = container->getPrimaryMenu();
-    auto action = menu->getActionForOption(MenuOption::Overlays);
+    auto action = menu->getActionForOption(QCoreApplication::translate("MenuOption", MenuOption::Overlays.toUtf8().constData()));
 
     // When the overlays are revealed, suppress the keyboard from appearing on text focus for a tenth of a second.
     _overlayMenuConnection = QObject::connect(action, &QAction::triggered, [action] {

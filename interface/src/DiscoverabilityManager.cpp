@@ -184,11 +184,11 @@ QString DiscoverabilityManager::findableByString(Discoverability::Mode discovera
 void DiscoverabilityManager::setVisibility() {
     Menu* menu = Menu::getInstance();
 
-    if (menu->isOptionChecked(MenuOption::VisibleToEveryone)) {
+    if (menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::VisibleToEveryone.toUtf8().constData()))) {
         this->setDiscoverabilityMode(Discoverability::All);
-    } else if (menu->isOptionChecked(MenuOption::VisibleToFriends)) {
+    } else if (menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::VisibleToFriends.toUtf8().constData()))) {
         this->setDiscoverabilityMode(Discoverability::Friends);
-    } else if (menu->isOptionChecked(MenuOption::VisibleToNoOne)) {
+    } else if (menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::VisibleToNoOne.toUtf8().constData()))) {
         this->setDiscoverabilityMode(Discoverability::None);
     } else {
         qDebug() << "ERROR DiscoverabilityManager::setVisibility() called with unrecognized value.";
@@ -199,11 +199,11 @@ void DiscoverabilityManager::visibilityChanged(Discoverability::Mode discoverabi
     Menu* menu = Menu::getInstance();
 
     if (discoverabilityMode == Discoverability::All) {
-        menu->setIsOptionChecked(MenuOption::VisibleToEveryone, true);
+        menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::VisibleToEveryone.toUtf8().constData()), true);
     } else if (discoverabilityMode == Discoverability::Friends) {
-        menu->setIsOptionChecked(MenuOption::VisibleToFriends, true);
+        menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::VisibleToFriends.toUtf8().constData()), true);
     } else if (discoverabilityMode == Discoverability::None) {
-        menu->setIsOptionChecked(MenuOption::VisibleToNoOne, true);
+        menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::VisibleToNoOne.toUtf8().constData()), true);
     } else {
         qDebug() << "ERROR DiscoverabilityManager::visibilityChanged() called with unrecognized value.";
     }

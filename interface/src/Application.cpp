@@ -1967,7 +1967,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         settingsTimer->start();
     }, QThread::LowestPriority);
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPersonLookAt)) {
+    if (Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonLookAt.toUtf8().constData()))) {
         getMyAvatar()->setBoomLength(MyAvatar::ZOOM_MIN);  // So that camera doesn't auto-switch to third person.
     }
 
@@ -2004,7 +2004,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         applicationUpdater->checkForUpdate();
     }
 
-    Menu::getInstance()->setIsOptionChecked(MenuOption::ActionMotorControl, true);
+    Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ActionMotorControl.toUtf8().constData()), true);
 
 // FIXME spacemouse code still needs cleanup
 #if 0
@@ -2563,7 +2563,7 @@ void Application::updateVerboseLogging() {
     if (!menu) {
         return;
     }
-    bool enable = menu->isOptionChecked(MenuOption::VerboseLogging);
+    bool enable = menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::VerboseLogging.toUtf8().constData()));
 
     QString rules =
         "hifi.*.info=%1\n"
@@ -3387,7 +3387,7 @@ void Application::initializeUi() {
         }
 
         // after all plugins have been added to the menu, add a separator to the menu
-        auto parent = getPrimaryMenu()->getMenu(MenuOption::OutputMenu);
+        auto parent = getPrimaryMenu()->getMenu(QCoreApplication::translate("MenuOption", MenuOption::OutputMenu.toUtf8().constData()));
         parent->addSeparator();
     }
 #endif
@@ -3653,7 +3653,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
             _thirdPersonHMDCameraBoomValid = false;
             if (mode == CAMERA_MODE_THIRD_PERSON) {
                 _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
-                if (isOptionChecked(MenuOption::CenterPlayerInView)) {
+                if (isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::CenterPlayerInView.toUtf8().constData()))) {
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                         + _myCamera.getOrientation() * boomOffset);
                 } else {
@@ -3950,7 +3950,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     } else {
         QString goingTo = "";
         if (addressLookupString.isEmpty()) {
-            if (Menu::getInstance()->isOptionChecked(MenuOption::HomeLocation)) {
+            if (Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::HomeLocation.toUtf8().constData()))) {
                 auto locationBookmarks = DependencyManager::get<LocationBookmarks>();
                 addressLookupString = locationBookmarks->addressForBookmark(LocationBookmarks::HOME_BOOKMARK);
                 goingTo = "home location";
@@ -4413,17 +4413,17 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_1: {
                 Menu* menu = Menu::getInstance();
-                menu->triggerOption(MenuOption::FirstPersonLookAt);
+                menu->triggerOption(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonLookAt.toUtf8().constData()));
                 break;
             }
             case Qt::Key_2: {
                 Menu* menu = Menu::getInstance();
-                menu->triggerOption(MenuOption::SelfieCamera);
+                menu->triggerOption(QCoreApplication::translate("MenuOption", MenuOption::SelfieCamera.toUtf8().constData()));
                 break;
             }
             case Qt::Key_3: {
                 Menu* menu = Menu::getInstance();
-                menu->triggerOption(MenuOption::LookAtCamera);
+                menu->triggerOption(QCoreApplication::translate("MenuOption", MenuOption::LookAtCamera.toUtf8().constData()));
                 break;
             }
             case Qt::Key_4:
@@ -4483,7 +4483,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_L:
                 if (isShifted && isControlOrCommand) {
-                    Menu::getInstance()->triggerOption(MenuOption::Log);
+                    Menu::getInstance()->triggerOption(QCoreApplication::translate("MenuOption", MenuOption::Log.toUtf8().constData()));
                 } else if (isControlOrCommand) {
                     auto dialogsManager = DependencyManager::get<DialogsManager>();
                     dialogsManager->toggleAddressBar();
@@ -4498,7 +4498,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_Asterisk:
-                Menu::getInstance()->triggerOption(MenuOption::DefaultSkybox);
+                Menu::getInstance()->triggerOption(QCoreApplication::translate("MenuOption", MenuOption::DefaultSkybox.toUtf8().constData()));
                 break;
 
             case Qt::Key_M:
@@ -4514,7 +4514,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_S:
                 if (isShifted && isControlOrCommand && !isOption) {
-                    Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
+                    Menu::getInstance()->triggerOption(QCoreApplication::translate("MenuOption", MenuOption::SuppressShortTimings.toUtf8().constData()));
                 }
                 break;
 
@@ -4538,11 +4538,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
             }
 
             case Qt::Key_Backslash:
-                Menu::getInstance()->triggerOption(MenuOption::Chat);
+                Menu::getInstance()->triggerOption(QCoreApplication::translate("MenuOption", MenuOption::Chat.toUtf8().constData()));
                 break;
 
             case Qt::Key_Slash:
-                Menu::getInstance()->triggerOption(MenuOption::Stats);
+                Menu::getInstance()->triggerOption(QCoreApplication::translate("MenuOption", MenuOption::Stats.toUtf8().constData()));
                 break;
 
             case Qt::Key_Plus: {
@@ -5410,7 +5410,7 @@ void Application::loadSettings() {
     menu->loadSettings();
 
     // override the menu option show overlays to always be true on startup
-    menu->setIsOptionChecked(MenuOption::Overlays, true);
+    menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::Overlays.toUtf8().constData()), true);
 
     // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
     auto pluginManager = PluginManager::getInstance();
@@ -5458,10 +5458,10 @@ void Application::loadSettings() {
             // if this is not the first run, the camera will be initialized differently depending on user settings
             if (qApp->isHMDMode()) {
                 // if the HMD is active, use first-person camera, unless the appropriate setting is checked
-                isFirstPerson = menu->isOptionChecked(MenuOption::FirstPersonHMD);
+                isFirstPerson = menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonHMD.toUtf8().constData()));
             } else {
                 // if HMD is not active, only use first person if the menu option is checked
-                isFirstPerson = menu->isOptionChecked(MenuOption::FirstPersonLookAt);
+                isFirstPerson = menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonLookAt.toUtf8().constData()));
             }
         }
     }
@@ -5476,8 +5476,8 @@ void Application::loadSettings() {
 
     // finish initializing the camera, based on everything we checked above. Third person camera will be used if no settings
     // dictated that we should be in first person
-    Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPersonLookAt, isFirstPerson);
-    Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !isFirstPerson);
+    Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonLookAt.toUtf8().constData()), isFirstPerson);
+    Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ThirdPerson.toUtf8().constData()), !isFirstPerson);
     _myCamera.setMode((isFirstPerson) ? CAMERA_MODE_FIRST_PERSON_LOOK_AT : CAMERA_MODE_LOOK_AT);
     cameraMenuChanged();
 
@@ -5639,7 +5639,7 @@ void Application::pauseUntilLoginDetermined() {
     menu->getMenu("Navigate")->setVisible(false);
     menu->getMenu("Settings")->setVisible(false);
     _developerMenuVisible = menu->getMenu("Developer")->isVisible();
-    menu->setIsOptionChecked(MenuOption::Stats, false);
+    menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::Stats.toUtf8().constData()), false);
     if (_developerMenuVisible) {
         menu->getMenu("Developer")->setVisible(false);
     }
@@ -5794,7 +5794,7 @@ void Application::pushPostUpdateLambda(void* key, const std::function<void()>& f
 // Note that it is called BEFORE we update position or joints based on sensors, etc.
 void Application::updateMyAvatarLookAtPosition(float deltaTime) {
     PerformanceTimer perfTimer("lookAt");
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    bool showWarnings = Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::PipelineWarnings.toUtf8().constData()));
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
 
     auto myAvatar = getMyAvatar();
@@ -5803,7 +5803,7 @@ void Application::updateMyAvatarLookAtPosition(float deltaTime) {
 
 void Application::updateThreads(float deltaTime) {
     PerformanceTimer perfTimer("updateThreads");
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    bool showWarnings = Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::PipelineWarnings.toUtf8().constData()));
     PerformanceWarning warn(showWarnings, "Application::updateThreads()");
 
     // parse voxel packets
@@ -5815,12 +5815,12 @@ void Application::updateThreads(float deltaTime) {
 
 void Application::toggleOverlays() {
     auto menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::Overlays, !menu->isOptionChecked(MenuOption::Overlays));
+    menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::Overlays.toUtf8().constData()), !menu->isOptionChecked(MenuOption::Overlays));
 }
 
 void Application::setOverlaysVisible(bool visible) {
     auto menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::Overlays, visible);
+    menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::Overlays.toUtf8().constData()), visible);
 }
 
 void Application::centerUI() {
@@ -5829,25 +5829,25 @@ void Application::centerUI() {
 
 void Application::cycleCamera() {
     auto menu = Menu::getInstance();
-    if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
+    if (menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FullscreenMirror.toUtf8().constData()))) {
 
-        menu->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-        menu->setIsOptionChecked(MenuOption::FirstPersonLookAt, true);
+        menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FullscreenMirror.toUtf8().constData()), false);
+        menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonLookAt.toUtf8().constData()), true);
 
-    } else if (menu->isOptionChecked(MenuOption::FirstPersonLookAt)) {
+    } else if (menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonLookAt.toUtf8().constData()))) {
 
-        menu->setIsOptionChecked(MenuOption::FirstPersonLookAt, false);
-        menu->setIsOptionChecked(MenuOption::LookAtCamera, true);
+        menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonLookAt.toUtf8().constData()), false);
+        menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::LookAtCamera.toUtf8().constData()), true);
 
-    } else if (menu->isOptionChecked(MenuOption::LookAtCamera)) {
+    } else if (menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::LookAtCamera.toUtf8().constData()))) {
 
-        menu->setIsOptionChecked(MenuOption::LookAtCamera, false);
-        menu->setIsOptionChecked(MenuOption::SelfieCamera, true);
+        menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::LookAtCamera.toUtf8().constData()), false);
+        menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::SelfieCamera.toUtf8().constData()), true);
 
-    } else if (menu->isOptionChecked(MenuOption::SelfieCamera)) {
+    } else if (menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::SelfieCamera.toUtf8().constData()))) {
 
-        menu->setIsOptionChecked(MenuOption::SelfieCamera, false);
-        menu->setIsOptionChecked(MenuOption::FullscreenMirror, true);
+        menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::SelfieCamera.toUtf8().constData()), false);
+        menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FullscreenMirror.toUtf8().constData()), true);
 
     }
     cameraMenuChanged(); // handle the menu change
@@ -5856,13 +5856,13 @@ void Application::cycleCamera() {
 void Application::cameraModeChanged() {
     switch (_myCamera.getMode()) {
         case CAMERA_MODE_FIRST_PERSON_LOOK_AT:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPersonLookAt, true);
+            Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonLookAt.toUtf8().constData()), true);
             break;
         case CAMERA_MODE_LOOK_AT:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::LookAtCamera, true);
+            Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::LookAtCamera.toUtf8().constData()), true);
             break;
         case CAMERA_MODE_SELFIE:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::SelfieCamera, true);
+            Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::SelfieCamera.toUtf8().constData()), true);
             break;
         default:
             // we don't have menu items for the others, so just leave it alone.
@@ -5877,31 +5877,31 @@ void Application::changeViewAsNeeded(float boomLength) {
     bool boomLengthGreaterThanMinimum = (boomLength > MyAvatar::ZOOM_MIN);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON_LOOK_AT && boomLengthGreaterThanMinimum) {
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPersonLookAt, false);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::LookAtCamera, true);
+        Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonLookAt.toUtf8().constData()), false);
+        Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::LookAtCamera.toUtf8().constData()), true);
         cameraMenuChanged();
     } else if (_myCamera.getMode() == CAMERA_MODE_LOOK_AT && !boomLengthGreaterThanMinimum) {
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPersonLookAt, true);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::LookAtCamera, false);
+        Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonLookAt.toUtf8().constData()), true);
+        Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::LookAtCamera.toUtf8().constData()), false);
         cameraMenuChanged();
     }
 }
 
 void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
-    if (menu->isOptionChecked(MenuOption::FirstPersonLookAt)) {
+    if (menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonLookAt.toUtf8().constData()))) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON_LOOK_AT) {
             _myCamera.setMode(CAMERA_MODE_FIRST_PERSON_LOOK_AT);
             getMyAvatar()->setBoomLength(MyAvatar::ZOOM_MIN);
         }
-    } else if (menu->isOptionChecked(MenuOption::LookAtCamera)) {
+    } else if (menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::LookAtCamera.toUtf8().constData()))) {
         if (_myCamera.getMode() != CAMERA_MODE_LOOK_AT) {
             _myCamera.setMode(CAMERA_MODE_LOOK_AT);
             if (getMyAvatar()->getBoomLength() == MyAvatar::ZOOM_MIN) {
                 getMyAvatar()->setBoomLength(MyAvatar::ZOOM_DEFAULT);
             }
         }
-    } else if (menu->isOptionChecked(MenuOption::SelfieCamera)) {
+    } else if (menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::SelfieCamera.toUtf8().constData()))) {
         if (_myCamera.getMode() != CAMERA_MODE_SELFIE) {
             _myCamera.setMode(CAMERA_MODE_SELFIE);
             if (getMyAvatar()->getBoomLength() == MyAvatar::ZOOM_MIN) {
@@ -5959,7 +5959,7 @@ void Application::reloadResourceCaches() {
 }
 
 void Application::rotationModeChanged() const {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+    if (!Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::CenterPlayerInView.toUtf8().constData()))) {
         getMyAvatar()->setHeadPitch(0);
     }
 }
@@ -6047,7 +6047,7 @@ void Application::setKeyboardFocusEntity(const QUuid& id) {
 
 void Application::updateDialogs(float deltaTime) const {
     PerformanceTimer perfTimer("updateDialogs");
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    bool showWarnings = Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::PipelineWarnings.toUtf8().constData()));
     PerformanceWarning warn(showWarnings, "Application::updateDialogs()");
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 
@@ -6505,8 +6505,8 @@ void Application::update(float deltaTime) {
                         }
 
                         if (PerformanceTimer::isActive() &&
-                                Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
-                                Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsTiming)) {
+                                Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::DisplayDebugTimingDetails.toUtf8().constData())) &&
+                                Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ExpandPhysicsTiming.toUtf8().constData()))) {
                             _physicsEngine->harvestPerformanceStats();
                         }
                         // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
@@ -6556,7 +6556,7 @@ void Application::update(float deltaTime) {
         }
     }
 
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    bool showWarnings = Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::PipelineWarnings.toUtf8().constData()));
     PerformanceWarning warn(showWarnings, "Application::update()");
 
     updateLOD(deltaTime);
@@ -6732,8 +6732,8 @@ void Application::updateRenderArgs(float deltaTime) {
             bool suppressShortTimings = false;
             auto menu = Menu::getInstance();
             if (menu) {
-                suppressShortTimings = menu->isOptionChecked(MenuOption::SuppressShortTimings);
-                showWarnings = menu->isOptionChecked(MenuOption::PipelineWarnings);
+                suppressShortTimings = menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::SuppressShortTimings.toUtf8().constData()));
+                showWarnings = menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::PipelineWarnings.toUtf8().constData()));
             }
             PerformanceWarning::setSuppressShortTimings(suppressShortTimings);
             PerformanceWarning warn(showWarnings, "Application::paintGL()");
@@ -8045,7 +8045,7 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     }
     properties.setCollisionless(true);  // Temporarily set so that doesn't collide with avatar.
     properties.setVisible(false);  // Temporarily set so that don't see at large unresized dimensions.
-    bool grabbable = (Menu::getInstance()->isOptionChecked(MenuOption::CreateEntitiesGrabbable));
+    bool grabbable = (Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::CreateEntitiesGrabbable.toUtf8().constData())));
     properties.setUserData(grabbable ? GRABBABLE_USER_DATA : NOT_GRABBABLE_USER_DATA);
     glm::vec3 positionOffset = getMyAvatar()->getWorldOrientation() * (getMyAvatar()->getSensorToWorldScale() * glm::vec3(0.0f, 0.0f, -2.0f));
     properties.setPosition(getMyAvatar()->getWorldPosition() + positionOffset);
@@ -8132,7 +8132,7 @@ void Application::addAssetToWorldCheckModelSize() {
             if (!name.toLower().endsWith(PNG_EXTENSION) && !name.toLower().endsWith(JPG_EXTENSION)) {
                 properties.setCollisionless(false);
             }
-            bool grabbable = (Menu::getInstance()->isOptionChecked(MenuOption::CreateEntitiesGrabbable));
+            bool grabbable = (Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::CreateEntitiesGrabbable.toUtf8().constData())));
             properties.setUserData(grabbable ? GRABBABLE_USER_DATA : NOT_GRABBABLE_USER_DATA);
             properties.setLastEdited(usecTimestampNow());
             entityScriptingInterface->editEntity(entityID, properties);
@@ -8783,7 +8783,7 @@ static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, in
     QString name = displayPlugin->getName();
     auto grouping = displayPlugin->getGrouping();
     QString groupingMenu { "" };
-    Q_ASSERT(!menu->menuItemExists(MenuOption::OutputMenu, name));
+    Q_ASSERT(!menu->menuItemExists(QCoreApplication::translate("MenuOption", MenuOption::OutputMenu.toUtf8().constData()), name));
 
     // assign the meny grouping based on plugin grouping
     switch (grouping) {
@@ -8803,7 +8803,7 @@ static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, in
         displayPluginGroup = new QActionGroup(menu);
         displayPluginGroup->setExclusive(true);
     }
-    auto parent = menu->getMenu(MenuOption::OutputMenu);
+    auto parent = menu->getMenu(QCoreApplication::translate("MenuOption", MenuOption::OutputMenu.toUtf8().constData()));
     auto action = menu->addActionToQMenuAndActionHash(parent,
         name, QKeySequence(Qt::CTRL + (Qt::Key_0 + index)), qApp,
         SLOT(updateDisplayMode()),
@@ -8814,7 +8814,7 @@ static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, in
     displayPluginGroup->addAction(action);
 
     action->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(displayPluginGroup));
-    Q_ASSERT(menu->menuItemExists(MenuOption::OutputMenu, name));
+    Q_ASSERT(menu->menuItemExists(QCoreApplication::translate("MenuOption", MenuOption::OutputMenu.toUtf8().constData()), name));
 }
 #endif
 
@@ -8949,13 +8949,13 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
             action->setChecked(true);
         }
 
-        if (isHmd && menu->isOptionChecked(MenuOption::FirstPersonHMD)) {
-            menu->setIsOptionChecked(MenuOption::FirstPersonLookAt, true);
+        if (isHmd && menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonHMD.toUtf8().constData()))) {
+            menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FirstPersonLookAt.toUtf8().constData()), true);
             cameraMenuChanged();
         }
 
         // Remove the selfie camera options from menu if in HMD mode
-        auto selfieAction = menu->getActionForOption(MenuOption::SelfieCamera);
+        auto selfieAction = menu->getActionForOption(QCoreApplication::translate("MenuOption", MenuOption::SelfieCamera.toUtf8().constData()));
         selfieAction->setVisible(!isHmd);
     }
 

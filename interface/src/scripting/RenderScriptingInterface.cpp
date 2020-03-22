@@ -86,12 +86,12 @@ void RenderScriptingInterface::forceShadowsEnabled(bool enabled) {
         assert(renderConfig);
         auto lightingModelConfig = renderConfig->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
         if (lightingModelConfig) {
-            Menu::getInstance()->setIsOptionChecked(MenuOption::Shadows, enabled);
+            Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::Shadows.toUtf8().constData()), enabled);
             lightingModelConfig->setShadow(enabled);
         }
         auto secondaryLightingModelConfig = renderConfig->getConfig<MakeLightingModel>("RenderSecondView.LightingModel");
         if (secondaryLightingModelConfig) {
-            Menu::getInstance()->setIsOptionChecked(MenuOption::Shadows, enabled);
+            Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::Shadows.toUtf8().constData()), enabled);
             secondaryLightingModelConfig->setShadow(enabled);
         }
     });
@@ -115,7 +115,7 @@ void RenderScriptingInterface::forceAmbientOcclusionEnabled(bool enabled) {
 
         auto lightingModelConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
         if (lightingModelConfig) {
-            Menu::getInstance()->setIsOptionChecked(MenuOption::AmbientOcclusion, enabled);
+            Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::AmbientOcclusion.toUtf8().constData()), enabled);
             lightingModelConfig->setAmbientOcclusion(enabled);
         }
     });
@@ -140,7 +140,7 @@ void RenderScriptingInterface::forceAntialiasingEnabled(bool enabled) {
         auto mainViewJitterCamConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<JitterSample>("RenderMainView.JitterCam");
         auto mainViewAntialiasingConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<Antialiasing>("RenderMainView.Antialiasing");
         if (mainViewJitterCamConfig && mainViewAntialiasingConfig) {
-            Menu::getInstance()->setIsOptionChecked(MenuOption::AntiAliasing, enabled);
+            Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::AntiAliasing.toUtf8().constData()), enabled);
             if (enabled) {
                 mainViewJitterCamConfig->play();
                 mainViewAntialiasingConfig->setDebugFXAA(false);

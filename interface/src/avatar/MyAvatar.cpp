@@ -1970,12 +1970,12 @@ void MyAvatar::loadData() {
 
     setUserRecenterModel(stringToUserRecenterModel(_userRecenterModelSetting.get(USER_RECENTER_MODEL_AUTO)));
 
-    setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));
-    _follow.setToggleHipsFollowing (Menu::getInstance()->isOptionChecked(MenuOption::ToggleHipsFollowing));
-    setEnableDebugDrawBaseOfSupport(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawBaseOfSupport));
-    setEnableDebugDrawDefaultPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawDefaultPose));
-    setEnableDebugDrawAnimPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawAnimPose));
-    setEnableDebugDrawPosition(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawPosition));
+    setEnableMeshVisible(Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::MeshVisible.toUtf8().constData())));
+    _follow.setToggleHipsFollowing (Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ToggleHipsFollowing.toUtf8().constData())));
+    setEnableDebugDrawBaseOfSupport(Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::AnimDebugDrawBaseOfSupport.toUtf8().constData())));
+    setEnableDebugDrawDefaultPose(Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::AnimDebugDrawDefaultPose.toUtf8().constData())));
+    setEnableDebugDrawAnimPose(Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::AnimDebugDrawAnimPose.toUtf8().constData())));
+    setEnableDebugDrawPosition(Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::AnimDebugDrawPosition.toUtf8().constData())));
 }
 
 void MyAvatar::loadAvatarEntityDataFromSettings() {
@@ -4286,17 +4286,17 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     }
 
     Menu* menu = Menu::getInstance();
-    if (menu->isOptionChecked(MenuOption::ActionMotorControl)) {
+    if (menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ActionMotorControl.toUtf8().constData()))) {
         _motionBehaviors |= AVATAR_MOTION_ACTION_MOTOR_ENABLED;
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_ACTION_MOTOR_ENABLED;
     }
-    if (menu->isOptionChecked(MenuOption::ScriptedMotorControl)) {
+    if (menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ScriptedMotorControl.toUtf8().constData()))) {
         _motionBehaviors |= AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
-    setProperty("lookAtSnappingEnabled", menu->isOptionChecked(MenuOption::EnableLookAtSnapping));
+    setProperty("lookAtSnappingEnabled", menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::EnableLookAtSnapping.toUtf8().constData())));
 }
 
 void MyAvatar::setFlyingEnabled(bool enabled) {
@@ -6616,7 +6616,7 @@ void MyAvatar::updateEyesLookAtPosition(float deltaTime) {
 
                 if (faceAngle < MAXIMUM_FACE_ANGLE) {
                     // Randomly look back and forth between look targets
-                    eyeContactTarget target = Menu::getInstance()->isOptionChecked(MenuOption::FixGaze) ?
+                    eyeContactTarget target = Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::FixGaze.toUtf8().constData())) ?
                         LEFT_EYE : getEyeContactTarget();
                     switch (target) {
                         case LEFT_EYE:

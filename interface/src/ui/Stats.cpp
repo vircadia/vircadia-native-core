@@ -58,25 +58,25 @@ Stats::Stats(QQuickItem* parent) :  QQuickItem(parent) {
 }
 
 bool Stats::includeTimingRecord(const QString& name) {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
+    if (Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::DisplayDebugTimingDetails.toUtf8().constData()))) {
         if (name.startsWith("/idle/update/")) {
             if (name.startsWith("/idle/update/simulation/")) {
-                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandSimulationTiming);
+                return Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ExpandSimulationTiming.toUtf8().constData()));
             } else if (name.startsWith("/idle/update/myAvatar/")) {
                 if (name.startsWith("/idle/update/myAvatar/simulate/")) {
-                    return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarSimulateTiming);
+                    return Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ExpandMyAvatarSimulateTiming.toUtf8().constData()));
                 }
-                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarTiming);
+                return Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ExpandMyAvatarTiming.toUtf8().constData()));
             } else if (name.startsWith("/idle/update/otherAvatars/")) {
-                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandOtherAvatarTiming);
+                return Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ExpandOtherAvatarTiming.toUtf8().constData()));
             }
-            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming);
+            return Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ExpandUpdateTiming.toUtf8().constData()));
         } else if (name.startsWith("/idle/updateGL/paintGL/")) {
-            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
+            return Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ExpandPaintGLTiming.toUtf8().constData()));
         } else if (name.startsWith("/paintGL/")) {
-            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
+            return Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ExpandPaintGLTiming.toUtf8().constData()));
         } else if (name.startsWith("physics/")) {
-            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsTiming);
+            return Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ExpandPhysicsTiming.toUtf8().constData()));
         }
         return true;
     }
@@ -111,7 +111,7 @@ void Stats::updateStats(bool force) {
     }
     QQuickItem* parent = parentItem();
     if (!force) {
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+        if (!Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::Stats.toUtf8().constData()))) {
             if (parent->isVisible()) {
                 parent->setVisible(false);
             }
@@ -459,7 +459,7 @@ void Stats::updateStats(bool force) {
     }
 
 
-    bool performanceTimerShouldBeActive = Menu::getInstance()->isOptionChecked(MenuOption::Stats) && _expanded;
+    bool performanceTimerShouldBeActive = Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::Stats.toUtf8().constData())) && _expanded;
     if (performanceTimerShouldBeActive != PerformanceTimer::isActive()) {
         PerformanceTimer::setActive(performanceTimerShouldBeActive);
     }
@@ -468,7 +468,7 @@ void Stats::updateStats(bool force) {
     }
 
     if (performanceTimerShouldBeActive &&
-        Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
+        Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::DisplayDebugTimingDetails.toUtf8().constData()))) {
         if (!_showTimingDetails) {
             _showTimingDetails = true;
             emit timingExpandedChanged();
@@ -479,7 +479,7 @@ void Stats::updateStats(bool force) {
 
         // First iterate all the records, and for the ones that should be included, insert them into
         // a new Map sorted by average time...
-        bool onlyDisplayTopTen = Menu::getInstance()->isOptionChecked(MenuOption::OnlyDisplayTopTen);
+        bool onlyDisplayTopTen = Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::OnlyDisplayTopTen.toUtf8().constData()));
         QMap<float, QString> sortedRecords;
         auto allRecords = PerformanceTimer::getAllTimerRecords();
         QMapIterator<QString, PerformanceTimerRecord> i(allRecords);

@@ -49,7 +49,7 @@ void OctreeProcessor::processDatagram(ReceivedMessage& message, SharedNodePointe
         this->init();
     }
 
-    bool showTimingDetails = false; // Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    bool showTimingDetails = false; // Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::PipelineWarnings.toUtf8().constData()));
     PerformanceWarning warn(showTimingDetails, "OctreeProcessor::processDatagram()", showTimingDetails);
 
     if (message.getType() == getExpectedPacketType()) {

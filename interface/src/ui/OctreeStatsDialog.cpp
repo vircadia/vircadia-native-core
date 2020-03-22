@@ -140,7 +140,7 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     }
 
     // Only refresh our stats every once in a while, unless asked for realtime
-    quint64 REFRESH_AFTER = Menu::getInstance()->isOptionChecked(MenuOption::ShowRealtimeEntityStats) ? 0 : USECS_PER_SECOND;
+    quint64 REFRESH_AFTER = Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ShowRealtimeEntityStats.toUtf8().constData())) ? 0 : USECS_PER_SECOND;
     quint64 sinceLastRefresh = now - _lastRefresh;
     if (sinceLastRefresh < REFRESH_AFTER) {
         return QDialog::paintEvent(event);

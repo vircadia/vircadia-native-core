@@ -83,7 +83,7 @@ void OctreeStatsProvider::updateOctreeStatsData() {
     }
 
     // Only refresh our stats every once in a while, unless asked for realtime
-    quint64 REFRESH_AFTER = Menu::getInstance()->isOptionChecked(MenuOption::ShowRealtimeEntityStats) ? 0 : USECS_PER_SECOND;
+    quint64 REFRESH_AFTER = Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ShowRealtimeEntityStats.toUtf8().constData())) ? 0 : USECS_PER_SECOND;
     quint64 sinceLastRefresh = now - _lastRefresh;
     if (sinceLastRefresh < REFRESH_AFTER) {
         _updateTimer.start((REFRESH_AFTER - sinceLastRefresh)/1000);
@@ -91,7 +91,7 @@ void OctreeStatsProvider::updateOctreeStatsData() {
     }
     // Only refresh our stats every once in a while, unless asked for realtime
     //if no realtime, then update once per second. Otherwise consider 60FPS update, ie 16ms interval
-    //int updateinterval = Menu::getInstance()->isOptionChecked(MenuOption::ShowRealtimeEntityStats) ? 16 : 1000;
+    //int updateinterval = Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::ShowRealtimeEntityStats.toUtf8().constData())) ? 16 : 1000;
     _updateTimer.start(REFRESH_AFTER/1000);
 
     const int FLOATING_POINT_PRECISION = 3;

@@ -122,7 +122,7 @@ void AvatarManager::init() {
         scene->enqueueTransaction(transaction);
     }
 
-    setEnableDebugDrawOtherSkeletons(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawOtherSkeletons));
+    setEnableDebugDrawOtherSkeletons(Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::AnimDebugDrawOtherSkeletons.toUtf8().constData())));
 }
 
 void AvatarManager::setSpace(workload::SpacePointer& space ) {
@@ -158,7 +158,7 @@ void AvatarManager::handleTransitAnimations(AvatarTransit::Status status) {
 }
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    bool showWarnings = Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::PipelineWarnings.toUtf8().constData()));
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
     AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getNextPosition(), _myAvatar->getSensorToWorldScale(), _transitConfig);

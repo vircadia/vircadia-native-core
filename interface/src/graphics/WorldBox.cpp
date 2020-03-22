@@ -18,7 +18,7 @@ namespace render {
     template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape().withTagBits(ItemKey::TAG_BITS_0 | ItemKey::TAG_BITS_1); }
     template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
     template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::WorldAxes)) {
+        if (Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::WorldAxes.toUtf8().constData()))) {
             PerformanceTimer perfTimer("worldBox");
 
             auto& batch = *args->_batch;

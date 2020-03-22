@@ -109,7 +109,7 @@ void OverlayConductor::update(float dt) {
         }
     }
 
-    bool targetVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && !_suppressedByHead;
+    bool targetVisible = Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::Overlays.toUtf8().constData())) && !_suppressedByHead;
     if (targetVisible != currentVisible) {
         offscreenUi->setPinned(!targetVisible);
     }

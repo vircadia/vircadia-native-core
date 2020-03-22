@@ -82,7 +82,7 @@ void LoginDialog::showWithSelection() {
 
 void LoginDialog::toggleAction() {
     auto accountManager = DependencyManager::get<AccountManager>();
-    QAction* loginAction = Menu::getInstance()->getActionForOption(MenuOption::Login);
+    QAction* loginAction = Menu::getInstance()->getActionForOption(QCoreApplication::translate("MenuOption", MenuOption::Login.toUtf8().constData()));
     Q_CHECK_PTR(loginAction);
     static QMetaObject::Connection connection;
     if (connection) {
@@ -123,7 +123,7 @@ QString LoginDialog::oculusUserID() const {
 }
 
 void LoginDialog::dismissLoginDialog() {
-    QAction* loginAction = Menu::getInstance()->getActionForOption(MenuOption::Login);
+    QAction* loginAction = Menu::getInstance()->getActionForOption(QCoreApplication::translate("MenuOption", MenuOption::Login.toUtf8().constData()));
     Q_CHECK_PTR(loginAction);
     loginAction->setEnabled(true);
 

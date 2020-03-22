@@ -28,7 +28,7 @@ AnimStats::AnimStats(QQuickItem* parent) :  QQuickItem(parent) {
 void AnimStats::updateStats(bool force) {
     QQuickItem* parent = parentItem();
     if (!force) {
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::AnimStats)) {
+        if (!Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::AnimStats.toUtf8().constData()))) {
             if (parent->isVisible()) {
                 parent->setVisible(false);
             }

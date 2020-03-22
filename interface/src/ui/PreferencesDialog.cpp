@@ -73,11 +73,11 @@ void setupPreferences() {
 
         auto getterShadow = []()->bool {
             auto menu = Menu::getInstance();
-            return menu->isOptionChecked(MenuOption::Shadows);
+            return menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::Shadows.toUtf8().constData()));
         };
         auto setterShadow = [](bool value) {
             auto menu = Menu::getInstance();
-            menu->setIsOptionChecked(MenuOption::Shadows, value);
+            menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::Shadows.toUtf8().constData()), value);
         };
         preferences->addPreference(new CheckPreference(GRAPHICS_QUALITY, "Show Shadows", getterShadow, setterShadow));
     }
@@ -105,11 +105,11 @@ void setupPreferences() {
 
         auto getterMaterialProceduralShaders = []() -> bool {
             auto menu = Menu::getInstance();
-            return menu->isOptionChecked(MenuOption::MaterialProceduralShaders);
+            return menu->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::MaterialProceduralShaders.toUtf8().constData()));
         };
         auto setterMaterialProceduralShaders = [](bool value) {
             auto menu = Menu::getInstance();
-            menu->setIsOptionChecked(MenuOption::MaterialProceduralShaders, value);
+            menu->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::MaterialProceduralShaders.toUtf8().constData()), value);
         };
         preferences->addPreference(new CheckPreference(GRAPHICS_QUALITY, "Enable Procedural Materials", getterMaterialProceduralShaders, setterMaterialProceduralShaders));
     }
@@ -250,8 +250,8 @@ void setupPreferences() {
     }
 
     {
-        auto getter = []()->bool { return !Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger); };
-        auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::DisableActivityLogger, !value); };
+        auto getter = []()->bool { return !Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::DisableActivityLogger.toUtf8().constData())); };
+        auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::DisableActivityLogger.toUtf8().constData()), !value); };
         preferences->addPreference(new CheckPreference("Privacy", "Send data - High Fidelity uses information provided by your "
                                 "client to improve the product through the logging of errors, tracking of usage patterns, "
                                 "installation and system details, and crash events. By allowing High Fidelity to collect "

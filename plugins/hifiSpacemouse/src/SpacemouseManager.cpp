@@ -835,7 +835,7 @@ void SpacemouseManager::toggleSpacemouse(bool shouldEnable) {
 
 void SpacemouseManager::init() {
     // Make sure the framework is installed
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Connexion)) {
+    if (Menu::getInstance()->isOptionChecked(QCoreApplication::translate("MenuOption", MenuOption::Connexion.toUtf8().constData()))) {
         // Install message handler and register our client
         InstallConnexionHandlers(MessageHandler, DeviceAddedHandler, DeviceRemovedHandler);
         // Either use this to take over in our application only... does not work

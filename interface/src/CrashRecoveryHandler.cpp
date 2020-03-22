@@ -34,10 +34,10 @@ bool CrashRecoveryHandler::checkForResetSettings(bool wasLikelyCrash, bool suppr
     QSettings::setDefaultFormat(JSON_FORMAT);
     QSettings settings;
     settings.beginGroup("Developer");
-    QVariant displayCrashOptions = settings.value(MenuOption::DisplayCrashOptions);
+    QVariant displayCrashOptions = settings.value(QCoreApplication::translate("MenuOption", MenuOption::DisplayCrashOptions.toUtf8().constData()));
     settings.endGroup();
     settings.beginGroup("Settings");
-    QVariant askToResetSettingsOption = settings.value(MenuOption::AskToResetSettings);
+    QVariant askToResetSettingsOption = settings.value(QCoreApplication::translate("MenuOption", MenuOption::AskToResetSettings.toUtf8().constData()));
     settings.endGroup();
     bool askToResetSettings = askToResetSettingsOption.isValid() && askToResetSettingsOption.toBool();
 

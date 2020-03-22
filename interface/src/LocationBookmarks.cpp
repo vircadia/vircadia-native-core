@@ -28,12 +28,12 @@ LocationBookmarks::LocationBookmarks() {
 
 void LocationBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     // Add menus/actions
-    auto bookmarkAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::BookmarkLocation);
+    auto bookmarkAction = menubar->addActionToQMenuAndActionHash(menu, QCoreApplication::translate("MenuOption", MenuOption::BookmarkLocation.toUtf8().constData()));
     QObject::connect(bookmarkAction, SIGNAL(triggered()), this, SLOT(addBookmark()), Qt::QueuedConnection);
-    auto setHomeAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::SetHomeLocation);
+    auto setHomeAction = menubar->addActionToQMenuAndActionHash(menu, QCoreApplication::translate("MenuOption", MenuOption::SetHomeLocation.toUtf8().constData()));
     QObject::connect(setHomeAction, SIGNAL(triggered()), this, SLOT(setHomeLocation()), Qt::QueuedConnection);
-    _bookmarksMenu = menu->addMenu(MenuOption::LocationBookmarks);
-    _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::DeleteBookmark);
+    _bookmarksMenu = menu->addMenu(QCoreApplication::translate("MenuOption", MenuOption::LocationBookmarks.toUtf8().constData()));
+    _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, QCoreApplication::translate("MenuOption", MenuOption::DeleteBookmark.toUtf8().constData()));
     QObject::connect(_deleteBookmarksAction, SIGNAL(triggered()), this, SLOT(deleteBookmark()), Qt::QueuedConnection);
 
     // Legacy Location to Bookmark.
