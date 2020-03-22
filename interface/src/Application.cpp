@@ -1004,7 +1004,7 @@ QSharedPointer<OffscreenUi> getOffscreenUI() {
 #endif
 }
 
-Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runningMarkerExisted) :
+Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runningMarkerExisted, QTranslator &translator) :
     QApplication(argc, argv),
     _window(new MainWindow(desktop())),
     _sessionRunTimer(startupTimer),
@@ -1039,6 +1039,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _snapshotSound(nullptr),
     _sampleSound(nullptr)
 {
+
+    installTranslator(&translator);
 
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));

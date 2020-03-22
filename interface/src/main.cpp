@@ -373,9 +373,17 @@ int main(int argc, const char* argv[]) {
 #endif
         int argcExtended = (int)argvExtended.size();
 
+        QTranslator translator;
+
+        if ( !translator.load(QLocale(), "interface", "_", "i18n", ".qm") ) {
+            qCWarning(interfaceapp) << "Failed to load translation for locale " << QLocale();
+        } else {
+            qCInfo(interfaceapp) << "Loaded translation for locale " << QLocale();
+        }
+
         PROFILE_SYNC_END(startup, "main startup", "");
         PROFILE_SYNC_BEGIN(startup, "app full ctor", "");
-        Application app(argcExtended, const_cast<char**>(argvExtended.data()), startupTime, runningMarkerExisted);
+        Application app(argcExtended, const_cast<char**>(argvExtended.data()), startupTime, runningMarkerExisted, translator);
         PROFILE_SYNC_END(startup, "app full ctor", "");
 
 #if defined(Q_OS_LINUX)
@@ -437,9 +445,6 @@ int main(int argc, const char* argv[]) {
             }
         }
 
-        QTranslator translator;
-        translator.load("i18n/interface_en");
-        app.installTranslator(&translator);
         qCDebug(interfaceapp, "Created QT Application.");
         exitCode = app.exec();
         server.close();

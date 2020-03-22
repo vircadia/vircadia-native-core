@@ -129,7 +129,7 @@ public:
     static void initPlugins(const QStringList& arguments);
     static void shutdownPlugins();
 
-    Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runningMarkerExisted);
+    Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runningMarkerExisted, QTranslator &translator);
     ~Application();
 
     void postLambdaEvent(const std::function<void()>& f) override;
