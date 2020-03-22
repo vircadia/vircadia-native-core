@@ -6,7 +6,7 @@ fi
 
 GITDATE=`git -C $ATHENA/source log -n 1 --format=raw | grep author | cut -d">" -f 2 | cut -d" " -f 2 | xargs -I {} date -d @{} +"%Y%m%d"`
 GITCOMMIT=`git -C $ATHENA/source rev-parse HEAD | cut -c 1-7`
-VERSION=0.86.0-k1-$GITDATE-$GITCOMMIT
+VERSION=0.86.0-k2-$GITDATE-$GITCOMMIT
 
 sudo apt-get install chrpath binutils
 
@@ -31,10 +31,12 @@ cp $ATHENA/qt5-install/lib/libQt5WebSockets.so.*.*.* $DEB_BUILD_ROOT
 cp $ATHENA/qt5-install/lib/libQt5Qml.so.*.*.* $DEB_BUILD_ROOT
 cp $ATHENA/qt5-install/lib/libQt5ScriptTools.so.*.*.* $DEB_BUILD_ROOT
 cp $ATHENA/build/ext/makefiles/quazip/project/lib/libquazip5.so.*.*.* $DEB_BUILD_ROOT
+chmod +x $DEB_BUILD_ROOT/*.so.*.*.*
 strip --strip-all $DEB_BUILD_ROOT/*
 cp $ATHENA/source/pkg-scripts/new-server $DEB_BUILD_ROOT
 cp -a $ATHENA/source/domain-server/resources $DEB_BUILD_ROOT
 find $DEB_BUILD_ROOT/resources -name ".gitignore" -delete
+find $DEB_BUILD_ROOT/resources -type f -executable -exec sh -c 'chmod -x {}' \;
 cp $ATHENA/source/README.md $DEB_BUILD_ROOT
 cp $ATHENA/source/README_hifi.md $DEB_BUILD_ROOT
 cp -a $ATHENA/build/assignment-client/plugins $DEB_BUILD_ROOT
@@ -94,7 +96,9 @@ find plugins -type f -exec sh -c 'echo {} opt/athena/$(dirname "{}") >> debian/i
 #echo usr/lib/systemd/system/athena-server.target opt/athena/systemd/athena-server.target >> debian/athena-server.links
 #echo usr/lib/systemd/system/athena-server@.target opt/athena/systemd/athena-server@.target >> debian/athena-server.links
 
-DEPENDS=`find * -type f -executable -exec sh -c 'objdump -p {} | grep NEEDED' \; | awk '{print $2}' | sort | uniq | grep -v ^libQt5 | grep -v ^libquazip | xargs -n 1 -I {} sh -c 'dpkg -S {} | head -n 1' | cut -d ':' -f 1 | sort | uniq | paste -d',' -s`
+SOFILES=`ls *.so *.so.*.*.* | sed 's/\./\\\./g' | paste -d'|' -s`
+
+DEPENDS=`find * -type f -executable -exec sh -c 'objdump -p {} | grep NEEDED' \; | awk '{print $2}' | sort | uniq | egrep -v "^($SOFILES)$" | xargs -n 1 -I {} sh -c 'dpkg -S {} | head -n 1' | cut -d ':' -f 1 | sort | uniq | paste -d',' -s`
 
 cp $ATHENA/source/pkg-scripts/server-rules debian/rules
 sed "s/{DEPENDS}/$DEPENDS/" $ATHENA/source/pkg-scripts/server-control > debian/control
