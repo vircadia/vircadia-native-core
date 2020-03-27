@@ -45,20 +45,21 @@
     
     var defaultDarkDisabled = false;
     var darkDisabled = isLocalStorageSupported ? JSON.parse(localStorage.getItem('darkDisabled')) : defaultDarkDisabled;
+    var nightSheet = document.querySelector('[href="styles/night.css"]');
     if (darkDisabled === null) {
         localStorage.setItem('darkDisabled', JSON.stringify(defaultDarkDisabled));
     } else {
-        var nightSheet = document.querySelector('[href="styles/night.css"]');
         nightSheet.disabled = darkDisabled;
     }
 
     var defaultResponsiveDisabled = true;
     var responsiveDisabled = 
         isLocalStorageSupported ? JSON.parse(localStorage.getItem('responsiveDisabled')) : defaultResponsiveDisabled;
+    var responsiveSheet = document.querySelector('[href="styles/responsive.css"]');
     if (responsiveDisabled === null) {
         localStorage.setItem('responsiveDisabled', JSON.stringify(defaultResponsiveDisabled));
+        responsiveSheet.disabled = defaultResponsiveDisabled;
     } else {
-        var responsiveSheet = document.querySelector('[href="styles/responsive.css"]');
         responsiveSheet.disabled = responsiveDisabled;
     }
     </script>

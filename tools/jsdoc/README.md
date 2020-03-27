@@ -1,19 +1,19 @@
-#JavaScript Documentation Generation
+# JavaScript Documentation Generation
 
-##Prerequisites
+## Prerequisites
 
 * Install node.js.
 * Install jsdoc via npm.  `npm install jsdoc -g`
 
 If you would like the extra functionality for gravPrep:
-* Run npm install
+* Run `npm install`
 
-To generate html documentation for the High Fidelity JavaScript API:
+To generate HTML documentation for the Vircadia JavaScript API:
 
 * `cd tools/jsdoc`
 * `jsdoc root.js -r api-mainpage.md -c config.json`
 
-The out folder should contain index.html.
+The **out** folder should contain index.html.
 
 If you get a "JavaScript heap out of memory" error when running the `jsdoc` command you need to increase the amount of memory 
 available to it. For example, to increase the memory available to 2GB on Windows:

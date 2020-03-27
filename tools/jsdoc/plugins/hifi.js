@@ -16,7 +16,7 @@ exports.handlers = {
     beforeParse: function(e) {
         var pathTools = require('path');
         var rootFolder = pathTools.dirname(e.filename);
-        console.log("Scanning hifi source for jsdoc comments...");
+        console.log("Scanning the Vircadia source for JSDoc comments...");
 
         // directories to scan for jsdoc comments
         var dirList = [
