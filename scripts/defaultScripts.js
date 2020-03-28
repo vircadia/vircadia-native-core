@@ -42,7 +42,7 @@ var DEFAULT_SCRIPTS_SEPARATE = [
     "communityModules/notificationCore/notificationCore.js",
     "simplifiedUI/ui/simplifiedNametag/simplifiedNametag.js",
     {"stable": "system/more/app-more.js", "beta": "https://kasenvr.github.io/community-apps/more/app-more.js"},
-    {"stable": "communityScripts/decentralizedGoTo/decentralizedGoTo.js", "beta": "https://metaverse.projectathena.io/interim/d-goto/app/decentralizedGoTo.js"},
+    {"stable": "communityScripts/explore/explore.js", "beta": "https://metaverse.vircadia.com/interim/d-goto/app/explore.js"},
     {"stable": "communityModules/chat/FloofChat.js", "beta": "https://content.fluffy.ws/scripts/chat/FloofChat.js"}
     //"system/chat.js"
 ];
