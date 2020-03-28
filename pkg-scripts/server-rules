@@ -45,6 +45,8 @@ override_dh_installinit:
 override_dh_shlibdeps:
 	# don't run sh_shlibdeps, it REALLY won't work.  We do it ourselves anyhow
 
+override_dh_strip:
+	# don't run dh_strip, we do it ourselves anyhow and we want failures to be non-fatal
 
 # dh_make generated override targets
 # This is example for Cmake (See https://bugs.debian.org/641051 )

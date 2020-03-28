@@ -8,7 +8,7 @@ GITDATE=`git -C $ATHENA/source log -n 1 --format=raw | grep author | cut -d">" -
 GITCOMMIT=`git -C $ATHENA/source rev-parse HEAD | cut -c 1-7`
 VERSION=0.86.0-k2-$GITDATE-$GITCOMMIT
 
-sudo apt-get install chrpath binutils
+sudo apt-get install chrpath binutils dh-make
 
 DEB_BUILD_ROOT=temp-make-deb/athena-server-$VERSION-0ubuntu1
 rm -r temp-make-deb
