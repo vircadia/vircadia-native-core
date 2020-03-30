@@ -1,6 +1,19 @@
 /* globals OverlayWindow */
 "use strict";
 
+//
+//  FloofChat.js
+//
+//  Created by Fluffy Jenkins January 2020.
+//  Copyright 2020 Fluffy Jenkins
+//
+//  For any future coders, please keep me in the loop when making changes.
+//  Please tag me in any Pull Requests.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 var ROOT = Script.resolvePath('').split("FloofChat.js")[0];
 var H_KEY = 72;
 var ENTER_KEY = 16777220;
