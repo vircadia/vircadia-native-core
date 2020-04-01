@@ -734,7 +734,7 @@ BatchPointer Deserializer::readBatch(const json& node) {
 
     std::string batchName;
     if (node.count(keys::name)) {
-        batchName = node[keys::name];
+        batchName = node.value(keys::name, "");
     }
     BatchPointer result = std::make_shared<Batch>(batchName);
     auto& batch = *result;
