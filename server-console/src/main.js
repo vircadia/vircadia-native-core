@@ -113,7 +113,7 @@ function isInterfaceInstalled () {
         // the executable to a random location before starting it
         // which makes finding the interface near impossible using
         // relative paths.  For now, as there are no server-only
-        // installs, we just assume the interface is installed here 
+        // installs, we just assume the interface is installed here
         return true;
     } else {
         return interfacePath;
@@ -134,7 +134,7 @@ function shutdown() {
             dialog.showMessageBox({
                 type: 'question',
                 buttons: ['Yes', 'No'],
-                title: 'Stopping High Fidelity Sandbox',
+                title: 'Stopping Vircadia Sandbox',
                 message: 'Quitting will stop your Sandbox and your Home domain will no longer be running.\nDo you wish to continue?'
             }, shutdownCallback);
         } else {
@@ -280,7 +280,7 @@ function binaryMissingMessage(displayName, executableName, required) {
     var message = "The " + displayName + " executable was not found.\n";
 
     if (required) {
-        message += "It is required for the High Fidelity Sandbox to run.\n\n";
+        message += "It is required for the Vircadia Sandbox to run.\n\n";
     } else {
         message += "\n";
     }
@@ -293,7 +293,7 @@ function binaryMissingMessage(displayName, executableName, required) {
         message += paths.join("\n");
     } else {
         message += "It is expected to be found beside this executable.\n";
-        message += "You may need to re-install the High Fidelity Sandbox.";
+        message += "You may need to re-install the Vircadia Sandbox.";
     }
 
     return message;
@@ -337,10 +337,10 @@ var notificationState = NotificationState.UNNOTIFIED;
 
 function setNotificationState (notificationType, pending = undefined) {
     if (pending !== undefined) {
-        if ((notificationType === HifiNotificationType.TRANSACTIONS || 
+        if ((notificationType === HifiNotificationType.TRANSACTIONS ||
             notificationType === HifiNotificationType.ITEMS)) {
             // special case, because we want to clear the indicator light
-            // on INVENTORY when either Transactions or Items are 
+            // on INVENTORY when either Transactions or Items are
             // clicked on in the notification popup, we detect that case
             // here and force both to be unnotified.
             pendingNotifications[HifiNotificationType.TRANSACTIONS] = pending;
@@ -399,7 +399,7 @@ function visitSandboxClicked() {
         StartInterface('hifi://localhost');
     } else {
         // show an error to say that we can't go home without an interface instance
-        dialog.showErrorBox("Client Not Found", binaryMissingMessage("High Fidelity client", "Interface", false));
+        dialog.showErrorBox("Client Not Found", binaryMissingMessage("Vircadia client", "Interface", false));
     }
 }
 
@@ -613,7 +613,7 @@ function updateTrayMenu(serverState) {
         tray.setImage(trayIcons[notificationState]);
         tray.setContextMenu(Menu.buildFromTemplate(menuArray));
         if (isShuttingDown) {
-            tray.setToolTip('High Fidelity - Shutting Down');
+            tray.setToolTip('Vircadia - Shutting Down');
         }
     }
 }
@@ -868,7 +868,7 @@ function onContentLoaded() {
                     notifier.notify({
                         icon: notificationIcon,
                         title: 'An update is available!',
-                        message: 'High Fidelity version ' + latestVersion + ' is available',
+                        message: 'Vircadia version ' + latestVersion + ' is available',
                         wait: true,
                         appID: buildInfo.appUserModelId,
                         url: url
@@ -941,7 +941,7 @@ app.on('ready', function() {
 
     // Create tray icon
     tray = new Tray(trayIcons[NotificationState.UNNOTIFIED]);
-    tray.setToolTip('High Fidelity');
+    tray.setToolTip('Vircadia');
 
     tray.on('click', function() {
         tray.popUpContextMenu(tray.menu);
@@ -951,7 +951,7 @@ app.on('ready', function() {
         trayNotifications.startPolling();
     }
     updateTrayMenu(ProcessGroupStates.STOPPED);
-    
+
     if (isServerInstalled()) {
         maybeInstallDefaultContentSet(onContentLoaded);
     }
