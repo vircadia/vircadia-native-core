@@ -1,5 +1,9 @@
-This is a stand-alone guide for creating your first Project Athena build for Windows 64-bit.  
-## Building Project Athena
+# Build Windows
+
+*Last Updated on January 13, 2020*
+
+This is a stand-alone guide for creating your first Vircadia build for Windows 64-bit.  
+
 Note: We are now using Visual Studio 2017 or 2019 and Qt 5.12.3.  
 If you are upgrading from previous versions, do a clean uninstall of those versions before going through this guide.  
 
@@ -29,14 +33,20 @@ If you already have Visual Studio installed and need to add Python, open the "Ad
 
 If you do not wish to use the Python installation bundled with Visual Studio, you can download the installer from [here](https://www.python.org/downloads/).  Ensure you get version 3.6.6 or higher.
 
-### Step 2. Installing CMake
+### Step 2. Python Dependencies
+
+In a command-line that can access Python's pip you will need to run the following command: 
+
+`pip install distro`
+
+### Step 3. Installing CMake
 
 Download and install the latest version of CMake 3.15. 
  * Note that earlier versions of CMake will work, but there is a specific bug related to the interaction of Visual Studio 2019 and CMake versions prior to 3.15 that will cause Visual Studio to rebuild far more than it needs to on every build
 
 Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.15 Version page](https://cmake.org/files/v3.15/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
 
-### Step 3. Create VCPKG environment variable
+### Step 4. Create VCPKG environment variable
 In the next step, you will use CMake to build Project Athena. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
 
 To create this variable:
@@ -55,7 +65,7 @@ To create this variable:
 * Set "Variable name" to `HIFI_VCPKG_BOOTSTRAP`
 * Set "Variable value" to `1`
 
-### Step 4. Running CMake to Generate Build Files
+### Step 5. Running CMake to Generate Build Files
 
 Run Command Prompt from Start and run the following commands:  
 `cd "%HIFI_DIR%"`  
@@ -70,7 +80,7 @@ Run `cmake .. -G "Visual Studio 16 2019" -A x64`.
 
 Where `%HIFI_DIR%` is the directory for the highfidelity repository.
 
-### Step 5. Making a Build
+### Step 6. Making a Build
 
 Open `%HIFI_DIR%\build\athena.sln` using Visual Studio.
 
@@ -78,7 +88,7 @@ Change the Solution Configuration (menu ribbon under the menu bar, next to the g
 
 Run from the menu bar `Build > Build Solution`.
 
-### Step 6. Testing Interface
+### Step 7. Testing Interface
 
 Create another environment variable (see Step #3)
 * Set "Variable name": `_NO_DEBUG_HEAP`

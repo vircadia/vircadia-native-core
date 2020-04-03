@@ -31,6 +31,8 @@ public:
         surfaceNormal = stylusPickResult.surfaceNormal;
     }
 
+    StylusPickResult& operator=(const StylusPickResult &right) = default;
+
     IntersectionType type { NONE };
     bool intersects { false };
     QUuid objectID;

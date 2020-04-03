@@ -110,6 +110,10 @@ public:
  * displayed and so knows about. For assignment client scripts, the entities available are those that are "seen" by the 
  * {@link EntityViewer}. For entity server scripts, all entities are available.</p>
  *
+ * <h3>Entity Types</h3>
+ *
+ * <p>For a list of the entity types that you can use, see {@link Entities.EntityType|Entity Types}.</p>
+ *
  * <h3>Entity Methods</h3>
  *
  * <p>Some of the API's signals correspond to entity methods that are called, if present, in the entity being interacted with. 

@@ -5,13 +5,16 @@
 //  Created by Clément Brisset on March 20, 2014
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  Allows you to inspect non moving objects (Voxels or Avatars) using Atl, Control (Command on Mac) and Shift
+//  Enables you to inspect entities and avatars using Alt and key combinations:
+//  - Alt + mouse up/down zooms in/out.
+//  - Alt + mouse left/right orbits left/right.
+//  - Alt + Ctrl + mouse up/down/left/right: orbits over / under / left / right.
+//  - Alt + Ctrl + Shift + mouse up/down/left/right: pans down / up / right / left.
 //
-//  radial mode = hold ALT
-//  orbit mode  = hold ALT + CONTROL
-//  pan mode    = hold ALT + CONTROL + SHIFT
-//  Once you are in a mode left click on the object to inspect and hold the click
-//  Dragging the mouse will move your camera according to the mode you are in.
+//  Your camera stays where it is when you release the Alt key, enabling you to Alt + left - click on another entity or 
+//  avatar to further move your view.
+//
+//  Press Esc or move your avatar to revert back to your default view.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -25,6 +28,9 @@ var ALTITUDE_RATE = 200.0;
 var RADIUS_RATE = 1.0 / 100.0;
 var PAN_RATE = 250.0;
 
+var AVATAR_POSITION_SLOP = 0.1;
+var AVATAR_ROTATION_SLOP = 0.09; // 5 degrees
+
 var Y_AXIS = {
     x: 0,
     y: 1,
@@ -36,7 +42,7 @@ var X_AXIS = {
     z: 0
 };
 
-var LOOK_AT_TIME = 500;
+var LOOK_AT_TIME = 100; // ms
 
 var alt = false;
 var shift = false;
@@ -52,6 +58,29 @@ var panningMode = 3;
 var detachedMode = 4;
 
 var mode = noMode;
+
+var isAwayEnabled = true;
+
+var EDIT_CAMERA_MANAGER_CHANNEL = "Edit-Camera-Manager-Channel";
+var isEditUsingCamera = false;
+Messages.messageReceived.connect(function (channel, data, senderID, localOnly) {
+    if (channel === EDIT_CAMERA_MANAGER_CHANNEL && senderID === MyAvatar.sessionUUID && localOnly) {
+        var message;
+        try {
+            message = JSON.parse(data);
+            isEditUsingCamera = message.enabled;
+        } catch (e) {
+            // Ignore.
+        }
+    }
+});
+
+var pick = Picks.createPick(PickType.Ray, {
+    filter: Picks.PICK_DOMAIN_ENTITIES | Picks.PICK_AVATAR_ENTITIES | Picks.PICK_AVATARS | Picks.INCLUDE_VISIBLE
+        | Picks.PICK_INCLUDE_COLLIDABLE | Picks.PICK_INCLUDE_NONCOLLIDABLE | Picks.PICK_PRECISE,
+    joint: "Mouse",
+    enabled: false
+});
 
 var mouseLastX = 0;
 var mouseLastY = 0;
@@ -144,6 +173,14 @@ function handlePanMode(dx, dy) {
     Camera.setOrientation(orientationOf(vector));
 }
 
+function enableAway(enable) {
+    if (enable !== isAwayEnabled) {
+        var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
+        Messages.sendMessage(CHANNEL_AWAY_ENABLE, enable ? "enable" : "disable", true);
+    }
+    isAwayEnabled = enable;
+}
+
 function saveCameraState() {
     oldMode = Camera.mode;
     oldPosition = Camera.getPosition();
@@ -160,7 +197,11 @@ function restoreCameraState() {
 }
 
 function handleModes() {
-    var newMode = (mode == noMode) ? noMode : detachedMode;
+    if (isEditUsingCamera) {
+        return;
+    }
+
+    var newMode = (mode === noMode) ? noMode : detachedMode;
     if (alt) {
         if (control) {
             if (shift) {
@@ -174,51 +215,59 @@ function handleModes() {
     }
 
     // if entering detachMode
-    if (newMode == detachedMode && mode != detachedMode) {
+    if (newMode === detachedMode && mode !== detachedMode) {
         avatarPosition = MyAvatar.position;
         avatarOrientation = MyAvatar.orientation;
     }
     // if leaving detachMode
-    if (mode == detachedMode && newMode == detachedMode &&
-        (avatarPosition.x != MyAvatar.position.x ||
-            avatarPosition.y != MyAvatar.position.y ||
-            avatarPosition.z != MyAvatar.position.z ||
-            avatarOrientation.x != MyAvatar.orientation.x ||
-            avatarOrientation.y != MyAvatar.orientation.y ||
-            avatarOrientation.z != MyAvatar.orientation.z ||
-            avatarOrientation.w != MyAvatar.orientation.w)) {
+    if (mode === detachedMode && newMode === detachedMode && (
+        Vec3.length(Vec3.subtract(avatarPosition, MyAvatar.position)) > AVATAR_POSITION_SLOP
+        || Vec3.length(Vec3.subtract(Quat.getFront(avatarOrientation), Quat.getFront(MyAvatar.orientation)))
+            > AVATAR_ROTATION_SLOP)) {
         newMode = noMode;
     }
 
-    if (mode == noMode && newMode != noMode && Camera.mode == "independent") {
+    if (mode === noMode && newMode !== noMode && Camera.mode === "independent") {
         newMode = noMode;
     }
 
     // if leaving noMode
-    if (mode == noMode && newMode != noMode) {
+    if (mode === noMode && newMode !== noMode) {
         saveCameraState();
     }
     // if entering noMode
-    if (newMode == noMode && mode != noMode) {
+    if (newMode === noMode && mode !== noMode) {
         restoreCameraState();
     }
 
     mode = newMode;
+
+    enableAway(mode === noMode);
 }
 
 function keyPressEvent(event) {
     var changed = false;
 
-    if (event.text == "ALT") {
+    if (event.text === "ALT") {
+        if (isEditUsingCamera) {
+            return;
+        }
         alt = true;
         changed = true;
+        Picks.enablePick(pick);
     }
-    if (event.text == "CONTROL") {
+    if (event.text === "CONTROL") {
         control = true;
         changed = true;
     }
-    if (event.text == "SHIFT") {
+    if (event.text === "SHIFT") {
         shift = true;
+        changed = true;
+    }
+
+    if (mode !== noMode && !alt && !control && !shift && /^ESC|LEFT|RIGHT|UP|DOWN|[wasdWASD]$/.test(event.text)) {
+        mode = noMode;
+        restoreCameraState();
         changed = true;
     }
 
@@ -230,17 +279,16 @@ function keyPressEvent(event) {
 function keyReleaseEvent(event) {
     var changed = false;
 
-    if (event.text == "ALT") {
+    if (event.text === "ALT") {
         alt = false;
         changed = true;
-        mode = noMode;
-        restoreCameraState();
+        Picks.disablePick(pick);
     }
-    if (event.text == "CONTROL") {
+    if (event.text === "CONTROL") {
         control = false;
         changed = true;
     }
-    if (event.text == "SHIFT") {
+    if (event.text === "SHIFT") {
         shift = false;
         changed = true;
     }
@@ -255,34 +303,32 @@ function mousePressEvent(event) {
         mouseLastX = event.x;
         mouseLastY = event.y;
 
-        // Compute trajectories related values
-        var pickRay = Camera.computePickRay(mouseLastX, mouseLastY);
-        var modelIntersection = Entities.findRayIntersection(pickRay, true);
-        var avatarIntersection = AvatarList.findRayIntersection(pickRay);
+        position = Camera.position;
 
-        position = Camera.getPosition();
-
-        if (avatarIntersection.intersects || (modelIntersection.intersects && modelIntersection.accurate)) {
-            if (avatarIntersection.intersects) {
-                center = avatarIntersection.intersection;
-            } else {
-                center = modelIntersection.intersection;
-            }
-            // We've selected our target, now orbit towards it automatically
-            rotatingTowardsTarget = true;
-            // calculate our target cam rotation
-            Script.setTimeout(function () {
-                rotatingTowardsTarget = false;
-            }, LOOK_AT_TIME);
-
-            vector = Vec3.subtract(position, center);
-            targetCamOrientation = orientationOf(vector);
-            radius = Vec3.length(vector);
-            azimuth = Math.atan2(vector.z, vector.x);
-            altitude = Math.asin(vector.y / Vec3.length(vector));
-
-            isActive = true;
+        var pickResult = Picks.getPrevPickResult(pick);
+        if (pickResult.intersects) {
+            // Orbit about intersection.
+            center = pickResult.intersection;
+        } else {
+            // Orbit about point in space.
+            var ORBIT_DISTANCE = 10.0;
+            center = Vec3.sum(position, Vec3.multiply(ORBIT_DISTANCE, pickResult.searchRay.direction));
         }
+
+        // We've selected our target, now orbit towards it automatically
+        rotatingTowardsTarget = true;
+        // calculate our target cam rotation
+        Script.setTimeout(function () {
+            rotatingTowardsTarget = false;
+        }, LOOK_AT_TIME);
+
+        vector = Vec3.subtract(position, center);
+        targetCamOrientation = orientationOf(vector);
+        radius = Vec3.length(vector);
+        azimuth = Math.atan2(vector.z, vector.x);
+        altitude = Math.asin(vector.y / Vec3.length(vector));
+
+        isActive = true;
     }
 }
 
@@ -293,19 +339,24 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseMoveEvent(event) {
-    if (isActive && mode != noMode && !rotatingTowardsTarget) {
-        if (mode == radialMode) {
+    if (isActive && mode !== noMode && !rotatingTowardsTarget) {
+        if (mode === radialMode) {
             handleRadialMode(event.x - mouseLastX, event.y - mouseLastY);
         }
-        if (mode == orbitMode) {
+        if (mode === orbitMode) {
             handleOrbitMode(event.x - mouseLastX, event.y - mouseLastY);
         }
-        if (mode == panningMode) {
+        if (mode === panningMode) {
             handlePanMode(event.x - mouseLastX, event.y - mouseLastY);
         }
     }
     mouseLastX = event.x;
     mouseLastY = event.y;
+}
+
+function onCameraModeUpdated(newMode) {
+    mode = noMode;
+    handleModes();
 }
 
 function update() {
@@ -316,13 +367,15 @@ function update() {
 }
 
 function rotateTowardsTarget() {
-    var newOrientation = Quat.mix(Camera.getOrientation(), targetCamOrientation, 0.1);
+    var MIX_FACTOR = 0.1;
+    var newOrientation = Quat.mix(Camera.getOrientation(), targetCamOrientation, MIX_FACTOR);
     Camera.setOrientation(newOrientation);
 }
 
 function scriptEnding() {
-    if (mode != noMode) {
+    if (mode !== noMode) {
         restoreCameraState();
+        enableAway(true);
     }
 }
 
@@ -332,6 +385,8 @@ Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
+
+Camera.modeUpdated.connect(onCameraModeUpdated);
 
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);

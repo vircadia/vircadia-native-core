@@ -209,7 +209,9 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
     }
 
     // if it's in the error state, reset and try again.
-    if ((_domainURL != domainURL || _sockAddr.getPort() != domainPort) || _isInErrorState) {
+    if (_domainURL != domainURL 
+        || (_sockAddr.getPort() != domainPort && domainURL.scheme() == URL_SCHEME_HIFI)
+        || _isInErrorState) {
         // re-set the domain info so that auth information is reloaded
         hardReset("Changing domain URL");
 

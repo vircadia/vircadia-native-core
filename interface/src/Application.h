@@ -464,7 +464,7 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
     void setIsServerlessMode(bool serverlessDomain);
-    std::map<QString, QString> prepareServerlessDomainContents(QUrl domainURL);
+    std::map<QString, QString> prepareServerlessDomainContents(QUrl domainURL, QByteArray data);
 
     void loadServerlessDomain(QUrl domainURL);
     void loadErrorDomain(QUrl domainURL);

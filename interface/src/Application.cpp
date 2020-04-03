@@ -111,6 +111,7 @@
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 #include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
@@ -511,27 +512,6 @@ std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
 ThreadSafeMovingAverage<int, DeadlockWatchdogThread::HEARTBEAT_SAMPLES> DeadlockWatchdogThread::_movingAverage;
 
-bool isDomainURL(QUrl url) {
-    if (!url.isValid()) {
-        return false;
-    }
-    if (url.scheme() == URL_SCHEME_HIFI) {
-        return true;
-    }
-    if (url.scheme() != HIFI_URL_SCHEME_FILE) {
-        // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
-        // be loaded over http(s)
-        // && url.scheme() != HIFI_URL_SCHEME_HTTP &&
-        // url.scheme() != HIFI_URL_SCHEME_HTTPS
-        return false;
-    }
-    if (url.path().endsWith(".json", Qt::CaseInsensitive) ||
-        url.path().endsWith(".json.gz", Qt::CaseInsensitive)) {
-        return true;
-    }
-    return false;
-}
-
 #ifdef Q_OS_WIN
 static const UINT UWM_IDENTIFY_INSTANCES =
     RegisterWindowMessage("UWM_IDENTIFY_INSTANCES_{8AB82783-B74A-4258-955B-8188C22AA0D6}_" + qgetenv("USERNAME"));
@@ -563,14 +543,6 @@ public:
                 return true;
             }
 
-            if (message->message == WM_COPYDATA) {
-                COPYDATASTRUCT* pcds = (COPYDATASTRUCT*)(message->lParam);
-                QUrl url = QUrl((const char*)(pcds->lpData));
-                if (isDomainURL(url)) {
-                    DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
-                    return true;
-                }
-            }
             // Attempting to close MIDI interfaces of a hot-unplugged device can result in audio-driver deadlock.
             // Detecting MIDI devices that have been added/removed after starting Inteface has been disabled.
             // https://support.microsoft.com/en-us/help/4460006/midi-device-app-hangs-when-former-midi-api-is-used
@@ -1216,7 +1188,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager->setIsAgent(true);
-    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
+    accountManager->setAuthURL(MetaverseAPI::getCurrentMetaverseServerURL());
     if (!accountManager->hasKeyPair()) {
         accountManager->generateNewUserKeypair();
     }
@@ -3184,7 +3156,7 @@ void Application::showLoginScreen() {
         QJsonObject loginData = {};
         loginData["action"] = "login dialog popped up";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-        _window->setWindowTitle("High Fidelity");
+        _window->setWindowTitle("Project Athena");
     } else {
         resumeAfterLoginDialogActionTaken();
     }
@@ -4058,7 +4030,7 @@ void Application::setIsServerlessMode(bool serverlessDomain) {
     }
 }
 
-std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl domainURL) {
+std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl domainURL, QByteArray data) {
     QUuid serverlessSessionID = QUuid::createUuid();
     getMyAvatar()->setSessionUUID(serverlessSessionID);
     auto nodeList = DependencyManager::get<NodeList>();
@@ -4069,14 +4041,13 @@ std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl dom
     permissions.setAll(true);
     nodeList->setPermissions(permissions);
 
-    // we can't import directly into the main tree because we would need to lock it, and
-    // Octree::readFromURL calls loop.exec which can run code which will also attempt to lock the tree.
+    // FIXME: Lock the main tree and import directly into it.
     EntityTreePointer tmpTree(new EntityTree());
     tmpTree->setIsServerlessMode(true);
     tmpTree->createRootElement();
     auto myAvatar = getMyAvatar();
     tmpTree->setMyAvatar(myAvatar);
-    bool success = tmpTree->readFromURL(domainURL.toString());
+    bool success = tmpTree->readFromByteArray(domainURL.toString(), data);
     if (success) {
         tmpTree->reaverageOctreeElements();
         tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), 0, 0, 0);
@@ -4099,12 +4070,26 @@ void Application::loadServerlessDomain(QUrl domainURL) {
         return;
     }
 
-    auto namedPaths = prepareServerlessDomainContents(domainURL);
-    auto nodeList = DependencyManager::get<NodeList>();
+    QString trimmedUrl = domainURL.toString().trimmed();
+    bool DEFAULT_IS_OBSERVABLE = true;
+    const qint64 DEFAULT_CALLER_ID = -1;
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        this, trimmedUrl, DEFAULT_IS_OBSERVABLE, DEFAULT_CALLER_ID, "Application::loadServerlessDomain");
 
-    nodeList->getDomainHandler().connectedToServerless(namedPaths);
+    if (!request) {
+        return;
+    }
 
-    _fullSceneReceivedCounter++;
+    connect(request, &ResourceRequest::finished, this, [=]() {
+        if (request->getResult() == ResourceRequest::Success) {
+            auto namedPaths = prepareServerlessDomainContents(domainURL, request->getData());
+            auto nodeList = DependencyManager::get<NodeList>();
+            nodeList->getDomainHandler().connectedToServerless(namedPaths);
+            _fullSceneReceivedCounter++;
+        }
+        request->deleteLater();
+    });
+    request->send();
 }
 
 void Application::loadErrorDomain(QUrl domainURL) {
@@ -4113,16 +4098,7 @@ void Application::loadErrorDomain(QUrl domainURL) {
         return;
     }
 
-    if (domainURL.isEmpty()) {
-        return;
-    }
-
-    auto namedPaths = prepareServerlessDomainContents(domainURL);
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    nodeList->getDomainHandler().loadedErrorDomain(namedPaths);
-
-    _fullSceneReceivedCounter++;
+    loadServerlessDomain(domainURL);
 }
 
 bool Application::importImage(const QString& urlString) {
@@ -5541,6 +5517,8 @@ bool Application::importEntities(const QString& urlOrFilename, const bool isObse
     _entityClipboard->withWriteLock([&] {
         _entityClipboard->eraseAllOctreeElements();
 
+        // FIXME: readFromURL() can take over the main event loop which may cause problems, especially if downloading the JSON 
+        // from the Web.
         success = _entityClipboard->readFromURL(urlOrFilename, isObservable, callerId);
         if (success) {
             _entityClipboard->reaverageOctreeElements();
@@ -7749,7 +7727,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
             static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
                 "If you want to save what you have now, create a backup before proceeding. For more information about backing up "
                 "and restoring content, visit the documentation page at: ", MAX_CHARACTERS_PER_LINE) +
-                "\nhttps://docs.highfidelity.com/create-and-explore/start-working-in-your-sandbox/restoring-sandbox-content";
+                "\nhttps://docs.projectathena.dev/host/maintain-domain/backup-domain.html";
 
             ModalDialogListener* dig = OffscreenUi::asyncQuestion("Are you sure you want to replace this domain's content set?",
                                                                   infoText, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
@@ -8503,7 +8481,7 @@ void Application::loadAddAvatarBookmarkDialog() const {
 void Application::loadAvatarBrowser() const {
     auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     // construct the url to the marketplace item
-    QString url = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace?category=avatars";
+    QString url = MetaverseAPI::getCurrentMetaverseServerURL().toString() + "/marketplace?category=avatars";
 
     QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
     tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);
@@ -9258,7 +9236,7 @@ void Application::readArgumentsFromLocalSocket() const {
 
     // If we received a message, try to open it as a URL
     if (message.length() > 0) {
-        DependencyManager::get<WindowScriptingInterface>()->openUrl(QString::fromUtf8(message));
+        DependencyManager::get<AddressManager>()->handleLookupString(QString::fromUtf8(message));
     }
 }
 

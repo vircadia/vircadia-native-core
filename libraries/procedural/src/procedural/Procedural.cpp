@@ -20,6 +20,7 @@
 #include <NumericalConstants.h>
 #include <GLMHelpers.h>
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 #include <shaders/Shaders.h>
 
 #include "ShaderConstants.h"

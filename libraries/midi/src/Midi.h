@@ -23,7 +23,7 @@
 /**jsdoc
  * The <code>Midi</code> API provides the ability to connect Interface with musical instruments and other external or virtual 
  * devices via the MIDI protocol. For further information and examples, see the tutorial: 
- * <a href="https://docs.highfidelity.com/script/midi-tutorial.html">Use MIDI to Control Your Environment</a>.
+ * <a href="https://docs.projectathena.dev/script/midi-tutorial.html">Use MIDI to Control Your Environment</a>.
  *
  * <p><strong>Note:</strong> Only works on Windows.</p>
  *

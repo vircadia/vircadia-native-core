@@ -93,7 +93,7 @@ if (WIN32)
     set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
 endif()
 
-link_hifi_libraries(entities-renderer platform)
+link_hifi_libraries(entities-renderer platform physics)
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
