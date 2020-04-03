@@ -20,7 +20,7 @@
 
             <v-navigation-drawer
                 v-model="drawer"
-                absolute
+                fixed
                 temporary
             >
                 <v-list
@@ -49,6 +49,7 @@
                             <v-row>
                                 <v-col
                                     v-for="item in items"
+                                    v-bind:key="item.url"
                                     cols="12"
                                     sm="6"
                                     md="4"
@@ -60,28 +61,72 @@
                                         outlined
                                     >
                                         <v-list-item three-line>
-                                            <v-list-item-content>
-                                                <div class="overline mb-4">{{item.type}}</div>
-                                                <v-list-item-title class="headline mb-1">{{item.name}}</v-list-item-title>
-                                                <!-- <v-list-item-subtitle>Greyhound divisely hello coldly fonwderfully</v-list-item-subtitle> -->
+                                            
+                                            <v-list-item-content class="pb-1 pt-2">
+                                                <div class="overline" style="font-size: 0.825rem !important;">{{item.type}}</div>
+                                                <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
+                                                <v-list-item-subtitle>{{item.url}}</v-list-item-subtitle>
                                             </v-list-item-content>
+                                            
+                                            <!-- <v-card-actions>
+                                                <v-btn class="" color="purple">Share</v-btn>
+                                                <v-btn class="" color="red" @click="removeDialog.show = true;">Remove</v-btn>
+                                            </v-card-actions> -->
+                                            
+                                            <v-menu bottom left>
+                                            <template v-slot:activator="{ on }">
+                                                <v-btn 
+                                                    :style="{backgroundColor: (getIconColor(item.type)) }" 
+                                                    fab 
+                                                    x-large 
+                                                    dark
+                                                    v-on="on"
+                                                >
+                                                    <v-icon>{{displayIcon(item.type)}}</v-icon>
+                                                </v-btn>
+                                            </template>
 
-                                            <v-list-item-avatar
-                                                size="80"
-                                                :style="{backgroundColor: (getIconColor(item.type)) }"
-                                            >
-                                                <v-icon x-large dark>{{displayIcon(item.type)}}</v-icon>
-                                            </v-list-item-avatar>
+                                            <v-list color="grey darken-3">
+                                                <v-list-item
+                                                    @click="useItem(item.url)"
+                                                >
+                                                    <v-list-item-title>Use</v-list-item-title>
+                                                    <v-list-item-action>
+                                                        <v-icon>mdi-play</v-icon>
+                                                    </v-list-item-action>
+                                                </v-list-item>
+                                                <v-list-item
+                                                    @click="renameItem(item.url)"
+                                                >
+                                                    <v-list-item-title>Rename</v-list-item-title>
+                                                    <v-list-item-action>
+                                                        <v-icon>mdi-pencil</v-icon>
+                                                    </v-list-item-action>
+                                                </v-list-item>
+                                                <v-list-item
+                                                    @click="shareItem(item.url)"
+                                                >
+                                                    <v-list-item-title>Share</v-list-item-title>
+                                                    <v-list-item-action>
+                                                        <v-icon>mdi-share</v-icon>
+                                                    </v-list-item-action>
+                                                </v-list-item>
+                                                <v-list-item
+                                                    @click="removeDialog.show = true;"
+                                                    color="red darken-1"
+                                                >
+                                                    <v-list-item-title>Remove</v-list-item-title>
+                                                    <v-list-item-action>
+                                                        <v-icon>mdi-minus</v-icon>
+                                                    </v-list-item-action>
+                                                </v-list-item>
+                                            </v-list>
+                                            </v-menu>
+                                            
+
                                         </v-list-item>
 
-                                        <v-card-actions>
-                                            <v-btn class="px-5" color="purple">Share</v-btn>
-                                            <v-btn class="px-3" color="red" @click="removeDialog.show = true;">Remove</v-btn>
-                                            
-                                            <v-spacer></v-spacer>
-                                            
-                                            <v-btn class="px-7" color="success" :href="item.url">Use</v-btn>
-                                        </v-card-actions>
+
                                     </v-card>
                                 </v-col>
                             </v-row>
@@ -168,6 +213,7 @@
             <v-dialog
                 v-model="receiveDialog.show"
                 max-width="380"
+                persistent
             >
                 <v-card>
                     <v-card-title class="headline">Receiving Item</v-card-title>
@@ -241,8 +287,8 @@ new Vue({
             },
             {
                 "type": "script",
-                "name": "TEST",
-                "url": "https://google.com/vr.js",
+                "name": "TESTLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+                "url": "https://google.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
             },
             {
                 "type": "avatar",
@@ -287,8 +333,13 @@ new Vue({
             show: false,
         },
         receiveDialog: {
-            show: true,
+            show: false,
+            user: null,
+            name: null,
+            type: null,
+            url: null,
         },
+        sortBy: "alphabetical",
         darkTheme: true,
         drawer: false,
     }),
@@ -299,6 +350,33 @@ new Vue({
     methods: {
         addItem: function(url) {
             
+        },
+        removeItem: function(url) {
+            
+        },
+        renameItem: function(url) {
+            
+        },
+        receivingItem: function(name, url) {
+            
+        },
+        shareItem: function(url) {
+            
+        },
+        acceptItem: function(url) {
+            
+        },
+        useItem: function(url) {
+            alert(url);
+            this.sendAppMessage("test", "testData");
+        },
+        sendAppMessage: function(command, data) {
+            var JSONtoSend = {
+                "app": "inventory",
+                "command": command,
+                "data": data
+            };
+            EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
         },
         displayIcon: function(itemType) {
             return this.iconType[itemType].icon;
