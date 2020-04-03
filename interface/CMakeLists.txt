@@ -15,9 +15,9 @@ set(CUSTOM_INTERFACE_QRC_PATHS "")
 
 find_npm()
 
-#if (BUILD_TOOLS AND NPM_EXECUTABLE)
-#  add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
-#endif ()
+if (BUILD_TOOLS AND NPM_EXECUTABLE)
+  add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
+endif ()
 
 set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
 set(RESOURCES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/compiledResources/resources.rcc)
@@ -142,6 +142,9 @@ if (APPLE)
   list(APPEND INTERFACE_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME})
 endif()
 
+if (UNIX)
+  set(BUILD_SHARED_LIBS ON)
+endif ()
 
 # create the executable, make it a bundle on OS X
 if (APPLE)
@@ -156,14 +159,14 @@ elseif (WIN32)
   set(CONFIGURE_ICON_RC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/Icon.rc")
   configure_file("${HF_CMAKE_DIR}/templates/Icon.rc.in" ${CONFIGURE_ICON_RC_OUTPUT})
 
-  set(APP_FULL_NAME "High Fidelity")
+  set(APP_FULL_NAME "Project Athena")
   set(CONFIGURE_VERSION_INFO_RC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/VersionInfo.rc")
   configure_file("${HF_CMAKE_DIR}/templates/VersionInfo.rc.in" ${CONFIGURE_VERSION_INFO_RC_OUTPUT})
 
   # add an executable that also has the icon itself and the configured rc file as resources
-  #add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT} ${CONFIGURE_VERSION_INFO_RC_OUTPUT})
+  add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT} ${CONFIGURE_VERSION_INFO_RC_OUTPUT})
   ##^^^^^ creates native Win32 app w/o cmd console vvvvvv forces cmd console for logging
-  add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT} ${CONFIGURE_VERSION_INFO_RC_OUTPUT})
+  # add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT} ${CONFIGURE_VERSION_INFO_RC_OUTPUT})
 
   if (NOT DEV_BUILD)
     add_custom_command(
@@ -182,10 +185,10 @@ else ()
 endif ()
 
 
-#if (BUILD_TOOLS AND NPM_EXECUTABLE)
+if (BUILD_TOOLS AND NPM_EXECUTABLE)
   # require JSDoc to be build before interface is deployed
-#  add_dependencies(resources jsdoc)
-#endif()
+  add_dependencies(resources jsdoc)
+endif()
 
 add_dependencies(${TARGET_NAME} resources)
 
@@ -326,9 +329,9 @@ if (APPLE)
       "${CMAKE_SOURCE_DIR}/scripts"
       "${RESOURCES_DEV_DIR}/scripts"
     # copy JSDoc files beside the executable
-    #COMMAND "${CMAKE_COMMAND}" -E copy_directory
-    #  "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
-    #  "${RESOURCES_DEV_DIR}/jsdoc"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
+      "${RESOURCES_DEV_DIR}/jsdoc"
     # copy the resources files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${RESOURCES_RCC}"
@@ -381,9 +384,9 @@ else()
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
     # copy JSDoc files beside the executable
-    #COMMAND "${CMAKE_COMMAND}" -E copy_directory
-    #  "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
-    #  "${INTERFACE_EXEC_DIR}/jsdoc"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
+      "${INTERFACE_EXEC_DIR}/jsdoc"
   )
 
   # link target to external libraries

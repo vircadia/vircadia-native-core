@@ -26,8 +26,7 @@ namespace NetworkingConstants {
     // at https://staging.highfidelity.com/user/tokens/new?for_domain_server=true
 
     const QUrl METAVERSE_SERVER_URL_STABLE { "https://metaverse.highfidelity.com" };
-    const QUrl METAVERSE_SERVER_URL_STAGING { "https://staging.highfidelity.com" };
-    QUrl METAVERSE_SERVER_URL();
+    const QUrl METAVERSE_SERVER_URL_STAGING { "https://staging.projectathena.io" };
 }
 
 const QString HIFI_URL_SCHEME_ABOUT = "about";

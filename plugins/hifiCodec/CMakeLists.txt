@@ -8,7 +8,7 @@
 
 set(TARGET_NAME hifiCodec)
 setup_hifi_client_server_plugin()
-link_hifi_libraries(audio plugins)
+link_hifi_libraries(shared audio plugins)
 target_hifiAudioCodec()
 if (BUILD_SERVER)
   install_beside_console()

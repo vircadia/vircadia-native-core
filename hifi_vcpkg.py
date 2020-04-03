@@ -9,6 +9,7 @@ import tempfile
 import json
 import xml.etree.ElementTree as ET
 import functools
+import distro
 from os import path
 
 print = functools.partial(print, flush=True)
@@ -164,7 +165,7 @@ endif()
         if downloadVcpkg:
             if "HIFI_VCPKG_BOOTSTRAP" in os.environ:
                 print("Cloning vcpkg from github to {}".format(self.path))
-                hifi_utils.executeSubprocess(['git', 'clone', 'git@github.com:microsoft/vcpkg.git', self.path])
+                hifi_utils.executeSubprocess(['git', 'clone', 'https://github.com/microsoft/vcpkg', self.path])
                 print("Bootstrapping vcpkg")
                 hifi_utils.executeSubprocess([self.bootstrapCmd], folder=self.path)
             else:
@@ -286,15 +287,32 @@ endif()
             elif platform.system() == 'Darwin':
                 url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz%3FversionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
             elif platform.system() == 'Linux':
-                if platform.linux_distribution()[1][:3] == '16.':
-                    url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
-                elif platform.linux_distribution()[1][:3] == '18.':
-                    url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
+                dist = distro.linux_distribution()
+
+                if distro.id() == 'ubuntu':
+                    u_major = int( distro.major_version() )
+                    u_minor = int( distro.minor_version() )
+
+                    if u_major == 16:
+                        url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
+                    elif u_major == 18:
+                        url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
+                    elif u_major == 19 and u_minor == 10:
+                        url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.6-ubuntu-19.10.tar.xz'
+                    elif u_major > 18 and ( u_major != 19 and u_minor != 4):
+                        print("We don't support " + distro.name(pretty=True) + " yet. Perhaps consider helping us out?")
+                    else:
+                        print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
                 else:
-                    print('UNKNOWN LINUX VERSION!!!')
+                    print("Sorry, " + distro.name(pretty=True) + " is not supported. Please consider helping us out.")
+                    print("It's also possible to build Qt for your distribution, please see the documentation at:")
+                    print("https://github.com/kasenvr/project-athena/tree/kasen/core/tools/qt-builder")
                     return;
             else:
                 print('UNKNOWN OPERATING SYSTEM!!!')
+                print("System      : " + platform.system())
+                print("Architecture: " + platform.architecture())
+                print("Machine     : " + platform.machine())
                 return;
 
             print('Extracting ' + url + ' to ' + dest)

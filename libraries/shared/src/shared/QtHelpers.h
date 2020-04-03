@@ -12,7 +12,7 @@
 
 #include <QtCore/QObject>
 
-#if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
+#if defined(Q_OS_WIN)
 // Enable event queue debugging
 #define DEBUG_EVENT_QUEUE
 #endif

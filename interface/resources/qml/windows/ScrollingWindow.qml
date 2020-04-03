@@ -97,11 +97,10 @@ Windows.Window {
                 background: Item {
                     implicitWidth: verticalScrollWidth
                     Rectangle {
-                        color: hifi.colors.darkGray30
+                        color: hifi.colors.baseGrayShadow
                         radius: 4
                         anchors {
                             fill: parent
-                            topMargin: -1  // Finesse size
                             bottomMargin: -2
                         }
                     }
@@ -113,7 +112,6 @@ Windows.Window {
                         color: hifi.colors.white30
                         anchors {
                             fill: parent
-                            leftMargin: 2  // Finesse size and position.
                             topMargin: 1
                             bottomMargin: 1
                         }

@@ -15,6 +15,7 @@
 
 #include <OffscreenQmlDialog.h>
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 
 class AddressBarDialog : public OffscreenQmlDialog {
     Q_OBJECT
@@ -30,7 +31,7 @@ public:
     bool forwardEnabled() { return _forwardEnabled; }
     bool useFeed() { return _useFeed; }
     void setUseFeed(bool useFeed) { if (_useFeed != useFeed) { _useFeed = useFeed; emit useFeedChanged(); } }
-    QString metaverseServerUrl() { return NetworkingConstants::METAVERSE_SERVER_URL().toString(); }
+    QString metaverseServerUrl() { return MetaverseAPI::getCurrentMetaverseServerURL().toString(); }
 
 signals:
     void backEnabledChanged();

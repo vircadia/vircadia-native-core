@@ -3825,7 +3825,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         }
         _actionMotorVelocity = motorSpeed * direction;
     } else {
-        _actionMotorVelocity = direction;
+        _actionMotorVelocity = sensorToWorldScale * direction;
     }
 
     float previousBoomLength = _boomLength;

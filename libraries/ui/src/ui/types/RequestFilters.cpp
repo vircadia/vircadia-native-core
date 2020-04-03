@@ -16,6 +16,7 @@
 
 #include <SettingHandle.h>
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 #include <AccountManager.h>
 
 #include "ContextAwareProfile.h"
@@ -25,7 +26,7 @@
 namespace {
 
     bool isAuthableHighFidelityURL(const QUrl& url) {
-        auto metaverseServerURL = NetworkingConstants::METAVERSE_SERVER_URL();
+        auto metaverseServerURL = MetaverseAPI::getCurrentMetaverseServerURL();
         static const QStringList HF_HOSTS = {
             "highfidelity.com", "highfidelity.io",
             metaverseServerURL.toString(), "metaverse.highfidelity.io"

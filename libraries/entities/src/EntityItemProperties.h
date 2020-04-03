@@ -121,6 +121,8 @@ public:
     static void propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, QByteArray& blob);
 
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
+    EntityItemProperties(const EntityItemProperties&) = default;
+
     virtual ~EntityItemProperties() = default;
 
     void merge(const EntityItemProperties& other);

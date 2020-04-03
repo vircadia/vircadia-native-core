@@ -85,9 +85,9 @@
 #include "MIDIEvent.h"
 
 #include "SettingHandle.h"
-// #include "SettingManager.h"
-// #include "SettingInterface.h"
-// #include "SettingHelpers.h"
+#include <AddressManager.h>
+#include <NetworkingConstants.h>
+
 
 const QString ScriptEngine::_SETTINGS_ENABLE_EXTENDED_EXCEPTIONS {
     "com.highfidelity.experimental.enableExtendedJSExceptions"
@@ -2361,32 +2361,59 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         } else if (testConstructor.isError()) {
             exception = testConstructor;
         }
-    }
-    else {
-      // ENTITY SCRIPT WHITELIST STARTS HERE
+    } else {
+        // ENTITY SCRIPT WHITELIST STARTS HERE
+        auto nodeList = DependencyManager::get<NodeList>();
+        bool passList = false;  // assume unsafe
         QString whitelistPrefix = "[WHITELIST ENTITY SCRIPTS]";
-        QList<QString> safeURLS = { "" };
-        safeURLS += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
+        QList<QString> safeURLPrefixes = { "file:///", "atp:", "cache:" };
+        safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
 
-        // PULL SAFEURLS FROM INTERFACE.JSON Settings
+        // Entity Script Whitelist toggle check.
+        Setting::Handle<bool> whitelistEnabled {"private/whitelistEnabled", false };
+                
+        if (!whitelistEnabled.get()) {
+            passList = true;
+        }
         
+        // Pull SAFEURLS from the Interface.JSON settings.
         QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
         QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), QString::SkipEmptyParts);
-        safeURLS += settingsSafeURLS;
+        safeURLPrefixes += settingsSafeURLS;
+        // END Pull SAFEURLS from the Interface.JSON settings.
         
-        // END PULL SAFEURLS FROM INTERFACE.JSON Settings
+        // Get current domain whitelist bypass, in case an entire domain is whitelisted.
+        QString currentDomain = DependencyManager::get<AddressManager>()->getDomainURL().host();
         
-        bool isInWhitelist = false;  // assume unsafe
-        for (const auto& str : safeURLS) {
-            qCDebug(scriptengine) << whitelistPrefix << "Script URL: " << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
-                     << scriptOrURL.startsWith(str);
-            if (!str.isEmpty() && scriptOrURL.startsWith(str)) {
-                isInWhitelist = true;
-                qCDebug(scriptengine) << whitelistPrefix << "Script approved.";
-                break;  // bail early since we found a match
+        QString domainSafeIP = nodeList->getDomainHandler().getHostname();
+        QString domainSafeURL = URL_SCHEME_HIFI + "://" + currentDomain;
+        for (const auto& str : safeURLPrefixes) {
+            if (domainSafeURL.startsWith(str) || domainSafeIP.startsWith(str)) {
+                qCDebug(scriptengine) << whitelistPrefix << "Whitelist Bypassed, entire domain is whitelisted. Current Domain Host: " 
+                    << nodeList->getDomainHandler().getHostname()
+                    << "Current Domain: " << currentDomain;
+                passList = true;
             }
         }
-        if (!isInWhitelist) {
+        // END bypass whitelist based on current domain.
+
+        // Start processing scripts through the whitelist.
+        if (ScriptEngine::getContext() == "entity_server") { // If running on the server, do not engage whitelist.
+            passList = true;
+        } else if (!passList) { // If waved through, do not engage whitelist.
+            for (const auto& str : safeURLPrefixes) {
+                qCDebug(scriptengine) << whitelistPrefix << "Script URL: " << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
+                    << scriptOrURL.startsWith(str);
+                if (!str.isEmpty() && scriptOrURL.startsWith(str)) {
+                    passList = true;
+                    qCDebug(scriptengine) << whitelistPrefix << "Script approved.";
+                    break; // Bail early since we found a match.
+                }
+            }
+        }
+        // END processing of scripts through the whitelist.
+
+        if (!passList) { // If the entity failed to pass for any reason, it's blocked and an error is thrown.
             qCDebug(scriptengine) << whitelistPrefix << "(disabled entity script)" << entityID.toString() << scriptOrURL;
             exception = makeError("UNSAFE_ENTITY_SCRIPTS == 0");
         } else {

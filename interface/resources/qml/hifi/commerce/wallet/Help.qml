@@ -207,7 +207,7 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
                         if (link === "#privateKeyPath") {
                             Qt.openUrlExternally("file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/')));
                         } else if (link === "#blockchain") {
-                            Qt.openUrlExternally("https://docs.highfidelity.com/high-fidelity-commerce");
+                            Qt.openUrlExternally("https://docs.projectathena.dev/explore/shop.html");
                         } else if (link === "#bank") {
                             if ((Account.metaverseServerURL).toString().indexOf("staging") >= 0) {
                                 Qt.openUrlExternally("hifi://hifiqa-master-metaverse-staging"); // So that we can test in staging.

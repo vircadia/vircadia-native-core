@@ -44,7 +44,6 @@ Rectangle {
         return (root.parent !== null) && root.parent.objectName == "loader";
     }
 
-
     property bool isVR: AudioScriptingInterface.context === "VR"
     property real rightMostInputLevelPos: root.width
     //placeholder for control sizes and paddings
@@ -128,16 +127,16 @@ Rectangle {
             anchors.top: flickView.top;
             anchors.right: flickView.right;
             anchors.bottom: flickView.bottom;
-            anchors.rightMargin: -verticalScrollWidth; //compensate flickView's right margin
+            z: 100  // Display over top of separators.
+
             background: Item {
                 implicitWidth: verticalScrollWidth;
                 Rectangle {
-                    color: hifi.colors.darkGray30;
+                    color: hifi.colors.baseGrayShadow
                     radius: 4;
                     anchors {
                         fill: parent;
-                        topMargin: -1;  // Finesse size
-                        bottomMargin: -2;
+                        topMargin: 2  // Finess position
                     }
                 }
             }
@@ -148,9 +147,7 @@ Rectangle {
                     color: hifi.colors.white30;
                     anchors {
                         fill: parent;
-                        leftMargin: 2;  // Finesse size and position.
-                        topMargin: 1;
-                        bottomMargin: 1;
+                        topMargin: 1;  // Finesse position.
                     }
                 }
             }
@@ -337,7 +334,6 @@ Rectangle {
             anchors.top: pttTextContainer.visible ? pttTextContainer.bottom : switchesContainer.bottom;
             anchors.topMargin: 10;
         }
-
 
         Item {
             id: inputDeviceHeader
@@ -688,4 +684,5 @@ Rectangle {
             anchors.topMargin: 10;
         }
     }
+
 }

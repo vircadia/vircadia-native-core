@@ -1,0 +1,15 @@
+Source: athena-server
+Section: comm
+Priority: optional
+Maintainer: Heather Anderson <heath@odysseus.anderson.name>
+Build-Depends: debhelper (>= 10)
+Standards-Version: 4.1.2
+Homepage: https://www.projectathena.dev
+Vcs-Git: https://github.com/kasenvr/project-athena.git
+Vcs-Browser: https://github.com/kasenvr/project-athena
+
+Package: athena-server
+Architecture: any
+Depends: adduser, {DEPENDS}
+Description: Project Athena allows creation and sharing of VR experiences.
+  The Project Athena metaverse provides built-in social features, including avatar interactions, spatialized audio and interactive physics. Additionally, you have the ability to import any 3D object into your virtual environment.

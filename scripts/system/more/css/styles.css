@@ -1,0 +1,186 @@
+/*
+    styles.css
+
+    Created by Kalila L. on 23 Feb 2020.
+    Copyright 2020 Project Athena and contributors.
+
+    Distributed under the Apache License, Version 2.0.
+    See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+*/
+
+body {
+    background: #27343B;
+    font-family: 'Merriweather', sans-serif;
+    font-size: 14px;
+    color: #FFFFFF;
+    font-weight: 600;
+    text-decoration: none;
+    font-style: normal;
+    font-variant: normal;
+    text-transform: none;
+}
+
+font.mainTitle {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 28px;
+    color: #ffffff;
+    font-weight: 800;
+    text-decoration: none;
+    font-style: normal;
+    font-variant: normal;
+    text-transform: none;
+    text-shadow: 3px 3px 3px rgba(63,64,76,1);
+}
+
+p.mainDesc {
+    font-family: 'Merriweather', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+p a {
+    color: SteelBlue;
+}
+
+font.appname {
+    font-family: 'Merriweather', sans-serif;
+    font-size: 18px;
+    color: #CFB538;
+    font-weight: 800;
+    text-decoration: none;
+    font-style: normal;
+    font-variant: normal;
+    text-transform: none;
+    margin-bottom: 5px;
+    float: left;
+    clear: both;
+}
+
+font.appdesc {
+    font-family: 'Merriweather', sans-serif;
+    font-size: 15px;
+    color: #ffffff;
+    font-weight: 500;
+    text-decoration: none;
+    font-style: normal;
+    font-variant: normal;
+    text-transform: none;
+    margin-bottom: 5px;
+    float: left;
+    clear: both;
+}
+
+font.noresult {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 18px;
+    color: #aaaaaa;
+    font-weight: 500;
+    text-decoration: none;
+    font-style: normal;
+    font-variant: normal;
+    text-transform: none;
+}
+
+font.caption {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    color: #ffffff;
+    font-weight: 600;
+    text-decoration: none;
+    font-style: normal;
+    font-variant: normal;
+    text-transform: none;
+}
+
+font.pager {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 14px;
+    color: #B2B5D9;
+    font-weight: 600;
+    text-decoration: none;
+    font-style: normal;
+    font-variant: normal;
+    text-transform: none;
+}
+
+div.iconContainer{
+    border-radius: 15px;
+    background: #000000;
+    padding: 5px;
+    width: 70px;
+    height: 70px;
+    text-align: center;
+}
+
+table.item {
+    background: #3E415E;
+}
+
+td {
+    vertical-align: top;
+    padding: 5px;
+}
+
+button.install {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #008CBA;
+    font-size: 16px;
+    color: #ffffff;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 2px solid #008CBA;
+    transition-duration: 0.3s;
+    float: right;
+}
+
+button.install:hover {
+    background-color: #10afe3; 
+    border: 2px solid #10afe3;
+}
+
+button.uninstall {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #b34700;
+    font-size: 16px;
+    color: #ffffff;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 2px solid #b34700;
+    transition-duration: 0.3s;
+    float: right;
+}
+
+button.uninstall:hover {
+    background-color: #e34c22; 
+    border: 2px solid #e34c22;
+}
+
+button.processing {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #b59207;
+    font-size: 16px;
+    color: #ffffff;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 2px solid #b59207;
+    transition-duration: 0.3s;
+    float: right;
+}
+
+div.searchbox {
+    border-radius: 6px;
+    background: #ffffff;
+    padding: 4px;
+    border: 0px;
+    vertical-align: middle;
+}
+
+input.searchtextbox{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    color: #000000;
+    font-weight: 400;
+    text-decoration: none;
+    border: 0px;
+    outline-color: #ffffff;
+}

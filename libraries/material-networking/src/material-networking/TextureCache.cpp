@@ -43,9 +43,10 @@
 #include <Finally.h>
 #include <Profile.h>
 
-#include "NetworkLogging.h"
+#include <NetworkLogging.h>
 #include "MaterialNetworkingLogging.h"
-#include "NetworkingConstants.h"
+#include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 #include <Trace.h>
 #include <StatTracker.h>
 

@@ -1,0 +1,188 @@
+<!--
+//  explore.html
+//
+//  Created by Darlingnotin in 2019.
+//  Copyright 2019 Darlingnotin
+//
+//  Distributed under the ISC license.
+//  See the accompanying file LICENSE or https://opensource.org/licenses/ISC
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Explore</title>
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <style>
+        .myButton {
+            box-shadow: 3px 4px 0px 0px #899599;
+            background: linear-gradient(to bottom, #ededed 5%, #bab1ba 100%);
+            background-color: #ededed;
+            border-radius: 15px;
+            border: 1px solid #d6bcd6;
+            display: inline-block;
+            cursor: pointer;
+            color: #3a8a9e;
+            font-family: Arial;
+            font-size: 17px;
+            padding: 2px 19px;
+            text-decoration: none;
+            text-shadow: 0px 1px 0px #e1e2ed;
+        }
+
+        .myButton:hover {
+            background: linear-gradient(to bottom, #bab1ba 5%, #ededed 100%);
+            background-color: #bab1ba;
+        }
+
+        .myButton:active {
+            position: relative;
+            top: 1px;
+        }
+
+        table {
+            font-family: arial, sans-serif;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        td,
+        th {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #EFEFEF;
+        }
+
+        input[type=text],
+        select {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #dddddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body onload="retrieveAddressList()">
+
+    <h3>Explore</h3>
+
+    <input type="text" id="domainAddressInput" placeholder="Type domain address here">
+
+    <button class="myButton" onclick="myDomainAddressInputGoTo()">Visit</button>
+    
+    <p id="showData"></p>
+
+    <p id="addLocation"></p>
+
+    <script>
+
+        function myDomainAddressInputGoTo() {
+            var hifiUrl = document.getElementById("domainAddressInput").value;
+            if (hifiUrl != "") {
+                var readyEvent = {
+                    "action": "goToUrl",
+                    "visit": hifiUrl,
+                };
+                EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+            }
+        }
+
+        function navigateTo(url) {
+            var readyEvent = {
+                "action": "goToUrl",
+                "visit": url,
+            };
+            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+        }
+
+        function retrieveAddressList() {
+            var readyEvent = {
+                "action": "requestAddressList",
+            };
+            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+        }
+
+        EventBridge.scriptEventReceived.connect(function (message) {
+            var messageData = JSON.parse(message);
+            if (messageData.action == "addressList") {
+                myAddress = messageData.myAddress;
+                createTableFromJSON();
+                if (messageData.permission) {
+                    document.getElementById("addLocation").innerHTML = "<button class=\"myButton\" onclick=\"window.location.href = 'addLocation.html';\">Add Location To Explore</button>";
+                }
+            }
+        });
+
+        var myAddress = [{}];
+
+        function createTableFromJSON() {
+
+            var col = [];
+            for (var i = 0; i < myAddress.length; i++) {
+                for (var key in myAddress[i]) {
+                    if (col.indexOf(key) === -1) {
+                        col.push(key);
+                    }
+                }
+            }
+
+            var table = document.createElement("table");
+            table.setAttribute('id', 'domains');
+            table.setAttribute('class', 'table table-striped sampleTable domains');
+
+            var thead = table.createTHead();
+
+            //var tr = table.insertRow(-1);
+
+            for (var i = 0; i < col.length; i++) {
+                var th = document.createElement("th");
+                if (col[i] === 'People') th.setAttribute('data-sortas', 'numeric');
+                th.innerHTML = col[i];
+                thead.appendChild(th);
+            }
+
+            var tbdy = document.createElement('tbody');
+            for (var i = 0; i < myAddress.length; i++) {
+
+                tr = table.insertRow(-1);
+
+                for (var j = 0; j < col.length; j++) {
+                    var tabCell = tr.insertCell(-1);
+                    if (j == 2) {
+                        var url = "<input id=\"Button\" class=\"myButton\" type=\"button\" onclick=\"navigateTo('" + myAddress[i][col[j]] + "')\" value=\"Visit\" />";
+                        tabCell.innerHTML = url;
+                    } else {
+                        tabCell.innerHTML = myAddress[i][col[j]];
+                    }
+                }
+            }
+
+            var divContainer = document.getElementById("showData");
+            divContainer.innerHTML = "";
+            divContainer.appendChild(table);
+            $("#domains").fancyTable({
+                sortColumn: 3, // column number for initial sorting
+                sortOrder: 'desc', // 'desc', 'descending', 'asc', 'ascending', -1 (descending) and 1 (ascending)
+                sortable: true,
+                pagination: true, // default: false
+                perPage: 7,
+                searchable: true,
+                globalSearch: true,
+                globalSearchExcludeColumns: [3] // exclude column 2 & 5
+            });
+        }
+    </script>
+    <script src="jquery.min.js"></script>
+    <script src="bootstrap.min.js"></script>
+    <script src="fancyTable.js"></script>
+</body>
+
+</html>

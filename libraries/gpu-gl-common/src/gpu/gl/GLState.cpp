@@ -119,7 +119,7 @@ void generateDepthBias(GLState::Commands& commands, const State& state) {
 }
 
 void generateDepthTest(GLState::Commands& commands, const State::DepthTest& test) {
-    commands.push_back(std::make_shared<CommandDepthTest>(&GLBackend::do_setStateDepthTest, int32(test.getRaw())));
+    commands.push_back(std::make_shared<CommandDepthTest>(&GLBackend::do_setStateDepthTest, test));
 }
 
 void generateStencil(GLState::Commands& commands, const State& state) {

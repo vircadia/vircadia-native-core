@@ -412,7 +412,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
             continue;
         }
 
-        bool isOverrideScript = it.key().toString().compare(this->_defaultScriptsOverride.toString());
+        bool isOverrideScript = it.key().toString().compare(this->_defaultScriptsOverride.toString()) == 0;
         // queue user scripts if restarting
         if (restart && (scriptEngine->isUserLoaded() || isOverrideScript)) {
             _isReloading = true;

@@ -1,9 +1,13 @@
+# General Build Information
+
+*Last Updated on December 21, 2019*
+
 ### OS Specific Build Guides
 
-* [BUILD_WIN.md](BUILD_WIN.md) - complete instructions for Windows.
-* [BUILD_OSX.md](BUILD_OSX.md) - additional instructions for OS X.
-* [BUILD_LINUX.md](BUILD_LINUX.md) - additional instructions for Linux.
-* [BUILD_ANDROID.md](BUILD_ANDROID.md) - additional instructions for Android
+* [Build Windows](BUILD_WIN.md) - complete instructions for Windows.
+* [Build Linux](BUILD_LINUX.md) - additional instructions for Linux.
+* [Build OSX](BUILD_OSX.md) - additional instructions for OS X.
+* [Build Android](BUILD_ANDROID.md) - additional instructions for Android
 
 ### Dependencies
 - [git](https://git-scm.com/downloads): >= 1.6  
@@ -21,10 +25,10 @@ These dependencies need not be installed manually. They are automatically downlo
 - [QuaZip](https://sourceforge.net/projects/quazip/files/quazip/):   0.7.3  
 - [SDL2](https://www.libsdl.org/download-2.0.php):   2.0.3  
 - [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/):   4.3  
-- [vcpkg](https://github.com/highfidelity/vcpkg):  
+- [vcpkg](https://github.com/hifi-archive/vcpkg):  
 - [VHACD](https://github.com/virneo/v-hacd)  
 - [zlib](http://www.zlib.net/):   1.28 (Win32 only)  
-- [nvtt](https://github.com/highfidelity/nvidia-texture-tools):   2.1.1 (customized)  
+- [nvtt](https://github.com/hifi-archive/nvidia-texture-tools):   2.1.1 (customized)  
 
 The above dependencies will be downloaded, built, linked and included automatically by CMake where we require them. The CMakeLists files that handle grabbing each of the following external dependencies can be found in the [cmake/externals folder](cmake/externals). The resulting downloads, source files and binaries will be placed in the `build/ext` folder in each of the subfolders for each external project.
 
@@ -32,7 +36,7 @@ These are not placed in your normal build tree when doing an out of source build
 
 #### CMake
 
-Hifi uses CMake to generate build files and project files for your platform.
+Athena uses CMake to generate build files and project files for your platform.
 
 #### Qt
 CMake will download Qt 5.12.3 using vcpkg.  
@@ -47,7 +51,7 @@ This can either be entered directly into your shell session before you build or 
 
 #### Vcpkg
 
-Hifi uses vcpkg to download and build dependencies.
+Athena uses vcpkg to download and build dependencies.
 You do not need to install vcpkg.
 
 Building the dependencies can be lengthy and the resulting files will be stored in your OS temp directory.
