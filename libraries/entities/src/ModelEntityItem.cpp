@@ -111,6 +111,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties._lastEdited);
+        somethingChangedNotification();
     }
 
     return somethingChanged;

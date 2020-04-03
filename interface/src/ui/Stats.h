@@ -112,6 +112,8 @@ private: \
  * @property {number} lodAngle - <em>Read-only.</em>
  * @property {number} lodTargetFramerate - <em>Read-only.</em>
  * @property {string} lodStatus - <em>Read-only.</em>
+ * @property {string} numEntityUpdates - <em>Read-only.</em>
+ * @property {string} numNeededEntityUpdates - <em>Read-only.</em>
  * @property {string} timingStats - <em>Read-only.</em>
  * @property {string} gameUpdateStats - <em>Read-only.</em>
  * @property {number} serverElements - <em>Read-only.</em>
@@ -277,6 +279,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, lodAngle, 0)
     STATS_PROPERTY(int, lodTargetFramerate, 0)
     STATS_PROPERTY(QString, lodStatus, QString())
+    STATS_PROPERTY(int, numEntityUpdates, 0)
+    STATS_PROPERTY(int, numNeededEntityUpdates, 0)
     STATS_PROPERTY(QString, timingStats, QString())
     STATS_PROPERTY(QString, gameUpdateStats, QString())
     STATS_PROPERTY(int, serverElements, 0)
@@ -882,6 +886,20 @@ signals:
      * @returns {Signal}
      */
     void lodStatusChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>numEntityUpdates</code> property changes.
+     * @function Stats.numEntityUpdatesChanged
+     * @returns {Signal}
+     */
+    void numEntityUpdatesChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>numNeededEntityUpdates</code> property changes.
+     * @function Stats.numNeededEntityUpdatesChanged
+     * @returns {Signal}
+     */
+    void numNeededEntityUpdatesChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>serverElements</code> property changes.

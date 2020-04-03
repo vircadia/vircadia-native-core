@@ -574,8 +574,8 @@ public:
 
     bool stillHasMyGrab() const;
 
-    bool needsRenderUpdate() const { return resultWithReadLock<bool>([&] { return _needsRenderUpdate; }); }
-    void setNeedsRenderUpdate(bool needsRenderUpdate) { withWriteLock([&] { _needsRenderUpdate = needsRenderUpdate; }); }
+    bool needsRenderUpdate() const { return _needsRenderUpdate; }
+    void setNeedsRenderUpdate(bool needsRenderUpdate) { _needsRenderUpdate = needsRenderUpdate; }
 
 signals:
     void spaceUpdate(std::pair<int32_t, glm::vec4> data);

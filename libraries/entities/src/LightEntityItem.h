@@ -73,9 +73,6 @@ public:
     
     static bool getLightsArePickable() { return _lightsArePickable; }
     static void setLightsArePickable(bool value) { _lightsArePickable = value; }
-    
-    virtual void locationChanged(bool tellPhysics, bool tellChildren) override;
-    virtual void dimensionsChanged() override;
 
     virtual bool supportsDetailedIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,

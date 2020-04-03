@@ -759,6 +759,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
                 "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties.getLastEdited());
+        somethingChangedNotification();
     }
     return somethingChanged;
 }

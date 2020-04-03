@@ -615,10 +615,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         _lastEdited = lastEditedFromBufferAdjusted;
         _lastEditedFromRemote = now;
         _lastEditedFromRemoteInRemoteTime = lastEditedFromBuffer;
-
-        // TODO: only send this notification if something ACTUALLY changed (hint, we haven't yet parsed
-        // the properties out of the bitstream (see below))
-        somethingChangedNotification(); // notify derived classes that something has changed
     }
 
     // last updated is stored as ByteCountCoded delta from lastEdited
@@ -1569,7 +1565,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         #endif
         setLastEdited(now);
-        somethingChangedNotification(); // notify derived classes that something has changed
         if (getDirtyFlags() & (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES)) {
             // anything that sets the transform or velocity must update _lastSimulated which is used
             // for kinematic extrapolation (e.g. we want to extrapolate forward from this moment
@@ -1827,6 +1822,7 @@ void EntityItem::setPosition(const glm::vec3& value) {
 void EntityItem::setParentID(const QUuid& value) {
     QUuid oldParentID = getParentID();
     if (oldParentID != value) {
+        _needsRenderUpdate = true;
         EntityTreePointer tree = getTree();
         if (tree && !oldParentID.isNull()) {
             tree->removeFromChildrenOfAvatars(getThisPointer());
@@ -2993,10 +2989,15 @@ bool EntityItem::getCauterized() const {
 }
 
 void EntityItem::setCauterized(bool value) {
+    bool needsRenderUpdate = false;
     withWriteLock([&] {
-        _needsRenderUpdate |= _cauterized != value;
+        needsRenderUpdate = _cauterized != value;
+        _needsRenderUpdate |= needsRenderUpdate;
         _cauterized = value;
     });
+    if (needsRenderUpdate) {
+        somethingChangedNotification();
+    }
 }
 
 bool EntityItem::getIgnorePickIntersection() const {
@@ -3031,10 +3032,15 @@ bool EntityItem::getCullWithParent() const {
 }
 
 void EntityItem::setCullWithParent(bool value) {
+    bool needsRenderUpdate = false;
     withWriteLock([&] {
-        _needsRenderUpdate |= _cullWithParent != value;
+        needsRenderUpdate = _cullWithParent != value;
+        _needsRenderUpdate |= needsRenderUpdate;
         _cullWithParent = value;
     });
+    if (needsRenderUpdate) {
+        somethingChangedNotification();
+    }
 }
 
 bool EntityItem::isChildOfMyAvatar() const {

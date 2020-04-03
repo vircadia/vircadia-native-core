@@ -255,14 +255,6 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     entity->setVisuallyReady(visuallyReady);
 }
 
-void ZoneEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    if (entity->getShapeType() == SHAPE_TYPE_SPHERE) {
-        _renderTransform = getModelTransform();
-        _renderTransform.postScale(SPHERE_ENTITY_SCALE);
-    }
-}
-
-
 ItemKey ZoneEntityRenderer::getKey() {
     return ItemKey::Builder().withTypeMeta().withTagBits(getTagMask()).build();
 }
@@ -298,8 +290,6 @@ bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
     if (entity->getUserData() != _proceduralUserData) {
         return true;
     }
-
-    // FIXME: do we need to trigger an update when shapeType changes?  see doRenderUpdateAsynchronousTyped
 
     return false;
 }

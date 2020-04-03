@@ -70,6 +70,7 @@ bool GridEntityItem::setProperties(const EntityItemProperties& properties) {
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties.getLastEdited());
+        somethingChangedNotification();
     }
     return somethingChanged;
 }

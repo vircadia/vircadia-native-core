@@ -55,21 +55,6 @@ void LightEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     }
 }
 
-void LightEntityItem::locationChanged(bool tellPhysics, bool tellChildren) {
-    EntityItem::locationChanged(tellPhysics, tellChildren);
-    withWriteLock([&] {
-        _needsRenderUpdate = true;
-    });
-}
-
-void LightEntityItem::dimensionsChanged() {
-    EntityItem::dimensionsChanged();
-    withWriteLock([&] {
-        _needsRenderUpdate = true;
-    });
-}
-
-
 EntityItemProperties LightEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
@@ -145,6 +130,7 @@ bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
                 "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties.getLastEdited());
+        somethingChangedNotification();
     }
     return somethingChanged;
 }

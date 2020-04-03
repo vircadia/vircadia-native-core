@@ -30,11 +30,9 @@ bool ImageEntityRenderer::isTransparent() const {
 }
 
 bool ImageEntityRenderer::needsRenderUpdate() const {
-    bool textureLoadedChanged = resultWithReadLock<bool>([&] {
-        return (!_textureIsLoaded && _texture && _texture->isLoaded());
-    });
-
-    if (textureLoadedChanged) {
+    if (resultWithReadLock<bool>([&] {
+        return !_textureIsLoaded;
+    })) {
         return true;
     }
 
@@ -63,15 +61,15 @@ void ImageEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         _pulseProperties = entity->getPulseProperties();
         _billboardMode = entity->getBillboardMode();
 
-        if (!_textureIsLoaded && _texture && _texture->isLoaded()) {
-            _textureIsLoaded = true;
+        if (!_textureIsLoaded) {
+            emit requestRenderUpdate();
         }
+        _textureIsLoaded = _texture && (_texture->isLoaded() || _texture->isFailed());
     });
 
     void* key = (void*)this;
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity]() {
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
         withWriteLock([&] {
-            updateModelTransformAndBound();
             _renderTransform = getModelTransform();
             _renderTransform.postScale(entity->getScaledDimensions());
         });
