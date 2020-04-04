@@ -108,9 +108,15 @@
                                                     </v-list-item-action>
                                                 </v-list-item>
                                                 <v-list-item
-                                                    @click="renameItem(item.url)"
+                                                    @click="
+                                                    editDialog.show = true; 
+                                                    editDialog.url = item.url;
+                                                    editDialog.data.type = item.type;
+                                                    editDialog.data.name = item.name;
+                                                    editDialog.data.url = item.url;
+                                                    "
                                                 >
-                                                    <v-list-item-title>Rename</v-list-item-title>
+                                                    <v-list-item-title>Edit</v-list-item-title>
                                                     <v-list-item-action>
                                                         <v-icon>mdi-pencil</v-icon>
                                                     </v-list-item-action>
@@ -144,6 +150,7 @@
                     </v-data-iterator>
                 </v-container>
             </v-content>
+            
             <v-dialog
                 v-model="removeDialog.show"
                 max-width="290"
@@ -171,6 +178,60 @@
                             color="red"
                             class="px-3"                    
                             @click="removeDialog.show = false; removeItem(removeDialog.url);"
+                        >
+                            Yes
+                        </v-btn>
+                        
+                    </v-card-actions>
+                    
+                </v-card>
+            </v-dialog>
+            
+            <v-dialog
+                v-model="editDialog.show"
+                max-width="380"
+            >
+                <v-card>
+                    <v-card-title class="headline">Edit Item</v-card-title>
+
+                    <v-text-field
+                        class="px-2"
+                        label="Type"
+                        v-model="editDialog.data.type"
+                        required
+                    ></v-text-field>
+
+                    <v-text-field
+                        class="px-2"
+                        label="Name"
+                        v-model="editDialog.data.name"
+                        required
+                    ></v-text-field>
+
+                    <v-text-field
+                        class="px-2"
+                        label="URL"
+                        v-model="editDialog.data.url"
+                        required
+                    ></v-text-field>
+
+
+                    <v-card-actions>
+
+                        <v-btn
+                            color="red"
+                            class="px-3"
+                            @click="editDialog.show = false"
+                        >
+                            No
+                        </v-btn>
+                        
+                        <v-spacer></v-spacer>
+                        
+                        <v-btn
+                            color="blue"
+                            class="px-3"                    
+                            @click="editDialog.show = false; editItem(editDialog.url);"
                         >
                             Yes
                         </v-btn>
@@ -352,13 +413,23 @@ new Vue({
                 "color": "grey",
             }
         },
+        // The URL is the key (to finding the item we want) so we want to keep track of that.
         removeDialog: {
             show: false,
-            url: null, // This is the item to remove since URL is the key.
+            url: null,
         },
         addDialog: {
             show: false,
             data: {
+                "name": null,
+                "url": null,
+            },
+        },
+        editDialog: {
+            show: false,
+            url: null, // This is the key, the URL in data is what will overwrite this key.
+            data: {
+                "type": null,
                 "name": null,
                 "url": null,
             },
@@ -427,10 +498,16 @@ new Vue({
                 if (this.items[i].url == url) {
                     this.items.splice(i, 1);
                 }
-            } 
+            }
         },
-        renameItem: function(url) {
-            
+        editItem: function(url) {
+            for (i = 0; i < this.items.length; i++) {
+                if (this.items[i].url == url) {
+                    this.items[i].type = this.editDialog.data.type;
+                    this.items[i].name = this.editDialog.data.name;
+                    this.items[i].url = this.editDialog.data.url;
+                }
+            }
         },
         receivingItem: function(name, url) {
             
