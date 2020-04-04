@@ -396,6 +396,7 @@
                         ref="shareForm"
                         v-model="shareDialog.valid"
                         :lazy-validation="false"
+                        class="px-2"
                     >
                     
                         <!-- <v-list>
@@ -416,7 +417,7 @@
                             :items="nearbyUsers"
                             item-text="name"
                             item-value="uuid"
-                            :rules="[v => !!v || 'A user is required']"
+                            :rules="[v => !!v || 'A recipient is required']"
                             label="Nearby Users"
                             required
                         ></v-select>
@@ -678,7 +679,7 @@ new Vue({
         shareItem: function() {
             this.sendAppMessage("share-item", {
                 "url": this.shareDialog.data.url,
-                "recipient": this.nearbyUsers[this.shareDialog.data.recipient].uuid,
+                "recipient": this.shareDialog.data.recipient,
             });
         },
         acceptItem: function() {
