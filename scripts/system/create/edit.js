@@ -3,6 +3,7 @@
 //  Created by Brad Hefta-Gaub on 10/2/14.
 //  Persist toolbar by HRS 6/11/15.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  This script allows you to edit entities with a new UI/UX for mouse and trackpad based editing
 //
@@ -2558,6 +2559,11 @@ var PropertiesTool = function (opts) {
                 entityID: data.entityID,
                 materialTargetData: parentModelData,
             });
+        } else if (data.type === "zoneListRequest") {
+            emitScriptEvent({
+                type: 'zoneListRequest',
+                zones: getExistingZoneList()
+            });
         }
     };
 
@@ -2854,5 +2860,22 @@ selectionDisplay.onSpaceModeChange = function(spaceMode) {
     entityListTool.setSpaceMode(spaceMode);
     propertiesTool.setSpaceMode(spaceMode);
 };
+
+function getExistingZoneList() {
+    var center = {"x": 0, "y": 0, "z": 0};
+    var existingZoneIDs = Entities.findEntitiesByType("Zone", center, 17000);
+    var listExistingZones = [];
+    var thisZone = {};
+    var properties;
+    for (var k = 0; k < existingZoneIDs.length; k++) {
+        properties = Entities.getEntityProperties(existingZoneIDs[k], ["name"]);
+        thisZone = {
+            "id": existingZoneIDs[k],
+            "name": properties.name
+        };
+        listExistingZones.push(thisZone);
+    }
+    return listExistingZones;
+}
 
 }()); // END LOCAL_SCOPE
