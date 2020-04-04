@@ -39,6 +39,10 @@ function onWebAppEventReceived(event) {
             shareItem(eventJSON.data);
         }
         
+        if (eventJSON.command == "web-to-script-request-nearby-users") {
+            sendNearbyUsers();
+        }
+        
     }
 }
 
@@ -54,18 +58,18 @@ function sendToWeb(command, data) {
     tablet.emitScriptEvent(JSON.stringify(dataToSend));
 }
 
-// var inventoryMessagesChannel = "com.vircadia.inventory";
+var inventoryMessagesChannel = "com.vircadia.inventory";
 
-// function onMessageReceived(channel, message, sender, localOnly) {
-//     if (channel == inventoryMessagesChannel) {
-//         var messageJSON = JSON.parse(message);
-//     }
-//     print("Message received:");
-//     print("- channel: " + channel);
-//     print("- message: " + message);
-//     print("- sender: " + sender);
-//     print("- localOnly: " + localOnly);
-// }
+function onMessageReceived(channel, message, sender, localOnly) {
+    if (channel == inventoryMessagesChannel) {
+        var messageJSON = JSON.parse(message);
+    }
+    print("Message received:");
+    print("- channel: " + channel);
+    print("- message: " + message);
+    print("- sender: " + sender);
+    print("- localOnly: " + localOnly);
+}
 
 // END APP EVENT AND MESSAGING ROUTING
 
@@ -96,6 +100,23 @@ function receivingItem(data) {
 
 function shareItem(data) {
     
+}
+
+function sendNearbyUsers() {
+    var nearbyUsers = AvatarList.getAvatarsInRange(Vec3.ZERO, 25); // Find all users within 25m.
+    var nearbyUsersToSend = [];
+    
+    nearbyUsers.forEach(function(user, i) {
+        var objectToWrite;
+        var aviName = AvatarList.getAvatar(user).displayName;
+        
+        if (aviName != MyAvatar.displayName) {
+            objectToWrite = { "name": aviName, "uuid": user };
+            nearbyUsersToSend.push = objectToWrite;
+        }        
+    });
+    
+    sendToWeb("script-to-web-nearby-users", nearbyUsersToSend);
 }
 
 function useItem(item) {

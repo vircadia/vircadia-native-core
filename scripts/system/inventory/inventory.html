@@ -117,7 +117,7 @@
                                                     </v-list-item-action>
                                                 </v-list-item>
                                                 <v-list-item
-                                                    @click="shareDialog.show = true; shareDialog.data.url = item.url;"
+                                                    @click="shareDialog.show = true; shareDialog.data.url = item.url; sendAppMessage('web-to-script-request-nearby-users', '')"
                                                 >
                                                     <v-list-item-title>Share</v-list-item-title>
                                                     <v-list-item-action>
@@ -473,7 +473,7 @@ EventBridge.scriptEventReceived.connect(function(receivedCommand) {
     if (receivedCommand.app == "inventory") {
     // We route the data based on the command given.
         if (receivedCommand.command == 'script-to-web-inventory') {
-            alert("INVENTORY RECEIVED ON APP:" + JSON.stringify(receivedCommand.data));
+            // alert("INVENTORY RECEIVED ON APP:" + JSON.stringify(receivedCommand.data));
             vue_this.receiveInventory(receivedCommand.data);
         }
         
@@ -482,8 +482,10 @@ EventBridge.scriptEventReceived.connect(function(receivedCommand) {
         }
         
         if (receivedCommand.command == 'script-to-web-nearby-users') {
-            alert("RECEIVING NEARBY USERS:" + JSON.stringify(receivedCommand.data));
+            // alert("RECEIVING NEARBY USERS:" + JSON.stringify(receivedCommand.data));
+            vue_this.receiveNearbyUsers(receivedCommand.data);
         }
+        
     }
 });
 
@@ -734,7 +736,11 @@ new Vue({
             return this.iconType[itemType].color;
         },
         receiveNearbyUsers: function(receivedUsers) {
-            this.nearbyUsers = receivedUsers;
+            if (!receivedUsers) {
+                this.nearbyUsers = [];
+            } else {
+                this.nearbyUsers = receivedUsers;
+            }
         },
         sendAppMessage: function(command, data) {
             var JSONtoSend = {
