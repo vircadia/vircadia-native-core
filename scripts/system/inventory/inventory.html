@@ -122,7 +122,7 @@
                                                     </v-list-item-action>
                                                 </v-list-item>
                                                 <v-list-item
-                                                    @click="shareItem(item.url)"
+                                                    @click="shareDialog.show = true; shareDialog.data.url = item.url;"
                                                 >
                                                     <v-list-item-title>Share</v-list-item-title>
                                                     <v-list-item-action>
@@ -308,7 +308,7 @@
                     <v-text-field
                         class="px-2"
                         label="Type"
-                        v-model="receiveDialog.data.url"
+                        v-model="receiveDialog.data.type"
                         required
                     ></v-text-field>
                     
@@ -344,6 +344,62 @@
                             @click="receiveDialog.show = false; acceptItem();"
                         >
                             Accept
+                        </v-btn>
+                        
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
+            
+            <v-dialog
+                v-model="shareDialog.show"
+                max-width="380"
+                persistent
+            >
+                <v-card>
+                    <v-card-title class="headline">Share Item</v-card-title>
+
+                    <v-card-text>
+                        Select a user to send this item to.
+                    </v-card-text>
+                    
+                    <v-list>
+                        <v-list-item-group v-model="shareDialog.data.recipient" color="primary">
+                            <v-list-item
+                                v-for="user in nearbyUsers"
+                                v-bind:key="user.uuid"
+                            >
+                                <v-list-item-content>
+                                    <v-list-item-title v-text="user.name"></v-list-item-title>
+                                </v-list-item-content>
+                            </v-list-item>
+                        </v-list-item-group>
+                    </v-list>
+
+                    <v-text-field
+                        class="px-2"
+                        label="URL"
+                        v-model="shareDialog.data.url"
+                        required
+                    ></v-text-field>
+
+                    <v-card-actions>
+
+                        <v-btn
+                            color="red"
+                            class="px-3"
+                            @click="shareDialog.show = false"
+                        >
+                            Cancel
+                        </v-btn>
+                        
+                        <v-spacer></v-spacer>
+                        
+                        <v-btn
+                            color="blue"
+                            class="px-3"                    
+                            @click="shareDialog.show = false; shareItem();"
+                        >
+                            Send
                         </v-btn>
                         
                     </v-card-actions>
@@ -455,6 +511,27 @@ new Vue({
                 "url": null,
             },
         },
+        shareDialog: {
+            show: false,
+            data: {
+                "url": null, // The item you want to share.
+                "recipient": null,
+            }
+        },
+        nearbyUsers: [
+            {
+                name: "Who",
+                uuid: "{4131531653652562}",
+            },
+            {
+                name: "Is",
+                uuid: "{4131531653756756576543652562}",
+            },
+            {
+                name: "This?",
+                uuid: "{4131531676575653652562}",
+            },
+        ],
         sortBy: "alphabetical",
         darkTheme: true,
         drawer: false,
@@ -513,6 +590,9 @@ new Vue({
             };
             
             this.items.push(itemToPush);
+            
+            this.addDialog.data.name = null;
+            this.addDialog.data.url = null;
         },
         removeItem: function(url) {
             for (i = 0; i < this.items.length; i++) {
@@ -541,8 +621,11 @@ new Vue({
             }
             
         },
-        shareItem: function(url) {
-            
+        shareItem: function() {
+            this.sendAppMessage("share-item", {
+                "url": this.shareDialog.data.url,
+                "recipient": this.nearbyUsers[this.shareDialog.data.recipient].uuid,
+            });
         },
         acceptItem: function() {
             var itemToPush =             
@@ -564,6 +647,12 @@ new Vue({
         receiveInventory: function() {
             
         },
+        displayIcon: function(itemType) {
+            return this.iconType[itemType].icon;
+        },
+        getIconColor: function(itemType) {
+            return this.iconType[itemType].color;
+        },
         sendAppMessage: function(command, data) {
             var JSONtoSend = {
                 "app": "inventory",
@@ -571,14 +660,9 @@ new Vue({
                 "data": data
             };
             
-            EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
+            alert(JSON.stringify(JSONtoSend));
+            // EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
         },
-        displayIcon: function(itemType) {
-            return this.iconType[itemType].icon;
-        },
-        getIconColor: function(itemType) {
-            return this.iconType[itemType].color;
-        }
     },
     computed: {
 
