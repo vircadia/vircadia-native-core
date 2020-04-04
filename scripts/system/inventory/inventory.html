@@ -109,11 +109,11 @@
                                                 </v-list-item>
                                                 <v-list-item
                                                     @click="
-                                                    editDialog.show = true; 
-                                                    editDialog.url = item.url;
-                                                    editDialog.data.type = item.type;
-                                                    editDialog.data.name = item.name;
-                                                    editDialog.data.url = item.url;
+                                                        editDialog.show = true; 
+                                                        editDialog.url = item.url;
+                                                        editDialog.data.type = item.type;
+                                                        editDialog.data.name = item.name;
+                                                        editDialog.data.url = item.url;
                                                     "
                                                 >
                                                     <v-list-item-title>Edit</v-list-item-title>
@@ -215,7 +215,6 @@
                         required
                     ></v-text-field>
 
-
                     <v-card-actions>
 
                         <v-btn
@@ -223,7 +222,7 @@
                             class="px-3"
                             @click="editDialog.show = false"
                         >
-                            No
+                            Cancel
                         </v-btn>
                         
                         <v-spacer></v-spacer>
@@ -303,16 +302,29 @@
                     <v-card-title class="headline">Receiving Item</v-card-title>
 
                     <v-card-text>
-                        [User] is sending you an item
+                        {{receiveDialog.data.user}} is sending you an item.
                     </v-card-text>
                     
-                    <v-card-text>
-                        [lol] [Script]
-                    </v-card-text>
+                    <v-text-field
+                        class="px-2"
+                        label="Type"
+                        v-model="receiveDialog.data.url"
+                        required
+                    ></v-text-field>
                     
-                    <v-card-text>
-                        [https://google.com/lol.js]
-                    </v-card-text>
+                    <v-text-field
+                        class="px-2"
+                        label="Name"
+                        v-model="receiveDialog.data.name"
+                        required
+                    ></v-text-field>
+
+                    <v-text-field
+                        class="px-2"
+                        label="URL"
+                        v-model="receiveDialog.data.url"
+                        required
+                    ></v-text-field>
 
                     <v-card-actions>
 
@@ -329,7 +341,7 @@
                         <v-btn
                             color="blue"
                             class="px-3"                    
-                            @click="receiveDialog.show = false"
+                            @click="receiveDialog.show = false; acceptItem();"
                         >
                             Accept
                         </v-btn>
@@ -436,10 +448,12 @@ new Vue({
         },
         receiveDialog: {
             show: false,
-            user: null,
-            name: null,
-            type: null,
-            url: null,
+            data: {
+                "user": null,
+                "name": null,
+                "type": null,
+                "url": null,
+            },
         },
         sortBy: "alphabetical",
         darkTheme: true,
@@ -452,6 +466,34 @@ new Vue({
         this.sendAppMessage("ready", "");
     },
     methods: {
+        checkFileType: function(fileType) {
+            var detectedItemType = null;
+            
+            switch (fileType) {
+                // Model Cases
+                case ".fbx":
+                    detectedItemType = "model";
+                    break;
+                case ".gltf":
+                    detectedItemType = "model";
+                    break;
+                // Script Cases
+                case ".js":
+                    detectedItemType = "script";
+                    break;
+                // Avatar Cases
+                case ".fst":
+                    detectedItemType = "avatar";
+                    break;
+            }
+            
+            if (detectedItemType == null) {
+                // This is not a known item...
+                detectedItemType = "unknown";
+            }
+            
+            return detectedItemType;
+        },
         addItem: function(name, url) {
             var extensionRegex = /\.[0-9a-z]+$/i; // to detect the file type based on extension in the URL.
             var detectedFileType = url.match(extensionRegex);
@@ -460,28 +502,7 @@ new Vue({
             if (detectedFileType == null || detectedFileType[0] == null) {
                 itemType = "unknown";
             } else {
-                switch (detectedFileType[0]) {
-                    // Model Cases
-                    case ".fbx":
-                        itemType = "model";
-                        break;
-                    case ".gltf":
-                        itemType = "model";
-                        break;
-                    // Script Cases
-                    case ".js":
-                        itemType = "script";
-                        break;
-                    // Avatar Cases
-                    case ".fst":
-                        itemType = "avatar";
-                        break;
-                }
-            }
-                    
-            if (itemType == null) {
-                // This is not a known item...
-                itemType = "unknown";
+                itemType = this.checkFileType(detectedFileType[0]);
             }
             
             var itemToPush =             
@@ -503,20 +524,35 @@ new Vue({
         editItem: function(url) {
             for (i = 0; i < this.items.length; i++) {
                 if (this.items[i].url == url) {
-                    this.items[i].type = this.editDialog.data.type;
+                    this.items[i].type = this.checkFileType(this.editDialog.data.type);
                     this.items[i].name = this.editDialog.data.name;
                     this.items[i].url = this.editDialog.data.url;
                 }
             }
         },
-        receivingItem: function(name, url) {
+        receivingItem: function(data) {
+            if (this.receiveDialog.show != true) { // Do not accept offers if the user is already receiving an offer.
+                this.receiveDialog.data.user = data.user;
+                this.receiveDialog.data.type = data.type;
+                this.receiveDialog.data.name = data.name;
+                this.receiveDialog.data.url = data.url;
+                
+                this.receiveDialog.show = true;
+            }
             
         },
         shareItem: function(url) {
             
         },
-        acceptItem: function(url) {
+        acceptItem: function() {
+            var itemToPush =             
+            {
+                "type": this.checkFileType(this.receiveDialog.data.type),
+                "name": this.receiveDialog.data.name,
+                "url": this.receiveDialog.data.url,
+            };
             
+            this.items.push(itemToPush);
         },
         useItem: function(url) {
             alert(url);
