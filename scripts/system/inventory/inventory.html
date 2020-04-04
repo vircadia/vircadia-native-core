@@ -124,7 +124,7 @@
                                                     </v-list-item-action>
                                                 </v-list-item>
                                                 <v-list-item
-                                                    @click="removeDialog.show = true;"
+                                                    @click="removeDialog.show = true; removeDialog.url = item.url;"
                                                     color="red darken-1"
                                                 >
                                                     <v-list-item-title>Remove</v-list-item-title>
@@ -135,9 +135,7 @@
                                             </v-list>
                                             </v-menu>
                                             
-
                                         </v-list-item>
-
 
                                     </v-card>
                                 </v-col>
@@ -172,7 +170,7 @@
                         <v-btn
                             color="red"
                             class="px-3"                    
-                            @click="removeDialog.show = false"
+                            @click="removeDialog.show = false; removeItem(removeDialog.url);"
                         >
                             Yes
                         </v-btn>
@@ -188,6 +186,17 @@
             >
                 <v-card>
                     <v-card-title class="headline">Add Item</v-card-title>
+                    
+                    <v-card-text>
+                        Enter the name of the item.
+                    </v-card-text>
+
+                    <v-text-field
+                        class="px-2"
+                        label="Name"
+                        v-model="addDialog.data.name"
+                        required
+                    ></v-text-field>
 
                     <v-card-text>
                         Enter the URL of the item.
@@ -196,6 +205,8 @@
                     <v-text-field
                         class="px-2"
                         label="URL"
+                        v-model="addDialog.data.url"
+                        required
                     ></v-text-field>
 
                     <v-card-actions>
@@ -213,7 +224,7 @@
                         <v-btn
                             color="blue"
                             class="px-3"                    
-                            @click="addDialog.show = false"
+                            @click="addDialog.show = false; addItem(addDialog.data.name, addDialog.data.url)"
                         >
                             Add
                         </v-btn>
@@ -285,42 +296,42 @@ new Vue({
             {
                 "type": "script",
                 "name": "VRGrabScale",
-                "url": "https://google.com/vr.js",
+                "url": "https://gooawefaweawfgle.com/vr.js",
             },
             {
                 "type": "script",
                 "name": "VRGrabScale",
-                "url": "https://google.com/vr.js",
+                "url": "https://googfdafsgaergale.com/vr.js",
             },
             {
                 "type": "script",
                 "name": "TEST",
-                "url": "https://google.com/vr.js",
+                "url": "https://gooadfdagle.com/vr.js",
             },
             {
                 "type": "script",
                 "name": "TESTLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
-                "url": "https://google.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
+                "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
             },
             {
                 "type": "avatar",
                 "name": "AVI",
-                "url": "https://google.com/vr.fst",
+                "url": "https://googlfadfe.com/vr.fst",
             },
             {
                 "type": "avatar",
                 "name": "AVI",
-                "url": "https://google.com/vr.fst",
+                "url": "https://googlefdaf.com/vr.fst",
             },
             {
                 "type": "model",
                 "name": "3D MODEL",
-                "url": "https://google.com/vr.fbx",
+                "url": "https://googlee.com/vr.fbx",
             },
             {
                 "type": "model",
                 "name": "3D MODEL",
-                "url": "https://google.com/vr.fbx",
+                "url": "https://googleee.com/vr.fbx",
             },
         ],
         iconType: {
@@ -336,13 +347,21 @@ new Vue({
                 "icon": "mdi-account-convert",
                 "color": "purple",
             },
+            "unknown": {
+                "icon": "mdi-help",
+                "color": "grey",
+            }
         },
         removeDialog: {
             show: false,
-            item: null,
+            url: null, // This is the item to remove since URL is the key.
         },
         addDialog: {
             show: false,
+            data: {
+                "name": null,
+                "url": null,
+            },
         },
         receiveDialog: {
             show: false,
@@ -358,13 +377,57 @@ new Vue({
     created: function () {
         vue_this = this;
         this.$vuetify.theme.dark = this.darkTheme;
+        
+        this.sendAppMessage("ready", "");
     },
     methods: {
-        addItem: function(url) {
+        addItem: function(name, url) {
+            var extensionRegex = /\.[0-9a-z]+$/i; // to detect the file type based on extension in the URL.
+            var detectedFileType = url.match(extensionRegex);
+            var itemType;
+                        
+            if (detectedFileType == null || detectedFileType[0] == null) {
+                itemType = "unknown";
+            } else {
+                switch (detectedFileType[0]) {
+                    // Model Cases
+                    case ".fbx":
+                        itemType = "model";
+                        break;
+                    case ".gltf":
+                        itemType = "model";
+                        break;
+                    // Script Cases
+                    case ".js":
+                        itemType = "script";
+                        break;
+                    // Avatar Cases
+                    case ".fst":
+                        itemType = "avatar";
+                        break;
+                }
+            }
+                    
+            if (itemType == null) {
+                // This is not a known item...
+                itemType = "unknown";
+            }
             
+            var itemToPush =             
+            {
+                "type": itemType,
+                "name": name,
+                "url": url,
+            };
+            
+            this.items.push(itemToPush);
         },
         removeItem: function(url) {
-            
+            for (i = 0; i < this.items.length; i++) {
+                if (this.items[i].url == url) {
+                    this.items.splice(i, 1);
+                }
+            } 
         },
         renameItem: function(url) {
             
@@ -382,12 +445,19 @@ new Vue({
             alert(url);
             this.sendAppMessage("test", "testData");
         },
+        sendInventory: function() {
+            
+        },
+        receiveInventory: function() {
+            
+        },
         sendAppMessage: function(command, data) {
             var JSONtoSend = {
                 "app": "inventory",
                 "command": command,
                 "data": data
             };
+            
             EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
         },
         displayIcon: function(itemType) {

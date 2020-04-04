@@ -13,25 +13,72 @@ var AppUi = Script.require('appUi');
 var ui;
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
-// APP EVENT ROUTING
+var inventoryDataSettingString = "inventoryApp.data";
+var inventoryData;
+
+// APP EVENT AND MESSAGING ROUTING
 
 function onWebAppEventReceived(event) {
     var eventJSON = JSON.parse(event);
     if (eventJSON.app == "inventory") { // This is our web app!
-        print("gemstoneApp.js received a web event: " + event);
+        print("inventory.js received a web event: " + event);
+        
+        if (eventJSON.command == "ready") {
+            initializeInventoryApp();
+        }
+        
+        if (eventJSON.command == "web-to-script-inventory") {
+            receiveInventory(eventJSON.data);
+        }
+        
     }
 }
 
 tablet.webEventReceived.connect(onWebAppEventReceived);
 
-// END APP EVENT ROUTING
+function sendToWeb(command, data) {
+    var dataToSend = {
+        "app": "inventory",
+        "command": command,
+        "data": data
+    }
+    tablet.emitScriptEvent(dataToSend);
+}
+
+// var inventoryMessagesChannel = "com.vircadia.inventory";
+
+// function onMessageReceived(channel, message, sender, localOnly) {
+//     if (channel == inventoryMessagesChannel) {
+//         var messageJSON = JSON.parse(message);
+//     }
+//     print("Message received:");
+//     print("- channel: " + channel);
+//     print("- message: " + message);
+//     print("- sender: " + sender);
+//     print("- localOnly: " + localOnly);
+// }
+
+// END APP EVENT AND MESSAGING ROUTING
+
+// SEND AND RECEIVE INVENTORY STATE
+
+function receiveInventory(receivedInventoryData) {
+    inventoryData = receivedInventoryData;
+    saveInventory();
+}
+
+function sendInventory() {
+    sendToWeb("script-to-web-inventory", inventoryData);
+}
+
+// END SEND AND RECEIVE INVENTORY STATE
 
 function saveInventory() {
-    
+    Settings.setValue(inventoryDataSettingString, inventoryData);
 }
 
 function loadInventory() {
-    
+    inventoryData = Settings.getValue(inventoryDataSettingString);
 }
 
 function receivingItem() {
@@ -40,6 +87,10 @@ function receivingItem() {
 
 function shareItem() {
     
+}
+
+function initializeInventoryApp() {
+    sendInventory();
 }
 
 function onOpened() {
@@ -51,6 +102,9 @@ function onClosed() {
 }
 
 function startup() {
+    
+    loadInventory();
+    
     ui = new AppUi({
         buttonName: "INVENTORY",
         home: Script.resolvePath("inventory.html"),
@@ -60,4 +114,10 @@ function startup() {
     });
 }
 startup();
+
+Script.scriptEnding.connect(function () {
+    // Messages.messageReceived.disconnect(onMessageReceived);
+    // Messages.unsubscribe(inventoryMessagesChannel);
+});
+
 }()); // END LOCAL_SCOPE
