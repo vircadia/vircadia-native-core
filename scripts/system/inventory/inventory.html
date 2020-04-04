@@ -80,11 +80,6 @@
                                                 <v-list-item-subtitle>{{item.url}}</v-list-item-subtitle>
                                             </v-list-item-content>
                                             
-                                            <!-- <v-card-actions>
-                                                <v-btn class="" color="purple">Share</v-btn>
-                                                <v-btn class="" color="red" @click="removeDialog.show = true;">Remove</v-btn>
-                                            </v-card-actions> -->
-                                            
                                             <v-menu bottom left>
                                             <template v-slot:activator="{ on }">
                                                 <v-btn 
@@ -193,50 +188,62 @@
             >
                 <v-card>
                     <v-card-title class="headline">Edit Item</v-card-title>
-
-                    <v-text-field
-                        class="px-2"
-                        label="Type"
-                        v-model="editDialog.data.type"
-                        required
-                    ></v-text-field>
-
-                    <v-text-field
-                        class="px-2"
-                        label="Name"
-                        v-model="editDialog.data.name"
-                        required
-                    ></v-text-field>
-
-                    <v-text-field
-                        class="px-2"
-                        label="URL"
-                        v-model="editDialog.data.url"
-                        required
-                    ></v-text-field>
-
-                    <v-card-actions>
-
-                        <v-btn
-                            color="red"
-                            class="px-3"
-                            @click="editDialog.show = false"
-                        >
-                            Cancel
-                        </v-btn>
-                        
-                        <v-spacer></v-spacer>
-                        
-                        <v-btn
-                            color="blue"
-                            class="px-3"                    
-                            @click="editDialog.show = false; editItem(editDialog.url);"
-                        >
-                            Yes
-                        </v-btn>
-                        
-                    </v-card-actions>
                     
+                    <v-form
+                        ref="editForm"
+                        v-model="editDialog.valid"
+                        :lazy-validation="false"
+                    >
+                    
+                        <v-text-field
+                            class="px-2"
+                            label="Type"
+                            v-model="editDialog.data.type"
+                            :rules="[v => !!v || 'Type is required.']"
+                            required
+                        ></v-text-field>
+
+                        <v-text-field
+                            class="px-2"
+                            label="Name"
+                            v-model="editDialog.data.name"
+                            :rules="[v => !!v || 'Name is required.']"
+                            required
+                        ></v-text-field>
+
+                        <v-text-field
+                            class="px-2"
+                            label="URL"
+                            v-model="editDialog.data.url"
+                            :rules="[v => !!v || 'URL is required.']"
+                            required
+                        ></v-text-field>
+
+                        <v-card-actions>
+
+                            <v-btn
+                                color="red"
+                                class="px-3"
+                                @click="editDialog.show = false"
+                            >
+                                Cancel
+                            </v-btn>
+                            
+                            <v-spacer></v-spacer>
+                            
+                            <v-btn
+                                color="blue"
+                                class="px-3"       
+                                :disabled="!editDialog.valid"             
+                                @click="editDialog.show = false; editItem(editDialog.url);"
+                            >
+                                Done
+                            </v-btn>
+                        
+                        </v-card-actions>
+                        
+                    </v-form>
+
                 </v-card>
             </v-dialog>
             
@@ -250,46 +257,57 @@
                     <v-card-text>
                         Enter the name of the item.
                     </v-card-text>
+                    
+                    <v-form
+                        ref="addForm"
+                        v-model="addDialog.valid"
+                        :lazy-validation="false"
+                    >
 
-                    <v-text-field
-                        class="px-2"
-                        label="Name"
-                        v-model="addDialog.data.name"
-                        required
-                    ></v-text-field>
+                        <v-text-field
+                            class="px-2"
+                            label="Name"
+                            v-model="addDialog.data.name"
+                            :rules="[v => !!v || 'Name is required.']"
+                            required
+                        ></v-text-field>
 
-                    <v-card-text>
-                        Enter the URL of the item.
-                    </v-card-text>
+                        <v-card-text>
+                            Enter the URL of the item.
+                        </v-card-text>
 
-                    <v-text-field
-                        class="px-2"
-                        label="URL"
-                        v-model="addDialog.data.url"
-                        required
-                    ></v-text-field>
+                        <v-text-field
+                            class="px-2"
+                            label="URL"
+                            v-model="addDialog.data.url"
+                            :rules="[v => !!v || 'URL is required.']"
+                            required
+                        ></v-text-field>
 
-                    <v-card-actions>
+                        <v-card-actions>
 
-                        <v-btn
-                            color="red"
-                            class="px-3"
-                            @click="addDialog.show = false"
-                        >
-                            Cancel
-                        </v-btn>
-                        
-                        <v-spacer></v-spacer>
-                        
-                        <v-btn
-                            color="blue"
-                            class="px-3"                    
-                            @click="addDialog.show = false; addItem(addDialog.data.name, addDialog.data.url)"
-                        >
-                            Add
-                        </v-btn>
-                        
-                    </v-card-actions>
+                            <v-btn
+                                color="red"
+                                class="px-3"
+                                @click="addDialog.show = false"
+                            >
+                                Cancel
+                            </v-btn>
+                            
+                            <v-spacer></v-spacer>
+                            
+                            <v-btn
+                                color="blue"
+                                class="px-3"
+                                :disabled="!addDialog.valid"
+                                @click="addDialog.show = false; addItem(addDialog.data.name, addDialog.data.url)"
+                            >
+                                Add
+                            </v-btn>
+                            
+                        </v-card-actions>
+                    
+                    </v-form>
                 </v-card>
             </v-dialog>
             
@@ -305,48 +323,60 @@
                         {{receiveDialog.data.user}} is sending you an item.
                     </v-card-text>
                     
-                    <v-text-field
-                        class="px-2"
-                        label="Type"
-                        v-model="receiveDialog.data.type"
-                        required
-                    ></v-text-field>
+                    <v-form
+                        ref="receiveForm"
+                        v-model="receiveDialog.valid"
+                        :lazy-validation="false"
+                    >
                     
-                    <v-text-field
-                        class="px-2"
-                        label="Name"
-                        v-model="receiveDialog.data.name"
-                        required
-                    ></v-text-field>
-
-                    <v-text-field
-                        class="px-2"
-                        label="URL"
-                        v-model="receiveDialog.data.url"
-                        required
-                    ></v-text-field>
-
-                    <v-card-actions>
-
-                        <v-btn
-                            color="red"
-                            class="px-3"
-                            @click="receiveDialog.show = false"
-                        >
-                            Reject
-                        </v-btn>
+                        <v-text-field
+                            class="px-2"
+                            label="Type"
+                            :rules="[v => !!v || 'Type is required.']"
+                            v-model="receiveDialog.data.type"
+                            required
+                        ></v-text-field>
                         
-                        <v-spacer></v-spacer>
+                        <v-text-field
+                            class="px-2"
+                            label="Name"
+                            :rules="[v => !!v || 'Name is required.']"
+                            v-model="receiveDialog.data.name"
+                            required
+                        ></v-text-field>
+
+                        <v-text-field
+                            class="px-2"
+                            label="URL"
+                            :rules="[v => !!v || 'URL is required.']"
+                            v-model="receiveDialog.data.url"
+                            required
+                        ></v-text-field>
+
+                        <v-card-actions>
+
+                            <v-btn
+                                color="red"
+                                class="px-3"
+                                @click="receiveDialog.show = false"
+                            >
+                                Reject
+                            </v-btn>
+                            
+                            <v-spacer></v-spacer>
+                            
+                            <v-btn
+                                color="blue"
+                                class="px-3"
+                                :disabled="!receiveDialog.valid"
+                                @click="receiveDialog.show = false; acceptItem();"
+                            >
+                                Accept
+                            </v-btn>
+                            
+                        </v-card-actions>
                         
-                        <v-btn
-                            color="blue"
-                            class="px-3"                    
-                            @click="receiveDialog.show = false; acceptItem();"
-                        >
-                            Accept
-                        </v-btn>
-                        
-                    </v-card-actions>
+                    </v-form>
                 </v-card>
             </v-dialog>
             
@@ -362,47 +392,67 @@
                         Select a user to send this item to.
                     </v-card-text>
                     
-                    <v-list>
-                        <v-list-item-group v-model="shareDialog.data.recipient" color="primary">
-                            <v-list-item
-                                v-for="user in nearbyUsers"
-                                v-bind:key="user.uuid"
+                    <v-form
+                        ref="shareForm"
+                        v-model="shareDialog.valid"
+                        :lazy-validation="false"
+                    >
+                    
+                        <!-- <v-list>
+                            <v-list-item-group v-model="shareDialog.data.recipient" color="primary">
+                                <v-list-item
+                                    v-for="user in nearbyUsers"
+                                    v-bind:key="user.uuid"
+                                >
+                                    <v-list-item-content>
+                                        <v-list-item-title v-text="user.name"></v-list-item-title>
+                                    </v-list-item-content>
+                                </v-list-item>
+                            </v-list-item-group>
+                        </v-list> -->
+                        
+                        <v-select
+                            v-model="shareDialog.data.recipient"
+                            :items="nearbyUsers"
+                            item-text="name"
+                            item-value="uuid"
+                            :rules="[v => !!v || 'A user is required']"
+                            label="Nearby Users"
+                            required
+                        ></v-select>
+
+                        <v-text-field
+                            class="px-2"
+                            label="URL"
+                            :rules="[v => !!v || 'URL is required.']"
+                            v-model="shareDialog.data.url"
+                            required
+                        ></v-text-field>
+
+                        <v-card-actions>
+
+                            <v-btn
+                                color="red"
+                                class="px-3"
+                                @click="shareDialog.show = false"
                             >
-                                <v-list-item-content>
-                                    <v-list-item-title v-text="user.name"></v-list-item-title>
-                                </v-list-item-content>
-                            </v-list-item>
-                        </v-list-item-group>
-                    </v-list>
-
-                    <v-text-field
-                        class="px-2"
-                        label="URL"
-                        v-model="shareDialog.data.url"
-                        required
-                    ></v-text-field>
-
-                    <v-card-actions>
-
-                        <v-btn
-                            color="red"
-                            class="px-3"
-                            @click="shareDialog.show = false"
-                        >
-                            Cancel
-                        </v-btn>
+                                Cancel
+                            </v-btn>
+                            
+                            <v-spacer></v-spacer>
+                            
+                            <v-btn
+                                color="blue"
+                                class="px-3"
+                                :disabled="!shareDialog.valid"
+                                @click="shareDialog.show = false; shareItem();"
+                            >
+                                Send
+                            </v-btn>
+                            
+                        </v-card-actions>
                         
-                        <v-spacer></v-spacer>
-                        
-                        <v-btn
-                            color="blue"
-                            class="px-3"                    
-                            @click="shareDialog.show = false; shareItem();"
-                        >
-                            Send
-                        </v-btn>
-                        
-                    </v-card-actions>
+                    </v-form>
                 </v-card>
             </v-dialog>
         </v-app>
@@ -488,6 +538,7 @@ new Vue({
         },
         addDialog: {
             show: false,
+            valid: false,
             data: {
                 "name": null,
                 "url": null,
@@ -495,6 +546,7 @@ new Vue({
         },
         editDialog: {
             show: false,
+            valid: false,
             url: null, // This is the key, the URL in data is what will overwrite this key.
             data: {
                 "type": null,
@@ -504,6 +556,7 @@ new Vue({
         },
         receiveDialog: {
             show: false,
+            valid: false,
             data: {
                 "user": null,
                 "name": null,
@@ -513,6 +566,7 @@ new Vue({
         },
         shareDialog: {
             show: false,
+            valid: false,
             data: {
                 "url": null, // The item you want to share.
                 "recipient": null,
@@ -642,7 +696,7 @@ new Vue({
             this.sendAppMessage("test", "testData");
         },
         sendInventory: function() {
-            
+            alert("SAVING INVENTORY.");
         },
         receiveInventory: function() {
             
@@ -663,6 +717,15 @@ new Vue({
             alert(JSON.stringify(JSONtoSend));
             // EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
         },
+    },
+    watch: {
+        // Whenever the item list changes, this will notice and then send it to the script to be saved.
+        items: {
+            deep: true,
+            handler() {
+                this.sendInventory();
+            }
+        }
     },
     computed: {
 
