@@ -63,12 +63,21 @@ var inventoryMessagesChannel = "com.vircadia.inventory";
 function onMessageReceived(channel, message, sender, localOnly) {
     if (channel == inventoryMessagesChannel) {
         var messageJSON = JSON.parse(message);
+        // Window.alert("Passed 0 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);
+        if (messageJSON.command == "share-item" && messageJSON.recipient == MyAvatar.sessionUUID) { // We are receiving an item.
+            // Window.alert("Passed 1 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);            
+            receivingItem(sender, messageJSON.type, messageJSON.name, messageJSON.url);
+        } 
     }
     print("Message received:");
     print("- channel: " + channel);
     print("- message: " + message);
     print("- sender: " + sender);
     print("- localOnly: " + localOnly);
+}
+
+function sendMessage(dataToSend) {
+    Messages.sendMessage(inventoryMessagesChannel, JSON.stringify(dataToSend));
 }
 
 // END APP EVENT AND MESSAGING ROUTING
@@ -94,28 +103,33 @@ function loadInventory() {
     inventoryData = Settings.getValue(inventoryDataSettingString);
 }
 
-function receivingItem(data) {
+function receivingItem(sender, type, name, url) {
+    var packageRequest = {
+        "sender": sender,
+        "data": {
+            "type": type,
+            "name": name,
+            "url": url
+        }
+    }
     
-}
-
-function shareItem(data) {
-    
+    sendToWeb("script-to-web-receiving-item", packageRequest);
 }
 
 function sendNearbyUsers() {
-    var nearbyUsers = AvatarList.getAvatarsInRange(Vec3.ZERO, 25); // Find all users within 25m.
+    var nearbyUsers = AvatarList.getAvatarsInRange(MyAvatar.position, 25); // Find all users within 25m.
     var nearbyUsersToSend = [];
     
     nearbyUsers.forEach(function(user, i) {
         var objectToWrite;
         var aviName = AvatarList.getAvatar(user).displayName;
-        
-        if (aviName != MyAvatar.displayName) {
+        // Window.alert("aviName" + aviName + "user" + user + "MyAvatar.sessionUUID" + MyAvatar.sessionUUID);
+        if (user != MyAvatar.sessionUUID) { // Don't add ourselves to the list!
             objectToWrite = { "name": aviName, "uuid": user };
-            nearbyUsersToSend.push = objectToWrite;
+            nearbyUsersToSend.push(objectToWrite);
         }        
     });
-    
+
     sendToWeb("script-to-web-nearby-users", nearbyUsersToSend);
 }
 
@@ -141,6 +155,16 @@ function useItem(item) {
     if (item.type == "avatar") {
         MyAvatar.useFullAvatarURL(item.url);
     }
+    
+    if (item.type == "unknown") {
+        // We don't know how to handle this yet.
+        Window.alert("Unknown item type, unable to use.");
+    }
+}
+
+function shareItem(data) {
+    data.command = "share-item";
+    sendMessage(data);
 }
 
 function initializeInventoryApp() {
@@ -159,6 +183,9 @@ function startup() {
     
     loadInventory();
     
+    Messages.messageReceived.connect(onMessageReceived);
+    Messages.subscribe(inventoryMessagesChannel);
+    
     ui = new AppUi({
         buttonName: "TOPSECRET",
         home: Script.resolvePath("inventory.html"),
@@ -170,8 +197,8 @@ function startup() {
 startup();
 
 Script.scriptEnding.connect(function () {
-    // Messages.messageReceived.disconnect(onMessageReceived);
-    // Messages.unsubscribe(inventoryMessagesChannel);
+    Messages.messageReceived.disconnect(onMessageReceived);
+    Messages.unsubscribe(inventoryMessagesChannel);
 });
 
 }()); // END LOCAL_SCOPE

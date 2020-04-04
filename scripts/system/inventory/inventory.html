@@ -17,6 +17,7 @@
     <link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
     <!-- <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet"> -->
     <link href="./styles/vuetify.css" rel="stylesheet">
+    <link href="./styles/styles.css" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
 </head>
 <body>
@@ -446,7 +447,7 @@
                                 color="blue"
                                 class="px-3"
                                 :disabled="!shareDialog.valid"
-                                @click="shareDialog.show = false; shareItem();"
+                                @click="shareDialog.show = false; shareItem(shareDialog.data.url);"
                             >
                                 Send
                             </v-btn>
@@ -477,8 +478,9 @@ EventBridge.scriptEventReceived.connect(function(receivedCommand) {
             vue_this.receiveInventory(receivedCommand.data);
         }
         
-        if (receivedCommand.command == 'script-to-web-item-offer') {
-            alert("RECEIVING ITEM OFFER:" + JSON.stringify(receivedCommand.data));
+        if (receivedCommand.command == 'script-to-web-receiving-item') {
+            // alert("RECEIVING ITEM OFFER:" + JSON.stringify(receivedCommand.data));
+            vue_this.receivingItem(receivedCommand.data);
         }
         
         if (receivedCommand.command == 'script-to-web-nearby-users') {
@@ -647,6 +649,28 @@ new Vue({
             
             return detectedItemType;
         },
+        checkItemType: function(itemType) {
+            var detectedItemType = null;
+            
+            switch (itemType) {
+                case "model":
+                    detectedItemType = "model";
+                    break;
+                case "avatar":
+                    detectedItemType = "avatar";
+                    break;
+                case "script":
+                    detectedItemType = "script";
+                    break;
+            }
+            
+            if (detectedItemType == null) {
+                // This is not a known item type...
+                detectedItemType = "unknown";
+            }
+            
+            return detectedItemType;
+        }
         addItem: function(name, url) {
             var extensionRegex = /\.[0-9a-z]+$/i; // to detect the file type based on extension in the URL.
             var detectedFileType = url.match(extensionRegex);
@@ -688,17 +712,30 @@ new Vue({
         },
         receivingItem: function(data) {
             if (this.receiveDialog.show != true) { // Do not accept offers if the user is already receiving an offer.
-                this.receiveDialog.data.user = data.user;
-                this.receiveDialog.data.type = data.type;
-                this.receiveDialog.data.name = data.name;
-                this.receiveDialog.data.url = data.url;
+                this.receiveDialog.data.user = data.data.user;
+                this.receiveDialog.data.type = data.data.type;
+                this.receiveDialog.data.name = data.data.name;
+                this.receiveDialog.data.url = data.data.url;
                 
                 this.receiveDialog.show = true;
             }
             
         },
-        shareItem: function() {
+        shareItem: function(url) {
+            var typeToShare;
+            var nameToShare;
+            
+            for (i = 0; i < this.items.length; i++) {
+                if (this.items[i].url == url) {
+                    typeToShare = this.items[i].type;
+                    nameToShare = this.items[i].name;
+                }
+            }
+            
+            // alert("type" + typeToShare + "name" + nameToShare);
             this.sendAppMessage("share-item", {
+                "type": typeToShare,
+                "name": nameToShare,
                 "url": this.shareDialog.data.url,
                 "recipient": this.shareDialog.data.recipient,
             });
@@ -706,11 +743,10 @@ new Vue({
         acceptItem: function() {
             var itemToPush =             
             {
-                "type": this.checkFileType(this.receiveDialog.data.type),
+                "type": this.checkItemType(this.receiveDialog.data.type),
                 "name": this.receiveDialog.data.name,
                 "url": this.receiveDialog.data.url,
             };
-            
             this.items.push(itemToPush);
         },
         useItem: function(type, url) {
