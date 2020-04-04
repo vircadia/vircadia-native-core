@@ -704,7 +704,7 @@ new Vue({
         editItem: function(url) {
             for (i = 0; i < this.items.length; i++) {
                 if (this.items[i].url == url) {
-                    this.items[i].type = this.checkFileType(this.editDialog.data.type);
+                    this.items[i].type = this.checkItemType(this.editDialog.data.type);
                     this.items[i].name = this.editDialog.data.name;
                     this.items[i].url = this.editDialog.data.url;
                 }
