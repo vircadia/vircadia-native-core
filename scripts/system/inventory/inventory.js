@@ -31,6 +31,14 @@ function onWebAppEventReceived(event) {
             receiveInventory(eventJSON.data);
         }
         
+        if (eventJSON.command == "use-item") {
+            useItem(eventJSON.data);
+        }
+        
+        if (eventJSON.command == "share-item") {
+            shareItem(eventJSON.data);
+        }
+        
     }
 }
 
@@ -42,7 +50,8 @@ function sendToWeb(command, data) {
         "command": command,
         "data": data
     }
-    tablet.emitScriptEvent(dataToSend);
+    
+    tablet.emitScriptEvent(JSON.stringify(dataToSend));
 }
 
 // var inventoryMessagesChannel = "com.vircadia.inventory";
@@ -81,12 +90,36 @@ function loadInventory() {
     inventoryData = Settings.getValue(inventoryDataSettingString);
 }
 
-function receivingItem() {
+function receivingItem(data) {
     
 }
 
-function shareItem() {
+function shareItem(data) {
     
+}
+
+function useItem(item) {
+    
+    //TODO: Add animation support for avatars, add JSON loading...?
+    
+    // Depending on the type, we decide how to load this item.
+    if (item.type == "script") {
+        ScriptDiscoveryService.loadScript(item.url, true, false, false, true, false); // See SDS.loadScript in APIDocs for more.
+    }
+    
+    if (item.type == "model") {
+        var entityID = Entities.addEntity({
+            type: "Model",
+            position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+            rotation: MyAvatar.orientation,
+            modelURL: item.url,
+            collisionless: true,
+        });
+    }
+    
+    if (item.type == "avatar") {
+        MyAvatar.useFullAvatarURL(item.url);
+    }
 }
 
 function initializeInventoryApp() {
@@ -106,7 +139,7 @@ function startup() {
     loadInventory();
     
     ui = new AppUi({
-        buttonName: "INVENTORY",
+        buttonName: "TOPSECRET",
         home: Script.resolvePath("inventory.html"),
         graphicsDirectory: Script.resolvePath("./"), // Where your button icons are located
         onOpened: onOpened,

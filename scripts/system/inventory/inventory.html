@@ -95,7 +95,7 @@
 
                                             <v-list color="grey darken-3">
                                                 <v-list-item
-                                                    @click="useItem(item.url)"
+                                                    @click="useItem(item.type, item.url)"
                                                 >
                                                     <v-list-item-title>Use</v-list-item-title>
                                                     <v-list-item-action>
@@ -467,6 +467,25 @@
 
 var vue_this;    
 
+EventBridge.scriptEventReceived.connect(function(receivedCommand) {
+    receivedCommand = JSON.parse(receivedCommand);
+    // alert("RECEIVED COMMAND:" + receivedCommand.command)
+    if (receivedCommand.app == "inventory") {
+    // We route the data based on the command given.
+        if (receivedCommand.command == 'script-to-web-inventory') {
+            alert("INVENTORY RECEIVED ON APP:" + JSON.stringify(receivedCommand.data));
+            vue_this.receiveInventory(receivedCommand.data);
+        }
+        
+        if (receivedCommand.command == 'script-to-web-item-offer') {
+            alert("RECEIVING ITEM OFFER:" + JSON.stringify(receivedCommand.data));
+        }
+        
+        if (receivedCommand.command == 'script-to-web-nearby-users') {
+            alert("RECEIVING NEARBY USERS:" + JSON.stringify(receivedCommand.data));
+        }
+    }
+});
 
 new Vue({
     el: '#inventoryApp',
@@ -692,21 +711,30 @@ new Vue({
             
             this.items.push(itemToPush);
         },
-        useItem: function(url) {
-            alert(url);
-            this.sendAppMessage("test", "testData");
+        useItem: function(type, url) {
+            this.sendAppMessage("use-item", { 
+                "type": type, 
+                "url": url 
+            });
         },
         sendInventory: function() {
-            alert("SAVING INVENTORY.");
+            this.sendAppMessage("web-to-script-inventory", this.items );
         },
-        receiveInventory: function() {
-            
+        receiveInventory: function(receivedInventory) {
+            if (!receivedInventory) {
+                this.items = [];
+            } else {
+                this.items = receivedInventory;
+            }
         },
         displayIcon: function(itemType) {
             return this.iconType[itemType].icon;
         },
         getIconColor: function(itemType) {
             return this.iconType[itemType].color;
+        },
+        receiveNearbyUsers: function(receivedUsers) {
+            this.nearbyUsers = receivedUsers;
         },
         sendAppMessage: function(command, data) {
             var JSONtoSend = {
@@ -715,8 +743,8 @@ new Vue({
                 "data": data
             };
             
-            alert(JSON.stringify(JSONtoSend));
-            // EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
+            // alert(JSON.stringify(JSONtoSend));
+            EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
         },
     },
     watch: {
