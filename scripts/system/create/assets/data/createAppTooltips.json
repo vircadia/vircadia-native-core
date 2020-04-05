@@ -596,7 +596,7 @@
         "tooltip": "The mode in which to draw an entity, either \"Solid\" or \"Wireframe\"."
     },
     "renderWithZones": {
-        "tooltip": "This entity will be rendered only from the specified zones. If not specified, the entity will be always rendered."
+        "tooltip": "If set, this entity will only render when your avatar is inside of a zone in this list."
     },
     "groupCulled": {
         "tooltip": "If false, individual pieces of the entity may be culled by the render engine. If true, either the entire entity will be culled, or it won't at all."
