@@ -40,18 +40,18 @@
             >
                 <v-list
                     nav
+                    class="pt-5"
                 >
                     <v-list-item-group>
-                        
-                        <v-list-item @click="compactToggle = !compactToggle">
                             
-                            <v-switch
-                                @click="compactToggle = !compactToggle"
-                                v-model="compactToggle"
-                                :label="`Compact`"
-                            ></v-switch>
-                            
-                        </v-list-item>    
+                        <v-slider
+                            v-model="settings.displayDensity.size"
+                            :tick-labels="settings.displayDensity.labels"
+                            :max="2"
+                            step="1"
+                            ticks="always"
+                            tick-size="3"
+                        ></v-slider>
 
                         <v-list-item @click="addDialog.show = true">
                             <v-list-item-icon>
@@ -78,6 +78,7 @@
                                     sm="6"
                                     md="4"
                                     lg="3"
+                                    class="py-1"
                                 >
                                     <v-card
                                         class="mx-auto"
@@ -87,17 +88,30 @@
                                         <v-list-item one-line>
                                             
                                             <v-list-item-content class="pb-1 pt-2">
-                                                <div class="overline" style="font-size: 0.825rem !important;">{{item.type}}</div>
+                                                <div v-show="settings.displayDensity.size > 0" class="overline" style="font-size: 0.825rem !important;">{{item.type}}</div>
                                                 <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
-                                                <v-list-item-subtitle v-show="!compactToggle">{{item.url}}</v-list-item-subtitle>
+                                                <v-list-item-subtitle v-show="settings.displayDensity.size == 2">{{item.url}}</v-list-item-subtitle>
                                             </v-list-item-content>
                                             
                                             <v-menu bottom left>
                                             <template v-slot:activator="{ on }">
+                                                <!-- settings.displayDensity.size >= 1 -->
                                                 <v-btn 
-                                                    :style="{backgroundColor: (getIconColor(item.type)) }" 
+                                                    :style="{backgroundColor: (getIconColor(item.type)) }"
+                                                    v-show="settings.displayDensity.size >= 1"
+                                                    medium 
                                                     fab 
-                                                    x-large 
+                                                    dark
+                                                    v-on="on"
+                                                >
+                                                    <v-icon>{{displayIcon(item.type)}}</v-icon>
+                                                </v-btn>
+                                                <!-- settings.displayDensity.size < 1 -->
+                                                <v-btn 
+                                                    :style="{backgroundColor: (getIconColor(item.type)) }"
+                                                    v-show="settings.displayDensity.size < 1"
+                                                    small
+                                                    fab
                                                     dark
                                                     v-on="on"
                                                 >
@@ -508,6 +522,11 @@ if (!browserDevelopment()) {
                 // alert("RECEIVING NEARBY USERS:" + JSON.stringify(receivedCommand.data));
                 vue_this.receiveNearbyUsers(receivedCommand.data);
             }
+            
+            if (receivedCommand.command == 'script-to-web-settings') {
+                // alert("RECEIVING SETTINGS:" + JSON.stringify(receivedCommand.data));
+                vue_this.receiveSettings(receivedCommand.data);
+            }
     
         }
     });
@@ -635,7 +654,16 @@ new Vue({
             },
         ],
         sortBy: "alphabetical",
-        compactToggle: true,
+        settings: {
+            displayDensity: {
+                "size": 1,
+                "labels": [
+                    "List",
+                    "Compact",
+                    "Large",
+                ],
+            },
+        },
         darkTheme: true,
         drawer: false,
     }),
@@ -802,6 +830,16 @@ new Vue({
                 this.items = receivedInventory;
             }
         },
+        sendSettings: function() {
+            this.sendAppMessage("web-to-script-settings", this.settings );
+        },
+        receiveSettings: function(receivedSettings) {
+            if (!receivedSettings) {
+                // Don't do anything, let the defaults stand. Otherwise, it will break the app.
+            } else {
+                this.settings = receivedSettings;
+            }
+        },
         displayIcon: function(itemType) {
             return this.iconType[itemType].icon;
         },
@@ -835,6 +873,12 @@ new Vue({
             deep: true,
             handler() {
                 this.sendInventory();
+            }
+        }, // Whenever the settings change, we want to save that state.
+        settings: {
+            deep: true,
+            handler() {
+                this.sendSettings();
             }
         }
     },

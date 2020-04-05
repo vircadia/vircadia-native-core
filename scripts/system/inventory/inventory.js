@@ -16,6 +16,9 @@ var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var inventoryDataSettingString = "inventoryApp.data";
 var inventoryData;
 
+var inventorySettingsString = "inventoryApp.settings";
+var inventorySettings;
+
 // APP EVENT AND MESSAGING ROUTING
 
 function onWebAppEventReceived(event) {
@@ -29,6 +32,10 @@ function onWebAppEventReceived(event) {
         
         if (eventJSON.command == "web-to-script-inventory") {
             receiveInventory(eventJSON.data);
+        }
+        
+        if (eventJSON.command == "web-to-script-settings") {
+            receiveSettings(eventJSON.data);
         }
         
         if (eventJSON.command == "use-item") {
@@ -95,12 +102,33 @@ function sendInventory() {
 
 // END SEND AND RECEIVE INVENTORY STATE
 
+// SEND AND RECEIVE SETTINGS STATE
+
+function receiveSettings(receivedSettingsData) {
+    inventorySettings = receivedSettingsData;
+    saveSettings();
+}
+
+function sendSettings() {
+    sendToWeb("script-to-web-settings", inventorySettings);
+}
+
+// END SEND AND RECEIVE SETTINGS STATE
+
 function saveInventory() {
     Settings.setValue(inventoryDataSettingString, inventoryData);
 }
 
 function loadInventory() {
     inventoryData = Settings.getValue(inventoryDataSettingString);
+}
+
+function saveSettings() {
+    Settings.setValue(inventorySettingsString, inventorySettings);
+}
+
+function loadSettings() {
+    inventorySettings = Settings.getValue(inventorySettingsString);
 }
 
 function receivingItem(sender, type, name, url) {
@@ -168,6 +196,7 @@ function shareItem(data) {
 }
 
 function initializeInventoryApp() {
+    sendSettings();
     sendInventory();
 }
 
@@ -182,6 +211,7 @@ function onClosed() {
 function startup() {
     
     loadInventory();
+    loadSettings();
     
     Messages.messageReceived.connect(onMessageReceived);
     Messages.subscribe(inventoryMessagesChannel);
