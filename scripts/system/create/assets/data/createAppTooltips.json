@@ -319,17 +319,17 @@
         "tooltip": "The spread in color that each particle is given, resulting in a variety of colors."
     },
     "particleAlphaTriple": {
-        "tooltip": "Set the opacity of the each particle between 0.0 fully transparent and 1.0 completely opaque.",
+        "tooltip": "Set the opacity of each particle between 0.0 fully transparent and 1.0 completely opaque.",
         "jsPropertyName": "alpha"
     },
     "alpha": {
-        "tooltip": "Set the opacity of the each particle between 0.0 fully transparent and 1.0 completely opaque."
+        "tooltip": "Set the opacity of each particle between 0.0 fully transparent and 1.0 completely opaque."
     },
     "alphaStart": {
-        "tooltip": "Set the initial opacity level of the each particle between 0.0 fully transparent and 1.0 completely opaque."
+        "tooltip": "Set the initial opacity level of each particle between 0.0 fully transparent and 1.0 completely opaque."
     },
     "alphaFinish": {
-        "tooltip": "Set the final opacity level of the each particle between 0.0 fully transparent and 1.0 completely opaque."
+        "tooltip": "Set the final opacity level of each particle between 0.0 fully transparent and 1.0 completely opaque."
     },
     "alphaSpread": {
         "tooltip": "The spread in opacity that each particle is given, resulting in a variety of opacity levels."
