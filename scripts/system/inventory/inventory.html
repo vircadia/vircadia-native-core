@@ -26,9 +26,11 @@
             <v-app-bar
                 app
             >
+            
                 <v-app-bar-nav-icon @click="drawer = true"></v-app-bar-nav-icon>
 
                 <v-toolbar-title>Inventory</v-toolbar-title>
+                
             </v-app-bar>
 
             <v-navigation-drawer
@@ -39,15 +41,24 @@
                 <v-list
                     nav
                 >
-                    <v-list-item-group
+                    <v-list-item-group>
                         
-                    >
-                    <v-list-item @click="addDialog.show = true">
-                        <v-list-item-icon>
-                            <v-icon>mdi-plus</v-icon>
-                        </v-list-item-icon>
-                        <v-list-item-title>Add Item</v-list-item-title>
-                    </v-list-item>
+                        <v-list-item @click="compactToggle = !compactToggle">
+                            
+                            <v-switch
+                                @click="compactToggle = !compactToggle"
+                                v-model="compactToggle"
+                                :label="`Compact`"
+                            ></v-switch>
+                            
+                        </v-list-item>    
+
+                        <v-list-item @click="addDialog.show = true">
+                            <v-list-item-icon>
+                                <v-icon>mdi-plus</v-icon>
+                            </v-list-item-icon>
+                            <v-list-item-title>Add Item</v-list-item-title>
+                        </v-list-item>
 
                     </v-list-item-group>
                 </v-list>
@@ -73,12 +84,12 @@
                                         max-width="344"
                                         outlined
                                     >
-                                        <v-list-item three-line>
+                                        <v-list-item one-line>
                                             
                                             <v-list-item-content class="pb-1 pt-2">
                                                 <div class="overline" style="font-size: 0.825rem !important;">{{item.type}}</div>
                                                 <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
-                                                <v-list-item-subtitle>{{item.url}}</v-list-item-subtitle>
+                                                <v-list-item-subtitle v-show="!compactToggle">{{item.url}}</v-list-item-subtitle>
                                             </v-list-item-content>
                                             
                                             <v-menu bottom left>
@@ -466,30 +477,42 @@
 <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
 <script>
 
-var vue_this;    
+var vue_this;
 
-EventBridge.scriptEventReceived.connect(function(receivedCommand) {
-    receivedCommand = JSON.parse(receivedCommand);
-    // alert("RECEIVED COMMAND:" + receivedCommand.command)
-    if (receivedCommand.app == "inventory") {
-    // We route the data based on the command given.
-        if (receivedCommand.command == 'script-to-web-inventory') {
-            // alert("INVENTORY RECEIVED ON APP:" + JSON.stringify(receivedCommand.data));
-            vue_this.receiveInventory(receivedCommand.data);
-        }
-        
-        if (receivedCommand.command == 'script-to-web-receiving-item') {
-            // alert("RECEIVING ITEM OFFER:" + JSON.stringify(receivedCommand.data));
-            vue_this.receivingItem(receivedCommand.data);
-        }
-        
-        if (receivedCommand.command == 'script-to-web-nearby-users') {
-            // alert("RECEIVING NEARBY USERS:" + JSON.stringify(receivedCommand.data));
-            vue_this.receiveNearbyUsers(receivedCommand.data);
-        }
-        
+function browserDevelopment() {
+    if (typeof EventBridge !== 'undefined') {
+        return false; // We are in the browser, probably for development purposes.
+    } else {
+        return true; // We are in Vircadia.
     }
-});
+}
+
+if (!browserDevelopment()) {
+    
+    EventBridge.scriptEventReceived.connect(function(receivedCommand) {
+        receivedCommand = JSON.parse(receivedCommand);
+        // alert("RECEIVED COMMAND:" + receivedCommand.command)
+        if (receivedCommand.app == "inventory") {
+        // We route the data based on the command given.
+            if (receivedCommand.command == 'script-to-web-inventory') {
+                // alert("INVENTORY RECEIVED ON APP:" + JSON.stringify(receivedCommand.data));
+                vue_this.receiveInventory(receivedCommand.data);
+            }
+    
+            if (receivedCommand.command == 'script-to-web-receiving-item') {
+                // alert("RECEIVING ITEM OFFER:" + JSON.stringify(receivedCommand.data));
+                vue_this.receivingItem(receivedCommand.data);
+            }
+    
+            if (receivedCommand.command == 'script-to-web-nearby-users') {
+                // alert("RECEIVING NEARBY USERS:" + JSON.stringify(receivedCommand.data));
+                vue_this.receiveNearbyUsers(receivedCommand.data);
+            }
+    
+        }
+    });
+    
+}
 
 new Vue({
     el: '#inventoryApp',
@@ -612,6 +635,7 @@ new Vue({
             },
         ],
         sortBy: "alphabetical",
+        compactToggle: true,
         darkTheme: true,
         drawer: false,
     }),
@@ -797,9 +821,12 @@ new Vue({
                 "command": command,
                 "data": data
             };
-            
-            // alert(JSON.stringify(JSONtoSend));
-            EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
+                        
+            if (!browserDevelopment()) {
+                EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
+            } else {
+                alert(JSON.stringify(JSONtoSend));
+            }
         },
     },
     watch: {
