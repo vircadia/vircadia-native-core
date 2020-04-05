@@ -3621,7 +3621,7 @@ function displaySelectedZones(propertyId, isEditable) {
         if (!isMultiple) {
             listedZoneInner += "<tr><td class='zoneItem'>&nbsp;</td><td>&nbsp;</td></tr>";
         } else {
-            listedZoneInner += "<tr><td class='zoneItem'>[ WARNING: Any changes will apply to all ]</td><td>&nbsp;</td></tr>";
+            listedZoneInner += "<tr><td class='zoneItem'>[ WARNING: Any changes will apply to all. ]</td><td>&nbsp;</td></tr>";
         }
     } else {
         for ( i = 0; i < selectedZones.length; i++ ) {
