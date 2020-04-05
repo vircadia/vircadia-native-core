@@ -62,7 +62,7 @@
                             <v-row>
                                 <v-col
                                     v-for="item in items"
-                                    v-bind:key="item.url"
+                                    v-bind:key="item.uuid"
                                     cols="12"
                                     sm="6"
                                     md="4"
@@ -106,7 +106,7 @@
                                                 <v-list-item
                                                     @click="
                                                         editDialog.show = true; 
-                                                        editDialog.url = item.url;
+                                                        editDialog.uuid = item.uuid;
                                                         editDialog.data.type = item.type;
                                                         editDialog.data.name = item.name;
                                                         editDialog.data.url = item.url;
@@ -118,7 +118,7 @@
                                                     </v-list-item-action>
                                                 </v-list-item>
                                                 <v-list-item
-                                                    @click="shareDialog.show = true; shareDialog.data.url = item.url; sendAppMessage('web-to-script-request-nearby-users', '')"
+                                                    @click="shareDialog.show = true; shareDialog.data.url = item.url; shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
                                                 >
                                                     <v-list-item-title>Share</v-list-item-title>
                                                     <v-list-item-action>
@@ -126,7 +126,7 @@
                                                     </v-list-item-action>
                                                 </v-list-item>
                                                 <v-list-item
-                                                    @click="removeDialog.show = true; removeDialog.url = item.url;"
+                                                    @click="removeDialog.show = true; removeDialog.uuid = item.uuid;"
                                                     color="red darken-1"
                                                 >
                                                     <v-list-item-title>Remove</v-list-item-title>
@@ -173,7 +173,7 @@
                         <v-btn
                             color="red"
                             class="px-3"                    
-                            @click="removeDialog.show = false; removeItem(removeDialog.url);"
+                            @click="removeDialog.show = false; removeItem(removeDialog.uuid);"
                         >
                             Yes
                         </v-btn>
@@ -236,7 +236,7 @@
                                 color="blue"
                                 class="px-3"       
                                 :disabled="!editDialog.valid"             
-                                @click="editDialog.show = false; editItem(editDialog.url);"
+                                @click="editDialog.show = false; editItem(editDialog.uuid);"
                             >
                                 Done
                             </v-btn>
@@ -447,7 +447,7 @@
                                 color="blue"
                                 class="px-3"
                                 :disabled="!shareDialog.valid"
-                                @click="shareDialog.show = false; shareItem(shareDialog.data.url);"
+                                @click="shareDialog.show = false; shareItem(shareDialog.data.uuid, shareDialog.data.url);"
                             >
                                 Send
                             </v-btn>
@@ -558,7 +558,7 @@ new Vue({
         // The URL is the key (to finding the item we want) so we want to keep track of that.
         removeDialog: {
             show: false,
-            url: null,
+            uuid: null,
         },
         addDialog: {
             show: false,
@@ -571,7 +571,7 @@ new Vue({
         editDialog: {
             show: false,
             valid: false,
-            url: null, // This is the key, the URL in data is what will overwrite this key.
+            uuid: null, //
             data: {
                 "type": null,
                 "name": null,
@@ -592,6 +592,7 @@ new Vue({
             show: false,
             valid: false,
             data: {
+                "uuid": null, // UUID of the item you want to share. THIS IS THE KEY.
                 "url": null, // The item you want to share.
                 "recipient": null,
             }
@@ -621,6 +622,31 @@ new Vue({
         this.sendAppMessage("ready", "");
     },
     methods: {
+        createUUID: function() {
+            // http://www.ietf.org/rfc/rfc4122.txt
+            var s = [];
+            var hexDigits = "0123456789abcdef";
+            for (var i = 0; i < 36; i++) {
+                s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+            }
+            s[14] = "4";  // bits 12-15 of the time_hi_and_version field to 0010
+            s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1);  // bits 6-7 of the clock_seq_hi_and_reserved to 01
+            s[8] = s[13] = s[18] = s[23] = "-";
+
+            var uuid = s.join("");
+            return uuid;
+        },
+        pushToItems: function(type, name, url) {
+            var itemToPush =             
+            {
+                "type": type,
+                "name": name,
+                "url": url,
+                "uuid": this.createUUID(),
+            };
+            
+            this.items.push(itemToPush);
+        },
         checkFileType: function(fileType) {
             var detectedItemType = null;
             
@@ -682,28 +708,21 @@ new Vue({
                 itemType = this.checkFileType(detectedFileType[0]);
             }
             
-            var itemToPush =             
-            {
-                "type": itemType,
-                "name": name,
-                "url": url,
-            };
-            
-            this.items.push(itemToPush);
+            this.pushToItems(itemType, name, url);
             
             this.addDialog.data.name = null;
             this.addDialog.data.url = null;
         },
-        removeItem: function(url) {
+        removeItem: function(uuid) {
             for (i = 0; i < this.items.length; i++) {
-                if (this.items[i].url == url) {
+                if (this.items[i].uuid == uuid) {
                     this.items.splice(i, 1);
                 }
             }
         },
-        editItem: function(url) {
+        editItem: function(uuid) {
             for (i = 0; i < this.items.length; i++) {
-                if (this.items[i].url == url) {
+                if (this.items[i].uuid == uuid) {
                     this.items[i].type = this.checkItemType(this.editDialog.data.type);
                     this.items[i].name = this.editDialog.data.name;
                     this.items[i].url = this.editDialog.data.url;
@@ -721,12 +740,12 @@ new Vue({
             }
             
         },
-        shareItem: function(url) {
+        shareItem: function(uuid, url) {
             var typeToShare;
             var nameToShare;
             
             for (i = 0; i < this.items.length; i++) {
-                if (this.items[i].url == url) {
+                if (this.items[i].uuid == uuid) {
                     typeToShare = this.items[i].type;
                     nameToShare = this.items[i].name;
                 }
@@ -741,13 +760,7 @@ new Vue({
             });
         },
         acceptItem: function() {
-            var itemToPush =             
-            {
-                "type": this.checkItemType(this.receiveDialog.data.type),
-                "name": this.receiveDialog.data.name,
-                "url": this.receiveDialog.data.url,
-            };
-            this.items.push(itemToPush);
+            this.pushToItems(this.checkItemType(this.receiveDialog.data.type), this.receiveDialog.data.name, this.receiveDialog.data.url);
         },
         useItem: function(type, url) {
             this.sendAppMessage("use-item", { 

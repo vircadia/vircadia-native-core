@@ -187,7 +187,7 @@ function startup() {
     Messages.subscribe(inventoryMessagesChannel);
     
     ui = new AppUi({
-        buttonName: "TOPSECRET",
+        buttonName: "INVENTORY",
         home: Script.resolvePath("inventory.html"),
         graphicsDirectory: Script.resolvePath("./"), // Where your button icons are located
         onOpened: onOpened,
