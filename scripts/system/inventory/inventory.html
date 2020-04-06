@@ -59,6 +59,13 @@
                             </v-list-item-icon>
                             <v-list-item-title>Add Item</v-list-item-title>
                         </v-list-item>
+                        
+                        <v-list-item @click="createFolderDialog.show = true">
+                            <v-list-item-icon>
+                                <v-icon>mdi-folder-plus</v-icon>
+                            </v-list-item-icon>
+                            <v-list-item-title>Create Folder</v-list-item-title>
+                        </v-list-item>
 
                     </v-list-item-group>
                 </v-list>
@@ -174,10 +181,13 @@
                                         max-width="344"
                                         outlined
                                         v-if="item.folder"
+                                        color="blue darken-5"
                                     >
                                     <v-list-group
                                         value="true"
+                                        color=""
                                     >
+                                    
                                         <template v-slot:activator>
                                             <v-list-item one-line color="orange">
                                                 Test {{item.name}}
@@ -260,7 +270,10 @@
                                                     </v-list-item>
             
                                                 </v-card>
+                                                
                                             </v-col>
+                                            
+                                        </v-list-group>
                                         
                                     </v-card>
 
@@ -369,6 +382,58 @@
                         
                     </v-form>
 
+                </v-card>
+            </v-dialog>
+            
+            <v-dialog
+                v-model="createFolderDialog.show"
+                max-width="380"
+            >
+                <v-card>
+                    <v-card-title class="headline">Create Folder</v-card-title>
+                    
+                    <v-card-text>
+                        Enter the name of the folder.
+                    </v-card-text>
+                    
+                    <v-form
+                        ref="createFolderForm"
+                        v-model="createFolderDialog.valid"
+                        :lazy-validation="false"
+                    >
+
+                        <v-text-field
+                            class="px-2"
+                            label="Name"
+                            v-model="createFolderDialog.data.name"
+                            :rules="[v => !!v || 'Name is required.']"
+                            required
+                        ></v-text-field>
+
+                        <v-card-actions>
+
+                            <v-btn
+                                color="red"
+                                class="px-3"
+                                @click="addDialog.show = false"
+                            >
+                                Cancel
+                            </v-btn>
+                            
+                            <v-spacer></v-spacer>
+                            
+                            <v-btn
+                                color="blue"
+                                class="px-3"
+                                :disabled="!createFolderDialog.valid"
+                                @click="createFolderDialog.show = false; createFolder(createFolderDialog.data.name)"
+                            >
+                                Create
+                            </v-btn>
+                            
+                        </v-card-actions>
+                    
+                    </v-form>
                 </v-card>
             </v-dialog>
             
@@ -654,6 +719,7 @@ new Vue({
                         "uuid": "54hgfhgf25fdfadf4354353",
                     },
                 ],
+                "uuid:": "54354363wgsegs45ujs",
             },
             {
                 "type": "script",
@@ -720,6 +786,13 @@ new Vue({
         removeDialog: {
             show: false,
             uuid: null,
+        },
+        createFolderDialog: {
+            show: false,
+            valid: false,
+            data: {
+                "name": null,
+            },
         },
         addDialog: {
             show: false,
@@ -818,6 +891,17 @@ new Vue({
             
             this.items.push(itemToPush);
         },
+        pushFolderToItems: function(name) {
+            var folderToPush =             
+            {
+                "folder": true,
+                "name": name,
+                "items": [],
+                "uuid": this.createUUID(),
+            };
+            
+            this.items.push(folderToPush);
+        },
         checkFileType: function(fileType) {
             var detectedItemType = null;
             
@@ -867,6 +951,9 @@ new Vue({
             }
             
             return detectedItemType;
+        },
+        createFolder: function(name) {
+            this.pushFolderToItems(name);
         },
         addItem: function(name, url) {
             var extensionRegex = /\.[0-9a-z]+$/i; // to detect the file type based on extension in the URL.
