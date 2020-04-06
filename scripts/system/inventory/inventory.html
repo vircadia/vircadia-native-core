@@ -63,6 +63,7 @@
                     </v-list-item-group>
                 </v-list>
             </v-navigation-drawer>
+            
             <v-content>
                 <v-container fluid>
                     <v-data-iterator
@@ -84,6 +85,7 @@
                                         class="mx-auto"
                                         max-width="344"
                                         outlined
+                                        v-if="!item.folder"
                                     >
                                         <v-list-item one-line>
                                             
@@ -165,6 +167,103 @@
                                         </v-list-item>
 
                                     </v-card>
+                                    
+                                    <!-- The Folder Card -->
+                                    <v-card
+                                        class="mx-auto"
+                                        max-width="344"
+                                        outlined
+                                        v-if="item.folder"
+                                    >
+                                    <v-list-group
+                                        value="true"
+                                    >
+                                        <template v-slot:activator>
+                                            <v-list-item one-line color="orange">
+                                                Test {{item.name}}
+                                            </v-list-item>
+                                        </template>
+                                        
+                                                <v-col
+                                                    v-for="item in item.items"
+                                                    v-bind:key="item.uuid"
+                                                    class="py-1"
+                                                >
+                                                    <v-card
+                                                        class="mx-auto"
+                                                        max-width="344"
+                                                        outlined
+                                                    >
+                                                        <v-list-item one-line>
+                                                            
+                                                            <v-list-item-content class="pb-1 pt-2">
+                                                                <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
+                                                                <v-list-item-subtitle v-show="settings.displayDensity.size == 2">{{item.url}}</v-list-item-subtitle>
+                                                            </v-list-item-content>
+                                                            
+                                                            <v-menu bottom left>
+                                                            <template v-slot:activator="{ on }">
+                                                                <v-btn 
+                                                                    :style="{backgroundColor: (getIconColor(item.type)) }"
+                                                                    small
+                                                                    fab
+                                                                    dark
+                                                                    v-on="on"
+                                                                >
+                                                                    <v-icon>{{displayIcon(item.type)}}</v-icon>
+                                                                </v-btn>
+                                                            </template>
+                
+                                                            <v-list color="grey darken-3">
+                                                                <v-list-item
+                                                                    @click="useItem(item.type, item.url)"
+                                                                >
+                                                                    <v-list-item-title>Use</v-list-item-title>
+                                                                    <v-list-item-action>
+                                                                        <v-icon>mdi-play</v-icon>
+                                                                    </v-list-item-action>
+                                                                </v-list-item>
+                                                                <v-list-item
+                                                                    @click="
+                                                                        editDialog.show = true; 
+                                                                        editDialog.uuid = item.uuid;
+                                                                        editDialog.data.type = item.type;
+                                                                        editDialog.data.name = item.name;
+                                                                        editDialog.data.url = item.url;
+                                                                    "
+                                                                >
+                                                                    <v-list-item-title>Edit</v-list-item-title>
+                                                                    <v-list-item-action>
+                                                                        <v-icon>mdi-pencil</v-icon>
+                                                                    </v-list-item-action>
+                                                                </v-list-item>
+                                                                <v-list-item
+                                                                    @click="shareDialog.show = true; shareDialog.data.url = item.url; shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
+                                                                >
+                                                                    <v-list-item-title>Share</v-list-item-title>
+                                                                    <v-list-item-action>
+                                                                        <v-icon>mdi-share</v-icon>
+                                                                    </v-list-item-action>
+                                                                </v-list-item>
+                                                                <v-list-item
+                                                                    @click="removeDialog.show = true; removeDialog.uuid = item.uuid;"
+                                                                    color="red darken-1"
+                                                                >
+                                                                    <v-list-item-title>Remove</v-list-item-title>
+                                                                    <v-list-item-action>
+                                                                        <v-icon>mdi-minus</v-icon>
+                                                                    </v-list-item-action>
+                                                                </v-list-item>
+                                                            </v-list>
+                                                        </v-menu>
+                                                        
+                                                    </v-list-item>
+            
+                                                </v-card>
+                                            </v-col>
+                                        
+                                    </v-card>
+
                                 </v-col>
                             </v-row>
                         </template>
@@ -542,41 +641,61 @@ new Vue({
                 "type": "script",
                 "name": "VRGrabScale",
                 "url": "https://gooawefaweawfgle.com/vr.js",
+                "uuid": "54254354353",
+            },
+            {
+                "folder": true,
+                "name": "Test Folder",
+                "items": [
+                    {
+                        "type": "script",
+                        "name": "TESTFOLDERSCRIPT",
+                        "url": "https://googfdafsgaergale.com/vr.js",
+                        "uuid": "54hgfhgf25fdfadf4354353",
+                    },
+                ],
             },
             {
                 "type": "script",
                 "name": "VRGrabScale",
                 "url": "https://googfdafsgaergale.com/vr.js",
+                "uuid": "54hgfhgf254354353",
             },
             {
                 "type": "script",
                 "name": "TEST",
                 "url": "https://gooadfdagle.com/vr.js",
+                "uuid": "542rfwat4t54354353",
             },
             {
                 "type": "script",
                 "name": "TESTLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
                 "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
+                "uuid": "5425ggsrg45354353",
             },
             {
                 "type": "avatar",
                 "name": "AVI",
                 "url": "https://googlfadfe.com/vr.fst",
+                "uuid": "542gregg45s3g4354353",
             },
             {
                 "type": "avatar",
                 "name": "AVI",
                 "url": "https://googlefdaf.com/vr.fst",
+                "uuid": "5420798-087-54354353",
             },
             {
                 "type": "model",
                 "name": "3D MODEL",
                 "url": "https://googlee.com/vr.fbx",
+                "uuid": "54254354980-7667jt353",
             },
             {
                 "type": "model",
                 "name": "3D MODEL",
                 "url": "https://googleee.com/vr.fbx",
+                "uuid": "542543sg45s4gg54353",
             },
         ],
         iconType: {
