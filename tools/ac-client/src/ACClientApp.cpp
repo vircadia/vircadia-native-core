@@ -29,7 +29,7 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
 {
     // parse command-line
     QCommandLineParser parser;
-    parser.setApplicationDescription("High Fidelity AC client");
+    parser.setApplicationDescription("Vircadia AC client");
 
     const QCommandLineOption helpOption = parser.addHelpOption();
 

@@ -778,7 +778,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} actionData="" - Base-64 encoded compressed dump of the actions associated with the entity. This property
  *     is typically not used in scripts directly; rather, functions that manipulate an entity's actions update it, e.g., 
  *     {@link Entities.addAction}. The size of this property increases with the number of actions. Because this property value 
- *     has to fit within a High Fidelity datagram packet, there is a limit to the number of actions that an entity can have;
+ *     has to fit within a Vircadia datagram packet, there is a limit to the number of actions that an entity can have;
  *     edits which would result in overflow are rejected. <em>Read-only.</em>
  * @property {Entities.RenderInfo} renderInfo - Information on the cost of rendering the entity. Currently information is only 
  *     provided for <code>Model</code> entities. <em>Read-only.</em>
@@ -1215,7 +1215,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     the PolyVox data. This property is typically not used in scripts directly; rather, functions that manipulate a PolyVox 
  *     entity update it.
  *     <p>The size of this property increases with the size and complexity of the PolyVox entity, with the size depending on how 
- *     the particular entity's voxels compress. Because this property value has to fit within a High Fidelity datagram packet, 
+ *     the particular entity's voxels compress. Because this property value has to fit within a Vircadia datagram packet, 
  *     there is a limit to the size and complexity of a PolyVox entity; edits which would result in an overflow are rejected.</p>
  * @property {Entities.PolyVoxSurfaceStyle} voxelSurfaceStyle=2 - The style of rendering the voxels' surface and how 
  *     neighboring PolyVox entities are joined.
@@ -1366,7 +1366,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * var METERS_TO_INCHES = 39.3701;
  * var entity = Entities.addEntity({
  *     type: "Web",
- *     sourceUrl: "https://projectathena.io/",
+ *     sourceUrl: "https://vircadia.com/",
  *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -4 })),
  *     rotation: MyAvatar.orientation,
  *     dimensions: {
@@ -5053,7 +5053,7 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
 
 bool EntityItemProperties::verifyStaticCertificateProperties() {
     // True IFF a non-empty certificateID matches the static certificate json.
-    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
+    // I.e., if we can verify that the certificateID was produced by Vircadia signing the static certificate hash.
     return verifySignature(EntityItem::_marketplacePublicKey, getStaticCertificateHash(), QByteArray::fromBase64(getCertificateID().toUtf8()));
 }
 

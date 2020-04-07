@@ -53,7 +53,7 @@ Rectangle {
             textFormat: Text.StyledText
             linkColor: "#00B4EF"
             color: "white"
-            text: "<a href=\"https:/github.com/kasenvr/hifi-community\">Project Athena Github</a>."
+            text: "<a href=\"https:/github.com/kasenvr/project-athena\">Vircadia Github</a>."
             size: 20
             onLinkActivated: {
                 HiFiAbout.openUrl("https:/github.com/kasenvr/project-athena");

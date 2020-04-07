@@ -42,7 +42,7 @@ void OvenCLIApplication::parseCommandLine(int argc, char* argv[]) {
     // parse the command line parameters
     QCommandLineParser parser;
 
-    parser.setApplicationDescription("High Fidelity Oven");
+    parser.setApplicationDescription("Vircadia Oven");
     parser.addOptions({
         { CLI_INPUT_PARAMETER, "Path to file that you would like to bake.", "input" },
         { CLI_OUTPUT_PARAMETER, "Path to folder that will be used as output.", "output" },

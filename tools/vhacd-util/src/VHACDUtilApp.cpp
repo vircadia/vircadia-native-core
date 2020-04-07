@@ -106,7 +106,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
 
     // parse command-line
     QCommandLineParser parser;
-    parser.setApplicationDescription("High Fidelity Object Decomposer");
+    parser.setApplicationDescription("Vircadia Object Decomposer");
     parser.addHelpOption();
 
     const QCommandLineOption helpOption = parser.addHelpOption();

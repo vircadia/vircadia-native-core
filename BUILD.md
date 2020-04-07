@@ -89,7 +89,7 @@ In the examples below the variable $NAME would be replaced by the name of the de
 
 * $NAME_ROOT_DIR - pass this variable to Cmake with the -DNAME_ROOT_DIR= flag when running Cmake to generate build files
 * $NAME_ROOT_DIR - set this variable in your ENV
-* HIFI_LIB_DIR - set this variable in your ENV to your High Fidelity lib folder, should contain a folder '$name'
+* HIFI_LIB_DIR - set this variable in your ENV to your Vircadia lib folder, should contain a folder '$name'
 
 ### Optional Components
 

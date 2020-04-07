@@ -15,7 +15,7 @@ Come chat with us in [our Gitter](https://gitter.im/highfidelity/hifi) if you ha
 
 Documentation
 =========
-Documentation is available at [docs.highfidelity.com](https://docs.highfidelity.com), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
+Documentation is available at [docs.vircadia.dev](https://docs.vircadia.dev), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
 
 There is also detailed [documentation on our coding standards](CODING_STANDARD.md).
 

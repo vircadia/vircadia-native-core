@@ -36,7 +36,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
 {
     // parse command-line
     QCommandLineParser parser;
-    parser.setApplicationDescription("High Fidelity ATP-Client");
+    parser.setApplicationDescription("Vircadia ATP-Client");
 
     const QCommandLineOption helpOption = parser.addHelpOption();
 

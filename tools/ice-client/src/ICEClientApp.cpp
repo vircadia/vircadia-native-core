@@ -24,7 +24,7 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
 {
     // parse command-line
     QCommandLineParser parser;
-    parser.setApplicationDescription("High Fidelity ICE client");
+    parser.setApplicationDescription("Vircadia ICE client");
     parser.addHelpOption();
 
     const QCommandLineOption helpOption = parser.addHelpOption();

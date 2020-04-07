@@ -6,7 +6,7 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 ### Homebrew
 
-[Homebrew](https://brew.sh/) is an excellent package manager for macOS. It makes install of some High Fidelity dependencies very simple.
+[Homebrew](https://brew.sh/) is an excellent package manager for macOS. It makes install of some Vircadia dependencies very simple.
 
     brew install cmake openssl
 

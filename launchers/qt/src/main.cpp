@@ -1,4 +1,4 @@
-#include <QtPlugin>
+"Vircadia#include <QtPlugin>
 
 #include <qsharedmemory.h>
 

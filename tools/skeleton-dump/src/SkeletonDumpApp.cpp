@@ -19,7 +19,7 @@ SkeletonDumpApp::SkeletonDumpApp(int argc, char* argv[]) : QCoreApplication(argc
 
     // parse command-line
     QCommandLineParser parser;
-    parser.setApplicationDescription("High Fidelity FBX Skeleton Analyzer");
+    parser.setApplicationDescription("Vircadia FBX Skeleton Analyzer");
     const QCommandLineOption helpOption = parser.addHelpOption();
 
     const QCommandLineOption verboseOutput("v", "verbose output");

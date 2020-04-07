@@ -5,10 +5,10 @@
 Name:           athena-server
 Version:        %{version}
 Release:        1%{?dist}
-Summary:        Project Athena metaverse platform, based on the High Fidelity Engine.
+Summary:        Vircadia metaverse platform, based on the High Fidelity Engine.
 
 License:        ASL 2.0
-URL:            https://projectathena.io
+URL:            https://vircadia.com
 Source0:        https://github.com/daleglass/athena-builder/blob/master/athena_builder
 
 #BuildRequires:  systemd-rpm-macros
@@ -19,8 +19,8 @@ AutoReq:        no
 AutoProv:       no
 
 %description
-Project Athena allows creation and sharing of VR experiences.
-  The Project Athena metaverse provides built-in social features, including avatar interactions, spatialized audio and interactive physics. Additionally, you have the ability to import any 3D object into your virtual environment.
+Vircadia allows creation and sharing of VR experiences.
+  The Vircadia metaverse provides built-in social features, including avatar interactions, spatialized audio and interactive physics. Additionally, you have the ability to import any 3D object into your virtual environment.
 
 
 %prep

@@ -1,4 +1,4 @@
 Source: hifi-client-deps
 Version: 0
-Description: Collected dependencies for High Fidelity applications
+Description: Collected dependencies for Vircadia applications
 Build-Depends: hifi-deps, glslang, nlohmann-json, openvr (windows), sdl2 (!android), spirv-cross (!android), spirv-tools (!android), vulkanmemoryallocator

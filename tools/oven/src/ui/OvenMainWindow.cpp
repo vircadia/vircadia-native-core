@@ -18,7 +18,7 @@
 OvenMainWindow::OvenMainWindow(QWidget *parent, Qt::WindowFlags flags) :
     QMainWindow(parent, flags)
 {
-    setWindowTitle("High Fidelity Oven");
+    setWindowTitle("Vircadia Oven");
 
     // give the window a fixed width that will never change
     setFixedWidth(FIXED_WINDOW_WIDTH);
