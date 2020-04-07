@@ -163,7 +163,8 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
-    _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
+    _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
+    _httpExporterManager(QHostAddress::Any, DOMAIN_SERVER_EXPORTER_PORT, QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()), &_exporter)
 {
     if (_parentPID != -1) {
         watchParentProcess(_parentPID);
@@ -1977,6 +1978,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_API_BACKUPS_ID = "/api/backups/";
     const QString URI_API_BACKUPS_DOWNLOAD_ID = "/api/backups/download/";
     const QString URI_API_BACKUPS_RECOVER = "/api/backups/recover/";
+    const QString URI_EXPORTER_= "/metrics";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 

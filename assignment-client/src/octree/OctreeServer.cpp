@@ -1197,7 +1197,7 @@ void OctreeServer::domainSettingsRequestComplete() {
     } else {
         beginRunning();
     }
-} 
+}
 
 void OctreeServer::beginRunning() {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -1344,6 +1344,11 @@ QString OctreeServer::getUptime() {
     return formattedUptime;
 }
 
+double OctreeServer::getUptimeSeconds()
+{
+    return (usecTimestampNow() - _startedUSecs) / 1000000.0;
+}
+
 QString OctreeServer::getFileLoadTime() {
     QString result;
     if (isInitialLoadComplete()) {
@@ -1386,6 +1391,11 @@ QString OctreeServer::getFileLoadTime() {
     return result;
 }
 
+double OctreeServer::getFileLoadTimeSeconds()
+{
+     return getLoadElapsedTime() / 1000000.0;
+}
+
 QString OctreeServer::getConfiguration() {
     QString result;
     for (int i = 1; i < _argc; i++) {
@@ -1421,6 +1431,8 @@ void OctreeServer::sendStatsPacket() {
     statsArray1["4. persistFileLoadTime"] = getFileLoadTime();
     statsArray1["5. clients"] = getCurrentClientCount();
     statsArray1["6. threads"] = threadsStats;
+    statsArray1["uptime_seconds"] = getUptimeSeconds();
+    statsArray1["persistFileLoadTime_seconds"] = getFileLoadTimeSeconds();
 
     // Octree Stats
     QJsonObject octreeStats;
