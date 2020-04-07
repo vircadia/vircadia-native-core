@@ -80,7 +80,7 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
 
     // update the joint indices
     QVariantHash jointIndices;
-    for (int i = 0; i < _hfmModel.joints.size(); i++) {
+    for (size_t i = 0; i < _hfmModel.joints.size(); i++) {
         jointIndices.insert(_hfmModel.joints.at(i).name, QString::number(i));
     }
     mapping.insert(JOINT_INDEX_FIELD, jointIndices);

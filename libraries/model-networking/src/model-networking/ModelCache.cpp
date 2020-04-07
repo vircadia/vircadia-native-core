@@ -203,23 +203,23 @@ QUrl resolveTextureBaseUrl(const QUrl& url, const QUrl& textureBaseUrl) {
     return textureBaseUrl.isValid() ? textureBaseUrl : url;
 }
 
-GeometryResource::GeometryResource(const GeometryResource& other) :
+ModelResource::ModelResource(const ModelResource& other) :
     Resource(other),
-    Geometry(other),
+    NetworkModel(other),
     _modelLoader(other._modelLoader),
     _mappingPair(other._mappingPair),
     _textureBaseURL(other._textureBaseURL),
     _combineParts(other._combineParts),
     _isCacheable(other._isCacheable)
 {
-    if (other._geometryResource) {
+    if (other._modelResource) {
         _startedLoading = false;
     }
 }
 
-void GeometryResource::downloadFinished(const QByteArray& data) {
+void ModelResource::downloadFinished(const QByteArray& data) {
     if (_effectiveBaseURL.fileName().toLower().endsWith(".fst")) {
-        PROFILE_ASYNC_BEGIN(resource_parse_geometry, "GeometryResource::downloadFinished", _url.toString(), { { "url", _url.toString() } });
+        PROFILE_ASYNC_BEGIN(resource_parse_geometry, "ModelResource::downloadFinished", _url.toString(), { { "url", _url.toString() } });
 
         // store parsed contents of FST file
         _mapping = FSTReader::readMapping(data);
@@ -267,19 +267,19 @@ void GeometryResource::downloadFinished(const QByteArray& data) {
             auto modelCache = DependencyManager::get<ModelCache>();
             GeometryExtra extra { GeometryMappingPair(base, _mapping), _textureBaseURL, false };
 
-            // Get the raw GeometryResource
-            _geometryResource = modelCache->getResource(url, QUrl(), &extra, std::hash<GeometryExtra>()(extra)).staticCast<GeometryResource>();
+            // Get the raw ModelResource
+            _modelResource = modelCache->getResource(url, QUrl(), &extra, std::hash<GeometryExtra>()(extra)).staticCast<ModelResource>();
             // Avoid caching nested resources - their references will be held by the parent
-            _geometryResource->_isCacheable = false;
+            _modelResource->_isCacheable = false;
 
-            if (_geometryResource->isLoaded()) {
-                onGeometryMappingLoaded(!_geometryResource->getURL().isEmpty());
+            if (_modelResource->isLoaded()) {
+                onGeometryMappingLoaded(!_modelResource->getURL().isEmpty());
             } else {
                 if (_connection) {
                     disconnect(_connection);
                 }
 
-                _connection = connect(_geometryResource.data(), &Resource::finished, this, &GeometryResource::onGeometryMappingLoaded);
+                _connection = connect(_modelResource.data(), &Resource::finished, this, &ModelResource::onGeometryMappingLoaded);
             }
         }
     } else {
@@ -291,32 +291,31 @@ void GeometryResource::downloadFinished(const QByteArray& data) {
     }
 }
 
-void GeometryResource::onGeometryMappingLoaded(bool success) {
-    if (success && _geometryResource) {
-        _hfmModel = _geometryResource->_hfmModel;
-        _materialMapping = _geometryResource->_materialMapping;
-        _meshParts = _geometryResource->_meshParts;
-        _meshes = _geometryResource->_meshes;
-        _materials = _geometryResource->_materials;
+void ModelResource::onGeometryMappingLoaded(bool success) {
+    if (success && _modelResource) {
+        _hfmModel = _modelResource->_hfmModel;
+        _materialMapping = _modelResource->_materialMapping;
+        _meshes = _modelResource->_meshes;
+        _materials = _modelResource->_materials;
 
         // Avoid holding onto extra references
-        _geometryResource.reset();
+        _modelResource.reset();
         // Make sure connection will not trigger again
         disconnect(_connection); // FIXME Should not have to do this
     }
 
-    PROFILE_ASYNC_END(resource_parse_geometry, "GeometryResource::downloadFinished", _url.toString());
+    PROFILE_ASYNC_END(resource_parse_geometry, "ModelResource::downloadFinished", _url.toString());
     finishedLoading(success);
 }
 
-void GeometryResource::setExtra(void* extra) {
+void ModelResource::setExtra(void* extra) {
     const GeometryExtra* geometryExtra = static_cast<const GeometryExtra*>(extra);
     _mappingPair = geometryExtra ? geometryExtra->mapping : GeometryMappingPair(QUrl(), QVariantHash());
     _textureBaseURL = geometryExtra ? resolveTextureBaseUrl(_url, geometryExtra->textureBaseUrl) : QUrl();
     _combineParts = geometryExtra ? geometryExtra->combineParts : true;
 }
 
-void GeometryResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const MaterialMapping& materialMapping) {
+void ModelResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const MaterialMapping& materialMapping) {
     // Assume ownership of the processed HFMModel
     _hfmModel = hfmModel;
     _materialMapping = materialMapping;
@@ -329,31 +328,23 @@ void GeometryResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const M
     }
 
     std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
-    std::shared_ptr<GeometryMeshParts> parts = std::make_shared<GeometryMeshParts>();
     int meshID = 0;
     for (const HFMMesh& mesh : _hfmModel->meshes) {
         // Copy mesh pointers
         meshes->emplace_back(mesh._mesh);
-        int partID = 0;
-        for (const HFMMeshPart& part : mesh.parts) {
-            // Construct local parts
-            parts->push_back(std::make_shared<MeshPart>(meshID, partID, (int)materialIDAtlas[part.materialID]));
-            partID++;
-        }
         meshID++;
     }
     _meshes = meshes;
-    _meshParts = parts;
 
     finishedLoading(true);
 }
 
-void GeometryResource::deleter() {
+void ModelResource::deleter() {
     resetTextures();
     Resource::deleter();
 }
 
-void GeometryResource::setTextures() {
+void ModelResource::setTextures() {
     if (_hfmModel) {
         for (const HFMMaterial& material : _hfmModel->materials) {
             _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseURL));
@@ -361,7 +352,7 @@ void GeometryResource::setTextures() {
     }
 }
 
-void GeometryResource::resetTextures() {
+void ModelResource::resetTextures() {
     _materials.clear();
 }
 
@@ -377,17 +368,17 @@ ModelCache::ModelCache() {
 }
 
 QSharedPointer<Resource> ModelCache::createResource(const QUrl& url) {
-    return QSharedPointer<Resource>(new GeometryResource(url, _modelLoader), &GeometryResource::deleter);
+    return QSharedPointer<Resource>(new ModelResource(url, _modelLoader), &ModelResource::deleter);
 }
 
 QSharedPointer<Resource> ModelCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new GeometryResource(*resource.staticCast<GeometryResource>()), &GeometryResource::deleter);
+    return QSharedPointer<Resource>(new ModelResource(*resource.staticCast<ModelResource>()), &ModelResource::deleter);
 }
 
-GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url, const GeometryMappingPair& mapping, const QUrl& textureBaseUrl) {
+ModelResource::Pointer ModelCache::getModelResource(const QUrl& url, const GeometryMappingPair& mapping, const QUrl& textureBaseUrl) {
     bool combineParts = true;
     GeometryExtra geometryExtra = { mapping, textureBaseUrl, combineParts };
-    GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra, std::hash<GeometryExtra>()(geometryExtra)).staticCast<GeometryResource>();
+    ModelResource::Pointer resource = getResource(url, QUrl(), &geometryExtra, std::hash<GeometryExtra>()(geometryExtra)).staticCast<ModelResource>();
     if (resource) {
         if (resource->isLoaded() && resource->shouldSetTextures()) {
             resource->setTextures();
@@ -396,12 +387,12 @@ GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url, const
     return resource;
 }
 
-GeometryResource::Pointer ModelCache::getCollisionGeometryResource(const QUrl& url,
+ModelResource::Pointer ModelCache::getCollisionModelResource(const QUrl& url,
                                                                    const GeometryMappingPair& mapping,
                                                                    const QUrl& textureBaseUrl) {
     bool combineParts = false;
     GeometryExtra geometryExtra = { mapping, textureBaseUrl, combineParts };
-    GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra, std::hash<GeometryExtra>()(geometryExtra)).staticCast<GeometryResource>();
+    ModelResource::Pointer resource = getResource(url, QUrl(), &geometryExtra, std::hash<GeometryExtra>()(geometryExtra)).staticCast<ModelResource>();
     if (resource) {
         if (resource->isLoaded() && resource->shouldSetTextures()) {
             resource->setTextures();
@@ -410,7 +401,7 @@ GeometryResource::Pointer ModelCache::getCollisionGeometryResource(const QUrl& u
     return resource;
 }
 
-const QVariantMap Geometry::getTextures() const {
+const QVariantMap NetworkModel::getTextures() const {
     QVariantMap textures;
     for (const auto& material : _materials) {
         for (const auto& texture : material->_textures) {
@@ -424,22 +415,21 @@ const QVariantMap Geometry::getTextures() const {
 }
 
 // FIXME: The materials should only be copied when modified, but the Model currently caches the original
-Geometry::Geometry(const Geometry& geometry) {
-    _hfmModel = geometry._hfmModel;
-    _materialMapping = geometry._materialMapping;
-    _meshes = geometry._meshes;
-    _meshParts = geometry._meshParts;
+NetworkModel::NetworkModel(const NetworkModel& networkModel) {
+    _hfmModel = networkModel._hfmModel;
+    _materialMapping = networkModel._materialMapping;
+    _meshes = networkModel._meshes;
 
-    _materials.reserve(geometry._materials.size());
-    for (const auto& material : geometry._materials) {
+    _materials.reserve(networkModel._materials.size());
+    for (const auto& material : networkModel._materials) {
         _materials.push_back(std::make_shared<NetworkMaterial>(*material));
     }
 
-    _animGraphOverrideUrl = geometry._animGraphOverrideUrl;
-    _mapping = geometry._mapping;
+    _animGraphOverrideUrl = networkModel._animGraphOverrideUrl;
+    _mapping = networkModel._mapping;
 }
 
-void Geometry::setTextures(const QVariantMap& textureMap) {
+void NetworkModel::setTextures(const QVariantMap& textureMap) {
     if (_meshes->size() > 0) {
         for (auto& material : _materials) {
             // Check if any material textures actually changed
@@ -447,7 +437,7 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
                 [&textureMap](const NetworkMaterial::Textures::value_type& it) { return it.second.texture && textureMap.contains(it.second.name); })) {
 
                 // FIXME: The Model currently caches the materials (waste of space!)
-                //        so they must be copied in the Geometry copy-ctor
+                //        so they must be copied in the NetworkModel copy-ctor
                 // if (material->isOriginal()) {
                 //    // Copy the material to avoid mutating the cached version
                 //    material = std::make_shared<NetworkMaterial>(*material);
@@ -461,11 +451,11 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
         // If we only use cached textures, they should all be loaded
         areTexturesLoaded();
     } else {
-        qCWarning(modelnetworking) << "Ignoring setTextures(); geometry not ready";
+        qCWarning(modelnetworking) << "Ignoring setTextures(); NetworkModel not ready";
     }
 }
 
-bool Geometry::areTexturesLoaded() const {
+bool NetworkModel::areTexturesLoaded() const {
     if (!_areTexturesLoaded) {
         for (auto& material : _materials) {
             if (material->isMissingTexture()) {
@@ -500,30 +490,28 @@ bool Geometry::areTexturesLoaded() const {
     return true;
 }
 
-const std::shared_ptr<NetworkMaterial> Geometry::getShapeMaterial(int partID) const {
-    if ((partID >= 0) && (partID < (int)_meshParts->size())) {
-        int materialID = _meshParts->at(partID)->materialID;
-        if ((materialID >= 0) && (materialID < (int)_materials.size())) {
-            return _materials[materialID];
-        }
+const std::shared_ptr<NetworkMaterial> NetworkModel::getShapeMaterial(int shapeID) const {
+    uint32_t materialID = getHFMModel().shapes[shapeID].material;
+    if (materialID < (uint32_t)_materials.size()) {
+        return _materials[materialID];
     }
     return nullptr;
 }
 
-void GeometryResourceWatcher::startWatching() {
-    connect(_resource.data(), &Resource::finished, this, &GeometryResourceWatcher::resourceFinished);
-    connect(_resource.data(), &Resource::onRefresh, this, &GeometryResourceWatcher::resourceRefreshed);
+void ModelResourceWatcher::startWatching() {
+    connect(_resource.data(), &Resource::finished, this, &ModelResourceWatcher::resourceFinished);
+    connect(_resource.data(), &Resource::onRefresh, this, &ModelResourceWatcher::resourceRefreshed);
     if (_resource->isLoaded()) {
         resourceFinished(!_resource->getURL().isEmpty());
     }
 }
 
-void GeometryResourceWatcher::stopWatching() {
-    disconnect(_resource.data(), &Resource::finished, this, &GeometryResourceWatcher::resourceFinished);
-    disconnect(_resource.data(), &Resource::onRefresh, this, &GeometryResourceWatcher::resourceRefreshed);
+void ModelResourceWatcher::stopWatching() {
+    disconnect(_resource.data(), &Resource::finished, this, &ModelResourceWatcher::resourceFinished);
+    disconnect(_resource.data(), &Resource::onRefresh, this, &ModelResourceWatcher::resourceRefreshed);
 }
 
-void GeometryResourceWatcher::setResource(GeometryResource::Pointer resource) {
+void ModelResourceWatcher::setResource(ModelResource::Pointer resource) {
     if (_resource) {
         stopWatching();
     }
@@ -537,14 +525,14 @@ void GeometryResourceWatcher::setResource(GeometryResource::Pointer resource) {
     }
 }
 
-void GeometryResourceWatcher::resourceFinished(bool success) {
+void ModelResourceWatcher::resourceFinished(bool success) {
     if (success) {
-        _geometryRef = std::make_shared<Geometry>(*_resource);
+        _networkModelRef = std::make_shared<NetworkModel>(*_resource);
     }
     emit finished(success);
 }
 
-void GeometryResourceWatcher::resourceRefreshed() {
+void ModelResourceWatcher::resourceRefreshed() {
     // FIXME: Model is not set up to handle a refresh
     // _instance.reset();
 }
