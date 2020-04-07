@@ -1,60 +1,1081 @@
+<!--
+//
+//  App.vue
+//
+//  Created by kasenvr@gmail.com on 7 Apr 2020
+//  Copyright 2020 Vircadia Contributors
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+-->
+
 <template>
-  <v-app>
-    <v-app-bar
-      app
-      color="primary"
-      dark
-    >
-      <div class="d-flex align-center">
-        <v-img
-          alt="Vuetify Logo"
-          class="shrink mr-2"
-          contain
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-dark.png"
-          transition="scale-transition"
-          width="40"
-        />
+    <v-app>
+        <v-app-bar
+          app
+        >
 
-        <v-img
-          alt="Vuetify Name"
-          class="shrink mt-1 hidden-sm-and-down"
-          contain
-          min-width="100"
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-name-dark.png"
-          width="100"
-        />
-      </div>
+          <v-app-bar-nav-icon @click="drawer = true"></v-app-bar-nav-icon>
 
-      <v-spacer></v-spacer>
+          <v-toolbar-title>Inventory</v-toolbar-title>
+          
+        </v-app-bar>
 
-      <v-btn
-        href="https://github.com/vuetifyjs/vuetify/releases/latest"
-        target="_blank"
-        text
-      >
-        <span class="mr-2">Latest Release</span>
-        <v-icon>mdi-open-in-new</v-icon>
-      </v-btn>
-    </v-app-bar>
+        <v-navigation-drawer
+          v-model="drawer"
+          fixed
+          temporary
+        >
+          <v-list
+              nav
+              class="pt-5"
+          >
+              <v-list-item-group>
+                      
+                  <v-slider
+                      v-model="settings.displayDensity.size"
+                      :tick-labels="settings.displayDensity.labels"
+                      :max="2"
+                      step="1"
+                      ticks="always"
+                      tick-size="3"
+                  ></v-slider>
 
-    <v-content>
-      <HelloWorld/>
-    </v-content>
-  </v-app>
+                  <v-list-item @click="addDialog.show = true">
+                      <v-list-item-icon>
+                          <v-icon>mdi-plus</v-icon>
+                      </v-list-item-icon>
+                      <v-list-item-title>Add Item</v-list-item-title>
+                  </v-list-item>
+                  
+                  <v-list-item @click="createFolderDialog.show = true">
+                      <v-list-item-icon>
+                          <v-icon>mdi-folder-plus</v-icon>
+                      </v-list-item-icon>
+                      <v-list-item-title>Create Folder</v-list-item-title>
+                  </v-list-item>
+
+              </v-list-item-group>
+          </v-list>
+        </v-navigation-drawer>
+
+        <v-content>
+          <v-container fluid>
+              <v-data-iterator
+                  :items="items"
+                  hide-default-footer
+              >
+                  <template>
+                      <v-row>
+                          <v-col
+                              v-for="item in items"
+                              v-bind:key="item.uuid"
+                              cols="12"
+                              sm="6"
+                              md="4"
+                              lg="3"
+                              class="py-1"
+                          >
+                              <v-card
+                                  class="mx-auto"
+                                  max-width="344"
+                                  outlined
+                                  v-if="!item.folder"
+                              >
+                                  <v-list-item one-line>
+                                      
+                                      <v-list-item-content class="pb-1 pt-2">
+                                          <div v-show="settings.displayDensity.size > 0" class="overline" style="font-size: 0.825rem !important;">{{item.type}}</div>
+                                          <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
+                                          <v-list-item-subtitle v-show="settings.displayDensity.size == 2">{{item.url}}</v-list-item-subtitle>
+                                      </v-list-item-content>
+                                      
+                                      <v-menu bottom left>
+                                      <template v-slot:activator="{ on }">
+                                          <!-- settings.displayDensity.size >= 1 -->
+                                          <v-btn 
+                                              :style="{backgroundColor: (getIconColor(item.type)) }"
+                                              v-show="settings.displayDensity.size >= 1"
+                                              medium 
+                                              fab 
+                                              dark
+                                              v-on="on"
+                                          >
+                                              <v-icon>{{displayIcon(item.type)}}</v-icon>
+                                          </v-btn>
+                                          <!-- settings.displayDensity.size < 1 -->
+                                          <v-btn 
+                                              :style="{backgroundColor: (getIconColor(item.type)) }"
+                                              v-show="settings.displayDensity.size < 1"
+                                              small
+                                              fab
+                                              dark
+                                              v-on="on"
+                                          >
+                                              <v-icon>{{displayIcon(item.type)}}</v-icon>
+                                          </v-btn>
+                                      </template>
+
+                                      <v-list color="grey darken-3">
+                                          <v-list-item
+                                              @click="useItem(item.type, item.url)"
+                                          >
+                                              <v-list-item-title>Use</v-list-item-title>
+                                              <v-list-item-action>
+                                                  <v-icon>mdi-play</v-icon>
+                                              </v-list-item-action>
+                                          </v-list-item>
+                                          <v-list-item
+                                              @click="
+                                                  editDialog.show = true; 
+                                                  editDialog.uuid = item.uuid;
+                                                  editDialog.data.type = item.type;
+                                                  editDialog.data.name = item.name;
+                                                  editDialog.data.url = item.url;
+                                              "
+                                          >
+                                              <v-list-item-title>Edit</v-list-item-title>
+                                              <v-list-item-action>
+                                                  <v-icon>mdi-pencil</v-icon>
+                                              </v-list-item-action>
+                                          </v-list-item>
+                                          <v-list-item
+                                              @click="shareDialog.show = true; shareDialog.data.url = item.url; shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
+                                          >
+                                              <v-list-item-title>Share</v-list-item-title>
+                                              <v-list-item-action>
+                                                  <v-icon>mdi-share</v-icon>
+                                              </v-list-item-action>
+                                          </v-list-item>
+                                          <v-list-item
+                                              @click="removeDialog.show = true; removeDialog.uuid = item.uuid;"
+                                              color="red darken-1"
+                                          >
+                                              <v-list-item-title>Remove</v-list-item-title>
+                                              <v-list-item-action>
+                                                  <v-icon>mdi-minus</v-icon>
+                                              </v-list-item-action>
+                                          </v-list-item>
+                                      </v-list>
+                                      </v-menu>
+                                      
+                                  </v-list-item>
+
+                              </v-card>
+                              
+                              <!-- The Folder Card -->
+                              <v-card
+                                  class="mx-auto"
+                                  max-width="344"
+                                  outlined
+                                  v-if="item.folder"
+                                  color="blue darken-5"
+                              >
+                              <v-list-group
+                                  value="true"
+                                  color=""
+                              >
+                              
+                                  <template v-slot:activator>
+                                      <v-list-item one-line color="orange">
+                                          Test {{item.name}}
+                                      </v-list-item>
+                                  </template>
+                                  
+                                          <v-col
+                                              v-for="item in item.items"
+                                              v-bind:key="item.uuid"
+                                              class="py-1"
+                                          >
+                                              <v-card
+                                                  class="mx-auto"
+                                                  max-width="344"
+                                                  outlined
+                                              >
+                                                  <v-list-item one-line>
+                                                      
+                                                      <v-list-item-content class="pb-1 pt-2">
+                                                          <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
+                                                          <v-list-item-subtitle v-show="settings.displayDensity.size == 2">{{item.url}}</v-list-item-subtitle>
+                                                      </v-list-item-content>
+                                                      
+                                                      <v-menu bottom left>
+                                                      <template v-slot:activator="{ on }">
+                                                          <v-btn 
+                                                              :style="{backgroundColor: (getIconColor(item.type)) }"
+                                                              small
+                                                              fab
+                                                              dark
+                                                              v-on="on"
+                                                          >
+                                                              <v-icon>{{displayIcon(item.type)}}</v-icon>
+                                                          </v-btn>
+                                                      </template>
+          
+                                                      <v-list color="grey darken-3">
+                                                          <v-list-item
+                                                              @click="useItem(item.type, item.url)"
+                                                          >
+                                                              <v-list-item-title>Use</v-list-item-title>
+                                                              <v-list-item-action>
+                                                                  <v-icon>mdi-play</v-icon>
+                                                              </v-list-item-action>
+                                                          </v-list-item>
+                                                          <v-list-item
+                                                              @click="
+                                                                  editDialog.show = true; 
+                                                                  editDialog.uuid = item.uuid;
+                                                                  editDialog.data.type = item.type;
+                                                                  editDialog.data.name = item.name;
+                                                                  editDialog.data.url = item.url;
+                                                              "
+                                                          >
+                                                              <v-list-item-title>Edit</v-list-item-title>
+                                                              <v-list-item-action>
+                                                                  <v-icon>mdi-pencil</v-icon>
+                                                              </v-list-item-action>
+                                                          </v-list-item>
+                                                          <v-list-item
+                                                              @click="shareDialog.show = true; shareDialog.data.url = item.url; shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
+                                                          >
+                                                              <v-list-item-title>Share</v-list-item-title>
+                                                              <v-list-item-action>
+                                                                  <v-icon>mdi-share</v-icon>
+                                                              </v-list-item-action>
+                                                          </v-list-item>
+                                                          <v-list-item
+                                                              @click="removeDialog.show = true; removeDialog.uuid = item.uuid;"
+                                                              color="red darken-1"
+                                                          >
+                                                              <v-list-item-title>Remove</v-list-item-title>
+                                                              <v-list-item-action>
+                                                                  <v-icon>mdi-minus</v-icon>
+                                                              </v-list-item-action>
+                                                          </v-list-item>
+                                                      </v-list>
+                                                  </v-menu>
+                                                  
+                                              </v-list-item>
+
+                                          </v-card>
+                                          
+                                      </v-col>
+                                      
+                                  </v-list-group>
+                                  
+                              </v-card>
+
+                          </v-col>
+                      </v-row>
+                  </template>
+              </v-data-iterator>
+          </v-container>
+        </v-content>
+
+        <v-dialog
+          v-model="removeDialog.show"
+          max-width="290"
+        >
+          <v-card>
+              <v-card-title class="headline">Remove Item</v-card-title>
+
+              <v-card-text>
+                  Are you sure you want to delete this item from your inventory?
+              </v-card-text>
+
+              <v-card-actions>
+
+                  <v-btn
+                      color="blue"
+                      class="px-3"
+                      @click="removeDialog.show = false"
+                  >
+                      No
+                  </v-btn>
+                  
+                  <v-spacer></v-spacer>
+                  
+                  <v-btn
+                      color="red"
+                      class="px-3"                    
+                      @click="removeDialog.show = false; removeItem(removeDialog.uuid);"
+                  >
+                      Yes
+                  </v-btn>
+                  
+              </v-card-actions>
+              
+          </v-card>
+        </v-dialog>
+
+        <v-dialog
+          v-model="editDialog.show"
+          max-width="380"
+        >
+          <v-card>
+              <v-card-title class="headline">Edit Item</v-card-title>
+              
+              <v-form
+                  ref="editForm"
+                  v-model="editDialog.valid"
+                  :lazy-validation="false"
+              >
+              
+                  <v-text-field
+                      class="px-2"
+                      label="Type"
+                      v-model="editDialog.data.type"
+                      :rules="[v => !!v || 'Type is required.']"
+                      required
+                  ></v-text-field>
+
+                  <v-text-field
+                      class="px-2"
+                      label="Name"
+                      v-model="editDialog.data.name"
+                      :rules="[v => !!v || 'Name is required.']"
+                      required
+                  ></v-text-field>
+
+                  <v-text-field
+                      class="px-2"
+                      label="URL"
+                      v-model="editDialog.data.url"
+                      :rules="[v => !!v || 'URL is required.']"
+                      required
+                  ></v-text-field>
+
+                  <v-card-actions>
+
+                      <v-btn
+                          color="red"
+                          class="px-3"
+                          @click="editDialog.show = false"
+                      >
+                          Cancel
+                      </v-btn>
+                      
+                      <v-spacer></v-spacer>
+                      
+                      <v-btn
+                          color="blue"
+                          class="px-3"       
+                          :disabled="!editDialog.valid"             
+                          @click="editDialog.show = false; editItem(editDialog.uuid);"
+                      >
+                          Done
+                      </v-btn>
+                  
+                  </v-card-actions>
+                  
+              </v-form>
+
+          </v-card>
+        </v-dialog>
+
+        <v-dialog
+          v-model="createFolderDialog.show"
+          max-width="380"
+        >
+          <v-card>
+              <v-card-title class="headline">Create Folder</v-card-title>
+              
+              <v-card-text>
+                  Enter the name of the folder.
+              </v-card-text>
+              
+              <v-form
+                  ref="createFolderForm"
+                  v-model="createFolderDialog.valid"
+                  :lazy-validation="false"
+              >
+
+                  <v-text-field
+                      class="px-2"
+                      label="Name"
+                      v-model="createFolderDialog.data.name"
+                      :rules="[v => !!v || 'Name is required.']"
+                      required
+                  ></v-text-field>
+
+                  <v-card-actions>
+
+                      <v-btn
+                          color="red"
+                          class="px-3"
+                          @click="addDialog.show = false"
+                      >
+                          Cancel
+                      </v-btn>
+                      
+                      <v-spacer></v-spacer>
+                      
+                      <v-btn
+                          color="blue"
+                          class="px-3"
+                          :disabled="!createFolderDialog.valid"
+                          @click="createFolderDialog.show = false; createFolder(createFolderDialog.data.name)"
+                      >
+                          Create
+                      </v-btn>
+                      
+                  </v-card-actions>
+              
+              </v-form>
+          </v-card>
+        </v-dialog>
+
+        <v-dialog
+          v-model="addDialog.show"
+          max-width="380"
+        >
+          <v-card>
+              <v-card-title class="headline">Add Item</v-card-title>
+              
+              <v-card-text>
+                  Enter the name of the item.
+              </v-card-text>
+              
+              <v-form
+                  ref="addForm"
+                  v-model="addDialog.valid"
+                  :lazy-validation="false"
+              >
+
+                  <v-text-field
+                      class="px-2"
+                      label="Name"
+                      v-model="addDialog.data.name"
+                      :rules="[v => !!v || 'Name is required.']"
+                      required
+                  ></v-text-field>
+
+                  <v-card-text>
+                      Enter the URL of the item.
+                  </v-card-text>
+
+                  <v-text-field
+                      class="px-2"
+                      label="URL"
+                      v-model="addDialog.data.url"
+                      :rules="[v => !!v || 'URL is required.']"
+                      required
+                  ></v-text-field>
+
+                  <v-card-actions>
+
+                      <v-btn
+                          color="red"
+                          class="px-3"
+                          @click="addDialog.show = false"
+                      >
+                          Cancel
+                      </v-btn>
+                      
+                      <v-spacer></v-spacer>
+                      
+                      <v-btn
+                          color="blue"
+                          class="px-3"
+                          :disabled="!addDialog.valid"
+                          @click="addDialog.show = false; addItem(addDialog.data.name, addDialog.data.url)"
+                      >
+                          Add
+                      </v-btn>
+                      
+                  </v-card-actions>
+              
+              </v-form>
+          </v-card>
+        </v-dialog>
+
+        <v-dialog
+          v-model="receiveDialog.show"
+          max-width="380"
+          persistent
+        >
+          <v-card>
+              <v-card-title class="headline">Receiving Item</v-card-title>
+
+              <v-card-text>
+                  {{receiveDialog.data.user}} is sending you an item.
+              </v-card-text>
+              
+              <v-form
+                  ref="receiveForm"
+                  v-model="receiveDialog.valid"
+                  :lazy-validation="false"
+              >
+              
+                  <v-text-field
+                      class="px-2"
+                      label="Type"
+                      :rules="[v => !!v || 'Type is required.']"
+                      v-model="receiveDialog.data.type"
+                      required
+                  ></v-text-field>
+                  
+                  <v-text-field
+                      class="px-2"
+                      label="Name"
+                      :rules="[v => !!v || 'Name is required.']"
+                      v-model="receiveDialog.data.name"
+                      required
+                  ></v-text-field>
+
+                  <v-text-field
+                      class="px-2"
+                      label="URL"
+                      :rules="[v => !!v || 'URL is required.']"
+                      v-model="receiveDialog.data.url"
+                      required
+                  ></v-text-field>
+
+                  <v-card-actions>
+
+                      <v-btn
+                          color="red"
+                          class="px-3"
+                          @click="receiveDialog.show = false"
+                      >
+                          Reject
+                      </v-btn>
+                      
+                      <v-spacer></v-spacer>
+                      
+                      <v-btn
+                          color="blue"
+                          class="px-3"
+                          :disabled="!receiveDialog.valid"
+                          @click="receiveDialog.show = false; acceptItem();"
+                      >
+                          Accept
+                      </v-btn>
+                      
+                  </v-card-actions>
+                  
+              </v-form>
+          </v-card>
+        </v-dialog>
+
+        <v-dialog
+          v-model="shareDialog.show"
+          max-width="380"
+          persistent
+        >
+          <v-card>
+              <v-card-title class="headline">Share Item</v-card-title>
+
+              <v-card-text>
+                  Select a user to send this item to.
+              </v-card-text>
+              
+              <v-form
+                  ref="shareForm"
+                  v-model="shareDialog.valid"
+                  :lazy-validation="false"
+                  class="px-2"
+              >
+              
+                  <!-- <v-list>
+                      <v-list-item-group v-model="shareDialog.data.recipient" color="primary">
+                          <v-list-item
+                              v-for="user in nearbyUsers"
+                              v-bind:key="user.uuid"
+                          >
+                              <v-list-item-content>
+                                  <v-list-item-title v-text="user.name"></v-list-item-title>
+                              </v-list-item-content>
+                          </v-list-item>
+                      </v-list-item-group>
+                  </v-list> -->
+                  
+                  <v-select
+                      v-model="shareDialog.data.recipient"
+                      :items="nearbyUsers"
+                      item-text="name"
+                      item-value="uuid"
+                      :rules="[v => !!v || 'A recipient is required']"
+                      label="Nearby Users"
+                      required
+                  ></v-select>
+
+                  <v-text-field
+                      class="px-2"
+                      label="URL"
+                      :rules="[v => !!v || 'URL is required.']"
+                      v-model="shareDialog.data.url"
+                      required
+                  ></v-text-field>
+
+                  <v-card-actions>
+
+                      <v-btn
+                          color="red"
+                          class="px-3"
+                          @click="shareDialog.show = false"
+                      >
+                          Cancel
+                      </v-btn>
+                      
+                      <v-spacer></v-spacer>
+                      
+                      <v-btn
+                          color="blue"
+                          class="px-3"
+                          :disabled="!shareDialog.valid"
+                          @click="shareDialog.show = false; shareItem(shareDialog.data.uuid);"
+                      >
+                          Send
+                      </v-btn>
+                      
+                  </v-card-actions>
+                  
+              </v-form>
+          </v-card>
+        </v-dialog>
+    </v-app>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld';
+
+var vue_this;
+
+function browserDevelopment() {
+    if (typeof EventBridge !== 'undefined') {
+        return false; // We are in the browser, probably for development purposes.
+    } else {
+        return true; // We are in Vircadia.
+    }
+}
+
+if (!browserDevelopment()) {
+    // eslint-disable-next-line
+    EventBridge.scriptEventReceived.connect(function(receivedCommand) {
+        receivedCommand = JSON.parse(receivedCommand);
+        // alert("RECEIVED COMMAND:" + receivedCommand.command)
+        if (receivedCommand.app == "inventory") {
+        // We route the data based on the command given.
+            if (receivedCommand.command == 'script-to-web-inventory') {
+                // alert("INVENTORY RECEIVED ON APP:" + JSON.stringify(receivedCommand.data));
+                vue_this.receiveInventory(receivedCommand.data);
+            }
+    
+            if (receivedCommand.command == 'script-to-web-receiving-item') {
+                // alert("RECEIVING ITEM OFFER:" + JSON.stringify(receivedCommand.data));
+                vue_this.receivingItem(receivedCommand.data);
+            }
+    
+            if (receivedCommand.command == 'script-to-web-nearby-users') {
+                // alert("RECEIVING NEARBY USERS:" + JSON.stringify(receivedCommand.data));
+                vue_this.receiveNearbyUsers(receivedCommand.data);
+            }
+            
+            if (receivedCommand.command == 'script-to-web-settings') {
+                // alert("RECEIVING SETTINGS:" + JSON.stringify(receivedCommand.data));
+                vue_this.receiveSettings(receivedCommand.data);
+            }
+    
+        }
+    });
+    
+}
 
 export default {
-  name: 'App',
+    name: 'App',
+    data: () => ({
+        items: [
+            {
+                "type": "script",
+                "name": "VRGrabScale",
+                "url": "https://gooawefaweawfgle.com/vr.js",
+                "uuid": "54254354353",
+            },
+            {
+                "folder": true,
+                "name": "Test Folder",
+                "items": [
+                    {
+                        "type": "script",
+                        "name": "TESTFOLDERSCRIPT",
+                        "url": "https://googfdafsgaergale.com/vr.js",
+                        "uuid": "54hgfhgf25fdfadf4354353",
+                    },
+                ],
+                "uuid:": "54354363wgsegs45ujs",
+            },
+            {
+                "type": "script",
+                "name": "VRGrabScale",
+                "url": "https://googfdafsgaergale.com/vr.js",
+                "uuid": "54hgfhgf254354353",
+            },
+            {
+                "type": "script",
+                "name": "TEST",
+                "url": "https://gooadfdagle.com/vr.js",
+                "uuid": "542rfwat4t54354353",
+            },
+            {
+                "type": "script",
+                "name": "TESTLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+                "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
+                "uuid": "5425ggsrg45354353",
+            },
+            {
+                "type": "avatar",
+                "name": "AVI",
+                "url": "https://googlfadfe.com/vr.fst",
+                "uuid": "542gregg45s3g4354353",
+            },
+            {
+                "type": "avatar",
+                "name": "AVI",
+                "url": "https://googlefdaf.com/vr.fst",
+                "uuid": "5420798-087-54354353",
+            },
+            {
+                "type": "model",
+                "name": "3D MODEL",
+                "url": "https://googlee.com/vr.fbx",
+                "uuid": "54254354980-7667jt353",
+            },
+            {
+                "type": "model",
+                "name": "3D MODEL",
+                "url": "https://googleee.com/vr.fbx",
+                "uuid": "542543sg45s4gg54353",
+            },
+        ],
+        iconType: {
+            "script": {
+                "icon": "mdi-code-tags",
+                "color": "red",
+            },
+            "model": {
+                "icon": "mdi-video-3d",
+                "color": "green",
+            },
+            "avatar": {
+                "icon": "mdi-account-convert",
+                "color": "purple",
+            },
+            "unknown": {
+                "icon": "mdi-help",
+                "color": "grey",
+            }
+        },
+        // The URL is the key (to finding the item we want) so we want to keep track of that.
+        removeDialog: {
+            show: false,
+            uuid: null,
+        },
+        createFolderDialog: {
+            show: false,
+            valid: false,
+            data: {
+                "name": null,
+            },
+        },
+        addDialog: {
+            show: false,
+            valid: false,
+            data: {
+                "name": null,
+                "url": null,
+            },
+        },
+        editDialog: {
+            show: false,
+            valid: false,
+            uuid: null, //
+            data: {
+                "type": null,
+                "name": null,
+                "url": null,
+            },
+        },
+        receiveDialog: {
+            show: false,
+            valid: false,
+            data: {
+                "user": null,
+                "name": null,
+                "type": null,
+                "url": null,
+            },
+        },
+        shareDialog: {
+            show: false,
+            valid: false,
+            data: {
+                "uuid": null, // UUID of the item you want to share. THIS IS THE KEY.
+                "url": null, // The item you want to share.
+                "recipient": null,
+            }
+        },
+        nearbyUsers: [
+            {
+                name: "Who",
+                uuid: "{4131531653652562}",
+            },
+            {
+                name: "Is",
+                uuid: "{4131531653756756576543652562}",
+            },
+            {
+                name: "This?",
+                uuid: "{4131531676575653652562}",
+            },
+        ],
+        sortBy: "alphabetical",
+        settings: {
+            displayDensity: {
+                "size": 1,
+                "labels": [
+                    "List",
+                    "Compact",
+                    "Large",
+                ],
+            },
+        },
+        darkTheme: true,
+        drawer: false,
+    }),
+    created: function () {
+        vue_this = this;
+        this.$vuetify.theme.dark = this.darkTheme;
+        
+        this.sendAppMessage("ready", "");
+    },
+    methods: {
+        createUUID: function() {
+            // http://www.ietf.org/rfc/rfc4122.txt
+            var s = [];
+            var hexDigits = "0123456789abcdef";
+            for (var i = 0; i < 36; i++) {
+                s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+            }
+            s[14] = "4";  // bits 12-15 of the time_hi_and_version field to 0010
+            s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1);  // bits 6-7 of the clock_seq_hi_and_reserved to 01
+            s[8] = s[13] = s[18] = s[23] = "-";
 
-  components: {
-    HelloWorld,
-  },
+            var uuid = s.join("");
+            return uuid;
+        },
+        pushToItems: function(type, name, url) {
+            var itemToPush =             
+            {
+                "type": type,
+                "name": name,
+                "url": url,
+                "uuid": this.createUUID(),
+            };
+            
+            this.items.push(itemToPush);
+        },
+        pushFolderToItems: function(name) {
+            var folderToPush =             
+            {
+                "folder": true,
+                "name": name,
+                "items": [],
+                "uuid": this.createUUID(),
+            };
+            
+            this.items.push(folderToPush);
+        },
+        checkFileType: function(fileType) {
+            var detectedItemType = null;
+            
+            switch (fileType) {
+                // Model Cases
+                case ".fbx":
+                    detectedItemType = "model";
+                    break;
+                case ".gltf":
+                    detectedItemType = "model";
+                    break;
+                // Script Cases
+                case ".js":
+                    detectedItemType = "script";
+                    break;
+                // Avatar Cases
+                case ".fst":
+                    detectedItemType = "avatar";
+                    break;
+            }
+            
+            if (detectedItemType == null) {
+                // This is not a known item...
+                detectedItemType = "unknown";
+            }
+            
+            return detectedItemType;
+        },
+        checkItemType: function(itemType) {
+            var detectedItemType = null;
+            
+            switch (itemType) {
+                case "model":
+                    detectedItemType = "model";
+                    break;
+                case "avatar":
+                    detectedItemType = "avatar";
+                    break;
+                case "script":
+                    detectedItemType = "script";
+                    break;
+            }
+            
+            if (detectedItemType == null) {
+                // This is not a known item type...
+                detectedItemType = "unknown";
+            }
+            
+            return detectedItemType;
+        },
+        createFolder: function(name) {
+            this.pushFolderToItems(name);
+        },
+        addItem: function(name, url) {
+            var extensionRegex = /\.[0-9a-z]+$/i; // to detect the file type based on extension in the URL.
+            var detectedFileType = url.match(extensionRegex);
+            var itemType;
+                        
+            if (detectedFileType == null || detectedFileType[0] == null) {
+                itemType = "unknown";
+            } else {
+                itemType = this.checkFileType(detectedFileType[0]);
+            }
+            
+            this.pushToItems(itemType, name, url);
+            
+            this.addDialog.data.name = null;
+            this.addDialog.data.url = null;
+        },
+        removeItem: function(uuid) {
+            for (var i = 0; i < this.items.length; i++) {
+                if (this.items[i].uuid == uuid) {
+                    this.items.splice(i, 1);
+                }
+            }
+        },
+        editItem: function(uuid) {
+            for (var i = 0; i < this.items.length; i++) {
+                if (this.items[i].uuid == uuid) {
+                    this.items[i].type = this.checkItemType(this.editDialog.data.type);
+                    this.items[i].name = this.editDialog.data.name;
+                    this.items[i].url = this.editDialog.data.url;
+                }
+            }
+        },
+        receivingItem: function(data) {
+            if (this.receiveDialog.show != true) { // Do not accept offers if the user is already receiving an offer.
+                this.receiveDialog.data.user = data.data.user;
+                this.receiveDialog.data.type = data.data.type;
+                this.receiveDialog.data.name = data.data.name;
+                this.receiveDialog.data.url = data.data.url;
+                
+                this.receiveDialog.show = true;
+            }
+            
+        },
+        shareItem: function(uuid) {
+            var typeToShare;
+            var nameToShare;
+            
+            for (var i = 0; i < this.items.length; i++) {
+                if (this.items[i].uuid == uuid) {
+                    typeToShare = this.items[i].type;
+                    nameToShare = this.items[i].name;
+                }
+            }
+            
+            // alert("type" + typeToShare + "name" + nameToShare);
+            this.sendAppMessage("share-item", {
+                "type": typeToShare,
+                "name": nameToShare,
+                "url": this.shareDialog.data.url,
+                "recipient": this.shareDialog.data.recipient,
+            });
+        },
+        acceptItem: function() {
+            this.pushToItems(this.checkItemType(this.receiveDialog.data.type), this.receiveDialog.data.name, this.receiveDialog.data.url);
+        },
+        useItem: function(type, url) {
+            this.sendAppMessage("use-item", { 
+                "type": type, 
+                "url": url 
+            });
+        },
+        sendInventory: function() {
+            this.sendAppMessage("web-to-script-inventory", this.items );
+        },
+        receiveInventory: function(receivedInventory) {
+            if (!receivedInventory) {
+                this.items = [];
+            } else {
+                this.items = receivedInventory;
+            }
+        },
+        sendSettings: function() {
+            this.sendAppMessage("web-to-script-settings", this.settings );
+        },
+        receiveSettings: function(receivedSettings) {
+            if (!receivedSettings) {
+                // Don't do anything, let the defaults stand. Otherwise, it will break the app.
+            } else {
+                this.settings = receivedSettings;
+            }
+        },
+        displayIcon: function(itemType) {
+            return this.iconType[itemType].icon;
+        },
+        getIconColor: function(itemType) {
+            return this.iconType[itemType].color;
+        },
+        receiveNearbyUsers: function(receivedUsers) {
+            if (!receivedUsers) {
+                this.nearbyUsers = [];
+            } else {
+                this.nearbyUsers = receivedUsers;
+            }
+        },
+        sendAppMessage: function(command, data) {
+            var JSONtoSend = {
+                "app": "inventory",
+                "command": command,
+                "data": data
+            };
+                        
+            if (!browserDevelopment()) {
+                // eslint-disable-next-line
+                EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
+            } else {
+                alert(JSON.stringify(JSONtoSend));
+            }
+        },
+    },
+    watch: {
+        // Whenever the item list changes, this will notice and then send it to the script to be saved.
+        items: {
+            deep: true,
+            handler() {
+                this.sendInventory();
+            }
+        }, // Whenever the settings change, we want to save that state.
+        settings: {
+            deep: true,
+            handler() {
+                this.sendSettings();
+            }
+        }
+    },
+    computed: {
 
-  data: () => ({
-    //
-  }),
+    }
 };
+
 </script>
