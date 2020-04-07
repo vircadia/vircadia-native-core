@@ -23,9 +23,9 @@ Rectangle {
         spacing: 5
 
         Image {
-            sourceSize.width: 295
-            sourceSize.height: 75
-            source: "../../../images/about-projectathena.png"
+            sourceSize.width: 358
+            sourceSize.height: 65
+            source: "../../../images/about-vircadia-logo.png"
         }
         Item { height: 30; width: 1 }
         Column {
@@ -114,6 +114,11 @@ Rectangle {
             }
         }
         Item { height: 20; width: 1 }
+        RalewayRegular {
+            color: "white"
+            text: "© 2020 Vircadia Contributors."
+            size: 14
+        }
         RalewayRegular {
             color: "white"
             text: "© 2019 - 2020 Project Athena Contributors."

@@ -768,8 +768,8 @@ Menu::Menu() {
     // Help/Application menu ----------------------------------
     MenuWrapper * helpMenu = addMenu("Help");
 
-    // Help > About Project Athena
-    action = addActionToQMenuAndActionHash(helpMenu, "About Project Athena");
+    // Help > About Vircadia
+    action = addActionToQMenuAndActionHash(helpMenu, "About Vircadia");
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/AboutDialog.qml"),
             QString("hifi/dialogs/TabletAboutDialog.qml"), "AboutDialog");
