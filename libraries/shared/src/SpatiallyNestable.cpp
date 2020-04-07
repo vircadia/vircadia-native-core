@@ -1144,7 +1144,7 @@ AACube SpatiallyNestable::calculateInitialQueryAACube(bool& success) {
     }
 }
 
-bool SpatiallyNestable::updateQueryAACube() {
+bool SpatiallyNestable::updateQueryAACube(bool updateParent) {
     if (!queryAACubeNeedsUpdate()) {
         return false;
     }
@@ -1171,9 +1171,39 @@ bool SpatiallyNestable::updateQueryAACube() {
 
     _queryAACubeSet = true;
 
-    auto parent = getParentPointer(success);
-    if (success && parent) {
-        parent->updateQueryAACube();
+    if (updateParent) {
+        auto parent = getParentPointer(success);
+        if (success && parent) {
+            parent->updateQueryAACube();
+        }
+    }
+
+    return true;
+}
+
+bool SpatiallyNestable::updateQueryAACubeWithDescendantAACube(const AACube& descendantAACube, bool updateParent) {
+    if (!queryAACubeNeedsUpdateWithDescendantAACube(descendantAACube)) {
+        return false;
+    }
+
+    bool success;
+    AACube initialQueryAACube = calculateInitialQueryAACube(success);
+    if (!success) {
+        return false;
+    }
+    _queryAACube = initialQueryAACube;
+    _queryAACubeIsPuffed = shouldPuffQueryAACube();
+
+    _queryAACube += descendantAACube.getMinimumPoint();
+    _queryAACube += descendantAACube.getMaximumPoint();
+
+    _queryAACubeSet = true;
+
+    if (updateParent) {
+        auto parent = getParentPointer(success);
+        if (success && parent) {
+            parent->updateQueryAACube();
+        }
     }
 
     return true;
@@ -1214,6 +1244,24 @@ bool SpatiallyNestable::queryAACubeNeedsUpdate() const {
         return true;
     });
     return childNeedsUpdate;
+}
+
+bool SpatiallyNestable::queryAACubeNeedsUpdateWithDescendantAACube(const AACube& descendantAACube) const {
+    if (!_queryAACubeSet) {
+        return true;
+    }
+
+    bool success;
+    AACube maxAACube = getMaximumAACube(success);
+    if (success && !_queryAACube.contains(maxAACube)) {
+        return true;
+    }
+
+    if (shouldPuffQueryAACube() != _queryAACubeIsPuffed) {
+        return true;
+    }
+
+    return !_queryAACube.contains(descendantAACube);
 }
 
 AACube SpatiallyNestable::getQueryAACube(bool& success) const {

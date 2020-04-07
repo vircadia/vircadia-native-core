@@ -117,8 +117,10 @@ public:
 
     virtual void setQueryAACube(const AACube& queryAACube);
     virtual bool queryAACubeNeedsUpdate() const;
+    virtual bool queryAACubeNeedsUpdateWithDescendantAACube(const AACube& descendantAACube) const;
     virtual bool shouldPuffQueryAACube() const { return false; }
-    bool updateQueryAACube();
+    bool updateQueryAACube(bool updateParent = true);
+    bool updateQueryAACubeWithDescendantAACube(const AACube& descendentAACube, bool updateParent = true);
     void forceQueryAACubeUpdate() { _queryAACubeSet = false; }
     virtual AACube getQueryAACube(bool& success) const;
     virtual AACube getQueryAACube() const;
