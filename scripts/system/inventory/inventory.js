@@ -1,7 +1,7 @@
 //
 //  inventory.js
 //
-//  Created by kasenvr@gmail.com on 2 Mar 2020
+//  Created by kasenvr@gmail.com on 2 Apr 2020
 //  Copyright 2020 Vircadia Contributors
 //
 //  Distributed under the Apache License, Version 2.0.
