@@ -196,6 +196,8 @@ jobs:
   #     run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload.py" 
           
   build_full_win32:
+    env: 
+      JOB_NAME: build_full_win32
     runs-on: windows-latest
     if: github.event.action != 'labeled' || github.event.label.name == 'rebuild-win' || github.event.label.name == 'rebuild'
     steps:
@@ -236,5 +238,5 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
-        ARTIFACT_PATTERN: HighFidelity-Beta-PR${{ github.event.number }}-*.exe
+        ARTIFACT_PATTERN: ProjectAthena-Alpha-PR${{ github.event.number }}-*.exe
       run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload_to_publish_server.py"
