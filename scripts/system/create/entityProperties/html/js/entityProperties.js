@@ -1294,6 +1294,13 @@ const GROUPS = [
                 propertyID: "registrationPoint",
             },
             {
+                // Displayed only for model entities.
+                label: "",
+                type: "buttons",
+                buttons: [ { id: "useModelsPivot", label: "Use Model's Pivot", className: "blue", onClick: resetToNaturalPivot } ],
+                propertyID: "modelSpecificPivotButtons",
+            },
+            {
                 label: "Align",
                 type: "buttons",
                 buttons: [ { id: "selection", label: "Selection to Grid", className: "black", onClick: moveSelectionToGrid },
@@ -3019,6 +3026,13 @@ function resetToNaturalDimensions() {
     }));
 }
 
+function resetToNaturalPivot() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "resetToNaturalPivot"
+    }));
+}
+
 function reloadScripts() {
     EventBridge.emitWebEvent(JSON.stringify({
         type: "action",
@@ -3692,6 +3706,10 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
 
         const certificateIDMultiValue = getMultiplePropertyValue('certificateID');
         const hasCertifiedInSelection = certificateIDMultiValue.isMultiDiffValue || certificateIDMultiValue.value !== "";
+
+        // Show model-specific buttons if only models are selected.
+        const selectionIsOnlyModels = ((entityTypes.length == 1) && (entityTypes[0] == "Model"));
+        showPropertyElement("modelSpecificPivotButtons", selectionIsOnlyModels);
 
         Object.entries(properties).forEach(function([propertyID, property]) {
             const propertyData = property.data;
@@ -4426,6 +4444,7 @@ function loaded() {
         bindAllNonJSONEditorElements(); 
 
         showGroupsForType("None");
+        showPropertyElement("modelSpecificPivotButtons", false);// Hidden until a model entitiy is selected.
         resetProperties();
         disableProperties();        
     });

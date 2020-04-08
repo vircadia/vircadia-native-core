@@ -2489,6 +2489,35 @@ var PropertiesTool = function (opts) {
                     pushCommandForSelections();
                     selectionManager._update(false, this);
                 }
+            } else if (data.action === "resetToNaturalPivot") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (i = 0; i < selectionManager.selections.length; i++) {
+                        properties = selectionManager.savedProperties[selectionManager.selections[i]];
+                        var naturalDimensions = properties.naturalDimensions;
+
+                        // If any of the natural dimensions are not 0, set the entity's pivot according to its natural dimensions and natural position.
+                        // In this way, a model entity will match the pivot of its model.
+                        if (properties.type === "Model" && naturalDimensions.x === 0 && naturalDimensions.y === 0 &&
+                            naturalDimensions.z === 0) {
+                            Window.notifyEditError("Cannot apply the model's pivot to the entity: Model URL" +
+                                " is invalid or the model has not yet been loaded.");
+                        } else {
+                            var naturalMinimumExtent = Vec3.subtract(properties.naturalPosition, Vec3.multiply(naturalDimensions, 0.5));
+                            var negativeNaturalMinimumExtent = Vec3.multiply(naturalMinimumExtent, -1);
+
+                            var invNaturalDimensions = { x: 1.0 / naturalDimensions.x, y: 1.0 / naturalDimensions.y, z: 1.0 / naturalDimensions.z };
+
+                            var naturalPivot = Vec3.multiplyVbyV(negativeNaturalMinimumExtent, invNaturalDimensions);
+
+                            Entities.editEntity(selectionManager.selections[i], {
+                                registrationPoint: naturalPivot
+                            });
+                        }
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update(false, this);
+                }
             } else if (data.action === "previewCamera") {
                 if (selectionManager.hasSelection()) {
                     Camera.mode = "entity";
