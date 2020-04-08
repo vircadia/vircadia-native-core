@@ -1,10 +1,12 @@
 include(vcpkg_common_functions)
 vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
 
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_BUILD_ASSETS.txt" EXTERNAL_BUILD_ASSETS)
+
 # else Linux desktop
 vcpkg_download_distfile(
     SOURCE_ARCHIVE
-    URLS https://public.highfidelity.com/dependencies/v-hacd-master.zip
+    URLS ${EXTERNAL_BUILD_ASSETS}/dependencies/v-hacd-master.zip
     SHA512 5d9bd4872ead9eb3574e4806d6c4f490353a04036fd5f571e1e44f47cb66b709e311abcd53af30bae0015a690152170aeed93209a626c28ebcfd6591f3bb036f
     FILENAME vhacd.zip
 )

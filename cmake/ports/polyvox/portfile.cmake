@@ -1,9 +1,11 @@
 include(vcpkg_common_functions)
 
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_BUILD_ASSETS.txt" EXTERNAL_BUILD_ASSETS)
+
 # else Linux desktop
 vcpkg_download_distfile(
     SOURCE_ARCHIVE
-    URLS https://public.highfidelity.com/dependencies/polyvox-master-2015-7-15.zip
+    URLS ${EXTERNAL_BUILD_ASSETS}/dependencies/polyvox-master-2015-7-15.zip
     SHA512 cc04cd43ae74b9c7bb065953540c0048053fcba6b52dc4218b3d9431fba178d65ad4f6c53cc1122ba61d0ab4061e99a7ebbb15db80011d607c5070ebebf8eddc
     FILENAME polyvox.zip
 )
