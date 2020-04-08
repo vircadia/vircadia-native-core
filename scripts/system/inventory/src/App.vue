@@ -70,8 +70,7 @@
                     hide-default-footer
                 >
                     <template>
-                        
-                          <draggable tag="v-row" :list="items">
+                        <draggable :group="options" :list="items" handle=".handle">
                             <v-col
                                 v-for="item in items"
                                 v-bind:key="item.uuid"
@@ -79,19 +78,21 @@
                                 sm="6"
                                 md="4"
                                 lg="3"
-                                class="py-1 draggable-card"
+                                class="py-1 column-item"
                             >
                            
                                 <v-list-item 
                                     one-line 
                                     v-if="!item.folder"
-                                    class="mx-auto top-level-item"
+                                    class="mx-auto draggable-card"
                                     max-width="344"
                                     outlined
                                 >
-                                      
+                                      <div class="handle pa-2">
+                                          <v-icon color="orange darken-2">mdi-blur-linear</v-icon>
+                                      </div>
                                       <v-list-item-content 
-                                          class="pb-1 pt-2" 
+                                          class="pb-1 pt-2 pl-4" 
                                       >
                                           <div v-show="settings.displayDensity.size > 0" class="overline" style="font-size: 0.825rem !important;">{{item.type}}</div>
                                           <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
@@ -170,13 +171,12 @@
                                   </v-list-item>
 
                             
-                                <!-- The Folder Card -->
+                                <!-- The Folder List Item -->
                                 <v-list-group
-                                    value="true"
                                     v-if="item.folder"
                                     class="top-level-folder"
                                 >
-                              
+                                <!-- prepend-icon="mdi-blur-linear" put this in the list group, no idea how to make it a handle yet though... -->
                                     <template v-slot:activator>
                                         <v-list-item 
                                             one-line 
@@ -184,22 +184,31 @@
                                             max-width="344"
                                             outlined
                                         >
-                                            Test {{item.name}}
+                                            {{item.name}}
                                         </v-list-item>
                                     </template>
                                   
-                                          <v-col
-                                              v-for="item in item.items"
-                                              v-bind:key="item.uuid"
-                                              class="py-1"
-                                          >
+                                    <v-col
+                                        v-for="item in item.items"
+                                        v-bind:key="item.uuid"
+                                        cols="12"
+                                        sm="6"
+                                        md="4"
+                                        lg="3"
+                                        class="py-1 column-item"
+                                    >
+                                    <draggable 
+                                        :list="item.items"
+                                        :group="options"
+                                    >
                                         <v-list-item 
                                             one-line
-                                            class="mx-auto second-level-item"
-                                            max-width="344"
+                                            class="mx-auto draggable-card"
                                             outlined
                                         >
-
+                                            <div class="handle pa-2">
+                                                <v-icon color="orange darken-2">mdi-blur-linear</v-icon>
+                                            </div>
                                             <v-list-item-content class="pb-1 pt-2">
                                                 <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
                                                 <v-list-item-subtitle v-show="settings.displayDensity.size == 2">{{item.url}}</v-list-item-subtitle>
@@ -266,7 +275,8 @@
                                                 </v-list>
                                             </v-menu>
 
-                                        </v-list-item>      
+                                        </v-list-item>
+                                    </draggable>
                                     </v-col>
                                 </v-list-group>
                             </v-col>
@@ -710,6 +720,12 @@ export default {
                         "url": "https://googfdafsgaergale.com/vr.js",
                         "uuid": "54hgfhgf25fdfadf4354353",
                     },
+                    {
+                        "type": "script",
+                        "name": "FOLDERSCRIPT2",
+                        "url": "https://googfdafsgaergale.com/vr.js",
+                        "uuid": "54hgfhgf25ffdafddfadf4354353",
+                    },
                 ],
                 "uuid:": "54354363wgsegs45ujs",
             },
@@ -1082,7 +1098,13 @@ export default {
         }
     },
     computed: {
-
+        options : function (){
+            return { 
+                name: 'column-item',
+                pull: true, 
+                put: true 
+            }
+        }
     }
 };
 
