@@ -236,7 +236,5 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
-        GITHUB_TOKEN: ${{ secrets.github_ci_token }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
         ARTIFACT_PATTERN: HighFidelity-Beta-PR${{ github.event.number }}-*.exe
-      run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload.py"
+      run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload_to_publish_server.py"
