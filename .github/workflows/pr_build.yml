@@ -105,6 +105,13 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}/build
       run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
+    - name: Upload Artifact
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+        ARTIFACT_PATTERN: HighFidelity-Beta-PR${{ github.event.number }}-*.exe
+      run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload_to_publish_server.py"
 
   build_full_linux:
     runs-on: ubuntu-latest
