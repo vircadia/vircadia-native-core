@@ -56,8 +56,6 @@ const quint64 ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP = 0;
 const QString ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS = QString("");
 const QString ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL = QString("");
 
-const float ENTITY_ITEM_MIN_REGISTRATION_POINT = 0.0f;
-const float ENTITY_ITEM_MAX_REGISTRATION_POINT = 1.0f;
 const glm::vec3 ENTITY_ITEM_DEFAULT_REGISTRATION_POINT = ENTITY_ITEM_HALF_VEC3; // center
 
 const float ENTITY_ITEM_IMMORTAL_LIFETIME = -1.0f; /// special lifetime which means the entity lives for ever

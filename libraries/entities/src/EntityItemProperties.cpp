@@ -684,8 +684,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Vec3} position=0,0,0 - The position of the entity in world coordinates.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity in world coordinates.
  * @property {Vec3} registrationPoint=0.5,0.5,0.5 - The point in the entity that is set to the entity's position and is rotated 
- *      about, range {@link Vec3(0)|Vec3.ZERO} &ndash; {@link Vec3(0)|Vec3.ONE}. A value of {@link Vec3(0)|Vec3.ZERO} is the 
- *      entity's minimum x, y, z corner; a value of {@link Vec3(0)|Vec3.ONE} is the entity's maximum x, y, z corner.
+ *      about. A value of {@link Vec3(0)|Vec3.ZERO} is the entity's minimum x, y, z corner; a value of {@link Vec3(0)|Vec3.ONE}
+ *      is the entity's maximum x, y, z corner.
  *
  * @property {Vec3} naturalPosition=0,0,0 - The center of the entity's unscaled mesh model if it has one, otherwise
  *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
@@ -2573,8 +2573,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_POSITION, Position, position, vec3);
         ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_DIMENSIONS, Dimensions, dimensions, vec3, ENTITY_ITEM_MIN_DIMENSION, FLT_MAX);
         ADD_PROPERTY_TO_MAP(PROP_ROTATION, Rotation, rotation, quat);
-        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, vec3, 
-                                       ENTITY_ITEM_MIN_REGISTRATION_POINT, ENTITY_ITEM_MAX_REGISTRATION_POINT);
+        ADD_PROPERTY_TO_MAP(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, vec3);
         ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
         ADD_PROPERTY_TO_MAP(PROP_LAST_EDITED_BY, LastEditedBy, lastEditedBy, QUuid);
         ADD_PROPERTY_TO_MAP(PROP_ENTITY_HOST_TYPE, EntityHostType, entityHostType, entity::HostType);
