@@ -1,0 +1,13 @@
+.top-level-item {
+    background-color: rgba(39,39,39, 1.0);
+}
+
+.top-level-folder {
+    background-color: rgba(39,39,39, 1.0);
+}
+
+.second-level-item {
+    background-color: rgba(39,39,39, 0.7);
+}
+
+.inventoryApp::-webkit-scrollbar { width: 0 !important }

@@ -10,6 +10,7 @@
   "dependencies": {
     "core-js": "^3.6.4",
     "vue": "^2.6.11",
+    "vuedraggable": "^2.23.2",
     "vuetify": "^2.2.11"
   },
   "devDependencies": {

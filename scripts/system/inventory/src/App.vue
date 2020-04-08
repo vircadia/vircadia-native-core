@@ -10,82 +10,89 @@
 //
 -->
 
+<style>
+    @import './assets/styles/styles.css';
+</style>
+
 <template>
     <v-app>
         <v-app-bar
-          app
+            app
         >
+            <v-app-bar-nav-icon @click="drawer = true"></v-app-bar-nav-icon>
 
-          <v-app-bar-nav-icon @click="drawer = true"></v-app-bar-nav-icon>
-
-          <v-toolbar-title>Inventory</v-toolbar-title>
+            <v-toolbar-title>Inventory</v-toolbar-title>
           
         </v-app-bar>
 
         <v-navigation-drawer
-          v-model="drawer"
-          fixed
-          temporary
+            v-model="drawer"
+            fixed
+            temporary
         >
-          <v-list
-              nav
-              class="pt-5"
-          >
-              <v-list-item-group>
-                      
-                  <v-slider
-                      v-model="settings.displayDensity.size"
-                      :tick-labels="settings.displayDensity.labels"
-                      :max="2"
-                      step="1"
-                      ticks="always"
-                      tick-size="3"
-                  ></v-slider>
+            <v-list
+                nav
+                class="pt-5"
+            >
+                <v-list-item-group>
 
-                  <v-list-item @click="addDialog.show = true">
-                      <v-list-item-icon>
-                          <v-icon>mdi-plus</v-icon>
-                      </v-list-item-icon>
-                      <v-list-item-title>Add Item</v-list-item-title>
-                  </v-list-item>
-                  
-                  <v-list-item @click="createFolderDialog.show = true">
-                      <v-list-item-icon>
-                          <v-icon>mdi-folder-plus</v-icon>
-                      </v-list-item-icon>
-                      <v-list-item-title>Create Folder</v-list-item-title>
-                  </v-list-item>
+                <v-slider
+                    v-model="settings.displayDensity.size"
+                    :tick-labels="settings.displayDensity.labels"
+                    :max="2"
+                    step="1"
+                    ticks="always"
+                    tick-size="3"
+                ></v-slider>
 
-              </v-list-item-group>
-          </v-list>
+                <v-list-item @click="addDialog.show = true">
+                    <v-list-item-icon>
+                        <v-icon>mdi-plus</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-title>Add Item</v-list-item-title>
+                    </v-list-item>
+
+                    <v-list-item @click="createFolderDialog.show = true">
+                    <v-list-item-icon>
+                        <v-icon>mdi-folder-plus</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-title>Create Folder</v-list-item-title>
+                </v-list-item>
+
+                </v-list-item-group>
+            </v-list>
         </v-navigation-drawer>
 
         <v-content>
-          <v-container fluid>
-              <v-data-iterator
-                  :items="items"
-                  hide-default-footer
-              >
-                  <template>
-                      <v-row>
-                          <v-col
-                              v-for="item in items"
-                              v-bind:key="item.uuid"
-                              cols="12"
-                              sm="6"
-                              md="4"
-                              lg="3"
-                              class="py-1"
-                          >
-                              <v-card
-                                  class="mx-auto"
-                                  max-width="344"
-                                  outlined
-                                  v-if="!item.folder"
-                              >
-                                  <v-list-item one-line>
+            <v-container fluid>
+                <v-data-iterator
+                    :items="items"
+                    hide-default-footer
+                >
+                    <template>
+                        
+                          <draggable tag="v-row" :list="items">
+                            <v-col
+                                v-for="item in items"
+                                v-bind:key="item.uuid"
+                                cols="12"
+                                sm="6"
+                                md="4"
+                                lg="3"
+                                class="py-1 draggable-card"
+                            >
+                           
+                                <v-list-item 
+                                    one-line 
+                                    v-if="!item.folder"
+                                    class="mx-auto top-level-item"
+                                    max-width="344"
+                                    outlined
+                                >
                                       
-                                      <v-list-item-content class="pb-1 pt-2">
+                                      <v-list-item-content 
+                                          class="pb-1 pt-2" 
+                                      >
                                           <div v-show="settings.displayDensity.size > 0" class="overline" style="font-size: 0.825rem !important;">{{item.type}}</div>
                                           <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
                                           <v-list-item-subtitle v-show="settings.displayDensity.size == 2">{{item.url}}</v-list-item-subtitle>
@@ -162,115 +169,111 @@
                                       
                                   </v-list-item>
 
-                              </v-card>
+                            
+                                <!-- The Folder Card -->
+                                <v-list-group
+                                    value="true"
+                                    v-if="item.folder"
+                                    class="top-level-folder"
+                                >
                               
-                              <!-- The Folder Card -->
-                              <v-card
-                                  class="mx-auto"
-                                  max-width="344"
-                                  outlined
-                                  v-if="item.folder"
-                                  color="blue darken-5"
-                              >
-                              <v-list-group
-                                  value="true"
-                                  color=""
-                              >
-                              
-                                  <template v-slot:activator>
-                                      <v-list-item one-line color="orange">
-                                          Test {{item.name}}
-                                      </v-list-item>
-                                  </template>
+                                    <template v-slot:activator>
+                                        <v-list-item 
+                                            one-line 
+                                            class="mx-auto"
+                                            max-width="344"
+                                            outlined
+                                        >
+                                            Test {{item.name}}
+                                        </v-list-item>
+                                    </template>
                                   
                                           <v-col
                                               v-for="item in item.items"
                                               v-bind:key="item.uuid"
                                               class="py-1"
                                           >
-                                              <v-card
-                                                  class="mx-auto"
-                                                  max-width="344"
-                                                  outlined
-                                              >
-                                                  <v-list-item one-line>
-                                                      
-                                                      <v-list-item-content class="pb-1 pt-2">
-                                                          <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
-                                                          <v-list-item-subtitle v-show="settings.displayDensity.size == 2">{{item.url}}</v-list-item-subtitle>
-                                                      </v-list-item-content>
-                                                      
-                                                      <v-menu bottom left>
-                                                      <template v-slot:activator="{ on }">
-                                                          <v-btn 
-                                                              :style="{backgroundColor: (getIconColor(item.type)) }"
-                                                              small
-                                                              fab
-                                                              dark
-                                                              v-on="on"
-                                                          >
-                                                              <v-icon>{{displayIcon(item.type)}}</v-icon>
-                                                          </v-btn>
-                                                      </template>
-          
-                                                      <v-list color="grey darken-3">
-                                                          <v-list-item
-                                                              @click="useItem(item.type, item.url)"
-                                                          >
-                                                              <v-list-item-title>Use</v-list-item-title>
-                                                              <v-list-item-action>
-                                                                  <v-icon>mdi-play</v-icon>
-                                                              </v-list-item-action>
-                                                          </v-list-item>
-                                                          <v-list-item
-                                                              @click="
-                                                                  editDialog.show = true; 
-                                                                  editDialog.uuid = item.uuid;
-                                                                  editDialog.data.type = item.type;
-                                                                  editDialog.data.name = item.name;
-                                                                  editDialog.data.url = item.url;
-                                                              "
-                                                          >
-                                                              <v-list-item-title>Edit</v-list-item-title>
-                                                              <v-list-item-action>
-                                                                  <v-icon>mdi-pencil</v-icon>
-                                                              </v-list-item-action>
-                                                          </v-list-item>
-                                                          <v-list-item
-                                                              @click="shareDialog.show = true; shareDialog.data.url = item.url; shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
-                                                          >
-                                                              <v-list-item-title>Share</v-list-item-title>
-                                                              <v-list-item-action>
-                                                                  <v-icon>mdi-share</v-icon>
-                                                              </v-list-item-action>
-                                                          </v-list-item>
-                                                          <v-list-item
-                                                              @click="removeDialog.show = true; removeDialog.uuid = item.uuid;"
-                                                              color="red darken-1"
-                                                          >
-                                                              <v-list-item-title>Remove</v-list-item-title>
-                                                              <v-list-item-action>
-                                                                  <v-icon>mdi-minus</v-icon>
-                                                              </v-list-item-action>
-                                                          </v-list-item>
-                                                      </v-list>
-                                                  </v-menu>
-                                                  
-                                              </v-list-item>
+                                        <v-list-item 
+                                            one-line
+                                            class="mx-auto second-level-item"
+                                            max-width="344"
+                                            outlined
+                                        >
 
-                                          </v-card>
-                                          
-                                      </v-col>
-                                      
-                                  </v-list-group>
-                                  
-                              </v-card>
+                                            <v-list-item-content class="pb-1 pt-2">
+                                                <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
+                                                <v-list-item-subtitle v-show="settings.displayDensity.size == 2">{{item.url}}</v-list-item-subtitle>
+                                            </v-list-item-content>
 
-                          </v-col>
-                      </v-row>
-                  </template>
-              </v-data-iterator>
-          </v-container>
+                                            <v-menu bottom left>
+                                                <template v-slot:activator="{ on }">
+                                                    <v-btn 
+                                                        :style="{backgroundColor: (getIconColor(item.type)) }"
+                                                        small
+                                                        fab
+                                                        dark
+                                                        v-on="on"
+                                                    >
+                                                        <v-icon>{{displayIcon(item.type)}}</v-icon>
+                                                    </v-btn>
+                                                </template>
+
+                                                <v-list color="grey darken-3">
+                                                    
+                                                    <v-list-item
+                                                        @click="useItem(item.type, item.url)"
+                                                    >
+                                                        <v-list-item-title>Use</v-list-item-title>
+                                                        <v-list-item-action>
+                                                            <v-icon>mdi-play</v-icon>
+                                                        </v-list-item-action>
+                                                    </v-list-item>
+                                                    
+                                                    <v-list-item
+                                                        @click="
+                                                            editDialog.show = true; 
+                                                            editDialog.uuid = item.uuid;
+                                                            editDialog.data.type = item.type;
+                                                            editDialog.data.name = item.name;
+                                                            editDialog.data.url = item.url;
+                                                        "
+                                                    >
+                                                        <v-list-item-title>Edit</v-list-item-title>
+                                                        <v-list-item-action>
+                                                            <v-icon>mdi-pencil</v-icon>
+                                                        </v-list-item-action>
+                                                    </v-list-item>
+                                                    
+                                                    <v-list-item
+                                                        @click="shareDialog.show = true; shareDialog.data.url = item.url; shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
+                                                    >
+                                                        <v-list-item-title>Share</v-list-item-title>
+                                                        <v-list-item-action>
+                                                            <v-icon>mdi-share</v-icon>
+                                                        </v-list-item-action>
+                                                    </v-list-item>
+                                                    
+                                                    <v-list-item
+                                                        @click="removeDialog.show = true; removeDialog.uuid = item.uuid;"
+                                                        color="red darken-1"
+                                                    >
+                                                        <v-list-item-title>Remove</v-list-item-title>
+                                                        <v-list-item-action>
+                                                            <v-icon>mdi-minus</v-icon>
+                                                        </v-list-item-action>
+                                                    </v-list-item>
+                                                    
+                                                </v-list>
+                                            </v-menu>
+
+                                        </v-list-item>      
+                                    </v-col>
+                                </v-list-group>
+                            </v-col>
+                        </draggable>
+                    </template>
+                </v-data-iterator>
+            </v-container>
         </v-content>
 
         <v-dialog
@@ -682,8 +685,13 @@ if (!browserDevelopment()) {
     
 }
 
+import draggable from 'vuedraggable'
+
 export default {
     name: 'App',
+    components: {
+        draggable,
+    },
     data: () => ({
         items: [
             {
@@ -1054,7 +1062,7 @@ export default {
                 // eslint-disable-next-line
                 EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
             } else {
-                alert(JSON.stringify(JSONtoSend));
+                // alert(JSON.stringify(JSONtoSend));
             }
         },
     },
