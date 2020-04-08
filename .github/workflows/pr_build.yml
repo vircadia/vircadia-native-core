@@ -39,6 +39,7 @@ jobs:
       id: buildenv1
       run: |
         echo ::set-env name=GIT_COMMIT_SHORT::`echo $GIT_COMMIT | cut -c1-7`
+        echo ::set-env name=JOB_NAME::build-${{matrix.os}}
         # Linux build variables
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
           echo ::set-env name=PYTHON_EXEC::python3
@@ -110,11 +111,13 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
-        ARTIFACT_PATTERN: HighFidelity-Beta-PR${{ github.event.number }}-*.exe
+        ARTIFACT_PATTERN: ProjectAthena-Alpha-PR${{ github.event.number }}-*.exe
       run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload_to_publish_server.py"
 
   build_full_linux:
     runs-on: ubuntu-latest
+    env:
+      JOB_NAME: build_full_linux
     if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
     steps:
     - uses: actions/checkout@v1
