@@ -163,7 +163,7 @@ function sendNearbyUsers() {
 
 function useItem(item) {
     
-    //TODO: Add animation support for avatars, add JSON loading...?
+    //TODO: Add animation support for avatars...?
     
     // Convert the item.type before checking it...
     item.type = item.type.toUpperCase();
@@ -189,6 +189,21 @@ function useItem(item) {
     
     if (item.type == "SERVERLESS") {
         location.handleLookupString(item.url, true); // https://apidocs.vircadia.dev/location.html#.handleLookupString
+    }
+    
+    if (item.type == "JSON") {
+        // https://apidocs.vircadia.dev/Clipboard.html#.importEntities
+        var jsonToLoad = item.url;
+        if (jsonToLoad) {
+            if (Clipboard.importEntities(jsonToLoad)) {
+                Clipboard.pasteEntities(
+                    Vec3.sum(
+                        MyAvatar.position,
+                        Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })
+                    )
+                );
+            }
+        }
     }
     
     if (item.type == "UNKNOWN") {

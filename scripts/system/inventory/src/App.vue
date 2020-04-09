@@ -25,7 +25,7 @@ getIcon<!--
             
             <v-spacer></v-spacer>
             
-            <v-btn color="primary" fab @click="sortInventory('top')">
+            <v-btn medium color="primary" fab @click="sortInventory('top')">
                 <v-icon>
                     mdi-ab-testing
                 </v-icon>
@@ -868,6 +868,12 @@ export default {
                 "type": "script",
                 "name": "TEST",
                 "url": "https://gooadfdagle.com/vr.js",
+                "uuid": "542rfwat4t5fsddf4354353",
+            },
+            {
+                "type": "json",
+                "name": "TESTJSON",
+                "url": "https://gooadfdagle.com/vr.json",
                 "uuid": "542rfwat4t54354353",
             },
             {
@@ -917,6 +923,10 @@ export default {
             "serverless": {
                 "icon": "mdi-earth",
                 "color": "#0097A7", // cyan darken-2
+            },
+            "json": {
+                "icon": "mdi-inbox-multiple",
+                "color": "#37474F", // blue-grey darken-3
             },
             "unknown": {
                 "icon": "mdi-help",
@@ -1074,6 +1084,10 @@ export default {
                 case ".fst":
                     detectedItemType = "avatar";
                     break;
+                // JSON Cases
+                case ".json":
+                    detectedItemType = "json";
+                    break;
             }
             
             if (detectedItemType == null) {
@@ -1098,6 +1112,9 @@ export default {
                     break;
                 case "serverless":
                     detectedItemType = "serverless";
+                    break;
+                case "json":
+                    detectedItemType = "json";
                     break;
             }
             
