@@ -2,6 +2,7 @@
 
 .draggable-card {
     background-color: rgba(39,39,39, 1.0);
+    margin: 5px 0px;
 }
 
 .draggable-card .handle {
@@ -22,6 +23,10 @@
 
 .top-level-folder .handle {
     width: 40px !important;
+}
+
+.top-level-folder .folder-icon {
+    margin-right: 10px;
 }
 
 /* Second Level */
