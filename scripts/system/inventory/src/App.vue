@@ -22,6 +22,14 @@
             <v-app-bar-nav-icon @click="drawer = true"></v-app-bar-nav-icon>
 
             <v-toolbar-title>Inventory</v-toolbar-title>
+            
+            <v-spacer></v-spacer>
+            
+            <v-btn color="primary" fab @click="sortInventory('top')">
+                <v-icon>
+                    mdi-ab-testing
+                </v-icon>
+            </v-btn>
           
         </v-app-bar>
 
@@ -189,7 +197,7 @@
                                                 {{item.name}}
                                             </v-list-item>
                                         </template>
-                                        <v-btn block medium color="primary"
+                                        <v-btn medium color="primary" class="mx-1"
                                             @click="
                                                 editFolderDialog.show = true; 
                                                 editFolderDialog.uuid = item.uuid;
@@ -198,10 +206,15 @@
                                         >
                                             Edit Folder
                                         </v-btn>
-                                        <v-btn block medium color="red"
+                                        <v-btn medium color="red" class="mx-1"
                                             @click="removeFolderDialog.show = true; removeFolderDialog.uuid = item.uuid;"
                                         >
                                             Delete Folder
+                                        </v-btn>
+                                        <v-btn medium color="purple" class="mx-1"
+                                            @click="sortFolder(item.uuid);"
+                                        >
+                                            Sort Folder
                                         </v-btn>
                                         <v-col
                                             cols="12"
@@ -1118,6 +1131,16 @@ export default {
             for (var i = 0; i < this.items.length; i++) {
                 if (this.items[i].uuid == uuid) {
                     this.items.splice(i, 1);
+                    
+                    return;
+                } else if (Object.prototype.hasOwnProperty.call(this.items[i], "items")) {
+                    for (var di = 0; di < this.items[i].items.length; di++) { // DI means deep iteration
+                        if (this.items[i].items[di].uuid == uuid) {
+                            this.items[i].items.splice(di, 1);
+                            
+                            return;
+                        }
+                    }
                 }
             }
         },
@@ -1134,6 +1157,18 @@ export default {
                     this.items[i].type = this.checkItemType(this.editDialog.data.type);
                     this.items[i].name = this.editDialog.data.name;
                     this.items[i].url = this.editDialog.data.url;
+                    
+                    return;
+                } else if (Object.prototype.hasOwnProperty.call(this.items[i], "items")) {
+                    for (var di = 0; di < this.items[i].items.length; di++) { // DI means deep iteration
+                        if (this.items[i].items[di].uuid == uuid) {
+                            this.items[i].items[di].type = this.checkItemType(this.editDialog.data.type);
+                            this.items[i].items[di].name = this.editDialog.data.name;
+                            this.items[i].items[di].url = this.editDialog.data.url;
+                            
+                            return;
+                        }
+                    }
                 }
             }
         },
@@ -1175,6 +1210,42 @@ export default {
                 "type": type, 
                 "url": url 
             });
+        },
+        sortInventory: function(level) {
+            if (level == "top") {
+                this.items.sort(function(a, b) {
+                    var nameA = a.name.toUpperCase(); // ignore upper and lowercase
+                    var nameB = b.name.toUpperCase(); // ignore upper and lowercase
+                    if (nameA < nameB) {
+                        return -1;
+                    }
+                    if (nameA > nameB) {
+                        return 1;
+                    }
+
+                    // names must be equal
+                    return 0;
+                });
+            }
+        },
+        sortFolder: function(uuid) {
+            for (var i = 0; i < this.items.length; i++) {
+                if (this.items[i].uuid == uuid) {
+                    this.items[i].items.sort(function(a, b) {
+                        var nameA = a.name.toUpperCase(); // ignore upper and lowercase
+                        var nameB = b.name.toUpperCase(); // ignore upper and lowercase
+                        if (nameA < nameB) {
+                            return -1;
+                        }
+                        if (nameA > nameB) {
+                            return 1;
+                        }
+
+                        // names must be equal
+                        return 0;
+                    });
+                }
+            }
         },
         sendInventory: function() {
             this.sendAppMessage("web-to-script-inventory", this.items );

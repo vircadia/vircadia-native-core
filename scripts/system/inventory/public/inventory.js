@@ -218,7 +218,7 @@ function startup() {
     
     ui = new AppUi({
         buttonName: "INVENTORY",
-        home: Script.resolvePath("inventory.html"),
+        home: Script.resolvePath("index.html"),
         graphicsDirectory: Script.resolvePath("./"), // Where your button icons are located
         onOpened: onOpened,
         onClosed: onClosed
