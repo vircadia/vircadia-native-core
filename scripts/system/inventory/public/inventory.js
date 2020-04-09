@@ -165,12 +165,15 @@ function useItem(item) {
     
     //TODO: Add animation support for avatars, add JSON loading...?
     
+    // Convert the item.type before checking it...
+    item.type = item.type.toUpperCase();
+    
     // Depending on the type, we decide how to load this item.
-    if (item.type == "script") {
+    if (item.type == "SCRIPT") {
         ScriptDiscoveryService.loadScript(item.url, true, false, false, true, false); // See SDS.loadScript in APIDocs for more.
     }
     
-    if (item.type == "model") {
+    if (item.type == "MODEL") {
         var entityID = Entities.addEntity({
             type: "Model",
             position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
@@ -180,11 +183,15 @@ function useItem(item) {
         });
     }
     
-    if (item.type == "avatar") {
+    if (item.type == "AVATAR") {
         MyAvatar.useFullAvatarURL(item.url);
     }
     
-    if (item.type == "unknown") {
+    if (item.type == "SERVERLESS") {
+        location.handleLookupString(item.url, true); // https://apidocs.vircadia.dev/location.html#.handleLookupString
+    }
+    
+    if (item.type == "UNKNOWN") {
         // We don't know how to handle this yet.
         Window.alert("Unknown item type, unable to use.");
     }

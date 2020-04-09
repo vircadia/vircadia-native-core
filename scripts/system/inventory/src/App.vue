@@ -1,4 +1,4 @@
-<!--
+getIcon<!--
 //
 //  App.vue
 //
@@ -119,7 +119,7 @@
                                                   dark
                                                   v-on="on"
                                               >
-                                                  <v-icon>{{displayIcon(item.type)}}</v-icon>
+                                                  <v-icon>{{getIcon(item.type)}}</v-icon>
                                               </v-btn>
                                               <!-- settings.displayDensity.size < 1 -->
                                               <v-btn 
@@ -130,7 +130,7 @@
                                                   dark
                                                   v-on="on"
                                               >
-                                                  <v-icon>{{displayIcon(item.type)}}</v-icon>
+                                                  <v-icon>{{getIcon(item.type)}}</v-icon>
                                               </v-btn>
                                           </template>
 
@@ -256,7 +256,7 @@
                                                                     dark
                                                                     v-on="on"
                                                                 >
-                                                                    <v-icon>{{displayIcon(item.type)}}</v-icon>
+                                                                    <v-icon>{{getIcon(item.type)}}</v-icon>
                                                                 </v-btn>
                                                                 <!-- settings.displayDensity.size < 1 -->
                                                                 <v-btn 
@@ -267,7 +267,7 @@
                                                                     dark
                                                                     v-on="on"
                                                                 >
-                                                                    <v-icon>{{displayIcon(item.type)}}</v-icon>
+                                                                    <v-icon>{{getIcon(item.type)}}</v-icon>
                                                                 </v-btn>
                                                             </template>
 
@@ -895,8 +895,8 @@ export default {
                 "uuid": "54254354980-7667jt353",
             },
             {
-                "type": "model",
-                "name": "3D MODEL",
+                "type": "serverless",
+                "name": "SERVERLESS DOMAIN",
                 "url": "https://googleee.com/vr.fbx",
                 "uuid": "542543sg45s4gg54353",
             },
@@ -913,6 +913,10 @@ export default {
             "avatar": {
                 "icon": "mdi-account-convert",
                 "color": "purple",
+            },
+            "serverless": {
+                "icon": "mdi-earth",
+                "color": "#0097A7", // cyan darken-2
             },
             "unknown": {
                 "icon": "mdi-help",
@@ -1092,6 +1096,9 @@ export default {
                 case "script":
                     detectedItemType = "script";
                     break;
+                case "serverless":
+                    detectedItemType = "serverless";
+                    break;
             }
             
             if (detectedItemType == null) {
@@ -1207,7 +1214,11 @@ export default {
             });
         },
         acceptItem: function() {
-            this.pushToItems(this.checkItemType(this.receiveDialog.data.type), this.receiveDialog.data.name, this.receiveDialog.data.url);
+            this.pushToItems(
+                this.checkItemType(this.receiveDialog.data.type), 
+                this.receiveDialog.data.name, 
+                this.receiveDialog.data.url
+            );
         },
         useItem: function(type, url) {
             this.sendAppMessage("use-item", { 
@@ -1271,7 +1282,7 @@ export default {
                 this.settings = receivedSettings;
             }
         },
-        displayIcon: function(itemType) {
+        getIcon: function(itemType) {
             return this.iconType[itemType].icon;
         },
         getIconColor: function(itemType) {
