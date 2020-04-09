@@ -1,5 +1,7 @@
 include(vcpkg_common_functions)
 
+file(READ "${VCPKG_ROOT_DIR}/_env/QT_CMAKE_PREFIX_PATH.txt" QT_CMAKE_PREFIX_PATH)
+
 vcpkg_download_distfile(
     SOURCE_ARCHIVE
     URLS https://athena-public.s3.amazonaws.com/dependencies/quazip-0.7.3.zip
@@ -16,7 +18,7 @@ vcpkg_extract_source_archive_ex(
 vcpkg_configure_cmake(
   SOURCE_PATH ${SOURCE_PATH}
   PREFER_NINJA
-  OPTIONS -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_PREFIX_PATH=$ENV{QT_CMAKE_PREFIX_PATH} -DBUILD_WITH_QT4=OFF
+  OPTIONS -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_PREFIX_PATH=${QT_CMAKE_PREFIX_PATH} -DBUILD_WITH_QT4=OFF
 )
 
 vcpkg_install_cmake()

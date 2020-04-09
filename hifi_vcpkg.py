@@ -114,6 +114,10 @@ endif()
         with open(os.path.join(self.args.build_root, '_env', var + ".txt")) as fp:
             return fp.read()
 
+    def writeVar(self, var, value):
+        with open(os.path.join(self.args.build_root, '_env', var + ".txt"), 'w') as fp:
+            fp.write(value)
+
     def upToDate(self):
         # Prevent doing a clean if we've explcitly set a directory for vcpkg
         if self.noClean:

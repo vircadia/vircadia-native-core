@@ -137,8 +137,11 @@ def main():
                 qt.installQt()
                 qt.writeConfig()
 
-    # Only allow one instance of the program to run at a time
     pm = hifi_vcpkg.VcpkgRepo(args)
+    if qtInstallPath != '':
+        pm.writeVar('QT_CMAKE_PREFIX_PATH', qtInstallPath)
+
+    # Only allow one instance of the program to run at a time
     with hifi_singleton.Singleton(pm.lockFile) as lock:
 
         with timer('Bootstraping'):
