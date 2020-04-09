@@ -908,27 +908,27 @@ export default {
             },
         ],
         iconType: {
-            "script": {
+            "SCRIPT": {
                 "icon": "mdi-code-tags",
                 "color": "red",
             },
-            "model": {
+            "MODEL": {
                 "icon": "mdi-video-3d",
                 "color": "green",
             },
-            "avatar": {
+            "AVATAR": {
                 "icon": "mdi-account-convert",
                 "color": "purple",
             },
-            "serverless": {
+            "SERVERLESS": {
                 "icon": "mdi-earth",
                 "color": "#0097A7", // cyan darken-2
             },
-            "json": {
+            "JSON": {
                 "icon": "mdi-inbox-multiple",
                 "color": "#37474F", // blue-grey darken-3
             },
-            "unknown": {
+            "UNKNOWN": {
                 "icon": "mdi-help",
                 "color": "grey",
             }
@@ -1071,56 +1071,56 @@ export default {
             switch (fileType) {
                 // Model Cases
                 case ".fbx":
-                    detectedItemType = "model";
+                    detectedItemType = "MODEL";
                     break;
                 case ".gltf":
-                    detectedItemType = "model";
+                    detectedItemType = "MODEL";
                     break;
                 // Script Cases
                 case ".js":
-                    detectedItemType = "script";
+                    detectedItemType = "SCRIPT";
                     break;
                 // Avatar Cases
                 case ".fst":
-                    detectedItemType = "avatar";
+                    detectedItemType = "AVATAR";
                     break;
                 // JSON Cases
                 case ".json":
-                    detectedItemType = "json";
+                    detectedItemType = "JSON";
                     break;
             }
             
             if (detectedItemType == null) {
                 // This is not a known item...
-                detectedItemType = "unknown";
+                detectedItemType = "UNKNOWN";
             }
             
             return detectedItemType;
         },
         checkItemType: function(itemType) {
             var detectedItemType = null;
-            
+            itemType = itemType.toUpperCase();
             switch (itemType) {
-                case "model":
-                    detectedItemType = "model";
+                case "MODEL":
+                    detectedItemType = "MODEL";
                     break;
-                case "avatar":
-                    detectedItemType = "avatar";
+                case "AVATAR":
+                    detectedItemType = "AVATAR";
                     break;
-                case "script":
-                    detectedItemType = "script";
+                case "SCRIPT":
+                    detectedItemType = "SCRIPT";
                     break;
-                case "serverless":
-                    detectedItemType = "serverless";
+                case "SERVERLESS":
+                    detectedItemType = "SERVERLESS";
                     break;
-                case "json":
-                    detectedItemType = "json";
+                case "JSON":
+                    detectedItemType = "JSON";
                     break;
             }
             
             if (detectedItemType == null) {
                 // This is not a known item type...
-                detectedItemType = "unknown";
+                detectedItemType = "UNKNOWN";
             }
             
             return detectedItemType;
@@ -1300,9 +1300,11 @@ export default {
             }
         },
         getIcon: function(itemType) {
+            itemType = itemType.toUpperCase();
             return this.iconType[itemType].icon;
         },
         getIconColor: function(itemType) {
+            itemType = itemType.toUpperCase();
             return this.iconType[itemType].color;
         },
         receiveNearbyUsers: function(receivedUsers) {
