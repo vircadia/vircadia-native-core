@@ -53,7 +53,7 @@ getIcon<!--
                     tick-size="3"
                 ></v-slider>
 
-                <v-list-item @click="addDialog.show = true">
+                <v-list-item @click="addDialog.show = true; getFolderList();">
                     <v-list-item-icon>
                         <v-icon>mdi-plus</v-icon>
                     </v-list-item-icon>
@@ -92,7 +92,7 @@ getIcon<!--
                                 >
                                     <v-list-item 
                                         one-line 
-                                        v-if="!item.folder"
+                                        v-if="!item.isFolder"
                                         class="mx-auto draggable-card"
                                         max-width="344"
                                         outlined
@@ -150,6 +150,7 @@ getIcon<!--
                                                       editDialog.data.type = item.type;
                                                       editDialog.data.name = item.name;
                                                       editDialog.data.url = item.url;
+                                                      getFolderList();
                                                   "
                                               >
                                                   <v-list-item-title>Edit</v-list-item-title>
@@ -182,7 +183,7 @@ getIcon<!--
                                 
                                     <!-- The Folder List Item -->
                                     <v-list-group
-                                        v-if="item.folder"
+                                        v-if="item.isFolder"
                                         class="top-level-folder"
                                     >
                                     <!-- prepend-icon="mdi-blur-linear" put this in the list group, no idea how to make it a handle yet though... -->
@@ -289,6 +290,7 @@ getIcon<!--
                                                                         editDialog.data.type = item.type;
                                                                         editDialog.data.name = item.name;
                                                                         editDialog.data.url = item.url;
+                                                                        getFolderList();
                                                                     "
                                                                 >
                                                                     <v-list-item-title>Edit</v-list-item-title>
@@ -415,29 +417,38 @@ getIcon<!--
                   :lazy-validation="false"
               >
               
-                  <v-text-field
-                      class="px-2"
-                      label="Type"
-                      v-model="editDialog.data.type"
-                      :rules="[v => !!v || 'Type is required.']"
-                      required
-                  ></v-text-field>
+                    <v-text-field
+                        class="px-2"
+                        label="Type"
+                        v-model="editDialog.data.type"
+                        :rules="[v => !!v || 'Type is required.']"
+                        required
+                    ></v-text-field>
 
-                  <v-text-field
-                      class="px-2"
-                      label="Name"
-                      v-model="editDialog.data.name"
-                      :rules="[v => !!v || 'Name is required.']"
-                      required
-                  ></v-text-field>
+                    <v-text-field
+                        class="px-2"
+                        label="Name"
+                        v-model="editDialog.data.name"
+                        :rules="[v => !!v || 'Name is required.']"
+                        required
+                    ></v-text-field>
 
-                  <v-text-field
-                      class="px-2"
-                      label="URL"
-                      v-model="editDialog.data.url"
-                      :rules="[v => !!v || 'URL is required.']"
-                      required
-                  ></v-text-field>
+                    <v-overflow-btn
+                        class="my-2"
+                        :items="folderListNames"
+                        v-model="editDialog.data.folder"
+                        label="Folder"
+                        editable
+                        item-value="name"
+                    ></v-overflow-btn>
+
+                    <v-text-field
+                        class="px-2"
+                        label="URL"
+                        v-model="editDialog.data.url"
+                        :rules="[v => !!v || 'URL is required.']"
+                        required
+                    ></v-text-field>
 
                   <v-card-actions>
 
@@ -546,7 +557,7 @@ getIcon<!--
                       <v-btn
                           color="red"
                           class="px-3"
-                          @click="addDialog.show = false"
+                          @click="createFolderDialog.show = false"
                       >
                           Cancel
                       </v-btn>
@@ -574,16 +585,17 @@ getIcon<!--
         >
           <v-card>
               <v-card-title class="headline">Add Item</v-card-title>
-              
-              <v-card-text>
-                  Enter the name of the item.
-              </v-card-text>
+             
               
               <v-form
                   ref="addForm"
                   v-model="addDialog.valid"
                   :lazy-validation="false"
               >
+              
+                  <v-card-text>
+                      Enter the name of the item.
+                  </v-card-text>
 
                   <v-text-field
                       class="px-2"
@@ -592,6 +604,19 @@ getIcon<!--
                       :rules="[v => !!v || 'Name is required.']"
                       required
                   ></v-text-field>
+                  
+                  <v-card-text>
+                      Select a folder (optional).
+                  </v-card-text>
+                  
+                  <v-overflow-btn
+                      class="my-2"
+                      :items="folderListNames"
+                      v-model="addDialog.data.folder"
+                      label="Folder"
+                      editable
+                      item-value="name"
+                  ></v-overflow-btn>
 
                   <v-card-text>
                       Enter the URL of the item.
@@ -837,10 +862,11 @@ export default {
                 "type": "script",
                 "name": "VRGrabScale",
                 "url": "https://gooawefaweawfgle.com/vr.js",
+                "folder": "",
                 "uuid": "54254354353",
             },
             {
-                "folder": true,
+                "isFolder": true,
                 "name": "Test Folder",
                 "items": [
                     {
@@ -862,48 +888,56 @@ export default {
                 "type": "script",
                 "name": "VRGrabScale",
                 "url": "https://googfdafsgaergale.com/vr.js",
+                "folder": "",
                 "uuid": "54hgfhgf254354353",
             },
             {
                 "type": "script",
                 "name": "TEST",
                 "url": "https://gooadfdagle.com/vr.js",
+                "folder": "",
                 "uuid": "542rfwat4t5fsddf4354353",
             },
             {
                 "type": "json",
                 "name": "TESTJSON",
                 "url": "https://gooadfdagle.com/vr.json",
+                "folder": "",
                 "uuid": "542rfwat4t54354353",
             },
             {
                 "type": "script",
                 "name": "TESTLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
                 "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
+                "folder": "",
                 "uuid": "5425ggsrg45354353",
             },
             {
                 "type": "avatar",
                 "name": "AVI",
                 "url": "https://googlfadfe.com/vr.fst",
+                "folder": "",
                 "uuid": "542gregg45s3g4354353",
             },
             {
                 "type": "avatar",
                 "name": "AVI",
                 "url": "https://googlefdaf.com/vr.fst",
+                "folder": "",
                 "uuid": "5420798-087-54354353",
             },
             {
                 "type": "model",
                 "name": "3D MODEL",
                 "url": "https://googlee.com/vr.fbx",
+                "folder": "",
                 "uuid": "54254354980-7667jt353",
             },
             {
                 "type": "serverless",
                 "name": "SERVERLESS DOMAIN",
                 "url": "https://googleee.com/vr.fbx",
+                "folder": "",
                 "uuid": "542543sg45s4gg54353",
             },
         ],
@@ -954,6 +988,7 @@ export default {
             valid: false,
             data: {
                 "name": null,
+                "folder": null,
                 "url": null,
             },
         },
@@ -965,6 +1000,7 @@ export default {
                 "type": null,
                 "name": null,
                 "url": null,
+                "folder": null,
             },
         },
         editFolderDialog: {
@@ -994,6 +1030,8 @@ export default {
                 "recipient": null,
             }
         },
+        folderListUUIDs: [],
+        folderListNames: [],
         nearbyUsers: [
             {
                 name: "Who",
@@ -1043,12 +1081,13 @@ export default {
             var uuid = s.join("");
             return uuid;
         },
-        pushToItems: function(type, name, url) {
+        pushToItems: function(type, name, folder, url) {
             var itemToPush =             
             {
                 "type": type,
                 "name": name,
                 "url": url,
+                "folder": folder,
                 "uuid": this.createUUID(),
             };
             
@@ -1057,7 +1096,7 @@ export default {
         pushFolderToItems: function(name) {
             var folderToPush =             
             {
-                "folder": true,
+                "isFolder": true,
                 "name": name,
                 "items": [],
                 "uuid": this.createUUID(),
@@ -1151,24 +1190,12 @@ export default {
             this.pushToItems(itemType, name, url);
             
             this.addDialog.data.name = null;
+            this.addDialog.data.folder = null;
             this.addDialog.data.url = null;
         },
         removeItem: function(uuid) {
-            for (var i = 0; i < this.items.length; i++) {
-                if (this.items[i].uuid == uuid) {
-                    this.items.splice(i, 1);
-                    
-                    return;
-                } else if (Object.prototype.hasOwnProperty.call(this.items[i], "items")) {
-                    for (var di = 0; di < this.items[i].items.length; di++) { // DI means deep iteration
-                        if (this.items[i].items[di].uuid == uuid) {
-                            this.items[i].items.splice(di, 1);
-                            
-                            return;
-                        }
-                    }
-                }
-            }
+            var findItem = this.searchForItem(uuid);
+            findItem.parentArray.splice(findItem.iteration, 1);
         },
         removeFolder: function(uuid) {
             for (var i = 0; i < this.items.length; i++) {
@@ -1179,26 +1206,11 @@ export default {
                 }
             }
         },
-        editItem: function(uuid) {
-            for (var i = 0; i < this.items.length; i++) {
-                if (this.items[i].uuid == uuid) {
-                    this.items[i].type = this.checkItemType(this.editDialog.data.type);
-                    this.items[i].name = this.editDialog.data.name;
-                    this.items[i].url = this.editDialog.data.url;
-                    
-                    return;
-                } else if (Object.prototype.hasOwnProperty.call(this.items[i], "items")) {
-                    for (var di = 0; di < this.items[i].items.length; di++) { // DI means deep iteration
-                        if (this.items[i].items[di].uuid == uuid) {
-                            this.items[i].items[di].type = this.checkItemType(this.editDialog.data.type);
-                            this.items[i].items[di].name = this.editDialog.data.name;
-                            this.items[i].items[di].url = this.editDialog.data.url;
-                            
-                            return;
-                        }
-                    }
-                }
-            }
+        editItem: function(uuid) {    
+            var findItem = this.searchForItem(uuid);
+            findItem.returnedItem.type = this.checkItemType(this.editDialog.data.type);
+            findItem.returnedItem.name = this.editDialog.data.name;
+            findItem.returnedItem.url = this.editDialog.data.url;
         },
         receivingItem: function(data) {
             if (this.receiveDialog.show != true) { // Do not accept offers if the user is already receiving an offer.
@@ -1211,16 +1223,10 @@ export default {
             }
             
         },
-        shareItem: function(uuid) {
-            var typeToShare;
-            var nameToShare;
-            
-            for (var i = 0; i < this.items.length; i++) {
-                if (this.items[i].uuid == uuid) {
-                    typeToShare = this.items[i].type;
-                    nameToShare = this.items[i].name;
-                }
-            }
+        shareItem: function(uuid) {        
+            var findItem = this.searchForItem(uuid);
+            var typeToShare = findItem.returnedItem.type;
+            var nameToShare = findItem.returnedItem.name;
             
             // alert("type" + typeToShare + "name" + nameToShare);
             this.sendAppMessage("share-item", {
@@ -1242,6 +1248,18 @@ export default {
                 "type": type, 
                 "url": url 
             });
+        },
+        onDragStart: function() {
+            console.info("Drag start.");
+        },
+        onDragUpdate: function() {
+            console.info("Drag Update.");
+        },
+        onDragEnd: function() {
+            console.info("Drag End.");
+        },
+        onDragChange: function(ev) {
+            console.info("Drag Update.", ev);
         },
         sortInventory: function(level) {
             if (level == "top") {
@@ -1276,6 +1294,44 @@ export default {
                         // names must be equal
                         return 0;
                     });
+                }
+            }
+        },
+        getFolderList: function() {
+            this.folderListNames = ["No Folder"]; // We want to give the option to put it in the root directory.
+            this.folderListUUIDs = ["No Folder"]; // Clear the list before pushing to it.
+                        
+            for (var i = 0; i < this.items.length; i++) {
+                if (Object.prototype.hasOwnProperty.call(this.items[i], "isFolder")) {
+                    if (this.items[i].isFolder === true) {                        
+                        this.folderListNames.push(this.items[i].name);
+                        this.folderListUUIDs.push(this.items[i].uuid);
+                    }
+                }
+            }
+        },
+        searchForItem: function(uuid) {
+            var itemToReturn = {
+                "returnedItem": null,
+                "iteration": null,
+                "parentArray": null
+            }
+            
+            for (var i = 0; i < this.items.length; i++) {
+                if (this.items[i].uuid == uuid) {
+                    itemToReturn.returnedItem = this.items[i];
+                    itemToReturn.iteration = i;
+                    itemToReturn.parentArray = this.items;
+                    return itemToReturn;
+                } else if (Object.prototype.hasOwnProperty.call(this.items[i], "items")) {
+                    for (var di = 0; di < this.items[i].items.length; di++) { // DI means deep iteration
+                        if (this.items[i].items[di].uuid == uuid) { 
+                            itemToReturn.returnedItem = this.items[i].items[di];   
+                            itemToReturn.iteration = di;
+                            itemToReturn.parentArray = this.items[i].items;
+                            return itemToReturn;    
+                        }
+                    }
                 }
             }
         },
