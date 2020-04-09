@@ -782,7 +782,7 @@ float computeGain(float masterAvatarGain,
         gain *= std::max(1.0f - d / (distanceLimit - ATTN_DISTANCE_REF), 0.0f);
         gain = std::min(gain, ATTN_GAIN_MAX);
 
-    } else {
+    } else if (attenuationPerDoublingInDistance < 1.0f) {
         // translate a positive zone setting to gain per log2(distance)
         const float MIN_ATTENUATION_COEFFICIENT = 0.001f;   // -60dB per log2(distance)
         float g = glm::clamp(1.0f - attenuationPerDoublingInDistance, MIN_ATTENUATION_COEFFICIENT, 1.0f);
@@ -792,6 +792,10 @@ float computeGain(float masterAvatarGain,
         float d = (1.0f / ATTN_DISTANCE_REF) * std::max(distance, HRTF_NEARFIELD_MIN);
         gain *= fastExp2f(fastLog2f(g) * fastLog2f(d));
         gain = std::min(gain, ATTN_GAIN_MAX);
+
+    } else {
+        // translate a zone setting of 1.0 be silent at any distance
+        gain = 0.0f;
     }
 
     return gain;

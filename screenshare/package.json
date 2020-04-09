@@ -1,0 +1,27 @@
+{
+  "name": "highfidelity_screenshare",
+  "version": "1.0.0",
+  "description": "High Fidelity Screenshare",
+  "main": "src/screenshareMainProcess.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "packager": "node packager.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/highfidelity/hifi.git"
+  },
+  "author": "High Fidelity",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/highfidelity/hifi/issues"
+  },
+  "homepage": "https://github.com/highfidelity/hifi#readme",
+  "devDependencies": {
+    "electron": "^6.0.12",
+    "electron-packager": "^14.0.6"
+  },
+  "dependencies": {
+    "yargs": "^14.2.0"
+  }
+}

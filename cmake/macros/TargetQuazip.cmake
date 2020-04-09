@@ -6,11 +6,8 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 macro(TARGET_QUAZIP)
-  add_dependency_external_projects(quazip)
-  find_package(QuaZip REQUIRED)
-  target_include_directories(${TARGET_NAME} PUBLIC ${QUAZIP_INCLUDE_DIRS})
+  find_library(QUAZIP_LIBRARY_RELEASE quazip5 PATHS ${VCPKG_INSTALL_ROOT}/lib NO_DEFAULT_PATH)
+  find_library(QUAZIP_LIBRARY_DEBUG quazip5 PATHS ${VCPKG_INSTALL_ROOT}/debug/lib NO_DEFAULT_PATH)
+  select_library_configurations(QUAZIP)
   target_link_libraries(${TARGET_NAME} ${QUAZIP_LIBRARIES})
-  if (WIN32)
-    add_paths_to_fixup_libs(${QUAZIP_DLL_PATH})
-  endif ()
 endmacro()

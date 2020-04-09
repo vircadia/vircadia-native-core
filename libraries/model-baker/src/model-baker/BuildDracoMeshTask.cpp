@@ -39,19 +39,47 @@
 #include "ModelMath.h"
 
 #ifndef Q_OS_ANDROID
-std::vector<hifi::ByteArray> createMaterialList(const hfm::Mesh& mesh) {
-    std::vector<hifi::ByteArray> materialList;
-    for (const auto& meshPart : mesh.parts) {
-        auto materialID = QVariant(meshPart.materialID).toByteArray();
-        const auto materialIt = std::find(materialList.cbegin(), materialList.cend(), materialID);
-        if (materialIt == materialList.cend()) {
-            materialList.push_back(materialID);
+
+void reindexMaterials(const std::vector<uint32_t>& originalMaterialIndices, std::vector<uint32_t>& materials, std::vector<uint16_t>& materialIndices) {
+    materialIndices.resize(originalMaterialIndices.size());
+    for (size_t i = 0; i < originalMaterialIndices.size(); ++i) {
+        uint32_t material = originalMaterialIndices[i];
+        auto foundMaterial = std::find(materials.cbegin(), materials.cend(), material);
+        if (foundMaterial == materials.cend()) {
+            materials.push_back(material);
+            materialIndices[i] = (uint16_t)(materials.size() - 1);
+        } else {
+            materialIndices[i] = (uint16_t)(foundMaterial - materials.cbegin());
         }
     }
-    return materialList;
 }
 
-std::tuple<std::unique_ptr<draco::Mesh>, bool> createDracoMesh(const hfm::Mesh& mesh, const std::vector<glm::vec3>& normals, const std::vector<glm::vec3>& tangents, const std::vector<hifi::ByteArray>& materialList) {
+void createMaterialLists(const std::vector<hfm::Shape>& shapes, const std::vector<hfm::Mesh>& meshes, const std::vector<hfm::Material>& hfmMaterials, std::vector<std::vector<hifi::ByteArray>>& materialIndexLists, std::vector<std::vector<uint16_t>>& partMaterialIndicesPerMesh) {
+    std::vector<std::vector<uint32_t>> materialsPerMesh;
+    for (const auto& mesh : meshes) {
+        materialsPerMesh.emplace_back(mesh.parts.size(), hfm::UNDEFINED_KEY);
+    }
+    for (const auto& shape : shapes) {
+        materialsPerMesh[shape.mesh][shape.meshPart] = shape.material;
+    }
+
+    materialIndexLists.resize(materialsPerMesh.size());
+    partMaterialIndicesPerMesh.resize(materialsPerMesh.size());
+    for (size_t i = 0; i < materialsPerMesh.size(); ++i) {
+        const std::vector<uint32_t>& materials = materialsPerMesh[i];
+        std::vector<uint32_t> uniqueMaterials;
+
+        reindexMaterials(materials, uniqueMaterials, partMaterialIndicesPerMesh[i]);
+
+        materialIndexLists[i].reserve(uniqueMaterials.size());
+        for (const uint32_t material : uniqueMaterials) {
+            const auto& hfmMaterial = hfmMaterials[material];
+            materialIndexLists[i].push_back(QVariant(hfmMaterial.materialID).toByteArray());
+        }
+    }
+}
+
+std::tuple<std::unique_ptr<draco::Mesh>, bool> createDracoMesh(const hfm::Mesh& mesh, const std::vector<glm::vec3>& normals, const std::vector<glm::vec3>& tangents, const std::vector<uint16_t>& partMaterialIndices) {
     Q_ASSERT(normals.size() == 0 || (int)normals.size() == mesh.vertices.size());
     Q_ASSERT(mesh.colors.size() == 0 || mesh.colors.size() == mesh.vertices.size());
     Q_ASSERT(mesh.texCoords.size() == 0 || mesh.texCoords.size() == mesh.vertices.size());
@@ -122,11 +150,9 @@ std::tuple<std::unique_ptr<draco::Mesh>, bool> createDracoMesh(const hfm::Mesh& 
 
     auto partIndex = 0;
     draco::FaceIndex face;
-    uint16_t materialID;
 
     for (auto& part : mesh.parts) {
-        auto materialIt = std::find(materialList.cbegin(), materialList.cend(), QVariant(part.materialID).toByteArray());
-        materialID = (uint16_t)(materialIt - materialList.cbegin());
+        uint16_t materialID = partMaterialIndices[partIndex];
 
         auto addFace = [&](const QVector<int>& indices, int index, draco::FaceIndex face) {
             int32_t idx0 = indices[index];
@@ -214,30 +240,33 @@ void BuildDracoMeshTask::run(const baker::BakeContextPointer& context, const Inp
 #ifdef Q_OS_ANDROID
     qCWarning(model_baker) << "BuildDracoMesh is disabled on Android. Output meshes will be empty.";
 #else
-    const auto& meshes = input.get0();
-    const auto& normalsPerMesh = input.get1();
-    const auto& tangentsPerMesh = input.get2();
+    const auto& shapes = input.get0();
+    const auto& meshes = input.get1();
+    const auto& materials = input.get2();
+    const auto& normalsPerMesh = input.get3();
+    const auto& tangentsPerMesh = input.get4();
     auto& dracoBytesPerMesh = output.edit0();
     auto& dracoErrorsPerMesh = output.edit1();
+
     auto& materialLists = output.edit2();
+    std::vector<std::vector<uint16_t>> partMaterialIndicesPerMesh;
+    createMaterialLists(shapes, meshes, materials, materialLists, partMaterialIndicesPerMesh);
 
     dracoBytesPerMesh.reserve(meshes.size());
     // vector<bool> is an exception to the std::vector conventions as it is a bit field
     // So a bool reference to an element doesn't work
     dracoErrorsPerMesh.resize(meshes.size());
-    materialLists.reserve(meshes.size());
     for (size_t i = 0; i < meshes.size(); i++) {
         const auto& mesh = meshes[i];
         const auto& normals = baker::safeGet(normalsPerMesh, i);
         const auto& tangents = baker::safeGet(tangentsPerMesh, i);
         dracoBytesPerMesh.emplace_back();
         auto& dracoBytes = dracoBytesPerMesh.back();
-        materialLists.push_back(createMaterialList(mesh));
-        const auto& materialList = materialLists.back();
+        const auto& partMaterialIndices = partMaterialIndicesPerMesh[i];
 
         bool dracoError;
         std::unique_ptr<draco::Mesh> dracoMesh;
-        std::tie(dracoMesh, dracoError) = createDracoMesh(mesh, normals, tangents, materialList);
+        std::tie(dracoMesh, dracoError) = createDracoMesh(mesh, normals, tangents, partMaterialIndices);
         dracoErrorsPerMesh[i] = dracoError;
 
         if (dracoMesh) {

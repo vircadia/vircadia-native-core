@@ -52,6 +52,10 @@
  *     <em>Read-only.</em>
  *     <p><strong>Warning:</strong> Not yet implemented.</p>
  *
+ * @property {FilterFlags} PICK_BYPASS_IGNORE - Allows pick to intersect entities even when their 
+ *     <code>ignorePickIntersection</code> property value is <code>true</code>. For debug purposes.
+ *     <em>Read-only.</em>
+ *
  * @property {IntersectionType} INTERSECTED_NONE - Intersected nothing. <em>Read-only.</em>
  * @property {IntersectionType} INTERSECTED_ENTITY - Intersected an entity. <em>Read-only.</em>
  * @property {IntersectionType} INTERSECTED_LOCAL_ENTITY - Intersected a local entity. <em>Read-only.</em>
@@ -86,6 +90,8 @@ class PickScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(unsigned int PICK_COARSE READ PICK_COARSE CONSTANT)
 
     Q_PROPERTY(unsigned int PICK_ALL_INTERSECTIONS READ PICK_ALL_INTERSECTIONS CONSTANT)
+
+    Q_PROPERTY(unsigned int PICK_BYPASS_IGNORE READ PICK_BYPASS_IGNORE CONSTANT)
 
     Q_PROPERTY(unsigned int INTERSECTED_NONE READ INTERSECTED_NONE CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_ENTITY READ INTERSECTED_ENTITY CONSTANT)
@@ -147,19 +153,20 @@ public:
      * Gets the current properties of the pick.
      * @function Picks.getPickProperties
      * @param {number} id - The ID of the pick.
-     * @returns {Picks.RayPickProperties|Picks.ParabolaPickProperties|Picks.StylusPickProperties|Picks.CollisionPickProperties} Properties of the pick, per the pick <code>type</code>.
+     * @returns {Picks.RayPickProperties|Picks.ParabolaPickProperties|Picks.StylusPickProperties|Picks.CollisionPickProperties}
+     *     Properties of the pick, per the pick <code>type</code>.
      */
     Q_INVOKABLE QVariantMap getPickProperties(unsigned int uid) const;
 
     /**jsdoc
-    * Gets the parameters that were passed in to {@link Picks.createPick} to create the pick,
-    * if the pick was created through a script.
-    * Note that these properties do not reflect the current state of the pick.
-    * See {@link Picks.getPickProperties}.
-    * @function Picks.getPickScriptParameters
-    * @param {number} id - The ID of the pick.
-    * @returns {Picks.RayPickProperties|Picks.ParabolaPickProperties|Picks.StylusPickProperties|Picks.CollisionPickProperties} User-provided properties, per the pick <code>type</code>.
-    */
+     * Gets the parameters that were passed in to {@link Picks.createPick} to create the pick, if the pick was created through 
+     * a script. Note that these properties do not reflect the current state of the pick.
+     * See {@link Picks.getPickProperties}.
+     * @function Picks.getPickScriptParameters
+     * @param {number} id - The ID of the pick.
+     * @returns {Picks.RayPickProperties|Picks.ParabolaPickProperties|Picks.StylusPickProperties|Picks.CollisionPickProperties} 
+     *     Script-provided properties, per the pick <code>type</code>.
+     */
     Q_INVOKABLE QVariantMap getPickScriptParameters(unsigned int uid) const;
 
     /**jsdoc
@@ -281,6 +288,8 @@ public:
 
     unsigned int getPerFrameTimeBudget() const;
     void setPerFrameTimeBudget(unsigned int numUsecs);
+
+    static constexpr unsigned int PICK_BYPASS_IGNORE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_BYPASS_IGNORE); }
 
 public slots:
 
