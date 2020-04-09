@@ -29,6 +29,8 @@ endif()
         self.configFilePath = os.path.join(args.build_root, 'qt.cmake')
         self.version = '5.12.3'
 
+        self.assets_url = self.readVar('EXTERNAL_BUILD_ASSETS')
+
         defaultBasePath = os.path.expanduser('~/hifi/qt')
         self.basePath = os.getenv('HIFI_QT_BASE', defaultBasePath)
         if (not os.path.isdir(self.basePath)):
@@ -49,18 +51,22 @@ endif()
         system = platform.system()
 
         if 'Windows' == system:
-            self.qtUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-windows3.tar.gz?versionId=5ADqP0M0j5ZfimUHrx4zJld6vYceHEsI'
+            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-windows3.tar.gz?versionId=5ADqP0M0j5ZfimUHrx4zJld6vYceHEsI'
         elif 'Darwin' == system:
-            self.qtUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz?versionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
+            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz?versionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
         elif 'Linux' == system:
             if platform.linux_distribution()[1][:3] == '16.':
-                self.qtUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
+                self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
             elif platform.linux_distribution()[1][:3] == '18.':
-                self.qtUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
+                self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
             else:
                 raise Exception('UNKNOWN LINUX VERSION!!!')
         else:
             raise Exception('UNKNOWN OPERATING SYSTEM!!!')
+
+    def readVar(self, var):
+        with open(os.path.join(self.args.build_root, '_env', var + ".txt")) as fp:
+            return fp.read()
 
     def writeConfig(self):
         print("Writing cmake config to {}".format(self.configFilePath))
