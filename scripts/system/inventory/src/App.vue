@@ -210,14 +210,28 @@
                                                 <v-icon color="orange darken-2">mdi-blur-linear</v-icon>
                                             </div>
                                             <v-list-item-content class="pb-1 pt-2">
+                                                <div v-show="settings.displayDensity.size > 0" class="overline" style="font-size: 0.825rem !important;">{{item.type}}</div>
                                                 <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
                                                 <v-list-item-subtitle v-show="settings.displayDensity.size == 2">{{item.url}}</v-list-item-subtitle>
                                             </v-list-item-content>
 
                                             <v-menu bottom left>
-                                                <template v-slot:activator="{ on }">
+                                                <template v-slot:activator="{ on }">                                                    
+                                                    <!-- settings.displayDensity.size >= 1 -->
                                                     <v-btn 
                                                         :style="{backgroundColor: (getIconColor(item.type)) }"
+                                                        v-show="settings.displayDensity.size >= 1"
+                                                        medium 
+                                                        fab 
+                                                        dark
+                                                        v-on="on"
+                                                    >
+                                                        <v-icon>{{displayIcon(item.type)}}</v-icon>
+                                                    </v-btn>
+                                                    <!-- settings.displayDensity.size < 1 -->
+                                                    <v-btn 
+                                                        :style="{backgroundColor: (getIconColor(item.type)) }"
+                                                        v-show="settings.displayDensity.size < 1"
                                                         small
                                                         fab
                                                         dark

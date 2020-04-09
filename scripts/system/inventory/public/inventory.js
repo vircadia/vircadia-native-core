@@ -76,11 +76,11 @@ function onMessageReceived(channel, message, sender, localOnly) {
             receivingItem(sender, messageJSON.type, messageJSON.name, messageJSON.url);
         } 
     }
-    print("Message received:");
-    print("- channel: " + channel);
-    print("- message: " + message);
-    print("- sender: " + sender);
-    print("- localOnly: " + localOnly);
+    // print("Message received:");
+    // print("- channel: " + channel);
+    // print("- message: " + message);
+    // print("- sender: " + sender);
+    // print("- localOnly: " + localOnly);
 }
 
 function sendMessage(dataToSend) {
