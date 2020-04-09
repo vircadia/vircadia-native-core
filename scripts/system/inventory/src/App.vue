@@ -1108,6 +1108,8 @@ export default {
             for (var i = 0; i < this.items.length; i++) {
                 if (this.items[i].uuid == uuid) {
                     this.items[i].name = this.editFolderDialog.data.name;
+                    
+                    return;
                 }
             }
         },
@@ -1148,6 +1150,8 @@ export default {
             for (var i = 0; i < this.items.length; i++) {
                 if (this.items[i].uuid == uuid) {
                     this.items.splice(i, 1);
+                    
+                    return;
                 }
             }
         },
