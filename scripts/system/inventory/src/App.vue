@@ -70,17 +70,18 @@
                     hide-default-footer
                 >
                     <template>
-                        <draggable :group="options" :list="items" handle=".handle">
-                            <v-col
+                        <v-col
+                            cols="12"
+                            sm="6"
+                            md="4"
+                            lg="3"
+                            class="py-1 column-item"
+                        >
+                        <draggable :group="options" :list="items" handle=".handle">                                
+                            <v-item-group
                                 v-for="item in items"
                                 v-bind:key="item.uuid"
-                                cols="12"
-                                sm="6"
-                                md="4"
-                                lg="3"
-                                class="py-1 column-item"
                             >
-                           
                                 <v-list-item 
                                     one-line 
                                     v-if="!item.folder"
@@ -189,8 +190,6 @@
                                     </template>
                                   
                                     <v-col
-                                        v-for="item in item.items"
-                                        v-bind:key="item.uuid"
                                         cols="12"
                                         sm="6"
                                         md="4"
@@ -200,6 +199,10 @@
                                     <draggable 
                                         :list="item.items"
                                         :group="options"
+                                    >
+                                    <v-item-group
+                                        v-for="item in item.items"
+                                        v-bind:key="item.uuid"
                                     >
                                         <v-list-item 
                                             one-line
@@ -290,11 +293,13 @@
                                             </v-menu>
 
                                         </v-list-item>
+                                    </v-item-group>
                                     </draggable>
                                     </v-col>
                                 </v-list-group>
-                            </v-col>
+                            </v-item-group>
                         </draggable>
+                        </v-col>
                     </template>
                 </v-data-iterator>
             </v-container>
