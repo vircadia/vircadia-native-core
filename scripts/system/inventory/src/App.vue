@@ -198,7 +198,7 @@ getIcon<!--
                                                 {{item.name}}
                                             </v-list-item>
                                         </template>
-                                        <v-btn medium color="primary" class="mx-1"
+                                        <v-btn medium color="primary" class="mx-1 my-1"
                                             @click="
                                                 editFolderDialog.show = true; 
                                                 editFolderDialog.uuid = item.uuid;
@@ -207,12 +207,12 @@ getIcon<!--
                                         >
                                             Edit Folder
                                         </v-btn>
-                                        <v-btn medium color="red" class="mx-1"
+                                        <v-btn medium color="red" class="mx-1 my-1"
                                             @click="removeFolderDialog.show = true; removeFolderDialog.uuid = item.uuid;"
                                         >
                                             Delete Folder
                                         </v-btn>
-                                        <v-btn medium color="purple" class="mx-1"
+                                        <v-btn medium color="purple" class="mx-1 my-1"
                                             @click="sortFolder(item.uuid);"
                                         >
                                             Sort Folder
@@ -438,7 +438,6 @@ getIcon<!--
                         :items="folderListNames"
                         v-model="editDialog.data.folder"
                         label="Folder"
-                        editable
                         item-value="name"
                     ></v-overflow-btn>
 
@@ -614,7 +613,6 @@ getIcon<!--
                       :items="folderListNames"
                       v-model="addDialog.data.folder"
                       label="Folder"
-                      editable
                       item-value="name"
                   ></v-overflow-btn>
 
@@ -646,7 +644,7 @@ getIcon<!--
                           color="blue"
                           class="px-3"
                           :disabled="!addDialog.valid"
-                          @click="addDialog.show = false; addItem(addDialog.data.name, addDialog.data.url)"
+                          @click="addDialog.show = false; addItem(addDialog.data.name, addDialog.data.folder, addDialog.data.url)"
                       >
                           Add
                       </v-btn>
@@ -690,6 +688,18 @@ getIcon<!--
                       v-model="receiveDialog.data.name"
                       required
                   ></v-text-field>
+                  
+                  <v-card-text>
+                      Select a folder (optional).
+                  </v-card-text>
+                  
+                  <v-overflow-btn
+                      class="my-2"
+                      :items="folderListNames"
+                      v-model="receiveDialog.data.folder"
+                      label="Folder"
+                      item-value="name"
+                  ></v-overflow-btn>
 
                   <v-text-field
                       class="px-2"
@@ -862,7 +872,7 @@ export default {
                 "type": "script",
                 "name": "VRGrabScale",
                 "url": "https://gooawefaweawfgle.com/vr.js",
-                "folder": "",
+                "folder": "No Folder",
                 "uuid": "54254354353",
             },
             {
@@ -873,71 +883,73 @@ export default {
                         "type": "script",
                         "name": "TESTFOLDERSCRIPT",
                         "url": "https://googfdafsgaergale.com/vr.js",
+                        "folder": "No Folder",
                         "uuid": "54hgfhgf25fdfadf4354353",
                     },
                     {
                         "type": "script",
                         "name": "FOLDERSCRIPT2",
                         "url": "https://googfdafsgaergale.com/vr.js",
+                        "folder": "No Folder",
                         "uuid": "54hgfhgf25ffdafddfadf4354353",
                     },
                 ],
-                "uuid:": "54354363wgsegs45ujs",
+                "uuid": "54354363wgsegs45ujs",
             },
             {
                 "type": "script",
                 "name": "VRGrabScale",
                 "url": "https://googfdafsgaergale.com/vr.js",
-                "folder": "",
+                "folder": "No Folder",
                 "uuid": "54hgfhgf254354353",
             },
             {
                 "type": "script",
                 "name": "TEST",
                 "url": "https://gooadfdagle.com/vr.js",
-                "folder": "",
+                "folder": "No Folder",
                 "uuid": "542rfwat4t5fsddf4354353",
             },
             {
                 "type": "json",
                 "name": "TESTJSON",
                 "url": "https://gooadfdagle.com/vr.json",
-                "folder": "",
+                "folder": "No Folder",
                 "uuid": "542rfwat4t54354353",
             },
             {
                 "type": "script",
                 "name": "TESTLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
                 "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
-                "folder": "",
+                "folder": "No Folder",
                 "uuid": "5425ggsrg45354353",
             },
             {
                 "type": "avatar",
                 "name": "AVI",
                 "url": "https://googlfadfe.com/vr.fst",
-                "folder": "",
+                "folder": "No Folder",
                 "uuid": "542gregg45s3g4354353",
             },
             {
                 "type": "avatar",
                 "name": "AVI",
                 "url": "https://googlefdaf.com/vr.fst",
-                "folder": "",
+                "folder": "No Folder",
                 "uuid": "5420798-087-54354353",
             },
             {
                 "type": "model",
                 "name": "3D MODEL",
                 "url": "https://googlee.com/vr.fbx",
-                "folder": "",
+                "folder": "No Folder",
                 "uuid": "54254354980-7667jt353",
             },
             {
                 "type": "serverless",
                 "name": "SERVERLESS DOMAIN",
                 "url": "https://googleee.com/vr.fbx",
-                "folder": "",
+                "folder": "No Folder",
                 "uuid": "542543sg45s4gg54353",
             },
         ],
@@ -1017,6 +1029,7 @@ export default {
             data: {
                 "user": null,
                 "name": null,
+                "folder": null,
                 "type": null,
                 "url": null,
             },
@@ -1082,16 +1095,22 @@ export default {
             return uuid;
         },
         pushToItems: function(type, name, folder, url) {
+            var generatedUUID = this.createUUID();
+            
             var itemToPush =             
             {
                 "type": type,
                 "name": name,
                 "url": url,
                 "folder": folder,
-                "uuid": this.createUUID(),
+                "uuid": generatedUUID,
             };
             
             this.items.push(itemToPush);
+            
+            if (folder !== "No Folder") {
+                this.moveItemToFolder(this.findItem(generatedUUID));
+            }
         },
         pushFolderToItems: function(name) {
             var folderToPush =             
@@ -1176,7 +1195,7 @@ export default {
                 }
             }
         },
-        addItem: function(name, url) {
+        addItem: function(name, folder, url) {
             var extensionRegex = /\.[0-9a-z]+$/i; // to detect the file type based on extension in the URL.
             var detectedFileType = url.match(extensionRegex);
             var itemType;
@@ -1187,7 +1206,7 @@ export default {
                 itemType = this.checkFileType(detectedFileType[0]);
             }
             
-            this.pushToItems(itemType, name, url);
+            this.pushToItems(itemType, folder, name, url);
             
             this.addDialog.data.name = null;
             this.addDialog.data.folder = null;
@@ -1208,9 +1227,17 @@ export default {
         },
         editItem: function(uuid) {    
             var findItem = this.searchForItem(uuid);
+            console.log("What?", findItem.itemUUID);
+            
+            if (findItem.returnedItem.folder !== this.editDialog.data.folder && this.editDialog.data.folder !== null) {
+                this.moveItemToFolder(findItem, this.editDialog.data.folder);
+            }
+            
             findItem.returnedItem.type = this.checkItemType(this.editDialog.data.type);
             findItem.returnedItem.name = this.editDialog.data.name;
+            findItem.returnedItem.folder = this.editDialog.data.folder;
             findItem.returnedItem.url = this.editDialog.data.url;
+
         },
         receivingItem: function(data) {
             if (this.receiveDialog.show != true) { // Do not accept offers if the user is already receiving an offer.
@@ -1219,9 +1246,10 @@ export default {
                 this.receiveDialog.data.name = data.data.name;
                 this.receiveDialog.data.url = data.data.url;
                 
+                this.getFolderList();
+                
                 this.receiveDialog.show = true;
             }
-            
         },
         shareItem: function(uuid) {        
             var findItem = this.searchForItem(uuid);
@@ -1239,8 +1267,9 @@ export default {
         acceptItem: function() {
             this.pushToItems(
                 this.checkItemType(this.receiveDialog.data.type), 
-                this.receiveDialog.data.name, 
-                this.receiveDialog.data.url
+                this.receiveDialog.data.name,
+                this.receiveDialog.data.folder,
+                this.receiveDialog.data.url,
             );
         },
         useItem: function(type, url) {
@@ -1303,18 +1332,54 @@ export default {
                         
             for (var i = 0; i < this.items.length; i++) {
                 if (Object.prototype.hasOwnProperty.call(this.items[i], "isFolder")) {
-                    if (this.items[i].isFolder === true) {                        
+                    if (this.items[i].isFolder === true) {
                         this.folderListNames.push(this.items[i].name);
                         this.folderListUUIDs.push(this.items[i].uuid);
                     }
                 }
             }
         },
+        moveItemToFolder: function(findItem, folderName) {
+            // This function is used to take an item one level deep, do not use it for any other purposes and check beforehand if you need to do this.
+            var folderUUID;
+            var itemToPush = findItem.returnedItem;
+            
+            console.info("1st step with params: " + JSON.stringify(itemToPush) + folderName);
+            
+            // Get the folder UUID from the parallel folder UUID list.
+            for (var i = 0; i < this.folderListNames.length; i++) {
+                if (this.folderListNames[i] === folderName) {
+                    folderUUID = this.folderListUUIDs[i];
+                    break;
+                }
+            }
+            
+            console.info("2nd step: " + folderUUID);
+            
+            // vue_this_context.items[1].items.push(itemToPush);
+            
+            // Find that folder in our main items array.
+            for (var f = 0; f < this.items.length; f++) { 
+                if (this.items[f].uuid === folderUUID && this.items[f].isFolder === true) {
+                    console.info("ATTEMPTING TO PUSH INTO FOLDER:", JSON.stringify(this.items[f].items));
+                    console.info("Index:", f)
+                    this.items[f].items.push(itemToPush);
+                    console.info("POST PUSH", JSON.stringify(this.items[f].items));
+                    break;
+                }
+            }
+            
+            console.info("3rd step:", findItem.itemUUID);
+            
+            this.removeItem(findItem.itemUUID);
+            
+        },
         searchForItem: function(uuid) {
             var itemToReturn = {
                 "returnedItem": null,
                 "iteration": null,
-                "parentArray": null
+                "parentArray": null,
+                "itemUUID": uuid,
             }
             
             for (var i = 0; i < this.items.length; i++) {
