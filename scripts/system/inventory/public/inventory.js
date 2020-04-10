@@ -24,7 +24,7 @@ var inventorySettings;
 function onWebAppEventReceived(event) {
     var eventJSON = JSON.parse(event);
     if (eventJSON.app == "inventory") { // This is our web app!
-        print("inventory.js received a web event: " + event);
+        // print("inventory.js received a web event: " + event);
         
         if (eventJSON.command == "ready") {
             initializeInventoryApp();
