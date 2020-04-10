@@ -433,13 +433,14 @@ getIcon<!--
                         required
                     ></v-text-field>
 
-                    <v-overflow-btn
+                    <v-select
                         class="my-2"
                         :items="folderListNames"
                         v-model="editDialog.data.folder"
                         label="Folder"
+                        outlined
                         item-value="name"
-                    ></v-overflow-btn>
+                    ></v-select>
 
                     <v-text-field
                         class="px-2"
@@ -608,13 +609,14 @@ getIcon<!--
                       Select a folder (optional).
                   </v-card-text>
                   
-                  <v-overflow-btn
+                  <v-select
                       class="my-2"
                       :items="folderListNames"
                       v-model="addDialog.data.folder"
                       label="Folder"
+                      outlined
                       item-value="name"
-                  ></v-overflow-btn>
+                  ></v-select>
 
                   <v-card-text>
                       Enter the URL of the item.
@@ -693,13 +695,14 @@ getIcon<!--
                       Select a folder (optional).
                   </v-card-text>
                   
-                  <v-overflow-btn
+                  <v-select
                       class="my-2"
                       :items="folderListNames"
                       v-model="receiveDialog.data.folder"
                       label="Folder"
+                      outlined
                       item-value="name"
-                  ></v-overflow-btn>
+                  ></v-select>
 
                   <v-text-field
                       class="px-2"
@@ -1109,7 +1112,7 @@ export default {
             this.items.push(itemToPush);
             
             if (folder !== "No Folder") {
-                this.moveItemToFolder(this.findItem(generatedUUID));
+                this.moveItemToFolder(generatedUUID, folder);
             }
         },
         pushFolderToItems: function(name) {
@@ -1227,10 +1230,9 @@ export default {
         },
         editItem: function(uuid) {    
             var findItem = this.searchForItem(uuid);
-            console.log("What?", findItem.itemUUID);
             
             if (findItem.returnedItem.folder !== this.editDialog.data.folder && this.editDialog.data.folder !== null) {
-                this.moveItemToFolder(findItem, this.editDialog.data.folder);
+                this.moveItemToFolder(uuid, this.editDialog.data.folder);
             }
             
             findItem.returnedItem.type = this.checkItemType(this.editDialog.data.type);
@@ -1339,39 +1341,38 @@ export default {
                 }
             }
         },
-        moveItemToFolder: function(findItem, folderName) {
+        moveItemToFolder: function(uuid, folderName) {
             // This function is used to take an item one level deep, do not use it for any other purposes and check beforehand if you need to do this.
             var folderUUID;
-            var itemToPush = findItem.returnedItem;
+            var itemToPush = {
+                'type': null,
+                'name': null,
+                'folder': folderName,
+                'url': null,
+                'uuid': uuid,
+            };
             
-            console.info("1st step with params: " + JSON.stringify(itemToPush) + folderName);
-            
+            var findItem = this.searchForItem(uuid);
+            itemToPush.type = findItem.returnedItem.type;
+            itemToPush.name = findItem.returnedItem.name;
+            itemToPush.url = findItem.returnedItem.url;
+                        
             // Get the folder UUID from the parallel folder UUID list.
             for (var i = 0; i < this.folderListNames.length; i++) {
                 if (this.folderListNames[i] === folderName) {
                     folderUUID = this.folderListUUIDs[i];
-                    break;
                 }
             }
-            
-            console.info("2nd step: " + folderUUID);
-            
-            // vue_this_context.items[1].items.push(itemToPush);
+
+            // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
+            this.removeItem(uuid);
             
             // Find that folder in our main items array.
-            for (var f = 0; f < this.items.length; f++) { 
-                if (this.items[f].uuid === folderUUID && this.items[f].isFolder === true) {
-                    console.info("ATTEMPTING TO PUSH INTO FOLDER:", JSON.stringify(this.items[f].items));
-                    console.info("Index:", f)
-                    this.items[f].items.push(itemToPush);
-                    console.info("POST PUSH", JSON.stringify(this.items[f].items));
-                    break;
+            for (var folder = 0; folder < this.items.length; folder++) { 
+                if (this.items[folder].uuid === folderUUID && this.items[folder].isFolder === true) {
+                    this.items[folder].items.push(itemToPush);
                 }
             }
-            
-            console.info("3rd step:", findItem.itemUUID);
-            
-            this.removeItem(findItem.itemUUID);
             
         },
         searchForItem: function(uuid) {
