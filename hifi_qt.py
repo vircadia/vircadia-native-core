@@ -9,6 +9,7 @@ import tempfile
 import json
 import xml.etree.ElementTree as ET
 import functools
+import distro
 
 print = functools.partial(print, flush=True)
 
@@ -55,13 +56,33 @@ endif()
         elif 'Darwin' == system:
             self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz?versionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
         elif 'Linux' == system:
-            if platform.linux_distribution()[1][:3] == '16.':
-                self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
-            elif platform.linux_distribution()[1][:3] == '18.':
-                self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
+            dist = distro.linux_distribution()
+
+            if distro.id() == 'ubuntu':
+                u_major = int( distro.major_version() )
+                u_minor = int( distro.minor_version() )
+
+                if u_major == 16:
+                    url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
+                elif u_major == 18:
+                    url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
+                elif u_major == 19 and u_minor == 10:
+                    url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.6-ubuntu-19.10.tar.xz'
+                elif u_major > 18 and ( u_major != 19 and u_minor != 4):
+                    print("We don't support " + distro.name(pretty=True) + " yet. Perhaps consider helping us out?")
+                    raise Exception('UNSUPPORTED LINUX VERSION!!!')
+                else:
+                    print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
+                    raise Exception('UNSUPPORTED LINUX VERSION!!!')
             else:
+                print("Sorry, " + distro.name(pretty=True) + " is not supported. Please consider helping us out.")
+                print("It's also possible to build Qt for your distribution, please see the documentation at:")
+                print("https://github.com/kasenvr/project-athena/tree/kasen/core/tools/qt-builder")
                 raise Exception('UNKNOWN LINUX VERSION!!!')
         else:
+            print("System      : " + platform.system())
+            print("Architecture: " + platform.architecture())
+            print("Machine     : " + platform.machine())
             raise Exception('UNKNOWN OPERATING SYSTEM!!!')
 
     def readVar(self, var):
