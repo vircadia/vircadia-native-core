@@ -139,6 +139,7 @@ private slots:
     void updateReplicatedNodes();
     void updateDownstreamNodes();
     void updateUpstreamNodes();
+    void initializeExporter();
 
     void tokenGrantFinished();
     void profileRequestFinished();
@@ -238,7 +239,7 @@ private:
     DomainServerExporter _exporter;
 
     HTTPManager _httpManager;
-    HTTPManager _httpExporterManager;
+    HTTPManager *_httpExporterManager { nullptr };
     std::unique_ptr<HTTPSManager> _httpsManager;
 
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;

@@ -163,8 +163,7 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
-    _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
-    _httpExporterManager(QHostAddress::Any, DOMAIN_SERVER_EXPORTER_PORT, QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()), &_exporter)
+    _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
 {
     if (_parentPID != -1) {
         watchParentProcess(_parentPID);
@@ -230,7 +229,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             this, &DomainServer::updateDownstreamNodes);
     connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
             this, &DomainServer::updateUpstreamNodes);
-
     setupGroupCacheRefresh();
 
     optionallySetupOAuth();
@@ -331,6 +329,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _nodePingMonitorTimer = new QTimer{ this };
     connect(_nodePingMonitorTimer, &QTimer::timeout, this, &DomainServer::nodePingMonitor);
     _nodePingMonitorTimer->start(NODE_PING_MONITOR_INTERVAL_MSECS);
+
+    initializeExporter();
 }
 
 void DomainServer::parseCommandLine(int argc, char* argv[]) {
@@ -423,6 +423,11 @@ DomainServer::~DomainServer() {
     if (_contentManager) {
         _contentManager->aboutToFinish();
         _contentManager->terminate();
+    }
+
+    if ( _httpExporterManager ) {
+        _httpExporterManager->close();
+        delete _httpExporterManager;
     }
 
     DependencyManager::destroy<AccountManager>();
@@ -3037,6 +3042,27 @@ void DomainServer::updateDownstreamNodes() {
 
 void DomainServer::updateUpstreamNodes() {
     updateReplicationNodes(Upstream);
+}
+
+void DomainServer::initializeExporter()
+{
+    static const QString ENABLE_EXPORTER = "monitoring.enable_prometheus_exporter";
+    static const QString EXPORTER_PORT = "monitoring.prometheus_exporter_port";
+
+    bool isExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_EXPORTER).toBool();
+    int exporterPort = _settingsManager.valueOrDefaultValueForKeyPath(EXPORTER_PORT).toInt();
+
+    if ( exporterPort < 1 || exporterPort > 65535 ) {
+        qCWarning(domain_server) << "Prometheus exporter port " << exporterPort << " is out of range.";
+        isExporterEnabled = false;
+    }
+
+    qCDebug(domain_server) << "Setting up Prometheus exporter";
+
+    if ( isExporterEnabled && !_httpExporterManager) {
+        qCInfo(domain_server) << "Starting Prometheus exporter on port " << exporterPort;
+        _httpExporterManager = new HTTPManager(QHostAddress::Any, static_cast<quint16>(exporterPort), QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()), &_exporter);
+    }
 }
 
 void DomainServer::updateReplicatedNodes() {
