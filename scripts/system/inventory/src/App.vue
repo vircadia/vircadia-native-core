@@ -434,12 +434,13 @@ getIcon<!--
                     ></v-text-field>
 
                     <v-select
+                        :items="folderList"
+                        item-text="name"
+                        item-value="uuid"
                         class="my-2"
-                        :items="folderListNames"
                         v-model="editDialog.data.folder"
                         label="Folder"
                         outlined
-                        item-value="name"
                     ></v-select>
 
                     <v-text-field
@@ -611,11 +612,12 @@ getIcon<!--
                   
                   <v-select
                       class="my-2"
-                      :items="folderListNames"
+                      :items="folderList"
                       v-model="addDialog.data.folder"
                       label="Folder"
                       outlined
-                      item-value="name"
+                      item-text="name"
+                      item-value="uuid"
                   ></v-select>
 
                   <v-card-text>
@@ -697,11 +699,12 @@ getIcon<!--
                   
                   <v-select
                       class="my-2"
-                      :items="folderListNames"
+                      :items="folderList"
                       v-model="receiveDialog.data.folder"
                       label="Folder"
                       outlined
-                      item-value="name"
+                      item-text="name"
+                      item-value="uuid"
                   ></v-select>
 
                   <v-text-field
@@ -1046,8 +1049,7 @@ export default {
                 "recipient": null,
             }
         },
-        folderListUUIDs: [],
-        folderListNames: [],
+        folderList: [],
         nearbyUsers: [
             {
                 name: "Who",
@@ -1097,8 +1099,14 @@ export default {
             var uuid = s.join("");
             return uuid;
         },
-        pushToItems: function(type, name, folder, url) {
-            var generatedUUID = this.createUUID();
+        pushToItems: function(type, name, folder, url, uuid) {
+            var uuidToUse;
+            
+            if (uuid != null) {
+                uuidToUse = uuid;
+            } else {
+                uuidToUse = this.createUUID();
+            }
             
             var itemToPush =             
             {
@@ -1106,13 +1114,13 @@ export default {
                 "name": name,
                 "url": url,
                 "folder": folder,
-                "uuid": generatedUUID,
+                "uuid": uuidToUse,
             };
             
             this.items.push(itemToPush);
             
-            if (folder !== "No Folder") {
-                this.moveItemToFolder(generatedUUID, folder);
+            if (folder !== null) {
+                this.moveItemToFolder(uuidToUse, folder);
             }
         },
         pushFolderToItems: function(name) {
@@ -1208,8 +1216,8 @@ export default {
             } else {
                 itemType = this.checkFileType(detectedFileType[0]);
             }
-            
-            this.pushToItems(itemType, folder, name, url);
+
+            this.pushToItems(itemType, name, folder, url, null);
             
             this.addDialog.data.name = null;
             this.addDialog.data.folder = null;
@@ -1230,9 +1238,18 @@ export default {
         },
         editItem: function(uuid) {    
             var findItem = this.searchForItem(uuid);
+            var folderName;
             
-            if (findItem.returnedItem.folder !== this.editDialog.data.folder && this.editDialog.data.folder !== null) {
+            for (var i = 0; i < this.folderList.length; i++) {
+                if (this.folderList[i].name === findItem.returnedItem.folder) {
+                    folderName = this.folderList[i].name;
+                }
+            }
+            
+            if (folderName !== this.editDialog.data.folder && this.editDialog.data.folder !== null) {
                 this.moveItemToFolder(uuid, this.editDialog.data.folder);
+            } else if (folderName == "No Folder") {
+                this.moveItemToTop(uuid);
             }
             
             findItem.returnedItem.type = this.checkItemType(this.editDialog.data.type);
@@ -1272,6 +1289,7 @@ export default {
                 this.receiveDialog.data.name,
                 this.receiveDialog.data.folder,
                 this.receiveDialog.data.url,
+                null
             );
         },
         useItem: function(type, url) {
@@ -1329,25 +1347,28 @@ export default {
             }
         },
         getFolderList: function() {
-            this.folderListNames = ["No Folder"]; // We want to give the option to put it in the root directory.
-            this.folderListUUIDs = ["No Folder"]; // Clear the list before pushing to it.
+            this.folderList = [{
+                "name": "No Folder", 
+                "uuid": null
+            }]; // We want to give the option to put it in the root directory.
                         
             for (var i = 0; i < this.items.length; i++) {
                 if (Object.prototype.hasOwnProperty.call(this.items[i], "isFolder")) {
                     if (this.items[i].isFolder === true) {
-                        this.folderListNames.push(this.items[i].name);
-                        this.folderListUUIDs.push(this.items[i].uuid);
+                        this.folderList.push({
+                            "name": this.items[i].name,
+                            "uuid": this.items[i].uuid,
+                        });
                     }
                 }
             }
         },
-        moveItemToFolder: function(uuid, folderName) {
+        moveItemToFolder: function(uuid, folderUUID) {
             // This function is used to take an item one level deep, do not use it for any other purposes and check beforehand if you need to do this.
-            var folderUUID;
             var itemToPush = {
                 'type': null,
                 'name': null,
-                'folder': folderName,
+                'folder': null,
                 'url': null,
                 'uuid': uuid,
             };
@@ -1356,17 +1377,17 @@ export default {
             itemToPush.type = findItem.returnedItem.type;
             itemToPush.name = findItem.returnedItem.name;
             itemToPush.url = findItem.returnedItem.url;
-                        
-            // Get the folder UUID from the parallel folder UUID list.
-            for (var i = 0; i < this.folderListNames.length; i++) {
-                if (this.folderListNames[i] === folderName) {
-                    folderUUID = this.folderListUUIDs[i];
+
+            // Get the folder UUID.
+            for (var i = 0; i < this.folderList.length; i++) {
+                if (this.folderList[i].uuid === folderUUID) {
+                    itemToPush.folder = this.folderList[i].name;
                 }
             }
-
+            
             // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
             this.removeItem(uuid);
-            
+
             // Find that folder in our main items array.
             for (var folder = 0; folder < this.items.length; folder++) { 
                 if (this.items[folder].uuid === folderUUID && this.items[folder].isFolder === true) {
@@ -1374,6 +1395,20 @@ export default {
                 }
             }
             
+        },
+        moveItemToTop: function(uuid) {
+            var findItem = this.searchForItem(uuid);
+            
+            // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
+            this.removeItem(uuid);
+
+            this.pushToItems(
+                findItem.returnedItem.type, 
+                findItem.returnedItem.name, 
+                "No Folder", 
+                findItem.returnedItem.url, 
+                uuid
+            );
         },
         searchForItem: function(uuid) {
             var itemToReturn = {
