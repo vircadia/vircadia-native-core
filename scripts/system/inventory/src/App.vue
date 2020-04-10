@@ -198,7 +198,7 @@ getIcon<!--
                                                 {{item.name}}
                                             </v-list-item>
                                         </template>
-                                        <v-btn medium color="primary" class="mx-1 my-1"
+                                        <v-btn medium color="primary" class="mx-1 my-1 folder-button"
                                             @click="
                                                 editFolderDialog.show = true; 
                                                 editFolderDialog.uuid = item.uuid;
@@ -207,12 +207,12 @@ getIcon<!--
                                         >
                                             Edit Folder
                                         </v-btn>
-                                        <v-btn medium color="red" class="mx-1 my-1"
+                                        <v-btn medium color="red" class="mx-1 my-1 folder-button"
                                             @click="removeFolderDialog.show = true; removeFolderDialog.uuid = item.uuid;"
                                         >
                                             Delete Folder
                                         </v-btn>
-                                        <v-btn medium color="purple" class="mx-1 my-1"
+                                        <v-btn medium color="purple" class="mx-1 my-1 folder-button"
                                             @click="sortFolder(item.uuid);"
                                         >
                                             Sort Folder

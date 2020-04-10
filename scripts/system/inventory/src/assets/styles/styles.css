@@ -29,6 +29,10 @@
     margin-right: 10px;
 }
 
+.top-level-folder .folder-button {
+    font-size: 0.795rem !important;
+}
+
 /* Second Level */
 
 .v-list-group .column-item {
