@@ -1,4 +1,4 @@
-getIcon<!--
+<!--
 //
 //  App.vue
 //
