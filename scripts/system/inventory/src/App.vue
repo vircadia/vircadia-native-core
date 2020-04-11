@@ -53,7 +53,7 @@
                         tick-size="3"
                     ></v-slider>
 
-                    <v-list-item @click="addDialog.show = true; getFolderList();">
+                    <v-list-item @click="addDialog.show = true; getFolderList("add");">
                         <v-list-item-icon>
                             <v-icon>mdi-plus</v-icon>
                         </v-list-item-icon>
@@ -153,7 +153,7 @@
                                                       editDialog.data.folder = null;
                                                       editDialog.data.name = item.name;
                                                       editDialog.data.url = item.url;
-                                                      getFolderList();
+                                                      getFolderList("edit");
                                                   "
                                               >
                                                   <v-list-item-title>Edit</v-list-item-title>
@@ -294,7 +294,7 @@
                                                                         editDialog.data.folder = null;
                                                                         editDialog.data.name = item.name;
                                                                         editDialog.data.url = item.url;
-                                                                        getFolderList();
+                                                                        getFolderList("edit");
                                                                     "
                                                                 >
                                                                     <v-list-item-title>Edit</v-list-item-title>
@@ -1258,6 +1258,12 @@ export default {
         },
         editItem: function(uuid) {    
             var findItem = this.searchForItem(uuid);
+                        
+            findItem.returnedItem.type = this.checkItemType(this.editDialog.data.type);
+            findItem.returnedItem.name = this.editDialog.data.name;
+            findItem.returnedItem.folder = this.editDialog.data.folder;
+            findItem.returnedItem.url = this.editDialog.data.url;
+            
             var folderName;
             
             for (var i = 0; i < this.folderList.length; i++) {
@@ -1265,16 +1271,14 @@ export default {
                     folderName = this.folderList[i].name;
                 }
             }
-                        
-            findItem.returnedItem.type = this.checkItemType(this.editDialog.data.type);
-            findItem.returnedItem.name = this.editDialog.data.name;
-            findItem.returnedItem.folder = this.editDialog.data.folder;
-            findItem.returnedItem.url = this.editDialog.data.url;
             
-            if (folderName !== this.editDialog.data.folder && this.editDialog.data.folder !== null) {
-                this.moveItemToFolder(uuid, this.editDialog.data.folder);
-            } else if (folderName === "No Folder" && folderName !== findItem.returnedItem.folder) {
-                this.moveItemToTop(uuid);
+            console.info(folderName);
+            if (this.editDialog.data.folder !== null) {
+                if (folderName !== this.editDialog.data.folder && this.editDialog.data.folder !== "No Folder") {
+                    this.moveItemToFolder(uuid, this.editDialog.data.folder);
+                } else if (folderName === "No Folder") {
+                    this.moveItemToTop(uuid);
+                }
             }
 
         },
@@ -1285,7 +1289,7 @@ export default {
                 this.receiveDialog.data.name = data.data.name;
                 this.receiveDialog.data.url = data.data.url;
                 
-                this.getFolderList();
+                this.getFolderList("add");
                 
                 this.receiveDialog.show = true;
             }
@@ -1366,11 +1370,26 @@ export default {
                 }
             }
         },
-        getFolderList: function() {
-            this.folderList = [{
-                "name": "No Folder", 
-                "uuid": null
-            }]; // We want to give the option to put it in the root directory.
+        getFolderList: function(request) {
+            if (request == "edit") {
+                this.folderList = [
+                    {
+                        "name": "No Change",
+                        "uuid": "No Change"
+                    },
+                    {
+                        "name": "No Folder", 
+                        "uuid": "No Folder"
+                    },
+                ];
+            } else if (request == "add") {
+                this.folderList = [
+                    {
+                        "name": "No Folder", 
+                        "uuid": "No Folder"
+                    },
+                ];
+            }
                         
             for (var i = 0; i < this.items.length; i++) {
                 if (Object.prototype.hasOwnProperty.call(this.items[i], "isFolder")) {
