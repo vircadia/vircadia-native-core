@@ -10,7 +10,7 @@ jobs:
   one:
     strategy:
       matrix:
-        os: [[self-hosted, windows], macOS-latest]
+        os: [windows-latest, macOS-latest]
 
     runs-on: ${{ matrix.os }}
     steps:
