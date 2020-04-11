@@ -41,7 +41,7 @@ for archiveFile in files:
     file_contents.append(file_data)
     file.close()
 
-conn = http.client.HTTPSConnection("athena-build-uploader.thoys.nl")
+conn = http.client.HTTPSConnection("build-uploader.vircadia.com")
 
 context = json.loads(os.environ['GITHUB_CONTEXT'])
 
