@@ -176,7 +176,7 @@ function useItem(item) {
     if (item.type == "MODEL") {
         var entityID = Entities.addEntity({
             type: "Model",
-            position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+            position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -1.5 })),
             rotation: MyAvatar.orientation,
             modelURL: item.url,
             collisionless: true,
@@ -187,7 +187,7 @@ function useItem(item) {
         MyAvatar.useFullAvatarURL(item.url);
     }
     
-    if (item.type == "SERVERLESS") {
+    if (item.type == "PLACE") {
         location.handleLookupString(item.url, true); // https://apidocs.vircadia.dev/location.html#.handleLookupString
     }
     
@@ -199,7 +199,7 @@ function useItem(item) {
                 Clipboard.pasteEntities(
                     Vec3.sum(
                         MyAvatar.position,
-                        Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })
+                        Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -1.5 })
                     )
                 );
             }

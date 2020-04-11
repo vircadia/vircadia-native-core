@@ -954,8 +954,8 @@ export default {
                 "uuid": "54254354980-7667jt353",
             },
             {
-                "type": "serverless",
-                "name": "SERVERLESS DOMAIN",
+                "type": "place",
+                "name": "PLACE DOMAIN",
                 "url": "https://googleee.com/vr.fbx",
                 "folder": "No Folder",
                 "uuid": "542543sg45s4gg54353",
@@ -974,7 +974,7 @@ export default {
                 "icon": "mdi-account-convert",
                 "color": "purple",
             },
-            "SERVERLESS": {
+            "PLACE": {
                 "icon": "mdi-earth",
                 "color": "#0097A7", // cyan darken-2
             },
@@ -1182,8 +1182,8 @@ export default {
                 case "SCRIPT":
                     detectedItemType = "SCRIPT";
                     break;
-                case "SERVERLESS":
-                    detectedItemType = "SERVERLESS";
+                case "PLACE":
+                    detectedItemType = "PLACE";
                     break;
                 case "JSON":
                     detectedItemType = "JSON";
