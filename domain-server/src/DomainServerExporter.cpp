@@ -239,14 +239,20 @@ static const QMap<QString, DomainServerExporter::MetricType> TYPE_MAP {
 static const QSet<QString> BLACKLIST = {
     "asset_server_connection_stats_last_heard",                   // Timestamp as a string
     "asset_server_username",                                      // Username
-    "audio_mixer_listeners_jitter_downstream_avg_gap",            // Number as string with unit name
-    "audio_mixer_listeners_jitter_downstream_avg_gap_30s",        // Number as string with unit name
-    "audio_mixer_listeners_jitter_downstream_max_gap",            // Number as string with unit name
-    "audio_mixer_listeners_jitter_downstream_max_gap_30s",        // Number as string with unit name
-    "audio_mixer_listeners_jitter_downstream_min_gap",            // Number as string with unit name
-    "audio_mixer_listeners_jitter_downstream_min_gap_30s",        // Number as string with unit name
+    "audio_mixer_listeners_jitter_downstream_avg_gap",            // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_downstream_avg_gap_30s",        // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_downstream_max_gap",            // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_downstream_max_gap_30s",        // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_downstream_min_gap",            // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_downstream_min_gap_30s",        // Number as string with unit name, alternative added
     "audio_mixer_listeners_jitter_injectors",                     // Array, empty. TODO: check if this ever contains anything.
-    "audio_mixer_listeners_jitter_upstream",                      // Number as string with unit name
+    "audio_mixer_listeners_jitter_upstream",                      // Only exists in the absence of a connection
+    "audio_mixer_listeners_jitter_upstream_avg_gap",              // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_upstream_avg_gap_30s",          // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_upstream_max_gap",              // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_upstream_max_gap_30s",          // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_upstream_min_gap",              // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_upstream_min_gap_30s",          // Number as string with unit name, alternative added
     "audio_mixer_listeners_username",                             // Username
     "avatar_mixer_avatars_display_name",                          // Username
     "avatar_mixer_avatars_username",                              // Username
@@ -254,8 +260,8 @@ static const QSet<QString> BLACKLIST = {
     "entity_script_server_nodes_username",                        // Username
     "entity_server_entity_server_misc_configuration",             // Text
     "entity_server_entity_server_misc_detailed_stats_url",        // URL
-    "entity_server_entity_server_misc_persist_file_load_time",    // Number as string with unit name
-    "entity_server_entity_server_misc_uptime",                    // Number as string with unit name
+    "entity_server_entity_server_misc_persist_file_load_time",    // Number as string with unit name, alternative added
+    "entity_server_entity_server_misc_uptime",                    // Number as string with unit name, alternative added
     "messages_mixer_messages_username"                            // Username
 };
 
