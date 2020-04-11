@@ -149,7 +149,8 @@
                                                   @click="
                                                       editDialog.show = true; 
                                                       editDialog.uuid = item.uuid;
-                                                      editDialog.data.type = item.type;
+                                                      editDialog.data.type = item.type.toUpperCase();
+                                                      editDialog.data.folder = null;
                                                       editDialog.data.name = item.name;
                                                       editDialog.data.url = item.url;
                                                       getFolderList();
@@ -289,7 +290,8 @@
                                                                     @click="
                                                                         editDialog.show = true; 
                                                                         editDialog.uuid = item.uuid;
-                                                                        editDialog.data.type = item.type;
+                                                                        editDialog.data.type = item.type.toUpperCase();
+                                                                        editDialog.data.folder = null;
                                                                         editDialog.data.name = item.name;
                                                                         editDialog.data.url = item.url;
                                                                         getFolderList();
@@ -418,14 +420,15 @@
                   v-model="editDialog.valid"
                   :lazy-validation="false"
               >
-              
-                    <v-text-field
-                        class="px-2"
-                        label="Type"
+                    
+                    <v-select
+                        :items="supportedItemTypes"
+                        class="my-2"
                         v-model="editDialog.data.type"
                         :rules="[v => !!v || 'Type is required.']"
-                        required
-                    ></v-text-field>
+                        label="Item Type"
+                        outlined
+                    ></v-select>
 
                     <v-text-field
                         class="px-2"
@@ -987,7 +990,14 @@ export default {
                 "color": "grey",
             }
         },
-        // The URL is the key (to finding the item we want) so we want to keep track of that.
+        supportedItemTypes: [
+            "SCRIPT",
+            "MODEL",
+            "AVATAR",
+            "PLACE",
+            "JSON",
+            "UNKNOWN",
+        ],
         removeDialog: {
             show: false,
             uuid: null,
@@ -1104,7 +1114,7 @@ export default {
         },
         pushToItems: function(type, name, folder, url, uuid) {
             var uuidToUse;
-            
+
             if (uuid != null) {
                 uuidToUse = uuid;
             } else {
@@ -1122,7 +1132,7 @@ export default {
             
             this.items.push(itemToPush);
             
-            if (folder !== null) {
+            if (folder !== null && folder !== "No Folder") {
                 this.moveItemToFolder(uuidToUse, folder);
             }
         },
@@ -1172,23 +1182,12 @@ export default {
         checkItemType: function(itemType) {
             var detectedItemType = null;
             itemType = itemType.toUpperCase();
-            switch (itemType) {
-                case "MODEL":
-                    detectedItemType = "MODEL";
-                    break;
-                case "AVATAR":
-                    detectedItemType = "AVATAR";
-                    break;
-                case "SCRIPT":
-                    detectedItemType = "SCRIPT";
-                    break;
-                case "PLACE":
-                    detectedItemType = "PLACE";
-                    break;
-                case "JSON":
-                    detectedItemType = "JSON";
-                    break;
-            }
+            
+            this.supportedItemTypes.forEach(function(itemTypeInList) {
+                if (itemTypeInList == itemType) {
+                    detectedItemType = itemTypeInList;
+                }
+            });
             
             if (detectedItemType == null) {
                 // This is not a known item type...
@@ -1266,17 +1265,17 @@ export default {
                     folderName = this.folderList[i].name;
                 }
             }
-            
-            if (folderName !== this.editDialog.data.folder && this.editDialog.data.folder !== null) {
-                this.moveItemToFolder(uuid, this.editDialog.data.folder);
-            } else if (folderName == "No Folder") {
-                this.moveItemToTop(uuid);
-            }
-            
+                        
             findItem.returnedItem.type = this.checkItemType(this.editDialog.data.type);
             findItem.returnedItem.name = this.editDialog.data.name;
             findItem.returnedItem.folder = this.editDialog.data.folder;
             findItem.returnedItem.url = this.editDialog.data.url;
+            
+            if (folderName !== this.editDialog.data.folder && this.editDialog.data.folder !== null) {
+                this.moveItemToFolder(uuid, this.editDialog.data.folder);
+            } else if (folderName === "No Folder" && folderName !== findItem.returnedItem.folder) {
+                this.moveItemToTop(uuid);
+            }
 
         },
         receivingItem: function(data) {
