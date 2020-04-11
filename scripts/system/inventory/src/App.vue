@@ -53,7 +53,7 @@
                         tick-size="3"
                     ></v-slider>
 
-                    <v-list-item @click="addDialog.show = true; getFolderList("add");">
+                    <v-list-item @click="addDialog.show = true; getFolderList('add');">
                         <v-list-item-icon>
                             <v-icon>mdi-plus</v-icon>
                         </v-list-item-icon>
@@ -153,7 +153,7 @@
                                                       editDialog.data.folder = null;
                                                       editDialog.data.name = item.name;
                                                       editDialog.data.url = item.url;
-                                                      getFolderList("edit");
+                                                      getFolderList('edit');
                                                   "
                                               >
                                                   <v-list-item-title>Edit</v-list-item-title>
@@ -294,7 +294,7 @@
                                                                         editDialog.data.folder = null;
                                                                         editDialog.data.name = item.name;
                                                                         editDialog.data.url = item.url;
-                                                                        getFolderList("edit");
+                                                                        getFolderList('edit');
                                                                     "
                                                                 >
                                                                     <v-list-item-title>Edit</v-list-item-title>
@@ -1272,7 +1272,6 @@ export default {
                 }
             }
             
-            console.info(folderName);
             if (this.editDialog.data.folder !== null) {
                 if (folderName !== this.editDialog.data.folder && this.editDialog.data.folder !== "No Folder") {
                     this.moveItemToFolder(uuid, this.editDialog.data.folder);
