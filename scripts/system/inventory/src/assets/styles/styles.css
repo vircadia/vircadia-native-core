@@ -51,6 +51,13 @@
     margin-right: 16px;
 }
 
+/* Menu Slideout */
+
+.appVersion {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+}
+
 /* Universal */
 
 .handle {

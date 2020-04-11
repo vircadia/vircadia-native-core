@@ -44,28 +44,30 @@
             >
                 <v-list-item-group>
 
-                <v-slider
-                    v-model="settings.displayDensity.size"
-                    :tick-labels="settings.displayDensity.labels"
-                    :max="2"
-                    step="1"
-                    ticks="always"
-                    tick-size="3"
-                ></v-slider>
+                    <v-slider
+                        v-model="settings.displayDensity.size"
+                        :tick-labels="settings.displayDensity.labels"
+                        :max="2"
+                        step="1"
+                        ticks="always"
+                        tick-size="3"
+                    ></v-slider>
 
-                <v-list-item @click="addDialog.show = true; getFolderList();">
-                    <v-list-item-icon>
-                        <v-icon>mdi-plus</v-icon>
-                    </v-list-item-icon>
-                    <v-list-item-title>Add Item</v-list-item-title>
+                    <v-list-item @click="addDialog.show = true; getFolderList();">
+                        <v-list-item-icon>
+                            <v-icon>mdi-plus</v-icon>
+                        </v-list-item-icon>
+                        <v-list-item-title>Add Item</v-list-item-title>
                     </v-list-item>
 
                     <v-list-item @click="createFolderDialog.show = true">
-                    <v-list-item-icon>
-                        <v-icon>mdi-folder-plus</v-icon>
-                    </v-list-item-icon>
-                    <v-list-item-title>Create Folder</v-list-item-title>
-                </v-list-item>
+                        <v-list-item-icon>
+                            <v-icon>mdi-folder-plus</v-icon>
+                        </v-list-item-icon>
+                        <v-list-item-title>Create Folder</v-list-item-title>
+                    </v-list-item>
+                                    
+                    <p class="appVersion font-weight-light">Version {{settings.appVersion}}</p>
 
                 </v-list-item-group>
             </v-list>
@@ -1074,6 +1076,7 @@ export default {
                     "Large",
                 ],
             },
+            appVersion: "1.2.1",
         },
         darkTheme: true,
         drawer: false,
@@ -1207,8 +1210,7 @@ export default {
             }
         },
         addItem: function(name, folder, url) {
-            var extensionRegex = /\.[0-9a-z]+$/i; // to detect the file type based on extension in the URL.
-            var detectedFileType = url.match(extensionRegex);
+            var detectedFileType = this.detectFileType(url);
             var itemType;
                         
             if (detectedFileType == null || detectedFileType[0] == null) {
@@ -1222,6 +1224,25 @@ export default {
             this.addDialog.data.name = null;
             this.addDialog.data.folder = null;
             this.addDialog.data.url = null;
+        },
+        detectFileType: function(url) {    
+            // Attempt the pure regex route...
+            var extensionRegex = /\.[0-9a-z]+$/i; // to detect the file type based on extension in the URL.
+            var detectedFileType = url.match(extensionRegex);
+            
+            // If that fails, let's try the traditional URL route.
+            if (detectedFileType == null || detectedFileType[0] == null) {
+                var urlExtensionRegex = /\.[0-9a-z]+$/i;
+                let urlToParse = new URL(url);
+
+                // Attempt the URL converted regex route...
+                detectedFileType = urlToParse.pathname.match(urlExtensionRegex);
+            } else if (detectedFileType == null || detectedFileType[0] == null) { // Still not working?!
+                // Your URL sucks!
+                detectedFileType = null; // We got nothin'.
+            }
+            
+            return detectedFileType;
         },
         removeItem: function(uuid) {
             var findItem = this.searchForItem(uuid);
