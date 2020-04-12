@@ -9,7 +9,6 @@ import tempfile
 import json
 import xml.etree.ElementTree as ET
 import functools
-import distro
 
 print = functools.partial(print, flush=True)
 
@@ -60,6 +59,7 @@ endif()
         elif 'Darwin' == system:
             self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz?versionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
         elif 'Linux' == system:
+            import distro
             dist = distro.linux_distribution()
 
             if distro.id() == 'ubuntu':
