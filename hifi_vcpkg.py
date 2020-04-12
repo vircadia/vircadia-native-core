@@ -87,7 +87,7 @@ endif()
             self.vcpkgHash = 'a650db47a63ccdc9904b68ddd16af74772e7e78170b513ea8de5a3b47d032751a3b73dcc7526d88bcb500753ea3dd9880639ca842bb176e2bddb1710f9a58cd3'
             self.hostTriplet = 'x64-windows'
             if usePrebuilt:
-               self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-win32.zip?versionId=3SF3mDC8dkQH1JP041m88xnYmWNzZflx"
+               self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-win32.zip%3FversionId=3SF3mDC8dkQH1JP041m88xnYmWNzZflx"
         elif 'Darwin' == system:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '--allowAppleClang' ]
@@ -95,7 +95,7 @@ endif()
             self.vcpkgHash = '519d666d02ef22b87c793f016ca412e70f92e1d55953c8f9bd4ee40f6d9f78c1df01a6ee293907718f3bbf24075cc35492fb216326dfc50712a95858e9cbcb4d'
             self.hostTriplet = 'x64-osx'
             if usePrebuilt:
-                self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-osx.tgz?versionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
+                self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-osx.tgz%3FversionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh') ]
