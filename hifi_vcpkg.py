@@ -301,8 +301,10 @@ endif()
                         url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.6-ubuntu-19.10.tar.xz'
                     elif u_major > 18 and ( u_major != 19 and u_minor != 4):
                         print("We don't support " + distro.name(pretty=True) + " yet. Perhaps consider helping us out?")
+                        return
                     else:
                         print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
+                        return
                 else:
                     print("Sorry, " + distro.name(pretty=True) + " is not supported. Please consider helping us out.")
                     print("It's also possible to build Qt for your distribution, please see the documentation at:")
