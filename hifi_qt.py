@@ -28,7 +28,7 @@ endif()
     def __init__(self, args):
         self.args = args
         self.configFilePath = os.path.join(args.build_root, 'qt.cmake')
-        self.version = '5.12.3'
+        self.version = os.getenv('VIRCADIA_USE_QT_VERSION', '5.12.3')
 
         self.assets_url = self.readVar('EXTERNAL_BUILD_ASSETS')
 
@@ -47,6 +47,10 @@ endif()
             os.makedirs(lockDir)
 
         self.lockFile = os.path.join(lockDir, lockName)
+
+        if (os.getenv('VIRCADIA_USE_PREBUILT_QT')):
+            print("Using pre-built Qt5")
+            return
 
         # OS dependent information
         system = platform.system()
