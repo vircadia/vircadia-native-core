@@ -67,7 +67,7 @@
                         <v-list-item-title>Create Folder</v-list-item-title>
                     </v-list-item>
                                     
-                    <p class="appVersion font-weight-light">Version {{settings.appVersion}}</p>
+                    <p class="app-version">Version {{appVersion}}</p>
 
                 </v-list-item-group>
             </v-list>
@@ -936,6 +936,13 @@ export default {
                 "uuid": "5425ggsrg45354353",
             },
             {
+                "type": "whatttype",
+                "name": "BrokenIcon",
+                "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
+                "folder": "No Folder",
+                "uuid": "5425ggsrg4fdaffdff535asdasd4353",
+            },
+            {
                 "type": "avatar",
                 "name": "AVI",
                 "url": "https://googlfadfe.com/vr.fst",
@@ -1078,7 +1085,7 @@ export default {
         ],
         sortBy: "alphabetical",
         settings: {
-            displayDensity: {
+            "displayDensity": {
                 "size": 1,
                 "labels": [
                     "List",
@@ -1086,8 +1093,8 @@ export default {
                     "Large",
                 ],
             },
-            appVersion: "1.2.1",
         },
+        appVersion: "1.2.1",
         darkTheme: true,
         drawer: false,
     }),
@@ -1496,11 +1503,27 @@ export default {
         },
         getIcon: function(itemType) {
             itemType = itemType.toUpperCase();
-            return this.iconType[itemType].icon;
+            var returnedItemIcon;
+            
+            if (this.iconType[itemType]) {
+                returnedItemIcon = this.iconType[itemType].icon;
+            } else {
+                returnedItemIcon = this.iconType.UNKNOWN.icon;
+            }
+            
+            return returnedItemIcon;
         },
         getIconColor: function(itemType) {
             itemType = itemType.toUpperCase();
-            return this.iconType[itemType].color;
+            var returnedItemIconColor;
+            
+            if (this.iconType[itemType]) {
+                returnedItemIconColor = this.iconType[itemType].color;
+            } else {
+                returnedItemIconColor = this.iconType.UNKNOWN.color;
+            }
+            
+            return returnedItemIconColor;
         },
         receiveNearbyUsers: function(receivedUsers) {
             if (!receivedUsers) {
