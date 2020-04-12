@@ -55,9 +55,9 @@ endif()
         system = platform.system()
 
         if 'Windows' == system:
-            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-windows3.tar.gz?versionId=5ADqP0M0j5ZfimUHrx4zJld6vYceHEsI'
+            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-windows3.tar.gz%3FversionId=5ADqP0M0j5ZfimUHrx4zJld6vYceHEsI'
         elif 'Darwin' == system:
-            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz?versionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
+            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz%3FversionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
         elif 'Linux' == system:
             import distro
             dist = distro.linux_distribution()
