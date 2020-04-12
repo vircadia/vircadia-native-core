@@ -21,25 +21,6 @@ macro(TARGET_POLYVOX)
         list(APPEND POLYVOX_LIBRARY_DEBUG ${POLYVOX_UTIL_LIBRARY_DEBUG})
         select_library_configurations(POLYVOX)
         list(APPEND POLYVOX_INCLUDE_DIRS ${VCPKG_INSTALL_ROOT}/include)
-        if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-            set(_LIB_GLOBS)
-            if(NOT DEFINED CMAKE_BUILD_TYPE OR "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-                foreach(_lib ${POLYVOX_LIBRARY_DEBUG})
-                    list(APPEND _LIB_GLOBS ${_lib}*)
-                endforeach()
-            endif()
-            if(NOT DEFINED CMAKE_BUILD_TYPE OR "${CMAKE_BUILD_TYPE}" STREQUAL "Release")
-                foreach(_lib ${POLYVOX_LIBRARY_RELEASE})
-                    list(APPEND _LIB_GLOBS ${_lib}*)
-                endforeach()
-            endif()
-            add_custom_command(
-                TARGET ${TARGET_NAME}
-                POST_BUILD
-                COMMAND cp
-                ARGS -d ${_LIB_GLOBS} ${CMAKE_BINARY_DIR}
-                )
-        endif()
     endif()
     target_link_libraries(${TARGET_NAME} ${POLYVOX_LIBRARIES})
     target_include_directories(${TARGET_NAME} PUBLIC ${POLYVOX_INCLUDE_DIRS})
