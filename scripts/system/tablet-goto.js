@@ -9,6 +9,7 @@
 //
 //  Created by Dante Ruiz on 8 February 2017
 //  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2020 Project Athena contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -106,7 +107,7 @@ function isReturnedDataEmpty(data) {
 
 var ui;
 var GOTO_QML_SOURCE = "hifi/tablet/TabletAddressDialog.qml";
-var BUTTON_NAME = "GOTO";
+var BUTTON_NAME = "OLD GOTO";
 function startup() {
     var options = [
         'include_actions=announcement',
@@ -119,6 +120,8 @@ function startup() {
 
     ui = new AppUi({
         buttonName: BUTTON_NAME,
+        normalButton: "icons/tablet-icons/goto-i.svg",
+        activeButton: "icons/tablet-icons/goto-a.svg",
         sortOrder: 8,
         onOpened: gotoOpened,
         home: GOTO_QML_SOURCE,

@@ -1,0 +1,18 @@
+[Unit]
+Description=Domain Server service for Athena
+After=network.target
+PartOf=athena-server.target
+
+[Service]
+Restart=on-failure
+
+WorkingDirectory=/opt/athena
+Environment="LD_LIBRARY_PATH=/opt/athena/lib"
+User=athena
+Group=athena
+#LimitCORE=infinity
+#ExecStartPre=/bin/bash -c 'if /usr/bin/pgrep -l domain-server; then /usr/bin/pkill -SIGKILL -f /usr/share/hifi/domain-server/domain-server; fi'
+ExecStart=/opt/athena/domain-server
+
+[Install]
+WantedBy=multi-user.target
