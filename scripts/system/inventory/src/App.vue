@@ -75,264 +75,7 @@
 
         <v-content>
             <v-container fluid>
-                <v-data-iterator
-                    :items="items"
-                    hide-default-footer
-                >
-                    <template>
-                        <v-col
-                            cols="12"
-                            sm="6"
-                            md="4"
-                            lg="3"
-                            class="py-1 column-item"
-                        >
-                            <draggable :group="options" :list="items" handle=".handle">                                
-                                <v-item-group
-                                    v-for="item in items"
-                                    v-bind:key="item.uuid"
-                                >
-                                    <v-list-item 
-                                        one-line 
-                                        v-if="!item.isFolder"
-                                        class="mx-auto draggable-card"
-                                        max-width="344"
-                                        outlined
-                                    >
-                                          <div class="handle pa-2">
-                                              <v-icon color="orange darken-2">mdi-blur-linear</v-icon>
-                                          </div>
-                                          <v-list-item-content 
-                                              class="pb-1 pt-2 pl-4" 
-                                          >
-                                              <div v-show="settings.displayDensity.size > 0" class="overline" style="font-size: 0.825rem !important;">{{item.type}}</div>
-                                              <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
-                                              <v-list-item-subtitle v-show="settings.displayDensity.size == 2">{{item.url}}</v-list-item-subtitle>
-                                          </v-list-item-content>
-                                          
-                                          <v-menu bottom left>
-                                          <template v-slot:activator="{ on }">
-                                              <!-- settings.displayDensity.size >= 1 -->
-                                              <v-btn 
-                                                  :style="{backgroundColor: (getIconColor(item.type)) }"
-                                                  v-show="settings.displayDensity.size >= 1"
-                                                  medium 
-                                                  fab 
-                                                  dark
-                                                  v-on="on"
-                                              >
-                                                  <v-icon>{{getIcon(item.type)}}</v-icon>
-                                              </v-btn>
-                                              <!-- settings.displayDensity.size < 1 -->
-                                              <v-btn 
-                                                  :style="{backgroundColor: (getIconColor(item.type)) }"
-                                                  v-show="settings.displayDensity.size < 1"
-                                                  small
-                                                  fab
-                                                  dark
-                                                  v-on="on"
-                                              >
-                                                  <v-icon>{{getIcon(item.type)}}</v-icon>
-                                              </v-btn>
-                                          </template>
-
-                                          <v-list color="grey darken-3">
-                                              <v-list-item
-                                                  @click="useItem(item.type, item.url)"
-                                              >
-                                                  <v-list-item-title>Use</v-list-item-title>
-                                                  <v-list-item-action>
-                                                      <v-icon>mdi-play</v-icon>
-                                                  </v-list-item-action>
-                                              </v-list-item>
-                                              <v-list-item
-                                                  @click="
-                                                      editDialog.show = true; 
-                                                      editDialog.uuid = item.uuid;
-                                                      editDialog.data.type = item.type.toUpperCase();
-                                                      editDialog.data.folder = null;
-                                                      editDialog.data.name = item.name;
-                                                      editDialog.data.url = item.url;
-                                                      getFolderList('edit');
-                                                  "
-                                              >
-                                                  <v-list-item-title>Edit</v-list-item-title>
-                                                  <v-list-item-action>
-                                                      <v-icon>mdi-pencil</v-icon>
-                                                  </v-list-item-action>
-                                              </v-list-item>
-                                              <v-list-item
-                                                  @click="shareDialog.show = true; shareDialog.data.url = item.url; shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
-                                              >
-                                                  <v-list-item-title>Share</v-list-item-title>
-                                                  <v-list-item-action>
-                                                      <v-icon>mdi-share</v-icon>
-                                                  </v-list-item-action>
-                                              </v-list-item>
-                                              <v-list-item
-                                                  @click="removeDialog.show = true; removeDialog.uuid = item.uuid;"
-                                                  color="red darken-1"
-                                              >
-                                                  <v-list-item-title>Remove</v-list-item-title>
-                                                  <v-list-item-action>
-                                                      <v-icon>mdi-minus</v-icon>
-                                                  </v-list-item-action>
-                                              </v-list-item>
-                                          </v-list>
-                                          </v-menu>
-                                          
-                                      </v-list-item>
-
-                                
-                                    <!-- The Folder List Item -->
-                                    <v-list-group
-                                        v-if="item.isFolder"
-                                        class="top-level-folder"
-                                    >
-                                    <!-- prepend-icon="mdi-blur-linear" put this in the list group, no idea how to make it a handle yet though... -->
-                                        <template v-slot:activator>
-                                            <v-list-item 
-                                                one-line 
-                                                class="mx-auto"
-                                                max-width="344"
-                                                outlined
-                                            >
-                                                <v-icon class="folder-icon" color="teal">mdi-folder-settings</v-icon>
-                                                {{item.name}}
-                                            </v-list-item>
-                                        </template>
-                                        <v-btn medium color="primary" class="mx-1 my-1 folder-button"
-                                            @click="
-                                                editFolderDialog.show = true; 
-                                                editFolderDialog.uuid = item.uuid;
-                                                editFolderDialog.data.name = item.name;
-                                            "
-                                        >
-                                            Edit Folder
-                                        </v-btn>
-                                        <v-btn medium color="red" class="mx-1 my-1 folder-button"
-                                            @click="removeFolderDialog.show = true; removeFolderDialog.uuid = item.uuid;"
-                                        >
-                                            Delete Folder
-                                        </v-btn>
-                                        <v-btn medium color="purple" class="mx-1 my-1 folder-button"
-                                            @click="sortFolder(item.uuid);"
-                                        >
-                                            Sort Folder
-                                        </v-btn>
-                                        <v-col
-                                            cols="12"
-                                            sm="6"
-                                            md="4"
-                                            lg="3"
-                                            class="py-1 column-item"
-                                        >
-                                            <draggable 
-                                                :list="item.items"
-                                                :group="options"
-                                            >
-                                                <v-item-group
-                                                    v-for="item in item.items"
-                                                    v-bind:key="item.uuid"
-                                                >
-                                                    <v-list-item 
-                                                        one-line
-                                                        class="mx-auto draggable-card"
-                                                        outlined
-                                                    >
-                                                        <div class="handle pa-2">
-                                                            <v-icon color="orange darken-2">mdi-blur-linear</v-icon>
-                                                        </div>
-                                                        <v-list-item-content class="pb-1 pt-2">
-                                                            <div v-show="settings.displayDensity.size > 0" class="overline" style="font-size: 0.825rem !important;">{{item.type}}</div>
-                                                            <v-list-item-title class="subtitle-1 mb-1">{{item.name}}</v-list-item-title>
-                                                            <v-list-item-subtitle v-show="settings.displayDensity.size == 2">{{item.url}}</v-list-item-subtitle>
-                                                        </v-list-item-content>
-
-                                                        <v-menu bottom left>
-                                                            <template v-slot:activator="{ on }">                                                    
-                                                                <!-- settings.displayDensity.size >= 1 -->
-                                                                <v-btn 
-                                                                    :style="{backgroundColor: (getIconColor(item.type)) }"
-                                                                    v-show="settings.displayDensity.size >= 1"
-                                                                    medium 
-                                                                    fab 
-                                                                    dark
-                                                                    v-on="on"
-                                                                >
-                                                                    <v-icon>{{getIcon(item.type)}}</v-icon>
-                                                                </v-btn>
-                                                                <!-- settings.displayDensity.size < 1 -->
-                                                                <v-btn 
-                                                                    :style="{backgroundColor: (getIconColor(item.type)) }"
-                                                                    v-show="settings.displayDensity.size < 1"
-                                                                    small
-                                                                    fab
-                                                                    dark
-                                                                    v-on="on"
-                                                                >
-                                                                    <v-icon>{{getIcon(item.type)}}</v-icon>
-                                                                </v-btn>
-                                                            </template>
-
-                                                            <v-list color="grey darken-3">
-                                                                
-                                                                <v-list-item
-                                                                    @click="useItem(item.type, item.url)"
-                                                                >
-                                                                    <v-list-item-title>Use</v-list-item-title>
-                                                                    <v-list-item-action>
-                                                                        <v-icon>mdi-play</v-icon>
-                                                                    </v-list-item-action>
-                                                                </v-list-item>
-                                                                
-                                                                <v-list-item
-                                                                    @click="
-                                                                        editDialog.show = true; 
-                                                                        editDialog.uuid = item.uuid;
-                                                                        editDialog.data.type = item.type.toUpperCase();
-                                                                        editDialog.data.folder = null;
-                                                                        editDialog.data.name = item.name;
-                                                                        editDialog.data.url = item.url;
-                                                                        getFolderList('edit');
-                                                                    "
-                                                                >
-                                                                    <v-list-item-title>Edit</v-list-item-title>
-                                                                    <v-list-item-action>
-                                                                        <v-icon>mdi-pencil</v-icon>
-                                                                    </v-list-item-action>
-                                                                </v-list-item>
-                                                                
-                                                                <v-list-item
-                                                                    @click="shareDialog.show = true; shareDialog.data.url = item.url; shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
-                                                                >
-                                                                    <v-list-item-title>Share</v-list-item-title>
-                                                                    <v-list-item-action>
-                                                                        <v-icon>mdi-share</v-icon>
-                                                                    </v-list-item-action>
-                                                                </v-list-item>
-                                                                
-                                                                <v-list-item
-                                                                    @click="removeDialog.show = true; removeDialog.uuid = item.uuid;"
-                                                                    color="red darken-1"
-                                                                >
-                                                                    <v-list-item-title>Remove</v-list-item-title>
-                                                                    <v-list-item-action>
-                                                                        <v-icon>mdi-minus</v-icon>
-                                                                    </v-list-item-action>
-                                                                </v-list-item>
-                                                            </v-list>
-                                                        </v-menu>
-                                                    </v-list-item>
-                                                </v-item-group>
-                                            </draggable>
-                                        </v-col>
-                                    </v-list-group>
-                                </v-item-group>
-                            </draggable>
-                        </v-col>
-                    </template>
-                </v-data-iterator>
+                <folder v-bind:folder="folder"></folder>
             </v-container>
         </v-content>
 
@@ -871,15 +614,18 @@ if (!browserDevelopment()) {
 }
 
 import draggable from 'vuedraggable'
+import Root from 'components/Root'
 
 export default {
     name: 'App',
     components: {
         draggable,
+        Root
     },
     data: () => ({
         items: [
             {
+                "hasChildren": false,
                 "type": "script",
                 "name": "VRGrabScale",
                 "url": "https://gooawefaweawfgle.com/vr.js",
@@ -887,10 +633,11 @@ export default {
                 "uuid": "54254354353",
             },
             {
-                "isFolder": true,
+                "hasChildren": true,
                 "name": "Test Folder",
                 "items": [
                     {
+                        "hasChildren": false,
                         "type": "script",
                         "name": "TESTFOLDERSCRIPT",
                         "url": "https://googfdafsgaergale.com/vr.js",
@@ -898,16 +645,41 @@ export default {
                         "uuid": "54hgfhgf25fdfadf4354353",
                     },
                     {
+                        "hasChildren": false,
                         "type": "script",
                         "name": "FOLDERSCRIPT2",
                         "url": "https://googfdafsgaergale.com/vr.js",
                         "folder": "No Folder",
                         "uuid": "54hgfhgf25ffdafddfadf4354353",
                     },
+                    {
+                        "hasChildren": true,
+                        "name": "FolderWithinAFolder",
+                        "items": [
+                            {
+                                "hasChildren": false,
+                                "type": "script",
+                                "name": "TESTFOLDERSCRIPT",
+                                "url": "https://googfdafsgaergale.com/vr.js",
+                                "folder": "No Folder",
+                                "uuid": "54hgfhgf25fdfadf4354353",
+                            },
+                            {
+                                "hasChildren": false,
+                                "type": "script",
+                                "name": "FOLDERSCRIPT2",
+                                "url": "https://googfdafsgaergale.com/vr.js",
+                                "folder": "No Folder",
+                                "uuid": "54hgfhgf25ffdafddfadf4354353",
+                            },
+                        ],
+                        "uuid": "54354363wgtrhtrhegs45ujs"
+                    },
                 ],
                 "uuid": "54354363wgsegs45ujs",
             },
             {
+                "hasChildren": false,
                 "type": "script",
                 "name": "VRGrabScale",
                 "url": "https://googfdafsgaergale.com/vr.js",
@@ -915,6 +687,7 @@ export default {
                 "uuid": "54hgfhgf254354353",
             },
             {
+                "hasChildren": false,
                 "type": "script",
                 "name": "TEST",
                 "url": "https://gooadfdagle.com/vr.js",
@@ -922,6 +695,7 @@ export default {
                 "uuid": "542rfwat4t5fsddf4354353",
             },
             {
+                "hasChildren": false,
                 "type": "json",
                 "name": "TESTJSON",
                 "url": "https://gooadfdagle.com/vr.json",
@@ -929,6 +703,7 @@ export default {
                 "uuid": "542rfwat4t54354353",
             },
             {
+                "hasChildren": false,
                 "type": "script",
                 "name": "TESTLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
                 "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
@@ -936,6 +711,7 @@ export default {
                 "uuid": "5425ggsrg45354353",
             },
             {
+                "hasChildren": false,
                 "type": "whatttype",
                 "name": "BrokenIcon",
                 "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
@@ -943,6 +719,7 @@ export default {
                 "uuid": "5425ggsrg4fdaffdff535asdasd4353",
             },
             {
+                "hasChildren": false,
                 "type": "avatar",
                 "name": "AVI",
                 "url": "https://googlfadfe.com/vr.fst",
@@ -950,6 +727,7 @@ export default {
                 "uuid": "542gregg45s3g4354353",
             },
             {
+                "hasChildren": false,
                 "type": "avatar",
                 "name": "AVI",
                 "url": "https://googlefdaf.com/vr.fst",
@@ -957,6 +735,7 @@ export default {
                 "uuid": "5420798-087-54354353",
             },
             {
+                "hasChildren": false,
                 "type": "model",
                 "name": "3D MODEL",
                 "url": "https://googlee.com/vr.fbx",
@@ -964,6 +743,7 @@ export default {
                 "uuid": "54254354980-7667jt353",
             },
             {
+                "hasChildren": false,
                 "type": "place",
                 "name": "PLACE DOMAIN",
                 "url": "https://googleee.com/vr.fbx",
@@ -1130,6 +910,7 @@ export default {
             
             var itemToPush =             
             {
+                "hasChildren": false,
                 "type": type,
                 "name": name,
                 "url": url,
@@ -1146,7 +927,7 @@ export default {
         pushFolderToItems: function(name) {
             var folderToPush =             
             {
-                "isFolder": true,
+                "hasChildren": true,
                 "name": name,
                 "items": [],
                 "uuid": this.createUUID(),
@@ -1398,8 +1179,8 @@ export default {
             }
                         
             for (var i = 0; i < this.items.length; i++) {
-                if (Object.prototype.hasOwnProperty.call(this.items[i], "isFolder")) {
-                    if (this.items[i].isFolder === true) {
+                if (Object.prototype.hasOwnProperty.call(this.items[i], "hasChildren")) {
+                    if (this.items[i].hasChildren === true) {
                         this.folderList.push({
                             "name": this.items[i].name,
                             "uuid": this.items[i].uuid,
@@ -1411,6 +1192,7 @@ export default {
         moveItemToFolder: function(uuid, folderUUID) {
             // This function is used to take an item one level deep, do not use it for any other purposes and check beforehand if you need to do this.
             var itemToPush = {
+                "hasChildren": false,
                 'type': null,
                 'name': null,
                 'folder': null,
@@ -1435,7 +1217,7 @@ export default {
 
             // Find that folder in our main items array.
             for (var folder = 0; folder < this.items.length; folder++) { 
-                if (this.items[folder].uuid === folderUUID && this.items[folder].isFolder === true) {
+                if (this.items[folder].uuid === folderUUID && this.items[folder].hasChildren === true) {
                     this.items[folder].items.push(itemToPush);
                 }
             }
