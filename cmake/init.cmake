@@ -64,7 +64,6 @@ if (APPLE)
   set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "")
   set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO")
 endif()
-endif()
 
 if (UNIX)
   # Static libs result in duplicated constructor and destructor calls on Linux
