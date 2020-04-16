@@ -3167,7 +3167,7 @@ void Application::showLoginScreen() {
 #endif
 }
 
-static const QUrl AUTHORIZED_EXTERNAL_QML_SOURCE { "https://content.highfidelity.com/Experiences/Releases" };
+static const QUrl AUTHORIZED_EXTERNAL_QML_SOURCE { "https://kasenvr.github.io/community-apps/applications" };
 
 void Application::initializeUi() {
 
@@ -3188,12 +3188,18 @@ void Application::initializeUi() {
             // END PULL SAFEURLS FROM INTERFACE.JSON Settings
 
             bool isInWhitelist = false;  // assume unsafe
-            for (const auto& str : safeURLS) {
-                if (!str.isEmpty() && str.endsWith(".qml") && url.toString().endsWith(".qml") &&
-                    url.toString().startsWith(str)) {
-                    qCDebug(interfaceapp) << "Found matching url!" << url.host();
-                    isInWhitelist = true;
-                    return true;
+            
+            if (AUTHORIZED_EXTERNAL_QML_SOURCE.isParentOf(url)) {
+                isInWhitelist = true;
+                return true;
+            } else {
+                for (const auto& str : safeURLS) {
+                    if (!str.isEmpty() && str.endsWith(".qml") && url.toString().endsWith(".qml") &&
+                        url.toString().startsWith(str)) {
+                        qCDebug(interfaceapp) << "Found matching url!" << url.host();
+                        isInWhitelist = true;
+                        return true;
+                    }
                 }
             }
 
