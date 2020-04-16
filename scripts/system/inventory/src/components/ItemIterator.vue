@@ -76,12 +76,12 @@
                           </v-list-item>
                           <v-list-item
                               @click="
-                                  editDialog.show = true; 
-                                  editDialog.uuid = item.uuid;
-                                  editDialog.data.type = item.type.toUpperCase();
-                                  editDialog.data.folder = null;
-                                  editDialog.data.name = item.name;
-                                  editDialog.data.url = item.url;
+                                  $store.state.editDialog.show = true; 
+                                  $store.state.editDialog.uuid = item.uuid;
+                                  $store.state.editDialog.data.type = item.type.toUpperCase();
+                                  $store.state.editDialog.data.folder = null;
+                                  $store.state.editDialog.data.name = item.name;
+                                  $store.state.editDialog.data.url = item.url;
                                   getFolderList('edit');
                               "
                           >
@@ -91,7 +91,7 @@
                               </v-list-item-action>
                           </v-list-item>
                           <v-list-item
-                              @click="shareDialog.show = true; shareDialog.data.url = item.url; shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
+                              @click="$store.state.shareDialog.show = true; $store.state.shareDialog.data.url = item.url; $store.state.shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
                           >
                               <v-list-item-title>Share</v-list-item-title>
                               <v-list-item-action>
@@ -99,7 +99,7 @@
                               </v-list-item-action>
                           </v-list-item>
                           <v-list-item
-                              @click="removeDialog.show = true; removeDialog.uuid = item.uuid;"
+                              @click="$store.state.removeDialog.show = true; $store.state.removeDialog.uuid = item.uuid;"
                               color="red darken-1"
                           >
                               <v-list-item-title>Remove</v-list-item-title>
@@ -133,15 +133,15 @@
                     <div class="text-center my-2">
                         <v-btn medium tile color="purple" class="mx-1 folder-button"
                             @click="
-                                editFolderDialog.show = true; 
-                                editFolderDialog.uuid = item.uuid;
-                                editFolderDialog.data.name = item.name;
+                                $store.state.editFolderDialog.show = true; 
+                                $store.state.editFolderDialog.uuid = item.uuid;
+                                $store.state.editFolderDialog.data.name = item.name;
                             "
                         >
                             <v-icon>mdi-pencil</v-icon>
                         </v-btn>
                         <v-btn medium tile color="red" class="mx-1 folder-button"
-                            @click="removeFolderDialog.show = true; removeFolderDialog.uuid = item.uuid;"
+                            @click="$store.state.removeFolderDialog.show = true; $store.state.removeFolderDialog.uuid = item.uuid;"
                         >
                             <v-icon>mdi-minus</v-icon>
                         </v-btn>
@@ -219,12 +219,12 @@
                                             
                                             <v-list-item
                                                 @click="
-                                                    editDialog.show = true; 
-                                                    editDialog.uuid = item.uuid;
-                                                    editDialog.data.type = item.type.toUpperCase();
-                                                    editDialog.data.folder = null;
-                                                    editDialog.data.name = item.name;
-                                                    editDialog.data.url = item.url;
+                                                    $store.state.editDialog.show = true; 
+                                                    $store.state.editDialog.uuid = item.uuid;
+                                                    $store.state.editDialog.data.type = item.type.toUpperCase();
+                                                    $store.state.editDialog.data.folder = null;
+                                                    $store.state.editDialog.data.name = item.name;
+                                                    $store.state.editDialog.data.url = item.url;
                                                     getFolderList('edit');
                                                 "
                                             >
@@ -235,7 +235,7 @@
                                             </v-list-item>
                                             
                                             <v-list-item
-                                                @click="shareDialog.show = true; shareDialog.data.url = item.url; shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
+                                                @click="$store.state.shareDialog.show = true; $store.state.shareDialog.data.url = item.url; $store.state.shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
                                             >
                                                 <v-list-item-title>Share</v-list-item-title>
                                                 <v-list-item-action>
@@ -244,7 +244,7 @@
                                             </v-list-item>
                                             
                                             <v-list-item
-                                                @click="removeDialog.show = true; removeDialog.uuid = item.uuid;"
+                                                @click="$store.state.removeDialog.show = true; $store.state.removeDialog.uuid = item.uuid;"
                                                 color="red darken-1"
                                             >
                                                 <v-list-item-title>Remove</v-list-item-title>

@@ -60,6 +60,69 @@ export const store = new Vuex.Store({
             "JSON",
             "UNKNOWN",
         ],
+        removeDialog: {
+            show: false,
+            uuid: null,
+        },
+        removeFolderDialog: {
+            show: false,
+            uuid: null,
+        },
+        createFolderDialog: {
+            show: false,
+            valid: false,
+            data: {
+                "name": null,
+            },
+        },
+        addDialog: {
+            show: false,
+            valid: false,
+            data: {
+                "name": null,
+                "folder": null,
+                "url": null,
+            },
+        },
+        editDialog: {
+            show: false,
+            valid: false,
+            uuid: null, //
+            data: {
+                "type": null,
+                "name": null,
+                "url": null,
+                "folder": null,
+            },
+        },
+        editFolderDialog: {
+            show: false,
+            valid: false,
+            uuid: null, //
+            data: {
+                "name": null,
+            },
+        },
+        receiveDialog: {
+            show: false,
+            valid: false,
+            data: {
+                "user": null,
+                "name": null,
+                "folder": null,
+                "type": null,
+                "url": null,
+            },
+        },
+        shareDialog: {
+            show: false,
+            valid: false,
+            data: {
+                "uuid": null, // UUID of the item you want to share. THIS IS THE KEY.
+                "url": null, // The item you want to share.
+                "recipient": null,
+            }
+        },
     },
     mutations: {
         mutate(state, payload) {
