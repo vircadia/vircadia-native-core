@@ -127,10 +127,10 @@ jobs:
     - name: Update apt repository index
       run: sudo apt update
     - name: Install apt packages
-      run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+      run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0 python3-setuptools
     - name: Install python modules
       shell: bash
-      run: pip install boto3 distro PyGithub
+      run: pip3 install boto3 distro PyGithub
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
     - name: Configure CMake
