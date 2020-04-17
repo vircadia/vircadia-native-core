@@ -39,7 +39,7 @@ jobs:
       id: buildenv1
       run: |
         echo ::set-env name=GIT_COMMIT_SHORT::`echo $GIT_COMMIT | cut -c1-7`
-        echo ::set-env name=JOB_NAME::build-${{matrix.os}}
+        echo ::set-env name=JOB_NAME::"build (${{matrix.os}}, ${{matrix.build_type}})"
         # Linux build variables
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
           echo ::set-env name=PYTHON_EXEC::python3
