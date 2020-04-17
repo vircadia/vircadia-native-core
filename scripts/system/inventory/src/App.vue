@@ -53,14 +53,14 @@
                         tick-size="3"
                     ></v-slider>
 
-                    <v-list-item @click="$store.state.addDialog.show = true; getFolderList('add');">
+                    <v-list-item @click="addDialogStore.show = true; getFolderList('add');">
                         <v-list-item-icon>
                             <v-icon>mdi-plus</v-icon>
                         </v-list-item-icon>
                         <v-list-item-title>Add Item</v-list-item-title>
                     </v-list-item>
 
-                    <v-list-item @click="createFolderDialog.show = true">
+                    <v-list-item @click="createFolderDialogStore.show = true">
                         <v-list-item-icon>
                             <v-icon>mdi-folder-plus</v-icon>
                         </v-list-item-icon>
@@ -80,7 +80,7 @@
         </v-content>
 
         <v-dialog
-          v-model="$store.state.removeDialog.show"
+          v-model="removeDialogStore.show"
           max-width="290"
         >
           <v-card>
@@ -95,7 +95,7 @@
                   <v-btn
                       color="blue"
                       class="px-3"
-                      @click="$store.state.removeDialog.show = false"
+                      @click="removeDialogStore.show = false"
                   >
                       No
                   </v-btn>
@@ -105,7 +105,7 @@
                   <v-btn
                       color="red"
                       class="px-3"                    
-                      @click="$store.state.removeDialog.show = false; removeItem($store.state.removeDialog.uuid);"
+                      @click="removeDialogStore.show = false; removeItem($store.state.removeDialog.uuid);"
                   >
                       Yes
                   </v-btn>
@@ -116,7 +116,7 @@
         </v-dialog>
         
         <v-dialog
-          v-model="$store.state.removeFolderDialog.show"
+          v-model="removeFolderDialogStore.show"
           max-width="290"
         >
           <v-card>
@@ -131,7 +131,7 @@
                   <v-btn
                       color="blue"
                       class="px-3"
-                      @click="$store.state.removeFolderDialog.show = false"
+                      @click="removeFolderDialog.show = false"
                   >
                       No
                   </v-btn>
@@ -141,7 +141,7 @@
                   <v-btn
                       color="red"
                       class="px-3"                    
-                      @click="$store.state.removeFolderDialog.show = false; removeFolder($store.state.removeFolderDialog.uuid);"
+                      @click="removeFolderDialog.show = false; removeFolder($store.state.removeFolderDialog.uuid);"
                   >
                       Yes
                   </v-btn>
@@ -152,7 +152,7 @@
         </v-dialog>
 
         <v-dialog
-          v-model="$store.state.editDialog.show"
+          v-model="editDialogStore.show"
           max-width="380"
         >
           <v-card>
@@ -160,14 +160,14 @@
               
               <v-form
                   ref="editForm"
-                  v-model="$store.state.editDialog.valid"
+                  v-model="editDialogStore.valid"
                   :lazy-validation="false"
               >
                     
                     <v-select
                         :items="$store.state.supportedItemTypes"
                         class="my-2"
-                        v-model="$store.state.editDialog.data.type"
+                        v-model="editDialogStore.data.type"
                         :rules="[v => !!v || 'Type is required.']"
                         label="Item Type"
                         outlined
@@ -176,7 +176,7 @@
                     <v-text-field
                         class="px-2"
                         label="Name"
-                        v-model="$store.state.editDialog.data.name"
+                        v-model="editDialogStore.data.name"
                         :rules="[v => !!v || 'Name is required.']"
                         required
                     ></v-text-field>
@@ -186,7 +186,7 @@
                         item-text="name"
                         item-value="uuid"
                         class="my-2"
-                        v-model="$store.state.editDialog.data.folder"
+                        v-model="editDialogStore.data.folder"
                         label="Folder"
                         outlined
                     ></v-select>
@@ -194,7 +194,7 @@
                     <v-text-field
                         class="px-2"
                         label="URL"
-                        v-model="$store.state.editDialog.data.url"
+                        v-model="editDialogStore.data.url"
                         :rules="[v => !!v || 'URL is required.']"
                         required
                     ></v-text-field>
@@ -204,7 +204,7 @@
                       <v-btn
                           color="red"
                           class="px-3"
-                          @click="$store.state.editDialog.show = false"
+                          @click="editDialogStore.show = false"
                       >
                           Cancel
                       </v-btn>
@@ -215,7 +215,7 @@
                           color="blue"
                           class="px-3"       
                           :disabled="!$store.state.editDialog.valid"             
-                          @click="$store.state.editDialog.show = false; editItem($store.state.editDialog.uuid);"
+                          @click="editDialogStore.show = false; editItem($store.state.editDialog.uuid);"
                       >
                           Done
                       </v-btn>
@@ -228,7 +228,7 @@
         </v-dialog>
         
         <v-dialog
-          v-model="$store.state.editFolderDialog.show"
+          v-model="editFolderDialogStore.show"
           max-width="380"
         >
           <v-card>
@@ -236,14 +236,14 @@
               
               <v-form
                   ref="editFolderForm"
-                  v-model="$store.state.editFolderDialog.valid"
+                  v-model="editFolderDialogStore.valid"
                   :lazy-validation="false"
               >
 
                   <v-text-field
                       class="px-2"
                       label="Name"
-                      v-model="$store.state.editFolderDialog.data.name"
+                      v-model="editFolderDialogStore.data.name"
                       :rules="[v => !!v || 'Name is required.']"
                       required
                   ></v-text-field>
@@ -253,7 +253,7 @@
                       <v-btn
                           color="red"
                           class="px-3"
-                          @click="$store.state.editFolderDialog.show = false"
+                          @click="editFolderDialogStore.show = false"
                       >
                           Cancel
                       </v-btn>
@@ -264,7 +264,7 @@
                           color="blue"
                           class="px-3"       
                           :disabled="!$store.state.editFolderDialog.valid"             
-                          @click="$store.state.editFolderDialog.show = false; editFolder($store.state.editFolderDialog.uuid);"
+                          @click="editFolderDialogStore.show = false; editFolder($store.state.editFolderDialog.uuid);"
                       >
                           Done
                       </v-btn>
@@ -277,7 +277,7 @@
         </v-dialog>
 
         <v-dialog
-          v-model="$store.state.createFolderDialog.show"
+          v-model="createFolderDialogStore.show"
           max-width="380"
         >
           <v-card>
@@ -289,14 +289,14 @@
               
               <v-form
                   ref="createFolderForm"
-                  v-model="$store.state.createFolderDialog.valid"
+                  v-model="createFolderDialogStore.valid"
                   :lazy-validation="false"
               >
 
                   <v-text-field
                       class="px-2"
                       label="Name"
-                      v-model="$store.state.createFolderDialog.data.name"
+                      v-model="createFolderDialogStore.data.name"
                       :rules="[v => !!v || 'Name is required.']"
                       required
                   ></v-text-field>
@@ -306,7 +306,7 @@
                       <v-btn
                           color="red"
                           class="px-3"
-                          @click="$store.state.createFolderDialog.show = false"
+                          @click="createFolderDialogStore.show = false"
                       >
                           Cancel
                       </v-btn>
@@ -317,7 +317,7 @@
                           color="blue"
                           class="px-3"
                           :disabled="!$store.state.createFolderDialog.valid"
-                          @click="$store.state.createFolderDialog.show = false; createFolder($store.state.createFolderDialog.data.name)"
+                          @click="createFolderDialogStore.show = false; createFolder($store.state.createFolderDialog.data.name)"
                       >
                           Create
                       </v-btn>
@@ -329,7 +329,7 @@
         </v-dialog>
 
         <v-dialog
-          v-model="$store.state.addDialog.show"
+          v-model="addDialogStore.show"
           max-width="380"
         >
           <v-card>
@@ -338,7 +338,7 @@
               
               <v-form
                   ref="addForm"
-                  v-model="$store.state.addDialog.valid"
+                  v-model="addDialogStore.valid"
                   :lazy-validation="false"
               >
               
@@ -349,7 +349,7 @@
                   <v-text-field
                       class="px-2"
                       label="Name"
-                      v-model="$store.state.addDialog.data.name"
+                      v-model="addDialogStore.data.name"
                       :rules="[v => !!v || 'Name is required.']"
                       required
                   ></v-text-field>
@@ -361,7 +361,7 @@
                   <v-select
                       class="my-2"
                       :items="folderList"
-                      v-model="$store.state.addDialog.data.folder"
+                      v-model="addDialogStore.data.folder"
                       label="Folder"
                       outlined
                       item-text="name"
@@ -375,7 +375,7 @@
                   <v-text-field
                       class="px-2"
                       label="URL"
-                      v-model="$store.state.addDialog.data.url"
+                      v-model="addDialogStore.data.url"
                       :rules="[v => !!v || 'URL is required.']"
                       required
                   ></v-text-field>
@@ -385,7 +385,7 @@
                       <v-btn
                           color="red"
                           class="px-3"
-                          @click="$store.state.addDialog.show = false"
+                          @click="addDialogStore.show = false"
                       >
                           Cancel
                       </v-btn>
@@ -396,7 +396,7 @@
                           color="blue"
                           class="px-3"
                           :disabled="!$store.state.addDialog.valid"
-                          @click="$store.state.addDialog.show = false; addItem($store.state.addDialog.data.name, $store.state.addDialog.data.folder, $store.state.addDialog.data.url)"
+                          @click="addDialogStore.show = false; addItem($store.state.addDialog.data.name, $store.state.addDialog.data.folder, $store.state.addDialog.data.url)"
                       >
                           Add
                       </v-btn>
@@ -408,7 +408,7 @@
         </v-dialog>
 
         <v-dialog
-          v-model="$store.state.receiveDialog.show"
+          v-model="receiveDialogStore.show"
           max-width="380"
           persistent
         >
@@ -421,7 +421,7 @@
               
               <v-form
                   ref="receiveForm"
-                  v-model="$store.state.receiveDialog.valid"
+                  v-model="receiveDialogStore.valid"
                   :lazy-validation="false"
               >
               
@@ -429,7 +429,7 @@
                       class="px-2"
                       label="Type"
                       :rules="[v => !!v || 'Type is required.']"
-                      v-model="$store.state.receiveDialog.data.type"
+                      v-model="receiveDialogStore.data.type"
                       required
                   ></v-text-field>
                   
@@ -437,7 +437,7 @@
                       class="px-2"
                       label="Name"
                       :rules="[v => !!v || 'Name is required.']"
-                      v-model="$store.state.receiveDialog.data.name"
+                      v-model="receiveDialogStore.data.name"
                       required
                   ></v-text-field>
                   
@@ -448,7 +448,7 @@
                   <v-select
                       class="my-2"
                       :items="folderList"
-                      v-model="$store.state.receiveDialog.data.folder"
+                      v-model="receiveDialogStore.data.folder"
                       label="Folder"
                       outlined
                       item-text="name"
@@ -459,7 +459,7 @@
                       class="px-2"
                       label="URL"
                       :rules="[v => !!v || 'URL is required.']"
-                      v-model="$store.state.receiveDialog.data.url"
+                      v-model="receiveDialogStore.data.url"
                       required
                   ></v-text-field>
 
@@ -468,7 +468,7 @@
                       <v-btn
                           color="red"
                           class="px-3"
-                          @click="$store.state.receiveDialog.show = false"
+                          @click="receiveDialogStore.show = false"
                       >
                           Reject
                       </v-btn>
@@ -479,7 +479,7 @@
                           color="blue"
                           class="px-3"
                           :disabled="!$store.state.receiveDialog.valid"
-                          @click="$store.state.receiveDialog.show = false; acceptItem();"
+                          @click="receiveDialogStore.show = false; acceptItem();"
                       >
                           Accept
                       </v-btn>
@@ -491,7 +491,7 @@
         </v-dialog>
 
         <v-dialog
-          v-model="$store.state.shareDialog.show"
+          v-model="shareDialogStore.show"
           max-width="380"
           persistent
         >
@@ -504,13 +504,13 @@
               
               <v-form
                   ref="shareForm"
-                  v-model="$store.state.shareDialog.valid"
+                  v-model="shareDialogStore.valid"
                   :lazy-validation="false"
                   class="px-2"
               >
               
                   <!-- <v-list>
-                      <v-list-item-group v-model="$store.state.shareDialog.data.recipient" color="primary">
+                      <v-list-item-group v-model="shareDialogStore.data.recipient" color="primary">
                           <v-list-item
                               v-for="user in nearbyUsers"
                               v-bind:key="user.uuid"
@@ -523,7 +523,7 @@
                   </v-list> -->
                   
                   <v-select
-                      v-model="$store.state.shareDialog.data.recipient"
+                      v-model="shareDialogStore.data.recipient"
                       :items="nearbyUsers"
                       item-text="name"
                       item-value="uuid"
@@ -536,7 +536,7 @@
                       class="px-2"
                       label="URL"
                       :rules="[v => !!v || 'URL is required.']"
-                      v-model="$store.state.shareDialog.data.url"
+                      v-model="shareDialogStore.data.url"
                       required
                   ></v-text-field>
 
@@ -545,7 +545,7 @@
                       <v-btn
                           color="red"
                           class="px-3"
-                          @click="$store.state.shareDialog.show = false"
+                          @click="shareDialogStore.shareDialog.show = false"
                       >
                           Cancel
                       </v-btn>
@@ -556,7 +556,7 @@
                           color="blue"
                           class="px-3"
                           :disabled="!$store.state.shareDialog.valid"
-                          @click="$store.state.shareDialog.show = false; shareItem($store.state.shareDialog.data.uuid);"
+                          @click="shareDialogStore.shareDialog.show = false; shareItem($store.state.shareDialog.data.uuid);"
                       >
                           Send
                       </v-btn>
@@ -1234,7 +1234,94 @@ export default {
         },
     },
     computed: {
-        
+        addDialogStore: {
+            get() {
+                return this.$store.state.addDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'addDialog', 
+                    with: value
+                });
+            },
+        },
+        editDialogStore: {
+            get() {
+                return this.$store.state.editDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'editDialog', 
+                    with: value
+                });
+            },
+        },
+        editFolderDialogStore: {
+            get() {
+                return this.$store.state.editFolderDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'editFolderDialog', 
+                    with: value
+                });
+            },
+        },
+        createFolderDialogStore: {
+            get() {
+                return this.$store.state.createFolderDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'createFolderDialog', 
+                    with: value
+                });
+            },
+        },
+        receiveDialogStore: {
+            get() {
+                return this.$store.state.receiveDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'receiveDialog', 
+                    with: value
+                });
+            },
+        },
+        shareDialogStore: {
+            get() {
+                return this.$store.state.shareDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'shareDialog', 
+                    with: value
+                });
+            },
+        },
+        removeFolderDialogStore: {
+            get() {
+                return this.$store.state.removeFolderDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'removeFolderDialog', 
+                    with: value
+                });
+            },
+        },
+        removeDialogStore: {
+            get() {
+                return this.$store.state.removeDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'removeDialog', 
+                    with: value
+                });
+            },
+        }
     },
     watch: {
         // Whenever the item list changes, this will notice and then send it to the script to be saved.

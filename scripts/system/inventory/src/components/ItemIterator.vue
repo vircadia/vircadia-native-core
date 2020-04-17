@@ -76,12 +76,12 @@
                           </v-list-item>
                           <v-list-item
                               @click="
-                                  $store.state.editDialog.show = true; 
-                                  $store.state.editDialog.uuid = item.uuid;
-                                  $store.state.editDialog.data.type = item.type.toUpperCase();
-                                  $store.state.editDialog.data.folder = null;
-                                  $store.state.editDialog.data.name = item.name;
-                                  $store.state.editDialog.data.url = item.url;
+                                  editDialogStore.show = true; 
+                                  editDialogStore.uuid = item.uuid;
+                                  editDialogStore.data.type = item.type.toUpperCase();
+                                  editDialogStore.data.folder = null;
+                                  editDialogStore.data.name = item.name;
+                                  editDialogStore.data.url = item.url;
                                   getFolderList('edit');
                               "
                           >
@@ -91,7 +91,12 @@
                               </v-list-item-action>
                           </v-list-item>
                           <v-list-item
-                              @click="$store.state.shareDialog.show = true; $store.state.shareDialog.data.url = item.url; $store.state.shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
+                              @click="
+                                shareDialogStore.show = true; 
+                                shareDialogStore.data.url = item.url; 
+                                shareDialogStore.data.uuid = item.uuid; 
+                                sendAppMessage('web-to-script-request-nearby-users', '')
+                              "
                           >
                               <v-list-item-title>Share</v-list-item-title>
                               <v-list-item-action>
@@ -99,7 +104,10 @@
                               </v-list-item-action>
                           </v-list-item>
                           <v-list-item
-                              @click="$store.state.removeDialog.show = true; $store.state.removeDialog.uuid = item.uuid;"
+                              @click="
+                                removeDialogStore.show = true; 
+                                removeDialogStore.uuid = item.uuid;
+                              "
                               color="red darken-1"
                           >
                               <v-list-item-title>Remove</v-list-item-title>
@@ -133,15 +141,18 @@
                     <div class="text-center my-2">
                         <v-btn medium tile color="purple" class="mx-1 folder-button"
                             @click="
-                                $store.state.editFolderDialog.show = true; 
-                                $store.state.editFolderDialog.uuid = item.uuid;
-                                $store.state.editFolderDialog.data.name = item.name;
+                                editFolderDialogStore.show = true; 
+                                editFolderDialogStore.uuid = item.uuid;
+                                editFolderDialogStore.data.name = item.name;
                             "
                         >
                             <v-icon>mdi-pencil</v-icon>
                         </v-btn>
                         <v-btn medium tile color="red" class="mx-1 folder-button"
-                            @click="$store.state.removeFolderDialog.show = true; $store.state.removeFolderDialog.uuid = item.uuid;"
+                            @click="
+                                removeFolderDialogStore.show = true; 
+                                removeFolderDialogStore.uuid = item.uuid;
+                            "
                         >
                             <v-icon>mdi-minus</v-icon>
                         </v-btn>
@@ -219,12 +230,12 @@
                                             
                                             <v-list-item
                                                 @click="
-                                                    $store.state.editDialog.show = true; 
-                                                    $store.state.editDialog.uuid = item.uuid;
-                                                    $store.state.editDialog.data.type = item.type.toUpperCase();
-                                                    $store.state.editDialog.data.folder = null;
-                                                    $store.state.editDialog.data.name = item.name;
-                                                    $store.state.editDialog.data.url = item.url;
+                                                    editDialogStore.show = true; 
+                                                    editDialogStore.uuid = item.uuid;
+                                                    editDialogStore.data.type = item.type.toUpperCase();
+                                                    editDialogStore.data.folder = null;
+                                                    editDialogStore.data.name = item.name;
+                                                    editDialogStore.data.url = item.url;
                                                     getFolderList('edit');
                                                 "
                                             >
@@ -235,7 +246,12 @@
                                             </v-list-item>
                                             
                                             <v-list-item
-                                                @click="$store.state.shareDialog.show = true; $store.state.shareDialog.data.url = item.url; $store.state.shareDialog.data.uuid = item.uuid; sendAppMessage('web-to-script-request-nearby-users', '')"
+                                                @click="
+                                                    shareDialogStore.show = true; 
+                                                    shareDialogStore.data.url = item.url; 
+                                                    shareDialogStore.data.uuid = item.uuid; 
+                                                    sendAppMessage('web-to-script-request-nearby-users', '')
+                                                "
                                             >
                                                 <v-list-item-title>Share</v-list-item-title>
                                                 <v-list-item-action>
@@ -244,7 +260,10 @@
                                             </v-list-item>
                                             
                                             <v-list-item
-                                                @click="$store.state.removeDialog.show = true; $store.state.removeDialog.uuid = item.uuid;"
+                                                @click="
+                                                    removeDialogStore.show = true; 
+                                                    removeDialogStore.uuid = item.uuid;
+                                                "
                                                 color="red darken-1"
                                             >
                                                 <v-list-item-title>Remove</v-list-item-title>
@@ -291,6 +310,94 @@ export default {
         },
         settingsChanged() {
             return this.$store.state.settings;
+        },
+        addDialogStore: {
+            get() {
+                return this.$store.state.addDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'addDialog', 
+                    with: value
+                });
+            },
+        },
+        editDialogStore: {
+            get() {
+                return this.$store.state.editDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'editDialog', 
+                    with: value
+                });
+            },
+        },
+        editFolderDialogStore: {
+            get() {
+                return this.$store.state.editFolderDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'editFolderDialog', 
+                    with: value
+                });
+            },
+        },
+        createFolderDialogStore: {
+            get() {
+                return this.$store.state.createFolderDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'createFolderDialog', 
+                    with: value
+                });
+            },
+        },
+        receiveDialogStore: {
+            get() {
+                return this.$store.state.receiveDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'receiveDialog', 
+                    with: value
+                });
+            },
+        },
+        shareDialogStore: {
+            get() {
+                return this.$store.state.shareDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'shareDialog', 
+                    with: value
+                });
+            },
+        },
+        removeFolderDialogStore: {
+            get() {
+                return this.$store.state.removeFolderDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'removeFolderDialog', 
+                    with: value
+                });
+            },
+        },
+        removeDialogStore: {
+            get() {
+                return this.$store.state.removeDialog;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'removeDialog', 
+                    with: value
+                });
+            },
         }
     },
     watch: {
