@@ -6,7 +6,9 @@
 #  See the accompanying file LICENSE or http:#www.apache.org/licenses/LICENSE-2.0.html
 #
 
-set(TARGET_NAME hifiSdl2)
-setup_hifi_plugin(Qml)
-link_hifi_libraries(shared controllers ui plugins input-plugins script-engine)
-target_sdl2()
+if (NOT APPLE)
+    set(TARGET_NAME hifiSdl2)
+    setup_hifi_plugin(Qml)
+    link_hifi_libraries(shared controllers ui plugins input-plugins script-engine)
+    target_sdl2()
+endif()

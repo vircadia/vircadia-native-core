@@ -56,7 +56,7 @@ namespace MenuOption {
     const QString CalibrateCamera = "Calibrate Camera";
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
-    const QString ClearDiskCache = "Clear Disk Cache";
+    const QString ClearDiskCaches = "Clear Disk Caches (requires restart)";
     const QString Collisions = "Collisions";
     const QString Connexion = "Activate 3D Connexion Devices";
     const QString Console = "Console...";
@@ -118,7 +118,6 @@ namespace MenuOption {
     const QString FixGaze = "Fix Gaze (no saccade)";
     const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
-    const QString FullscreenMirror = "Mirror";
     const QString Help = "Help...";
     const QString HomeLocation = "Home ";
     const QString IncreaseAvatarSize = "Increase Avatar Size";

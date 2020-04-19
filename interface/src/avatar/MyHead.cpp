@@ -134,11 +134,11 @@ void MyHead::simulate(float deltaTime) {
             userInputMapper->getActionStateValid(controller::Action::MOUTHSMILE_L) ||
             userInputMapper->getActionStateValid(controller::Action::MOUTHSMILE_R);
 
-        bool eyesTracked =
-            userInputMapper->getPoseState(controller::Action::LEFT_EYE).valid &&
-            userInputMapper->getPoseState(controller::Action::RIGHT_EYE).valid;
-
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
+        bool eyesTracked =
+            myAvatar->getControllerPoseInSensorFrame(controller::Action::LEFT_EYE).valid &&
+            myAvatar->getControllerPoseInSensorFrame(controller::Action::RIGHT_EYE).valid;
+
         int leftEyeJointIndex = myAvatar->getJointIndex("LeftEye");
         int rightEyeJointIndex = myAvatar->getJointIndex("RightEye");
         bool eyeJointsOverridden = myAvatar->getIsJointOverridden(leftEyeJointIndex) || myAvatar->getIsJointOverridden(rightEyeJointIndex);

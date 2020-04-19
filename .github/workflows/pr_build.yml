@@ -1,0 +1,133 @@
+name: Pull Request CI Build
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+env:
+  APP_NAME: interface
+  BUILD_TYPE: Release
+  CI_BUILD: Github
+  GIT_COMMIT: ${{ github.sha }}
+  HIFI_VCPKG_BOOTSTRAP: true
+  RELEASE_TYPE: PR
+  RELEASE_NUMBER: ${{ github.event.number }}
+  VERSION_CODE: ${{ github.event.number }}
+
+
+  # OSX specific variables
+  DEVELOPER_DIR: /Applications/Xcode_11.2.app/Contents/Developer
+  MACOSX_DEPLOYMENT_TARGET: '10.11'
+
+  # WIN32 specific variables
+  PreferredToolArchitecture: X64
+  GIT_COMMIT_SHORT: ${{ github.sha }}
+
+
+jobs:
+  build:
+    strategy:
+        matrix:
+          os: [windows-latest, macOS-latest]
+          build_type: [full]
+        fail-fast: false
+    runs-on: ${{matrix.os}}
+    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
+    steps:
+    - name: Configure Build Environment 1
+      shell: bash
+      id: buildenv1
+      run: |
+        echo ::set-env name=GIT_COMMIT_SHORT::`echo $GIT_COMMIT | cut -c1-7`
+        # Linux build variables
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          echo ::set-env name=PYTHON_EXEC::python3
+          echo ::set-env name=INSTALLER_EXT::tgz
+        fi
+        # Mac build variables
+        if [ "${{ matrix.os }}" = "macOS-latest" ]; then
+          echo ::set-env name=PYTHON_EXEC::python3
+          echo ::set-env name=INSTALLER_EXT::dmg
+          echo ::set-env name=CMAKE_EXTRA::"-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode"
+        fi
+        # Windows build variables
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          echo ::set-env name=PYTHON_EXEC::python
+          echo ::set-env name=INSTALLER_EXT::exe
+          echo ::set-env name=CMAKE_EXTRA::"-A x64"
+        fi
+    # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
+    - name: Configure Build Environment 2
+      shell: bash
+      run: |
+        echo "${{ steps.buildenv1.outputs.symbols_archive }}"
+        echo ::set-env name=ARTIFACT_PATTERN::HighFidelity-Beta-*.$INSTALLER_EXT
+        # Build type variables
+        echo ::set-env name=INSTALLER::HighFidelity-Beta-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+    - name: Clear Working Directory
+      if: matrix.os[1] == 'windows'
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: rm -rf ./*
+    - uses: actions/checkout@v1
+      with: 
+        submodules: true
+        fetch-depth: 1
+    - name: Create Build Environment
+      shell: bash
+      run: cmake -E make_directory "${{runner.workspace}}/build"
+    - name: Configure CMake
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE $CMAKE_EXTRA
+    - name: Build Application
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+    - name: Build Domain Server
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE --target domain-server
+    - name: Build Assignment Client
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE --target assignment-client
+    - name: Build Console
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+    - name: Build Installer
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE --target package
+    - name: Output Installer Logs
+      if: failure() && matrix.os == 'windows-latest'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
+
+  build_full_linux:
+    runs-on: ubuntu-latest
+    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
+    steps:
+    - uses: actions/checkout@v1
+      with: 
+        submodules: true
+        fetch-depth: 1
+    - name: Update apt repository index
+      run: sudo apt update
+    - name: Install apt packages
+      run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+    - name: Install python modules
+      shell: bash
+      run: pip install boto3 distro PyGithub
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+    - name: Configure CMake
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_TOOLS:BOOLEAN=FALSE
+    - name:
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . -- -j3

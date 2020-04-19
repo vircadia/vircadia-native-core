@@ -419,7 +419,7 @@ void AssetScriptingInterface::compressData(QScriptValue options, QScriptValue sc
  *     <code>false</code> to upload and store the data without gzip compression. Synonym: <code>compressed</code>.
  * @property {string|ArrayBuffer} data - The content to upload.
  * @property {string} [path] - A user-friendly path for the file in the asset server. May have a leading 
- *     <code>"atp:"</code>. IF not specified, no path-to-hash mapping is set.
+ *     <code>"atp:"</code>. If not specified, no path-to-hash mapping is set.
  *     <p>Note: The asset server destroys any unmapped SHA256-named file at server restart. Either set the mapping path 
  *     with this property or use {@link Assets.setMapping} to set a path-to-hash mapping for the uploaded file.</p>
  */

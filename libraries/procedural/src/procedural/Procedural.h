@@ -27,7 +27,6 @@ using UniformLambdas = std::list<std::function<void(gpu::Batch& batch)>>;
 const size_t MAX_PROCEDURAL_TEXTURE_CHANNELS{ 4 };
 
 /**jsdoc
-
  * An object containing user-defined uniforms for communicating data to shaders.
  * @typedef {object} ProceduralUniforms
  */

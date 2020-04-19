@@ -22,7 +22,7 @@
 /**jsdoc
  * The <code>Desktop</code> API provides the dimensions of the computer screen, sets the opacity of the HUD surface, and 
  * enables QML and HTML windows to be shown inside or outside of Interface.
-  *
+ *
  * @namespace Desktop
  *
  * @hifi-interface
@@ -42,8 +42,8 @@
  * @property {InteractiveWindow.DockAreas} DockArea - The possible docking locations of an {@link InteractiveWindow}: top, 
  *     bottom, left, or right of the Interface window. 
  *     <em>Read-only.</em>
- * @property {InteractiveWindow.RelativePositionAnchors} RelativePositionAnchor - The possible "relative position anchors" for an {@link InteractiveWindow}: top left, 
- *     top right, bottom right, or bottom left of the Interface window. 
+ * @property {InteractiveWindow.RelativePositionAnchors} RelativePositionAnchor - The possible relative position anchors for an 
+ *     {@link InteractiveWindow}: none, top left, top right, bottom right, or bottom left of the Interface window. 
  *     <em>Read-only.</em>
  */
 class DesktopScriptingInterface : public QObject, public Dependency {
@@ -84,7 +84,7 @@ public:
      * @param {string} url - The QML file that specifies the window content. The QML file can use a <code>WebView</code> 
      *     control (defined by "WebView.qml" included in the Interface install) to embed an HTML web page (complete with  
      *     <code>EventBridge</code> object).
-     * @param {InteractiveWindow.Properties} [properties] - Initial window properties.
+     * @param {InteractiveWindow.WindowProperties} [properties] - Initial window properties.
      * @returns {InteractiveWindow} A new window object.
      * @example <caption>Open a dialog in its own window separate from Interface.</caption>
      * var nativeWindow = Desktop.createWindow(Script.resourcesPath() + 'qml/OverlayWindowTest.qml', {

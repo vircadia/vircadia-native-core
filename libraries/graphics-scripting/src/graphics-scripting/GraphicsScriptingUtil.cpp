@@ -37,6 +37,14 @@ QVariant toVariant(const Extents& box) {
     };
 }
 
+/**jsdoc
+ * The extents of a mesh.
+ * @typedef {object} Graphics.MeshExtents
+ * @property {Vec3} brn - The bottom right near (minimum axes values) corner of the enclosing box.
+ * @property {Vec3} tfl - The top far left (maximum axes values) corner of the enclosing box.
+ * @property {Vec3} center - The center of the enclosing box.
+ * @property {Vec3} dimensions - The dimensions of the enclosing box.
+ */
 QVariant toVariant(const AABox& box) {
     return QVariantMap{
         { "brn", glmVecToVariant(box.getCorner()) },
@@ -48,6 +56,16 @@ QVariant toVariant(const AABox& box) {
     };
 }
 
+/**jsdoc
+ * Details of a buffer element's format.
+ * @typedef {object} Graphics.BufferElementFormat
+ * @property {string} type - Type.
+ * @property {string} semantic - Semantic.
+ * @property {string} dimension - Dimension.
+ * @property {number} scalarCount - Scalar count.
+ * @property {number} byteSize - Byte size.
+ * @property {number} BYTES_PER_ELEMENT - Bytes per element.
+ */
 QVariant toVariant(const gpu::Element& element) {
     return QVariantMap{
         { "type", gpu::toString(element.getType()) },

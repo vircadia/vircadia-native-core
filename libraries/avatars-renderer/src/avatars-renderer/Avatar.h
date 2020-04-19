@@ -480,14 +480,7 @@ public:
     /**jsdoc
      * Gets information on all the joints in the avatar's skeleton.
      * @function MyAvatar.getSkeleton
-     * @returns {MyAvatar.SkeletonJoint[]} Information about each joint in the avatar's skeleton.
-     */
-    /**jsdoc
-     * Information about a single joint in an Avatar's skeleton hierarchy.
-     * @typedef {object} MyAvatar.SkeletonJoint
-     * @property {string} name - Joint name.
-     * @property {number} index - Joint index.
-     * @property {number} parentIndex - Index of this joint's parent (-1 if no parent).
+     * @returns {SkeletonJoint[]} Information about each joint in the avatar's skeleton.
      */
     Q_INVOKABLE QList<QVariant> getSkeleton();
 
@@ -662,6 +655,7 @@ protected:
     std::vector<std::shared_ptr<Model>> _attachmentsToDelete;
 
     float _bodyYawDelta { 0.0f };  // degrees/sec
+    float _seatedBodyYawDelta{ 0.0f };  // degrees/renderframe
 
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces
