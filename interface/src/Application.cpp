@@ -3167,7 +3167,7 @@ void Application::showLoginScreen() {
 #endif
 }
 
-static const QUrl AUTHORIZED_EXTERNAL_QML_SOURCE { "https://kasenvr.github.io/community-apps/applications" };
+static const QUrl AUTHORIZED_EXTERNAL_QML_SOURCE { "https://cdn.vircadia.com/community-apps/applications" };
 
 void Application::initializeUi() {
 
