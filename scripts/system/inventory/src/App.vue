@@ -75,7 +75,15 @@
 
         <v-content>
             <v-container fluid>
-                <itemiterator :items="items"></itemiterator>
+                <v-col
+                    cols="12"
+                    sm="6"
+                    md="4"
+                    lg="3"
+                    class="py-1 column-item"
+                >
+                    <itemiterator :itemsForIterator="items"></itemiterator>
+                </v-col>
             </v-container>
         </v-content>
 
@@ -659,18 +667,18 @@ export default {
                             {
                                 "hasChildren": false,
                                 "type": "script",
-                                "name": "TESTFOLDERSCRIPT",
+                                "name": "inception1",
                                 "url": "https://googfdafsgaergale.com/vr.js",
                                 "folder": "No Folder",
-                                "uuid": "54hgfhgf25fdfadf4354353",
+                                "uuid": "54hgfhgf25fdfadeqwqeqf4354353",
                             },
                             {
                                 "hasChildren": false,
                                 "type": "script",
-                                "name": "FOLDERSCRIPT2",
+                                "name": "inception432",
                                 "url": "https://googfdafsgaergale.com/vr.js",
                                 "folder": "No Folder",
-                                "uuid": "54hgfhgf25ffdafddfadf4354353",
+                                "uuid": "54hgfhgf25ffdafdWDQDQWWQdfadf4354353",
                             },
                         ],
                         "uuid": "54354363wgtrhtrhegs45ujs"
