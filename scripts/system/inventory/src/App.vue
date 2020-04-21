@@ -785,7 +785,7 @@ export default {
                 ],
             },
         },
-        appVersion: "1.2.1",
+        appVersion: "1.3",
         darkTheme: true,
         drawer: false,
         disabledProp: true,
@@ -920,9 +920,20 @@ export default {
 
             this.pushToItems(itemType, name, folder, url, null);
             
-            this.$store.state.addDialog.data.name = null;
-            this.$store.state.addDialog.data.folder = null;
-            this.$store.state.addDialog.data.url = null;
+            this.$store.commit('mutate', {
+                property: 'addDialog.data.name', 
+                with: null
+            });
+            
+            this.$store.commit('mutate', {
+                property: 'addDialog.data.folder', 
+                with: null
+            });
+            
+            this.$store.commit('mutate', {
+                property: 'addDialog.data.url', 
+                with: null
+            });
         },
         detectFileType: function(url) {    
             // Attempt the pure regex route...
@@ -959,10 +970,10 @@ export default {
         editItem: function(uuid) {    
             var findItem = this.searchForItem(uuid);
                         
-            findItem.returnedItem.type = this.checkItemType(this.editDialog.data.type);
-            findItem.returnedItem.name = this.editDialog.data.name;
-            findItem.returnedItem.folder = this.editDialog.data.folder;
-            findItem.returnedItem.url = this.editDialog.data.url;
+            findItem.returnedItem.type = this.checkItemType(this.$store.state.editDialog.data.type);
+            findItem.returnedItem.name = this.$store.state.editDialog.data.name;
+            findItem.returnedItem.folder = this.$store.state.editDialog.data.folder;
+            findItem.returnedItem.url = this.$store.state.editDialog.data.url;
             
             var folderName;
             
@@ -972,9 +983,9 @@ export default {
                 }
             }
             
-            if (this.editDialog.data.folder !== null) {
-                if (folderName !== this.editDialog.data.folder && this.editDialog.data.folder !== "No Folder") {
-                    this.moveItemToFolder(uuid, this.editDialog.data.folder);
+            if (this.$store.state.editDialog.data.folder !== null) {
+                if (folderName !== this.$store.state.editDialog.data.folder && this.$store.state.editDialog.data.folder !== "No Folder") {
+                    this.moveItemToFolder(uuid, this.$store.state.editDialog.data.folder);
                 } else if (folderName === "No Folder") {
                     this.moveItemToTop(uuid);
                 }
@@ -983,14 +994,33 @@ export default {
         },
         receivingItem: function(data) {
             if (this.$store.state.receiveDialog.show != true) { // Do not accept offers if the user is already receiving an offer.
-                this.$store.state.receiveDialog.data.user = data.data.user;
-                this.$store.state.receiveDialog.data.type = data.data.type;
-                this.$store.state.receiveDialog.data.name = data.data.name;
-                this.$store.state.receiveDialog.data.url = data.data.url;
+            
+                this.$store.commit('mutate', {
+                    property: 'receiveDialog.data.user', 
+                    with: data.data.user
+                });
+                
+                this.$store.commit('mutate', {
+                    property: 'receiveDialog.data.type', 
+                    with: data.data.type
+                });
+                
+                this.$store.commit('mutate', {
+                    property: 'receiveDialog.data.name', 
+                    with: data.data.name
+                });
+                
+                this.$store.commit('mutate', {
+                    property: 'receiveDialog.data.url', 
+                    with: data.data.url
+                });
                 
                 this.getFolderList("add");
-                
-                this.$store.state.receiveDialog.show = true;
+                                
+                this.$store.commit('mutate', {
+                    property: 'receiveDialog.show', 
+                    with: true
+                });
             }
         },
         shareItem: function(uuid) {        
@@ -1195,30 +1225,6 @@ export default {
                 this.settings = receivedSettings;
             }
         },
-        getIcon: function(itemType) {
-            itemType = itemType.toUpperCase();
-            var returnedItemIcon;
-            
-            if (this.$store.state.iconType[itemType]) {
-                returnedItemIcon = this.$store.state.iconType[itemType].icon;
-            } else {
-                returnedItemIcon = this.$store.state.iconType.UNKNOWN.icon;
-            }
-            
-            return returnedItemIcon;
-        },
-        getIconColor: function(itemType) {
-            itemType = itemType.toUpperCase();
-            var returnedItemIconColor;
-            
-            if (this.$store.state.iconType[itemType]) {
-                returnedItemIconColor = this.$store.state.iconType[itemType].color;
-            } else {
-                returnedItemIconColor = this.$store.state.iconType.UNKNOWN.color;
-            }
-            
-            return returnedItemIconColor;
-        },
         receiveNearbyUsers: function(receivedUsers) {
             if (!receivedUsers) {
                 this.nearbyUsers = [];
@@ -1262,6 +1268,8 @@ export default {
                     property: 'editDialog', 
                     with: value
                 });
+                
+                this.getFolderList('edit');
             },
         },
         editFolderDialogStore: {
@@ -1306,6 +1314,8 @@ export default {
                     property: 'shareDialog', 
                     with: value
                 });
+                
+                this.sendAppMessage('web-to-script-request-nearby-users', '')
             },
         },
         removeFolderDialogStore: {

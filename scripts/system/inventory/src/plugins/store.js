@@ -125,7 +125,7 @@ export const store = new Vuex.Store({
         },
     },
     mutations: {
-        mutate(state, payload) {
+        mutate (state, payload) {
             state[payload.property] = payload.with;
             console.info("Payload:", payload.property, "with:", payload.with, "state is now:", this.state);
         }

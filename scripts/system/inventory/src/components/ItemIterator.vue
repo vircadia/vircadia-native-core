@@ -75,7 +75,6 @@
                               editDialogStore.data.folder = null;
                               editDialogStore.data.name = item.name;
                               editDialogStore.data.url = item.url;
-                              getFolderList('edit');
                           "
                       >
                           <v-list-item-title>Edit</v-list-item-title>
@@ -88,7 +87,6 @@
                             shareDialogStore.show = true; 
                             shareDialogStore.data.url = item.url; 
                             shareDialogStore.data.uuid = item.uuid; 
-                            sendAppMessage('web-to-script-request-nearby-users', '')
                           "
                       >
                           <v-list-item-title>Share</v-list-item-title>
