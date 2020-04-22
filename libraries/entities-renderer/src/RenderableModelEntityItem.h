@@ -198,6 +198,7 @@ private:
     bool _prevModelLoaded { false };
 
     void processMaterials();
+    bool _allProceduralMaterialsLoaded { false };
 };
 
 } } // namespace 
