@@ -82,7 +82,7 @@ namespace buffer_helpers {
     template <typename T> gpu::BufferView newFromVector(const QVector<T>& elements, const gpu::Element& elementType);
     template <typename T> gpu::BufferView newFromVariantList(const QVariantList& list, const gpu::Element& elementType);
 
-    template <typename T> QVector<T> variantToVector(const QVariant& list);
+    template <typename T> QVector<T> variantToVector(const QVariant& value);
     template <typename T> QVector<T> bufferToVector(const gpu::BufferView& view, const char *hint = "");
 
     // note: these do value conversions from the underlying buffer type into the template type
