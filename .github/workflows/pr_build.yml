@@ -9,7 +9,8 @@ env:
   BUILD_TYPE: Release
   CI_BUILD: Github
   GIT_COMMIT: ${{ github.sha }}
-  HIFI_VCPKG_BOOTSTRAP: true
+  # VCPKG did not build well on OSX disabling HIFI_VCPKG_BOOTSTRAP, which invokes a download to a working version of vcpkg
+  # HIFI_VCPKG_BOOTSTRAP: true
   RELEASE_TYPE: PR
   RELEASE_NUMBER: ${{ github.event.number }}
   VERSION_CODE: ${{ github.event.number }}
@@ -115,7 +116,7 @@ jobs:
       run: python "$GITHUB_WORKSPACE\tools\ci-scripts\upload_to_publish_server.py"
 
   build_full_linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-16.04
     env:
       JOB_NAME: build_full_linux
     if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
