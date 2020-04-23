@@ -20,20 +20,62 @@
 
 static const QString RESTRICTED_FLAG_PROPERTY = "RestrictFileAccess";
 
-ContextAwareProfile::ContextAwareProfile(QQmlContext* context) :
-    ContextAwareProfileParent(context), _context(context) { 
-    assert(context);
+QMutex RestrictedContextMonitor::gl_monitorMapProtect;
+RestrictedContextMonitor::TMonitorMap RestrictedContextMonitor::gl_monitorMap;
+
+RestrictedContextMonitor::~RestrictedContextMonitor() {
+    gl_monitorMapProtect.lock();
+    TMonitorMap::iterator lookup = gl_monitorMap.find(context);
+    if (lookup != gl_monitorMap.end()) {
+        gl_monitorMap.erase(lookup);
+    }
+    gl_monitorMapProtect.unlock();
 }
 
+RestrictedContextMonitor::TSharedPtr RestrictedContextMonitor::getMonitor(QQmlContext* context, bool createIfMissing) {
+    TSharedPtr monitor;
+
+    gl_monitorMapProtect.lock();
+    TMonitorMap::const_iterator lookup = gl_monitorMap.find(context);
+    if (lookup != gl_monitorMap.end()) {
+        monitor = lookup->second.lock();
+        assert(monitor);
+    } else if(createIfMissing) {
+        monitor = std::make_shared<RestrictedContextMonitor>(context);
+        monitor->selfPtr = monitor;
+        gl_monitorMap.insert(TMonitorMap::value_type(context, monitor));
+    }
+    gl_monitorMapProtect.unlock();
+    return monitor;
+}
+
+ContextAwareProfile::ContextAwareProfile(QQmlContext* context) : ContextAwareProfileParent(context), _context(context) {
+    assert(context);
+
+    _monitor = RestrictedContextMonitor::getMonitor(context, true);
+    assert(_monitor);
+    connect(_monitor.get(), &RestrictedContextMonitor::onIsRestrictedChanged, this, &ContextAwareProfile::onIsRestrictedChanged);
+    if (_monitor->isUninitialized) {
+        _monitor->isRestricted = isRestrictedGetProperty();
+        _monitor->isUninitialized = false;
+    }
+    _isRestricted.store(_monitor->isRestricted ? 1 : 0);
+}
 
 void ContextAwareProfile::restrictContext(QQmlContext* context, bool restrict) {
+    RestrictedContextMonitor::TSharedPtr monitor = RestrictedContextMonitor::getMonitor(context, false);
+
     context->setContextProperty(RESTRICTED_FLAG_PROPERTY, restrict);
+    if (monitor && monitor->isRestricted != restrict) {
+        monitor->isRestricted = restrict;
+        monitor->onIsRestrictedChanged(restrict);
+    }
 }
 
-bool ContextAwareProfile::isRestrictedInternal() {
+bool ContextAwareProfile::isRestrictedGetProperty() {
     if (QThread::currentThread() != thread()) {
         bool restrictedResult = false;
-        BLOCKING_INVOKE_METHOD(this, "isRestrictedInternal", Q_RETURN_ARG(bool, restrictedResult));
+        BLOCKING_INVOKE_METHOD(this, "isRestrictedGetProperty", Q_RETURN_ARG(bool, restrictedResult));
         return restrictedResult;
     }
 
@@ -47,11 +89,10 @@ bool ContextAwareProfile::isRestrictedInternal() {
     return true;
 }
 
+void ContextAwareProfile::onIsRestrictedChanged(bool newValue) {
+    _isRestricted.store(newValue ? 1 : 0);
+}
+
 bool ContextAwareProfile::isRestricted() {
-    auto now = usecTimestampNow();
-    if (now > _cacheExpiry) {
-        _cachedValue = isRestrictedInternal();
-        _cacheExpiry = now + MAX_CACHE_AGE;
-    }
-    return _cachedValue;
+    return _isRestricted.load() != 0;
 }

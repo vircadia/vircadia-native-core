@@ -12,6 +12,7 @@
 #define hifi_ContextAwareProfile_h
 
 #include <QtCore/QtGlobal>
+#include <QtCore/QMutex>
 
 #if !defined(Q_OS_ANDROID)
 #include <QtWebEngine/QQuickWebEngineProfile>
@@ -30,12 +31,39 @@ using RequestInterceptorParent = QObject;
 
 class QQmlContext;
 
+class RestrictedContextMonitor : public QObject {
+    Q_OBJECT
+public:
+    typedef std::shared_ptr<RestrictedContextMonitor> TSharedPtr;
+    typedef std::weak_ptr<RestrictedContextMonitor> TWeakPtr;
+
+    inline RestrictedContextMonitor(QQmlContext* c) : context(c) {}
+    ~RestrictedContextMonitor();
+
+    static TSharedPtr getMonitor(QQmlContext* context, bool createIfMissing);
+
+signals:
+    void onIsRestrictedChanged(bool newValue);
+
+public:
+    TWeakPtr selfPtr;
+    QQmlContext* context{ nullptr };
+    bool isRestricted{ true };
+    bool isUninitialized{ true };
+
+private:
+    typedef std::map<QQmlContext*, TWeakPtr> TMonitorMap;
+
+    static QMutex gl_monitorMapProtect;
+    static TMonitorMap gl_monitorMap;
+};
+
 class ContextAwareProfile : public ContextAwareProfileParent {
     Q_OBJECT
 public:
     static void restrictContext(QQmlContext* context, bool restrict = true);
     bool isRestricted();
-    Q_INVOKABLE bool isRestrictedInternal();
+    Q_INVOKABLE bool isRestrictedGetProperty();
 protected:
 
     class RequestInterceptor : public RequestInterceptorParent {
@@ -48,9 +76,13 @@ protected:
 
     ContextAwareProfile(QQmlContext* parent);
     QQmlContext* _context{ nullptr };
-    bool _cachedValue{ false };
-    quint64 _cacheExpiry{ 0 };
-    constexpr static quint64 MAX_CACHE_AGE = MSECS_PER_SECOND;
+    QAtomicInt _isRestricted{ 0 };
+
+private slots:
+    void onIsRestrictedChanged(bool newValue);
+
+private:
+    RestrictedContextMonitor::TSharedPtr _monitor;
 };
 
 #endif // hifi_FileTypeProfile_h
