@@ -51,6 +51,7 @@ jobs:
           echo ::set-env name=PYTHON_EXEC::python3
           echo ::set-env name=INSTALLER_EXT::tgz
           echo ::set-env name=CMAKE_BUILD_EXTRA::"-- -j3"
+          echo ::set-env name=CMAKE_EXTRA::"-DBUILD_TOOLS:BOOLEAN=FALSE"
         fi
         # Mac build variables
         if [ "${{ matrix.os }}" = "macOS-latest" ]; then
