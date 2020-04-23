@@ -131,4 +131,4 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
-      run: python "$GITHUB_WORKSPACE/tools/ci-scripts/upload_to_publish_server.py"
+      run: $PYTHON_EXEC "$GITHUB_WORKSPACE/tools/ci-scripts/upload_to_publish_server.py"
