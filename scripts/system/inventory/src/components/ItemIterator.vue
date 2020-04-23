@@ -148,7 +148,7 @@
                         <v-icon>mdi-minus</v-icon>
                     </v-btn>
                     <v-btn medium tile color="blue" class="mx-1 folder-button"
-                        @click="sortFolder(item.uuid);"
+                        @click="triggerSortFolder(item.uuid);"
                     >
                         <v-icon>mdi-ab-testing</v-icon>
                     </v-btn>
@@ -312,7 +312,13 @@ export default {
             }
             
             return returnedItemIconColor;
-        }
+        },
+        triggerSortFolder: function(uuid) {
+            this.$store.commit('mutate', {
+                property: 'triggerSortFolder', 
+                with: uuid
+            });
+        },
     }
 };
 </script>

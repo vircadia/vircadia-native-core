@@ -139,7 +139,7 @@
                   <v-btn
                       color="blue"
                       class="px-3"
-                      @click="removeFolderDialog.show = false"
+                      @click="removeFolderDialogStore.show = false"
                   >
                       No
                   </v-btn>
@@ -149,7 +149,7 @@
                   <v-btn
                       color="red"
                       class="px-3"                    
-                      @click="removeFolderDialog.show = false; removeFolder($store.state.removeFolderDialog.uuid);"
+                      @click="removeFolderDialogStore.show = false; removeFolder($store.state.removeFolderDialog.uuid);"
                   >
                       Yes
                   </v-btn>
@@ -553,7 +553,7 @@
                       <v-btn
                           color="red"
                           class="px-3"
-                          @click="shareDialogStore.shareDialog.show = false"
+                          @click="shareDialogStore.show = false"
                       >
                           Cancel
                       </v-btn>
@@ -564,7 +564,7 @@
                           color="blue"
                           class="px-3"
                           :disabled="!$store.state.shareDialog.valid"
-                          @click="shareDialogStore.shareDialog.show = false; shareItem($store.state.shareDialog.data.uuid);"
+                          @click="shareDialogStore.show = false; shareItem($store.state.shareDialog.data.uuid);"
                       >
                           Send
                       </v-btn>
@@ -760,6 +760,7 @@ export default {
             },
         ],
         folderList: [],
+        recursiveFolderHoldingList: [],
         nearbyUsers: [
             {
                 name: "Who",
@@ -1080,25 +1081,6 @@ export default {
                 });
             }
         },
-        sortFolder: function(uuid) {
-            for (var i = 0; i < this.items.length; i++) {
-                if (this.items[i].uuid == uuid) {
-                    this.items[i].items.sort(function(a, b) {
-                        var nameA = a.name.toUpperCase(); // ignore upper and lowercase
-                        var nameB = b.name.toUpperCase(); // ignore upper and lowercase
-                        if (nameA < nameB) {
-                            return -1;
-                        }
-                        if (nameA > nameB) {
-                            return 1;
-                        }
-
-                        // names must be equal
-                        return 0;
-                    });
-                }
-            }
-        },
         getFolderList: function(request) {
             if (request == "edit") {
                 this.folderList = [
@@ -1119,16 +1101,11 @@ export default {
                     },
                 ];
             }
-                        
-            for (var i = 0; i < this.items.length; i++) {
-                if (Object.prototype.hasOwnProperty.call(this.items[i], "hasChildren")) {
-                    if (this.items[i].hasChildren === true) {
-                        this.folderList.push({
-                            "name": this.items[i].name,
-                            "uuid": this.items[i].uuid,
-                        });
-                    }
-                }
+            
+            var generateList = this.recursiveFolderPopulate();
+            
+            if (generateList) {
+                this.folderList.push(generateList);
             }
         },
         moveItemToFolder: function(uuid, folderUUID) {
@@ -1179,30 +1156,65 @@ export default {
                 uuid
             );
         },
-        searchForItem: function(uuid) {
-            var itemToReturn = {
-                "returnedItem": null,
-                "iteration": null,
-                "parentArray": null,
-                "itemUUID": uuid,
-            }
-            
+        sortFolder: function(uuid) {
             for (var i = 0; i < this.items.length; i++) {
                 if (this.items[i].uuid == uuid) {
-                    itemToReturn.returnedItem = this.items[i];
-                    itemToReturn.iteration = i;
-                    itemToReturn.parentArray = this.items;
-                    return itemToReturn;
-                } else if (Object.prototype.hasOwnProperty.call(this.items[i], "items")) {
-                    for (var di = 0; di < this.items[i].items.length; di++) { // DI means deep iteration
-                        if (this.items[i].items[di].uuid == uuid) { 
-                            itemToReturn.returnedItem = this.items[i].items[di];   
-                            itemToReturn.iteration = di;
-                            itemToReturn.parentArray = this.items[i].items;
-                            return itemToReturn;    
+                    this.items[i].items.sort(function(a, b) {
+                        var nameA = a.name.toUpperCase(); // ignore upper and lowercase
+                        var nameB = b.name.toUpperCase(); // ignore upper and lowercase
+                        if (nameA < nameB) {
+                            return -1;
                         }
-                    }
+                        if (nameA > nameB) {
+                            return 1;
+                        }
+
+                        // names must be equal
+                        return 0;
+                    });
                 }
+            }
+        },
+        searchForItem: function(uuid) {
+            var foundItem = this.recursiveSingularSearch(uuid, this.items);
+            
+            if (foundItem) {
+                return {
+                    "returnedItem": foundItem.returnedItem,
+                    "iteration": foundItem.iteration,
+                    "parentArray": foundItem.parentArray,
+                    "itemUUID": uuid,
+                }
+            }
+        },
+        recursiveSingularSearch: function(uuid, indexToSearch) {
+            for (var i = 0; i < indexToSearch.length; i++) {
+                if (indexToSearch[i].uuid == uuid) {
+                    var foundItem = {
+                        "returnedItem": indexToSearch[i],
+                        "iteration": i,
+                        "parentArray": indexToSearch,
+                    }
+                    return foundItem;
+                } else if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items") && indexToSearch[i].length > 0) {
+                    this.recursiveSingularSearch(uuid, indexToSearch[i]);
+                }
+            }
+        },
+        recursiveFolderPopulate: function(indexToSearch, firstIteration) {
+            for (var i = 0; i < indexToSearch.length; i++) {
+                if (Object.prototype.hasOwnProperty.call(this.items[i], "hasChildren")) {
+                    this.recursiveFolderHoldingList.push({
+                        "name": indexToSearch[i].name,
+                        "uuid": indexToSearch[i].uuid,
+                    });
+                    
+                    this.recursiveFolderPopulate(indexToSearch[i], false);
+                }
+            }
+            
+            if (firstIteration === true) {
+                return this.recursiveFolderHoldingList;
             }
         },
         sendInventory: function() {
@@ -1268,9 +1280,10 @@ export default {
                     property: 'editDialog', 
                     with: value
                 });
-                
-                this.getFolderList('edit');
             },
+        },
+        editDialogShow: function() {
+            return this.$store.state.editDialog.show;
         },
         editFolderDialogStore: {
             get() {
@@ -1339,7 +1352,10 @@ export default {
                     with: value
                 });
             },
-        }
+        },
+        triggerSortFolder: function () {
+            return this.$store.state.triggerSortFolder;
+        },
     },
     watch: {
         // Whenever the item list changes, this will notice and then send it to the script to be saved.
@@ -1359,6 +1375,18 @@ export default {
                 this.sendSettings();
             }
         },
+        editDialogShow: {
+            handler: function(newVal) {
+                if (newVal === true) {
+                    this.getFolderList('edit');
+                }
+            }
+        },
+        triggerSortFolder: {
+            handler: function(newVal) {
+                this.sortFolder(newVal);
+            }
+        }
     },
 };
 
