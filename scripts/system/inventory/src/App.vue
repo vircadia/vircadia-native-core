@@ -25,7 +25,7 @@
             
             <v-spacer></v-spacer>
             
-            <v-btn medium color="primary" fab @click="sortInventory('top')">
+            <v-btn medium color="primary" fab @click="sortTopInventory('top')">
                 <v-icon>
                     mdi-ab-testing
                 </v-icon>
@@ -968,17 +968,11 @@ export default {
             findItem.parentArray.splice(findItem.iteration, 1);
         },
         removeFolder: function(uuid) {
-            for (var i = 0; i < this.items.length; i++) {
-                if (this.items[i].uuid == uuid) {
-                    this.items.splice(i, 1);
-                    
-                    return;
-                }
-            }
+            var findFolder = this.searchForItem(uuid);
+            findFolder.parentArray.splice(findFolder.iteration, 1);
         },
         editItem: function(uuid) {    
             var findItem = this.searchForItem(uuid);
-                        
             findItem.returnedItem.type = this.checkItemType(this.$store.state.editDialog.data.type);
             findItem.returnedItem.name = this.$store.state.editDialog.data.name;
             findItem.returnedItem.folder = this.$store.state.editDialog.data.folder;
@@ -1072,7 +1066,7 @@ export default {
         onDragChange: function(ev) {
             console.info("Drag Update.", ev);
         },
-        sortInventory: function(level) {
+        sortTopInventory: function(level) {
             if (level == "top") {
                 this.items.sort(function(a, b) {
                     var nameA = a.name.toUpperCase(); // ignore upper and lowercase
@@ -1129,6 +1123,7 @@ export default {
             };
             
             var findItem = this.searchForItem(uuid);
+            
             itemToPush.type = findItem.returnedItem.type;
             itemToPush.name = findItem.returnedItem.name;
             itemToPush.url = findItem.returnedItem.url;
@@ -1144,10 +1139,10 @@ export default {
             this.removeItem(uuid);
 
             // Find that folder in our main items array.
-            for (var folder = 0; folder < this.items.length; folder++) { 
-                if (this.items[folder].uuid === folderUUID && this.items[folder].hasChildren === true) {
-                    this.items[folder].items.push(itemToPush);
-                }
+            var findFolder = this.searchForItem(folderUUID);
+            
+            if (findFolder) {
+                findFolder.returnedItem.items.push(itemToPush);
             }
             
         },
@@ -1164,25 +1159,6 @@ export default {
                 findItem.returnedItem.url, 
                 uuid
             );
-        },
-        sortFolder: function(uuid) {
-            var findFolder = this.searchForItem(uuid);
-            
-            if (findFolder) {
-                findFolder.returnedItem.items.sort(function(a, b) {
-                    var nameA = a.name.toUpperCase(); // ignore upper and lowercase
-                    var nameB = b.name.toUpperCase(); // ignore upper and lowercase
-                    if (nameA < nameB) {
-                        return -1;
-                    }
-                    if (nameA > nameB) {
-                        return 1;
-                    }
-    
-                    // names must be equal
-                    return 0;
-                });
-            }
         },
         searchForItem: function(uuid) {
             var foundItem = this.recursiveSingularSearch(uuid, this.items);
@@ -1206,9 +1182,14 @@ export default {
                     }
                     return foundItem;
                 } else if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items") && indexToSearch[i].items.length > 0) {
-                    this.recursiveSingularSearch(uuid, indexToSearch[i].items);
+                    var deepSearch = this.recursiveSingularSearch(uuid, indexToSearch[i].items);
+                    if (deepSearch !== null) {
+                        return deepSearch;
+                    }
                 }
             }
+            
+            return null;
         },
         recursiveFolderPopulate: function(indexToSearch, firstIteration) {
             for (var i = 0; i < indexToSearch.length; i++) {

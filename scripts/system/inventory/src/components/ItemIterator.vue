@@ -353,11 +353,11 @@ export default {
                         "parentArray": indexToSearch,
                     }
                     return foundItem;
-                } else if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items") && indexToSearch[i].length > 0) {
-                    this.recursiveSingularSearch(uuid, indexToSearch[i]);
+                } else if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items") && indexToSearch[i].items.length > 0) {
+                    return this.recursiveSingularSearch(uuid, indexToSearch[i].items);
                 }
             }
-        }
+        },
     }
 };
 </script>
