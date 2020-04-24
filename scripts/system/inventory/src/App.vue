@@ -1104,6 +1104,9 @@ export default {
             }
         },
         getFolderList: function(request) {
+            var generateList;
+            this.recursiveFolderHoldingList = []; // Clear that list before we do anything.
+            
             if (request == "edit") {
                 this.folderList = [
                     {
@@ -1115,6 +1118,9 @@ export default {
                         "uuid": "No Folder"
                     },
                 ];
+                
+                generateList = this.recursiveFolderPopulate(this.items, true, null);
+                
             } else if (request == "add") {
                 this.folderList = [
                     {
@@ -1122,9 +1128,23 @@ export default {
                         "uuid": "No Folder"
                     },
                 ];
+                
+                generateList = this.recursiveFolderPopulate(this.items, true, null);
+                
+            } else if (request == "editFolder") {
+                this.folderList = [
+                    {
+                        "name": "No Change",
+                        "uuid": "No Change"
+                    },
+                    {
+                        "name": "No Folder", 
+                        "uuid": "No Folder"
+                    },
+                ];
+                
+                generateList = this.recursiveFolderPopulate(this.items, true, this.$store.state.editFolderDialog.data.uuid);
             }
-            
-            var generateList = this.recursiveFolderPopulate(this.items, true);
             
             if (generateList) {
                 var combinedArray = this.folderList.concat(generateList);
@@ -1236,15 +1256,19 @@ export default {
             
             return null;
         },
-        recursiveFolderPopulate: function(indexToSearch, firstIteration) {
+        recursiveFolderPopulate: function(indexToSearch, firstIteration, avoidFolder) {
+            console.info(JSON.stringify(this.folderList));
             for (var i = 0; i < indexToSearch.length; i++) {
                 if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items") && indexToSearch[i].items.length > 0) {
-                    this.recursiveFolderHoldingList.push({
-                        "name": indexToSearch[i].name,
-                        "uuid": indexToSearch[i].uuid,
-                    });
-                    
-                    this.recursiveFolderPopulate(indexToSearch[i].items, false);
+                    // We want to avoid adding the folder itself and also any child folders it may have, putting a folder within its child folder will nuke it.
+                    if (avoidFolder !== indexToSearch[i].uuid) {
+                        this.recursiveFolderHoldingList.push({
+                            "name": indexToSearch[i].name,
+                            "uuid": indexToSearch[i].uuid,
+                        });
+                        
+                        this.recursiveFolderPopulate(indexToSearch[i].items, false, avoidFolder);
+                    }
                 }
             }
             
@@ -1421,7 +1445,7 @@ export default {
         editFolderDialogShow: {
             handler: function(newVal) {
                 if (newVal === true) {
-                    this.getFolderList('edit');
+                    this.getFolderList('editFolder');
                 }
             }
         }

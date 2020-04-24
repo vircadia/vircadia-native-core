@@ -132,9 +132,9 @@
                 <div class="text-center my-2">
                     <v-btn medium tile color="purple" class="mx-1 folder-button"
                         @click="
-                            editFolderDialogStore.show = true; 
                             editFolderDialogStore.data.uuid = item.uuid;
                             editFolderDialogStore.data.name = item.name;
+                            editFolderDialogStore.show = true; 
                         "
                     >
                         <v-icon>mdi-pencil</v-icon>
