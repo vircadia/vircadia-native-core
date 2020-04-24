@@ -148,7 +148,7 @@
                         <v-icon>mdi-minus</v-icon>
                     </v-btn>
                     <v-btn medium tile color="blue" class="mx-1 folder-button"
-                        @click="triggerSortFolder(item.uuid);"
+                        @click="sortFolder(item.uuid);"
                     >
                         <v-icon>mdi-ab-testing</v-icon>
                     </v-btn>
@@ -313,12 +313,51 @@ export default {
             
             return returnedItemIconColor;
         },
-        triggerSortFolder: function(uuid) {
-            this.$store.commit('mutate', {
-                property: 'triggerSortFolder', 
-                with: uuid
-            });
+        sortFolder: function(uuid) {
+            var findFolder = this.searchForItem(uuid);
+            
+            if (findFolder) {
+                findFolder.returnedItem.items.sort(function(a, b) {
+                    var nameA = a.name.toUpperCase(); // ignore upper and lowercase
+                    var nameB = b.name.toUpperCase(); // ignore upper and lowercase
+                    if (nameA < nameB) {
+                        return -1;
+                    }
+                    if (nameA > nameB) {
+                        return 1;
+                    }
+    
+                    // names must be equal
+                    return 0;
+                });
+            }
         },
+        searchForItem: function(uuid) {
+            var foundItem = this.recursiveSingularSearch(uuid, this.itemsForIterator);
+            
+            if (foundItem) {
+                return {
+                    "returnedItem": foundItem.returnedItem,
+                    "iteration": foundItem.iteration,
+                    "parentArray": foundItem.parentArray,
+                    "itemUUID": uuid,
+                }
+            }
+        },
+        recursiveSingularSearch: function(uuid, indexToSearch) {
+            for (var i = 0; i < indexToSearch.length; i++) {
+                if (indexToSearch[i].uuid == uuid) {
+                    var foundItem = {
+                        "returnedItem": indexToSearch[i],
+                        "iteration": i,
+                        "parentArray": indexToSearch,
+                    }
+                    return foundItem;
+                } else if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items") && indexToSearch[i].length > 0) {
+                    this.recursiveSingularSearch(uuid, indexToSearch[i]);
+                }
+            }
+        }
     }
 };
 </script>

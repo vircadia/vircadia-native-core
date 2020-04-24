@@ -675,6 +675,14 @@ export default {
                             {
                                 "hasChildren": false,
                                 "type": "script",
+                                "name": "123what",
+                                "url": "https://googfdafsgaergale.com/vr.js",
+                                "folder": "No Folder",
+                                "uuid": "54hgfhgf25ffdafdWDQDdsadasQWWQdfadf4354353",
+                            },
+                            {
+                                "hasChildren": false,
+                                "type": "script",
                                 "name": "inception432",
                                 "url": "https://googfdafsgaergale.com/vr.js",
                                 "folder": "No Folder",
@@ -1102,10 +1110,11 @@ export default {
                 ];
             }
             
-            var generateList = this.recursiveFolderPopulate();
+            var generateList = this.recursiveFolderPopulate(this.items, true);
             
             if (generateList) {
-                this.folderList.push(generateList);
+                var combinedArray = this.folderList.concat(generateList);
+                this.folderList = combinedArray;
             }
         },
         moveItemToFolder: function(uuid, folderUUID) {
@@ -1157,22 +1166,22 @@ export default {
             );
         },
         sortFolder: function(uuid) {
-            for (var i = 0; i < this.items.length; i++) {
-                if (this.items[i].uuid == uuid) {
-                    this.items[i].items.sort(function(a, b) {
-                        var nameA = a.name.toUpperCase(); // ignore upper and lowercase
-                        var nameB = b.name.toUpperCase(); // ignore upper and lowercase
-                        if (nameA < nameB) {
-                            return -1;
-                        }
-                        if (nameA > nameB) {
-                            return 1;
-                        }
-
-                        // names must be equal
-                        return 0;
-                    });
-                }
+            var findFolder = this.searchForItem(uuid);
+            
+            if (findFolder) {
+                findFolder.returnedItem.items.sort(function(a, b) {
+                    var nameA = a.name.toUpperCase(); // ignore upper and lowercase
+                    var nameB = b.name.toUpperCase(); // ignore upper and lowercase
+                    if (nameA < nameB) {
+                        return -1;
+                    }
+                    if (nameA > nameB) {
+                        return 1;
+                    }
+    
+                    // names must be equal
+                    return 0;
+                });
             }
         },
         searchForItem: function(uuid) {
@@ -1196,20 +1205,20 @@ export default {
                         "parentArray": indexToSearch,
                     }
                     return foundItem;
-                } else if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items") && indexToSearch[i].length > 0) {
-                    this.recursiveSingularSearch(uuid, indexToSearch[i]);
+                } else if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items") && indexToSearch[i].items.length > 0) {
+                    this.recursiveSingularSearch(uuid, indexToSearch[i].items);
                 }
             }
         },
         recursiveFolderPopulate: function(indexToSearch, firstIteration) {
             for (var i = 0; i < indexToSearch.length; i++) {
-                if (Object.prototype.hasOwnProperty.call(this.items[i], "hasChildren")) {
+                if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items") && indexToSearch[i].items.length > 0) {
                     this.recursiveFolderHoldingList.push({
                         "name": indexToSearch[i].name,
                         "uuid": indexToSearch[i].uuid,
                     });
                     
-                    this.recursiveFolderPopulate(indexToSearch[i], false);
+                    this.recursiveFolderPopulate(indexToSearch[i].items, false);
                 }
             }
             
@@ -1352,10 +1361,7 @@ export default {
                     with: value
                 });
             },
-        },
-        triggerSortFolder: function () {
-            return this.$store.state.triggerSortFolder;
-        },
+        }
     },
     watch: {
         // Whenever the item list changes, this will notice and then send it to the script to be saved.
@@ -1364,7 +1370,8 @@ export default {
             handler() {
                 this.sendInventory();
             }
-        }, // Whenever the settings change, we want to save that state.
+        }, 
+        // Whenever the settings change, we want to save that state.
         settings: {
             deep: true,
             handler: function(newVal) {
@@ -1381,13 +1388,8 @@ export default {
                     this.getFolderList('edit');
                 }
             }
-        },
-        triggerSortFolder: {
-            handler: function(newVal) {
-                this.sortFolder(newVal);
-            }
         }
-    },
+    }
 };
 
 </script>

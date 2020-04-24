@@ -123,7 +123,6 @@ export const store = new Vuex.Store({
                 "recipient": null,
             }
         },
-        triggerSortFolder: null,
     },
     mutations: {
         mutate (state, payload) {
