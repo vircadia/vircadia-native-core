@@ -101,6 +101,7 @@ export const store = new Vuex.Store({
             uuid: null, //
             data: {
                 "name": null,
+                "folder": null,
             },
         },
         receiveDialog: {

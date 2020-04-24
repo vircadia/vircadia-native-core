@@ -133,7 +133,7 @@
                     <v-btn medium tile color="purple" class="mx-1 folder-button"
                         @click="
                             editFolderDialogStore.show = true; 
-                            editFolderDialogStore.uuid = item.uuid;
+                            editFolderDialogStore.data.uuid = item.uuid;
                             editFolderDialogStore.data.name = item.name;
                         "
                     >

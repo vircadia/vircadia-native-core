@@ -255,6 +255,16 @@
                       :rules="[v => !!v || 'Name is required.']"
                       required
                   ></v-text-field>
+                  
+                  <v-select
+                      :items="folderList"
+                      item-text="name"
+                      item-value="uuid"
+                      class="my-2"
+                      v-model="editFolderDialogStore.data.folder"
+                      label="Folder"
+                      outlined
+                  ></v-select>
 
                   <v-card-actions>
 
@@ -272,7 +282,7 @@
                           color="blue"
                           class="px-3"       
                           :disabled="!$store.state.editFolderDialog.valid"             
-                          @click="editFolderDialogStore.show = false; editFolder($store.state.editFolderDialog.uuid);"
+                          @click="editFolderDialogStore.show = false; editFolder($store.state.editFolderDialog.data.uuid);"
                       >
                           Done
                       </v-btn>
@@ -643,13 +653,14 @@ export default {
             {
                 "hasChildren": true,
                 "name": "Test Folder",
+                "folder": "No Folder",
                 "items": [
                     {
                         "hasChildren": false,
                         "type": "script",
                         "name": "TESTFOLDERSCRIPT",
                         "url": "https://googfdafsgaergale.com/vr.js",
-                        "folder": "No Folder",
+                        "folder": "Test Folder",
                         "uuid": "54hgfhgf25fdfadf4354353",
                     },
                     {
@@ -657,19 +668,20 @@ export default {
                         "type": "script",
                         "name": "FOLDERSCRIPT2",
                         "url": "https://googfdafsgaergale.com/vr.js",
-                        "folder": "No Folder",
+                        "folder": "Test Folder",
                         "uuid": "54hgfhgf25ffdafddfadf4354353",
                     },
                     {
                         "hasChildren": true,
                         "name": "FolderWithinAFolder",
+                        "folder": "Test Folder",
                         "items": [
                             {
                                 "hasChildren": false,
                                 "type": "script",
                                 "name": "inception1",
                                 "url": "https://googfdafsgaergale.com/vr.js",
-                                "folder": "No Folder",
+                                "folder": "FolderWithinAFolder",
                                 "uuid": "54hgfhgf25fdfadeqwqeqf4354353",
                             },
                             {
@@ -677,7 +689,7 @@ export default {
                                 "type": "script",
                                 "name": "123what",
                                 "url": "https://googfdafsgaergale.com/vr.js",
-                                "folder": "No Folder",
+                                "folder": "FolderWithinAFolder",
                                 "uuid": "54hgfhgf25ffdafdWDQDdsadasQWWQdfadf4354353",
                             },
                             {
@@ -685,7 +697,7 @@ export default {
                                 "type": "script",
                                 "name": "inception432",
                                 "url": "https://googfdafsgaergale.com/vr.js",
-                                "folder": "No Folder",
+                                "folder": "FolderWithinAFolder",
                                 "uuid": "54hgfhgf25ffdafdWDQDQWWQdfadf4354353",
                             },
                         ],
@@ -842,7 +854,7 @@ export default {
             this.items.push(itemToPush);
             
             if (folder !== null && folder !== "No Folder") {
-                this.moveItemToFolder(uuidToUse, folder);
+                this.moveItem(uuidToUse, folder);
             }
         },
         pushFolderToItems: function(name) {
@@ -909,11 +921,19 @@ export default {
             this.pushFolderToItems(name);
         },
         editFolder: function(uuid) {
-            for (var i = 0; i < this.items.length; i++) {
-                if (this.items[i].uuid == uuid) {
-                    this.items[i].name = this.editFolderDialog.data.name;
-                    
-                    return;
+            var findFolder = this.searchForItem(uuid);
+            
+            if (findFolder) {
+                findFolder.returnedItem.name = this.$store.state.editFolderDialog.data.name;
+                
+                if (this.$store.state.editFolderDialog.data.folder !== null && this.$store.state.editFolderDialog.data.folder !== "No Change") {
+                    if (findFolder.returnedItem.folder !== this.$store.state.editFolderDialog.data.folder && this.$store.state.editFolderDialog.data.folder !== "No Folder") {
+                        console.info("This folder?", this.$store.state.editFolderDialog.data.folder);
+                        this.moveFolder(uuid, this.$store.state.editFolderDialog.data.folder);
+                    } else if (this.$store.state.editFolderDialog.data.folder === "No Folder") {
+                        console.info("This folder TOP?", this.$store.state.editFolderDialog.data.folder);
+                        this.moveFolder(uuid, "top");
+                    }
                 }
             }
         },
@@ -988,9 +1008,9 @@ export default {
             
             if (this.$store.state.editDialog.data.folder !== null) {
                 if (folderName !== this.$store.state.editDialog.data.folder && this.$store.state.editDialog.data.folder !== "No Folder") {
-                    this.moveItemToFolder(uuid, this.$store.state.editDialog.data.folder);
+                    this.moveItem(uuid, this.$store.state.editDialog.data.folder);
                 } else if (folderName === "No Folder") {
-                    this.moveItemToTop(uuid);
+                    this.moveItem(uuid, "top");
                 }
             }
 
@@ -1111,54 +1131,79 @@ export default {
                 this.folderList = combinedArray;
             }
         },
-        moveItemToFolder: function(uuid, folderUUID) {
-            // This function is used to take an item one level deep, do not use it for any other purposes and check beforehand if you need to do this.
-            var itemToPush = {
-                "hasChildren": false,
-                'type': null,
-                'name': null,
-                'folder': null,
-                'url': null,
-                'uuid': uuid,
-            };
-            
+        moveItem: function(uuid, folderUUID) {
             var findItem = this.searchForItem(uuid);
             
-            itemToPush.type = findItem.returnedItem.type;
-            itemToPush.name = findItem.returnedItem.name;
-            itemToPush.url = findItem.returnedItem.url;
+            if (folderUUID === "top") {
+                // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
+                this.removeItem(uuid);
+    
+                this.pushToItems(
+                    findItem.returnedItem.type, 
+                    findItem.returnedItem.name, 
+                    "No Folder", 
+                    findItem.returnedItem.url, 
+                    uuid
+                );
+                
+            } else {
+                
+                var itemToPush = {
+                    "hasChildren": false,
+                    'type': null,
+                    'name': null,
+                    'folder': null,
+                    'url': null,
+                    'uuid': uuid,
+                };
 
-            // Get the folder UUID.
-            for (var i = 0; i < this.folderList.length; i++) {
-                if (this.folderList[i].uuid === folderUUID) {
-                    itemToPush.folder = this.folderList[i].name;
+                itemToPush.type = findItem.returnedItem.type;
+                itemToPush.name = findItem.returnedItem.name;
+                itemToPush.url = findItem.returnedItem.url;
+    
+                // Get the folder UUID.
+                for (var i = 0; i < this.folderList.length; i++) {
+                    if (this.folderList[i].uuid === folderUUID) {
+                        itemToPush.folder = this.folderList[i].name;
+                    }
+                }
+                
+                // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
+                this.removeItem(uuid);
+    
+                // Find that folder in our main items array.
+                var findFolder = this.searchForItem(folderUUID);
+                
+                if (findFolder) {
+                    findFolder.returnedItem.items.push(itemToPush);
                 }
             }
-            
-            // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
-            this.removeItem(uuid);
 
-            // Find that folder in our main items array.
-            var findFolder = this.searchForItem(folderUUID);
-            
-            if (findFolder) {
-                findFolder.returnedItem.items.push(itemToPush);
-            }
-            
         },
-        moveItemToTop: function(uuid) {
-            var findItem = this.searchForItem(uuid);
-            
-            // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
-            this.removeItem(uuid);
+        moveFolder: function(uuid, parentFolderUUID) {
+            var findFolder = this.searchForItem(uuid);
+            console.info("WHAT", parentFolderUUID);
+            if (parentFolderUUID === "top") {
+                // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
+                this.removeItem(uuid);
+                
+                findFolder.returnedItem.folder = "No Folder";
 
-            this.pushToItems(
-                findItem.returnedItem.type, 
-                findItem.returnedItem.name, 
-                "No Folder", 
-                findItem.returnedItem.url, 
-                uuid
-            );
+                this.items.push(findFolder.returnedItem);
+                
+            } else {                
+                // Find the parent folder.
+                var findParentFolder = this.searchForItem(parentFolderUUID);
+                console.info("Going to push...", findFolder.returnedItem);
+                console.info("Into...", findParentFolder.returnedItem);
+                if (findParentFolder) {
+                    // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
+                    this.removeItem(uuid);
+
+                    findFolder.returnedItem.folder = findParentFolder.name;
+                    findParentFolder.returnedItem.items.push(findFolder.returnedItem);
+                }
+            }
         },
         searchForItem: function(uuid) {
             var foundItem = this.recursiveSingularSearch(uuid, this.items);
@@ -1286,6 +1331,9 @@ export default {
                 });
             },
         },
+        editFolderDialogShow: function() {
+            return this.$store.state.editFolderDialog.show;
+        },
         createFolderDialogStore: {
             get() {
                 return this.$store.state.createFolderDialog;
@@ -1364,6 +1412,13 @@ export default {
             }
         },
         editDialogShow: {
+            handler: function(newVal) {
+                if (newVal === true) {
+                    this.getFolderList('edit');
+                }
+            }
+        },
+        editFolderDialogShow: {
             handler: function(newVal) {
                 if (newVal === true) {
                     this.getFolderList('edit');
