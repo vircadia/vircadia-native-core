@@ -34,8 +34,8 @@ void UserActivityLogger::disable(bool disable) {
     _disabled.set(disable);
 }
 
-void UserActivityLogger::crashDisable(bool disable) {
-    _crashDisabled.set(disable);
+void UserActivityLogger::crashMonitorDisable(bool disable) {
+    _crashMonitorDisabled.set(disable);
 }
 
 void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCallbackParameters params) {

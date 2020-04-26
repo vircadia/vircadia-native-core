@@ -35,11 +35,11 @@ public slots:
     bool isEnabled() { return !_disabled.get(); }
     bool isDisabledSettingSet() const { return _disabled.isSet(); }
 
-    bool isCrashEnabled() { return !_crashDisabled.get(); }
-    bool isCrashDisabledSettingSet() const { return _crashDisabled.isSet(); }
+    bool isCrashMonitorEnabled() { return !_crashMonitorDisabled.get(); }
+    bool isCrashMonitorDisabledSettingSet() const { return _crashMonitorDisabled.isSet(); }
 
     void disable(bool disable);
-    void crashDisable(bool disable);
+    void crashMonitorDisable(bool disable);
     void logAction(QString action, QJsonObject details = QJsonObject(), JSONCallbackParameters params = JSONCallbackParameters());
     
     void launch(QString applicationVersion, bool previousSessionCrashed, int previousSessionRuntime);
@@ -59,7 +59,7 @@ private slots:
 private:
     UserActivityLogger();
     Setting::Handle<bool> _disabled { "UserActivityLoggerDisabled", true };
-    Setting::Handle<bool> _crashDisabled { "CrashLoggerDisabled", false };
+    Setting::Handle<bool> _crashMonitorDisabled { "CrashMonitorDisabled", false };
 
     QElapsedTimer _timer;
 };

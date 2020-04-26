@@ -608,7 +608,7 @@ Menu::Menu() {
         0,
         false,
         &UserActivityLogger::getInstance(),
-        SLOT(crashDisable(bool)));
+        SLOT(crashMonitorDisable(bool)));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
         qApp, SLOT(loadDomainConnectionDialog()));
 
