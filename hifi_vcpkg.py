@@ -83,7 +83,9 @@ endif()
         self.bootstrapEnv = os.environ.copy()
         self.buildEnv = os.environ.copy()
         self.prebuiltArchive = None
-        usePrebuilt = ('CI_BUILD' in os.environ) and os.environ["CI_BUILD"] == "Github" and (not self.noClean)
+        usePrebuilt = False 
+        # usePrebuild Disabled, to re-enabled using the prebuilt archives for GitHub action builds uncomment the following line:
+        # usePrebuilt = ('CI_BUILD' in os.environ) and os.environ["CI_BUILD"] == "Github" and (not self.noClean)
 
         if 'Windows' == system:
             self.exe = os.path.join(self.path, 'vcpkg.exe')
@@ -91,8 +93,8 @@ endif()
             self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-win32-client.zip%3FversionId=tSFzbw01VkkVFeRQ6YuAY4dro2HxJR9U'
             self.vcpkgHash = 'a650db47a63ccdc9904b68ddd16af74772e7e78170b513ea8de5a3b47d032751a3b73dcc7526d88bcb500753ea3dd9880639ca842bb176e2bddb1710f9a58cd3'
             self.hostTriplet = 'x64-windows'
-            #if usePrebuilt:
-            #    self.prebuiltArchive = "https://ipfs.io/ipfs/QmcBggttJQb1vYeyz29FXfaxnJ5c1HfZW72xNQepnENude/vcpkg-win32-a2623c6a-release.zip"
+            if usePrebuilt:
+                self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-win32.zip%3FversionId=3SF3mDC8dkQH1JP041m88xnYmWNzZflx"
         elif 'Darwin' == system:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '--allowAppleClang', '-disableMetrics' ]
@@ -101,8 +103,8 @@ endif()
             self.hostTriplet = 'x64-osx'
             # Potential fix for a vcpkg build issue on OSX (see https://github.com/microsoft/vcpkg/issues/9029)
             self.bootstrapEnv['CXXFLAGS'] = '-D_CTERMID_H_'
-            #if usePrebuilt:
-            #    self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-osx.tgz%3FversionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
+            if usePrebuilt:
+                self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-osx.tgz%3FversionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]

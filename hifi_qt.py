@@ -74,7 +74,7 @@ endif()
                     self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.6-ubuntu-19.10.tar.xz'
                 elif u_major > 18 and ( u_major != 19 and u_minor != 4):
                     print("We don't support " + distro.name(pretty=True) + " yet. Perhaps consider helping us out?")
-                    raise Exception('YET UNSUPPORTED VERSION OF LINUX DISTRO!!!')
+                    raise Exception('LINUX DISTRO IS NOT SUPPORTED YET!!!')
                 else:
                     print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
                     raise Exception('UNKNOWN LINUX DISTRO VERSION!!!')
