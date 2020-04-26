@@ -1,0 +1,43 @@
+FROM ubuntu:18.04
+ARG DEPENDS
+ARG GITSRC
+ARG GITDATE
+ARG GITCOMMIT
+
+# starting out as root, will drop back in entrypoint.sh
+USER root
+
+# expose ports for domain server
+EXPOSE 40100 40101 40102
+EXPOSE 40100/udp 40101/udp 40102/udp
+
+# expose ports for assignment client
+EXPOSE 48000/udp 48001/udp 48002/udp 48003/udp 48004/udp 48005/udp 48006/udp
+
+RUN echo UTC >/etc/timezone
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+	apt-get install -y tzdata supervisor ${DEPENDS} && \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/* && \
+	mkdir -p /var/lib/athena
+RUN groupadd -r athena ; \
+	useradd -Nr athena -d /var/lib/athena ; \
+	usermod -aG athena athena ; \
+	chown athena.athena /var/lib/athena ; \
+	exit 0
+
+VOLUME /var/lib/athena
+
+RUN mkdir -p /var/run ; chmod 777 /var/run
+COPY athena.conf /etc/supervisor/conf.d/athena.conf
+
+COPY entrypoint.sh /
+COPY opt /opt/athena
+COPY lib /opt/athena/lib
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/athena.conf"]
+LABEL \
+	net.projectathena.gitsrc="${GITSRC}" \
+	net.projectathena.gitdate="${GITDATE}" \
+	net.projectathena.gitcommit="${GITCOMMIT}"

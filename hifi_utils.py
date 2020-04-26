@@ -118,6 +118,6 @@ def downloadAndExtract(url, destPath, hash=None, hasher=hashlib.sha512(), isZip=
             zip.extractall(destPath)
     else:
         # Extract the archive
-        with tarfile.open(tempFileName, 'r:gz') as tgz:
+        with tarfile.open(tempFileName, 'r:*') as tgz:
             tgz.extractall(destPath)
     os.remove(tempFileName)

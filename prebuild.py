@@ -125,7 +125,7 @@ def main():
     if 'Windows' == system and 'CI_BUILD' in os.environ and os.environ["CI_BUILD"] == "Github":
         logger.info("Downloading NSIS")
         with timer('NSIS'):
-            hifi_utils.downloadAndExtract('https://hifi-public.s3.amazonaws.com/dependencies/NSIS-hifi-plugins-1.0.tgz', "C:/Program Files (x86)")
+            hifi_utils.downloadAndExtract('https://athena-public.s3.amazonaws.com/dependencies/NSIS-hifi-plugins-1.0.tgz', "C:/Program Files (x86)")
 
     qtInstallPath = ''
     # If not android, install our Qt build
@@ -137,8 +137,11 @@ def main():
                 qt.installQt()
                 qt.writeConfig()
 
-    # Only allow one instance of the program to run at a time
     pm = hifi_vcpkg.VcpkgRepo(args)
+    if qtInstallPath != '':
+        pm.writeVar('QT_CMAKE_PREFIX_PATH', qtInstallPath)
+
+    # Only allow one instance of the program to run at a time
     with hifi_singleton.Singleton(pm.lockFile) as lock:
 
         with timer('Bootstraping'):

@@ -45,7 +45,7 @@ if (WIN32)
 
     ExternalProject_Add(
         qtlite
-        URL "https://public.highfidelity.com/dependencies/qtlite/qt-lite-5.9.9-win-oct-15-2019.zip"
+        URL "${EXTERNAL_BUILD_ASSETS}/dependencies/qtlite/qt-lite-5.9.9-win-oct-15-2019.zip"
         URL_HASH MD5=0176277bca37d219e83738caf3a698eb
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
@@ -78,7 +78,7 @@ endif ()
 if (APPLE)
   ExternalProject_Add(
     qtlite
-    URL "https://public.highfidelity.com/dependencies/qtlite/qt-lite-5.9.9-mac.zip"
+    URL "${EXTERNAL_BUILD_ASSETS}/dependencies/qtlite/qt-lite-5.9.9-mac.zip"
     URL_HASH MD5=0cd78d40e5f539a7e314cf99b6cae0d0
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""

@@ -269,7 +269,11 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
     Q_ASSERT(invokeResult);
     QObject* result = reinterpret_cast<QObject*>(returnedValue); // returnedValue.value<QObject*>();
     Q_ASSERT(result);
-    bindActionToQmlAction(result, action, _rootMenu);
+    if ( result ) {
+        bindActionToQmlAction(result, action, _rootMenu);
+    } else {
+        qWarning() << "Failed to find addItem() method in object " << menu << ". Not inserting action " << action;
+    }
 }
 
 class QQuickMenuBase;

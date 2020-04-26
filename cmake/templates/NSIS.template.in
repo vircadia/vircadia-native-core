@@ -161,7 +161,7 @@
 ;General
 
   ; hide install details since we show an image slideshow in their place
-  ShowInstDetails nevershow
+  ShowInstDetails hide
 
   ; leverage the UAC NSIS plugin to promote uninstaller to elevated privileges
   !include UAC.nsh
@@ -199,15 +199,18 @@
 
     !system "$%TEMP%\tempinstaller.exe" = 2
 
+    ; NOTE: We're not code signing right now, so we're going to disable that.
+    ; TODO: Get a code signing certificate so we can re-enable code signing.
+
     ; The Inner invocation has written an uninstaller binary for us.
     ; We need to sign it if it's a production or PR build.
-    !if @PRODUCTION_BUILD@ == 1
-      !if @BYPASS_SIGNING@ == 1
-        !warning "BYPASS_SIGNING set - installer will not be signed"
-      !else
-        !system '"@SIGNTOOL_EXECUTABLE@" sign /fd sha256 /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://sha256timestamp.ws.symantec.com/sha256/timestamp /td SHA256 $%TEMP%\@UNINSTALLER_NAME@' = 0
-      !endif
-    !endif
+    ; !if @PRODUCTION_BUILD@ == 1
+    ;   !if @BYPASS_SIGNING@ == 1
+    ;     !warning "BYPASS_SIGNING set - installer will not be signed"
+    ;   !else
+    ;     !system '"@SIGNTOOL_EXECUTABLE@" sign /fd sha256 /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://sha256timestamp.ws.symantec.com/sha256/timestamp /td SHA256 $%TEMP%\@UNINSTALLER_NAME@' = 0
+    ;   !endif
+    ; !endif
 
     ; Good.  Now we can carry on writing the real installer.
 
@@ -421,7 +424,7 @@ Function GetCampaignName
     Pop $0 ; Discard Path
     Pop $0 ; Recover filename
     ; Parse campaign out of the filename
-    ${RECaptureMatches} $0 "HighFidelity-([^-]*-)Beta-.*" $0 0
+    ${RECaptureMatches} $0 "ProjectAthena-([^-]*-)Alpha-.*" $0 0
     ${If} $0 == 1
       Pop $0 ; Recover campaign name
       StrCpy $0 $0 -1 0 ; Remove trailing - and copy to _RetVar
@@ -528,7 +531,7 @@ Var GAClientID
   Page custom PostInstallOptionsPage ReadPostInstallOptions
 
   !define MUI_PAGE_CUSTOMFUNCTION_PRE PageInstallFilesPre
-  !define MUI_PAGE_CUSTOMFUNCTION_SHOW StartInstallSlideshow
+  ; !define MUI_PAGE_CUSTOMFUNCTION_SHOW StartInstallSlideshow
   !insertmacro MUI_PAGE_INSTFILES
 
   !insertmacro MUI_UNPAGE_CONFIRM
@@ -652,35 +655,35 @@ Var Express
 
 Function OnUserAbort
   !insertmacro LogStep "Installer" "Abort" "User Abort" ""
-  !insertmacro GoogleAnalytics "Installer" "Abort" "User Abort" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Abort" "User Abort" ""
 FunctionEnd
 Function PageWelcomePre
   !insertmacro LogStep "Installer" "Welcome" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Welcome" "" ""
-  !insertmacro DownloadSlideshowImages
+  ; !insertmacro GoogleAnalytics "Installer" "Welcome" "" ""
+  ; !insertmacro DownloadSlideshowImages
 FunctionEnd
 Function PageLicensePre
   !insertmacro LogStep "Installer" "License" "" ""
-  !insertmacro GoogleAnalytics "Installer" "License" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "License" "" ""
 FunctionEnd
 Function PageDirectoryPre
   !insertmacro MaybeSkipPage
   !insertmacro LogStep "Installer" "Directory" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Directory" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Directory" "" ""
 FunctionEnd
 Function PageStartMenuPre
   !insertmacro MaybeSkipPage
   !insertmacro LogStep "Installer" "StartMenu" "" ""
-  !insertmacro GoogleAnalytics "Installer" "StartMenu" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "StartMenu" "" ""
 FunctionEnd
 Function PageComponentsPre
   !insertmacro MaybeSkipPage
   !insertmacro LogStep "Installer" "Components" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Components" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Components" "" ""
 FunctionEnd
 Function PageInstallFilesPre
   !insertmacro LogStep "Installer" "Install" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Install" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Install" "" ""
 FunctionEnd
 
 !macro SetInstallOption Checkbox OptionName Default
@@ -702,7 +705,7 @@ FunctionEnd
 
 Function InstallTypesPage
   !insertmacro LogStep "Installer" "Install Types" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Install Types" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Install Types" "" ""
 
   !insertmacro MUI_HEADER_TEXT "Choose Installation Type" "Express or Custom Install"
 
@@ -717,7 +720,7 @@ Function InstallTypesPage
   StrCpy $OffsetUnits u
   StrCpy $Express "0"
 
-  ${NSD_CreateRadioButton} 30% $CurrentOffset$OffsetUnits 100% 10u "Express Install (Recommended)"; $\nInstalls High Fidelity Interface and High Fidelity Sandbox"
+  ${NSD_CreateRadioButton} 30% $CurrentOffset$OffsetUnits 100% 10u "Express Install (Recommended)"; $\nInstalls Project Athena Interface and Project Athena Sandbox"
   pop $ExpressInstallRadioButton
   ${NSD_OnClick} $ExpressInstallRadioButton ChangeExpressLabel
   IntOp $CurrentOffset $CurrentOffset + 15
@@ -813,7 +816,7 @@ Function PostInstallOptionsPage
 
   !insertmacro MaybeSkipPage
   !insertmacro LogStep "Installer" "Post Install Options" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Post Install Options" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Post Install Options" "" ""
 
   !insertmacro MUI_HEADER_TEXT "Setup Options" ""
 
@@ -970,7 +973,7 @@ Function ReadPostInstallOptions
   
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ${LogText} "Option: Install Client"
-    ; check if the user asked for a desktop shortcut to High Fidelity
+    ; check if the user asked for a desktop shortcut to Project Athena
     ${NSD_GetState} $DesktopClientCheckbox $DesktopClientState
     ${LogText} "Option: Create Client Desktop Shortcut: $DesktopClientState"
   ${EndIf}
@@ -1024,7 +1027,7 @@ Function HandlePostInstallOptions
   ${EndIf}
 
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
-    ; check if the user asked for a desktop shortcut to High Fidelity
+    ; check if the user asked for a desktop shortcut to Project Athena
     ${If} $DesktopClientState == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@INTERFACE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
       !insertmacro WriteInstallOption "@CLIENT_DESKTOP_SHORTCUT_REG_KEY@" YES
@@ -1085,7 +1088,7 @@ Function HandlePostInstallOptions
       ClearErrors
 
       ; copy the data from production build to this PR build
-      CopyFiles "$APPDATA\High Fidelity\*" $0
+      CopyFiles "$APPDATA\Project Athena\*" $0
 
       ; handle an error in copying files
       IfErrors 0 NoError
@@ -1325,13 +1328,13 @@ Section "-Core installation"
   @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
 
   ; see if we have a campaign that we might need to grab special content for
-  Call OptionallyDownloadCampaignServerless
+  ; Call OptionallyDownloadCampaignServerless
 
   ; Handle whichever post install options were set
   Call HandlePostInstallOptions
 
   !insertmacro LogStep "Installer" "Done" "" ""
-  !insertmacro GoogleAnalytics "Installer" "Done" "" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Done" "" ""
 SectionEnd
 
 !include nsProcess.nsh
@@ -1358,7 +1361,7 @@ SectionEnd
         /SD IDCANCEL IDRETRY Prompt_${UniqueID} IDCANCEL 0
       ${EndIf}
 
-      !insertmacro GoogleAnalytics "Installer" "Abort" "${displayName} Running" ""
+      ; !insertmacro GoogleAnalytics "Installer" "Abort" "${displayName} Running" ""
 
       ; If the user decided to cancel, stop the current installer/uninstaller
       Abort
@@ -1602,7 +1605,7 @@ Function .onInit
   !insertmacro InitGAClientID
   !insertmacro GetCampaignName $CampaignName
 
-  !insertmacro GoogleAnalytics "Installer" "Start" "$CampaignName" ""
+  ; !insertmacro GoogleAnalytics "Installer" "Start" "$CampaignName" ""
 
   ; make sure none of the installed applications are still running
   ${LogText} "Checking For Running Applications"

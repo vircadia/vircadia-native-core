@@ -14,6 +14,7 @@
 
 #include <EntityTreeRenderer.h>
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 #include <NetworkAccessManager.h>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
@@ -305,7 +306,7 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
                     QNetworkRequest networkRequest;
                     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
                     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
+                    QUrl requestURL = MetaverseAPI::getCurrentMetaverseServerURL();
                     requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
                     QJsonObject request;
                     request["certificate_id"] = entityProperties.getCertificateID();

@@ -169,7 +169,8 @@ render::hifi::Layer EntityRenderer::getHifiRenderLayer() const {
 }
 
 ItemKey EntityRenderer::getKey() {
-    ItemKey::Builder builder = ItemKey::Builder().withTypeShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+    ItemKey::Builder builder =
+        ItemKey::Builder().withTypeShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
 
     if (isTransparent()) {
         builder.withTransparent();

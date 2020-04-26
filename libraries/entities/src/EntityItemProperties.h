@@ -122,6 +122,8 @@ public:
         QByteArray& blob, bool allProperties = false);
 
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
+    EntityItemProperties(const EntityItemProperties&) = default;
+
     virtual ~EntityItemProperties() = default;
 
     void merge(const EntityItemProperties& other);

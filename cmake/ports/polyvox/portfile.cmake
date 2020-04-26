@@ -3,7 +3,7 @@ include(vcpkg_common_functions)
 # else Linux desktop
 vcpkg_download_distfile(
     SOURCE_ARCHIVE
-    URLS https://public.highfidelity.com/dependencies/polyvox-master-2015-7-15.zip
+    URLS https://athena-public.s3.amazonaws.com/dependencies/polyvox-master-2015-7-15.zip
     SHA512 cc04cd43ae74b9c7bb065953540c0048053fcba6b52dc4218b3d9431fba178d65ad4f6c53cc1122ba61d0ab4061e99a7ebbb15db80011d607c5070ebebf8eddc
     FILENAME polyvox.zip
 )
@@ -56,6 +56,7 @@ else()
     file(RENAME ${CURRENT_PACKAGES_DIR}/include/PolyVoxUtil ${CURRENT_PACKAGES_DIR}/include/PolyVoxUtil.temp)
     file(RENAME ${CURRENT_PACKAGES_DIR}/include/PolyVoxUtil.temp/PolyVoxUtil ${CURRENT_PACKAGES_DIR}/include/PolyVoxUtil)
     file(REMOVE_RECURSE ${CURRENT_PACKAGES_DIR}/include/PolyVoxUtil.temp)
+    file(REMOVE_RECURSE ${CURRENT_PACKAGES_DIR}/share/doc)
 endif()
 file(REMOVE_RECURSE ${CURRENT_PACKAGES_DIR}/lib/Release)
 file(REMOVE_RECURSE ${CURRENT_PACKAGES_DIR}/lib/RelWithDebInfo)

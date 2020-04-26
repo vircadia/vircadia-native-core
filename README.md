@@ -1,83 +1,53 @@
-High Fidelity (hifi) is an early-stage technology lab experimenting with Virtual Worlds and VR. 
+# Vircadia 
 
-This repository contains the source to many of the components in our 
-alpha-stage virtual world. The project embraces distributed development.  
-If you find a small bug and have a fix, pull requests are welcome. 
+### What is this?
 
-We're hiring! We're looking for skilled developers; 
-send your resume to hiring@highfidelity.com
+Vircadia is a 3D social software project seeking to incrementally bring about a truly free and open metaverse, in desktop and XR.
 
-##### Chat with us
-Come chat with us in [our Gitter](https://gitter.im/highfidelity/hifi) if you have any questions or just want to say hi!
+### [Download](https://vircadia.com/download-vircadia/)
 
-Documentation
-=========
-Documentation is available at [docs.highfidelity.com](https://docs.highfidelity.com), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
+### Releases
 
-There is also detailed [documentation on our coding standards](CODING_STANDARD.md).
+[View Releases here](https://github.com/kasenvr/project-athena/releases/)
 
-Contributor License Agreement (CLA)
-=========
-Technology companies frequently receive and use code from contributors outside the company's development team. Outside code can be a tremendous resource, but it also carries responsibility. Best practice for accepting outside contributions consists of an Apache-type Contributor License Agreement (CLA). We have modeled the High Fidelity CLA after the CLA that Google presents to developers for contributions to their projects. This CLA does not transfer ownership of code, instead simply granting a non-exclusive right for High Fidelity to use the code you’ve contributed. In that regard, you should be sure you have permission if the work relates to or uses the resources of a company that you work for. You will be asked to sign our CLA when you create your first PR or when the CLA is updated. You can also [review it here](https://gist.githubusercontent.com/hifi-gustavo/fef8f06a8233d42a0040d45c3efb97a9/raw/9981827eb94f0b18666083670b6f6a02929fb402/High%2520Fidelity%2520CLA). We sincerely appreciate your contribution and efforts toward the success of the platform.
+### How to build the Interface
 
-Build Instructions 
-=========
-All information required to build is found in the [build guide](BUILD.md).
+[For Windows](https://github.com/kasenvr/project-athena/blob/kasen/core/BUILD_WIN.md)
 
-Running Interface
-===
-When you launch interface, you will automatically connect to our default domain: "root.highfidelity.io".
+[For Linux](https://github.com/kasenvr/project-athena/blob/kasen/core/BUILD_LINUX.md)
 
-If you don't see anything, make sure your preferences are pointing to 
-root.highfidelity.io (set your domain via Cmnd+D/Cntrl+D). If you still have no luck,
-it's possible our servers are down. If you're experiencing a major bug, let us know by
-adding an issue to this repository. Include details about your computer and how to 
-reproduce the bug in your issue. 
+[For Linux - Athena Builder](https://github.com/daleglass/athena-builder)
 
-To move around in-world, use the arrow keys (and Shift + up/down to fly up or 
-down) or W A S D, and E or C to fly up/down. All of the other possible options 
-and features are available via menus in the Interface application.
+### How to deploy a Server
 
-Running your own servers
-========
-The assignment-client and domain-server are architectural components that will allow 
-you to run the full stack of the virtual world.
+[For Windows and Linux](https://vircadia.com/download-vircadia/#server)
 
-In order to set up your own virtual world, you need to set up and run your own 
-local "domain". 
+### How to build a Server
 
-The domain-server gives a number different types of assignments to the assignment-client 
-for different features: audio, avatars, voxels, particles, meta-voxels and models.
+[For Linux - Athena Builder](https://github.com/daleglass/athena-builder)
 
-Follow the instructions in the [build guide](BUILD.md) to build the various components.
+### Boot to Metaverse: The Goal
 
-From the domain-server build directory, launch a domain-server.
+Having a place to experience adventure, a place to relax with calm breath, that's a world to live in. An engine to support infinite combinations and possibilities of worlds without censorship and interruption, that's a metaverse. Finding a way to make infinite realities our reality, that's the dream.
 
-    ./domain-server
+### Boot to Metaverse: The Technicals
 
-Then, run an assignment-client. The assignment-client uses localhost as its assignment-server 
-and talks to it on port 40102 (the default domain-server port).
+Many developers have had personal combinations of High Fidelity from C++ modifications to different default scripts, all of which are lost to time as their fullest potential is never truly shared and propagated through the system.
 
-In a new Terminal window, run:
+The goal of this project is to achieve the metaverse dream through shared contribution and building. Setting goals that are achievable yet meaningful is key to making proper forward progress on the technical front whilst maintaining morale.
 
-    ./assignment-client
+### Why High Fidelity's Virtual Reality Platform?
 
-Any target can be terminated with Ctrl-C (SIGINT) in the associated Terminal window.
+Because of all the options, it is the only starting point that is open-source, cross-platform, fully VR integrated + fully desktop integrated with an aim for quality visuals and performance. It also provides a foundation to build from including components like entity management, full body IK, etc.
 
-This assignment-client will grab one assignment from the domain-server. You can tell the 
-assignment-client what type you want it to be with the `-t` option. You can also run an 
-assignment-client that forks off *n* assignment-clients with the `-n` option. The `-min` 
-and `-max` options allow you to set a range of required assignment-clients. This allows 
-you to have flexibility in the number of assignment-clients that are running. 
-See `--help` for more options.
+WebXR offers the open-source and decentralized aspect but does not have any of the full featured starting points such as avatars, IK, etc. which means that a lot of ground work will have to be laid to make something functional. Far more work will need to be done to create a truly seamless and extensive experience as well.
 
-    ./assignment-client --min 6 --max 20
+Platforms like NeosVR or VRChat are not viable from go due to their fundamental closed-source and centralized nature. A metaverse to live in cannot have the keys handed over to any singular entity, if any at all.
 
-To test things out, you'll need to run the Interface client.
+We need to do the best we can with what we've got and our best bet as open source developers is to not redesign the wheel if we can help it!
 
-To access your local domain in Interface, open your Preferences. On OS X, this is available 
-in the Interface menu. On Linux, you'll find it in the File menu. Enter "localhost" in the 
-"Domain server" field.
+### Contribution
 
-If everything worked, you should see that you are connected to at least one server.
-Nice work!
+A special thanks to the contributors of Vircadia.
+
+[Contribution](CONTRIBUTING.md)

@@ -129,7 +129,7 @@ FocusScope {
         Image {
             id: banner
             anchors.centerIn: parent
-            source: "../../images/high-fidelity-banner.svg"
+            source: "../../images/project-athena-banner-color2.svg"
             horizontalAlignment: Image.AlignHCenter
         }
     }

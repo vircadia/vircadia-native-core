@@ -72,11 +72,11 @@ void QmlCommerce::openSystemApp(const QString& appName) {
         else if (appPathIter->contains(".html", Qt::CaseInsensitive)) {
             QMap<QString, QString>::const_iterator injectIter = systemInject.find(appName);
             if (appPathIter == systemInject.end()) {
-                tablet->gotoWebScreen(NetworkingConstants::METAVERSE_SERVER_URL().toString() + *appPathIter);
+                tablet->gotoWebScreen(MetaverseAPI::getCurrentMetaverseServerURL().toString() + *appPathIter);
             }
             else {
                 QString inject = "file:///" + qApp->applicationDirPath() + *injectIter;
-                tablet->gotoWebScreen(NetworkingConstants::METAVERSE_SERVER_URL().toString() + *appPathIter, inject);
+                tablet->gotoWebScreen(MetaverseAPI::getCurrentMetaverseServerURL().toString() + *appPathIter, inject);
             }
         }
         else {

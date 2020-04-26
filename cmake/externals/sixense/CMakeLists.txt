@@ -4,15 +4,15 @@ set(EXTERNAL_NAME sixense)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
-#set(SIXENSE_URL "https://public.highfidelity.com/dependencies/SixenseSDK_062612.zip")
+#set(SIXENSE_URL "${EXTERNAL_BUILD_ASSETS}/dependencies/SixenseSDK_062612.zip")
 #set(SIXENSE_URL_MD5 "10cc8dc470d2ac1244a88cf04bc549cc")
 #set(SIXENSE_NEW_LAYOUT 0)
 
-set(SIXENSE_URL "https://public.highfidelity.com/dependencies/SixenseSDK_071615.zip")
+set(SIXENSE_URL "${EXTERNAL_BUILD_ASSETS}/dependencies/SixenseSDK_071615.zip")
 set(SIXENSE_URL_MD5 "752a3901f334124e9cffc2ba4136ef7d")
 set(SIXENSE_NEW_LAYOUT 1)
 
-#set(SIXENSE_URL "https://public.highfidelity.com/dependencies/SixenseSDK_102215.zip")
+#set(SIXENSE_URL "${EXTERNAL_BUILD_ASSETS}/dependencies/SixenseSDK_102215.zip")
 #set(SIXENSE_URL_MD5 "93c3a6795cce777a0f472b09532935f1")
 #set(SIXENSE_NEW_LAYOUT 1)
 

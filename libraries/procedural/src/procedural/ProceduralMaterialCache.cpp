@@ -163,6 +163,13 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  *         <li><code>"CULL_BACK"</code> (the default) to cull the back faces of the geometry.</li>
  *     </ul>
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} cullFaceMode - The mode defining which side of the geometry should be rendered. Values can be:
+ *     <ul>
+ *         <li><code>"CULL_NONE"</code> for rendering both sides of the geometry.</li>
+ *         <li><code>"CULL_FRONT"</code> for culling the front faces of the geometry.</li>
+ *         <li><code>"CULL_BACK"</code> (the default) for culling the back faces of the geometry.</li>
+ *     </ul>
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {string} roughnessMap - The URL of the roughness texture image. You can use this or <code>glossMap</code>, but not 
  *     both. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.

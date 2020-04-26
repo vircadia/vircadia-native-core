@@ -110,6 +110,15 @@ protected:
     virtual void setPrimitiveMode(PrimitiveMode value) { _primitiveMode = value; }
     virtual void setCullWithParent(bool value) { _cullWithParent = value; }
 
+    template <typename F, typename T>
+    T withReadLockResult(const std::function<T()>& f) {
+        T result;
+        withReadLock([&] {
+            result = f();
+        });
+        return result;
+    }
+
 signals:
     void requestRenderUpdate();
 

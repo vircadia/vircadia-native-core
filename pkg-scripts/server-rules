@@ -1,0 +1,55 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+
+# see FEATURE AREAS in dpkg-buildflags(1)
+#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+# see ENVIRONMENT in dpkg-buildflags(1)
+# package maintainers to append CFLAGS
+#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
+# package maintainers to append LDFLAGS
+#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+
+%:
+	dh $@ --with=systemd
+
+override_dh_systemd_enable:
+	dh_systemd_enable --no-enable --name athena-assignment-client athena-assignment-client.service
+	dh_systemd_enable --no-enable --name athena-assignment-client@ athena-assignment-client@.service
+	dh_systemd_enable --no-enable --name athena-domain-server athena-domain-server.service
+	dh_systemd_enable --no-enable --name athena-domain-server@ athena-domain-server@.service
+	#dh_systemd_enable --no-enable --name athena-ice-server athena-ice-server.service
+	#dh_systemd_enable --no-enable --name athena-ice-server@ athena-ice-server@.service
+	dh_systemd_enable --no-enable --name athena-server athena-server.target
+	dh_systemd_enable --no-enable --name athena-server@ athena-server@.target
+	#dh_systemd_enable --name athena-server@default athena-server@default.target
+
+override_dh_systemd_start:
+	dh_systemd_start --restart-after-upgrade --no-start athena-assignment-client.service
+	dh_systemd_start --restart-after-upgrade --no-start athena-assignment-client@.service
+	dh_systemd_start --restart-after-upgrade --no-start athena-domain-server.service
+	dh_systemd_start --restart-after-upgrade --no-start athena-domain-server@.service
+	#dh_systemd_start --restart-after-upgrade --no-start athena-ice-server.service
+	#dh_systemd_start --restart-after-upgrade --no-start athena-ice-server@.service
+	dh_systemd_start --restart-after-upgrade --no-start athena-server.target
+	dh_systemd_start --restart-after-upgrade --no-start athena-server@.target
+	#dh_systemd_start --restart-after-upgrade athena-server@default.target
+
+override_dh_installinit:
+	dh_installinit --noscripts
+
+override_dh_shlibdeps:
+	# don't run sh_shlibdeps, it REALLY won't work.  We do it ourselves anyhow
+
+override_dh_strip:
+	# don't run dh_strip, we do it ourselves anyhow and we want failures to be non-fatal
+
+# dh_make generated override targets
+# This is example for Cmake (See https://bugs.debian.org/641051 )
+#override_dh_auto_configure:
+#	dh_auto_configure -- #	-DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH)
+

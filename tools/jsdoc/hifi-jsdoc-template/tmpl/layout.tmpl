@@ -4,7 +4,10 @@
     <?js if (!env.conf.docdash) { env.conf.docdash = {};} ?>
     <meta charset="utf-8">
     <title><?js= title ?></title>
-    
+
+    <script src="scripts/vue.min.js"></script>
+    <script src="scripts/vuetify.js"></script>
+
     <script src="scripts/prettify/prettify.js"></script>
     <script src="scripts/prettify/lang-css.js"></script>
     <!--[if lt IE 9]>
@@ -12,20 +15,81 @@
     <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/prettify.css">
     <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <link type="text/css" rel="stylesheet" href="styles/night.css">
+    <link type="text/css" rel="stylesheet" href="styles/responsive.css">
+    <link type="text/css" rel="stylesheet" href="styles/main.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Two+Tone|Material+Icons+Round|Material+Icons+Sharp" rel="stylesheet">
+    <link href="styles/materialdesignicons.min.css" rel="stylesheet">
+    <link href="styles/vuetify.css" rel="stylesheet">
+    <style>
+        .v-application--wrap {
+            min-height: 0 !important;
+        }
+
+        /** Override Vue CSS. */
+        .theme--dark.v-application {
+            background: #27343b !important;
+        }
+    </style>
+    <script>
+    //We are running the check here to preload the theme because it may load the incorrect one first for a split second.
+    var isLocalStorageSupported = false;
+    try { // Edge browsing files on local file system doesn't support localStorage.
+        if (localStorage) {
+            isLocalStorageSupported = true;
+        }
+    } catch (e) {
+        // nop
+    }
+    
+    var defaultDarkDisabled = false;
+    var darkDisabled = isLocalStorageSupported ? JSON.parse(localStorage.getItem('darkDisabled')) : defaultDarkDisabled;
+    var nightSheet = document.querySelector('[href="styles/night.css"]');
+    if (darkDisabled === null) {
+        localStorage.setItem('darkDisabled', JSON.stringify(defaultDarkDisabled));
+    } else {
+        nightSheet.disabled = darkDisabled;
+    }
+
+    var defaultResponsiveDisabled = true;
+    var responsiveDisabled = 
+        isLocalStorageSupported ? JSON.parse(localStorage.getItem('responsiveDisabled')) : defaultResponsiveDisabled;
+    var responsiveSheet = document.querySelector('[href="styles/responsive.css"]');
+    if (responsiveDisabled === null) {
+        localStorage.setItem('responsiveDisabled', JSON.stringify(defaultResponsiveDisabled));
+        responsiveSheet.disabled = defaultResponsiveDisabled;
+    } else {
+        responsiveSheet.disabled = responsiveDisabled;
+    }
+    </script>
+    <!-- <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui"> -->
+    <link href="images/fav-icon.ico" rel="shortcut icon">
 </head>
 <body>
-
-<div class="nav-header">
-    <p><a href="https://www.highfidelity.com"><img src="images/white-logo.png" width="214px" /></a></p>
-    <?js if (env.conf.docdash.search) { ?>
-    <input type="text" class="search-input" id="nav-search" placeholder="Search API Docs ..." />
-    <?js } ?>
-    <p><a href="https://docs.highfidelity.com">Looking for <strong>High Fidelity</strong><br /> Documentation?</a></p>
-</div>
-
-<nav>
-    <?js= this.nav ?>
-</nav>
+<v-app dark>
+	<div id="vue-menu">
+		<template>
+		<v-btn @click="toggleResponsive" fab large dark style="position: fixed; right: 15px; top: 15px;">
+			<v-icon class="ml-4">mdi-backburger</v-icon>
+		</v-btn>
+			<div class="nav-header">
+			    <p><a href="https://vircadia.com"><img src="images/vircadia-logo-1880.png" width="214px" /></a></p>
+			    <?js if (env.conf.docdash.search) { ?>
+			    <input type="text" class="search-input" id="nav-search" placeholder="Search API Docs ..." />
+			    <?js } ?>
+			    <p><a href="https://docs.vircadia.dev">Looking for <strong>Vircadia</strong><br /> Documentation?</a></p>
+				<v-btn @click="toggleNightMode" text dark>
+					<span>Toggle</span>
+					<v-icon style="margin-left: 5px;">mdi-theme-light-dark</v-icon>
+				</v-btn>
+			</div>
+			<nav>
+			    <?js= this.nav ?>
+			</nav>
+		</template>
+	</div>
+</v-app>
 
 <div id="main">
     <h1 class="page-title"><?js= title ?></h1>
@@ -70,7 +134,43 @@
     <?js } ?>
 <?js } ?>
 
+<script>
+    new Vue({
+        el: '#vue-menu',
+        vuetify: new Vuetify({
+            theme: {
+            	dark: true,
+            },
+        }),
+        data: () => ({
+
+        }),
+        created: function () {
+
+        },
+        methods: {
+            toggleNightMode: function() {
+                var darkDisabled = JSON.parse(localStorage.getItem('darkDisabled'));
+                localStorage.setItem('darkDisabled', JSON.stringify(!darkDisabled));
+                darkDisabled = !darkDisabled;
+
+                var nightSheet = document.querySelector('[href="styles/night.css"]');
+                nightSheet.disabled = darkDisabled;
+            },
+            toggleResponsive: function() {
+                var responsiveDisabled = JSON.parse(localStorage.getItem('responsiveDisabled'));
+                localStorage.setItem('responsiveDisabled', JSON.stringify(!responsiveDisabled));
+                responsiveDisabled = !responsiveDisabled;
+
+                var responsiveSheet = document.querySelector('[href="styles/responsive.css"]');
+                responsiveSheet.disabled = responsiveDisabled;
+            }
+        },
+    })
+</script>
+
 <!-- Start Google Analytics Tag -->
+<!--
 <script>
   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
@@ -80,13 +180,17 @@
   ga('create', '{{ theme_config.google_analytics_code }}', 'auto');
   ga('send', 'pageview');
 </script>
+-->
 <!-- End Google Analytics Tag -->
 
 <!-- Start of HubSpot Embed Code -->
+<!--
 <script type="text/javascript" id="hs-script-loader" async defer src="//js.hs-scripts.com/5066246.js"></script>
+-->
 <!-- End of HubSpot Embed Code -->
 
 <!-- Start Quantcast Tag -->
+<!--
 <script type="text/javascript">
 var _qevents = _qevents || [];
  (function() {
@@ -102,10 +206,12 @@ _qevents.push({qacct: "p-tK6PFLJY3q1s-"});
 <noscript>
  <img src="//pixel.quantserve.com/pixel/p-tK6PFLJY3q1s-.gif?labels=_fp.event.Default" style="display: none;" border="0" height="1" width="1" alt="Quantcast"/>
 </noscript>
+-->
 <!-- End Quantcast Tag -->
 
 
 <!-- Start Hotjar Tracking Code for https://highfidelity.com/ -->
+<!--
 <script>
     (function(h,o,t,j,a,r){
         h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
@@ -116,6 +222,7 @@ _qevents.push({qacct: "p-tK6PFLJY3q1s-"});
         a.appendChild(r);
     })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
 </script>
+-->
 <!-- End Hotjar Tracking Code for https://highfidelity.com/ -->
 
 

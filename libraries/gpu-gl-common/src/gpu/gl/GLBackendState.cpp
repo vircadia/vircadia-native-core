@@ -204,10 +204,7 @@ void GLBackend::do_setStateDepthTest(State::DepthTest test) {
             glDepthFunc(COMPARISON_TO_GL[test.getFunction()]);
         }
         if (CHECK_GL_ERROR()) {
-            qCDebug(gpulogging) << "DepthTest" << (test.isEnabled() ? "Enabled" : "Disabled")
-                << "Mask=" << (test.getWriteMask() ? "Write" : "no Write")
-                << "Func=" << (uint16_t)test.getFunction()
-                << "Raw=" << test.getRaw();
+            qCDebug(gpulogging) << "DepthTest = " << test;
         }
         _pipeline._stateCache.depthTest = test;
     }

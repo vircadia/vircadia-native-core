@@ -22,6 +22,7 @@
 #include <plugins/PluginManager.h>
 #include <EntityEditFilters.h>
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 #include <hfm/ModelFormatRegistry.h>
 
 #include "../AssignmentDynamicFactory.h"

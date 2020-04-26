@@ -105,7 +105,7 @@ public:
      * @returns {TabletProxy} The tablet instance.
      * @example <caption>Display the High Fidelity home page on the system tablet.</caption>
      * var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-     * tablet.gotoWebScreen("https://highfidelity.com/");
+     * tablet.gotoWebScreen("https://projectathena.io/");
      */
     Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
 

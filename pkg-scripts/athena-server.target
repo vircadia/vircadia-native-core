@@ -1,0 +1,11 @@
+[Unit]
+Description=Athena virtual domain
+Wants=athena-assignment-client.service
+Wants=athena-domain-server.service
+#Wants=athena-ice-server.service
+After=athena-assignment-client.service
+After=athena-domain-server.service
+#After=athena-ice-server.service
+
+[Install]
+WantedBy=multi-user.target

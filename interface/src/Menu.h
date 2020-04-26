@@ -180,6 +180,7 @@ namespace MenuOption {
     const QString RunningScripts = "Running Scripts...";
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
+    const QString EntityScriptQMLWhitelist = "Entity Script / QML Whitelist";
     const QString ShowTrackedObjects = "Show Tracked Objects";
     const QString SelfieCamera = "Selfie";
     const QString SendWrongDSConnectVersion = "Send wrong DS connect version";

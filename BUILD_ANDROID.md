@@ -1,6 +1,10 @@
+# Build Android
+
+*Last Updated on December 21, 2019*
+
 Please read the [general build guide](BUILD.md) for information on building other platforms. Only Android specific instructions are found in this file. **Note that these instructions apply to building for Oculus Quest.**
 
-# Dependencies
+## Dependencies
 
 Building is currently supported on Windows, OSX and Linux, but developers intending to do work on the library dependencies are strongly urged to use 64 bit Linux as a build platform.
 
@@ -27,7 +31,7 @@ Still in the _SDK Tools_ tab, click _Show Package Details_. Select CMake 3.6.4. 
 
 Also, make sure the NDK installed version is 18 (or higher).
 
-# Environment
+## Environment
 
 ### Create a keystore in Android Studio
 Follow the directions [here](https://developer.android.com/studio/publish/app-signing#generate-key) to create a keystore file. You can save it anywhere (preferably not in the `hifi` folder).
@@ -62,9 +66,9 @@ The above code to suppress modules is not necessary, but will speed up the build
 
 ### Clone the repository
 
-`git clone https://github.com/highfidelity/hifi.git `
+`git clone https://github.com/kasenvr/project-athena.git`
 
-# Building & Running
+## Building & Running
 
 ### Building Modules
 
@@ -99,9 +103,9 @@ For the interface modules, you also need to select the activity to launch.
 
 Note the 's' in Permission**s**Checker for the Quest.
 
-Now you are able to run your module! Click the green play button in the top toolbar of Android Studio
-r
-# Troubleshooting
+Now you are able to run your module! Click the green play button in the top toolbar of Android Studio.
+
+## Troubleshooting
 
 To view a more complete debug log,
 

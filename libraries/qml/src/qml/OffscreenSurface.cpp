@@ -24,6 +24,7 @@
 #include <gl/OffscreenGLCanvas.h>
 #include <shared/ReadWriteLockable.h>
 #include <NetworkingConstants.h>
+#include <MetaverseAPI.h>
 
 #include "Logging.h"
 #include "impl/SharedObject.h"

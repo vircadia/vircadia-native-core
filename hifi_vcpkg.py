@@ -9,6 +9,7 @@ import tempfile
 import json
 import xml.etree.ElementTree as ET
 import functools
+from os import path
 
 print = functools.partial(print, flush=True)
 
@@ -35,6 +36,8 @@ endif()
         self.sourcePortsPath = args.ports_path
         self.id = hifi_utils.hashFolder(self.sourcePortsPath)[:8]
         self.configFilePath = os.path.join(args.build_root, 'vcpkg.cmake')
+        self.assets_url = self.readVar('EXTERNAL_BUILD_ASSETS')
+
         # The noClean flag indicates we're doing weird dependency maintenance stuff
         # i.e. we've got an explicit checkout of vcpkg and we don't want the script to 
         # do stuff it might otherwise do.  It typically indicates that we're using our 
@@ -80,23 +83,23 @@ endif()
         if 'Windows' == system:
             self.exe = os.path.join(self.path, 'vcpkg.exe')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.bat') ]
-            self.vcpkgUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/builds/vcpkg-win32-client.zip?versionId=tSFzbw01VkkVFeRQ6YuAY4dro2HxJR9U'
+            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-win32-client.zip%3FversionId=tSFzbw01VkkVFeRQ6YuAY4dro2HxJR9U'
             self.vcpkgHash = 'a650db47a63ccdc9904b68ddd16af74772e7e78170b513ea8de5a3b47d032751a3b73dcc7526d88bcb500753ea3dd9880639ca842bb176e2bddb1710f9a58cd3'
             self.hostTriplet = 'x64-windows'
             if usePrebuilt:
-               self.prebuiltArchive = "https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/builds/vcpkg-win32.zip?versionId=3SF3mDC8dkQH1JP041m88xnYmWNzZflx"
+               self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-win32.zip%3FversionId=3SF3mDC8dkQH1JP041m88xnYmWNzZflx"
         elif 'Darwin' == system:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '--allowAppleClang' ]
-            self.vcpkgUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/builds/vcpkg-osx-client.tgz?versionId=j0b4azo_zTlH_Q9DElEWOz1UMYZ2nqQw'
+            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-osx-client.tgz%3FversionId=j0b4azo_zTlH_Q9DElEWOz1UMYZ2nqQw'
             self.vcpkgHash = '519d666d02ef22b87c793f016ca412e70f92e1d55953c8f9bd4ee40f6d9f78c1df01a6ee293907718f3bbf24075cc35492fb216326dfc50712a95858e9cbcb4d'
             self.hostTriplet = 'x64-osx'
             if usePrebuilt:
-                self.prebuiltArchive = "https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/builds/vcpkg-osx.tgz?versionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
+                self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-osx.tgz%3FversionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh') ]
-            self.vcpkgUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/builds/vcpkg-linux-client.tgz?versionId=y7mct0gFicEXz5hJy3KROBugcLR56YWf'
+            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-linux-client.tgz%3FversionId=y7mct0gFicEXz5hJy3KROBugcLR56YWf'
             self.vcpkgHash = '6a1ce47ef6621e699a4627e8821ad32528c82fce62a6939d35b205da2d299aaa405b5f392df4a9e5343dd6a296516e341105fbb2dd8b48864781d129d7fba10d'
             self.hostTriplet = 'x64-linux'
 
@@ -105,6 +108,14 @@ endif()
             self.androidPackagePath = os.getenv('HIFI_ANDROID_PRECOMPILED', os.path.join(self.path, 'android'))
         else:
             self.triplet = self.hostTriplet
+
+    def readVar(self, var):
+        with open(os.path.join(self.args.build_root, '_env', var + ".txt")) as fp:
+            return fp.read()
+
+    def writeVar(self, var, value):
+        with open(os.path.join(self.args.build_root, '_env', var + ".txt"), 'w') as fp:
+            fp.write(value)
 
     def upToDate(self):
         # Prevent doing a clean if we've explcitly set a directory for vcpkg
@@ -127,6 +138,17 @@ endif()
             return False
         return True
 
+    def copyEnv(self):
+        print("Passing on variables to vcpkg")
+        srcEnv = os.path.join(self.args.build_root, "_env")
+        destEnv = os.path.join(self.path, "_env")
+
+        if path.exists(destEnv):
+            shutil.rmtree(destEnv)
+
+        shutil.copytree(srcEnv, destEnv)
+
+
     def clean(self):
         print("Cleaning vcpkg installation at {}".format(self.path))
         if os.path.isdir(self.path):
@@ -136,6 +158,7 @@ endif()
     # Make sure the VCPKG prerequisites are all there.
     def bootstrap(self):
         if self.upToDate():
+            self.copyEnv()
             return
 
         if self.prebuiltArchive is not None:
@@ -160,7 +183,7 @@ endif()
         if downloadVcpkg:
             if "HIFI_VCPKG_BOOTSTRAP" in os.environ:
                 print("Cloning vcpkg from github to {}".format(self.path))
-                hifi_utils.executeSubprocess(['git', 'clone', 'https://github.com/microsoft/vcpkg.git', self.path])
+                hifi_utils.executeSubprocess(['git', 'clone', 'https://github.com/microsoft/vcpkg', self.path])
                 print("Bootstrapping vcpkg")
                 hifi_utils.executeSubprocess(self.bootstrapCmds, folder=self.path, env=self.bootstrapEnv)
             else:
@@ -174,6 +197,7 @@ endif()
         if (os.path.isdir(portsPath)):
             shutil.rmtree(portsPath, ignore_errors=True)
         shutil.copytree(self.sourcePortsPath, portsPath)
+        self.copyEnv()
 
     def run(self, commands):
         actualCommands = [self.exe, '--vcpkg-root', self.path]
@@ -220,7 +244,7 @@ endif()
         # vcpkg prebuilt
         if not os.path.isdir(os.path.join(self.path, 'installed', 'arm64-android')):
             dest = os.path.join(self.path, 'installed')
-            url = "https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/vcpkg-arm64-android.tar.gz"
+            url = self.assets_url + "/dependencies/vcpkg/vcpkg-arm64-android.tar.gz"
             # FIXME I don't know why the hash check frequently fails here.  If you examine the file later it has the right hash
             #hash = "832f82a4d090046bdec25d313e20f56ead45b54dd06eee3798c5c8cbdd64cce4067692b1c3f26a89afe6ff9917c10e4b601c118bea06d23f8adbfe5c0ec12bc3"
             #hifi_utils.downloadAndExtract(url, dest, hash)
