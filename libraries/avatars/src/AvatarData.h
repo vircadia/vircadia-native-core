@@ -1274,7 +1274,7 @@ public:
      *     <code>null</code> to remove all attachments.
      * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      * @example <caption>Remove a hat attachment if your avatar is wearing it.</caption>
-     * var hatURL = "https://apidocs.projectathena.dev/models/cowboy-hat.fbx";
+     * var hatURL = "https://apidocs.vircadia.dev/models/cowboy-hat.fbx";
      * var attachments = MyAvatar.getAttachmentData();
      *
      * for (var i = 0; i < attachments.length; i++) {
@@ -1311,7 +1311,7 @@ public:
      * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      * @example <caption>Attach a cowboy hat to your avatar's head.</caption>
      * var attachment = {
-     *     modelURL: "https://apidocs.projectathena.dev/models/cowboy-hat.fbx",
+     *     modelURL: "https://apidocs.vircadia.dev/models/cowboy-hat.fbx",
      *     jointName: "Head",
      *     translation: {"x": 0, "y": 0.25, "z": 0},
      *     rotation: {"x": 0, "y": 0, "z": 0, "w": 1},

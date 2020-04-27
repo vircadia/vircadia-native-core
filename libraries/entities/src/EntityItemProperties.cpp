@@ -1036,7 +1036,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     type: "Model",
  *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -2 })),
  *     rotation: MyAvatar.orientation,
- *     modelURL: "https://apidocs.projectathena.dev/models/cowboy-hat.fbx",
+ *     modelURL: "https://apidocs.vircadia.dev/models/cowboy-hat.fbx",
  *     dimensions: { x: 0.8569, y: 0.3960, z: 1.0744 },
  *     lifetime: 300  // Delete after 5 minutes.
  * });
