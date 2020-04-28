@@ -2,7 +2,7 @@
 //
 //  Created by Ryan Huffman on 13 Nov 2014
 //  Copyright 2014 High Fidelity, Inc.
-//  Copyright 2020 Project Athena contributors.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -67,11 +67,16 @@ const GROUPS = [
                 replaceID: "placeholder-property-id",
                 multiDisplayMode: PROPERTY_MULTI_DISPLAY_MODE.COMMA_SEPARATED_VALUES,
             },
-            {
+            /*{
                 label: "Description",
                 type: "string",
                 propertyID: "description",
-            },
+            },*/
+            { //THIS IS ONLY FOR THE TEST ##########################################
+                label: "Description",
+                type: "multipleZonesSelection",
+                propertyID: "description",
+            }, // END TEST #############################
             {
                 label: "Parent",
                 type: "string",
@@ -575,6 +580,12 @@ const GROUPS = [
                 type: "dropdown",
                 options: { inherit: "Inherit", crowd: "Crowd", hero: "Hero" },
                 propertyID: "avatarPriority",
+            },
+            {
+                label: "Screen-share",
+                type: "dropdown",
+                options: { inherit: "Inherit", disabled: "Off", enabled: "On" },
+                propertyID: "screenshare",
             }
         ]
     },
@@ -1669,7 +1680,6 @@ const GROUPS_PER_TYPE = {
   ParticleEffect: [ 'base', 'particles', 'particles_emit', 'particles_size', 'particles_color', 
                     'particles_behavior', 'particles_constraints', 'spatial', 'behavior', 'scripts', 'physics' ],
   PolyLine: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
-  PolyLine: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   PolyVox: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
   Grid: [ 'base', 'grid', 'spatial', 'behavior', 'scripts', 'physics' ],
   Multiple: [ 'base', 'spatial', 'behavior', 'scripts', 'collision', 'physics' ],
@@ -1739,7 +1749,7 @@ let selectedEntityIDs = new Set();
 let currentSelections = [];
 let createAppTooltip = new CreateAppTooltip();
 let currentSpaceMode = PROPERTY_SPACE_MODE.LOCAL;
-
+let zonesList = [];
 
 function createElementFromHTML(htmlString) {
     let elTemplate = document.createElement('template');
@@ -1764,6 +1774,8 @@ function getPropertyInputElement(propertyID) {
         case 'dropdown':
         case 'textarea':
         case 'texture':
+            return property.elInput;
+        case 'multipleZonesSelection':
             return property.elInput;
         case 'number-draggable':
             return property.elNumber.elInput;
@@ -1805,6 +1817,7 @@ function disableChildren(el, selector) {
 function enableProperties() {
     enableChildren(document.getElementById("properties-list"), ENABLE_DISABLE_SELECTOR);
     enableChildren(document, ".colpick");
+    enableAllMultipleZoneSelector();
 }
 
 function disableProperties() {
@@ -1813,6 +1826,7 @@ function disableProperties() {
     for (let pickKey in colorPickers) {
         colorPickers[pickKey].colpickHide();
     }
+    disableAllMultipleZoneSelector();
 }
 
 function showPropertyElement(propertyID, show) {
@@ -1885,6 +1899,12 @@ function resetProperties() {
                 property.elInput.classList.remove('multi-diff');
                 property.elInput.value = "";
                 setTextareaScrolling(property.elInput);
+                break;
+            }
+            case 'multipleZonesSelection': {
+                property.elInput.classList.remove('multi-diff');
+                property.elInput.value = "[]"; //################################## PROBABLY SOMETHING TO ADJUST HERE!
+                setZonesSelectionData(property.elInput, false);
                 break;
             }
             case 'icon': {
@@ -3036,6 +3056,10 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
             property.elInput = createTextareaProperty(property, elProperty);
             break;
         }
+        case 'multipleZonesSelection': {
+            property.elInput = createZonesSelection(property, elProperty);
+            break;            
+        }
         case 'icon': {
             property.elSpan = createIconProperty(property, elProperty);
             break;
@@ -3528,6 +3552,175 @@ function setTextareaScrolling(element) {
     element.setAttribute("scrolling", isScrolling ? "true" : "false");
 }
 
+/**
+ * ZONE SELECTOR FUNCTIONS
+ */
+
+function enableAllMultipleZoneSelector() {
+    let allMultiZoneSelectors = document.querySelectorAll(".hiddenMultiZonesSelection");
+    let i, propId;
+    for ( i = 0; i < allMultiZoneSelectors.length; i++ ) {
+        propId = allMultiZoneSelectors[i].id;
+        displaySelectedZones(propId, true);
+    }
+} 
+
+function disableAllMultipleZoneSelector() {
+    let allMultiZoneSelectors = document.querySelectorAll(".hiddenMultiZonesSelection");
+    let i, propId;
+    for ( i = 0; i < allMultiZoneSelectors.length; i++ ) {
+        propId = allMultiZoneSelectors[i].id;
+        displaySelectedZones(propId, false);
+    }
+} 
+
+function requestZoneList() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "zoneListRequest"
+    }));
+}
+
+function addZoneToZonesSelection(propertyId) {
+    let hiddenField = document.getElementById(propertyId);
+    if(JSON.stringify(hiddenField.value) === '"undefined"') {
+        hiddenField.value = "[]";
+    }
+    let selectedZones = JSON.parse(hiddenField.value);
+    let zoneToAdd = document.getElementById("zones-select-" + propertyId).value;
+    if (!selectedZones.includes(zoneToAdd)) {
+        selectedZones.push(zoneToAdd);    
+    }
+    hiddenField.value = JSON.stringify(selectedZones);
+    displaySelectedZones(propertyId, true);
+    let propertyName = propertyId.replace("property-", "");
+    updateProperty(propertyName, JSON.stringify(selectedZones), false); //FOR TEMPORARY STRING FOR TEST 
+    //updateProperty(propertyName, selectedZones, false); //DIRECTLY FOR ARRY    
+}
+
+function removeZoneFromZonesSelection(propertyId, zoneId) {
+    let hiddenField = document.getElementById(propertyId);
+    if(JSON.stringify(hiddenField.value) === '"undefined"') {
+        hiddenField.value = "[]";
+    }    
+    let selectedZones = JSON.parse(hiddenField.value);
+    let index = selectedZones.indexOf(zoneId);
+    if (index > -1) {
+      selectedZones.splice(index, 1);
+    }
+    hiddenField.value = JSON.stringify(selectedZones);
+    displaySelectedZones(propertyId, true);
+    let propertyName = propertyId.replace("property-", "");
+    updateProperty(propertyName, JSON.stringify(selectedZones), false); //FOR TEMPORARY STRING FOR TEST 
+    //updateProperty(propertyName, selectedZones, false); //DIRECTLY FOR ARRY   
+}
+
+function displaySelectedZones(propertyId, isEditable) {
+    let i,j, name, listedZoneInner, hiddenData, isMultiple;
+    hiddenData = document.getElementById(propertyId).value;
+    if (JSON.stringify(hiddenData) === '"undefined"') {
+        isMultiple = true;
+        hiddenData = "[]";
+    } else {
+        isMultiple = false;  
+    }
+    let selectedZones = JSON.parse(hiddenData);
+    listedZoneInner = "<table>";
+    if (selectedZones.length === 0) {
+        if (!isMultiple) {
+            listedZoneInner += "<tr><td class='zoneItem'>&nbsp;</td><td>&nbsp;</td></tr>";
+        } else {
+            listedZoneInner += "<tr><td class='zoneItem'>[ WARNING: Any changes will apply to all ]</td><td>&nbsp;</td></tr>";
+        }
+    } else {
+        for ( i = 0; i < selectedZones.length; i++ ) {
+            name = "{ERROR: NOT FOUND}";
+            for ( j = 0; j < zonesList.length; j++ ) {
+                if (selectedZones[i] === zonesList[j].id) {
+                    if (zonesList[j].name !== "") {
+                        name = zonesList[j].name;
+                    } else {
+                        name = zonesList[j].id;
+                    }
+                    break;
+                }
+            }
+            if (isEditable) {
+                listedZoneInner += "<tr><td class='zoneItem'>" + name + "</td><td><a href='#' onClick='removeZoneFromZonesSelection(" + '"' + propertyId + '"' + ", " + '"' + selectedZones[i] + '"' + ");' ><img src='../../../html/css/img/remove_icon.png'></a></td></tr>";
+            } else {
+                listedZoneInner += "<tr><td class='zoneItem'>" + name + "</td><td>&nbsp;</td></tr>";    
+            }
+        }
+    }
+    listedZoneInner += "</table>";
+    document.getElementById("selected-zones-" + propertyId).innerHTML = listedZoneInner; 
+    if (isEditable) {
+        document.getElementById("multiZoneSelTools-" + propertyId).style.display = "block";
+    } else {
+        document.getElementById("multiZoneSelTools-" + propertyId).style.display = "none";
+    }
+}
+
+function createZonesSelection(property, elProperty) {
+    let elementID = property.elementID;
+    requestZoneList();
+    elProperty.className = "multipleZonesSelection";
+    let elInput = document.createElement('input');
+    elInput.setAttribute("id", elementID);
+    elInput.setAttribute("type", "hidden"); // must be hidden ################################################################################# HEIL! ICITTE!
+    elInput.className = "hiddenMultiZonesSelection";
+
+    let elZonesSelector = document.createElement('div');
+    elZonesSelector.setAttribute("id", "zones-selector-" + elementID);
+
+    let elMultiDiff = document.createElement('span');
+    elMultiDiff.className = "multi-diff";
+
+    elProperty.appendChild(elInput);
+    elProperty.appendChild(elZonesSelector);
+    elProperty.appendChild(elMultiDiff);
+
+    return elInput;
+}
+
+function setZonesSelectionData(element, isEditable) {
+    let zoneSelectorContainer = document.getElementById("zones-selector-" + element.id);
+    let zoneSelector = "<div class='multiZoneSelToolbar' id='multiZoneSelTools-" + element.id + "'><select class = 'zoneSelect' id='zones-select-" + element.id + "' >";
+    let i, name;
+    for ( i = 0; i < zonesList.length; i++ ) {
+        if (zonesList[i].name === "") {
+            name = zonesList[i].id;
+        } else {
+            name = zonesList[i].name;
+        }
+        zoneSelector += "<option value='" + zonesList[i].id + "'>" + name + "</option>";
+    }   
+    zoneSelector += "</select>&nbsp;<a href='#' id='zones-select-add-" + element.id + "' onClick='addZoneToZonesSelection(" + '"' + element.id + '"' + ");' ><img style='vertical-align:top' src='../../../html/css/img/add_icon.png'></a></div>";
+    zoneSelector += "<div class='selected-zone-container' id='selected-zones-" + element.id + "'></div>";
+    zoneSelectorContainer.innerHTML = zoneSelector;
+    displaySelectedZones(element.id, isEditable);
+}
+
+function updateAllZoneSelect() {
+    let allZoneSelects = document.querySelectorAll(".zoneSelect");
+    let i, j, name, propId;
+    for ( i = 0; i < allZoneSelects.length; i++ ) {
+        allZoneSelects[i].options.length = 0;
+        for ( j = 0; j < zonesList.length; j++ ) {
+            if (zonesList[j].name === "") {
+                name = zonesList[j].id;
+            } else {
+                name = zonesList[j].name;
+            }
+            allZoneSelects[i].options[j] = new Option(name, zonesList[j].id, false , false);
+        }
+        propId = allZoneSelects[i].id.replace("zones-select-", "");
+        if (document.getElementById("multiZoneSelTools-" + propId).style.display === "block") {
+            displaySelectedZones(propId, true);
+        } else {
+            displaySelectedZones(propId, false);
+        }
+    }
+}
 
 /**
  * MATERIAL TARGET FUNCTIONS
@@ -3701,7 +3894,9 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
     selectedEntityIDs = new Set(selections.map(selection => selection.id));
     const multipleSelections = currentSelections.length > 1;
     const hasSelectedEntityChanged = !areSetsEqual(selectedEntityIDs, previouslySelectedEntityIDs);
-
+    
+    requestZoneList();
+    
     if (selections.length === 0) {
         deleteJSONEditor();
         deleteJSONMaterialEditor();
@@ -3756,7 +3951,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
         } else {
             enableProperties();
             disableSaveUserDataButton();
-            disableSaveMaterialDataButton()
+            disableSaveMaterialDataButton();
         }
 
         const certificateIDMultiValue = getMultiplePropertyValue('certificateID');
@@ -3912,6 +4107,19 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                     setTextareaScrolling(property.elInput);
                     break;
                 }
+                case 'multipleZonesSelection': {
+                    if (propertyValue == ""){ //THIS IS A PATCH FOR TESTING WITh A STRING FIELDS
+                        property.elInput.value = "[]"; //THIS IS A PATCH FOR TESTING WITh A STRING FIELDS
+                    } else { //THIS IS A PATCH FOR TESTING WITh A STRING FIELDS
+                        property.elInput.value = propertyValue; //JSON.stringify(propertyValue); //##### TO CHECK depending what type the value is.. expecting an array so it willbe manage as a string.
+                    } //THIS IS A PATCH FOR TESTING WITh A STRING FIELDS
+                    if (lockedMultiValue.isMultiDiffValue || lockedMultiValue.value) {
+                        setZonesSelectionData(property.elInput, false);
+                    } else {
+                        setZonesSelectionData(property.elInput, true);
+                    }
+                    break;
+                }                
                 case 'icon': {
                     property.elSpan.innerHTML = propertyData.icons[propertyValue];
                     property.elSpan.style.display = "inline-block";
@@ -4241,6 +4449,9 @@ function loaded() {
                     if (data.entityID === getFirstSelectedID()) {
                         setMaterialTargetData(data.materialTargetData);
                     }
+                } else if (data.type === 'zoneListRequest') {
+                    zonesList = data.zones;
+                    updateAllZoneSelect();
                 }
             });
 
