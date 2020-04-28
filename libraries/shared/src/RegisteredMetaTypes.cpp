@@ -1309,7 +1309,7 @@ void meshesFromScriptValue(const QScriptValue& value, MeshProxyList &out) {
 /**jsdoc
  * A triangle in a mesh.
  * @typedef {object} MeshFace
- * @property {number[]} vertices - The indexes of the three vertices that make up the fase.
+ * @property {number[]} vertices - The indexes of the three vertices that make up the face.
  */
 QScriptValue meshFaceToScriptValue(QScriptEngine* engine, const MeshFace &meshFace) {
     QScriptValue obj = engine->newObject();

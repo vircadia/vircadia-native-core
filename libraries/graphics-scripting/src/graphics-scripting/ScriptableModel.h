@@ -22,7 +22,7 @@ namespace scriptable {
      * <p>Note: The model may be used for more than one instance of an item displayed in the scene. Modifying the model updates 
      * all instances displayed.</p>
      *
-     * <p>Created using the {@link Graphics} API or {@link GraphicsModel.cloneModel}.</p>
+     * <p>Create using the {@link Graphics} API or {@link GraphicsModel.cloneModel}.</p>
      *
      * @class GraphicsModel
      * @hideconstructor
@@ -34,7 +34,7 @@ namespace scriptable {
      * @property {Uuid} objectID - The ID of the entity or avatar that the model is associated with, if any; <code>null</code> 
      *     if the model is not associated with an entity or avatar.
      *     <em>Read-only.</em>
-     * @property {number} numMeshes - The number of meshes contained in the model.
+     * @property {number} numMeshes - The number of meshes in the model.
      *     <em>Read-only.</em>
      * @property {GraphicsMesh[]} meshes - The meshes in the model. Each mesh may have more than one mesh part.
      *     <em>Read-only.</em>
