@@ -67,16 +67,11 @@ const GROUPS = [
                 replaceID: "placeholder-property-id",
                 multiDisplayMode: PROPERTY_MULTI_DISPLAY_MODE.COMMA_SEPARATED_VALUES,
             },
-            /*{
+            {
                 label: "Description",
                 type: "string",
                 propertyID: "description",
-            },*/
-            { //THIS IS ONLY FOR THE TEST ##########################################
-                label: "Description",
-                type: "multipleZonesSelection",
-                propertyID: "description",
-            }, // END TEST #############################
+            },
             {
                 label: "Parent",
                 type: "string",
@@ -120,6 +115,11 @@ const GROUPS = [
                     lines: "Wireframe",
                 },
                 propertyID: "primitiveMode",
+            },
+            {
+                label: "Render With Zones",
+                type: "multipleZonesSelection",
+                propertyID: "renderWithZones",
             }
         ]
     },
@@ -1903,7 +1903,7 @@ function resetProperties() {
             }
             case 'multipleZonesSelection': {
                 property.elInput.classList.remove('multi-diff');
-                property.elInput.value = "[]"; //################################## PROBABLY SOMETHING TO ADJUST HERE!
+                property.elInput.value = "[]";
                 setZonesSelectionData(property.elInput, false);
                 break;
             }
@@ -3588,20 +3588,19 @@ function addZoneToZonesSelection(propertyId) {
     let selectedZones = JSON.parse(hiddenField.value);
     let zoneToAdd = document.getElementById("zones-select-" + propertyId).value;
     if (!selectedZones.includes(zoneToAdd)) {
-        selectedZones.push(zoneToAdd);    
+        selectedZones.push(zoneToAdd);
     }
     hiddenField.value = JSON.stringify(selectedZones);
     displaySelectedZones(propertyId, true);
     let propertyName = propertyId.replace("property-", "");
-    updateProperty(propertyName, JSON.stringify(selectedZones), false); //FOR TEMPORARY STRING FOR TEST 
-    //updateProperty(propertyName, selectedZones, false); //DIRECTLY FOR ARRY    
+    updateProperty(propertyName, selectedZones, false);
 }
 
 function removeZoneFromZonesSelection(propertyId, zoneId) {
     let hiddenField = document.getElementById(propertyId);
     if(JSON.stringify(hiddenField.value) === '"undefined"') {
         hiddenField.value = "[]";
-    }    
+    }
     let selectedZones = JSON.parse(hiddenField.value);
     let index = selectedZones.indexOf(zoneId);
     if (index > -1) {
@@ -3610,8 +3609,7 @@ function removeZoneFromZonesSelection(propertyId, zoneId) {
     hiddenField.value = JSON.stringify(selectedZones);
     displaySelectedZones(propertyId, true);
     let propertyName = propertyId.replace("property-", "");
-    updateProperty(propertyName, JSON.stringify(selectedZones), false); //FOR TEMPORARY STRING FOR TEST 
-    //updateProperty(propertyName, selectedZones, false); //DIRECTLY FOR ARRY   
+    updateProperty(propertyName, selectedZones, false);
 }
 
 function displaySelectedZones(propertyId, isEditable) {
@@ -3629,7 +3627,7 @@ function displaySelectedZones(propertyId, isEditable) {
         if (!isMultiple) {
             listedZoneInner += "<tr><td class='zoneItem'>&nbsp;</td><td>&nbsp;</td></tr>";
         } else {
-            listedZoneInner += "<tr><td class='zoneItem'>[ WARNING: Any changes will apply to all ]</td><td>&nbsp;</td></tr>";
+            listedZoneInner += "<tr><td class='zoneItem'>[ WARNING: Any changes will apply to all. ]</td><td>&nbsp;</td></tr>";
         }
     } else {
         for ( i = 0; i < selectedZones.length; i++ ) {
@@ -3645,9 +3643,10 @@ function displaySelectedZones(propertyId, isEditable) {
                 }
             }
             if (isEditable) {
-                listedZoneInner += "<tr><td class='zoneItem'>" + name + "</td><td><a href='#' onClick='removeZoneFromZonesSelection(" + '"' + propertyId + '"' + ", " + '"' + selectedZones[i] + '"' + ");' ><img src='../../../html/css/img/remove_icon.png'></a></td></tr>";
+                listedZoneInner += "<tr><td class='zoneItem'>" + name + "</td><td><a href='#' onClick='removeZoneFromZonesSelection(" + '"' + propertyId + '"' + ", " + '"' + selectedZones[i] + '"' + ");' >";
+                listedZoneInner += "<img src='../../../html/css/img/remove_icon.png'></a></td></tr>";
             } else {
-                listedZoneInner += "<tr><td class='zoneItem'>" + name + "</td><td>&nbsp;</td></tr>";    
+                listedZoneInner += "<tr><td class='zoneItem'>" + name + "</td><td>&nbsp;</td></tr>";
             }
         }
     }
@@ -3666,7 +3665,7 @@ function createZonesSelection(property, elProperty) {
     elProperty.className = "multipleZonesSelection";
     let elInput = document.createElement('input');
     elInput.setAttribute("id", elementID);
-    elInput.setAttribute("type", "hidden"); // must be hidden ################################################################################# HEIL! ICITTE!
+    elInput.setAttribute("type", "hidden");
     elInput.className = "hiddenMultiZonesSelection";
 
     let elZonesSelector = document.createElement('div');
@@ -3694,7 +3693,8 @@ function setZonesSelectionData(element, isEditable) {
         }
         zoneSelector += "<option value='" + zonesList[i].id + "'>" + name + "</option>";
     }   
-    zoneSelector += "</select>&nbsp;<a href='#' id='zones-select-add-" + element.id + "' onClick='addZoneToZonesSelection(" + '"' + element.id + '"' + ");' ><img style='vertical-align:top' src='../../../html/css/img/add_icon.png'></a></div>";
+    zoneSelector += "</select>&nbsp;<a href='#' id='zones-select-add-" + element.id + "' onClick='addZoneToZonesSelection(" + '"' + element.id + '"' + ");' >";
+    zoneSelector += "<img style='vertical-align:top' src='../../../html/css/img/add_icon.png'></a></div>";
     zoneSelector += "<div class='selected-zone-container' id='selected-zones-" + element.id + "'></div>";
     zoneSelectorContainer.innerHTML = zoneSelector;
     displaySelectedZones(element.id, isEditable);
@@ -4108,18 +4108,14 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                     break;
                 }
                 case 'multipleZonesSelection': {
-                    if (propertyValue == ""){ //THIS IS A PATCH FOR TESTING WITh A STRING FIELDS
-                        property.elInput.value = "[]"; //THIS IS A PATCH FOR TESTING WITh A STRING FIELDS
-                    } else { //THIS IS A PATCH FOR TESTING WITh A STRING FIELDS
-                        property.elInput.value = propertyValue; //JSON.stringify(propertyValue); //##### TO CHECK depending what type the value is.. expecting an array so it willbe manage as a string.
-                    } //THIS IS A PATCH FOR TESTING WITh A STRING FIELDS
+                    property.elInput.value =  JSON.stringify(propertyValue);
                     if (lockedMultiValue.isMultiDiffValue || lockedMultiValue.value) {
                         setZonesSelectionData(property.elInput, false);
                     } else {
                         setZonesSelectionData(property.elInput, true);
                     }
                     break;
-                }                
+                }
                 case 'icon': {
                     property.elSpan.innerHTML = propertyData.icons[propertyValue];
                     property.elSpan.style.display = "inline-block";
