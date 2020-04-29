@@ -206,7 +206,7 @@ public slots:
     void browseAsync(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
     /**jsdoc
-     * Prompts the user to specify the path and name of a file to save to. Displays a model dialog that navigates the directory
+     * Prompts the user to specify the path and name of a file to save to. Displays a modal dialog that navigates the directory
      * tree and allows the user to type in a file name.
      * @function Window.save
      * @param {string} [title=""] - The title to display at the top of the dialog.
@@ -222,7 +222,7 @@ public slots:
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
     /**jsdoc
-     * Prompts the user to specify the path and name of a file to save to. Displays a non-model dialog that navigates the
+     * Prompts the user to specify the path and name of a file to save to. Displays a non-modal dialog that navigates the
      * directory tree and allows the user to type in a file name. A {@link Window.saveFileChanged|saveFileChanged} signal is
      * emitted when a file is specified; no signal is emitted if the user cancels the dialog.
      * @function Window.saveAsync
@@ -818,8 +818,12 @@ signals:
     /**jsdoc
      * Triggered when "minimized" state of the Interface window changes.
      * @function Window.minimizedChanged
-     * @param {bool} isMinimized - true if the Interface window is now minimized; false otherwise.
+     * @param {boolean} isMinimized - <code>true</code> if the Interface window is minimized, <code>false</code> if it isn't.
      * @returns {Signal}
+     * @example <caption>Report the "minimized" state of the Interface window when it changes.</caption>
+     * function onWindowMinimizedChanged(minimized) {
+     *     print("Window minimized: " + minimized);
+     * }
      *
      * Window.minimizedChanged.connect(onWindowMinimizedChanged);
      */

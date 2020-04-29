@@ -14,6 +14,41 @@
 
 #include <display-plugins/DisplayPlugin.h>
 
+/**jsdoc
+ *  The <code>Rates</code> API provides some information on current rendering performance.
+ *
+ * @namespace Rates
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-avatar
+ *
+ * @property {number} render - The rate at which new GPU frames are being created, in Hz.
+ *     <em>Read-only.</em>
+ * @property {number} present - The rate at which the display plugin is presenting to the display device, in Hz.
+ *     <em>Read-only.</em>
+ * @property {number} newFrame - The rate at which the display plugin is presenting new GPU frames, in Hz.
+ *     <em>Read-only.</em>
+ * @property {number} dropped - The rate at which the display plugin is dropping GPU frames, in Hz.
+ *     <em>Read-only.</em>
+ * @property {number} simulation - The rate at which the game loop is running, in Hz.
+ *     <em>Read-only.</em>
+ *
+ * @example <caption>Report current rendering rates.</caption>
+ * // The rates to report.
+ * var rates = [
+ *     "render",
+ *     "present",
+ *     "newFrame",
+ *     "dropped",
+ *     "simulation"
+ * ];
+ * 
+ * // Report the rates.
+ * for (var i = 0; i < rates.length; i++) {
+ *     print("Rates." + rates[i], "=", Rates[rates[i]]);
+ * }
+ */
 class RatesScriptingInterface : public QObject {
     Q_OBJECT
 

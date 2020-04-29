@@ -113,9 +113,9 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
 /**jsdoc
  * A material used in a {@link Entities.MaterialResource|MaterialResource}.
  * @typedef {object} Entities.Material
+ * @property {string} name="" - A name for the material. Supported by all material models.
  * @property {string} model="hifi_pbr" - Different material models support different properties and rendering modes.
  *     Supported models are: <code>"hifi_pbr"</code>, <code>"hifi_shader_simple"</code>.
- * @property {string} name="" - A name for the material. Supported by all material models.
  * @property {ColorFloat|RGBS|string} emissive - The emissive color, i.e., the color that the material emits. A 
  *     {@link ColorFloat} value is treated as sRGB and must have component values in the range <code>0.0</code> &ndash; 
  *     <code>1.0</code>. A {@link RGBS} value can be either RGB or sRGB. 
@@ -144,12 +144,24 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  *     value for transparency. 
  *     <code>"hifi_pbr"</code> model only.
  * @property {string} opacityMapMode - The mode defining the interpretation of the opacity map. Values can be:
- *     <code>"OPACITY_MAP_OPAQUE"</code> for ignoring the opacity map information.
- *     <code>"OPACITY_MAP_MASK"</code> for using the opacity map as a mask, where only the texel greater than opacityCutoff are visible and rendered opaque.
- *     <code>"OPACITY_MAP_BLEND"</code> for using the opacity map for alpha blending the material surface with the background.
+ *     <ul>
+ *         <li><code>"OPACITY_MAP_OPAQUE"</code> for ignoring the opacity map information.</li>
+ *         <li><code>"OPACITY_MAP_MASK"</code> for using the <code>opacityMap</code> as a mask, where only the texel greater 
+ *         than <code>opacityCutoff</code> are visible and rendered opaque.</li>
+ *         <li><code>"OPACITY_MAP_BLEND"</code> for using the <code>opacityMap</code> for alpha blending the material surface 
+ *         with the background.</li>
+ *     </ul>
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {number|string} opacityCutoff - The opacity cutoff threshold used to determine the opaque texels of the Opacity map
- *     when opacityMapMode is "OPACITY_MAP_MASK", range <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {number|string} opacityCutoff - The opacity cutoff threshold used to determine the opaque texels of the 
+ *     <code>opacityMap</code> when <code>opacityMapMode</code> is <code>"OPACITY_MAP_MASK"</code>. Range <code>0.0</code> 
+ *     &ndash; <code>1.0</code>.
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} cullFaceMode="CULL_BACK" - The mode defining which side of the geometry should be rendered. Values can be:
+ *     <ul>
+ *         <li><code>"CULL_NONE"</code> to render both sides of the geometry.</li>
+ *         <li><code>"CULL_FRONT"</code> to cull the front faces of the geometry.</li>
+ *         <li><code>"CULL_BACK"</code> (the default) to cull the back faces of the geometry.</li>
+ *     </ul>
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {string} cullFaceMode - The mode defining which side of the geometry should be rendered. Values can be:
  *     <ul>
@@ -186,7 +198,7 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {Mat4|string} texCoordTransform1 - The transform to use for <code>occlusionMap</code> and <code>lightMap</code>. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} lightmapParams - Parameters for controlling how lightMap is used. 
+ * @property {string} lightmapParams - Parameters for controlling how <code>lightMap</code> is used. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only. 
  *     <p><em>Currently not used.</em></p>
  * @property {string} materialParams - Parameters for controlling the material projection and repetition. 

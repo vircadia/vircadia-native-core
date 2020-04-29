@@ -135,6 +135,7 @@ public:
         AudioSoloRequest,
         BulkAvatarTraitsAck,
         StopInjector,
+        AvatarZonePresence,
         NUM_PACKET_TYPE
     };
 
@@ -185,7 +186,8 @@ public:
             << PacketTypeEnum::Value::OctreeFileReplacement << PacketTypeEnum::Value::ReplicatedMicrophoneAudioNoEcho
             << PacketTypeEnum::Value::ReplicatedMicrophoneAudioWithEcho << PacketTypeEnum::Value::ReplicatedInjectAudio
             << PacketTypeEnum::Value::ReplicatedSilentAudioFrame << PacketTypeEnum::Value::ReplicatedAvatarIdentity
-            << PacketTypeEnum::Value::ReplicatedKillAvatar << PacketTypeEnum::Value::ReplicatedBulkAvatarData;
+            << PacketTypeEnum::Value::ReplicatedKillAvatar << PacketTypeEnum::Value::ReplicatedBulkAvatarData
+            << PacketTypeEnum::Value::AvatarZonePresence;
         return NON_SOURCED_PACKETS;
     }
 
@@ -275,6 +277,7 @@ enum class EntityVersion : PacketVersion {
     ShadowBiasAndDistance,
     TextEntityFonts,
     ScriptServerKinematicMotion,
+    ScreenshareZone,
 
     // Add new versions above here
     NUM_PACKET_TYPE,

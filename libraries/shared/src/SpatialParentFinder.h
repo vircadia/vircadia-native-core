@@ -21,7 +21,7 @@ using SpatiallyNestableWeakPointer = std::weak_ptr<SpatiallyNestable>;
 using SpatiallyNestablePointer = std::shared_ptr<SpatiallyNestable>;
 class SpatialParentTree {
 public:
-    virtual SpatiallyNestablePointer findByID(const QUuid& id) const { return nullptr; }
+    virtual SpatiallyNestablePointer findByID(const QUuid& id) const = 0;
 };
 class SpatialParentFinder : public Dependency {
 

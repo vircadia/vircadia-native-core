@@ -74,11 +74,15 @@ void MeshPartPayload::updateMeshPart(const std::shared_ptr<const graphics::Mesh>
     }
 }
 
-void MeshPartPayload::updateTransform(const Transform& transform, const Transform& offsetTransform) {
-    _transform = transform;
-    Transform::mult(_drawTransform, _transform, offsetTransform);
+void MeshPartPayload::updateTransform(const Transform& transform) {
+    _worldFromLocalTransform = transform;
     _worldBound = _localBound;
-    _worldBound.transform(_drawTransform);
+    _worldBound.transform(_worldFromLocalTransform);
+}
+
+void MeshPartPayload::updateTransformAndBound(const Transform& transform) {
+    _worldBound = _localBound;
+    _worldBound.transform(transform);
 }
 
 void MeshPartPayload::addMaterial(graphics::MaterialLayer material) {
@@ -168,7 +172,7 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) {
 }
 
  void MeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
-    batch.setModelTransform(_drawTransform);
+    batch.setModelTransform(_worldFromLocalTransform);
 }
 
 
@@ -196,7 +200,7 @@ void MeshPartPayload::render(RenderArgs* args) {
         auto& schema = _drawMaterials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
         glm::vec4 outColor = glm::vec4(ColorUtils::tosRGBVec3(schema._albedo), schema._opacity);
         outColor = procedural->getColor(outColor);
-        procedural->prepare(batch, _drawTransform.getTranslation(), _drawTransform.getScale(), _drawTransform.getRotation(), _created,
+        procedural->prepare(batch, _worldFromLocalTransform.getTranslation(), _worldFromLocalTransform.getScale(), _worldFromLocalTransform.getRotation(), _created,
                             ProceduralProgramKey(outColor.a < 1.0f));
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
     } else {
@@ -251,36 +255,21 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     assert(model && model->isLoaded());
 
-    bool useDualQuaternionSkinning = model->getUseDualQuaternionSkinning();
+    auto shape = model->getHFMModel().shapes[shapeIndex];
+    assert(shape.mesh == meshIndex);
+    assert(shape.meshPart == partIndex);
 
-    auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
+    auto& modelMesh = model->getNetworkModel()->getMeshes().at(_meshIndex);
     _meshNumVertices = (int)modelMesh->getNumVertices();
-    const Model::MeshState& state = model->getMeshState(_meshIndex);
 
     updateMeshPart(modelMesh, partIndex);
 
-    if (useDualQuaternionSkinning) {
-        computeAdjustedLocalBound(state.clusterDualQuaternions);
-    } else {
-        computeAdjustedLocalBound(state.clusterMatrices);
-    }
+    Transform renderTransform = transform;   
+    const Model::ShapeState& shapeState = model->getShapeState(shapeIndex);
+    renderTransform = transform.worldTransform(shapeState._rootFromJointTransform);
+    updateTransform(renderTransform);
 
-    updateTransform(transform, offsetTransform);
-    Transform renderTransform = transform;
-    if (useDualQuaternionSkinning) {
-        if (state.clusterDualQuaternions.size() == 1) {
-            const auto& dq = state.clusterDualQuaternions[0];
-            Transform transform(dq.getRotation(),
-                                dq.getScale(),
-                                dq.getTranslation());
-            renderTransform = transform.worldTransform(Transform(transform));
-        }
-    } else {
-        if (state.clusterMatrices.size() == 1) {
-            renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
-        }
-    }
-    updateTransformForSkinnedMesh(renderTransform, transform);
+    _deformerIndex = shape.skinDeformer;
 
     initCache(model);
 
@@ -304,7 +293,9 @@ void ModelMeshPartPayload::initCache(const ModelPointer& model) {
     if (_drawMesh) {
         auto vertexFormat = _drawMesh->getVertexFormat();
         _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
-        _isSkinned = vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT) && vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_INDEX);
+        if (_deformerIndex != hfm::UNDEFINED_KEY) {
+            _isSkinned = vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT) && vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_INDEX);
+        }
 
         const HFMModel& hfmModel = model->getHFMModel();
         const HFMMesh& mesh = hfmModel.meshes.at(_meshIndex);
@@ -313,7 +304,7 @@ void ModelMeshPartPayload::initCache(const ModelPointer& model) {
         _hasTangents = !mesh.tangents.isEmpty();
     }
 
-    auto networkMaterial = model->getGeometry()->getShapeMaterial(_shapeID);
+    auto networkMaterial = model->getNetworkModel()->getShapeMaterial(_shapeID);
     if (networkMaterial) {
         addMaterial(graphics::MaterialLayer(networkMaterial, 0));
     }
@@ -361,12 +352,6 @@ void ModelMeshPartPayload::updateClusterBuffer(const std::vector<Model::Transfor
                 (const gpu::Byte*) clusterDualQuaternions.data());
         }
     }
-}
-
-void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform) {
-    _transform = renderTransform;
-    _worldBound = _adjustedLocalBound;
-    _worldBound.transform(boundTransform);
 }
 
 // Note that this method is called for models but not for shapes
@@ -470,7 +455,7 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMo
     if (_clusterBuffer) {
         batch.setUniformBuffer(graphics::slot::buffer::Skinning, _clusterBuffer);
     }
-    batch.setModelTransform(_transform);
+    batch.setModelTransform(_worldFromLocalTransform);
 }
 
 void ModelMeshPartPayload::render(RenderArgs* args) {
@@ -502,7 +487,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
         auto& schema = _drawMaterials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
         glm::vec4 outColor = glm::vec4(ColorUtils::tosRGBVec3(schema._albedo), schema._opacity);
         outColor = procedural->getColor(outColor);
-        procedural->prepare(batch, _drawTransform.getTranslation(), _drawTransform.getScale(), _drawTransform.getRotation(), _created,
+        procedural->prepare(batch, _worldFromLocalTransform.getTranslation(), _worldFromLocalTransform.getScale(), _worldFromLocalTransform.getRotation(), _created,
                             ProceduralProgramKey(outColor.a < 1.0f, _shapeKey.isDeformed(), _shapeKey.isDualQuatSkinned()));
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
     } else {
@@ -520,38 +505,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 
     const int INDICES_PER_TRIANGLE = 3;
     args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
-}
-
-void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices) {
-    _adjustedLocalBound = _localBound;
-    if (clusterMatrices.size() > 0) {
-        _adjustedLocalBound.transform(clusterMatrices.back());
-
-        for (int i = 0; i < (int)clusterMatrices.size() - 1; ++i) {
-            AABox clusterBound = _localBound;
-            clusterBound.transform(clusterMatrices[i]);
-            _adjustedLocalBound += clusterBound;
-        }
-    }
-}
-
-void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions) {
-    _adjustedLocalBound = _localBound;
-    if (clusterDualQuaternions.size() > 0) {
-        Transform rootTransform(clusterDualQuaternions.back().getRotation(),
-                                clusterDualQuaternions.back().getScale(),
-                                clusterDualQuaternions.back().getTranslation());
-        _adjustedLocalBound.transform(rootTransform);
-
-        for (int i = 0; i < (int)clusterDualQuaternions.size() - 1; ++i) {
-            AABox clusterBound = _localBound;
-            Transform transform(clusterDualQuaternions[i].getRotation(),
-                                clusterDualQuaternions[i].getScale(),
-                                clusterDualQuaternions[i].getTranslation());
-            clusterBound.transform(transform);
-            _adjustedLocalBound += clusterBound;
-        }
-    }
 }
 
 void ModelMeshPartPayload::setBlendshapeBuffer(const std::unordered_map<int, gpu::BufferPointer>& blendshapeBuffers, const QVector<int>& blendedMeshSizes) {

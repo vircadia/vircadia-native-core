@@ -66,6 +66,8 @@ static const int DRACO_ATTRIBUTE_ORIGINAL_INDEX = DRACO_BEGIN_CUSTOM_HIFI_ATTRIB
 // High Fidelity Model namespace
 namespace hfm {
 
+static const uint32_t UNDEFINED_KEY = (uint32_t)-1;
+
 /// A single blendshape.
 class Blendshape {
 public:
@@ -111,19 +113,22 @@ public:
     bool isSkeletonJoint;
     bool bindTransformFoundInCluster;
 
+
     // geometric offset is applied in local space but does NOT affect children.
-    bool hasGeometricOffset;
-    glm::vec3 geometricTranslation;
-    glm::quat geometricRotation;
-    glm::vec3 geometricScaling;
+    // TODO: Apply hfm::Joint.geometricOffset to transforms in the model preparation step
+    glm::mat4 geometricOffset;
+
+    // globalTransform is the transform of the joint with all parent transforms applied, plus the geometric offset
+    glm::mat4 localTransform;
+    glm::mat4 globalTransform;
 };
 
 
 /// A single binding to a joint.
 class Cluster {
 public:
-
-    int jointIndex;
+    static const uint32_t INVALID_JOINT_INDEX { (uint32_t)-1 };
+    uint32_t jointIndex { INVALID_JOINT_INDEX };
     glm::mat4 inverseBindMatrix;
     Transform inverseBindTransform;
 };
@@ -155,8 +160,6 @@ public:
     QVector<int> quadIndices; // original indices from the FBX mesh
     QVector<int> quadTrianglesIndices; // original indices from the FBX mesh of the quad converted as triangles
     QVector<int> triangleIndices; // original indices from the FBX mesh
-
-    QString materialID;
 };
 
 class Material {
@@ -227,11 +230,20 @@ public:
     bool needTangentSpace() const;
 };
 
+
+/// Simple Triangle List Mesh
+struct TriangleListMesh {
+    std::vector<glm::vec3> vertices;
+    std::vector<uint32_t> indices;
+    std::vector<glm::ivec2> parts; // Offset in the indices, Number of indices
+    std::vector<Extents> partExtents; // Extents of each part with no transform applied. Same length as parts.
+};
+
 /// A single mesh (with optional blendshapes).
 class Mesh {
 public:
 
-    QVector<MeshPart> parts;
+    std::vector<MeshPart> parts;
 
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
@@ -239,21 +251,27 @@ public:
     QVector<glm::vec3> colors;
     QVector<glm::vec2> texCoords;
     QVector<glm::vec2> texCoords1;
-    QVector<uint16_t> clusterIndices;
-    QVector<uint16_t> clusterWeights;
-    QVector<int32_t> originalIndices;
 
-    QVector<Cluster> clusters;
+    Extents meshExtents; // DEPRECATED (see hfm::Shape::transformedExtents)
+    glm::mat4 modelTransform; // DEPRECATED (see hfm::Joint::globalTransform, hfm::Shape::transform, hfm::Model::joints)
 
-    Extents meshExtents;
-    glm::mat4 modelTransform;
+    // Skinning cluster attributes
+    std::vector<uint16_t> clusterIndices;
+    std::vector<uint16_t> clusterWeights;
+    uint16_t clusterWeightsPerVertex { 0 };
 
+    // Blendshape attributes
     QVector<Blendshape> blendshapes;
 
+    // Simple Triangle List Mesh generated during baking
+    hfm::TriangleListMesh triangleListMesh;
+
+    QVector<int32_t> originalIndices; // Original indices of the vertices
     unsigned int meshIndex; // the order the meshes appeared in the object file
 
     graphics::MeshPointer _mesh;
     bool wasCompressed { false };
+
 };
 
 /// A single animation frame.
@@ -290,6 +308,30 @@ public:
     bool shouldInitCollisions() const { return _collisionsConfig.size() > 0; }
 };
 
+// A different skinning representation, used by FBXSerializer. We convert this to our graphics-optimized runtime representation contained within the mesh.
+class SkinCluster {
+public:
+    std::vector<uint32_t> indices;
+    std::vector<float> weights;
+};
+
+class SkinDeformer {
+public:
+    std::vector<Cluster> clusters;
+};
+
+// The lightweight model part description.
+class Shape {
+public:
+    uint32_t mesh { UNDEFINED_KEY };
+    uint32_t meshPart { UNDEFINED_KEY };
+    uint32_t material { UNDEFINED_KEY };
+    uint32_t joint { UNDEFINED_KEY }; // The hfm::Joint associated with this shape, containing transform information
+    // TODO: Have all serializers calculate hfm::Shape::transformedExtents in world space where they previously calculated hfm::Mesh::meshExtents. Change all code that uses hfm::Mesh::meshExtents to use this instead.
+    Extents transformedExtents; // The precise extents of the meshPart vertices in world space, after transform information is applied, while not taking into account rigging/skinning
+    uint32_t skinDeformer { UNDEFINED_KEY };
+};
+
 /// The runtime model format.
 class Model {
 public:
@@ -300,14 +342,17 @@ public:
     QString author;
     QString applicationName; ///< the name of the application that generated the model
 
-    QVector<Joint> joints;
+    std::vector<Shape> shapes;
+
+    std::vector<Mesh> meshes;
+    std::vector<Material> materials;
+
+    std::vector<SkinDeformer> skinDeformers;
+
+    std::vector<Joint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
     bool hasSkeletonJoints;
-
-    QVector<Mesh> meshes;
     QVector<QString> scripts;
-
-    QHash<QString, Material> materials;
 
     glm::mat4 offset; // This includes offset, rotation, and scale as specified by the FST file
 
@@ -340,17 +385,10 @@ public:
     QMap<int, glm::quat> jointRotationOffsets;
     std::vector<ShapeVertices> shapeVertices;
     FlowData flowData;
+
+    void debugDump() const;
 };
 
-};
-
-class ExtractedMesh {
-public:
-    hfm::Mesh mesh;
-    QMultiHash<int, int> newIndices;
-    QVector<QHash<int, int> > blendshapeIndexMaps;
-    QVector<QPair<int, int> > partMaterialTextures;
-    QHash<QString, size_t> texcoordSetMap;
 };
 
 typedef hfm::Blendshape HFMBlendshape;
@@ -361,8 +399,10 @@ typedef hfm::Texture HFMTexture;
 typedef hfm::MeshPart HFMMeshPart;
 typedef hfm::Material HFMMaterial;
 typedef hfm::Mesh HFMMesh;
+typedef hfm::SkinDeformer HFMSkinDeformer;
 typedef hfm::AnimationFrame HFMAnimationFrame;
 typedef hfm::Light HFMLight;
+typedef hfm::Shape HFMShape;
 typedef hfm::Model HFMModel;
 typedef hfm::FlowData FlowData;
 

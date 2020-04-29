@@ -1,0 +1,178 @@
+<!--
+//  addLocation.html
+//
+//  Created by Darlingnotin in 2019.
+//  Copyright 2019 Darlingnotin
+//
+//  Distributed under the ISC license.
+//  See the accompanying file LICENSE or https://opensource.org/licenses/ISC
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Explore</title>
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <style>
+        .myButton {
+            box-shadow: 3px 4px 0px 0px #899599;
+            background: linear-gradient(to bottom, #ededed 5%, #bab1ba 100%);
+            background-color: #ededed;
+            border-radius: 15px;
+            border: 1px solid #d6bcd6;
+            display: inline-block;
+            cursor: pointer;
+            color: #3a8a9e;
+            font-family: Arial;
+            font-size: 17px;
+            padding: 2px 19px;
+            text-decoration: none;
+            text-shadow: 0px 1px 0px #e1e2ed;
+        }
+
+        .myButton:hover {
+            background: linear-gradient(to bottom, #bab1ba 5%, #ededed 100%);
+            background-color: #bab1ba;
+        }
+
+        .myButton:active {
+            position: relative;
+            top: 1px;
+        }
+
+        .myButtonB {
+            box-shadow: 3px 4px 0px 0px #899599;
+            background: linear-gradient(to bottom, #ededed 5%, #bab1ba 100%);
+            background-color: #ededed;
+            border-radius: 15px;
+            border: 1px solid #d6bcd6;
+            display: inline-block;
+            cursor: pointer;
+            color: #3a8a9e;
+            font-family: Arial;
+            font-size: 17px;
+            padding: 2px 19px;
+            text-decoration: none;
+            text-shadow: 0px 1px 0px #e1e2ed;
+            position: absolute;
+            right: 0;
+        }
+
+        .myButtonB:hover {
+            background: linear-gradient(to bottom, #bab1ba 5%, #ededed 100%);
+            background-color: #bab1ba;
+        }
+
+        .myButtonB:active {
+            position: relative;
+            top: 1px;
+        }
+
+        table {
+            font-family: arial, sans-serif;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        td,
+        th {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #EFEFEF;
+        }
+
+        input[type=text],
+        select {
+            width: 450px;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #dddddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body onload="retrieveInformation()">
+
+    <h1>Add Location</h1><br>
+    <h3>Location List Provider URL</h3>
+    <select id="javascriptURL">
+    </select>
+    
+    <h3>Domain Name</h3>
+    <input type="text" id="domainName" placeholder="Enter Domain Name here">
+    
+    <h3>Owner</h3>
+    <input type="text" id="owner" placeholder="Enter Owner here">
+    
+    <h3>Port</h3>
+    <input type="text" id="port" placeholder="Enter Port here (default 40102)"><br><br>
+
+    <button class="myButton" onclick="addLocation()">Add</button>
+
+    <script>
+        var retrievePortInformationResponse;
+        var metaverseProviderList = [];
+        function retrieveInformation() {
+            var readyEvent = {
+                "action": "retrievePortInformation",
+            };
+            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+        }
+
+        function addToSelect() {
+            for (let i = 0; i < metaverseProviderList.length; i++) {
+                var x = document.getElementById("javascriptURL");
+                var option = document.createElement("option");
+                option.text = metaverseProviderList[i];
+                x.add(option);
+            }
+        }
+
+        function addLocation() {
+            var domainName = document.getElementById("domainName").value;
+            if (domainName == "") {
+                domainName = "Enter domain name";
+            }
+            var owner = document.getElementById("owner").value;
+            if (owner == "") {
+                owner = "Enter owner of domain";
+            }
+            var port = document.getElementById("port").value;
+            var javascriptURL = document.getElementById("javascriptURL").value;
+            if (port == "") {
+                port = 40102;
+            }
+            var readyEvent = {
+                "action": "addLocation",
+                "domainName": domainName,
+                "owner": owner,
+                "Port": port,
+                "script": javascriptURL
+            };
+            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+        }
+
+        EventBridge.scriptEventReceived.connect(function (message) {
+            var messageData = JSON.parse(message);
+            if (messageData.action == "retrievePortInformationResponse") {
+                retrievePortInformationResponse = messageData.goToAddresses;
+                for (let i = 0; i < retrievePortInformationResponse.length; i++) {
+                    metaverseProvider = retrievePortInformationResponse[i].split("/")[2].split(":")[0];
+                    metaverseProviderList[metaverseProviderList.length] = "https://" + metaverseProvider + "/interim/d-goto/app/decentralizedGoToServerScript.js";
+                }
+                addToSelect();
+            }
+        });
+
+    </script>
+
+    </bodyonload="retrieveAddressList()">
+
+</html>

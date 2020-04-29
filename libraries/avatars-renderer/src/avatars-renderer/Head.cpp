@@ -96,17 +96,21 @@ void Head::simulate(float deltaTime) {
     const float BLINK_START_VARIABILITY = 0.25f;
     const float FULLY_OPEN = 0.0f;
     const float FULLY_CLOSED = 1.0f;
+    const float TALKING_LOUDNESS = 150.0f;
+
+    _timeWithoutTalking += deltaTime;
+    if ((_averageLoudness - _longTermAverageLoudness) > TALKING_LOUDNESS) {
+        _timeWithoutTalking = 0.0f;
+    }
+
     if (getProceduralAnimationFlag(HeadData::BlinkProceduralBlendshapeAnimation) &&
         !getSuppressProceduralAnimationFlag(HeadData::BlinkProceduralBlendshapeAnimation)) {
+
         // handle automatic blinks
         // Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
-        const float TALKING_LOUDNESS = 150.0f;
         const float BLINK_AFTER_TALKING = 0.25f;
-        _timeWithoutTalking += deltaTime;
-        if ((_averageLoudness - _longTermAverageLoudness) > TALKING_LOUDNESS) {
-            _timeWithoutTalking = 0.0f;
-        } else if (_timeWithoutTalking - deltaTime < BLINK_AFTER_TALKING && _timeWithoutTalking >= BLINK_AFTER_TALKING) {
+        if (_timeWithoutTalking - deltaTime < BLINK_AFTER_TALKING && _timeWithoutTalking >= BLINK_AFTER_TALKING) {
             forceBlink = true;
         }
         if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
@@ -150,11 +154,13 @@ void Head::simulate(float deltaTime) {
     } else {
         _rightEyeBlink = FULLY_OPEN;
         _leftEyeBlink = FULLY_OPEN;
+        updateEyeLookAt();
     }
 
     // use data to update fake Faceshift blendshape coefficients
     if (getProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation) &&
         !getSuppressProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation)) {
+
         // Update audio attack data for facial animation (eyebrows and mouth)
         float audioAttackAveragingRate = (10.0f - deltaTime * NORMAL_HZ) / 10.0f; // --> 0.9 at 60 Hz
         _audioAttack = audioAttackAveragingRate * _audioAttack +
@@ -188,6 +194,7 @@ void Head::simulate(float deltaTime) {
 
     if (getProceduralAnimationFlag(HeadData::LidAdjustmentProceduralBlendshapeAnimation) &&
         !getSuppressProceduralAnimationFlag(HeadData::LidAdjustmentProceduralBlendshapeAnimation)) {
+
         // This controls two things, the eye brow and the upper eye lid, it is driven by the vertical up/down angle of the
         // eyes relative to the head.  This is to try to help prevent sleepy eyes/crazy eyes.
         applyEyelidOffset(getOrientation());

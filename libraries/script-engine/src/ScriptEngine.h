@@ -320,13 +320,13 @@ public:
     // NOTE - these are intended to be public interfaces available to scripts
 
     /**jsdoc
-     * Adds a function to the list of functions called when an entity event occurs on a particular entity.
+     * Adds a function to the list of functions called when a particular event occurs on a particular entity.
      * <p>See also, the {@link Entities} API.</p>
      * @function Script.addEventHandler
      * @param {Uuid} entityID - The ID of the entity.
-     * @param {Script.EntityEvent} eventName - The name of the entity event.
-     * @param {function} handler - The function to call when the entity event occurs on the entity. It can be either the name 
-     *     of a function or an in-line definition.
+     * @param {Script.EntityEvent} eventName - The name of the event.
+     * @param {Script~entityEventCallback|Script~pointerEventCallback|Script~collisionEventCallback} handler - The function to 
+     *     call when the event occurs on the entity. It can be either the name of a function or an in-line definition.
      * @example <caption>Report when a mouse press occurs on a particular entity.</caption>
      * var entityID = Entities.addEntity({
      *     type: "Box",
@@ -499,15 +499,9 @@ public:
     Q_INVOKABLE void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
 
     /**jsdoc
-     * Prints a message to the program log.
-     * <p>Alternatively, you can use {@link print}, {@link console.log}, or one of the other {@link console} methods.</p>
+     * Prints a message to the program log and emits {@link Script.printedMessage}.
+     * <p>Alternatively, you can use {@link print} or one of the {@link console} API methods.</p>
      * @function Script.print
-     * @param {string} message - The message to print.
-     */
-    /**jsdoc
-     * Prints a message to the program log.
-     * <p>This is an alias of {@link Script.print}.</p>
-     * @function print
      * @param {string} message - The message to print.
      */
     Q_INVOKABLE void print(const QString& message);
@@ -763,7 +757,8 @@ signals:
 
     /**jsdoc
      * Triggered when the script prints a message to the program log via {@link  print}, {@link Script.print}, 
-     * {@link console.log}, or {@link console.debug}.
+     * {@link console.log}, {@link console.debug}, {@link console.group}, {@link console.groupEnd}, {@link console.time}, or 
+     * {@link console.timeEnd}.
      * @function Script.printedMessage
      * @param {string} message - The message.
      * @param {string} scriptName - The name of the script that generated the message.
@@ -772,7 +767,8 @@ signals:
     void printedMessage(const QString& message, const QString& scriptName);
 
     /**jsdoc
-     * Triggered when the script generates an error or {@link console.error} is called.
+     * Triggered when the script generates an error, {@link console.error} or {@link console.exception} is called, or 
+     * {@link console.assert} is called and fails.
      * @function Script.errorMessage
      * @param {string} message - The error message.
      * @param {string} scriptName - The name of the script that generated the error message.

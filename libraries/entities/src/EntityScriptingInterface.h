@@ -110,6 +110,10 @@ public:
  * displayed and so knows about. For assignment client scripts, the entities available are those that are "seen" by the 
  * {@link EntityViewer}. For entity server scripts, all entities are available.</p>
  *
+ * <h3>Entity Types</h3>
+ *
+ * <p>For a list of the entity types that you can use, see {@link Entities.EntityType|Entity Types}.</p>
+ *
  * <h3>Entity Methods</h3>
  *
  * <p>Some of the API's signals correspond to entity methods that are called, if present, in the entity being interacted with. 
@@ -1867,7 +1871,8 @@ public slots:
      * @function Entities.getMeshes
      * @param {Uuid} entityID - The ID of the <code>Model</code> or <code>PolyVox</code> entity to get the meshes of.
      * @param {Entities~getMeshesCallback} callback - The function to call upon completion.
-     * @deprecated This function is deprecated and will be removed. Use the {@link Graphics} API instead.
+     * @deprecated This function is deprecated and will be removed. It no longer works for Model entities. Use the 
+     *     {@link Graphics} API instead.
      */
      /**jsdoc
       * Called when a {@link Entities.getMeshes} call is complete.
@@ -1876,7 +1881,8 @@ public slots:
       *     <code>Model</code> or <code>PolyVox</code> entity; otherwise <code>undefined</code>. 
       * @param {boolean} success - <code>true</code> if the {@link Entities.getMeshes} call was successful, <code>false</code> 
       *     otherwise. The call may be unsuccessful if the requested entity could not be found.
-      * @deprecated This function is deprecated and will be removed. Use the {@link Graphics} API instead.
+      * @deprecated This function is deprecated and will be removed. It no longer works for Model entities. Use the 
+      *     {@link Graphics} API instead. 
       */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE void getMeshes(const QUuid& entityID, QScriptValue callback);
