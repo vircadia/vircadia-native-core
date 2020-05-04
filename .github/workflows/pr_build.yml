@@ -121,6 +121,13 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA
+    - name: Output system stats
+      if: ${{ always() }}
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: |
+        echo "Disk usage:"
+        df -h
     - name: Output Installer Logs
       if: failure() && matrix.os == 'windows-latest'
       shell: bash
