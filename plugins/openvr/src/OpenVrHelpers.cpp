@@ -413,7 +413,6 @@ void showMinSpecWarning() {
     vrSystem->ResetSeatedZeroPose();
     QString imagePath = PathUtils::resourcesPath() + "/images/steam-min-spec-failed.png";
     vrOverlay->SetOverlayFromFile(minSpecFailedOverlay, imagePath.toLocal8Bit().toStdString().c_str());
-    vrOverlay->SetHighQualityOverlay(minSpecFailedOverlay);
     vrOverlay->SetOverlayWidthInMeters(minSpecFailedOverlay, 1.4f);
     vrOverlay->SetOverlayInputMethod(minSpecFailedOverlay, vr::VROverlayInputMethod_Mouse);
     vrOverlay->ShowOverlay(minSpecFailedOverlay);
