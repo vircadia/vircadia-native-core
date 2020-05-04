@@ -325,7 +325,7 @@ public slots:
      * @param {number} [aspectRatio=0] - The width/height ratio of the snapshot required. If the value is <code>0</code>, the
      *     full resolution is used (window dimensions in desktop mode; HMD display dimensions in HMD mode), otherwise one of the
      *     dimensions is adjusted in order to match the aspect ratio.
-     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "hifi-snap-by-&lt;user 
+     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "vircadia-snap-by-&lt;user 
      *     name&gt;-on-YYYY-MM-DD_HH-MM-SS".
      *     <p>Still images are saved in JPEG or PNG format according to the extension provided &mdash; <code>".jpg"</code>, 
      *     <code>".jpeg"</code>, or <code>".png"</code> &mdash; or if not provided then in JPEG format with an extension of 
@@ -364,7 +364,7 @@ public slots:
      * @function Window.takeSecondaryCameraSnapshot
      * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
      *     signal.
-     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "hifi-snap-by-&lt;user
+     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "vircadia-snap-by-&lt;user
      *     name&gt;-on-YYYY-MM-DD_HH-MM-SS".
      *     <p>Images are saved in JPEG or PNG format according to the extension provided &mdash; <code>".jpg"</code>,
      *     <code>".jpeg"</code>, or <code>".png"</code> &mdash; or if not provided then in JPEG format with an extension of
@@ -383,7 +383,7 @@ public slots:
      *     otherwise it is saved as an equirectangular image.
      * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
      *     signal.
-     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "hifi-snap-by-&lt;user
+     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "vircadia-snap-by-&lt;user
      *     name&gt;-on-YYYY-MM-DD_HH-MM-SS".
      *     <p>Images are saved in JPEG or PNG format according to the extension provided &mdash; <code>".jpg"</code>,
      *     <code>".jpeg"</code>, or <code>".png"</code> &mdash; or if not provided then in JPEG format with an extension of
