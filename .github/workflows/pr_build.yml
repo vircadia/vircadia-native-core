@@ -120,7 +120,30 @@ jobs:
     - name: Build Installer
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA
+      run: |
+        echo "Retry code from https://unix.stackexchange.com/a/137639"
+        function fail {
+          echo $1 >&2
+          exit 1
+        }
+
+        function retry {
+          local n=1
+          local max=5
+          local delay=15
+          while true; do
+            "$@" && break || {
+              if [[ $n -lt $max ]]; then
+                ((n++))
+                echo "Command failed. Attempt $n/$max:"
+                sleep $delay;
+              else
+                fail "The command has failed after $n attempts."
+              fi
+            }
+          done
+        }
+        retry cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA
     - name: Output system stats
       if: ${{ always() }}
       working-directory: ${{runner.workspace}}/build
