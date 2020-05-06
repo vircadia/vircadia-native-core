@@ -603,6 +603,12 @@ Menu::Menu() {
         false,
         &UserActivityLogger::getInstance(),
         SLOT(disable(bool)));
+    addCheckableActionToQMenuAndActionHash(networkMenu,
+        MenuOption::DisableCrashLogger,
+        0,
+        false,
+        &UserActivityLogger::getInstance(),
+        SLOT(crashMonitorDisable(bool)));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
         qApp, SLOT(loadDomainConnectionDialog()));
 
