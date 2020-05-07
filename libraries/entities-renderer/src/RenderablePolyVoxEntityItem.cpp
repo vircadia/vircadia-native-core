@@ -1429,14 +1429,13 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
 
     QtConcurrent::run([entity, voxelSurfaceStyle, voxelVolumeSize, mesh] {
         auto polyVoxEntity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity);
-        QVector<QVector<glm::vec3>> pointCollection;
+        ShapeInfo::PointCollection pointCollection;
         AABox box;
         glm::mat4 vtoM = std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity)->voxelToLocalMatrix();
 
         if (voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_MARCHING_CUBES ||
             voxelSurfaceStyle == PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES) {
             // pull each triangle in the mesh into a polyhedron which can be collided with
-            unsigned int i = 0;
 
             const gpu::BufferView& vertexBufferView = mesh->getVertexBuffer();
             const gpu::BufferView& indexBufferView = mesh->getIndexBuffer();
@@ -1465,19 +1464,16 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
                 box += p2Model;
                 box += p3Model;
 
-                QVector<glm::vec3> pointsInPart;
-                pointsInPart << p0Model;
-                pointsInPart << p1Model;
-                pointsInPart << p2Model;
-                pointsInPart << p3Model;
-                // add next convex hull
-                QVector<glm::vec3> newMeshPoints;
-                pointCollection << newMeshPoints;
-                // add points to the new convex hull
-                pointCollection[i++] << pointsInPart;
+                ShapeInfo::PointList pointsInPart;
+                pointsInPart.push_back(p0Model);
+                pointsInPart.push_back(p1Model);
+                pointsInPart.push_back(p2Model);
+                pointsInPart.push_back(p3Model);
+
+                // add points to a new convex hull
+                pointCollection.push_back(pointsInPart);
             }
         } else {
-            unsigned int i = 0;
             polyVoxEntity->forEachVoxelValue(voxelVolumeSize, [&](const ivec3& v, uint8_t value) {
                 if (value > 0) {
                     const auto& x = v.x;
@@ -1496,7 +1492,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
                         return;
                     }
 
-                    QVector<glm::vec3> pointsInPart;
+                    ShapeInfo::PointList pointsInPart;
 
                     float offL = -0.5f;
                     float offH = 0.5f;
@@ -1523,20 +1519,17 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
                     box += p110;
                     box += p111;
 
-                    pointsInPart << p000;
-                    pointsInPart << p001;
-                    pointsInPart << p010;
-                    pointsInPart << p011;
-                    pointsInPart << p100;
-                    pointsInPart << p101;
-                    pointsInPart << p110;
-                    pointsInPart << p111;
+                    pointsInPart.push_back(p000);
+                    pointsInPart.push_back(p001);
+                    pointsInPart.push_back(p010);
+                    pointsInPart.push_back(p011);
+                    pointsInPart.push_back(p100);
+                    pointsInPart.push_back(p101);
+                    pointsInPart.push_back(p110);
+                    pointsInPart.push_back(p111);
 
-                    // add next convex hull
-                    QVector<glm::vec3> newMeshPoints;
-                    pointCollection << newMeshPoints;
-                    // add points to the new convex hull
-                    pointCollection[i++] << pointsInPart;
+                    // add points to a new convex hull
+                    pointCollection.push_back(pointsInPart);
                 }
             });
         }
@@ -1546,7 +1539,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
 
 void RenderablePolyVoxEntityItem::setCollisionPoints(ShapeInfo::PointCollection pointCollection, AABox box) {
     // this catches the payload from computeShapeInfoWorker
-    if (pointCollection.isEmpty()) {
+    if (pointCollection.empty()) {
         EntityItem::computeShapeInfo(_shapeInfo);
         withWriteLock([&] {
             _shapeReady = true;

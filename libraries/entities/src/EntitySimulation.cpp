@@ -19,41 +19,37 @@
 
 void EntitySimulation::setEntityTree(EntityTreePointer tree) {
     if (_entityTree && _entityTree != tree) {
-        _mortalEntities.clear();
-        _nextExpiry = std::numeric_limits<uint64_t>::max();
-        _entitiesToUpdate.clear();
         _entitiesToSort.clear();
         _simpleKinematicEntities.clear();
+        _changedEntities.clear();
+        _entitiesToUpdate.clear();
+        _mortalEntities.clear();
+        _nextExpiry = std::numeric_limits<uint64_t>::max();
     }
     _entityTree = tree;
 }
 
 void EntitySimulation::updateEntities() {
+    PerformanceTimer perfTimer("EntitySimulation::updateEntities");
     QMutexLocker lock(&_mutex);
     uint64_t now = usecTimestampNow();
-    PerformanceTimer perfTimer("EntitySimulation::updateEntities");
 
     // these methods may accumulate entries in _entitiesToBeDeleted
     expireMortalEntities(now);
     callUpdateOnEntitiesThatNeedIt(now);
     moveSimpleKinematics(now);
-    updateEntitiesInternal(now);
     sortEntitiesThatMoved();
+    processDeadEntities();
 }
 
-void EntitySimulation::takeDeadEntities(SetOfEntities& entitiesToDelete) {
-    QMutexLocker lock(&_mutex);
-    entitiesToDelete.swap(_deadEntities);
-    _deadEntities.clear();
-}
-
-void EntitySimulation::removeEntityInternal(EntityItemPointer entity) {
-    // remove from all internal lists except _deadEntities
-    _mortalEntities.remove(entity);
-    _entitiesToUpdate.remove(entity);
+void EntitySimulation::removeEntityFromInternalLists(EntityItemPointer entity) {
+    // protected: _mutex lock is guaranteed
+    // remove from all internal lists except _deadEntitiesToRemoveFromTree
     _entitiesToSort.remove(entity);
     _simpleKinematicEntities.remove(entity);
     _allEntities.remove(entity);
+    _entitiesToUpdate.remove(entity);
+    _mortalEntities.remove(entity);
     entity->setSimulated(false);
 }
 
@@ -62,10 +58,9 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
     assert(entity->isDead());
     if (entity->isSimulated()) {
         QMutexLocker lock(&_mutex);
-        entity->clearActions(getThisPointer());
-        removeEntityInternal(entity);
+        removeEntityFromInternalLists(entity);
         if (entity->getElement()) {
-            _deadEntities.insert(entity);
+            _deadEntitiesToRemoveFromTree.insert(entity);
             _entityTree->cleanupCloneIDs(entity->getEntityItemID());
         }
     }
@@ -149,10 +144,8 @@ void EntitySimulation::sortEntitiesThatMoved() {
     _entitiesToSort.clear();
 }
 
-void EntitySimulation::addEntity(EntityItemPointer entity) {
-    QMutexLocker lock(&_mutex);
-    assert(entity);
-    entity->deserializeActions();
+void EntitySimulation::addEntityToInternalLists(EntityItemPointer entity) {
+    // protected: _mutex lock is guaranteed
     if (entity->isMortal()) {
         _mortalEntities.insert(entity);
         uint64_t expiry = entity->getExpiry();
@@ -163,10 +156,14 @@ void EntitySimulation::addEntity(EntityItemPointer entity) {
     if (entity->needsToCallUpdate()) {
         _entitiesToUpdate.insert(entity);
     }
-    addEntityInternal(entity);
-
     _allEntities.insert(entity);
     entity->setSimulated(true);
+}
+
+void EntitySimulation::addEntity(EntityItemPointer entity) {
+    QMutexLocker lock(&_mutex);
+    assert(entity);
+    addEntityToInternalLists(entity);
 
     // DirtyFlags are used to signal changes to entities that have already been added,
     // so we can clear them for this entity which has just been added.
@@ -218,16 +215,14 @@ void EntitySimulation::processChangedEntity(const EntityItemPointer& entity) {
 
 void EntitySimulation::clearEntities() {
     QMutexLocker lock(&_mutex);
-    _mortalEntities.clear();
-    _nextExpiry = std::numeric_limits<uint64_t>::max();
-    _entitiesToUpdate.clear();
     _entitiesToSort.clear();
     _simpleKinematicEntities.clear();
-
-    clearEntitiesInternal();
-
+    _changedEntities.clear();
     _allEntities.clear();
-    _deadEntities.clear();
+    _deadEntitiesToRemoveFromTree.clear();
+    _entitiesToUpdate.clear();
+    _mortalEntities.clear();
+    _nextExpiry = std::numeric_limits<uint64_t>::max();
 }
 
 void EntitySimulation::moveSimpleKinematics(uint64_t now) {
@@ -263,25 +258,19 @@ void EntitySimulation::moveSimpleKinematics(uint64_t now) {
     }
 }
 
-void EntitySimulation::addDynamic(EntityDynamicPointer dynamic) {
-    QMutexLocker lock(&_dynamicsMutex);
-    _dynamicsToAdd += dynamic;
-}
-
-void EntitySimulation::removeDynamic(const QUuid dynamicID) {
-    QMutexLocker lock(&_dynamicsMutex);
-    _dynamicsToRemove += dynamicID;
-}
-
-void EntitySimulation::removeDynamics(QList<QUuid> dynamicIDsToRemove) {
-    QMutexLocker lock(&_dynamicsMutex);
-    foreach(QUuid uuid, dynamicIDsToRemove) {
-        _dynamicsToRemove.insert(uuid);
+void EntitySimulation::processDeadEntities() {
+    if (_deadEntitiesToRemoveFromTree.empty()) {
+        return;
     }
-}
-
-void EntitySimulation::applyDynamicChanges() {
-    QMutexLocker lock(&_dynamicsMutex);
-    _dynamicsToAdd.clear();
-    _dynamicsToRemove.clear();
+    std::vector<EntityItemPointer> entitiesToDeleteImmediately;
+    entitiesToDeleteImmediately.reserve(_deadEntitiesToRemoveFromTree.size());
+    QUuid nullSessionID;
+    foreach (auto entity, _deadEntitiesToRemoveFromTree) {
+        entitiesToDeleteImmediately.push_back(entity);
+        entity->collectChildrenForDelete(entitiesToDeleteImmediately, nullSessionID);
+    }
+    if (_entityTree) {
+        _entityTree->deleteEntitiesByPointer(entitiesToDeleteImmediately);
+    }
+    _deadEntitiesToRemoveFromTree.clear();
 }
