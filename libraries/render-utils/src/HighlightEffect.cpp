@@ -193,8 +193,8 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
                 ShapeKey::Builder().withDeformed(), ShapeKey::Builder().withDeformed().withFade(),
                 ShapeKey::Builder().withDeformed().withDualQuatSkinned(), ShapeKey::Builder().withDeformed().withDualQuatSkinned().withFade(),
                 ShapeKey::Builder().withOwnPipeline(), ShapeKey::Builder().withOwnPipeline().withFade(),
-                ShapeKey::Builder().withOwnPipeline().withDeformed(), ShapeKey::Builder().withOwnPipeline().withDeformed().withFade(),
-                ShapeKey::Builder().withOwnPipeline().withDeformed().withDualQuatSkinned(), ShapeKey::Builder().withOwnPipeline().withDeformed().withDualQuatSkinned().withFade(),
+                ShapeKey::Builder().withDeformed().withOwnPipeline(), ShapeKey::Builder().withDeformed().withOwnPipeline().withFade(),
+                ShapeKey::Builder().withDeformed().withDualQuatSkinned().withOwnPipeline(), ShapeKey::Builder().withDeformed().withDualQuatSkinned().withOwnPipeline().withFade(),
             };
             std::vector<std::vector<ShapeKey>> sortedShapeKeys(keys.size());
 

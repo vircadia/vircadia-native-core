@@ -10,6 +10,7 @@
 #define hifi_PickFilter_h
 
 #include <bitset>
+#include <iostream> // adebug
 
 class PickFilter {
 public:
@@ -60,6 +61,8 @@ public:
         // NOT YET IMPLEMENTED
         PICK_ALL_INTERSECTIONS, // if not set, returns closest intersection, otherwise, returns list of all intersections
 
+        PICK_BYPASS_IGNORE, // for debug purposes
+
         NUM_FLAGS, // Not a valid flag
     };
     typedef std::bitset<NUM_FLAGS> Flags;
@@ -92,6 +95,8 @@ public:
     bool isCoarse() const { return _flags[COARSE]; }
 
     bool doesWantAllIntersections() const { return _flags[PICK_ALL_INTERSECTIONS]; }
+
+    bool bypassIgnore() const { return _flags[PICK_BYPASS_IGNORE]; }
 
     // Helpers for RayPickManager
     Flags getEntityFlags() const {

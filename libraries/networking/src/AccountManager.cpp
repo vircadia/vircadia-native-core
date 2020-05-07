@@ -52,11 +52,13 @@ const int PULL_SETTINGS_RETRY_INTERVAL = 2 * MSECS_PER_SECOND;
 const int MAX_PULL_RETRIES = 10;
 
 JSONCallbackParameters::JSONCallbackParameters(QObject* callbackReceiver,
-                                               const QString& jsonCallbackMethod,
-                                               const QString& errorCallbackMethod) :
+    const QString& jsonCallbackMethod,
+    const QString& errorCallbackMethod,
+    const QJsonObject& callbackData) :
     callbackReceiver(callbackReceiver),
     jsonCallbackMethod(jsonCallbackMethod),
-    errorCallbackMethod(errorCallbackMethod)
+    errorCallbackMethod(errorCallbackMethod),
+    callbackData(callbackData)
 {
 
 }
@@ -348,9 +350,17 @@ void AccountManager::sendRequest(const QString& path,
                     [callbackParams, networkReply] {
                 if (networkReply->error() == QNetworkReply::NoError) {
                     if (!callbackParams.jsonCallbackMethod.isEmpty()) {
-                        bool invoked = QMetaObject::invokeMethod(callbackParams.callbackReceiver,
-                                                                 qPrintable(callbackParams.jsonCallbackMethod),
-                                                                 Q_ARG(QNetworkReply*, networkReply));
+                        bool invoked = false;
+                        if (callbackParams.callbackData.isEmpty()) {
+                            invoked = QMetaObject::invokeMethod(callbackParams.callbackReceiver,
+                                qPrintable(callbackParams.jsonCallbackMethod),
+                                Q_ARG(QNetworkReply*, networkReply));
+                        } else {
+                            invoked = QMetaObject::invokeMethod(callbackParams.callbackReceiver,
+                                qPrintable(callbackParams.jsonCallbackMethod),
+                                Q_ARG(QNetworkReply*, networkReply),
+                                Q_ARG(QJsonObject, callbackParams.callbackData));
+                        }
 
                         if (!invoked) {
                             QString error = "Could not invoke " + callbackParams.jsonCallbackMethod + " with QNetworkReply* "
@@ -366,9 +376,18 @@ void AccountManager::sendRequest(const QString& path,
                     }
                 } else {
                     if (!callbackParams.errorCallbackMethod.isEmpty()) {
-                        bool invoked = QMetaObject::invokeMethod(callbackParams.callbackReceiver,
-                                                                 qPrintable(callbackParams.errorCallbackMethod),
-                                                                 Q_ARG(QNetworkReply*, networkReply));
+                        bool invoked = false;
+                        if (callbackParams.callbackData.isEmpty()) {
+                            invoked = QMetaObject::invokeMethod(callbackParams.callbackReceiver,
+                                qPrintable(callbackParams.errorCallbackMethod),
+                                Q_ARG(QNetworkReply*, networkReply));
+                        }
+                        else {
+                            invoked = QMetaObject::invokeMethod(callbackParams.callbackReceiver,
+                                qPrintable(callbackParams.errorCallbackMethod),
+                                Q_ARG(QNetworkReply*, networkReply),
+                                Q_ARG(QJsonObject, callbackParams.callbackData));
+                        }
 
                         if (!invoked) {
                             QString error = "Could not invoke " + callbackParams.errorCallbackMethod + " with QNetworkReply* "

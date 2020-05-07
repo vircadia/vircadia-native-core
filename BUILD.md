@@ -13,6 +13,8 @@
 - [git](https://git-scm.com/downloads): >= 1.6  
 - [cmake](https://cmake.org/download/):  3.9
 - [Python](https://www.python.org/downloads/): 3.6 or higher
+- [Node.JS](https://nodejs.org/en/): >= 12.13.1 LTS
+    - Used to build the Screen Sharing executable.
 
 ### CMake External Project Dependencies
 
