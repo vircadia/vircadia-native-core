@@ -282,7 +282,7 @@ bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3
 }
 
 void RenderableModelEntityItem::fetchCollisionGeometryResource() {
-    _collisionGeometryResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCollisionShapeURL());
+    _collisionGeometryResource = DependencyManager::get<ModelCache>()->getCollisionModelResource(getCollisionShapeURL());
 }
 
 bool RenderableModelEntityItem::unableToLoadCollisionShape() {
@@ -357,7 +357,6 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     const uint32_t TRIANGLE_STRIDE = 3;
-    const uint32_t QUAD_STRIDE = 4;
 
     ShapeType type = getShapeType();
 
@@ -380,59 +379,35 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
 
         ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
         pointCollection.clear();
-        uint32_t i = 0;
+
+        size_t numParts = 0;
+        for (const HFMMesh& mesh : collisionGeometry.meshes) {
+            numParts += mesh.triangleListMesh.parts.size();
+        }
+        pointCollection.reserve(numParts);
 
         // the way OBJ files get read, each section under a "g" line is its own meshPart.  We only expect
         // to find one actual "mesh" (with one or more meshParts in it), but we loop over the meshes, just in case.
-        foreach (const HFMMesh& mesh, collisionGeometry.meshes) {
+        for (const HFMMesh& mesh : collisionGeometry.meshes) {
+            const hfm::TriangleListMesh& triangleListMesh = mesh.triangleListMesh;
             // each meshPart is a convex hull
-            foreach (const HFMMeshPart &meshPart, mesh.parts) {
-                pointCollection.push_back(QVector<glm::vec3>());
-                ShapeInfo::PointList& pointsInPart = pointCollection[i];
-
+            for (const glm::ivec2& part : triangleListMesh.parts) {
                 // run through all the triangles and (uniquely) add each point to the hull
-                uint32_t numIndices = (uint32_t)meshPart.triangleIndices.size();
+
+                pointCollection.emplace_back();
+                ShapeInfo::PointList& pointsInPart = pointCollection.back();
+
+                uint32_t numIndices = (uint32_t)part.y;
                 // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                 //assert(numIndices % TRIANGLE_STRIDE == 0);
                 numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
-
-                for (uint32_t j = 0; j < numIndices; j += TRIANGLE_STRIDE) {
-                    glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[j]];
-                    glm::vec3 p1 = mesh.vertices[meshPart.triangleIndices[j + 1]];
-                    glm::vec3 p2 = mesh.vertices[meshPart.triangleIndices[j + 2]];
-                    if (!pointsInPart.contains(p0)) {
-                        pointsInPart << p0;
-                    }
-                    if (!pointsInPart.contains(p1)) {
-                        pointsInPart << p1;
-                    }
-                    if (!pointsInPart.contains(p2)) {
-                        pointsInPart << p2;
-                    }
-                }
-
-                // run through all the quads and (uniquely) add each point to the hull
-                numIndices = (uint32_t)meshPart.quadIndices.size();
-                // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
-                //assert(numIndices % QUAD_STRIDE == 0);
-                numIndices -= numIndices % QUAD_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
-
-                for (uint32_t j = 0; j < numIndices; j += QUAD_STRIDE) {
-                    glm::vec3 p0 = mesh.vertices[meshPart.quadIndices[j]];
-                    glm::vec3 p1 = mesh.vertices[meshPart.quadIndices[j + 1]];
-                    glm::vec3 p2 = mesh.vertices[meshPart.quadIndices[j + 2]];
-                    glm::vec3 p3 = mesh.vertices[meshPart.quadIndices[j + 3]];
-                    if (!pointsInPart.contains(p0)) {
-                        pointsInPart << p0;
-                    }
-                    if (!pointsInPart.contains(p1)) {
-                        pointsInPart << p1;
-                    }
-                    if (!pointsInPart.contains(p2)) {
-                        pointsInPart << p2;
-                    }
-                    if (!pointsInPart.contains(p3)) {
-                        pointsInPart << p3;
+                uint32_t indexStart = (uint32_t)part.x;
+                uint32_t indexEnd = indexStart + numIndices;
+                for (uint32_t j = indexStart; j < indexEnd; ++j) {
+                    // NOTE: It seems odd to skip vertices when initializing a btConvexHullShape, but let's keep the behavior similar to the old behavior for now
+                    glm::vec3 point = triangleListMesh.vertices[triangleListMesh.indices[j]];
+                    if (std::find(pointsInPart.cbegin(), pointsInPart.cend(), point) == pointsInPart.cend()) {
+                        pointsInPart.push_back(point);
                     }
                 }
 
@@ -441,7 +416,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                     pointCollection.pop_back();
                     continue;
                 }
-                ++i;
             }
         }
 
@@ -456,8 +430,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
         glm::vec3 registrationOffset = dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
-        for (int32_t i = 0; i < pointCollection.size(); i++) {
-            for (int32_t j = 0; j < pointCollection[i].size(); j++) {
+        for (size_t i = 0; i < pointCollection.size(); i++) {
+            for (size_t j = 0; j < pointCollection[i].size(); j++) {
                 // back compensate for registration so we can apply that offset to the shapeInfo later
                 pointCollection[i][j] = scaleToFit * (pointCollection[i][j] + model->getOffset()) - registrationOffset;
             }
@@ -471,46 +445,63 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         model->updateGeometry();
 
         // compute meshPart local transforms
-        QVector<glm::mat4> localTransforms;
         const HFMModel& hfmModel = model->getHFMModel();
-        int numHFMMeshes = hfmModel.meshes.size();
-        int totalNumVertices = 0;
         glm::vec3 dimensions = getScaledDimensions();
         glm::mat4 invRegistraionOffset = glm::translate(dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
-        for (int i = 0; i < numHFMMeshes; i++) {
-            const HFMMesh& mesh = hfmModel.meshes.at(i);
-            if (mesh.clusters.size() > 0) {
-                const HFMCluster& cluster = mesh.clusters.at(0);
-                auto jointMatrix = model->getRig().getJointTransform(cluster.jointIndex);
-                // we backtranslate by the registration offset so we can apply that offset to the shapeInfo later
-                localTransforms.push_back(invRegistraionOffset * jointMatrix * cluster.inverseBindMatrix);
-            } else {
-                localTransforms.push_back(invRegistraionOffset);
-            }
-            totalNumVertices += mesh.vertices.size();
+
+        ShapeInfo::TriangleIndices& triangleIndices = shapeInfo.getTriangleIndices();
+        triangleIndices.clear();
+
+        Extents extents;
+        int32_t shapeCount = 0;
+        int32_t instanceIndex = 0;
+
+        // NOTE: Each pointCollection corresponds to a mesh. Therefore, we should have one pointCollection per mesh instance
+        // A mesh instance is a unique combination of mesh/transform. For every mesh instance, there are as many shapes as there are parts for that mesh.
+        // We assume the shapes are grouped by mesh instance, and the group contains one of each mesh part.
+        uint32_t numInstances = 0;
+        std::vector<std::vector<std::vector<uint32_t>>> shapesPerInstancePerMesh;
+        shapesPerInstancePerMesh.resize(hfmModel.meshes.size());
+        for (uint32_t shapeIndex = 0; shapeIndex < hfmModel.shapes.size();) {
+            const auto& shape = hfmModel.shapes[shapeIndex];
+            uint32_t meshIndex = shape.mesh;
+            const auto& mesh = hfmModel.meshes[meshIndex];
+            uint32_t numMeshParts = (uint32_t)mesh.parts.size();
+            assert(numMeshParts != 0);
+
+            auto& shapesPerInstance = shapesPerInstancePerMesh[meshIndex];
+            shapesPerInstance.emplace_back();
+
+            auto& shapes = shapesPerInstance.back();
+            shapes.resize(numMeshParts);
+            std::iota(shapes.begin(), shapes.end(), shapeIndex);
+
+            shapeIndex += numMeshParts;
+            ++numInstances;
         }
-        const int32_t MAX_VERTICES_PER_STATIC_MESH = 1e6;
-        if (totalNumVertices > MAX_VERTICES_PER_STATIC_MESH) {
-            qWarning() << "model" << getModelURL() << "has too many vertices" << totalNumVertices << "and will collide as a box.";
+
+        const uint32_t MAX_ALLOWED_MESH_COUNT = 1000;
+        if (numInstances > MAX_ALLOWED_MESH_COUNT) {
+            // too many will cause the deadlock timer to throw...
+            qWarning() << "model" << getModelURL() << "has too many collision meshes" << numInstances << "and will collide as a box.";
             shapeInfo.setParams(SHAPE_TYPE_BOX, 0.5f * dimensions);
             return;
         }
 
-        std::vector<std::shared_ptr<const graphics::Mesh>> meshes;
-        if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
-            auto& hfmMeshes = _collisionGeometryResource->getHFMModel().meshes;
-            meshes.reserve(hfmMeshes.size());
-            for (auto& hfmMesh : hfmMeshes) {
-                meshes.push_back(hfmMesh._mesh);
+        size_t totalNumVertices = 0;
+        for (const auto& shapesPerInstance : shapesPerInstancePerMesh) {
+            for (const auto& instanceShapes : shapesPerInstance) {
+                const uint32_t firstShapeIndex = instanceShapes.front();
+                const auto& firstShape = hfmModel.shapes[firstShapeIndex];
+                const auto& mesh = hfmModel.meshes[firstShape.mesh];
+                const auto& triangleListMesh = mesh.triangleListMesh;
+                // Added once per instance per mesh
+                totalNumVertices += triangleListMesh.vertices.size();
             }
-        } else {
-            meshes = model->getGeometry()->getMeshes();
         }
-        int32_t numMeshes = (int32_t)(meshes.size());
-
-        const int MAX_ALLOWED_MESH_COUNT = 1000;
-        if (numMeshes > MAX_ALLOWED_MESH_COUNT) {
-            // too many will cause the deadlock timer to throw...
+        const size_t MAX_VERTICES_PER_STATIC_MESH = 1e6;
+        if (totalNumVertices > MAX_VERTICES_PER_STATIC_MESH) {
+            qWarning() << "model" << getModelURL() << "has too many vertices" << totalNumVertices << "and will collide as a box.";
             shapeInfo.setParams(SHAPE_TYPE_BOX, 0.5f * dimensions);
             return;
         }
@@ -518,169 +509,118 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
         pointCollection.clear();
         if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
-            pointCollection.resize(numMeshes);
+            pointCollection.resize(numInstances);
         } else {
             pointCollection.resize(1);
         }
 
-        ShapeInfo::TriangleIndices& triangleIndices = shapeInfo.getTriangleIndices();
-        triangleIndices.clear();
+        for (uint32_t meshIndex = 0; meshIndex < hfmModel.meshes.size(); ++meshIndex) {
+            const auto& mesh = hfmModel.meshes[meshIndex];
+            const auto& triangleListMesh = mesh.triangleListMesh;
+            const auto& vertices = triangleListMesh.vertices;
+            const auto& indices = triangleListMesh.indices;
+            const std::vector<glm::ivec2>& parts = triangleListMesh.parts;
 
-        Extents extents;
-        int32_t meshCount = 0;
-        int32_t pointListIndex = 0;
-        for (auto& mesh : meshes) {
-            if (!mesh) {
-                continue;
-            }
-            const gpu::BufferView& vertices = mesh->getVertexBuffer();
-            const gpu::BufferView& indices = mesh->getIndexBuffer();
-            const gpu::BufferView& parts = mesh->getPartBuffer();
+            const auto& shapesPerInstance = shapesPerInstancePerMesh[meshIndex];
+            for (const std::vector<uint32_t>& instanceShapes : shapesPerInstance) {
+                ShapeInfo::PointList& points = pointCollection[instanceIndex];
 
-            ShapeInfo::PointList& points = pointCollection[pointListIndex];
+                // reserve room
+                int32_t sizeToReserve = (int32_t)(vertices.size());
+                if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
+                    // a list of points for each instance
+                    instanceIndex++;
+                } else {
+                    // only one list of points
+                    sizeToReserve += (int32_t)((gpu::Size)points.size());
+                }
+                points.reserve(sizeToReserve);
+                
+                // get mesh instance transform
+                const uint32_t meshIndexOffset = (uint32_t)points.size();
+                const uint32_t instanceShapeIndexForTransform = instanceShapes.front();
+                const auto& instanceShapeForTransform = hfmModel.shapes[instanceShapeIndexForTransform];
+                glm::mat4 localTransform;
+                if (instanceShapeForTransform.joint != hfm::UNDEFINED_KEY) {
+                    auto jointMatrix = model->getRig().getJointTransform(instanceShapeForTransform.joint);
+                    // we backtranslate by the registration offset so we can apply that offset to the shapeInfo later
+                    if (instanceShapeForTransform.skinDeformer != hfm::UNDEFINED_KEY) {
+                        const auto& skinDeformer = hfmModel.skinDeformers[instanceShapeForTransform.skinDeformer];
+                        glm::mat4 inverseBindMatrix;
+                        if (!skinDeformer.clusters.empty()) {
+                            const auto& cluster = skinDeformer.clusters.back();
+                            inverseBindMatrix = cluster.inverseBindMatrix;
+                        }
+                        localTransform = invRegistraionOffset * jointMatrix * inverseBindMatrix;
+                    } else {
+                        localTransform = invRegistraionOffset * jointMatrix;
+                    }
+                } else {
+                    localTransform = invRegistraionOffset;
+                }
 
-            // reserve room
-            int32_t sizeToReserve = (int32_t)(vertices.getNumElements());
-            if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
-                // a list of points for each mesh
-                pointListIndex++;
-            } else {
-                // only one list of points
-                sizeToReserve += (int32_t)((gpu::Size)points.size());
-            }
-            points.reserve(sizeToReserve);
+                // copy points
+                auto vertexItr = vertices.cbegin();
+                while (vertexItr != vertices.cend()) {
+                    glm::vec3 point = extractTranslation(localTransform * glm::translate(*vertexItr));
+                    points.push_back(point);
+                    ++vertexItr;
+                }
+                for (const auto& instanceShapeIndex : instanceShapes) {
+                    const auto& instanceShape = hfmModel.shapes[instanceShapeIndex];
+                    extents.addExtents(instanceShape.transformedExtents);
+                }
 
-            // copy points
-            uint32_t meshIndexOffset = (uint32_t)points.size();
-            const glm::mat4& localTransform = localTransforms[meshCount];
-            gpu::BufferView::Iterator<const glm::vec3> vertexItr = vertices.cbegin<const glm::vec3>();
-            while (vertexItr != vertices.cend<const glm::vec3>()) {
-                glm::vec3 point = extractTranslation(localTransform * glm::translate(*vertexItr));
-                points.push_back(point);
-                extents.addPoint(point);
-                ++vertexItr;
-            }
-
-            if (type == SHAPE_TYPE_STATIC_MESH) {
-                // copy into triangleIndices
-                triangleIndices.reserve((int32_t)((gpu::Size)(triangleIndices.size()) + indices.getNumElements()));
-                gpu::BufferView::Iterator<const graphics::Mesh::Part> partItr = parts.cbegin<const graphics::Mesh::Part>();
-                while (partItr != parts.cend<const graphics::Mesh::Part>()) {
-                    auto numIndices = partItr->_numIndices;
-                    if (partItr->_topology == graphics::Mesh::TRIANGLES) {
+                if (type == SHAPE_TYPE_STATIC_MESH) {
+                    // copy into triangleIndices
+                    triangleIndices.reserve((int32_t)((gpu::Size)(triangleIndices.size()) + indices.size()));
+                    auto partItr = parts.cbegin();
+                    while (partItr != parts.cend()) {
+                        auto numIndices = partItr->y;
                         // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                         //assert(numIndices % TRIANGLE_STRIDE == 0);
                         numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
-
-                        auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
+                        auto indexItr = indices.cbegin() + partItr->x;
                         auto indexEnd = indexItr + numIndices;
                         while (indexItr != indexEnd) {
                             triangleIndices.push_back(*indexItr + meshIndexOffset);
                             ++indexItr;
                         }
-                    } else if (partItr->_topology == graphics::Mesh::TRIANGLE_STRIP) {
-                        // TODO: resurrect assert after we start sanitizing HFMMesh higher up
-                        //assert(numIndices > 2);
-
-                        uint32_t approxNumIndices = TRIANGLE_STRIDE * numIndices;
-                        if (approxNumIndices > (uint32_t)(triangleIndices.capacity() - triangleIndices.size())) {
-                            // we underestimated the final size of triangleIndices so we pre-emptively expand it
-                            triangleIndices.reserve(triangleIndices.size() + approxNumIndices);
-                        }
-
-                        auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
-                        auto indexEnd = indexItr + (numIndices - 2);
-
-                        // first triangle uses the first three indices
-                        triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
-                        triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
-                        triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
-
-                        // the rest use previous and next index
-                        uint32_t triangleCount = 1;
-                        while (indexItr != indexEnd) {
-                            if ((*indexItr) != graphics::Mesh::PRIMITIVE_RESTART_INDEX) {
-                                if (triangleCount % 2 == 0) {
-                                    // even triangles use first two indices in order
-                                    triangleIndices.push_back(*(indexItr - 2) + meshIndexOffset);
-                                    triangleIndices.push_back(*(indexItr - 1) + meshIndexOffset);
-                                } else {
-                                    // odd triangles swap order of first two indices
-                                    triangleIndices.push_back(*(indexItr - 1) + meshIndexOffset);
-                                    triangleIndices.push_back(*(indexItr - 2) + meshIndexOffset);
-                                }
-                                triangleIndices.push_back(*indexItr + meshIndexOffset);
-                                ++triangleCount;
-                            }
-                            ++indexItr;
-                        }
+                        ++partItr;
                     }
-                    ++partItr;
-                }
-            } else if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
-                // for each mesh copy unique part indices, separated by special bogus (flag) index values
-                gpu::BufferView::Iterator<const graphics::Mesh::Part> partItr = parts.cbegin<const graphics::Mesh::Part>();
-                while (partItr != parts.cend<const graphics::Mesh::Part>()) {
-                    // collect unique list of indices for this part
-                    std::set<int32_t> uniqueIndices;
-                    auto numIndices = partItr->_numIndices;
-                    if (partItr->_topology == graphics::Mesh::TRIANGLES) {
+                } else if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
+                    // for each mesh copy unique part indices, separated by special bogus (flag) index values
+                    auto partItr = parts.cbegin();
+                    while (partItr != parts.cend()) {
+                        // collect unique list of indices for this part
+                        std::set<int32_t> uniqueIndices;
+                        auto numIndices = partItr->y;
                         // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                         //assert(numIndices% TRIANGLE_STRIDE == 0);
                         numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
-
-                        auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
+                        auto indexItr = indices.cbegin() + partItr->x;
                         auto indexEnd = indexItr + numIndices;
                         while (indexItr != indexEnd) {
                             uniqueIndices.insert(*indexItr);
                             ++indexItr;
                         }
-                    } else if (partItr->_topology == graphics::Mesh::TRIANGLE_STRIP) {
-                        // TODO: resurrect assert after we start sanitizing HFMMesh higher up
-                        //assert(numIndices > TRIANGLE_STRIDE - 1);
 
-                        auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
-                        auto indexEnd = indexItr + (numIndices - 2);
-
-                        // first triangle uses the first three indices
-                        uniqueIndices.insert(*(indexItr++));
-                        uniqueIndices.insert(*(indexItr++));
-                        uniqueIndices.insert(*(indexItr++));
-
-                        // the rest use previous and next index
-                        uint32_t triangleCount = 1;
-                        while (indexItr != indexEnd) {
-                            if ((*indexItr) != graphics::Mesh::PRIMITIVE_RESTART_INDEX) {
-                                if (triangleCount % 2 == 0) {
-                                    // EVEN triangles use first two indices in order
-                                    uniqueIndices.insert(*(indexItr - 2));
-                                    uniqueIndices.insert(*(indexItr - 1));
-                                } else {
-                                    // ODD triangles swap order of first two indices
-                                    uniqueIndices.insert(*(indexItr - 1));
-                                    uniqueIndices.insert(*(indexItr - 2));
-                                }
-                                uniqueIndices.insert(*indexItr);
-                                ++triangleCount;
-                            }
-                            ++indexItr;
+                        // store uniqueIndices in triangleIndices
+                        triangleIndices.reserve(triangleIndices.size() + (int32_t)uniqueIndices.size());
+                        for (auto index : uniqueIndices) {
+                            triangleIndices.push_back(index);
                         }
-                    }
+                        // flag end of part
+                        triangleIndices.push_back(END_OF_MESH_PART);
 
-                    // store uniqueIndices in triangleIndices
-                    triangleIndices.reserve(triangleIndices.size() + (int32_t)uniqueIndices.size());
-                    for (auto index : uniqueIndices) {
-                        triangleIndices.push_back(index);
+                        ++partItr;
                     }
-                    // flag end of part
-                    triangleIndices.push_back(END_OF_MESH_PART);
-
-                    ++partItr;
+                    // flag end of mesh
+                    triangleIndices.push_back(END_OF_MESH);
                 }
-                // flag end of mesh
-                triangleIndices.push_back(END_OF_MESH);
             }
-            ++meshCount;
+
+            ++shapeCount;
         }
 
         // scale and shift
@@ -692,7 +632,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             }
         }
         for (auto points : pointCollection) {
-            for (int32_t i = 0; i < points.size(); ++i) {
+            for (size_t i = 0; i < points.size(); ++i) {
                 points[i] = (points[i] * scaleToFit);
             }
         }
@@ -1433,7 +1373,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
     }
 
-    if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+    if (!_texturesLoaded && model->getNetworkModel() && model->getNetworkModel()->areTexturesLoaded()) {
         withWriteLock([&] {
             _texturesLoaded = true;
         });

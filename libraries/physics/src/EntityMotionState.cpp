@@ -62,7 +62,7 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     // rather than pass the legit shape pointer to the ObjectMotionState ctor above.
     setShape(shape);
 
-    if (_entity->isAvatarEntity() && _entity->getOwningAvatarID() != Physics::getSessionUUID()) {
+    if (_entity->isAvatarEntity() && !_entity->isMyAvatarEntity()) {
         // avatar entities are always thus, so we cache this fact in _ownershipState
         _ownershipState = EntityMotionState::OwnershipState::Unownable;
     }
@@ -407,8 +407,8 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     // NOTE: we expect _entity and _body to be valid in this context, since shouldSendUpdate() is only called
     // after doesNotNeedToSendUpdate() returns false and that call should return 'true' if _entity or _body are NULL.
 
-    // this case is prevented by setting _ownershipState to UNOWNABLE in EntityMotionState::ctor
-    assert(!(_entity->isAvatarEntity() && _entity->getOwningAvatarID() != Physics::getSessionUUID()));
+    // this case is prevented by setting _ownershipState to OwnershipState::Unownable in EntityMotionState::ctor
+    assert(!(_entity->isAvatarEntity() && !_entity->isMyAvatarEntity()));
 
     if (_entity->getTransitingWithAvatar()) {
         return false;
@@ -768,7 +768,7 @@ uint8_t EntityMotionState::computeFinalBidPriority() const {
 }
 
 bool EntityMotionState::isLocallyOwned() const {
-    return _entity->getSimulatorID() == Physics::getSessionUUID();
+    return _entity->getSimulatorID() == Physics::getSessionUUID() || _entity->isMyAvatarEntity();
 }
 
 bool EntityMotionState::isLocallyOwnedOrShouldBe() const {
@@ -786,13 +786,21 @@ void EntityMotionState::setRegion(uint8_t region) {
 }
 
 void EntityMotionState::initForBid() {
-    assert(_ownershipState != EntityMotionState::OwnershipState::Unownable);
-    _ownershipState = EntityMotionState::OwnershipState::PendingBid;
+    if (_ownershipState != EntityMotionState::OwnershipState::Unownable) {
+        _ownershipState = EntityMotionState::OwnershipState::PendingBid;
+    }
 }
 
 void EntityMotionState::initForOwned() {
-    assert(_ownershipState != EntityMotionState::OwnershipState::Unownable);
-    _ownershipState = EntityMotionState::OwnershipState::LocallyOwned;
+    if (_ownershipState != EntityMotionState::OwnershipState::Unownable) {
+        _ownershipState = EntityMotionState::OwnershipState::LocallyOwned;
+    }
+}
+
+void EntityMotionState::clearOwnershipState() {
+    if (_ownershipState != OwnershipState::Unownable) {
+        _ownershipState = OwnershipState::NotLocallyOwned;
+    }
 }
 
 void EntityMotionState::clearObjectVelocities() const {

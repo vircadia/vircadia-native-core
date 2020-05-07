@@ -393,7 +393,8 @@ const DEFAULT_ENTITY_PROPERTIES = {
         },
         shapeType: "box",
         bloomMode: "inherit",
-        avatarPriority: "inherit"
+        avatarPriority: "inherit",
+        screenshare: "inherit",
     },
     Model: {
         collisionShape: "none",
@@ -561,14 +562,67 @@ var toolBar = (function () {
             if (!properties.grab) {
                 properties.grab = {};
                 if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
-                    !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
+                    !(properties.type === "Zone" || properties.type === "Light"
+                    || properties.type === "ParticleEffect" || properties.type === "Web")) {
                     properties.grab.grabbable = true;
                 } else {
                     properties.grab.grabbable = false;
                 }
             }
 
+            if (type === "Model") {
+                properties.visible = false;
+            }
+
             entityID = Entities.addEntity(properties);
+
+            var dimensionsCheckCallback = function(){
+                var POST_ADJUST_ENTITY_TYPES = ["Model"];
+                if (POST_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
+                    // Adjust position of entity per bounding box after it has been created and auto-resized.
+                    var initialDimensions = Entities.getEntityProperties(entityID, ["dimensions"]).dimensions;
+                    var DIMENSIONS_CHECK_INTERVAL = 200;
+                    var MAX_DIMENSIONS_CHECKS = 10;
+                    var dimensionsCheckCount = 0;
+                    var dimensionsCheckFunction = function () {
+                        dimensionsCheckCount++;
+                        var properties = Entities.getEntityProperties(entityID, ["dimensions", "registrationPoint", "rotation"]);
+                        if (!Vec3.equal(properties.dimensions, initialDimensions)) {
+                            position = adjustPositionPerBoundingBox(position, direction, properties.registrationPoint,
+                                properties.dimensions, properties.rotation);
+                            position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions),
+                                properties.dimensions);
+                            Entities.editEntity(entityID, {
+                                position: position
+                            });
+                            selectionManager._update(false, this);
+                        } else if (dimensionsCheckCount < MAX_DIMENSIONS_CHECKS) {
+                            Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
+                        }
+                    };
+                    Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
+                }
+            }
+            // Make sure the entity is loaded before we try to figure out
+            // its dimensions.
+            var MAX_LOADED_CHECKS = 10;
+            var LOADED_CHECK_INTERVAL = 100;
+            var isLoadedCheckCount = 0;
+            var entityIsLoadedCheck = function() {
+                isLoadedCheckCount++;
+                if (isLoadedCheckCount === MAX_LOADED_CHECKS || Entities.isLoaded(entityID)) {
+                    var naturalDimensions = Entities.getEntityProperties(entityID, "naturalDimensions").naturalDimensions
+                    Entities.editEntity(entityID, {
+                        visible: true,
+                        dimensions: naturalDimensions
+                    })
+                    dimensionsCheckCallback();
+                    return;
+                }
+                Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
+            }
+            Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
+
             SelectionManager.addEntity(entityID, false, this);
             SelectionManager.saveProperties();
             pushCommandForSelections([{
@@ -576,31 +630,6 @@ var toolBar = (function () {
                 properties: properties
             }], [], true);
 
-            var POST_ADJUST_ENTITY_TYPES = ["Model"];
-            if (POST_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
-                // Adjust position of entity per bounding box after it has been created and auto-resized.
-                var initialDimensions = Entities.getEntityProperties(entityID, ["dimensions"]).dimensions;
-                var DIMENSIONS_CHECK_INTERVAL = 200;
-                var MAX_DIMENSIONS_CHECKS = 10;
-                var dimensionsCheckCount = 0;
-                var dimensionsCheckFunction = function () {
-                    dimensionsCheckCount++;
-                    var properties = Entities.getEntityProperties(entityID, ["dimensions", "registrationPoint", "rotation"]);
-                    if (!Vec3.equal(properties.dimensions, initialDimensions)) {
-                        position = adjustPositionPerBoundingBox(position, direction, properties.registrationPoint,
-                            properties.dimensions, properties.rotation);
-                        position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions),
-                            properties.dimensions);
-                        Entities.editEntity(entityID, {
-                            position: position
-                        });
-                        selectionManager._update(false, this);
-                    } else if (dimensionsCheckCount < MAX_DIMENSIONS_CHECKS) {
-                        Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
-                    }
-                };
-                Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
-            }
         } else {
             Window.notifyEditError("Can't create " + properties.type + ": " +
                                    properties.type + " would be out of bounds.");

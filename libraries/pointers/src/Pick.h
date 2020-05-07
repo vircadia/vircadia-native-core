@@ -93,7 +93,7 @@ public:
      *     collisions.
      */
 
-     /**jsdoc
+    /**jsdoc
      * <p>A type of pick.</p>
      * <table>
      *   <thead>

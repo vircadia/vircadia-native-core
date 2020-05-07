@@ -278,7 +278,7 @@ AvatarEntityMap ScriptAvatarData::getAvatarEntities() const {
     AvatarEntityMap scriptEntityData;
 
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
-        return sharedAvatarData->getAvatarEntityData();
+        return sharedAvatarData->getAvatarEntityDataNonDefault();
     }
 
     return scriptEntityData;

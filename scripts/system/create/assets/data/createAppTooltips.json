@@ -147,6 +147,9 @@
     "avatarPriority": {
         "tooltip": "Alter Avatars' update priorities."
     },
+    "screenshare": {
+        "tooltip": "Enable screen-sharing within this zone"
+    }, 
     "modelURL": {
         "tooltip": "A mesh model from an FBX or OBJ file."
     },
@@ -557,9 +560,6 @@
     },
     "gravity": {
         "tooltip": "The acceleration due to gravity that the entity should move with, in world space."
-    },
-    "acceleration": {
-        "tooltip": "A acceleration that the entity should move with, in world space."
     },
     "renderLayer": {
         "tooltip": "The layer on which this entity is rendered."

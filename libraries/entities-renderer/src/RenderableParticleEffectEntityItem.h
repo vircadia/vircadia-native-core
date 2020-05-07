@@ -90,7 +90,7 @@ private:
     } _triangleInfo;
 
     static CpuParticle createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
-                                      const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource,
+                                      const ShapeType& shapeType, const ModelResource::Pointer& geometryResource,
                                       const TriangleInfo& triangleInfo);
     void stepSimulation();
 
@@ -109,7 +109,7 @@ private:
     QString _compoundShapeURL;
 
     void fetchGeometryResource();
-    GeometryResource::Pointer _geometryResource;
+    ModelResource::Pointer _geometryResource;
 
     NetworkTexturePointer _networkTexture;
     bool _textureLoaded { false };

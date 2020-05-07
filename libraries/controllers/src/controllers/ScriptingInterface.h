@@ -282,7 +282,7 @@ namespace controller {
          * Enables or disables a controller mapping. When enabled, the routes in the mapping have effect.
          * @function Controller.enableMapping
          * @param {string} mappingName - The name of the mapping.
-         * @param {boolean} [[enable=true] - If <code>true</code> then the mapping is enabled, otherwise it is disabled.
+         * @param {boolean} [enable=true] - If <code>true</code> then the mapping is enabled, otherwise it is disabled.
          */
         Q_INVOKABLE void enableMapping(const QString& mappingName, bool enable = true);
 
