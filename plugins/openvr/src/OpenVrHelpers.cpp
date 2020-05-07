@@ -100,7 +100,7 @@ QString getVrSettingString(const char* section, const char* setting) {
     vr::IVRSettings * vrSettings = vr::VRSettings();
     if (vrSettings) {
         vr::EVRSettingsError error = vr::VRSettingsError_None;
-        vrSettings->GetString(vr::k_pch_audio_Section, vr::k_pch_audio_OnPlaybackDevice_String, BUFFER, BUFFER_SIZE, &error);
+        vrSettings->GetString(vr::k_pch_audio_Section, setting, BUFFER, BUFFER_SIZE, &error);
         if (error == vr::VRSettingsError_None) {
             result = BUFFER;
         }
