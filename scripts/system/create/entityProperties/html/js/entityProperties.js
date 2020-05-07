@@ -3559,7 +3559,7 @@ function setTextareaScrolling(element) {
 function enableAllMultipleZoneSelector() {
     let allMultiZoneSelectors = document.querySelectorAll(".hiddenMultiZonesSelection");
     let i, propId;
-    for ( i = 0; i < allMultiZoneSelectors.length; i++ ) {
+    for (i = 0; i < allMultiZoneSelectors.length; i++) {
         propId = allMultiZoneSelectors[i].id;
         displaySelectedZones(propId, true);
     }
@@ -3568,7 +3568,7 @@ function enableAllMultipleZoneSelector() {
 function disableAllMultipleZoneSelector() {
     let allMultiZoneSelectors = document.querySelectorAll(".hiddenMultiZonesSelection");
     let i, propId;
-    for ( i = 0; i < allMultiZoneSelectors.length; i++ ) {
+    for (i = 0; i < allMultiZoneSelectors.length; i++) {
         propId = allMultiZoneSelectors[i].id;
         displaySelectedZones(propId, false);
     }
@@ -3582,7 +3582,7 @@ function requestZoneList() {
 
 function addZoneToZonesSelection(propertyId) {
     let hiddenField = document.getElementById(propertyId);
-    if(JSON.stringify(hiddenField.value) === '"undefined"') {
+    if (JSON.stringify(hiddenField.value) === '"undefined"') {
         hiddenField.value = "[]";
     }
     let selectedZones = JSON.parse(hiddenField.value);
@@ -3598,7 +3598,7 @@ function addZoneToZonesSelection(propertyId) {
 
 function removeZoneFromZonesSelection(propertyId, zoneId) {
     let hiddenField = document.getElementById(propertyId);
-    if(JSON.stringify(hiddenField.value) === '"undefined"') {
+    if (JSON.stringify(hiddenField.value) === '"undefined"') {
         hiddenField.value = "[]";
     }
     let selectedZones = JSON.parse(hiddenField.value);
@@ -3630,9 +3630,9 @@ function displaySelectedZones(propertyId, isEditable) {
             listedZoneInner += "<tr><td class='zoneItem'>[ WARNING: Any changes will apply to all. ]</td><td>&nbsp;</td></tr>";
         }
     } else {
-        for ( i = 0; i < selectedZones.length; i++ ) {
+        for (i = 0; i < selectedZones.length; i++) {
             name = "{ERROR: NOT FOUND}";
-            for ( j = 0; j < zonesList.length; j++ ) {
+            for (j = 0; j < zonesList.length; j++) {
                 if (selectedZones[i] === zonesList[j].id) {
                     if (zonesList[j].name !== "") {
                         name = zonesList[j].name;
@@ -3685,7 +3685,7 @@ function setZonesSelectionData(element, isEditable) {
     let zoneSelectorContainer = document.getElementById("zones-selector-" + element.id);
     let zoneSelector = "<div class='multiZoneSelToolbar' id='multiZoneSelTools-" + element.id + "'><select class = 'zoneSelect' id='zones-select-" + element.id + "' >";
     let i, name;
-    for ( i = 0; i < zonesList.length; i++ ) {
+    for (i = 0; i < zonesList.length; i++) {
         if (zonesList[i].name === "") {
             name = zonesList[i].id;
         } else {
@@ -3703,9 +3703,9 @@ function setZonesSelectionData(element, isEditable) {
 function updateAllZoneSelect() {
     let allZoneSelects = document.querySelectorAll(".zoneSelect");
     let i, j, name, propId;
-    for ( i = 0; i < allZoneSelects.length; i++ ) {
+    for (i = 0; i < allZoneSelects.length; i++) {
         allZoneSelects[i].options.length = 0;
-        for ( j = 0; j < zonesList.length; j++ ) {
+        for (j = 0; j < zonesList.length; j++) {
             if (zonesList[j].name === "") {
                 name = zonesList[j].id;
             } else {
