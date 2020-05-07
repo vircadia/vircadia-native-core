@@ -48,25 +48,25 @@ div.tab-section-header {
 }
 
 table.tabsTableFrame {
-    width:100%;
+    width: 100%;
     min-height: 352px; 
     display: block;
 }
 
 tr.tabsTrFrame {
-    width:100%;
+    width: 100%;
 }
 
 td.tabsFrame {
-    width:32px;
-    vertical-align:top;
-    background-color:#575757;
-    padding:0px;
-    border:0px;
+    width: 32px;
+    vertical-align: top;
+    background-color: #575757;
+    padding: 0px;
+    border: 0px;
 }
 
 td.tabsPropertiesFrame {
-    width:100%;
+    width: 100%;
     vertical-align: top;
     border:0px;
 }
