@@ -83,7 +83,7 @@ endif()
         self.bootstrapEnv = os.environ.copy()
         self.buildEnv = os.environ.copy()
         self.prebuiltArchive = None
-        usePrebuilt = False 
+        usePrebuilt = False
         # usePrebuild Disabled, to re-enabled using the prebuilt archives for GitHub action builds uncomment the following line:
         # usePrebuilt = ('CI_BUILD' in os.environ) and os.environ["CI_BUILD"] == "Github" and (not self.noClean)
 
@@ -248,7 +248,7 @@ endif()
         print("Installing host tools")
         if (self.vcpkgBuildType):
             self.copyTripletForBuildType(self.hostTriplet)
-        self.run(['install', '--triplet', self.getTripletWithBuildType(self.hostTriplet), 'hifi-host-tools'])    
+        self.run(['install', '--triplet', self.getTripletWithBuildType(self.hostTriplet), 'hifi-host-tools'])
 
         # If not android, install the hifi-client-deps libraries
         if not self.args.android:
