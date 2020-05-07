@@ -18,7 +18,7 @@
 /**jsdoc
  * Audio effect options used by the {@link Audio} API.
  *
- * <p>Create using <code>new AudioEffectOptions(reverbOptions)</code>.</p>
+ * <p>Create using <code>new AudioEffectOptions(...)</code>.</p>
  *
  * @class AudioEffectOptions
  * @param {AudioEffectOptions.ReverbOptions} [reverbOptions=null] - Reverberation options.

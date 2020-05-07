@@ -269,6 +269,8 @@
         { "from": "Keyboard.MouseWheelDown", "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.MouseWheelLeft", "to": "Actions.BOOM_OUT", "filters": [ { "type": "scale", "scale": 0.02 } ]},
         { "from": "Keyboard.MouseWheelRight", "to": "Actions.BOOM_IN", "filters": [ { "type": "scale", "scale": 0.02 } ]},
+        { "from": "Keyboard.GesturePinchOut", "to": "Actions.BOOM_OUT"},
+        { "from": "Keyboard.GesturePinchIn", "to": "Actions.BOOM_IN"},
 
         { "from": "Keyboard.Space", "to": "Actions.VERTICAL_UP" },
         { "from": "Keyboard.R", "to": "Actions.ACTION1" },

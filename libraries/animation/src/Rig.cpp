@@ -1093,6 +1093,12 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         const float TURN_ENTER_SPEED_THRESHOLD = 0.5f; // rad/sec
         const float TURN_EXIT_SPEED_THRESHOLD = 0.2f; // rad/sec
 
+        //stategraph vars based on input
+        const float INPUT_DEADZONE_THRESHOLD = 0.05f;
+        const float SLOW_SPEED_THRESHOLD = 1.5f;
+        const float HAS_MOMENTUM_THRESHOLD = 2.2f;
+        const float RESET_MOMENTUM_THRESHOLD = 0.05f;
+
         if (ccState == CharacterControllerState::Hover) {
             if (_desiredState != RigRole::Hover) {
                 _desiredStateAge = 0.0f;
@@ -1171,6 +1177,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
         _desiredStateAge += deltaTime;
 
+
         if (_state == RigRole::Move) {
             glm::vec3 horizontalVel = localVel - glm::vec3(0.0f, localVel.y, 0.0f);
             if (glm::length(horizontalVel) > MOVE_ENTER_SPEED_THRESHOLD) {
@@ -1244,6 +1251,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotInAir", true);
             _animVars.set("isSeated", false);
             _animVars.set("isNotSeated", true);
+            _animVars.set("isSeatedTurningRight", false);
+            _animVars.set("isSeatedTurningLeft", false);
+            _animVars.set("isSeatedNotTurning", false);
 
         } else if (_state == RigRole::Turn) {
             if (turningSpeed > 0.0f) {
@@ -1274,6 +1284,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotInAir", true);
             _animVars.set("isSeated", false);
             _animVars.set("isNotSeated", true);
+            _animVars.set("isSeatedTurningRight", false);
+            _animVars.set("isSeatedTurningLeft", false);
+            _animVars.set("isSeatedNotTurning", false);
 
         } else if (_state == RigRole::Idle) {
             // default anim vars to notMoving and notTurning
@@ -1297,6 +1310,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotInAir", true);
             _animVars.set("isSeated", false);
             _animVars.set("isNotSeated", true);
+            _animVars.set("isSeatedTurningRight", false);
+            _animVars.set("isSeatedTurningLeft", false);
+            _animVars.set("isSeatedNotTurning", false);
 
         } else if (_state == RigRole::Hover) {
             // flying.
@@ -1320,6 +1336,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotInAir", true);
             _animVars.set("isSeated", false);
             _animVars.set("isNotSeated", true);
+            _animVars.set("isSeatedTurningRight", false);
+            _animVars.set("isSeatedTurningLeft", false);
+            _animVars.set("isSeatedNotTurning", false);
 
         } else if (_state == RigRole::Takeoff) {
             // jumping in-air
@@ -1351,6 +1370,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotInAir", false);
             _animVars.set("isSeated", false);
             _animVars.set("isNotSeated", true);
+            _animVars.set("isSeatedTurningRight", false);
+            _animVars.set("isSeatedTurningLeft", false);
+            _animVars.set("isSeatedNotTurning", false);
 
         } else if (_state == RigRole::InAir) {
             // jumping in-air
@@ -1371,6 +1393,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotTakeoff", true);
             _animVars.set("isSeated", false);
             _animVars.set("isNotSeated", true);
+            _animVars.set("isSeatedTurningRight", false);
+            _animVars.set("isSeatedTurningLeft", false);
+            _animVars.set("isSeatedNotTurning", false);
 
             bool inAirRun = forwardSpeed > 0.1f;
             if (inAirRun) {
@@ -1393,6 +1418,23 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
             _animVars.set("inAirAlpha", alpha);
         } else if (_state == RigRole::Seated) {
+            if (fabsf(_previousControllerParameters.inputX) <= INPUT_DEADZONE_THRESHOLD) {
+                // seated not turning
+                _animVars.set("isSeatedTurningRight", false);
+                _animVars.set("isSeatedTurningLeft", false);
+                _animVars.set("isSeatedNotTurning", true);
+            } else if (_previousControllerParameters.inputX > 0.0f) {
+                // seated turning right
+                _animVars.set("isSeatedTurningRight", true);
+                _animVars.set("isSeatedTurningLeft", false);
+                _animVars.set("isSeatedNotTurning", false);
+            } else {
+                // seated turning left
+                _animVars.set("isSeatedTurningRight", false);
+                _animVars.set("isSeatedTurningLeft", true);
+                _animVars.set("isSeatedNotTurning", false);
+            }
+
             _animVars.set("isMovingForward", false);
             _animVars.set("isMovingBackward", false);
             _animVars.set("isMovingRight", false);
@@ -1434,20 +1476,36 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         _lastEnableInverseKinematics = _enableInverseKinematics;
 
 
-        //stategraph vars based on input
-        const float INPUT_DEADZONE_THRESHOLD = 0.05f;
-        const float SLOW_SPEED_THRESHOLD = 1.5f;
+
 
         if (fabsf(_previousControllerParameters.inputX) <= INPUT_DEADZONE_THRESHOLD &&
             fabsf(_previousControllerParameters.inputZ) <= INPUT_DEADZONE_THRESHOLD) {
             // no WASD input
             if (fabsf(forwardSpeed) <= SLOW_SPEED_THRESHOLD && fabsf(lateralSpeed) <= SLOW_SPEED_THRESHOLD) {
+
+                //reset this when stopped
+                if (fabsf(forwardSpeed) <= RESET_MOMENTUM_THRESHOLD &&
+                    fabsf(lateralSpeed) <= RESET_MOMENTUM_THRESHOLD) {
+                    _isMovingWithMomentum = false;
+                }
+
+
                 _animVars.set("isInputForward", false);
                 _animVars.set("isInputBackward", false);
                 _animVars.set("isInputRight", false);
                 _animVars.set("isInputLeft", false);
-                _animVars.set("isNotInput", true);
-                _animVars.set("isNotInputSlow", true);
+
+                // directly reflects input
+                _animVars.set("isNotInput", true);  
+
+                // no input + speed drops to SLOW_SPEED_THRESHOLD
+                // (don't transition run->idle - slow to walk first)
+                _animVars.set("isNotInputSlow", _isMovingWithMomentum);
+
+                // no input + speed didn't get above HAS_MOMENTUM_THRESHOLD since last idle
+                // (brief inputs and movement adjustments)
+                _animVars.set("isNotInputNoMomentum", !_isMovingWithMomentum);
+
 
             } else {
                 _animVars.set("isInputForward", false);
@@ -1456,8 +1514,13 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 _animVars.set("isInputLeft", false);
                 _animVars.set("isNotInput", true);
                 _animVars.set("isNotInputSlow", false);
+                _animVars.set("isNotInputNoMomentum", false);
             }
         } else if (fabsf(_previousControllerParameters.inputZ) >= fabsf(_previousControllerParameters.inputX)) {
+            if (fabsf(forwardSpeed) > HAS_MOMENTUM_THRESHOLD) {
+                _isMovingWithMomentum = true;
+            }
+
             if (_previousControllerParameters.inputZ > 0.0f) {
                 // forward
                 _animVars.set("isInputForward", true);
@@ -1466,6 +1529,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 _animVars.set("isInputLeft", false);
                 _animVars.set("isNotInput", false);
                 _animVars.set("isNotInputSlow", false);
+                _animVars.set("isNotInputNoMomentum", false);
             } else {
                 // backward
                 _animVars.set("isInputForward", false);
@@ -1474,8 +1538,13 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 _animVars.set("isInputLeft", false);
                 _animVars.set("isNotInput", false);
                 _animVars.set("isNotInputSlow", false);
+                _animVars.set("isNotInputNoMomentum", false);
             }
         } else {
+            if (fabsf(lateralSpeed) > HAS_MOMENTUM_THRESHOLD) {
+                _isMovingWithMomentum = true;
+            }
+
             if (_previousControllerParameters.inputX > 0.0f) {
                 // right
                 if (!_headEnabled) {
@@ -1489,6 +1558,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 _animVars.set("isInputBackward", false);
                 _animVars.set("isNotInput", false);
                 _animVars.set("isNotInputSlow", false);
+                _animVars.set("isNotInputNoMomentum", false);
             } else {
                 // left
                 if (!_headEnabled) {
@@ -1502,6 +1572,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 _animVars.set("isInputRight", false);
                 _animVars.set("isNotInput", false);
                 _animVars.set("isNotInputSlow", false);
+                _animVars.set("isNotInputNoMomentum", false);
             }
         }
 

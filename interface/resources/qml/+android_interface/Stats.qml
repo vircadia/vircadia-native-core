@@ -201,7 +201,7 @@ Item {
                     }
                     StatText {
                         visible: root.expanded;
-                        text: "Audio In Audio: " + root.audioAudioInboundPPS + " pps, " +
+                        text: "Audio In Audio: " + root.audioInboundPPS + " pps, " +
                             "Silent: " + root.audioSilentInboundPPS + " pps";
                     }
                     StatText {

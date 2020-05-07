@@ -162,6 +162,7 @@ enum EntityPropertyList {
     PROP_DERIVED_31,
     PROP_DERIVED_32,
     PROP_DERIVED_33,
+    PROP_DERIVED_34,
 
     PROP_AFTER_LAST_ITEM,
 
@@ -291,6 +292,8 @@ enum EntityPropertyList {
     PROP_BLOOM_MODE = PROP_DERIVED_32,
     // Avatar priority
     PROP_AVATAR_PRIORITY = PROP_DERIVED_33,
+    // Screen-sharing
+    PROP_SCREENSHARE = PROP_DERIVED_34,
 
     // Polyvox
     PROP_VOXEL_VOLUME_SIZE = PROP_DERIVED_0,

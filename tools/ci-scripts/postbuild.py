@@ -31,14 +31,14 @@ elif sys.platform == "darwin":
 def computeArchiveName(prefix):
     RELEASE_TYPE = os.getenv("RELEASE_TYPE", "DEV")
     RELEASE_NUMBER = os.getenv("RELEASE_NUMBER", "")
-    GIT_PR_COMMIT_SHORT = os.getenv("SHA7", "")
-    if GIT_PR_COMMIT_SHORT == '':
-        GIT_PR_COMMIT_SHORT = os.getenv("GIT_PR_COMMIT_SHORT", "")
+    GIT_COMMIT_SHORT = os.getenv("SHA7", "")
+    if GIT_COMMIT_SHORT == '':
+        GIT_COMMIT_SHORT = os.getenv("GIT_COMMIT_SHORT", "")
 
     if RELEASE_TYPE == "PRODUCTION":
-        BUILD_VERSION = "{}-{}".format(RELEASE_NUMBER, GIT_PR_COMMIT_SHORT)
+        BUILD_VERSION = "{}-{}".format(RELEASE_NUMBER, GIT_COMMIT_SHORT)
     elif RELEASE_TYPE == "PR":
-        BUILD_VERSION = "PR{}-{}".format(RELEASE_NUMBER, GIT_PR_COMMIT_SHORT)
+        BUILD_VERSION = "PR{}-{}".format(RELEASE_NUMBER, GIT_COMMIT_SHORT)
     else:
         BUILD_VERSION = "dev"
 

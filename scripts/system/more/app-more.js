@@ -11,7 +11,8 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//    
+//
+
 (function() {
     var ROOT = Script.resolvePath('').split("app-more.js")[0];
     var APP_NAME = "MORE...";
@@ -68,8 +69,7 @@
 
             if (instruction.action === "installScript") {
                 if (lastProcessing.action !== instruction.action || lastProcessing.script !== instruction.script) {
-                    ScriptDiscoveryService.loadOneScript(instruction.script);
-                    lastProcessing.action = instruction.action;
+                    ScriptDiscoveryService.loadScript(instruction.script, true, false, false, true, false); // Force reload the script, do not use cache.                    lastProcessing.action = instruction.action;
                     lastProcessing.script = instruction.script;
                     Script.setTimeout(function() {
                         sendRunningScriptList(); 

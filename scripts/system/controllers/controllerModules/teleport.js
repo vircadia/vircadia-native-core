@@ -129,6 +129,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.init = false;
         this.hand = hand;
         this.buttonValue = 0;
+        this.buttonTeleporting = false; // True if buttonValue is controlling teleport.
         this.standardAxisLY = 0.0;
         this.standardAxisRY = 0.0;
         this.disabled = false; // used by the 'Hifi-Teleport-Disabler' message handler
@@ -687,8 +688,10 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.buttonPress = function (value) {
+            // Button press on gamepad.
             if (value === 0 || !_this.teleportLocked()) {
                 _this.buttonValue = value;
+                _this.buttonTeleporting = true;
             }
         };
 
@@ -711,23 +714,23 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.getDominantHand = function () {
             return (MyAvatar.getDominantHand() === "left") ? LEFT_HAND : RIGHT_HAND;
-        }
+        };
 
         this.getOffHand = function () {
             return (MyAvatar.getDominantHand() === "left") ? RIGHT_HAND : LEFT_HAND;
-        }
+        };
 
         this.showReticle = function () {
             return (_this.getDominantY() > TELEPORT_DEADZONE) ? true : false;
         };
 
         this.shouldTeleport = function () {
-            return (_this.getDominantY() > TELEPORT_DEADZONE && _this.getOffhandY() > TELEPORT_DEADZONE) ? true : false;
+            return ((_this.getDominantY() > TELEPORT_DEADZONE && _this.getOffhandY() > TELEPORT_DEADZONE)
+                || (_this.buttonTeleporting && _this.buttonValue === 0)) ? true : false;
         };
 
         this.shouldCancel = function () {
-            //return (_this.getDominantY() < -TELEPORT_DEADZONE || _this.getOffhandY() < -TELEPORT_DEADZONE) ? true : false;
-            return (_this.getDominantY() <= TELEPORT_DEADZONE) ? true : false;
+            return (_this.getDominantY() <= TELEPORT_DEADZONE && !_this.buttonTeleporting) ? true : false;
         };
 
         this.parameters = makeDispatcherModuleParameters(
@@ -746,7 +749,8 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             var otherModule = this.getOtherModule();
-            if (!this.disabled && this.showReticle() && !otherModule.active && this.hand === this.getDominantHand()) {
+            if (!this.disabled && !otherModule.active && (this.showReticle() && this.hand === this.getDominantHand()
+                    || this.buttonValue !== 0)) {
                 this.active = true;
                 this.enterTeleport();
                 return makeRunningValues(true, [], []);
@@ -843,6 +847,7 @@ Script.include("/~/system/libraries/controllers.js");
 
             _this.disableLasers();
             _this.active = false;
+            _this.buttonTeleporting = false;
             return makeRunningValues(false, [], []);
         };
 
@@ -923,6 +928,7 @@ Script.include("/~/system/libraries/controllers.js");
 
     var mappingName, teleportMapping;
     var isViveMapped = false;
+    var isGamePadMapped = false;
 
     function parseJSON(json) {
         try {
@@ -1009,10 +1015,24 @@ Script.include("/~/system/libraries/controllers.js");
         }
     }
 
+    function registerGamePadMapping(teleporter) {
+        if (Controller.Hardware.GamePad) {
+            var mappingName = 'Hifi-Teleporter-Dev-GamePad-' + Math.random();
+            var teleportMapping = Controller.newMapping(mappingName);
+            teleportMapping.from(Controller.Hardware.GamePad.Y).peek().to(rightTeleporter.buttonPress);
+            Controller.enableMapping(mappingName);
+            isGamePadMapped = true;
+        }
+    }
+
     function onHardwareChanged() {
         // Controller.Hardware.Vive is not immediately available at Interface start-up.
         if (!isViveMapped && Controller.Hardware.Vive) {
             registerViveTeleportMapping();
+        }
+
+        if (!isGamePadMapped && Controller.Hardware.GamePad) {
+            registerGamePadMapping();
         }
     }
 
@@ -1025,9 +1045,10 @@ Script.include("/~/system/libraries/controllers.js");
         // Vive teleport button lock-out.
         registerViveTeleportMapping();
 
+        // Gamepad "Y" button teleport.
+        registerGamePadMapping();
+
         // Teleport actions.
-        teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftTeleporter.buttonPress);
-        teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightTeleporter.buttonPress);
         teleportMapping.from(Controller.Standard.LY).peek().to(leftTeleporter.getStandardLY);
         teleportMapping.from(Controller.Standard.RY).peek().to(leftTeleporter.getStandardRY);
         teleportMapping.from(Controller.Standard.LY).peek().to(rightTeleporter.getStandardLY);

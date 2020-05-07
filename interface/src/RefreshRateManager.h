@@ -31,6 +31,23 @@ public:
     };
     static bool isValidRefreshRateProfile(RefreshRateProfile value) { return (value >= RefreshRateProfile::ECO && value <= RefreshRateProfile::REALTIME); }
 
+    /**jsdoc
+     * <p>Interface states that affect the refresh rate.</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Name</th><th>Description</th>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>0</code></td><td>FOCUS_ACTIVE</td><td>Interface has focus and the user is active or is in VR.</td></tr>
+     *     <tr><td><code>1</code></td><td>FOCUS_INACTIVE</td><td>Interface has focus and the user is inactive.</td></tr>
+     *     <tr><td><code>2</code></td><td>UNFOCUS</td><td>Interface doesn't have focus.</td></tr>
+     *     <tr><td><code>3</code></td><td>MINIMIZED</td><td>Interface is minimized.</td></tr>
+     *     <tr><td><code>4</code></td><td>STARTUP</td><td>Interface is starting up.</td></tr>
+     *     <tr><td><code>5</code></td><td>SHUTDOWN</td><td>Interface is shutting down.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {number} RefreshRateRegime
+     */
     enum RefreshRateRegime {
         FOCUS_ACTIVE = 0,
         FOCUS_INACTIVE,
@@ -42,6 +59,19 @@ public:
     };
     static bool isValidRefreshRateRegime(RefreshRateRegime value) { return (value >= RefreshRateRegime::FOCUS_ACTIVE && value <= RefreshRateRegime::SHUTDOWN); }
 
+    /**jsdoc
+     * <p>User experience (UX) modes.</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Name</th><th>Description</th>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>0</code></td><td>DESKTOP</td><td>Desktop user experience.</td></tr>
+     *     <tr><td><code>1</code></td><td>VR</td><td>VR use experience.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {number} UXMode
+     */
     enum UXMode {
         DESKTOP = 0,
         VR,

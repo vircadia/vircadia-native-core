@@ -299,6 +299,16 @@ void EntityItemProperties::setAvatarPriorityFromString(const QString& mode) {
     }
 }
 
+QString EntityItemProperties::getScreenshareAsString() const { return getComponentModeAsString(_screenshare); }
+void EntityItemProperties::setScreenshareFromString(const QString& mode) {
+    auto modeItr = stringToComponentMode.find(mode.toLower());
+    if (modeItr != stringToComponentMode.end()) {
+        _screenshare = modeItr.value();
+        _screenshareChanged = true;
+    }
+}
+
+
 inline void addTextEffect(QHash<QString, TextEffect>& lookup, TextEffect effect) { lookup[TextEffectHelpers::getNameForTextEffect(effect)] = effect; }
 const QHash<QString, TextEffect> stringToTextEffectLookup = [] {
     QHash<QString, TextEffect> toReturn;
@@ -567,6 +577,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
     CHECK_PROPERTY_CHANGE(PROP_BLOOM_MODE, bloomMode);
     CHECK_PROPERTY_CHANGE(PROP_AVATAR_PRIORITY, avatarPriority);
+    CHECK_PROPERTY_CHANGE(PROP_SCREENSHARE, screenshare);
 
     // Polyvox
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
@@ -1030,8 +1041,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     type: "Model",
  *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -2 })),
  *     rotation: MyAvatar.orientation,
- *     modelURL: "http://content.highfidelity.com/seefo/production/puck-attach/vive_tracker_puck.obj",
- *     dimensions: { x: 0.0945, y: 0.0921, z: 0.0423 },
+ *     modelURL: "https://apidocs.vircadia.dev/models/cowboy-hat.fbx",
+ *     dimensions: { x: 0.8569, y: 0.3960, z: 1.0744 },
  *     lifetime: 300  // Delete after 5 minutes.
  * });
  */
@@ -1434,6 +1445,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.AvatarPriorityMode} avatarPriority="inherit" - Configures the priority of updates from avatars in the 
  *     zone to other clients.
  *
+ * @property {Entities.ScreenshareMode} screenshare="inherit" - Configures a zone for screen-sharing.
+ *
  * @example <caption>Create a zone that casts a red key light along the x-axis.</caption>
  * var zone = Entities.addEntity({
  *     type: "Zone",
@@ -1785,6 +1798,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BLOOM_MODE, bloomMode, getBloomModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_AVATAR_PRIORITY, avatarPriority, getAvatarPriorityAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SCREENSHARE, screenshare, getScreenshareAsString());
     }
 
     // Web only
@@ -2157,6 +2171,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(hazeMode, HazeMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(bloomMode, BloomMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(avatarPriority, AvatarPriority);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(screenshare, Screenshare);
 
     // Polyvox
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, vec3, setVoxelVolumeSize);
@@ -2446,6 +2461,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(hazeMode);
     COPY_PROPERTY_IF_CHANGED(bloomMode);
     COPY_PROPERTY_IF_CHANGED(avatarPriority);
+    COPY_PROPERTY_IF_CHANGED(screenshare);
 
     // Polyvox
     COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
@@ -2843,6 +2859,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_BLOOM_MODE, BloomMode, bloomMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_AVATAR_PRIORITY, AvatarPriority, avatarPriority, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_SCREENSHARE, Screenshare, screenshare, uint32_t);
 
         // Polyvox
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, vec3);
@@ -3262,6 +3279,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)properties.getHazeMode());
                 APPEND_ENTITY_PROPERTY(PROP_BLOOM_MODE, (uint32_t)properties.getBloomMode());
                 APPEND_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, (uint32_t)properties.getAvatarPriority());
+                APPEND_ENTITY_PROPERTY(PROP_SCREENSHARE, (uint32_t)properties.getScreenshare());
             }
 
             if (properties.getType() == EntityTypes::PolyVox) {
@@ -3737,6 +3755,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BLOOM_MODE, uint32_t, setBloomMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AVATAR_PRIORITY, uint32_t, setAvatarPriority);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCREENSHARE, uint32_t, setScreenshare);
     }
 
     if (properties.getType() == EntityTypes::PolyVox) {
@@ -3947,7 +3966,7 @@ bool EntityItemProperties::decodeCloneEntityMessage(const QByteArray& buffer, in
     processedBytes = 0;
 
     if (NUM_BYTES_RFC4122_UUID * 2 > packetLength) {
-        qCDebug(entities) << "EntityItemProperties::processEraseMessageDetails().... bailing because not enough bytes in buffer";
+        qCDebug(entities) << "EntityItemProperties::decodeCloneEntityMessage().... bailing because not enough bytes in buffer";
         return false; // bail to prevent buffer overflow
     }
 
@@ -4129,6 +4148,7 @@ void EntityItemProperties::markAllChanged() {
     _hazeModeChanged = true;
     _bloomModeChanged = true;
     _avatarPriorityChanged = true;
+    _screenshareChanged = true;
 
     // Polyvox
     _voxelVolumeSizeChanged = true;
@@ -4754,6 +4774,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (avatarPriorityChanged()) {
         out += "avatarPriority";
     }
+    if (screenshareChanged()) {
+        out += "screenshare";
+    }
 
     // Polyvox
     if (voxelVolumeSizeChanged()) {
@@ -5086,8 +5109,9 @@ void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityID
         setEntityHostType(entity::HostType::LOCAL);
         setCollisionless(true);
     }
-    setCreated(usecTimestampNow());
-    setLastEdited(usecTimestampNow());
+    uint64_t now = usecTimestampNow();
+    setCreated(now);
+    setLastEdited(now);
     setCloneable(ENTITY_ITEM_DEFAULT_CLONEABLE);
     setCloneLifetime(ENTITY_ITEM_DEFAULT_CLONE_LIFETIME);
     setCloneLimit(ENTITY_ITEM_DEFAULT_CLONE_LIMIT);
@@ -5111,10 +5135,13 @@ bool EntityItemProperties::blobToProperties(QScriptEngine& scriptEngine, const Q
     return true;
 }
 
-void EntityItemProperties::propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, QByteArray& blob) {
+void EntityItemProperties::propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, 
+            const EntityItemProperties& properties, QByteArray& blob, bool allProperties) {
     // DANGER: this method is NOT efficient.
     // begin recipe for extracting unfortunately-formatted-binary-blob from EntityItem
-    QScriptValue scriptValue = EntityItemNonDefaultPropertiesToScriptValue(&scriptEngine, properties);
+    QScriptValue scriptValue = allProperties
+        ? EntityItemPropertiesToScriptValue(&scriptEngine, properties)
+        : EntityItemNonDefaultPropertiesToScriptValue(&scriptEngine, properties);
     QVariant variantProperties = scriptValue.toVariant();
     QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
     // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar

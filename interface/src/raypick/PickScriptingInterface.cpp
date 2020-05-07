@@ -99,9 +99,11 @@ PickFilter getPickFilter(unsigned int filter) {
  * @property {Vec3} [dirOffset] - Synonym for <code>direction</code>.
  * @property {Quat} [orientation] - Alternative property for specifying <code>direction</code>. The value is applied to the 
  *     default <code>direction</code> value.
- * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties} or {@link Picks.getPickScriptParameters}. A ray pick's type is {@link PickType.Ray}.
- * @property {Vec3} baseScale - Returned from {@link Picks.getPickProperties} when the pick has a parent with varying scale (usually an avatar or an entity).
- *     Its value is the original scale of the parent at the moment the pick was created, and is used to scale the pointer which owns this pick, if any.
+ * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties} or 
+ *     {@link Picks.getPickScriptParameters}. A ray pick's type is {@link PickType.Ray}.
+ * @property {Vec3} baseScale - Returned from {@link Picks.getPickProperties} when the pick has a parent with varying scale 
+ *     (usually an avatar or an entity). Its value is the original scale of the parent at the moment the pick was created, and 
+ *     is used to scale the pointer which owns this pick, if any.
  */
 std::shared_ptr<PickQuery> PickScriptingInterface::buildRayPick(const QVariantMap& propMap) {
 #if defined (Q_OS_ANDROID)
@@ -170,7 +172,8 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildRayPick(const QVariantMa
  *     means no maximum.
  * @property {Vec3} [tipOffset=0,0.095,0] - The position of the stylus tip relative to the hand position at default avatar 
  *     scale.
- * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties} or {@link Picks.getPickScriptParameters}. A stylus pick's type is {@link PickType.Stylus}.
+ * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties} or 
+ *     {@link Picks.getPickScriptParameters}. A stylus pick's type is {@link PickType.Stylus}.
  */
 std::shared_ptr<PickQuery> PickScriptingInterface::buildStylusPick(const QVariantMap& propMap) {
     bilateral::Side side = bilateral::Side::Invalid;
@@ -204,7 +207,8 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildStylusPick(const QVarian
     return std::make_shared<StylusPick>(side, filter, maxDistance, enabled, tipOffset);
 }
 
-// NOTE: Laser pointer still uses scaleWithAvatar. Until scaleWithAvatar is also deprecated for pointers, scaleWithAvatar should not be removed from the pick API.
+// NOTE: Laser pointer still uses scaleWithAvatar. Until scaleWithAvatar is also deprecated for pointers, scaleWithAvatar 
+// should not be removed from the pick API.
 /**jsdoc
  * The properties of a parabola pick.
  *
@@ -245,9 +249,11 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildStylusPick(const QVarian
  *     with the avatar or other parent.
  * @property {boolean} [scaleWithAvatar=true] - Synonym for <code>scalewithParent</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
- * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties} or {@link Picks.getPickScriptParameters}. A parabola pick's type is {@link PickType.Parabola}.
- * @property {Vec3} baseScale - Returned from {@link Picks.getPickProperties} when the pick has a parent with varying scale (usually an avatar or an entity).
- *     Its value is the original scale of the parent at the moment the pick was created, and is used to rescale the pick, and/or the pointer which owns this pick, if any.
+ * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties} or 
+ *     {@link Picks.getPickScriptParameters}. A parabola pick's type is {@link PickType.Parabola}.
+ * @property {Vec3} baseScale - Returned from {@link Picks.getPickProperties} when the pick has a parent with varying scale 
+ *     (usually an avatar or an entity). Its value is the original scale of the parent at the moment the pick was created, and 
+ *     is used to rescale the pick and the pointer which owns this pick, if any.
  */
 std::shared_ptr<PickQuery> PickScriptingInterface::buildParabolaPick(const QVariantMap& propMap) {
     bool enabled = false;
