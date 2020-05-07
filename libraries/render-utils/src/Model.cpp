@@ -893,7 +893,7 @@ void Model::updateRenderItemsKey(const render::ScenePointer& scene) {
     }
     auto renderItemsKey = _renderItemKeyGlobalFlags;
     render::Transaction transaction;
-    for(auto itemID: _modelMeshRenderItemIDs) {
+    for (auto itemID: _modelMeshRenderItemIDs) {
         transaction.updateItem<ModelMeshPartPayload>(itemID, [renderItemsKey](ModelMeshPartPayload& data) {
             data.updateKey(renderItemsKey);
         });
@@ -979,7 +979,7 @@ void Model::setCullWithParent(bool cullWithParent) {
 
         render::Transaction transaction;
         auto renderItemsKey = _renderItemKeyGlobalFlags;
-        for(auto item : _modelMeshRenderItemIDs) {
+        for (auto item : _modelMeshRenderItemIDs) {
             transaction.updateItem<ModelMeshPartPayload>(item, [cullWithParent, renderItemsKey](ModelMeshPartPayload& data) {
                 data.setCullWithParent(cullWithParent);
                 data.updateKey(renderItemsKey);
@@ -991,7 +991,7 @@ void Model::setCullWithParent(bool cullWithParent) {
 
 void Model::setRenderWithZones(const QVector<QUuid>& renderWithZones) {
     render::Transaction transaction;
-    for(auto item : _modelMeshRenderItemIDs) {
+    for (auto item : _modelMeshRenderItemIDs) {
         transaction.updateItem<ModelMeshPartPayload>(item, [renderWithZones](ModelMeshPartPayload& data) {
             data.setRenderWithZones(renderWithZones);
         });
