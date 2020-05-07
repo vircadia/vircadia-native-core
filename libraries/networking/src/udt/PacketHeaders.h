@@ -278,6 +278,7 @@ enum class EntityVersion : PacketVersion {
     TextEntityFonts,
     ScriptServerKinematicMotion,
     ScreenshareZone,
+    ZoneOcclusion,
 
     // Add new versions above here
     NUM_PACKET_TYPE,
