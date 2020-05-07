@@ -76,7 +76,7 @@ const std::array<const char*, 4> ZERO123 = { { "0", "1", "2", "3" } };
  *     <tr><td>{@link Vec2}</td><td><code>"texcoord4"</code></td><td>Fifth UV coordinates buffer.</td></tr>
  *   </tbody>
  * </table>
- * @typedef {Vec3|vec2} Graphics.BufferType
+ * @typedef {Vec4|Vec3|Vec2} Graphics.BufferType
  */
 QMap<QString,int> ATTRIBUTES{
     {"position", gpu::Stream::POSITION },

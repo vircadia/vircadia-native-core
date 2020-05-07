@@ -538,12 +538,12 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     <p><strong>Note:</strong> This property will automatically be set to <code>true</code> if the controller system has 
      *     valid facial blend shape actions.</p>
      * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating 
-     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code> 
-     *     to fully control the blink facial blend shapes via the {@link Avatar.setBlendshape} method.
+     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set to <code>false</code> to fully control 
+     *     the blink facial blend shapes via the {@link Avatar.setBlendshape} method.
      * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes 
      *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property 
-     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set this property to  
-     *     <code>false</code> to fully control the eye blend shapes via the {@link Avatar.setBlendshape} method.
+     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set to <code>false</code> to
+     *     fully control the eye blend shapes via the {@link Avatar.setBlendshape} method.
      * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate 
      *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set 
      *     this property to <code>false</code> to fully control the mouth facial blend shapes via the 
@@ -1274,7 +1274,7 @@ public:
      *     <code>null</code> to remove all attachments.
      * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      * @example <caption>Remove a hat attachment if your avatar is wearing it.</caption>
-     * var hatURL = "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx";
+     * var hatURL = "https://apidocs.vircadia.dev/models/cowboy-hat.fbx";
      * var attachments = MyAvatar.getAttachmentData();
      *
      * for (var i = 0; i < attachments.length; i++) {
@@ -1311,7 +1311,7 @@ public:
      * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      * @example <caption>Attach a cowboy hat to your avatar's head.</caption>
      * var attachment = {
-     *     modelURL: "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx",
+     *     modelURL: "https://apidocs.vircadia.dev/models/cowboy-hat.fbx",
      *     jointName: "Head",
      *     translation: {"x": 0, "y": 0.25, "z": 0},
      *     rotation: {"x": 0, "y": 0, "z": 0, "w": 1},
@@ -1542,7 +1542,7 @@ signals:
     void sessionDisplayNameChanged();
 
     /**jsdoc
-     * Triggered when the avatar's model (i.e., <code>skeletonModelURL</code> property value) is changed.
+     * Triggered when the avatar's model (i.e., <code>skeletonModelURL</code> property value) changes.
      * @function Avatar.skeletonModelURLChanged
      * @returns {Signal}
      * @example <caption>Report when your avatar's skeleton model changes.</caption>
