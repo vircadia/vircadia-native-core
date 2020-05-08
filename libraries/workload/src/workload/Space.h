@@ -47,6 +47,7 @@ public:
 
     void categorizeAndGetChanges(std::vector<Change>& changes);
     uint32_t copyProxyValues(Proxy* proxies, uint32_t numDestProxies) const;
+    uint32_t copySelectedProxyValues(Proxy::Vector& proxies, const workload::indexed_container::Indices& indices) const;
 
     const Owner getOwner(int32_t proxyID) const;
     uint8_t getRegion(int32_t proxyID) const;

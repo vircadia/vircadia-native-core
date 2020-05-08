@@ -589,9 +589,6 @@
     "gravity": {
         "tooltip": "The acceleration due to gravity that the entity should move with, in world space."
     },
-    "acceleration": {
-        "tooltip": "A acceleration that the entity should move with, in world space."
-    },
     "renderLayer": {
         "tooltip": "The layer on which this entity is rendered."
     },

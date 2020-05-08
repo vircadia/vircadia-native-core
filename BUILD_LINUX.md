@@ -1,4 +1,6 @@
-# Linux build guide
+# Build Linux
+
+*Last Updated on January 20, 2020*
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Linux specific instructions are found in this file.
 
@@ -14,7 +16,7 @@ sudo add-apt-repository universe
 sudo apt-get update
 ```
 #### Install build tools:
--  First update the repositiories:  
+-  First update the repositories:  
 ```bash
 sudo apt-get update -y
 sudo apt-get upgrade -y
@@ -86,6 +88,16 @@ Then checkout the main branch with:
 ```bash
 git checkout kasen/core
 ```
+
+### Using a custom Qt build
+
+Qt binaries are only provided for Ubuntu. In order to build on other distributions, a Qt5 install needs to be provided as follows:
+
+* Set `VIRCADIA_USE_PREBUILT_QT=1`
+* Set `VIRCADIA_USE_QT_VERSION` to the Qt version (defaults to `5.12.3`)
+* Set `HIFI_QT_BASE=/path/to/qt`
+
+Qt must be installed in `$HIFI_QT_BASE/$VIRCADIA_USE_QT_VERSION/qt5-install`.
 
 ### Compiling
 
@@ -182,11 +194,11 @@ It can be worked around following these steps:
 `make`  
 `sudo make install`  
 
-1.. Link compiled files:  
+1. Link compiled files:  
 `sudo ln -s /usr/local/lib/libnvcore.so /usr/lib/libnvcore.so`  
 `sudo ln -s /usr/local/lib/libnvimage.so /usr/lib/libnvimage.so`  
 `sudo ln -s /usr/local/lib/libnvmath.so /usr/lib/libnvmath.so`  
 `sudo ln -s /usr/local/lib/libnvtt.so /usr/lib/libnvtt.so`  
 
-1.  After running this steps you can run interface:  
+1.  After running these steps you can run interface:  
 `interface/interface`  

@@ -42,9 +42,9 @@
 #include "Snapshot.h"
 #include "SnapshotUploader.h"
 
-// filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
+// filename format: vircadia-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
-const QString FILENAME_PATH_FORMAT = "hifi-snap-by-%1-on-%2.jpg";
+const QString FILENAME_PATH_FORMAT = "vircadia-snap-by-%1-on-%2.jpg";
 const QString DATETIME_FORMAT = "yyyy-MM-dd_hh-mm-ss";
 const QString SNAPSHOTS_DIRECTORY = "Snapshots";
 const QString URL = "highfidelity_url";

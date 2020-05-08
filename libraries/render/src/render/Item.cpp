@@ -154,4 +154,10 @@ namespace render {
         return payload->metaFetchMetaSubItems(subItems);
     }
 
+    template <> bool payloadPassesZoneOcclusionTest(const PayloadProxyInterface::Pointer& payload, const std::unordered_set<QUuid>& containingZones) {
+        if (!payload) {
+            return false;
+        }
+        return payload->passesZoneOcclusionTest(containingZones);
+    }
 }

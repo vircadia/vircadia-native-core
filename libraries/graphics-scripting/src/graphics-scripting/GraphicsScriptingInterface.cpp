@@ -168,14 +168,15 @@ scriptable::ScriptableMeshPointer GraphicsScriptingInterface::newMesh(const QVar
     //  in the future we want to support a formal C++ structure data type here instead
 
     /**jsdoc
+     * IFS (Indexed-Face Set) data defining a mesh.
      * @typedef {object} Graphics.IFSData
-     * @property {string} [name=""] - mesh name (useful for debugging / debug prints).
-     * @property {string} [topology=""]
-     * @property {number[]} indices - vertex indices to use for the mesh faces.
-     * @property {Vec3[]} vertices - vertex positions (model space)
-     * @property {Vec3[]} [normals=[]] - vertex normals (normalized)
-     * @property {Vec3[]} [colors=[]] - vertex colors (normalized)
-     * @property {Vec2[]} [texCoords0=[]] - vertex texture coordinates (normalized)
+     * @property {string} [name=""] - Mesh name. (Useful for debugging.)
+     * @property {Graphics.MeshTopology} topology - Element interpretation. <em>Currently only triangles is supported.</em>
+     * @property {number[]} indices - Vertex indices to use for the mesh faces, in tuples per the <code>topology</code>.
+     * @property {Vec3[]} positions - Vertex positions, in model coordinates.
+     * @property {Vec3[]} [normals=[]] - Vertex normals (normalized).
+     * @property {Vec3[]} [colors=[]] - Vertex colors (normalized).
+     * @property {Vec2[]} [texCoords0=[]] - Vertex texture coordinates (normalized).
      */
     QString meshName = ifsMeshData.value("name").toString();
     QString topologyName = ifsMeshData.value("topology").toString();
@@ -258,8 +259,8 @@ scriptable::ScriptableMeshPointer GraphicsScriptingInterface::newMesh(const QVar
     return scriptable::make_scriptowned<scriptable::ScriptableMesh>(mesh, nullptr);
 }
 
-QString GraphicsScriptingInterface::exportModelToOBJ(const scriptable::ScriptableModel& _in) {
-    const auto& in = _in.getConstMeshes();
+QString GraphicsScriptingInterface::exportModelToOBJ(const scriptable::ScriptableModelPointer& model) {
+    const auto& in = model->getConstMeshes();
     if (in.size()) {
         QList<scriptable::MeshPointer> meshes;
         foreach (auto meshProxy, in) {
@@ -354,6 +355,120 @@ namespace scriptable {
         qScriptValueToSequence(array, result);
     }
 
+    /**jsdoc
+     * A material in a {@link GraphicsModel}.
+     * @typedef {object} Graphics.Material
+     * @property {string} name - The name of the material.
+     * @property {string} model - Different material models support different properties and rendering modes. Supported models 
+     *     are: <code>"hifi_pbr"</code> and <code>"hifi_shader_simple"</code>.
+     * @property {Vec3|string} [albedo] - The albedo color. Component values are in the range <code>0.0</code> &ndash;
+     *     <code>1.0</code>.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     * @property {number|string} [opacity] - The opacity, range <code>0.0</code> &ndash; <code>1.0</code>.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *
+     * @property {number|string} [opacityCutoff] - The opacity cutoff threshold used to determine the opaque texels of the
+     *     <code>opacityMap</code> when <code>opacityMapMode</code> is <code>"OPACITY_MAP_MASK"</code>. Range <code>0.0</code>
+     *     &ndash; <code>1.0</code>.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {number|string} [roughness] - The roughness, range <code>0.0</code> &ndash; <code>1.0</code>.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {number|string} [metallic] - The metallicness, range <code>0.0</code> &ndash; <code>1.0</code>.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {number|string} [scattering] - The scattering, range <code>0.0</code> &ndash; <code>1.0</code>.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {boolean|string} [unlit] - <code>true</code> if the material is unaffected by lighting, <code>false</code> if it
+     *     it is lit by the key light and local lights.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {Vec3|string} [emissive] - The emissive color, i.e., the color that the material emits. Component values are
+     *     in the range <code>0.0</code> &ndash; <code>1.0</code>.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [albedoMap] - The URL of the albedo texture image.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [opacityMap] - The URL of the opacity texture image.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [opacityMapMode] - The mode defining the interpretation of the opacity map. Values can be:
+     *     <ul>
+     *         <li><code>"OPACITY_MAP_OPAQUE"</code> for ignoring the opacity map information.</li>
+     *         <li><code>"OPACITY_MAP_MASK"</code> for using the <code>opacityMap</code> as a mask, where only the texel greater
+     *         than <code>opacityCutoff</code> are visible and rendered opaque.</li>
+     *         <li><code>"OPACITY_MAP_BLEND"</code> for using the <code>opacityMap</code> for alpha blending the material surface
+     *         with the background.</li>
+     *     </ul>
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [occlusionMap] - The URL of the occlusion texture image.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [lightMap] - The URL of the light map texture image.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [lightmapParams] - Parameters for controlling how <code>lightMap</code> is used.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     *     <p><em>Currently not used.</em></p>
+     * @property {string} [scatteringMap] - The URL of the scattering texture image.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [emissiveMap] - The URL of the emissive texture image.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [metallicMap] - The URL of the metallic texture image.
+     *     If <code>"fallthrough"</code> then it and <code>specularMap</code> fall through to the material below.
+     *     Only use one of <code>metallicMap</code> and <code>specularMap</code>.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [specularMap] - The URL of the specular texture image.
+     *     Only use one of <code>metallicMap</code> and <code>specularMap</code>.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [roughnessMap] - The URL of the roughness texture image.
+     *     If <code>"fallthrough"</code> then it and <code>glossMap</code> fall through to the material below.
+     *     Only use one of <code>roughnessMap</code> and <code>glossMap</code>.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [glossMap] - The URL of the gloss texture image.
+     *     Only use one of <code>roughnessMap</code> and <code>glossMap</code>.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [normalMap] - The URL of the normal texture image.
+     *     If <code>"fallthrough"</code> then it and <code>bumpMap</code> fall through to the material below.
+     *     Only use one of <code>normalMap</code> and <code>bumpMap</code>.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [bumpMap] - The URL of the bump texture image.
+     *     Only use one of <code>normalMap</code> and <code>bumpMap</code>.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {string} [materialParams] - Parameters for controlling the material projection and repetition.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     *     <p><em>Currently not used.</em></p>
+     * @property {string} [cullFaceMode="CULL_BACK"] - Specifies Which faces of the geometry to render. Values can be:
+     *     <ul>
+     *         <li><code>"CULL_NONE"</code> to render both sides of the geometry.</li>
+     *         <li><code>"CULL_FRONT"</code> to cull the front faces of the geometry.</li>
+     *         <li><code>"CULL_BACK"</code> (the default) to cull the back faces of the geometry.</li>
+     *     </ul>
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {Mat4|string} [texCoordTransform0] - The transform to use for all of the maps apart from
+     *     <code>occlusionMap</code> and <code>lightMap</code>.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     * @property {Mat4|string} [texCoordTransform1] - The transform to use for <code>occlusionMap</code> and
+     *     <code>lightMap</code>.
+     *     If <code>"fallthrough"</code> then it falls through to the material below.
+     *     <code>"hifi_pbr"</code> model only.
+     *
+     * @property {string} procedural - The definition of a procedural shader material.
+     *     <code>"hifi_shader_simple"</code> model only.
+     *     <p><em>Currently not used.</em></p>
+     *
+     * @property {boolean} defaultFallthrough - <code>true</code> if all properties fall through to the material below unless 
+     *     they are set, <code>false</code> if properties respect their individual fall-through settings.
+     */
     QScriptValue scriptableMaterialToScriptValue(QScriptEngine* engine, const scriptable::ScriptableMaterial &material) {
         QScriptValue obj = engine->newObject();
         obj.setProperty("name", material.name);
