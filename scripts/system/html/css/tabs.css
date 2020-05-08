@@ -31,7 +31,7 @@ div.tabsContainer {
     background-color: #575757;
 }
 
-.tabsContainer  button.active {
+.tabsContainer button.active {
     background-color: #2E2E2E;
 }
 
@@ -68,7 +68,7 @@ td.tabsFrame {
 td.tabsPropertiesFrame {
     width: 100%;
     vertical-align: top;
-    border:0px;
+    border: 0px;
 }
 
 div.tabsPropertiesPage {
