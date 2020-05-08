@@ -36,39 +36,6 @@ namespace scriptable {
     using ModelProviderPointer = std::shared_ptr<scriptable::ModelProvider>;
     using WeakModelProviderPointer = std::weak_ptr<scriptable::ModelProvider>;
 
-    /**jsdoc
-     * @typedef {object} Graphics.Material
-     * @property {string} name
-     * @property {string} model
-     * @property {number|string} opacity
-     * @property {number|string} roughness
-     * @property {number|string} metallic
-     * @property {number|string} scattering
-     * @property {boolean|string} unlit
-     * @propety {Vec3|string} emissive
-     * @propety {Vec3|string} albedo
-     * @property {string} emissiveMap
-     * @property {string} albedoMap
-     * @property {string} opacityMap
-     * @property {string} opacityMapMode
-     * @property {number|string} opacityCutoff
-     * @property {string} metallicMap
-     * @property {string} specularMap
-     * @property {string} roughnessMap
-     * @property {string} glossMap
-     * @property {string} normalMap
-     * @property {string} bumpMap
-     * @property {string} occlusionMap
-     * @property {string} lightMap
-     * @property {string} scatteringMap
-     * @property {Mat4|string} texCoordTransform0
-     * @property {Mat4|string} texCoordTransform1
-     * @property {string} lightmapParams
-     * @property {string} materialParams
-     * @property {string} cullFaceMode
-     * @property {boolean} defaultFallthrough
-     * @property {string} procedural
-     */
     class ScriptableMaterial {
     public:
         ScriptableMaterial() {}
@@ -110,9 +77,11 @@ namespace scriptable {
     };
 
     /**jsdoc
+     * A material layer.
      * @typedef {object} Graphics.MaterialLayer
-     * @property {Graphics.Material} material - This layer's material.
-     * @property {number} priority - The priority of this layer.  If multiple materials are applied to a mesh part, only the highest priority layer is used.
+     * @property {Graphics.Material} material - The layer's material.
+     * @property {number} priority - The priority of the layer. If multiple materials are applied to a mesh part, only the 
+     *     layer with the highest priority is applied, with materials of the same priority randomly assigned.
      */
     class ScriptableMaterialLayer {
     public:
@@ -138,8 +107,29 @@ namespace scriptable {
         ScriptableMeshBase(const ScriptableMeshBase& other, QObject* parent = nullptr) : QObject(parent) { *this = other; }
         ScriptableMeshBase& operator=(const ScriptableMeshBase& view);
         virtual ~ScriptableMeshBase();
+
+        /**jsdoc
+         * @function GraphicsMesh.getMeshPointer
+         * @deprecated This method is deprecated and will be removed.
+         * @returns {undefined}
+         */
+        // scriptable::MeshPointer is not registered as a JavaScript type.
         Q_INVOKABLE const scriptable::MeshPointer getMeshPointer() const { return weakMesh.lock(); }
+
+        /**jsdoc
+         * @function GraphicsMesh.getModelProviderPointer
+         * @deprecated This method is deprecated and will be removed.
+         * @returns {undefined}
+         */
+        // scriptable::ModelProviderPointer is not registered as a JavaScript type.
         Q_INVOKABLE const scriptable::ModelProviderPointer getModelProviderPointer() const { return provider.lock(); }
+
+        /**jsdoc
+         * @function GraphicsMesh.getModelBasePointer
+         * @deprecated This method is deprecated and will be removed.
+         * @returns {undefined}
+         */
+        // scriptable::ScriptableModelBasePointer is not registered as a JavaScript type.
         Q_INVOKABLE const scriptable::ScriptableModelBasePointer getModelBasePointer() const { return model; }
     };
     

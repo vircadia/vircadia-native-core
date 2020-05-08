@@ -106,6 +106,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_RENDER_LAYER;
     requestedProperties += PROP_PRIMITIVE_MODE;
     requestedProperties += PROP_IGNORE_PICK_INTERSECTION;
+    requestedProperties += PROP_RENDER_WITH_ZONES;
     requestedProperties += _grabProperties.getEntityProperties(params);
 
     // Physics
@@ -301,6 +302,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)getRenderLayer());
         APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)getPrimitiveMode());
         APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, getIgnorePickIntersection());
+        APPEND_ENTITY_PROPERTY(PROP_RENDER_WITH_ZONES, getRenderWithZones());
         withReadLock([&] {
             _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
                 propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -876,6 +878,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
     READ_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
     READ_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
+    READ_ENTITY_PROPERTY(PROP_RENDER_WITH_ZONES, QVector<QUuid>, setRenderWithZones);
     withWriteLock([&] {
         int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData,
@@ -1348,13 +1351,14 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(created, getCreated);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lastEditedBy, getLastEditedBy);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(entityHostType, getEntityHostType);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(owningAvatarID, getOwningAvatarID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(owningAvatarID, getOwningAvatarIDForProperties);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(queryAACube, getQueryAACube);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(canCastShadow, getCanCastShadow);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(isVisibleInSecondaryCamera, isVisibleInSecondaryCamera);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(renderLayer, getRenderLayer);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(primitiveMode, getPrimitiveMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignorePickIntersection, getIgnorePickIntersection);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(renderWithZones, getRenderWithZones);
     withReadLock([&] {
         _grabProperties.getProperties(properties);
     });
@@ -1504,6 +1508,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(renderLayer, setRenderLayer);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(primitiveMode, setPrimitiveMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignorePickIntersection, setIgnorePickIntersection);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(renderWithZones, setRenderWithZones);
     withWriteLock([&] {
         bool grabPropertiesChanged = _grabProperties.setProperties(properties);
         somethingChanged |= grabPropertiesChanged;
@@ -2708,10 +2713,12 @@ quint64 EntityItem::getLastEdited() const {
 }
 
 void EntityItem::setLastEdited(quint64 lastEdited) {
-    withWriteLock([&] {
-        _lastEdited = _lastUpdated = lastEdited;
-        _changedOnServer = glm::max(lastEdited, _changedOnServer);
-    });
+    if (lastEdited == 0 || lastEdited > _lastEdited) {
+        withWriteLock([&] {
+            _lastEdited = _lastUpdated = lastEdited;
+            _changedOnServer = glm::max(lastEdited, _changedOnServer);
+        });
+    }
 }
 
 void EntityItem::markAsChangedOnServer() {
@@ -3027,7 +3034,11 @@ void EntityItem::setCanCastShadow(bool value) {
 }
 
 bool EntityItem::getCullWithParent() const {
-    return _cullWithParent;
+    bool result;
+    withReadLock([&] {
+        result = _cullWithParent;
+    });
+    return result;
 }
 
 void EntityItem::setCullWithParent(bool value) {
@@ -3215,6 +3226,7 @@ void EntityItem::somethingChangedNotification() {
     });
 }
 
+// static
 void EntityItem::retrieveMarketplacePublicKey() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest;
@@ -3244,6 +3256,23 @@ void EntityItem::retrieveMarketplacePublicKey() {
 
         networkReply->deleteLater();
     });
+}
+
+void EntityItem::collectChildrenForDelete(std::vector<EntityItemPointer>& entitiesToDelete, const QUuid& sessionID) const {
+    // Deleting an entity has consequences for its children, however there are rules dictating what can be deleted.
+    // This method helps enforce those rules: not for this entity, but for its children.
+    for (SpatiallyNestablePointer child : getChildren()) {
+        if (child && child->getNestableType() == NestableType::Entity) {
+            EntityItemPointer childEntity = std::static_pointer_cast<EntityItem>(child);
+            // NOTE: null sessionID means "collect ALL known children", else we only collect: local-entities and myAvatar-entities
+            if (sessionID.isNull() || childEntity->isLocalEntity() || childEntity->isMyAvatarEntity()) {
+                if (std::find(entitiesToDelete.begin(), entitiesToDelete.end(), childEntity) == entitiesToDelete.end()) {
+                    entitiesToDelete.push_back(childEntity);
+                    childEntity->collectChildrenForDelete(entitiesToDelete, sessionID);
+                }
+            }
+        }
+    }
 }
 
 void EntityItem::setSpaceIndex(int32_t index) {
@@ -3410,6 +3439,7 @@ void EntityItem::prepareForSimulationOwnershipBid(EntityItemProperties& properti
     properties.setSimulationOwner(Physics::getSessionUUID(), priority);
     setPendingOwnershipPriority(priority);
 
+    // TODO: figure out if it would be OK to NOT bother set these properties here
     properties.setEntityHostType(getEntityHostType());
     properties.setOwningAvatarID(getOwningAvatarID());
     setLastBroadcast(now); // for debug/physics status icons
@@ -3421,8 +3451,26 @@ bool EntityItem::isWearable() const {
 }
 
 bool EntityItem::isMyAvatarEntity() const {
-    return _hostType == entity::HostType::AVATAR && Physics::getSessionUUID() == _owningAvatarID;
+    return _hostType == entity::HostType::AVATAR && AVATAR_SELF_ID == _owningAvatarID;
 };
+
+QUuid EntityItem::getOwningAvatarIDForProperties() const {
+    if (isMyAvatarEntity()) {
+        // NOTE: we always store AVATAR_SELF_ID for MyAvatar's avatar entities,
+        // however for EntityItemProperties to be consumed by outside contexts (e.g. JS)
+        // we use the actual "sessionUUID" which is conveniently cached in the Physics namespace
+        return Physics::getSessionUUID();
+    }
+    return _owningAvatarID;
+}
+
+void EntityItem::setOwningAvatarID(const QUuid& owningAvatarID) {
+    if (!owningAvatarID.isNull() && owningAvatarID == Physics::getSessionUUID()) {
+        _owningAvatarID = AVATAR_SELF_ID;
+    } else {
+        _owningAvatarID = owningAvatarID;
+    }
+}
 
 void EntityItem::addGrab(GrabPointer grab) {
     enableNoBootstrap();
@@ -3520,4 +3568,19 @@ void EntityItem::disableGrab(GrabPointer grab) {
             action->deactivate();
         }
     }
+}
+
+void EntityItem::setRenderWithZones(const QVector<QUuid>& renderWithZones) {
+    withWriteLock([&] {
+        if (_renderWithZones != renderWithZones) {
+            _needsZoneOcclusionUpdate = true;
+            _renderWithZones = renderWithZones;
+        }
+    });
+}
+
+QVector<QUuid> EntityItem::getRenderWithZones() const {
+    return resultWithReadLock<QVector<QUuid>>([&] {
+        return _renderWithZones;
+    });
 }

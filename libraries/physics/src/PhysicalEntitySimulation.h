@@ -19,6 +19,7 @@
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 
+#include <EntityDynamicInterface.h>
 #include <EntityItem.h>
 #include <EntitySimulation.h>
 #include <workload/Space.h>
@@ -58,22 +59,24 @@ public:
     void init(EntityTreePointer tree, PhysicsEnginePointer engine, EntityEditPacketSender* packetSender);
     void setWorkloadSpace(const workload::SpacePointer space) { _space = space; }
 
-    virtual void addDynamic(EntityDynamicPointer dynamic) override;
-    virtual void applyDynamicChanges() override;
+    void addDynamic(EntityDynamicPointer dynamic) override;
+    void removeDynamic(const QUuid dynamicID) override;
+    void applyDynamicChanges() override;
 
-    virtual void takeDeadEntities(SetOfEntities& deadEntities) override;
     void takeDeadAvatarEntities(SetOfEntities& deadEntities);
+
+    virtual void clearEntities() override;
+    void queueEraseDomainEntity(const QUuid& id) const override;
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
-    virtual void updateEntitiesInternal(uint64_t now) override;
-    virtual void addEntityInternal(EntityItemPointer entity) override;
-    virtual void removeEntityInternal(EntityItemPointer entity) override;
+    void addEntityToInternalLists(EntityItemPointer entity) override;
+    void removeEntityFromInternalLists(EntityItemPointer entity) override;
     void processChangedEntity(const EntityItemPointer& entity) override;
-    virtual void clearEntitiesInternal() override;
+    void processDeadEntities() override;
 
     void removeOwnershipData(EntityMotionState* motionState);
     void clearOwnershipData();
@@ -121,8 +124,13 @@ private:
 
     VectorOfEntityMotionStates _owned;
     VectorOfEntityMotionStates _bids;
-    SetOfEntities _deadAvatarEntities;
+    SetOfEntities _deadAvatarEntities; // to remove from Avatar's lists
     std::vector<EntityItemPointer> _entitiesToDeleteLater;
+
+    QList<EntityDynamicPointer> _dynamicsToAdd;
+    QSet<QUuid> _dynamicsToRemove;
+    QMutex _dynamicsMutex { QMutex::Recursive };
+
     workload::SpacePointer _space;
     uint64_t _nextBidExpiry;
     uint32_t _lastStepSendPackets { 0 };

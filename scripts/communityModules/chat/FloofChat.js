@@ -1,6 +1,19 @@
 /* globals OverlayWindow */
 "use strict";
 
+//
+//  FloofChat.js
+//
+//  Created by Fluffy Jenkins January 2020.
+//  Copyright 2020 Fluffy Jenkins
+//
+//  For any future coders, please keep me in the loop when making changes.
+//  Please tag me in any Pull Requests.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 var ROOT = Script.resolvePath('').split("FloofChat.js")[0];
 var H_KEY = 72;
 var ENTER_KEY = 16777220;
@@ -37,8 +50,8 @@ var visible = false;
 var historyVisible = false;
 var settingsRoot = "FloofChat";
 
-var darlingGotoUrl = "http://metaverse.darlingvr.club:8081/goto.json";
-var gotoJSONUrl = Settings.getValue(settingsRoot + "/gotoJSONUrl", darlingGotoUrl);
+var athenaGotoUrl = "https://metaverse.projectathena.io/interim/d-goto/app/goto.json";
+var gotoJSONUrl = Settings.getValue(settingsRoot + "/gotoJSONUrl", athenaGotoUrl);
 
 var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain": false, "Grid": false});
 

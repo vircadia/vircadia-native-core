@@ -1,0 +1,56 @@
+#!/bin/sh
+
+if [ "$ATHENA" = "" ]; then
+	        ATHENA=`realpath ../..`
+fi
+GITDATE=`git -C $ATHENA/source log -n 1 --format=raw | grep author | cut -d">" -f 2 | cut -d" " -f 2 | xargs -I {} date -d @{} +"%Y%m%d"`
+GITCOMMIT=`git -C $ATHENA/source rev-parse HEAD | cut -c 1-7`
+VERSION=0.86.0_K2_${GITDATE}_${GITCOMMIT}
+
+SOFILES=`ls \
+		$ATHENA/build/libraries/*/*.so \
+		$ATHENA/qt5-install/lib/libQt5Network.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5Core.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5Widgets.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5Gui.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5Script.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5Quick.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5WebSockets.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5Qml.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5ScriptTools.so.*.*.* \
+		$ATHENA/build/ext/makefiles/quazip/project/lib/libquazip5.so.*.*.* \
+	| sed 's/\./\\\./g' \
+	| paste -d'|' -s`
+
+DEPENDS=mesa-libGL,`ls \
+		$ATHENA/build/assignment-client/assignment-client \
+		$ATHENA/build/domain-server/domain-server \
+		$ATHENA/build/tools/oven/oven \
+		$ATHENA/build/libraries/*/*.so \
+		$ATHENA/qt5-install/lib/libQt5Network.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5Core.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5Widgets.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5Gui.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5Script.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5Quick.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5WebSockets.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5Qml.so.*.*.* \
+		$ATHENA/qt5-install/lib/libQt5ScriptTools.so.*.*.* \
+		$ATHENA/build/ext/makefiles/quazip/project/lib/libquazip5.so.*.*.* \
+		$ATHENA/build/assignment-client/plugins/*.so \
+		$ATHENA/build/assignment-client/plugins/*/*.so \
+	| xargs -I {} sh -c 'objdump -p {} | grep NEEDED' \
+	| awk '{print $2}' \
+	| sort | uniq \
+	| egrep -v "^($SOFILES)$" \
+	| grep -v ^libGL \
+	| xargs -I {} sh -c "ldconfig -p | grep {} | tr ' ' '\n' | grep /" \
+	| xargs rpm -qf --queryformat "%{NAME}\n" \
+	| sort | uniq \
+	| paste -d',' -s`
+
+sudo yum install chrpath
+
+export VERSION DEPENDS ATHENA
+rpmbuild --target x86_64 -bb ./athena-server.spec
+mv ~/rpmbuild/RPMS/x86_64/*.rpm .

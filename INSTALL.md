@@ -1,10 +1,10 @@
-Follow the [build guide](BUILD.md) to figure out how to build High Fidelity for your platform.
+# Creating an Installer
+
+Follow the [build guide](BUILD.md) to figure out how to build Project Athena for your platform.
 
 During generation, CMake should produce an `install` target and a `package` target.
 
-### Install
-
-The `install` target will copy the High Fidelity targets and their dependencies to your `CMAKE_INSTALL_PREFIX`.  
+The `install` target will copy the Project Athena targets and their dependencies to your `CMAKE_INSTALL_PREFIX`.  
 This variable is set by the `project(hifi)` command in `CMakeLists.txt` to `C:/Program Files/hifi` and stored in `build/CMakeCache.txt`
 
 ### Packaging
@@ -60,8 +60,8 @@ To produce an executable installer on Windows, the following are required:
     1.  Install version 10.15.0 LTS
     
 1.  Perform a clean cmake from a new terminal.
-1.  Open the `hifi.sln` Solution and select the Release configuration.
-1.  Build the Solution.
+1.  Open the `athena.sln` solution and select the Release configuration.
+1.  Build the solution.
 1.  Build `packaged-server-console-npm-install` (found under **hidden/Server Console**)
 1.  Build `packaged-server-console` (found under **Server Console**)  
     This will add 2 folders to `build\server-console\` -  
@@ -73,7 +73,7 @@ To produce an executable installer on Windows, the following are required:
 1.   [npm](<https://www.npmjs.com/get-npm>)
       Install version 10.15.0 LTS
    
-1.  Perform a clean cmake.
+1.  Perform a clean CMake.
 1.  Perform a Release build of ALL_BUILD
 1.  Perform a Release build of `packaged-server-console` 
      This will add a folder to `build\server-console\` -  

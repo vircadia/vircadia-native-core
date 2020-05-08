@@ -41,6 +41,8 @@ var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
     "communityModules/notificationCore/notificationCore.js",
     "simplifiedUI/ui/simplifiedNametag/simplifiedNametag.js",
+    {"stable": "system/more/app-more.js", "beta": "https://kasenvr.github.io/community-apps/more/app-more.js"},
+    {"stable": "communityScripts/explore/explore.js", "beta": "https://metaverse.vircadia.com/interim/d-goto/app/explore.js"},
     {"stable": "communityModules/chat/FloofChat.js", "beta": "https://content.fluffy.ws/scripts/chat/FloofChat.js"}
     //"system/chat.js"
 ];
@@ -54,17 +56,28 @@ if (Window.interstitialModeEnabled) {
 var MENU_CATEGORY = "Developer > Scripting";
 var MENU_ITEM = "Debug defaultScripts.js";
 
+var MENU_BETA_DEFAULT_SCRIPTS_CATEGORY = "Developer > Scripting";
+var MENU_BETA_DEFAULT_SCRIPTS_ITEM = "Enable Beta Default Scripts";
+
 var SETTINGS_KEY = '_debugDefaultScriptsIsChecked';
 var SETTINGS_KEY_BETA = '_betaDefaultScriptsIsChecked';
 var previousSetting = Settings.getValue(SETTINGS_KEY, false);
 var previousSettingBeta = Settings.getValue(SETTINGS_KEY_BETA, false);
 
-if (previousSetting === '' || previousSetting === false || previousSetting === 'false') {
+if (previousSetting === '' || previousSetting === 'false') {
     previousSetting = false;
 }
 
-if (previousSetting === true || previousSetting === 'true') {
+if (previousSetting === 'true') {
     previousSetting = true;
+}
+
+if (previousSettingBeta === '' || previousSettingBeta === 'false') {
+    previousSettingBeta = false;
+}
+
+if (previousSettingBeta === 'true') {
+    previousSettingBeta = true;
 }
 
 if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_ITEM)) {
@@ -72,8 +85,18 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
         menuName: MENU_CATEGORY,
         menuItemName: MENU_ITEM,
         isCheckable: true,
-        isChecked: previousSetting,
+        isChecked: previousSetting
     });
+}
+
+if (Menu.menuExists(MENU_BETA_DEFAULT_SCRIPTS_CATEGORY) 
+    && !Menu.menuItemExists(MENU_BETA_DEFAULT_SCRIPTS_CATEGORY, MENU_BETA_DEFAULT_SCRIPTS_ITEM)) {
+        Menu.addMenuItem({
+            menuName: MENU_BETA_DEFAULT_SCRIPTS_CATEGORY,
+            menuItemName: MENU_BETA_DEFAULT_SCRIPTS_ITEM,
+            isCheckable: true,
+            isChecked: previousSettingBeta
+        });
 }
 
 function loadSeparateDefaults() {
@@ -163,23 +186,34 @@ loadSeparateDefaults();
 function menuItemEvent(menuItem) {
     if (menuItem === MENU_ITEM) {
         var isChecked = Menu.isOptionChecked(MENU_ITEM);
-        if (isChecked === true) {
+        if (isChecked) {
             Settings.setValue(SETTINGS_KEY, true);
-        } else if (isChecked === false) {
+        } else {
             Settings.setValue(SETTINGS_KEY, false);
         }
         Menu.triggerOption("Reload All Scripts");
+    } 
+    if (menuItem === MENU_BETA_DEFAULT_SCRIPTS_ITEM) {
+        var isChecked = Menu.isOptionChecked(MENU_BETA_DEFAULT_SCRIPTS_ITEM);
+        if (isChecked) {
+            Settings.setValue(SETTINGS_KEY_BETA, true);
+        } else {
+            Settings.setValue(SETTINGS_KEY_BETA, false);
+        }
     }
 }
 
-function removeMenuItem() {
+function removeMenuItems() {
     if (!Menu.isOptionChecked(MENU_ITEM)) {
         Menu.removeMenuItem(MENU_CATEGORY, MENU_ITEM);
+    }
+    if (!Menu.isOptionChecked(MENU_BETA_DEFAULT_SCRIPTS_ITEM)) {
+        Menu.removeMenuItem(MENU_BETA_DEFAULT_SCRIPTS_CATEGORY, MENU_BETA_DEFAULT_SCRIPTS_ITEM);
     }
 }
 
 Script.scriptEnding.connect(function () {
-    removeMenuItem();
+    removeMenuItems();
 });
 
 Menu.menuItemEvent.connect(menuItemEvent);

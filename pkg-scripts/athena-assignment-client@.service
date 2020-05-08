@@ -1,0 +1,20 @@
+[Unit]
+Description=Assignment client service for Athena server
+After=network.target
+PartOf=athena-server@%i.target
+
+[Service]
+Restart=always
+
+WorkingDirectory=/opt/athena
+EnvironmentFile=/etc/opt/athena/%i.conf
+Environment="LD_LIBRARY_PATH=/opt/athena/lib" "HOME=/var/lib/athena/%i"
+PrivateTmp=true
+User=athena
+Group=athena
+#LimitCORE=infinity
+#ExecStart=/opt/athena/assignment-client -n 6
+ExecStart=/opt/athena/assignment-client --min 6 --max 20 --server-port $HIFI_DOMAIN_SERVER_PORT
+
+[Install]
+WantedBy=multi-user.target

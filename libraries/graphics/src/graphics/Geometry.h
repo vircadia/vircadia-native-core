@@ -79,23 +79,6 @@ public:
     // Access vertex position value
     const Vec3& getPos(Index index) const { return _vertexBuffer.get<Vec3>(index); }
 
-    /**jsdoc
-     * <table>
-     *   <thead>
-     *     <tr><th>Value</th><th>Description</th></tr>
-     *   </thead>
-     *   <tbody>
-     *     <tr><td><code>0</code></td><td>Points.</td></tr>
-     *     <tr><td><code>1</code></td><td>Lines.</td></tr>
-     *     <tr><td><code>2</code></td><td>Line strip.</td></tr>
-     *     <tr><td><code>3</code></td><td>Triangles.</td></tr>
-     *     <tr><td><code>4</code></td><td>Triangle strip.</td></tr>
-     *     <tr><td><code>5</code></td><td>Quads.</td></tr>
-     *     <tr><td><code>6</code></td><td>Quad strip.</td></tr>
-     *   </tbody>
-     * </table>
-     * @typedef {number} Graphics.Topology
-     */
     enum Topology {
         POINTS = 0,
         LINES,

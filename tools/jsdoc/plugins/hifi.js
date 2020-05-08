@@ -16,7 +16,7 @@ exports.handlers = {
     beforeParse: function(e) {
         var pathTools = require('path');
         var rootFolder = pathTools.dirname(e.filename);
-        console.log("Scanning hifi source for jsdoc comments...");
+        console.log("Scanning the Vircadia source for JSDoc comments...");
 
         // directories to scan for jsdoc comments
         var dirList = [
@@ -26,7 +26,7 @@ exports.handlers = {
             '../../assignment-client/src/octree',
             '../../interface/src',
             '../../interface/src/assets',
-            //'../../interface/src/audio', Exlude AudioScope API from output.
+            //'../../interface/src/audio', Exclude AudioScope API from output.
             '../../interface/src/avatar',
             '../../interface/src/commerce',
             '../../interface/src/java',
@@ -57,6 +57,7 @@ exports.handlers = {
             '../../libraries/physics/src',
             '../../libraries/platform/src/platform/backend',
             '../../libraries/plugins/src/plugins',
+            '../../libraries/procedural/src/procedural',
             '../../libraries/pointers/src',
             '../../libraries/render-utils/src',
             '../../libraries/script-engine/src',

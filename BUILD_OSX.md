@@ -1,4 +1,8 @@
-Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only macOS specific instructions are found in this file.
+# Build OSX
+
+*Last Updated on April 30, 2019*
+
+Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only macOS specific instructions are found in this document.
 
 ### Homebrew
 

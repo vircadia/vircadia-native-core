@@ -1,0 +1,60 @@
+#!/bin/sh
+
+if [ "$ATHENA" = "" ]; then
+	ATHENA=`realpath ../..`
+fi
+
+GITSRC=`git -C $ATHENA/source config --get remote.origin.url | cut -d':' -f 2`
+GITDATE=`git -C $ATHENA/source log -n 1 --format=raw | grep author | cut -d">" -f 2 | cut -d" " -f 2 | xargs -I {} date -d @{} +"%Y%m%d"`
+GITCOMMIT=`git -C $ATHENA/source rev-parse HEAD | cut -c 1-7`
+
+sudo apt-get install chrpath binutils
+
+DOCK_BUILD_ROOT=temp-make-dock
+rm -r temp-make-dock
+mkdir -p $DOCK_BUILD_ROOT
+cp $ATHENA/source/pkg-scripts/Dockerfile.templ $DOCK_BUILD_ROOT/Dockerfile
+cp $ATHENA/source/pkg-scripts/docker-entrypoint.sh $DOCK_BUILD_ROOT/entrypoint.sh
+cp $ATHENA/source/pkg-scripts/docker-athena-supervisor.conf $DOCK_BUILD_ROOT/athena.conf
+
+# copy the files over
+mkdir -p $DOCK_BUILD_ROOT/opt
+cp $ATHENA/build/assignment-client/assignment-client $DOCK_BUILD_ROOT/opt
+cp $ATHENA/build/domain-server/domain-server $DOCK_BUILD_ROOT/opt
+cp $ATHENA/build/tools/oven/oven $DOCK_BUILD_ROOT/opt
+#cp $ATHENA/build/ice-server/ice-server $DOCK_BUILD_ROOT/opt
+strip --strip-all $DOCK_BUILD_ROOT/opt/*
+chrpath -d $DOCK_BUILD_ROOT/opt/*
+
+cp -a $ATHENA/build/assignment-client/plugins $DOCK_BUILD_ROOT/opt
+strip --strip-all $DOCK_BUILD_ROOT/opt/plugins/*.so
+chrpath -d $DOCK_BUILD_ROOT/opt/plugins/*.so
+strip --strip-all $DOCK_BUILD_ROOT/opt/plugins/*/*.so
+chrpath -d $DOCK_BUILD_ROOT/opt/plugins/*/*.so
+
+cp -a $ATHENA/source/domain-server/resources $DOCK_BUILD_ROOT/opt
+find $DOCK_BUILD_ROOT/opt/resources -name ".gitignore" -delete
+find $DOCK_BUILD_ROOT/opt/resources -type f -executable -exec sh -c 'chmod -x {}' \;
+
+mkdir -p $DOCK_BUILD_ROOT/lib
+cp $ATHENA/build/libraries/*/*.so $DOCK_BUILD_ROOT/lib
+cp $ATHENA/qt5-install/lib/libQt5Network.so.*.*.* $DOCK_BUILD_ROOT/lib
+cp $ATHENA/qt5-install/lib/libQt5Core.so.*.*.* $DOCK_BUILD_ROOT/lib
+cp $ATHENA/qt5-install/lib/libQt5Widgets.so.*.*.* $DOCK_BUILD_ROOT/lib
+cp $ATHENA/qt5-install/lib/libQt5Gui.so.*.*.* $DOCK_BUILD_ROOT/lib
+cp $ATHENA/qt5-install/lib/libQt5Script.so.*.*.* $DOCK_BUILD_ROOT/lib
+cp $ATHENA/qt5-install/lib/libQt5Quick.so.*.*.* $DOCK_BUILD_ROOT/lib
+cp $ATHENA/qt5-install/lib/libQt5WebSockets.so.*.*.* $DOCK_BUILD_ROOT/lib
+cp $ATHENA/qt5-install/lib/libQt5Qml.so.*.*.* $DOCK_BUILD_ROOT/lib
+cp $ATHENA/qt5-install/lib/libQt5ScriptTools.so.*.*.* $DOCK_BUILD_ROOT/lib
+cp $ATHENA/build/ext/makefiles/quazip/project/lib/libquazip5.so.*.*.* $DOCK_BUILD_ROOT/lib
+chmod +x $DOCK_BUILD_ROOT/lib/*
+strip --strip-all $DOCK_BUILD_ROOT/lib/*
+chrpath -d $DOCK_BUILD_ROOT/lib/*
+ldconfig -n $DOCK_BUILD_ROOT/lib
+
+SOFILES=`ls $DOCK_BUILD_ROOT/lib | sed 's/\./\\\./g' | paste -d'|' -s`
+DEPENDS=`find $DOCK_BUILD_ROOT/opt $DOCK_BUILD_ROOT/lib -type f -executable -exec sh -c 'objdump -p {} | grep NEEDED' \; | awk '{print $2}' | sort | uniq | egrep -v "^($SOFILES)$" | xargs -n 1 -I {} sh -c 'dpkg -S {} | head -n 1' | cut -d ':' -f 1 | sort | uniq | paste -d' ' -s`
+
+cd $DOCK_BUILD_ROOT
+docker build -t odysseus654/athena-server --build-arg "DEPENDS=$DEPENDS" --build-arg "GITSRC=$GITSRC" --build-arg "GITDATE=$GITDATE" --build-arg "GITCOMMIT=$GITCOMMIT" .

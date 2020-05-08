@@ -34,8 +34,8 @@ exports.getBuildInfo = function() {
         buildIdentifier: "dev",
         buildNumber: "0",
         stableBuild: "0",
-        organization: "High Fidelity - dev",
-        appUserModelId: "com.highfidelity.console"
+        organization: "Vircadia - dev",
+        appUserModelId: "com.vircadia.console"
     };
     var buildInfo = DEFAULT_BUILD_INFO;
 
@@ -63,11 +63,11 @@ exports.startInterface = function(url) {
 
         // do this as a workaround for app translocation on osx, which makes
         // it nearly impossible to find the interface executable
-        var bundle_id = 'com.highfidelity.interface-dev';
+        var bundle_id = 'com.vircadia.interface-dev';
         if (buildInfo.releaseType == 'PR') {
-            bundle_id = 'com.highfidelity.interface-pr';
+            bundle_id = 'com.vircadia.interface-pr';
         } else if (buildInfo.releaseType == 'PRODUCTION') {
-            bundle_id = 'com.highfidelity.interface';
+            bundle_id = 'com.vircadia.interface';
         }
         childProcess.exec('open -b ' + bundle_id + ' --args --url ' + url);
     } else {

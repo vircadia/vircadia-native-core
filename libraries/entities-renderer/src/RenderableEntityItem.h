@@ -65,6 +65,7 @@ public:
 
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
     virtual Item::Bound getBound() override;
+    bool passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const override;
 
 protected:
     virtual bool needsRenderUpdateFromEntity() const final { return needsRenderUpdateFromEntity(_entity); }
@@ -109,6 +110,7 @@ protected:
     virtual void setRenderLayer(RenderLayer value) { _renderLayer = value; }
     virtual void setPrimitiveMode(PrimitiveMode value) { _primitiveMode = value; }
     virtual void setCullWithParent(bool value) { _cullWithParent = value; }
+    virtual void setRenderWithZones(const QVector<QUuid>& renderWithZones) { _renderWithZones = renderWithZones; }
 
     template <typename F, typename T>
     T withReadLockResult(const std::function<T()>& f) {
@@ -143,6 +145,7 @@ protected:
     bool _cullWithParent { false };
     RenderLayer _renderLayer { RenderLayer::WORLD };
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
+    QVector<QUuid> _renderWithZones;
     bool _cauterized { false };
     bool _moving { false };
     // Only touched on the rendering thread
@@ -153,6 +156,7 @@ protected:
     std::mutex _materialsLock;
 
     quint64 _created;
+    QUuid _entityID;
 
     // The base class relies on comparing the model transform to the entity transform in order 
     // to trigger an update, so the member must not be visible to derived classes as a modifiable

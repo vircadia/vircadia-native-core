@@ -243,7 +243,10 @@ bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger) {
 
     QUrl lookupUrl = lookupUrlIn;
 
-    qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
+    if (!lookupUrl.host().isEmpty() && !lookupUrl.path().isEmpty()) {
+        // Assignment clients ping for empty url until assigned. Don't spam.
+        qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
+    }
 
     if (lookupUrl.scheme().isEmpty() && !lookupUrl.path().startsWith("/")) {
         // 'urls' without schemes are taken as domain names, as opposed to
@@ -264,7 +267,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger) {
     if (lookupUrl.scheme() == URL_SCHEME_HIFI) {
         if (lookupUrl.host().isEmpty()) {
             // this was in the form hifi:/somewhere or hifi:somewhere.  Fix it by making it hifi://somewhere
-            static const QRegExp HIFI_SCHEME_REGEX = QRegExp(URL_SCHEME_HIFI + ":\\/?", Qt::CaseInsensitive);
+            static const QRegExp HIFI_SCHEME_REGEX = QRegExp(URL_SCHEME_HIFI + ":\\/{0,2}", Qt::CaseInsensitive);
             lookupUrl = QUrl(lookupUrl.toString().replace(HIFI_SCHEME_REGEX, URL_SCHEME_HIFI + "://"));
         }
 
