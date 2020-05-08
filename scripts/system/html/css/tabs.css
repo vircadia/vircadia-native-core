@@ -31,9 +31,9 @@ div.tabsContainer {
     background-color: #575757;
 }
 
-.tabsContainer  button.active {
+.tabsContainer button.active {
     background-color: #2E2E2E;
-}    
+}
 
 div.labelTabHeader {
     font-size: 20px;
@@ -49,7 +49,7 @@ div.tab-section-header {
 
 table.tabsTableFrame {
     width: 100%;
-    min-height: 352px; 
+    min-height: 352px;
     display: block;
 }
 
@@ -68,7 +68,7 @@ td.tabsFrame {
 td.tabsPropertiesFrame {
     width: 100%;
     vertical-align: top;
-    border:0px;
+    border: 0px;
 }
 
 div.tabsPropertiesPage {
