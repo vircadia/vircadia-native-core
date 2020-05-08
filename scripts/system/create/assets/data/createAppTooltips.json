@@ -6,7 +6,7 @@
         "tooltip": "The color of this entity."
     },
     "shapeAlpha": {
-        "tooltip": "Set the opacity of the entity between 0.0 fully transparent and 1.0 completely opaque."
+        "tooltip": "The opacity of the entity between 0.0 fully transparent and 1.0 completely opaque."
     },
     "text": {
         "tooltip": "The text to display on the entity."
@@ -15,13 +15,13 @@
         "tooltip": "The color of the text."
     },
     "textAlpha": {
-        "tooltip": "Set the opacity of the text between 0.0 fully transparent and 1.0 completely opaque."
+        "tooltip": "The opacity of the text between 0.0 fully transparent and 1.0 completely opaque."
     },
     "backgroundColor": {
         "tooltip": "The color of the background."
     },
     "backgroundAlpha": {
-        "tooltip": "Set the opacity of the background between 0.0 fully transparent and 1.0 completely opaque."
+        "tooltip": "The opacity of the background between 0.0 fully transparent and 1.0 completely opaque."
     },
     "lineHeight": {
         "tooltip": "The height of each line of text. This determines the size of the text."
@@ -162,6 +162,9 @@
     "avatarPriority": {
         "tooltip": "Alter Avatars' update priorities."
     },
+    "screenshare": {
+        "tooltip": "Enable screen-sharing within this zone"
+    },
     "modelURL": {
         "tooltip": "A mesh model from an FBX or OBJ file."
     },
@@ -212,7 +215,7 @@
         "jsPropertyName": "color"
     },
     "imageAlpha": {
-        "tooltip": "Set the opacity of the image between 0.0 fully transparent and 1.0 completely opaque."
+        "tooltip": "The opacity of the image between 0.0 fully transparent and 1.0 completely opaque."
     },    
     "emissive": {
         "tooltip": "If enabled, the image will display at full brightness."
@@ -319,17 +322,17 @@
         "tooltip": "The spread in color that each particle is given, resulting in a variety of colors."
     },
     "particleAlphaTriple": {
-        "tooltip": "Set the opacity of each particle between 0.0 fully transparent and 1.0 completely opaque.",
+        "tooltip": "The opacity of each particle between 0.0 fully transparent and 1.0 completely opaque.",
         "jsPropertyName": "alpha"
     },
     "alpha": {
-        "tooltip": "Set the opacity of each particle between 0.0 fully transparent and 1.0 completely opaque."
+        "tooltip": "The opacity of each particle between 0.0 fully transparent and 1.0 completely opaque."
     },
     "alphaStart": {
-        "tooltip": "Set the initial opacity level of each particle between 0.0 fully transparent and 1.0 completely opaque."
+        "tooltip": "The initial opacity level of each particle between 0.0 fully transparent and 1.0 completely opaque."
     },
     "alphaFinish": {
-        "tooltip": "Set the final opacity level of each particle between 0.0 fully transparent and 1.0 completely opaque."
+        "tooltip": "The final opacity level of each particle between 0.0 fully transparent and 1.0 completely opaque."
     },
     "alphaSpread": {
         "tooltip": "The spread in opacity that each particle is given, resulting in a variety of opacity levels."
@@ -605,7 +608,7 @@
         "tooltip": "The tint of the web entity."
     },
     "webAlpha": {
-        "tooltip": "Set the opacity of the web entity between 0.0 fully transparent and 1.0 completely opaque."
+        "tooltip": "The opacity of the web entity between 0.0 fully transparent and 1.0 completely opaque."
     },
     "maxFPS": {
         "tooltip": "The FPS at which to render the web entity. Higher values will have a performance impact."
