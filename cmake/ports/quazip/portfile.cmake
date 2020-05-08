@@ -1,10 +1,11 @@
 include(vcpkg_common_functions)
 
 file(READ "${VCPKG_ROOT_DIR}/_env/QT_CMAKE_PREFIX_PATH.txt" QT_CMAKE_PREFIX_PATH)
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_BUILD_ASSETS.txt" EXTERNAL_BUILD_ASSETS)
 
 vcpkg_download_distfile(
     SOURCE_ARCHIVE
-    URLS https://athena-public.s3.amazonaws.com/dependencies/quazip-0.7.3.zip
+    URLS ${EXTERNAL_BUILD_ASSETS}/dependencies/quazip-0.7.3.zip
     SHA512 b2d812b6346317fd6d8f4f1344ad48b721d697c429acc8b7e7cb776ce5cba15a59efd64b2c5ae1f31b5a3c928014f084aa1379fd55d8a452a6cf4fd510b3afcc
     FILENAME quazip.zip
 )
@@ -24,10 +25,14 @@ vcpkg_configure_cmake(
 vcpkg_install_cmake()
 
 if (WIN32)
-    file(MAKE_DIRECTORY ${CURRENT_PACKAGES_DIR}/bin)
-    file(RENAME ${CURRENT_PACKAGES_DIR}/lib/quazip5.dll ${CURRENT_PACKAGES_DIR}/bin/quazip5.dll)
-    file(MAKE_DIRECTORY ${CURRENT_PACKAGES_DIR}/debug/bin)
-    file(RENAME ${CURRENT_PACKAGES_DIR}/debug/lib/quazip5d.dll ${CURRENT_PACKAGES_DIR}/debug/bin/quazip5.dll)
+    if (NOT DEFINED VCPKG_BUILD_TYPE OR VCPKG_BUILD_TYPE STREQUAL "release")
+        file(MAKE_DIRECTORY ${CURRENT_PACKAGES_DIR}/bin)
+        file(RENAME ${CURRENT_PACKAGES_DIR}/lib/quazip5.dll ${CURRENT_PACKAGES_DIR}/bin/quazip5.dll)
+    endif()
+    if (NOT DEFINED VCPKG_BUILD_TYPE OR VCPKG_BUILD_TYPE STREQUAL "debug")
+        file(MAKE_DIRECTORY ${CURRENT_PACKAGES_DIR}/debug/bin)
+        file(RENAME ${CURRENT_PACKAGES_DIR}/debug/lib/quazip5d.dll ${CURRENT_PACKAGES_DIR}/debug/bin/quazip5.dll)
+    endif()
 elseif(DEFINED VCPKG_TARGET_IS_LINUX)
     # We only want static libs.
     file(GLOB QUAZIP5_DYNAMIC_LIBS ${CURRENT_PACKAGES_DIR}/lib/libquazip5.so* ${CURRENT_PACKAGES_DIR}/debug/lib/libquazip5d.so*)

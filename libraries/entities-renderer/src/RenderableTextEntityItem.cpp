@@ -289,6 +289,17 @@ ShapeKey entities::TextPayload::getShapeKey() const {
     return ShapeKey::Builder::invalid();
 }
 
+bool entities::TextPayload::passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const {
+    auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    if (entityTreeRenderer) {
+        auto renderable = entityTreeRenderer->renderableForEntityId(_entityID);
+        if (renderable) {
+            return std::static_pointer_cast<TextEntityRenderer>(renderable)->passesZoneOcclusionTest(containingZones);
+        }
+    }
+    return false;
+}
+
 void entities::TextPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("TextPayload::render");
     Q_ASSERT(args->_batch);
@@ -388,4 +399,12 @@ template <> const ShapeKey shapeGetShapeKey(const TextPayload::Pointer& payload)
 template <> void payloadRender(const TextPayload::Pointer& payload, RenderArgs* args) {
     return payload->render(args);
 }
+
+template <> bool payloadPassesZoneOcclusionTest(const entities::TextPayload::Pointer& payload, const std::unordered_set<QUuid>& containingZones) {
+    if (payload) {
+        return payload->passesZoneOcclusionTest(containingZones);
+    }
+    return false;
+}
+
 }

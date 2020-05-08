@@ -165,6 +165,7 @@ protected:
     void setRenderLayer(RenderLayer value) override;
     void setPrimitiveMode(PrimitiveMode value) override;
     void setCullWithParent(bool value) override;
+    void setRenderWithZones(const QVector<QUuid>& renderWithZones) override;
 
 private:
     void animate(const TypedEntityPointer& entity);
