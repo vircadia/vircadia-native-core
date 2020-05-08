@@ -9,7 +9,8 @@ env:
   BUILD_TYPE: Release
   CI_BUILD: Github
   GIT_COMMIT: ${{ github.sha }}
-  HIFI_VCPKG_BOOTSTRAP: true
+  # VCPKG did not build well on OSX disabling HIFI_VCPKG_BOOTSTRAP, which invokes a download to a working version of vcpkg
+  # HIFI_VCPKG_BOOTSTRAP: true
   RELEASE_TYPE: PR
   RELEASE_NUMBER: ${{ github.event.number }}
   VERSION_CODE: ${{ github.event.number }}
@@ -28,8 +29,12 @@ jobs:
   build:
     strategy:
         matrix:
-          os: [windows-latest, macOS-latest]
+          os: [windows-latest, macOS-latest, ubuntu-18.04]
           build_type: [full]
+          include:
+            - os: ubuntu-18.04
+              build_type: full
+              apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
         fail-fast: false
     runs-on: ${{matrix.os}}
     if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
@@ -39,10 +44,14 @@ jobs:
       id: buildenv1
       run: |
         echo ::set-env name=GIT_COMMIT_SHORT::`echo $GIT_COMMIT | cut -c1-7`
+        echo ::set-env name=JOB_NAME::"build (${{matrix.os}}, ${{matrix.build_type}})"
+
         # Linux build variables
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+        if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
           echo ::set-env name=PYTHON_EXEC::python3
-          echo ::set-env name=INSTALLER_EXT::tgz
+          echo ::set-env name=INSTALLER_EXT::*
+          echo ::set-env name=CMAKE_BUILD_EXTRA::"-- -j3"
+          echo ::set-env name=CMAKE_EXTRA::"-DBUILD_TOOLS:BOOLEAN=FALSE"
         fi
         # Mac build variables
         if [ "${{ matrix.os }}" = "macOS-latest" ]; then
@@ -61,11 +70,11 @@ jobs:
       shell: bash
       run: |
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
-        echo ::set-env name=ARTIFACT_PATTERN::HighFidelity-Beta-*.$INSTALLER_EXT
+        echo ::set-env name=ARTIFACT_PATTERN::ProjectAthena-Alpha-PR${{ github.event.number }}-*.$INSTALLER_EXT
         # Build type variables
         echo ::set-env name=INSTALLER::HighFidelity-Beta-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
     - name: Clear Working Directory
-      if: matrix.os[1] == 'windows'
+      if: startsWith(matrix.os, 'windows')
       shell: bash
       working-directory: ${{runner.workspace}}
       run: rm -rf ./*
@@ -73,61 +82,83 @@ jobs:
       with: 
         submodules: true
         fetch-depth: 1
+    - name: Install dependencies
+      shell: bash
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        echo "Installing Python Modules:"
+        pip3 install distro || exit 1
+
+        echo "Updating apt repository index"
+        sudo apt update || exit 1
+
+        echo "Installing apt packages"
+        sudo apt install -y ${{ matrix.apt-dependencies }} || exit 1
     - name: Create Build Environment
       shell: bash
       run: cmake -E make_directory "${{runner.workspace}}/build"
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE $CMAKE_EXTRA
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release $CMAKE_EXTRA
     - name: Build Application
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME $CMAKE_BUILD_EXTRA
     - name: Build Domain Server
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target domain-server
+      run: cmake --build . --config $BUILD_TYPE --target domain-server $CMAKE_BUILD_EXTRA
     - name: Build Assignment Client
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target assignment-client
+      run: cmake --build . --config $BUILD_TYPE --target assignment-client $CMAKE_BUILD_EXTRA
     - name: Build Console
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
+      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console $CMAKE_BUILD_EXTRA
     - name: Build Installer
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target package
+      run: |
+        echo "Retry code from https://unix.stackexchange.com/a/137639"
+        function fail {
+          echo $1 >&2
+          exit 1
+        }
+
+        function retry {
+          local n=1
+          local max=5
+          local delay=15
+          while true; do
+            "$@" && break || {
+              if [[ $n -lt $max ]]; then
+                ((n++))
+                echo "Command failed. Attempt $n/$max:"
+                sleep $delay;
+              else
+                fail "The command has failed after $n attempts."
+              fi
+            }
+          done
+        }
+        retry cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA
+    - name: Output system stats
+      if: ${{ always() }}
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: |
+        echo "Disk usage:"
+        df -h
     - name: Output Installer Logs
       if: failure() && matrix.os == 'windows-latest'
       shell: bash
       working-directory: ${{runner.workspace}}/build
       run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
-
-  build_full_linux:
-    runs-on: ubuntu-latest
-    if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
-    steps:
-    - uses: actions/checkout@v1
-      with: 
-        submodules: true
-        fetch-depth: 1
-    - name: Update apt repository index
-      run: sudo apt update
-    - name: Install apt packages
-      run: sudo apt install -y mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
-    - name: Install python modules
-      shell: bash
-      run: pip install boto3 distro PyGithub
-    - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build
-    - name: Configure CMake
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_TOOLS:BOOLEAN=FALSE
-    - name:
+    - name: Upload Artifact
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: cmake --build . -- -j3
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: $PYTHON_EXEC "$GITHUB_WORKSPACE/tools/ci-scripts/upload_to_publish_server.py"

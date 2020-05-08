@@ -28,6 +28,8 @@ macro(TARGET_OPENEXR)
             string(REGEX MATCHALL "[0-9]" OPENEXR_MINOR_VERSION ${TMP})
         endif()
 
+        set(OPENEXR_LIBRARY_RELEASE "")
+        set(OPENEXR_LIBRARY_DEBUG "")
         foreach(OPENEXR_LIB
             IlmImf
             IlmImfUtil
