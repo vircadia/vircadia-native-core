@@ -42,6 +42,7 @@ var CreateWindow = Script.require('./modules/createWindow.js');
 var TITLE_OFFSET = 60;
 var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
+var ENTIRE_DOMAIN_SCAN_RADIUS = 22628;
 
 var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
 
@@ -563,7 +564,8 @@ var toolBar = (function () {
             if (!properties.grab) {
                 properties.grab = {};
                 if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
-                    !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect" || properties.type === "Web")) {
+                    !(properties.type === "Zone" || properties.type === "Light" 
+                    || properties.type === "ParticleEffect" || properties.type === "Web")) {
                     properties.grab.grabbable = true;
                 } else {
                     properties.grab.grabbable = false;
@@ -2890,8 +2892,8 @@ selectionDisplay.onSpaceModeChange = function(spaceMode) {
 };
 
 function getExistingZoneList() {
-    var center = {"x": 0, "y": 0, "z": 0};
-    var existingZoneIDs = Entities.findEntitiesByType("Zone", center, 17000);
+    var center = { "x": 0, "y": 0, "z": 0 };
+    var existingZoneIDs = Entities.findEntitiesByType("Zone", center, ENTIRE_DOMAIN_SCAN_RADIUS);
     var listExistingZones = [];
     var thisZone = {};
     var properties;
