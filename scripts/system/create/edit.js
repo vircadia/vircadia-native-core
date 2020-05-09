@@ -42,7 +42,7 @@ var CreateWindow = Script.require('./modules/createWindow.js');
 var TITLE_OFFSET = 60;
 var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
-var ENTIRE_DOMAIN_SCAN_RADIUS = 22628;
+var ENTIRE_DOMAIN_SCAN_RADIUS = 27713;
 
 var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
 
