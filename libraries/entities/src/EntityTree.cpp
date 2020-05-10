@@ -784,6 +784,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             }
         }
         if (theEntity->isSimulated()) {
+            theEntity->die();
             _simulation->prepareEntityForDelete(theEntity);
         }
     }
