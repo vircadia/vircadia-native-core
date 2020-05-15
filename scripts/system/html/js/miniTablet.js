@@ -35,7 +35,9 @@
 
     function setUnhover() {
         if (!isUnhover) {
-            gotoButton.classList.add("unhover");
+            if (gotoButton) {
+                gotoButton.classList.add("unhover");
+            }
             expandButton.classList.add("unhover");
             isUnhover = true;
         }
@@ -43,7 +45,9 @@
 
     function clearUnhover() {
         if (isUnhover) {
-            gotoButton.classList.remove("unhover");
+            if (gotoButton) {
+                gotoButton.classList.remove("unhover");
+            }
             expandButton.classList.remove("unhover");
             isUnhover = false;
         }
@@ -62,10 +66,14 @@
 
         switch (message.type) {
             case MUTE_MESSAGE:
-                muteImage.src = message.icon;
+                if (muteImage) {
+                    muteImage.src = message.icon;
+                }
                 break;
             case GOTO_MESSAGE:
-                gotoImage.src = message.icon;
+                if (gotoImage) {
+                    gotoImage.src = message.icon;
+                }
                 break;
         }
     }
@@ -130,9 +138,7 @@
 
     function onLoad() {
         muteButton = document.getElementById("mute");
-        muteImage = document.getElementById("mute-img");
         gotoButton = document.getElementById("goto");
-        gotoImage = document.getElementById("goto-img");
         expandButton = document.getElementById("expand");
 
         connectEventBridge();
@@ -140,11 +146,19 @@
         document.body.addEventListener("mouseenter", onBodyHover, false);
         document.body.addEventListener("mouseleave", onBodyUnhover, false);
 
-        muteButton.addEventListener("mouseenter", onButtonHover, false);
-        gotoButton.addEventListener("mouseenter", onButtonHover, false);
+        if (muteButton) {
+            muteImage = document.getElementById("mute-img");
+            muteButton.addEventListener("mouseenter", onButtonHover, false);
+            muteButton.addEventListener("click", onMuteButtonClick, true);
+        }
+
+        if (gotoButton) {
+            gotoImage = document.getElementById("goto-img");
+            gotoButton.addEventListener("mouseenter", onButtonHover, false);
+            gotoButton.addEventListener("click", onGotoButtonClick, true);
+        }
+
         expandButton.addEventListener("mouseenter", onButtonHover, false);
-        muteButton.addEventListener("click", onMuteButtonClick, true);
-        gotoButton.addEventListener("click", onGotoButtonClick, true);
         expandButton.addEventListener("click", onExpandButtonClick, true);
 
         document.body.onunload = function () {

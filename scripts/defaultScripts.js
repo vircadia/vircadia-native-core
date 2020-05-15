@@ -35,7 +35,8 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/miniTablet.js",
     "system/audioMuteOverlay.js",
     "system/inspect.js",
-    "system/keyboardShortcuts/keyboardShortcuts.js"
+    "system/keyboardShortcuts/keyboardShortcuts.js",
+    "system/hand-track-walk.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
