@@ -1,7 +1,16 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 756673a3..5fbc8906 100644
+index 756673a..9b3aa07 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
+@@ -194,7 +194,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+ 		message("GLM: Clang - ${CMAKE_CXX_COMPILER_ID} compiler")
+ 	endif()
+ 
+-	add_compile_options(-Werror -Weverything)
++	add_compile_options(-Weverything)
+ 	add_compile_options(-Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-c++11-long-long -Wno-padded -Wno-gnu-anonymous-struct -Wno-nested-anon-types)
+ 	add_compile_options(-Wno-undefined-reinterpret-cast -Wno-sign-conversion -Wno-unused-variable -Wno-missing-prototypes -Wno-unreachable-code -Wno-missing-variable-declarations -Wno-sign-compare -Wno-global-constructors -Wno-unused-macros -Wno-format-nonliteral)
+ 
 @@ -216,7 +216,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
  		message("GLM: Visual C++ - ${CMAKE_CXX_COMPILER_ID} compiler")
  	endif()

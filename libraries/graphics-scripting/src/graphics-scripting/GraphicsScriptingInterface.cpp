@@ -434,7 +434,7 @@ namespace scriptable {
      * @property {string} [glossMap] - The URL of the gloss texture image.
      *     Only use one of <code>roughnessMap</code> and <code>glossMap</code>.
      *     <code>"hifi_pbr"</code> model only.
-     * @property {string} [normalMa]p - The URL of the normal texture image.
+     * @property {string} [normalMap] - The URL of the normal texture image.
      *     If <code>"fallthrough"</code> then it and <code>bumpMap</code> fall through to the material below.
      *     Only use one of <code>normalMap</code> and <code>bumpMap</code>.
      *     <code>"hifi_pbr"</code> model only.

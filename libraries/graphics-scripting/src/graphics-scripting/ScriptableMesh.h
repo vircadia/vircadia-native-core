@@ -31,7 +31,7 @@ namespace scriptable {
     /**jsdoc
      * A handle to in-memory mesh data in a {@link GraphicsModel}.
      * 
-     * <p>Created using the {@link Graphics} API, {@link GraphicsModel.cloneModel}, or {@link GraphicsMesh.cloneMesh}.</p>
+     * <p>Create using the {@link Graphics} API, {@link GraphicsModel.cloneModel}, or {@link GraphicsMesh.cloneMesh}.</p>
      *
      * @class GraphicsMesh
      * @hideconstructor
@@ -133,7 +133,7 @@ namespace scriptable {
         QVector<glm::uint32> findNearbyVertexIndices(const glm::vec3& origin, float epsilon = 1e-6) const;
 
         /**jsdoc
-         * Adds an attribute to the (whole) mesh's vertices.
+         * Adds an attribute for all vertices.
          * @function GraphicsMesh.addAttribute
          * @param {Graphics.BufferTypeName} name - The name of the attribute.
          * @param {Graphics.BufferType} [defaultValue] - The value to give the attributes added to the vertices.

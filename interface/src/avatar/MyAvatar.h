@@ -154,12 +154,12 @@ class MyAvatar : public Avatar {
      *     <p><strong>Note:</strong> This property will automatically be set to <code>true</code> if the controller system has
      *     valid facial blend shape actions.</p>
      * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating
-     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set this property to <code>false</code>
-     *     to fully control the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
+     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set to <code>false</code> to fully control 
+     *     the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
      * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes
      *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property
-     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set this property to
-     *     <code>false</code> to fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
+     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set to <code>false</code> to 
+     *     fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
      * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate
      *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set
      *     this property to <code>false</code> to fully control the mouth facial blend shapes via the
@@ -654,7 +654,7 @@ public:
      * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target 
      * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different, 
      * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
-     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
+     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function MyAvatar.overrideAnimation
      * @param {string} url - The URL to the animation file. Animation files may be in glTF or FBX format, but only need to 
      *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs 
@@ -665,7 +665,7 @@ public:
      * @param {number} firstFrame - The frame to start the animation at.
      * @param {number} lastFrame - The frame to end the animation at.
      * @example <caption> Play a clapping animation on your avatar for three seconds. </caption>
-     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+     * var ANIM_URL = "https://apidocs.vircadia.dev/models/ClapHands_Standing.fbx";
      * MyAvatar.overrideAnimation(ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreAnimation();
@@ -688,7 +688,7 @@ public:
      * @param {number} firstFrame - The frame to start the animation at.
      * @param {number} lastFrame - The frame to end the animation at.
      * @example <caption> Override left hand animation for three seconds.</caption>
-     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+     * var ANIM_URL = "https://apidocs.vircadia.dev/models/ClapHands_Standing.fbx";
      * MyAvatar.overrideHandAnimation(isLeft, ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreHandAnimation();
@@ -705,7 +705,7 @@ public:
      * animation, this function has no effect.</p>
      * @function MyAvatar.restoreAnimation
      * @example <caption> Play a clapping animation on your avatar for three seconds. </caption>
-     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+     * var ANIM_URL = "https://apidocs.vircadia.dev/models/ClapHands_Standing.fbx";
      * MyAvatar.overrideAnimation(ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreAnimation();
@@ -722,7 +722,7 @@ public:
      * @function MyAvatar.restoreHandAnimation
      * @param isLeft {boolean} Set to true if using the left hand
      * @example <caption> Override left hand animation for three seconds. </caption>
-     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+     * var ANIM_URL = "https://apidocs.projectathena.dev/models/ClapHands_Standing.fbx";
      * MyAvatar.overrideHandAnimation(isLeft, ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreHandAnimation();
@@ -780,7 +780,7 @@ public:
      * hanging at its sides when it is not moving, the avatar will stand and clap its hands. Note that just as it did before, as soon as the avatar
      * starts to move, the animation will smoothly blend into the walk animation used by the "walkFwd" animation role.</caption>
      * // An animation of the avatar clapping its hands while standing. Restore default after 30s.
-     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+     * var ANIM_URL = "https://apidocs.projectathena.dev/models/ClapHands_Standing.fbx";
      * MyAvatar.overrideRoleAnimation("idleStand", ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreRoleAnimation();
@@ -1793,15 +1793,15 @@ public:
 
     /**jsdoc
      * Turns the avatar's head until it faces the target point within a +90/-90 degree range.
-     * Once this method is called, API calls will have full control of the head for a limited time.
-     * If this method is not called for 2 seconds, the engine will regain control of the head.
+     * Once this method is called, API calls have full control of the head for a limited time.
+     * If this method is not called for 2 seconds, the engine regains control of the head.
      * @function MyAvatar.setHeadLookAt
      * @param {Vec3} lookAtTarget - The target point in world coordinates.
      */
     Q_INVOKABLE void setHeadLookAt(const glm::vec3& lookAtTarget);
 
     /**jsdoc
-     * Returns the current target point of the head's look direction in world coordinates.
+     * Gets the current target point of the head's look direction in world coordinates.
      * @function MyAvatar.getHeadLookAt
      * @returns {Vec3} The head's look-at target in world coordinates.
      */
@@ -1815,7 +1815,7 @@ public:
 
     /**jsdoc
      * Forces the avatar's eyes to look at a specified location. Once this method is called, API calls
-     * have full control of the eyes for a limited time. If this method is not called for two seconds, 
+     * full control of the eyes for a limited time. If this method is not called for 2 seconds, 
      * the engine regains control of the eyes.
      * @function MyAvatar.setEyesLookAt
      * @param {Vec3} lookAtTarget - The target point in world coordinates.
@@ -1823,7 +1823,7 @@ public:
     Q_INVOKABLE void setEyesLookAt(const glm::vec3& lookAtTarget);
 
     /**jsdoc
-     * Returns the current target point of the eyes look direction in world coordinates.
+     * Gets the current target point of the eyes look direction in world coordinates.
      * @function MyAvatar.getEyesLookAt
      * @returns {Vec3} The eyes' look-at target in world coordinates.
      */
@@ -2051,7 +2051,8 @@ public slots:
     float getGravity();
 
     /**jsdoc
-     * Moves the avatar to a new position and/or orientation in the domain, while taking into account Avatar leg-length.
+     * Moves the avatar to a new position and/or orientation in the domain, with safe landing, while taking into account avatar 
+     * leg length.
      * @function MyAvatar.goToFeetLocation
      * @param {Vec3} position - The new position for the avatar, in world coordinates.
      * @param {boolean} [hasOrientation=false] - Set to <code>true</code> to set the orientation of the avatar.
@@ -2076,14 +2077,14 @@ public slots:
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
                       bool shouldFaceLocation = false, bool withSafeLanding = true);
     /**jsdoc
-     * Moves the avatar to a new position and (optional) orientation in the domain.
+     * Moves the avatar to a new position and (optional) orientation in the domain, with safe landing.
      * @function MyAvatar.goToLocation
      * @param {MyAvatar.GoToProperties} target - The goto target.
      */
     void goToLocation(const QVariant& properties);
 
     /**jsdoc
-     * Moves the avatar to a new position and then enables collisions.
+     * Moves the avatar to a new position, with safe landing, and enables collisions.
      * @function MyAvatar.goToLocationAndEnableCollisions
      * @param {Vec3} position - The new position for the avatar, in world coordinates.
      */

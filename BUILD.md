@@ -73,6 +73,18 @@ Create a build directory in the root of your checkout and then run the CMake bui
 
 If cmake gives you the same error message repeatedly after the build fails, try removing `CMakeCache.txt`.
 
+##### Generating a release/debug only vcpkg build
+
+In order to generate a release or debug only vcpkg package, you could use the use the `VCPKG_BUILD_TYPE` define in your cmake generate command. Building a release only vcpkg can drastically decrease the total build time.
+
+For release only vcpkg:
+
+`cmake .. -DVCPKG_BUILD_TYPE=release`
+
+For debug only vcpkg:
+
+`cmake .. -DVCPKG_BUILD_TYPE=debug`
+
 #### Variables
 
 Any variables that need to be set for CMake to find dependencies can be set as ENV variables in your shell profile, or passed directly to CMake with a `-D` flag appended to the `cmake ..` command.

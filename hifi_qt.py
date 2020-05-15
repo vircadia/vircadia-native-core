@@ -29,7 +29,7 @@ endif()
         self.configFilePath = os.path.join(args.build_root, 'qt.cmake')
         self.version = os.getenv('VIRCADIA_USE_QT_VERSION', '5.12.3')
 
-        self.assets_url = self.readVar('EXTERNAL_BUILD_ASSETS')
+        self.assets_url = hifi_utils.readEnviromentVariableFromFile(args.build_root, 'EXTERNAL_BUILD_ASSETS')
 
         defaultBasePath = os.path.expanduser('~/hifi/qt')
         self.basePath = os.getenv('HIFI_QT_BASE', defaultBasePath)
@@ -74,10 +74,10 @@ endif()
                     self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.6-ubuntu-19.10.tar.xz'
                 elif u_major > 18 and ( u_major != 19 and u_minor != 4):
                     print("We don't support " + distro.name(pretty=True) + " yet. Perhaps consider helping us out?")
-                    raise Exception('UNSUPPORTED LINUX VERSION!!!')
+                    raise Exception('LINUX DISTRO IS NOT SUPPORTED YET!!!')
                 else:
                     print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
-                    raise Exception('UNSUPPORTED LINUX VERSION!!!')
+                    raise Exception('UNKNOWN LINUX DISTRO VERSION!!!')
             else:
                 print("Sorry, " + distro.name(pretty=True) + " is not supported. Please consider helping us out.")
                 print("It's also possible to build Qt for your distribution, please see the documentation at:")
@@ -88,10 +88,6 @@ endif()
             print("Architecture: " + platform.architecture())
             print("Machine     : " + platform.machine())
             raise Exception('UNKNOWN OPERATING SYSTEM!!!')
-
-    def readVar(self, var):
-        with open(os.path.join(self.args.build_root, '_env', var + ".txt")) as fp:
-            return fp.read()
 
     def writeConfig(self):
         print("Writing cmake config to {}".format(self.configFilePath))

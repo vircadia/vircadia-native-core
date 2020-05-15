@@ -13,7 +13,6 @@
 
 <@include graphics/ShaderConstants.h@>
 
-
 const int MAX_TEXCOORDS = 2;
 
 struct TexMapArray { 

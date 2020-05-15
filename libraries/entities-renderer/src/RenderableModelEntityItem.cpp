@@ -1264,6 +1264,9 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             setKey(didVisualGeometryRequestSucceed);
             _model->setTagMask(getTagMask());
             _model->setHifiRenderLayer(getHifiRenderLayer());
+            _model->setPrimitiveMode(_primitiveMode);
+            _model->setCullWithParent(_cullWithParent);
+            _model->setRenderWithZones(_renderWithZones);
             emit requestRenderUpdate();
             if(didVisualGeometryRequestSucceed) {
                 emit DependencyManager::get<scriptable::ModelProviderFactory>()->
@@ -1444,6 +1447,13 @@ void ModelEntityRenderer::setCullWithParent(bool value) {
     setKey(_didLastVisualGeometryRequestSucceed);
     if (_model) {
         _model->setCullWithParent(_cullWithParent);
+    }
+}
+
+void ModelEntityRenderer::setRenderWithZones(const QVector<QUuid>& renderWithZones) {
+    Parent::setRenderWithZones(renderWithZones);
+    if (_model) {
+        _model->setRenderWithZones(renderWithZones);
     }
 }
 

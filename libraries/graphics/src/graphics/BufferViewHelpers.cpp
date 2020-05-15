@@ -76,7 +76,7 @@ const std::array<const char*, 4> ZERO123 = { { "0", "1", "2", "3" } };
  *     <tr><td>{@link Vec2}</td><td><code>"texcoord4"</code></td><td>Fifth UV coordinates buffer.</td></tr>
  *   </tbody>
  * </table>
- * @typedef {Vec3|vec2} Graphics.BufferType
+ * @typedef {Vec4|Vec3|Vec2} Graphics.BufferType
  */
 QMap<QString,int> ATTRIBUTES{
     {"position", gpu::Stream::POSITION },
@@ -118,50 +118,6 @@ glm::uint32 forEachGlmVec(const gpu::BufferView& view, std::function<bool(glm::u
 
 template<> glm::uint32 forEach<glm::vec3>(const gpu::BufferView& view, std::function<bool(glm::uint32 index, const glm::vec3& value)> func) {
     return forEachGlmVec<glm::vec3>(view, func);
-}
-
-template <typename T>
-QVariant glmVecToVariant(const T& v, bool asArray /*= false*/) {
-    static const auto len = T().length();
-    if (asArray) {
-        QVariantList list;
-        for (int i = 0; i < len ; i++) {
-            list << v[i];
-        }
-        return list;
-    } else {
-        QVariantMap obj;
-        for (int i = 0; i < len ; i++) {
-            obj[XYZW[i]] = v[i];
-        }
-        return obj;
-    }
-}
-
-template <typename T>
-const T glmVecFromVariant(const QVariant& v) {
-    auto isMap = v.type() == (QVariant::Type)QMetaType::QVariantMap;
-    static const auto len = T().length();
-    const auto& components = isMap ? XYZW : ZERO123;
-    T result;
-    QVariantMap map;
-    QVariantList list;
-    if (isMap) map = v.toMap(); else list = v.toList();
-    for (int i = 0; i < len ; i++) {
-        float value;
-        if (isMap) {
-            value = map.value(components[i]).toFloat();
-        } else {
-            value = list.value(i).toFloat();
-        }
-#ifdef DEBUG_BUFFERVIEW_HELPERS
-        if (value != value) { // NAN
-            qWarning().nospace()<< "vec" << len << "." << components[i] << " NAN received from script.... " << v.toString();
-        }
-#endif
-        result[i] = value;
-    }
-    return result;
 }
 
 // QVector<T> => BufferView
