@@ -13,6 +13,7 @@
 
 #include <QtCore/QtGlobal>
 #include <QtCore/QMutex>
+#include <QtCore/QSharedPointer>
 
 #if !defined(Q_OS_ANDROID)
 #include <QtWebEngine/QQuickWebEngineProfile>
@@ -34,25 +35,25 @@ class QQmlContext;
 class RestrictedContextMonitor : public QObject {
     Q_OBJECT
 public:
-    typedef std::shared_ptr<RestrictedContextMonitor> TSharedPtr;
-    typedef std::weak_ptr<RestrictedContextMonitor> TWeakPtr;
+    typedef QSharedPointer<RestrictedContextMonitor> TSharedPointer;
+    typedef QWeakPointer<RestrictedContextMonitor> TWeakPointer;
 
-    inline RestrictedContextMonitor(QQmlContext* c) : context(c) {}
+    inline RestrictedContextMonitor(QQmlContext* c) : _context(c) {}
     ~RestrictedContextMonitor();
 
-    static TSharedPtr getMonitor(QQmlContext* context, bool createIfMissing);
+    static TSharedPointer getMonitor(QQmlContext* context, bool createIfMissing);
 
 signals:
     void onIsRestrictedChanged(bool newValue);
 
 public:
-    TWeakPtr selfPtr;
-    QQmlContext* context{ nullptr };
-    bool isRestricted{ true };
-    bool isUninitialized{ true };
+    TWeakPointer _selfPointer;
+    QQmlContext* _context{ nullptr };
+    bool _isRestricted{ true };
+    bool _isUninitialized{ true };
 
 private:
-    typedef std::map<QQmlContext*, TWeakPtr> TMonitorMap;
+    typedef std::map<QQmlContext*, TWeakPointer> TMonitorMap;
 
     static QMutex gl_monitorMapProtect;
     static TMonitorMap gl_monitorMap;
@@ -82,7 +83,7 @@ private slots:
     void onIsRestrictedChanged(bool newValue);
 
 private:
-    RestrictedContextMonitor::TSharedPtr _monitor;
+    RestrictedContextMonitor::TSharedPointer _monitor;
 };
 
 #endif // hifi_FileTypeProfile_h

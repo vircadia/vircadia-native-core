@@ -25,15 +25,15 @@ RestrictedContextMonitor::TMonitorMap RestrictedContextMonitor::gl_monitorMap;
 
 RestrictedContextMonitor::~RestrictedContextMonitor() {
     gl_monitorMapProtect.lock();
-    TMonitorMap::iterator lookup = gl_monitorMap.find(context);
+    TMonitorMap::iterator lookup = gl_monitorMap.find(_context);
     if (lookup != gl_monitorMap.end()) {
         gl_monitorMap.erase(lookup);
     }
     gl_monitorMapProtect.unlock();
 }
 
-RestrictedContextMonitor::TSharedPtr RestrictedContextMonitor::getMonitor(QQmlContext* context, bool createIfMissing) {
-    TSharedPtr monitor;
+RestrictedContextMonitor::TSharedPointer RestrictedContextMonitor::getMonitor(QQmlContext* context, bool createIfMissing) {
+    TSharedPointer monitor;
 
     gl_monitorMapProtect.lock();
     TMonitorMap::const_iterator lookup = gl_monitorMap.find(context);
@@ -41,8 +41,8 @@ RestrictedContextMonitor::TSharedPtr RestrictedContextMonitor::getMonitor(QQmlCo
         monitor = lookup->second.lock();
         assert(monitor);
     } else if(createIfMissing) {
-        monitor = std::make_shared<RestrictedContextMonitor>(context);
-        monitor->selfPtr = monitor;
+        monitor = TSharedPointer::create(context);
+        monitor->_selfPointer = monitor;
         gl_monitorMap.insert(TMonitorMap::value_type(context, monitor));
     }
     gl_monitorMapProtect.unlock();
@@ -55,19 +55,19 @@ ContextAwareProfile::ContextAwareProfile(QQmlContext* context) : ContextAwarePro
     _monitor = RestrictedContextMonitor::getMonitor(context, true);
     assert(_monitor);
     connect(_monitor.get(), &RestrictedContextMonitor::onIsRestrictedChanged, this, &ContextAwareProfile::onIsRestrictedChanged);
-    if (_monitor->isUninitialized) {
-        _monitor->isRestricted = isRestrictedGetProperty();
-        _monitor->isUninitialized = false;
+    if (_monitor->_isUninitialized) {
+        _monitor->_isRestricted = isRestrictedGetProperty();
+        _monitor->_isUninitialized = false;
     }
-    _isRestricted.store(_monitor->isRestricted ? 1 : 0);
+    _isRestricted.store(_monitor->_isRestricted ? 1 : 0);
 }
 
 void ContextAwareProfile::restrictContext(QQmlContext* context, bool restrict) {
-    RestrictedContextMonitor::TSharedPtr monitor = RestrictedContextMonitor::getMonitor(context, false);
+    RestrictedContextMonitor::TSharedPointer monitor = RestrictedContextMonitor::getMonitor(context, false);
 
     context->setContextProperty(RESTRICTED_FLAG_PROPERTY, restrict);
-    if (monitor && monitor->isRestricted != restrict) {
-        monitor->isRestricted = restrict;
+    if (monitor && monitor->_isRestricted != restrict) {
+        monitor->_isRestricted = restrict;
         monitor->onIsRestrictedChanged(restrict);
     }
 }
