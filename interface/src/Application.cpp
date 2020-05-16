@@ -3186,18 +3186,14 @@ void Application::initializeUi() {
             safeURLS += settingsSafeURLS;
 
             // END PULL SAFEURLS FROM INTERFACE.JSON Settings
-
-            bool isInWhitelist = false;  // assume unsafe
             
             if (AUTHORIZED_EXTERNAL_QML_SOURCE.isParentOf(url)) {
-                isInWhitelist = true;
                 return true;
             } else {
                 for (const auto& str : safeURLS) {
                     if (!str.isEmpty() && str.endsWith(".qml") && url.toString().endsWith(".qml") &&
                         url.toString().startsWith(str)) {
                         qCDebug(interfaceapp) << "Found matching url!" << url.host();
-                        isInWhitelist = true;
                         return true;
                     }
                 }
