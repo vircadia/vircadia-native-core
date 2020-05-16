@@ -1409,7 +1409,7 @@ function setupModelMenus() {
         menuItemName: MENU_CREATE_ENTITIES_GRABBABLE,
         afterItem: "Unparent Entity",
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, true)
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, false)
     });
 
     Menu.addMenuItem({
