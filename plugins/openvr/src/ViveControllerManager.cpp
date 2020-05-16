@@ -79,6 +79,32 @@ static const int SECOND_FOOT = 1;
 static const int HIP = 2;
 static const int CHEST = 3;
 
+enum ViveHandJointIndex {
+    HAND = 0,
+    THUMB_1,
+    THUMB_2,
+    THUMB_3,
+    THUMB_4,
+    INDEX_1,
+    INDEX_2,
+    INDEX_3,
+    INDEX_4,
+    MIDDLE_1,
+    MIDDLE_2,
+    MIDDLE_3,
+    MIDDLE_4,
+    RING_1,
+    RING_2,
+    RING_3,
+    RING_4,
+    PINKY_1,
+    PINKY_2,
+    PINKY_3,
+    PINKY_4,
+
+    Size
+};
+
 const char* ViveControllerManager::NAME { "OpenVR" };
 
 const std::map<vr::ETrackingResult, QString> TRACKING_RESULT_TO_STRING = {
@@ -307,7 +333,7 @@ void ViveControllerManager::enableGestureDetection() {
     if (_viveCameraHandTracker) {
         return;
     }
-	if (!ViveSR::anipal::Eye::IsViveProEye()) {
+    if (!ViveSR::anipal::Eye::IsViveProEye()) {
         return;
     }
 
@@ -368,7 +394,7 @@ bool ViveControllerManager::activate() {
     userInputMapper->registerDevice(_inputDevice);
     _registeredWithInputMapper = true;
 
-	if (ViveSR::anipal::Eye::IsViveProEye()) {
+    if (ViveSR::anipal::Eye::IsViveProEye()) {
         qDebug() << "Vive Pro eye-tracking detected";
 
         int error = ViveSR::anipal::Initial(ViveSR::anipal::Eye::ANIPAL_TYPE_EYE, NULL);
@@ -575,9 +601,9 @@ void ViveControllerManager::trackFinger(int hand, int jointIndex1, int jointInde
     glm::vec3 point3 = getRollingAverageHandPoint(hand, jointIndex3);
     glm::vec3 point4 = getRollingAverageHandPoint(hand, jointIndex4);
 
-    glm::vec3 wristPos = getRollingAverageHandPoint(hand, 0);
-    glm::vec3 thumb2 = getRollingAverageHandPoint(hand, 2);
-    glm::vec3 pinkie1 = getRollingAverageHandPoint(hand, 17);
+    glm::vec3 wristPos = getRollingAverageHandPoint(hand, ViveHandJointIndex::HAND);
+    glm::vec3 thumb2 = getRollingAverageHandPoint(hand, ViveHandJointIndex::THUMB_2);
+    glm::vec3 pinkie1 = getRollingAverageHandPoint(hand, ViveHandJointIndex::PINKY_1);
 
     // 1st
     glm::vec3 palmFacing = glm::normalize(glm::cross(pinkie1 - wristPos, thumb2 - wristPos));
@@ -651,6 +677,7 @@ void ViveControllerManager::updateCameraHandTracker(float deltaTime,
     int handTrackerFrameIndex { -1 };
     int resultsHandCount = GetGestureResult(&results, &handTrackerFrameIndex);
 
+    // FIXME: Why the commented-out condition?
     if (handTrackerFrameIndex >= 0 /* && handTrackerFrameIndex != _lastHandTrackerFrameIndex */) {
 #ifdef HAND_TRACKER_USE_EXTERNAL_TRANSFORM
         glm::mat4 trackedHandToAvatar =
@@ -695,34 +722,39 @@ void ViveControllerManager::updateCameraHandTracker(float deltaTime,
                 _handPoints[0][hand][pointIndex] = transformPoint(trackedHandToAvatar, pos);
             }
 
-            glm::vec3 wristPos = getRollingAverageHandPoint(hand, 0);
-            glm::vec3 thumb2 = getRollingAverageHandPoint(hand, 2);
-            glm::vec3 pinkie1 = getRollingAverageHandPoint(hand, 17);
+            glm::vec3 wristPos = getRollingAverageHandPoint(hand, ViveHandJointIndex::HAND);
+            glm::vec3 thumb2 = getRollingAverageHandPoint(hand, ViveHandJointIndex::THUMB_2);
+            glm::vec3 pinkie1 = getRollingAverageHandPoint(hand, ViveHandJointIndex::PINKY_1);
             glm::vec3 palmFacing = glm::cross(pinkie1 - wristPos, thumb2 - wristPos); // z axis
 
             _inputDevice->_poseStateMap[isLeftHand ? controller::LEFT_HAND : controller::RIGHT_HAND] =
-                trackedHandDataToPose(hand, palmFacing, 0, 9);
-            trackFinger(hand, 1, 2, 3, 4,
+                trackedHandDataToPose(hand, palmFacing, ViveHandJointIndex::HAND, ViveHandJointIndex::MIDDLE_1);
+            trackFinger(hand, ViveHandJointIndex::THUMB_1, ViveHandJointIndex::THUMB_2, ViveHandJointIndex::THUMB_3,
+                        ViveHandJointIndex::THUMB_4,
                         isLeftHand ? controller::LEFT_HAND_THUMB1 : controller::RIGHT_HAND_THUMB1,
                         isLeftHand ? controller::LEFT_HAND_THUMB2 : controller::RIGHT_HAND_THUMB2,
                         isLeftHand ? controller::LEFT_HAND_THUMB3 : controller::RIGHT_HAND_THUMB3,
                         isLeftHand ? controller::LEFT_HAND_THUMB4 : controller::RIGHT_HAND_THUMB4);
-            trackFinger(hand, 5, 6, 7, 8,
+            trackFinger(hand, ViveHandJointIndex::INDEX_1, ViveHandJointIndex::INDEX_2, ViveHandJointIndex::INDEX_3,
+                        ViveHandJointIndex::INDEX_4,
                         isLeftHand ? controller::LEFT_HAND_INDEX1 : controller::RIGHT_HAND_INDEX1,
                         isLeftHand ? controller::LEFT_HAND_INDEX2 : controller::RIGHT_HAND_INDEX2,
                         isLeftHand ? controller::LEFT_HAND_INDEX3 : controller::RIGHT_HAND_INDEX3,
                         isLeftHand ? controller::LEFT_HAND_INDEX4 : controller::RIGHT_HAND_INDEX4);
-            trackFinger(hand, 9, 10, 11, 12,
+            trackFinger(hand, ViveHandJointIndex::MIDDLE_1, ViveHandJointIndex::MIDDLE_2, ViveHandJointIndex::MIDDLE_3,
+                        ViveHandJointIndex::MIDDLE_4,
                         isLeftHand ? controller::LEFT_HAND_MIDDLE1 : controller::RIGHT_HAND_MIDDLE1,
                         isLeftHand ? controller::LEFT_HAND_MIDDLE2 : controller::RIGHT_HAND_MIDDLE2,
                         isLeftHand ? controller::LEFT_HAND_MIDDLE3 : controller::RIGHT_HAND_MIDDLE3,
                         isLeftHand ? controller::LEFT_HAND_MIDDLE4 : controller::RIGHT_HAND_MIDDLE4);
-            trackFinger(hand, 13, 14, 15, 16,
+            trackFinger(hand, ViveHandJointIndex::RING_1, ViveHandJointIndex::RING_2, ViveHandJointIndex::RING_3,
+                        ViveHandJointIndex::RING_4,
                         isLeftHand ? controller::LEFT_HAND_RING1 : controller::RIGHT_HAND_RING1,
                         isLeftHand ? controller::LEFT_HAND_RING2 : controller::RIGHT_HAND_RING2,
                         isLeftHand ? controller::LEFT_HAND_RING3 : controller::RIGHT_HAND_RING3,
                         isLeftHand ? controller::LEFT_HAND_RING4 : controller::RIGHT_HAND_RING4);
-            trackFinger(hand, 17, 18, 19, 20,
+            trackFinger(hand, ViveHandJointIndex::PINKY_1, ViveHandJointIndex::PINKY_2, ViveHandJointIndex::PINKY_3,
+                        ViveHandJointIndex::PINKY_4,
                         isLeftHand ? controller::LEFT_HAND_PINKY1 : controller::RIGHT_HAND_PINKY1,
                         isLeftHand ? controller::LEFT_HAND_PINKY2 : controller::RIGHT_HAND_PINKY2,
                         isLeftHand ? controller::LEFT_HAND_PINKY3 : controller::RIGHT_HAND_PINKY3,

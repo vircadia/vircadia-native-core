@@ -253,7 +253,6 @@ private:
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_system) };
 
     bool _viveProEye { false };
-    mutable std::recursive_mutex _getEyeDataLock;
     std::shared_ptr<ViveProEyeReadThread> _viveProEyeReadThread;
     EyeDataBuffer _prevEyeData;
 

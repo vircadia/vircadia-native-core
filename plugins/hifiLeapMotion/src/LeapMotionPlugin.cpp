@@ -305,15 +305,6 @@ void LeapMotionPlugin::InputDevice::update(float deltaTime, const controller::In
             prevRot = controllerToAvatarRotation * prevJoints[i].orientation * ZERO_HAND_ORIENTATION;
         }
 
-        // glm::vec3 linearVelocity, angularVelocity;
-        // if (i < prevJoints.size()) {
-        //     linearVelocity = (pos - (prevJoints[i].position * METERS_PER_CENTIMETER)) / deltaTime;  // m/s
-        //     glm::quat dQ = rot * glm::inverse(prevRot);
-        //     float angle = glm::angle(dQ);
-        //     glm::vec3 axis = glm::axis(dQ);
-        //     angularVelocity = (angle / deltaTime) * axis;
-        // }
-
         glm::vec3 linearVelocity, angularVelocity;
         if (i < prevJoints.size()) {
             linearVelocity = (pos - (prevJoints[i].position * METERS_PER_CENTIMETER)) / deltaTime;  // m/s
