@@ -59,12 +59,12 @@ endif()
         elif 'Darwin' == system:
             self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz%3FversionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
         elif 'Linux' == system:
-            import distro
-            dist = distro.linux_distribution()
+            #import distro
+            #dist = distro.linux_distribution()
 
-            if distro.id() == 'ubuntu':
-                u_major = int( distro.major_version() )
-                u_minor = int( distro.minor_version() )
+            if True:
+                u_major = 18 #int( distro.major_version() )
+                #u_minor = int( distro.minor_version() )
 
                 if u_major == 16:
                     self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
