@@ -767,7 +767,6 @@ void DomainServer::setupNodeListAndAssignments() {
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
     packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
     packetReceiver.registerListener(PacketType::DomainDisconnectRequest, this, "processNodeDisconnectRequestPacket");
-    packetReceiver.registerListener(PacketType::AvatarZonePresence, this, "processAvatarZonePresencePacket");
 
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
     packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
@@ -3682,12 +3681,6 @@ void DomainServer::handleSuccessfulScreensharePresence(QNetworkReply* requestRep
         qCWarning(domain_server) << "screensharePresence api call failed:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
         return;
     }
-
-    // Tell the client that we just authorized to screenshare which zone ID in which they are authorized to screenshare.
-    auto nodeList = DependencyManager::get<LimitedNodeList>();
-    auto packet = NLPacket::create(PacketType::AvatarZonePresence, NUM_BYTES_RFC4122_UUID, true);
-    packet->write(QUuid(callbackData["roomname"].toString()).toRfc4122());
-    nodeList->sendPacket(std::move(packet), *(nodeList->nodeWithUUID(QUuid(callbackData["avatarID"].toString()))));
 }
 
 void DomainServer::handleFailedScreensharePresence(QNetworkReply* requestReply) {
