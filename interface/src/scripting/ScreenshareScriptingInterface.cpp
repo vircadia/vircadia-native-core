@@ -39,10 +39,6 @@ ScreenshareScriptingInterface::ScreenshareScriptingInterface() {
     _requestScreenshareInfoRetryTimer->setInterval(SCREENSHARE_INFO_REQUEST_RETRY_TIMEOUT_MS);
     connect(_requestScreenshareInfoRetryTimer, &QTimer::timeout, this, &ScreenshareScriptingInterface::requestScreenshareInfo);
 
-    // This packet listener handles the packet containing information about the latest zone ID in which we are allowed to share.
-    auto nodeList = DependencyManager::get<NodeList>();
-    PacketReceiver& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::AvatarZonePresence, this, "processAvatarZonePresencePacketOnClient");
 };
 
 ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {

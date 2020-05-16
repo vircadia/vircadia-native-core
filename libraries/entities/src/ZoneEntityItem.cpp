@@ -196,7 +196,6 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint32_t, setHazeMode);
     READ_ENTITY_PROPERTY(PROP_BLOOM_MODE, uint32_t, setBloomMode);
     READ_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, uint32_t, setAvatarPriority);
-    READ_ENTITY_PROPERTY(PROP_SCREENSHARE, uint32_t, setScreenshare);
 
     return bytesRead;
 }
@@ -217,7 +216,6 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_GHOSTING_ALLOWED;
     requestedProperties += PROP_FILTER_URL;
     requestedProperties += PROP_AVATAR_PRIORITY;
-    requestedProperties += PROP_SCREENSHARE;
 
     requestedProperties += PROP_KEY_LIGHT_MODE;
     requestedProperties += PROP_AMBIENT_LIGHT_MODE;
@@ -264,7 +262,6 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)getHazeMode());
     APPEND_ENTITY_PROPERTY(PROP_BLOOM_MODE, (uint32_t)getBloomMode());
     APPEND_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, getAvatarPriority());
-    APPEND_ENTITY_PROPERTY(PROP_SCREENSHARE, getScreenshare());
 }
 
 void ZoneEntityItem::debugDump() const {

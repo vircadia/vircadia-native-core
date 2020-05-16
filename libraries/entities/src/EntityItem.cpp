@@ -106,7 +106,6 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_RENDER_LAYER;
     requestedProperties += PROP_PRIMITIVE_MODE;
     requestedProperties += PROP_IGNORE_PICK_INTERSECTION;
-    requestedProperties += PROP_RENDER_WITH_ZONES;
     requestedProperties += _grabProperties.getEntityProperties(params);
 
     // Physics
@@ -302,7 +301,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)getRenderLayer());
         APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)getPrimitiveMode());
         APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, getIgnorePickIntersection());
-        APPEND_ENTITY_PROPERTY(PROP_RENDER_WITH_ZONES, getRenderWithZones());
         withReadLock([&] {
             _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
                 propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -878,7 +876,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
     READ_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
     READ_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
-    READ_ENTITY_PROPERTY(PROP_RENDER_WITH_ZONES, QVector<QUuid>, setRenderWithZones);
     withWriteLock([&] {
         int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData,

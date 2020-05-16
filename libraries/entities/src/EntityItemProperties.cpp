@@ -431,7 +431,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RENDER_LAYER, renderLayer);
     CHECK_PROPERTY_CHANGE(PROP_PRIMITIVE_MODE, primitiveMode);
     CHECK_PROPERTY_CHANGE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
-    CHECK_PROPERTY_CHANGE(PROP_RENDER_WITH_ZONES, renderWithZones);
     changedProperties += _grab.getChangedProperties();
 
     // Physics
@@ -577,7 +576,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
     CHECK_PROPERTY_CHANGE(PROP_BLOOM_MODE, bloomMode);
     CHECK_PROPERTY_CHANGE(PROP_AVATAR_PRIORITY, avatarPriority);
-    CHECK_PROPERTY_CHANGE(PROP_SCREENSHARE, screenshare);
 
     // Polyvox
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
@@ -1601,7 +1599,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_RENDER_LAYER, renderLayer, getRenderLayerAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_PRIMITIVE_MODE, primitiveMode, getPrimitiveModeAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RENDER_WITH_ZONES, renderWithZones);
     _grab.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
     // Physics
@@ -1798,7 +1795,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BLOOM_MODE, bloomMode, getBloomModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_AVATAR_PRIORITY, avatarPriority, getAvatarPriorityAsString());
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SCREENSHARE, screenshare, getScreenshareAsString());
     }
 
     // Web only
@@ -2609,7 +2605,6 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_RENDER_LAYER, RenderLayer, renderLayer, RenderLayer);
         ADD_PROPERTY_TO_MAP(PROP_PRIMITIVE_MODE, PrimitiveMode, primitiveMode, PrimitiveMode);
         ADD_PROPERTY_TO_MAP(PROP_IGNORE_PICK_INTERSECTION, IgnorePickIntersection, ignorePickIntersection, bool);
-        ADD_PROPERTY_TO_MAP(PROP_RENDER_WITH_ZONES, RenderWithZones, renderWithZones, QVector<QUuid>);
         { // Grab
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_GRABBABLE, Grab, grab, Grabbable, grabbable);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_KINEMATIC, Grab, grab, GrabKinematic, grabKinematic);
@@ -2859,7 +2854,6 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_BLOOM_MODE, BloomMode, bloomMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_AVATAR_PRIORITY, AvatarPriority, avatarPriority, uint32_t);
-        ADD_PROPERTY_TO_MAP(PROP_SCREENSHARE, Screenshare, screenshare, uint32_t);
 
         // Polyvox
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, vec3);
@@ -3099,7 +3093,6 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)properties.getRenderLayer());
             APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)properties.getPrimitiveMode());
             APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, properties.getIgnorePickIntersection());
-            APPEND_ENTITY_PROPERTY(PROP_RENDER_WITH_ZONES, properties.getRenderWithZones());
             _staticGrab.setProperties(properties);
             _staticGrab.appendToEditPacket(packetData, requestedProperties, propertyFlags,
                                            propertiesDidntFit, propertyCount, appendState);
@@ -3279,7 +3272,6 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)properties.getHazeMode());
                 APPEND_ENTITY_PROPERTY(PROP_BLOOM_MODE, (uint32_t)properties.getBloomMode());
                 APPEND_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, (uint32_t)properties.getAvatarPriority());
-                APPEND_ENTITY_PROPERTY(PROP_SCREENSHARE, (uint32_t)properties.getScreenshare());
             }
 
             if (properties.getType() == EntityTypes::PolyVox) {
@@ -3590,7 +3582,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RENDER_WITH_ZONES, QVector<QUuid>, setRenderWithZones);
     properties.getGrab().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
     // Physics
@@ -3755,7 +3746,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BLOOM_MODE, uint32_t, setBloomMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AVATAR_PRIORITY, uint32_t, setAvatarPriority);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCREENSHARE, uint32_t, setScreenshare);
     }
 
     if (properties.getType() == EntityTypes::PolyVox) {
