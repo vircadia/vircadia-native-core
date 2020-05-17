@@ -3,6 +3,7 @@
 //  Created by Brad Hefta-Gaub on 10/2/14.
 //  Persist toolbar by HRS 6/11/15.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  This script allows you to edit entities with a new UI/UX for mouse and trackpad based editing
 //
@@ -41,6 +42,7 @@ var CreateWindow = Script.require('./modules/createWindow.js');
 var TITLE_OFFSET = 60;
 var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
+var ENTIRE_DOMAIN_SCAN_RADIUS = 27713;
 
 var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
 
@@ -562,7 +564,7 @@ var toolBar = (function () {
             if (!properties.grab) {
                 properties.grab = {};
                 if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
-                    !(properties.type === "Zone" || properties.type === "Light"
+                    !(properties.type === "Zone" || properties.type === "Light" 
                     || properties.type === "ParticleEffect" || properties.type === "Web")) {
                     properties.grab.grabbable = true;
                 } else {
@@ -1407,7 +1409,7 @@ function setupModelMenus() {
         menuItemName: MENU_CREATE_ENTITIES_GRABBABLE,
         afterItem: "Unparent Entity",
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, true)
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, false)
     });
 
     Menu.addMenuItem({
@@ -2587,6 +2589,11 @@ var PropertiesTool = function (opts) {
                 entityID: data.entityID,
                 materialTargetData: parentModelData,
             });
+        } else if (data.type === "zoneListRequest") {
+            emitScriptEvent({
+                type: 'zoneListRequest',
+                zones: getExistingZoneList()
+            });
         }
     };
 
@@ -2883,5 +2890,22 @@ selectionDisplay.onSpaceModeChange = function(spaceMode) {
     entityListTool.setSpaceMode(spaceMode);
     propertiesTool.setSpaceMode(spaceMode);
 };
+
+function getExistingZoneList() {
+    var center = { "x": 0, "y": 0, "z": 0 };
+    var existingZoneIDs = Entities.findEntitiesByType("Zone", center, ENTIRE_DOMAIN_SCAN_RADIUS);
+    var listExistingZones = [];
+    var thisZone = {};
+    var properties;
+    for (var k = 0; k < existingZoneIDs.length; k++) {
+        properties = Entities.getEntityProperties(existingZoneIDs[k], ["name"]);
+        thisZone = {
+            "id": existingZoneIDs[k],
+            "name": properties.name
+        };
+        listExistingZones.push(thisZone);
+    }
+    return listExistingZones;
+}
 
 }()); // END LOCAL_SCOPE

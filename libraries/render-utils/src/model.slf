@@ -13,6 +13,7 @@
 <@include graphics/Material.slh@>
 <@include graphics/MaterialTextures.slh@>
 <@include render-utils/ShaderConstants.h@>
+<@include CullFace.slh@>
 
 <@if not HIFI_USE_SHADOW@>
     <@if HIFI_USE_FORWARD or HIFI_USE_TRANSLUCENT@>
@@ -129,7 +130,7 @@ void main(void) {
             _fragColor0 = vec4(albedo * isUnlitEnabled(), opacity);
     <@else@>
             packDeferredFragmentUnlit(
-                normalize(_normalWS),
+                evalFrontOrBackFaceNormal(normalize(_normalWS)),
                 opacity,
                 albedo * isUnlitEnabled());
     <@endif@>
@@ -195,7 +196,7 @@ void main(void) {
     <@else@>
             vec3 fragNormalWS = _normalWS;
     <@endif@>
-        fragNormalWS = normalize(fragNormalWS);
+        fragNormalWS = evalFrontOrBackFaceNormal(normalize(fragNormalWS));
 
     <@if HIFI_USE_FORWARD@>
         TransformCamera cam = getTransformCamera();

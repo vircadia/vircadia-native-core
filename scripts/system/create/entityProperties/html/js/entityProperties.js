@@ -115,12 +115,12 @@ const GROUPS = [
                     lines: "Wireframe",
                 },
                 propertyID: "primitiveMode",
-            }/*,
+            },
             {
                 label: "Render With Zones",
                 type: "multipleZonesSelection",
                 propertyID: "renderWithZones",
-            }*/
+            }
         ]
     },
     {
