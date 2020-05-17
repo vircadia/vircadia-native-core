@@ -385,6 +385,7 @@ void AudioDeviceList::onDevicesChanged(QAudio::Mode mode, const QList<HifiAudioD
         }
     }
 
+    qWarning() << "AudioDeviceList::" << __FUNCTION__ << "(" << mode << ") replacing device list [len=" << rowCount() << "] with new list [len=" << newDevices.length() << "]";
     _devices.swap(newDevices);
     endResetModel();
     
@@ -416,7 +417,8 @@ void AudioInputDeviceList::onPeakValueListChanged(const QList<float>& peakValueL
     assert(_mode == QAudio::AudioInput);
 
     if (peakValueList.length() != rowCount()) {
-        qWarning() << "AudioDeviceList" << __FUNCTION__ << "length mismatch";
+        qWarning() << "AudioDeviceList" << __FUNCTION__ << "length mismatch (received " << peakValueList.length()
+                   << " values when we only have " << rowCount() << " devices)";
     }
 
     for (auto i = 0; i < rowCount(); ++i) {

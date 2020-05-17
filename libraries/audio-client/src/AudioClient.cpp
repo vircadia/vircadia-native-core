@@ -96,6 +96,7 @@ QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode, const QString&
     //get hmd device name prior to locking device mutex. in case of shutdown, this thread will be locked and audio client
     //cannot properly shut down. 
     QString defDeviceName = defaultAudioDeviceName(mode);
+    qWarning() << __FUNCTION__ << "(" << mode << ") default device name: " << defDeviceName;
 
     // NOTE: availableDevices() clobbers the Qt internal device list
     Lock lock(_deviceMutex);
@@ -105,13 +106,14 @@ QList<HifiAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode, const QString&
     QList<HifiAudioDeviceInfo> newDevices;
     for (auto& device : devices) {
         newDevices.push_back(HifiAudioDeviceInfo(device, false, mode));
+        qWarning() << __FUNCTION__ << "(" << mode << ") found audio device named: " << device.deviceName();
         if (device.deviceName() == defDeviceName.trimmed()) {
             defaultDesktopDevice = HifiAudioDeviceInfo(device, true, mode, HifiAudioDeviceInfo::desktop);
         }
     }
 
     if (defaultDesktopDevice.getDevice().isNull()) {
-        qCDebug(audioclient) << __FUNCTION__ << "Default device not found in list:" << defDeviceName
+        qWarning() << __FUNCTION__ << "Default device not found in list:" << defDeviceName
             << "Setting Default to: " << devices.first().deviceName();
         defaultDesktopDevice = HifiAudioDeviceInfo(devices.first(), true, mode, HifiAudioDeviceInfo::desktop);
     }
