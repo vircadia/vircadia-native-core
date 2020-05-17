@@ -82,7 +82,7 @@
                     lg="3"
                     class="py-1 column-item"
                 >
-                    <itemiterator :itemsForIterator="itemsStore"></itemiterator>
+                    <itemiterator :itemsForIterator="this.$store.state.items"></itemiterator>
                 </v-col>
             </v-container>
         </v-content>
@@ -705,7 +705,6 @@ export default {
             
             var itemToPush =             
             {
-                "hasChildren": false,
                 "type": type,
                 "name": name,
                 "url": url,
@@ -722,7 +721,6 @@ export default {
         pushFolderToItems: function(name) {
             var folderToPush =             
             {
-                "hasChildren": true,
                 "name": name,
                 "items": [],
                 "uuid": this.createUUID(),
@@ -1019,7 +1017,6 @@ export default {
             } else {
                 
                 var itemToPush = {
-                    "hasChildren": false,
                     'type': null,
                     'name': null,
                     'folder': null,
@@ -1058,7 +1055,8 @@ export default {
                 findParentFolder = this.searchForItem(parentFolderUUID);
             }
             
-            // this.removeFolder(uuid);
+            // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
+            this.removeFolder(uuid);
             
             this.$store.commit('moveFolder', {
                 "uuid": uuid,

@@ -17,142 +17,170 @@ export const store = new Vuex.Store({
     devtools: true,
     state: {
         items: [
+            // {
+            //     "hasChildren": false,
+            //     "type": "script",
+            //     "name": "VRGrabScale",
+            //     "url": "https://gooawefaweawfgle.com/vr.js",
+            //     "folder": "No Folder",
+            //     "uuid": "54254354353",
+            // },
             {
-                "hasChildren": false,
-                "type": "script",
-                "name": "VRGrabScale",
-                "url": "https://gooawefaweawfgle.com/vr.js",
-                "folder": "No Folder",
-                "uuid": "54254354353",
-            },
-            {
-                "hasChildren": true,
                 "name": "Test Folder",
                 "folder": "No Folder",
                 "items": [
                     {
-                        "hasChildren": false,
-                        "type": "script",
-                        "name": "TESTFOLDERSCRIPT",
-                        "url": "https://googfdafsgaergale.com/vr.js",
-                        "folder": "Test Folder",
-                        "uuid": "54hgfhgf25fdfadf4354353",
-                    },
-                    {
-                        "hasChildren": false,
-                        "type": "script",
-                        "name": "FOLDERSCRIPT2",
-                        "url": "https://googfdafsgaergale.com/vr.js",
-                        "folder": "Test Folder",
-                        "uuid": "54hgfhgf25ffdafddfadf4354353",
-                    },
-                    {
-                        "hasChildren": true,
-                        "name": "FolderWithinAFolder",
+                        "name": "inception1",
                         "folder": "Test Folder",
                         "items": [
                             {
-                                "hasChildren": false,
-                                "type": "script",
-                                "name": "inception1",
-                                "url": "https://googfdafsgaergale.com/vr.js",
-                                "folder": "FolderWithinAFolder",
-                                "uuid": "54hgfhgf25fdfadeqwqeqf4354353",
-                            },
-                            {
-                                "hasChildren": false,
-                                "type": "script",
-                                "name": "123what",
-                                "url": "https://googfdafsgaergale.com/vr.js",
-                                "folder": "FolderWithinAFolder",
-                                "uuid": "54hgfhgf25ffdafdWDQDdsadasQWWQdfadf4354353",
-                            },
-                            {
-                                "hasChildren": false,
-                                "type": "script",
-                                "name": "inception432",
-                                "url": "https://googfdafsgaergale.com/vr.js",
-                                "folder": "FolderWithinAFolder",
-                                "uuid": "54hgfhgf25ffdafdWDQDQWWQdfadf4354353",
+                                "name": "inception2",
+                                "folder": "Test Folder",
+                                "items": [
+                                    {
+                                        "type": "script",
+                                        "name": "itemincepted",
+                                        "url": "https://googfdafsgaergale.com/vr.js",
+                                        "folder": "FolderWithinAFolder",
+                                        "uuid": "hkjkjhkjk",
+                                    },
+                                ],
+                                "uuid": "adsfa32"
                             },
                         ],
-                        "uuid": "54354363wgtrhtrhegs45ujs"
+                        "uuid": "s4g4sg"
                     },
                 ],
-                "uuid": "54354363wgsegs45ujs",
+                "uuid": "sdfsdf",
             },
-            {
-                "hasChildren": false,
-                "type": "script",
-                "name": "VRGrabScale",
-                "url": "https://googfdafsgaergale.com/vr.js",
-                "folder": "No Folder",
-                "uuid": "54hgfhgf254354353",
-            },
-            {
-                "hasChildren": false,
-                "type": "script",
-                "name": "TEST",
-                "url": "https://gooadfdagle.com/vr.js",
-                "folder": "No Folder",
-                "uuid": "542rfwat4t5fsddf4354353",
-            },
-            {
-                "hasChildren": false,
-                "type": "json",
-                "name": "TESTJSON",
-                "url": "https://gooadfdagle.com/vr.json",
-                "folder": "No Folder",
-                "uuid": "542rfwat4t54354353",
-            },
-            {
-                "hasChildren": false,
-                "type": "script",
-                "name": "TESTLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
-                "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
-                "folder": "No Folder",
-                "uuid": "5425ggsrg45354353",
-            },
-            {
-                "hasChildren": false,
-                "type": "whatttype",
-                "name": "BrokenIcon",
-                "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
-                "folder": "No Folder",
-                "uuid": "5425ggsrg4fdaffdff535asdasd4353",
-            },
-            {
-                "hasChildren": false,
-                "type": "avatar",
-                "name": "AVI",
-                "url": "https://googlfadfe.com/vr.fst",
-                "folder": "No Folder",
-                "uuid": "542gregg45s3g4354353",
-            },
-            {
-                "hasChildren": false,
-                "type": "avatar",
-                "name": "AVI",
-                "url": "https://googlefdaf.com/vr.fst",
-                "folder": "No Folder",
-                "uuid": "5420798-087-54354353",
-            },
-            {
-                "hasChildren": false,
-                "type": "model",
-                "name": "3D MODEL",
-                "url": "https://googlee.com/vr.fbx",
-                "folder": "No Folder",
-                "uuid": "54254354980-7667jt353",
-            },
-            {
-                "hasChildren": false,
-                "type": "place",
-                "name": "PLACE DOMAIN",
-                "url": "https://googleee.com/vr.fbx",
-                "folder": "No Folder",
-                "uuid": "542543sg45s4gg54353",
-            },
+            // {
+            //     "hasChildren": true,
+            //     "name": "Test Folder",
+            //     "folder": "No Folder",
+            //     "items": [
+            //         {
+            //             "hasChildren": false,
+            //             "type": "script",
+            //             "name": "TESTFOLDERSCRIPT",
+            //             "url": "https://googfdafsgaergale.com/vr.js",
+            //             "folder": "Test Folder",
+            //             "uuid": "54hgfhgf25fdfadf4354353",
+            //         },
+            //         {
+            //             "hasChildren": false,
+            //             "type": "script",
+            //             "name": "FOLDERSCRIPT2",
+            //             "url": "https://googfdafsgaergale.com/vr.js",
+            //             "folder": "Test Folder",
+            //             "uuid": "54hgfhgf25ffdafddfadf4354353",
+            //         },
+            //         {
+            //             "hasChildren": true,
+            //             "name": "FolderWithinAFolder",
+            //             "folder": "Test Folder",
+            //             "items": [
+            //                 {
+            //                     "hasChildren": false,
+            //                     "type": "script",
+            //                     "name": "inception1",
+            //                     "url": "https://googfdafsgaergale.com/vr.js",
+            //                     "folder": "FolderWithinAFolder",
+            //                     "uuid": "54hgfhgf25fdfadeqwqeqf4354353",
+            //                 },
+            //                 {
+            //                     "hasChildren": false,
+            //                     "type": "script",
+            //                     "name": "123what",
+            //                     "url": "https://googfdafsgaergale.com/vr.js",
+            //                     "folder": "FolderWithinAFolder",
+            //                     "uuid": "54hgfhgf25ffdafdWDQDdsadasQWWQdfadf4354353",
+            //                 },
+            //                 {
+            //                     "hasChildren": false,
+            //                     "type": "script",
+            //                     "name": "inception432",
+            //                     "url": "https://googfdafsgaergale.com/vr.js",
+            //                     "folder": "FolderWithinAFolder",
+            //                     "uuid": "54hgfhgf25ffdafdWDQDQWWQdfadf4354353",
+            //                 },
+            //             ],
+            //             "uuid": "54354363wgtrhtrhegs45ujs"
+            //         },
+            //     ],
+            //     "uuid": "54354363wgsegs45ujs",
+            // },
+            // {
+            //     "hasChildren": false,
+            //     "type": "script",
+            //     "name": "VRGrabScale",
+            //     "url": "https://googfdafsgaergale.com/vr.js",
+            //     "folder": "No Folder",
+            //     "uuid": "54hgfhgf254354353",
+            // },
+            // {
+            //     "hasChildren": false,
+            //     "type": "script",
+            //     "name": "TEST",
+            //     "url": "https://gooadfdagle.com/vr.js",
+            //     "folder": "No Folder",
+            //     "uuid": "542rfwat4t5fsddf4354353",
+            // },
+            // {
+            //     "hasChildren": false,
+            //     "type": "json",
+            //     "name": "TESTJSON",
+            //     "url": "https://gooadfdagle.com/vr.json",
+            //     "folder": "No Folder",
+            //     "uuid": "542rfwat4t54354353",
+            // },
+            // {
+            //     "hasChildren": false,
+            //     "type": "script",
+            //     "name": "TESTLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+            //     "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
+            //     "folder": "No Folder",
+            //     "uuid": "5425ggsrg45354353",
+            // },
+            // {
+            //     "hasChildren": false,
+            //     "type": "whatttype",
+            //     "name": "BrokenIcon",
+            //     "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
+            //     "folder": "No Folder",
+            //     "uuid": "5425ggsrg4fdaffdff535asdasd4353",
+            // },
+            // {
+            //     "hasChildren": false,
+            //     "type": "avatar",
+            //     "name": "AVI",
+            //     "url": "https://googlfadfe.com/vr.fst",
+            //     "folder": "No Folder",
+            //     "uuid": "542gregg45s3g4354353",
+            // },
+            // {
+            //     "hasChildren": false,
+            //     "type": "avatar",
+            //     "name": "AVI",
+            //     "url": "https://googlefdaf.com/vr.fst",
+            //     "folder": "No Folder",
+            //     "uuid": "5420798-087-54354353",
+            // },
+            // {
+            //     "hasChildren": false,
+            //     "type": "model",
+            //     "name": "3D MODEL",
+            //     "url": "https://googlee.com/vr.fbx",
+            //     "folder": "No Folder",
+            //     "uuid": "54254354980-7667jt353",
+            // },
+            // {
+            //     "hasChildren": false,
+            //     "type": "place",
+            //     "name": "PLACE DOMAIN",
+            //     "url": "https://googleee.com/vr.fbx",
+            //     "folder": "No Folder",
+            //     "uuid": "542543sg45s4gg54353",
+            // },
         ],
         settings: {
             "displayDensity": {
@@ -284,45 +312,25 @@ export const store = new Vuex.Store({
             });
         },
         moveFolder (state, payload) {
-            console.info("WHAT", payload.parentFolderUUID);
+            
+            let { items } = state;
+            
             if (payload.parentFolderUUID === "top") {
-                // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
-                // this.removeFolder(uuid);
-                
                 payload.findFolder.returnedItem.folder = "No Folder";
                 console.info("Going to push...", payload.findFolder.returnedItem);
                 console.info("Containing these items...", payload.findFolder.returnedItem.items);
-                // state.items.push(payload.findFolder.returnedItem);
-                // 
-                // Vue.set(state, "items", payload.findFolder.returnedItem);
-                
-                let {items} = state;
 
                 items.push(payload.findFolder.returnedItem);
                 Vue.set(state,'items', items)
-                
-                // state.items = state.items.concat(payload.findFolder.returnedItem);
-                
-                // state.items = Object.assign({}, state.items, { 
-                //     folder: payload.findFolder.returnedItem.items,
-                //     hasChildren: payload.findFolder.returnedItem.hasChildren,
-                //     items: payload.findFolder.returnedItem.items,
-                //     name: payload.findFolder.returnedItem.name,
-                //     uuid: payload.findFolder.returnedItem.uuid
-                // });
-                
-            } else {                
-                // // Find the parent folder.
+                                
+            } else if (payload.findParentFolder) {                
                 // console.info("Going to push...", payload.findFolder.returnedItem);
                 // console.info("Containing these items...", payload.findFolder.returnedItem.items);
                 // console.info("Into...", payload.findParentFolder.returnedItem);
-                // if (payload.findParentFolder) {
-                //     // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
-                //     // this.removeFolder(uuid);
-                // 
-                //     payload.findFolder.returnedItem.folder = payload.findParentFolder.name;
-                //     payload.findParentFolder.returnedItem.items.push(payload.findFolder.returnedItem);
-                // }
+
+                payload.findFolder.returnedItem.folder = payload.findParentFolder.name;
+                payload.findParentFolder.returnedItem.items.push(payload.findFolder.returnedItem);
+                Vue.set(state,'items', items)
             }
         },
     }

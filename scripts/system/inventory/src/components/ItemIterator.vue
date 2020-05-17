@@ -16,7 +16,7 @@
         >
             <v-list-item 
                 one-line 
-                v-if="!item.hasChildren"
+                v-if="!item.items"
                 class="mx-auto draggable-card"
                 max-width="344"
                 outlined
@@ -114,7 +114,7 @@
         
             <!-- The Folder List Item -->
             <v-list-group
-                v-if="item.hasChildren"
+                v-else
                 class="top-level-folder"
             >
             <!-- prepend-icon="mdi-blur-linear" put this in the list group, no idea how to make it a handle yet though... -->
@@ -155,7 +155,7 @@
                 </div>
                 
                 <v-container fluid>
-                    <itemiterator v-bind:key="item.uuid" v-for="item in itemsForIterator" :itemsForIterator="item.items"></itemiterator>
+                    <itemiterator v-bind:key="item.uuid" :itemsForIterator="item.items"></itemiterator>
                 </v-container>
                 
             </v-list-group>
