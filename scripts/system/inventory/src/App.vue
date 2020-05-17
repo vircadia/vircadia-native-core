@@ -82,7 +82,7 @@
                     lg="3"
                     class="py-1 column-item"
                 >
-                    <itemiterator :itemsForIterator="items"></itemiterator>
+                    <itemiterator :itemsForIterator="itemsStore"></itemiterator>
                 </v-col>
             </v-container>
         </v-content>
@@ -262,7 +262,7 @@
                       item-value="uuid"
                       class="my-2"
                       v-model="editFolderDialogStore.data.folder"
-                      label="Folder"
+                      label="Parent Folder"
                       outlined
                   ></v-select>
 
@@ -641,144 +641,6 @@ export default {
         itemiterator
     },
     data: () => ({
-        items: [
-            {
-                "hasChildren": false,
-                "type": "script",
-                "name": "VRGrabScale",
-                "url": "https://gooawefaweawfgle.com/vr.js",
-                "folder": "No Folder",
-                "uuid": "54254354353",
-            },
-            {
-                "hasChildren": true,
-                "name": "Test Folder",
-                "folder": "No Folder",
-                "items": [
-                    {
-                        "hasChildren": false,
-                        "type": "script",
-                        "name": "TESTFOLDERSCRIPT",
-                        "url": "https://googfdafsgaergale.com/vr.js",
-                        "folder": "Test Folder",
-                        "uuid": "54hgfhgf25fdfadf4354353",
-                    },
-                    {
-                        "hasChildren": false,
-                        "type": "script",
-                        "name": "FOLDERSCRIPT2",
-                        "url": "https://googfdafsgaergale.com/vr.js",
-                        "folder": "Test Folder",
-                        "uuid": "54hgfhgf25ffdafddfadf4354353",
-                    },
-                    {
-                        "hasChildren": true,
-                        "name": "FolderWithinAFolder",
-                        "folder": "Test Folder",
-                        "items": [
-                            {
-                                "hasChildren": false,
-                                "type": "script",
-                                "name": "inception1",
-                                "url": "https://googfdafsgaergale.com/vr.js",
-                                "folder": "FolderWithinAFolder",
-                                "uuid": "54hgfhgf25fdfadeqwqeqf4354353",
-                            },
-                            {
-                                "hasChildren": false,
-                                "type": "script",
-                                "name": "123what",
-                                "url": "https://googfdafsgaergale.com/vr.js",
-                                "folder": "FolderWithinAFolder",
-                                "uuid": "54hgfhgf25ffdafdWDQDdsadasQWWQdfadf4354353",
-                            },
-                            {
-                                "hasChildren": false,
-                                "type": "script",
-                                "name": "inception432",
-                                "url": "https://googfdafsgaergale.com/vr.js",
-                                "folder": "FolderWithinAFolder",
-                                "uuid": "54hgfhgf25ffdafdWDQDQWWQdfadf4354353",
-                            },
-                        ],
-                        "uuid": "54354363wgtrhtrhegs45ujs"
-                    },
-                ],
-                "uuid": "54354363wgsegs45ujs",
-            },
-            {
-                "hasChildren": false,
-                "type": "script",
-                "name": "VRGrabScale",
-                "url": "https://googfdafsgaergale.com/vr.js",
-                "folder": "No Folder",
-                "uuid": "54hgfhgf254354353",
-            },
-            {
-                "hasChildren": false,
-                "type": "script",
-                "name": "TEST",
-                "url": "https://gooadfdagle.com/vr.js",
-                "folder": "No Folder",
-                "uuid": "542rfwat4t5fsddf4354353",
-            },
-            {
-                "hasChildren": false,
-                "type": "json",
-                "name": "TESTJSON",
-                "url": "https://gooadfdagle.com/vr.json",
-                "folder": "No Folder",
-                "uuid": "542rfwat4t54354353",
-            },
-            {
-                "hasChildren": false,
-                "type": "script",
-                "name": "TESTLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
-                "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
-                "folder": "No Folder",
-                "uuid": "5425ggsrg45354353",
-            },
-            {
-                "hasChildren": false,
-                "type": "whatttype",
-                "name": "BrokenIcon",
-                "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
-                "folder": "No Folder",
-                "uuid": "5425ggsrg4fdaffdff535asdasd4353",
-            },
-            {
-                "hasChildren": false,
-                "type": "avatar",
-                "name": "AVI",
-                "url": "https://googlfadfe.com/vr.fst",
-                "folder": "No Folder",
-                "uuid": "542gregg45s3g4354353",
-            },
-            {
-                "hasChildren": false,
-                "type": "avatar",
-                "name": "AVI",
-                "url": "https://googlefdaf.com/vr.fst",
-                "folder": "No Folder",
-                "uuid": "5420798-087-54354353",
-            },
-            {
-                "hasChildren": false,
-                "type": "model",
-                "name": "3D MODEL",
-                "url": "https://googlee.com/vr.fbx",
-                "folder": "No Folder",
-                "uuid": "54254354980-7667jt353",
-            },
-            {
-                "hasChildren": false,
-                "type": "place",
-                "name": "PLACE DOMAIN",
-                "url": "https://googleee.com/vr.fbx",
-                "folder": "No Folder",
-                "uuid": "542543sg45s4gg54353",
-            },
-        ],
         folderList: [],
         recursiveFolderHoldingList: [],
         nearbyUsers: [
@@ -1088,19 +950,7 @@ export default {
         },
         sortTopInventory: function(level) {
             if (level == "top") {
-                this.items.sort(function(a, b) {
-                    var nameA = a.name.toUpperCase(); // ignore upper and lowercase
-                    var nameB = b.name.toUpperCase(); // ignore upper and lowercase
-                    if (nameA < nameB) {
-                        return -1;
-                    }
-                    if (nameA > nameB) {
-                        return 1;
-                    }
-
-                    // names must be equal
-                    return 0;
-                });
+                this.$store.commit('sortTopInventory');
             }
         },
         getFolderList: function(request) {
@@ -1119,7 +969,7 @@ export default {
                     },
                 ];
                 
-                generateList = this.recursiveFolderPopulate(this.items, true, null);
+                generateList = this.recursiveFolderPopulate(this.itemsStore, true, null);
                 
             } else if (request == "add") {
                 this.folderList = [
@@ -1129,7 +979,7 @@ export default {
                     },
                 ];
                 
-                generateList = this.recursiveFolderPopulate(this.items, true, null);
+                generateList = this.recursiveFolderPopulate(this.itemsStore, true, null);
                 
             } else if (request == "editFolder") {
                 this.folderList = [
@@ -1143,7 +993,7 @@ export default {
                     },
                 ];
                 
-                generateList = this.recursiveFolderPopulate(this.items, true, this.$store.state.editFolderDialog.data.uuid);
+                generateList = this.recursiveFolderPopulate(this.itemsStore, true, this.$store.state.editFolderDialog.data.uuid);
             }
             
             if (generateList) {
@@ -1202,31 +1052,24 @@ export default {
         },
         moveFolder: function(uuid, parentFolderUUID) {
             var findFolder = this.searchForItem(uuid);
-            console.info("WHAT", parentFolderUUID);
-            if (parentFolderUUID === "top") {
-                // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
-                this.removeItem(uuid);
-                
-                findFolder.returnedItem.folder = "No Folder";
-
-                this.items.push(findFolder.returnedItem);
-                
-            } else {                
-                // Find the parent folder.
-                var findParentFolder = this.searchForItem(parentFolderUUID);
-                console.info("Going to push...", findFolder.returnedItem);
-                console.info("Into...", findParentFolder.returnedItem);
-                if (findParentFolder) {
-                    // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
-                    this.removeItem(uuid);
-
-                    findFolder.returnedItem.folder = findParentFolder.name;
-                    findParentFolder.returnedItem.items.push(findFolder.returnedItem);
-                }
+            var findParentFolder;
+            
+            if (parentFolderUUID !== "top") {
+                findParentFolder = this.searchForItem(parentFolderUUID);
             }
+            
+            // this.removeFolder(uuid);
+            
+            this.$store.commit('moveFolder', {
+                "uuid": uuid,
+                "parentFolderUUID": parentFolderUUID,
+                "findFolder": findFolder,
+                "findParentFolder": findParentFolder
+            });
+            
         },
         searchForItem: function(uuid) {
-            var foundItem = this.recursiveSingularSearch(uuid, this.items);
+            var foundItem = this.recursiveSingularSearch(uuid, this.itemsStore);
             
             if (foundItem) {
                 return {
@@ -1277,13 +1120,13 @@ export default {
             }
         },
         sendInventory: function() {
-            this.sendAppMessage("web-to-script-inventory", this.items );
+            this.sendAppMessage("web-to-script-inventory", this.itemsStore );
         },
         receiveInventory: function(receivedInventory) {
             if (!receivedInventory) {
-                this.items = [];
+                this.itemsStore = [];
             } else {
-                this.items = receivedInventory;
+                this.itemsStore = receivedInventory;
             }
         },
         sendSettings: function() {
@@ -1319,6 +1162,17 @@ export default {
         },
     },
     computed: {
+        itemsStore: {
+            get() {
+                return this.$store.state.items;
+            },
+            set(value) {
+                this.$store.commit('mutate', {
+                    property: 'items', 
+                    with: value
+                });
+            },
+        },
         addDialogStore: {
             get() {
                 return this.$store.state.addDialog;
@@ -1418,7 +1272,7 @@ export default {
     },
     watch: {
         // Whenever the item list changes, this will notice and then send it to the script to be saved.
-        items: {
+        itemsStore: {
             deep: true,
             handler() {
                 this.sendInventory();
