@@ -738,7 +738,10 @@ int OpenVrDisplayPlugin::getRequiredThreadCount() const {
 }
 
 QString OpenVrDisplayPlugin::getPreferredAudioInDevice() const {
+    qDebug() << "####### getPreferredAudioInDevice()";
+
     QString device = getVrSettingString(vr::k_pch_audio_Section, vr::k_pch_audio_RecordingDeviceOverride_String);
+    qDebug() << "####... device:" << device;
     if (!device.isEmpty()) {
         static const WCHAR INIT = 0;
         size_t size = device.size() + 1;
@@ -747,12 +750,30 @@ QString OpenVrDisplayPlugin::getPreferredAudioInDevice() const {
         device.toWCharArray(deviceW.data());
         // FIXME: This may not be necessary if vr::k_pch_audio_RecordingDeviceOverride_StringName is used above.
         device = AudioClient::getWinDeviceName(deviceW.data());
+        qDebug() << "####... WinDeviceName:" << device;
     }
+
+    QString deviceName = getVrSettingString(vr::k_pch_audio_Section, vr::k_pch_audio_RecordingDeviceOverrideName_String);
+    qDebug() << "####... deviceName:" << deviceName;
+    if (!deviceName.isEmpty()) {
+        static const WCHAR INIT = 0;
+        size_t size = deviceName.size() + 1;
+        std::vector<WCHAR> deviceW;
+        deviceW.assign(size, INIT);
+        deviceName.toWCharArray(deviceW.data());
+        // FIXME: This may not be necessary if vr::k_pch_audio_RecordingDeviceOverride_StringName is used above.
+        deviceName = AudioClient::getWinDeviceName(deviceW.data());
+        qDebug() << "####... WinDeviceName:" << device;
+    }
+
     return device;
 }
 
 QString OpenVrDisplayPlugin::getPreferredAudioOutDevice() const {
+    qDebug() << "####### getPreferredAudioOutDevice()";
+
     QString device = getVrSettingString(vr::k_pch_audio_Section, vr::k_pch_audio_PlaybackDeviceOverride_String);
+    qDebug() << "####... device:" << device;
     if (!device.isEmpty()) {
         static const WCHAR INIT = 0;
         size_t size = device.size() + 1;
@@ -761,7 +782,22 @@ QString OpenVrDisplayPlugin::getPreferredAudioOutDevice() const {
         device.toWCharArray(deviceW.data());
         // FIXME: This may not be necessary if vr::k_pch_audio_PlaybackDeviceOverride_StringName is used above.
         device = AudioClient::getWinDeviceName(deviceW.data());
+        qDebug() << "####... WinDeviceName:" << device;
     }
+
+    QString deviceName = getVrSettingString(vr::k_pch_audio_Section, vr::k_pch_audio_PlaybackDeviceOverrideName_String);
+    qDebug() << "####... deviceName:" << deviceName;
+    if (!deviceName.isEmpty()) {
+        static const WCHAR INIT = 0;
+        size_t size = deviceName.size() + 1;
+        std::vector<WCHAR> deviceW;
+        deviceW.assign(size, INIT);
+        deviceName.toWCharArray(deviceW.data());
+        // FIXME: This may not be necessary if vr::k_pch_audio_PlaybackDeviceOverride_StringName is used above.
+        deviceName = AudioClient::getWinDeviceName(deviceW.data());
+        qDebug() << "####... WinDeviceName:" << device;
+    }
+
     return device;
 }
 
