@@ -11,7 +11,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
 // TODO:
 //
 // Look into the data provided by OctreeServer::handleHTTPRequest in assignment-client/src/octree/OctreeServer.cpp
@@ -33,9 +32,7 @@
 #include "HTTPConnection.h"
 #include "DomainServerNodeData.h"
 
-Q_LOGGING_CATEGORY(domain_server_exporter, "hifi.domain_server.exporter")
-
-
+Q_LOGGING_CATEGORY(domain_server_exporter, "hifi.domain_server.prometheus_exporter")
 
 static const QMap<QString, DomainServerExporter::MetricType> TYPE_MAP {
     { "asset_server_assignment_stats_num_queued_check_ins"                                        , DomainServerExporter::MetricType::Gauge },
@@ -237,55 +234,49 @@ static const QMap<QString, DomainServerExporter::MetricType> TYPE_MAP {
 // being blacklisted here.
 
 static const QSet<QString> BLACKLIST = {
-    "asset_server_connection_stats_last_heard",                   // Timestamp as a string
-    "asset_server_username",                                      // Username
-    "audio_mixer_listeners_jitter_downstream_avg_gap",            // Number as string with unit name, alternative added
-    "audio_mixer_listeners_jitter_downstream_avg_gap_30s",        // Number as string with unit name, alternative added
-    "audio_mixer_listeners_jitter_downstream_max_gap",            // Number as string with unit name, alternative added
-    "audio_mixer_listeners_jitter_downstream_max_gap_30s",        // Number as string with unit name, alternative added
-    "audio_mixer_listeners_jitter_downstream_min_gap",            // Number as string with unit name, alternative added
-    "audio_mixer_listeners_jitter_downstream_min_gap_30s",        // Number as string with unit name, alternative added
-    "audio_mixer_listeners_jitter_injectors",                     // Array, empty. TODO: check if this ever contains anything.
-    "audio_mixer_listeners_jitter_upstream",                      // Only exists in the absence of a connection
-    "audio_mixer_listeners_jitter_upstream_avg_gap",              // Number as string with unit name, alternative added
-    "audio_mixer_listeners_jitter_upstream_avg_gap_30s",          // Number as string with unit name, alternative added
-    "audio_mixer_listeners_jitter_upstream_max_gap",              // Number as string with unit name, alternative added
-    "audio_mixer_listeners_jitter_upstream_max_gap_30s",          // Number as string with unit name, alternative added
-    "audio_mixer_listeners_jitter_upstream_min_gap",              // Number as string with unit name, alternative added
-    "audio_mixer_listeners_jitter_upstream_min_gap_30s",          // Number as string with unit name, alternative added
-    "audio_mixer_listeners_username",                             // Username
-    "avatar_mixer_avatars_display_name",                          // Username
-    "avatar_mixer_avatars_username",                              // Username
-    "entity_script_server_nodes_node_type",                       // Username
-    "entity_script_server_nodes_username",                        // Username
-    "entity_server_entity_server_misc_configuration",             // Text
-    "entity_server_entity_server_misc_detailed_stats_url",        // URL
-    "entity_server_entity_server_misc_persist_file_load_time",    // Number as string with unit name, alternative added
-    "entity_server_entity_server_misc_uptime",                    // Number as string with unit name, alternative added
-    "messages_mixer_messages_username"                            // Username
+    "asset_server_connection_stats_last_heard",                 // Timestamp as a string
+    "asset_server_username",                                    // Username
+    "audio_mixer_listeners_jitter_downstream_avg_gap",          // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_downstream_avg_gap_30s",      // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_downstream_max_gap",          // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_downstream_max_gap_30s",      // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_downstream_min_gap",          // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_downstream_min_gap_30s",      // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_injectors",                   // Array, empty. TODO: check if this ever contains anything.
+    "audio_mixer_listeners_jitter_upstream",                    // Only exists in the absence of a connection
+    "audio_mixer_listeners_jitter_upstream_avg_gap",            // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_upstream_avg_gap_30s",        // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_upstream_max_gap",            // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_upstream_max_gap_30s",        // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_upstream_min_gap",            // Number as string with unit name, alternative added
+    "audio_mixer_listeners_jitter_upstream_min_gap_30s",        // Number as string with unit name, alternative added
+    "audio_mixer_listeners_username",                           // Username
+    "avatar_mixer_avatars_display_name",                        // Username
+    "avatar_mixer_avatars_username",                            // Username
+    "entity_script_server_nodes_node_type",                     // Username
+    "entity_script_server_nodes_username",                      // Username
+    "entity_server_entity_server_misc_configuration",           // Text
+    "entity_server_entity_server_misc_detailed_stats_url",      // URL
+    "entity_server_entity_server_misc_persist_file_load_time",  // Number as string with unit name, alternative added
+    "entity_server_entity_server_misc_uptime",                  // Number as string with unit name, alternative added
+    "messages_mixer_messages_username"                          // Username
 };
 
-
-DomainServerExporter::DomainServerExporter()
-{
-
+DomainServerExporter::DomainServerExporter() {
 }
 
-bool DomainServerExporter::handleHTTPRequest(HTTPConnection *connection, const QUrl &url, bool skipSubHandler)
-{
+bool DomainServerExporter::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
     const QString URI_METRICS = "/metrics";
     const QString EXPORTER_MIME_TYPE = "text/plain";
 
     qCDebug(domain_server_exporter) << "Request on URL " << url;
 
-    if ( url.path() == URI_METRICS ) {
+    if (url.path() == URI_METRICS) {
         auto nodeList = DependencyManager::get<LimitedNodeList>();
         QString output = "";
         QTextStream out_stream(&output);
 
-        nodeList->eachNode([this, &out_stream](const SharedNodePointer& node){
-            generateMetricsForNode(out_stream, node);
-        });
+        nodeList->eachNode([this, &out_stream](const SharedNodePointer& node) { generateMetricsForNode(out_stream, node); });
 
         connection->respond(HTTPConnection::StatusCode200, output.toUtf8(), qPrintable(EXPORTER_MIME_TYPE));
         return true;
@@ -294,8 +285,7 @@ bool DomainServerExporter::handleHTTPRequest(HTTPConnection *connection, const Q
     return false;
 }
 
-QString DomainServerExporter::escapeName(const QString &name)
-{
+QString DomainServerExporter::escapeName(const QString& name) {
     QRegularExpression invalid_characters("[^A-Za-z0-9_]");
 
     QString ret = name;
@@ -329,99 +319,105 @@ QString DomainServerExporter::escapeName(const QString &name)
     return ret;
 }
 
-void DomainServerExporter::generateMetricsForNode( QTextStream &stream, const SharedNodePointer &node )
-{
+void DomainServerExporter::generateMetricsForNode(QTextStream& stream, const SharedNodePointer& node) {
     QString ret = "";
     QJsonObject statsObject = static_cast<DomainServerNodeData*>(node->getLinkedData())->getStatsJSONObject();
     QString node_type = NodeType::getNodeTypeName(static_cast<NodeType_t>(node->getType()));
-
 
     stream << "\n\n\n";
     stream << "###############################################################\n";
     stream << "# " << node_type << "\n";
     stream << "###############################################################\n";
 
-    generateMetricsFromJson(stream, node_type, escapeName(node_type), QHash<QString,QString>(), statsObject);
+    generateMetricsFromJson(stream, node_type, escapeName(node_type), QHash<QString, QString>(), statsObject);
 
     QJsonDocument doc(statsObject);
-    ret.append( doc.toJson() );
-
+    ret.append(doc.toJson());
 }
 
-void DomainServerExporter::generateMetricsFromJson(QTextStream &stream, QString original_path, QString path, QHash<QString,QString> labels, const QJsonObject &obj)
-{
-    for(auto iter = obj.constBegin(); iter != obj.constEnd(); ++iter) {
+void DomainServerExporter::generateMetricsFromJson(QTextStream& stream,
+                                                   QString original_path,
+                                                   QString path,
+                                                   QHash<QString, QString> labels,
+                                                   const QJsonObject& obj) {
+    for (auto iter = obj.constBegin(); iter != obj.constEnd(); ++iter) {
         auto key = escapeName(iter.key());
         auto val = iter.value();
         auto metric_name = path + "_" + key;
         auto orig_metric_name = original_path + " -> " + iter.key();
 
-        if ( val.isObject() ) {
+        if (val.isObject()) {
             QUuid possible_uuid = QUuid::fromString(iter.key());
 
-            if ( possible_uuid.isNull() ) {
-                generateMetricsFromJson(stream, original_path + " -> " + iter.key(), path + "_" + key, labels, iter.value().toObject());
+            if (possible_uuid.isNull()) {
+                generateMetricsFromJson(stream, original_path + " -> " + iter.key(), path + "_" + key, labels,
+                                        iter.value().toObject());
             } else {
-                labels.insert("uuid",  possible_uuid.toString(QUuid::WithoutBraces));
+                labels.insert("uuid", possible_uuid.toString(QUuid::WithoutBraces));
                 generateMetricsFromJson(stream, original_path, path, labels, iter.value().toObject());
             }
-
 
             continue;
         }
 
-        if ( BLACKLIST.contains(metric_name)) {
+        if (BLACKLIST.contains(metric_name)) {
             continue;
         }
 
         bool conversion_ok = false;
         double converted = 0;
 
-        if ( val.isString() ) {
+        if (val.isString()) {
             // Prometheus only deals with numeric values. See if this string contains a valid one
 
             QString tmp = val.toString();
             converted = tmp.toDouble(&conversion_ok);
 
-            if ( !conversion_ok ) {
-                qCWarning(domain_server_exporter) << "Failed to convert value of " << orig_metric_name << " (" << metric_name  << ") to double: " << tmp << "'";
+            if (!conversion_ok) {
+                qCWarning(domain_server_exporter) << "Failed to convert value of " << orig_metric_name << " (" << metric_name
+                                                  << ") to double: " << tmp << "'";
                 continue;
             }
-
         }
 
         stream << QString("\n# HELP %1 %2 -> %3\n").arg(metric_name).arg(original_path).arg(iter.key());
 
-        if ( TYPE_MAP.contains(metric_name )) {
+        if (TYPE_MAP.contains(metric_name)) {
             stream << "# TYPE " << metric_name << " ";
-            switch( TYPE_MAP[metric_name ]) {
-            case DomainServerExporter::MetricType::Untyped:
-                stream << "untyped"; break;
-            case DomainServerExporter::MetricType::Counter:
-                stream << "counter"; break;
-            case DomainServerExporter::MetricType::Gauge:
-                stream << "gauge"; break;
-            case DomainServerExporter::MetricType::Histogram:
-                stream << "histogram"; break;
-            case DomainServerExporter::MetricType::Summary:
-                stream << "summary"; break;
+            switch (TYPE_MAP[metric_name]) {
+                case DomainServerExporter::MetricType::Untyped:
+                    stream << "untyped";
+                    break;
+                case DomainServerExporter::MetricType::Counter:
+                    stream << "counter";
+                    break;
+                case DomainServerExporter::MetricType::Gauge:
+                    stream << "gauge";
+                    break;
+                case DomainServerExporter::MetricType::Histogram:
+                    stream << "histogram";
+                    break;
+                case DomainServerExporter::MetricType::Summary:
+                    stream << "summary";
+                    break;
             }
             stream << "\n";
         } else {
-            qCWarning(domain_server_exporter) << "Type for metric " << orig_metric_name << " (" << metric_name << ") not known.";
+            qCWarning(domain_server_exporter)
+                << "Type for metric " << orig_metric_name << " (" << metric_name << ") not known.";
         }
 
         stream << path << "_" << key;
-        if (!labels.isEmpty() ) {
+        if (!labels.isEmpty()) {
             stream << "{";
 
             bool is_first = true;
-            QHashIterator<QString,QString> iter(labels);
+            QHashIterator<QString, QString> iter(labels);
 
-            while( iter.hasNext() ) {
+            while (iter.hasNext()) {
                 iter.next();
 
-                if ( ! is_first ) {
+                if (!is_first) {
                     stream << ",";
                 }
 
@@ -439,18 +435,18 @@ void DomainServerExporter::generateMetricsFromJson(QTextStream &stream, QString 
 
         stream << " ";
 
-        if ( val.isBool() ) {
-            stream << ( iter.value().toBool() ? "1" : "0" );
-        } else if ( val.isDouble() ) {
+        if (val.isBool()) {
+            stream << (iter.value().toBool() ? "1" : "0");
+        } else if (val.isDouble()) {
             stream << val.toDouble();
-        } else if ( val.isString() ) {
+        } else if (val.isString()) {
             // Converted above
             stream << converted;
         } else {
-            qCWarning(domain_server_exporter) << "Can't convert metric " << orig_metric_name << "(" << metric_name << ") with value " << val;
+            qCWarning(domain_server_exporter)
+                << "Can't convert metric " << orig_metric_name << "(" << metric_name << ") with value " << val;
         }
 
         stream << "\n";
     }
 }
-

@@ -425,7 +425,7 @@ DomainServer::~DomainServer() {
         _contentManager->terminate();
     }
 
-    if ( _httpExporterManager ) {
+    if (_httpExporterManager) {
         _httpExporterManager->close();
         delete _httpExporterManager;
     }
@@ -3052,16 +3052,16 @@ void DomainServer::initializeExporter()
     bool isExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_EXPORTER).toBool();
     int exporterPort = _settingsManager.valueOrDefaultValueForKeyPath(EXPORTER_PORT).toInt();
 
-    if ( exporterPort < 1 || exporterPort > 65535 ) {
+    if (exporterPort < 1 || exporterPort > 65535) {
         qCWarning(domain_server) << "Prometheus exporter port " << exporterPort << " is out of range.";
         isExporterEnabled = false;
     }
 
     qCDebug(domain_server) << "Setting up Prometheus exporter";
 
-    if ( isExporterEnabled && !_httpExporterManager) {
+    if (isExporterEnabled && !_httpExporterManager) {
         qCInfo(domain_server) << "Starting Prometheus exporter on port " << exporterPort;
-        _httpExporterManager = new HTTPManager(QHostAddress::Any, static_cast<quint16>(exporterPort), QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()), &_exporter);
+        _httpExporterManager = new HTTPManager(QHostAddress::Any, (quint16)exporterPort, QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()), &_exporter);
     }
 }
 
