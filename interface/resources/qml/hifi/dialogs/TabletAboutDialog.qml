@@ -25,7 +25,7 @@ Rectangle {
         Image {
             sourceSize.width: 295
             sourceSize.height: 75
-            source: "../../../images/about-projectathena.png"
+            source: "../../../images/about-vircadia.png"
         }
         Item { height: 30; width: 1 }
         Column {
