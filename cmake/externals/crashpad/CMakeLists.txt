@@ -41,10 +41,28 @@ elseif (APPLE)
   set(LIB_DEBUG_PATH "${SOURCE_DIR}/out/Debug/lib")
   set(LIB_PREFIX "lib")
   set(LIB_EXT "a")
+elseif (UNIX)
+  ExternalProject_Add(
+    ${EXTERNAL_NAME}
+    URL "${EXTERNAL_BUILD_ASSETS}/dependencies/crashpad_linux_c7d1d2a1.tar.bz2"
+    URL_MD5 356bee858e7338e7b06a351bce92db36
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    LOG_DOWNLOAD 1
+  )
+
+  ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
+
+  set(BIN_RELEASE_PATH "${SOURCE_DIR}/out/Release")
+  set(BIN_EXT "")
+  set(LIB_RELEASE_PATH "${SOURCE_DIR}/out/Release/lib")
+  set(LIB_DEBUG_PATH "${SOURCE_DIR}/out/Debug/lib")
+  set(LIB_PREFIX "lib")
+  set(LIB_EXT "a")
 endif ()
 
-if (WIN32 OR APPLE)
-
+if (WIN32 OR APPLE OR UNIX)
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/include CACHE PATH "List of Crashpad include directories")
 
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${LIB_RELEASE_PATH}/${LIB_PREFIX}crashpad_client.${LIB_EXT} CACHE FILEPATH "Path to Crashpad release library")
