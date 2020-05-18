@@ -23,9 +23,9 @@ Rectangle {
         spacing: 5
 
         Image {
-            sourceSize.width: 358
-            sourceSize.height: 65
-            source: "../../../images/about-vircadia-logo.png"
+            sourceSize.width: 295
+            sourceSize.height: 75
+            source: "../../../images/about-projectathena.png"
         }
         Item { height: 30; width: 1 }
         Column {
