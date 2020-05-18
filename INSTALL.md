@@ -60,7 +60,7 @@ To produce an executable installer on Windows, the following are required:
     1.  Install version 10.15.0 LTS
     
 1.  Perform a clean cmake from a new terminal.
-1.  Open the `athena.sln` solution and select the Release configuration.
+1.  Open the `vircadia.sln` solution and select the Release configuration.
 1.  Build the solution.
 1.  Build `packaged-server-console-npm-install` (found under **hidden/Server Console**)
 1.  Build `packaged-server-console` (found under **Server Console**)  

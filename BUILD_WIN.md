@@ -1,6 +1,6 @@
 # Build Windows
 
-*Last Updated on April 7, 2020*
+*Last Updated on May 17, 2020*
 
 This is a stand-alone guide for creating your first Vircadia build for Windows 64-bit.  
 
@@ -82,7 +82,7 @@ Where `%VIRCADIA_DIR%` is the directory for the Vircadia repository.
 
 ### Step 6. Making a Build
 
-Open `%VIRCADIA_DIR%\build\athena.sln` using Visual Studio.
+Open `%VIRCADIA_DIR%\build\vircadia.sln` using Visual Studio.
 
 Change the Solution Configuration (menu ribbon under the menu bar, next to the green play button) from "Debug" to "Release" for best performance.
 
@@ -116,4 +116,4 @@ Remove `CMakeCache.txt` found in the `%VIRCADIA_DIR%\build` directory.
 
 #### CMake can't find OpenSSL
 
-Remove `CMakeCache.txt` found in the `%VIRCADIA_DIR%\build` directory.  Verify that your HIFI_VCPKG_BASE environment variable is set and pointing to the correct location.  Verify that the file `${HIFI_VCPKG_BASE}/installed/x64-windows/include/openssl/ssl.h` exists.
+Remove `CMakeCache.txt` found in the `%VIRCADIA_DIR%\build` directory.  Verify that your HIFI_VCPKG_BASE environment variable is set and pointing to the correct location. Verify that the file `${HIFI_VCPKG_BASE}/installed/x64-windows/include/openssl/ssl.h` exists.
