@@ -168,7 +168,7 @@ jobs:
         submodules: true
         fetch-depth: 1
     - name: Create Build Directory
-      run: cmake -E make_directory ${{runner.workspace}}/build
+      run: cmake -E make_directory "${{runner.workspace}}/build"
     - name: Decrypt Signing Key (Windows)
       if: matrix.os == 'windows-latest'
       working-directory: ${{runner.workspace}}/build
