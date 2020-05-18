@@ -20,6 +20,7 @@ import hifi_singleton
 import hifi_utils
 import hifi_android
 import hifi_vcpkg
+import hifi_qt
 
 import argparse
 import concurrent
@@ -93,6 +94,8 @@ def parse_args():
     parser.add_argument('--force-build', action='store_true')
     parser.add_argument('--release-type', type=str, default="DEV", help="DEV, PR, or PRODUCTION")
     parser.add_argument('--vcpkg-root', type=str, help='The location of the vcpkg distribution')
+    parser.add_argument('--vcpkg-build-type', type=str, help='Could be `release` or `debug`. By default it doesn`t set the build-type')
+    parser.add_argument('--vcpkg-skip-clean', action='store_true', help='Skip the cleanup of vcpkg downloads and packages folders after vcpkg build completition.')
     parser.add_argument('--build-root', required=True, type=str, help='The location of the cmake build')
     parser.add_argument('--ports-path', type=str, default=defaultPortsPath)
     parser.add_argument('--ci-build', action='store_true', default=os.getenv('CI_BUILD') is not None)
@@ -112,6 +115,7 @@ def main():
             del os.environ[var]
 
     args = parse_args()
+    assets_url = hifi_utils.readEnviromentVariableFromFile(args.build_root, 'EXTERNAL_BUILD_ASSETS')
 
     if args.ci_build:
         logging.basicConfig(datefmt='%H:%M:%S', format='%(asctime)s %(guid)s %(message)s', level=logging.INFO)
@@ -119,9 +123,35 @@ def main():
     logger.info('sha=%s' % headSha())
     logger.info('start')
 
-    # Only allow one instance of the program to run at a time
+    # OS dependent information
+    system = platform.system()
+    if 'Windows' == system and 'CI_BUILD' in os.environ and os.environ["CI_BUILD"] == "Github":
+        logger.info("Downloading NSIS")
+        with timer('NSIS'):
+            hifi_utils.downloadAndExtract(assets_url + '/dependencies/NSIS-hifi-plugins-1.0.tgz', "C:/Program Files (x86)")
+
+    qtInstallPath = ''
+    # If not android, install our Qt build
+    if not args.android:
+        qt = hifi_qt.QtDownloader(args)
+        qtInstallPath = qt.cmakePath
+        with hifi_singleton.Singleton(qt.lockFile) as lock:
+            with timer('Qt'):
+                qt.installQt()
+                qt.writeConfig()
+
     pm = hifi_vcpkg.VcpkgRepo(args)
+    if qtInstallPath != '':
+        pm.writeVar('QT_CMAKE_PREFIX_PATH', qtInstallPath)
+
+    # Only allow one instance of the program to run at a time
+
+    if qtInstallPath != '':
+        pm.writeVar('QT_CMAKE_PREFIX_PATH', qtInstallPath)
+
+    # Only allow one instance of the program to run at a time
     with hifi_singleton.Singleton(pm.lockFile) as lock:
+
         with timer('Bootstraping'):
             if not pm.upToDate():
                 pm.bootstrap()
@@ -135,10 +165,10 @@ def main():
         #  * build host tools, like spirv-cross and scribe
         #  * build client dependencies like openssl and nvtt
         with timer('Setting up dependencies'):
-            pm.setupDependencies()
+            pm.setupDependencies(qt=qtInstallPath)
 
         # wipe out the build directories (after writing the tag, since failure 
-        # here shouldn't invalidte the vcpkg install)
+        # here shouldn't invalidate the vcpkg install)
         with timer('Cleaning builds'):
             pm.cleanBuilds()
 
@@ -152,6 +182,13 @@ def main():
             # Determine the Qt package path
             qtPath = os.path.join(pm.androidPackagePath, 'qt')
             hifi_android.QtPackager(appPath, qtPath).bundle()
+
+        # Fixup the vcpkg cmake to not reset VCPKG_TARGET_TRIPLET
+        pm.fixupCmakeScript()
+
+        if not args.vcpkg_skip_clean:
+            # Cleanup downloads and packages folders in vcpkg to make it smaller for CI
+            pm.cleanupDevelopmentFiles()
 
         # Write the vcpkg config to the build directory last
         with timer('Writing configuration'):

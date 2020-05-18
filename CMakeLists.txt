@@ -53,7 +53,7 @@ endif()
 # (needs to be set before first project() call and before prebuild.py)
 # Will affect VCPKG dependencies
 if (APPLE)
-  set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.9)
+  set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.11)
 endif()
 
 set(RELEASE_TYPE "$ENV{RELEASE_TYPE}")
@@ -67,8 +67,12 @@ if (HIFI_ANDROID)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 else()
+    set(VCPKG_BUILD_TYPE_PARAM "")
+    if (VCPKG_BUILD_TYPE)
+      set(VCPKG_BUILD_TYPE_PARAM --vcpkg-build-type ${VCPKG_BUILD_TYPE})
+    endif()
     execute_process(
-        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --release-type ${RELEASE_TYPE} --build-root ${CMAKE_BINARY_DIR}
+        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --release-type ${RELEASE_TYPE} --build-root ${CMAKE_BINARY_DIR} ${VCPKG_BUILD_TYPE_PARAM}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
     # squelch the Policy CMP0074 warning without requiring an update to cmake 3.12.
@@ -82,9 +86,21 @@ if(NOT EXISTS "${CMAKE_BINARY_DIR}/vcpkg.cmake")
 endif()
 include("${CMAKE_BINARY_DIR}/vcpkg.cmake")
 
+if (HIFI_ANDROID)
+  set(QT_CMAKE_PREFIX_PATH "$ENV{HIFI_ANDROID_PRECOMPILED}/qt/lib/cmake")
+else() 
+  if(NOT EXISTS "${CMAKE_BINARY_DIR}/qt.cmake")
+      message(FATAL_ERROR "qt configuration missing.")
+  endif()
+  include("${CMAKE_BINARY_DIR}/qt.cmake")
+endif()
+
+option(VCPKG_APPLOCAL_DEPS OFF)
+
 project(athena)
 include("cmake/init.cmake")
 include("cmake/compiler.cmake")
+option(VCPKG_APPLOCAL_DEPS OFF)
 
 add_paths_to_fixup_libs(${VCPKG_INSTALL_ROOT}/bin)
 add_paths_to_fixup_libs(${VCPKG_INSTALL_ROOT}/debug/bin)
@@ -254,6 +270,7 @@ find_package( Threads )
 add_definitions(-DGLM_FORCE_RADIANS)
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 add_definitions(-DGLM_FORCE_CTOR_INIT)
+add_definitions(-DGLM_LANG_STL11_FORCED) # Workaround for GLM not detecting support for C++11 templates on Android
 
 if (WIN32)
     # Deal with fakakta Visual Studo 2017 bug
@@ -278,6 +295,11 @@ if (ANDROID)
   return()
 endif()
 
+if (BUILD_GPU_FRAME_PLAYER_ONLY)
+    # This is for CI build testing
+    add_subdirectory(tools/gpu-frame-player)
+else()
+
 # add subdirectories for all targets
 if (BUILD_SERVER)
   add_subdirectory(assignment-client)
@@ -290,6 +312,7 @@ endif()
 
 if (BUILD_CLIENT)
   add_subdirectory(interface)
+  add_subdirectory(screenshare)
   set_target_properties(interface PROPERTIES FOLDER "Apps")
 
   option(USE_SIXENSE "Build Interface with sixense library/plugin" OFF)
@@ -302,6 +325,8 @@ endif()
 
 # BUILD_TOOLS option will be handled inside the tools's CMakeLists.txt because 'scribe' tool is required for build anyway
 add_subdirectory(tools)
+
+endif()
 
 if (BUILD_TESTS)
   # Turn on testing so that add_test works

@@ -120,7 +120,7 @@ private:
     bool readyToAnimate() const;
     void fetchCollisionGeometryResource();
 
-    GeometryResource::Pointer _collisionGeometryResource;
+    ModelResource::Pointer _collisionGeometryResource;
     std::vector<int> _jointMap;
     QVariantMap _originalTextures;
     bool _jointMapCompleted { false };
@@ -165,6 +165,7 @@ protected:
     void setRenderLayer(RenderLayer value) override;
     void setPrimitiveMode(PrimitiveMode value) override;
     void setCullWithParent(bool value) override;
+    void setRenderWithZones(const QVector<QUuid>& renderWithZones) override;
 
 private:
     void animate(const TypedEntityPointer& entity);

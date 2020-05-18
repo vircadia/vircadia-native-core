@@ -1081,6 +1081,12 @@ void AvatarMixer::setupEntityQuery() {
     priorityZoneQuery["avatarPriority"] = true;
     priorityZoneQuery["type"] = "Zone";
 
+    QJsonObject queryFlags;
+    queryFlags["includeAncestors"] = true;
+    queryFlags["includeDescendants"] = true;
+    priorityZoneQuery["flags"] = queryFlags;
+    priorityZoneQuery["name"] = true; // Handy for debugging.
+
     _entityViewer.getOctreeQuery().setJSONParameters(priorityZoneQuery);
     _slaveSharedData.entityTree = entityTree;
 }

@@ -16,6 +16,7 @@ public:
 // Used by the avatar mixer to describe a single joint
 // Translations relative to their parent joint
 // Rotations are absolute (i.e. not relative to parent) and are in rig space.
+// No JSDoc because it's not provided as a type to the script engine.
 class JointData {
 public:
     glm::quat rotation;

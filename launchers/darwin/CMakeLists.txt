@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.9)
+set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.11)
 project(HQLauncher)
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 include("cmake/macros/SetPackagingParameters.cmake")

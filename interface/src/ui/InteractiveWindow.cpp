@@ -129,8 +129,8 @@ void InteractiveWindow::emitMainWindowResizeEvent() {
 }
 
 /**jsdoc
- * A set of properties used when creating an <code>InteractiveWindow</code>.
- * @typedef {object} InteractiveWindow.Properties
+ * Property values used when creating an <code>InteractiveWindow</code>.
+ * @typedef {object} InteractiveWindow.WindowProperties
  * @property {string} [title="InteractiveWindow] - The title of the window.
  * @property {Vec2} [position] - The initial position of the window, in pixels.
  * @property {Vec2} [size] - The initial size of the window, in pixels
@@ -142,13 +142,36 @@ void InteractiveWindow::emitMainWindowResizeEvent() {
  * @property {InteractiveWindow.PresentationWindowInfo} [presentationWindowInfo] - Controls how a <code>NATIVE</code> window is
  *     displayed. If used, the window is docked to the specified edge of the Interface window, otherwise the window is
  *     displayed as its own separate window.
- * @property {InteractiveWindow.AdditionalFlags} [additionalFlags=0] - Window behavior flags in addition to "native window flags" (minimize/maximize/close),
- *     set at window creation. Possible flag values are provided as {@link Desktop|Desktop.ALWAYS_ON_TOP} and {@link Desktop|Desktop.CLOSE_BUTTON_HIDES}.
- *     Additional flag values can be found on Qt's website at https://doc.qt.io/qt-5/qt.html#WindowType-enum.
- * @property {InteractiveWindow.OverrideFlags} [overrideFlags=0] - Window behavior flags instead of the default window flags.
- *     Set at window creation. Possible flag values are provided as {@link Desktop|Desktop.ALWAYS_ON_TOP} and {@link Desktop|Desktop.CLOSE_BUTTON_HIDES}.
- *     Additional flag values can be found on Qt's website at https://doc.qt.io/qt-5/qt.html#WindowType-enum.
+ * @property {InteractiveWindow.Flags} [additionalFlags=0] - Customizes window behavior.
+ * @property {InteractiveWindow.OverrideFlags} [overrideFlags=0] - Customizes window controls.
+
+  * @property {InteractiveWindow.RelativePositionAnchor} [relativePositionAnchor] - The anchor for the 
+  *     <code>relativePosition</code>, if used.
+  * @property {Vec2} [relativePosition] - The position of the window, relative to the <code>relativePositionAnchor</code>, in 
+  *     pixels. Excludes the window frame.
+  * @property {boolean} [isFullScreenWindow] - <code>true</code> to make the window full screen.
  */
+/**jsdoc
+ * <p>A set of flags customizing <code>InteractiveWindow</code> controls. The value is constructed by using the <code>|</code> 
+ * (bitwise OR) operator on the individual flag values.</code>.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>0x00000001</code></td><td>Window</td><td>Displays the window as a window rather than a dialog.</td></tr>
+ *     <tr><td><code>0x00001000</code></td><td>WindowTitleHint</td><td>Adds a title bar.</td><td>
+ *     <tr><td><code>0x00002000</code></td><td>WindowSystemMenuHint</td><td>Adds a window system menu.</td><td>
+ *     <tr><td><code>0x00004000</code></td><td>WindowMinimizeButtonHint</td><td>Adds a minimize button.</td><td>
+ *     <tr><td><code>0x00008000</code></td><td>WindowMaximizeButtonHint</td><td>Adds a maximize button.</td><td>
+ *     <tr><td><code>0x00040000</code></td><td>WindowStaysOnTopHint</td><td>The window stays on top of other windows.
+ *       <em>Not used on Windows.</em>
+ *     <tr><td><code>0x08000000</code></td><td>WindowCloseButtonHint</td><td>Adds a close button.</td><td>
+ *   <tbody>
+ * </table>
+ * @typedef {number} InteractiveWindow.OverrideFlags
+ */
+// OverrideFlags is per InteractiveWindow.qml.
 InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap& properties, bool restricted) {
     InteractiveWindowPresentationMode presentationMode = InteractiveWindowPresentationMode::Native;
 

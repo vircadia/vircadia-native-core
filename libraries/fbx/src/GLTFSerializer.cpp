@@ -25,8 +25,12 @@
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 
+#include <unordered_set>
+#include <map>
 #include <qfile.h>
 #include <qfileinfo.h>
+
+#include <glm/gtc/type_ptr.hpp>
 
 #include <shared/NsightHelpers.h>
 #include <NetworkAccessManager.h>
@@ -37,30 +41,57 @@
 
 #include "FBXSerializer.h"
 
-#define GLTF_GET_INDICIES(accCount) int index1 = (indices[n + 0] * accCount); int index2 = (indices[n + 1] * accCount); int index3 = (indices[n + 2] * accCount);
+#define GLTF_GET_INDICIES(accCount)           \
+    int index1 = (indices[n + 0] * accCount); \
+    int index2 = (indices[n + 1] * accCount); \
+    int index3 = (indices[n + 2] * accCount);
 
-#define GLTF_APPEND_ARRAY_1(newArray, oldArray) GLTF_GET_INDICIES(1) \
-newArray.append(oldArray[index1]); \
-newArray.append(oldArray[index2]); \
-newArray.append(oldArray[index3]);
+#define GLTF_APPEND_ARRAY_1(newArray, oldArray) \
+    GLTF_GET_INDICIES(1)                        \
+    newArray.append(oldArray[index1]);          \
+    newArray.append(oldArray[index2]);          \
+    newArray.append(oldArray[index3]);
 
-#define GLTF_APPEND_ARRAY_2(newArray, oldArray) GLTF_GET_INDICIES(2) \
-newArray.append(oldArray[index1]); newArray.append(oldArray[index1 + 1]); \
-newArray.append(oldArray[index2]); newArray.append(oldArray[index2 + 1]); \
-newArray.append(oldArray[index3]); newArray.append(oldArray[index3 + 1]);
+#define GLTF_APPEND_ARRAY_2(newArray, oldArray) \
+    GLTF_GET_INDICIES(2)                        \
+    newArray.append(oldArray[index1]);          \
+    newArray.append(oldArray[index1 + 1]);      \
+    newArray.append(oldArray[index2]);          \
+    newArray.append(oldArray[index2 + 1]);      \
+    newArray.append(oldArray[index3]);          \
+    newArray.append(oldArray[index3 + 1]);
 
-#define GLTF_APPEND_ARRAY_3(newArray, oldArray) GLTF_GET_INDICIES(3) \
-newArray.append(oldArray[index1]); newArray.append(oldArray[index1 + 1]); newArray.append(oldArray[index1 + 2]); \
-newArray.append(oldArray[index2]); newArray.append(oldArray[index2 + 1]); newArray.append(oldArray[index2 + 2]); \
-newArray.append(oldArray[index3]); newArray.append(oldArray[index3 + 1]); newArray.append(oldArray[index3 + 2]);
+#define GLTF_APPEND_ARRAY_3(newArray, oldArray) \
+    GLTF_GET_INDICIES(3)                        \
+    newArray.append(oldArray[index1]);          \
+    newArray.append(oldArray[index1 + 1]);      \
+    newArray.append(oldArray[index1 + 2]);      \
+    newArray.append(oldArray[index2]);          \
+    newArray.append(oldArray[index2 + 1]);      \
+    newArray.append(oldArray[index2 + 2]);      \
+    newArray.append(oldArray[index3]);          \
+    newArray.append(oldArray[index3 + 1]);      \
+    newArray.append(oldArray[index3 + 2]);
 
-#define GLTF_APPEND_ARRAY_4(newArray, oldArray) GLTF_GET_INDICIES(4) \
-newArray.append(oldArray[index1]); newArray.append(oldArray[index1 + 1]); newArray.append(oldArray[index1 + 2]); newArray.append(oldArray[index1 + 3]); \
-newArray.append(oldArray[index2]); newArray.append(oldArray[index2 + 1]); newArray.append(oldArray[index2 + 2]); newArray.append(oldArray[index2 + 3]); \
-newArray.append(oldArray[index3]); newArray.append(oldArray[index3 + 1]); newArray.append(oldArray[index3 + 2]); newArray.append(oldArray[index3 + 3]);
+#define GLTF_APPEND_ARRAY_4(newArray, oldArray) \
+    GLTF_GET_INDICIES(4)                        \
+    newArray.append(oldArray[index1]);          \
+    newArray.append(oldArray[index1 + 1]);      \
+    newArray.append(oldArray[index1 + 2]);      \
+    newArray.append(oldArray[index1 + 3]);      \
+    newArray.append(oldArray[index2]);          \
+    newArray.append(oldArray[index2 + 1]);      \
+    newArray.append(oldArray[index2 + 2]);      \
+    newArray.append(oldArray[index2 + 3]);      \
+    newArray.append(oldArray[index3]);          \
+    newArray.append(oldArray[index3 + 1]);      \
+    newArray.append(oldArray[index3 + 2]);      \
+    newArray.append(oldArray[index3 + 3]);
 
-bool GLTFSerializer::getStringVal(const QJsonObject& object, const QString& fieldname,
-                              QString& value, QMap<QString, bool>&  defined) {
+bool GLTFSerializer::getStringVal(const QJsonObject& object,
+                                  const QString& fieldname,
+                                  QString& value,
+                                  QMap<QString, bool>& defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isString());
     if (_defined) {
         value = object[fieldname].toString();
@@ -69,8 +100,10 @@ bool GLTFSerializer::getStringVal(const QJsonObject& object, const QString& fiel
     return _defined;
 }
 
-bool GLTFSerializer::getBoolVal(const QJsonObject& object, const QString& fieldname,
-                            bool& value, QMap<QString, bool>&  defined) {
+bool GLTFSerializer::getBoolVal(const QJsonObject& object,
+                                const QString& fieldname,
+                                bool& value,
+                                QMap<QString, bool>& defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isBool());
     if (_defined) {
         value = object[fieldname].toBool();
@@ -79,8 +112,7 @@ bool GLTFSerializer::getBoolVal(const QJsonObject& object, const QString& fieldn
     return _defined;
 }
 
-bool GLTFSerializer::getIntVal(const QJsonObject& object, const QString& fieldname,
-                           int& value, QMap<QString, bool>&  defined) {
+bool GLTFSerializer::getIntVal(const QJsonObject& object, const QString& fieldname, int& value, QMap<QString, bool>& defined) {
     bool _defined = (object.contains(fieldname) && !object[fieldname].isNull());
     if (_defined) {
         value = object[fieldname].toInt();
@@ -89,8 +121,10 @@ bool GLTFSerializer::getIntVal(const QJsonObject& object, const QString& fieldna
     return _defined;
 }
 
-bool GLTFSerializer::getDoubleVal(const QJsonObject& object, const QString& fieldname,
-                              double& value, QMap<QString, bool>&  defined) {
+bool GLTFSerializer::getDoubleVal(const QJsonObject& object,
+                                  const QString& fieldname,
+                                  double& value,
+                                  QMap<QString, bool>& defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isDouble());
     if (_defined) {
         value = object[fieldname].toDouble();
@@ -98,8 +132,10 @@ bool GLTFSerializer::getDoubleVal(const QJsonObject& object, const QString& fiel
     defined.insert(fieldname, _defined);
     return _defined;
 }
-bool GLTFSerializer::getObjectVal(const QJsonObject& object, const QString& fieldname,
-                              QJsonObject& value, QMap<QString, bool>&  defined) {
+bool GLTFSerializer::getObjectVal(const QJsonObject& object,
+                                  const QString& fieldname,
+                                  QJsonObject& value,
+                                  QMap<QString, bool>& defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isObject());
     if (_defined) {
         value = object[fieldname].toObject();
@@ -108,12 +144,14 @@ bool GLTFSerializer::getObjectVal(const QJsonObject& object, const QString& fiel
     return _defined;
 }
 
-bool GLTFSerializer::getIntArrayVal(const QJsonObject& object, const QString& fieldname,
-                                QVector<int>& values, QMap<QString, bool>&  defined) {
+bool GLTFSerializer::getIntArrayVal(const QJsonObject& object,
+                                    const QString& fieldname,
+                                    QVector<int>& values,
+                                    QMap<QString, bool>& defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isArray());
     if (_defined) {
         QJsonArray arr = object[fieldname].toArray();
-        foreach(const QJsonValue & v, arr) {
+        for (const QJsonValue& v : arr) {
             if (!v.isNull()) {
                 values.push_back(v.toInt());
             }
@@ -123,12 +161,14 @@ bool GLTFSerializer::getIntArrayVal(const QJsonObject& object, const QString& fi
     return _defined;
 }
 
-bool GLTFSerializer::getDoubleArrayVal(const QJsonObject& object, const QString& fieldname,
-                                   QVector<double>& values, QMap<QString, bool>&  defined) {
+bool GLTFSerializer::getDoubleArrayVal(const QJsonObject& object,
+                                       const QString& fieldname,
+                                       QVector<double>& values,
+                                       QMap<QString, bool>& defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isArray());
     if (_defined) {
         QJsonArray arr = object[fieldname].toArray();
-        foreach(const QJsonValue & v, arr) {
+        for (const QJsonValue& v : arr) {
             if (v.isDouble()) {
                 values.push_back(v.toDouble());
             }
@@ -138,8 +178,10 @@ bool GLTFSerializer::getDoubleArrayVal(const QJsonObject& object, const QString&
     return _defined;
 }
 
-bool GLTFSerializer::getObjectArrayVal(const QJsonObject& object, const QString& fieldname,
-                                   QJsonArray& objects, QMap<QString, bool>& defined) {
+bool GLTFSerializer::getObjectArrayVal(const QJsonObject& object,
+                                       const QString& fieldname,
+                                       QJsonArray& objects,
+                                       QMap<QString, bool>& defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isArray());
     if (_defined) {
         objects = object[fieldname].toArray();
@@ -149,7 +191,7 @@ bool GLTFSerializer::getObjectArrayVal(const QJsonObject& object, const QString&
 }
 
 hifi::ByteArray GLTFSerializer::setGLBChunks(const hifi::ByteArray& data) {
-    int byte = 4; 
+    int byte = 4;
     int jsonStart = data.indexOf("JSON", Qt::CaseSensitive);
     int binStart = data.indexOf("BIN", Qt::CaseSensitive);
     int jsonLength, binLength;
@@ -173,8 +215,7 @@ hifi::ByteArray GLTFSerializer::setGLBChunks(const hifi::ByteArray& data) {
     return jsonChunk;
 }
 
-int GLTFSerializer::getMeshPrimitiveRenderingMode(const QString& type)
-{
+int GLTFSerializer::getMeshPrimitiveRenderingMode(const QString& type) {
     if (type == "POINTS") {
         return GLTFMeshPrimitivesRenderingMode::POINTS;
     }
@@ -199,8 +240,7 @@ int GLTFSerializer::getMeshPrimitiveRenderingMode(const QString& type)
     return GLTFMeshPrimitivesRenderingMode::TRIANGLES;
 }
 
-int GLTFSerializer::getAccessorType(const QString& type)
-{
+int GLTFSerializer::getAccessorType(const QString& type) {
     if (type == "SCALAR") {
         return GLTFAccessorType::SCALAR;
     }
@@ -238,8 +278,7 @@ graphics::MaterialKey::OpacityMapMode GLTFSerializer::getMaterialAlphaMode(const
     return graphics::MaterialKey::OPACITY_MAP_BLEND;
 }
 
-int GLTFSerializer::getCameraType(const QString& type)
-{
+int GLTFSerializer::getCameraType(const QString& type) {
     if (type == "orthographic") {
         return GLTFCameraTypes::ORTHOGRAPHIC;
     }
@@ -249,8 +288,7 @@ int GLTFSerializer::getCameraType(const QString& type)
     return GLTFCameraTypes::PERSPECTIVE;
 }
 
-int GLTFSerializer::getImageMimeType(const QString& mime)
-{
+int GLTFSerializer::getImageMimeType(const QString& mime) {
     if (mime == "image/jpeg") {
         return GLTFImageMimetype::JPEG;
     }
@@ -260,8 +298,7 @@ int GLTFSerializer::getImageMimeType(const QString& mime)
     return GLTFImageMimetype::JPEG;
 }
 
-int GLTFSerializer::getAnimationSamplerInterpolation(const QString& interpolation)
-{
+int GLTFSerializer::getAnimationSamplerInterpolation(const QString& interpolation) {
     if (interpolation == "LINEAR") {
         return GLTFAnimationSamplerInterpolation::LINEAR;
     }
@@ -272,8 +309,7 @@ bool GLTFSerializer::setAsset(const QJsonObject& object) {
     QJsonObject jsAsset;
     bool isAssetDefined = getObjectVal(object, "asset", jsAsset, _file.defined);
     if (isAssetDefined) {
-        if (!getStringVal(jsAsset, "version", _file.asset.version, 
-                          _file.asset.defined) || _file.asset.version != "2.0") {
+        if (!getStringVal(jsAsset, "version", _file.asset.version, _file.asset.defined) || _file.asset.version != "2.0") {
             return false;
         }
         getStringVal(jsAsset, "generator", _file.asset.generator, _file.asset.defined);
@@ -282,7 +318,8 @@ bool GLTFSerializer::setAsset(const QJsonObject& object) {
     return isAssetDefined;
 }
 
-GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseIndices GLTFSerializer::createAccessorSparseIndices(const QJsonObject& object) {
+GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseIndices GLTFSerializer::createAccessorSparseIndices(
+    const QJsonObject& object) {
     GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseIndices accessorSparseIndices;
 
     getIntVal(object, "bufferView", accessorSparseIndices.bufferView, accessorSparseIndices.defined);
@@ -292,7 +329,8 @@ GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseIndices GLTFSerializer::crea
     return accessorSparseIndices;
 }
 
-GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseValues GLTFSerializer::createAccessorSparseValues(const QJsonObject& object) {
+GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseValues GLTFSerializer::createAccessorSparseValues(
+    const QJsonObject& object) {
     GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseValues accessorSparseValues;
 
     getIntVal(object, "bufferView", accessorSparseValues.bufferView, accessorSparseValues.defined);
@@ -319,7 +357,7 @@ GLTFAccessor::GLTFAccessorSparse GLTFSerializer::createAccessorSparse(const QJso
 
 bool GLTFSerializer::addAccessor(const QJsonObject& object) {
     GLTFAccessor accessor;
-    
+
     getIntVal(object, "bufferView", accessor.bufferView, accessor.defined);
     getIntVal(object, "byteOffset", accessor.byteOffset, accessor.defined);
     getIntVal(object, "componentType", accessor.componentType, accessor.defined);
@@ -345,10 +383,10 @@ bool GLTFSerializer::addAccessor(const QJsonObject& object) {
 
 bool GLTFSerializer::addAnimation(const QJsonObject& object) {
     GLTFAnimation animation;
-    
+
     QJsonArray channels;
     if (getObjectArrayVal(object, "channels", channels, animation.defined)) {
-        foreach(const QJsonValue & v, channels) {
+        for (const QJsonValue& v : channels) {
             if (v.isObject()) {
                 GLTFChannel channel;
                 getIntVal(v.toObject(), "sampler", channel.sampler, channel.defined);
@@ -356,14 +394,14 @@ bool GLTFSerializer::addAnimation(const QJsonObject& object) {
                 if (getObjectVal(v.toObject(), "target", jsChannel, channel.defined)) {
                     getIntVal(jsChannel, "node", channel.target.node, channel.target.defined);
                     getIntVal(jsChannel, "path", channel.target.path, channel.target.defined);
-                }             
+                }
             }
         }
     }
 
     QJsonArray samplers;
     if (getObjectArrayVal(object, "samplers", samplers, animation.defined)) {
-        foreach(const QJsonValue & v, samplers) {
+        for (const QJsonValue& v : samplers) {
             if (v.isObject()) {
                 GLTFAnimationSampler sampler;
                 getIntVal(v.toObject(), "input", sampler.input, sampler.defined);
@@ -375,7 +413,7 @@ bool GLTFSerializer::addAnimation(const QJsonObject& object) {
             }
         }
     }
-    
+
     _file.animations.push_back(animation);
 
     return true;
@@ -383,20 +421,20 @@ bool GLTFSerializer::addAnimation(const QJsonObject& object) {
 
 bool GLTFSerializer::addBufferView(const QJsonObject& object) {
     GLTFBufferView bufferview;
-    
+
     getIntVal(object, "buffer", bufferview.buffer, bufferview.defined);
     getIntVal(object, "byteLength", bufferview.byteLength, bufferview.defined);
     getIntVal(object, "byteOffset", bufferview.byteOffset, bufferview.defined);
     getIntVal(object, "target", bufferview.target, bufferview.defined);
-    
+
     _file.bufferviews.push_back(bufferview);
-   
+
     return true;
 }
 
 bool GLTFSerializer::addBuffer(const QJsonObject& object) {
     GLTFBuffer buffer;
-   
+
     getIntVal(object, "byteLength", buffer.byteLength, buffer.defined);
 
     if (_url.toString().endsWith("glb")) {
@@ -412,13 +450,13 @@ bool GLTFSerializer::addBuffer(const QJsonObject& object) {
         }
     }
     _file.buffers.push_back(buffer);
-    
+
     return true;
 }
 
 bool GLTFSerializer::addCamera(const QJsonObject& object) {
     GLTFCamera camera;
-    
+
     QJsonObject jsPerspective;
     QJsonObject jsOrthographic;
     QString type;
@@ -438,15 +476,15 @@ bool GLTFSerializer::addCamera(const QJsonObject& object) {
     } else if (getStringVal(object, "type", type, camera.defined)) {
         camera.type = getCameraType(type);
     }
-    
+
     _file.cameras.push_back(camera);
-    
+
     return true;
 }
 
 bool GLTFSerializer::addImage(const QJsonObject& object) {
     GLTFImage image;
-    
+
     QString mime;
     getStringVal(object, "uri", image.uri, image.defined);
     if (image.uri.contains("data:image/png;base64,")) {
@@ -456,16 +494,18 @@ bool GLTFSerializer::addImage(const QJsonObject& object) {
     }
     if (getStringVal(object, "mimeType", mime, image.defined)) {
         image.mimeType = getImageMimeType(mime);
-    } 
+    }
     getIntVal(object, "bufferView", image.bufferView, image.defined);
-    
+
     _file.images.push_back(image);
 
     return true;
 }
 
-bool GLTFSerializer::getIndexFromObject(const QJsonObject& object, const QString& field,
-                                    int& outidx, QMap<QString, bool>& defined) {
+bool GLTFSerializer::getIndexFromObject(const QJsonObject& object,
+                                        const QString& field,
+                                        int& outidx,
+                                        QMap<QString, bool>& defined) {
     QJsonObject subobject;
     if (getObjectVal(object, field, subobject, defined)) {
         QMap<QString, bool> tmpdefined = QMap<QString, bool>();
@@ -490,23 +530,18 @@ bool GLTFSerializer::addMaterial(const QJsonObject& object) {
     getDoubleVal(object, "alphaCutoff", material.alphaCutoff, material.defined);
     QJsonObject jsMetallicRoughness;
     if (getObjectVal(object, "pbrMetallicRoughness", jsMetallicRoughness, material.defined)) {
-        getDoubleArrayVal(jsMetallicRoughness, "baseColorFactor", 
-                          material.pbrMetallicRoughness.baseColorFactor, 
+        getDoubleArrayVal(jsMetallicRoughness, "baseColorFactor", material.pbrMetallicRoughness.baseColorFactor,
                           material.pbrMetallicRoughness.defined);
-        getIndexFromObject(jsMetallicRoughness, "baseColorTexture", 
-                           material.pbrMetallicRoughness.baseColorTexture, 
+        getIndexFromObject(jsMetallicRoughness, "baseColorTexture", material.pbrMetallicRoughness.baseColorTexture,
                            material.pbrMetallicRoughness.defined);
-        getDoubleVal(jsMetallicRoughness, "metallicFactor", 
-                     material.pbrMetallicRoughness.metallicFactor, 
+        getDoubleVal(jsMetallicRoughness, "metallicFactor", material.pbrMetallicRoughness.metallicFactor,
                      material.pbrMetallicRoughness.defined);
-        getDoubleVal(jsMetallicRoughness, "roughnessFactor", 
-                     material.pbrMetallicRoughness.roughnessFactor, 
+        getDoubleVal(jsMetallicRoughness, "roughnessFactor", material.pbrMetallicRoughness.roughnessFactor,
                      material.pbrMetallicRoughness.defined);
-        getIndexFromObject(jsMetallicRoughness, "metallicRoughnessTexture", 
-                           material.pbrMetallicRoughness.metallicRoughnessTexture, 
-                           material.pbrMetallicRoughness.defined);
+        getIndexFromObject(jsMetallicRoughness, "metallicRoughnessTexture",
+                           material.pbrMetallicRoughness.metallicRoughnessTexture, material.pbrMetallicRoughness.defined);
     }
-   _file.materials.push_back(material);
+    _file.materials.push_back(material);
     return true;
 }
 
@@ -518,18 +553,18 @@ bool GLTFSerializer::addMesh(const QJsonObject& object) {
     QJsonArray jsPrimitives;
     object.keys();
     if (getObjectArrayVal(object, "primitives", jsPrimitives, mesh.defined)) {
-        foreach(const QJsonValue & prim, jsPrimitives) {
+        for (const QJsonValue& prim : jsPrimitives) {
             if (prim.isObject()) {
                 GLTFMeshPrimitive primitive;
                 QJsonObject jsPrimitive = prim.toObject();
                 getIntVal(jsPrimitive, "mode", primitive.mode, primitive.defined);
                 getIntVal(jsPrimitive, "indices", primitive.indices, primitive.defined);
                 getIntVal(jsPrimitive, "material", primitive.material, primitive.defined);
-                
+
                 QJsonObject jsAttributes;
                 if (getObjectVal(jsPrimitive, "attributes", jsAttributes, primitive.defined)) {
                     QStringList attrKeys = jsAttributes.keys();
-                    foreach(const QString & attrKey, attrKeys) {
+                    for (const QString& attrKey : attrKeys) {
                         int attrVal;
                         getIntVal(jsAttributes, attrKey, attrVal, primitive.attributes.defined);
                         primitive.attributes.values.insert(attrKey, attrVal);
@@ -537,14 +572,13 @@ bool GLTFSerializer::addMesh(const QJsonObject& object) {
                 }
 
                 QJsonArray jsTargets;
-                if (getObjectArrayVal(jsPrimitive, "targets", jsTargets, primitive.defined))
-                {
-                    foreach(const QJsonValue & tar, jsTargets) {
+                if (getObjectArrayVal(jsPrimitive, "targets", jsTargets, primitive.defined)) {
+                    for (const QJsonValue& tar : jsTargets) {
                         if (tar.isObject()) {
                             QJsonObject jsTarget = tar.toObject();
                             QStringList tarKeys = jsTarget.keys();
                             GLTFMeshPrimitiveAttr target;
-                            foreach(const QString & tarKey, tarKeys) {
+                            for (const QString& tarKey : tarKeys) {
                                 int tarVal;
                                 getIntVal(jsTarget, tarKey, tarVal, target.defined);
                                 target.values.insert(tarKey, tarVal);
@@ -552,7 +586,7 @@ bool GLTFSerializer::addMesh(const QJsonObject& object) {
                             primitive.targets.push_back(target);
                         }
                     }
-                }                
+                }
                 mesh.primitives.push_back(primitive);
             }
         }
@@ -563,9 +597,7 @@ bool GLTFSerializer::addMesh(const QJsonObject& object) {
     if (getObjectVal(object, "extras", jsExtras, mesh.defined)) {
         QJsonArray jsTargetNames;
         if (getObjectArrayVal(jsExtras, "targetNames", jsTargetNames, extras.defined)) {
-            foreach (const QJsonValue& tarName, jsTargetNames) { 
-                extras.targetNames.push_back(tarName.toString()); 
-            }
+            foreach (const QJsonValue& tarName, jsTargetNames) { extras.targetNames.push_back(tarName.toString()); }
         }
         mesh.extras = extras;
     }
@@ -577,7 +609,7 @@ bool GLTFSerializer::addMesh(const QJsonObject& object) {
 
 bool GLTFSerializer::addNode(const QJsonObject& object) {
     GLTFNode node;
-    
+
     getStringVal(object, "name", node.name, node.defined);
     getIntVal(object, "camera", node.camera, node.defined);
     getIntVal(object, "mesh", node.mesh, node.defined);
@@ -606,7 +638,6 @@ bool GLTFSerializer::addSampler(const QJsonObject& object) {
     _file.samplers.push_back(sampler);
 
     return true;
-
 }
 
 bool GLTFSerializer::addScene(const QJsonObject& object) {
@@ -632,10 +663,10 @@ bool GLTFSerializer::addSkin(const QJsonObject& object) {
 }
 
 bool GLTFSerializer::addTexture(const QJsonObject& object) {
-    GLTFTexture texture; 
+    GLTFTexture texture;
     getIntVal(object, "sampler", texture.sampler, texture.defined);
     getIntVal(object, "source", texture.source, texture.defined);
-    
+
     _file.textures.push_back(texture);
 
     return true;
@@ -648,8 +679,8 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
     if (_url.toString().endsWith("glb") && data.indexOf("glTF") == 0 && data.contains("JSON")) {
         jsonChunk = setGLBChunks(data);
-    }    
-   
+    }
+
     QJsonDocument d = QJsonDocument::fromJson(jsonChunk);
     QJsonObject jsFile = d.object();
 
@@ -657,7 +688,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
     if (success) {
         QJsonArray accessors;
         if (getObjectArrayVal(jsFile, "accessors", accessors, _file.defined)) {
-            foreach(const QJsonValue & accVal, accessors) {
+            for (const QJsonValue& accVal : accessors) {
                 if (accVal.isObject()) {
                     success = success && addAccessor(accVal.toObject());
                 }
@@ -666,7 +697,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
         QJsonArray animations;
         if (getObjectArrayVal(jsFile, "animations", animations, _file.defined)) {
-            foreach(const QJsonValue & animVal, accessors) {
+            for (const QJsonValue& animVal : accessors) {
                 if (animVal.isObject()) {
                     success = success && addAnimation(animVal.toObject());
                 }
@@ -675,7 +706,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
         QJsonArray bufferViews;
         if (getObjectArrayVal(jsFile, "bufferViews", bufferViews, _file.defined)) {
-            foreach(const QJsonValue & bufviewVal, bufferViews) {
+            for (const QJsonValue& bufviewVal : bufferViews) {
                 if (bufviewVal.isObject()) {
                     success = success && addBufferView(bufviewVal.toObject());
                 }
@@ -684,7 +715,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
         QJsonArray buffers;
         if (getObjectArrayVal(jsFile, "buffers", buffers, _file.defined)) {
-            foreach(const QJsonValue & bufVal, buffers) {
+            for (const QJsonValue& bufVal : buffers) {
                 if (bufVal.isObject()) {
                     success = success && addBuffer(bufVal.toObject());
                 }
@@ -693,7 +724,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
         QJsonArray cameras;
         if (getObjectArrayVal(jsFile, "cameras", cameras, _file.defined)) {
-            foreach(const QJsonValue & camVal, cameras) {
+            for (const QJsonValue& camVal : cameras) {
                 if (camVal.isObject()) {
                     success = success && addCamera(camVal.toObject());
                 }
@@ -702,7 +733,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
         QJsonArray images;
         if (getObjectArrayVal(jsFile, "images", images, _file.defined)) {
-            foreach(const QJsonValue & imgVal, images) {
+            for (const QJsonValue& imgVal : images) {
                 if (imgVal.isObject()) {
                     success = success && addImage(imgVal.toObject());
                 }
@@ -711,7 +742,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
         QJsonArray materials;
         if (getObjectArrayVal(jsFile, "materials", materials, _file.defined)) {
-            foreach(const QJsonValue & matVal, materials) {
+            for (const QJsonValue& matVal : materials) {
                 if (matVal.isObject()) {
                     success = success && addMaterial(matVal.toObject());
                 }
@@ -720,7 +751,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
         QJsonArray meshes;
         if (getObjectArrayVal(jsFile, "meshes", meshes, _file.defined)) {
-            foreach(const QJsonValue & meshVal, meshes) {
+            for (const QJsonValue& meshVal : meshes) {
                 if (meshVal.isObject()) {
                     success = success && addMesh(meshVal.toObject());
                 }
@@ -729,7 +760,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
         QJsonArray nodes;
         if (getObjectArrayVal(jsFile, "nodes", nodes, _file.defined)) {
-            foreach(const QJsonValue & nodeVal, nodes) {
+            for (const QJsonValue& nodeVal : nodes) {
                 if (nodeVal.isObject()) {
                     success = success && addNode(nodeVal.toObject());
                 }
@@ -738,7 +769,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
         QJsonArray samplers;
         if (getObjectArrayVal(jsFile, "samplers", samplers, _file.defined)) {
-            foreach(const QJsonValue & samVal, samplers) {
+            for (const QJsonValue& samVal : samplers) {
                 if (samVal.isObject()) {
                     success = success && addSampler(samVal.toObject());
                 }
@@ -747,7 +778,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
         QJsonArray scenes;
         if (getObjectArrayVal(jsFile, "scenes", scenes, _file.defined)) {
-            foreach(const QJsonValue & sceneVal, scenes) {
+            for (const QJsonValue& sceneVal : scenes) {
                 if (sceneVal.isObject()) {
                     success = success && addScene(sceneVal.toObject());
                 }
@@ -756,7 +787,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
         QJsonArray skins;
         if (getObjectArrayVal(jsFile, "skins", skins, _file.defined)) {
-            foreach(const QJsonValue & skinVal, skins) {
+            for (const QJsonValue& skinVal : skins) {
                 if (skinVal.isObject()) {
                     success = success && addSkin(skinVal.toObject());
                 }
@@ -765,51 +796,22 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
         QJsonArray textures;
         if (getObjectArrayVal(jsFile, "textures", textures, _file.defined)) {
-            foreach(const QJsonValue & texVal, textures) {
+            for (const QJsonValue& texVal : textures) {
                 if (texVal.isObject()) {
                     success = success && addTexture(texVal.toObject());
                 }
             }
         }
-    } 
+    }
     return success;
 }
 
-glm::mat4 GLTFSerializer::getModelTransform(const GLTFNode& node) {
-    glm::mat4 tmat = glm::mat4(1.0);
-
-    if (node.defined["matrix"] && node.matrix.size() == 16) {
-        tmat = glm::mat4(node.matrix[0], node.matrix[1], node.matrix[2], node.matrix[3],
-            node.matrix[4], node.matrix[5], node.matrix[6], node.matrix[7],
-            node.matrix[8], node.matrix[9], node.matrix[10], node.matrix[11],
-            node.matrix[12], node.matrix[13], node.matrix[14], node.matrix[15]);
-    } else {
-
-        if (node.defined["scale"] && node.scale.size() == 3) {
-            glm::vec3 scale = glm::vec3(node.scale[0], node.scale[1], node.scale[2]);
-            glm::mat4 s = glm::mat4(1.0);
-            s = glm::scale(s, scale);
-            tmat = s * tmat;
-        }
-        
-        if (node.defined["rotation"] && node.rotation.size() == 4) {
-            //quat(x,y,z,w) to quat(w,x,y,z)
-            glm::quat rotquat = glm::quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
-            tmat = glm::mat4_cast(rotquat) * tmat;
-        }
-        
-        if (node.defined["translation"] && node.translation.size() == 3) {
-            glm::vec3 trans = glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
-            glm::mat4 t = glm::mat4(1.0);
-            t = glm::translate(t, trans);
-            tmat = t * tmat;
-        }
-    }
-    return tmat;
+const glm::mat4& GLTFSerializer::getModelTransform(const GLTFNode& node) {
+    return node.transform;
 }
 
 void GLTFSerializer::getSkinInverseBindMatrices(std::vector<std::vector<float>>& inverseBindMatrixValues) {
-    for (auto &skin : _file.skins) {
+    for (auto& skin : _file.skins) {
         GLTFAccessor& indicesAccessor = _file.accessors[skin.inverseBindMatrices];
         QVector<float> matrices;
         addArrayFromAccessor(indicesAccessor, matrices);
@@ -826,111 +828,200 @@ void GLTFSerializer::generateTargetData(int index, float weight, QVector<glm::ve
     }
 }
 
+namespace gltf {
+
+using ParentIndexMap = std::unordered_map<int, int>;
+ParentIndexMap findParentIndices(const QVector<GLTFNode>& nodes) {
+    ParentIndexMap parentIndices;
+    int numNodes = nodes.size();
+    for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
+        auto& gltfNode = nodes[nodeIndex];
+        for (const auto& childIndex : gltfNode.children) {
+            parentIndices[childIndex] = nodeIndex;
+        }
+    }
+    return parentIndices;
+}
+
+bool requiresNodeReordering(const ParentIndexMap& map) {
+    for (const auto& entry : map) {
+        if (entry.first < entry.second) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int findEdgeCount(const ParentIndexMap& parentIndices, int nodeIndex) {
+    auto parentsEnd = parentIndices.end();
+    ParentIndexMap::const_iterator itr;
+    int result = 0;
+    while (parentsEnd != (itr = parentIndices.find(nodeIndex))) {
+        nodeIndex = itr->second;
+        ++result;
+    }
+    return result;
+}
+
+using IndexBag = std::unordered_set<int>;
+using EdgeCountMap = std::map<int, IndexBag>;
+EdgeCountMap findEdgeCounts(int numNodes, const ParentIndexMap& map) {
+    EdgeCountMap edgeCounts;
+    // For each item, determine how many tranversals to a root node
+    for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
+        // How many steps between this node and a root node?
+        int edgeCount = findEdgeCount(map, nodeIndex);
+        // Populate the result map
+        edgeCounts[edgeCount].insert(nodeIndex);
+    }
+    return edgeCounts;
+}
+
+using ReorderMap = std::unordered_map<int, int>;
+ReorderMap buildReorderMap(const EdgeCountMap& map) {
+    ReorderMap result;
+    int newIndex = 0;
+    for (const auto& entry : map) {
+        const IndexBag& oldIndices = entry.second;
+        for (const auto& oldIndex : oldIndices) {
+            result.insert({ oldIndex, newIndex });
+            ++newIndex;
+        }
+    }
+    return result;
+}
+
+void reorderNodeIndices(QVector<int>& indices, const ReorderMap& oldToNewIndexMap) {
+    for (auto& index : indices) {
+        index = oldToNewIndexMap.at(index);
+    }
+}
+
+}  // namespace gltf
+
+void GLTFFile::populateMaterialNames() {
+    // Build material names
+    QSet<QString> usedNames;
+    for (const auto& material : materials) {
+        if (!material.name.isEmpty()) {
+            usedNames.insert(material.name);
+        }
+    }
+
+    int ukcount = 0;
+    const QString unknown{ "Default_%1" };
+    for (auto& material : materials) {
+        QString generatedName = unknown.arg(ukcount++);
+        while (usedNames.contains(generatedName)) {
+            generatedName = unknown.arg(ukcount++);
+        }
+        material.name = generatedName;
+        material.defined.insert("name", true);
+        usedNames.insert(generatedName);
+    }
+}
+
+void GLTFFile::reorderNodes(const std::unordered_map<int, int>& oldToNewIndexMap) {
+    int numNodes = nodes.size();
+    assert(numNodes == oldToNewIndexMap.size());
+    QVector<GLTFNode> newNodes;
+    newNodes.resize(numNodes);
+    for (int oldIndex = 0; oldIndex < numNodes; ++oldIndex) {
+        const auto& oldNode = nodes[oldIndex];
+        int newIndex = oldToNewIndexMap.at(oldIndex);
+        auto& newNode = newNodes[newIndex];
+        // Write the new node
+        newNode = oldNode;
+        // Fixup the child indices
+        gltf::reorderNodeIndices(newNode.children, oldToNewIndexMap);
+    }
+    newNodes.swap(nodes);
+
+    for (auto& subScene : scenes) {
+        gltf::reorderNodeIndices(subScene.nodes, oldToNewIndexMap);
+    }
+}
+
+// Ensure that the GLTF nodes are ordered so
+void GLTFFile::sortNodes() {
+    // Find all the parents
+    auto parentIndices = gltf::findParentIndices(nodes);
+    // If the nodes are already in a good order, we're done
+    if (!gltf::requiresNodeReordering(parentIndices)) {
+        return;
+    }
+
+    auto edgeCounts = gltf::findEdgeCounts(nodes.size(), parentIndices);
+    auto oldToNewIndexMap = gltf::buildReorderMap(edgeCounts);
+    reorderNodes(oldToNewIndexMap);
+    assert(!gltf::requiresNodeReordering(gltf::findParentIndices(nodes)));
+}
+
+void GLTFNode::normalizeTransform() {
+    if (defined["matrix"] && matrix.size() == 16) {
+        transform = glm::make_mat4(matrix.constData());
+    } else {
+        transform = glm::mat4(1.0);
+        if (defined["scale"] && scale.size() == 3) {
+            glm::vec3 scaleVec = glm::make_vec3(scale.data());
+            transform = glm::scale(transform, scaleVec);
+        }
+
+        if (defined["rotation"] && rotation.size() == 4) {
+            glm::quat rotQ = glm::make_quat(rotation.data());
+            transform = glm::mat4_cast(rotQ) * transform;
+        }
+
+        if (defined["translation"] && translation.size() == 3) {
+            glm::vec3 transV = glm::make_vec3(translation.data());
+            transform = glm::translate(glm::mat4(1.0), transV) * transform;
+        }
+    }
+}
+
+void GLTFFile::normalizeNodeTransforms() {
+    for (auto& node : nodes) {
+        node.normalizeTransform();
+    }
+}
+
 bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& mapping, const hifi::URL& url) {
     int numNodes = _file.nodes.size();
-
-    //Build dependencies
-    QVector<int> parents;
-    QVector<int> sortedNodes;
-    parents.fill(-1, numNodes);
-    sortedNodes.reserve(numNodes);
-    int nodecount = 0;
-    foreach(auto &node, _file.nodes) {
-        foreach(int child, node.children) {
-            parents[child] = nodecount;
-        }
-        sortedNodes.push_back(nodecount);
-        ++nodecount;
-    }
     
-
-    // Build transforms
-    nodecount = 0;
-    foreach(auto &node, _file.nodes) {
-        // collect node transform
-        _file.nodes[nodecount].transforms.push_back(getModelTransform(node));
-        int parentIndex = parents[nodecount];
-        while (parentIndex != -1) {
-            const auto& parentNode = _file.nodes[parentIndex];
-            // collect transforms for a node's parents, grandparents, etc.
-            _file.nodes[nodecount].transforms.push_back(getModelTransform(parentNode));
-            parentIndex = parents[parentIndex];
-        }
-        ++nodecount;
-    }
-
-
-    // since parent indices must exist in the sorted list before any of their children, sortedNodes might not be initialized in the correct order
-    // therefore we need to re-initialize the order in which nodes will be parsed
-    QVector<bool> hasBeenSorted;
-    hasBeenSorted.fill(false, numNodes);
-    int i = 0;  // initial index
-    while (i < numNodes) {
-        int currentNode = sortedNodes[i];
-        int parentIndex = parents[currentNode];
-        if (parentIndex == -1 || hasBeenSorted[parentIndex]) {
-            hasBeenSorted[currentNode] = true;
-            ++i;
-        } else {
-            int j = i + 1; // index of node to be sorted
-            while (j < numNodes) {
-                int nextNode = sortedNodes[j];
-                parentIndex = parents[nextNode];
-                if (parentIndex == -1 || hasBeenSorted[parentIndex]) {
-                    // swap with currentNode
-                    hasBeenSorted[nextNode] = true;
-                    sortedNodes[i] = nextNode;
-                    sortedNodes[j] = currentNode;
-                    ++i;
-                    currentNode = sortedNodes[i];
-                }
-                ++j;
-            }
-        }
-    }
-
-
-     // Build map from original to new indices
-    QVector<int> originalToNewNodeIndexMap;
-    originalToNewNodeIndexMap.fill(-1, numNodes);
-    for (int i = 0; i < numNodes; ++i) {
-        originalToNewNodeIndexMap[sortedNodes[i]] = i;
-    }
-
-
     // Build joints
-    HFMJoint joint;
-    joint.distanceToParent = 0;
     hfmModel.jointIndices["x"] = numNodes;
-    QVector<glm::mat4> globalTransforms;
-    globalTransforms.resize(numNodes);
-
-    for (int nodeIndex : sortedNodes) {
+    auto parentIndices = gltf::findParentIndices(_file.nodes);
+    const auto parentsEnd = parentIndices.end();
+    for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
+        HFMJoint joint;
         auto& node = _file.nodes[nodeIndex];
-
-        joint.parentIndex = parents[nodeIndex];
-        if (joint.parentIndex != -1) {
-            joint.parentIndex = originalToNewNodeIndexMap[joint.parentIndex];
+        auto parentItr = parentIndices.find(nodeIndex);
+        if (parentsEnd == parentItr) {
+            joint.parentIndex = -1;
+        } else {
+            joint.parentIndex = parentItr->second;
         }
-        joint.transform = node.transforms.first();
+
+        joint.transform = getModelTransform(node);
         joint.translation = extractTranslation(joint.transform);
         joint.rotation = glmExtractRotation(joint.transform);
         glm::vec3 scale = extractScale(joint.transform);
         joint.postTransform = glm::scale(glm::mat4(), scale);
 
-		joint.parentIndex = parents[nodeIndex];
-        globalTransforms[nodeIndex] = joint.transform;
-        if (joint.parentIndex != -1) {
-            globalTransforms[nodeIndex] = globalTransforms[joint.parentIndex] * globalTransforms[nodeIndex];
-            joint.parentIndex = originalToNewNodeIndexMap[joint.parentIndex];
+        joint.globalTransform = joint.transform;
+        // Nodes are sorted, so we can apply the full transform just by getting the global transform of the already defined parent
+        if (joint.parentIndex != -1 && joint.parentIndex != nodeIndex) {
+            const auto& parentJoint = hfmModel.joints[(size_t)joint.parentIndex];
+            joint.transform = parentJoint.transform * joint.transform;
+            joint.globalTransform = joint.globalTransform * parentJoint.globalTransform;
+        } else {
+            joint.globalTransform = hfmModel.offset * joint.globalTransform;
         }
 
         joint.name = node.name;
         joint.isSkeletonJoint = false;
         hfmModel.joints.push_back(joint);
     }
-    hfmModel.shapeVertices.resize(hfmModel.joints.size());
-
 
     // get offset transform from mapping
     float unitScaleFactor = 1.0f;
@@ -945,6 +1036,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     std::vector<glm::mat4> globalBindTransforms;
     jointInverseBindTransforms.resize(numNodes);
     globalBindTransforms.resize(numNodes);
+    // Lookup between the GLTF mesh and the skin
+    std::vector<int> gltfMeshToSkin;
+    gltfMeshToSkin.resize(_file.meshes.size(), -1);
 
     hfmModel.hasSkeletonJoints = !_file.skins.isEmpty();
     if (hfmModel.hasSkeletonJoints) {
@@ -952,8 +1046,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         getSkinInverseBindMatrices(inverseBindValues);
 
         for (int jointIndex = 0; jointIndex < numNodes; ++jointIndex) {
-            int nodeIndex = sortedNodes[jointIndex];
-            auto joint = hfmModel.joints[jointIndex];
+            int nodeIndex = jointIndex;
+            auto& joint = hfmModel.joints[jointIndex];
 
             for (int s = 0; s < _file.skins.size(); ++s) {
                 const auto& skin = _file.skins[s];
@@ -979,642 +1073,490 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 glm::vec3 bindTranslation = extractTranslation(hfmModel.offset * glm::inverse(jointInverseBindTransforms[jointIndex]));
                 hfmModel.bindExtents.addPoint(bindTranslation);
             }
-            hfmModel.joints[jointIndex] = joint;
-        }
-    }
-
-
-    // Build materials
-    QVector<QString> materialIDs;
-    QString unknown = "Default";
-    int ukcount = 0;
-    foreach(auto material, _file.materials) {
-        if (!material.defined["name"]) {
-            QString name = unknown + QString::number(++ukcount);
-            material.name = name;
-            material.defined.insert("name", true);
         }
 
-        QString mid = material.name;
-        materialIDs.push_back(mid);
-    }
-
-    for (int i = 0; i < materialIDs.size(); ++i) {
-        QString& matid = materialIDs[i];
-        hfmModel.materials[matid] = HFMMaterial();
-        HFMMaterial& hfmMaterial = hfmModel.materials[matid];
-        hfmMaterial._material = std::make_shared<graphics::Material>();
-        hfmMaterial.name = hfmMaterial.materialID = matid;
-        setHFMMaterial(hfmMaterial, _file.materials[i]);
-    }
-
-    
-    // Build meshes
-    nodecount = 0;
-    hfmModel.meshExtents.reset();
-    for (int nodeIndex : sortedNodes) {
-        auto& node = _file.nodes[nodeIndex];
-
-        if (node.defined["mesh"]) {
-
-            hfmModel.meshes.append(HFMMesh());
-            HFMMesh& mesh = hfmModel.meshes[hfmModel.meshes.size() - 1];
-            if (!hfmModel.hasSkeletonJoints) { 
-                HFMCluster cluster;
-                cluster.jointIndex = nodecount;
-                cluster.inverseBindMatrix = glm::mat4();
-                cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
-                mesh.clusters.append(cluster);
-            } else { // skinned model
-                for (int j = 0; j < numNodes; ++j) {
-                    HFMCluster cluster;
-                    cluster.jointIndex = j;
-                    cluster.inverseBindMatrix = jointInverseBindTransforms[j];
-                    cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
-                    mesh.clusters.append(cluster);
+        std::vector<int> skinToRootJoint;
+        skinToRootJoint.resize(_file.skins.size(), 0);
+        for (int jointIndex = 0; jointIndex < numNodes; ++jointIndex) {
+            const auto& node = _file.nodes[jointIndex];
+            if (node.skin != -1) {
+                skinToRootJoint[node.skin] = jointIndex;
+                if (node.mesh != -1) {
+                    gltfMeshToSkin[node.mesh] = node.skin;
                 }
             }
-            HFMCluster root;
-            root.jointIndex = 0;
+        }
+
+        for (int skinIndex = 0; skinIndex < _file.skins.size(); ++skinIndex) {
+            const auto& skin = _file.skins[skinIndex];
+            hfmModel.skinDeformers.emplace_back();
+            auto& skinDeformer = hfmModel.skinDeformers.back();
+
+            // Add the nodes being referred to for skinning
+            for (int skinJointIndex : skin.joints) {
+                hfm::Cluster cluster;
+                cluster.jointIndex = skinJointIndex;
+                cluster.inverseBindMatrix = jointInverseBindTransforms[skinJointIndex];
+                cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
+                skinDeformer.clusters.push_back(cluster);
+            }
+            
+            // Always append a cluster referring to the root joint at the end
+            int rootJointIndex = skinToRootJoint[skinIndex];
+            hfm::Cluster root;
+            root.jointIndex = rootJointIndex;
             root.inverseBindMatrix = jointInverseBindTransforms[root.jointIndex];
             root.inverseBindTransform = Transform(root.inverseBindMatrix);
-            mesh.clusters.append(root);
+            skinDeformer.clusters.push_back(root);
+        }
+    }
 
-            QList<QString> meshAttributes;
-            foreach(auto &primitive, _file.meshes[node.mesh].primitives) {
-                QList<QString> keys = primitive.attributes.values.keys();
-                foreach (auto &key, keys) {
-                    if (!meshAttributes.contains(key)) {
-                        meshAttributes.push_back(key);
+    for (const auto& material : _file.materials) {
+        const QString& matid = material.name;
+        hfmModel.materials.emplace_back();
+        HFMMaterial& hfmMaterial = hfmModel.materials.back();
+        hfmMaterial._material = std::make_shared<graphics::Material>();
+        hfmMaterial.materialID =  matid;
+        setHFMMaterial(hfmMaterial, material);
+    }
+
+
+    int gltfMeshCount = _file.meshes.size();
+    hfmModel.meshExtents.reset();
+    std::vector<std::vector<hfm::Shape>> templateShapePerPrimPerGLTFMesh;
+    for (int gltfMeshIndex = 0; gltfMeshIndex < gltfMeshCount; ++gltfMeshIndex) {
+        const auto& gltfMesh = _file.meshes[gltfMeshIndex];
+        hfmModel.meshes.emplace_back();
+        // NOTE: The number of hfm meshes may be greater than the number of gltf meshes, if a gltf mesh has primitives with different vertex attributes. In that case, this mesh reference may be reassigned.
+        hfm::Mesh* meshPtr = &hfmModel.meshes.back();
+        const size_t firstMeshIndexForGLTFMesh = hfmModel.meshes.size() - 1;
+        meshPtr->meshIndex = gltfMeshIndex;
+        templateShapePerPrimPerGLTFMesh.emplace_back();
+        std::vector<hfm::Shape>& templateShapePerPrim = templateShapePerPrimPerGLTFMesh.back();
+
+        QSet<QString> primitiveAttributes;
+        if (!gltfMesh.primitives.empty()) {
+            for (const auto& attribute : gltfMesh.primitives[0].attributes.values.keys()) {
+                primitiveAttributes.insert(attribute);
+            }
+        }
+        std::vector<QSet<QString>> primitiveAttributeVariants;
+
+        int primCount = (int)gltfMesh.primitives.size();
+        size_t hfmMeshIndex = firstMeshIndexForGLTFMesh;
+        for(int primIndex = 0; primIndex < primCount; ++primIndex) {
+            auto& primitive = gltfMesh.primitives[primIndex];
+
+            QList<QString> keys = primitive.attributes.values.keys();
+            QSet<QString> newPrimitiveAttributes;
+            for (const auto& key : keys) {
+                newPrimitiveAttributes.insert(key);
+            }
+            if (newPrimitiveAttributes != primitiveAttributes) {
+                assert(primIndex != 0);
+
+                // We need to use a different mesh because the vertex attributes are different
+                auto attributeVariantIt = std::find(primitiveAttributeVariants.cbegin(), primitiveAttributeVariants.cend(), newPrimitiveAttributes);
+                if (attributeVariantIt == primitiveAttributeVariants.cend()) {
+                    // Need to allocate a new mesh
+                    hfmModel.meshes.emplace_back();
+                    meshPtr = &hfmModel.meshes.back();
+                    hfmMeshIndex = hfmModel.meshes.size() - 1;
+                    meshPtr->meshIndex = gltfMeshIndex;
+                    primitiveAttributeVariants.push_back(newPrimitiveAttributes);
+                } else {
+                    // An hfm mesh already exists for this gltf mesh with the same vertex attributes. Use it again.
+                    auto variantIndex = (size_t)(attributeVariantIt - primitiveAttributeVariants.cbegin());
+                    hfmMeshIndex = firstMeshIndexForGLTFMesh + variantIndex;
+                    meshPtr = &hfmModel.meshes[hfmMeshIndex];
+                }
+                primitiveAttributes = newPrimitiveAttributes;
+            }
+            // Now, allocate the part for the correct mesh...
+            hfm::Mesh& mesh = *meshPtr;
+            mesh.parts.emplace_back();
+            hfm::MeshPart& part = mesh.parts.back();
+            // ...and keep track of the relationship between the gltf mesh/primitive and the hfm mesh/part
+            templateShapePerPrim.emplace_back();
+            hfm::Shape& templateShape = templateShapePerPrim.back();
+            templateShape.mesh = (uint32_t)hfmMeshIndex;
+            templateShape.meshPart = (uint32_t)(mesh.parts.size() - 1);
+            templateShape.material = primitive.material;
+
+            int indicesAccessorIdx = primitive.indices;
+
+            GLTFAccessor& indicesAccessor = _file.accessors[indicesAccessorIdx];
+
+            // Buffers
+            constexpr int VERTEX_STRIDE = 3;
+            constexpr int NORMAL_STRIDE = 3;
+            constexpr int TEX_COORD_STRIDE = 2;
+
+            QVector<int> indices;
+            QVector<float> vertices;
+            QVector<float> normals;
+            QVector<float> tangents;
+            QVector<float> texcoords;
+            QVector<float> texcoords2;
+            QVector<float> colors;
+            QVector<uint16_t> joints;
+            QVector<float> weights;
+
+            static int tangentStride = 4;
+            static int colorStride = 3;
+            static int jointStride = 4;
+            static int weightStride = 4;
+
+            bool success = addArrayFromAccessor(indicesAccessor, indices);
+
+            if (!success) {
+                qWarning(modelformat) << "There was a problem reading glTF INDICES data for model " << _url;
+                continue;
+            }
+
+            // Increment the triangle indices by the current mesh vertex count so each mesh part can all reference the same buffers within the mesh
+            int prevMeshVerticesCount = mesh.vertices.count();
+            QVector<uint16_t> clusterJoints;
+            QVector<float> clusterWeights;
+
+            for(auto &key : keys) {
+                int accessorIdx = primitive.attributes.values[key];
+                GLTFAccessor& accessor = _file.accessors[accessorIdx];
+                const auto vertexAttribute = GLTFVertexAttribute::fromString(key);
+                switch (vertexAttribute) {
+                    case GLTFVertexAttribute::POSITION:
+                        success = addArrayFromAttribute(vertexAttribute, accessor, vertices);
+                        break;
+
+                    case GLTFVertexAttribute::NORMAL:
+                        success = addArrayFromAttribute(vertexAttribute, accessor, normals);
+                        break;
+
+                    case GLTFVertexAttribute::TANGENT:
+                        success = addArrayFromAttribute(vertexAttribute, accessor, tangents);
+                        tangentStride = GLTFAccessorType::count((GLTFAccessorType::Value)accessor.type);
+                        break;
+
+                    case GLTFVertexAttribute::TEXCOORD_0:
+                        success = addArrayFromAttribute(vertexAttribute, accessor, texcoords);
+                        break;
+
+                    case GLTFVertexAttribute::TEXCOORD_1:
+                        success = addArrayFromAttribute(vertexAttribute, accessor, texcoords2);
+                        break;
+
+                    case GLTFVertexAttribute::COLOR_0:
+                        success = addArrayFromAttribute(vertexAttribute, accessor, colors);
+                        colorStride = GLTFAccessorType::count((GLTFAccessorType::Value)accessor.type);
+                        break;
+
+                    case GLTFVertexAttribute::JOINTS_0:
+                        success = addArrayFromAttribute(vertexAttribute, accessor, joints);
+                        jointStride = GLTFAccessorType::count((GLTFAccessorType::Value)accessor.type);
+                        break;
+
+                    case GLTFVertexAttribute::WEIGHTS_0:
+                        success = addArrayFromAttribute(vertexAttribute, accessor, weights);
+                        weightStride = GLTFAccessorType::count((GLTFAccessorType::Value)accessor.type);
+                        break;
+
+                    default:
+                        success = false;
+                        break;
+                }
+                if (!success) {
+                    continue;
+                }
+            }
+
+            // Validation stage
+            if (indices.count() == 0) {
+                qWarning(modelformat) << "Missing indices for model " << _url;
+                continue;
+            }
+            if (vertices.count() == 0) {
+                qWarning(modelformat) << "Missing vertices for model " << _url;
+                continue;
+            }
+
+            int partVerticesCount = vertices.size() / 3;
+
+            QVector<int> validatedIndices;
+            for (int n = 0; n < indices.count(); ++n) {
+                if (indices[n] < partVerticesCount) {
+                    validatedIndices.push_back(indices[n] + prevMeshVerticesCount);
+                } else {
+                    validatedIndices = QVector<int>();
+                    break;
+                }
+            }
+
+            if (validatedIndices.size() == 0) {
+                qWarning(modelformat) << "Indices out of range for model " << _url;
+                continue;
+            }
+
+            part.triangleIndices.append(validatedIndices);
+
+            mesh.vertices.reserve(mesh.vertices.size() + partVerticesCount);
+            for (int n = 0; n < vertices.size(); n = n + VERTEX_STRIDE) {
+                mesh.vertices.push_back(glm::vec3(vertices[n], vertices[n + 1], vertices[n + 2]));
+            }
+
+            mesh.normals.reserve(mesh.normals.size() + partVerticesCount);
+            for (int n = 0; n < normals.size(); n = n + NORMAL_STRIDE) {
+                mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
+            }
+
+            if (tangents.size() == partVerticesCount * tangentStride) {
+                mesh.tangents.reserve(mesh.tangents.size() + partVerticesCount);
+                for (int n = 0; n < tangents.size(); n += tangentStride) {
+                    float tanW = tangentStride == 4 ? tangents[n + 3] : 1;
+                    mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tanW * tangents[n + 2]));
+                }
+            }
+
+            if (texcoords.size() == partVerticesCount * TEX_COORD_STRIDE) {
+                mesh.texCoords.reserve(mesh.texCoords.size() + partVerticesCount);
+                for (int n = 0; n < texcoords.size(); n = n + 2) {
+                    mesh.texCoords.push_back(glm::vec2(texcoords[n], texcoords[n + 1]));
+                }
+            } else if (primitiveAttributes.contains("TEXCOORD_0")) {
+                mesh.texCoords.resize(mesh.texCoords.size() + partVerticesCount);
+            }
+
+            if (texcoords2.size() == partVerticesCount * TEX_COORD_STRIDE) {
+                mesh.texCoords1.reserve(mesh.texCoords1.size() + partVerticesCount);
+                for (int n = 0; n < texcoords2.size(); n = n + 2) {
+                    mesh.texCoords1.push_back(glm::vec2(texcoords2[n], texcoords2[n + 1]));
+                }
+            } else if (primitiveAttributes.contains("TEXCOORD_1")) {
+                mesh.texCoords1.resize(mesh.texCoords1.size() + partVerticesCount);
+            }
+
+            if (colors.size() == partVerticesCount * colorStride) {
+                mesh.colors.reserve(mesh.colors.size() + partVerticesCount);
+                for (int n = 0; n < colors.size(); n += colorStride) {
+                    mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
+                }
+            } else if (primitiveAttributes.contains("COLOR_0")) {
+                mesh.colors.reserve(mesh.colors.size() + partVerticesCount);
+                for (int i = 0; i < partVerticesCount; ++i) {
+                    mesh.colors.push_back(glm::vec3(1.0f));
+                }
+            }
+
+            const int WEIGHTS_PER_VERTEX = 4;
+
+            if (weights.size() == partVerticesCount * weightStride) {
+                for (int n = 0; n < weights.size(); n += weightStride) {
+                    clusterWeights.push_back(weights[n]);
+                    if (weightStride > 1) {
+                        clusterWeights.push_back(weights[n + 1]);
+                        if (weightStride > 2) {
+                            clusterWeights.push_back(weights[n + 2]);
+                            if (weightStride > 3) {
+                                clusterWeights.push_back(weights[n + 3]);
+                            } else {
+                                clusterWeights.push_back(0.0f);
+                            }
+                        } else {
+                            clusterWeights.push_back(0.0f);
+                            clusterWeights.push_back(0.0f);
+                        }
+                    } else {
+                        clusterWeights.push_back(0.0f);
+                        clusterWeights.push_back(0.0f);
+                        clusterWeights.push_back(0.0f);
+                    }
+                }
+            } else if (primitiveAttributes.contains("WEIGHTS_0")) {
+                for (int i = 0; i < partVerticesCount; ++i) {
+                    clusterWeights.push_back(1.0f);
+                    for (int j = 0; j < WEIGHTS_PER_VERTEX; ++j) {
+                        clusterWeights.push_back(0.0f);
                     }
                 }
             }
 
-            foreach(auto &primitive, _file.meshes[node.mesh].primitives) {
-                HFMMeshPart part = HFMMeshPart();
-
-                int indicesAccessorIdx = primitive.indices;
-
-                GLTFAccessor& indicesAccessor = _file.accessors[indicesAccessorIdx];
-
-                // Buffers
-                QVector<int> indices;
-                QVector<float> vertices;
-                int verticesStride = 3;
-                QVector<float> normals;
-                int normalStride = 3;
-                QVector<float> tangents;
-                int tangentStride = 4;
-                QVector<float> texcoords;
-                int texCoordStride = 2;
-                QVector<float> texcoords2;
-                int texCoord2Stride = 2;
-                QVector<float> colors;
-                int colorStride = 3;
-                QVector<uint16_t> joints;
-                int jointStride = 4;
-                QVector<float> weights;
-                int weightStride = 4;
-
-                bool success = addArrayFromAccessor(indicesAccessor, indices);
-
-                if (!success) {
-                    qWarning(modelformat) << "There was a problem reading glTF INDICES data for model " << _url;
-                    continue;
+            // Compress floating point weights to uint16_t for graphics runtime
+            // TODO: If the GLTF skinning weights are already in integer format, we should just copy the data
+            if (!clusterWeights.empty()) {
+                size_t numWeights = 4 * (mesh.vertices.size() - (uint32_t)prevMeshVerticesCount);
+                size_t newWeightsStart = mesh.clusterWeights.size();
+                size_t newWeightsEnd = newWeightsStart + numWeights;
+                mesh.clusterWeights.reserve(newWeightsEnd);
+                for (int weightIndex = 0; weightIndex < clusterWeights.size(); ++weightIndex) {
+                    // Per the GLTF specification
+                    uint16_t weight = std::round(clusterWeights[weightIndex] * 65535.0f);
+                    mesh.clusterWeights.push_back(weight);
                 }
+                mesh.clusterWeightsPerVertex = WEIGHTS_PER_VERTEX;
+            }
 
-                // Increment the triangle indices by the current mesh vertex count so each mesh part can all reference the same buffers within the mesh
-                int prevMeshVerticesCount = mesh.vertices.count();
-
-                QList<QString> keys = primitive.attributes.values.keys();
-                QVector<uint16_t> clusterJoints;
-                QVector<float> clusterWeights;
-
-                foreach(auto &key, keys) {
-                    int accessorIdx = primitive.attributes.values[key];
-
-                    GLTFAccessor& accessor = _file.accessors[accessorIdx];
-
-                    if (key == "POSITION") {
-                        if (accessor.type != GLTFAccessorType::VEC3) {
-                            qWarning(modelformat) << "Invalid accessor type on glTF POSITION data for model " << _url;
-                            continue;
-                        }
-
-                        success = addArrayFromAccessor(accessor, vertices);
-                        if (!success) {
-                            qWarning(modelformat) << "There was a problem reading glTF POSITION data for model " << _url;
-                            continue;
-                        }
-                    } else if (key == "NORMAL") {
-                        if (accessor.type != GLTFAccessorType::VEC3) {
-                            qWarning(modelformat) << "Invalid accessor type on glTF NORMAL data for model " << _url;
-                            continue;
-                        }
-
-                        success = addArrayFromAccessor(accessor, normals);
-                        if (!success) {
-                            qWarning(modelformat) << "There was a problem reading glTF NORMAL data for model " << _url;
-                            continue;
-                        }
-                    } else if (key == "TANGENT") {
-                        if (accessor.type == GLTFAccessorType::VEC4) {
-                            tangentStride = 4;
-                        } else if (accessor.type == GLTFAccessorType::VEC3) {
-                            tangentStride = 3;
-                        } else {
-                            qWarning(modelformat) << "Invalid accessor type on glTF TANGENT data for model " << _url;
-                            continue;
-                        }
-
-                        success = addArrayFromAccessor(accessor, tangents);
-                        if (!success) {
-                            qWarning(modelformat) << "There was a problem reading glTF TANGENT data for model " << _url;
-                            tangentStride = 0;
-                            continue;
-                        }
-                    } else if (key == "TEXCOORD_0") {
-                        success = addArrayFromAccessor(accessor, texcoords);
-                        if (!success) {
-                            qWarning(modelformat) << "There was a problem reading glTF TEXCOORD_0 data for model " << _url;
-                            continue;
-                        }
-
-                        if (accessor.type != GLTFAccessorType::VEC2) {
-                            qWarning(modelformat) << "Invalid accessor type on glTF TEXCOORD_0 data for model " << _url;
-                            continue;
-                        }
-                    } else if (key == "TEXCOORD_1") {
-                        success = addArrayFromAccessor(accessor, texcoords2);
-                        if (!success) {
-                            qWarning(modelformat) << "There was a problem reading glTF TEXCOORD_1 data for model " << _url;
-                            continue;
-                        }
-
-                        if (accessor.type != GLTFAccessorType::VEC2) {
-                            qWarning(modelformat) << "Invalid accessor type on glTF TEXCOORD_1 data for model " << _url;
-                            continue;
-                        }
-                    } else if (key == "COLOR_0") {
-                        if (accessor.type == GLTFAccessorType::VEC4) {
-                            colorStride = 4;
-                        } else if (accessor.type == GLTFAccessorType::VEC3) {
-                            colorStride = 3;
-                        } else {
-                            qWarning(modelformat) << "Invalid accessor type on glTF COLOR_0 data for model " << _url;
-                            continue;
-                        }
-
-                        success = addArrayFromAccessor(accessor, colors);
-                        if (!success) {
-                            qWarning(modelformat) << "There was a problem reading glTF COLOR_0 data for model " << _url;
-                            continue;
-                        }
-                    } else if (key == "JOINTS_0") {
-                        if (accessor.type == GLTFAccessorType::VEC4) {
-                            jointStride = 4;
-                        } else if (accessor.type == GLTFAccessorType::VEC3) {
-                            jointStride = 3;
-                        } else if (accessor.type == GLTFAccessorType::VEC2) {
-                            jointStride = 2;
-                        } else if (accessor.type == GLTFAccessorType::SCALAR) {
-                            jointStride = 1;
-                        } else {
-                            qWarning(modelformat) << "Invalid accessor type on glTF JOINTS_0 data for model " << _url;
-                            continue;
-                        }
-
-                        success = addArrayFromAccessor(accessor, joints);
-                        if (!success) {
-                            qWarning(modelformat) << "There was a problem reading glTF JOINTS_0 data for model " << _url;
-                            continue;
-                        }
-                    } else if (key == "WEIGHTS_0") {
-                        if (accessor.type == GLTFAccessorType::VEC4) {
-                            weightStride = 4;
-                        } else if (accessor.type == GLTFAccessorType::VEC3) {
-                            weightStride = 3;
-                        } else if (accessor.type == GLTFAccessorType::VEC2) {
-                            weightStride = 2;
-                        } else if (accessor.type == GLTFAccessorType::SCALAR) {
-                            weightStride = 1;
-                        } else {
-                            qWarning(modelformat) << "Invalid accessor type on glTF WEIGHTS_0 data for model " << _url;
-                            continue;
-                        }
-
-                        success = addArrayFromAccessor(accessor, weights);
-                        if (!success) {
-                            qWarning(modelformat) << "There was a problem reading glTF WEIGHTS_0 data for model " << _url;
-                            continue;
-                        }
-                    }
-                }
-
-                // Validation stage
-                if (indices.count() == 0) {
-                    qWarning(modelformat) << "Missing indices for model " << _url;
-                    continue;
-                }
-                if (vertices.count() == 0) {
-                    qWarning(modelformat) << "Missing vertices for model " << _url;
-                    continue;
-                }
-
-                int partVerticesCount = vertices.size() / 3;
-
-                // generate the normals if they don't exist
-                if (normals.size() == 0) {
-                    QVector<int> newIndices;
-                    QVector<float> newVertices;
-                    QVector<float> newNormals;
-                    QVector<float> newTexcoords;
-                    QVector<float> newTexcoords2;
-                    QVector<float> newColors;
-                    QVector<uint16_t> newJoints;
-                    QVector<float> newWeights;
-
-                    for (int n = 0; n < indices.size(); n = n + 3) {
-                        int v1_index = (indices[n + 0] * 3);
-                        int v2_index = (indices[n + 1] * 3);
-                        int v3_index = (indices[n + 2] * 3);
-
-                        glm::vec3 v1 = glm::vec3(vertices[v1_index], vertices[v1_index + 1], vertices[v1_index + 2]);
-                        glm::vec3 v2 = glm::vec3(vertices[v2_index], vertices[v2_index + 1], vertices[v2_index + 2]);
-                        glm::vec3 v3 = glm::vec3(vertices[v3_index], vertices[v3_index + 1], vertices[v3_index + 2]);
-
-                        newVertices.append(v1.x);
-                        newVertices.append(v1.y);
-                        newVertices.append(v1.z);
-                        newVertices.append(v2.x);
-                        newVertices.append(v2.y);
-                        newVertices.append(v2.z);
-                        newVertices.append(v3.x);
-                        newVertices.append(v3.y);
-                        newVertices.append(v3.z);
-
-                        glm::vec3 norm = glm::normalize(glm::cross(v2 - v1, v3 - v1));
-
-                        newNormals.append(norm.x);
-                        newNormals.append(norm.y);
-                        newNormals.append(norm.z);
-                        newNormals.append(norm.x);
-                        newNormals.append(norm.y);
-                        newNormals.append(norm.z);
-                        newNormals.append(norm.x);
-                        newNormals.append(norm.y);
-                        newNormals.append(norm.z);
-
-                        if (texcoords.size() == partVerticesCount * texCoordStride) {
-                            GLTF_APPEND_ARRAY_2(newTexcoords, texcoords)
-                        }
-
-                        if (texcoords2.size() == partVerticesCount * texCoord2Stride) {
-                            GLTF_APPEND_ARRAY_2(newTexcoords2, texcoords2)
-                        }
-
-                        if (colors.size() == partVerticesCount * colorStride) {
-                            if (colorStride == 4) {
-                                GLTF_APPEND_ARRAY_4(newColors, colors)
+            if (joints.size() == partVerticesCount * jointStride) {
+                for (int n = 0; n < joints.size(); n += jointStride) {
+                    mesh.clusterIndices.push_back(joints[n]);
+                    if (jointStride > 1) {
+                        mesh.clusterIndices.push_back(joints[n + 1]);
+                        if (jointStride > 2) {
+                            mesh.clusterIndices.push_back(joints[n + 2]);
+                            if (jointStride > 3) {
+                                mesh.clusterIndices.push_back(joints[n + 3]);
                             } else {
-                                GLTF_APPEND_ARRAY_3(newColors, colors)
+                                mesh.clusterIndices.push_back(0);
                             }
+                        } else {
+                            mesh.clusterIndices.push_back(0);
+                            mesh.clusterIndices.push_back(0);
                         }
-
-                        if (joints.size() == partVerticesCount * jointStride) {
-                            if (jointStride == 4) {
-                                GLTF_APPEND_ARRAY_4(newJoints, joints)
-                            } else if (jointStride == 3) {
-                                GLTF_APPEND_ARRAY_3(newJoints, joints)
-                            } else if (jointStride == 2) {
-                                GLTF_APPEND_ARRAY_2(newJoints, joints)
-                            } else {
-                                GLTF_APPEND_ARRAY_1(newJoints, joints)
-                            }
-                        }
-
-                        if (weights.size() == partVerticesCount * weightStride) {
-                            if (weightStride == 4) {
-                                GLTF_APPEND_ARRAY_4(newWeights, weights)
-                            } else if (weightStride == 3) {
-                                GLTF_APPEND_ARRAY_3(newWeights, weights)
-                            } else if (weightStride == 2) {
-                                GLTF_APPEND_ARRAY_2(newWeights, weights)
-                            } else {
-                                GLTF_APPEND_ARRAY_1(newWeights, weights)
-                            }
-                        }
-                        newIndices.append(n);
-                        newIndices.append(n + 1);
-                        newIndices.append(n + 2);
-                    }
-
-                    vertices = newVertices;
-                    normals = newNormals;
-                    tangents = QVector<float>();
-                    texcoords = newTexcoords;
-                    texcoords2 = newTexcoords2;
-                    colors = newColors;
-                    joints = newJoints;
-                    weights = newWeights;
-                    indices = newIndices;
-
-                    partVerticesCount = vertices.size() / 3;
-                }
-
-                QVector<int> validatedIndices;
-                for (int n = 0; n < indices.count(); ++n) {
-                    if (indices[n] < partVerticesCount) {
-                        validatedIndices.push_back(indices[n] + prevMeshVerticesCount);
                     } else {
-                        validatedIndices = QVector<int>();
+                        mesh.clusterIndices.push_back(0);
+                        mesh.clusterIndices.push_back(0);
+                        mesh.clusterIndices.push_back(0);
+                    }
+                }
+            } else if (primitiveAttributes.contains("JOINTS_0")) {
+                for (int i = 0; i < partVerticesCount; ++i) {
+                    for (int j = 0; j < 4; ++j) {
+                        mesh.clusterIndices.push_back(0);
+                    }
+                }
+            }
+
+            if (!mesh.clusterIndices.empty()) {
+                int skinIndex = gltfMeshToSkin[gltfMeshIndex];
+                if (skinIndex != -1) {
+                    const auto& deformer = hfmModel.skinDeformers[(size_t)skinIndex];
+                    std::vector<uint16_t> oldToNew;
+                    oldToNew.resize(_file.nodes.size());
+                    for (uint16_t clusterIndex = 0; clusterIndex < deformer.clusters.size() - 1; ++clusterIndex) {
+                        const auto& cluster = deformer.clusters[clusterIndex];
+                        oldToNew[(size_t)cluster.jointIndex] = clusterIndex;
+                    }
+                }
+            }
+
+            // populate the texture coordinates if they don't exist
+            if (mesh.texCoords.size() == 0 && !hfmModel.hasSkeletonJoints) {
+                for (int i = 0; i < part.triangleIndices.size(); ++i) { mesh.texCoords.push_back(glm::vec2(0.0, 1.0)); }
+            }
+
+            // Build morph targets (blend shapes)
+            if (!primitive.targets.isEmpty()) {
+
+                // Build list of blendshapes from FST
+                typedef QPair<int, float> WeightedIndex;
+                hifi::VariantHash blendshapeMappings = mapping.value("bs").toHash();
+                QMultiHash<QString, WeightedIndex> blendshapeIndices;
+
+                for (int i = 0;; ++i) {
+                    hifi::ByteArray blendshapeName = FACESHIFT_BLENDSHAPES[i];
+                    if (blendshapeName.isEmpty()) {
                         break;
                     }
-                }
-
-                if (validatedIndices.size() == 0) {
-                    qWarning(modelformat) << "Indices out of range for model " << _url;
-                    continue;
-                }
-
-                part.triangleIndices.append(validatedIndices);
-
-                for (int n = 0; n < vertices.size(); n = n + verticesStride) {
-                    mesh.vertices.push_back(glm::vec3(vertices[n], vertices[n + 1], vertices[n + 2]));
-                }
-
-                for (int n = 0; n < normals.size(); n = n + normalStride) {
-                    mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
-                }
-
-                // TODO: add correct tangent generation
-                if (tangents.size() == partVerticesCount * tangentStride) {
-                    for (int n = 0; n < tangents.size(); n += tangentStride) {
-                        float tanW = tangentStride == 4 ? tangents[n + 3] : 1;
-                        mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tanW * tangents[n + 2]));
+                    QList<QVariant> mappings = blendshapeMappings.values(blendshapeName);
+                    foreach (const QVariant& mapping, mappings) {
+                        QVariantList blendshapeMapping = mapping.toList();
+                        blendshapeIndices.insert(blendshapeMapping.at(0).toByteArray(), WeightedIndex(i, blendshapeMapping.at(1).toFloat()));
                     }
-                } else {
-                    if (meshAttributes.contains("TANGENT")) {
-                        for (int i = 0; i < partVerticesCount; ++i) {
-                            mesh.tangents.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+                }
+
+                // glTF morph targets may or may not have names. if they are labeled, add them based on
+                // the corresponding names from the FST. otherwise, just add them in the order they are given
+                mesh.blendshapes.resize(blendshapeMappings.size());
+                auto values = blendshapeIndices.values();
+                auto keys = blendshapeIndices.keys();
+                auto names = gltfMesh.extras.targetNames;
+                QVector<double> weights = gltfMesh.weights;
+
+                for (int weightedIndex = 0; weightedIndex < values.size(); ++weightedIndex) {
+                    float weight = 0.1f;
+                    int indexFromMapping = weightedIndex;
+                    int targetIndex = weightedIndex;
+                    hfmModel.blendshapeChannelNames.push_back("target_" + QString::number(weightedIndex));
+
+                    if (!names.isEmpty()) {
+                        targetIndex = names.indexOf(keys[weightedIndex]);
+                        indexFromMapping = values[weightedIndex].first;
+                        weight = weight * values[weightedIndex].second;
+                        hfmModel.blendshapeChannelNames[weightedIndex] = keys[weightedIndex];
+                    }
+                    HFMBlendshape& blendshape = mesh.blendshapes[indexFromMapping];
+                    blendshape.indices = part.triangleIndices;
+                    auto target = primitive.targets[targetIndex];
+
+                    QVector<glm::vec3> normals;
+                    QVector<glm::vec3> vertices;
+
+                    if (weights.size() == primitive.targets.size()) {
+                        int targetWeight = weights[targetIndex];
+                        if (targetWeight != 0) {
+                            weight = weight * targetWeight;
                         }
                     }
-                }
 
-                if (texcoords.size() == partVerticesCount * texCoordStride) {
-                    for (int n = 0; n < texcoords.size(); n = n + 2) {
-                        mesh.texCoords.push_back(glm::vec2(texcoords[n], texcoords[n + 1]));
+                    if (target.values.contains((QString) "NORMAL")) {
+                        generateTargetData(target.values.value((QString) "NORMAL"), weight, normals);
                     }
-                } else {
-                    if (meshAttributes.contains("TEXCOORD_0")) {
-                        for (int i = 0; i < partVerticesCount; ++i) {
-                            mesh.texCoords.push_back(glm::vec2(0.0f, 0.0f));
-                        }
+                    if (target.values.contains((QString) "POSITION")) {
+                        generateTargetData(target.values.value((QString) "POSITION"), weight, vertices);
                     }
-                }
-
-                if (texcoords2.size() == partVerticesCount * texCoord2Stride) {
-                    for (int n = 0; n < texcoords2.size(); n = n + 2) {
-                        mesh.texCoords1.push_back(glm::vec2(texcoords2[n], texcoords2[n + 1]));
-                    }
-                } else {
-                    if (meshAttributes.contains("TEXCOORD_1")) {
-                        for (int i = 0; i < partVerticesCount; ++i) {
-                            mesh.texCoords1.push_back(glm::vec2(0.0f, 0.0f));
-                        }
-                    }
-                }
-
-                if (colors.size() == partVerticesCount * colorStride) {
-                    for (int n = 0; n < colors.size(); n += colorStride) {
-                        mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
-                    }
-                } else {
-                    if (meshAttributes.contains("COLOR_0")) {
-                        for (int i = 0; i < partVerticesCount; ++i) {
-                            mesh.colors.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
-                        }
-                    }
-                }
-
-                if (joints.size() == partVerticesCount * jointStride) {
-                    for (int n = 0; n < joints.size(); n += jointStride) {
-                        clusterJoints.push_back(joints[n]);
-                        if (jointStride > 1) {
-                            clusterJoints.push_back(joints[n + 1]);
-                            if (jointStride > 2) {
-                                clusterJoints.push_back(joints[n + 2]);
-                                if (jointStride > 3) {
-                                    clusterJoints.push_back(joints[n + 3]);
-                                } else {
-                                    clusterJoints.push_back(0);
-                                }
-                            } else {
-                                clusterJoints.push_back(0);
-                                clusterJoints.push_back(0);
-                            }
+                    bool isNewBlendshape = blendshape.vertices.size() < vertices.size();
+                    int count = 0;
+                    for (int i : blendshape.indices) {
+                        if (isNewBlendshape) {
+                            blendshape.vertices.push_back(vertices[i]);
+                            blendshape.normals.push_back(normals[i]);
                         } else {
-                            clusterJoints.push_back(0);
-                            clusterJoints.push_back(0);
-                            clusterJoints.push_back(0);
-                        }
-                    }
-                } else {
-                    if (meshAttributes.contains("JOINTS_0")) {
-                        for (int i = 0; i < partVerticesCount; ++i) {
-                            for (int j = 0; j < 4; ++j) {
-                                clusterJoints.push_back(0);
-                            }
+                            blendshape.vertices[count] = blendshape.vertices[count] + vertices[i];
+                            blendshape.normals[count] = blendshape.normals[count] + normals[i];
+                            ++count;
                         }
                     }
                 }
-
-                if (weights.size() == partVerticesCount * weightStride) {
-                    for (int n = 0; n < weights.size(); n += weightStride) {
-                        clusterWeights.push_back(weights[n]);
-                        if (weightStride > 1) {
-                            clusterWeights.push_back(weights[n + 1]);
-                            if (weightStride > 2) {
-                                clusterWeights.push_back(weights[n + 2]);
-                                if (weightStride > 3) {
-                                    clusterWeights.push_back(weights[n + 3]);
-                                } else {
-                                    clusterWeights.push_back(0.0f);
-                                }
-                            } else {
-                                clusterWeights.push_back(0.0f);
-                                clusterWeights.push_back(0.0f);
-                            }
-                        } else {
-                            clusterWeights.push_back(0.0f);
-                            clusterWeights.push_back(0.0f);
-                            clusterWeights.push_back(0.0f);
-                        }
-                    }
-                } else {
-                    if (meshAttributes.contains("WEIGHTS_0")) {
-                        for (int i = 0; i < partVerticesCount; ++i) {
-                            clusterWeights.push_back(1.0f);
-                            for (int j = 1; j < 4; ++j) {
-                                clusterWeights.push_back(0.0f);
-                            }
-                        }
-                    }
-                }
-
-                // Build weights (adapted from FBXSerializer.cpp)
-                if (hfmModel.hasSkeletonJoints) {
-                    int prevMeshClusterIndexCount = mesh.clusterIndices.count();
-                    int prevMeshClusterWeightCount = mesh.clusterWeights.count();
-                    const int WEIGHTS_PER_VERTEX = 4;
-                    const float ALMOST_HALF = 0.499f;
-                    int numVertices = mesh.vertices.size() - prevMeshVerticesCount;
-
-                    // Append new cluster indices and weights for this mesh part
-                    for (int i = 0; i < numVertices * WEIGHTS_PER_VERTEX; ++i) {
-                        mesh.clusterIndices.push_back(mesh.clusters.size() - 1);
-                        mesh.clusterWeights.push_back(0);
-                    }
-
-                    for (int c = 0; c < clusterJoints.size(); ++c) {
-                        mesh.clusterIndices[prevMeshClusterIndexCount + c] =
-                            originalToNewNodeIndexMap[_file.skins[node.skin].joints[clusterJoints[c]]];
-                    }
-
-                    // normalize and compress to 16-bits
-                    for (int i = 0; i < numVertices; ++i) {
-                        int j = i * WEIGHTS_PER_VERTEX;
-
-                        float totalWeight = 0.0f;
-                        for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
-                            totalWeight += clusterWeights[k];
-                        }
-                        if (totalWeight > 0.0f) {
-                            float weightScalingFactor = (float)(UINT16_MAX) / totalWeight;
-                            for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
-                                mesh.clusterWeights[prevMeshClusterWeightCount + k] = (uint16_t)(weightScalingFactor * clusterWeights[k] + ALMOST_HALF);
-                            }
-                        } else {
-                            mesh.clusterWeights[prevMeshClusterWeightCount + j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
-                        }
-                        for (int clusterIndex = 0; clusterIndex < mesh.clusters.size() - 1; ++clusterIndex) {
-                            ShapeVertices& points = hfmModel.shapeVertices.at(clusterIndex);
-                            glm::vec3 globalMeshScale = extractScale(globalTransforms[nodeIndex]);
-                            const glm::mat4 meshToJoint = glm::scale(glm::mat4(), globalMeshScale) * jointInverseBindTransforms[clusterIndex];
-
-                            const float EXPANSION_WEIGHT_THRESHOLD = 0.25f;
-                            if (mesh.clusterWeights[j] >= EXPANSION_WEIGHT_THRESHOLD) {
-                                // TODO: fix transformed vertices being pushed back
-                                auto& vertex = mesh.vertices[i];
-                                const glm::mat4 vertexTransform = meshToJoint * (glm::translate(glm::mat4(), vertex));
-                                glm::vec3 transformedVertex = hfmModel.joints[clusterIndex].translation * (extractTranslation(vertexTransform));
-                                points.push_back(transformedVertex);
-                            }
-                        }
-                    }
-                }
-
-                if (primitive.defined["material"]) {
-                    part.materialID = materialIDs[primitive.material];
-                }
-                mesh.parts.push_back(part);
-
-                // populate the texture coordinates if they don't exist
-                if (mesh.texCoords.size() == 0 && !hfmModel.hasSkeletonJoints) {
-                    for (int i = 0; i < part.triangleIndices.size(); ++i) { mesh.texCoords.push_back(glm::vec2(0.0, 1.0)); }
-                }
-
-                // Build morph targets (blend shapes)
-                if (!primitive.targets.isEmpty()) {
-
-                    // Build list of blendshapes from FST
-                    typedef QPair<int, float> WeightedIndex;
-                    hifi::VariantHash blendshapeMappings = mapping.value("bs").toHash();
-                    QMultiHash<QString, WeightedIndex> blendshapeIndices;
-
-                    for (int i = 0;; ++i) {
-                        hifi::ByteArray blendshapeName = FACESHIFT_BLENDSHAPES[i];
-                        if (blendshapeName.isEmpty()) {
-                            break;
-                        }
-                        QList<QVariant> mappings = blendshapeMappings.values(blendshapeName);
-                        foreach (const QVariant& mapping, mappings) {
-                            QVariantList blendshapeMapping = mapping.toList();
-                            blendshapeIndices.insert(blendshapeMapping.at(0).toByteArray(), WeightedIndex(i, blendshapeMapping.at(1).toFloat()));
-                        }
-                    }
-
-                    // glTF morph targets may or may not have names. if they are labeled, add them based on
-                    // the corresponding names from the FST. otherwise, just add them in the order they are given
-                    mesh.blendshapes.resize(blendshapeMappings.size());
-                    auto values = blendshapeIndices.values();
-                    auto keys = blendshapeIndices.keys();
-                    auto names = _file.meshes[node.mesh].extras.targetNames;
-                    QVector<double> weights = _file.meshes[node.mesh].weights;
-
-                    for (int weightedIndex = 0; weightedIndex < values.size(); ++weightedIndex) {
-                        float weight = 0.1f;
-                        int indexFromMapping = weightedIndex;
-                        int targetIndex = weightedIndex;
-                        hfmModel.blendshapeChannelNames.push_back("target_" + QString::number(weightedIndex));
-
-                        if (!names.isEmpty()) {
-                            targetIndex = names.indexOf(keys[weightedIndex]);
-                            indexFromMapping = values[weightedIndex].first;
-                            weight = weight * values[weightedIndex].second;
-                            hfmModel.blendshapeChannelNames[weightedIndex] = keys[weightedIndex];
-                        }
-                        HFMBlendshape& blendshape = mesh.blendshapes[indexFromMapping];
-                        blendshape.indices = part.triangleIndices;
-                        auto target = primitive.targets[targetIndex];
-
-                        QVector<glm::vec3> normals;
-                        QVector<glm::vec3> vertices;
-
-                        if (weights.size() == primitive.targets.size()) {
-                            int targetWeight = weights[targetIndex];
-                            if (targetWeight != 0) {
-                                weight = weight * targetWeight;
-                            }
-                        }
-
-                        if (target.values.contains((QString) "NORMAL")) {
-                            generateTargetData(target.values.value((QString) "NORMAL"), weight, normals);
-                        }
-                        if (target.values.contains((QString) "POSITION")) {
-                            generateTargetData(target.values.value((QString) "POSITION"), weight, vertices);
-                        }
-                        bool isNewBlendshape = blendshape.vertices.size() < vertices.size();
-                        int count = 0;
-                        for (int i : blendshape.indices) {
-                            if (isNewBlendshape) {
-                                blendshape.vertices.push_back(vertices[i]);
-                                blendshape.normals.push_back(normals[i]);
-                            } else {
-                                blendshape.vertices[count] = blendshape.vertices[count] + vertices[i];
-                                blendshape.normals[count] = blendshape.normals[count] + normals[i];
-                                ++count;
-                            }
-                        }
-                    }
-                }
-
-                foreach(const glm::vec3& vertex, mesh.vertices) {
-                    glm::vec3 transformedVertex = glm::vec3(globalTransforms[nodeIndex] * glm::vec4(vertex, 1.0f));
-                    mesh.meshExtents.addPoint(transformedVertex);
-                    hfmModel.meshExtents.addPoint(transformedVertex);
-                }               
-            }
-
-            // Add epsilon to mesh extents to compensate for planar meshes
-            mesh.meshExtents.minimum -= glm::vec3(EPSILON, EPSILON, EPSILON);
-            mesh.meshExtents.maximum += glm::vec3(EPSILON, EPSILON, EPSILON);
-            hfmModel.meshExtents.minimum -= glm::vec3(EPSILON, EPSILON, EPSILON);
-            hfmModel.meshExtents.maximum += glm::vec3(EPSILON, EPSILON, EPSILON);
-           
-            mesh.meshIndex = hfmModel.meshes.size();
+            }         
         }
-        ++nodecount;
+    }
+
+
+    // Create the instance shapes for each transform node
+    for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
+        const auto& node = _file.nodes[nodeIndex];
+        if (-1 == node.mesh) {
+            continue;
+        }
+
+        const auto& gltfMesh = _file.meshes[node.mesh];
+        const auto& templateShapePerPrim = templateShapePerPrimPerGLTFMesh[node.mesh];
+        int primCount = (int)gltfMesh.primitives.size();
+        for (int primIndex = 0; primIndex < primCount; ++primIndex) {
+            const auto& templateShape = templateShapePerPrim[primIndex];
+            hfmModel.shapes.push_back(templateShape);
+            auto& hfmShape = hfmModel.shapes.back();
+            // Everything else is already defined (mesh, meshPart, material), so just define the new transform and deformer if present
+            hfmShape.joint = nodeIndex;
+            hfmShape.skinDeformer = node.skin != -1 ? node.skin : hfm::UNDEFINED_KEY;
+        }
+    }
+
+    // TODO: Fix skinning and remove this workaround which disables skinning
+    // TODO: Restore after testing
+    {
+        std::vector<int> meshToRootJoint;
+        meshToRootJoint.resize(hfmModel.meshes.size(), -1);
+        std::vector<uint16_t> meshToClusterSize;
+        meshToClusterSize.resize(hfmModel.meshes.size());
+        for (auto& shape : hfmModel.shapes) {
+            shape.skinDeformer = hfm::UNDEFINED_KEY;
+        }
+
+        for (auto& mesh : hfmModel.meshes) {
+            mesh.clusterWeights.clear();
+            mesh.clusterIndices.clear();
+            mesh.clusterWeightsPerVertex = 0;
+        }
+
     }
 
     return true;
@@ -1636,9 +1578,8 @@ std::unique_ptr<hfm::Serializer::Factory> GLTFSerializer::getFactory() const {
 }
 
 HFMModel::Pointer GLTFSerializer::read(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url) {
-
     _url = url;
-    
+
     // Normalize url for local files
     hifi::URL normalizeUrl = DependencyManager::get<ResourceManager>()->normalizeURL(_url);
     if (normalizeUrl.scheme().isEmpty() || (normalizeUrl.scheme() == "file")) {
@@ -1648,6 +1589,9 @@ HFMModel::Pointer GLTFSerializer::read(const hifi::ByteArray& data, const hifi::
 
     if (parseGLTF(data)) {
         //_file.dump();
+        _file.sortNodes();
+        _file.populateMaterialNames();
+        _file.normalizeNodeTransforms();
         auto hfmModelPtr = std::make_shared<HFMModel>();
         HFMModel& hfmModel = *hfmModelPtr;
         buildGeometry(hfmModel, mapping, _url);
@@ -1671,7 +1615,7 @@ bool GLTFSerializer::readBinary(const QString& url, hifi::ByteArray& outdata) {
         hifi::URL binaryUrl = _url.resolved(url);
         std::tie<bool, hifi::ByteArray>(success, outdata) = requestData(binaryUrl);
     }
-    
+
     return success;
 }
 
@@ -1684,8 +1628,8 @@ bool GLTFSerializer::doesResourceExist(const QString& url) {
 }
 
 std::tuple<bool, hifi::ByteArray> GLTFSerializer::requestData(hifi::URL& url) {
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
-        nullptr, url, true, -1, "GLTFSerializer::requestData");
+    auto request =
+        DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, url, true, -1, "GLTFSerializer::requestData");
 
     if (!request) {
         return std::make_tuple(false, hifi::ByteArray());
@@ -1704,19 +1648,16 @@ std::tuple<bool, hifi::ByteArray> GLTFSerializer::requestData(hifi::URL& url) {
 }
 
 hifi::ByteArray GLTFSerializer::requestEmbeddedData(const QString& url) {
-    QString binaryUrl = url.split(",")[1]; 
+    QString binaryUrl = url.split(",")[1];
     return binaryUrl.isEmpty() ? hifi::ByteArray() : QByteArray::fromBase64(binaryUrl.toUtf8());
 }
-
 
 QNetworkReply* GLTFSerializer::request(hifi::URL& url, bool isTest) {
     if (!qApp) {
         return nullptr;
     }
     bool aboutToQuit{ false };
-    auto connection = QObject::connect(qApp, &QCoreApplication::aboutToQuit, [&] {
-        aboutToQuit = true;
-    });
+    auto connection = QObject::connect(qApp, &QCoreApplication::aboutToQuit, [&] { aboutToQuit = true; });
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest netRequest(url);
     netRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
@@ -1725,18 +1666,18 @@ QNetworkReply* GLTFSerializer::request(hifi::URL& url, bool isTest) {
         netReply->deleteLater();
         return nullptr;
     }
-    QEventLoop loop; // Create an event loop that will quit when we get the finished signal
+    QEventLoop loop;  // Create an event loop that will quit when we get the finished signal
     QObject::connect(netReply, SIGNAL(finished()), &loop, SLOT(quit()));
-    loop.exec();                    // Nothing is going to happen on this whole run thread until we get this
+    loop.exec();  // Nothing is going to happen on this whole run thread until we get this
 
     QObject::disconnect(connection);
-    return netReply;                // trying to sync later on.
+    return netReply;  // trying to sync later on.
 }
 
 HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
     HFMTexture fbxtex = HFMTexture();
     fbxtex.texcoordSet = 0;
-  
+
     if (texture.defined["source"]) {
         QString url = _file.images[texture.source].uri;
 
@@ -1744,10 +1685,10 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
         hifi::URL textureUrl = _url.resolved(url);
         fbxtex.name = fname;
         fbxtex.filename = textureUrl.toEncoded();
-        
+
         if (_url.toString().endsWith("glb") && !_glbBinary.isEmpty()) {
             int bufferView = _file.images[texture.source].bufferView;
-       
+
             GLTFBufferView& imagesBufferview = _file.bufferviews[bufferView];
             int offset = imagesBufferview.byteOffset;
             int length = imagesBufferview.byteLength;
@@ -1757,7 +1698,7 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
         }
 
         if (url.contains("data:image/jpeg;base64,") || url.contains("data:image/png;base64,")) {
-            fbxtex.content = requestEmbeddedData(url); 
+            fbxtex.content = requestEmbeddedData(url);
         }
     }
     return fbxtex;
@@ -1787,12 +1728,12 @@ void GLTFSerializer::setHFMMaterial(HFMMaterial& hfmMat, const GLTFMaterial& mat
         hfmMat.emissiveTexture = getHFMTexture(_file.textures[material.emissiveTexture]);
         hfmMat.useEmissiveMap = true;
     }
-    
+
     if (material.defined["normalTexture"]) {
         hfmMat.normalTexture = getHFMTexture(_file.textures[material.normalTexture]);
         hfmMat.useNormalMap = true;
     }
-    
+
     if (material.defined["occlusionTexture"]) {
         hfmMat.occlusionTexture = getHFMTexture(_file.textures[material.occlusionTexture]);
         hfmMat.useOcclusionMap = true;
@@ -1820,7 +1761,7 @@ void GLTFSerializer::setHFMMaterial(HFMMaterial& hfmMat, const GLTFMaterial& mat
         if (material.pbrMetallicRoughness.defined["roughnessFactor"]) {
             hfmMat._material->setRoughness(material.pbrMetallicRoughness.roughnessFactor);
         }
-        if (material.pbrMetallicRoughness.defined["baseColorFactor"] && 
+        if (material.pbrMetallicRoughness.defined["baseColorFactor"] &&
             material.pbrMetallicRoughness.baseColorFactor.size() == 4) {
             glm::vec3 dcolor =
                 glm::vec3(material.pbrMetallicRoughness.baseColorFactor[0], material.pbrMetallicRoughness.baseColorFactor[1],
@@ -1830,13 +1771,10 @@ void GLTFSerializer::setHFMMaterial(HFMMaterial& hfmMat, const GLTFMaterial& mat
             hfmMat._material->setOpacity(material.pbrMetallicRoughness.baseColorFactor[3]);
         }
     }
-
 }
 
-template<typename T, typename L>
-bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int count,
-                           QVector<L>& outarray, int accessorType) {
-    
+template <typename T, typename L>
+bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int count, QVector<L>& outarray, int accessorType) {
     QDataStream blobstream(bin);
     blobstream.setByteOrder(QDataStream::LittleEndian);
     blobstream.setVersion(QDataStream::Qt_5_9);
@@ -1845,31 +1783,31 @@ bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int c
 
     int bufferCount = 0;
     switch (accessorType) {
-    case GLTFAccessorType::SCALAR:
-        bufferCount = 1;
-        break;
-    case GLTFAccessorType::VEC2:
-        bufferCount = 2;
-        break;
-    case GLTFAccessorType::VEC3:
-        bufferCount = 3;
-        break;
-    case GLTFAccessorType::VEC4:
-        bufferCount = 4;
-        break;
-    case GLTFAccessorType::MAT2:
-        bufferCount = 4;
-        break;
-    case GLTFAccessorType::MAT3:
-        bufferCount = 9;
-        break;
-    case GLTFAccessorType::MAT4:
-        bufferCount = 16;
-        break;
-    default:
-        qWarning(modelformat) << "Unknown accessorType: " << accessorType;
-        blobstream.setDevice(nullptr);
-        return false;
+        case GLTFAccessorType::SCALAR:
+            bufferCount = 1;
+            break;
+        case GLTFAccessorType::VEC2:
+            bufferCount = 2;
+            break;
+        case GLTFAccessorType::VEC3:
+            bufferCount = 3;
+            break;
+        case GLTFAccessorType::VEC4:
+            bufferCount = 4;
+            break;
+        case GLTFAccessorType::MAT2:
+            bufferCount = 4;
+            break;
+        case GLTFAccessorType::MAT3:
+            bufferCount = 9;
+            break;
+        case GLTFAccessorType::MAT4:
+            bufferCount = 16;
+            break;
+        default:
+            qWarning(modelformat) << "Unknown accessorType: " << accessorType;
+            blobstream.setDevice(nullptr);
+            return false;
     }
     for (int i = 0; i < count; ++i) {
         for (int j = 0; j < bufferCount; ++j) {
@@ -1887,29 +1825,140 @@ bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int c
     blobstream.setDevice(nullptr);
     return true;
 }
-template<typename T>
-bool GLTFSerializer::addArrayOfType(const hifi::ByteArray& bin, int byteOffset, int count,
-                                QVector<T>& outarray, int accessorType, int componentType) {
-    
+template <typename T>
+bool GLTFSerializer::addArrayOfType(const hifi::ByteArray& bin,
+                                    int byteOffset,
+                                    int count,
+                                    QVector<T>& outarray,
+                                    int accessorType,
+                                    int componentType) {
     switch (componentType) {
-    case GLTFAccessorComponentType::BYTE: {}
-    case GLTFAccessorComponentType::UNSIGNED_BYTE: {
-        return readArray<uchar>(bin, byteOffset, count, outarray, accessorType);
-    }
-    case GLTFAccessorComponentType::SHORT: {
-        return readArray<short>(bin, byteOffset, count, outarray, accessorType);
-    }
-    case GLTFAccessorComponentType::UNSIGNED_INT: {
-        return readArray<uint>(bin, byteOffset, count, outarray, accessorType);
-    }
-    case GLTFAccessorComponentType::UNSIGNED_SHORT: {
-        return readArray<ushort>(bin, byteOffset, count, outarray, accessorType);
-    }
-    case GLTFAccessorComponentType::FLOAT: {
-        return readArray<float>(bin, byteOffset, count, outarray, accessorType);
-    }
+        case GLTFAccessorComponentType::BYTE: {}
+        case GLTFAccessorComponentType::UNSIGNED_BYTE: {
+            return readArray<uchar>(bin, byteOffset, count, outarray, accessorType);
+        }
+        case GLTFAccessorComponentType::SHORT: {
+            return readArray<short>(bin, byteOffset, count, outarray, accessorType);
+        }
+        case GLTFAccessorComponentType::UNSIGNED_INT: {
+            return readArray<uint>(bin, byteOffset, count, outarray, accessorType);
+        }
+        case GLTFAccessorComponentType::UNSIGNED_SHORT: {
+            return readArray<ushort>(bin, byteOffset, count, outarray, accessorType);
+        }
+        case GLTFAccessorComponentType::FLOAT: {
+            return readArray<float>(bin, byteOffset, count, outarray, accessorType);
+        }
     }
     return false;
+}
+
+
+template <typename T>
+bool GLTFSerializer::addArrayFromAttribute(GLTFVertexAttribute::Value vertexAttribute, GLTFAccessor& accessor, QVector<T>& outarray) {
+    switch (vertexAttribute) {
+    case GLTFVertexAttribute::POSITION:
+        if (accessor.type != GLTFAccessorType::VEC3) {
+            qWarning(modelformat) << "Invalid accessor type on glTF POSITION data for model " << _url;
+            return false;
+        }
+
+        if (!addArrayFromAccessor(accessor, outarray)) {
+            qWarning(modelformat) << "There was a problem reading glTF POSITION data for model " << _url;
+            return false;
+        }
+        break;
+
+    case GLTFVertexAttribute::NORMAL:
+        if (accessor.type != GLTFAccessorType::VEC3) {
+            qWarning(modelformat) << "Invalid accessor type on glTF NORMAL data for model " << _url;
+            return false;
+        }
+
+        if (!addArrayFromAccessor(accessor, outarray)) {
+            qWarning(modelformat) << "There was a problem reading glTF NORMAL data for model " << _url;
+            return false;
+        }
+        break;
+
+    case GLTFVertexAttribute::TANGENT:
+        if (accessor.type != GLTFAccessorType::VEC4 && accessor.type != GLTFAccessorType::VEC3) {
+            qWarning(modelformat) << "Invalid accessor type on glTF TANGENT data for model " << _url;
+            return false;
+        }
+
+        if (!addArrayFromAccessor(accessor, outarray)) {
+            qWarning(modelformat) << "There was a problem reading glTF TANGENT data for model " << _url;
+            return false;
+        }
+        break;
+
+    case GLTFVertexAttribute::TEXCOORD_0:
+        if (accessor.type != GLTFAccessorType::VEC2) {
+            qWarning(modelformat) << "Invalid accessor type on glTF TEXCOORD_0 data for model " << _url;
+            return false;
+        }
+
+        if (!addArrayFromAccessor(accessor, outarray)) {
+            qWarning(modelformat) << "There was a problem reading glTF TEXCOORD_0 data for model " << _url;
+            return false;
+        }
+        break;
+
+    case GLTFVertexAttribute::TEXCOORD_1:
+        if (accessor.type != GLTFAccessorType::VEC2) {
+            qWarning(modelformat) << "Invalid accessor type on glTF TEXCOORD_1 data for model " << _url;
+            return false;
+        }
+        if (!addArrayFromAccessor(accessor, outarray)) {
+            qWarning(modelformat) << "There was a problem reading glTF TEXCOORD_1 data for model " << _url;
+            return false;
+        }
+        break;
+
+    case GLTFVertexAttribute::COLOR_0:
+        if (accessor.type != GLTFAccessorType::VEC4 && accessor.type != GLTFAccessorType::VEC3) {
+            qWarning(modelformat) << "Invalid accessor type on glTF COLOR_0 data for model " << _url;
+            return false;
+        }
+
+        if (!addArrayFromAccessor(accessor, outarray)) {
+            qWarning(modelformat) << "There was a problem reading glTF COLOR_0 data for model " << _url;
+            return false;
+        }
+        break;
+
+    case GLTFVertexAttribute::JOINTS_0:
+        if (accessor.type < GLTFAccessorType::SCALAR || accessor.type > GLTFAccessorType::VEC4) {
+            qWarning(modelformat) << "Invalid accessor type on glTF JOINTS_0 data for model " << _url;
+            return false;
+        }
+
+        if (!addArrayFromAccessor(accessor, outarray)) {
+            qWarning(modelformat) << "There was a problem reading glTF JOINTS_0 data for model " << _url;
+            return false;
+        }
+        break;
+
+    case GLTFVertexAttribute::WEIGHTS_0:
+        if (accessor.type < GLTFAccessorType::SCALAR || accessor.type > GLTFAccessorType::VEC4) {
+            qWarning(modelformat) << "Invalid accessor type on glTF WEIGHTS_0 data for model " << _url;
+            return false;
+        }
+
+        if (!addArrayFromAccessor(accessor, outarray)) {
+            qWarning(modelformat) << "There was a problem reading glTF WEIGHTS_0 data for model " << _url;
+            return false;
+        }
+        break;
+
+    default:
+        qWarning(modelformat) << "Unexpected attribute type" << _url;
+        return false;
+    }
+
+    
+    return true;
 }
 
 template <typename T>
@@ -1957,7 +2006,7 @@ bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& ou
 
                 if (success) {
                     for (int i = 0; i < accessor.sparse.count; ++i) {
-                        if ((i * 3) + 2 < out_sparse_values_array.size()) { 
+                        if ((i * 3) + 2 < out_sparse_values_array.size()) {
                             if ((out_sparse_indices_array[i] * 3) + 2 < outarray.length()) {
                                 for (int j = 0; j < 3; ++j) {
                                     outarray[(out_sparse_indices_array[i] * 3) + j] = out_sparse_values_array[(i * 3) + j];
@@ -1979,14 +2028,16 @@ bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& ou
     return success;
 }
 
-void GLTFSerializer::retriangulate(const QVector<int>& inIndices, const QVector<glm::vec3>& in_vertices, 
-                               const QVector<glm::vec3>& in_normals, QVector<int>& outIndices, 
-                               QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals) {
+void GLTFSerializer::retriangulate(const QVector<int>& inIndices,
+                                   const QVector<glm::vec3>& in_vertices,
+                                   const QVector<glm::vec3>& in_normals,
+                                   QVector<int>& outIndices,
+                                   QVector<glm::vec3>& out_vertices,
+                                   QVector<glm::vec3>& out_normals) {
     for (int i = 0; i < inIndices.size(); i = i + 3) {
-
         int idx1 = inIndices[i];
-        int idx2 = inIndices[i+1];
-        int idx3 = inIndices[i+2];
+        int idx2 = inIndices[i + 1];
+        int idx3 = inIndices[i + 2];
 
         out_vertices.push_back(in_vertices[idx1]);
         out_vertices.push_back(in_vertices[idx2]);
@@ -1997,8 +2048,8 @@ void GLTFSerializer::retriangulate(const QVector<int>& inIndices, const QVector<
         out_normals.push_back(in_normals[idx3]);
 
         outIndices.push_back(i);
-        outIndices.push_back(i+1);
-        outIndices.push_back(i+2);
+        outIndices.push_back(i + 1);
+        outIndices.push_back(i + 2);
     }
 }
 
@@ -2007,7 +2058,7 @@ void GLTFSerializer::glTFDebugDump() {
     for (GLTFNode node : _file.nodes) {
         if (node.defined["mesh"]) {
             qCDebug(modelformat) << "\n";
-            qCDebug(modelformat) << "    node_transforms" << node.transforms;
+            qCDebug(modelformat) << "    node_transform" << node.transform;
             qCDebug(modelformat) << "\n";
         }
     }
@@ -2035,144 +2086,7 @@ void GLTFSerializer::glTFDebugDump() {
 }
 
 void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
-    qCDebug(modelformat) << "---------------- hfmModel ----------------";
-    qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
-    qCDebug(modelformat) << "  offset =" << hfmModel.offset;
-
-    qCDebug(modelformat) << "  neckPivot = " << hfmModel.neckPivot;
-
-    qCDebug(modelformat) << "  bindExtents.size() = " << hfmModel.bindExtents.size();
-    qCDebug(modelformat) << "  meshExtents.size() = " << hfmModel.meshExtents.size();
-
-    qCDebug(modelformat) << "  jointIndices.size() =" << hfmModel.jointIndices.size();
-    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.count();
-    qCDebug(modelformat) << "---------------- Meshes ----------------";
-    qCDebug(modelformat) << "  meshes.count() =" << hfmModel.meshes.count();
-    qCDebug(modelformat) << "  blendshapeChannelNames = " << hfmModel.blendshapeChannelNames;
-    foreach(HFMMesh mesh, hfmModel.meshes) {
-        qCDebug(modelformat) << "\n";
-        qCDebug(modelformat) << "    meshpointer =" << mesh._mesh.get();
-        qCDebug(modelformat) << "    meshindex =" << mesh.meshIndex;
-        qCDebug(modelformat) << "    vertices.count() =" << mesh.vertices.size();
-        qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
-        qCDebug(modelformat) << "    normals.count() =" << mesh.normals.size();
-        qCDebug(modelformat) << "    tangents.count() =" << mesh.tangents.size();
-        qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
-        qCDebug(modelformat) << "    texCoords.count() =" << mesh.texCoords.count();
-        qCDebug(modelformat) << "    texCoords1.count() =" << mesh.texCoords1.count();
-        qCDebug(modelformat) << "    clusterIndices.count() =" << mesh.clusterIndices.count();
-        qCDebug(modelformat) << "    clusterWeights.count() =" << mesh.clusterWeights.count();
-        qCDebug(modelformat) << "    modelTransform =" << mesh.modelTransform;
-        qCDebug(modelformat) << "    parts.count() =" << mesh.parts.count();
-        qCDebug(modelformat) << "---------------- Meshes (blendshapes)--------";
-        foreach(HFMBlendshape bshape, mesh.blendshapes) {
-            qCDebug(modelformat) << "\n";
-            qCDebug(modelformat) << "    bshape.indices.count() =" << bshape.indices.count();
-            qCDebug(modelformat) << "    bshape.vertices.count() =" << bshape.vertices.count();
-            qCDebug(modelformat) << "    bshape.normals.count() =" << bshape.normals.count();
-            qCDebug(modelformat) << "\n";
-        }
-        qCDebug(modelformat) << "---------------- Meshes (meshparts)--------";
-        foreach(HFMMeshPart meshPart, mesh.parts) {
-            qCDebug(modelformat) << "\n";
-            qCDebug(modelformat) << "        quadIndices.count() =" << meshPart.quadIndices.count();
-            qCDebug(modelformat) << "        triangleIndices.count() =" << meshPart.triangleIndices.count();
-            qCDebug(modelformat) << "        materialID =" << meshPart.materialID;
-            qCDebug(modelformat) << "\n";
-
-        }
-        qCDebug(modelformat) << "---------------- Meshes (clusters)--------";
-        qCDebug(modelformat) << "    clusters.count() =" << mesh.clusters.count();
-        foreach(HFMCluster cluster, mesh.clusters) {
-            qCDebug(modelformat) << "\n";
-            qCDebug(modelformat) << "        jointIndex =" << cluster.jointIndex;
-            qCDebug(modelformat) << "        inverseBindMatrix =" << cluster.inverseBindMatrix;
-            qCDebug(modelformat) << "\n";
-        }
-        qCDebug(modelformat) << "\n";
-    }
-    qCDebug(modelformat) << "---------------- AnimationFrames ----------------";
-    foreach(HFMAnimationFrame anim, hfmModel.animationFrames) {
-        qCDebug(modelformat) << "  anim.translations = " << anim.translations;
-        qCDebug(modelformat) << "  anim.rotations = " << anim.rotations;
-    }
-    QList<int> mitomona_keys = hfmModel.meshIndicesToModelNames.keys();
-    foreach(int key, mitomona_keys) {
-        qCDebug(modelformat) << "    meshIndicesToModelNames key =" << key << "  val =" << hfmModel.meshIndicesToModelNames[key];
-    }
-
-    qCDebug(modelformat) << "---------------- Materials ----------------";
-
-    foreach(HFMMaterial mat, hfmModel.materials) {
-        qCDebug(modelformat) << "\n";
-        qCDebug(modelformat) << "  mat.materialID =" << mat.materialID;
-        qCDebug(modelformat) << "  diffuseColor =" << mat.diffuseColor;
-        qCDebug(modelformat) << "  diffuseFactor =" << mat.diffuseFactor;
-        qCDebug(modelformat) << "  specularColor =" << mat.specularColor;
-        qCDebug(modelformat) << "  specularFactor =" << mat.specularFactor;
-        qCDebug(modelformat) << "  emissiveColor =" << mat.emissiveColor;
-        qCDebug(modelformat) << "  emissiveFactor =" << mat.emissiveFactor;
-        qCDebug(modelformat) << "  shininess =" << mat.shininess;
-        qCDebug(modelformat) << "  opacity =" << mat.opacity;
-        qCDebug(modelformat) << "  metallic =" << mat.metallic;
-        qCDebug(modelformat) << "  roughness =" << mat.roughness;
-        qCDebug(modelformat) << "  emissiveIntensity =" << mat.emissiveIntensity;
-        qCDebug(modelformat) << "  ambientFactor =" << mat.ambientFactor;
-
-        qCDebug(modelformat) << "  materialID =" << mat.materialID;
-        qCDebug(modelformat) << "  name =" << mat.name;
-        qCDebug(modelformat) << "  shadingModel =" << mat.shadingModel;
-        qCDebug(modelformat) << "  _material =" << mat._material.get();
-
-        qCDebug(modelformat) << "  normalTexture =" << mat.normalTexture.filename;
-        qCDebug(modelformat) << "  albedoTexture =" << mat.albedoTexture.filename;
-        qCDebug(modelformat) << "  opacityTexture =" << mat.opacityTexture.filename;
-
-        qCDebug(modelformat) << "  lightmapParams =" << mat.lightmapParams;
-
-        qCDebug(modelformat) << "  isPBSMaterial =" << mat.isPBSMaterial;
-        qCDebug(modelformat) << "  useNormalMap =" << mat.useNormalMap;
-        qCDebug(modelformat) << "  useAlbedoMap =" << mat.useAlbedoMap;
-        qCDebug(modelformat) << "  useOpacityMap =" << mat.useOpacityMap;
-        qCDebug(modelformat) << "  useRoughnessMap =" << mat.useRoughnessMap;
-        qCDebug(modelformat) << "  useSpecularMap =" << mat.useSpecularMap;
-        qCDebug(modelformat) << "  useMetallicMap =" << mat.useMetallicMap;
-        qCDebug(modelformat) << "  useEmissiveMap =" << mat.useEmissiveMap;
-        qCDebug(modelformat) << "  useOcclusionMap =" << mat.useOcclusionMap;
-        qCDebug(modelformat) << "\n";
-    }
-
-    qCDebug(modelformat) << "---------------- Joints ----------------";
-
-    foreach (HFMJoint joint, hfmModel.joints) {
-        qCDebug(modelformat) << "\n";
-        qCDebug(modelformat) << "    shapeInfo.avgPoint =" << joint.shapeInfo.avgPoint;
-        qCDebug(modelformat) << "    shapeInfo.debugLines =" << joint.shapeInfo.debugLines;
-        qCDebug(modelformat) << "    shapeInfo.dots =" << joint.shapeInfo.dots;
-        qCDebug(modelformat) << "    shapeInfo.points =" << joint.shapeInfo.points;
-
-        qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;
-        qCDebug(modelformat) << "    distanceToParent" << joint.distanceToParent;
-        qCDebug(modelformat) << "    translation" << joint.translation;
-        qCDebug(modelformat) << "    preTransform" << joint.preTransform;
-        qCDebug(modelformat) << "    preRotation" << joint.preRotation;
-        qCDebug(modelformat) << "    rotation" << joint.rotation;
-        qCDebug(modelformat) << "    postRotation" << joint.postRotation;
-        qCDebug(modelformat) << "    postTransform" << joint.postTransform;
-        qCDebug(modelformat) << "    transform" << joint.transform;
-        qCDebug(modelformat) << "    rotationMin" << joint.rotationMin;
-        qCDebug(modelformat) << "    rotationMax" << joint.rotationMax;
-        qCDebug(modelformat) << "    inverseDefaultRotation" << joint.inverseDefaultRotation;
-        qCDebug(modelformat) << "    inverseBindRotation" << joint.inverseBindRotation;
-        qCDebug(modelformat) << "    bindTransform" << joint.bindTransform;
-        qCDebug(modelformat) << "    name" << joint.name;
-        qCDebug(modelformat) << "    isSkeletonJoint" << joint.isSkeletonJoint;
-        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.hasGeometricOffset;
-        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.geometricTranslation;
-        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.geometricRotation;
-        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.geometricScaling;
-        qCDebug(modelformat) << "\n";
-    }
+    hfmModel.debugDump();
 
     qCDebug(modelformat) << "---------------- GLTF Model ----------------";
     glTFDebugDump();

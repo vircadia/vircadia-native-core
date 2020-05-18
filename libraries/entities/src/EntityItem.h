@@ -18,6 +18,7 @@
 #include <glm/glm.hpp>
 
 #include <QtGui/QWindow>
+#include <QSet>
 
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
@@ -49,6 +50,7 @@ typedef std::shared_ptr<EntityTree> EntityTreePointer;
 typedef std::shared_ptr<EntityDynamicInterface> EntityDynamicPointer;
 typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
 using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
+using SetOfEntities = QSet<EntityItemPointer>;
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() override { };
@@ -517,7 +519,8 @@ public:
 
     // if this entity is an avatar entity, which avatar is it associated with?
     QUuid getOwningAvatarID() const { return _owningAvatarID; }
-    virtual void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
+    QUuid getOwningAvatarIDForProperties() const;
+    void setOwningAvatarID(const QUuid& owningAvatarID);
 
     virtual bool wantsHandControllerPointerEvents() const { return false; }
     virtual bool wantsKeyboardFocus() const { return false; }
@@ -542,6 +545,8 @@ public:
 
     static QString _marketplacePublicKey;
     static void retrieveMarketplacePublicKey();
+
+    void collectChildrenForDelete(std::vector<EntityItemPointer>& entitiesToDelete, const QUuid& sessionID) const;
 
     float getBoundingRadius() const { return _boundingRadius; }
     void setSpaceIndex(int32_t index);
@@ -576,6 +581,11 @@ public:
 
     bool needsRenderUpdate() const { return resultWithReadLock<bool>([&] { return _needsRenderUpdate; }); }
     void setNeedsRenderUpdate(bool needsRenderUpdate) { withWriteLock([&] { _needsRenderUpdate = needsRenderUpdate; }); }
+
+    void setRenderWithZones(const QVector<QUuid>& renderWithZones);
+    QVector<QUuid> getRenderWithZones() const;
+    bool needsZoneOcclusionUpdate() const { return _needsZoneOcclusionUpdate; }
+    void resetNeedsZoneOcclusionUpdate() { withWriteLock([&] { _needsZoneOcclusionUpdate = false; }); }
 
 signals:
     void spaceUpdate(std::pair<int32_t, glm::vec4> data);
@@ -765,8 +775,11 @@ protected:
 
     QHash<QUuid, EntityDynamicPointer> _grabActions;
 
+    QVector<QUuid> _renderWithZones;
+    mutable bool _needsZoneOcclusionUpdate { false };
+
     bool _cullWithParent { false };
-    
+
     mutable bool _needsRenderUpdate { false };
 
 private:
