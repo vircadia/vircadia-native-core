@@ -56,7 +56,7 @@ env:
 # ANDROID_OAUTH_CLIENT_ID= c1063ea5d0b0c405e0c9cd77351328e211a91496a3f25985a99e861f1661db1d
 # ANDROID_OAUTH_REDIRECT_URI=https://android-interface.highfidelity.com/auth
 # ARTIFACT_EXPRESSION=android/*.apk
-# ANDROID_APK_NAME=HighFidelity-Beta-PR${RELEASE_NUMBER}-${GIT_COMMIT_SHORT}.apk
+# ANDROID_APK_NAME=ProjectAthena-Alpha-PR${RELEASE_NUMBER}-${GIT_COMMIT_SHORT}.apk
 # ANDROID_BUILT_APK_NAME=interface-debug.apk	
 # ANDROID_APP=interface
 # ANDROID_BUILD_DIR=debug
@@ -134,14 +134,14 @@ jobs:
       shell: bash
       run: |
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
-        echo ::set-env name=ARTIFACT_PATTERN::HighFidelity-Beta-*.$INSTALLER_EXT
+        echo ::set-env name=ARTIFACT_PATTERN::ProjectAthena-Alpha-*.$INSTALLER_EXT
         # Build type variables
         if [ "${{ matrix.build_type }}" = "full" ]; then
           echo ::set-env name=CLIENT_ONLY::FALSE
-          echo ::set-env name=INSTALLER::HighFidelity-Beta-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+          echo ::set-env name=INSTALLER::ProjectAthena-Alpha-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
         else
           echo ::set-env name=CLIENT_ONLY::TRUE
-          echo ::set-env name=INSTALLER::HighFidelity-Beta-Interface-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+          echo ::set-env name=INSTALLER::ProjectAthena-Alpha-Interface-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
         fi
         # Linux build variables
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
@@ -168,20 +168,20 @@ jobs:
         submodules: true
         fetch-depth: 1
     - name: Create Build Directory
-      run: cmake -E make_directory ${{runner.workspace}}/build
-    - name: Decrypt Signing Key (Windows)
-      if: matrix.os == 'windows-latest'
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: gpg --batch --yes -o codesign.pfx --passphrase "${{secrets.gpg_symmetric_key}}" --decrypt $GITHUB_WORKSPACE/tools/ci-scripts/codesign.pfx.gpg
-    - name: Import Signing Key (Windows)
-      if: matrix.os == 'windows-latest'
-      working-directory: ${{runner.workspace}}/build
-      shell: powershell
-      run: | 
-        $mypwd=ConvertTo-SecureString -String ${{ secrets.pfx_key }} -Force -AsPlainText
-        Import-PfxCertificate -Password $mypwd -CertStoreLocation Cert:\CurrentUser\My -FilePath ${{runner.workspace}}\build\codesign.pfx
-        Import-PfxCertificate -Password $mypwd -CertStoreLocation Cert:\LocalMachine\My -FilePath ${{runner.workspace}}\build\codesign.pfx
+      run: cmake -E make_directory "${{runner.workspace}}/build"
+    #- name: Decrypt Signing Key (Windows)
+    #  if: matrix.os == 'windows-latest'
+    #  working-directory: ${{runner.workspace}}/build
+    #  shell: bash
+    #  run: gpg --batch --yes -o codesign.pfx --passphrase "${{secrets.gpg_symmetric_key}}" --decrypt $GITHUB_WORKSPACE/tools/ci-scripts/codesign.pfx.gpg
+    #- name: Import Signing Key (Windows)
+    #  if: matrix.os == 'windows-latest'
+    #  working-directory: ${{runner.workspace}}/build
+    #  shell: powershell
+    #  run: | 
+    #    $mypwd=ConvertTo-SecureString -String ${{ secrets.pfx_key }} -Force -AsPlainText
+    #    Import-PfxCertificate -Password $mypwd -CertStoreLocation Cert:\CurrentUser\My -FilePath ${{runner.workspace}}\build\codesign.pfx
+    #    Import-PfxCertificate -Password $mypwd -CertStoreLocation Cert:\LocalMachine\My -FilePath ${{runner.workspace}}\build\codesign.pfx
     - name: Install Python modules
       if: matrix.os != 'ubuntu-latest'
       shell: bash
@@ -189,7 +189,7 @@ jobs:
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCLIENT_ONLY:BOOLEAN=$CLIENT_ONLY $CMAKE_EXTRA
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release -DCLIENT_ONLY:BOOLEAN=$CLIENT_ONLY $CMAKE_EXTRA
     - name: Build Application
       working-directory: ${{runner.workspace}}/build
       shell: bash
@@ -212,11 +212,11 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target package
-    - name: Sign Installer (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: powershell
-      working-directory: C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64
-      run: .\signtool.exe sign /fd sha256 /f ${{runner.workspace}}\build\codesign.pfx /p ${{secrets.pfx_key}} /tr http://sha256timestamp.ws.symantec.com/sha256/timestamp /td SHA256 ${{runner.workspace}}\build\${env:INSTALLER}
+    #- name: Sign Installer (Windows)
+    #  if: matrix.os == 'windows-latest'
+    #  shell: powershell
+    #  working-directory: C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64
+    #  run: .\signtool.exe sign /fd sha256 /f ${{runner.workspace}}\build\codesign.pfx /p ${{secrets.pfx_key}} /tr http://sha256timestamp.ws.symantec.com/sha256/timestamp /td SHA256 ${{runner.workspace}}\build\${env:INSTALLER}
     - name: Upload Artifact
       if: matrix.os != 'ubuntu-latest'
       shell: bash
