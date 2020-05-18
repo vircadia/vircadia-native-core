@@ -182,10 +182,10 @@ jobs:
     #    $mypwd=ConvertTo-SecureString -String ${{ secrets.pfx_key }} -Force -AsPlainText
     #    Import-PfxCertificate -Password $mypwd -CertStoreLocation Cert:\CurrentUser\My -FilePath ${{runner.workspace}}\build\codesign.pfx
     #    Import-PfxCertificate -Password $mypwd -CertStoreLocation Cert:\LocalMachine\My -FilePath ${{runner.workspace}}\build\codesign.pfx
-    - name: Install Python modules
-      if: matrix.os != 'ubuntu-latest'
-      shell: bash
-      run: $PYTHON_EXEC -m pip install boto3 PyGithub
+    #- name: Install Python modules
+    #  if: matrix.os != 'ubuntu-latest'
+    #  shell: bash
+    #  run: $PYTHON_EXEC -m pip install boto3 PyGithub
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build
       shell: bash
