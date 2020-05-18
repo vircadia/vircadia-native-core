@@ -6,7 +6,6 @@ on:
       - master-gha-merge
 
 env:
-  #APP_NAME: gpu-frame-player
   APP_NAME: interface
   BUILD_TYPE: Release
   BUCKET_NAME: hifi-gh-builds
