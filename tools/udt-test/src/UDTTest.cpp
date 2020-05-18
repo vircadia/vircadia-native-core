@@ -216,7 +216,7 @@ UDTTest::UDTTest(int& argc, char** argv) :
 
 void UDTTest::parseArguments() {
     // use a QCommandLineParser to setup command line arguments and give helpful output
-    _argumentParser.setApplicationDescription("Vircadia UDT Protocol Test Client");
+    _argumentParser.setApplicationDescription("High Fidelity UDT Protocol Test Client");
     _argumentParser.addHelpOption();
     
     const QCommandLineOption helpOption = _argumentParser.addHelpOption();

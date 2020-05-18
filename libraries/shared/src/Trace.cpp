@@ -167,7 +167,7 @@ void Tracer::serialize(const QString& filename) {
             QJsonObject {
                 { "traceEvents", traceEvents },
                 { "otherData", QJsonObject {
-                    { "version", QString { "Vircadia Interface v1.0" } +BuildInfo::VERSION }
+                    { "version", QString { "High Fidelity Interface v1.0" } +BuildInfo::VERSION }
                 } }
             }
         };

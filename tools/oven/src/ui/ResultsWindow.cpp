@@ -23,7 +23,7 @@ ResultsWindow::ResultsWindow(QWidget* parent) :
     QWidget(parent)
 {
     // add a title to this window to identify it
-    setWindowTitle("Vircadia Oven - Bake Results");
+    setWindowTitle("High Fidelity Oven - Bake Results");
 
     // give this dialog the same starting width as the main application window
     resize(FIXED_WINDOW_WIDTH, size().height());
