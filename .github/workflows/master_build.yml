@@ -3,7 +3,7 @@ name: Master CI Build
 on: 
   push:
     branches:
-      - master
+      - master-gha-merge
 
 env:
   #APP_NAME: gpu-frame-player
