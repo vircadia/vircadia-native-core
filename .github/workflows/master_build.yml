@@ -14,7 +14,8 @@ env:
   CMAKE_BACKTRACE_TOKEN: ${{ secrets.backtrace_token }}
   CMAKE_BACKTRACE_SYMBOLS_TOKEN: ${{ secrets.backtrace_symbols_token }}
   GIT_COMMIT: ${{ github.sha }}
-  HIFI_VCPKG_BOOTSTRAP: true
+  # VCPKG did not build well on OSX disabling HIFI_VCPKG_BOOTSTRAP, which invokes a download to a working version of vcpkg
+  # HIFI_VCPKG_BOOTSTRAP: true
   LAUNCHER_HMAC_SECRET: ${{ secrets.launcher_hmac_secret }}
   OCULUS_APP_ID: '${{ secrets.oculus_app_id }}'
   RELEASE_TYPE: PRODUCTION
