@@ -13,6 +13,8 @@
 - [git](https://git-scm.com/downloads): >= 1.6  
 - [cmake](https://cmake.org/download/):  3.9
 - [Python](https://www.python.org/downloads/): 3.6 or higher
+- [Node.JS](https://nodejs.org/en/): >= 12.13.1 LTS
+    - Used to build the Screen Sharing executable.
 
 ### CMake External Project Dependencies
 
@@ -89,6 +91,18 @@ Create a build directory in the root of your checkout and then run the CMake bui
     cmake ..
 
 If CMake gives you the same error message repeatedly after the build fails, try removing `CMakeCache.txt`.
+
+##### Generating a release/debug only vcpkg build
+
+In order to generate a release or debug only vcpkg package, you could use the use the `VCPKG_BUILD_TYPE` define in your cmake generate command. Building a release only vcpkg can drastically decrease the total build time.
+
+For release only vcpkg:
+
+`cmake .. -DVCPKG_BUILD_TYPE=release`
+
+For debug only vcpkg:
+
+`cmake .. -DVCPKG_BUILD_TYPE=debug`
 
 #### Variables
 

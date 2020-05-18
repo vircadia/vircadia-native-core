@@ -76,6 +76,18 @@ void WebSocketClass::close(QWebSocketProtocol::CloseCode closeCode, QString reas
     _webSocket->close(closeCode, reason);
 }
 
+/**jsdoc
+ * Called when the connection closes.
+ * @callback WebSocket~onCloseCallback
+ * @param {WebSocket.CloseData} data - Information on the connection closure.
+ */
+/**jsdoc
+ * Information on a connection being closed.
+ * @typedef {object} WebSocket.CloseData
+ * @property {WebSocket.CloseCode} code - The reason why the connection was closed.
+ * @property {string} reason - Description of the reason why the connection was closed.
+ * @property {boolean} wasClean - <code>true</code> if the connection closed cleanly, <code>false</code> if it didn't.
+ */
 void WebSocketClass::handleOnClose() {
     bool hasError = (_webSocket->error() != QAbstractSocket::UnknownSocketError);
     if (_onCloseEvent.isFunction()) {
@@ -89,12 +101,73 @@ void WebSocketClass::handleOnClose() {
     }
 }
 
+/**jsdoc
+ * Called when an error occurs.
+ * @callback WebSocket~onErrorCallback
+ * @param {WebSocket.SocketError} error - The error.
+ */
+/**jsdoc
+ * <p>The type of socket error.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>0</code></td><td>ConnectionRefusedError</td><td>The connection was refused or timed out.</td></tr>
+ *     <tr><td><code>1</code></td><td>RemoteHostClosedError</td><td>The remote host closed the connection.</td></tr>
+ *     <tr><td><code>2</code></td><td>HostNotFoundError</td><td>The host address was not found.</td></tr>
+ *     <tr><td><code>3</code></td><td>SocketAccessError</td><td>The socket operation failed because the application doesn't have
+ *       the necessary privileges.</td></tr>
+ *     <tr><td><code>4</code></td><td>SocketResourceError</td><td>The local system ran out of resources (e.g., too many 
+ *       sockets).</td></tr>
+ *     <tr><td><code>5</code></td><td>SocketTimeoutError</td><td>The socket operation timed out.</td></tr>
+ *     <tr><td><code>6</code></td><td>DatagramTooLargeError</td><td>The datagram was larger than the OS's limit.</td></tr>
+ *     <tr><td><code>7</code></td><td>NetworkError</td><td>An error occurred with the network.</td></tr>
+ *     <tr><td><code>8</code></td><td>AddressInUseError</td><td>The is already in use and cannot be reused.</td></tr>
+ *     <tr><td><code>9</code></td><td>SocketAddressNotAvailableError</td><td>The address specified does not belong to the 
+ *       host.</td></tr>
+ *     <tr><td><code>10</code></td><td>UnsupportedSocketOperationError</td><td>The requested socket operation is not supported
+ *       by the local OS.</td></tr>
+ *     <tr><td><code>11</code></td><td>ProxyAuthenticationRequiredError</td><td>The socket is using a proxy and requires 
+ *       authentication.</td></tr>
+ *     <tr><td><code>12</code></td><td>SslHandshakeFailedError</td><td>The SSL/TLS handshake failed.</td></tr>
+ *     <tr><td><code>13</code></td><td>UnfinishedSocketOperationError</td><td>The last operation has not finished yet.</td></tr>
+ *     <tr><td><code>14</code></td><td>ProxyConnectionRefusedError</td><td>Could not contact the proxy server because connection 
+ *       was denied.</td></tr>
+ *     <tr><td><code>15</code></td><td>ProxyConnectionClosedError</td><td>The connection to the proxy server was unexpectedly 
+ *       closed.</td></tr>
+ *     <tr><td><code>16</code></td><td>ProxyConnectionTimeoutError</td><td>The connection to the proxy server timed
+ *       out.</td></tr>
+ *     <tr><td><code>17</code></td><td>ProxyNotFoundError</td><td>The proxy address was not found.</td></tr>
+ *     <tr><td><code>18</code></td><td>ProxyProtocolError</td><td>Connection to the proxy server failed because the server 
+ *       response could not be understood.</td></tr>
+ *     <tr><td><code>19</code></td><td>OperationError</td><td>An operation failed because the socket state did not permit 
+ *       it.</td></tr>
+ *     <tr><td><code>20</code></td><td>SslInternalError</td><td>Internal error in the SSL library being used.</td></tr>
+ *     <tr><td><code>21</code></td><td>SslInvalidUserDataError</td><td>Error in the SSL library because of invalid 
+ *       data.</td></tr>
+ *     <tr><td><code>22</code></td><td>TemporaryError</td><td>A temporary error occurred.</td></tr>
+ *     <tr><td><code>-1</code></td><td>UnknownSocketError</td><td>An unknown error occurred.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {number} WebSocket.SocketError
+ */
 void WebSocketClass::handleOnError(QAbstractSocket::SocketError error) {
     if (_onErrorEvent.isFunction()) {
         _onErrorEvent.call();
     }
 }
 
+/**jsdoc
+ * Triggered when a message is received.
+ * @callback WebSocket~onMessageCallback
+ * @param {WebSocket.MessageData} message - The message received.
+ */
+/**jsdoc
+ * A message received on a WebSocket connection.
+ * @typedef {object} WebSocket.MessageData
+ * @property {string} data - The message content.
+ */
 void WebSocketClass::handleOnMessage(const QString& message) {
     if (_onMessageEvent.isFunction()) {
         QScriptValueList args;
@@ -124,6 +197,10 @@ void WebSocketClass::handleOnBinaryMessage(const QByteArray& message) {
     }
 }
 
+/**jsdoc
+ * Called when the connection opens.
+ * @callback WebSocket~onOpenCallback
+ */
 void WebSocketClass::handleOnOpen() {
     if (_onOpenEvent.isFunction()) {
         _onOpenEvent.call();

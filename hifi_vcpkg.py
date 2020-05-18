@@ -9,7 +9,6 @@ import tempfile
 import json
 import xml.etree.ElementTree as ET
 import functools
-import distro
 from os import path
 
 print = functools.partial(print, flush=True)
@@ -22,7 +21,7 @@ get_filename_component(CMAKE_TOOLCHAIN_FILE "{}" ABSOLUTE CACHE)
 get_filename_component(CMAKE_TOOLCHAIN_FILE_UNCACHED "{}" ABSOLUTE)
 set(VCPKG_INSTALL_ROOT "{}")
 set(VCPKG_TOOLS_DIR "{}")
-set(VCPKG_QT_CMAKE_PREFIX_PATH "{}")
+set(VCPKG_TARGET_TRIPLET "{}")
 """
 
     CMAKE_TEMPLATE_NON_ANDROID = """
@@ -36,23 +35,32 @@ endif()
         self.args = args
         # our custom ports, relative to the script location
         self.sourcePortsPath = args.ports_path
-        self.id = hifi_utils.hashFolder(self.sourcePortsPath)[:8]
+        self.vcpkgBuildType = args.vcpkg_build_type
+        if (self.vcpkgBuildType):
+            self.id = hifi_utils.hashFolder(self.sourcePortsPath)[:8] + "-" + self.vcpkgBuildType
+        else:
+            self.id = hifi_utils.hashFolder(self.sourcePortsPath)[:8]
         self.configFilePath = os.path.join(args.build_root, 'vcpkg.cmake')
         self.assets_url = self.readVar('EXTERNAL_BUILD_ASSETS')
+
+        # The noClean flag indicates we're doing weird dependency maintenance stuff
+        # i.e. we've got an explicit checkout of vcpkg and we don't want the script to 
+        # do stuff it might otherwise do.  It typically indicates that we're using our 
+        # own git checkout of vcpkg and manually managing it
+        self.noClean = False
 
         # OS dependent information
         system = platform.system()
 
-        if self.args.vcpkg_root is not None:
+        if 'HIFI_VCPKG_PATH' in os.environ:
+            self.path = os.environ['HIFI_VCPKG_PATH']
+            self.noClean = True
+        elif self.args.vcpkg_root is not None:
             self.path = args.vcpkg_root
+            self.noClean = True
         else:
-            if 'Darwin' == system:
-                defaultBasePath = os.path.expanduser('~/hifi/vcpkg')
-            else:
-                defaultBasePath = os.path.join(tempfile.gettempdir(), 'hifi', 'vcpkg')
+            defaultBasePath = os.path.expanduser('~/hifi/vcpkg')
             self.basePath = os.getenv('HIFI_VCPKG_BASE', defaultBasePath)
-            if self.basePath == defaultBasePath:
-                print("Warning: Environment variable HIFI_VCPKG_BASE not set, using {}".format(defaultBasePath))
             if self.args.android:
                 self.basePath = os.path.join(self.basePath, 'android')
             if (not os.path.isdir(self.basePath)):
@@ -67,27 +75,40 @@ endif()
 
         self.lockFile = os.path.join(lockDir, lockName)
         self.tagFile = os.path.join(self.path, '.id')
+        self.prebuildTagFile = os.path.join(self.path, '.prebuild')
         # A format version attached to the tag file... increment when you want to force the build systems to rebuild 
         # without the contents of the ports changing
         self.version = 1
         self.tagContents = "{}_{}".format(self.id, self.version)
+        self.bootstrapEnv = os.environ.copy()
+        self.buildEnv = os.environ.copy()
+        self.prebuiltArchive = None
+        usePrebuilt = False
+        # usePrebuild Disabled, to re-enabled using the prebuilt archives for GitHub action builds uncomment the following line:
+        # usePrebuilt = ('CI_BUILD' in os.environ) and os.environ["CI_BUILD"] == "Github" and (not self.noClean)
 
         if 'Windows' == system:
             self.exe = os.path.join(self.path, 'vcpkg.exe')
-            self.bootstrapCmd = 'bootstrap-vcpkg.bat'
-            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/vcpkg-win32.tar.gz%3FversionId=YZYkDejDRk7L_hrK_WVFthWvisAhbDzZ'
-            self.vcpkgHash = '3e0ff829a74956491d57666109b3e6b5ce4ed0735c24093884317102387b2cb1b2cd1ff38af9ed9173501f6e32ffa05cc6fe6d470b77a71ca1ffc3e0aa46ab9e'
+            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.bat'), '-disableMetrics' ]
+            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-win32-client.zip%3FversionId=tSFzbw01VkkVFeRQ6YuAY4dro2HxJR9U'
+            self.vcpkgHash = 'a650db47a63ccdc9904b68ddd16af74772e7e78170b513ea8de5a3b47d032751a3b73dcc7526d88bcb500753ea3dd9880639ca842bb176e2bddb1710f9a58cd3'
             self.hostTriplet = 'x64-windows'
+            if usePrebuilt:
+                self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-win32.zip%3FversionId=3SF3mDC8dkQH1JP041m88xnYmWNzZflx"
         elif 'Darwin' == system:
             self.exe = os.path.join(self.path, 'vcpkg')
-            self.bootstrapCmd = 'bootstrap-vcpkg.sh'
-            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/vcpkg-osx.tar.gz%3FversionId=_fhqSxjfrtDJBvEsQ8L_ODcdUjlpX9cc'
+            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '--allowAppleClang', '-disableMetrics' ]
+            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-osx-client.tgz%3FversionId=j0b4azo_zTlH_Q9DElEWOz1UMYZ2nqQw'
             self.vcpkgHash = '519d666d02ef22b87c793f016ca412e70f92e1d55953c8f9bd4ee40f6d9f78c1df01a6ee293907718f3bbf24075cc35492fb216326dfc50712a95858e9cbcb4d'
             self.hostTriplet = 'x64-osx'
+            # Potential fix for a vcpkg build issue on OSX (see https://github.com/microsoft/vcpkg/issues/9029)
+            self.bootstrapEnv['CXXFLAGS'] = '-D_CTERMID_H_'
+            if usePrebuilt:
+                self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-osx.tgz%3FversionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
-            self.bootstrapCmd = 'bootstrap-vcpkg.sh'
-            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/vcpkg-linux.tar.gz%3FversionId=97Nazh24etEVKWz33XwgLY0bvxEfZgMU'
+            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
+            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-linux-client.tgz%3FversionId=y7mct0gFicEXz5hJy3KROBugcLR56YWf'
             self.vcpkgHash = '6a1ce47ef6621e699a4627e8821ad32528c82fce62a6939d35b205da2d299aaa405b5f392df4a9e5343dd6a296516e341105fbb2dd8b48864781d129d7fba10d'
             self.hostTriplet = 'x64-linux'
 
@@ -101,9 +122,13 @@ endif()
         with open(os.path.join(self.args.build_root, '_env', var + ".txt")) as fp:
             return fp.read()
 
+    def writeVar(self, var, value):
+        with open(os.path.join(self.args.build_root, '_env', var + ".txt"), 'w') as fp:
+            fp.write(value)
+
     def upToDate(self):
         # Prevent doing a clean if we've explcitly set a directory for vcpkg
-        if self.args.vcpkg_root is not None:
+        if self.noClean:
             return True
 
         if self.args.force_build:
@@ -145,8 +170,10 @@ endif()
             self.copyEnv()
             return
 
-        self.clean()
+        if self.prebuiltArchive is not None:
+            return
 
+        self.clean()
         downloadVcpkg = False
         if self.args.force_bootstrap:
             print("Forcing bootstrap")
@@ -167,10 +194,10 @@ endif()
                 print("Cloning vcpkg from github to {}".format(self.path))
                 hifi_utils.executeSubprocess(['git', 'clone', 'https://github.com/microsoft/vcpkg', self.path])
                 print("Bootstrapping vcpkg")
-                hifi_utils.executeSubprocess([self.bootstrapCmd], folder=self.path)
+                hifi_utils.executeSubprocess(self.bootstrapCmds, folder=self.path, env=self.bootstrapEnv)
             else:
                 print("Fetching vcpkg from {} to {}".format(self.vcpkgUrl, self.path))
-                hifi_utils.downloadAndExtract(self.vcpkgUrl, self.path, self.vcpkgHash)
+                hifi_utils.downloadAndExtract(self.vcpkgUrl, self.path)
 
         print("Replacing port files")
         portsPath = os.path.join(self.path, 'ports')
@@ -186,9 +213,32 @@ endif()
         actualCommands.extend(commands)
         print("Running command")
         print(actualCommands)
-        hifi_utils.executeSubprocess(actualCommands, folder=self.path)
+        hifi_utils.executeSubprocess(actualCommands, folder=self.path, env=self.buildEnv)
 
-    def setupDependencies(self):
+    def copyTripletForBuildType(self, triplet):
+        print('Copying triplet ' + triplet + ' to have build type ' + self.vcpkgBuildType)
+        tripletPath = os.path.join(self.path, 'triplets', triplet + '.cmake')
+        tripletForBuildTypePath = os.path.join(self.path, 'triplets', self.getTripletWithBuildType(triplet) + '.cmake')
+        shutil.copy(tripletPath, tripletForBuildTypePath)
+        with open(tripletForBuildTypePath, "a") as tripletForBuildTypeFile:
+            tripletForBuildTypeFile.write("set(VCPKG_BUILD_TYPE " + self.vcpkgBuildType + ")\n")
+
+    def getTripletWithBuildType(self, triplet):
+        if (not self.vcpkgBuildType):
+            return triplet
+        return triplet + '-' + self.vcpkgBuildType
+
+    def setupDependencies(self, qt=None):
+        if self.prebuiltArchive:
+            if not os.path.isfile(self.prebuildTagFile):
+                print('Extracting ' + self.prebuiltArchive + ' to ' + self.path)
+                hifi_utils.downloadAndExtract(self.prebuiltArchive, self.path)
+                self.writePrebuildTag()
+            return
+            
+        if qt is not None:
+            self.buildEnv['QT_CMAKE_PREFIX_PATH'] = qt
+
         # Special case for android, grab a bunch of binaries
         # FIXME remove special casing for android builds eventually
         if self.args.android:
@@ -196,24 +246,31 @@ endif()
             self.setupAndroidDependencies()
 
         print("Installing host tools")
-        self.run(['install', '--triplet', self.hostTriplet, 'hifi-host-tools'])
+        if (self.vcpkgBuildType):
+            self.copyTripletForBuildType(self.hostTriplet)
+        self.run(['install', '--triplet', self.getTripletWithBuildType(self.hostTriplet), 'hifi-host-tools'])
 
         # If not android, install the hifi-client-deps libraries
         if not self.args.android:
             print("Installing build dependencies")
-            self.run(['install', '--triplet', self.triplet, 'hifi-client-deps'])
-            
-        # If not android, install our Qt build
-        if not self.args.android:
-            print("Installing Qt")
-            self.installQt()
+            if (self.vcpkgBuildType):
+                self.copyTripletForBuildType(self.triplet)
+            self.run(['install', '--triplet', self.getTripletWithBuildType(self.triplet), 'hifi-client-deps'])
 
     def cleanBuilds(self):
+        if self.noClean:
+            return
         # Remove temporary build artifacts
         builddir = os.path.join(self.path, 'buildtrees')
         if os.path.isdir(builddir):
             print("Wiping build trees")
             shutil.rmtree(builddir, ignore_errors=True)
+
+    # Removes large files used to build the vcpkg, for CI purposes.
+    def cleanupDevelopmentFiles(self):
+        shutil.rmtree(os.path.join(self.path, "downloads"), ignore_errors=True)
+        shutil.rmtree(os.path.join(self.path, "packages"), ignore_errors=True)
+
 
     def setupAndroidDependencies(self):
         # vcpkg prebuilt
@@ -238,23 +295,45 @@ endif()
             hifi_utils.downloadAndExtract(url, dest, isZip=zipFile, hash=package['checksum'], hasher=hashlib.md5())
 
     def writeTag(self):
+        if self.noClean:
+            return
         print("Writing tag {} to {}".format(self.tagContents, self.tagFile))
+        if not os.path.isdir(self.path):
+            os.makedirs(self.path)
         with open(self.tagFile, 'w') as f:
             f.write(self.tagContents)
 
-    def getQt5InstallPath(self):
-        qt5InstallPath = os.path.join(self.path, 'installed', 'qt5-install')
-        if self.args.android:
-            precompiled = os.path.realpath(self.androidPackagePath)
-            qt5InstallPath = os.path.realpath(os.path.join(precompiled, 'qt'))
-        return qt5InstallPath
+    def writePrebuildTag(self):
+        print("Writing tag {} to {}".format(self.tagContents, self.tagFile))
+        with open(self.prebuildTagFile, 'w') as f:
+            f.write(self.tagContents)
+
+    def fixupCmakeScript(self):
+        cmakeScript = os.path.join(self.path, 'scripts/buildsystems/vcpkg.cmake')
+        newCmakeScript = cmakeScript + '.new'
+        isFileChanged = False
+        removalPrefix = "set(VCPKG_TARGET_TRIPLET "
+        # Open original file in read only mode and dummy file in write mode
+        with open(cmakeScript, 'r') as read_obj, open(newCmakeScript, 'w') as write_obj:
+            # Line by line copy data from original file to dummy file
+            for line in read_obj:
+                if not line.startswith(removalPrefix):
+                    write_obj.write(line)
+                else:
+                    isFileChanged = True
+     
+        if isFileChanged:
+            shutil.move(newCmakeScript, cmakeScript)
+        else:
+            os.remove(newCmakeScript)
+ 
 
     def writeConfig(self):
         print("Writing cmake config to {}".format(self.configFilePath))
         # Write out the configuration for use by CMake
         cmakeScript = os.path.join(self.path, 'scripts/buildsystems/vcpkg.cmake')
-        installPath = os.path.join(self.path, 'installed', self.triplet)
-        toolsPath = os.path.join(self.path, 'installed', self.hostTriplet, 'tools')
+        installPath = os.path.join(self.path, 'installed', self.getTripletWithBuildType(self.triplet))
+        toolsPath = os.path.join(self.path, 'installed', self.getTripletWithBuildType(self.hostTriplet), 'tools')
 
         cmakeTemplate = VcpkgRepo.CMAKE_TEMPLATE
         if self.args.android:
@@ -262,9 +341,7 @@ endif()
             cmakeTemplate += 'set(HIFI_ANDROID_PRECOMPILED "{}")\n'.format(precompiled)
         else:
             cmakeTemplate += VcpkgRepo.CMAKE_TEMPLATE_NON_ANDROID
-
-        qtCmakePrefixPath = os.path.join(self.getQt5InstallPath(), "lib/cmake")
-        cmakeConfig = cmakeTemplate.format(cmakeScript, cmakeScript, installPath, toolsPath, qtCmakePrefixPath).replace('\\', '/')
+        cmakeConfig = cmakeTemplate.format(cmakeScript, cmakeScript, installPath, toolsPath, self.getTripletWithBuildType(self.hostTriplet)).replace('\\', '/')
         with open(self.configFilePath, 'w') as f:
             f.write(cmakeConfig)
 
@@ -273,49 +350,3 @@ endif()
         # update the tag file on every run, we can scan the base dir for sub directories containing 
         # a tag file that is older than N days, and if found, delete the directory, recovering space
         print("Not implemented")
-
-
-    def installQt(self):
-        qt5InstallPath = self.getQt5InstallPath()
-        if not os.path.isdir(qt5InstallPath):
-            print ('Downloading Qt from AWS')
-            dest, tail = os.path.split(qt5InstallPath)
-
-            url = 'NOT DEFINED'
-            if platform.system() == 'Windows':
-                url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-windows3.tar.gz'
-            elif platform.system() == 'Darwin':
-                url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz%3FversionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
-            elif platform.system() == 'Linux':
-                dist = distro.linux_distribution()
-
-                if distro.id() == 'ubuntu':
-                    u_major = int( distro.major_version() )
-                    u_minor = int( distro.minor_version() )
-
-                    if u_major == 16:
-                        url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
-                    elif u_major == 18:
-                        url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
-                    elif u_major == 19 and u_minor == 10:
-                        url = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.6-ubuntu-19.10.tar.xz'
-                    elif u_major > 18 and ( u_major != 19 and u_minor != 4):
-                        print("We don't support " + distro.name(pretty=True) + " yet. Perhaps consider helping us out?")
-                    else:
-                        print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
-                else:
-                    print("Sorry, " + distro.name(pretty=True) + " is not supported. Please consider helping us out.")
-                    print("It's also possible to build Qt for your distribution, please see the documentation at:")
-                    print("https://github.com/kasenvr/project-athena/tree/kasen/core/tools/qt-builder")
-                    return;
-            else:
-                print('UNKNOWN OPERATING SYSTEM!!!')
-                print("System      : " + platform.system())
-                print("Architecture: " + platform.architecture())
-                print("Machine     : " + platform.machine())
-                return;
-
-            print('Extracting ' + url + ' to ' + dest)
-            hifi_utils.downloadAndExtract(url, dest)
-        else:
-            print ('Qt has already been downloaded')

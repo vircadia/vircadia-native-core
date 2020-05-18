@@ -19,6 +19,9 @@
 
 using namespace render;
 
+std::unordered_set<QUuid> CullTest::_containingZones = std::unordered_set<QUuid>();
+std::unordered_set<QUuid> CullTest::_prevContainingZones = std::unordered_set<QUuid>();
+
 CullTest::CullTest(CullFunctor& functor, RenderArgs* pargs, RenderDetails::Item& renderDetails, ViewFrustumPointer antiFrustum) :
     _functor(functor),
     _args(pargs),
@@ -64,46 +67,8 @@ bool CullTest::solidAngleTest(const AABox& bound) {
     return true;
 }
 
-void render::cullItems(const RenderContextPointer& renderContext, const CullFunctor& cullFunctor, RenderDetails::Item& details,
-                       const ItemBounds& inItems, ItemBounds& outItems) {
-    assert(renderContext->args);
-    assert(renderContext->args->hasViewFrustum());
-
-    RenderArgs* args = renderContext->args;
-    const ViewFrustum& frustum = args->getViewFrustum();
-
-    details._considered += (int)inItems.size();
-
-    // Culling / LOD
-    for (auto item : inItems) {
-        if (item.bound.isNull()) {
-            outItems.emplace_back(item); // One more Item to render
-            continue;
-        }
-
-        // TODO: some entity types (like lights) might want to be rendered even
-        // when they are outside of the view frustum...
-        bool inView;
-        {
-            PerformanceTimer perfTimer("boxIntersectsFrustum");
-            inView = frustum.boxIntersectsFrustum(item.bound);
-        }
-        if (inView) {
-            bool bigEnoughToRender;
-            {
-                PerformanceTimer perfTimer("shouldRender");
-                bigEnoughToRender = cullFunctor(args, item.bound);
-            }
-            if (bigEnoughToRender) {
-                outItems.emplace_back(item); // One more Item to render
-            } else {
-                details._tooSmall++;
-            }
-        } else {
-            details._outOfView++;
-        }
-    }
-    details._rendered += (int)outItems.size();
+bool CullTest::zoneOcclusionTest(const render::Item& item) {
+    return item.passesZoneOcclusionTest(_containingZones);
 }
 
 void FetchNonspatialItems::run(const RenderContextPointer& renderContext, const ItemFilter& filter, ItemBounds& outItems) {
@@ -117,7 +82,7 @@ void FetchNonspatialItems::run(const RenderContextPointer& renderContext, const 
     outItems.reserve(items.size());
     for (auto& id : items) {
         auto& item = scene->getItem(id);
-        if (filter.test(item.getKey())) {
+        if (filter.test(item.getKey()) && item.passesZoneOcclusionTest(CullTest::_containingZones)) {
             outItems.emplace_back(ItemBound(id, item.getBound()));
         }
     }
@@ -126,7 +91,6 @@ void FetchNonspatialItems::run(const RenderContextPointer& renderContext, const 
 void FetchSpatialTree::configure(const Config& config) {
     _justFrozeFrustum = _justFrozeFrustum || (config.freezeFrustum && !_freezeFrustum);
     _freezeFrustum = config.freezeFrustum;
-    _lodAngle = config.lodAngle;
 }
 
 void FetchSpatialTree::run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemSpatialTree::ItemSelection& outSelection) {
@@ -223,7 +187,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 PerformanceTimer perfTimer("insideFitItems");
                 for (auto id : inSelection.insideItems) {
                     auto& item = scene->getItem(id);
-                    if (filter.test(item.getKey())) {
+                    if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
                         ItemBound itemBound(id, item.getBound());
                         outItems.emplace_back(itemBound);
                         if (item.getKey().isMetaCullGroup()) {
@@ -238,7 +202,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 PerformanceTimer perfTimer("insideSmallItems");
                 for (auto id : inSelection.insideSubcellItems) {
                     auto& item = scene->getItem(id);
-                    if (filter.test(item.getKey())) {
+                    if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
                         ItemBound itemBound(id, item.getBound());
                         outItems.emplace_back(itemBound);
                         if (item.getKey().isMetaCullGroup()) {
@@ -253,7 +217,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 PerformanceTimer perfTimer("partialFitItems");
                 for (auto id : inSelection.partialItems) {
                     auto& item = scene->getItem(id);
-                    if (filter.test(item.getKey())) {
+                    if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
                         ItemBound itemBound(id, item.getBound());
                         outItems.emplace_back(itemBound);
                         if (item.getKey().isMetaCullGroup()) {
@@ -268,7 +232,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 PerformanceTimer perfTimer("partialSmallItems");
                 for (auto id : inSelection.partialSubcellItems) {
                     auto& item = scene->getItem(id);
-                    if (filter.test(item.getKey())) {
+                    if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
                         ItemBound itemBound(id, item.getBound());
                         outItems.emplace_back(itemBound);
                         if (item.getKey().isMetaCullGroup()) {
@@ -285,7 +249,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 PerformanceTimer perfTimer("insideFitItems");
                 for (auto id : inSelection.insideItems) {
                     auto& item = scene->getItem(id);
-                    if (filter.test(item.getKey())) {
+                    if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
                         ItemBound itemBound(id, item.getBound());
                         outItems.emplace_back(itemBound);
                         if (item.getKey().isMetaCullGroup()) {
@@ -300,7 +264,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 PerformanceTimer perfTimer("insideSmallItems");
                 for (auto id : inSelection.insideSubcellItems) {
                     auto& item = scene->getItem(id);
-                    if (filter.test(item.getKey())) {
+                    if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
                         ItemBound itemBound(id, item.getBound());
                         if (test.solidAngleTest(itemBound.bound)) {
                             outItems.emplace_back(itemBound);
@@ -317,7 +281,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 PerformanceTimer perfTimer("partialFitItems");
                 for (auto id : inSelection.partialItems) {
                     auto& item = scene->getItem(id);
-                    if (filter.test(item.getKey())) {
+                    if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
                         ItemBound itemBound(id, item.getBound());
                         if (test.frustumTest(itemBound.bound)) {
                             outItems.emplace_back(itemBound);
@@ -334,14 +298,12 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 PerformanceTimer perfTimer("partialSmallItems");
                 for (auto id : inSelection.partialSubcellItems) {
                     auto& item = scene->getItem(id);
-                    if (filter.test(item.getKey())) {
+                    if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
                         ItemBound itemBound(id, item.getBound());
-                        if (test.frustumTest(itemBound.bound)) {
-                            if (test.solidAngleTest(itemBound.bound)) {
-                                outItems.emplace_back(itemBound);
-                                if (item.getKey().isMetaCullGroup()) {
-                                    item.fetchMetaSubItemBounds(outItems, (*scene));
-                                }
+                        if (test.frustumTest(itemBound.bound) && test.solidAngleTest(itemBound.bound)) {
+                            outItems.emplace_back(itemBound);
+                            if (item.getKey().isMetaCullGroup()) {
+                                item.fetchMetaSubItemBounds(outItems, (*scene));
                             }
                         }
                     }
@@ -451,4 +413,14 @@ void ApplyCullFunctorOnItemBounds::run(const RenderContextPointer& renderContext
     if (inputFrustum != nullptr) {
         args->popViewFrustum();
     }
+}
+
+void ClearContainingZones::run(const RenderContextPointer& renderContext) {
+    // This is a bit of a hack.  We want to do zone culling as early as possible, so we do it
+    // during the RenderFetchCullSortTask (in CullSpatialSelection and FetchNonspatialItems),
+    // but the zones aren't collected until after (in SetupZones).  To get around this,
+    // we actually use the zones from the previous frame to render, and then clear at the beginning
+    // of the next frame
+    CullTest::_prevContainingZones = CullTest::_containingZones;
+    CullTest::_containingZones.clear();
 }

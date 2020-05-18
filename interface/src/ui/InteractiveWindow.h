@@ -76,12 +76,42 @@ namespace InteractiveWindowEnums {
     };
     Q_ENUM_NS(InteractiveWindowFlags);
 
+    /**jsdoc
+     * <p>A display mode for an <code>InteractiveWindow</code>.</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>0</code></td><td>VIRTUAL</td><td>The window is displayed inside Interface: in the desktop window in
+     *       desktop mode or on the HUD surface in HMD mode.</td></tr>
+     *     <tr><td><code>1</code></td><td>NATIVE</td><td>The window is displayed separately from the Interface window, as its
+     *     own separate window.</td></tr>
+     *   <tbody>
+     * </table>
+     * @typedef {number} InteractiveWindow.PresentationMode
+     */
     enum InteractiveWindowPresentationMode {
         Virtual,
         Native
     };
     Q_ENUM_NS(InteractiveWindowPresentationMode);
 
+    /**jsdoc
+     * <p>A docking location of an <code>InteractiveWindow</code>.</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>0</code></td><td>TOP</td><td>Dock to the top edge of the Interface window.</td></tr>
+     *     <tr><td><code>1</code></td><td>BOTTOM</td><td>Dock to the bottom edge of the Interface window.</td></tr>
+     *     <tr><td><code>2</code></td><td>LEFT</td><td>Dock to the left edge of the Interface window.</td></tr>
+     *     <tr><td><code>3</code></td><td>RIGHT</td><td>Dock to the right edge of the Interface window.</td></tr>
+     *   <tbody>
+     * </table>
+     * @typedef {number} InteractiveWindow.DockArea
+     */
     enum DockArea {
         TOP,
         BOTTOM,
@@ -90,6 +120,24 @@ namespace InteractiveWindowEnums {
     };
     Q_ENUM_NS(DockArea);
 
+    /**jsdoc
+     * <p>The anchor for a relative position of an <code>InteractiveWindow</code>.</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>0</code></td><td>NO_ANCHOR</td><td>Position is not relative to any part of the Interface window.</td></tr>
+     *     <tr><td><code>1</code></td><td>TOP_LEFT</td><td>Position is offset from the top left of the Interface window.</td></tr>
+     *     <tr><td><code>2</code></td><td>TOP_RIGHT</td><td>Position is offset from the top right of the Interface window.</td></tr>
+     *     <tr><td><code>3</code></td><td>BOTTOM_RIGHT</td><td>Position offset from the bottom right of the Interface
+     *     window.</td></tr>
+     *     <tr><td><code>4</code></td><td>BOTTOM_LEFFT</td><td>Position is offset from the bottom left of the Interface
+     *         window.</td></tr>
+     *   <tbody>
+     * </table>
+     * @typedef {number} InteractiveWindow.RelativePositionAnchor
+     */
     enum RelativePositionAnchor {
         NO_ANCHOR,
         TOP_LEFT,
@@ -110,13 +158,18 @@ using namespace InteractiveWindowEnums;
  * <p>Create using {@link Desktop.createWindow}.</p>
  *
  * @class InteractiveWindow
+ * @hideconstructor
  *
  * @hifi-interface
  * @hifi-client-entity
  * @hifi-avatar
  *
  * @property {string} title - The title of the window.
- * @property {Vec2} position - The position of the window, in pixels.
+ * @property {Vec2} position - The absolute position of the window, in pixels.
+ * @property {InteractiveWindow.RelativePositionAnchor} relativePositionAnchor -  The anchor for the 
+ *     <code>relativePosition</code>, if used.
+ * @property {Vec2} relativePosition - The position of the window, relative to the <code>relativePositionAnchor</code>, in 
+ *     pixels. Excludes the window frame.
  * @property {Vec2} size - The size of the window, in pixels.
  * @property {boolean} visible - <code>true</code> if the window is visible, <code>false</code> if it isn't.
  * @property {InteractiveWindow.PresentationMode} presentationMode - The presentation mode of the window: 
@@ -186,24 +239,24 @@ public slots:
      * @example <caption>Send and receive messages with a QML window.</caption>
      * // JavaScript file.
      * 
-     * var qmlWindow = Desktop.createWindow(Script.resolvePath("QMLWindow.qml"), {
-     *     title: "QML Window",
+     * var interactiveWindow = Desktop.createWindow(Script.resolvePath("InteractiveWindow.qml"), {
+     *     title: "Interactive Window",
      *     size: { x: 400, y: 300 }
      * });
      * 
-     * qmlWindow.fromQml.connect(function (message) {
+     * interactiveWindow.fromQml.connect(function (message) {
      *     print("Message received: " + message);
      * });
      * 
      * Script.setTimeout(function () {
-     *     qmlWindow.sendToQml("Hello world!");
+     *     interactiveWindow.sendToQml("Hello world!");
      * }, 2000);
      * 
      * Script.scriptEnding.connect(function () {
-     *     qmlWindow.close();
+     *     interactiveWindow.close();
      * });
      * @example
-     * // QML file, "QMLWindow.qml".
+     * // QML file, "InteractiveWindow.qml".
      * 
      * import QtQuick 2.5
      * import QtQuick.Controls 1.4
@@ -227,7 +280,7 @@ public slots:
 
     /**jsdoc
      * Sends a message to an embedded HTML web page. To receive the message, the HTML page's script must connect to the 
-     * <code>EventBridge</code> that is automatically provided to the script:
+     * <code>EventBridge</code> that is automatically provided for the script:
      * <pre class="prettyprint"><code>EventBridge.scriptEventReceived.connect(function(message) {
      *     ...
      * });</code></pre>
@@ -239,8 +292,8 @@ public slots:
 
     /**jsdoc
      * @function InteractiveWindow.emitWebEvent
-     * @param {object|string} message - The message.
-     * @deprecated This function is deprecated and will be removed from the API.
+     * @param {object|string} message - Message.
+     * @deprecated This function is deprecated and will be removed.
      */
     void emitWebEvent(const QVariant& webMessage);
 
@@ -318,9 +371,9 @@ signals:
 
     /**jsdoc
      * @function InteractiveWindow.scriptEventReceived
-     * @param {object} message - The message.
+     * @param {object} message - Message.
      * @returns {Signal}
-     * @deprecated This signal is deprecated and will be removed from the API.
+     * @deprecated This signal is deprecated and will be removed.
      */
     // InteractiveWindow content may include WebView requiring EventBridge.
     void scriptEventReceived(const QVariant& message);
@@ -337,9 +390,8 @@ signals:
 protected slots:
     /**jsdoc
      * @function InteractiveWindow.qmlToScript
-     * @param {object} message
-     * @returns {Signal}
-     * @deprecated This signal is deprecated and will be removed from the API.
+     * @param {object} message - Message.
+     * @deprecated This method is deprecated and will be removed.
      */
     void qmlToScript(const QVariant& message);
 

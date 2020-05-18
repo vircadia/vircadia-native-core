@@ -1118,8 +1118,9 @@ SelectionDisplay = (function() {
             return false;
         }
 
-        // No action if the Alt key is pressed.
-        if (event.isAlt) {
+        // No action if the Alt key is pressed unless on Mac.
+        var isMac = Controller.getValue(Controller.Hardware.Application.PlatformMac);
+        if (event.isAlt && !isMac) {
             return;
         }
 
@@ -2044,10 +2045,11 @@ SelectionDisplay = (function() {
                     Vec3.print("    pickResult.intersection", pickResult.intersection);
                 }
 
-                // Duplicate entities if Ctrl is pressed.  This will make a
-                // copy of the selected entities and move the _original_ entities, not
-                // the new ones.
-                if (event.isControl || doDuplicate) {
+                // Duplicate entities if Ctrl is pressed on Windows or Alt is press on Mac.
+                // This will make a copy of the selected entities and move the _original_ entities, not the new ones.
+                var isMac = Controller.getValue(Controller.Hardware.Application.PlatformMac);
+                var isDuplicate = isMac ? event.isAlt : event.isControl;
+                if (isDuplicate || doDuplicate) {
                     duplicatedEntityIDs = SelectionManager.duplicateSelection();
                     var ids = [];
                     for (var i = 0; i < duplicatedEntityIDs.length; ++i) {
@@ -2270,10 +2272,11 @@ SelectionDisplay = (function() {
         addHandleTool(overlay, {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
-                // Duplicate entities if Ctrl is pressed.  This will make a
-                // copy of the selected entities and move the _original_ entities, not
-                // the new ones.
-                if (event.isControl) {
+                // Duplicate entities if Ctrl is pressed on Windows or Alt is pressed on Mac.
+                // This will make a copy of the selected entities and move the _original_ entities, not the new ones.
+                var isMac = Controller.getValue(Controller.Hardware.Application.PlatformMac);
+                var isDuplicate = isMac ? event.isAlt : event.isControl;
+                if (isDuplicate) {
                     duplicatedEntityIDs = SelectionManager.duplicateSelection();
                     var ids = [];
                     for (var i = 0; i < duplicatedEntityIDs.length; ++i) {
