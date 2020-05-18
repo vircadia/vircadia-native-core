@@ -56,7 +56,7 @@ env:
 # ANDROID_OAUTH_CLIENT_ID= c1063ea5d0b0c405e0c9cd77351328e211a91496a3f25985a99e861f1661db1d
 # ANDROID_OAUTH_REDIRECT_URI=https://android-interface.highfidelity.com/auth
 # ARTIFACT_EXPRESSION=android/*.apk
-# ANDROID_APK_NAME=HighFidelity-Beta-PR${RELEASE_NUMBER}-${GIT_COMMIT_SHORT}.apk
+# ANDROID_APK_NAME=ProjectAthena-Alpha-PR${RELEASE_NUMBER}-${GIT_COMMIT_SHORT}.apk
 # ANDROID_BUILT_APK_NAME=interface-debug.apk	
 # ANDROID_APP=interface
 # ANDROID_BUILD_DIR=debug
@@ -134,14 +134,14 @@ jobs:
       shell: bash
       run: |
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
-        echo ::set-env name=ARTIFACT_PATTERN::HighFidelity-Beta-*.$INSTALLER_EXT
+        echo ::set-env name=ARTIFACT_PATTERN::ProjectAthena-Alpha-*.$INSTALLER_EXT
         # Build type variables
         if [ "${{ matrix.build_type }}" = "full" ]; then
           echo ::set-env name=CLIENT_ONLY::FALSE
-          echo ::set-env name=INSTALLER::HighFidelity-Beta-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+          echo ::set-env name=INSTALLER::ProjectAthena-Alpha-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
         else
           echo ::set-env name=CLIENT_ONLY::TRUE
-          echo ::set-env name=INSTALLER::HighFidelity-Beta-Interface-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+          echo ::set-env name=INSTALLER::ProjectAthena-Alpha-Interface-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
         fi
         # Linux build variables
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
