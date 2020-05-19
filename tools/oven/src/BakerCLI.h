@@ -34,7 +34,7 @@ public:
     BakerCLI(OvenCLIApplication* parent);
 
 public slots:
-    void bakeFile(QUrl inputUrl, const QString& outputPath, const QString& type = QString::null);
+    void bakeFile(QUrl inputUrl, const QString& outputPath, const QString& type = QString());
 
 private slots:
     void handleFinishedBaker();  
