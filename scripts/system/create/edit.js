@@ -2905,7 +2905,19 @@ function getExistingZoneList() {
         };
         listExistingZones.push(thisZone);
     }
+    listExistingZones.sort(GetSortOrder("name"));
     return listExistingZones;
+}
+
+function GetSortOrder(sortProperty) {
+    return function(a, b) {
+        if (a[sortProperty] > b[sortProperty]) {
+            return 1;    
+        } else if (a[sortProperty] < b[sortProperty]) {
+            return -1;
+        }
+        return 0;
+    }
 }
 
 }()); // END LOCAL_SCOPE
