@@ -296,20 +296,42 @@ export const store = new Vuex.Store({
             state[payload.property] = payload.with;
             console.info("Payload:", payload.property, "with:", payload.with, "state is now:", this.state);
         },
-        sortTopInventory (state) {
-            state.items.sort(function(a, b) {
-                var nameA = a.name.toUpperCase(); // ignore upper and lowercase
-                var nameB = b.name.toUpperCase(); // ignore upper and lowercase
-                if (nameA < nameB) {
-                    return -1;
-                }
-                if (nameA > nameB) {
-                    return 1;
-                }
-
-                // names must be equal
-                return 0;
-            });
+        sortTopInventory (state, payload) {
+            let { items } = state;
+            
+            if (payload.sort === "az") {
+                state.items.sort(function(a, b) {
+                    var nameA = a.name.toUpperCase(); // ignore upper and lowercase
+                    var nameB = b.name.toUpperCase(); // ignore upper and lowercase
+                    if (nameA < nameB) {
+                        return -1;
+                    }
+                    if (nameA > nameB) {
+                        return 1;
+                    }
+    
+                    // names must be equal
+                    return 0;
+                });
+            } 
+            
+            if (payload.sort === "za") {
+                state.items.sort(function(a, b) {
+                    var nameA = a.name.toUpperCase(); // ignore upper and lowercase
+                    var nameB = b.name.toUpperCase(); // ignore upper and lowercase
+                    if (nameA > nameB) {
+                        return -1;
+                    }
+                    if (nameA < nameB) {
+                        return 1;
+                    }
+    
+                    // names must be equal
+                    return 0;
+                });
+            }
+            
+            Vue.set(state,'items', items);
         },
         pushToItems (state, payload) {
             let { items } = state;

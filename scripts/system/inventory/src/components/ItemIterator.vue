@@ -22,7 +22,9 @@
                 outlined
             >
                   <div class="handle pa-2">
-                      <v-icon color="orange darken-2">mdi-blur-linear</v-icon>
+                      <!-- <v-icon color="orange darken-2">mdi-blur-linear</v-icon> -->
+                      <!-- <v-icon color="orange darken-2">mdi-package-variant</v-icon> -->
+                      <v-icon color="orange darken-2">mdi-square-medium-outline</v-icon>
                   </div>
                   <v-list-item-content 
                       class="pb-1 pt-2 pl-4" 
@@ -33,80 +35,80 @@
                   </v-list-item-content>
                   
                   <v-menu bottom left>
-                  <template v-slot:activator="{ on }">
-                      <!-- settings.displayDensity.size >= 1 -->
-                      <v-btn 
-                          :style="{backgroundColor: (getIconColor(item.type)) }"
-                          v-show="settings.displayDensity.size >= 1"
-                          medium 
-                          fab 
-                          dark
-                          v-on="on"
-                      >
-                          <v-icon>{{getIcon(item.type)}}</v-icon>
-                      </v-btn>
-                      <!-- settings.displayDensity.size < 1 -->
-                      <v-btn 
-                          :style="{backgroundColor: (getIconColor(item.type)) }"
-                          v-show="settings.displayDensity.size < 1"
-                          small
-                          fab
-                          dark
-                          v-on="on"
-                      >
-                          <v-icon>{{getIcon(item.type)}}</v-icon>
-                      </v-btn>
-                  </template>
+                      <template v-slot:activator="{ on }">
+                          <!-- settings.displayDensity.size >= 1 -->
+                          <v-btn 
+                              :style="{backgroundColor: (getIconColor(item.type)) }"
+                              v-show="settings.displayDensity.size >= 1"
+                              medium 
+                              fab 
+                              dark
+                              v-on="on"
+                          >
+                              <v-icon>{{getIcon(item.type)}}</v-icon>
+                          </v-btn>
+                          <!-- settings.displayDensity.size < 1 -->
+                          <v-btn 
+                              :style="{backgroundColor: (getIconColor(item.type)) }"
+                              v-show="settings.displayDensity.size < 1"
+                              small
+                              fab
+                              dark
+                              v-on="on"
+                          >
+                              <v-icon>{{getIcon(item.type)}}</v-icon>
+                          </v-btn>
+                      </template>
 
-                  <v-list color="grey darken-3">
-                      <v-list-item
-                          @click="useItem(item.type, item.url)"
-                      >
-                          <v-list-item-title>Use</v-list-item-title>
-                          <v-list-item-action>
-                              <v-icon>mdi-play</v-icon>
-                          </v-list-item-action>
-                      </v-list-item>
-                      <v-list-item
-                          @click="
-                              editDialogStore.show = true; 
-                              editDialogStore.uuid = item.uuid;
-                              editDialogStore.data.type = item.type.toUpperCase();
-                              editDialogStore.data.folder = null;
-                              editDialogStore.data.name = item.name;
-                              editDialogStore.data.url = item.url;
-                          "
-                      >
-                          <v-list-item-title>Edit</v-list-item-title>
-                          <v-list-item-action>
-                              <v-icon>mdi-pencil</v-icon>
-                          </v-list-item-action>
-                      </v-list-item>
-                      <v-list-item
-                          @click="
-                            shareDialogStore.show = true; 
-                            shareDialogStore.data.url = item.url; 
-                            shareDialogStore.data.uuid = item.uuid; 
-                          "
-                      >
-                          <v-list-item-title>Share</v-list-item-title>
-                          <v-list-item-action>
-                              <v-icon>mdi-share</v-icon>
-                          </v-list-item-action>
-                      </v-list-item>
-                      <v-list-item
-                          @click="
-                            removeDialogStore.show = true; 
-                            removeDialogStore.uuid = item.uuid;
-                          "
-                          color="red darken-1"
-                      >
-                          <v-list-item-title>Remove</v-list-item-title>
-                          <v-list-item-action>
-                              <v-icon>mdi-minus</v-icon>
-                          </v-list-item-action>
-                      </v-list-item>
-                  </v-list>
+                      <v-list color="grey darken-3">
+                          <v-list-item
+                              @click="useItem(item.type, item.url)"
+                          >
+                              <v-list-item-title>Use</v-list-item-title>
+                              <v-list-item-action>
+                                  <v-icon>mdi-play</v-icon>
+                              </v-list-item-action>
+                          </v-list-item>
+                          <v-list-item
+                              @click="
+                                  editDialogStore.show = true; 
+                                  editDialogStore.uuid = item.uuid;
+                                  editDialogStore.data.type = item.type.toUpperCase();
+                                  editDialogStore.data.folder = null;
+                                  editDialogStore.data.name = item.name;
+                                  editDialogStore.data.url = item.url;
+                              "
+                          >
+                              <v-list-item-title>Edit</v-list-item-title>
+                              <v-list-item-action>
+                                  <v-icon>mdi-pencil</v-icon>
+                              </v-list-item-action>
+                          </v-list-item>
+                          <v-list-item
+                              @click="
+                                shareDialogStore.show = true; 
+                                shareDialogStore.data.url = item.url; 
+                                shareDialogStore.data.uuid = item.uuid; 
+                              "
+                          >
+                              <v-list-item-title>Share</v-list-item-title>
+                              <v-list-item-action>
+                                  <v-icon>mdi-share</v-icon>
+                              </v-list-item-action>
+                          </v-list-item>
+                          <v-list-item
+                              @click="
+                                removeDialogStore.show = true; 
+                                removeDialogStore.uuid = item.uuid;
+                              "
+                              color="red darken-1"
+                          >
+                              <v-list-item-title>Remove</v-list-item-title>
+                              <v-list-item-action>
+                                  <v-icon>mdi-minus</v-icon>
+                              </v-list-item-action>
+                          </v-list-item>
+                      </v-list>
                   </v-menu>
                   
               </v-list-item>
@@ -220,17 +222,6 @@ export default {
             set(value) {
                 this.$store.commit('mutate', {
                     property: 'editFolderDialog', 
-                    with: value
-                });
-            },
-        },
-        createFolderDialogStore: {
-            get() {
-                return this.$store.state.createFolderDialog;
-            },
-            set(value) {
-                this.$store.commit('mutate', {
-                    property: 'createFolderDialog', 
                     with: value
                 });
             },

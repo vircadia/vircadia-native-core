@@ -25,11 +25,42 @@
             
             <v-spacer></v-spacer>
             
-            <v-btn medium color="primary" fab @click="sortTopInventory('top')">
+            <!-- <v-btn medium color="primary" fab @click="sortTopInventory('az')">
                 <v-icon>
                     mdi-ab-testing
                 </v-icon>
-            </v-btn>
+            </v-btn> -->
+            
+            <v-menu bottom left>
+                <template v-slot:activator="{ on }">
+                    <v-btn 
+                        large
+                        color="primary"
+                        v-on="on"
+                    >
+                        <h4>Sort</h4>
+                    </v-btn>
+                </template>
+
+                <v-list color="grey darken-3">
+                    <v-list-item
+                        @click="sortTopInventory('az')"
+                    >
+                        <v-list-item-title>A-Z</v-list-item-title>
+                        <v-list-item-action>
+                            <v-icon large>mdi-sort-alphabetical-ascending</v-icon>
+                        </v-list-item-action>
+                    </v-list-item>
+                    <v-list-item
+                        @click="sortTopInventory('za')"
+                    >
+                        <v-list-item-title>Z-A</v-list-item-title>
+                        <v-list-item-action>
+                            <v-icon large>mdi-sort-alphabetical-descending</v-icon>
+                        </v-list-item-action>
+                    </v-list-item>
+                </v-list>
+            </v-menu>
           
         </v-app-bar>
 
@@ -668,7 +699,7 @@ export default {
                 ],
             },
         },
-        appVersion: "1.3",
+        appVersion: "2.0",
         darkTheme: true,
         drawer: false,
         disabledProp: true,
@@ -708,7 +739,7 @@ export default {
                 "name": name,
                 "folder": folder,
                 "url": url,
-                "uuid": uuid
+                "uuid": uuidToUse
             });
             
             if (folder !== null && folder !== "No Folder") {
@@ -772,10 +803,7 @@ export default {
                 "uuid": this.createUUID()
             });
             
-            this.$store.commit('mutate', {
-                property: 'createFolderDialog.data.name', 
-                with: null
-            });
+            this.createFolderDialogStore.data.name = null;
         },
         editFolder: function(uuid) {
             var findFolder = this.searchForItem(uuid);
@@ -806,20 +834,10 @@ export default {
 
             this.pushToItems(itemType, name, folder, url, null);
             
-            this.$store.commit('mutate', {
-                property: 'addDialog.data.name', 
-                with: null
-            });
-            
-            this.$store.commit('mutate', {
-                property: 'addDialog.data.folder', 
-                with: null
-            });
-            
-            this.$store.commit('mutate', {
-                property: 'addDialog.data.url', 
-                with: null
-            });
+            this.addDialogStore.data.name = null;
+            this.addDialogStore.data.folder = null;
+            this.addDialogStore.data.url = null;
+        
         },
         detectFileType: function(url) {    
             // Attempt the pure regex route...
@@ -943,10 +961,8 @@ export default {
         onDragChange: function(ev) {
             console.info("Drag Update.", ev);
         },
-        sortTopInventory: function(level) {
-            if (level == "top") {
-                this.$store.commit('sortTopInventory');
-            }
+        sortTopInventory: function(order) {
+            this.$store.commit('sortTopInventory', { "sort": order });
         },
         getFolderList: function(request) {
             var generateList;
