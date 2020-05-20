@@ -149,11 +149,38 @@
                     >
                         <v-icon>mdi-minus</v-icon>
                     </v-btn>
-                    <v-btn medium tile color="blue" class="mx-1 folder-button"
-                        @click="sortFolder(item.uuid);"
-                    >
-                        <v-icon>mdi-ab-testing</v-icon>
-                    </v-btn>
+                    
+                    <v-menu bottom left>
+                        <template v-slot:activator="{ on }">
+                            <v-btn 
+                                medium tile 
+                                color="blue" 
+                                class="mx-1 folder-button"
+                                v-on="on"
+                            >
+                                <v-icon>mdi-sort</v-icon>
+                            </v-btn>
+                        </template>
+        
+                        <v-list color="grey darken-3">
+                            <v-list-item
+                                @click="sortFolder(item.uuid, 'az');"
+                            >
+                                <v-list-item-title>A-Z</v-list-item-title>
+                                <v-list-item-action>
+                                    <v-icon large>mdi-sort-alphabetical-ascending</v-icon>
+                                </v-list-item-action>
+                            </v-list-item>
+                            <v-list-item
+                                @click="sortFolder(item.uuid, 'za');"
+                            >
+                                <v-list-item-title>Z-A</v-list-item-title>
+                                <v-list-item-action>
+                                    <v-icon large>mdi-sort-alphabetical-descending</v-icon>
+                                </v-list-item-action>
+                            </v-list-item>
+                        </v-list>
+                    </v-menu>
                 </div>
                 
                 <v-container fluid>
@@ -304,23 +331,40 @@ export default {
             
             return returnedItemIconColor;
         },
-        sortFolder: function(uuid) {
+        sortFolder: function(uuid, sort) {
             var findFolder = this.searchForItem(uuid);
             
             if (findFolder) {
-                findFolder.returnedItem.items.sort(function(a, b) {
-                    var nameA = a.name.toUpperCase(); // ignore upper and lowercase
-                    var nameB = b.name.toUpperCase(); // ignore upper and lowercase
-                    if (nameA < nameB) {
-                        return -1;
-                    }
-                    if (nameA > nameB) {
-                        return 1;
-                    }
-    
-                    // names must be equal
-                    return 0;
-                });
+                if (sort === "az") {
+                    findFolder.returnedItem.items.sort(function(a, b) {
+                        var nameA = a.name.toUpperCase(); // ignore upper and lowercase
+                        var nameB = b.name.toUpperCase(); // ignore upper and lowercase
+                        if (nameA < nameB) {
+                            return -1;
+                        }
+                        if (nameA > nameB) {
+                            return 1;
+                        }
+        
+                        // names must be equal
+                        return 0;
+                    });
+                }
+                if (sort === "za") {
+                    findFolder.returnedItem.items.sort(function(a, b) {
+                        var nameA = a.name.toUpperCase(); // ignore upper and lowercase
+                        var nameB = b.name.toUpperCase(); // ignore upper and lowercase
+                        if (nameA > nameB) {
+                            return -1;
+                        }
+                        if (nameA < nameB) {
+                            return 1;
+                        }
+        
+                        // names must be equal
+                        return 0;
+                    });
+                }
             }
         },
         searchForItem: function(uuid) {
