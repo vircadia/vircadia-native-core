@@ -1,10 +1,10 @@
 # Creating an Installer
 
-Follow the [build guide](BUILD.md) to figure out how to build Project Athena for your platform.
+Follow the [build guide](BUILD.md) to figure out how to build Vircadia for your platform.
 
 During generation, CMake should produce an `install` target and a `package` target.
 
-The `install` target will copy the Project Athena targets and their dependencies to your `CMAKE_INSTALL_PREFIX`.  
+The `install` target will copy the Vircadia targets and their dependencies to your `CMAKE_INSTALL_PREFIX`.  
 This variable is set by the `project(hifi)` command in `CMakeLists.txt` to `C:/Program Files/hifi` and stored in `build/CMakeCache.txt`
 
 ### Packaging

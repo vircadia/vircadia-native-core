@@ -116,7 +116,7 @@ Rectangle {
         Item { height: 20; width: 1 }
         RalewayRegular {
             color: "white"
-            text: "© 2020 Vircadia."
+            text: "© 2020 Vircadia"
             size: 14
         }
         RalewayRegular {

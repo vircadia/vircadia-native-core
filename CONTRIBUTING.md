@@ -29,7 +29,7 @@ Contributing
 7. Push to your fork
   
   ```
-  git push origin master
+  git push origin new_branch_name
   ```
 8. Submit a pull request
 
