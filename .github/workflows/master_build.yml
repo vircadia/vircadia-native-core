@@ -156,8 +156,8 @@ jobs:
         # Windows build variables
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
           echo ::set-env name=CMAKE_EXTRA::"-A x64"
-          echo ::set-env name=HF_PFX_PASSPHRASE::${{secrets.pfx_key}}
-          echo "::set-env name=HF_PFX_FILE::${{runner.workspace}}\build\codesign.pfx"
+          # echo ::set-env name=HF_PFX_PASSPHRASE::${{secrets.pfx_key}}
+          # echo "::set-env name=HF_PFX_FILE::${{runner.workspace}}\build\codesign.pfx"
         fi          
     - name: Clear Working Directory
       if: matrix.os == 'windows-latest'
@@ -190,7 +190,7 @@ jobs:
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release -DCLIENT_ONLY:BOOLEAN=$CLIENT_ONLY $CMAKE_EXTRA
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release -DCLIENT_ONLY:BOOLEAN=$CLIENT_ONLY -DBYPASS_SIGNING:BOOLEAN=TRUE $CMAKE_EXTRA
     - name: Build Application
       working-directory: ${{runner.workspace}}/build
       shell: bash
