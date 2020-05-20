@@ -703,30 +703,17 @@ export default {
                 uuidToUse = this.createUUID();
             }
             
-            var itemToPush =             
-            {
+            this.$store.commit('pushToItems', {
                 "type": type,
                 "name": name,
-                "url": url,
                 "folder": folder,
-                "uuid": uuidToUse,
-            };
-            
-            this.items.push(itemToPush);
+                "url": url,
+                "uuid": uuid
+            });
             
             if (folder !== null && folder !== "No Folder") {
                 this.moveItem(uuidToUse, folder);
             }
-        },
-        pushFolderToItems: function(name) {
-            var folderToPush =             
-            {
-                "name": name,
-                "items": [],
-                "uuid": this.createUUID(),
-            };
-            
-            this.items.push(folderToPush);
         },
         checkFileType: function(fileType) {
             var detectedItemType = null;
@@ -778,7 +765,17 @@ export default {
             return detectedItemType;
         },
         createFolder: function(name) {
-            this.pushFolderToItems(name);
+            this.$store.commit('pushToItems', {
+                "name": name,
+                "folder": "No Folder",
+                "items": [],
+                "uuid": this.createUUID()
+            });
+            
+            this.$store.commit('mutate', {
+                property: 'createFolderDialog.data.name', 
+                with: null
+            });
         },
         editFolder: function(uuid) {
             var findFolder = this.searchForItem(uuid);
@@ -999,52 +996,23 @@ export default {
                 this.folderList = combinedArray;
             }
         },
-        moveItem: function(uuid, folderUUID) {
+        moveItem: function(uuid, parentFolderUUID) {
             var findItem = this.searchForItem(uuid);
+            var findParentFolder;
             
-            if (folderUUID === "top") {
-                // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
-                this.removeItem(uuid);
-    
-                this.pushToItems(
-                    findItem.returnedItem.type, 
-                    findItem.returnedItem.name, 
-                    "No Folder", 
-                    findItem.returnedItem.url, 
-                    uuid
-                );
-                
-            } else {
-                
-                var itemToPush = {
-                    'type': null,
-                    'name': null,
-                    'folder': null,
-                    'url': null,
-                    'uuid': uuid,
-                };
-
-                itemToPush.type = findItem.returnedItem.type;
-                itemToPush.name = findItem.returnedItem.name;
-                itemToPush.url = findItem.returnedItem.url;
-    
-                // Get the folder UUID.
-                for (var i = 0; i < this.folderList.length; i++) {
-                    if (this.folderList[i].uuid === folderUUID) {
-                        itemToPush.folder = this.folderList[i].name;
-                    }
-                }
-                
-                // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
-                this.removeItem(uuid);
-    
-                // Find that folder in our main items array.
-                var findFolder = this.searchForItem(folderUUID);
-                
-                if (findFolder) {
-                    findFolder.returnedItem.items.push(itemToPush);
-                }
+            if (parentFolderUUID !== "top") {
+                findParentFolder = this.searchForItem(parentFolderUUID);
             }
+            
+            // Remove the old item before placing down the copy, we already got the attributes that we had wanted.
+            this.removeItem(uuid);
+            
+            this.$store.commit('moveItem', {
+                "uuid": uuid,
+                "parentFolderUUID": parentFolderUUID,
+                "findItem": findItem,
+                "findParentFolder": findParentFolder
+            });
 
         },
         moveFolder: function(uuid, parentFolderUUID) {

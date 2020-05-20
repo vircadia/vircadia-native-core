@@ -17,14 +17,14 @@ export const store = new Vuex.Store({
     devtools: true,
     state: {
         items: [
-            // {
-            //     "hasChildren": false,
-            //     "type": "script",
-            //     "name": "VRGrabScale",
-            //     "url": "https://gooawefaweawfgle.com/vr.js",
-            //     "folder": "No Folder",
-            //     "uuid": "54254354353",
-            // },
+            {
+                "hasChildren": false,
+                "type": "script",
+                "name": "VRGrabScale",
+                "url": "https://gooawefaweawfgle.com/vr.js",
+                "folder": "No Folder",
+                "uuid": "54254354353",
+            },
             {
                 "name": "Test Folder",
                 "folder": "No Folder",
@@ -109,78 +109,78 @@ export const store = new Vuex.Store({
             //     ],
             //     "uuid": "54354363wgsegs45ujs",
             // },
-            // {
-            //     "hasChildren": false,
-            //     "type": "script",
-            //     "name": "VRGrabScale",
-            //     "url": "https://googfdafsgaergale.com/vr.js",
-            //     "folder": "No Folder",
-            //     "uuid": "54hgfhgf254354353",
-            // },
-            // {
-            //     "hasChildren": false,
-            //     "type": "script",
-            //     "name": "TEST",
-            //     "url": "https://gooadfdagle.com/vr.js",
-            //     "folder": "No Folder",
-            //     "uuid": "542rfwat4t5fsddf4354353",
-            // },
-            // {
-            //     "hasChildren": false,
-            //     "type": "json",
-            //     "name": "TESTJSON",
-            //     "url": "https://gooadfdagle.com/vr.json",
-            //     "folder": "No Folder",
-            //     "uuid": "542rfwat4t54354353",
-            // },
-            // {
-            //     "hasChildren": false,
-            //     "type": "script",
-            //     "name": "TESTLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
-            //     "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
-            //     "folder": "No Folder",
-            //     "uuid": "5425ggsrg45354353",
-            // },
-            // {
-            //     "hasChildren": false,
-            //     "type": "whatttype",
-            //     "name": "BrokenIcon",
-            //     "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
-            //     "folder": "No Folder",
-            //     "uuid": "5425ggsrg4fdaffdff535asdasd4353",
-            // },
-            // {
-            //     "hasChildren": false,
-            //     "type": "avatar",
-            //     "name": "AVI",
-            //     "url": "https://googlfadfe.com/vr.fst",
-            //     "folder": "No Folder",
-            //     "uuid": "542gregg45s3g4354353",
-            // },
-            // {
-            //     "hasChildren": false,
-            //     "type": "avatar",
-            //     "name": "AVI",
-            //     "url": "https://googlefdaf.com/vr.fst",
-            //     "folder": "No Folder",
-            //     "uuid": "5420798-087-54354353",
-            // },
-            // {
-            //     "hasChildren": false,
-            //     "type": "model",
-            //     "name": "3D MODEL",
-            //     "url": "https://googlee.com/vr.fbx",
-            //     "folder": "No Folder",
-            //     "uuid": "54254354980-7667jt353",
-            // },
-            // {
-            //     "hasChildren": false,
-            //     "type": "place",
-            //     "name": "PLACE DOMAIN",
-            //     "url": "https://googleee.com/vr.fbx",
-            //     "folder": "No Folder",
-            //     "uuid": "542543sg45s4gg54353",
-            // },
+            {
+                "hasChildren": false,
+                "type": "script",
+                "name": "VRGrabScale",
+                "url": "https://googfdafsgaergale.com/vr.js",
+                "folder": "No Folder",
+                "uuid": "54hgfhgf254354353",
+            },
+            {
+                "hasChildren": false,
+                "type": "script",
+                "name": "TEST",
+                "url": "https://gooadfdagle.com/vr.js",
+                "folder": "No Folder",
+                "uuid": "542rfwat4t5fsddf4354353",
+            },
+            {
+                "hasChildren": false,
+                "type": "json",
+                "name": "TESTJSON",
+                "url": "https://gooadfdagle.com/vr.json",
+                "folder": "No Folder",
+                "uuid": "542rfwat4t54354353",
+            },
+            {
+                "hasChildren": false,
+                "type": "script",
+                "name": "TESTLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+                "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
+                "folder": "No Folder",
+                "uuid": "5425ggsrg45354353",
+            },
+            {
+                "hasChildren": false,
+                "type": "whatttype",
+                "name": "BrokenIcon",
+                "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
+                "folder": "No Folder",
+                "uuid": "5425ggsrg4fdaffdff535asdasd4353",
+            },
+            {
+                "hasChildren": false,
+                "type": "avatar",
+                "name": "AVI",
+                "url": "https://googlfadfe.com/vr.fst",
+                "folder": "No Folder",
+                "uuid": "542gregg45s3g4354353",
+            },
+            {
+                "hasChildren": false,
+                "type": "avatar",
+                "name": "AVI",
+                "url": "https://googlefdaf.com/vr.fst",
+                "folder": "No Folder",
+                "uuid": "5420798-087-54354353",
+            },
+            {
+                "hasChildren": false,
+                "type": "model",
+                "name": "3D MODEL",
+                "url": "https://googlee.com/vr.fbx",
+                "folder": "No Folder",
+                "uuid": "54254354980-7667jt353",
+            },
+            {
+                "hasChildren": false,
+                "type": "place",
+                "name": "PLACE DOMAIN",
+                "url": "https://googleee.com/vr.fbx",
+                "folder": "No Folder",
+                "uuid": "542543sg45s4gg54353",
+            },
         ],
         settings: {
             "displayDensity": {
@@ -311,17 +311,22 @@ export const store = new Vuex.Store({
                 return 0;
             });
         },
-        moveFolder (state, payload) {
+        pushToItems (state, payload) {
+            let { items } = state;
+            items.push(payload);
             
+            Vue.set(state,'items', items);
+        },
+        moveFolder (state, payload) {
             let { items } = state;
             
             if (payload.parentFolderUUID === "top") {
                 payload.findFolder.returnedItem.folder = "No Folder";
-                console.info("Going to push...", payload.findFolder.returnedItem);
-                console.info("Containing these items...", payload.findFolder.returnedItem.items);
+                // console.info("Going to push...", payload.findFolder.returnedItem);
+                // console.info("Containing these items...", payload.findFolder.returnedItem.items);
 
                 items.push(payload.findFolder.returnedItem);
-                Vue.set(state,'items', items)
+                Vue.set(state,'items', items);
                                 
             } else if (payload.findParentFolder) {                
                 // console.info("Going to push...", payload.findFolder.returnedItem);
@@ -330,8 +335,29 @@ export const store = new Vuex.Store({
 
                 payload.findFolder.returnedItem.folder = payload.findParentFolder.name;
                 payload.findParentFolder.returnedItem.items.push(payload.findFolder.returnedItem);
-                Vue.set(state,'items', items)
+                Vue.set(state,'items', items);
             }
         },
+        moveItem (state, payload) {
+            let { items } = state;
+            
+            if (payload.parentFolderUUID === "top") {
+                payload.findItem.returnedItem.folder = "No Folder";
+                // console.info("Going to push...", payload.findFolder.returnedItem);
+                // console.info("Containing these items...", payload.findFolder.returnedItem.items);
+
+                items.push(payload.findItem.returnedItem);
+                Vue.set(state,'items', items);
+                                
+            } else if (payload.findParentFolder) {                
+                // console.info("Going to push...", payload.findFolder.returnedItem);
+                // console.info("Containing these items...", payload.findFolder.returnedItem.items);
+                // console.info("Into...", payload.findParentFolder.returnedItem);
+
+                payload.findItem.returnedItem.folder = payload.findParentFolder.name;
+                payload.findParentFolder.returnedItem.items.push(payload.findItem.returnedItem);
+                Vue.set(state,'items', items);
+            }
+        }
     }
 })
