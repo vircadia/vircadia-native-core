@@ -2905,11 +2905,13 @@ function getExistingZoneList() {
         };
         listExistingZones.push(thisZone);
     }
-    listExistingZones.sort(GetSortOrder("name"));
+    var zoneSortProperty = "name";
+    var zoneSortOrder = getSortOrder(zoneSortProperty);
+    listExistingZones.sort(zoneSortOrder);
     return listExistingZones;
 }
 
-function GetSortOrder(sortProperty) {
+function getSortOrder(sortProperty) {
     return function(a, b) {
         if (a[sortProperty] > b[sortProperty]) {
             return 1;    
