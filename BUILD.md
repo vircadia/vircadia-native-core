@@ -22,7 +22,7 @@ These dependencies need not be installed manually. They are automatically downlo
 - [Bullet Physics Engine](https://github.com/bulletphysics/bullet3/releases):  2.83  
 - [glm](https://glm.g-truc.net/0.9.8/index.html):  0.9.8  
 - [Oculus SDK](https://developer.oculus.com/downloads/):   1.11 (Win32) / 0.5 (Mac)  
-- [OpenVR](https://github.com/ValveSoftware/openvr):   1.0.6 (Win32 only)  
+- [OpenVR](https://github.com/ValveSoftware/openvr):   1.11.11 (Win32 only)  
 - [Polyvox](http://www.volumesoffun.com/):   0.2.1  
 - [QuaZip](https://sourceforge.net/projects/quazip/files/quazip/):   0.7.3  
 - [SDL2](https://www.libsdl.org/download-2.0.php):   2.0.3  
@@ -67,18 +67,25 @@ Where /path/to/directory is the path to a directory where you wish the build fil
 
 ##### Possible Environment Variables
 
+    // The URL to post the dump to.
     CMAKE_BACKTRACE_URL
+    // The identifying tag of the release.
     CMAKE_BACKTRACE_TOKEN
     
+    // The release version.
     RELEASE_NUMBER
+    // The build commit.
     BUILD_NUMBER
 
+    // The type of release.
     RELEASE_TYPE=PRODUCTION|PR
     RELEASE_BUILD=PRODUCTION|PR
     
+    // TODO: What do these do?
     PRODUCTION_BUILD=0|1
     STABLE_BUILD=0|1
     
+    // TODO: What do these do?
     USE_STABLE_GLOBAL_SERVICES=1
     BUILD_GLOBAL_SERVICES=STABLE
     
