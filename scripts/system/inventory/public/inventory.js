@@ -13,11 +13,15 @@ var AppUi = Script.require('appUi');
 var ui;
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
+// VARIABLES
 var inventoryDataSettingString = "inventoryApp.data";
 var inventoryData;
 
 var inventorySettingsString = "inventoryApp.settings";
 var inventorySettings;
+
+var RECEIVING_ITEM_QUEUE_LIMIT = 5;
+var receivingItemQueue = [];
 
 // APP EVENT AND MESSAGING ROUTING
 
@@ -50,6 +54,10 @@ function onWebAppEventReceived(event) {
             sendNearbyUsers();
         }
         
+        if (eventJSON.command == "web-to-script-request-receiving-item-queue") {
+            sendReceivingItemQueue();
+        }
+        
     }
 }
 
@@ -73,7 +81,7 @@ function onMessageReceived(channel, message, sender, localOnly) {
         // Window.alert("Passed 0 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);
         if (messageJSON.command == "share-item" && messageJSON.recipient == MyAvatar.sessionUUID) { // We are receiving an item.
             // Window.alert("Passed 1 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);            
-            receivingItem(sender, messageJSON.type, messageJSON.name, messageJSON.url);
+            pushReceivedItemToQueue(sender, messageJSON.type, messageJSON.name, messageJSON.url);
         } 
     }
     // print("Message received:");
@@ -131,7 +139,7 @@ function loadSettings() {
     inventorySettings = Settings.getValue(inventorySettingsString);
 }
 
-function receivingItem(sender, type, name, url) {
+function pushReceivedItemToQueue(sender, type, name, url) {
     var packageRequest = {
         "sender": sender,
         "data": {
@@ -141,7 +149,15 @@ function receivingItem(sender, type, name, url) {
         }
     }
     
-    sendToWeb("script-to-web-receiving-item", packageRequest);
+    if (receivingItemQueue.length === RECEIVING_ITEM_QUEUE_LIMIT) {
+        receivingItemQueue = receivingItemQueue.slice(1, 5);
+    }
+    
+    receivingItemQueue.push(packageRequest);
+}
+
+function sendReceivingItemQueue() {
+    sendToWeb("script-to-web-receiving-item-queue", receivingItemQueue);
 }
 
 function sendNearbyUsers() {
@@ -220,6 +236,7 @@ function shareItem(data) {
 function initializeInventoryApp() {
     sendSettings();
     sendInventory();
+    sendReceivingItemQueue();
 }
 
 function onOpened() {

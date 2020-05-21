@@ -25,11 +25,26 @@
             
             <v-spacer></v-spacer>
             
-            <!-- <v-btn medium color="primary" fab @click="sortTopInventory('az')">
-                <v-icon>
-                    mdi-ab-testing
-                </v-icon>
-            </v-btn> -->
+            <v-badge
+                bordered
+                color="primary"
+                :value="receivingItemQueueLength"
+                :content="receivingItemQueueLength"
+                v-show="receivingItemQueueLength > 0"
+                overlap
+                class="mx-5"
+            >
+                <v-btn
+                    small 
+                    color="red" 
+                    fab 
+                    @click="receivingItemsDialog.show = true;"
+                >
+                    <v-icon>
+                        mdi-tray-full
+                    </v-icon>
+                </v-btn>
+            </v-badge>
             
             <v-menu bottom left>
                 <template v-slot:activator="{ on }">
@@ -117,6 +132,46 @@
                 </v-col>
             </v-container>
         </v-content>
+
+        <v-dialog
+            v-model="receivingItemsDialog.show"
+            max-width="380"
+        >
+            <v-card>
+                <v-card-title class="headline">Receiving Items</v-card-title>
+
+                <v-card-text>
+                  A list of all items being received currently.
+                </v-card-text>
+
+                <v-card-actions>
+                    <v-list
+                        nav
+                        class="pt-5"
+                        max-width="370"
+                    >
+
+                        <v-list-item
+                            two-line
+                            v-for="item in receivingItemsDialog.data.receivingItemQueue" 
+                            v-bind:key="item.data.uuid"
+                        >
+                            <v-list-item-content>
+                                <v-list-item-title>{{item.data.name}}</v-list-item-title>
+                                <v-list-item-subtitle>Sent by {{item.sender}}</v-list-item-subtitle>
+                            </v-list-item-content>
+                                <v-btn color="success" @click="acceptReceivingItem(item)">
+                                    <v-icon>mdi-plus</v-icon>
+                                </v-btn>
+                                <v-btn text color="red" @click="removeReceivingItem(item.data.uuid)">
+                                    <v-icon>mdi-minus</v-icon>
+                                </v-btn>
+                        </v-list-item>
+
+                    </v-list>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
 
         <v-dialog
           v-model="removeDialogStore.show"
@@ -528,7 +583,7 @@
                           color="blue"
                           class="px-3"
                           :disabled="!$store.state.receiveDialog.valid"
-                          @click="receiveDialogStore.show = false; acceptItem();"
+                          @click="receiveDialogStore.show = false; confirmItemReceipt();"
                       >
                           Accept
                       </v-btn>
@@ -642,9 +697,9 @@ if (!browserDevelopment()) {
                 vue_this.receiveInventory(receivedCommand.data);
             }
     
-            if (receivedCommand.command == 'script-to-web-receiving-item') {
-                // alert("RECEIVING ITEM OFFER:" + JSON.stringify(receivedCommand.data));
-                vue_this.receivingItem(receivedCommand.data);
+            if (receivedCommand.command == 'script-to-web-receiving-item-queue') {
+                // alert("RECEIVING ITEM QUEUE:" + JSON.stringify(receivedCommand.data));
+                vue_this.receiveReceivingItemQueue(receivedCommand.data);
             }
     
             if (receivedCommand.command == 'script-to-web-nearby-users') {
@@ -662,16 +717,45 @@ if (!browserDevelopment()) {
     
 }
 
-// import draggable from 'vuedraggable'
+import { EventBus } from './plugins/event-bus.js';
+
+EventBus.$on('use-item', data => {
+    vue_this.useItem(data.type, data.url);
+});
+
 import itemiterator from './components/ItemIterator'
 
 export default {
     name: 'App',
     components: {
-        // draggable,
         itemiterator
     },
     data: () => ({
+        receivingItemsDialog: {
+            show: false,
+            data: {
+                receivingItemQueue: [
+                    {
+                        "sender": "URMUM",
+                        "data": {
+                            "type": "script",
+                            "name": "This Is A Real Script",
+                            "url": "https://urmum.com/lol.js",
+                            "uuid": "This Is A Real Script",
+                        }
+                    },
+                    {
+                        "sender": "URMUM2",
+                        "data": {
+                            "type": "script",
+                            "name": "REALLYLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+                            "url": "https://urmum.com/looool.js",
+                            "uuid": "REALLYLONNGGGGGGGG",
+                        }
+                    },
+                ],
+            },
+        },
         folderList: [],
         recursiveFolderHoldingList: [],
         nearbyUsers: [
@@ -890,36 +974,49 @@ export default {
             }
 
         },
-        receivingItem: function(data) {
-            if (this.$store.state.receiveDialog.show != true) { // Do not accept offers if the user is already receiving an offer.
+        acceptReceivingItem: function(data) {
+            this.removeReceivingItem(data.data.uuid);
             
-                this.$store.commit('mutate', {
-                    property: 'receiveDialog.data.user', 
-                    with: data.data.user
-                });
-                
-                this.$store.commit('mutate', {
-                    property: 'receiveDialog.data.type', 
-                    with: data.data.type
-                });
-                
-                this.$store.commit('mutate', {
-                    property: 'receiveDialog.data.name', 
-                    with: data.data.name
-                });
-                
-                this.$store.commit('mutate', {
-                    property: 'receiveDialog.data.url', 
-                    with: data.data.url
-                });
-                
-                this.getFolderList("add");
-                                
-                this.$store.commit('mutate', {
-                    property: 'receiveDialog.show', 
-                    with: true
-                });
+            this.$store.commit('mutate', {
+                property: 'receiveDialog.data.user', 
+                with: data.sender
+            });
+            
+            this.$store.commit('mutate', {
+                property: 'receiveDialog.data.type', 
+                with: data.data.type
+            });
+            
+            this.$store.commit('mutate', {
+                property: 'receiveDialog.data.name', 
+                with: data.data.name
+            });
+            
+            this.$store.commit('mutate', {
+                property: 'receiveDialog.data.url', 
+                with: data.data.url
+            });
+            
+            this.getFolderList("add");
+                            
+            this.$store.commit('mutate', {
+                property: 'receiveDialog.show', 
+                with: true
+            });
+    
+        },
+        removeReceivingItem: function(uuid) {
+            for (var i = 0; i < this.receivingItemsDialog.data.receivingItemQueue.length; i++) {
+                if (this.receivingItemsDialog.data.receivingItemQueue[i].data.uuid === uuid) {
+                    this.receivingItemsDialog.data.receivingItemQueue.splice(i, 1);
+                    if (this.receivingItemsDialog.data.receivingItemQueue.length === 0) {
+                        this.receivingItemsDialog.show = false; // Close the dialog if there's nothing left.
+                    }
+                }
             }
+        },
+        receiveReceivingItemQueue: function(data) {
+            this.receivingItemsDialog.data.receivingItemQueue = data;
         },
         shareItem: function(uuid) {        
             var findItem = this.searchForItem(uuid);
@@ -934,7 +1031,7 @@ export default {
                 "recipient": this.$store.state.shareDialog.data.recipient,
             });
         },
-        acceptItem: function() {
+        confirmItemReceipt: function() {
             this.pushToItems(
                 this.checkItemType(this.$store.state.receiveDialog.data.type), 
                 this.$store.state.receiveDialog.data.name,
@@ -1250,6 +1347,11 @@ export default {
                     with: value
                 });
             },
+        },
+        receivingItemQueueLength: {
+            get() {
+                return this.receivingItemsDialog.data.receivingItemQueue.length;
+            }
         }
     },
     watch: {

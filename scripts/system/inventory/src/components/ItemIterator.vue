@@ -62,7 +62,7 @@
 
                       <v-list color="grey darken-3">
                           <v-list-item
-                              @click="useItem(item.type, item.url)"
+                              @click="sendEvent('use-item', { 'type': item.type, 'url': item.url })"
                           >
                               <v-list-item-title>Use</v-list-item-title>
                               <v-list-item-action>
@@ -195,6 +195,7 @@
 
 <script>
 
+import { EventBus } from '../plugins/event-bus.js';
 import draggable from 'vuedraggable'
 
 export default {
@@ -253,17 +254,6 @@ export default {
                 });
             },
         },
-        receiveDialogStore: {
-            get() {
-                return this.$store.state.receiveDialog;
-            },
-            set(value) {
-                this.$store.commit('mutate', {
-                    property: 'receiveDialog', 
-                    with: value
-                });
-            },
-        },
         shareDialogStore: {
             get() {
                 return this.$store.state.shareDialog;
@@ -307,6 +297,9 @@ export default {
         }
     },
     methods: {
+        sendEvent: function(command, data) {
+            EventBus.$emit(command, data);
+        },
         getIcon: function(itemType) {
             itemType = itemType.toUpperCase();
             var returnedItemIcon;

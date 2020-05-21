@@ -8,6 +8,7 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "@mdi/font": "^4.8.95",
     "core-js": "^3.6.4",
     "vue": "^2.6.11",
     "vuedraggable": "^2.23.2",
