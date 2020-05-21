@@ -1143,9 +1143,9 @@ export default {
             
             return null;
         },
-        recursiveFolderPopulate: function(indexToSearch, firstIteration, avoidFolder) {
+        recursiveFolderPopulate: function(indexToSearch, avoidFolder) {
             for (var i = 0; i < indexToSearch.length; i++) {
-                if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items") && indexToSearch[i].items.length > 0) {
+                if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items")) {
                     // We want to avoid adding the folder itself and also any child folders it may have, putting a folder within its child folder will nuke it.
                     if (avoidFolder !== indexToSearch[i].uuid) {
                         this.recursiveFolderHoldingList.push({
@@ -1153,14 +1153,12 @@ export default {
                             "uuid": indexToSearch[i].uuid,
                         });
                         
-                        this.recursiveFolderPopulate(indexToSearch[i].items, false, avoidFolder);
+                        this.recursiveFolderPopulate(indexToSearch[i].items, avoidFolder);
                     }
                 }
             }
             
-            if (firstIteration === true) {
-                return this.recursiveFolderHoldingList;
-            }
+            return this.recursiveFolderHoldingList;
         },
         sendInventory: function() {
             this.sendAppMessage("web-to-script-inventory", this.itemsStore );

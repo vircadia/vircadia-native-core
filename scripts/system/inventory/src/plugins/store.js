@@ -18,7 +18,6 @@ export const store = new Vuex.Store({
     state: {
         items: [
             {
-                "hasChildren": false,
                 "type": "script",
                 "name": "VRGrabScale",
                 "url": "https://gooawefaweawfgle.com/vr.js",
@@ -110,7 +109,6 @@ export const store = new Vuex.Store({
             //     "uuid": "54354363wgsegs45ujs",
             // },
             {
-                "hasChildren": false,
                 "type": "script",
                 "name": "VRGrabScale",
                 "url": "https://googfdafsgaergale.com/vr.js",
@@ -118,7 +116,6 @@ export const store = new Vuex.Store({
                 "uuid": "54hgfhgf254354353",
             },
             {
-                "hasChildren": false,
                 "type": "script",
                 "name": "TEST",
                 "url": "https://gooadfdagle.com/vr.js",
@@ -126,7 +123,6 @@ export const store = new Vuex.Store({
                 "uuid": "542rfwat4t5fsddf4354353",
             },
             {
-                "hasChildren": false,
                 "type": "json",
                 "name": "TESTJSON",
                 "url": "https://gooadfdagle.com/vr.json",
@@ -134,7 +130,6 @@ export const store = new Vuex.Store({
                 "uuid": "542rfwat4t54354353",
             },
             {
-                "hasChildren": false,
                 "type": "script",
                 "name": "TESTLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
                 "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
@@ -142,7 +137,6 @@ export const store = new Vuex.Store({
                 "uuid": "5425ggsrg45354353",
             },
             {
-                "hasChildren": false,
                 "type": "whatttype",
                 "name": "BrokenIcon",
                 "url": "https://googfdaffle.com/vrLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.js",
@@ -150,7 +144,6 @@ export const store = new Vuex.Store({
                 "uuid": "5425ggsrg4fdaffdff535asdasd4353",
             },
             {
-                "hasChildren": false,
                 "type": "avatar",
                 "name": "AVI",
                 "url": "https://googlfadfe.com/vr.fst",
@@ -158,7 +151,6 @@ export const store = new Vuex.Store({
                 "uuid": "542gregg45s3g4354353",
             },
             {
-                "hasChildren": false,
                 "type": "avatar",
                 "name": "AVI",
                 "url": "https://googlefdaf.com/vr.fst",
@@ -166,7 +158,6 @@ export const store = new Vuex.Store({
                 "uuid": "5420798-087-54354353",
             },
             {
-                "hasChildren": false,
                 "type": "model",
                 "name": "3D MODEL",
                 "url": "https://googlee.com/vr.fbx",
@@ -174,7 +165,6 @@ export const store = new Vuex.Store({
                 "uuid": "54254354980-7667jt353",
             },
             {
-                "hasChildren": false,
                 "type": "place",
                 "name": "PLACE DOMAIN",
                 "url": "https://googleee.com/vr.fbx",
