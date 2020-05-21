@@ -218,30 +218,30 @@ jobs:
     #  shell: powershell
     #  working-directory: C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64
     #  run: .\signtool.exe sign /fd sha256 /f ${{runner.workspace}}\build\codesign.pfx /p ${{secrets.pfx_key}} /tr http://sha256timestamp.ws.symantec.com/sha256/timestamp /td SHA256 ${{runner.workspace}}\build\${env:INSTALLER}
-    - name: Upload Artifact
-      if: matrix.os != 'ubuntu-latest'
-      shell: bash
-      working-directory: ${{runner.workspace}}/build	
-      env:	
-        AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key_id }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}	
-      run: $PYTHON_EXEC $GITHUB_WORKSPACE/tools/ci-scripts/upload.py 
-    - name: Archive Symbols
-      if: (matrix.os == 'windows-latest') || (matrix.os == 'macOS-latest')
-      working-directory: ${{runner.workspace}}
-      shell: bash
-      run: |
-        SYMBOLS_TEMP="symbols-temp"
-        mkdir $SYMBOLS_TEMP
-        find "./build" \( -path '*/tools/gpu-frame-player/*' -or -path '*/interface/*' -or -path '*/plugins/*' \) -regex ".*\.$SYMBOL_REGEX" -exec cp -r {} $SYMBOLS_TEMP \;
-        cd $SYMBOLS_TEMP
-        $ZIP_COMMAND $ZIP_ARGS ../${{ steps.buildenv1.outputs.symbols_archive }} .
-    - name: Upload Symbols
-      if: (matrix.os == 'windows-latest') || (matrix.os == 'macOS-latest')
-      working-directory: ${{runner.workspace}}
-      shell: bash
-      run: |
-        curl --data-binary @${{ steps.buildenv1.outputs.symbols_archive }} "$CMAKE_BACKTRACE_URL/post?format=symbols&token=$CMAKE_BACKTRACE_SYMBOLS_TOKEN&upload_file=${{steps.buildenv1.outputs.symbols_archive}}&tag=$RELEASE_NUMBER"
+    #- name: Upload Artifact
+    #  if: matrix.os != 'ubuntu-latest'
+    #  shell: bash
+    #  working-directory: ${{runner.workspace}}/build	
+    #  env:	
+    #    AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key_id }}
+    #    AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}	
+    #  run: $PYTHON_EXEC $GITHUB_WORKSPACE/tools/ci-scripts/upload.py 
+    #- name: Archive Symbols
+    #  if: (matrix.os == 'windows-latest') || (matrix.os == 'macOS-latest')
+    #  working-directory: ${{runner.workspace}}
+    #  shell: bash
+    #  run: |
+    #    SYMBOLS_TEMP="symbols-temp"
+    #    mkdir $SYMBOLS_TEMP
+    #    find "./build" \( -path '*/tools/gpu-frame-player/*' -or -path '*/interface/*' -or -path '*/plugins/*' \) -regex ".*\.$SYMBOL_REGEX" -exec cp -r {} $SYMBOLS_TEMP \;
+    #    cd $SYMBOLS_TEMP
+    #    $ZIP_COMMAND $ZIP_ARGS ../${{ steps.buildenv1.outputs.symbols_archive }} .
+    #- name: Upload Symbols
+    #  if: (matrix.os == 'windows-latest') || (matrix.os == 'macOS-latest')
+    #  working-directory: ${{runner.workspace}}
+    #  shell: bash
+    #  run: |
+    #    curl --data-binary @${{ steps.buildenv1.outputs.symbols_archive }} "$CMAKE_BACKTRACE_URL/post?format=symbols&token=$CMAKE_BACKTRACE_SYMBOLS_TOKEN&upload_file=${{steps.buildenv1.outputs.symbols_archive}}&tag=$RELEASE_NUMBER"
     # - name: Debug List Symbols
     #   if: (matrix.os == 'windows-latest') || (matrix.os == 'macOS-latest')
     #   working-directory: ${{runner.workspace}}
