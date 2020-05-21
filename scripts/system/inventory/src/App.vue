@@ -30,7 +30,6 @@
                 color="primary"
                 :value="receivingItemQueueLength"
                 :content="receivingItemQueueLength"
-                v-show="receivingItemQueueLength > 0"
                 overlap
                 class="mx-5"
             >
@@ -38,7 +37,7 @@
                     small 
                     color="red" 
                     fab 
-                    @click="receivingItemsDialog.show = true;"
+                    @click="receivingItemsDialog.show = true; sendAppMessage('web-to-script-request-receiving-item-queue', '')"
                 >
                     <v-icon>
                         mdi-tray-full
@@ -138,10 +137,14 @@
             max-width="380"
         >
             <v-card>
-                <v-card-title class="headline">Receiving Items</v-card-title>
+                <v-card-title class="headline">Item Inbox</v-card-title>
 
-                <v-card-text>
-                  A list of all items being received currently.
+                <v-card-text v-show="receivingItemQueueLength > 0">
+                    A list of all items being received currently.
+                </v-card-text>
+                
+                <v-card-text v-show="receivingItemQueueLength === 0">
+                    There are currently no items in your inbox.
                 </v-card-text>
 
                 <v-card-actions>
@@ -149,6 +152,7 @@
                         nav
                         class="pt-5"
                         max-width="370"
+                        v-show="receivingItemQueueLength > 0"
                     >
 
                         <v-list-item
@@ -734,26 +738,7 @@ export default {
         receivingItemsDialog: {
             show: false,
             data: {
-                receivingItemQueue: [
-                    {
-                        "sender": "URMUM",
-                        "data": {
-                            "type": "script",
-                            "name": "This Is A Real Script",
-                            "url": "https://urmum.com/lol.js",
-                            "uuid": "This Is A Real Script",
-                        }
-                    },
-                    {
-                        "sender": "URMUM2",
-                        "data": {
-                            "type": "script",
-                            "name": "REALLYLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
-                            "url": "https://urmum.com/looool.js",
-                            "uuid": "REALLYLONNGGGGGGGG",
-                        }
-                    },
-                ],
+                receivingItemQueue: [],
             },
         },
         folderList: [],
@@ -1215,6 +1200,26 @@ export default {
                 // eslint-disable-next-line
                 EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
             } else {
+                // this.receivingItemsDialog.data.receivingItemQueue = [
+                //     {
+                //         "sender": "WHOISTHIS1",
+                //         "data": {
+                //             "type": "script",
+                //             "name": "This Is A Real Script",
+                //             "url": "https://urmum.com/lol.js",
+                //             "uuid": "This Is A Real Script",
+                //         }
+                //     },
+                //     {
+                //         "sender": "TESTPERSON2",
+                //         "data": {
+                //             "type": "script",
+                //             "name": "REALLYLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+                //             "url": "https://urmum.com/looool.js",
+                //             "uuid": "REALLYLONNGGGGGGGG",
+                //         }
+                //     }
+                // ];
                 // alert(JSON.stringify(JSONtoSend));
             }
         },
