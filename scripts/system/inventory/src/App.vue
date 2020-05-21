@@ -791,7 +791,7 @@ export default {
     created: function () {
         vue_this = this;
         this.$vuetify.theme.dark = this.darkTheme;
-        
+                
         this.sendAppMessage("ready", "");
     },
     methods: {
@@ -897,10 +897,8 @@ export default {
                 
                 if (this.$store.state.editFolderDialog.data.folder !== null && this.$store.state.editFolderDialog.data.folder !== "No Change") {
                     if (findFolder.returnedItem.folder !== this.$store.state.editFolderDialog.data.folder && this.$store.state.editFolderDialog.data.folder !== "No Folder") {
-                        console.info("This folder?", this.$store.state.editFolderDialog.data.folder);
                         this.moveFolder(uuid, this.$store.state.editFolderDialog.data.folder);
                     } else if (this.$store.state.editFolderDialog.data.folder === "No Folder") {
-                        console.info("This folder TOP?", this.$store.state.editFolderDialog.data.folder);
                         this.moveFolder(uuid, "top");
                     }
                 }
@@ -977,32 +975,14 @@ export default {
         acceptReceivingItem: function(data) {
             this.removeReceivingItem(data.data.uuid);
             
-            this.$store.commit('mutate', {
-                property: 'receiveDialog.data.user', 
-                with: data.sender
-            });
-            
-            this.$store.commit('mutate', {
-                property: 'receiveDialog.data.type', 
-                with: data.data.type
-            });
-            
-            this.$store.commit('mutate', {
-                property: 'receiveDialog.data.name', 
-                with: data.data.name
-            });
-            
-            this.$store.commit('mutate', {
-                property: 'receiveDialog.data.url', 
-                with: data.data.url
-            });
+            this.receiveDialogStore.data.user = data.sender;
+            this.receiveDialogStore.data.type = data.data.type;
+            this.receiveDialogStore.data.name = data.data.name;
+            this.receiveDialogStore.data.url = data.data.url;
             
             this.getFolderList("add");
                             
-            this.$store.commit('mutate', {
-                property: 'receiveDialog.show', 
-                with: true
-            });
+            this.receiveDialogStore.show = true;
     
         },
         removeReceivingItem: function(uuid) {
@@ -1179,7 +1159,6 @@ export default {
             return null;
         },
         recursiveFolderPopulate: function(indexToSearch, firstIteration, avoidFolder) {
-            console.info(JSON.stringify(this.folderList));
             for (var i = 0; i < indexToSearch.length; i++) {
                 if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items") && indexToSearch[i].items.length > 0) {
                     // We want to avoid adding the folder itself and also any child folders it may have, putting a folder within its child folder will nuke it.

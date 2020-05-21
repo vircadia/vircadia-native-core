@@ -294,7 +294,7 @@ export const store = new Vuex.Store({
     mutations: {
         mutate (state, payload) {
             state[payload.property] = payload.with;
-            console.info("Payload:", payload.property, "with:", payload.with, "state is now:", this.state);
+            // console.info("Payload:", payload.property, "with:", payload.with, "state is now:", this.state);
         },
         sortTopInventory (state, payload) {
             let { items } = state;
