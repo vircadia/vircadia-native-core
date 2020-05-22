@@ -47,7 +47,7 @@ Download and install the latest version of CMake 3.15.
 Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.15 Version page](https://cmake.org/files/v3.15/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
 
 ### Step 4. Create VCPKG environment variable
-In the next step, you will use CMake to build Project Athena. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
+In the next step, you will use CMake to build Vircadia. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
 
 To create this variable:
 * Naviagte to 'Edit the System Environment Variables' Through the start menu.
@@ -98,7 +98,7 @@ Restart Visual Studio again.
 
 In Visual Studio, right+click "interface" under the Apps folder in Solution Explorer and select "Set as Startup Project". Run from the menu bar `Debug > Start Debugging`.
 
-Now, you should have a full build of Project Athena and be able to run the Interface using Visual Studio. Please check our [Docs](https://wiki.highfidelity.com/wiki/Main_Page) for more information regarding the programming workflow.
+Now, you should have a full build of Vircadia and be able to run the Interface using Visual Studio. Please check our [Docs](https://docs.vircadia.dev/) for more information regarding the programming workflow.
 
 Note: You can also run Interface by launching it from command line or File Explorer from `%HIFI_DIR%\build\interface\Release\interface.exe`
 

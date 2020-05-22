@@ -782,21 +782,21 @@ Menu::Menu() {
     // Help/Application menu ----------------------------------
     MenuWrapper * helpMenu = addMenu("Help");
 
-    // Help > About Project Athena
-    action = addActionToQMenuAndActionHash(helpMenu, "About Project Athena");
+    // Help > About Vircadia
+    action = addActionToQMenuAndActionHash(helpMenu, "About Vircadia");
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/AboutDialog.qml"),
             QString("hifi/dialogs/TabletAboutDialog.qml"), "AboutDialog");
     });
     helpMenu->addSeparator();
 
-    // Help > Athena Docs
+    // Help > Vircadia Docs
     action = addActionToQMenuAndActionHash(helpMenu, "Online Documentation");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://docs.projectathena.dev/"));
+        QDesktopServices::openUrl(QUrl("https://docs.vircadia.dev/"));
     });
 
-    // Help > Athena Forum
+    // Help > Vircadia Forum
     /* action = addActionToQMenuAndActionHash(helpMenu, "Online Forums");
     connect(action, &QAction::triggered, qApp, [] {
         QDesktopServices::openUrl(QUrl("https://forums.highfidelity.com/"));
@@ -805,7 +805,7 @@ Menu::Menu() {
     // Help > Scripting Reference
     action = addActionToQMenuAndActionHash(helpMenu, "Online Script Reference");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://apidocs.projectathena.dev/"));
+        QDesktopServices::openUrl(QUrl("https://apidocs.vircadia.dev/"));
     });
 
     addActionToQMenuAndActionHash(helpMenu, "Controls Reference", 0, qApp, SLOT(showHelp()));
@@ -815,7 +815,7 @@ Menu::Menu() {
     // Help > Release Notes
     action = addActionToQMenuAndActionHash(helpMenu, "Release Notes");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://docs.projectathena.dev/release-notes.html"));
+        QDesktopServices::openUrl(QUrl("https://docs.vircadia.dev/release-notes.html"));
     });
 
     // Help > Report a Bug!
