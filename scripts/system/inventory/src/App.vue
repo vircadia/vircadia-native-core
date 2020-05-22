@@ -1042,7 +1042,7 @@ export default {
                     },
                 ];
                 
-                generateList = this.recursiveFolderPopulate(this.itemsStore, true, null);
+                generateList = this.recursiveFolderPopulate(this.itemsStore, null);
                 
             } else if (request == "add") {
                 this.folderList = [
@@ -1052,7 +1052,7 @@ export default {
                     },
                 ];
                 
-                generateList = this.recursiveFolderPopulate(this.itemsStore, true, null);
+                generateList = this.recursiveFolderPopulate(this.itemsStore, null);
                 
             } else if (request == "editFolder") {
                 this.folderList = [
@@ -1066,7 +1066,7 @@ export default {
                     },
                 ];
                 
-                generateList = this.recursiveFolderPopulate(this.itemsStore, true, this.$store.state.editFolderDialog.data.uuid);
+                generateList = this.recursiveFolderPopulate(this.itemsStore, this.$store.state.editFolderDialog.data.uuid);
             }
             
             if (generateList) {
@@ -1148,6 +1148,7 @@ export default {
                 if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items")) {
                     // We want to avoid adding the folder itself and also any child folders it may have, putting a folder within its child folder will nuke it.
                     if (avoidFolder !== indexToSearch[i].uuid) {
+                        console.info("AvoidFolder", avoidFolder, "indexToSearch[i].uuid", indexToSearch[i].uuid);
                         this.recursiveFolderHoldingList.push({
                             "name": indexToSearch[i].name,
                             "uuid": indexToSearch[i].uuid,
