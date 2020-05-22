@@ -162,7 +162,7 @@
                         >
                             <v-list-item-content>
                                 <v-list-item-title>{{item.data.name}}</v-list-item-title>
-                                <v-list-item-subtitle>Sent by {{item.sender}}</v-list-item-subtitle>
+                                <v-list-item-subtitle>Sent by {{item.senderName}}</v-list-item-subtitle>
                             </v-list-item-content>
                                 <v-btn color="success" @click="acceptReceivingItem(item)">
                                     <v-icon>mdi-plus</v-icon>
@@ -738,7 +738,28 @@ export default {
         receivingItemsDialog: {
             show: false,
             data: {
-                receivingItemQueue: [],
+                receivingItemQueue: [
+                    // {
+                    //     "sender": "SENDERUUIDLOL",
+                    //     "senderName": "WHOISTHIS1",
+                    //     "data": {
+                    //         "type": "script",
+                    //         "name": "This Is A Real Script",
+                    //         "url": "https://butwhythough.com/lol.js",
+                    //         "uuid": "This Is A Real Script",
+                    //     }
+                    // },
+                    // {
+                    //     "sender": "TEST2SENDERUUID",
+                    //     "senderName": "WHOTHISBE2",
+                    //     "data": {
+                    //         "type": "script",
+                    //         "name": "REALLYLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+                    //         "url": "https://butwhythough.com/looool.js",
+                    //         "uuid": "REALLYLONNGGGGGGGG",
+                    //     }
+                    // }
+                ],
             },
         },
         folderList: [],
@@ -974,6 +995,7 @@ export default {
             for (var i = 0; i < this.receivingItemsDialog.data.receivingItemQueue.length; i++) {
                 if (this.receivingItemsDialog.data.receivingItemQueue[i].data.uuid === uuid) {
                     this.receivingItemsDialog.data.receivingItemQueue.splice(i, 1);
+                    this.sendAppMessage('web-to-script-update-receiving-item-queue', this.receivingItemQueue);
                     if (this.receivingItemsDialog.data.receivingItemQueue.length === 0) {
                         this.receivingItemsDialog.show = false; // Close the dialog if there's nothing left.
                     }
@@ -1148,7 +1170,7 @@ export default {
                 if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items")) {
                     // We want to avoid adding the folder itself and also any child folders it may have, putting a folder within its child folder will nuke it.
                     if (avoidFolder !== indexToSearch[i].uuid) {
-                        console.info("AvoidFolder", avoidFolder, "indexToSearch[i].uuid", indexToSearch[i].uuid);
+                        // console.info("AvoidFolder", avoidFolder, "indexToSearch[i].uuid", indexToSearch[i].uuid);
                         this.recursiveFolderHoldingList.push({
                             "name": indexToSearch[i].name,
                             "uuid": indexToSearch[i].uuid,
@@ -1296,6 +1318,9 @@ export default {
                 });
             },
         },
+        shareDialogShow: function() {
+            return this.$store.state.shareDialog.show;
+        },
         shareDialogStore: {
             get() {
                 return this.$store.state.shareDialog;
@@ -1305,8 +1330,6 @@ export default {
                     property: 'shareDialog', 
                     with: value
                 });
-                
-                this.sendAppMessage('web-to-script-request-nearby-users', '')
             },
         },
         removeFolderDialogStore: {
@@ -1331,11 +1354,16 @@ export default {
                 });
             },
         },
+        receivingItemQueue: {
+            get() {
+                return this.receivingItemsDialog.data.receivingItemQueue;
+            }
+        },
         receivingItemQueueLength: {
             get() {
                 return this.receivingItemsDialog.data.receivingItemQueue.length;
             }
-        }
+        },
     },
     watch: {
         // Whenever the item list changes, this will notice and then send it to the script to be saved.
@@ -1369,7 +1397,19 @@ export default {
                     this.getFolderList('editFolder');
                 }
             }
-        }
+        },
+        shareDialogShow: {
+            handler: function(newVal) {
+                if (newVal === true) {
+                    this.sendAppMessage('web-to-script-request-nearby-users', '');
+                }
+            }
+        },
+        receivingItemQueue: {
+            handler: function() {
+                
+            }
+        },
     }
 };
 

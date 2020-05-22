@@ -58,6 +58,10 @@ function onWebAppEventReceived(event) {
             sendReceivingItemQueue();
         }
         
+        if (eventJSON.command == "web-to-script-update-receiving-item-queue") {
+            updateReceivingItemQueue(eventJSON.data);
+        }
+        
     }
 }
 
@@ -80,8 +84,8 @@ function onMessageReceived(channel, message, sender, localOnly) {
         var messageJSON = JSON.parse(message);
         // Window.alert("Passed 0 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);
         if (messageJSON.command == "share-item" && messageJSON.recipient == MyAvatar.sessionUUID) { // We are receiving an item.
-            // Window.alert("Passed 1 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);            
-            pushReceivedItemToQueue(sender, messageJSON.type, messageJSON.name, messageJSON.url);
+            // Window.alert("Passed 1 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);
+            pushReceivedItemToQueue(sender, AvatarList.getAvatar(sender).displayName, messageJSON.type, messageJSON.name, messageJSON.url);
         } 
     }
     // print("Message received:");
@@ -139,9 +143,10 @@ function loadSettings() {
     inventorySettings = Settings.getValue(inventorySettingsString);
 }
 
-function pushReceivedItemToQueue(sender, type, name, url) {
+function pushReceivedItemToQueue(senderUUID, senderName, type, name, url) {
     var packageRequest = {
-        "sender": sender,
+        "sender": senderUUID,
+        "senderName": senderName,
         "data": {
             "type": type,
             "name": name,
@@ -158,6 +163,10 @@ function pushReceivedItemToQueue(sender, type, name, url) {
 
 function sendReceivingItemQueue() {
     sendToWeb("script-to-web-receiving-item-queue", receivingItemQueue);
+}
+
+function updateReceivingItemQueue(data) {
+    receivingItemQueue = data;
 }
 
 function sendNearbyUsers() {
