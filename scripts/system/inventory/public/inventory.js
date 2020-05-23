@@ -159,6 +159,7 @@ function pushReceivedItemToQueue(senderUUID, senderName, type, name, url) {
     }
     
     receivingItemQueue.push(packageRequest);
+    ui.messagesWaiting(receivingItemQueue.length > 0);
 }
 
 function sendReceivingItemQueue() {
@@ -167,6 +168,7 @@ function sendReceivingItemQueue() {
 
 function updateReceivingItemQueue(data) {
     receivingItemQueue = data;
+    ui.messagesWaiting(receivingItemQueue.length > 0);
 }
 
 function sendNearbyUsers() {
@@ -177,7 +179,7 @@ function sendNearbyUsers() {
         var objectToWrite;
         var aviName = AvatarList.getAvatar(user).displayName;
         // Window.alert("aviName" + aviName + "user" + user + "MyAvatar.sessionUUID" + MyAvatar.sessionUUID);
-        if (user != MyAvatar.sessionUUID) { // Don't add ourselves to the list!
+        if (user != MyAvatar.sessionUUID || Controller.getValue(Controller.Hardware.Keyboard.Shift)) { // Don't add ourselves to the list!
             objectToWrite = { "name": aviName, "uuid": user };
             nearbyUsersToSend.push(objectToWrite);
         }        
