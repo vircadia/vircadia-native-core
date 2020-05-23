@@ -19,7 +19,6 @@
 #include <QtQuick/QQuickWindow>
 
 #include <PathUtils.h>
-#include <Windows.h>
 #include <OffscreenUi.h>
 #include <controllers/Pose.h>
 #include <NumericalConstants.h>
