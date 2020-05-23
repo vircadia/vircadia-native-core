@@ -207,8 +207,10 @@ void finishOpenVrKeyboardInput() {
     updateFromOpenVrKeyboardInput();
     // Simulate an enter press on the top level window to trigger the action
     if (0 == (_currentHints & Qt::ImhMultiLine)) {
-        qApp->sendEvent(offscreenUi->getWindow(), &QKeyEvent(QEvent::KeyPress, Qt::Key_Return, Qt::KeyboardModifiers(), QString("\n")));
-        qApp->sendEvent(offscreenUi->getWindow(), &QKeyEvent(QEvent::KeyRelease, Qt::Key_Return, Qt::KeyboardModifiers()));
+        auto keyPress = QKeyEvent(QEvent::KeyPress, Qt::Key_Return, Qt::KeyboardModifiers(), QString("\n"));
+        auto keyRelease = QKeyEvent(QEvent::KeyRelease, Qt::Key_Return, Qt::KeyboardModifiers());
+        qApp->sendEvent(offscreenUi->getWindow(), &keyPress);
+        qApp->sendEvent(offscreenUi->getWindow(), &keyRelease);
     }
 }
 
