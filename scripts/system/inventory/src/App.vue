@@ -524,7 +524,8 @@
               <v-card-title class="headline">Receiving Item</v-card-title>
 
               <v-card-text>
-                  {{$store.state.receiveDialog.data.user}} is sending you an item.
+                  {{$store.state.receiveDialog.data.userDisplayName}} sent you an item. <br />
+                  User UUID: {{$store.state.receiveDialog.data.userUUID}}
               </v-card-text>
               
               <v-form
@@ -739,26 +740,26 @@ export default {
             show: false,
             data: {
                 receivingItemQueue: [
-                    // {
-                    //     "sender": "SENDERUUIDLOL",
-                    //     "senderName": "WHOISTHIS1",
-                    //     "data": {
-                    //         "type": "script",
-                    //         "name": "This Is A Real Script",
-                    //         "url": "https://butwhythough.com/lol.js",
-                    //         "uuid": "This Is A Real Script",
-                    //     }
-                    // },
-                    // {
-                    //     "sender": "TEST2SENDERUUID",
-                    //     "senderName": "WHOTHISBE2",
-                    //     "data": {
-                    //         "type": "script",
-                    //         "name": "REALLYLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
-                    //         "url": "https://butwhythough.com/looool.js",
-                    //         "uuid": "REALLYLONNGGGGGGGG",
-                    //     }
-                    // }
+                    {
+                        "senderUUID": "SENDERUUIDLOL",
+                        "senderName": "WHOISTHIS1",
+                        "data": {
+                            "type": "script",
+                            "name": "This Is A Real Script",
+                            "url": "https://butwhythough.com/lol.js",
+                            "uuid": "This Is A Real Script",
+                        }
+                    },
+                    {
+                        "senderUUID": "TEST2SENDERUUID",
+                        "senderName": "WHOTHISBE2",
+                        "data": {
+                            "type": "script",
+                            "name": "REALLYLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+                            "url": "https://butwhythough.com/looool.js",
+                            "uuid": "REALLYLONNGGGGGGGG",
+                        }
+                    }
                 ],
             },
         },
@@ -981,7 +982,8 @@ export default {
         acceptReceivingItem: function(data) {
             this.removeReceivingItem(data.data.uuid);
             
-            this.receiveDialogStore.data.user = data.sender;
+            this.receiveDialogStore.data.userUUID = data.senderUUID;
+            this.receiveDialogStore.data.userDisplayName = data.senderName;
             this.receiveDialogStore.data.type = data.data.type;
             this.receiveDialogStore.data.name = data.data.name;
             this.receiveDialogStore.data.url = data.data.url;

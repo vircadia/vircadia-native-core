@@ -145,7 +145,7 @@ function loadSettings() {
 
 function pushReceivedItemToQueue(senderUUID, senderName, type, name, url) {
     var packageRequest = {
-        "sender": senderUUID,
+        "senderUUID": senderUUID,
         "senderName": senderName,
         "data": {
             "type": type,

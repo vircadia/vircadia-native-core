@@ -264,7 +264,8 @@ export const store = new Vuex.Store({
             show: false,
             valid: false,
             data: {
-                "user": null,
+                "userUUID": null,
+                "userDisplayName": null,
                 "name": null,
                 "folder": null,
                 "type": null,
