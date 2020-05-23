@@ -524,8 +524,8 @@
               <v-card-title class="headline">Receiving Item</v-card-title>
 
               <v-card-text>
-                  {{$store.state.receiveDialog.data.userDisplayName}} sent you an item. <br />
-                  User UUID: {{$store.state.receiveDialog.data.userUUID}}
+                  <b>{{$store.state.receiveDialog.data.userDisplayName}} sent you an item.</b> <br />
+                  <i class="caption">User UUID: {{$store.state.receiveDialog.data.userUUID}}</i>
               </v-card-text>
               
               <v-form
