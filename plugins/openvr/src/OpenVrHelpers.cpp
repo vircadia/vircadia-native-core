@@ -407,6 +407,14 @@ void showMinSpecWarning() {
     }
 
     // Needed here for PathUtils
+#ifdef Q_OS_LINUX
+    char cmdline[4096];
+    FILE* fp = fopen("/proc/self/cmdline", "r");
+    fgets(cmdline, sizeof cmdline, fp);
+    fclose(fp);
+    int __argc = 1;
+    char* __argv[1] = { cmdline };
+#endif
     QCoreApplication miniApp(__argc, __argv);
 
     vrSystem->ResetSeatedZeroPose();
@@ -486,7 +494,12 @@ bool checkMinSpecImpl() {
 }
 
 extern "C" {
+#if defined(Q_OS_WIN32)
     __declspec(dllexport) int __stdcall CheckMinSpec() {
+#else
+    __attribute__((visibility("default"))) int CheckMinSpec() {
+#endif
         return checkMinSpecImpl() ? 1 : 0;
     }
+
 }

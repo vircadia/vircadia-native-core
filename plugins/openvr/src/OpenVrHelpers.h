@@ -76,7 +76,7 @@ struct PoseData {
     }
 
     void update(const glm::mat4& resetMat) {
-        for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+        for (uint32_t i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
             if (!vrPoses[i].bPoseIsValid) {
                 continue;
             }
@@ -87,7 +87,7 @@ struct PoseData {
     }
 
     void resetToInvalid() {
-        for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+        for (uint32_t i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
             vrPoses[i].bPoseIsValid = false;
         }
     }

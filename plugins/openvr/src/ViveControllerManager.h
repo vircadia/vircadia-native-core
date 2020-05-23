@@ -52,7 +52,7 @@ public:
     bool activate() override;
     void deactivate() override;
 
-    QString getDeviceName() { return QString::fromStdString(_inputDevice->_headsetName); }
+    QString getDeviceName() override { return QString::fromStdString(_inputDevice->_headsetName); }
 
     void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
