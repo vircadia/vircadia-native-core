@@ -163,6 +163,7 @@
                             <v-list-item-content>
                                 <v-list-item-title>{{item.data.name}}</v-list-item-title>
                                 <v-list-item-subtitle>Sent by {{item.senderName}}</v-list-item-subtitle>
+                                <v-list-item-subtitle>{{item.senderDistance}}m</v-list-item-subtitle>
                             </v-list-item-content>
                                 <v-btn color="success" @click="acceptReceivingItem(item)">
                                     <v-icon>mdi-plus</v-icon>
@@ -790,7 +791,7 @@ export default {
                 ],
             },
         },
-        appVersion: "2.0",
+        appVersion: "2.0.2",
         darkTheme: true,
         drawer: false,
         disabledProp: true,

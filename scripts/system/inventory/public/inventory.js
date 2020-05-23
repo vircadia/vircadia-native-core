@@ -85,7 +85,7 @@ function onMessageReceived(channel, message, sender, localOnly) {
         // Window.alert("Passed 0 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);
         if (messageJSON.command == "share-item" && messageJSON.recipient == MyAvatar.sessionUUID) { // We are receiving an item.
             // Window.alert("Passed 1 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);
-            pushReceivedItemToQueue(sender, AvatarList.getAvatar(sender).displayName, messageJSON.type, messageJSON.name, messageJSON.url);
+            pushReceivedItemToQueue(sender, messageJSON.type, messageJSON.name, messageJSON.url);
         } 
     }
     // print("Message received:");
@@ -143,10 +143,16 @@ function loadSettings() {
     inventorySettings = Settings.getValue(inventorySettingsString);
 }
 
-function pushReceivedItemToQueue(senderUUID, senderName, type, name, url) {
+function pushReceivedItemToQueue(senderUUID, type, name, url) {
+    console.info("Receiving an item:", name, "from:", senderUUID);
+    var getAvatarData = AvatarList.getAvatar(senderUUID);
+    var senderName = getAvatarData.sessionDisplayName;
+    var senderDistance = Vec3.distance(MyAvatar.position, getAvatarData.position);
+    
     var packageRequest = {
         "senderUUID": senderUUID,
         "senderName": senderName,
+        "senderDistance": senderDistance,
         "data": {
             "type": type,
             "name": name,
