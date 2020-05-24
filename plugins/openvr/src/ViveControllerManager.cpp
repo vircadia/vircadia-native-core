@@ -370,7 +370,7 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     handleHandController(deltaTime, rightHandDeviceIndex, inputCalibrationData, false);
 
     // collect poses for all generic trackers
-    for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+    for (uint32_t i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
         handleTrackedObject(i, inputCalibrationData);
         handleHmd(i, inputCalibrationData);
     }
@@ -445,8 +445,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHead = headObject["override"].toBool();
                 if (overrideHead) {
                     _headConfig = HeadConfig::Puck;
-                    _headPuckYOffset = headObject["Y"].toDouble() * CM_TO_M;
-                    _headPuckZOffset = headObject["Z"].toDouble() * CM_TO_M;
+                    _headPuckYOffset = (float)headObject["Y"].toDouble() * CM_TO_M;
+                    _headPuckZOffset = (float)headObject["Z"].toDouble() * CM_TO_M;
                 } else {
                     _headConfig = HeadConfig::HMD;
                 }
@@ -455,8 +455,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHands = handsObject["override"].toBool();
                 if (overrideHands) {
                     _handConfig = HandConfig::Pucks;
-                    _handPuckYOffset = handsObject["Y"].toDouble() * CM_TO_M;
-                    _handPuckZOffset = handsObject["Z"].toDouble() * CM_TO_M;
+                    _handPuckYOffset = (float)handsObject["Y"].toDouble() * CM_TO_M;
+                    _handPuckZOffset = (float)handsObject["Z"].toDouble() * CM_TO_M;
                 } else {
                     _handConfig = HandConfig::HandController;
                 }
@@ -490,8 +490,8 @@ QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD);
     configurationSettings["handController"] = (_handConfig == HandConfig::HandController);
     configurationSettings["puckCount"] = (int)_validTrackedObjects.size();
-    configurationSettings["armCircumference"] = (double)_armCircumference * M_TO_CM;
-    configurationSettings["shoulderWidth"] = (double)_shoulderWidth * M_TO_CM;
+    configurationSettings["armCircumference"] = (double)(_armCircumference * M_TO_CM);
+    configurationSettings["shoulderWidth"] = (double)(_shoulderWidth * M_TO_CM);
     configurationSettings["outOfRangeDataStrategy"] = outOfRangeDataStrategyToString(_outOfRangeDataStrategy);
     return configurationSettings;
 }
@@ -984,11 +984,11 @@ void ViveControllerManager::InputDevice::printDeviceTrackingResultChange(uint32_
 }
 
 bool ViveControllerManager::InputDevice::checkForCalibrationEvent() {
-    auto& endOfMap = _buttonPressedMap.end();
-    auto& leftTrigger = _buttonPressedMap.find(controller::LT);
-    auto& rightTrigger = _buttonPressedMap.find(controller::RT);
-    auto& leftAppButton = _buttonPressedMap.find(LEFT_APP_MENU);
-    auto& rightAppButton = _buttonPressedMap.find(RIGHT_APP_MENU);
+    auto endOfMap = _buttonPressedMap.end();
+    auto leftTrigger = _buttonPressedMap.find(controller::LT);
+    auto rightTrigger = _buttonPressedMap.find(controller::RT);
+    auto leftAppButton = _buttonPressedMap.find(LEFT_APP_MENU);
+    auto rightAppButton = _buttonPressedMap.find(RIGHT_APP_MENU);
     return ((leftTrigger != endOfMap && leftAppButton != endOfMap) && (rightTrigger != endOfMap && rightAppButton != endOfMap));
 }
 
