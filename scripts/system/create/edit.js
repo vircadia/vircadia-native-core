@@ -2911,9 +2911,11 @@ function getExistingZoneList() {
 
 function zoneSortOrder() {
     return function(a, b) {
-        if (a.name > b.name) {
+        var nameA = a.name.toUpperCase();
+        var nameB = b.name.toUpperCase();
+        if (nameA > nameB) {
             return 1;    
-        } else if (a.name < b.name) {
+        } else if (nameA < nameB) {
             return -1;
         }
         return 0;
