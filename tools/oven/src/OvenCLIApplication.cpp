@@ -85,7 +85,7 @@ void OvenCLIApplication::parseCommandLine(int argc, char* argv[]) {
     _inputUrlParameter = QDir::fromNativeSeparators(parser.value(CLI_INPUT_PARAMETER));
     _outputUrlParameter = QDir::fromNativeSeparators(parser.value(CLI_OUTPUT_PARAMETER));
 
-    _typeParameter = parser.isSet(CLI_TYPE_PARAMETER) ? parser.value(CLI_TYPE_PARAMETER) : QString::null;
+    _typeParameter = parser.isSet(CLI_TYPE_PARAMETER) ? parser.value(CLI_TYPE_PARAMETER) : QString();
 
     if (parser.isSet(CLI_DISABLE_TEXTURE_COMPRESSION_PARAMETER)) {
         qDebug() << "Disabling texture compression";
