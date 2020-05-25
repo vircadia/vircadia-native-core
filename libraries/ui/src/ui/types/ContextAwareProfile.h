@@ -12,6 +12,7 @@
 #define hifi_ContextAwareProfile_h
 
 #include <QtCore/QtGlobal>
+#include <QtCore/QMap>
 #include <QtCore/QMutex>
 #include <QtCore/QSharedPointer>
 
@@ -53,7 +54,7 @@ public:
     bool _isUninitialized{ true };
 
 private:
-    typedef std::map<QQmlContext*, TWeakPointer> TMonitorMap;
+    typedef QMap<QQmlContext*, TWeakPointer> TMonitorMap;
 
     static QMutex gl_monitorMapProtect;
     static TMonitorMap gl_monitorMap;

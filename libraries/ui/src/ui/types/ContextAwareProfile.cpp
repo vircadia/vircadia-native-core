@@ -38,12 +38,12 @@ RestrictedContextMonitor::TSharedPointer RestrictedContextMonitor::getMonitor(QQ
     gl_monitorMapProtect.lock();
     TMonitorMap::const_iterator lookup = gl_monitorMap.find(context);
     if (lookup != gl_monitorMap.end()) {
-        monitor = lookup->second.lock();
+        monitor = lookup.value().lock();
         assert(monitor);
     } else if(createIfMissing) {
         monitor = TSharedPointer::create(context);
         monitor->_selfPointer = monitor;
-        gl_monitorMap.insert(TMonitorMap::value_type(context, monitor));
+        gl_monitorMap.insert(context, monitor);
     }
     gl_monitorMapProtect.unlock();
     return monitor;
