@@ -978,7 +978,7 @@ while (true) {
 
 Boilerplates should include the filename, location, creator, copyright Vircadia contributors, and Apache 2.0 License 
 information. This should be placed at the top of the file. If editing an existing file that is copyright High Fidelity, add a 
-second copyright line, copyright Vircadia.
+second copyright line, copyright Vircadia contributors.
 
 ```cpp
 //
@@ -987,7 +987,7 @@ second copyright line, copyright Vircadia.
 //
 //  Created by Stephen Birarda on 15 Feb 2013.
 //  Copyright 2013 High Fidelity, Inc.
-//  Copyright 2020 Vircadia contributors
+//  Copyright 2020 Vircadia contributors.
 //
 //  This is where you could place an optional one line comment about the file.
 //

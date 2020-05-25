@@ -3,7 +3,7 @@
 //  Created by Brad Hefta-Gaub on 10/2/14.
 //  Persist toolbar by HRS 6/11/15.
 //  Copyright 2014 High Fidelity, Inc.
-//  Copyright 2020 Vircadia contributors
+//  Copyright 2020 Vircadia contributors.
 //
 //  This script allows you to edit entities with a new UI/UX for mouse and trackpad based editing
 //
