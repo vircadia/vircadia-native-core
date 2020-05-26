@@ -18,6 +18,7 @@ var CONTOLLER_SCRIPTS = [
     //"toggleAdvancedMovementForHandControllers.js",
     "handTouch.js",
     "controllerDispatcher.js",
+    "controllerModules/nearParentGrabOverlay.js",
     "controllerModules/stylusInput.js",
     "controllerModules/equipEntity.js",
     "controllerModules/nearTrigger.js",

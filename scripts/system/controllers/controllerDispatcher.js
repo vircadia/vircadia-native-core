@@ -323,7 +323,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                     }
 
                     var nearbyEntityIDs = Entities.findEntities(controllerPosition, findRadius);
-                    nearbyEntityIDs = nearbyEntityIDs.concat(nearbyOverlayIDs[h]); // overlays are now entities
 
                     for (var j = 0; j < nearbyEntityIDs.length; j++) {
                         var entityID = nearbyEntityIDs[j];
