@@ -28,7 +28,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.grabID = null;
 
         this.parameters = makeDispatcherModuleParameters(
-            90,
+            500,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100);

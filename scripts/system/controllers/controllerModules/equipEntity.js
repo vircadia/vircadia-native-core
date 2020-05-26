@@ -278,7 +278,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         this.handHasBeenRightsideUp = false;
 
         this.parameters = makeDispatcherModuleParameters(
-            85,
+            115,
             this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip"] : ["leftHand", "leftHandEquip"],
             [],
             100);
