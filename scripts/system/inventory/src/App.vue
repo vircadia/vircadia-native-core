@@ -163,7 +163,7 @@
                             <v-list-item-content>
                                 <v-list-item-title>{{item.data.name}}</v-list-item-title>
                                 <v-list-item-subtitle>Sent by {{item.senderName}}</v-list-item-subtitle>
-                                <v-list-item-subtitle>{{item.senderDistance}}m</v-list-item-subtitle>
+                                <v-list-item-subtitle>Distance: {{item.senderDistance.toFixed(1)}}m</v-list-item-subtitle>
                             </v-list-item-content>
                                 <v-btn color="success" @click="acceptReceivingItem(item)">
                                     <v-icon>mdi-plus</v-icon>
@@ -632,15 +632,21 @@
                       </v-list-item-group>
                   </v-list> -->
                   
-                  <v-select
-                      v-model="shareDialogStore.data.recipient"
-                      :items="nearbyUsers"
-                      item-text="name"
-                      item-value="uuid"
-                      :rules="[v => !!v || 'A recipient is required']"
-                      label="Nearby Users"
-                      required
-                  ></v-select>
+                <v-select
+                    v-model="shareDialogStore.data.recipient"
+                    :items="nearbyUsers"
+                    item-value="uuid"
+                    :rules="[v => !!v || 'A recipient is required']"
+                    label="Nearby Users"
+                    required
+                >
+                    <template v-slot:item="data">
+                        <i style="color: grey; margin-right: 5px;">{{data.item.distance.toFixed(1)}}m</i> {{data.item.name}}
+                    </template>
+                    <template v-slot:selection="data">
+                        <i style="color: grey; margin-right: 5px;">{{data.item.distance.toFixed(1)}}m</i> {{data.item.name}}
+                    </template>
+                </v-select>
 
                   <v-text-field
                       class="px-2"
@@ -770,14 +776,17 @@ export default {
             {
                 name: "Who",
                 uuid: "{4131531653652562}",
+                distance: 5,
             },
             {
                 name: "Is",
                 uuid: "{4131531653756756576543652562}",
+                distance: 3.23,
             },
             {
                 name: "This?",
                 uuid: "{4131531676575653652562}",
+                distance: 1,
             },
         ],
         sortBy: "alphabetical",

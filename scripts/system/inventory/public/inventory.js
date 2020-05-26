@@ -183,10 +183,12 @@ function sendNearbyUsers() {
     
     nearbyUsers.forEach(function(user, i) {
         var objectToWrite;
-        var aviName = AvatarList.getAvatar(user).displayName;
+        var aviDetails = AvatarList.getAvatar(user)
+        var aviName = aviDetails.displayName;
+        var aviDistance = Vec3.distance(MyAvatar.position, aviDetails.position);
         // Window.alert("aviName" + aviName + "user" + user + "MyAvatar.sessionUUID" + MyAvatar.sessionUUID);
         if (user != MyAvatar.sessionUUID || Controller.getValue(Controller.Hardware.Keyboard.Shift)) { // Don't add ourselves to the list!
-            objectToWrite = { "name": aviName, "uuid": user };
+            objectToWrite = { "name": aviName, "distance": aviDistance, "uuid": user };
             nearbyUsersToSend.push(objectToWrite);
         }        
     });
