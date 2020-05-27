@@ -263,7 +263,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     // check for the temporary name parameter
     if (_getTempName) {
-        getTemporaryName();
+        getTemporaryName(true);
     }
 
     // send signal to DomainMetadata when descriptors changed
