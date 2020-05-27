@@ -85,7 +85,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macOS-latest]
-        build_type: [full, client]
+        build_type: full
         #os: [windows-latest, macOS-latest, ubuntu-latest]
         # exclude:
         #   - os: ubuntu-latest
@@ -102,6 +102,11 @@ jobs:
       uses: highfidelity/build-number@v3
       with:
         output_name: RELEASE_NUMBER
+    - name: Report GHA run numbers
+      shell: bash
+      run: |
+        echo "Action run ID (GITHUB_RUN_ID): $GITHUB_RUN_ID"
+        echo "Workflow run ID (GITHUB_RUN_NUMBER): $GITHUB_RUN_NUMBER"
     - name: Configure Build Environment 1
       shell: bash
       id: buildenv1
