@@ -2702,7 +2702,7 @@ private:
 
     bool _enableFlying { false };
     bool _flyingPrefDesktop { true };
-    bool _flyingPrefHMD { false };
+    bool _flyingPrefHMD { true };
     bool _wasPushing { false };
     bool _isPushing { false };
     bool _isBeingPushed { false };

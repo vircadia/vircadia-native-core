@@ -1988,7 +1988,7 @@ void MyAvatar::loadData() {
 
     // Flying preferences must be loaded before calling setFlyingEnabled()
     Setting::Handle<bool> firstRunVal { Settings::firstRun, true };
-    setFlyingHMDPref(firstRunVal.get() ? false : _flyingHMDSetting.get());
+    setFlyingHMDPref(firstRunVal.get() ? true : _flyingHMDSetting.get());
     setMovementReference(firstRunVal.get() ? false : _movementReferenceSetting.get());
     setDriveGear1(firstRunVal.get() ? DEFAULT_GEAR_1 : _driveGear1Setting.get());
     setDriveGear2(firstRunVal.get() ? DEFAULT_GEAR_2 : _driveGear2Setting.get());
