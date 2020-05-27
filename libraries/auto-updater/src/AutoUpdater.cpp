@@ -40,6 +40,10 @@ const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
 const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");
 
 void AutoUpdater::getLatestVersionData() {
+
+    // FIXME: Implement Vircadia version of latest version checking.
+    /*
+
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QUrl buildsURL;
@@ -56,6 +60,8 @@ void AutoUpdater::getLatestVersionData() {
     latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(latestVersionRequest);
     connect(reply, &QNetworkReply::finished, this, &AutoUpdater::parseLatestVersionData);
+
+    */
 }
 
 void AutoUpdater::parseLatestVersionData() {
