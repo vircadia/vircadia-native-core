@@ -341,16 +341,16 @@ void DomainServerExporter::generateMetricsFromJson(QTextStream& stream,
                                                    QHash<QString, QString> labels,
                                                    const QJsonObject& obj) {
     for (auto iter = obj.constBegin(); iter != obj.constEnd(); ++iter) {
-        auto key = escapeName(iter.key());
-        auto val = iter.value();
-        auto metric_name = path + "_" + key;
+        auto escaped_key = escapeName(iter.key());
+        auto metric_value = iter.value();
+        auto metric_name = path + "_" + escaped_key;
         auto orig_metric_name = original_path + " -> " + iter.key();
 
-        if (val.isObject()) {
+        if (metric_value.isObject()) {
             QUuid possible_uuid = QUuid::fromString(iter.key());
 
             if (possible_uuid.isNull()) {
-                generateMetricsFromJson(stream, original_path + " -> " + iter.key(), path + "_" + key, labels,
+                generateMetricsFromJson(stream, original_path + " -> " + iter.key(), path + "_" + escaped_key, labels,
                                         iter.value().toObject());
             } else {
                 labels.insert("uuid", possible_uuid.toString(QUuid::WithoutBraces));
@@ -367,10 +367,10 @@ void DomainServerExporter::generateMetricsFromJson(QTextStream& stream,
         bool conversion_ok = false;
         double converted = 0;
 
-        if (val.isString()) {
+        if (metric_value.isString()) {
             // Prometheus only deals with numeric values. See if this string contains a valid one
 
-            QString tmp = val.toString();
+            QString tmp = metric_value.toString();
             converted = tmp.toDouble(&conversion_ok);
 
             if (!conversion_ok) {
@@ -407,7 +407,7 @@ void DomainServerExporter::generateMetricsFromJson(QTextStream& stream,
                 << "Type for metric " << orig_metric_name << " (" << metric_name << ") not known.";
         }
 
-        stream << path << "_" << key;
+        stream << path << "_" << escaped_key;
         if (!labels.isEmpty()) {
             stream << "{";
 
@@ -421,12 +421,12 @@ void DomainServerExporter::generateMetricsFromJson(QTextStream& stream,
                     stream << ",";
                 }
 
-                QString value = iter.value();
-                value.replace("\\", "\\\\");
-                value.replace("\"", "\\\"");
-                value.replace("\n", "\\\n");
+                QString escaped_value = iter.value();
+                escaped_value.replace("\\", "\\\\");
+                escaped_value.replace("\"", "\\\"");
+                escaped_value.replace("\n", "\\\n");
 
-                stream << iter.key() << "=\"" << value << "\"";
+                stream << iter.key() << "=\"" << escaped_value << "\"";
 
                 is_first = false;
             }
@@ -435,16 +435,16 @@ void DomainServerExporter::generateMetricsFromJson(QTextStream& stream,
 
         stream << " ";
 
-        if (val.isBool()) {
+        if (metric_value.isBool()) {
             stream << (iter.value().toBool() ? "1" : "0");
-        } else if (val.isDouble()) {
-            stream << val.toDouble();
-        } else if (val.isString()) {
+        } else if (metric_value.isDouble()) {
+            stream << metric_value.toDouble();
+        } else if (metric_value.isString()) {
             // Converted above
             stream << converted;
         } else {
             qCWarning(domain_server_exporter)
-                << "Can't convert metric " << orig_metric_name << "(" << metric_name << ") with value " << val;
+                << "Can't convert metric " << orig_metric_name << "(" << metric_name << ") with value " << metric_value;
         }
 
         stream << "\n";

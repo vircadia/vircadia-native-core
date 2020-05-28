@@ -67,6 +67,9 @@ Q_LOGGING_CATEGORY(domain_server_ice, "hifi.domain_server.ice")
 
 const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
 const QString DomainServer::REPLACEMENT_FILE_EXTENSION = ".replace";
+const int MIN_PORT = 1;
+const int MAX_PORT = 65535;
+
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
@@ -3052,7 +3055,7 @@ void DomainServer::initializeExporter()
     bool isExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_EXPORTER).toBool();
     int exporterPort = _settingsManager.valueOrDefaultValueForKeyPath(EXPORTER_PORT).toInt();
 
-    if (exporterPort < 1 || exporterPort > 65535) {
+    if (exporterPort < MIN_PORT || exporterPort > MAX_PORT) {
         qCWarning(domain_server) << "Prometheus exporter port " << exporterPort << " is out of range.";
         isExporterEnabled = false;
     }

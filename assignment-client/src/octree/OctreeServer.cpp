@@ -89,6 +89,7 @@ int OctreeServer::_shortProcessWait = 0;
 int OctreeServer::_noProcessWait = 0;
 
 static const QString PERSIST_FILE_DOWNLOAD_PATH = "/models.json.gz";
+static const double NANOSECONDS_PER_SECOND = 1000000.0;;
 
 
 void OctreeServer::resetSendingStats() {
@@ -1344,9 +1345,8 @@ QString OctreeServer::getUptime() {
     return formattedUptime;
 }
 
-double OctreeServer::getUptimeSeconds()
-{
-    return (usecTimestampNow() - _startedUSecs) / 1000000.0;
+double OctreeServer::getUptimeSeconds() {
+    return (usecTimestampNow() - _startedUSecs) / NANOSECONDS_PER_SECOND;
 }
 
 QString OctreeServer::getFileLoadTime() {
@@ -1391,9 +1391,8 @@ QString OctreeServer::getFileLoadTime() {
     return result;
 }
 
-double OctreeServer::getFileLoadTimeSeconds()
-{
-     return getLoadElapsedTime() / 1000000.0;
+double OctreeServer::getFileLoadTimeSeconds() {
+     return getLoadElapsedTime() / NANOSECONDS_PER_SECOND;
 }
 
 QString OctreeServer::getConfiguration() {
