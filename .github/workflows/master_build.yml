@@ -85,11 +85,12 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macOS-latest]
-        build_type: full
+        build_type: [full]
         #os: [windows-latest, macOS-latest, ubuntu-latest]
         # exclude:
         #   - os: ubuntu-latest
         #     build_type: client
+      fail-fast: false
     runs-on: ${{matrix.os}}
     needs: generate_build_number
     steps:
