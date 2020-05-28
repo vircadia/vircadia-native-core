@@ -72,7 +72,7 @@ int main(int argc, const char* argv[]) {
     }
 
     QCommandLineParser parser;
-    parser.setApplicationDescription("High Fidelity");
+    parser.setApplicationDescription("Vircadia");
     QCommandLineOption versionOption = parser.addVersionOption();
     QCommandLineOption helpOption = parser.addHelpOption();
 

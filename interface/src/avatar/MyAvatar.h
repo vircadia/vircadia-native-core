@@ -762,7 +762,7 @@ public:
      * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target
      * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different,
      * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
-     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
+     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
      * @function MyAvatar.overrideRoleAnimation
      * @param {string} role - The animation role to override
      * @param {string} url - The URL to the animation file. Animation files need to be in glTF or FBX format, but only need to 
@@ -1920,7 +1920,7 @@ public:
 
     /**jsdoc
      * Enables and disables flow simulation of physics on the avatar's hair, clothes, and body parts. See 
-     * {@link https://docs.projectathena.dev/create/avatars/add-flow.html|Add Flow to Your Avatar} for more 
+     * {@link https://docs.vircadia.dev/create/avatars/add-flow.html|Add Flow to Your Avatar} for more 
      * information.
      * @function MyAvatar.useFlow
      * @param {boolean} isActive - <code>true</code> if flow simulation is enabled on the joint, <code>false</code> if it isn't.
@@ -2285,7 +2285,7 @@ public slots:
 
     /**jsdoc
      * Gets the URL of the override animation graph.
-     * <p>See {@link https://docs.projectathena.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
+     * <p>See {@link https://docs.vircadia.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
      * information on animation graphs.</p>
      * @function MyAvatar.getAnimGraphOverrideUrl
      * @returns {string} The URL of the override animation graph JSON file. <code>""</code> if there is no override animation 
@@ -2295,7 +2295,7 @@ public slots:
 
     /**jsdoc
      * Sets the animation graph to use in preference to the default animation graph.
-     * <p>See {@link https://docs.projectathena.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
+     * <p>See {@link https://docs.vircadia.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
      * information on animation graphs.</p>
      * @function MyAvatar.setAnimGraphOverrideUrl
      * @param {string} url - The URL of the animation graph JSON file to use. Set to <code>""</code> to clear an override.
@@ -2304,7 +2304,7 @@ public slots:
 
     /**jsdoc
      * Gets the URL of animation graph (i.e., the avatar animation JSON) that's currently being used for avatar animations.
-     * <p>See {@link https://docs.projectathena.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for 
+     * <p>See {@link https://docs.vircadia.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for 
      * information on animation graphs.</p>
      * @function MyAvatar.getAnimGraphUrl
      * @returns {string} The URL of the current animation graph JSON file.
@@ -2315,7 +2315,7 @@ public slots:
 
     /**jsdoc
      * Sets the current animation graph  (i.e., the avatar animation JSON) to use for avatar animations and makes it the default.
-     * <p>See {@link https://docs.projectathena.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
+     * <p>See {@link https://docs.vircadia.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
      * information on animation graphs.</p>
      * @function MyAvatar.setAnimGraphUrl
      * @param {string} url - The URL of the animation graph JSON file to use.

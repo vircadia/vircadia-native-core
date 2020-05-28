@@ -55,7 +55,7 @@ static QStringList HAND_MAPPING_SUFFIXES = {
     "HandThumb1",
 };
 
-const QUrl PACKAGE_AVATAR_DOCS_BASE_URL = QUrl("https://docs.projectathena.dev/create/avatars/package-avatar.html");
+const QUrl PACKAGE_AVATAR_DOCS_BASE_URL = QUrl("https://docs.vircadia.dev/create/avatars/package-avatar.html");
 
 AvatarDoctor::AvatarDoctor(const QUrl& avatarFSTFileUrl) :
     _avatarFSTFileUrl(avatarFSTFileUrl) {

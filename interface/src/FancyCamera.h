@@ -20,7 +20,7 @@ class FancyCamera : public Camera {
 
     /**jsdoc
      * The <code>Camera</code> API provides access to the "camera" that defines your view in desktop and HMD display modes.
-     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
+     * The Vircadia camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
      *
      * @namespace Camera
      *
