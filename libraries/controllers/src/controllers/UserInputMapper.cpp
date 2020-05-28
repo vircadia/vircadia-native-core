@@ -1256,7 +1256,7 @@ float UserInputMapper::getActionState(Action action) const {
     Locker locker(_lock);
 
     int index = toInt(action);
-    if (index < _actionStates.size()) {
+    if (index >= 0 && index < _actionStates.size()) {
         return _actionStates[index];
     }
 
@@ -1268,7 +1268,7 @@ bool UserInputMapper::getActionStateValid(Action action) const {
     Locker locker(_lock);
 
     int index = toInt(action);
-    if (index < _actionStatesValid.size()) {
+    if (index >= 0 && index < _actionStatesValid.size()) {
         return _actionStatesValid[index];
     }
 
