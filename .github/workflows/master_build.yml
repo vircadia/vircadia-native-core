@@ -85,7 +85,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macOS-latest]
-        build_type: full
+        build_type: [full]
         #os: [windows-latest, macOS-latest, ubuntu-latest]
         # exclude:
         #   - os: ubuntu-latest
