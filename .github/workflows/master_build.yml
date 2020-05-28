@@ -90,6 +90,7 @@ jobs:
         # exclude:
         #   - os: ubuntu-latest
         #     build_type: client
+      fail-fast: false
     runs-on: ${{matrix.os}}
     needs: generate_build_number
     steps:
