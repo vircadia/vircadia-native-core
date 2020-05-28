@@ -252,7 +252,7 @@ void IceServer::publicKeyReplyFinished(QNetworkReply* reply) {
                 // convert the downloaded public key to an RSA struct, if possible
                 const unsigned char* publicKeyData = reinterpret_cast<const unsigned char*>(apiPublicKey.constData());
 
-                RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, apiPublicKey.size());
+                RSA* rsaPublicKey = d2i_RSAPublicKey(NULL, &publicKeyData, apiPublicKey.size());
 
                 if (rsaPublicKey) {
                     _domainPublicKeys[domainID] = { rsaPublicKey, RSA_free };
