@@ -12,6 +12,7 @@
 #include "ContextAwareProfile.h"
 
 #include <cassert>
+#include <QtCore/QMutexLocker>
 #include <QtCore/QThread>
 #include <QtQml/QQmlContext>
 
@@ -24,18 +25,17 @@ QMutex RestrictedContextMonitor::gl_monitorMapProtect;
 RestrictedContextMonitor::TMonitorMap RestrictedContextMonitor::gl_monitorMap;
 
 RestrictedContextMonitor::~RestrictedContextMonitor() {
-    gl_monitorMapProtect.lock();
+    QMutexLocker locker(&gl_monitorMapProtect);
     TMonitorMap::iterator lookup = gl_monitorMap.find(_context);
     if (lookup != gl_monitorMap.end()) {
         gl_monitorMap.erase(lookup);
     }
-    gl_monitorMapProtect.unlock();
 }
 
 RestrictedContextMonitor::TSharedPointer RestrictedContextMonitor::getMonitor(QQmlContext* context, bool createIfMissing) {
     TSharedPointer monitor;
 
-    gl_monitorMapProtect.lock();
+    QMutexLocker locker(&gl_monitorMapProtect);
     TMonitorMap::const_iterator lookup = gl_monitorMap.find(context);
     if (lookup != gl_monitorMap.end()) {
         monitor = lookup.value().lock();
@@ -45,7 +45,6 @@ RestrictedContextMonitor::TSharedPointer RestrictedContextMonitor::getMonitor(QQ
         monitor->_selfPointer = monitor;
         gl_monitorMap.insert(context, monitor);
     }
-    gl_monitorMapProtect.unlock();
     return monitor;
 }
 
