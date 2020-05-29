@@ -110,7 +110,7 @@ jobs:
           echo ::set-env name=ZIP_ARGS::a
           echo ::set-env name=INSTALLER_EXT::exe
           echo "::set-env name=SYMBOL_REGEX::\(exe\|dll\|pdb\)"
-          echo "::set-output name=symbols_archive::$bUILD_NUMBER-${{ matrix.build_type }}-win-symbols.zip"
+          echo "::set-output name=symbols_archive::$BUILD_NUMBER-${{ matrix.build_type }}-win-symbols.zip"
         fi
     # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
     - name: Configure Build Environment 2
