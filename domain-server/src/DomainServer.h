@@ -239,7 +239,7 @@ private:
     DomainServerExporter _exporter;
 
     HTTPManager _httpManager;
-    HTTPManager *_httpExporterManager { nullptr };
+    HTTPManager* _httpExporterManager { nullptr };
     std::unique_ptr<HTTPSManager> _httpsManager;
 
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;
