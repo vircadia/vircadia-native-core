@@ -326,7 +326,6 @@ QString DomainServerExporter::escapeName(const QString& name) {
 }
 
 void DomainServerExporter::generateMetricsForNode(QTextStream& stream, const SharedNodePointer& node) {
-    QString ret = "";
     QJsonObject statsObject = static_cast<DomainServerNodeData*>(node->getLinkedData())->getStatsJSONObject();
     QString nodeType = NodeType::getNodeTypeName(static_cast<NodeType_t>(node->getType()));
 
@@ -336,9 +335,6 @@ void DomainServerExporter::generateMetricsForNode(QTextStream& stream, const Sha
     stream << "###############################################################\n";
 
     generateMetricsFromJson(stream, nodeType, escapeName(nodeType), QHash<QString, QString>(), statsObject);
-
-    QJsonDocument doc(statsObject);
-    ret.append(doc.toJson());
 }
 
 void DomainServerExporter::generateMetricsFromJson(QTextStream& stream,
