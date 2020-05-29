@@ -8,6 +8,7 @@ on:
 env:
   APP_NAME: interface
   BUILD_TYPE: Release
+  BUILD_NUMBER: ${{ github.run_number }}
   BUCKET_NAME: athena-public
   CI_BUILD: Github
   CMAKE_BACKTRACE_URL: https://highfidelity.sp.backtrace.io:6098
@@ -57,7 +58,7 @@ env:
 # ANDROID_OAUTH_CLIENT_ID= c1063ea5d0b0c405e0c9cd77351328e211a91496a3f25985a99e861f1661db1d
 # ANDROID_OAUTH_REDIRECT_URI=https://android-interface.highfidelity.com/auth
 # ARTIFACT_EXPRESSION=android/*.apk
-# ANDROID_APK_NAME=ProjectAthena-Alpha-PR${RELEASE_NUMBER}-${GIT_COMMIT_SHORT}.apk
+# ANDROID_APK_NAME=ProjectAthena-Alpha-${$BUILD_NUMBER}-${GIT_COMMIT_SHORT}.apk
 # ANDROID_BUILT_APK_NAME=interface-debug.apk	
 # ANDROID_APP=interface
 # ANDROID_BUILD_DIR=debug
@@ -67,20 +68,6 @@ env:
 
 
 jobs:
-  generate_build_number:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Generate build number
-      id: buildnumber
-      uses: highfidelity/build-number@v3
-      with:
-        token: ${{secrets.github_token}}
-    - name: Upload build number
-      uses: actions/upload-artifact@v1
-      with:
-        name: BUILD_NUMBER
-        path: BUILD_NUMBER
-          
   build:
     strategy:
       matrix:
@@ -92,22 +79,11 @@ jobs:
         #     build_type: client
       fail-fast: false
     runs-on: ${{matrix.os}}
-    needs: generate_build_number
     steps:
-    - name: Download build number
-      uses: actions/download-artifact@v1
-      with:
-        name: BUILD_NUMBER
-    - name: Restore build number
-      id: buildnumber
-      uses: highfidelity/build-number@v3
-      with:
-        output_name: RELEASE_NUMBER
-    - name: Report GHA run numbers
+    - name: Report build number
       shell: bash
       run: |
-        echo "Action run ID (GITHUB_RUN_ID): $GITHUB_RUN_ID"
-        echo "Workflow run ID (GITHUB_RUN_NUMBER): $GITHUB_RUN_NUMBER"
+        echo "Build number: $BUILD_NUMBER"
     - name: Configure Build Environment 1
       shell: bash
       id: buildenv1
@@ -125,7 +101,7 @@ jobs:
           echo ::set-env name=ZIP_ARGS::-r
           echo ::set-env name=INSTALLER_EXT::dmg
           echo ::set-env name=SYMBOL_REGEX::dSYM
-          echo "::set-output name=symbols_archive::${{ steps.buildnumber.outputs.build_number }}-${{ matrix.build_type }}-mac-symbols.zip"
+          echo "::set-output name=symbols_archive::$BUILD_NUMBER-${{ matrix.build_type }}-mac-symbols.zip"
         fi
         # Windows build variables
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
@@ -134,7 +110,7 @@ jobs:
           echo ::set-env name=ZIP_ARGS::a
           echo ::set-env name=INSTALLER_EXT::exe
           echo "::set-env name=SYMBOL_REGEX::\(exe\|dll\|pdb\)"
-          echo "::set-output name=symbols_archive::${{ steps.buildnumber.outputs.build_number }}-${{ matrix.build_type }}-win-symbols.zip"
+          echo "::set-output name=symbols_archive::$bUILD_NUMBER-${{ matrix.build_type }}-win-symbols.zip"
         fi
     # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
     - name: Configure Build Environment 2
@@ -145,10 +121,10 @@ jobs:
         # Build type variables
         if [ "${{ matrix.build_type }}" = "full" ]; then
           echo ::set-env name=CLIENT_ONLY::FALSE
-          echo ::set-env name=INSTALLER::ProjectAthena-Alpha-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+          echo ::set-env name=INSTALLER::ProjectAthena-Alpha-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
         else
           echo ::set-env name=CLIENT_ONLY::TRUE
-          echo ::set-env name=INSTALLER::ProjectAthena-Alpha-Interface-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+          echo ::set-env name=INSTALLER::ProjectAthena-Alpha-Interface-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
         fi
         # Linux build variables
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
@@ -247,7 +223,7 @@ jobs:
     #  working-directory: ${{runner.workspace}}
     #  shell: bash
     #  run: |
-    #    curl --data-binary @${{ steps.buildenv1.outputs.symbols_archive }} "$CMAKE_BACKTRACE_URL/post?format=symbols&token=$CMAKE_BACKTRACE_SYMBOLS_TOKEN&upload_file=${{steps.buildenv1.outputs.symbols_archive}}&tag=$RELEASE_NUMBER"
+    #    curl --data-binary @${{ steps.buildenv1.outputs.symbols_archive }} "$CMAKE_BACKTRACE_URL/post?format=symbols&token=$CMAKE_BACKTRACE_SYMBOLS_TOKEN&upload_file=${{steps.buildenv1.outputs.symbols_archive}}&tag=$BUILD_NUMBER"
     # - name: Debug List Symbols
     #   if: (matrix.os == 'windows-latest') || (matrix.os == 'macOS-latest')
     #   working-directory: ${{runner.workspace}}
