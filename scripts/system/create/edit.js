@@ -2905,21 +2905,24 @@ function getExistingZoneList() {
         };
         listExistingZones.push(thisZone);
     }
-    listExistingZones.sort(zoneSortOrder());
+    listExistingZones.sort(zoneSortOrder);
     return listExistingZones;
 }
 
-function zoneSortOrder() {
-    return function(a, b) {
-        var nameA = a.name.toUpperCase();
-        var nameB = b.name.toUpperCase();
-        if (nameA > nameB) {
-            return 1;    
-        } else if (nameA < nameB) {
-            return -1;
-        }
-        return 0;
+function zoneSortOrder(a, b) {
+    var nameA = a.name.toUpperCase();
+    var nameB = b.name.toUpperCase();
+    if (nameA > nameB) {
+        return 1;    
+    } else if (nameA < nameB) {
+        return -1;
     }
+    if (a.name > b.name) {
+        return 1;    
+    } else if (a.name < b.name) {
+        return -1;
+    }
+    return 0;
 }
 
 }()); // END LOCAL_SCOPE
