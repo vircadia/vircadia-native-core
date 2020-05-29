@@ -49,7 +49,7 @@ public:
 private:
     QString escapeName(const QString &name);
     void generateMetricsForNode(QTextStream &stream, const SharedNodePointer &node);
-    void generateMetricsFromJson(QTextStream &stream, QString original_path, QString path, QHash<QString,QString> labels, const QJsonObject &obj);
+    void generateMetricsFromJson(QTextStream &stream, QString original_path, QString path, QHash<QString, QString> labels, const QJsonObject &obj);
 };
 
 #endif // DOMAINSERVEREXPORTER_H

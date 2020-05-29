@@ -1986,8 +1986,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_API_BACKUPS_ID = "/api/backups/";
     const QString URI_API_BACKUPS_DOWNLOAD_ID = "/api/backups/download/";
     const QString URI_API_BACKUPS_RECOVER = "/api/backups/recover/";
-    const QString URI_EXPORTER_= "/metrics";
-
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
     QPointer<HTTPConnection> connectionPtr { connection };
