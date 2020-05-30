@@ -1092,8 +1092,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     {
         // identify gpu as early as possible to help identify OpenGL initialization errors.
         auto gpuIdent = GPUIdent::getInstance();
-        setCrashAnnotation("gpu_name", gpuIdent->getName().toStdString());
-        setCrashAnnotation("gpu_driver", gpuIdent->getDriver().toStdString());
+        setCrashAnnotation("sentry[contexts][gpu][name]", gpuIdent->getName().toStdString());
+        setCrashAnnotation("sentry[contexts][gpu][version]", gpuIdent->getDriver().toStdString());
         setCrashAnnotation("gpu_memory", std::to_string(gpuIdent->getMemory()));
     }
 
@@ -3177,7 +3177,7 @@ void Application::showLoginScreen() {
 #endif
 }
 
-static const QUrl AUTHORIZED_EXTERNAL_QML_SOURCE { "https://content.highfidelity.com/Experiences/Releases" };
+static const QUrl AUTHORIZED_EXTERNAL_QML_SOURCE { "https://cdn.vircadia.com/community-apps/applications" };
 
 void Application::initializeUi() {
 
@@ -3196,14 +3196,16 @@ void Application::initializeUi() {
             safeURLS += settingsSafeURLS;
 
             // END PULL SAFEURLS FROM INTERFACE.JSON Settings
-
-            bool isInWhitelist = false;  // assume unsafe
-            for (const auto& str : safeURLS) {
-                if (!str.isEmpty() && str.endsWith(".qml") && url.toString().endsWith(".qml") &&
-                    url.toString().startsWith(str)) {
-                    qCDebug(interfaceapp) << "Found matching url!" << url.host();
-                    isInWhitelist = true;
-                    return true;
+            
+            if (AUTHORIZED_EXTERNAL_QML_SOURCE.isParentOf(url)) {
+                return true;
+            } else {
+                for (const auto& str : safeURLS) {
+                    if (!str.isEmpty() && str.endsWith(".qml") && url.toString().endsWith(".qml") &&
+                        url.toString().startsWith(str)) {
+                        qCDebug(interfaceapp) << "Found matching url!" << url.host();
+                        return true;
+                    }
                 }
             }
 
@@ -7073,7 +7075,7 @@ void Application::updateWindowTitle() const {
         nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
     QString username = accountManager->getAccountInfo().getUsername();
 
-    setCrashAnnotation("username", username.toStdString());
+    setCrashAnnotation("sentry[user][username]", username.toStdString());
 
     QString currentPlaceName;
     if (isServerlessMode()) {
