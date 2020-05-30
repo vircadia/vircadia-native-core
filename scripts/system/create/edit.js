@@ -578,8 +578,8 @@ var toolBar = (function () {
 
             entityID = Entities.addEntity(properties);
 
+            var POST_ADJUST_ENTITY_TYPES = ["Model"];
             var dimensionsCheckCallback = function(){
-                var POST_ADJUST_ENTITY_TYPES = ["Model"];
                 if (POST_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
                     // Adjust position of entity per bounding box after it has been created and auto-resized.
                     var initialDimensions = Entities.getEntityProperties(entityID, ["dimensions"]).dimensions;
@@ -613,10 +613,18 @@ var toolBar = (function () {
             var entityIsLoadedCheck = function() {
                 isLoadedCheckCount++;
                 if (isLoadedCheckCount === MAX_LOADED_CHECKS || Entities.isLoaded(entityID)) {
-                    var naturalDimensions = Entities.getEntityProperties(entityID, "naturalDimensions").naturalDimensions
+                    var dimensionsToUse;
+                    if (POST_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
+                        // If it is a "Model", use natural dimensions...
+                        dimensionsToUse = Entities.getEntityProperties(entityID, "naturalDimensions").naturalDimensions;
+                    } else {
+                        // If it is not a "Model", use local dimensions...
+                        dimensionsToUse = Entities.getEntityProperties(entityID, "localDimensions").localDimensions;
+                    }
+
                     Entities.editEntity(entityID, {
                         visible: true,
-                        dimensions: naturalDimensions
+                        dimensions: dimensionsToUse
                     })
                     dimensionsCheckCallback();
                     return;
