@@ -400,8 +400,9 @@ private:
 
     std::map<QString, QString> _namedPaths;
 
-    void updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
-                                       MovingEntitiesOperator& moveOperator, bool force, bool tellServer);
+    // Return an AACube containing object and all its entity descendants
+    AACube updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
+                                         MovingEntitiesOperator& moveOperator, bool force, bool tellServer);
 };
 
 void convertGrabUserDataToProperties(EntityItemProperties& properties);

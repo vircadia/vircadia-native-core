@@ -972,7 +972,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         recorder->recordFrame(FRAME_TYPE, toFrame(*this));
     }
 
-    locationChanged(true, false);
+    locationChanged(true, true);
     // if a entity-child of this avatar has moved outside of its queryAACube, update the cube and tell the entity server.
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
@@ -981,16 +981,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         entityTree->withWriteLock([&] {
             zoneInteractionProperties = entityTreeRenderer->getZoneInteractionProperties();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
-            forEachDescendant([&](SpatiallyNestablePointer object) {
-                locationChanged(true, false);
-                // we need to update attached queryAACubes in our own local tree so point-select always works
-                // however we don't want to flood the update pipeline with AvatarEntity updates, so we assume
-                // others have all info required to properly update queryAACube of AvatarEntities on their end
-                EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
-                bool iShouldTellServer = !(entity && entity->isAvatarEntity());
-                const bool force = false;
-                entityTree->updateEntityQueryAACube(object, packetSender, force, iShouldTellServer);
-            });
+            entityTree->updateEntityQueryAACube(shared_from_this(), packetSender, false, true);
         });
         bool isPhysicsEnabled = qApp->isPhysicsEnabled();
         bool zoneAllowsFlying = zoneInteractionProperties.first;
