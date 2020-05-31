@@ -578,34 +578,31 @@ var toolBar = (function () {
 
             entityID = Entities.addEntity(properties);
 
-            var POST_ADJUST_ENTITY_TYPES = ["Model"];
             var dimensionsCheckCallback = function(){
-                if (POST_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
-                    // Adjust position of entity per bounding box after it has been created and auto-resized.
-                    var initialDimensions = Entities.getEntityProperties(entityID, ["dimensions"]).dimensions;
-                    var DIMENSIONS_CHECK_INTERVAL = 200;
-                    var MAX_DIMENSIONS_CHECKS = 10;
-                    var dimensionsCheckCount = 0;
-                    var dimensionsCheckFunction = function () {
-                        dimensionsCheckCount++;
-                        var properties = Entities.getEntityProperties(entityID, ["dimensions", "registrationPoint", "rotation"]);
-                        if (!Vec3.equal(properties.dimensions, initialDimensions)) {
-                            position = adjustPositionPerBoundingBox(position, direction, properties.registrationPoint,
-                                properties.dimensions, properties.rotation);
-                            position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions),
-                                properties.dimensions);
-                            Entities.editEntity(entityID, {
-                                position: position
-                            });
-                            selectionManager._update(false, this);
-                        } else if (dimensionsCheckCount < MAX_DIMENSIONS_CHECKS) {
-                            Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
-                        }
-                    };
-                    Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
-                }
+                // Adjust position of entity per bounding box after it has been created and auto-resized.
+                var initialDimensions = Entities.getEntityProperties(entityID, ["dimensions"]).dimensions;
+                var DIMENSIONS_CHECK_INTERVAL = 200;
+                var MAX_DIMENSIONS_CHECKS = 10;
+                var dimensionsCheckCount = 0;
+                var dimensionsCheckFunction = function () {
+                    dimensionsCheckCount++;
+                    var properties = Entities.getEntityProperties(entityID, ["dimensions", "registrationPoint", "rotation"]);
+                    if (!Vec3.equal(properties.dimensions, initialDimensions)) {
+                        position = adjustPositionPerBoundingBox(position, direction, properties.registrationPoint,
+                            properties.dimensions, properties.rotation);
+                        position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions),
+                            properties.dimensions);
+                        Entities.editEntity(entityID, {
+                            position: position
+                        });
+                        selectionManager._update(false, this);
+                    } else if (dimensionsCheckCount < MAX_DIMENSIONS_CHECKS) {
+                        Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
+                    }
+                };
+                Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
             }
-            // Make sure the entity is loaded before we try to figure out
+            // Make sure the model entity is loaded before we try to figure out
             // its dimensions.
             var MAX_LOADED_CHECKS = 10;
             var LOADED_CHECK_INTERVAL = 100;
@@ -613,25 +610,22 @@ var toolBar = (function () {
             var entityIsLoadedCheck = function() {
                 isLoadedCheckCount++;
                 if (isLoadedCheckCount === MAX_LOADED_CHECKS || Entities.isLoaded(entityID)) {
-                    var dimensionsToUse;
-                    if (POST_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
-                        // If it is a "Model", use natural dimensions...
-                        dimensionsToUse = Entities.getEntityProperties(entityID, "naturalDimensions").naturalDimensions;
-                    } else {
-                        // If it is not a "Model", use local dimensions...
-                        dimensionsToUse = Entities.getEntityProperties(entityID, "localDimensions").localDimensions;
-                    }
+                    var naturalDimensions = Entities.getEntityProperties(entityID, "naturalDimensions").naturalDimensions;
 
                     Entities.editEntity(entityID, {
                         visible: true,
-                        dimensions: dimensionsToUse
+                        dimensions: naturalDimensions
                     })
                     dimensionsCheckCallback();
                     return;
                 }
                 Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
             }
-            Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
+            
+            var POST_ADJUST_ENTITY_TYPES = ["Model"];
+            if (POST_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
+                Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
+            }
 
             SelectionManager.addEntity(entityID, false, this);
             SelectionManager.saveProperties();
