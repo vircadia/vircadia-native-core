@@ -150,12 +150,7 @@ void CauterizedModel::updateClusterMatrices() {
         }
     }
 
-    // post the blender if we're not currently waiting for one to finish
-    auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (modelBlender->shouldComputeBlendshapes() && getHFMModel().hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
-        _blendedBlendshapeCoefficients = _blendshapeCoefficients;
-        modelBlender->noteRequiresBlend(getThisPointer());
-    }
+    updateBlendshapes();
 }
 
 void CauterizedModel::updateRenderItems() {

@@ -1449,6 +1449,10 @@ void Model::updateClusterMatrices() {
         }
     }
 
+    updateBlendshapes();
+}
+
+void Model::updateBlendshapes() {
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
     if (modelBlender->shouldComputeBlendshapes() && getHFMModel().hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {

@@ -536,6 +536,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_JOINT_TRANSLATIONS, jointTranslations);
     CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
     CHECK_PROPERTY_CHANGE(PROP_GROUP_CULLED, groupCulled);
+    CHECK_PROPERTY_CHANGE(PROP_BLENDSHAPE_COEFFICIENTS, blendshapeCoefficients);
     changedProperties += _animation.getChangedProperties();
 
     // Light
@@ -996,6 +997,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     compressed in GZ format, in which case the URL ends in ".gz".
  * @property {Vec3} modelScale - The scale factor applied to the model's dimensions.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
+ * @property {string} blendshapeCoefficients - A JSON string of a map of blendshape names to values.  Only stores set values.
+ *     When editing this property, only coefficients that you are editing will change; it will not explicitly reset other
+ *     coefficients.
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
  *     model's original textures. Use a texture name from the <code>originalTextures</code> property to override that texture. 
  *     Only the texture names and URLs to be overridden need be specified; original textures are used where there are no 
@@ -1723,6 +1727,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS, jointTranslations);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GROUP_CULLED, groupCulled);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_BLENDSHAPE_COEFFICIENTS, blendshapeCoefficients);
         if (!psuedoPropertyFlagsButDesiredEmpty) {
             _animation.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         }
@@ -2130,6 +2135,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslations, qVectorVec3, setJointTranslations);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(groupCulled, bool, setGroupCulled);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(blendshapeCoefficients, QString, setBlendshapeCoefficients);
     _animation.copyFromScriptValue(object, _defaultSettings);
 
     // Light
@@ -2420,6 +2426,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(jointTranslations);
     COPY_PROPERTY_IF_CHANGED(relayParentJoints);
     COPY_PROPERTY_IF_CHANGED(groupCulled);
+    COPY_PROPERTY_IF_CHANGED(blendshapeCoefficients);
     _animation.merge(other._animation);
 
     // Light
@@ -2774,6 +2781,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<vec3>);
         ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool);
         ADD_PROPERTY_TO_MAP(PROP_GROUP_CULLED, GroupCulled, groupCulled, bool);
+        ADD_PROPERTY_TO_MAP(PROP_BLENDSHAPE_COEFFICIENTS, BlendshapeCoefficients, blendshapeCoefficients, QString);
         { // Animation
             ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_URL, Animation, animation, URL, url);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);
@@ -3213,6 +3221,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, properties.getJointTranslations());
                 APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, properties.getRelayParentJoints());
                 APPEND_ENTITY_PROPERTY(PROP_GROUP_CULLED, properties.getGroupCulled());
+                APPEND_ENTITY_PROPERTY(PROP_BLENDSHAPE_COEFFICIENTS, properties.getBlendshapeCoefficients());
 
                 _staticAnimation.setProperties(properties);
                 _staticAnimation.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -3700,6 +3709,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS, QVector<vec3>, setJointTranslations);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GROUP_CULLED, bool, setGroupCulled);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BLENDSHAPE_COEFFICIENTS, QString, setBlendshapeCoefficients);
 
         properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
     }
@@ -4107,6 +4117,7 @@ void EntityItemProperties::markAllChanged() {
     _jointTranslationsChanged = true;
     _relayParentJointsChanged = true;
     _groupCulledChanged = true;
+    _blendshapeCoefficientsChanged = true;
     _animation.markAllChanged();
 
     // Light
@@ -4674,6 +4685,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (groupCulledChanged()) {
         out += "groupCulled";
+    }
+    if (blendshapeCoefficientsChanged()) {
+        out += "blendshapeCoefficients";
     }
     getAnimation().listChangedProperties(out);
 

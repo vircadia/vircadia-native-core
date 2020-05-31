@@ -1023,6 +1023,11 @@ uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
     return 0;
 }
 
+void ModelEntityRenderer::handleBlendedVertices(int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
+                                                const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs) {
+    setBlendedVertices(blendshapeNumber, blendshapeOffsets, blendedMeshSizes, subItemIDs);
+}
+
 void ModelEntityRenderer::removeFromScene(const ScenePointer& scene, Transaction& transaction) {
     if (_model) {
         _model->removeFromScene(scene, transaction);
@@ -1191,7 +1196,11 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
     if (model && model->isLoaded()) {
         if (!entity->_dimensionsInitialized || entity->_needsInitialSimulation || !entity->_originalTexturesRead) {
             return true;
-       } 
+        }
+
+        if (entity->blendshapesChanged()) {
+            return true;
+        }
 
         // Check to see if we need to update the model bounds
         if (entity->needsUpdateModelBounds()) {
@@ -1350,6 +1359,11 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         model->setTagMask(tagMask, scene);
     }
 
+    if (entity->blendshapesChanged()) {
+        model->setBlendshapeCoefficients(entity->getBlendshapeCoefficientVector());
+        model->updateBlendshapes();
+    }
+
     // TODO? early exit here when not visible?
 
     if (model->canCastShadow() != _canCastShadow) {
@@ -1370,7 +1384,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             model->removeFromScene(scene, transaction);
             render::Item::Status::Getters statusGetters;
             makeStatusGetters(entity, statusGetters);
-            model->addToScene(scene, transaction, statusGetters);
+            using namespace std::placeholders;
+            model->addToScene(scene, transaction, statusGetters, std::bind(&ModelEntityRenderer::metaBlendshapeOperator, _renderItemID, _1, _2, _3, _4));
             entity->bumpAncestorChainRenderableVersion();
             processMaterials();
         }
@@ -1528,4 +1543,13 @@ void ModelEntityRenderer::processMaterials() {
             material.pop();
         }
     }
+}
+
+void ModelEntityRenderer::metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
+                                                 const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs) {
+    render::Transaction transaction;
+    transaction.updateItem<PayloadProxyInterface>(renderItemID, [blendshapeNumber, blendshapeOffsets, blendedMeshSizes, subItemIDs](PayloadProxyInterface& self) {
+        self.handleBlendedVertices(blendshapeNumber, blendshapeOffsets, blendedMeshSizes, subItemIDs);
+    });
+    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
 }
