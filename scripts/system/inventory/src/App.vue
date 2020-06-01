@@ -858,6 +858,9 @@ export default {
                 case ".gltf":
                     detectedItemType = "MODEL";
                     break;
+                case ".glb":
+                    detectedItemType = "MODEL";
+                    break;
                 // Script Cases
                 case ".js":
                     detectedItemType = "SCRIPT";

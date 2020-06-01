@@ -282,6 +282,7 @@ function startup() {
         onClosed: onClosed
     });
 }
+
 startup();
 
 Script.scriptEnding.connect(function () {
