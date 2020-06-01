@@ -750,6 +750,7 @@ export default {
                     {
                         "senderUUID": "SENDERUUIDLOL",
                         "senderName": "WHOISTHIS1",
+                        "senderDistance": 2.5,
                         "data": {
                             "type": "script",
                             "name": "This Is A Real Script",
@@ -760,6 +761,7 @@ export default {
                     {
                         "senderUUID": "TEST2SENDERUUID",
                         "senderName": "WHOTHISBE2",
+                        "senderDistance": 1.22,
                         "data": {
                             "type": "script",
                             "name": "REALLYLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
