@@ -21,8 +21,8 @@
     var START_MESSAGE = "recordingStarted";
     var STOP_MESSAGE = "recordingEnded";
     var PARTICIPATING_MESSAGE = "participatingToRecording";
-    var RECORDING_ICON_URL = "http://cdn.highfidelity.com/alan/production/icons/ICO_rec-active.svg";
-    var NOT_RECORDING_ICON_URL = "http://cdn.highfidelity.com/alan/production/icons/ICO_rec-inactive.svg";
+    var RECORDING_ICON_URL = URLs.CDN_URL + "/alan/production/icons/ICO_rec-active.svg";
+    var NOT_RECORDING_ICON_URL = URLs.CDN_URL + "/alan/production/icons/ICO_rec-inactive.svg";
     var ICON_WIDTH = 60;
     var ICON_HEIGHT = 60;
     var overlay = null;
