@@ -153,7 +153,7 @@ var places = {};
 
 function changeLobbyTextures() {
   var req = new XMLHttpRequest();
-  req.open("GET", "https://metaverse.highfidelity.com/api/v1/places?limit=21", false);
+    req.open("GET", URLs.METAVERSE_URL + "/api/v1/places?limit=21", false);
   req.send();
 
   places = JSON.parse(req.responseText).data.places;
