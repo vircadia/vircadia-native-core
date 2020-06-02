@@ -28,8 +28,6 @@ if [ -d "/var/lib/vircadia/$1" ]; then
 fi
 
 mkdir -p /var/lib/vircadia/$1/.local/share
-ln -s ../.. /var/lib/vircadia/$1/.local/share/Project\ Athena\ -\ dev
-ln -s ../.. /var/lib/vircadia/$1/.local/share/Project\ Athena
 ln -s ../.. /var/lib/vircadia/$1/.local/share/Vircadia\ -\ dev
 ln -s ../.. /var/lib/vircadia/$1/.local/share/Vircadia
 mkdir -p /var/lib/vircadia/$1/domain-server

@@ -1,0 +1,64 @@
+#!/bin/sh
+# functions to assist with deb management
+
+getAthenaEnabled()
+{
+	return systemctl list-units --state=loaded \
+		| grep -P "(athena-assignment-client|athena-domain-server|athena-server)" \
+		| cut -d' ' -f 1 \
+		| xargs -I {} sh -c 'if systemctl is-enabled {} >/dev/null ; then echo {} ; fi' \
+		| paste -s -d'|'
+}
+
+getVircadiaEnabled()
+{
+	return systemctl list-units --state=loaded \
+		| grep -P "(vircadia-assignment-client|vircadia-domain-server|vircadia-server)" \
+		| cut -d' ' -f 1 \
+		| xargs -I {} sh -c 'if systemctl is-enabled {} >/dev/null ; then echo {} ; fi' \
+		| paste -s -d'|'
+}
+
+getAthenaActive()
+{
+	return systemctl list-units \
+		| grep -P "(athena-assignment-client|athena-domain-server|athena-server)" \
+		| cut -d' ' -f 1 \
+		| paste -s -d'|'
+}
+
+getVircadiaActive()
+{
+	return systemctl list-units \
+		| grep -P "(vircadia-assignment-client|vircadia-domain-server|vircadia-server)" \
+		| cut -d' ' -f 1 \
+		| paste -s -d'|'
+}
+
+disableList()
+{
+	echo $1 \
+		| xargs -d'|' \
+		| systemctl disable
+}
+
+enableList()
+{
+	echo $1 \
+		| xargs -d'|' \
+		| systemctl enable
+}
+
+stopList()
+{
+	echo $1 \
+		| xargs -d'|' \
+		| systemctl stop
+}
+
+startList()
+{
+	echo $1 \
+		| xargs -d'|' \
+		| systemctl start
+}

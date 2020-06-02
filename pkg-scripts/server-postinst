@@ -2,6 +2,7 @@
 # postinst script for vircadia-server
 #
 # see: dh_installdeb(1)
+. ./deb-functions
 
 set -e
 
@@ -26,9 +27,31 @@ case "$1" in
 	chown vircadia:vircadia /var/lib/vircadia
 	chmod 775 /var/lib/vircadia
 	if [ ! -d "/var/lib/vircadia/default" ]; then
-		/opt/vircadia/new-server default 40100
-		systemctl enable vircadia-server@default.target
-		systemctl start vircadia-server@default.target
+		if [ -d "/var/lib/athena" ]; then
+			getAthenaActive         # get list of active Athena services
+			ATHENA_ACTIVE=$?
+			getAthenaEnabled        # get list of enabled Athena services
+			ATHENA_ENABLED=$?
+			stopList $ATHENA_ACTIVE # shutdown active Athena servers
+
+			# copy the server files over
+			cp /etc/opt/athena/* /etc/opt/vircadia
+			cp -R /var/lib/athena/* /var/lib/vircadia
+			chown -R vircadia:vircadia /var/lib/vircadia/*
+			find /var/lib/athena -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. Vircadia - dev' ';'
+			find /var/lib/athena -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. Vircadia' ';'
+
+			VIRCADIA_ACTIVE=`echo $ATHENA_ACTIVE | sed 's/athena/vircadia/g'`
+			VIRCADIA_ENABLED=`echo $ATHENA_ENABLED | sed 's/athena/vircadia/g'`
+
+			disableList $ATHENA_ENABLED
+			enableList $VIRCADIA_ENABLED
+			startList $VIRCADIA_ACTIVE
+		else
+			/opt/vircadia/new-server default 40100
+			systemctl enable vircadia-server@default.target
+			systemctl start vircadia-server@default.target
+		fi
 	fi
     ;;
 

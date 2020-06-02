@@ -59,6 +59,7 @@ cp $ATHENA/source/pkg-scripts/vircadia-server@.target debian
 cp $ATHENA/source/pkg-scripts/server-control debian/control
 cp $ATHENA/source/pkg-scripts/server-prerm debian/prerm
 cp $ATHENA/source/pkg-scripts/server-postinst debian/postinst
+cp $ATHENA/source/pkg-scripts/server-postrm debian/postrm
 cp $ATHENA/source/LICENSE debian/copyright
 
 echo /etc/opt/vircadia > debian/dirs
