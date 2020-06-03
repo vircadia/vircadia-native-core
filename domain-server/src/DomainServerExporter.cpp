@@ -294,35 +294,35 @@ bool DomainServerExporter::handleHTTPRequest(HTTPConnection* connection, const Q
 QString DomainServerExporter::escapeName(const QString& name) {
     QRegularExpression invalidCharacters("[^A-Za-z0-9_]");
 
-    QString ret = name;
+    QString result = name;
 
     // If a key is named something like: "6. threads", turn it into just "threads"
-    ret.replace(QRegularExpression("^\\d+\\. "), "");
-    ret.replace(QRegularExpression("^\\d+_"), "");
+    result.replace(QRegularExpression("^\\d+\\. "), "");
+    result.replace(QRegularExpression("^\\d+_"), "");
 
     // If a key is named something like "z_listeners", turn it into just "listeners"
-    ret.replace(QRegularExpression("^z_"), "");
+    result.replace(QRegularExpression("^z_"), "");
 
     // If a key is named something like "lost%", change it to "lost_percent_".
     // redundant underscores will be removed below.
-    ret.replace(QRegularExpression("%"), "_percent_");
+    result.replace(QRegularExpression("%"), "_percent_");
 
     // change mixedCaseNames to mixed_case_names
-    ret.replace(QRegularExpression("([a-z])([A-Z])"), "\\1_\\2");
+    result.replace(QRegularExpression("([a-z])([A-Z])"), "\\1_\\2");
 
     // Replace all invalid characters with a _
-    ret.replace(invalidCharacters, "_");
+    result.replace(invalidCharacters, "_");
 
     // Remove any "_" characters at the beginning or end
-    ret.replace(QRegularExpression("^_+"), "");
-    ret.replace(QRegularExpression("_+$"), "");
+    result.replace(QRegularExpression("^_+"), "");
+    result.replace(QRegularExpression("_+$"), "");
 
     // Replace any duplicated _ characters with a single one
-    ret.replace(QRegularExpression("_+"), "_");
+    result.replace(QRegularExpression("_+"), "_");
 
-    ret = ret.toLower();
+    result = result.toLower();
 
-    return ret;
+    return result;
 }
 
 void DomainServerExporter::generateMetricsForNode(QTextStream& stream, const SharedNodePointer& node) {
