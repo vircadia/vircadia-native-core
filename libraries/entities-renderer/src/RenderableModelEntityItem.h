@@ -121,7 +121,7 @@ private:
     bool readyToAnimate() const;
     void fetchCollisionGeometryResource();
 
-    ModelResource::Pointer _collisionGeometryResource;
+    GeometryResource::Pointer _collisionGeometryResource;
     std::vector<int> _jointMap;
     QVariantMap _originalTextures;
     bool _jointMapCompleted { false };

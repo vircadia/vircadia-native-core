@@ -387,7 +387,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         }
 
         if (verbose) {
-            auto totalHulls = result.meshes[0].parts.size();
+            int totalHulls = result.meshes[0].parts.size();
             qDebug() << "output file =" << outputFilename;
             qDebug() << "vertices =" << totalVertices;
             qDebug() << "triangles =" << totalTriangles;
@@ -402,7 +402,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         HFMMesh result;
 
         // count the mesh-parts
-        size_t meshCount = 0;
+        unsigned int meshCount = 0;
         foreach (const HFMMesh& mesh, fbx.meshes) {
             meshCount += mesh.parts.size();
         }
@@ -412,7 +412,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
             vUtil.fattenMesh(mesh, fbx.offset, result);
         }
 
-        newFbx.meshes.push_back(result);
+        newFbx.meshes.append(result);
         writeOBJ(outputFilename, newFbx, outputCentimeters);
     }
 }
