@@ -350,7 +350,7 @@ bool ZoneEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, c
 }
 
 bool ZoneEntityItem::contains(const glm::vec3& point) const {
-    ModelResource::Pointer resource = _shapeResource;
+    GeometryResource::Pointer resource = _shapeResource;
     if (_shapeType == SHAPE_TYPE_COMPOUND && resource) {
         if (resource->isLoaded()) {
             const HFMModel& hfmModel = resource->getHFMModel();
@@ -467,7 +467,7 @@ void ZoneEntityItem::fetchCollisionGeometryResource() {
     if (hullURL.isEmpty()) {
         _shapeResource.reset();
     } else {
-        _shapeResource = DependencyManager::get<ModelCache>()->getCollisionModelResource(hullURL);
+        _shapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
     }
 }
 

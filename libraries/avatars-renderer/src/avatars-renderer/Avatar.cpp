@@ -943,7 +943,7 @@ void Avatar::simulateAttachments(float deltaTime) {
         bool texturesLoaded = _attachmentModelsTexturesLoaded.at(i);
 
         // Watch for texture loading
-        if (!texturesLoaded && model->getNetworkModel() && model->getNetworkModel()->areTexturesLoaded()) {
+        if (!texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
             _attachmentModelsTexturesLoaded[i] = true;
             model->updateRenderItems();
         }
