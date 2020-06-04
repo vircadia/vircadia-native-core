@@ -14,7 +14,7 @@
 
 const GAME_CHANNEL = 'winterSmashUpGame';
 const SCORE_POST_URL = 'https://script.google.com/macros/s/AKfycbwZAMx6cMBx6-8NGEhR8ELUA-dldtpa_4P55z38Q4vYHW6kneg/exec';
-const MODEL_URL = URLs.CDN_URL + '/chris/production/winter/game/';
+const MODEL_URL = 'http://cdn.highfidelity.com/chris/production/winter/game/';
 const MAX_GAME_TIME = 120; //seconds
 const TARGET_CLOSE_OFFSET = 0.5;
 const MILLISECS_IN_SEC = 1000;

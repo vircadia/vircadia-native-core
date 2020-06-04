@@ -440,7 +440,7 @@ function updateShareInfo(containerID, storyID) {
     }
     var shareBar = document.getElementById(containerID + "shareBar"),
         parentDiv = document.getElementById(containerID),
-        shareURL = URLs.METAVERSE_URL + "/user_stories/" + storyID,
+        shareURL = "https://highfidelity.com/user_stories/" + storyID,
         facebookButton = document.getElementById(containerID + "facebookButton"),
         twitterButton = document.getElementById(containerID + "twitterButton");
 
