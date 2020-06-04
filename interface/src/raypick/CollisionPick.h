@@ -63,13 +63,14 @@ protected:
     bool isLoaded() const;
     // Returns true if _mathPick.shapeInfo is valid. Otherwise, attempts to get the _mathPick ready for use.
     bool getShapeInfoReady(const CollisionRegion& pick);
-    void computeShapeInfoDimensionsOnly(const CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<ModelResource> resource);
+    void computeShapeInfo(const CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
+    void computeShapeInfoDimensionsOnly(const CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
     void filterIntersections(std::vector<ContactTestResult>& intersections) const;
 
     bool _scaleWithParent;
 
     PhysicsEnginePointer _physicsEngine;
-    QSharedPointer<ModelResource> _cachedResource;
+    QSharedPointer<GeometryResource> _cachedResource;
 
     // Options for what information to get from collision results
     bool _includeNormals;

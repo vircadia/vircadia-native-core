@@ -392,14 +392,4 @@ inline glm::vec4 extractFov( const glm::mat4& m) {
     return result;
 }
 
-inline bool operator<(const glm::vec3& lhs, const glm::vec3& rhs) {
-    return (lhs.x < rhs.x) || (
-                (lhs.x == rhs.x) && (
-                     (lhs.y < rhs.y) || (
-                        (lhs.y == rhs.y) && (lhs.z < rhs.z)
-                     )
-                )
-           );
-}
-
 #endif // hifi_GLMHelpers_h
