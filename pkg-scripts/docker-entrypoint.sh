@@ -15,8 +15,8 @@ if [ -f /var/lib/vircadia/.local -a "$(id -u)" = "0" ]; then
 	fi
 
 	# realign pid
-	THIS_ATHENA_PID=`ls -nd /var/lib/vircadia/.local | cut -f3 -d' '`
-	CUR_ATHENA_PID=`getent passwd vircadia | cut -f3 -d: || true`
+	THIS_VIRCADIA_PID=`ls -nd /var/lib/vircadia/.local | cut -f3 -d' '`
+	CUR_VIRCADIA_PID=`getent passwd vircadia | cut -f3 -d: || true`
 	if [ ! -z "$THIS_VIRCADIA_PID" -a "$THIS_VIRCADIA_PID" != "$CUR_VIRCADIA_PID" ]; then
 		usermod -u ${THIS_VIRCADIA_PID} -o vircadia
 	fi

@@ -2,7 +2,6 @@
 # postrm script for vircadia-server
 #
 # see: dh_installdeb(1)
-. ./deb-functions
 
 set -e
 
