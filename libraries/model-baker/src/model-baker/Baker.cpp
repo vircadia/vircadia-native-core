@@ -13,34 +13,61 @@
 
 #include "BakerTypes.h"
 #include "ModelMath.h"
+#include "CollectShapeVerticesTask.h"
 #include "BuildGraphicsMeshTask.h"
 #include "CalculateMeshNormalsTask.h"
 #include "CalculateMeshTangentsTask.h"
 #include "CalculateBlendshapeNormalsTask.h"
 #include "CalculateBlendshapeTangentsTask.h"
 #include "PrepareJointsTask.h"
+#include "CalculateTransformedExtentsTask.h"
 #include "BuildDracoMeshTask.h"
 #include "ParseFlowDataTask.h"
+#include <hfm/HFMModelMath.h>
 
 namespace baker {
 
     class GetModelPartsTask {
     public:
         using Input = hfm::Model::Pointer;
-        using Output = VaryingSet5<std::vector<hfm::Mesh>, hifi::URL, baker::MeshIndicesToModelNames, baker::BlendshapesPerMesh, std::vector<hfm::Joint>>;
+        using Output = VaryingSet9<std::vector<hfm::Mesh>, hifi::URL, baker::MeshIndicesToModelNames, baker::BlendshapesPerMesh, std::vector<hfm::Joint>, std::vector<hfm::Shape>, std::vector<hfm::SkinDeformer>, Extents, std::vector<hfm::Material>>;
         using JobModel = Job::ModelIO<GetModelPartsTask, Input, Output>;
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
             const auto& hfmModelIn = input;
-            output.edit0() = hfmModelIn->meshes.toStdVector();
+            output.edit0() = hfmModelIn->meshes;
             output.edit1() = hfmModelIn->originalURL;
             output.edit2() = hfmModelIn->meshIndicesToModelNames;
             auto& blendshapesPerMesh = output.edit3();
             blendshapesPerMesh.reserve(hfmModelIn->meshes.size());
-            for (int i = 0; i < hfmModelIn->meshes.size(); i++) {
+            for (size_t i = 0; i < hfmModelIn->meshes.size(); i++) {
                 blendshapesPerMesh.push_back(hfmModelIn->meshes[i].blendshapes.toStdVector());
             }
-            output.edit4() = hfmModelIn->joints.toStdVector();
+            output.edit4() = hfmModelIn->joints;
+            output.edit5() = hfmModelIn->shapes;
+            output.edit6() = hfmModelIn->skinDeformers;
+            output.edit7() = hfmModelIn->meshExtents;
+            output.edit8() = hfmModelIn->materials;
+        }
+    };
+
+    class BuildMeshTriangleListTask {
+    public:
+        using Input = std::vector<hfm::Mesh>;
+        using Output = std::vector<hfm::TriangleListMesh>;
+        using JobModel = Job::ModelIO<BuildMeshTriangleListTask, Input, Output>;
+
+        void run(const BakeContextPointer& context, const Input& input, Output& output) {
+            const auto& meshesIn = input;
+            auto& indexedTrianglesMeshOut = output;
+            indexedTrianglesMeshOut.clear();
+            indexedTrianglesMeshOut.resize(meshesIn.size());
+
+            for (size_t i = 0; i < meshesIn.size(); i++) {
+                auto& mesh = meshesIn[i];
+                const auto verticesStd = mesh.vertices.toStdVector();
+                indexedTrianglesMeshOut[i] = hfm::generateTriangleListMesh(verticesStd, mesh.parts);
+            }
         }
     };
 
@@ -75,21 +102,23 @@ namespace baker {
 
     class BuildMeshesTask {
     public:
-        using Input = VaryingSet5<std::vector<hfm::Mesh>, std::vector<graphics::MeshPointer>, NormalsPerMesh, TangentsPerMesh, BlendshapesPerMesh>;
+        using Input = VaryingSet6<std::vector<hfm::Mesh>, std::vector<hfm::TriangleListMesh>, std::vector<graphics::MeshPointer>, NormalsPerMesh, TangentsPerMesh, BlendshapesPerMesh>;
         using Output = std::vector<hfm::Mesh>;
         using JobModel = Job::ModelIO<BuildMeshesTask, Input, Output>;
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
             auto& meshesIn = input.get0();
             int numMeshes = (int)meshesIn.size();
-            auto& graphicsMeshesIn = input.get1();
-            auto& normalsPerMeshIn = input.get2();
-            auto& tangentsPerMeshIn = input.get3();
-            auto& blendshapesPerMeshIn = input.get4();
+            auto& triangleListMeshesIn = input.get1();
+            auto& graphicsMeshesIn = input.get2();
+            auto& normalsPerMeshIn = input.get3();
+            auto& tangentsPerMeshIn = input.get4();
+            auto& blendshapesPerMeshIn = input.get5();
 
             auto meshesOut = meshesIn;
             for (int i = 0; i < numMeshes; i++) {
                 auto& meshOut = meshesOut[i];
+                meshOut.triangleListMesh = triangleListMeshesIn[i];
                 meshOut._mesh = safeGet(graphicsMeshesIn, i);
                 meshOut.normals = QVector<glm::vec3>::fromStdVector(safeGet(normalsPerMeshIn, i));
                 meshOut.tangents = QVector<glm::vec3>::fromStdVector(safeGet(tangentsPerMeshIn, i));
@@ -101,17 +130,22 @@ namespace baker {
 
     class BuildModelTask {
     public:
-        using Input = VaryingSet6<hfm::Model::Pointer, std::vector<hfm::Mesh>, std::vector<hfm::Joint>, QMap<int, glm::quat>, QHash<QString, int>, FlowData>;
+        using Input = VaryingSet9<hfm::Model::Pointer, std::vector<hfm::Mesh>, std::vector<hfm::Joint>, QMap<int, glm::quat>, QHash<QString, int>, FlowData, std::vector<ShapeVertices>, std::vector<hfm::Shape>, Extents>;
         using Output = hfm::Model::Pointer;
         using JobModel = Job::ModelIO<BuildModelTask, Input, Output>;
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
             auto hfmModelOut = input.get0();
-            hfmModelOut->meshes = QVector<hfm::Mesh>::fromStdVector(input.get1());
-            hfmModelOut->joints = QVector<hfm::Joint>::fromStdVector(input.get2());
+            hfmModelOut->meshes = input.get1();
+            hfmModelOut->joints = input.get2();
             hfmModelOut->jointRotationOffsets = input.get3();
             hfmModelOut->jointIndices = input.get4();
             hfmModelOut->flowData = input.get5();
+            hfmModelOut->shapeVertices = input.get6();
+            hfmModelOut->shapes = input.get7();
+            hfmModelOut->meshExtents = input.get8();
+            // These depend on the ShapeVertices
+            // TODO: Create a task for this rather than calculating it here
             hfmModelOut->computeKdops();
             output = hfmModelOut;
         }
@@ -134,6 +168,10 @@ namespace baker {
             const auto meshIndicesToModelNames = modelPartsIn.getN<GetModelPartsTask::Output>(2);
             const auto blendshapesPerMeshIn = modelPartsIn.getN<GetModelPartsTask::Output>(3);
             const auto jointsIn = modelPartsIn.getN<GetModelPartsTask::Output>(4);
+            const auto shapesIn = modelPartsIn.getN<GetModelPartsTask::Output>(5);
+            const auto skinDeformersIn = modelPartsIn.getN<GetModelPartsTask::Output>(6);
+            const auto modelExtentsIn = modelPartsIn.getN<GetModelPartsTask::Output>(7);
+            const auto materialsIn = modelPartsIn.getN<GetModelPartsTask::Output>(8);
 
             // Calculate normals and tangents for meshes and blendshapes if they do not exist
             // Note: Normals are never calculated here for OBJ models. OBJ files optionally define normals on a per-face basis, so for consistency normals are calculated beforehand in OBJSerializer.
@@ -145,8 +183,15 @@ namespace baker {
             const auto calculateBlendshapeTangentsInputs = CalculateBlendshapeTangentsTask::Input(normalsPerBlendshapePerMesh, blendshapesPerMeshIn, meshesIn).asVarying();
             const auto tangentsPerBlendshapePerMesh = model.addJob<CalculateBlendshapeTangentsTask>("CalculateBlendshapeTangents", calculateBlendshapeTangentsInputs);
 
+            // Calculate shape vertices. These rely on the weight-normalized clusterIndices/clusterWeights in the mesh, and are used later for computing the joint kdops
+            const auto collectShapeVerticesInputs = CollectShapeVerticesTask::Input(meshesIn, shapesIn, jointsIn, skinDeformersIn).asVarying();
+            const auto shapeVerticesPerJoint = model.addJob<CollectShapeVerticesTask>("CollectShapeVertices", collectShapeVerticesInputs);
+
+            // Build the slim triangle list mesh for each hfm::mesh
+            const auto triangleListMeshes = model.addJob<BuildMeshTriangleListTask>("BuildMeshTriangleListTask", meshesIn);
+
             // Build the graphics::MeshPointer for each hfm::Mesh
-            const auto buildGraphicsMeshInputs = BuildGraphicsMeshTask::Input(meshesIn, url, meshIndicesToModelNames, normalsPerMesh, tangentsPerMesh).asVarying();
+            const auto buildGraphicsMeshInputs = BuildGraphicsMeshTask::Input(meshesIn, url, meshIndicesToModelNames, normalsPerMesh, tangentsPerMesh, shapesIn, skinDeformersIn).asVarying();
             const auto graphicsMeshes = model.addJob<BuildGraphicsMeshTask>("BuildGraphicsMesh", buildGraphicsMeshInputs);
 
             // Prepare joint information
@@ -155,6 +200,12 @@ namespace baker {
             const auto jointsOut = jointInfoOut.getN<PrepareJointsTask::Output>(0);
             const auto jointRotationOffsets = jointInfoOut.getN<PrepareJointsTask::Output>(1);
             const auto jointIndices = jointInfoOut.getN<PrepareJointsTask::Output>(2);
+
+            // Use transform information to compute extents
+            const auto calculateExtentsInputs = CalculateTransformedExtentsTask::Input(modelExtentsIn, triangleListMeshes, shapesIn, jointsOut).asVarying();
+            const auto calculateExtentsOutputs = model.addJob<CalculateTransformedExtentsTask>("CalculateExtents", calculateExtentsInputs);
+            const auto modelExtentsOut = calculateExtentsOutputs.getN<CalculateTransformedExtentsTask::Output>(0);
+            const auto shapesOut = calculateExtentsOutputs.getN<CalculateTransformedExtentsTask::Output>(1);
 
             // Parse material mapping
             const auto parseMaterialMappingInputs = ParseMaterialMappingTask::Input(mapping, materialMappingBaseURL).asVarying();
@@ -165,7 +216,7 @@ namespace baker {
             // TODO: Tangent support (Needs changes to FBXSerializer_Mesh as well)
             // NOTE: Due to an unresolved linker error, BuildDracoMeshTask is not functional on Android
             // TODO: Figure out why BuildDracoMeshTask.cpp won't link with draco on Android
-            const auto buildDracoMeshInputs = BuildDracoMeshTask::Input(meshesIn, normalsPerMesh, tangentsPerMesh).asVarying();
+            const auto buildDracoMeshInputs = BuildDracoMeshTask::Input(shapesOut, meshesIn, materialsIn, normalsPerMesh, tangentsPerMesh).asVarying();
             const auto buildDracoMeshOutputs = model.addJob<BuildDracoMeshTask>("BuildDracoMesh", buildDracoMeshInputs);
             const auto dracoMeshes = buildDracoMeshOutputs.getN<BuildDracoMeshTask::Output>(0);
             const auto dracoErrors = buildDracoMeshOutputs.getN<BuildDracoMeshTask::Output>(1);
@@ -177,9 +228,9 @@ namespace baker {
             // Combine the outputs into a new hfm::Model
             const auto buildBlendshapesInputs = BuildBlendshapesTask::Input(blendshapesPerMeshIn, normalsPerBlendshapePerMesh, tangentsPerBlendshapePerMesh).asVarying();
             const auto blendshapesPerMeshOut = model.addJob<BuildBlendshapesTask>("BuildBlendshapes", buildBlendshapesInputs);
-            const auto buildMeshesInputs = BuildMeshesTask::Input(meshesIn, graphicsMeshes, normalsPerMesh, tangentsPerMesh, blendshapesPerMeshOut).asVarying();
+            const auto buildMeshesInputs = BuildMeshesTask::Input(meshesIn, triangleListMeshes, graphicsMeshes, normalsPerMesh, tangentsPerMesh, blendshapesPerMeshOut).asVarying();
             const auto meshesOut = model.addJob<BuildMeshesTask>("BuildMeshes", buildMeshesInputs);
-            const auto buildModelInputs = BuildModelTask::Input(hfmModelIn, meshesOut, jointsOut, jointRotationOffsets, jointIndices, flowData).asVarying();
+            const auto buildModelInputs = BuildModelTask::Input(hfmModelIn, meshesOut, jointsOut, jointRotationOffsets, jointIndices, flowData, shapeVerticesPerJoint, shapesOut, modelExtentsOut).asVarying();
             const auto hfmModelOut = model.addJob<BuildModelTask>("BuildModel", buildModelInputs);
 
             output = Output(hfmModelOut, materialMapping, dracoMeshes, dracoErrors, materialList);

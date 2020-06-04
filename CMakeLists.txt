@@ -270,6 +270,7 @@ find_package( Threads )
 add_definitions(-DGLM_FORCE_RADIANS)
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 add_definitions(-DGLM_FORCE_CTOR_INIT)
+add_definitions(-DGLM_LANG_STL11_FORCED) # Workaround for GLM not detecting support for C++11 templates on Android
 
 if (WIN32)
     # Deal with fakakta Visual Studo 2017 bug
