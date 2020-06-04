@@ -20,9 +20,9 @@ env:
   LAUNCHER_HMAC_SECRET: ${{ secrets.launcher_hmac_secret }}
   OCULUS_APP_ID: '${{ secrets.oculus_app_id }}'
   RELEASE_TYPE: PRODUCTION
+  RELEASE_NUMBER: ${BUILD_NUMBER}
   RELEASE_DYNAMODB_V2: ReleaseManager2-ReleaseQueue-prod
   STABLE_BUILD: 0
-
 
   # OSX specific variables
   DEVELOPER_DIR: /Applications/Xcode_11.2.app/Contents/Developer
@@ -58,7 +58,7 @@ env:
 # ANDROID_OAUTH_CLIENT_ID= c1063ea5d0b0c405e0c9cd77351328e211a91496a3f25985a99e861f1661db1d
 # ANDROID_OAUTH_REDIRECT_URI=https://android-interface.highfidelity.com/auth
 # ARTIFACT_EXPRESSION=android/*.apk
-# ANDROID_APK_NAME=ProjectAthena-Alpha-${$BUILD_NUMBER}-${GIT_COMMIT_SHORT}.apk
+# ANDROID_APK_NAME=ProjectAthena-Alpha-${BUILD_NUMBER}-${GIT_COMMIT_SHORT}.apk
 # ANDROID_BUILT_APK_NAME=interface-debug.apk	
 # ANDROID_APP=interface
 # ANDROID_BUILD_DIR=debug
@@ -101,7 +101,7 @@ jobs:
           echo ::set-env name=ZIP_ARGS::-r
           echo ::set-env name=INSTALLER_EXT::dmg
           echo ::set-env name=SYMBOL_REGEX::dSYM
-          echo "::set-output name=symbols_archive::$BUILD_NUMBER-${{ matrix.build_type }}-mac-symbols.zip"
+          echo "::set-output name=symbols_archive::${BUILD_NUMBER}-${{ matrix.build_type }}-mac-symbols.zip"
         fi
         # Windows build variables
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
@@ -110,7 +110,7 @@ jobs:
           echo ::set-env name=ZIP_ARGS::a
           echo ::set-env name=INSTALLER_EXT::exe
           echo "::set-env name=SYMBOL_REGEX::\(exe\|dll\|pdb\)"
-          echo "::set-output name=symbols_archive::$BUILD_NUMBER-${{ matrix.build_type }}-win-symbols.zip"
+          echo "::set-output name=symbols_archive::${BUILD_NUMBER}-${{ matrix.build_type }}-win-symbols.zip"
         fi
     # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
     - name: Configure Build Environment 2
