@@ -399,7 +399,7 @@ bool GLTFSerializer::addBuffer(const QJsonObject& object) {
    
     getIntVal(object, "byteLength", buffer.byteLength, buffer.defined);
 
-    if (_url.toString().endsWith("glb")) {
+    if (_url.path().endsWith("glb")) {
         if (!_glbBinary.isEmpty()) {
             buffer.blob = _glbBinary;
         } else {
@@ -646,7 +646,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
     hifi::ByteArray jsonChunk = data;
 
-    if (_url.toString().endsWith("glb") && data.indexOf("glTF") == 0 && data.contains("JSON")) {
+    if (_url.path().endsWith("glb") && data.indexOf("glTF") == 0 && data.contains("JSON")) {
         jsonChunk = setGLBChunks(data);
     }    
    
@@ -1744,8 +1744,8 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
         hifi::URL textureUrl = _url.resolved(url);
         fbxtex.name = fname;
         fbxtex.filename = textureUrl.toEncoded();
-        
-        if (_url.toString().endsWith("glb") && !_glbBinary.isEmpty()) {
+
+        if (_url.path().endsWith("glb") && !_glbBinary.isEmpty()) {
             int bufferView = _file.images[texture.source].bufferView;
        
             GLTFBufferView& imagesBufferview = _file.bufferviews[bufferView];
