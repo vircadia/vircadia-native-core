@@ -155,7 +155,7 @@ var avatars = {};
 
 function changeLobbyTextures() {
     var req = new XMLHttpRequest();
-    req.open("GET", URLs.METAVERSE_URL + "/api/v1/marketplace?category=head+%26+body&limit=21", false);
+    req.open("GET", "https://metaverse.highfidelity.com/api/v1/marketplace?category=head+%26+body&limit=21", false);
     req.send();  // Data returned is randomized.
 
     avatars = JSON.parse(req.responseText).data.items;
