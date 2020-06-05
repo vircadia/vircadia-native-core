@@ -20,7 +20,7 @@ env:
   LAUNCHER_HMAC_SECRET: ${{ secrets.launcher_hmac_secret }}
   OCULUS_APP_ID: '${{ secrets.oculus_app_id }}'
   RELEASE_TYPE: PRODUCTION
-  RELEASE_NUMBER: $BUILD_NUMBER
+  RELEASE_NUMBER: ${{ github.run_number }}
   RELEASE_DYNAMODB_V2: ReleaseManager2-ReleaseQueue-prod
   STABLE_BUILD: 0
 
