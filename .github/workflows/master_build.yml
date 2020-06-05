@@ -20,7 +20,7 @@ env:
   LAUNCHER_HMAC_SECRET: ${{ secrets.launcher_hmac_secret }}
   OCULUS_APP_ID: '${{ secrets.oculus_app_id }}'
   RELEASE_TYPE: PRODUCTION
-  RELEASE_NUMBER: ${BUILD_NUMBER}
+  RELEASE_NUMBER: $BUILD_NUMBER
   RELEASE_DYNAMODB_V2: ReleaseManager2-ReleaseQueue-prod
   STABLE_BUILD: 0
 
@@ -58,13 +58,12 @@ env:
 # ANDROID_OAUTH_CLIENT_ID= c1063ea5d0b0c405e0c9cd77351328e211a91496a3f25985a99e861f1661db1d
 # ANDROID_OAUTH_REDIRECT_URI=https://android-interface.highfidelity.com/auth
 # ARTIFACT_EXPRESSION=android/*.apk
-# ANDROID_APK_NAME=ProjectAthena-Alpha-${BUILD_NUMBER}-${GIT_COMMIT_SHORT}.apk
+# ANDROID_APK_NAME=Vircadia-Alpha-${BUILD_NUMBER}-${GIT_COMMIT_SHORT}.apk
 # ANDROID_BUILT_APK_NAME=interface-debug.apk	
 # ANDROID_APP=interface
 # ANDROID_BUILD_DIR=debug
 # ANDROID_BUILD_TARGET=assembleDebug
 # STABLE_BUILD=0
-
 
 
 jobs:
@@ -117,14 +116,14 @@ jobs:
       shell: bash
       run: |
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
-        echo ::set-env name=ARTIFACT_PATTERN::ProjectAthena-Alpha-*.$INSTALLER_EXT
+        echo ::set-env name=ARTIFACT_PATTERN::Vircadia-Alpha-*.$INSTALLER_EXT
         # Build type variables
         if [ "${{ matrix.build_type }}" = "full" ]; then
           echo ::set-env name=CLIENT_ONLY::FALSE
-          echo ::set-env name=INSTALLER::ProjectAthena-Alpha-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+          echo ::set-env name=INSTALLER::Vircadia-Alpha-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
         else
           echo ::set-env name=CLIENT_ONLY::TRUE
-          echo ::set-env name=INSTALLER::ProjectAthena-Alpha-Interface-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+          echo ::set-env name=INSTALLER::Vircadia-Alpha-Interface-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
         fi
         # Linux build variables
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
