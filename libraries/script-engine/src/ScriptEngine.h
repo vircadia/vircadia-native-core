@@ -417,7 +417,7 @@ public:
 
     /**jsdoc
      * Provides access to methods or objects provided in an external JavaScript or JSON file. 
-     * See {@link https://docs.projectathena.dev/script/js-tips.html} for further details.
+     * See {@link https://docs.vircadia.dev/script/js-tips.html} for further details.
      * @function Script.require
      * @param {string} module - The module to use. May be a JavaScript file, a JSON file, or the name of a system module such 
      *     as <code>"appUi"</code> (i.e., the "appUi.js" system module JavaScript file).
@@ -528,7 +528,7 @@ public:
     Q_INVOKABLE QUrl resourcesPath() const;
 
     /**jsdoc
-     * Starts timing a section of code in order to send usage data about it to High Fidelity. Shouldn't be used outside of the 
+     * Starts timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of the 
      * standard scripts.
      * @function Script.beginProfileRange
      * @param {string} label - A name that identifies the section of code.
@@ -536,7 +536,7 @@ public:
     Q_INVOKABLE void beginProfileRange(const QString& label) const;
 
     /**jsdoc
-     * Finishes timing a section of code in order to send usage data about it to High Fidelity. Shouldn't be used outside of 
+     * Finishes timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of 
      * the standard scripts.
      * @function Script.endProfileRange
      * @param {string} label - A name that identifies the section of code.

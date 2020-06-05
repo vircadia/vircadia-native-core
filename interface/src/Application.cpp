@@ -1092,8 +1092,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     {
         // identify gpu as early as possible to help identify OpenGL initialization errors.
         auto gpuIdent = GPUIdent::getInstance();
-        setCrashAnnotation("gpu_name", gpuIdent->getName().toStdString());
-        setCrashAnnotation("gpu_driver", gpuIdent->getDriver().toStdString());
+        setCrashAnnotation("sentry[contexts][gpu][name]", gpuIdent->getName().toStdString());
+        setCrashAnnotation("sentry[contexts][gpu][version]", gpuIdent->getDriver().toStdString());
         setCrashAnnotation("gpu_memory", std::to_string(gpuIdent->getMemory()));
     }
 
@@ -1139,7 +1139,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-SemiBold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-Regular.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-Medium.ttf");
-    _window->setWindowTitle("Project Athena");
+    _window->setWindowTitle("Vircadia");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
 
@@ -3166,7 +3166,7 @@ void Application::showLoginScreen() {
         QJsonObject loginData = {};
         loginData["action"] = "login dialog popped up";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-        _window->setWindowTitle("Project Athena");
+        _window->setWindowTitle("Vircadia");
     } else {
         resumeAfterLoginDialogActionTaken();
     }
@@ -3177,7 +3177,7 @@ void Application::showLoginScreen() {
 #endif
 }
 
-static const QUrl AUTHORIZED_EXTERNAL_QML_SOURCE { "https://content.highfidelity.com/Experiences/Releases" };
+static const QUrl AUTHORIZED_EXTERNAL_QML_SOURCE { "https://cdn.vircadia.com/community-apps/applications" };
 
 void Application::initializeUi() {
 
@@ -3196,14 +3196,16 @@ void Application::initializeUi() {
             safeURLS += settingsSafeURLS;
 
             // END PULL SAFEURLS FROM INTERFACE.JSON Settings
-
-            bool isInWhitelist = false;  // assume unsafe
-            for (const auto& str : safeURLS) {
-                if (!str.isEmpty() && str.endsWith(".qml") && url.toString().endsWith(".qml") &&
-                    url.toString().startsWith(str)) {
-                    qCDebug(interfaceapp) << "Found matching url!" << url.host();
-                    isInWhitelist = true;
-                    return true;
+            
+            if (AUTHORIZED_EXTERNAL_QML_SOURCE.isParentOf(url)) {
+                return true;
+            } else {
+                for (const auto& str : safeURLS) {
+                    if (!str.isEmpty() && str.endsWith(".qml") && url.toString().endsWith(".qml") &&
+                        url.toString().startsWith(str)) {
+                        qCDebug(interfaceapp) << "Found matching url!" << url.host();
+                        return true;
+                    }
                 }
             }
 
@@ -7063,7 +7065,7 @@ void Application::updateWindowTitle() const {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
 
-    QString buildVersion = " - Project Athena v0.86.0 K2 - "
+    QString buildVersion = " - Vircadia - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
 
@@ -7073,7 +7075,7 @@ void Application::updateWindowTitle() const {
         nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
     QString username = accountManager->getAccountInfo().getUsername();
 
-    setCrashAnnotation("username", username.toStdString());
+    setCrashAnnotation("sentry[user][username]", username.toStdString());
 
     QString currentPlaceName;
     if (isServerlessMode()) {
@@ -7747,7 +7749,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
             static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
                 "If you want to save what you have now, create a backup before proceeding. For more information about backing up "
                 "and restoring content, visit the documentation page at: ", MAX_CHARACTERS_PER_LINE) +
-                "\nhttps://docs.projectathena.dev/host/maintain-domain/backup-domain.html";
+                "\nhttps://docs.vircadia.dev/host/maintain-domain/backup-domain.html";
 
             ModalDialogListener* dig = OffscreenUi::asyncQuestion("Are you sure you want to replace this domain's content set?",
                                                                   infoText, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);

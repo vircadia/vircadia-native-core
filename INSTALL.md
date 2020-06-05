@@ -1,10 +1,10 @@
 # Creating an Installer
 
-Follow the [build guide](BUILD.md) to figure out how to build Project Athena for your platform.
+Follow the [build guide](BUILD.md) to figure out how to build Vircadia for your platform.
 
 During generation, CMake should produce an `install` target and a `package` target.
 
-The `install` target will copy the Project Athena targets and their dependencies to your `CMAKE_INSTALL_PREFIX`.  
+The `install` target will copy the Vircadia targets and their dependencies to your `CMAKE_INSTALL_PREFIX`.  
 This variable is set by the `project(hifi)` command in `CMakeLists.txt` to `C:/Program Files/hifi` and stored in `build/CMakeCache.txt`
 
 ### Packaging
@@ -15,7 +15,7 @@ To produce an installer, run the `package` target.
 
 To produce an executable installer on Windows, the following are required:
 
-1.  [7-zip](<https://www.7-zip.org/download.html>)  
+1. [7-zip](<https://www.7-zip.org/download.html>)  
 
 1. [Nullsoft Scriptable Install System](http://nsis.sourceforge.net/Download) - 3.04  
   Install using defaults (will install to `C:\Program Files (x86)\NSIS`)
@@ -56,22 +56,23 @@ To produce an executable installer on Windows, the following are required:
    1.  Copy `Release\ApplicationID.dll` to `C:\Program Files (x86)\NSIS\Plugins\x86-ansi\`
    1.  Copy `ReleaseUnicode\ApplicationID.dll` to `C:\Program Files (x86)\NSIS\Plugins\x86-unicode\`
 
-1. [npm](<https://www.npmjs.com/get-npm>)
+1. [Node.JS and NPM](<https://www.npmjs.com/get-npm>)
     1.  Install version 10.15.0 LTS
     
 1.  Perform a clean cmake from a new terminal.
-1.  Open the `athena.sln` solution and select the Release configuration.
+1.  Open the `vircadia.sln` solution with elevated (administrator) permissions on Visual Studio and select the **Release** configuration.
 1.  Build the solution.
+1.  Build CMakeTargets->INSTALL
 1.  Build `packaged-server-console-npm-install` (found under **hidden/Server Console**)
 1.  Build `packaged-server-console` (found under **Server Console**)  
     This will add 2 folders to `build\server-console\` -  
     `server-console-win32-x64` and `x64`
-1.  Build CMakeTargets->PACKAGE  
-    Installer is now available in `build\_CPack_Packages\win64\NSIS`
+1.  Build CMakeTargets->PACKAGE   
+    The installer is now available in `build\_CPack_Packages\win64\NSIS`
 
 #### OS X
 1.   [npm](<https://www.npmjs.com/get-npm>)
-      Install version 10.15.0 LTS
+      Install version 12.16.3 LTS
    
 1.  Perform a clean CMake.
 1.  Perform a Release build of ALL_BUILD
@@ -80,3 +81,9 @@ To produce an executable installer on Windows, the following are required:
      Sandbox-darwin-x64
 1.  Perform a Release build of `package`
       Installer is now available in `build/_CPack_Packages/Darwin/DragNDrop
+      
+### FAQ
+
+1. **Problem:** Failure to open a file. ```File: failed opening file "\FOLDERSHARE\XYZSRelease\...\Credits.rtf" Error in script "C:\TFS\XYZProject\Releases\NullsoftInstaller\XYZWin7Installer.nsi" on line 77 -- aborting creation process```
+    1. **Cause:** The complete path (current directory + relative path) has to be < 260 characters to any of the relevant files.
+    1. **Solution:** Move your build and packaging folder as high up in the drive as possible to prevent an overage.

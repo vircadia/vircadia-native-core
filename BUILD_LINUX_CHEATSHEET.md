@@ -1,4 +1,7 @@
 ## This guide is specific to Ubuntu 16.04.
+
+THIS DOCUMENT IS OUTDATED.
+
 Deb packages of High Fidelity domain server and assignment client are stored on debian.highfidelity.com
 
 ```

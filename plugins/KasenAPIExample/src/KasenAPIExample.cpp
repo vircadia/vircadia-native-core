@@ -113,7 +113,7 @@ private:
     }
     struct _HeadHelper : public HeadData {
         QMap<QString,int> getBlendshapeMap() const {
-            return _blendshapeLookupMap;
+            return BLENDSHAPE_LOOKUP_MAP;
         }
         struct States { QVector<float> base, summed, transient; };
         States getBlendshapeStates() const {

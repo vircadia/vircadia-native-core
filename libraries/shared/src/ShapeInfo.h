@@ -12,7 +12,7 @@
 #ifndef hifi_ShapeInfo_h
 #define hifi_ShapeInfo_h
 
-#include <vector>
+#include <QVector>
 #include <QString>
 #include <QUrl>
 #include <glm/glm.hpp>
@@ -53,11 +53,11 @@ class ShapeInfo {
 
 public:
 
-    using PointList = std::vector<glm::vec3>;
-    using PointCollection = std::vector<PointList>;
-    using TriangleIndices = std::vector<int32_t>;
+    using PointList = QVector<glm::vec3>;
+    using PointCollection = QVector<PointList>;
+    using TriangleIndices = QVector<int32_t>;
     using SphereData = glm::vec4;
-    using SphereCollection = std::vector<SphereData>;
+    using SphereCollection = QVector<SphereData>;
 
     static QString getNameForShapeType(ShapeType type);
     static ShapeType getShapeTypeForName(QString string);
@@ -85,7 +85,7 @@ public:
     TriangleIndices& getTriangleIndices() { return _triangleIndices; }
     const TriangleIndices& getTriangleIndices() const { return _triangleIndices; }
 
-    uint32_t getLargestSubshapePointCount() const;
+    int getLargestSubshapePointCount() const;
 
     float computeVolume() const;
 
