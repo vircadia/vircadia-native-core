@@ -200,7 +200,7 @@ float importanceSample3DDimension(float startDim) {
 }
 
 ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
-                                                                                       const ShapeType& shapeType, const ModelResource::Pointer& geometryResource,
+                                                                                       const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource,
                                                                                        const TriangleInfo& triangleInfo) {
     CpuParticle particle;
 
@@ -385,7 +385,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
 
     particle::Properties particleProperties;
     ShapeType shapeType;
-    ModelResource::Pointer geometryResource;
+    GeometryResource::Pointer geometryResource;
     withReadLock([&] {
         particleProperties = _particleProperties;
         shapeType = _shapeType;
@@ -488,7 +488,7 @@ void ParticleEffectEntityRenderer::fetchGeometryResource() {
     if (hullURL.isEmpty()) {
         _geometryResource.reset();
     } else {
-        _geometryResource = DependencyManager::get<ModelCache>()->getCollisionModelResource(hullURL);
+        _geometryResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
     }
 }
 
@@ -496,7 +496,7 @@ void ParticleEffectEntityRenderer::fetchGeometryResource() {
 void ParticleEffectEntityRenderer::computeTriangles(const hfm::Model& hfmModel) {
     PROFILE_RANGE(render, __FUNCTION__);
 
-    uint32_t numberOfMeshes = (uint32_t)hfmModel.meshes.size();
+    int numberOfMeshes = hfmModel.meshes.size();
 
     _hasComputedTriangles = true;
     _triangleInfo.triangles.clear();
@@ -506,11 +506,11 @@ void ParticleEffectEntityRenderer::computeTriangles(const hfm::Model& hfmModel) 
     float minArea = FLT_MAX;
     AABox bounds;
 
-    for (uint32_t i = 0; i < numberOfMeshes; i++) {
+    for (int i = 0; i < numberOfMeshes; i++) {
         const HFMMesh& mesh = hfmModel.meshes.at(i);
 
-        const uint32_t numberOfParts = (uint32_t)mesh.parts.size();
-        for (uint32_t j = 0; j < numberOfParts; j++) {
+        const int numberOfParts = mesh.parts.size();
+        for (int j = 0; j < numberOfParts; j++) {
             const HFMMeshPart& part = mesh.parts.at(j);
 
             const int INDICES_PER_TRIANGLE = 3;

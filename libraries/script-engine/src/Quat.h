@@ -223,7 +223,7 @@ public slots:
     /**jsdoc
      * Gets the "front" direction that the camera would face if its orientation was set to the quaternion value.
      * This is a synonym for {@link Quat(0).getForward|Quat.getForward}.
-     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
+     * The Vircadia camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
      * @function Quat(0).getFront
      * @param {Quat} orientation - A quaternion representing an orientation.
      * @returns {Vec3} The negative z-axis rotated by <code>orientation</code>.
@@ -233,7 +233,7 @@ public slots:
     /**jsdoc
      * Gets the "forward" direction that the camera would face if its orientation was set to the quaternion value.
      * This is a synonym for {@link Quat(0).getFront|Quat.getFront}.
-     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
+     * The Vircadia camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
      * @function Quat(0).getForward
      * @param {Quat} orientation - A quaternion representing an orientation.
      * @returns {Vec3} The negative z-axis rotated by <code>orientation</code>.
@@ -245,7 +245,7 @@ public slots:
 
     /**jsdoc
      * Gets the "right" direction that the camera would have if its orientation was set to the quaternion value.
-     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
+     * The Vircadia camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
      * @function Quat(0).getRight
      * @param {Quat} orientation - A quaternion representing an orientation.
      * @returns {Vec3} The x-axis rotated by <code>orientation</code>.
@@ -254,7 +254,7 @@ public slots:
 
     /**jsdoc
      * Gets the "up" direction that the camera would have if its orientation was set to the quaternion value.
-     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
+     * The Vircadia camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
      * @function Quat(0).getUp
      * @param {Quat} orientation - A quaternion representing an orientation.
      * @returns {Vec3} The y-axis rotated by <code>orientation</code>.

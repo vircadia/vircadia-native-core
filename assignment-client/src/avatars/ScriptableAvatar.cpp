@@ -144,10 +144,10 @@ void ScriptableAvatar::update(float deltatime) {
             }
             _animationDetails.currentFrame = currentFrame;
 
-            const std::vector<HFMJoint>& modelJoints = _bind->getHFMModel().joints;
+            const QVector<HFMJoint>& modelJoints = _bind->getHFMModel().joints;
             QStringList animationJointNames = _animation->getJointNames();
 
-            const auto nJoints = (int)modelJoints.size();
+            const int nJoints = modelJoints.size();
             if (_jointData.size() != nJoints) {
                 _jointData.resize(nJoints);
             }
