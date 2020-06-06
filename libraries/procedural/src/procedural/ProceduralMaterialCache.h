@@ -50,7 +50,7 @@ public:
     Textures getTextures() { return _textures; }
 
 protected:
-    friend class NetworkModel;
+    friend class Geometry;
 
     Textures _textures;
 

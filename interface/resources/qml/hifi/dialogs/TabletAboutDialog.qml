@@ -54,7 +54,7 @@ Rectangle {
             textFormat: Text.StyledText
             linkColor: "#00B4EF"
             color: "white"
-            text: "<a href=\"https:/github.com/kasenvr/hifi-community\">Project Athena Github</a>."
+            text: "<a href=\"https:/github.com/kasenvr/project-athena\">Vircadia Github</a>."
             size: 20
             onLinkActivated: {
                 HiFiAbout.openUrl("https:/github.com/kasenvr/project-athena");
@@ -117,7 +117,7 @@ Rectangle {
         Item { height: 20; width: 1 }
         RalewayRegular {
             color: "white"
-            text: "© 2019 - 2020 Project Athena Contributors."
+            text: "© 2019-2020 Vircadia contributors."
             size: 14
         }
         RalewayRegular {
