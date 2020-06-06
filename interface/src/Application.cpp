@@ -3788,8 +3788,7 @@ void Application::setPreferredCursor(const QString& cursorName) {
 
     if (_displayPlugin && _displayPlugin->isHmd()) {
         _preferredCursor.set(cursorName.isEmpty() ? DEFAULT_CURSOR_NAME : cursorName);
-    }
-    else {
+    } else {
         _preferredCursor.set(cursorName.isEmpty() ? Cursor::Manager::getIconName(Cursor::Icon::SYSTEM) : cursorName);
     }
 

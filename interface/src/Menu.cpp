@@ -782,7 +782,7 @@ Menu::Menu() {
     // Help/Application menu ----------------------------------
     MenuWrapper * helpMenu = addMenu("Help");
 
-    // Help > About Vircadiaa
+    // Help > About Vircadia
     action = addActionToQMenuAndActionHash(helpMenu, "About Vircadia");
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/AboutDialog.qml"),
@@ -793,7 +793,7 @@ Menu::Menu() {
     // Help > Vircadia Docs
     action = addActionToQMenuAndActionHash(helpMenu, "Online Documentation");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://apidocs.vircadia.dev/"));
+        QDesktopServices::openUrl(QUrl("https://docs.vircadia.dev/"));
     });
 
     // Help > Vircadia Forum
