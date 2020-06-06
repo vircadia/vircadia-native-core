@@ -73,7 +73,7 @@ public slots:
     /**jsdoc
      * Opens Steam's "Choose Friends to invite" dialog if Interface is running under Steam.
      * @function Steam.openInviteOverlay
-     * @example <caption>Invite Steam friends to join you in High Fidelity.</caption>
+     * @example <caption>Invite Steam friends to join you in Vircadia.</caption>
      * if (Steam.running) {
      *     print("Invite Steam friends to joint you...");
      *     Steam.openInviteOverlay();

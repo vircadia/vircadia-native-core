@@ -77,7 +77,7 @@ FST* FST::createFSTFromModel(const QString& fstPath, const QString& modelFilePat
     mapping.insert(JOINT_FIELD, joints);
 
     QVariantHash jointIndices;
-    for (size_t i = 0; i < (size_t)hfmModel.joints.size(); i++) {
+    for (int i = 0; i < hfmModel.joints.size(); i++) {
         jointIndices.insert(hfmModel.joints.at(i).name, QString::number(i));
     }
     mapping.insert(JOINT_INDEX_FIELD, jointIndices);

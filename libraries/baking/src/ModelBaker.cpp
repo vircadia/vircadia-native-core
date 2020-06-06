@@ -265,7 +265,7 @@ void ModelBaker::bakeSourceCopy() {
         return;
     }
 
-    if (!_hfmModel->materials.empty()) {
+    if (!_hfmModel->materials.isEmpty()) {
         _materialBaker = QSharedPointer<MaterialBaker>(
             new MaterialBaker(_modelURL.fileName(), true, _bakedOutputDir),
             &MaterialBaker::deleteLater

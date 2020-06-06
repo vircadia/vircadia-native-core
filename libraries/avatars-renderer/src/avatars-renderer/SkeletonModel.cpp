@@ -171,7 +171,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 
     // FIXME: This texture loading logic should probably live in Avatar, to mirror RenderableModelEntityItem,
     // but Avatars don't get updates in the same way
-    if (!_texturesLoaded && getNetworkModel() && getNetworkModel()->areTexturesLoaded()) {
+    if (!_texturesLoaded && getGeometry() && getGeometry()->areTexturesLoaded()) {
         _texturesLoaded = true;
         updateRenderItems();
     }
@@ -326,7 +326,7 @@ void SkeletonModel::computeBoundingShape() {
     }
 
     const HFMModel& hfmModel = getHFMModel();
-    if (hfmModel.joints.empty() || _rig.indexOfJoint("Hips") == -1) {
+    if (hfmModel.joints.isEmpty() || _rig.indexOfJoint("Hips") == -1) {
         // rootJointIndex == -1 if the avatar model has no skeleton
         return;
     }

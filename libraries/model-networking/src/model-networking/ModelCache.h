@@ -22,20 +22,23 @@
 #include <material-networking/TextureCache.h>
 #include "ModelLoader.h"
 
+class MeshPart;
+
 using GeometryMappingPair = std::pair<QUrl, QVariantHash>;
 Q_DECLARE_METATYPE(GeometryMappingPair)
 
-class NetworkModel {
+class Geometry {
 public:
-    using Pointer = std::shared_ptr<NetworkModel>;
-    using WeakPointer = std::weak_ptr<NetworkModel>;
+    using Pointer = std::shared_ptr<Geometry>;
+    using WeakPointer = std::weak_ptr<Geometry>;
 
-    NetworkModel() = default;
-    NetworkModel(const NetworkModel& geometry);
-    virtual ~NetworkModel() = default;
+    Geometry() = default;
+    Geometry(const Geometry& geometry);
+    virtual ~Geometry() = default;
 
     // Immutable over lifetime
     using GeometryMeshes = std::vector<std::shared_ptr<const graphics::Mesh>>;
+    using GeometryMeshParts = std::vector<std::shared_ptr<const MeshPart>>;
 
     // Mutable, but must retain structure of vector
     using NetworkMaterials = std::vector<std::shared_ptr<NetworkMaterial>>;
@@ -60,6 +63,7 @@ protected:
     HFMModel::ConstPointer _hfmModel;
     MaterialMapping _materialMapping;
     std::shared_ptr<const GeometryMeshes> _meshes;
+    std::shared_ptr<const GeometryMeshParts> _meshParts;
 
     // Copied to each geometry, mutable throughout lifetime via setTextures
     NetworkMaterials _materials;
@@ -72,22 +76,22 @@ private:
 };
 
 /// A geometry loaded from the network.
-class ModelResource : public Resource, public NetworkModel {
+class GeometryResource : public Resource, public Geometry {
     Q_OBJECT
 public:
-    using Pointer = QSharedPointer<ModelResource>;
+    using Pointer = QSharedPointer<GeometryResource>;
 
-    ModelResource(const QUrl& url, const ModelLoader& modelLoader) : Resource(url), _modelLoader(modelLoader) {}
-    ModelResource(const ModelResource& other);
+    GeometryResource(const QUrl& url, const ModelLoader& modelLoader) : Resource(url), _modelLoader(modelLoader) {}
+    GeometryResource(const GeometryResource& other);
 
-    QString getType() const override { return "Model"; }
+    QString getType() const override { return "Geometry"; }
 
     virtual void deleter() override;
 
     virtual void downloadFinished(const QByteArray& data) override;
     void setExtra(void* extra) override;
 
-    virtual bool areTexturesLoaded() const override { return isLoaded() && NetworkModel::areTexturesLoaded(); }
+    virtual bool areTexturesLoaded() const override { return isLoaded() && Geometry::areTexturesLoaded(); }
 
 private slots:
     void onGeometryMappingLoaded(bool success);
@@ -111,21 +115,21 @@ private:
     QUrl _textureBaseURL;
     bool _combineParts;
 
-    ModelResource::Pointer _modelResource;
+    GeometryResource::Pointer _geometryResource;
     QMetaObject::Connection _connection;
 
     bool _isCacheable{ true };
 };
 
-class ModelResourceWatcher : public QObject {
+class GeometryResourceWatcher : public QObject {
     Q_OBJECT
 public:
-    using Pointer = std::shared_ptr<ModelResourceWatcher>;
+    using Pointer = std::shared_ptr<GeometryResourceWatcher>;
 
-    ModelResourceWatcher() = delete;
-    ModelResourceWatcher(NetworkModel::Pointer& geometryPtr) : _networkModelRef(geometryPtr) {}
+    GeometryResourceWatcher() = delete;
+    GeometryResourceWatcher(Geometry::Pointer& geometryPtr) : _geometryRef(geometryPtr) {}
 
-    void setResource(ModelResource::Pointer resource);
+    void setResource(GeometryResource::Pointer resource);
 
     QUrl getURL() const { return (bool)_resource ? _resource->getURL() : QUrl(); }
     int getResourceDownloadAttempts() { return _resource ? _resource->getDownloadAttempts() : 0; }
@@ -143,8 +147,8 @@ private slots:
     void resourceRefreshed();
 
 private:
-    ModelResource::Pointer _resource;
-    NetworkModel::Pointer& _networkModelRef;
+    GeometryResource::Pointer _resource;
+    Geometry::Pointer& _geometryRef;
 };
 
 /// Stores cached model geometries.
@@ -154,18 +158,18 @@ class ModelCache : public ResourceCache, public Dependency {
 
 public:
 
-    ModelResource::Pointer getModelResource(const QUrl& url,
+    GeometryResource::Pointer getGeometryResource(const QUrl& url,
                                                   const GeometryMappingPair& mapping =
                                                         GeometryMappingPair(QUrl(), QVariantHash()),
                                                   const QUrl& textureBaseUrl = QUrl());
 
-    ModelResource::Pointer getCollisionModelResource(const QUrl& url,
+    GeometryResource::Pointer getCollisionGeometryResource(const QUrl& url,
                                                            const GeometryMappingPair& mapping =
                                                                  GeometryMappingPair(QUrl(), QVariantHash()),
                                                            const QUrl& textureBaseUrl = QUrl());
 
 protected:
-    friend class ModelResource;
+    friend class GeometryResource;
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url) override;
     QSharedPointer<Resource> createResourceCopy(const QSharedPointer<Resource>& resource) override;
@@ -174,6 +178,14 @@ private:
     ModelCache();
     virtual ~ModelCache() = default;
     ModelLoader _modelLoader;
+};
+
+class MeshPart {
+public:
+    MeshPart(int mesh, int part, int material) : meshID { mesh }, partID { part }, materialID { material } {}
+    int meshID { -1 };
+    int partID { -1 };
+    int materialID { -1 };
 };
 
 #endif // hifi_ModelCache_h

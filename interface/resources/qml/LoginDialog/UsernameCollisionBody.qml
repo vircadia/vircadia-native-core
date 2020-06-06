@@ -218,7 +218,7 @@ Item {
                 text: usernameCollisionBody.termsContainerText
                 Component.onCompleted: {
                     // with the link.
-                    termsText.text = qsTr("By creating this user profile, you agree to <a href='https://projectathena.io/termsofservice'>Project Athena's Terms of Service</a>")
+                    termsText.text = qsTr("By creating this user profile, you agree to <a href='https://vircadia.com/termsofservice'>Vircadia's Terms of Service</a>")
                 }
             }
 

@@ -40,7 +40,7 @@ public:
 
 protected:
     std::unordered_set<int> _cauterizeBoneSet;
-    std::vector<Model::MeshState> _cauterizeMeshStates;
+    QVector<Model::MeshState> _cauterizeMeshStates;
     bool _isCauterized { false };
     bool _enableCauterization { false };
 };

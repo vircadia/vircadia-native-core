@@ -22,9 +22,9 @@
 #include "GLMHelpers.h"
 
 /**jsdoc
- * The <code>Vec3</code> API provides facilities for generating and manipulating 3-dimensional vectors. High Fidelity uses a 
+ * The <code>Vec3</code> API provides facilities for generating and manipulating 3-dimensional vectors. Vircadia uses a 
  * right-handed Cartesian coordinate system where the y-axis is the "up" and the negative z-axis is the "front" direction.
- * <img alt="High Fidelity coordinate system" src="https://apidocs.projectathena.dev/images/opengl-coord-system.jpg" />
+ * <img alt="Vircadia coordinate system" src="https://apidocs.vircadia.dev/images/opengl-coord-system.jpg" />
  *
  * @namespace Vec3
  * @variation 0
