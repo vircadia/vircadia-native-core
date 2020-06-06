@@ -403,7 +403,6 @@ Rectangle {
 
             Vector3 {
                 id: positionVector
-                backgroundColor: "lightgray"
                 enabled: getCurrentWearable() !== null
 
                 function set(localPosition) {
@@ -463,7 +462,6 @@ Rectangle {
 
             Vector3 {
                 id: rotationVector
-                backgroundColor: "lightgray"
                 enabled: getCurrentWearable() !== null
 
                 function set(localRotationAngles) {
@@ -550,7 +548,7 @@ Rectangle {
                     realFrom: 0.1
                     realTo: 3.0
                     realValue: 1.0
-                    backgroundColor: "lightgray"
+                    backgroundColor: activeFocus ? "white" : "lightgray"
                     width: positionVector.spinboxWidth
                     colorScheme: hifi.colorSchemes.light
 
