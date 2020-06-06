@@ -17,68 +17,6 @@ set -e
 # for details, see https://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-getAthenaEnabled()
-{
-      return systemctl list-units --state=loaded \
-	     | grep -P "(athena-assignment-client|athena-domain-server|athena-server)" \
-	     | cut -d' ' -f 1 \
-	     | xargs -I {} sh -c 'if systemctl is-enabled {} >/dev/null ; then echo {} ; fi' \
-	     | paste -s -d'|'
-}
-
-getVircadiaEnabled()
-{
-       	return systemctl list-units --state=loaded \
-	       	| grep -P "(vircadia-assignment-client|vircadia-domain-server|vircadia-server)" \
-	       	| cut -d' ' -f 1 \
-	       	| xargs -I {} sh -c 'if systemctl is-enabled {} >/dev/null ; then echo {} ; fi' \
-	       	| paste -s -d'|'
-}
-
-getAthenaActive()
-{
-       	return systemctl list-units \
-	       	| grep -P "(athena-assignment-client|athena-domain-server|athena-server)" \
-	       	| cut -d' ' -f 1 \
-	       	| paste -s -d'|'
-}
-
-getVircadiaActive()
-{
-       	return systemctl list-units \
-	       	| grep -P "(vircadia-assignment-client|vircadia-domain-server|vircadia-server)" \
-	       	| cut -d' ' -f 1 \
-	       	| paste -s -d'|'
-}
-
-disableList()
-{
-       	echo $1 \
-	       	| xargs -d'|' \
-	       	| systemctl disable
-}
-
-enableList()
-{
-       	echo $1 \
-	       	| xargs -d'|' \
-	       	| systemctl enable
-}
-
-stopList()
-{
-       	echo $1 \
-	       	| xargs -d'|' \
-	       	| systemctl stop
-}
-
-startList()
-{
-       	echo $1 \
-	       	| xargs -d'|' \
-	       	| systemctl start
-}
-
 case "$1" in
     configure)
 	ldconfig -n /opt/vircadia/lib
@@ -88,25 +26,32 @@ case "$1" in
 	chmod 775 /var/lib/vircadia
 	if [ ! -d "/var/lib/vircadia/default" ]; then
 		if [ -d "/var/lib/athena" ]; then
-			getAthenaActive         # get list of active Athena services
-			ATHENA_ACTIVE=$?
-			getAthenaEnabled        # get list of enabled Athena services
-			ATHENA_ENABLED=$?
-			stopList $ATHENA_ACTIVE # shutdown active Athena servers
+			ATHENA_ACTIVE=`systemctl list-units \
+				| grep -P -o "(athena-assignment-client|athena-domain-server|athena-server)\S+" \
+				| paste -s -d'|' \
+				| head -c -1`
+			ATHENA_ENABLED=`systemctl list-units --state=loaded \
+				| grep -P -o "(athena-assignment-client|athena-domain-server|athena-server)\S+" \
+				| xargs -I {} sh -c 'if systemctl is-enabled {} >/dev/null ; then echo {} ; fi' \
+				| paste -s -d'|' \
+				| head -c -1`
+
+			# shutdown athena servers
+			echo -n $ATHENA_ACTIVE | xargs -d'|' systemctl stop
 
 			# copy the server files over
 			cp /etc/opt/athena/* /etc/opt/vircadia
 			cp -R /var/lib/athena/* /var/lib/vircadia
 			chown -R vircadia:vircadia /var/lib/vircadia/*
-			find /var/lib/athena -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. Vircadia - dev' ';'
+			find /var/lib/athena -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. "Vircadia - dev"' ';'
 			find /var/lib/athena -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. Vircadia' ';'
 
 			VIRCADIA_ACTIVE=`echo $ATHENA_ACTIVE | sed 's/athena/vircadia/g'`
 			VIRCADIA_ENABLED=`echo $ATHENA_ENABLED | sed 's/athena/vircadia/g'`
 
-			disableList $ATHENA_ENABLED
-			enableList $VIRCADIA_ENABLED
-			startList $VIRCADIA_ACTIVE
+			echo -n $ATHENA_ENABLED | xargs -d'|' systemctl disable
+			echo -n $VIRCADIA_ENABLED | xargs -d'|' systemctl enable
+			echo -n $VIRCADIA_ACTIVE | xargs -d'|' systemctl start
 		else
 			/opt/vircadia/new-server default 40100
 			systemctl enable vircadia-server@default.target
