@@ -23,8 +23,9 @@ Rectangle {
         spacing: 5
 
         Image {
-            sourceSize.width: 295
-            sourceSize.height: 75
+            anchors.centerIn: parent
+            sourceSize.width: 358
+            sourceSize.height: 65
             source: "../../../images/about-vircadia.png"
         }
         Item { height: 30; width: 1 }
