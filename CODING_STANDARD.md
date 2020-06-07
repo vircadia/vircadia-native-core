@@ -976,9 +976,9 @@ while (true) {
 
 #### [4.3.4] Source files (header and implementation) must include a boilerplate.
 
-Boilerplates should include the filename, location, creator, copyright Vircadia contributors, and Apache 2.0 License 
-information. This should be placed at the top of the file. If editing an existing file that is copyright High Fidelity, add a 
-second copyright line, copyright Vircadia contributors.
+Boilerplates should include the filename, creator, copyright Vircadia contributors, and Apache 2.0 License information. 
+This should be placed at the top of the file. If editing an existing file that is copyright High Fidelity, add a second 
+copyright line, copyright Vircadia contributors.
 
 ```cpp
 //
