@@ -2,13 +2,13 @@
 if [ -z "$1" ] || [ -z "$2" ]; then
 	echo "new-server {name} {base-port}"
 	echo
-	echo "Sets up a new athena server with the specified name and base port number"
+	echo "Sets up a new vircadia server with the specified name and base port number"
 	echo "  {name} - a simple name used to identify the server to scripts (not used in the server configuration)"
 	echo "  {base-port} - the base port number (default server is 40100).  The metaverse port will be {base-port}+2"
 	echo "                Four contiguous port numbers are allocated, these must not overlap with other running services on this machine"
 	echo
 	echo "Launching a server created by this script is done with:"
-	echo "  sudo systemctl start athena-server@{name}.target"
+	echo "  sudo systemctl start vircadia-server@{name}.target"
 	echo
 	exit 1
 fi
@@ -20,30 +20,30 @@ if [ "$(id -u)" -ne 0 ]; then
 	exit 1
 fi
 
-if [ -d "/var/lib/athena/$1" ]; then
-	echo "Path /var/lib/athena/$1 already exists"
+if [ -d "/var/lib/vircadia/$1" ]; then
+	echo "Path /var/lib/vircadia/$1 already exists"
 	echo
 	echo "Please remove this path first if you wish to recreate this server"
 	exit 2
 fi
 
-mkdir -p /var/lib/athena/$1/.local/share
-ln -s ../.. /var/lib/athena/$1/.local/share/Project\ Athena\ -\ dev
-ln -s ../.. /var/lib/athena/$1/.local/share/Project\ Athena
-mkdir -p /var/lib/athena/$1/domain-server
-echo "{\"metaverse\": {\"local_port\": $(($2 + 2))},\"version\": 2.4}" > /var/lib/athena/$1/domain-server/config.json
-chown -R athena.athena /var/lib/athena/$1
+mkdir -p /var/lib/vircadia/$1/.local/share
+ln -s ../.. /var/lib/vircadia/$1/.local/share/Vircadia\ -\ dev
+ln -s ../.. /var/lib/vircadia/$1/.local/share/Vircadia
+mkdir -p /var/lib/vircadia/$1/domain-server
+echo "{\"metaverse\": {\"local_port\": $(($2 + 2))},\"version\": 2.4}" > /var/lib/vircadia/$1/domain-server/config.json
+chown -R vircadia.vircadia /var/lib/vircadia/$1
 
-echo HIFI_DOMAIN_SERVER_HTTP_PORT=$2 > /etc/opt/athena/$1.conf
-echo HIFI_DOMAIN_SERVER_HTTPS_PORT=$(($2 + 1)) >> /etc/opt/athena/$1.conf
-echo HIFI_DOMAIN_SERVER_PORT=$(($2 + 2)) >> /etc/opt/athena/$1.conf
-echo HIFI_DOMAIN_SERVER_DTLS_PORT=$(($2 + 3)) >> /etc/opt/athena/$1.conf
+echo HIFI_DOMAIN_SERVER_HTTP_PORT=$2 > /etc/opt/vircadia/$1.conf
+echo HIFI_DOMAIN_SERVER_HTTPS_PORT=$(($2 + 1)) >> /etc/opt/vircadia/$1.conf
+echo HIFI_DOMAIN_SERVER_PORT=$(($2 + 2)) >> /etc/opt/vircadia/$1.conf
+echo HIFI_DOMAIN_SERVER_DTLS_PORT=$(($2 + 3)) >> /etc/opt/vircadia/$1.conf
 
-echo "A new athena server has been created with the name of '$1'"
+echo "A new vircadia server has been created with the name of '$1'"
 echo
 echo "To launch it:"
-echo "  sudo systemctl start athena-server@$1.target"
+echo "  sudo systemctl start vircadia-server@$1.target"
 echo "To have it launch at system start:"
-echo "  sudo systemctl enable athena-server@$1.target"
+echo "  sudo systemctl enable vircadia-server@$1.target"
 echo "The server configuration console is available at:"
 echo "  http://localhost:$2"
