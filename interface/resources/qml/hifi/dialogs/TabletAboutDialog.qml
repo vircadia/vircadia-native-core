@@ -23,10 +23,9 @@ Rectangle {
         spacing: 5
 
         Image {
-            anchors.centerIn: parent
-            sourceSize.width: 358
-            sourceSize.height: 65
-            source: "../../../images/about-vircadia.png"
+            width: 400; height: 73
+            fillMode: Image.PreserveAspectFit
+            source: "../../../images/vircadia-logo.svg"
         }
         Item { height: 30; width: 1 }
         Column {
