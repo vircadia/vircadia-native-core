@@ -16,6 +16,7 @@ SOFILES=`ls \
 		$VIRCADIA/qt5-install/lib/libQt5Script.so.*.*.* \
 		$VIRCADIA/qt5-install/lib/libQt5WebSockets.so.*.*.* \
 		$VIRCADIA/qt5-install/lib/libQt5Qml.so.*.*.* \
+		$VIRCADIA/qt5-install/lib/libQt5Quick.so.*.*.* \
 		$VIRCADIA/qt5-install/lib/libQt5ScriptTools.so.*.*.* \
 	| sed 's/\./\\\./g' \
 	| paste -d'|' -s`
@@ -32,6 +33,7 @@ DEPENDS=mesa-libGL,`ls \
 		$VIRCADIA/qt5-install/lib/libQt5Script.so.*.*.* \
 		$VIRCADIA/qt5-install/lib/libQt5WebSockets.so.*.*.* \
 		$VIRCADIA/qt5-install/lib/libQt5Qml.so.*.*.* \
+		$VIRCADIA/qt5-install/lib/libQt5Quick.so.*.*.* \
 		$VIRCADIA/qt5-install/lib/libQt5ScriptTools.so.*.*.* \
 		$VIRCADIA/build/assignment-client/plugins/*.so \
 		$VIRCADIA/build/assignment-client/plugins/*/*.so \

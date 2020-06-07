@@ -43,8 +43,8 @@ case "$1" in
 			cp /etc/opt/athena/* /etc/opt/vircadia
 			cp -R /var/lib/athena/* /var/lib/vircadia
 			chown -R vircadia:vircadia /var/lib/vircadia/*
-			find /var/lib/athena -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. "Vircadia - dev"' ';'
-			find /var/lib/athena -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. Vircadia' ';'
+			find /var/lib/vircadia -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. "Vircadia - dev"' ';'
+			find /var/lib/vircadia -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. Vircadia' ';'
 
 			VIRCADIA_ACTIVE=`echo -n $ATHENA_ACTIVE | sed 's/athena/vircadia/g'`
 			VIRCADIA_ENABLED=`echo -n $ATHENA_ENABLED | sed 's/athena/vircadia/g'`

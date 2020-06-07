@@ -50,6 +50,7 @@ install -m 0644 -t $RPM_BUILD_ROOT/opt/vircadia/lib $VIRCADIA/qt5-install/lib/li
 install -m 0644 -t $RPM_BUILD_ROOT/opt/vircadia/lib $VIRCADIA/qt5-install/lib/libQt5Script.so.*.*.*
 install -m 0644 -t $RPM_BUILD_ROOT/opt/vircadia/lib $VIRCADIA/qt5-install/lib/libQt5WebSockets.so.*.*.*
 install -m 0644 -t $RPM_BUILD_ROOT/opt/vircadia/lib $VIRCADIA/qt5-install/lib/libQt5Qml.so.*.*.*
+install -m 0644 -t $RPM_BUILD_ROOT/opt/vircadia/lib $VIRCADIA/qt5-install/lib/libQt5Quick.so.*.*.*
 install -m 0644 -t $RPM_BUILD_ROOT/opt/vircadia/lib $VIRCADIA/qt5-install/lib/libQt5ScriptTools.so.*.*.*
 install -d $RPM_BUILD_ROOT/usr/lib/systemd/system
 install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $VIRCADIA/source/pkg-scripts/vircadia-assignment-client.service
@@ -117,8 +118,8 @@ if [ ! -d "/var/lib/vircadia/default" ]; then
 		cp /etc/opt/athena/* /etc/opt/vircadia
 		cp -R /var/lib/athena/* /var/lib/vircadia
 		chown -R vircadia:vircadia /var/lib/vircadia/*
-		find /var/lib/athena -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. "Vircadia - dev"' ';'
-		find /var/lib/athena -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. Vircadia' ';'
+		find /var/lib/vircadia -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. "Vircadia - dev"' ';'
+		find /var/lib/vircadia -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. Vircadia' ';'
 
 		VIRCADIA_ACTIVE=`echo -n $ATHENA_ACTIVE | sed 's/athena/vircadia/g'`
 		VIRCADIA_ENABLED=`echo -n $ATHENA_ENABLED | sed 's/athena/vircadia/g'`
