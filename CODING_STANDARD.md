@@ -983,7 +983,6 @@ second copyright line, copyright Vircadia contributors.
 ```cpp
 //
 //  NodeList.h
-//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 15 Feb 2013.
 //  Copyright 2013 High Fidelity, Inc.
