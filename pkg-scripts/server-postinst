@@ -57,6 +57,10 @@ case "$1" in
 			systemctl enable vircadia-server@default.target
 			systemctl start vircadia-server@default.target
 		fi
+	else
+		systemctl list-units \
+			| grep -P -o "(vircadia-assignment-client|vircadia-domain-server|vircadia-server)\S+" \
+			| xargs systemctl restart
 	fi
     ;;
 

@@ -88,11 +88,6 @@ mkdir -p /etc/opt/vircadia
 mkdir -p /var/lib/vircadia && chown vircadia:vircadia /var/lib/vircadia && chmod 775 /var/lib/vircadia
 
 ldconfig -n /opt/vircadia/lib
-if [ ! -d "/var/lib/vircadia/default" ]; then
-	/opt/vircadia/new-server default 40100
-	systemctl enable vircadia-server@default.target
-	systemctl start vircadia-server@default.target
-fi
 
 %systemd_post vircadia-assignment-client.service
 %systemd_post vircadia-assignment-client@.service
@@ -103,8 +98,54 @@ fi
 %systemd_post vircadia-server.target
 %systemd_post vircadia-server@.target
 
+if [ ! -d "/var/lib/vircadia/default" ]; then
+	if [ -d "/var/lib/athena" ]; then
+		ATHENA_ACTIVE=`systemctl list-units \
+			| grep -P -o "(athena-assignment-client|athena-domain-server|athena-server)\S+" \
+			| paste -s -d'|' \
+			| head -c -1`
+		ATHENA_ENABLED=`systemctl list-units --state=loaded \
+			| grep -P -o "(athena-assignment-client|athena-domain-server|athena-server)\S+" \
+			| xargs -I {} sh -c 'if systemctl is-enabled {} >/dev/null ; then echo {} ; fi' \
+			| paste -s -d'|' \
+			| head -c -1`
+
+		# shutdown athena servers
+		echo -n $ATHENA_ACTIVE | xargs -d'|' systemctl stop
+
+		# copy the server files over
+		cp /etc/opt/athena/* /etc/opt/vircadia
+		cp -R /var/lib/athena/* /var/lib/vircadia
+		chown -R vircadia:vircadia /var/lib/vircadia/*
+		find /var/lib/athena -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. "Vircadia - dev"' ';'
+		find /var/lib/athena -maxdepth 3 -path "*\.local/share" -execdir sh -c 'cd share; ln -s ../.. Vircadia' ';'
+
+		VIRCADIA_ACTIVE=`echo -n $ATHENA_ACTIVE | sed 's/athena/vircadia/g'`
+		VIRCADIA_ENABLED=`echo -n $ATHENA_ENABLED | sed 's/athena/vircadia/g'`
+
+		echo -n $ATHENA_ENABLED | xargs -d'|' systemctl disable
+		echo -n $VIRCADIA_ENABLED | xargs -d'|' systemctl enable
+		echo -n $VIRCADIA_ACTIVE | xargs -d'|' systemctl start
+	else
+		/opt/vircadia/new-server default 40100
+		systemctl enable vircadia-server@default.target
+		systemctl start vircadia-server@default.target
+	fi
+else
+	systemctl list-units \
+		| grep -P -o "(vircadia-assignment-client|vircadia-domain-server|vircadia-server)\S+" \
+		| xargs systemctl restart
+fi
+
 
 %preun
+
+if [ "$1" -eq 0 ]; then
+	systemctl list-units \
+		| grep -P -o "(vircadia-assignment-client|vircadia-domain-server|vircadia-server)\S+" \
+		| xargs systemctl stop
+fi
+
 %systemd_preun vircadia-server.target
 %systemd_preun vircadia-server@.target
 %systemd_preun vircadia-assignment-client.service

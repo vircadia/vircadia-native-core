@@ -19,6 +19,10 @@ set -e
 
 case "$1" in
     remove)
+	systemctl list-units \
+		| grep -P -o "(vircadia-assignment-client|vircadia-domain-server|vircadia-server)\S+" \
+		| xargs systemctl stop
+
 	find -P /opt/vircadia/lib -type l -delete
     ;;
 
