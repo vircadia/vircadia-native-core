@@ -1392,7 +1392,7 @@ QString OctreeServer::getFileLoadTime() {
 }
 
 double OctreeServer::getFileLoadTimeSeconds() {
-     return getLoadElapsedTime() / NANOSECONDS_PER_SECOND;
+    return getLoadElapsedTime() / NANOSECONDS_PER_SECOND;
 }
 
 QString OctreeServer::getConfiguration() {
