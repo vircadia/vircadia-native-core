@@ -376,9 +376,7 @@ void EntityServer::nodeAdded(SharedNodePointer node) {
 
 void EntityServer::nodeKilled(SharedNodePointer node) {
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
-    tree->withWriteLock([&] {
-        tree->deleteDescendantsOfAvatar(node->getUUID());
-    });
+    tree->deleteDescendantsOfAvatar(node->getUUID());
     tree->forgetAvatarID(node->getUUID());
     OctreeServer::nodeKilled(node);
 }

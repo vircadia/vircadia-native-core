@@ -2213,6 +2213,7 @@ void EntityTree::fixupNeedsParentFixups() {
 
             entity->postParentFixup();
         } else if (getIsServer() || _avatarIDs.contains(entity->getParentID())) {
+            std::lock_guard<std::mutex> lock(_childrenOfAvatarsLock);
             // this is a child of an avatar, which the entity server will never have
             // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
             if (!_childrenOfAvatars.contains(entity->getParentID())) {
@@ -2241,6 +2242,7 @@ void EntityTree::fixupNeedsParentFixups() {
 }
 
 void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
+    std::lock_guard<std::mutex> lock(_childrenOfAvatarsLock);
     QHash<QUuid, QSet<EntityItemID>>::const_iterator itr = _childrenOfAvatars.constFind(avatarID);
     if (itr != _childrenOfAvatars.end()) {
         if (!itr.value().empty()) {
@@ -2259,8 +2261,10 @@ void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
 
 void EntityTree::removeFromChildrenOfAvatars(EntityItemPointer entity) {
     QUuid avatarID = entity->getParentID();
-    if (_childrenOfAvatars.contains(avatarID)) {
-        _childrenOfAvatars[avatarID].remove(entity->getID());
+    std::lock_guard<std::mutex> lock(_childrenOfAvatarsLock);
+    auto itr = _childrenOfAvatars.find(avatarID);
+    if (itr != _childrenOfAvatars.end()) {
+        itr.value().remove(entity->getID());
     }
 }
 
