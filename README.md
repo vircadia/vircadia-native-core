@@ -12,11 +12,11 @@ Vircadia is a 3D social software project seeking to incrementally bring about a 
 
 ### How to build the Interface
 
-[For Windows](https://github.com/kasenvr/project-athena/blob/kasen/core/BUILD_WIN.md)
+[For Windows](https://github.com/kasenvr/project-athena/blob/master/BUILD_WIN.md)
 
-[For Linux](https://github.com/kasenvr/project-athena/blob/kasen/core/BUILD_LINUX.md)
+[For Linux](https://github.com/kasenvr/project-athena/blob/master/BUILD_LINUX.md)
 
-[For Linux - Athena Builder](https://github.com/daleglass/athena-builder)
+[For Linux - Athena Builder](https://github.com/kasenvr/vircadia-builder)
 
 ### How to deploy a Server
 
@@ -24,7 +24,7 @@ Vircadia is a 3D social software project seeking to incrementally bring about a 
 
 ### How to build a Server
 
-[For Linux - Athena Builder](https://github.com/daleglass/athena-builder)
+[For Linux - Athena Builder](https://github.com/kasenvr/vircadia-builder)
 
 ### Boot to Metaverse: The Goal
 

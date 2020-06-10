@@ -11,6 +11,7 @@
 #define khronos_khr_hpp
 
 #include <unordered_map>
+#include <stdexcept>
 
 namespace khronos {
 

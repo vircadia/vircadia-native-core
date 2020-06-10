@@ -1,4 +1,4 @@
-Source: athena-server
+Source: vircadia-server
 Section: comm
 Priority: optional
 Maintainer: Heather Anderson <heath@odysseus.anderson.name>
@@ -8,7 +8,7 @@ Homepage: https://vircadia.com
 Vcs-Git: https://github.com/kasenvr/project-athena.git
 Vcs-Browser: https://github.com/kasenvr/project-athena
 
-Package: athena-server
+Package: vircadia-server
 Architecture: any
 Depends: adduser, {DEPENDS}
 Description: Vircadia allows creation and sharing of VR experiences.

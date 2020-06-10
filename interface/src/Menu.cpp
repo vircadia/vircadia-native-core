@@ -223,9 +223,9 @@ Menu::Menu() {
     MenuWrapper* startupLocationMenu = navigateMenu->addMenu(MenuOption::StartUpLocation);
     QActionGroup* startupLocatiopnGroup = new QActionGroup(startupLocationMenu);
     startupLocatiopnGroup->setExclusive(true);
-    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0, 
+    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0,
         false));
-    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0, 
+    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0,
         true));
 
     // Settings menu ----------------------------------
@@ -288,13 +288,13 @@ Menu::Menu() {
 			hmd->toggleShouldShowTablet();
 		}
     });
-    
+
     // Settings > Entity Script / QML Whitelist
     action = addActionToQMenuAndActionHash(settingsMenu, "Entity Script / QML Whitelist");
     connect(action, &QAction::triggered, [] {
         auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
         auto hmd = DependencyManager::get<HMDScriptingInterface>();
-        
+
         tablet->pushOntoStack("hifi/dialogs/security/EntityScriptQMLWhitelist.qml");
 
         if (!hmd->getShouldShowTablet()) {
@@ -310,10 +310,10 @@ Menu::Menu() {
 
     // Developer menu ----------------------------------
     MenuWrapper* developerMenu = addMenu("Developer", "Developer");
-    
+
     // Developer > Scripting >>>
     MenuWrapper* scriptingOptionsMenu = developerMenu->addMenu("Scripting");
-    
+
     // Developer > Scripting > Console...
     addActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
                                   DependencyManager::get<StandAloneJSConsole>().data(),
@@ -328,7 +328,7 @@ Menu::Menu() {
         defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/utilities/tools/currentAPI.js");
         DependencyManager::get<ScriptEngines>()->loadScript(defaultScriptsLoc.toString());
     });
-    
+
     // Developer > Scripting > Entity Script Server Log
     auto essLogAction = addActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::EntityScriptServerLog, 0,
                                                       qApp, SLOT(toggleEntityScriptServerLogDialog()));
@@ -348,7 +348,7 @@ Menu::Menu() {
     // Developer > Scripting > Verbose Logging
     addCheckableActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::VerboseLogging, 0, false,
                                            qApp, SLOT(updateVerboseLogging()));
-    
+
     // Developer > Scripting > Enable Speech Control API
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::get<SpeechRecognizer>();
@@ -360,20 +360,20 @@ Menu::Menu() {
         UNSPECIFIED_POSITION);
     connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
 #endif
-    
+
     // Developer > UI >>>
     MenuWrapper* uiOptionsMenu = developerMenu->addMenu("UI");
     action = addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::DesktopTabletToToolbar, 0,
                                                     qApp->getDesktopTabletBecomesToolbarSetting());
-    
+
     // Developer > UI > Show Overlays
     addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::Overlays, 0, true);
-    
+
     // Developer > UI > Desktop Tablet Becomes Toolbar
     connect(action, &QAction::triggered, [action] {
         qApp->setDesktopTabletBecomesToolbarSetting(action->isChecked());
     });
-    
+
      // Developer > UI > HMD Tablet Becomes Toolbar
     action = addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::HMDTabletToToolbar, 0,
                                                     qApp->getHmdTabletBecomesToolbarSetting());
@@ -617,6 +617,12 @@ Menu::Menu() {
         false,
         &UserActivityLogger::getInstance(),
         SLOT(disable(bool)));
+    addCheckableActionToQMenuAndActionHash(networkMenu,
+        MenuOption::DisableCrashLogger,
+        0,
+        false,
+        &UserActivityLogger::getInstance(),
+        SLOT(crashMonitorDisable(bool)));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
         qApp, SLOT(loadDomainConnectionDialog()));
 
@@ -702,7 +708,7 @@ Menu::Menu() {
     result = QProcessEnvironment::systemEnvironment().contains(HIFI_SHOW_DEVELOPER_CRASH_MENU);
     if (result) {
         MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
-    
+
         // Developer > Crash > Display Crash Options
         addCheckableActionToQMenuAndActionHash(crashMenu, MenuOption::DisplayCrashOptions, 0, true);
 
@@ -741,7 +747,7 @@ Menu::Menu() {
 
         addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashOnShutdown, 0, qApp, SLOT(crashOnShutdown()));
     }
-    
+
 
     // Developer > Show Statistics
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats, 0, true);

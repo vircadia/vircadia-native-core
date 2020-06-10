@@ -972,7 +972,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         recorder->recordFrame(FRAME_TYPE, toFrame(*this));
     }
 
-    locationChanged(true, false);
+    locationChanged(true, true);
     // if a entity-child of this avatar has moved outside of its queryAACube, update the cube and tell the entity server.
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
@@ -981,16 +981,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         entityTree->withWriteLock([&] {
             zoneInteractionProperties = entityTreeRenderer->getZoneInteractionProperties();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
-            forEachDescendant([&](SpatiallyNestablePointer object) {
-                locationChanged(true, false);
-                // we need to update attached queryAACubes in our own local tree so point-select always works
-                // however we don't want to flood the update pipeline with AvatarEntity updates, so we assume
-                // others have all info required to properly update queryAACube of AvatarEntities on their end
-                EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
-                bool iShouldTellServer = !(entity && entity->isAvatarEntity());
-                const bool force = false;
-                entityTree->updateEntityQueryAACube(object, packetSender, force, iShouldTellServer);
-            });
+            entityTree->updateEntityQueryAACube(shared_from_this(), packetSender, false, true);
         });
         bool isPhysicsEnabled = qApp->isPhysicsEnabled();
         bool zoneAllowsFlying = zoneInteractionProperties.first;
@@ -1988,7 +1979,7 @@ void MyAvatar::loadData() {
 
     // Flying preferences must be loaded before calling setFlyingEnabled()
     Setting::Handle<bool> firstRunVal { Settings::firstRun, true };
-    setFlyingHMDPref(firstRunVal.get() ? false : _flyingHMDSetting.get());
+    setFlyingHMDPref(firstRunVal.get() ? true : _flyingHMDSetting.get());
     setMovementReference(firstRunVal.get() ? false : _movementReferenceSetting.get());
     setDriveGear1(firstRunVal.get() ? DEFAULT_GEAR_1 : _driveGear1Setting.get());
     setDriveGear2(firstRunVal.get() ? DEFAULT_GEAR_2 : _driveGear2Setting.get());
@@ -2483,7 +2474,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
             if (_fullAvatarModelName.isEmpty()) {
                 // Store the FST file name into preferences
-                const auto& mapping = _skeletonModel->getNetworkModel()->getMapping();
+                const auto& mapping = _skeletonModel->getGeometry()->getMapping();
                 if (mapping.value("name").isValid()) {
                     _fullAvatarModelName = mapping.value("name").toString();
                 }
@@ -2491,7 +2482,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
             initHeadBones();
             _skeletonModel->setCauterizeBoneSet(_headBoneSet);
-            _fstAnimGraphOverrideUrl = _skeletonModel->getNetworkModel()->getAnimGraphOverrideUrl();
+            _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
             initAnimGraph();
             initFlowFromFST();
         }
