@@ -89,7 +89,7 @@
 
         function myDomainAddressInputGoTo() {
             var vircadiaUrl = document.getElementById("domainAddressInput").value;
-            if (vircadiaUrl != "") {
+            if (vircadiaUrl !== "") {
                 var readyEvent = {
                     "action": "goToUrl",
                     "visit": vircadiaUrl,
