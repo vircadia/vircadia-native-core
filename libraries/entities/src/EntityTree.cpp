@@ -2212,16 +2212,24 @@ void EntityTree::fixupNeedsParentFixups() {
             }
 
             entity->postParentFixup();
-        } else if (getIsServer() || _avatarIDs.contains(entity->getParentID())) {
-            std::lock_guard<std::mutex> lock(_childrenOfAvatarsLock);
-            // this is a child of an avatar, which the entity server will never have
-            // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
-            if (!_childrenOfAvatars.contains(entity->getParentID())) {
-                _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
+        } else {
+            bool needsUpdate = getIsServer();
+            if (!needsUpdate) {
+                std::lock_guard<std::mutex> lock(_avatarIDsLock);
+                needsUpdate = _avatarIDs.contains(entity->getParentID());
             }
-            _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
-            doMove = true;
-            iter.remove(); // and pull it out of the list
+
+            if (needsUpdate) {
+                std::lock_guard<std::mutex> lock(_childrenOfAvatarsLock);
+                // this is a child of an avatar, which the entity server will never have
+                // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
+                if (!_childrenOfAvatars.contains(entity->getParentID())) {
+                    _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
+                }
+                _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
+                doMove = true;
+                iter.remove(); // and pull it out of the list
+            }
         }
 
         if (queryAACubeSuccess && doMove) {
@@ -2241,9 +2249,19 @@ void EntityTree::fixupNeedsParentFixups() {
     }
 }
 
-void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
+void EntityTree::knowAvatarID(const QUuid& avatarID) {
+    std::lock_guard<std::mutex> lock(_avatarIDsLock);
+    _avatarIDs += avatarID;
+}
+
+void EntityTree::forgetAvatarID(const QUuid& avatarID) {
+    std::lock_guard<std::mutex> lock(_avatarIDsLock);
+    _avatarIDs -= avatarID;
+}
+
+void EntityTree::deleteDescendantsOfAvatar(const QUuid& avatarID) {
     std::lock_guard<std::mutex> lock(_childrenOfAvatarsLock);
-    QHash<QUuid, QSet<EntityItemID>>::const_iterator itr = _childrenOfAvatars.constFind(avatarID);
+    auto itr = _childrenOfAvatars.find(avatarID);
     if (itr != _childrenOfAvatars.end()) {
         if (!itr.value().empty()) {
             std::vector<EntityItemID> ids;

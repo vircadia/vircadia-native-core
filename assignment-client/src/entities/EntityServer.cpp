@@ -370,14 +370,18 @@ void EntityServer::entityFilterAdded(EntityItemID id, bool success) {
 
 void EntityServer::nodeAdded(SharedNodePointer node) {
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
-    tree->knowAvatarID(node->getUUID());
+    if (tree) {
+        tree->knowAvatarID(node->getUUID());
+    }
     OctreeServer::nodeAdded(node);
 }
 
 void EntityServer::nodeKilled(SharedNodePointer node) {
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
-    tree->deleteDescendantsOfAvatar(node->getUUID());
-    tree->forgetAvatarID(node->getUUID());
+    if (tree) {
+        tree->deleteDescendantsOfAvatar(node->getUUID());
+        tree->forgetAvatarID(node->getUUID());
+    }
     OctreeServer::nodeKilled(node);
 }
 
