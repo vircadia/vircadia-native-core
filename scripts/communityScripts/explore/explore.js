@@ -82,12 +82,25 @@
 
         } else if (messageData.action == "goToUrl") {
             Window.location = messageData.visit;
+        } else if (messageData.action == "navigateBack") {
+            location.goBack();
+        } else if (messageData.action == "navigateHome") {
+            if (LocationBookmarks.getHomeLocationAddress()) {
+                location.handleLookupString(LocationBookmarks.getHomeLocationAddress());
+            } else {
+                location.goToLocalSandbox();
+            }
+        } else if (messageData.action == "navigateForward") {
+            location.goForward();
         } else if (messageData.action == "addLocation") {
 
             var locationBoxUserData = {
                 owner: messageData.owner,
                 domainName: messageData.domainName,
                 port: messageData.Port,
+                ipAddress: null,
+                avatarCountRadius: null,
+                customPath: null,
                 grabbableKey: {
                     grabbable: false
                 }
