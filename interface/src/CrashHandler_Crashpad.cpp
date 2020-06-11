@@ -16,11 +16,13 @@
 #include <assert.h>
 
 #include <mutex>
+#include <vector>
 #include <string>
 
-#include <QDebug>
-#include <QDir>
-#include <QStandardPaths>
+#include <QtCore/QDebug>
+#include <QtCore/QDir>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QString>
 
 
 #if defined(__clang__)
@@ -59,6 +61,10 @@ static const QString CRASHPAD_HANDLER_NAME { "crashpad_handler" };
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
+#include <typeinfo>
+
+void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo);
+
 
 LONG WINAPI vectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
     if (!client) {
@@ -70,8 +76,99 @@ LONG WINAPI vectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
         client->DumpAndCrash(pExceptionInfo);
     }
 
+    if (pExceptionInfo->ExceptionRecord->ExceptionCode == 0xE06D7363) {
+        fatalCxxException(pExceptionInfo);
+        client->DumpAndCrash(pExceptionInfo);
+    }
+
     return EXCEPTION_CONTINUE_SEARCH;
 }
+
+#pragma pack(push, ehdata, 4)
+
+struct PMD_internal {
+    int mdisp;
+    int pdisp;
+    int vdisp;
+};
+
+struct ThrowInfo_internal {
+    __int32 attributes;
+    __int32 pmfnUnwind;           // 32-bit RVA
+    __int32 pForwardCompat;       // 32-bit RVA
+    __int32 pCatchableTypeArray;  // 32-bit RVA
+};
+
+struct CatchableType_internal {
+    __int32 properties;
+    __int32 pType;                // 32-bit RVA
+    PMD_internal thisDisplacement;
+    __int32 sizeOrOffset;
+    __int32 copyFunction;         // 32-bit RVA
+};
+
+#pragma warning(disable : 4200)
+struct CatchableTypeArray_internal {
+    int nCatchableTypes;
+    __int32 arrayOfCatchableTypes[0]; // 32-bit RVA
+};
+#pragma warning(default : 4200)
+
+#pragma pack(pop, ehdata)
+
+// everything inside this function is extremely undocumented, attempting to extract
+// the underlying C++ exception type (or at least its name) before throwing the whole
+// mess at crashpad
+void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo) {
+    PEXCEPTION_RECORD ExceptionRecord = pExceptionInfo->ExceptionRecord;
+
+    if(ExceptionRecord->NumberParameters != 4 || ExceptionRecord->ExceptionInformation[0] != 0x19930520) {
+        // doesn't match expected parameter counts or magic numbers
+        return;
+    }
+
+    //ULONG_PTR signature = ExceptionRecord->ExceptionInformation[0];
+    void* pExceptionObject = reinterpret_cast<void*>(ExceptionRecord->ExceptionInformation[1]); // the object that generated the exception
+    ThrowInfo_internal* pThrowInfo = reinterpret_cast<ThrowInfo_internal*>(ExceptionRecord->ExceptionInformation[2]);
+    ULONG_PTR moduleBase = ExceptionRecord->ExceptionInformation[3];
+    if(moduleBase == 0 || pThrowInfo == NULL) {
+      return; // broken assumption
+    }
+
+    // now we start breaking the pThrowInfo internal structure apart
+    if(pThrowInfo->pCatchableTypeArray == 0) {
+      return; // broken assumption
+    }
+    CatchableTypeArray_internal* pCatchableTypeArray = reinterpret_cast<CatchableTypeArray_internal*>(moduleBase + pThrowInfo->pCatchableTypeArray);
+    if(pCatchableTypeArray->nCatchableTypes == 0 || pCatchableTypeArray->arrayOfCatchableTypes[0] == 0) {
+      return; // broken assumption
+    }
+    CatchableType_internal* pCatchableType = reinterpret_cast<CatchableType_internal*>(moduleBase + pCatchableTypeArray->arrayOfCatchableTypes[0]);
+    if(pCatchableType->pType == 0) {
+      return; // broken assumption
+    }
+    const std::type_info* type = reinterpret_cast<std::type_info*>(moduleBase + pCatchableType->pType);
+
+    // we're crashing, not really sure it matters who's currently holding the lock (although this could in theory really mess things up
+    annotationMutex.try_lock();
+    crashpadAnnotations->SetKeyValue("thrownObject", type->name());
+
+    QString compatibleObjects;
+    for (int catchTypeIdx = 1; catchTypeIdx < pCatchableTypeArray->nCatchableTypes; catchTypeIdx++) {
+        CatchableType_internal* pCatchableSuperclassType = reinterpret_cast<CatchableType_internal*>(moduleBase + pCatchableTypeArray->arrayOfCatchableTypes[catchTypeIdx]);
+        if (pCatchableSuperclassType->pType == 0) {
+          return; // broken assumption
+        }
+        const std::type_info* superclassType = reinterpret_cast<std::type_info*>(moduleBase + pCatchableSuperclassType->pType);
+
+        if (!compatibleObjects.isEmpty()) {
+            compatibleObjects += ", ";
+        }
+        compatibleObjects += superclassType->name();
+    }
+    crashpadAnnotations->SetKeyValue("thrownObjectLike", compatibleObjects.toStdString());
+}
+
 #endif
 
 bool startCrashHandler(std::string appPath) {
