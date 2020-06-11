@@ -987,8 +987,8 @@ void EntityScriptingInterface::deleteEntity(const QUuid& id) {
 
             // Deleting an entity has consequences for linked children: some can be deleted but others can't.
             // Local- and my-avatar-entities can be deleted immediately, but other-avatar-entities can't be deleted
-            // by this context, and a domain-entity must rountrip through the entity-server for authorization.
-            if (entity->isDomainEntity()) {
+            // by this context, and a domain-entity must round trip through the entity-server for authorization.
+            if (entity->isDomainEntity() && !_entityTree->isServerlessMode()) {
                 getEntityPacketSender()->queueEraseEntityMessage(id);
             } else {
                 entitiesToDeleteImmediately.push_back(entity);
