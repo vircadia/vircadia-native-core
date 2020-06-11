@@ -23,9 +23,9 @@ Rectangle {
         spacing: 5
 
         Image {
-            sourceSize.width: 295
-            sourceSize.height: 75
-            source: "../../../images/about-projectathena.png"
+            width: 400; height: 73
+            fillMode: Image.PreserveAspectFit
+            source: "../../../images/vircadia-logo.svg"
         }
         Item { height: 30; width: 1 }
         Column {
