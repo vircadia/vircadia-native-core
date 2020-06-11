@@ -19,7 +19,7 @@ import TabletScriptingInterface 1.0
 Item {
     id: usernameCollisionBody
     clip: true
-    readonly property string termsContainerText: qsTr("By creating this user profile, you agree to Project Athena's Terms of Service")
+    readonly property string termsContainerText: qsTr("By creating this user profile, you agree to Vircadia's Terms of Service")
     width: root.width
     height: root.height
     readonly property string fontFamily: "Raleway"
