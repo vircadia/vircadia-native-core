@@ -11,9 +11,9 @@ env:
   BUILD_NUMBER: ${{ github.run_number }}
   BUCKET_NAME: athena-public
   CI_BUILD: Github
-  CMAKE_BACKTRACE_URL: https://highfidelity.sp.backtrace.io:6098
-  CMAKE_BACKTRACE_TOKEN: ${{ secrets.backtrace_token }}
-  CMAKE_BACKTRACE_SYMBOLS_TOKEN: ${{ secrets.backtrace_symbols_token }}
+  # CMAKE_BACKTRACE_URL: https://highfidelity.sp.backtrace.io:6098
+  # CMAKE_BACKTRACE_TOKEN: ${{ secrets.backtrace_token }}
+  # CMAKE_BACKTRACE_SYMBOLS_TOKEN: ${{ secrets.backtrace_symbols_token }}
   GIT_COMMIT: ${{ github.sha }}
   # VCPKG did not build well on OSX disabling HIFI_VCPKG_BOOTSTRAP, which invokes a download to a working version of vcpkg
   # HIFI_VCPKG_BOOTSTRAP: true
