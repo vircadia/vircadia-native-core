@@ -12,11 +12,11 @@ Vircadia is a 3D social software project seeking to incrementally bring about a 
 
 ### How to build the Interface
 
-[For Windows](https://docs.vircadia.dev/developer/build/BUILD_WIN.html)
+[For Windows](https://github.com/kasenvr/project-athena/blob/master/BUILD_WIN.md)
 
-[For Mac](https://docs.vircadia.dev/developer/build/BUILD_OSX.html)
+[For Mac](https://github.com/kasenvr/project-athena/blob/master/BUILD_OSX.md)
 
-[For Linux](https://docs.vircadia.dev/developer/build/BUILD_LINUX.html)
+[For Linux](https://github.com/kasenvr/project-athena/blob/master/BUILD_LINUX.md)
 
 [For Linux - Vircadia Builder](https://github.com/kasenvr/vircadia-builder)
 
@@ -27,6 +27,12 @@ Vircadia is a 3D social software project seeking to incrementally bring about a 
 ### How to build a Server
 
 [For Linux - Vircadia Builder](https://github.com/kasenvr/vircadia-builder)
+
+### How to generate an Installer
+
+[For Windows](https://github.com/kasenvr/project-athena/blob/master/INSTALL.md)
+
+[For Linux - AppImage - Vircadia Builder](https://github.com/kasenvr/vircadia-builder/blob/master/README.md#building-appimages)
 
 ### Boot to Metaverse: The Goal
 
