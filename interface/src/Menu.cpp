@@ -614,7 +614,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(networkMenu,
         MenuOption::DisableActivityLogger,
         0,
-        false,
+        true,
         &UserActivityLogger::getInstance(),
         SLOT(disable(bool)));
     addCheckableActionToQMenuAndActionHash(networkMenu,
