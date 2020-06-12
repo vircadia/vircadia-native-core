@@ -12,23 +12,25 @@ Vircadia is a 3D social software project seeking to incrementally bring about a 
 
 ### How to build the Interface
 
-[For Windows](https://github.com/kasenvr/project-athena/blob/master/BUILD_WIN.md)
+[For Windows](https://docs.vircadia.dev/developer/build/BUILD_WIN.html)
 
-[For Linux](https://github.com/kasenvr/project-athena/blob/master/BUILD_LINUX.md)
+[For Mac](https://docs.vircadia.dev/developer/build/BUILD_OSX.html)
 
-[For Linux - Athena Builder](https://github.com/kasenvr/vircadia-builder)
+[For Linux](https://docs.vircadia.dev/developer/build/BUILD_LINUX.html)
+
+[For Linux - Vircadia Builder](https://github.com/kasenvr/vircadia-builder)
 
 ### How to deploy a Server
 
-[For Windows and Linux](https://vircadia.com/download-vircadia/#server)
+[For Windows and Linux](https://vircadia.com/deploy-a-server/)
 
 ### How to build a Server
 
-[For Linux - Athena Builder](https://github.com/kasenvr/vircadia-builder)
+[For Linux - Vircadia Builder](https://github.com/kasenvr/vircadia-builder)
 
 ### Boot to Metaverse: The Goal
 
-Having a place to experience adventure, a place to relax with calm breath, that's a world to live in. An engine to support infinite combinations and possibilities of worlds without censorship and interruption, that's a metaverse. Finding a way to make infinite realities our reality, that's the dream.
+Having a place to experience adventure, a place to relax with calm breath, that's a world to live in. An engine to support infinite combinations and possibilities of worlds without censorship and interruption, that's a metaverse. Finding a way to make infinite realities our reality is the dream.
 
 ### Boot to Metaverse: The Technicals
 
