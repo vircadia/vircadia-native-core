@@ -85,7 +85,9 @@ FocusScope {
         Image {
             id: banner
             anchors.centerIn: parent
-            source: "../images/project-athena-banner-color2.svg"
+            sourceSize.width: 500
+            sourceSize.height: 91
+            source: "../images/vircadia-logo.svg"
             horizontalAlignment: Image.AlignHCenter
         }
     }

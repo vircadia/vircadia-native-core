@@ -33,7 +33,8 @@ EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const E
     return entity;
 }
 
-ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID)
+ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID),
+    _blendshapeCoefficientsVector((int)Blendshapes::BlendshapeCount, 0.0f)
 {
     _lastAnimated = usecTimestampNow();
     // set the last animated when interface (re)starts
@@ -71,6 +72,7 @@ EntityItemProperties ModelEntityItem::getProperties(const EntityPropertyFlags& d
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslations, getJointTranslations);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(relayParentJoints, getRelayParentJoints);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(groupCulled, getGroupCulled);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(blendshapeCoefficients, getBlendshapeCoefficients);
     withReadLock([&] {
         _animationProperties.getProperties(properties);
     });
@@ -94,6 +96,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslations, setJointTranslations);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(relayParentJoints, setRelayParentJoints);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(groupCulled, setGroupCulled);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(blendshapeCoefficients, setBlendshapeCoefficients);
 
     withWriteLock([&] {
         AnimationPropertyGroup animationProperties = _animationProperties;
@@ -138,6 +141,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, QVector<glm::vec3>, setJointTranslations);
     READ_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
     READ_ENTITY_PROPERTY(PROP_GROUP_CULLED, bool, setGroupCulled);
+    READ_ENTITY_PROPERTY(PROP_BLENDSHAPE_COEFFICIENTS, QString, setBlendshapeCoefficients);
 
     // grab a local copy of _animationProperties to avoid multiple locks
     int bytesFromAnimation;
@@ -176,6 +180,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_JOINT_TRANSLATIONS;
     requestedProperties += PROP_RELAY_PARENT_JOINTS;
     requestedProperties += PROP_GROUP_CULLED;
+    requestedProperties += PROP_BLENDSHAPE_COEFFICIENTS;
     requestedProperties += _animationProperties.getEntityProperties(params);
 
     return requestedProperties;
@@ -204,6 +209,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, getJointTranslations());
     APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, getRelayParentJoints());
     APPEND_ENTITY_PROPERTY(PROP_GROUP_CULLED, getGroupCulled());
+    APPEND_ENTITY_PROPERTY(PROP_BLENDSHAPE_COEFFICIENTS, getBlendshapeCoefficients());
 
     withReadLock([&] {
         _animationProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
@@ -256,6 +262,7 @@ void ModelEntityItem::debugDump() const {
     qCDebug(entities) << "    dimensions:" << getScaledDimensions();
     qCDebug(entities) << "    model URL:" << getModelURL();
     qCDebug(entities) << "    compound shape URL:" << getCompoundShapeURL();
+    qCDebug(entities) << "    blendshapeCoefficients:" << getBlendshapeCoefficients();
 }
 
 void ModelEntityItem::setShapeType(ShapeType type) {
@@ -741,5 +748,41 @@ glm::vec3 ModelEntityItem::getModelScale() const {
 void ModelEntityItem::setModelScale(const glm::vec3& modelScale) {
     withWriteLock([&] {
         _modelScale = modelScale;
+    });
+}
+
+QString ModelEntityItem::getBlendshapeCoefficients() const {
+    return resultWithReadLock<QString>([&] {
+        return QJsonDocument::fromVariant(_blendshapeCoefficientsMap).toJson();
+    });
+}
+
+void ModelEntityItem::setBlendshapeCoefficients(const QString& blendshapeCoefficients) {
+    QJsonParseError error;
+    QJsonDocument newCoefficientsJSON = QJsonDocument::fromJson(blendshapeCoefficients.toUtf8(), &error);
+    if (error.error != QJsonParseError::NoError) {
+        qWarning() << "Could not evaluate blendshapeCoefficients property value:" << newCoefficientsJSON;
+        return;
+    }
+
+    QVariantMap newCoefficientsMap = newCoefficientsJSON.toVariant().toMap();
+    withWriteLock([&] {
+        for (auto& blendshape : newCoefficientsMap.keys()) {
+            auto newCoefficient = newCoefficientsMap[blendshape];
+            auto blendshapeIter = BLENDSHAPE_LOOKUP_MAP.find(blendshape);
+            if (newCoefficient.canConvert<float>() && blendshapeIter != BLENDSHAPE_LOOKUP_MAP.end()) {
+                float newCoefficientValue = newCoefficient.toFloat();
+                _blendshapeCoefficientsVector[blendshapeIter.value()] = newCoefficientValue;
+                _blendshapeCoefficientsMap[blendshape] = newCoefficientValue;
+                _blendshapesChanged = true;
+            }
+        }
+    });
+}
+
+QVector<float> ModelEntityItem::getBlendshapeCoefficientVector() {
+    return resultWithReadLock<QVector<float>>([&] {
+        _blendshapesChanged = false; // ok to change this within read lock here
+        return _blendshapeCoefficientsVector;
     });
 }

@@ -1,107 +1,99 @@
 #!/bin/sh
 
-if [ "$ATHENA" = "" ]; then
-	ATHENA=`realpath ../..`
+if [ "$VIRCADIA" = "" ]; then
+	VIRCADIA=`realpath ../..`
 fi
 
-GITDATE=`git -C $ATHENA/source log -n 1 --format=raw | grep author | cut -d">" -f 2 | cut -d" " -f 2 | xargs -I {} date -d @{} +"%Y%m%d"`
-GITCOMMIT=`git -C $ATHENA/source rev-parse HEAD | cut -c 1-7`
-VERSION=0.86.0-k2-$GITDATE-$GITCOMMIT
+GITDATE=`git -C $VIRCADIA/source log -n 1 --format=raw | grep author | cut -d">" -f 2 | cut -d" " -f 2 | xargs -I {} date -d @{} +"%Y%m%d"`
+GITCOMMIT=`git -C $VIRCADIA/source rev-parse HEAD | cut -c 1-7`
+VERSION=2020.2.0-asteria-$GITDATE-$GITCOMMIT
 
 sudo apt-get install chrpath binutils dh-make
 
-DEB_BUILD_ROOT=temp-make-deb/athena-server-$VERSION-0ubuntu1
+DEB_BUILD_ROOT=temp-make-deb/vircadia-server-$VERSION-0ubuntu1
 rm -r temp-make-deb
 mkdir -p $DEB_BUILD_ROOT
 
 # copy the files over
-cp $ATHENA/build/assignment-client/assignment-client $DEB_BUILD_ROOT
-cp $ATHENA/build/domain-server/domain-server $DEB_BUILD_ROOT
-cp $ATHENA/build/tools/oven/oven $DEB_BUILD_ROOT
-cp $ATHENA/build/libraries/*/*.so $DEB_BUILD_ROOT
-#cp $ATHENA/build/ice-server/ice-server $DEB_BUILD_ROOT
+cp $VIRCADIA/build/assignment-client/assignment-client $DEB_BUILD_ROOT
+cp $VIRCADIA/build/domain-server/domain-server $DEB_BUILD_ROOT
+cp $VIRCADIA/build/tools/oven/oven $DEB_BUILD_ROOT
+cp $VIRCADIA/build/libraries/*/*.so $DEB_BUILD_ROOT
+#cp $VIRCADIA/build/ice-server/ice-server $DEB_BUILD_ROOT
 chrpath -d $DEB_BUILD_ROOT/*
-cp $ATHENA/qt5-install/lib/libQt5Network.so.*.*.* $DEB_BUILD_ROOT
-cp $ATHENA/qt5-install/lib/libQt5Core.so.*.*.* $DEB_BUILD_ROOT
-cp $ATHENA/qt5-install/lib/libQt5Widgets.so.*.*.* $DEB_BUILD_ROOT
-cp $ATHENA/qt5-install/lib/libQt5Gui.so.*.*.* $DEB_BUILD_ROOT
-cp $ATHENA/qt5-install/lib/libQt5Script.so.*.*.* $DEB_BUILD_ROOT
-cp $ATHENA/qt5-install/lib/libQt5Quick.so.*.*.* $DEB_BUILD_ROOT
-cp $ATHENA/qt5-install/lib/libQt5WebSockets.so.*.*.* $DEB_BUILD_ROOT
-cp $ATHENA/qt5-install/lib/libQt5Qml.so.*.*.* $DEB_BUILD_ROOT
-cp $ATHENA/qt5-install/lib/libQt5ScriptTools.so.*.*.* $DEB_BUILD_ROOT
-cp $ATHENA/build/ext/makefiles/quazip/project/lib/libquazip5.so.*.*.* $DEB_BUILD_ROOT
+cp $VIRCADIA/qt5-install/lib/libQt5Network.so.*.*.* $DEB_BUILD_ROOT
+cp $VIRCADIA/qt5-install/lib/libQt5Core.so.*.*.* $DEB_BUILD_ROOT
+cp $VIRCADIA/qt5-install/lib/libQt5Widgets.so.*.*.* $DEB_BUILD_ROOT
+cp $VIRCADIA/qt5-install/lib/libQt5Gui.so.*.*.* $DEB_BUILD_ROOT
+cp $VIRCADIA/qt5-install/lib/libQt5Script.so.*.*.* $DEB_BUILD_ROOT
+cp $VIRCADIA/qt5-install/lib/libQt5WebSockets.so.*.*.* $DEB_BUILD_ROOT
+cp $VIRCADIA/qt5-install/lib/libQt5Qml.so.*.*.* $DEB_BUILD_ROOT
+cp $VIRCADIA/qt5-install/lib/libQt5ScriptTools.so.*.*.* $DEB_BUILD_ROOT
 chmod +x $DEB_BUILD_ROOT/*.so.*.*.*
 strip --strip-all $DEB_BUILD_ROOT/*
-cp $ATHENA/source/pkg-scripts/new-server $DEB_BUILD_ROOT
-cp -a $ATHENA/source/domain-server/resources $DEB_BUILD_ROOT
+cp $VIRCADIA/source/pkg-scripts/new-server $DEB_BUILD_ROOT
+cp -a $VIRCADIA/source/domain-server/resources $DEB_BUILD_ROOT
 find $DEB_BUILD_ROOT/resources -name ".gitignore" -delete
 find $DEB_BUILD_ROOT/resources -type f -executable -exec sh -c 'chmod -x {}' \;
-cp $ATHENA/source/README.md $DEB_BUILD_ROOT
-cp $ATHENA/source/README_hifi.md $DEB_BUILD_ROOT
-cp -a $ATHENA/build/assignment-client/plugins $DEB_BUILD_ROOT
+cp $VIRCADIA/source/README.md $DEB_BUILD_ROOT
+cp $VIRCADIA/source/README_hifi.md $DEB_BUILD_ROOT
+cp -a $VIRCADIA/build/assignment-client/plugins $DEB_BUILD_ROOT
 strip --strip-all $DEB_BUILD_ROOT/plugins/*.so
 strip --strip-all $DEB_BUILD_ROOT/plugins/*/*.so
 
 #begin the debian package construction
 cd $DEB_BUILD_ROOT
-dh_make -p athena-server_$VERSION-0ubuntu1 -c apache -s --createorig -y
+dh_make -p vircadia-server_$VERSION-0ubuntu1 -c apache -s --createorig -y
 
-cp $ATHENA/source/pkg-scripts/athena-assignment-client.service debian
-cp $ATHENA/source/pkg-scripts/athena-assignment-client@.service debian
-cp $ATHENA/source/pkg-scripts/athena-domain-server.service debian
-cp $ATHENA/source/pkg-scripts/athena-domain-server@.service debian
-#cp $ATHENA/source/pkg-scripts/athena-ice-server.service debian
-#cp $ATHENA/source/pkg-scripts/athena-ice-server@.service debian
-cp $ATHENA/source/pkg-scripts/athena-server.target debian
-cp $ATHENA/source/pkg-scripts/athena-server@.target debian
+cp $VIRCADIA/source/pkg-scripts/vircadia-assignment-client.service debian
+cp $VIRCADIA/source/pkg-scripts/vircadia-assignment-client@.service debian
+cp $VIRCADIA/source/pkg-scripts/vircadia-domain-server.service debian
+cp $VIRCADIA/source/pkg-scripts/vircadia-domain-server@.service debian
+#cp $VIRCADIA/source/pkg-scripts/vircadia-ice-server.service debian
+#cp $VIRCADIA/source/pkg-scripts/vircadia-ice-server@.service debian
+cp $VIRCADIA/source/pkg-scripts/vircadia-server.target debian
+cp $VIRCADIA/source/pkg-scripts/vircadia-server@.target debian
 
-cp $ATHENA/source/pkg-scripts/server-control debian/control
-cp $ATHENA/source/pkg-scripts/server-prerm debian/prerm
-cp $ATHENA/source/pkg-scripts/server-postinst debian/postinst
-cp $ATHENA/source/LICENSE debian/copyright
+cp $VIRCADIA/source/pkg-scripts/server-control debian/control
+cp $VIRCADIA/source/pkg-scripts/server-prerm debian/prerm
+cp $VIRCADIA/source/pkg-scripts/server-postinst debian/postinst
+cp $VIRCADIA/source/pkg-scripts/server-postrm debian/postrm
+cp $VIRCADIA/source/LICENSE debian/copyright
 
-echo /etc/opt/athena > debian/dirs
-echo /var/lib/athena >> debian/dirs
+echo /etc/opt/vircadia > debian/dirs
+echo /var/lib/vircadia >> debian/dirs
 
 echo README.md > debian/docs
 echo README_hifi.md >> debian/docs
 
-echo assignment-client opt/athena > debian/install
-echo domain-server opt/athena >> debian/install
-echo oven opt/athena >> debian/install
-#echo ice-server opt/athena >> debian/install
-echo new-server opt/athena >> debian/install
+echo assignment-client opt/vircadia > debian/install
+echo domain-server opt/vircadia >> debian/install
+echo oven opt/vircadia >> debian/install
+#echo ice-server opt/vircadia >> debian/install
+echo new-server opt/vircadia >> debian/install
 for so in *.so.*.*.*; do
-	echo $so opt/athena/lib >> debian/install
+	echo $so opt/vircadia/lib >> debian/install
 done
 for so in *.so; do
-	echo $so opt/athena/lib >> debian/install
+	echo $so opt/vircadia/lib >> debian/install
 done
 #for service in *.service; do
-#	echo $service opt/athena/systemd >> debian/install
+#	echo $service opt/vircadia/systemd >> debian/install
 #done
 #for target in *.target; do
-#	echo $target opt/athena/systemd >> debian/install
+#	echo $target opt/vircadia/systemd >> debian/install
 #done
-find resources -type f -exec sh -c 'echo {} opt/athena/$(dirname "{}") >> debian/install' \;
-find plugins -type f -exec sh -c 'echo {} opt/athena/$(dirname "{}") >> debian/install' \;
+find resources -type f -exec sh -c 'echo {} opt/vircadia/$(dirname "{}") >> debian/install' \;
+find plugins -type f -exec sh -c 'echo {} opt/vircadia/$(dirname "{}") >> debian/install' \;
 
-#echo usr/lib/systemd/system/athena-assignment-client.service opt/athena/systemd/athena-assignment-client.service > debian/athena-server.links
-#echo usr/lib/systemd/system/athena-assignment-client@.service opt/athena/systemd/athena-assignment-client@.service >> debian/athena-server.links
-#echo usr/lib/systemd/system/athena-domain-server.service opt/athena/systemd/athena-domain-server.service >> debian/athena-server.links
-#echo usr/lib/systemd/system/athena-domain-server@.service opt/athena/systemd/athena-domain-server@.service >> debian/athena-server.links
-##echo usr/lib/systemd/system/athena-ice-server.service opt/athena/systemd/athena-ice-server.service >> debian/athena-server.links
-##echo usr/lib/systemd/system/athena-ice-server@.service opt/athena/systemd/athena-ice-server@.service >> debian/athena-server.links
-#echo usr/lib/systemd/system/athena-server.target opt/athena/systemd/athena-server.target >> debian/athena-server.links
-#echo usr/lib/systemd/system/athena-server@.target opt/athena/systemd/athena-server@.target >> debian/athena-server.links
+SOFILES=`ls *.so *.so.*.*.* | grep -Po '^(.+\.so(\.\d+)?)' | sed 's/\./\\\./g' | paste -d'|' -s`
 
-SOFILES=`ls *.so *.so.*.*.* | sed 's/\./\\\./g' | paste -d'|' -s`
+DEPENDS=`find * -path debian -prune -o -type f -executable -exec sh -c 'objdump -p {} | grep NEEDED' \; \
+	| awk '{print $2}' | sort | uniq | egrep -v "^($SOFILES)$" \
+	| xargs -n 1 -I {} sh -c 'dpkg -S {} | head -n 1' | cut -d ':' -f 1 | sort | uniq | paste -d',' -s`
 
-DEPENDS=`find * -type f -executable -exec sh -c 'objdump -p {} | grep NEEDED' \; | awk '{print $2}' | sort | uniq | egrep -v "^($SOFILES)$" | xargs -n 1 -I {} sh -c 'dpkg -S {} | head -n 1' | cut -d ':' -f 1 | sort | uniq | paste -d',' -s`
-
-cp $ATHENA/source/pkg-scripts/server-rules debian/rules
-sed "s/{DEPENDS}/$DEPENDS/" $ATHENA/source/pkg-scripts/server-control > debian/control
+cp $VIRCADIA/source/pkg-scripts/server-rules debian/rules
+sed "s/{DEPENDS}/$DEPENDS/" $VIRCADIA/source/pkg-scripts/server-control > debian/control
 
 dpkg-buildpackage -us -uc
 

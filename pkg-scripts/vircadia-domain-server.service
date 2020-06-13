@@ -1,0 +1,17 @@
+[Unit]
+Description=Domain Server service for Vircadia
+After=network.target
+PartOf=vircadia-server.target
+
+[Service]
+Restart=on-failure
+
+WorkingDirectory=/opt/vircadia
+Environment="LD_LIBRARY_PATH=/opt/vircadia/lib"
+User=vircadia
+Group=vircadia
+#LimitCORE=infinity
+ExecStart=/opt/vircadia/domain-server
+
+[Install]
+WantedBy=multi-user.target

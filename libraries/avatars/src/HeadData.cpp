@@ -34,7 +34,6 @@ HeadData::HeadData(AvatarData* owningAvatar) :
 {
     _userProceduralAnimationFlags.assign((size_t)ProceduralAnimaitonTypeCount, true);
     _suppressProceduralAnimationFlags.assign((size_t)ProceduralAnimaitonTypeCount, false);
-    computeBlendshapesLookupMap();
 }
 
 glm::quat HeadData::getRawOrientation() const {
@@ -72,12 +71,6 @@ void HeadData::setOrientation(const glm::quat& orientation) {
     setHeadOrientation(orientation);
 }
 
-void HeadData::computeBlendshapesLookupMap(){
-    for (int i = 0; i < (int)Blendshapes::BlendshapeCount; i++) {
-        _blendshapeLookupMap[FACESHIFT_BLENDSHAPES[i]] = i;
-    }
-}
-
 int HeadData::getNumSummedBlendshapeCoefficients() const {
     int maxSize = std::max(_blendshapeCoefficients.size(), _transientBlendshapeCoefficients.size());
     return maxSize;
@@ -109,8 +102,8 @@ const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
 void HeadData::setBlendshape(QString name, float val) {
 
     // Check to see if the named blendshape exists, and then set its value if it does
-    auto it = _blendshapeLookupMap.find(name);
-    if (it != _blendshapeLookupMap.end()) {
+    auto it = BLENDSHAPE_LOOKUP_MAP.find(name);
+    if (it != BLENDSHAPE_LOOKUP_MAP.end()) {
         if (_blendshapeCoefficients.size() <= it.value()) {
             _blendshapeCoefficients.resize(it.value() + 1);
         }
@@ -135,8 +128,8 @@ void HeadData::setBlendshape(QString name, float val) {
 }
 
 int HeadData::getBlendshapeIndex(const QString& name) {
-    auto it = _blendshapeLookupMap.find(name);
-    int index = it != _blendshapeLookupMap.end() ? it.value() : -1;
+    auto it = BLENDSHAPE_LOOKUP_MAP.find(name);
+    int index = it != BLENDSHAPE_LOOKUP_MAP.end() ? it.value() : -1;
     return index;
 }
 
@@ -155,8 +148,8 @@ static const QString JSON_AVATAR_HEAD_LOOKAT = QStringLiteral("lookAt");
 QJsonObject HeadData::toJson() const {
     QJsonObject headJson;
     QJsonObject blendshapesJson;
-    for (auto name : _blendshapeLookupMap.keys()) {
-        auto index = _blendshapeLookupMap[name];
+    for (auto name : BLENDSHAPE_LOOKUP_MAP.keys()) {
+        auto index = BLENDSHAPE_LOOKUP_MAP[name];
         float value = 0.0f;
         if (index < _blendshapeCoefficients.size()) {
             value += _blendshapeCoefficients[index];
