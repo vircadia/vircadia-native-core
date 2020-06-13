@@ -49,6 +49,9 @@ using namespace crashpad;
 static const std::string BACKTRACE_URL { CMAKE_BACKTRACE_URL };
 static const std::string BACKTRACE_TOKEN { CMAKE_BACKTRACE_TOKEN };
 
+static constexpr DWORD STATUS_MSVC_CPP_EXCEPTION = 0xE06D7363;
+static constexpr ULONG_PTR MSVC_CPP_EXCEPTION_SIGNATURE = 0x19930520;
+
 CrashpadClient* client { nullptr };
 std::mutex annotationMutex;
 crashpad::SimpleStringDictionary* crashpadAnnotations { nullptr };
@@ -76,7 +79,7 @@ LONG WINAPI vectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
         client->DumpAndCrash(pExceptionInfo);
     }
 
-    if (pExceptionInfo->ExceptionRecord->ExceptionCode == 0xE06D7363) {
+    if (pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_MSVC_CPP_EXCEPTION) {
         fatalCxxException(pExceptionInfo);
         client->DumpAndCrash(pExceptionInfo);
     }
@@ -121,21 +124,27 @@ struct CatchableTypeArray_internal {
 // mess at crashpad
 void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo) {
     PEXCEPTION_RECORD ExceptionRecord = pExceptionInfo->ExceptionRecord;
+    /*
+    Exception arguments for Microsoft C++ exceptions:
+    [0] signature  - magic number
+    [1] void*      - variable that is being thrown
+    [2] ThrowInfo* - description of the variable that was thrown
+    [3] HMODULE    - (64-bit only) base address that all 32bit pointers are added to
+    */
 
-    if(ExceptionRecord->NumberParameters != 4 || ExceptionRecord->ExceptionInformation[0] != 0x19930520) {
+    if (ExceptionRecord->NumberParameters != 4 || ExceptionRecord->ExceptionInformation[0] != MSVC_CPP_EXCEPTION_SIGNATURE) {
         // doesn't match expected parameter counts or magic numbers
         return;
     }
 
-    //ULONG_PTR signature = ExceptionRecord->ExceptionInformation[0];
-    void* pExceptionObject = reinterpret_cast<void*>(ExceptionRecord->ExceptionInformation[1]); // the object that generated the exception
+    // get the ThrowInfo struct from the exception arguments
     ThrowInfo_internal* pThrowInfo = reinterpret_cast<ThrowInfo_internal*>(ExceptionRecord->ExceptionInformation[2]);
     ULONG_PTR moduleBase = ExceptionRecord->ExceptionInformation[3];
     if(moduleBase == 0 || pThrowInfo == NULL) {
       return; // broken assumption
     }
 
-    // now we start breaking the pThrowInfo internal structure apart
+    // get the CatchableTypeArray* struct from ThrowInfo
     if(pThrowInfo->pCatchableTypeArray == 0) {
       return; // broken assumption
     }
@@ -143,6 +152,8 @@ void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo) {
     if(pCatchableTypeArray->nCatchableTypes == 0 || pCatchableTypeArray->arrayOfCatchableTypes[0] == 0) {
       return; // broken assumption
     }
+
+    // get the CatchableType struct for the actual exception type from CatchableTypeArray
     CatchableType_internal* pCatchableType = reinterpret_cast<CatchableType_internal*>(moduleBase + pCatchableTypeArray->arrayOfCatchableTypes[0]);
     if(pCatchableType->pType == 0) {
       return; // broken assumption
@@ -153,6 +164,8 @@ void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo) {
     annotationMutex.try_lock();
     crashpadAnnotations->SetKeyValue("thrownObject", type->name());
 
+    // After annotating the name of the actual object type, go through the other entries in CatcahleTypeArray and itemize the list of possible
+    // catch() commands that could have caught this so we can find the list of its superclasses
     QString compatibleObjects;
     for (int catchTypeIdx = 1; catchTypeIdx < pCatchableTypeArray->nCatchableTypes; catchTypeIdx++) {
         CatchableType_internal* pCatchableSuperclassType = reinterpret_cast<CatchableType_internal*>(moduleBase + pCatchableTypeArray->arrayOfCatchableTypes[catchTypeIdx]);
