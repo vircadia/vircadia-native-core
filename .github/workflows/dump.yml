@@ -3,7 +3,7 @@ name: Dump Contexts
 on: 
   push:
     branches:
-      - master-gha-merge
+      - master
 
 
 jobs:
