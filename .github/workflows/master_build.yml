@@ -3,7 +3,7 @@ name: Master CI Build
 on: 
   push:
     branches:
-      - master-gha-merge
+      - master
 
 env:
   APP_NAME: interface
