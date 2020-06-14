@@ -94,13 +94,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function (controllerData) {
-            if (!handsAreTracked()) {
-                return makeRunningValues(false, [], []);
-            } else if (this.gestureCompleted) {
-                return makeRunningValues(true, [], []);
-            } else {
-                return makeRunningValues(false, [], []);
-            }
+            return makeRunningValues(handsAreTracked() && this.gestureCompleted, [], []);
         };
 
         this.run = function (controllerData) {

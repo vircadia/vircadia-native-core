@@ -105,13 +105,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function (controllerData) {
-            if (!handsAreTracked()) {
-                return makeRunningValues(false, [], []);
-            } else if (this.walkingForward || this.walkingBackward) {
-                return makeRunningValues(true, [], []);
-            } else {
-                return makeRunningValues(false, [], []);
-            }
+            return makeRunningValues(handsAreTracked() && (this.walkingForward || this.walkingBackward), [], []);
         };
 
         this.run = function (controllerData) {
