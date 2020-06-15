@@ -410,12 +410,12 @@ void showMinSpecWarning() {
 
     // Needed here for PathUtils
 #ifdef Q_OS_LINUX
-    char cmdline[4096];
-    FILE* fp = fopen("/proc/self/cmdline", "r");
-    fgets(cmdline, sizeof cmdline, fp);
-    fclose(fp);
-    int __argc = 1;
-    char* __argv[1] = { cmdline };
+    //char cmdline[4096];
+    //FILE* fp = fopen("/proc/self/cmdline", "r");
+    //fgets(cmdline, sizeof cmdline, fp);
+    //fclose(fp);
+    //int __argc = 1;
+    //char* __argv[1] = { cmdline };
 #endif
     QCoreApplication miniApp(__argc, __argv);
 
