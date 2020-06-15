@@ -3,6 +3,7 @@
 //  Created by Brad Hefta-Gaub on 10/2/14.
 //  Persist toolbar by HRS 6/11/15.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  This script allows you to edit entities with a new UI/UX for mouse and trackpad based editing
 //
@@ -41,6 +42,7 @@ var CreateWindow = Script.require('./modules/createWindow.js');
 var TITLE_OFFSET = 60;
 var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
+var ENTIRE_DOMAIN_SCAN_RADIUS = 27713;
 
 var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
 
@@ -428,7 +430,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
             y: 0.9,
             z: 0.01
         },
-        sourceUrl: "https://projectathena.io/",
+        sourceUrl: "https://vircadia.com/",
         dpi: 30,
     },
     ParticleEffect: {
@@ -562,7 +564,7 @@ var toolBar = (function () {
             if (!properties.grab) {
                 properties.grab = {};
                 if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
-                    !(properties.type === "Zone" || properties.type === "Light"
+                    !(properties.type === "Zone" || properties.type === "Light" 
                     || properties.type === "ParticleEffect" || properties.type === "Web")) {
                     properties.grab.grabbable = true;
                 } else {
@@ -577,33 +579,30 @@ var toolBar = (function () {
             entityID = Entities.addEntity(properties);
 
             var dimensionsCheckCallback = function(){
-                var POST_ADJUST_ENTITY_TYPES = ["Model"];
-                if (POST_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
-                    // Adjust position of entity per bounding box after it has been created and auto-resized.
-                    var initialDimensions = Entities.getEntityProperties(entityID, ["dimensions"]).dimensions;
-                    var DIMENSIONS_CHECK_INTERVAL = 200;
-                    var MAX_DIMENSIONS_CHECKS = 10;
-                    var dimensionsCheckCount = 0;
-                    var dimensionsCheckFunction = function () {
-                        dimensionsCheckCount++;
-                        var properties = Entities.getEntityProperties(entityID, ["dimensions", "registrationPoint", "rotation"]);
-                        if (!Vec3.equal(properties.dimensions, initialDimensions)) {
-                            position = adjustPositionPerBoundingBox(position, direction, properties.registrationPoint,
-                                properties.dimensions, properties.rotation);
-                            position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions),
-                                properties.dimensions);
-                            Entities.editEntity(entityID, {
-                                position: position
-                            });
-                            selectionManager._update(false, this);
-                        } else if (dimensionsCheckCount < MAX_DIMENSIONS_CHECKS) {
-                            Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
-                        }
-                    };
-                    Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
-                }
+                // Adjust position of entity per bounding box after it has been created and auto-resized.
+                var initialDimensions = Entities.getEntityProperties(entityID, ["dimensions"]).dimensions;
+                var DIMENSIONS_CHECK_INTERVAL = 200;
+                var MAX_DIMENSIONS_CHECKS = 10;
+                var dimensionsCheckCount = 0;
+                var dimensionsCheckFunction = function () {
+                    dimensionsCheckCount++;
+                    var properties = Entities.getEntityProperties(entityID, ["dimensions", "registrationPoint", "rotation"]);
+                    if (!Vec3.equal(properties.dimensions, initialDimensions)) {
+                        position = adjustPositionPerBoundingBox(position, direction, properties.registrationPoint,
+                            properties.dimensions, properties.rotation);
+                        position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions),
+                            properties.dimensions);
+                        Entities.editEntity(entityID, {
+                            position: position
+                        });
+                        selectionManager._update(false, this);
+                    } else if (dimensionsCheckCount < MAX_DIMENSIONS_CHECKS) {
+                        Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
+                    }
+                };
+                Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
             }
-            // Make sure the entity is loaded before we try to figure out
+            // Make sure the model entity is loaded before we try to figure out
             // its dimensions.
             var MAX_LOADED_CHECKS = 10;
             var LOADED_CHECK_INTERVAL = 100;
@@ -611,7 +610,8 @@ var toolBar = (function () {
             var entityIsLoadedCheck = function() {
                 isLoadedCheckCount++;
                 if (isLoadedCheckCount === MAX_LOADED_CHECKS || Entities.isLoaded(entityID)) {
-                    var naturalDimensions = Entities.getEntityProperties(entityID, "naturalDimensions").naturalDimensions
+                    var naturalDimensions = Entities.getEntityProperties(entityID, "naturalDimensions").naturalDimensions;
+
                     Entities.editEntity(entityID, {
                         visible: true,
                         dimensions: naturalDimensions
@@ -621,7 +621,11 @@ var toolBar = (function () {
                 }
                 Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
             }
-            Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
+            
+            var POST_ADJUST_ENTITY_TYPES = ["Model"];
+            if (POST_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
+                Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
+            }
 
             SelectionManager.addEntity(entityID, false, this);
             SelectionManager.saveProperties();
@@ -1407,7 +1411,7 @@ function setupModelMenus() {
         menuItemName: MENU_CREATE_ENTITIES_GRABBABLE,
         afterItem: "Unparent Entity",
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, true)
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, false)
     });
 
     Menu.addMenuItem({
@@ -2587,6 +2591,11 @@ var PropertiesTool = function (opts) {
                 entityID: data.entityID,
                 materialTargetData: parentModelData,
             });
+        } else if (data.type === "zoneListRequest") {
+            emitScriptEvent({
+                type: 'zoneListRequest',
+                zones: getExistingZoneList()
+            });
         }
     };
 
@@ -2883,5 +2892,39 @@ selectionDisplay.onSpaceModeChange = function(spaceMode) {
     entityListTool.setSpaceMode(spaceMode);
     propertiesTool.setSpaceMode(spaceMode);
 };
+
+function getExistingZoneList() {
+    var center = { "x": 0, "y": 0, "z": 0 };
+    var existingZoneIDs = Entities.findEntitiesByType("Zone", center, ENTIRE_DOMAIN_SCAN_RADIUS);
+    var listExistingZones = [];
+    var thisZone = {};
+    var properties;
+    for (var k = 0; k < existingZoneIDs.length; k++) {
+        properties = Entities.getEntityProperties(existingZoneIDs[k], ["name"]);
+        thisZone = {
+            "id": existingZoneIDs[k],
+            "name": properties.name
+        };
+        listExistingZones.push(thisZone);
+    }
+    listExistingZones.sort(zoneSortOrder);
+    return listExistingZones;
+}
+
+function zoneSortOrder(a, b) {
+    var nameA = a.name.toUpperCase();
+    var nameB = b.name.toUpperCase();
+    if (nameA > nameB) {
+        return 1;    
+    } else if (nameA < nameB) {
+        return -1;
+    }
+    if (a.name > b.name) {
+        return 1;    
+    } else if (a.name < b.name) {
+        return -1;
+    }
+    return 0;
+}
 
 }()); // END LOCAL_SCOPE

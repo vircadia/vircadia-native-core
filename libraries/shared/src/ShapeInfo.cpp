@@ -189,7 +189,7 @@ uint32_t ShapeInfo::getNumSubShapes() const {
             return 0;
         case SHAPE_TYPE_COMPOUND:
         case SHAPE_TYPE_SIMPLE_COMPOUND:
-            return (uint32_t)_pointCollection.size();
+            return _pointCollection.size();
         case SHAPE_TYPE_MULTISPHERE:
         case SHAPE_TYPE_SIMPLE_HULL:
         case SHAPE_TYPE_STATIC_MESH:
@@ -200,10 +200,10 @@ uint32_t ShapeInfo::getNumSubShapes() const {
     }
 }
 
-uint32_t ShapeInfo::getLargestSubshapePointCount() const {
-    uint32_t numPoints = 0;
-    for (uint32_t i = 0; i < (uint32_t)_pointCollection.size(); ++i) {
-        uint32_t n = (uint32_t)_pointCollection[i].size();
+int ShapeInfo::getLargestSubshapePointCount() const {
+    int numPoints = 0;
+    for (int i = 0; i < _pointCollection.size(); ++i) {
+        int n = _pointCollection[i].size();
         if (n > numPoints) {
             numPoints = n;
         }

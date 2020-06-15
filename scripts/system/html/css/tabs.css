@@ -2,7 +2,7 @@
 //  tabs.css
 //
 //  Created by Alezia Kurdis on 27 Feb 2020
-//  Copyright 2020 Project Athena contributors.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -31,9 +31,9 @@ div.tabsContainer {
     background-color: #575757;
 }
 
-.tabsContainer  button.active {
+.tabsContainer button.active {
     background-color: #2E2E2E;
-}    
+}
 
 div.labelTabHeader {
     font-size: 20px;
@@ -49,7 +49,7 @@ div.tab-section-header {
 
 table.tabsTableFrame {
     width: 100%;
-    min-height: 352px; 
+    min-height: 352px;
     display: block;
 }
 
@@ -68,7 +68,7 @@ td.tabsFrame {
 td.tabsPropertiesFrame {
     width: 100%;
     vertical-align: top;
-    border:0px;
+    border: 0px;
 }
 
 div.tabsPropertiesPage {

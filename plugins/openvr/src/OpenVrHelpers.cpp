@@ -100,7 +100,7 @@ QString getVrSettingString(const char* section, const char* setting) {
     vr::IVRSettings * vrSettings = vr::VRSettings();
     if (vrSettings) {
         vr::EVRSettingsError error = vr::VRSettingsError_None;
-        vrSettings->GetString(vr::k_pch_audio_Section, vr::k_pch_audio_OnPlaybackDevice_String, BUFFER, BUFFER_SIZE, &error);
+        vrSettings->GetString(vr::k_pch_audio_Section, setting, BUFFER, BUFFER_SIZE, &error);
         if (error == vr::VRSettingsError_None) {
             result = BUFFER;
         }
@@ -413,7 +413,6 @@ void showMinSpecWarning() {
     vrSystem->ResetSeatedZeroPose();
     QString imagePath = PathUtils::resourcesPath() + "/images/steam-min-spec-failed.png";
     vrOverlay->SetOverlayFromFile(minSpecFailedOverlay, imagePath.toLocal8Bit().toStdString().c_str());
-    vrOverlay->SetHighQualityOverlay(minSpecFailedOverlay);
     vrOverlay->SetOverlayWidthInMeters(minSpecFailedOverlay, 1.4f);
     vrOverlay->SetOverlayInputMethod(minSpecFailedOverlay, vr::VROverlayInputMethod_Mouse);
     vrOverlay->ShowOverlay(minSpecFailedOverlay);

@@ -784,6 +784,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             }
         }
         if (theEntity->isSimulated()) {
+            theEntity->die();
             _simulation->prepareEntityForDelete(theEntity);
         }
     }
@@ -3193,21 +3194,30 @@ glm::vec3 EntityTree::getUnscaledDimensionsForID(const QUuid& id) {
     return glm::vec3(1.0f);
 }
 
-void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
+AACube EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
                                                MovingEntitiesOperator& moveOperator, bool force, bool tellServer) {
+    glm::vec3 min(FLT_MAX);
+    glm::vec3 max(-FLT_MAX);
+
     // if the queryBox has changed, tell the entity-server
     EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
     if (entity) {
         bool queryAACubeChanged = false;
         if (!entity->hasChildren()) {
-            // updateQueryAACube will also update all ancestors' AACubes, so we only need to call this for leaf nodes
-            queryAACubeChanged = entity->updateQueryAACube();
+            queryAACubeChanged = entity->updateQueryAACube(false);
+            AACube entityAACube = entity->getQueryAACube();
+            min = glm::min(min, entityAACube.getMinimumPoint());
+            max = glm::max(max, entityAACube.getMaximumPoint());
         } else {
-            AACube oldCube = entity->getQueryAACube();
             object->forEachChild([&](SpatiallyNestablePointer descendant) {
-                updateEntityQueryAACubeWorker(descendant, packetSender, moveOperator, force, tellServer);
+                AACube entityAACube = updateEntityQueryAACubeWorker(descendant, packetSender, moveOperator, force, tellServer);
+                min = glm::min(min, entityAACube.getMinimumPoint());
+                max = glm::max(max, entityAACube.getMaximumPoint());
             });
-            queryAACubeChanged = oldCube != entity->getQueryAACube();
+            queryAACubeChanged = entity->updateQueryAACubeWithDescendantAACube(AACube(Extents(min, max)), false);
+            AACube newCube = entity->getQueryAACube();
+            min = glm::min(min, newCube.getMinimumPoint());
+            max = glm::max(max, newCube.getMaximumPoint());
         }
 
         if (queryAACubeChanged || force) {
@@ -3216,9 +3226,10 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
             if (success) {
                 moveOperator.addEntityToMoveList(entity, newCube);
             }
-            // send an edit packet to update the entity-server about the queryAABox.  We do this for domain-hosted
-            // entities as well as for avatar-entities; the packet-sender will route the update accordingly
-            if (tellServer && packetSender && (entity->isDomainEntity() || entity->isAvatarEntity())) {
+            // send an edit packet to update the entity-server about the queryAABox.  We only do this for domain-hosted
+            // entities, as we don't want to flood the update pipeline with AvatarEntity updates, so we assume
+            // others have all info required to properly update queryAACube of AvatarEntities on their end
+            if (tellServer && packetSender && entity->isDomainEntity()) {
                 quint64 now = usecTimestampNow();
                 EntityItemProperties properties = entity->getProperties();
                 properties.setQueryAACubeDirty();
@@ -3233,7 +3244,16 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
             entity->markDirtyFlags(Simulation::DIRTY_POSITION);
             entityChanged(entity);
         }
+    } else {
+        // if we're called on a non-entity, we might still have entity descendants
+        object->forEachChild([&](SpatiallyNestablePointer descendant) {
+            AACube entityAACube = updateEntityQueryAACubeWorker(descendant, packetSender, moveOperator, force, tellServer);
+            min = glm::min(min, entityAACube.getMinimumPoint());
+            max = glm::max(max, entityAACube.getMaximumPoint());
+        });
     }
+
+    return AACube(Extents(min, max));
 }
 
 void EntityTree::updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,

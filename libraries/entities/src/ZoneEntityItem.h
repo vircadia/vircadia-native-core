@@ -173,7 +173,7 @@ protected:
     static bool _zonesArePickable;
 
     void fetchCollisionGeometryResource();
-    ModelResource::Pointer _shapeResource;
+    GeometryResource::Pointer _shapeResource;
 
 };
 

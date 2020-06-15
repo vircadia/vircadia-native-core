@@ -248,7 +248,7 @@ void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
         for (const auto& entry :  _entitiesInScene) {
             const auto& renderer = entry.second;
             const EntityItemPointer& entityItem = renderer->getEntity();
-            if (!(entityItem->isLocalEntity() || entityItem->isMyAvatarEntity())) {
+            if (entityItem && !(entityItem->isLocalEntity() || entityItem->isMyAvatarEntity())) {
                 fadeOutRenderable(renderer);
             } else {
                 savedEntities[entry.first] = entry.second;
@@ -685,7 +685,7 @@ void EntityTreeRenderer::leaveDomainAndNonOwnedEntities() {
         QSet<EntityItemID> currentEntitiesInsideToSave;
         foreach (const EntityItemID& entityID, _currentEntitiesInside) {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
-            if (!(entityItem->isLocalEntity() || entityItem->isMyAvatarEntity())) {
+            if (entityItem && !(entityItem->isLocalEntity() || entityItem->isMyAvatarEntity())) {
                 emit leaveEntity(entityID);
                 if (_entitiesScriptEngine) {
                     _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");

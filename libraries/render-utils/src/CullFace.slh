@@ -1,0 +1,20 @@
+<!
+//  CullFace.slh
+//  libraries/render-utils/src
+//
+//  Created by HifiExperiments on 4/16/2020.
+//  Copyright 2020 Vircadia contributors.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not CULL_FACE_SLH@>
+<@def CULL_FACE_SLH@>
+
+// NOTE: this calculation happens once per fragment.  this could be optimized by creating different shaders (via defines)
+// for front, back, and double-sided.  for front/back-only triangles, this will simplify to always 1 or always -1
+vec3 evalFrontOrBackFaceNormal(vec3 normal) {
+    return (2.0 * float(gl_FrontFacing) - 1.0) * normal;
+}
+
+<@endif@>

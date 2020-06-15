@@ -72,7 +72,7 @@ int main(int argc, const char* argv[]) {
     }
 
     QCommandLineParser parser;
-    parser.setApplicationDescription("High Fidelity");
+    parser.setApplicationDescription("Vircadia");
     QCommandLineOption versionOption = parser.addVersionOption();
     QCommandLineOption helpOption = parser.addHelpOption();
 
@@ -218,11 +218,11 @@ int main(int argc, const char* argv[]) {
     }
     qDebug() << "UserActivityLogger is enabled:" << ual.isEnabled();
 
-    if (ual.isEnabled()) {
+    qDebug() << "Crash handler logger is enabled:" << ual.isCrashMonitorEnabled();
+    if (ual.isCrashMonitorEnabled()) {
         auto crashHandlerStarted = startCrashHandler(argv[0]);
         qDebug() << "Crash handler started:" << crashHandlerStarted;
     }
-
 
     const QString& applicationName = getInterfaceSharedMemoryName();
     bool instanceMightBeRunning = true;

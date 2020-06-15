@@ -114,7 +114,7 @@ Script.setInterval(function () {
         if (isModel) {
             properties.modelURL = type;
         } else if (type === 'Web') {
-            properties.sourceUrl = 'https://projectathena.io';
+            properties.sourceUrl = 'https://vircadia.com';
         } else {
             properties.color = { red: x / ROWS_X * 255, green: y / ROWS_Y * 255, blue: z / ROWS_Z * 255 };
             if (type === 'ParticleEffect') {
