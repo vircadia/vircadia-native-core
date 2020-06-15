@@ -300,6 +300,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool, ENTITY_ITEM_DEFAULT_RELAY_PARENT_JOINTS);
     DEFINE_PROPERTY_REF(PROP_GROUP_CULLED, GroupCulled, groupCulled, bool, false);
+    DEFINE_PROPERTY_REF(PROP_BLENDSHAPE_COEFFICIENTS, BlendshapeCoefficients, blendshapeCoefficients, QString, "");
     DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
 
     // Light

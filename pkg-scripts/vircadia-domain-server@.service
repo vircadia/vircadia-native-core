@@ -1,0 +1,19 @@
+[Unit]
+Description=Domain Server service for Vircadia
+After=network.target
+PartOf=vircadia-server@%i.target
+
+[Service]
+Restart=on-failure
+
+WorkingDirectory=/opt/vircadia
+EnvironmentFile=/etc/opt/vircadia/%i.conf
+Environment="LD_LIBRARY_PATH=/opt/vircadia/lib" "HOME=/var/lib/vircadia/%i"
+PrivateTmp=true
+User=vircadia
+Group=vircadia
+#LimitCORE=infinity
+ExecStart=/opt/vircadia/domain-server
+
+[Install]
+WantedBy=multi-user.target

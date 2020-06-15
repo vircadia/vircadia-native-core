@@ -116,7 +116,7 @@ static const uint SHAPE_TANGENT_OFFSET = offsetof(GeometryCache::ShapeVertex, ta
 std::map<std::pair<bool, bool>, gpu::PipelinePointer> GeometryCache::_webPipelines;
 std::map<std::pair<bool, bool>, gpu::PipelinePointer> GeometryCache::_gridPipelines;
 
-void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, const glm::vec3 &entityExtents, ShapeInfo::PointList &outPointList) {
+void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, const glm::vec3 &entityExtents, QVector<glm::vec3> &outPointList) {
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     const GeometryCache::Shape geometryShape = GeometryCache::getShapeForEntityShape( entityShape );

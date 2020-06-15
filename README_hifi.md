@@ -1,3 +1,5 @@
+# THIS DOCUMENT IS OUTDATED
+
 High Fidelity (hifi) is an early-stage technology lab experimenting with Virtual Worlds and VR. 
 
 This repository contains the source to many of the components in our 
@@ -15,7 +17,7 @@ Come chat with us in [our Gitter](https://gitter.im/highfidelity/hifi) if you ha
 
 Documentation
 =========
-Documentation is available at [docs.highfidelity.com](https://docs.highfidelity.com), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
+Documentation is available at [docs.highfidelity.com](https://docs.highfidelity.com/), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
 
 There is also detailed [documentation on our coding standards](CODING_STANDARD.md).
 

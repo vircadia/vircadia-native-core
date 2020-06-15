@@ -720,7 +720,7 @@ Function InstallTypesPage
   StrCpy $OffsetUnits u
   StrCpy $Express "0"
 
-  ${NSD_CreateRadioButton} 30% $CurrentOffset$OffsetUnits 100% 10u "Express Install (Recommended)"; $\nInstalls Project Athena Interface and Project Athena Sandbox"
+  ${NSD_CreateRadioButton} 30% $CurrentOffset$OffsetUnits 100% 10u "Express Install (Recommended)"; $\nInstalls Vircadia Interface and Vircadia Sandbox"
   pop $ExpressInstallRadioButton
   ${NSD_OnClick} $ExpressInstallRadioButton ChangeExpressLabel
   IntOp $CurrentOffset $CurrentOffset + 15
@@ -973,7 +973,7 @@ Function ReadPostInstallOptions
   
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ${LogText} "Option: Install Client"
-    ; check if the user asked for a desktop shortcut to Project Athena
+    ; check if the user asked for a desktop shortcut to Vircadia
     ${NSD_GetState} $DesktopClientCheckbox $DesktopClientState
     ${LogText} "Option: Create Client Desktop Shortcut: $DesktopClientState"
   ${EndIf}
@@ -1027,7 +1027,7 @@ Function HandlePostInstallOptions
   ${EndIf}
 
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
-    ; check if the user asked for a desktop shortcut to Project Athena
+    ; check if the user asked for a desktop shortcut to Vircadia
     ${If} $DesktopClientState == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@INTERFACE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
       !insertmacro WriteInstallOption "@CLIENT_DESKTOP_SHORTCUT_REG_KEY@" YES
@@ -1088,7 +1088,7 @@ Function HandlePostInstallOptions
       ClearErrors
 
       ; copy the data from production build to this PR build
-      CopyFiles "$APPDATA\Project Athena\*" $0
+      CopyFiles "$APPDATA\Vircadia\*" $0
 
       ; handle an error in copying files
       IfErrors 0 NoError

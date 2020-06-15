@@ -155,7 +155,7 @@ public:
     static GeometryCache::Shape getShapeForEntityShape(int entityShapeEnum);
     static QString stringFromShape(GeometryCache::Shape geoShape);
 
-    static void computeSimpleHullPointListForShape(int entityShape, const glm::vec3 &entityExtents, ShapeInfo::PointList &outPointList);
+    static void computeSimpleHullPointListForShape(int entityShape, const glm::vec3 &entityExtents, QVector<glm::vec3> &outPointList);
 
     int allocateID() { return _nextID++; }
     void releaseID(int id);

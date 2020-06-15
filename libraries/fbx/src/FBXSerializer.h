@@ -100,15 +100,7 @@ public:
     {}
 };
 
-class ExtractedMesh {
-public:
-    hfm::Mesh mesh;
-    std::vector<std::string> materialIDPerMeshPart;
-    QMultiHash<int, int> newIndices;
-    QVector<QHash<int, int> > blendshapeIndexMaps;
-    QVector<QPair<int, int> > partMaterialTextures;
-    QHash<QString, size_t> texcoordSetMap;
-};
+class ExtractedMesh;
 
 class FBXSerializer : public HFMSerializer {
 public:

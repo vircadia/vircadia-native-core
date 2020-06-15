@@ -174,6 +174,11 @@ glm::vec2 OBJTokenizer::getVec2() {
     return v;
 }
 
+
+void setMeshPartDefaults(HFMMeshPart& meshPart, QString materialID) {
+    meshPart.materialID = materialID;
+}
+
 // OBJFace
 //    NOTE (trent, 7/20/17): The vertexColors vector being passed-in isn't necessary here, but I'm just
 //                         pairing it with the vertices vector for consistency.
@@ -487,13 +492,16 @@ bool OBJSerializer::parseOBJGroup(OBJTokenizer& tokenizer, const hifi::VariantHa
                               float& scaleGuess, bool combineParts) {
     FaceGroup faces;
     HFMMesh& mesh = hfmModel.meshes[0];
-    mesh.parts.push_back(HFMMeshPart());
+    mesh.parts.append(HFMMeshPart());
+    HFMMeshPart& meshPart = mesh.parts.last();
     bool sawG = false;
     bool result = true;
     int originalFaceCountForDebugging = 0;
     QString currentGroup;
     bool anyVertexColor { false };
     int vertexCount { 0 };
+
+    setMeshPartDefaults(meshPart, QString("dontknow") + QString::number(mesh.parts.count()));
 
     while (true) {
         int tokenType = tokenizer.nextToken();
@@ -667,19 +675,17 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
 
     _url = url;
     bool combineParts = mapping.value("combineParts").toBool();
-    hfmModel.meshes.push_back(HFMMesh());
+    hfmModel.meshExtents.reset();
+    hfmModel.meshes.append(HFMMesh());
 
-    std::vector<QString> materialNamePerShape;
     try {
         // call parseOBJGroup as long as it's returning true.  Each successful call will
         // add a new meshPart to the model's single mesh.
         while (parseOBJGroup(tokenizer, mapping, hfmModel, scaleGuess, combineParts)) {}
 
-        uint32_t meshIndex = 0;
-        HFMMesh& mesh = hfmModel.meshes[meshIndex];
-        mesh.meshIndex = meshIndex;
+        HFMMesh& mesh = hfmModel.meshes[0];
+        mesh.meshIndex = 0;
 
-        uint32_t jointIndex = 0;
         hfmModel.joints.resize(1);
         hfmModel.joints[0].parentIndex = -1;
         hfmModel.joints[0].distanceToParent = 0;
@@ -691,11 +697,19 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
 
         hfmModel.jointIndices["x"] = 1;
 
+        HFMCluster cluster;
+        cluster.jointIndex = 0;
+        cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1);
+        mesh.clusters.append(cluster);
+
         QMap<QString, int> materialMeshIdMap;
-        std::vector<HFMMeshPart> hfmMeshParts;
-        for (uint32_t meshPartIndex = 0; meshPartIndex < (uint32_t)mesh.parts.size(); ++meshPartIndex) {
-            HFMMeshPart& meshPart = mesh.parts[meshPartIndex];
-            FaceGroup faceGroup = faceGroups[meshPartIndex];
+        QVector<HFMMeshPart> hfmMeshParts;
+        for (int i = 0, meshPartCount = 0; i < mesh.parts.count(); i++, meshPartCount++) {
+            HFMMeshPart& meshPart = mesh.parts[i];
+            FaceGroup faceGroup = faceGroups[meshPartCount];
             bool specifiesUV = false;
             foreach(OBJFace face, faceGroup) {
                 // Go through all of the OBJ faces and determine the number of different materials necessary (each different material will be a unique mesh).
@@ -704,13 +718,12 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
                     // Create a new HFMMesh for this material mapping.
                     materialMeshIdMap.insert(face.materialName, materialMeshIdMap.count());
 
-                    uint32_t partIndex = (int)hfmMeshParts.size();
-                    hfmMeshParts.push_back(HFMMeshPart());
-                    HFMMeshPart& meshPartNew = hfmMeshParts.back();
+                    hfmMeshParts.append(HFMMeshPart());
+                    HFMMeshPart& meshPartNew = hfmMeshParts.last();
                     meshPartNew.quadIndices = QVector<int>(meshPart.quadIndices);                    // Copy over quad indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
                     meshPartNew.quadTrianglesIndices = QVector<int>(meshPart.quadTrianglesIndices); // Copy over quad triangulated indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
                     meshPartNew.triangleIndices = QVector<int>(meshPart.triangleIndices);            // Copy over triangle indices.
-                    
+
                     // Do some of the material logic (which previously lived below) now.
                     // All the faces in the same group will have the same name and material.
                     QString groupMaterialName = face.materialName;
@@ -732,26 +745,19 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
                             needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
                         }
                         materials[groupMaterialName] = material;
+                        meshPartNew.materialID = groupMaterialName;
                     }
-                    materialNamePerShape.push_back(groupMaterialName);
-
-
-                    hfm::Shape shape;
-                    shape.mesh = meshIndex;
-                    shape.joint = jointIndex;
-                    shape.meshPart = partIndex;
-                    hfmModel.shapes.push_back(shape);
                 }
             }
         }
 
         // clean up old mesh parts.
-        auto unmodifiedMeshPartCount = (uint32_t)mesh.parts.size();
+        int unmodifiedMeshPartCount = mesh.parts.count();
         mesh.parts.clear();
-        mesh.parts = hfmMeshParts;
+        mesh.parts = QVector<HFMMeshPart>(hfmMeshParts);
 
-        for (uint32_t meshPartIndex = 0; meshPartIndex < unmodifiedMeshPartCount; meshPartIndex++) {
-            FaceGroup faceGroup = faceGroups[meshPartIndex];
+        for (int i = 0, meshPartCount = 0; i < unmodifiedMeshPartCount; i++, meshPartCount++) {
+            FaceGroup faceGroup = faceGroups[meshPartCount];
 
             // Now that each mesh has been created with its own unique material mappings, fill them with data (vertex data is duplicated, face data is not).
             foreach(OBJFace face, faceGroup) {
@@ -817,13 +823,18 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
                 }
             }
         }
+
+        mesh.meshExtents.reset();
+        foreach(const glm::vec3& vertex, mesh.vertices) {
+            mesh.meshExtents.addPoint(vertex);
+            hfmModel.meshExtents.addPoint(vertex);
+        }
+
+        // hfmDebugDump(hfmModel);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJSerializer fail: " << e.what();
     }
 
-    // At this point, the hfmModel joint, mesh, parts and shpaes have been defined
-    // only no material assigned
- 
     QString queryPart = _url.query();
     bool suppressMaterialsHack = queryPart.contains("hifiusemat"); // If this appears in query string, don't fetch mtl even if used.
     OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];
@@ -875,23 +886,17 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
         }
     }
 
-    // As we are populating the material list in the hfmModel, let s also create the reverse map (from materialName to index)
-    QMap<QString, uint32_t> materialNameToIndex;
     foreach (QString materialID, materials.keys()) {
         OBJMaterial& objMaterial = materials[materialID];
         if (!objMaterial.used) {
             continue;
         }
 
-        // capture the name to index map
-        materialNameToIndex[materialID] = (uint32_t) hfmModel.materials.size();
-
-        hfmModel.materials.emplace_back(objMaterial.diffuseColor,
-            objMaterial.specularColor,
-            objMaterial.emissiveColor,
-            objMaterial.shininess,
-            objMaterial.opacity);
-        HFMMaterial& hfmMaterial = hfmModel.materials.back();
+        HFMMaterial& hfmMaterial = hfmModel.materials[materialID] = HFMMaterial(objMaterial.diffuseColor,
+                                                                                objMaterial.specularColor,
+                                                                                objMaterial.emissiveColor,
+                                                                                objMaterial.shininess,
+                                                                                objMaterial.opacity);
 
         hfmMaterial.name = materialID;
         hfmMaterial.materialID = materialID;
@@ -991,16 +996,77 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
         modelMaterial->setOpacity(hfmMaterial.opacity);
     }
 
-    // GO over the shapes once more to assign the material index correctly
-    for (uint32_t i = 0; i < (uint32_t)hfmModel.shapes.size(); ++i) {
-        const auto& materialName = materialNamePerShape[i];
-        if (!materialName.isEmpty()) {
-            auto foundMaterialIndex = materialNameToIndex.find(materialName);
-            if (foundMaterialIndex != materialNameToIndex.end()) {
-                hfmModel.shapes[i].material = foundMaterialIndex.value();
+    return hfmModelPtr;
+}
+
+void hfmDebugDump(const HFMModel& hfmModel) {
+    qCDebug(modelformat) << "---------------- hfmModel ----------------";
+    qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
+    qCDebug(modelformat) << "  offset =" << hfmModel.offset;
+    qCDebug(modelformat) << "  meshes.count() =" << hfmModel.meshes.count();
+    foreach (HFMMesh mesh, hfmModel.meshes) {
+        qCDebug(modelformat) << "    vertices.count() =" << mesh.vertices.count();
+        qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
+        qCDebug(modelformat) << "    normals.count() =" << mesh.normals.count();
+        /*if (mesh.normals.count() == mesh.vertices.count()) {
+            for (int i = 0; i < mesh.normals.count(); i++) {
+                qCDebug(modelformat) << "        " << mesh.vertices[ i ] << mesh.normals[ i ];
             }
+        }*/
+        qCDebug(modelformat) << "    tangents.count() =" << mesh.tangents.count();
+        qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
+        qCDebug(modelformat) << "    texCoords.count() =" << mesh.texCoords.count();
+        qCDebug(modelformat) << "    texCoords1.count() =" << mesh.texCoords1.count();
+        qCDebug(modelformat) << "    clusterIndices.count() =" << mesh.clusterIndices.count();
+        qCDebug(modelformat) << "    clusterWeights.count() =" << mesh.clusterWeights.count();
+        qCDebug(modelformat) << "    meshExtents =" << mesh.meshExtents;
+        qCDebug(modelformat) << "    modelTransform =" << mesh.modelTransform;
+        qCDebug(modelformat) << "    parts.count() =" << mesh.parts.count();
+        foreach (HFMMeshPart meshPart, mesh.parts) {
+            qCDebug(modelformat) << "        quadIndices.count() =" << meshPart.quadIndices.count();
+            qCDebug(modelformat) << "        triangleIndices.count() =" << meshPart.triangleIndices.count();
+   /*
+            qCDebug(modelformat) << "        diffuseColor =" << meshPart.diffuseColor << "mat =" << meshPart._material->getDiffuse();
+            qCDebug(modelformat) << "        specularColor =" << meshPart.specularColor << "mat =" << meshPart._material->getMetallic();
+            qCDebug(modelformat) << "        emissiveColor =" << meshPart.emissiveColor << "mat =" << meshPart._material->getEmissive();
+            qCDebug(modelformat) << "        emissiveParams =" << meshPart.emissiveParams;
+            qCDebug(modelformat) << "        gloss =" << meshPart.shininess << "mat =" << meshPart._material->getRoughness();
+            qCDebug(modelformat) << "        opacity =" << meshPart.opacity << "mat =" << meshPart._material->getOpacity();
+            */
+            qCDebug(modelformat) << "        materialID =" << meshPart.materialID;
+      /*      qCDebug(modelformat) << "        diffuse texture =" << meshPart.diffuseTexture.filename;
+            qCDebug(modelformat) << "        specular texture =" << meshPart.specularTexture.filename;
+            */
+        }
+        qCDebug(modelformat) << "    clusters.count() =" << mesh.clusters.count();
+        foreach (HFMCluster cluster, mesh.clusters) {
+            qCDebug(modelformat) << "        jointIndex =" << cluster.jointIndex;
+            qCDebug(modelformat) << "        inverseBindMatrix =" << cluster.inverseBindMatrix;
         }
     }
 
-    return hfmModelPtr;
+    qCDebug(modelformat) << "  jointIndices =" << hfmModel.jointIndices;
+    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.count();
+
+    foreach (HFMJoint joint, hfmModel.joints) {
+
+        qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;
+        qCDebug(modelformat) << "    distanceToParent" << joint.distanceToParent;
+        qCDebug(modelformat) << "    translation" << joint.translation;
+        qCDebug(modelformat) << "    preTransform" << joint.preTransform;
+        qCDebug(modelformat) << "    preRotation" << joint.preRotation;
+        qCDebug(modelformat) << "    rotation" << joint.rotation;
+        qCDebug(modelformat) << "    postRotation" << joint.postRotation;
+        qCDebug(modelformat) << "    postTransform" << joint.postTransform;
+        qCDebug(modelformat) << "    transform" << joint.transform;
+        qCDebug(modelformat) << "    rotationMin" << joint.rotationMin;
+        qCDebug(modelformat) << "    rotationMax" << joint.rotationMax;
+        qCDebug(modelformat) << "    inverseDefaultRotation" << joint.inverseDefaultRotation;
+        qCDebug(modelformat) << "    inverseBindRotation" << joint.inverseBindRotation;
+        qCDebug(modelformat) << "    bindTransform" << joint.bindTransform;
+        qCDebug(modelformat) << "    name" << joint.name;
+        qCDebug(modelformat) << "    isSkeletonJoint" << joint.isSkeletonJoint;
+    }
+
+    qCDebug(modelformat) << "\n";
 }

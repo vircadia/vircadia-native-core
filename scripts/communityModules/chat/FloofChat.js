@@ -53,7 +53,7 @@ var settingsRoot = "FloofChat";
 var athenaGotoUrl = "https://metaverse.projectathena.io/interim/d-goto/app/goto.json";
 var gotoJSONUrl = Settings.getValue(settingsRoot + "/gotoJSONUrl", athenaGotoUrl);
 
-var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain": false, "Grid": false});
+var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain": false, "Grid": true});
 
 var ws;
 var wsReady = false;

@@ -28,6 +28,8 @@
 #include <graphics/Material.h>
 #include "ShapePipeline.h"
 
+#include "BlendshapeConstants.h"
+
 namespace render {
 
 typedef int32_t Index;
@@ -626,6 +628,10 @@ public:
     virtual void render(RenderArgs* args) = 0;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const = 0;
     virtual bool passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const = 0;
+
+    // FIXME: this isn't the best place for this since it's only used for ModelEntities, but currently all Entities use PayloadProxyInterface
+    virtual void handleBlendedVertices(int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
+                                       const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs) {};
 };
 
 template <> const ItemKey payloadGetKey(const PayloadProxyInterface::Pointer& payload);

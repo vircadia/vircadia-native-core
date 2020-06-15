@@ -14,6 +14,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <stdexcept>
 
 #include <QtCore/QFile>
 #include <QtCore/QString>

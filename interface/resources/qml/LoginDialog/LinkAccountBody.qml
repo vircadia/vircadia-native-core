@@ -402,7 +402,7 @@ Item {
                 font.pixelSize: linkAccountBody.textFieldFontSize
                 font.bold: linkAccountBody.fontBold
 
-                text: "<a href='metaverse.projectathena.io/users/password/new'> Can't access your account?</a>"
+                text: "<a href='metaverse.vircadia.com/users/password/new'> Can't access your account?</a>"
 
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
@@ -527,7 +527,7 @@ Item {
                      leftMargin: hifi.dimensions.contentSpacing.x
                 }
 
-                text: "<a href='metaverse.projectathena.io/users/register'>Sign Up</a>"
+                text: "<a href='metaverse.vircadia.com/users/register'>Sign Up</a>"
 
                 linkColor: hifi.colors.blueAccent
                 onLinkActivated: {

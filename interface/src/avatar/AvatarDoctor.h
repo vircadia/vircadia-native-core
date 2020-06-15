@@ -53,7 +53,7 @@ private:
     int _materialMappingCount = 0;
     int _materialMappingLoadedCount = 0;
 
-    ModelResource::Pointer _model;
+    GeometryResource::Pointer _model;
 
     bool _isDiagnosing = false;
 };

@@ -23,7 +23,7 @@ Item {
     clip: true
     height: root.height
     width: root.width
-    readonly property string termsContainerText: qsTr("By signing up, you agree to Project Athena's Terms of Service")
+    readonly property string termsContainerText: qsTr("By signing up, you agree to Vircadia's Terms of Service")
     property int textFieldHeight: 31
     property string fontFamily: "Raleway"
     property int fontSize: 15
@@ -395,7 +395,7 @@ Item {
                     text: signUpBody.termsContainerText
                     Component.onCompleted: {
                         // with the link.
-                        termsText.text = qsTr("By signing up, you agree to <a href='https://projectathena.io/termsofservice'>Project Athena's Terms of Service</a>")
+                        termsText.text = qsTr("By signing up, you agree to <a href='https://vircadia.com/termsofservice'>Vircadia's Terms of Service</a>")
                     }
                 }
 

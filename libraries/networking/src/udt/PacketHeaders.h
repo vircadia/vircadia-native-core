@@ -280,6 +280,7 @@ enum class EntityVersion : PacketVersion {
     ScriptServerKinematicMotion,
     ScreenshareZone,
     ZoneOcclusion,
+    ModelBlendshapes,
 
     // Add new versions above here
     NUM_PACKET_TYPE,

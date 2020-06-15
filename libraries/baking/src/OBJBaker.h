@@ -27,8 +27,8 @@ protected:
     virtual void bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) override;
 
 private:
-    void createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& hfmModel, const hifi::ByteArray& dracoMesh, const std::vector<hifi::ByteArray>& dracoMaterialList);
-    void setMaterialNodeProperties(FBXNode& materialNode, const QString& materialName, const hfm::Material& material, const hfm::Model::Pointer& hfmModel);
+    void createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& hfmModel, const hifi::ByteArray& dracoMesh);
+    void setMaterialNodeProperties(FBXNode& materialNode, QString material, const hfm::Model::Pointer& hfmModel);
     NodeID nextNodeID() { return _nodeID++; }
 
     NodeID _nodeID { 0 };

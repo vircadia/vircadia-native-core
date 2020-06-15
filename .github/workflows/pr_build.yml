@@ -70,9 +70,9 @@ jobs:
       shell: bash
       run: |
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
-        echo ::set-env name=ARTIFACT_PATTERN::ProjectAthena-Alpha-PR${{ github.event.number }}-*.$INSTALLER_EXT
+        echo ::set-env name=ARTIFACT_PATTERN::Vircadia-Alpha-PR${{ github.event.number }}-*.$INSTALLER_EXT
         # Build type variables
-        echo ::set-env name=INSTALLER::HighFidelity-Beta-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+        echo ::set-env name=INSTALLER::Vircadia-Alpha-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
     - name: Clear Working Directory
       if: startsWith(matrix.os, 'windows')
       shell: bash
