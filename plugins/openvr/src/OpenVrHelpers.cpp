@@ -18,7 +18,6 @@
 #include <QtGui/QInputMethodEvent>
 #include <QtQuick/QQuickWindow>
 
-#include <PathUtils.h>
 #include <OffscreenUi.h>
 #include <controllers/Pose.h>
 #include <NumericalConstants.h>
@@ -408,14 +407,22 @@ void showMinSpecWarning() {
         qFatal("Unable to create overlay");
     }
 
-    // Needed here for PathUtils
 #ifdef Q_OS_LINUX
-    //char cmdline[4096];
-    //FILE* fp = fopen("/proc/self/cmdline", "r");
-    //fgets(cmdline, sizeof cmdline, fp);
-    //fclose(fp);
-    //int __argc = 1;
-    //char* __argv[1] = { cmdline };
+    QFile cmdlineFile("/proc/self/cmdline");
+    if (!cmdlineFile.open(QIODevice::ReadOnly)) {
+        qFatal("Unable to open /proc/self/cmdline");
+    }
+
+    auto contents = cmdlineFile.readAll();
+    auto arguments = contents.split('\0');
+    arguments.pop_back();  // Last element is empty.
+    cmdlineFile.close();
+
+    int __argc = arguments.count();
+    char** __argv = new char* [__argc];
+    for (int i = 0; i < __argc; i++) {
+        __argv[i] = arguments[i].data();
+    }
 #endif
     QCoreApplication miniApp(__argc, __argv);
 
