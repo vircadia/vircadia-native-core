@@ -4,6 +4,7 @@
 //
 //  Created by Zach Pomerantz on 5/25/2016.
 //  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,9 +15,12 @@
 #include <DependencyManager.h>
 #include <HifiConfigVariantMap.h>
 #include <LimitedNodeList.h>
+#include <QLoggingCategory>
 
 #include "DomainServer.h"
 #include "DomainServerNodeData.h"
+
+Q_LOGGING_CATEGORY(domain_metadata_exporter, "hifi.domain_server.metadata_exporter")
 
 const QString DomainMetadata::USERS = "users";
 const QString DomainMetadata::Users::NUM_TOTAL = "num_users";
@@ -214,4 +218,19 @@ void DomainMetadata::sendDescriptors() {
         qDebug() << "Domain metadata update:" << domainUpdateJSON;
 #endif
     }
+}
+
+bool DomainMetadata::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
+    const QString URI_METADATA = "/metadata";
+    const QString EXPORTER_MIME_TYPE = "text/plain";
+
+    qCDebug(domain_metadata_exporter) << "Request on URL " << url;
+
+    if (url.path() == URI_METADATA) {
+        QString domainMetadataJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)));
+        connection->respond(HTTPConnection::StatusCode200, domainMetadataJSON.toUtf8(), qPrintable(EXPORTER_MIME_TYPE));
+        return true;
+    }
+
+    return false;
 }

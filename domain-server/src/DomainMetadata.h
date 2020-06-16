@@ -15,6 +15,7 @@
 
 #include <QVariantMap>
 #include <QJsonObject>
+#include "HTTPManager.h"
 
 class DomainMetadata : public QObject {
 Q_OBJECT
@@ -43,6 +44,9 @@ public:
 
     DomainMetadata(QObject* domainServer);
     DomainMetadata() = delete;
+    
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
+    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
 
     // Get cached metadata
     QJsonObject get();

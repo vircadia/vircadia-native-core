@@ -70,7 +70,6 @@ const QString DomainServer::REPLACEMENT_FILE_EXTENSION = ".replace";
 const int MIN_PORT = 1;
 const int MAX_PORT = 65535;
 
-
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
 #if USE_STABLE_GLOBAL_SERVICES
@@ -334,6 +333,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _nodePingMonitorTimer->start(NODE_PING_MONITOR_INTERVAL_MSECS);
 
     initializeExporter();
+    initializeMetadataExporter();
 }
 
 void DomainServer::parseCommandLine(int argc, char* argv[]) {
@@ -426,6 +426,11 @@ DomainServer::~DomainServer() {
     if (_contentManager) {
         _contentManager->aboutToFinish();
         _contentManager->terminate();
+    }
+    
+    if (_httpMetadataExporterManager) {
+        _httpMetadataExporterManager->close();
+        delete _httpMetadataExporterManager;
     }
 
     if (_httpExporterManager) {
@@ -3045,8 +3050,7 @@ void DomainServer::updateUpstreamNodes() {
     updateReplicationNodes(Upstream);
 }
 
-void DomainServer::initializeExporter()
-{
+void DomainServer::initializeExporter() {
     static const QString ENABLE_EXPORTER = "monitoring.enable_prometheus_exporter";
     static const QString EXPORTER_PORT = "monitoring.prometheus_exporter_port";
 
@@ -3063,6 +3067,27 @@ void DomainServer::initializeExporter()
     if (isExporterEnabled && !_httpExporterManager) {
         qCInfo(domain_server) << "Starting Prometheus exporter on port " << exporterPort;
         _httpExporterManager = new HTTPManager(QHostAddress::Any, (quint16)exporterPort, QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()), &_exporter);
+    }
+}
+
+void DomainServer::initializeMetadataExporter()
+{
+    static const QString ENABLE_EXPORTER = "metaverse.enable_metadata_exporter";
+    static const QString EXPORTER_PORT = "metaverse.metadata_exporter_port";
+
+    bool isMetadataExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_EXPORTER).toBool();
+    int metadataExporterPort = _settingsManager.valueOrDefaultValueForKeyPath(EXPORTER_PORT).toInt();
+
+    if (exporterPort < MIN_PORT || exporterPort > MAX_PORT) {
+        qCWarning(domain_server) << "Metadata exporter port " << metadataExporterPort << " is out of range.";
+        isMetadataExporterEnabled = false;
+    }
+
+    qCDebug(domain_server) << "Setting up Metadata exporter.";
+
+    if (isMetadataExporterEnabled && !_httpMetadataExporterManager) {
+        qCInfo(domain_server) << "Starting Metadata exporter on port " << metadataExporterPort;
+        _httpMetadataExporterManager = new HTTPManager(QHostAddress::Any, (quint16)metadataExporterPort, QString("%1/resources/metadata_exporter/").arg(QCoreApplication::applicationDirPath()), &_metadata);
     }
 }
 

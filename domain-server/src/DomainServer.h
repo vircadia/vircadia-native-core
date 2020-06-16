@@ -73,7 +73,6 @@ public:
     static int const EXIT_CODE_REBOOT;
 
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
-    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
 
     static const QString REPLACEMENT_FILE_EXTENSION;
 
@@ -140,6 +139,7 @@ private slots:
     void updateDownstreamNodes();
     void updateUpstreamNodes();
     void initializeExporter();
+    void initializeMetadataExporter();
 
     void tokenGrantFinished();
     void profileRequestFinished();
@@ -240,6 +240,8 @@ private:
 
     HTTPManager _httpManager;
     HTTPManager* _httpExporterManager { nullptr };
+    HTTPManager* _httpMetadataExporterManager;
+    
     std::unique_ptr<HTTPSManager> _httpsManager;
 
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;

@@ -54,7 +54,23 @@
           "default": true,
           "type": "checkbox",
           "advanced":  true
-        }
+      },
+        {
+          "name": "enable_metadata_exporter",
+          "label": "Enable Metadata HTTP Availability",
+          "help": "Allows your domain's metadata to be accessible on the public internet via direct HTTP connection to the domain server.",
+          "default": true,
+          "type": "checkbox",
+          "advanced":  true
+        },
+        {
+        "name": "metadata_exporter_port",
+        "label": "Metadata Exporter HTTP Port",
+        "help": "This is the port where the Metaverse exporter accepts connections. It listens both on IPv4 and IPv6 and can be accessed remotely, so you should make sure to restrict access with a firewall as needed.",
+        "default": "9704",
+        "type": "int",
+        "advanced": true
+        },
       ]
     },
     {
@@ -209,6 +225,14 @@
           "type": "password",
           "help": "Must match the password entered above for change to be saved.",
           "value-hidden": true
+        },
+        {
+          "name": "approved_safe_urls",
+          "label": "Approved Script and QML URLs",
+          "help": "These URLs will be sent to the Interface as safe URLs to allow through the whitelist if the Interface has this security option enabled.",
+          "placeholder": "0",
+          "default": "1",
+          "advanced": false
         },
         {
           "name": "maximum_user_capacity",
