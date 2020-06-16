@@ -25,8 +25,8 @@ namespace NetworkingConstants {
     // if you manually generate a personal access token for the domains scope
     // at https://staging.highfidelity.com/user/tokens/new?for_domain_server=true
 
-    const QUrl METAVERSE_SERVER_URL_STABLE { "https://metaverse.bluestuff.org" };
-    const QUrl METAVERSE_SERVER_URL_STAGING { "https://staging-metaverse.bluestuff.org" };
+    const QUrl METAVERSE_SERVER_URL_STABLE { "http://metaverse.bluestuff.org" };
+    const QUrl METAVERSE_SERVER_URL_STAGING { "http://metaverse.bluestuff.org" };
 
     // Web Engine requests to this parent domain have an account authorization header added
     const QString AUTH_HOSTNAME_BASE = "metaverse.bluestuff.org";
@@ -38,7 +38,7 @@ namespace NetworkingConstants {
 #if USE_STABLE_GLOBAL_SERVICES
     const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.bluestuff.org";
 #else
-    const QString ICE_SERVER_DEFAULT_HOSTNAME = "dev-ice.bluestuff.org";
+    const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.bluestuff.org";
 #endif
 
     const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
