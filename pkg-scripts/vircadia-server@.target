@@ -1,0 +1,11 @@
+[Unit]
+Description=Vircadia virtual domain
+Wants=vircadia-assignment-client@%i.service
+Wants=vircadia-domain-server@%i.service
+#Wants=vircadia-ice-server@%i.service
+After=vircadia-assignment-client@%i.service
+After=vircadia-domain-server@%i.service
+#After=vircadia-ice-server@%i.service
+
+[Install]
+WantedBy=multi-user.target
