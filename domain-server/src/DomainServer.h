@@ -73,6 +73,7 @@ public:
     static int const EXIT_CODE_REBOOT;
 
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
+    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
 
     static const QString REPLACEMENT_FILE_EXTENSION;
 
@@ -237,6 +238,7 @@ private:
 
     DomainGatekeeper _gatekeeper;
     DomainServerExporter _exporter;
+    DomainMetadata _metadataExporter;
 
     HTTPManager _httpManager;
     HTTPManager* _httpExporterManager { nullptr };

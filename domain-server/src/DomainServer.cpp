@@ -3070,15 +3070,14 @@ void DomainServer::initializeExporter() {
     }
 }
 
-void DomainServer::initializeMetadataExporter()
-{
+void DomainServer::initializeMetadataExporter() {
     static const QString ENABLE_EXPORTER = "metaverse.enable_metadata_exporter";
     static const QString EXPORTER_PORT = "metaverse.metadata_exporter_port";
 
     bool isMetadataExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_EXPORTER).toBool();
     int metadataExporterPort = _settingsManager.valueOrDefaultValueForKeyPath(EXPORTER_PORT).toInt();
 
-    if (exporterPort < MIN_PORT || exporterPort > MAX_PORT) {
+    if (metadataExporterPort < MIN_PORT || metadataExporterPort > MAX_PORT) {
         qCWarning(domain_server) << "Metadata exporter port " << metadataExporterPort << " is out of range.";
         isMetadataExporterEnabled = false;
     }
@@ -3087,7 +3086,7 @@ void DomainServer::initializeMetadataExporter()
 
     if (isMetadataExporterEnabled && !_httpMetadataExporterManager) {
         qCInfo(domain_server) << "Starting Metadata exporter on port " << metadataExporterPort;
-        _httpMetadataExporterManager = new HTTPManager(QHostAddress::Any, (quint16)metadataExporterPort, QString("%1/resources/metadata_exporter/").arg(QCoreApplication::applicationDirPath()), &_metadata);
+        _httpMetadataExporterManager = new HTTPManager(QHostAddress::Any, (quint16)metadataExporterPort, QString("%1/resources/metadata_exporter/").arg(QCoreApplication::applicationDirPath()), &_metadataExporter);
     }
 }
 

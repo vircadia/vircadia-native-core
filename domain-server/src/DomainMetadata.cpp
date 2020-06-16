@@ -10,6 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 #include "DomainMetadata.h"
+#include "HTTPConnection.h"
 
 #include <AccountManager.h>
 #include <DependencyManager.h>
@@ -220,14 +221,14 @@ void DomainMetadata::sendDescriptors() {
     }
 }
 
-bool DomainMetadata::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
+bool DomainMetadataExporter::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
+    QString domainMetadataJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)));
     const QString URI_METADATA = "/metadata";
     const QString EXPORTER_MIME_TYPE = "text/plain";
 
     qCDebug(domain_metadata_exporter) << "Request on URL " << url;
 
     if (url.path() == URI_METADATA) {
-        QString domainMetadataJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)));
         connection->respond(HTTPConnection::StatusCode200, domainMetadataJSON.toUtf8(), qPrintable(EXPORTER_MIME_TYPE));
         return true;
     }

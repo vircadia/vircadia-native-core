@@ -17,6 +17,10 @@
 #include <QJsonObject>
 #include "HTTPManager.h"
 
+class DomainMetadataExporter : public HTTPRequestHandler {
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
+};
+
 class DomainMetadata : public QObject {
 Q_OBJECT
 
@@ -45,9 +49,6 @@ public:
     DomainMetadata(QObject* domainServer);
     DomainMetadata() = delete;
     
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
-    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
-
     // Get cached metadata
     QJsonObject get();
     QJsonObject get(const QString& group);
