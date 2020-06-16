@@ -242,7 +242,7 @@ private:
 
     HTTPManager _httpManager;
     HTTPManager* _httpExporterManager { nullptr };
-    HTTPManager* _httpMetadataExporterManager;
+    HTTPManager* _httpMetadataExporterManager { nullptr };
     
     std::unique_ptr<HTTPSManager> _httpsManager;
 
