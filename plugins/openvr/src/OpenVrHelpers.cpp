@@ -424,7 +424,14 @@ void showMinSpecWarning() {
         __argv[i] = arguments[i].data();
     }
 #endif
+
     QCoreApplication miniApp(__argc, __argv);
+
+#ifdef Q_OS_LINUX
+    QObject::connect(&miniApp, &QCoreApplication::destroyed, [=] {
+        delete[] __argv;
+    });
+#endif
 
     vrSystem->ResetSeatedZeroPose();
     QString imagePath = PathUtils::resourcesPath() + "/images/steam-min-spec-failed.png";
