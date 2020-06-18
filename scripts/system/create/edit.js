@@ -621,6 +621,10 @@ var toolBar = (function () {
                         dimensions: naturalDimensions
                     })
                     dimensionsCheckCallback();
+                    // We want to update the selection manager again since the script has moved on without us.
+                    selectionManager.clearSelections(this);
+                    entityListTool.sendUpdate();
+                    selectionManager.setSelections([entityID], this);
                     return;
                 }
                 Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
