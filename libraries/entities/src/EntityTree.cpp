@@ -1446,14 +1446,17 @@ void EntityTree::addCertifiedEntityOnServer(EntityItemPointer entity) {
         entityList << entityItemID; // adds to list within hash because entityList is a reference.
         qCDebug(entities) << "Certificate ID" << certID << "belongs to" << entityItemID << "total" << entityList.size() << "entities.";
     }
-    // Delete an already-existing entity from the tree if it has the same
+    // Handle an already-existing entity from the tree if it has the same
     //     CertificateID as the entity we're trying to add.
     if (!existingEntityItemID.isNull()) {
         qCDebug(entities) << "Certificate ID" << certID << "already exists on entity with ID"
-            << existingEntityItemID << ". Deleting existing entity.";
-        withWriteLock([&] {
-            deleteEntity(existingEntityItemID, true);
-        });
+            << existingEntityItemID << ". No action will be taken to remove it.";
+        // FIXME: All certificate checking needs to be moved to its own files, 
+        // then the deletion settings need to have a toggle for domain owners 
+        // and a setting to change the verification service provider.
+        // withWriteLock([&] {
+        //     deleteEntity(existingEntityItemID, true);
+        // });
     }
 }
 
@@ -1527,10 +1530,13 @@ void EntityTree::startDynamicDomainVerificationOnServer(float minimumAgeToRemove
                     continue;
                 }
                 qCDebug(entities) << "Entity's cert's domain ID" << jsonObject["domain_id"].toString()
-                    << "doesn't match the current Domain ID" << thisDomainID << "; deleting entity" << entityID;
-                withWriteLock([&] {
-                    deleteEntity(entityID, true);
-                });
+                    << "doesn't match the current Domain ID" << thisDomainID << ". No action will be taken to remove it: " << entityID;
+                // FIXME: All certificate checking needs to be moved to its own files, 
+                // then the deletion settings need to have a toggle for domain owners 
+                // and a setting to change the verification service provider.
+                // withWriteLock([&] {
+                //     deleteEntity(entityID, true);
+                // });
             }
             {
                 QWriteLocker entityCertificateIDMapLocker(&_entityCertificateIDMapLock);
@@ -1555,10 +1561,13 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
         }
     });
     connect(_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
-        qCDebug(entities) << "Ownership challenge timed out, deleting entity" << entityItemID;
-        withWriteLock([&] {
-            deleteEntity(entityItemID, true);
-        });
+        qCDebug(entities) << "Ownership challenge timed out for entity " << entityItemID << ". No action will be taken to remove it.";
+        // FIXME: All certificate checking needs to be moved to its own files, 
+        // then the deletion settings need to have a toggle for domain owners 
+        // and a setting to change the verification service provider.
+        // withWriteLock([&] {
+        //     deleteEntity(entityItemID, true);
+        // });
         if (_challengeOwnershipTimeoutTimer) {
             _challengeOwnershipTimeoutTimer->stop();
             _challengeOwnershipTimeoutTimer->deleteLater();
@@ -1650,10 +1659,13 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
     QByteArray text = computeNonce(entityItemID, ownerKey);
 
     if (text == "") {
-        qCDebug(entities) << "CRITICAL ERROR: Couldn't compute nonce. Deleting entity...";
-        withWriteLock([&] {
-            deleteEntity(entityItemID, true);
-        });
+        qCDebug(entities) << "CRITICAL ERROR: Couldn't compute nonce. No action will be taken to remove this entity.";
+        // FIXME: All certificate checking needs to be moved to its own files, 
+        // then the deletion settings need to have a toggle for domain owners 
+        // and a setting to change the verification service provider.
+        // withWriteLock([&] {
+        //     deleteEntity(entityItemID, true);
+        // });
     } else {
         qCDebug(entities) << "Challenging ownership of Cert ID" << certID;
         // 2. Send the nonce to the rezzing avatar's node
@@ -1724,15 +1736,21 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
 
         if (networkReply->error() == QNetworkReply::NoError) {
             if (!jsonObject["invalid_reason"].toString().isEmpty()) {
-                qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
-                withWriteLock([&] {
-                    deleteEntity(entityItemID, true);
-                });
+                qCDebug(entities) << "invalid_reason not empty, no action will be taken to delete entity" << entityItemID;
+                // FIXME: All certificate checking needs to be moved to its own files, 
+                // then the deletion settings need to have a toggle for domain owners 
+                // and a setting to change the verification service provider.
+                // withWriteLock([&] {
+                //     deleteEntity(entityItemID, true);
+                // });
             } else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
-                qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
-                withWriteLock([&] {
-                    deleteEntity(entityItemID, true);
-                });
+                qCDebug(entities) << "'transfer_status' is 'failed', no action will be taken to delete entity" << entityItemID;
+                // FIXME: All certificate checking needs to be moved to its own files, 
+                // then the deletion settings need to have a toggle for domain owners 
+                // and a setting to change the verification service provider.
+                // withWriteLock([&] {
+                //     deleteEntity(entityItemID, true);
+                // });
             } else {
                 // Second, challenge ownership of the PoP cert
                 // (ignore pending status; a failure will be cleaned up during DDV)
@@ -1742,11 +1760,14 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
                     senderNode);
             }
         } else {
-            qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << entityItemID
+            qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; no action will be taken to delete entity" << entityItemID
                 << "More info:" << jsonObject;
-            withWriteLock([&] {
-                deleteEntity(entityItemID, true);
-            });
+            // FIXME: All certificate checking needs to be moved to its own files, 
+            // then the deletion settings need to have a toggle for domain owners 
+            // and a setting to change the verification service provider.
+            // withWriteLock([&] {
+            //     deleteEntity(entityItemID, true);
+            // });
         }
 
         networkReply->deleteLater();
