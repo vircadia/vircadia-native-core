@@ -54,7 +54,7 @@ const QString DomainMetadata::Descriptors::TAGS = "tags";
 //
 // it is meant to be sent to and consumed by an external API
 
-DomainMetadata::DomainMetadata() {
+DomainMetadata::DomainMetadata(QObject* domainServer) : QObject(domainServer) {
     // set up the structure necessary for casting during parsing
     _metadata[USERS] = QVariantMap {};
     _metadata[DESCRIPTORS] = QVariantMap {};

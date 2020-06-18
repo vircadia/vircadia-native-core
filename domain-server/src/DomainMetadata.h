@@ -42,7 +42,7 @@ public:
         static const QString TAGS;
     };
 
-    DomainMetadata();
+    DomainMetadata(QObject* domainServer);
     ~DomainMetadata() = default;
     
     // Get cached metadata
