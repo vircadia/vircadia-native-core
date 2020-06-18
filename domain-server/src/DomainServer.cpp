@@ -67,6 +67,9 @@ Q_LOGGING_CATEGORY(domain_server_ice, "hifi.domain_server.ice")
 
 const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
 const QString DomainServer::REPLACEMENT_FILE_EXTENSION = ".replace";
+const int MIN_PORT = 1;
+const int MAX_PORT = 65535;
+
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
@@ -229,7 +232,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             this, &DomainServer::updateDownstreamNodes);
     connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
             this, &DomainServer::updateUpstreamNodes);
-
     setupGroupCacheRefresh();
 
     optionallySetupOAuth();
@@ -330,6 +332,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _nodePingMonitorTimer = new QTimer{ this };
     connect(_nodePingMonitorTimer, &QTimer::timeout, this, &DomainServer::nodePingMonitor);
     _nodePingMonitorTimer->start(NODE_PING_MONITOR_INTERVAL_MSECS);
+
+    initializeExporter();
 }
 
 void DomainServer::parseCommandLine(int argc, char* argv[]) {
@@ -422,6 +426,11 @@ DomainServer::~DomainServer() {
     if (_contentManager) {
         _contentManager->aboutToFinish();
         _contentManager->terminate();
+    }
+
+    if (_httpExporterManager) {
+        _httpExporterManager->close();
+        delete _httpExporterManager;
     }
 
     DependencyManager::destroy<AccountManager>();
@@ -1977,7 +1986,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_API_BACKUPS_ID = "/api/backups/";
     const QString URI_API_BACKUPS_DOWNLOAD_ID = "/api/backups/download/";
     const QString URI_API_BACKUPS_RECOVER = "/api/backups/recover/";
-
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
     QPointer<HTTPConnection> connectionPtr { connection };
@@ -3035,6 +3043,27 @@ void DomainServer::updateDownstreamNodes() {
 
 void DomainServer::updateUpstreamNodes() {
     updateReplicationNodes(Upstream);
+}
+
+void DomainServer::initializeExporter()
+{
+    static const QString ENABLE_EXPORTER = "monitoring.enable_prometheus_exporter";
+    static const QString EXPORTER_PORT = "monitoring.prometheus_exporter_port";
+
+    bool isExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_EXPORTER).toBool();
+    int exporterPort = _settingsManager.valueOrDefaultValueForKeyPath(EXPORTER_PORT).toInt();
+
+    if (exporterPort < MIN_PORT || exporterPort > MAX_PORT) {
+        qCWarning(domain_server) << "Prometheus exporter port " << exporterPort << " is out of range.";
+        isExporterEnabled = false;
+    }
+
+    qCDebug(domain_server) << "Setting up Prometheus exporter";
+
+    if (isExporterEnabled && !_httpExporterManager) {
+        qCInfo(domain_server) << "Starting Prometheus exporter on port " << exporterPort;
+        _httpExporterManager = new HTTPManager(QHostAddress::Any, (quint16)exporterPort, QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()), &_exporter);
+    }
 }
 
 void DomainServer::updateReplicatedNodes() {
