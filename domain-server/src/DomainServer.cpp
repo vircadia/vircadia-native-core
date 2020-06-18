@@ -268,9 +268,16 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
 
     // send signal to DomainMetadata when descriptors changed
-    _metadata = new DomainMetadata(this);
+    _metadata = new DomainMetadata();
     connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
             _metadata, &DomainMetadata::descriptorsChanged);
+
+    // update the metadata when a user (dis)connects
+    connect(this, &DomainServer::userConnected, _metadata, &DomainMetadata::usersChanged);
+    connect(this, &DomainServer::userDisconnected, _metadata, &DomainMetadata::usersChanged);
+
+    // update the metadata when security changes
+    connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions, [this] { _metadata->securityChanged(true); });
 
     qDebug() << "domain-server is running";
     static const QString AC_SUBNET_WHITELIST_SETTING_PATH = "security.ac_subnet_whitelist";
@@ -3086,7 +3093,7 @@ void DomainServer::initializeMetadataExporter() {
 
     if (isMetadataExporterEnabled && !_httpMetadataExporterManager) {
         qCInfo(domain_server) << "Starting Metadata exporter on port " << metadataExporterPort;
-        _httpMetadataExporterManager = new HTTPManager(QHostAddress::Any, (quint16)metadataExporterPort, QString("%1/resources/metadata_exporter/").arg(QCoreApplication::applicationDirPath()), &_metadataExporter);
+        _httpMetadataExporterManager = new HTTPManager(QHostAddress::Any, (quint16)metadataExporterPort, QString("%1/resources/metadata_exporter/").arg(QCoreApplication::applicationDirPath()), _metadata);
     }
 }
 

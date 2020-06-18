@@ -54,21 +54,10 @@ const QString DomainMetadata::Descriptors::TAGS = "tags";
 //
 // it is meant to be sent to and consumed by an external API
 
-DomainMetadata::DomainMetadata(QObject* domainServer) : QObject(domainServer) {
+DomainMetadata::DomainMetadata() {
     // set up the structure necessary for casting during parsing
     _metadata[USERS] = QVariantMap {};
     _metadata[DESCRIPTORS] = QVariantMap {};
-
-    assert(dynamic_cast<DomainServer*>(domainServer));
-    DomainServer* server = static_cast<DomainServer*>(domainServer);
-
-    // update the metadata when a user (dis)connects
-    connect(server, &DomainServer::userConnected, this, &DomainMetadata::usersChanged);
-    connect(server, &DomainServer::userDisconnected, this, &DomainMetadata::usersChanged);
-
-    // update the metadata when security changes
-    connect(&server->_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
-        this, static_cast<void(DomainMetadata::*)()>(&DomainMetadata::securityChanged));
 
     // initialize the descriptors
     securityChanged(false);
