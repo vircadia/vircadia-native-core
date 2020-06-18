@@ -268,7 +268,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
 
     // send signal to DomainMetadata when descriptors changed
-    _metadata = new DomainMetadata();
+    _metadata = new DomainMetadata(this);
     connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
             _metadata, &DomainMetadata::descriptorsChanged);
 
