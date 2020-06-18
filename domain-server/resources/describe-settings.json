@@ -54,7 +54,7 @@
           "default": true,
           "type": "checkbox",
           "advanced":  true
-      },
+        },
         {
           "name": "enable_metadata_exporter",
           "label": "Enable Metadata HTTP Availability",
@@ -64,13 +64,13 @@
           "advanced":  true
         },
         {
-        "name": "metadata_exporter_port",
-        "label": "Metadata Exporter HTTP Port",
-        "help": "This is the port where the Metaverse exporter accepts connections. It listens both on IPv4 and IPv6 and can be accessed remotely, so you should make sure to restrict access with a firewall as needed.",
-        "default": "9704",
-        "type": "int",
-        "advanced": true
-        },
+          "name": "metadata_exporter_port",
+          "label": "Metadata Exporter HTTP Port",
+          "help": "This is the port where the Metaverse exporter accepts connections. It listens both on IPv4 and IPv6 and can be accessed remotely, so you should make sure to restrict access with a firewall as needed.",
+          "default": "9704",
+          "type": "int",
+          "advanced": true
+        }
       ]
     },
     {
