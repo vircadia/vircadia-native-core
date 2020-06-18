@@ -31,6 +31,23 @@ namespace vr {
     class IVRSystem;
 }
 
+class ViveProEyeReadThread;
+
+class EyeDataBuffer {
+public:
+    int getEyeDataResult { 0 };
+    bool leftDirectionValid { false };
+    bool rightDirectionValid { false };
+    bool leftOpennessValid { false };
+    bool rightOpennessValid { false };
+    glm::vec3 leftEyeGaze;
+    glm::vec3 rightEyeGaze;
+    float leftEyeOpenness { 0.0f };
+    float rightEyeOpenness { 0.0f };
+};
+
+
+
 class ViveControllerManager : public InputPlugin {
     Q_OBJECT
 public:
@@ -49,12 +66,18 @@ public:
     bool isHeadController() const override { return true; }
     bool isHeadControllerMounted() const;
 
+    void enableGestureDetection();
+    void disableGestureDetection();
+
     bool activate() override;
     void deactivate() override;
 
     QString getDeviceName() { return QString::fromStdString(_inputDevice->_headsetName); }
 
     void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
+    void invalidateEyeInputs();
+    void updateEyeTracker(float deltaTime, const controller::InputCalibrationData& inputCalibrationData);
+    void updateCameraHandTracker(float deltaTime, const controller::InputCalibrationData& inputCalibrationData);
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
     virtual void saveSettings() const override;
@@ -228,6 +251,23 @@ private:
 
     vr::IVRSystem* _system { nullptr };
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_system) };
+
+    bool _viveProEye { false };
+    std::shared_ptr<ViveProEyeReadThread> _viveProEyeReadThread;
+    EyeDataBuffer _prevEyeData;
+
+    bool _viveCameraHandTracker { false };
+    int _lastHandTrackerFrameIndex { -1 };
+
+    const static int NUMBER_OF_HAND_TRACKER_SMOOTHING_FRAMES { 6 };
+    const static int NUMBER_OF_HAND_POINTS { 21 };
+    glm::vec3 _handPoints[NUMBER_OF_HAND_TRACKER_SMOOTHING_FRAMES][2][NUMBER_OF_HAND_POINTS]; // 2 for number of hands
+    glm::vec3 getRollingAverageHandPoint(int handIndex, int pointIndex) const;
+    controller::Pose trackedHandDataToPose(int hand, const glm::vec3& palmFacing,
+                                           int nearHandPositionIndex, int farHandPositionIndex);
+    void trackFinger(int hand, int jointIndex1, int jointIndex2, int jointIndex3, int jointIndex4,
+                     controller::StandardPoseChannel joint1, controller::StandardPoseChannel joint2,
+                     controller::StandardPoseChannel joint3, controller::StandardPoseChannel joint4);
 
     static const char* NAME;
 };

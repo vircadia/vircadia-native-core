@@ -17,7 +17,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.hand = hand;
         this.disableModules = false;
         this.parameters = makeDispatcherModuleParameters(
-            90,
+            95,
             this.hand === RIGHT_HAND ?
                 ["rightHand", "rightHandEquip", "rightHandTrigger"] :
                 ["leftHand", "leftHandEquip", "leftHandTrigger"],
