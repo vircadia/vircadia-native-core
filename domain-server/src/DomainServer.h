@@ -238,7 +238,6 @@ private:
 
     DomainGatekeeper _gatekeeper;
     DomainServerExporter _exporter;
-    DomainMetadata _metadataExporter;
 
     HTTPManager _httpManager;
     HTTPManager* _httpExporterManager { nullptr };

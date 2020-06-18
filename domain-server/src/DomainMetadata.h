@@ -42,8 +42,8 @@ public:
         static const QString TAGS;
     };
 
-    DomainMetadata(QObject* domainServer);
-    DomainMetadata() = delete;
+    DomainMetadata();
+    ~DomainMetadata() = default;
     
     // Get cached metadata
     QJsonObject get();
@@ -54,7 +54,6 @@ public:
 public slots:
     void descriptorsChanged();
     void securityChanged(bool send);
-    void securityChanged() { securityChanged(true); }
     void usersChanged();
 
 protected:
