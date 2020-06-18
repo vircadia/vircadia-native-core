@@ -29,7 +29,7 @@ Row {
         id: xspinner
         width: parent.spinboxWidth
         labelInside: "X:"
-        backgroundColor: parent.backgroundColor
+        backgroundColor: activeFocus ? "white" : "lightgray"
         colorLabelInside: hifi.colors.redHighlight
         colorScheme: hifi.colorSchemes.light
         decimals: root.decimals;
@@ -43,7 +43,7 @@ Row {
         id: yspinner
         width: parent.spinboxWidth
         labelInside: "Y:"
-        backgroundColor: parent.backgroundColor
+        backgroundColor: activeFocus ? "white" : "lightgray"
         colorLabelInside: hifi.colors.greenHighlight
         colorScheme: hifi.colorSchemes.light
         decimals: root.decimals;
@@ -57,7 +57,7 @@ Row {
         id: zspinner
         width: parent.spinboxWidth
         labelInside: "Z:"
-        backgroundColor: parent.backgroundColor
+        backgroundColor: activeFocus ? "white" : "lightgray"
         colorLabelInside: hifi.colors.primaryHighlight
         colorScheme: hifi.colorSchemes.light
         decimals: root.decimals;

@@ -614,13 +614,13 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(networkMenu,
         MenuOption::DisableActivityLogger,
         0,
-        false,
+        true,
         &UserActivityLogger::getInstance(),
         SLOT(disable(bool)));
     addCheckableActionToQMenuAndActionHash(networkMenu,
         MenuOption::DisableCrashLogger,
         0,
-        false,
+        true,
         &UserActivityLogger::getInstance(),
         SLOT(crashMonitorDisable(bool)));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,

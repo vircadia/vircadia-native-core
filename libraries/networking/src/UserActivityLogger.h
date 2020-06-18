@@ -59,7 +59,7 @@ private slots:
 private:
     UserActivityLogger();
     Setting::Handle<bool> _disabled { "UserActivityLoggerDisabled", true };
-    Setting::Handle<bool> _crashMonitorDisabled { "CrashMonitorDisabled", false };
+    Setting::Handle<bool> _crashMonitorDisabled { "CrashMonitorDisabled2", true };
 
     QElapsedTimer _timer;
 };
