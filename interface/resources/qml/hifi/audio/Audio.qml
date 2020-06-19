@@ -572,7 +572,7 @@ Rectangle {
         ListView {
             id: inputView;
             width: rightMostInputLevelPos;
-            anchors.top: loopbackAudio.bottom;
+            anchors.top: (loopbackAudio.visible === 1) ? loopbackAudio.bottom : inputDeviceHeader.bottom;
             anchors.topMargin: 10;
             x: margins.paddings
             interactive: false;
