@@ -680,7 +680,7 @@ Rectangle {
         AudioControls.PlaySampleSound {
             id: playSampleSound
             x: margins.paddings
-            anchors.top: systemInjectorGainContainer.bottom;
+            anchors.top: outputView.bottom;
             anchors.topMargin: 10;
         }
     }
