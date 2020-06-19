@@ -682,7 +682,12 @@ Rectangle {
             x: margins.paddings
             anchors.top: outputView.bottom;
             anchors.topMargin: 10;
-            bottomMargin: 5;
+        }
+        
+        // Spacer item 
+        Item {
+            anchors.top: playSampleSound.bottom;
+            anchors.topMargin: 5;
         }
     }
 
