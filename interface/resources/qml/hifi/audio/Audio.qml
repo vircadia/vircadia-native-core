@@ -546,11 +546,22 @@ Rectangle {
                 text: qsTr("Choose input device");
             }
         }
+        
+        AudioControls.LoopbackAudio {
+            id: loopbackAudio
+            x: margins.paddings
+            anchors.top: inputDeviceHeader.bottom;
+            anchors.topMargin: 10;
 
+            visible: (bar.currentIndex === 1 && isVR) ||
+                (bar.currentIndex === 0 && !isVR);
+            anchors { left: parent.left; leftMargin: margins.paddings }
+        }
+        
         ListView {
             id: inputView;
             width: rightMostInputLevelPos;
-            anchors.top: inputDeviceHeader.bottom;
+            anchors.top: loopbackAudio.bottom;
             anchors.topMargin: 10;
             x: margins.paddings
             interactive: false;
@@ -596,17 +607,6 @@ Rectangle {
             }
         }
 
-        AudioControls.LoopbackAudio {
-            id: loopbackAudio
-            x: margins.paddings
-            anchors.top: inputView.bottom;
-            anchors.topMargin: 10;
-
-            visible: (bar.currentIndex === 1 && isVR) ||
-                (bar.currentIndex === 0 && !isVR);
-            anchors { left: parent.left; leftMargin: margins.paddings }
-        }
-
         Separator {
             id: thirdSeparator;
             anchors.top: loopbackAudio.visible ? loopbackAudio.bottom : inputView.bottom;
@@ -641,14 +641,21 @@ Rectangle {
                 text: qsTr("Choose output device");
             }
         }
-
+        
+        AudioControls.PlaySampleSound {
+            id: playSampleSound
+            x: margins.paddings
+            anchors.top: outputDeviceHeader.bottom;
+            anchors.topMargin: 10;
+        }
+        
         ListView {
             id: outputView
             width: parent.width - margins.paddings*2
             x: margins.paddings;
             interactive: false;
             height: contentHeight;
-            anchors.top: outputDeviceHeader.bottom;
+            anchors.top: playSampleSound.bottom;
             anchors.topMargin: 10;
             clip: true;
             model: AudioScriptingInterface.devices.output;
@@ -676,18 +683,11 @@ Rectangle {
                 }
             }
         }
-
-        AudioControls.PlaySampleSound {
-            id: playSampleSound
-            x: margins.paddings
-            anchors.top: outputView.bottom;
-            anchors.topMargin: 10;
-        }
         
         // Spacer item 
         Item {
-            anchors.top: playSampleSound.bottom;
-            anchors.topMargin: 5;
+            anchors.top: outputView.bottom;
+            anchors.topMargin: 10;
         }
     }
 
