@@ -325,7 +325,7 @@ Rectangle {
                 size: 16;
 
                 text: (bar.currentIndex === 0) ? qsTr("Press and hold the button \"T\" to talk.") :
-                                qsTr("Press and hold grip triggers on both of your controllers to talk.");
+                                qsTr("Press and hold triggers on both of your controllers to talk.");
             }
         }
         
