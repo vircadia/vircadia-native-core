@@ -51,7 +51,7 @@ $.extend(Settings, {
 var URLs = {
   // STABLE METAVERSE_URL: https://metaverse.highfidelity.com
   // STAGING METAVERSE_URL: https://staging.highfidelity.com
-  METAVERSE_URL: 'http://metaverse.bluestuff.org',
+  METAVERSE_URL: 'http://metaverse.bluestuff.org:9400',
   CDN_URL: 'https://cdn.highfidelity.com',
   PLACE_URL: 'https://hifi.place',
 };

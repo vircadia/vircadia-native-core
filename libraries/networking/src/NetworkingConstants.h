@@ -25,11 +25,11 @@ namespace NetworkingConstants {
     // if you manually generate a personal access token for the domains scope
     // at https://staging.highfidelity.com/user/tokens/new?for_domain_server=true
 
-    const QUrl METAVERSE_SERVER_URL_STABLE { "http://metaverse.bluestuff.org" };
-    const QUrl METAVERSE_SERVER_URL_STAGING { "http://metaverse.bluestuff.org" };
+    const QUrl METAVERSE_SERVER_URL_STABLE { "http://metaverse.bluestuff.org:9400" };
+    const QUrl METAVERSE_SERVER_URL_STAGING { "http://metaverse.bluestuff.org:9400" };
 
     // Web Engine requests to this parent domain have an account authorization header added
-    const QString AUTH_HOSTNAME_BASE = "metaverse.bluestuff.org";
+    const QString AUTH_HOSTNAME_BASE = "metaverse.bluestuff.org:9400";
 
     const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
     const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");
