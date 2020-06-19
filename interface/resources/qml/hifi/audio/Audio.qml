@@ -516,7 +516,7 @@ Rectangle {
 
         Separator {
             id: secondSeparator;
-            anchors.top: systemInjectorGainContainer.visible ? systemInjectorGainContainer.bottom : switchesContainer.bottom;
+            anchors.top: systemInjectorGainContainer.bottom;
             anchors.topMargin: 10;
         }
 
@@ -611,7 +611,7 @@ Rectangle {
 
         Separator {
             id: thirdSeparator;
-            anchors.top: inputView.visible ? inputView.bottom : outputDeviceHeader.bottom;
+            anchors.top: inputView.bottom;
             anchors.topMargin: 10;
         }
 
