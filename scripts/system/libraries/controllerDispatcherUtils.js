@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global module, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform, Mat4,
-   Selection, Uuid,
+   Selection, Uuid, Controller,
    MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, FORBIDDEN_GRAB_TYPES:true,
    HAPTIC_PULSE_STRENGTH:true, HAPTIC_PULSE_DURATION:true, ZERO_VEC:true, ONE_VEC:true,
    DEFAULT_REGISTRATION_POINT:true, INCHES_TO_METERS:true,
@@ -56,6 +56,7 @@
    TEAR_AWAY_DISTANCE:true,
    TEAR_AWAY_COUNT:true,
    TEAR_AWAY_CHECK_TIME:true,
+   TELEPORT_DEADZONE: true,
    NEAR_GRAB_DISTANCE: true,
    distanceBetweenPointAndEntityBoundingBox:true,
    entityIsEquipped:true,
@@ -63,7 +64,8 @@
    clearHighlightedEntities:true,
    unhighlightTargetEntity:true,
    distanceBetweenEntityLocalPositionAndBoundingBox: true,
-   worldPositionToRegistrationFrameMatrix: true
+   worldPositionToRegistrationFrameMatrix: true,
+   handsAreTracked: true
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -600,6 +602,10 @@ worldPositionToRegistrationFrameMatrix = function(wptrProps, pos) {
     return offsetMat;
 };
 
+handsAreTracked = function () {
+    return Controller.getPoseValue(Controller.Standard.LeftHandIndex3).valid ||
+        Controller.getPoseValue(Controller.Standard.RightHandIndex3).valid;
+};
 
 if (typeof module !== 'undefined') {
     module.exports = {
@@ -624,6 +630,7 @@ if (typeof module !== 'undefined') {
         TRIGGER_OFF_VALUE: TRIGGER_OFF_VALUE,
         TRIGGER_ON_VALUE: TRIGGER_ON_VALUE,
         DISPATCHER_HOVERING_LIST: DISPATCHER_HOVERING_LIST,
-        worldPositionToRegistrationFrameMatrix: worldPositionToRegistrationFrameMatrix
+        worldPositionToRegistrationFrameMatrix: worldPositionToRegistrationFrameMatrix,
+        handsAreTracked: handsAreTracked
     };
 }

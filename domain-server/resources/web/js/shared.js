@@ -52,6 +52,7 @@ var URLs = {
   // STABLE METAVERSE_URL: https://metaverse.highfidelity.com
   // STAGING METAVERSE_URL: https://staging.highfidelity.com
   METAVERSE_URL: 'https://metaverse.highfidelity.com',
+  CDN_URL: 'https://cdn.highfidelity.com',
   PLACE_URL: 'https://hifi.place',
 };
 

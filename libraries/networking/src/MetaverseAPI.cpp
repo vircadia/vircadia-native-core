@@ -3,7 +3,7 @@
 //  libraries/networking/src
 //
 //  Created by Kalila (kasenvr) on 2019-12-16.
-//  Copyright 2019 Project Athena 
+//  Copyright 2019 Vircadia
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

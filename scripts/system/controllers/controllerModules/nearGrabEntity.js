@@ -151,7 +151,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.run = function (controllerData, deltaTime) {
 
             if (this.grabbing) {
-                if (controllerData.triggerClicks[this.hand] < TRIGGER_OFF_VALUE &&
+                if (!controllerData.triggerClicks[this.hand] &&
                     controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
                     this.endNearGrabEntity();
                     return makeRunningValues(false, [], []);

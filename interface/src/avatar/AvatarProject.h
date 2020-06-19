@@ -95,7 +95,7 @@ public:
     static bool isValidNewProjectName(const QString& projectPath, const QString& projectName);
 
     static QString getDefaultProjectsPath() {
-        return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/Project Athena Projects";
+        return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/Vircadia Projects";
     }
 
 signals:

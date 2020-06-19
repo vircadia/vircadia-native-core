@@ -15,6 +15,8 @@ if ((WIN32 OR UNIX AND NOT APPLE) AND NOT USE_GLES)
     include_hifi_library_headers(octree)
 
     target_openvr()
+    target_sranipal()
+    target_aristo()
     if (WIN32)
         target_link_libraries(${TARGET_NAME} Winmm.lib)
     endif()
