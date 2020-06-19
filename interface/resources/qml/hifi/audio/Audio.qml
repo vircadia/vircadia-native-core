@@ -682,6 +682,7 @@ Rectangle {
             x: margins.paddings
             anchors.top: outputView.bottom;
             anchors.topMargin: 10;
+            bottomMargin: 5;
         }
     }
 
