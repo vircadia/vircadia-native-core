@@ -332,7 +332,7 @@ Rectangle {
         Item {
             id: avatarGainContainer
             x: margins.paddings;
-            anchors.top: outputView.bottom;
+            anchors.top: pttTextContainer.bottom;
             anchors.topMargin: 10;
             width: parent.width - margins.paddings*2
             height: avatarGainSliderTextMetrics.height
@@ -515,7 +515,7 @@ Rectangle {
 
         Separator {
             id: secondSeparator;
-            anchors.top: pttTextContainer.visible ? pttTextContainer.bottom : switchesContainer.bottom;
+            anchors.top: systemInjectorGainContainer.visible ? systemInjectorGainContainer.bottom : switchesContainer.bottom;
             anchors.topMargin: 10;
         }
 
