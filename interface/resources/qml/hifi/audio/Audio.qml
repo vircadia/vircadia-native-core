@@ -558,6 +558,16 @@ Rectangle {
             anchors { left: parent.left; leftMargin: margins.paddings }
         }
         
+        AudioControls.InputPeak {
+                    id: inputLevel
+                    anchors.right: parent.right
+                    peak: model.peak;
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: ((bar.currentIndex === 1 && isVR) ||
+                             (bar.currentIndex === 0 && !isVR)) &&
+                             AudioScriptingInterface.devices.input.peakValuesAvailable;
+        }
+        
         ListView {
             id: inputView;
             width: rightMostInputLevelPos;
@@ -594,22 +604,13 @@ Rectangle {
                             AudioScriptingInterface.setInputDevice(info, bar.currentIndex === 1);
                         }
                     }
-                }
-                AudioControls.InputPeak {
-                    id: inputLevel
-                    anchors.right: parent.right
-                    peak: model.peak;
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: ((bar.currentIndex === 1 && isVR) ||
-                             (bar.currentIndex === 0 && !isVR)) &&
-                             AudioScriptingInterface.devices.input.peakValuesAvailable;
-                }
+                }  
             }
         }
 
         Separator {
             id: thirdSeparator;
-            anchors.top: loopbackAudio.visible ? loopbackAudio.bottom : inputView.bottom;
+            anchors.top: inputView.visible ? inputView.bottom : outputDeviceHeader.bottom;
             anchors.topMargin: 10;
         }
 
