@@ -603,20 +603,28 @@ var toolBar = (function () {
                 Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
             }
             // Make sure the model entity is loaded before we try to figure out
-            // its dimensions.
-            var MAX_LOADED_CHECKS = 10;
+            // its dimensions. We need to give ample time to load the entity.
+            var MAX_LOADED_CHECKS = 100; // 100 * 100ms = 10 seconds.
             var LOADED_CHECK_INTERVAL = 100;
             var isLoadedCheckCount = 0;
             var entityIsLoadedCheck = function() {
                 isLoadedCheckCount++;
                 if (isLoadedCheckCount === MAX_LOADED_CHECKS || Entities.isLoaded(entityID)) {
                     var naturalDimensions = Entities.getEntityProperties(entityID, "naturalDimensions").naturalDimensions;
-
+                    
+                    if (isLoadedCheckCount === MAX_LOADED_CHECKS) {
+                        console.log("Model entity failed to load in time: " + (MAX_LOADED_CHECKS * LOADED_CHECK_INTERVAL) + " ... setting dimensions to: " + JSON.stringify(naturalDimensions))
+                    }
+                    
                     Entities.editEntity(entityID, {
                         visible: true,
                         dimensions: naturalDimensions
                     })
                     dimensionsCheckCallback();
+                    // We want to update the selection manager again since the script has moved on without us.
+                    selectionManager.clearSelections(this);
+                    entityListTool.sendUpdate();
+                    selectionManager.setSelections([entityID], this);
                     return;
                 }
                 Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);
