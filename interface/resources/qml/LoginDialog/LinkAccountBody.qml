@@ -3,6 +3,7 @@
 //
 //  Created by Clement on 7/18/16
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -485,7 +486,41 @@ Item {
                     }
                 }
             }
+            
+			TextMetrics {
+				id: dismissButtonTextMetrics
+				font: loginErrorMessage.font
+				text: dismissButton.text
+			}
+			HifiControlsUit.Button {
+				id: dismissButton
+				width: loginButton.width
+				height: d.minHeightButton
+				anchors {
+					top: cantAccessText.bottom
+					topMargin: hifi.dimensions.contentSpacing.y
+                    left: loginButton.left
+				}
+//				color: hifi.buttons.noneBorderlessWhite
+				text: qsTr("Skip Log In")
+				fontCapitalization: Font.MixedCase
+				fontFamily: linkAccountBody.fontFamily
+				fontSize: linkAccountBody.fontSize
+				fontBold: linkAccountBody.fontBold
+				visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
+				onClicked: {
+					if (linkAccountBody.loginDialogPoppedUp) {
+						var data = {
+							"action": "user dismissed login screen"
+						};
+						UserActivityLogger.logAction("encourageLoginDialog", data);
+						loginDialog.dismissLoginDialog();
+					}
+					root.tryDestroy();
+				}
+			}
         }
+
         Item {
             id: signUpContainer
             width: loginContainer.width
@@ -541,38 +576,6 @@ Item {
                     bodyLoader.setSource("SignUpBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
                         "errorString": "" });
                 }
-            }
-        }
-        TextMetrics {
-            id: dismissButtonTextMetrics
-            font: loginErrorMessage.font
-            text: dismissButton.text
-        }
-        HifiControlsUit.Button {
-            id: dismissButton
-            width: dismissButtonTextMetrics.width
-            height: d.minHeightButton
-            anchors {
-                bottom: parent.bottom
-                right: parent.right
-                margins: 3 * hifi.dimensions.contentSpacing.y
-            }
-            color: hifi.buttons.noneBorderlessWhite
-            text: qsTr("No thanks, take me in-world! >")
-            fontCapitalization: Font.MixedCase
-            fontFamily: linkAccountBody.fontFamily
-            fontSize: linkAccountBody.fontSize
-            fontBold: linkAccountBody.fontBold
-            visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
-            onClicked: {
-                if (linkAccountBody.loginDialogPoppedUp) {
-                    var data = {
-                        "action": "user dismissed login screen"
-                    };
-                    UserActivityLogger.logAction("encourageLoginDialog", data);
-                    loginDialog.dismissLoginDialog();
-                }
-                root.tryDestroy();
             }
         }
     }
