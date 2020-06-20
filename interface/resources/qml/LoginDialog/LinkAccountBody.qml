@@ -501,7 +501,6 @@ Item {
 					topMargin: hifi.dimensions.contentSpacing.y
                     left: loginButton.left
 				}
-//				color: hifi.buttons.noneBorderlessWhite
 				text: qsTr("Skip Log In")
 				fontCapitalization: Font.MixedCase
 				fontFamily: linkAccountBody.fontFamily
