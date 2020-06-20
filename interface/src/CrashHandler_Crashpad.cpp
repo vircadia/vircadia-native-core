@@ -148,24 +148,30 @@ static constexpr DWORD STATUS_MSVC_CPP_EXCEPTION = 0xE06D7363;
 static constexpr ULONG_PTR MSVC_CPP_EXCEPTION_SIGNATURE = 0x19930520;
 static constexpr int ANNOTATION_LOCK_WEAK_ATTEMPT = 5000; // attempt to lock the annotations list, but give up if it takes more than 5 seconds
 
+LPTOP_LEVEL_EXCEPTION_FILTER gl_nextUnhandledExceptionFilter = nullptr;
+
 #include <Windows.h>
 #include <typeinfo>
 
 void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo);
 
-LONG WINAPI vectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
-    if (!client) {
-        return EXCEPTION_CONTINUE_SEARCH;
-    }
-
-    if (pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_HEAP_CORRUPTION ||
-        pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_STACK_BUFFER_OVERRUN) {
+LONG WINAPI firstChanceExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+    if (client && (pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_HEAP_CORRUPTION ||
+        pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_STACK_BUFFER_OVERRUN)) {
         client->DumpAndCrash(pExceptionInfo);
     }
 
-    if (pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_MSVC_CPP_EXCEPTION) {
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
+LONG WINAPI unhandledExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+    if (client && pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_MSVC_CPP_EXCEPTION) {
         fatalCxxException(pExceptionInfo);
         client->DumpAndCrash(pExceptionInfo);
+    }
+
+    if (gl_nextUnhandledExceptionFilter != nullptr) {
+        return gl_nextUnhandledExceptionFilter(pExceptionInfo);
     }
 
     return EXCEPTION_CONTINUE_SEARCH;
@@ -323,11 +329,16 @@ bool startCrashHandler(std::string appPath) {
     // Enable automated uploads.
     database->GetSettings()->SetUploadsEnabled(true);
 
+    if (!client->StartHandler(handler, db, db, BACKTRACE_URL, annotations, arguments, true, true)) {
+        return false;
+    }
+
 #ifdef Q_OS_WIN
-    AddVectoredExceptionHandler(0, vectoredExceptionHandler);
+    AddVectoredExceptionHandler(0, firstChanceExceptionHandler);
+    gl_nextUnhandledExceptionFilter = SetUnhandledExceptionFilter(unhandledExceptionHandler);
 #endif
 
-    return client->StartHandler(handler, db, db, BACKTRACE_URL, annotations, arguments, true, true);
+    return true;
 }
 
 void setCrashAnnotation(std::string name, std::string value) {
