@@ -487,37 +487,7 @@ Item {
                 }
             }
             
-			TextMetrics {
-				id: dismissButtonTextMetrics
-				font: loginErrorMessage.font
-				text: dismissButton.text
-			}
-			HifiControlsUit.Button {
-				id: dismissButton
-				width: loginButton.width
-				height: d.minHeightButton
-				anchors {
-					top: cantAccessText.bottom
-					topMargin: hifi.dimensions.contentSpacing.y
-                    left: loginButton.left
-				}
-				text: qsTr("Skip Log In")
-				fontCapitalization: Font.MixedCase
-				fontFamily: linkAccountBody.fontFamily
-				fontSize: linkAccountBody.fontSize
-				fontBold: linkAccountBody.fontBold
-				visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
-				onClicked: {
-					if (linkAccountBody.loginDialogPoppedUp) {
-						var data = {
-							"action": "user dismissed login screen"
-						};
-						UserActivityLogger.logAction("encourageLoginDialog", data);
-						loginDialog.dismissLoginDialog();
-					}
-					root.tryDestroy();
-				}
-			}
+
         }
 
         Item {
@@ -576,6 +546,54 @@ Item {
                         "errorString": "" });
                 }
             }
+
+            Text {
+                id: signUpTextSecond
+                text: qsTr("or..")
+                anchors {
+                    left: signUpShortcutText.right
+                    leftMargin: hifi.dimensions.contentSpacing.x
+                }
+                lineHeight: 1
+                color: "white"
+                font.family: linkAccountBody.fontFamily
+                font.pixelSize: linkAccountBody.textFieldFontSize
+                font.bold: linkAccountBody.fontBold
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            TextMetrics {
+				id: dismissButtonTextMetrics
+				font: loginErrorMessage.font
+				text: dismissButton.text
+			}
+			HifiControlsUit.Button {
+				id: dismissButton
+				width: loginButton.width
+				height: d.minHeightButton
+				anchors {
+					top: signUpText.bottom
+					topMargin: hifi.dimensions.contentSpacing.y
+                    left: loginButton.left
+				}
+				text: qsTr("Use without account, log in anonymously")
+				fontCapitalization: Font.MixedCase
+				fontFamily: linkAccountBody.fontFamily
+				fontSize: linkAccountBody.fontSize
+				fontBold: linkAccountBody.fontBold
+				visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
+				onClicked: {
+					if (linkAccountBody.loginDialogPoppedUp) {
+						var data = {
+							"action": "user dismissed login screen"
+						};
+						UserActivityLogger.logAction("encourageLoginDialog", data);
+						loginDialog.dismissLoginDialog();
+					}
+					root.tryDestroy();
+				}
+			}
         }
     }
 
