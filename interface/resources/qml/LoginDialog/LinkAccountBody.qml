@@ -498,7 +498,7 @@ Item {
             anchors {
                 left: loginContainer.left
                 top: loginContainer.bottom
-                topMargin: 0.15 * parent.height
+                topMargin: 0.10 * parent.height
             }
             TextMetrics {
                 id: signUpTextMetrics
