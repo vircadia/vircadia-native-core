@@ -144,18 +144,27 @@ static const QString CRASHPAD_HANDLER_NAME { "crashpad_handler" };
 // ------------------------------------------------------------------------------------------------
 // The area within this #ifdef is specific to the Microsoft C++ compiler
 
-static constexpr DWORD STATUS_MSVC_CPP_EXCEPTION = 0xE06D7363;
-static constexpr ULONG_PTR MSVC_CPP_EXCEPTION_SIGNATURE = 0x19930520;
-static constexpr int ANNOTATION_LOCK_WEAK_ATTEMPT = 5000; // attempt to lock the annotations list, but give up if it takes more than 5 seconds
-
-LPTOP_LEVEL_EXCEPTION_FILTER gl_nextUnhandledExceptionFilter = nullptr;
+#include <QtCore/QCoreApplication>
+#include <QtCore/QDebug>
+#include <QtCore/QLogging.h>
+#include <QtCore/QTimer>
 
 #include <Windows.h>
 #include <typeinfo>
 
-void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo);
+static constexpr DWORD STATUS_MSVC_CPP_EXCEPTION = 0xE06D7363;
+static constexpr ULONG_PTR MSVC_CPP_EXCEPTION_SIGNATURE = 0x19930520;
+static constexpr int ANNOTATION_LOCK_WEAK_ATTEMPT = 5000; // attempt to lock the annotations list, but give up if it takes more than 5 seconds
 
-LONG WINAPI firstChanceExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+LPTOP_LEVEL_EXCEPTION_FILTER gl_crashpadUnhandledExceptionFilter = nullptr;
+QTimer unhandledExceptionTimer; // checks occasionally in case loading an external DLL reset the unhandled exception pointer
+
+void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo); // extracts type information from a thrown C++ exception
+LONG WINAPI firstChanceExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo); // called on any thrown exception (whether or not it's caught)
+LONG WINAPI unhandledExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo); // called on any exception without a corresponding catch
+
+static LONG WINAPI firstChanceExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+    // we're catching these exceptions on first-chance as the system state is corrupted at this point and they may not survive the exception handling mechanism
     if (client && (pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_HEAP_CORRUPTION ||
         pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_STACK_BUFFER_OVERRUN)) {
         client->DumpAndCrash(pExceptionInfo);
@@ -164,35 +173,41 @@ LONG WINAPI firstChanceExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
-LONG WINAPI unhandledExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+static LONG WINAPI unhandledExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
     if (client && pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_MSVC_CPP_EXCEPTION) {
         fatalCxxException(pExceptionInfo);
         client->DumpAndCrash(pExceptionInfo);
     }
 
-    if (gl_nextUnhandledExceptionFilter != nullptr) {
-        return gl_nextUnhandledExceptionFilter(pExceptionInfo);
+    if (gl_crashpadUnhandledExceptionFilter != nullptr) {
+        return gl_crashpadUnhandledExceptionFilter(pExceptionInfo);
     }
 
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
+// The following structures are modified versions of structs defined inplicitly by the Microsoft C++ compiler
+// as described at http://www.geoffchappell.com/studies/msvc/language/predefined/
+// They are redefined here as the definitions the compiler gives only work in 32-bit contexts and are out-of-sync
+// with the internal structures when operating in a 64-bit environment
+// as discovered and described here: https://stackoverflow.com/questions/39113168/c-rtti-in-a-windows-64-bit-vectoredexceptionhandler-ms-visual-studio-2015
+
 #pragma pack(push, ehdata, 4)
 
-struct PMD_internal {
+struct PMD_internal { // internal name: _PMD (no changes, so could in theory just use the original)
     int mdisp;
     int pdisp;
     int vdisp;
 };
 
-struct ThrowInfo_internal {
+struct ThrowInfo_internal { // internal name: _ThrowInfo (changed all pointers into __int32)
     __int32 attributes;
     __int32 pmfnUnwind;           // 32-bit RVA
     __int32 pForwardCompat;       // 32-bit RVA
     __int32 pCatchableTypeArray;  // 32-bit RVA
 };
 
-struct CatchableType_internal {
+struct CatchableType_internal { // internal name: _CatchableType (changed all pointers into __int32)
     __int32 properties;
     __int32 pType;                // 32-bit RVA
     PMD_internal thisDisplacement;
@@ -201,7 +216,7 @@ struct CatchableType_internal {
 };
 
 #pragma warning(disable : 4200)
-struct CatchableTypeArray_internal {
+struct CatchableTypeArray_internal { // internal name: _CatchableTypeArray (changed all pointers into __int32)
     int nCatchableTypes;
     __int32 arrayOfCatchableTypes[0]; // 32-bit RVA
 };
@@ -212,7 +227,12 @@ struct CatchableTypeArray_internal {
 // everything inside this function is extremely undocumented, attempting to extract
 // the underlying C++ exception type (or at least its name) before throwing the whole
 // mess at crashpad
-void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo) {
+// Some links describing how C++ exception handling works in an SEH context
+// (since C++ exceptions are a figment of the Microsoft compiler):
+//  - https://www.codeproject.com/Articles/175482/Compiler-Internals-How-Try-Catch-Throw-are-Interpr
+//  - https://stackoverflow.com/questions/21888076/how-to-find-the-context-record-for-user-mode-exception-on-x64
+
+static void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo) {
     SpinLockLocker guard(crashpadAnnotationsProtect, ANNOTATION_LOCK_WEAK_ATTEMPT);
     if (!guard.isLocked()) {
         return;
@@ -275,9 +295,17 @@ void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo) {
     crashpadAnnotations->SetKeyValue("thrownObjectLike", compatibleObjects.toStdString());
 }
 
+void checkUnhandledExceptionHook() {
+    LPTOP_LEVEL_EXCEPTION_FILTER prevExceptionFilter = SetUnhandledExceptionFilter(unhandledExceptionHandler);
+    if (prevExceptionFilter != unhandledExceptionHandler) {
+        qWarning() << QString("Restored unhandled exception filter (which had been changed to %1)")
+                          .arg(reinterpret_cast<ULONG_PTR>(prevExceptionFilter), 16, 16, QChar('0'));
+    }
+}
+
 // End of code specific to the Microsoft C++ compiler
 // ------------------------------------------------------------------------------------------------
-#endif
+#endif // Q_OS_WIN
 
 bool startCrashHandler(std::string appPath) {
     if (BACKTRACE_URL.empty() || BACKTRACE_TOKEN.empty()) {
@@ -335,7 +363,7 @@ bool startCrashHandler(std::string appPath) {
 
 #ifdef Q_OS_WIN
     AddVectoredExceptionHandler(0, firstChanceExceptionHandler);
-    gl_nextUnhandledExceptionFilter = SetUnhandledExceptionFilter(unhandledExceptionHandler);
+    gl_crashpadUnhandledExceptionFilter = SetUnhandledExceptionFilter(unhandledExceptionHandler);
 #endif
 
     return true;
@@ -354,4 +382,18 @@ void setCrashAnnotation(std::string name, std::string value) {
     }
 }
 
-#endif
+void startCrashHookMonitor(QCoreApplication* app) {
+#ifdef Q_OS_WIN
+    // create a timer that checks to see if our exception handler has been reset.  This may occur when a new CRT
+    // is initialized, which could happen any time a DLL not compiled with the same compiler is loaded.
+    // It would be nice if this were replaced with a more intelligent response; this fires once a minute which
+    // may be too much (extra code running) and too little (leaving up to a 1min gap after the hook is broken)
+    checkUnhandledExceptionHook();
+
+    unhandledExceptionTimer.moveToThread(app->thread());
+    QObject::connect(&unhandledExceptionTimer, &QTimer::timeout, checkUnhandledExceptionHook);
+    unhandledExceptionTimer.start(60000);
+#endif // Q_OS_WIN
+}
+
+#endif // HAS_CRASHPAD
