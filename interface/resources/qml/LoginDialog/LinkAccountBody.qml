@@ -549,7 +549,7 @@ Item {
 
             Text {
                 id: signUpTextSecond
-                text: qsTr("or..")
+                text: qsTr("or")
                 anchors {
                     left: signUpShortcutText.right
                     leftMargin: hifi.dimensions.contentSpacing.x
@@ -561,6 +561,7 @@ Item {
                 font.bold: linkAccountBody.fontBold
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
+                visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
             }
 
             TextMetrics {
