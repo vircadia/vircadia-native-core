@@ -563,36 +563,36 @@ Item {
             }
 
             TextMetrics {
-				id: dismissButtonTextMetrics
-				font: loginErrorMessage.font
-				text: dismissButton.text
-			}
-			HifiControlsUit.Button {
-				id: dismissButton
-				width: loginButton.width
-				height: d.minHeightButton
-				anchors {
-					top: signUpText.bottom
-					topMargin: hifi.dimensions.contentSpacing.y
+                id: dismissButtonTextMetrics
+                font: loginErrorMessage.font
+                text: dismissButton.text
+            }
+            HifiControlsUit.Button {
+                id: dismissButton
+                width: loginButton.width
+                height: d.minHeightButton
+                anchors {
+                    top: signUpText.bottom
+                    topMargin: hifi.dimensions.contentSpacing.y
                     left: loginButton.left
-				}
-				text: qsTr("Use without account, log in anonymously")
-				fontCapitalization: Font.MixedCase
-				fontFamily: linkAccountBody.fontFamily
-				fontSize: linkAccountBody.fontSize
-				fontBold: linkAccountBody.fontBold
-				visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
-				onClicked: {
-					if (linkAccountBody.loginDialogPoppedUp) {
-						var data = {
-							"action": "user dismissed login screen"
-						};
-						UserActivityLogger.logAction("encourageLoginDialog", data);
-						loginDialog.dismissLoginDialog();
-					}
-					root.tryDestroy();
-				}
-			}
+                }
+                text: qsTr("Use without account, log in anonymously")
+                fontCapitalization: Font.MixedCase
+                fontFamily: linkAccountBody.fontFamily
+                fontSize: linkAccountBody.fontSize
+                fontBold: linkAccountBody.fontBold
+                visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
+                onClicked: {
+                    if (linkAccountBody.loginDialogPoppedUp) {
+                        var data = {
+                          "action": "user dismissed login screen"
+                     };
+                     UserActivityLogger.logAction("encourageLoginDialog", data);
+                       loginDialog.dismissLoginDialog();
+                       }
+                    root.tryDestroy();
+                }
+            }
         }
     }
 
