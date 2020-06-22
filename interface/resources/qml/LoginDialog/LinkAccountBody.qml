@@ -585,10 +585,10 @@ Item {
                 onClicked: {
                     if (linkAccountBody.loginDialogPoppedUp) {
                         var data = {
-                          "action": "user dismissed login screen"
-                         };
-                    UserActivityLogger.logAction("encourageLoginDialog", data);
-                    loginDialog.dismissLoginDialog();
+                            "action": "user dismissed login screen"
+                        };
+                        UserActivityLogger.logAction("encourageLoginDialog", data);
+                        loginDialog.dismissLoginDialog();
                     }
                     root.tryDestroy();
                 }
