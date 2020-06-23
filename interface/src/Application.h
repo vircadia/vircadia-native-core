@@ -223,9 +223,7 @@ public:
     bool getPreferStylusOverLaser() { return _preferStylusOverLaserSetting.get(); }
     void setPreferStylusOverLaser(bool value);
 
-    // FIXME: Remove setting completely or make available through JavaScript API?
-    //bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
-    bool getPreferAvatarFingerOverStylus() { return false; }
+    bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
     void setPreferAvatarFingerOverStylus(bool value);
 
     bool getMiniTabletEnabled() { return _miniTabletEnabledSetting.get(); }

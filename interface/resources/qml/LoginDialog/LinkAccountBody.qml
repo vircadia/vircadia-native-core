@@ -3,6 +3,7 @@
 //
 //  Created by Clement on 7/18/16
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -486,6 +487,7 @@ Item {
                 }
             }
         }
+
         Item {
             id: signUpContainer
             width: loginContainer.width
@@ -494,7 +496,7 @@ Item {
             anchors {
                 left: loginContainer.left
                 top: loginContainer.bottom
-                topMargin: 0.15 * parent.height
+                topMargin: 0.05 * parent.height
             }
             TextMetrics {
                 id: signUpTextMetrics
@@ -542,37 +544,54 @@ Item {
                         "errorString": "" });
                 }
             }
-        }
-        TextMetrics {
-            id: dismissButtonTextMetrics
-            font: loginErrorMessage.font
-            text: dismissButton.text
-        }
-        HifiControlsUit.Button {
-            id: dismissButton
-            width: dismissButtonTextMetrics.width
-            height: d.minHeightButton
-            anchors {
-                bottom: parent.bottom
-                right: parent.right
-                margins: 3 * hifi.dimensions.contentSpacing.y
-            }
-            color: hifi.buttons.noneBorderlessWhite
-            text: qsTr("No thanks, take me in-world! >")
-            fontCapitalization: Font.MixedCase
-            fontFamily: linkAccountBody.fontFamily
-            fontSize: linkAccountBody.fontSize
-            fontBold: linkAccountBody.fontBold
-            visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
-            onClicked: {
-                if (linkAccountBody.loginDialogPoppedUp) {
-                    var data = {
-                        "action": "user dismissed login screen"
-                    };
-                    UserActivityLogger.logAction("encourageLoginDialog", data);
-                    loginDialog.dismissLoginDialog();
+
+            Text {
+                id: signUpTextSecond
+                text: qsTr("or")
+                anchors {
+                    left: signUpShortcutText.right
+                    leftMargin: hifi.dimensions.contentSpacing.x
                 }
-                root.tryDestroy();
+                lineHeight: 1
+                color: "white"
+                font.family: linkAccountBody.fontFamily
+                font.pixelSize: linkAccountBody.textFieldFontSize
+                font.bold: linkAccountBody.fontBold
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
+            }
+
+            TextMetrics {
+                id: dismissButtonTextMetrics
+                font: loginErrorMessage.font
+                text: dismissButton.text
+            }
+            HifiControlsUit.Button {
+                id: dismissButton
+                width: loginButton.width
+                height: d.minHeightButton
+                anchors {
+                    top: signUpText.bottom
+                    topMargin: hifi.dimensions.contentSpacing.y
+                    left: loginButton.left
+                }
+                text: qsTr("Use without account, log in anonymously")
+                fontCapitalization: Font.MixedCase
+                fontFamily: linkAccountBody.fontFamily
+                fontSize: linkAccountBody.fontSize
+                fontBold: linkAccountBody.fontBold
+                visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
+                onClicked: {
+                    if (linkAccountBody.loginDialogPoppedUp) {
+                        var data = {
+                            "action": "user dismissed login screen"
+                        };
+                        UserActivityLogger.logAction("encourageLoginDialog", data);
+                        loginDialog.dismissLoginDialog();
+                    }
+                    root.tryDestroy();
+                }
             }
         }
     }

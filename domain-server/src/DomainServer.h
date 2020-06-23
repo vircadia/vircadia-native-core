@@ -36,6 +36,7 @@
 #include "DomainContentBackupManager.h"
 
 #include "PendingAssignedNodeData.h"
+#include "DomainServerExporter.h"
 
 #include <QLoggingCategory>
 
@@ -115,7 +116,7 @@ private slots:
     void sendHeartbeatToIceServer();
     void nodePingMonitor();
 
-    void handleConnectedNode(SharedNodePointer newNode, quint64 requestReceiveTime); 
+    void handleConnectedNode(SharedNodePointer newNode, quint64 requestReceiveTime);
     void handleTempDomainSuccess(QNetworkReply* requestReply);
     void handleTempDomainError(QNetworkReply* requestReply);
 
@@ -138,6 +139,7 @@ private slots:
     void updateReplicatedNodes();
     void updateDownstreamNodes();
     void updateUpstreamNodes();
+    void initializeExporter();
 
     void tokenGrantFinished();
     void profileRequestFinished();
@@ -234,8 +236,10 @@ private:
     std::vector<QString> _replicatedUsernames;
 
     DomainGatekeeper _gatekeeper;
+    DomainServerExporter _exporter;
 
     HTTPManager _httpManager;
+    HTTPManager* _httpExporterManager { nullptr };
     std::unique_ptr<HTTPSManager> _httpsManager;
 
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;
