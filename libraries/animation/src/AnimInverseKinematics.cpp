@@ -25,6 +25,7 @@
 
 static const int MAX_TARGET_MARKERS = 30;
 static const float JOINT_CHAIN_INTERP_TIME = 0.5f;
+static const int WARNING_DEBOUNCE_TIME = 30000; // 30 seconds
 
 static void lookupJointInfo(const AnimInverseKinematics::JointChainInfo& jointChainInfo,
                             int indexA, int indexB,
@@ -158,6 +159,16 @@ void AnimInverseKinematics::setTargetVars(const QString& jointName, const QStrin
     }
 }
 
+bool debounceJointWarnings() {
+    static QTime last_call;
+
+    if (last_call.elapsed() >= WARNING_DEBOUNCE_TIME || !last_call.isValid()) {
+        last_call.restart();
+        return true;
+    }
+    return false;
+}
+
 void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses) {
 
     _hipsTargetIndex = -1;
@@ -172,7 +183,7 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
             if (jointIndex >= 0) {
                 // this targetVar has a valid joint --> cache the indices
                 targetVar.jointIndex = jointIndex;
-            } else {
+            } else if (debounceJointWarnings()) {
                 qCWarning(animation) << "AnimInverseKinematics could not find jointName" << targetVar.jointName << "in skeleton";
             }
         }
