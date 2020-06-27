@@ -96,7 +96,8 @@ Item {
 
                 HifiControls.ImageMessageBox {
                     id: imageMessageBox
-                    anchors.fill: parent
+                    anchors.top: parent.top
+                    anchors.topMargin: 444
                     z: 2000
                     imageWidth: 442
                     imageHeight: 670
