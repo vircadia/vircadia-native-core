@@ -179,7 +179,7 @@ Item {
                     HifiControls.CheckBox {
                         id: checkBox
                         colorScheme: hifi.colorSchemes.dark
-                        text: "show all input devices"
+                        text: "Show all input devices"
 
                         onClicked: {
                             box.model = inputPlugins();

@@ -361,9 +361,9 @@ Flickable {
             RalewayRegular {
                 id: info
 
-                text: "See Recommended Tracker Placement"
+                text: "See Recommended Placement"
                 color: hifi.colors.blueHighlight
-                size: 10
+                size: 12
                 anchors {
                     left: additional.right
                     leftMargin: 10
@@ -416,7 +416,6 @@ Flickable {
                     id: feetBox
                     width: 15
                     height: 15
-                    boxRadius: 7
 
                     onClicked: {
                         if (!checked) {
@@ -447,7 +446,6 @@ Flickable {
                     id: hipBox
                     width: 15
                     height: 15
-                    boxRadius: 7
 
                     onClicked: {
                         if (checked) {
@@ -487,7 +485,6 @@ Flickable {
                     id: chestBox
                     width: 15
                     height: 15
-                    boxRadius: 7
 
                     onClicked: {
                         if (checked) {
@@ -525,7 +522,6 @@ Flickable {
                     id: shoulderBox
                     width: 15
                     height: 15
-                    boxRadius: 7
 
                     onClicked: {
                         if (checked) {
@@ -824,7 +820,6 @@ Flickable {
                 id: viveInDesktop
                 width: 15
                 height: 15
-                boxRadius: 7
 
                 anchors.top: advanceSettings.bottom
                 anchors.topMargin: 5
@@ -846,7 +841,6 @@ Flickable {
                 id: eyeTracking
                 width: 15
                 height: 15
-                boxRadius: 7
 
                 anchors.top: viveInDesktop.bottom
                 anchors.topMargin: 5
