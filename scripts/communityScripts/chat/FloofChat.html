@@ -12,6 +12,7 @@
     <link type="text/css" rel="stylesheet" href="css/FloofChat.css" media="screen,projection"/>
 
     <link href="https://fonts.googleapis.com/css?family=Raleway:300,400,600,700" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400&display=swap" rel="stylesheet"> 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 
 </head>
@@ -191,7 +192,7 @@
                         }
                     // else fall through to default
                     default:
-                        elContent = elContent.replace(this, "<br/><a href=\"javascript:gotoURL('" + this + "');\">" + this + "</a>");
+                        elContent = elContent.replace(this, "<br/><a onclick=\"gotoURL('" + this + "');return false;\" href=\"" + this + "\">" + this + "</a>");
                         break;
                 }
 

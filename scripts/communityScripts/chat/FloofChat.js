@@ -23,6 +23,9 @@ var SHIFT_KEY = 33554432;
 var FLOOF_CHAT_CHANNEL = "Chat";
 var FLOOF_NOTIFICATION_CHANNEL = "Floof-Notif";
 
+var MAIN_CHAT_WINDOW_HEIGHT = 450;
+var MAIN_CHAT_WINDOW_WIDTH = 750;
+
 Script.scriptEnding.connect(function () {
     shutdown();
 });
@@ -50,14 +53,14 @@ var visible = false;
 var historyVisible = false;
 var settingsRoot = "FloofChat";
 
-var athenaGotoUrl = "https://metaverse.projectathena.io/interim/d-goto/app/goto.json";
-var gotoJSONUrl = Settings.getValue(settingsRoot + "/gotoJSONUrl", athenaGotoUrl);
+var vircadiaGotoUrl = "https://metaverse.vircadia.com/interim/d-goto/app/goto.json";
+var gotoJSONUrl = Settings.getValue(settingsRoot + "/gotoJSONUrl", vircadiaGotoUrl);
 
 var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain": false, "Grid": true});
 
 var ws;
 var wsReady = false;
-var WEB_SOCKET_URL = "ws://chat.projectathena.io:8880";  // WebSocket for Grid chat.
+var WEB_SOCKET_URL = "ws://chat.vircadia.com:8880";  // WebSocket for Grid chat.
 var shutdownBool = false;
 
 var defaultColour = {red: 255, green: 255, blue: 255};
@@ -166,11 +169,11 @@ function setupHistoryWindow() {
     chatHistory = new OverlayWebWindow({
         title: 'Chat',
         source: ROOT + "FloofChat.html?appUUID=" + appUUID + "&" + Date.now(),
-        width: 900,
-        height: 700,
+        width: MAIN_CHAT_WINDOW_WIDTH,
+        height: MAIN_CHAT_WINDOW_HEIGHT,
         visible: false
     });
-    chatHistory.setPosition({x: 0, y: Window.innerHeight - 700});
+    chatHistory.setPosition({x: 0, y: Window.innerHeight - MAIN_CHAT_WINDOW_HEIGHT});
     chatHistory.webEventReceived.connect(onWebEventReceived);
     chatHistory.closed.connect(toggleChatHistory);
 }
@@ -293,7 +296,7 @@ function onWebEventReceived(event) {
             colours[event.colourType] = event.colour;
         }
         if (event.cmd === "REDOCK") {
-            chatHistory.setPosition({x: 0, y: Window.innerHeight - 700});
+            chatHistory.setPosition({x: 0, y: Window.innerHeight - MAIN_CHAT_WINDOW_HEIGHT});
         }
         if (event.cmd === "GOTO") {
             gotoConfirm(event.url);
@@ -464,14 +467,16 @@ function messageReceived(channel, message) {
 
 function time() {
     var d = new Date();
+    var month = (d.getMonth()).toString();
+    var day = (d.getDate()).toString();
     var h = (d.getHours()).toString();
     var m = (d.getMinutes()).toString();
     var s = (d.getSeconds()).toString();
     var h2 = ("0" + h).slice(-2);
     var m2 = ("0" + m).slice(-2);
     var s2 = ("0" + s).slice(-2);
-    s2 += (d.getMilliseconds() / 1000).toFixed(2).slice(1);
-    return h2 + ":" + m2 + ":" + s2;
+    // s2 += (d.getMilliseconds() / 1000).toFixed(2).slice(1);
+    return month + "/" + day + "-" + h2 + ":" + m2 + ":" + s2;
 }
 
 function addToLog(msg, dp, colour, tab) {
