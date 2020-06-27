@@ -279,6 +279,10 @@ void ViveControllerManager::setConfigurationSettings(const QJsonObject configura
             _hmdDesktopTracking = configurationSettings["hmdDesktopTracking"].toBool();
         }
 
+        if (configurationSettings.contains("eyeTrackingEnabled")) {
+            _eyeTrackingEnabled = configurationSettings["eyeTrackingEnabled"].toBool();
+        }
+
         _inputDevice->configureCalibrationSettings(configurationSettings);
         saveSettings();
     }
@@ -289,6 +293,7 @@ QJsonObject ViveControllerManager::configurationSettings() {
         QJsonObject configurationSettings = _inputDevice->configurationSettings();
         configurationSettings["desktopMode"] = _desktopMode;
         configurationSettings["hmdDesktopTracking"] = _hmdDesktopTracking;
+        configurationSettings["eyeTrackingEnabled"] = _eyeTrackingEnabled;
         return configurationSettings;
     }
 
@@ -801,7 +806,7 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
         _registeredWithInputMapper = true;
     }
 
-    if (_viveProEye) {
+    if (_viveProEye && _eyeTrackingEnabled) {
         updateEyeTracker(deltaTime, inputCalibrationData);
     }
 
@@ -821,6 +826,9 @@ void ViveControllerManager::loadSettings() {
             _inputDevice->_shoulderWidth = settings.value("shoulderWidth", QVariant(DEFAULT_SHOULDER_WIDTH)).toDouble();
             _inputDevice->_outOfRangeDataStrategy = stringToOutOfRangeDataStrategy(settings.value("outOfRangeDataStrategy", QVariant(DEFAULT_OUT_OF_RANGE_STRATEGY)).toString());
         }
+
+        const bool DEFAULT_EYE_TRACKING_ENABLED = false;
+        _eyeTrackingEnabled = settings.value("eyeTrackingEnabled", QVariant(DEFAULT_EYE_TRACKING_ENABLED)).toBool();
     }
     settings.endGroup();
 }
@@ -835,6 +843,8 @@ void ViveControllerManager::saveSettings() const {
             settings.setValue(QString("shoulderWidth"), _inputDevice->_shoulderWidth);
             settings.setValue(QString("outOfRangeDataStrategy"), outOfRangeDataStrategyToString(_inputDevice->_outOfRangeDataStrategy));
         }
+
+        settings.setValue(QString("eyeTrackingEnabled"), _eyeTrackingEnabled);
     }
     settings.endGroup();
 }

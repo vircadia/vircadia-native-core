@@ -71,6 +71,7 @@ Flickable {
 
             property int state: buttonState.disabled
             property var lastConfiguration:  null
+            property bool isConfiguring: false
 
             HifiConstants { id: hifi }
 
@@ -840,9 +841,72 @@ Flickable {
                 }
             }
 
+
+            HifiControls.CheckBox {
+                id: eyeTracking
+                width: 15
+                height: 15
+                boxRadius: 7
+
+                anchors.top: viveInDesktop.bottom
+                anchors.topMargin: 5
+                anchors.left: openVrConfiguration.left
+                anchors.leftMargin: leftMargin + 10
+
+                onClicked: {
+                    sendConfigurationSettings();
+                }
+            }
+
+            RalewayBold {
+                id: eyeTrackingLabel
+                size: 12
+                text: "Use eye tracking (if available)."
+                color: hifi.colors.lightGrayText
+                anchors {
+                    left: eyeTracking.right
+                    leftMargin: 5
+                    verticalCenter: eyeTracking.verticalCenter
+                }
+            }
+
+            RalewayRegular {
+                id: privacyStatement
+                text: "Privacy Statement"
+                color: hifi.colors.blueHighlight
+                size: 12
+                anchors {
+                    left: eyeTrackingLabel.right
+                    leftMargin: 10
+                    verticalCenter: eyeTrackingLabel.verticalCenter
+                }
+
+                Rectangle {
+                    id: privacyStatementUnderline
+                    color: hifi.colors.blueHighlight
+                    width: privacyStatement.width
+                    height: 1
+                    anchors {
+                        top: privacyStatement.bottom
+                        topMargin: 1
+                        left: privacyStatement.left
+                    }
+                    visible: false
+                }
+
+                MouseArea {
+                    anchors.fill: parent;
+                    hoverEnabled: true
+                    onEntered: privacyStatementUnderline.visible = true;
+                    onExited: privacyStatementUnderline.visible = false;
+                    onClicked: HiFiAbout.openUrl("https://vircadia.com/");  // FIXME: URL for privacy statement.
+                }
+            }
+
+
             Row {
                 id: outOfRangeDataStrategyRow
-                anchors.top: viveInDesktop.bottom
+                anchors.top: eyeTracking.bottom
                 anchors.topMargin: 5
                 anchors.left: openVrConfiguration.left
                 anchors.leftMargin: leftMargin + 10
@@ -966,6 +1030,8 @@ Flickable {
             }
 
             function displayConfiguration() {
+                isConfiguring = true;
+
                 var settings = InputConfiguration.configurationSettings(openVrConfiguration.pluginName);
                 var configurationType = settings["trackerConfiguration"];
                 displayTrackerConfiguration(configurationType);
@@ -982,6 +1048,7 @@ Flickable {
                 var viveController = settings["handController"];
                 var desktopMode = settings["desktopMode"];
                 var hmdDesktopPosition = settings["hmdDesktopTracking"];
+                var eyeTrackingEnabled = settings["eyeTrackingEnabled"];
 
                 armCircumference.realValue = settings.armCircumference;
                 shoulderWidth.realValue = settings.shoulderWidth;
@@ -1004,6 +1071,7 @@ Flickable {
 
                 viveInDesktop.checked = desktopMode;
                 hmdInDesktop.checked = hmdDesktopPosition;
+                eyeTracking.checked = eyeTrackingEnabled;
                 outOfRangeDataStrategyComboBox.currentIndex = outOfRangeDataStrategyComboBox.model.indexOf(settings.outOfRangeDataStrategy);
 
                 initializeButtonState();
@@ -1014,6 +1082,8 @@ Flickable {
                 };
 
                 UserActivityLogger.logAction("mocap_ui_open_dialog", data);
+
+                isConfiguring = false;
             }
 
             function displayTrackerConfiguration(type) {
@@ -1170,6 +1240,7 @@ Flickable {
                     "shoulderWidth": shoulderWidth.realValue,
                     "desktopMode": viveInDesktop.checked,
                     "hmdDesktopTracking": hmdInDesktop.checked,
+                    "eyeTrackingEnabled": eyeTracking.checked,
                     "outOfRangeDataStrategy": outOfRangeDataStrategyComboBox.model[outOfRangeDataStrategyComboBox.currentIndex]
                 }
 
@@ -1177,6 +1248,10 @@ Flickable {
             }
 
             function sendConfigurationSettings() {
+                if (isConfiguring) {
+                    // Ignore control value changes during dialog initialization.
+                    return;
+                }
                 var settings = composeConfigurationSettings();
                 InputConfiguration.setConfigurationSettings(settings, openVrConfiguration.pluginName);
                 updateCalibrationButton();
