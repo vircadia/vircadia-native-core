@@ -172,13 +172,13 @@
                     case ext == "JPG":
                     case ext == "GIF":
                     case ext == "JPEG":
-                        elContent = elContent.replace(this, "<br/><img src='" + this + "'class=\"responsive z-depth-2\"><br/><a href=\"javascript:gotoClipboard('" + this + "');\" target='_blank'>" + this + "</a>");
+                        elContent = elContent.replace(this, "<br/><img src='" + this + "'class=\"responsive z-depth-2\"><br/><a href=\"javascript:gotoClipboard('" + this + "');\" target='_blank'>" + this + "</a><a onclick=\"gotoExternalURL('" + this + "');return false;\"href=\"" + this + "\">📲</a>");
                         break;
                     case ext == "iframe":
                         elContent = elContent.replace(this, "<br/><iframe class=\"z-depth-2\" src='" + this + "'width=\"440\" height=\"248\" frameborder=\"0\"></iframe>");
                         break;
                     case ext == "webm":
-                        elContent = elContent.replace(this, "<br/><video controls class=\"z-depth-2 responsive\"><source src='" + this + "' type='video/" + ext + "'></video><br/><a href=\"javascript:gotoClipboard('" + this + "');\">" + this + "</a>");
+                        elContent = elContent.replace(this, "<br/><video controls class=\"z-depth-2 responsive\"><source src='" + this + "' type='video/" + ext + "'></video><br/><a href=\"javascript:gotoClipboard('" + this + "');\">" + this + "</a><a onclick=\"gotoExternalURL('" + this + "');return false;\"href=\"" + this + "\">📲</a>");
                         break;
                     case protocol === "HIFI":
                     case protocol === "hifi":
@@ -187,13 +187,14 @@
 					          case !!this.match(/(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([^& \n<]+)(?:[^ \n<]+)?/g):
                         var youtubeMatch = this.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
                         if (youtubeMatch && youtubeMatch[2].length == 11) {
-                            elContent = "<br/><iframe class=\"z-depth-2\" width='420' height='236' src='https://www.youtube.com/embed/" + youtubeMatch[2] + "' frameborder='0'></iframe><br/><a href=\"javascript:gotoURL('" + this + "');\">" + this + "</a>";
+                            elContent = "<br/><iframe class=\"z-depth-2\" width='420' height='236' src='https://www.youtube.com/embed/" + youtubeMatch[2] + "' frameborder='0'></iframe><br/><a href=\"javascript:gotoURL('" + this + "');\">" + this + "</a><a onclick=\"gotoExternalURL('" + this + "');return false;\"href=\"" + this + "\">📲</a>";
                             break;
                         }
                     // else fall through to default
                     default:
-                        elContent = elContent.replace(this, "<br/><a onclick=\"gotoURL('" + this + "');return false;\" href=\"" + this + "\">" + this + "</a>");
+                        elContent = elContent.replace(this, "<br/><a onclick=\"gotoURL('" + this + "');return false;\" href=\"" + this + "\">" + this + "</a><a onclick=\"gotoExternalURL('" + this + "');return false;\"href=\"" + this + "\">📲</a>");
                         break;
+                        
                 }
 
             });
@@ -284,6 +285,10 @@
 
     function gotoURL(url) {
         emitWebEvent({type: "CMD", cmd: "URL", url: url});
+    }
+    
+    function gotoExternalURL(url) {
+        emitWebEvent({type: "CMD", cmd: "EXTERNALURL", url: url});
     }
 
     function gotoClipboard(url) {

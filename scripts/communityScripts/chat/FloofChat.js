@@ -310,6 +310,9 @@ function onWebEventReceived(event) {
                 visible: true
             });
         }
+        if (event.cmd === "EXTERNALURL") {
+            Window.openUrl(event.url);
+        }
         if (event.cmd === "COPY") {
             Window.copyToClipboard(event.url);
         }
