@@ -863,6 +863,9 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
         if (_headsetName == "HTC") {
             _headsetName += " Vive";
         }
+        if (oculusViaOpenVR()) {
+            _headsetName = "OpenVR";  // Enables calibration dialog to function when debugging using Oculus.
+        }
     }
     // While the keyboard is open, we defer strictly to the keyboard values
     if (isOpenVrKeyboardShown()) {
