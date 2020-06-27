@@ -323,7 +323,7 @@
         location.reload();
     }
 
-    function logMessage(userName, message, logScreen, colour) {
+    function logMessage(timestamp, userName, message, logScreen, colour) {
         var LogScreen = $("#" + logScreen);
         var $logLine =
             $('<div/>')
@@ -334,6 +334,10 @@
                 .addClass('z-depth-2')
                 .data('chat-message', message).css("color", rgbToHex(colour))
                 .appendTo(LogScreen);
+        $('<span/>')
+            .addClass('LogLogLineTimestamp')
+            .text(timestamp).css("color", rgbToHex(colour))
+            .appendTo($logLine);
         $('<b/>')
             .addClass('LogLogLineMessage')
             .text(userName + ": ").css("color", rgbToHex(colour))
@@ -431,11 +435,11 @@
                         var temp = cmd.data;
                         if (temp.length === 1) {
                             var temp2 = temp[0];
-                            logMessage("[" + temp2[0] + "] " + temp2[2], temp2[1], temp2[4], temp2[3]);
+                            logMessage("[" + temp2[0] + "] ", temp2[2], temp2[1], temp2[4], temp2[3]);
                             scrollChatLog(temp2[4]);
                         } else if (temp.length > 1) {
                             temp.forEach(function (msg) {
-                                logMessage("[" + msg[0] + "] " + msg[2], msg[1], msg[4], msg[3]);
+                                logMessage("[" + msg[0] + "] ", msg[2], msg[1], msg[4], msg[3]);
                                 scrollChatLog(msg[4]);
                             });
                         }

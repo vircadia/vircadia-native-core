@@ -476,12 +476,13 @@ function time() {
     var m2 = ("0" + m).slice(-2);
     var s2 = ("0" + s).slice(-2);
     // s2 += (d.getMilliseconds() / 1000).toFixed(2).slice(1);
-    return month + "/" + day + "-" + h2 + ":" + m2 + ":" + s2;
+    return month + "/" + day + " - " + h2 + ":" + m2 + ":" + s2;
 }
 
 function addToLog(msg, dp, colour, tab) {
-    historyLog.push([time(), msg, dp, colour, tab]);
-    chatHistory.emitScriptEvent(JSON.stringify({type: "MSG", data: [[time(), msg, dp, colour, tab]]}));
+    var currentTimestamp = time();
+    historyLog.push([currentTimestamp, msg, dp, colour, tab]);
+    chatHistory.emitScriptEvent(JSON.stringify({type: "MSG", data: [[currentTimestamp, msg, dp, colour, tab]]}));
     while (historyLog.length > chatHistoryLimit) {
         historyLog.shift();
     }
