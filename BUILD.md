@@ -78,7 +78,7 @@ Where /path/to/directory is the path to a directory where you wish the build fil
     BUILD_NUMBER
 
     // The type of release.
-    RELEASE_TYPE=PRODUCTION|PR
+    RELEASE_TYPE=PRODUCTION|PR|DEV
     
     // TODO: What do these do?
     PRODUCTION_BUILD=0|1
