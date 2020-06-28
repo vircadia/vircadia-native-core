@@ -18,26 +18,26 @@
 	dh $@ --with=systemd
 
 override_dh_systemd_enable:
-	dh_systemd_enable --no-enable --name athena-assignment-client athena-assignment-client.service
-	dh_systemd_enable --no-enable --name athena-assignment-client@ athena-assignment-client@.service
-	dh_systemd_enable --no-enable --name athena-domain-server athena-domain-server.service
-	dh_systemd_enable --no-enable --name athena-domain-server@ athena-domain-server@.service
-	#dh_systemd_enable --no-enable --name athena-ice-server athena-ice-server.service
-	#dh_systemd_enable --no-enable --name athena-ice-server@ athena-ice-server@.service
-	dh_systemd_enable --no-enable --name athena-server athena-server.target
-	dh_systemd_enable --no-enable --name athena-server@ athena-server@.target
-	#dh_systemd_enable --name athena-server@default athena-server@default.target
+	dh_systemd_enable --no-enable --name vircadia-assignment-client vircadia-assignment-client.service
+	dh_systemd_enable --no-enable --name vircadia-assignment-client@ vircadia-assignment-client@.service
+	dh_systemd_enable --no-enable --name vircadia-domain-server vircadia-domain-server.service
+	dh_systemd_enable --no-enable --name vircadia-domain-server@ vircadia-domain-server@.service
+	#dh_systemd_enable --no-enable --name vircadia-ice-server vircadia-ice-server.service
+	#dh_systemd_enable --no-enable --name vircadia-ice-server@ vircadia-ice-server@.service
+	dh_systemd_enable --no-enable --name vircadia-server vircadia-server.target
+	dh_systemd_enable --no-enable --name vircadia-server@ vircadia-server@.target
+	#dh_systemd_enable --name vircadia-server@default vircadia-server@default.target
 
 override_dh_systemd_start:
-	dh_systemd_start --restart-after-upgrade --no-start athena-assignment-client.service
-	dh_systemd_start --restart-after-upgrade --no-start athena-assignment-client@.service
-	dh_systemd_start --restart-after-upgrade --no-start athena-domain-server.service
-	dh_systemd_start --restart-after-upgrade --no-start athena-domain-server@.service
-	#dh_systemd_start --restart-after-upgrade --no-start athena-ice-server.service
-	#dh_systemd_start --restart-after-upgrade --no-start athena-ice-server@.service
-	dh_systemd_start --restart-after-upgrade --no-start athena-server.target
-	dh_systemd_start --restart-after-upgrade --no-start athena-server@.target
-	#dh_systemd_start --restart-after-upgrade athena-server@default.target
+	dh_systemd_start --restart-after-upgrade --no-start vircadia-assignment-client.service
+	dh_systemd_start --restart-after-upgrade --no-start vircadia-assignment-client@.service
+	dh_systemd_start --restart-after-upgrade --no-start vircadia-domain-server.service
+	dh_systemd_start --restart-after-upgrade --no-start vircadia-domain-server@.service
+	#dh_systemd_start --restart-after-upgrade --no-start vircadia-ice-server.service
+	#dh_systemd_start --restart-after-upgrade --no-start vircadia-ice-server@.service
+	dh_systemd_start --restart-after-upgrade --no-start vircadia-server.target
+	dh_systemd_start --restart-after-upgrade --no-start vircadia-server@.target
+	#dh_systemd_start --restart-after-upgrade vircadia-server@default.target
 
 override_dh_installinit:
 	dh_installinit --noscripts

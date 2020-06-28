@@ -347,7 +347,6 @@ static const QString STANDARD_TO_ACTION_MAPPING_NAME = "Standard to Action";
 static const QString NO_MOVEMENT_MAPPING_NAME = "Standard to Action (No Movement)";
 static const QString NO_MOVEMENT_MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/standard_nomovement.json";
 
-static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
 static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
 static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 static const QString ACTIVE_DISPLAY_PLUGIN_SETTING_NAME = "activeDisplayPlugin";
@@ -656,8 +655,8 @@ private:
 /**jsdoc
  * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property
  * values are integer IDs, uniquely identifying each output. <em>Read-only.</em></p>
- * <p>These states can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject} 
- * mapping (e.g., using the {@link RouteObject#when} method). Each data value is either <code>1.0</code> for "true" or 
+ * <p>These states can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject}
+ * mapping (e.g., using the {@link RouteObject#when} method). Each data value is either <code>1.0</code> for "true" or
  * <code>0.0</code> for "false".</p>
  * <table>
  *   <thead>
@@ -679,7 +678,7 @@ private:
  *     <tr><td><code>CameraIndependent</code></td><td>number</td><td>number</td><td>The camera is in independent mode.</td></tr>
  *     <tr><td><code>CameraEntity</code></td><td>number</td><td>number</td><td>The camera is in entity mode.</td></tr>
  *     <tr><td><code>InHMD</code></td><td>number</td><td>number</td><td>The user is in HMD mode.</td></tr>
- *     <tr><td><code>AdvancedMovement</code></td><td>number</td><td>number</td><td>Advanced movement (walking) controls are 
+ *     <tr><td><code>AdvancedMovement</code></td><td>number</td><td>number</td><td>Advanced movement (walking) controls are
  *       enabled.</td></tr>
  *     <tr><td><code>StrafeEnabled</code></td><td>number</td><td>number</td><td>Strafing is enabled</td></tr>
  *     <tr><td><code>LeftHandDominant</code></td><td>number</td><td>number</td><td>Dominant hand set to left.</td></tr>
@@ -829,7 +828,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         audioDLLPath += "/audioWin7";
     }
     QCoreApplication::addLibraryPath(audioDLLPath);
-#endif 
+#endif
 
     QString defaultScriptsOverrideOption = getCmdOption(argc, constArgv, "--defaultScriptsOverride");
 
@@ -949,7 +948,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AvatarPackager>();
     DependencyManager::set<ScreenshareScriptingInterface>();
     PlatformHelper::setup();
-    
+
     QObject::connect(PlatformHelper::instance(), &PlatformHelper::systemWillWake, [] {
         QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "noteAwakening", Qt::QueuedConnection);
@@ -1162,7 +1161,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         deadlockWatchdogThread->setMainThreadID(QThread::currentThreadId());
         deadlockWatchdogThread->start();
 
-        // Pause the deadlock watchdog when we sleep, or it might 
+        // Pause the deadlock watchdog when we sleep, or it might
         // trigger a false positive when we wake back up
         auto platformHelper = PlatformHelper::instance();
 
@@ -3790,9 +3789,8 @@ void Application::setPreferredCursor(const QString& cursorName) {
 
     if (_displayPlugin && _displayPlugin->isHmd()) {
         _preferredCursor.set(cursorName.isEmpty() ? DEFAULT_CURSOR_NAME : cursorName);
-    }
-    else { 
-        _preferredCursor.set(cursorName.isEmpty() ? Cursor::Manager::getIconName(Cursor::Icon::SYSTEM) : cursorName); 
+    } else {
+        _preferredCursor.set(cursorName.isEmpty() ? Cursor::Manager::getIconName(Cursor::Icon::SYSTEM) : cursorName);
     }
 
     showCursor(Cursor::Manager::lookupIcon(_preferredCursor.get()));
@@ -3979,7 +3977,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
         sentTo = SENT_TO_PREVIOUS_LOCATION;
     }
-    
+
     UserActivityLogger::getInstance().logAction("startup_sent_to", {
         { "sent_to", sentTo },
         { "sandbox_is_running", sandboxIsRunning },
@@ -4214,7 +4212,7 @@ bool Application::event(QEvent* event) {
             idle();
 
 #ifdef DEBUG_EVENT_QUEUE_DEPTH
-            // The event queue may very well grow beyond 400, so 
+            // The event queue may very well grow beyond 400, so
             // this code should only be enabled on local builds
             {
                 int count = ::hifi::qt::getEventQueueSize(QThread::currentThread());
@@ -4253,7 +4251,7 @@ bool Application::event(QEvent* event) {
         { //testing to see if we can set focus when focus is not set to root window.
             _glWidget->activateWindow();
             _glWidget->setFocus();
-            return true; 
+            return true;
         }
 
         case QEvent::TouchBegin:
@@ -5238,7 +5236,7 @@ void Application::idle() {
         }
     }
 #endif
-    
+
     checkChangeCursor();
 
 #if !defined(DISABLE_QML)
@@ -5491,7 +5489,7 @@ void Application::loadSettings() {
     RenderScriptingInterface::getInstance()->loadSettings();
 
     // Setup the PerformanceManager which will enforce the several settings to match the Preset
-    // On the first run, the Preset is evaluated from the 
+    // On the first run, the Preset is evaluated from the
     getPerformanceManager().setupPerformancePresetSettings(_firstRun.get());
 
     // finish initializing the camera, based on everything we checked above. Third person camera will be used if no settings
@@ -5537,7 +5535,7 @@ bool Application::importEntities(const QString& urlOrFilename, const bool isObse
     _entityClipboard->withWriteLock([&] {
         _entityClipboard->eraseAllOctreeElements();
 
-        // FIXME: readFromURL() can take over the main event loop which may cause problems, especially if downloading the JSON 
+        // FIXME: readFromURL() can take over the main event loop which may cause problems, especially if downloading the JSON
         // from the Web.
         success = _entityClipboard->readFromURL(urlOrFilename, isObservable, callerId);
         if (success) {
@@ -7621,7 +7619,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 
     QUrl scriptURL { scriptFilenameOrURL };
 
-    if (scriptURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
+    if (scriptURL.host().endsWith(NetworkingConstants::MARKETPLACE_CDN_HOSTNAME)) {
         int startIndex = shortName.lastIndexOf('/') + 1;
         int endIndex = shortName.lastIndexOf('?');
         shortName = shortName.mid(startIndex, endIndex - startIndex);
@@ -7744,7 +7742,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
     const int MAX_CHARACTERS_PER_LINE = 90;
     if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
         QUrl originURL { url };
-        if (originURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
+        if (originURL.host().endsWith(NetworkingConstants::MARKETPLACE_CDN_HOSTNAME)) {
             // Create a confirmation dialog when this call is made
             static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
                 "If you want to save what you have now, create a backup before proceeding. For more information about backing up "
@@ -8737,7 +8735,7 @@ bool Application::isThrottleRendering() const {
 bool Application::hasFocus() const {
     bool result = (QApplication::activeWindow() != nullptr);
 
-    
+
 #if defined(Q_OS_WIN)
     // On Windows, QWidget::activateWindow() - as called in setFocus() - makes the application's taskbar icon flash but doesn't
     // take user focus away from their current window. So also check whether the application is the user's current foreground

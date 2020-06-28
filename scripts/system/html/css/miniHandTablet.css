@@ -1,0 +1,56 @@
+/*
+miniTablet.css
+
+Copyright 2019 High Fidelity, Inc.
+
+Distributed under the Apache License, Version 2.0.
+See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+*/
+
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    user-select: none;
+}
+
+html {
+    background-color: #404040;
+}
+
+body {
+    height: 100%;
+}
+
+section {
+    background-color: #404040;
+    position: relative;
+    padding: 32px 0px;
+}
+
+.button {
+    text-align: center;
+}
+
+img {
+    width: 149px;
+    height: 149px;
+}
+
+#expand {
+    width: 149px;
+    height: 149px;
+    background-size: 100% 100%;
+    background-image: url("./img/mt-expand-normal.svg");
+}
+
+#expand:hover {
+    background-image: url("./img/mt-expand-hover.svg");
+}
+
+#expand:hover.unhover {
+    background-image: url("./img/mt-expand-normal.svg");
+}
+
+#expand img {
+}

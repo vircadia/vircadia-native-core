@@ -611,6 +611,14 @@ QString defaultAudioDeviceName(QAudio::Mode mode) {
 #endif
 
 #endif
+
+#ifdef Q_OS_LINUX
+    if ( mode == QAudio::AudioInput ) {
+        deviceName = QAudioDeviceInfo::defaultInputDevice().deviceName();
+    } else {
+        deviceName = QAudioDeviceInfo::defaultOutputDevice().deviceName();
+    }
+#endif
    return deviceName;
 }
 

@@ -109,7 +109,7 @@ SpinBox {
         id: spinboxText
         z: 2
         color: isLightColorScheme
-               ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.faintGray)
+               ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.baseGrayHighlight)
                : (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGrayText)
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
@@ -130,7 +130,7 @@ SpinBox {
             }
 
             color: isLightColorScheme
-                   ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.faintGray)
+                   ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.baseGrayHighlight)
                    : (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGrayText)
             text: suffix
             verticalAlignment: Qt.AlignVCenter

@@ -58,6 +58,29 @@
       ]
     },
     {
+      "label": "Monitoring",
+      "name": "monitoring",
+      "restart": false,
+      "settings": [
+        {
+          "name": "enable_prometheus_exporter",
+          "label": "Enable Prometheus Exporter",
+          "help": "Enable a Prometheus exporter to make it possible to gather the stats that are available at <a href='/'>Nodes</a> tab with a <a href='https://prometheus.io/'>Prometheus</a> server. This makes it possible to keep track of long-term domain statistics for graphing, troubleshooting, and performance monitoring.",
+          "default": false,
+          "type": "checkbox",
+          "advanced": true
+        },
+         {
+          "name": "prometheus_exporter_port",
+          "label": "Prometheus TCP Port",
+          "help": "This is the port where the Prometheus exporter accepts connections. It listens both on IPv4 and IPv6 and can be accessed remotely, so you should make sure to restrict access with a firewall as needed.",
+          "default": "9703",
+          "type": "int",
+          "advanced": true
+        }
+      ]
+    },
+    {
       "label": "Paths",
       "html_id": "paths",
       "restart": false,
