@@ -156,22 +156,6 @@ static QString deviceTrackingResultToString(vr::ETrackingResult trackingResult) 
     return result;
 }
 
-static glm::mat4 calculateResetMat() {
-    auto chaperone = vr::VRChaperone();
-    if (chaperone) {
-        float const UI_RADIUS = 1.0f;
-        float const UI_HEIGHT = 1.6f;
-        float const UI_Z_OFFSET = 0.5;
-
-        float xSize, zSize;
-        chaperone->GetPlayAreaSize(&xSize, &zSize);
-        glm::vec3 uiPos(0.0f, UI_HEIGHT, UI_RADIUS - (0.5f * zSize) - UI_Z_OFFSET);
-
-        return glm::inverse(createMatFromQuatAndPos(glm::quat(), uiPos));
-    }
-    return glm::mat4();
-}
-
 #ifdef VIVE_PRO_EYE
 class ViveProEyeReadThread : public QThread {
 public:
