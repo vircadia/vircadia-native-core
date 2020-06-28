@@ -1836,10 +1836,74 @@ void ViveControllerManager::InputDevice::setConfigFromString(const QString& valu
  *     <tr><td><code>Hips</code></td><td>number</td><td>{@link Pose}</td><td>Hips pose.</td></tr>
  *     <tr><td><code>Spine2</code></td><td>number</td><td>{@link Pose}</td><td>Spine2 pose.</td></tr>
  *     <tr><td><code>Head</code></td><td>number</td><td>{@link Pose}</td><td>Head pose.</td></tr>
+ *     <tr><td><code>LeftEye</code></td><td>number</td><td>{@link Pose}</td><td>Left eye pose.</td></tr>
+ *     <tr><td><code>RightEye</code></td><td>number</td><td>{@link Pose}</td><td>Right eye pose.</td></tr>
+ *     <tr><td><code>EyeBlink_L</code></td><td>number</td><td>number</td><td>Left eyelid blink.</td></tr>
+ *     <tr><td><code>EyeBlink_R</code></td><td>number</td><td>number</td><td>Right eyelid blink.</td></tr>
  *     <tr><td><code>LeftArm</code></td><td>number</td><td>{@link Pose}</td><td>Left arm pose.</td></tr>
  *     <tr><td><code>RightArm</code></td><td>number</td><td>{@link Pose}</td><td>Right arm pose</td></tr>
  *     <tr><td><code>LeftHand</code></td><td>number</td><td>{@link Pose}</td><td>Left hand pose.</td></tr>
+ *     <tr><td><code>LeftHandThumb1</code></td><td>number</td><td>{@link Pose}</td><td>Left thumb 1 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandThumb2</code></td><td>number</td><td>{@link Pose}</td><td>Left thumb 2 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandThumb3</code></td><td>number</td><td>{@link Pose}</td><td>Left thumb 3 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandThumb4</code></td><td>number</td><td>{@link Pose}</td><td>Left thumb 4 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandIndex1</code></td><td>number</td><td>{@link Pose}</td><td>Left index 1 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandIndex2</code></td><td>number</td><td>{@link Pose}</td><td>Left index 2 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandIndex3</code></td><td>number</td><td>{@link Pose}</td><td>Left index 3 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandIndex4</code></td><td>number</td><td>{@link Pose}</td><td>Left index 4 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandMiddle1</code></td><td>number</td><td>{@link Pose}</td><td>Left middle 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>LeftHandMiddle2</code></td><td>number</td><td>{@link Pose}</td><td>Left middle 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>LeftHandMiddle3</code></td><td>number</td><td>{@link Pose}</td><td>Left middle 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>LeftHandMiddle4</code></td><td>number</td><td>{@link Pose}</td><td>Left middle 4 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>LeftHandRing1</code></td><td>number</td><td>{@link Pose}</td><td>Left ring 1 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandRing2</code></td><td>number</td><td>{@link Pose}</td><td>Left ring 2 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandRing3</code></td><td>number</td><td>{@link Pose}</td><td>Left ring 3 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandRing4</code></td><td>number</td><td>{@link Pose}</td><td>Left ring 4 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandPinky1</code></td><td>number</td><td>{@link Pose}</td><td>Left pinky 1 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandPinky2</code></td><td>number</td><td>{@link Pose}</td><td>Left pinky 2 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandPinky3</code></td><td>number</td><td>{@link Pose}</td><td>Left pinky 3 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandPinky4</code></td><td>number</td><td>{@link Pose}</td><td>Left pinky 4 finger joint pose.</td></tr>
  *     <tr><td><code>RightHand</code></td><td>number</td><td>{@link Pose}</td><td>Right hand pose.</td></tr>
+ *     <tr><td><code>RightHandThumb1</code></td><td>number</td><td>{@link Pose}</td><td>Right thumb 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandThumb2</code></td><td>number</td><td>{@link Pose}</td><td>Right thumb 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandThumb3</code></td><td>number</td><td>{@link Pose}</td><td>Right thumb 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandThumb4</code></td><td>number</td><td>{@link Pose}</td><td>Right thumb 4 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandIndex1</code></td><td>number</td><td>{@link Pose}</td><td>Right index 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandIndex2</code></td><td>number</td><td>{@link Pose}</td><td>Right index 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandIndex3</code></td><td>number</td><td>{@link Pose}</td><td>Right index 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandIndex4</code></td><td>number</td><td>{@link Pose}</td><td>Right index 4 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandMiddle1</code></td><td>number</td><td>{@link Pose}</td><td>Right middle 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandMiddle2</code></td><td>number</td><td>{@link Pose}</td><td>Right middle 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandMiddle3</code></td><td>number</td><td>{@link Pose}</td><td>Right middle 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandMiddle4</code></td><td>number</td><td>{@link Pose}</td><td>Right middle 4 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandRing1</code></td><td>number</td><td>{@link Pose}</td><td>Right ring 1 finger joint pose.</td></tr>
+ *     <tr><td><code>RightHandRing2</code></td><td>number</td><td>{@link Pose}</td><td>Right ring 2 finger joint pose.</td></tr>
+ *     <tr><td><code>RightHandRing3</code></td><td>number</td><td>{@link Pose}</td><td>Right ring 3 finger joint pose.</td></tr>
+ *     <tr><td><code>RightHandRing4</code></td><td>number</td><td>{@link Pose}</td><td>Right ring 4 finger joint pose.</td></tr>
+ *     <tr><td><code>RightHandPinky1</code></td><td>number</td><td>{@link Pose}</td><td>Right pinky 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandPinky2</code></td><td>number</td><td>{@link Pose}</td><td>Right pinky 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandPinky3</code></td><td>number</td><td>{@link Pose}</td><td>Right pinky 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandPinky4</code></td><td>number</td><td>{@link Pose}</td><td>Right pinky 4 finger joint pose.
+ *       </td></tr>
  *     <tr><td colspan="4"><strong>Trackers</strong></td></tr>
  *     <tr><td><code>TrackedObject00</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 0 pose.</td></tr>
  *     <tr><td><code>TrackedObject01</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 1 pose.</td></tr>
