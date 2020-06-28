@@ -25,12 +25,18 @@
 #include <plugins/InputPlugin.h>
 #include "OpenVrHelpers.h"
 
+#ifdef Q_OS_WIN
+#define VIVE_PRO_EYE
+#endif
+
 using PuckPosePair = std::pair<uint32_t, controller::Pose>;
 
 namespace vr {
     class IVRSystem;
 }
 
+
+#ifdef VIVE_PRO_EYE
 class ViveProEyeReadThread;
 
 class EyeDataBuffer {
@@ -45,7 +51,7 @@ public:
     float leftEyeOpenness { 0.0f };
     float rightEyeOpenness { 0.0f };
 };
-
+#endif
 
 
 class ViveControllerManager : public InputPlugin {
@@ -66,8 +72,10 @@ public:
     bool isHeadController() const override { return true; }
     bool isHeadControllerMounted() const;
 
+#ifdef VIVE_PRO_EYE
     void enableGestureDetection();
     void disableGestureDetection();
+#endif
 
     bool activate() override;
     void deactivate() override;
@@ -75,9 +83,11 @@ public:
     QString getDeviceName() override { return QString::fromStdString(_inputDevice->_headsetName); }
 
     void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
+#ifdef VIVE_PRO_EYE
     void invalidateEyeInputs();
     void updateEyeTracker(float deltaTime, const controller::InputCalibrationData& inputCalibrationData);
     void updateCameraHandTracker(float deltaTime, const controller::InputCalibrationData& inputCalibrationData);
+#endif
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
     virtual void saveSettings() const override;
@@ -252,6 +262,7 @@ private:
     vr::IVRSystem* _system { nullptr };
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_system) };
 
+#ifdef VIVE_PRO_EYE
     bool _viveProEye { false };
     std::shared_ptr<ViveProEyeReadThread> _viveProEyeReadThread;
     EyeDataBuffer _prevEyeData;
@@ -268,6 +279,7 @@ private:
     void trackFinger(int hand, int jointIndex1, int jointIndex2, int jointIndex3, int jointIndex4,
                      controller::StandardPoseChannel joint1, controller::StandardPoseChannel joint2,
                      controller::StandardPoseChannel joint3, controller::StandardPoseChannel joint4);
+#endif
 
     static const char* NAME;
 };

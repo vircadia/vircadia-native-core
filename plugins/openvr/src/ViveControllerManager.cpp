@@ -19,10 +19,12 @@
 #pragma warning( disable : 4334 )
 #endif
 
+#ifdef VIVE_PRO_EYE
 #include <SRanipal.h>
 #include <SRanipal_Eye.h>
 #include <SRanipal_Enums.h>
 #include <interface_gesture.hpp>
+#endif
 
 #ifdef _WIN32
 #pragma warning( pop )
@@ -74,6 +76,7 @@ static const int SECOND_FOOT = 1;
 static const int HIP = 2;
 static const int CHEST = 3;
 
+#ifdef VIVE_PRO_EYE
 enum ViveHandJointIndex {
     HAND = 0,
     THUMB_1,
@@ -99,6 +102,7 @@ enum ViveHandJointIndex {
 
     Size
 };
+#endif
 
 const char* ViveControllerManager::NAME { "OpenVR" };
 
@@ -168,6 +172,7 @@ static glm::mat4 calculateResetMat() {
     return glm::mat4();
 }
 
+#ifdef VIVE_PRO_EYE
 class ViveProEyeReadThread : public QThread {
 public:
     ViveProEyeReadThread() {
@@ -211,6 +216,7 @@ public:
     QMutex eyeDataMutex;
     EyeDataBuffer eyeDataBuffer;
 };
+#endif
 
 
 static QString outOfRangeDataStrategyToString(ViveControllerManager::OutOfRangeDataStrategy strategy) {
@@ -323,7 +329,7 @@ bool areBothHandControllersActive(vr::IVRSystem*& system) {
         isHandControllerActive(system, vr::TrackedControllerRole_RightHand);
 }
 
-
+#ifdef VIVE_PRO_EYE
 void ViveControllerManager::enableGestureDetection() {
     if (_viveCameraHandTracker) {
         return;
@@ -368,6 +374,7 @@ void ViveControllerManager::disableGestureDetection() {
     StopGestureDetection();
     _viveCameraHandTracker = false;
 }
+#endif
 
 bool ViveControllerManager::activate() {
     InputPlugin::activate();
@@ -389,6 +396,7 @@ bool ViveControllerManager::activate() {
     userInputMapper->registerDevice(_inputDevice);
     _registeredWithInputMapper = true;
 
+#ifdef VIVE_PRO_EYE
     if (ViveSR::anipal::Eye::IsViveProEye()) {
         qDebug() << "Vive Pro eye-tracking detected";
 
@@ -409,6 +417,7 @@ bool ViveControllerManager::activate() {
             _viveProEyeReadThread->start(QThread::HighPriority);
         }
     }
+#endif
 
     return true;
 }
@@ -431,12 +440,14 @@ void ViveControllerManager::deactivate() {
     userInputMapper->removeDevice(_inputDevice->_deviceID);
     _registeredWithInputMapper = false;
 
+#ifdef VIVE_PRO_EYE
     if (_viveProEyeReadThread) {
         _viveProEyeReadThread->quit = true;
         _viveProEyeReadThread->wait();
         _viveProEyeReadThread = nullptr;
         ViveSR::anipal::Release(ViveSR::anipal::Eye::ANIPAL_TYPE_EYE);
     }
+#endif
 
     saveSettings();
 }
@@ -449,13 +460,13 @@ bool ViveControllerManager::isHeadControllerMounted() const {
     return activityLevel == vr::k_EDeviceActivityLevel_UserInteraction;
 }
 
+#ifdef VIVE_PRO_EYE
 void ViveControllerManager::invalidateEyeInputs() {
     _inputDevice->_poseStateMap[controller::LEFT_EYE].valid = false;
     _inputDevice->_poseStateMap[controller::RIGHT_EYE].valid = false;
     _inputDevice->_axisStateMap[controller::EYEBLINK_L].valid = false;
     _inputDevice->_axisStateMap[controller::EYEBLINK_R].valid = false;
 }
-
 
 void ViveControllerManager::updateEyeTracker(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     if (!isHeadControllerMounted()) {
@@ -758,6 +769,7 @@ void ViveControllerManager::updateCameraHandTracker(float deltaTime,
     }
     _lastHandTrackerFrameIndex = handTrackerFrameIndex;
 }
+#endif
 
 
 void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
@@ -796,11 +808,14 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
         _registeredWithInputMapper = true;
     }
 
+#ifdef VIVE_PRO_EYE
     if (_viveProEye) {
         updateEyeTracker(deltaTime, inputCalibrationData);
     }
 
     updateCameraHandTracker(deltaTime, inputCalibrationData);
+#endif
+
 }
 
 void ViveControllerManager::loadSettings() {
