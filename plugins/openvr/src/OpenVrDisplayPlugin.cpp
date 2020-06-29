@@ -739,7 +739,7 @@ int OpenVrDisplayPlugin::getRequiredThreadCount() const {
 
 QString OpenVrDisplayPlugin::getPreferredAudioInDevice() const {
     QString device = getVrSettingString(vr::k_pch_audio_Section, vr::k_pch_audio_RecordingDeviceOverride_String);
-// FIXME: Address Linux.
+    // FIXME: Address Linux.
 #ifdef Q_OS_WIN
     if (!device.isEmpty()) {
         static const WCHAR INIT = 0;

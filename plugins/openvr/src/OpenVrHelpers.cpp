@@ -49,7 +49,7 @@ static const uint32_t RELEASE_OPENVR_HMD_DELAY_MS = 5000;
 
 bool isOculusPresent() {
     bool result = false;
-#if defined(Q_OS_WIN32)
+#ifdef Q_OS_WIN 
     HANDLE oculusServiceEvent = ::OpenEventW(SYNCHRONIZE, FALSE, L"OculusHMDConnected");
     // The existence of the service indicates a running Oculus runtime
     if (oculusServiceEvent) {
