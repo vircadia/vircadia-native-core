@@ -418,7 +418,7 @@
         mutedAudio[getCurrTab()] = muteAudioInput.checked;
         muteAudioText.classList.add(muteAudioInput.checked ? "red-text" : "white-text");
         muteAudioText.classList.remove(!muteAudioInput.checked ? "red-text" : "white-text");
-        emitWebEvent({type: "CMD", cmd: "MUTEDAUDIO", muted: mutedAudio});
+        emitWebEvent({ type: "CMD", cmd: "MUTEDAUDIO", muted: mutedAudio });
     }
 
     function main() {

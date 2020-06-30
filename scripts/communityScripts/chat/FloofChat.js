@@ -358,9 +358,9 @@ function playNotificationSound() {
         var injectorOptions = {
             localOnly: true,
             position: MyAvatar.position,
-            volume: 0.02,
+            volume: 0.02
         };
-        var injector = Audio.playSound(notificationSound, injectorOptions);
+        Audio.playSound(notificationSound, injectorOptions);
     }
 }
 
@@ -523,7 +523,7 @@ function time() {
 function addToLog(msg, dp, colour, tab) {
     var currentTimestamp = time();
     historyLog.push([currentTimestamp, msg, dp, colour, tab]);
-    chatHistory.emitScriptEvent(JSON.stringify({type: "MSG", data: [[currentTimestamp, msg, dp, colour, tab]]}));
+    chatHistory.emitScriptEvent(JSON.stringify({ type: "MSG", data: [[currentTimestamp, msg, dp, colour, tab]]}));
     while (historyLog.length > chatHistoryLimit) {
         historyLog.shift();
     }
