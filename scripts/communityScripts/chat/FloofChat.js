@@ -325,7 +325,7 @@ function onWebEventReceived(event) {
         }
     }
     if (event.type === "WEBMSG") {
-        event.avatarName = MyAvatar.displayName;
+        event.avatarName = MyAvatar.sessionDisplayName;
         event = processChat(event);
         if (event.message === "") return;
         sendWS({
@@ -338,7 +338,7 @@ function onWebEventReceived(event) {
         });
     }
     if (event.type === "MSG") {
-        event.avatarName = MyAvatar.displayName;
+        event.avatarName = MyAvatar.sessionDisplayName;
         event = processChat(event);
         if (event.message === "") return;
         Messages.sendMessage("Chat", JSON.stringify({
@@ -356,8 +356,9 @@ function onWebEventReceived(event) {
 function playNotificationSound() {
     if (notificationSound.downloaded) {
         var injectorOptions = {
+            localOnly: true,
             position: MyAvatar.position,
-            volume: 0.25
+            volume: 0.02,
         };
         var injector = Audio.playSound(notificationSound, injectorOptions);
     }
@@ -447,7 +448,7 @@ function messageReceived(channel, message) {
                     if (Vec3.withinEpsilon(MyAvatar.position, cmd.position, 20)) {
                         addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
                         
-                        if (!mutedAudio["Local"]) {
+                        if (!mutedAudio["Local"] && MyAvatar.sessionDisplayName !== cmd.displayName) {
                             playNotificationSound();
                         }
                         
@@ -462,7 +463,7 @@ function messageReceived(channel, message) {
                 } else if (cmd.channel === "Domain") {
                     addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
                     
-                    if (!mutedAudio["Domain"]) {
+                    if (!mutedAudio["Domain"] && MyAvatar.sessionDisplayName !== cmd.displayName) {
                         playNotificationSound();
                     }
                     
@@ -476,7 +477,7 @@ function messageReceived(channel, message) {
                 } else if (cmd.channel === "Grid") {
                     addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
                     
-                    if (!mutedAudio["Grid"]) {
+                    if (!mutedAudio["Grid"] && MyAvatar.sessionDisplayName !== cmd.displayName) {
                         playNotificationSound();
                     }
                     
@@ -490,7 +491,9 @@ function messageReceived(channel, message) {
                 } else {
                     addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
                     
-                    playNotificationSound();
+                    if (MyAvatar.sessionDisplayName !== cmd.displayName) {
+                        playNotificationSound();
+                    }
                     
                     Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                         sender: cmd.displayName,
@@ -547,7 +550,7 @@ function fromQml(message) {
             if (cmd.message !== "") {
                 addToChatBarHistory(cmd.message);
                 if (cmd.event.modifiers === CONTROL_KEY) {
-                    cmd.avatarName = MyAvatar.displayName;
+                    cmd.avatarName = MyAvatar.sessionDisplayName;
                     cmd = processChat(cmd);
                     if (cmd.message === "") return;
                     Messages.sendMessage(FLOOF_CHAT_CHANNEL, JSON.stringify({
@@ -556,7 +559,7 @@ function fromQml(message) {
                         displayName: cmd.avatarName
                     }));
                 } else if (cmd.event.modifiers === CONTROL_KEY + SHIFT_KEY) {
-                    cmd.avatarName = MyAvatar.displayName;
+                    cmd.avatarName = MyAvatar.sessionDisplayName;
                     cmd = processChat(cmd);
                     if (cmd.message === "") return;
                     sendWS({
@@ -568,7 +571,7 @@ function fromQml(message) {
                         displayName: cmd.avatarName
                     });
                 } else {
-                    cmd.avatarName = MyAvatar.displayName;
+                    cmd.avatarName = MyAvatar.sessionDisplayName;
                     cmd = processChat(cmd);
                     if (cmd.message === "") return;
                     Messages.sendMessage(FLOOF_CHAT_CHANNEL, JSON.stringify({
