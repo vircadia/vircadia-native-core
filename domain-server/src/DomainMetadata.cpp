@@ -211,7 +211,10 @@ void DomainMetadata::sendDescriptors() {
 }
 
 bool DomainMetadata::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
-    QString domainMetadataJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)));
+    QJsonArray metadataArray;
+    metadataArray << get(DESCRIPTORS);
+    metadataArray << get(USERS);
+    QString domainMetadataJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(metadataArray).toJson(QJsonDocument::Compact)));
     const QString URI_METADATA = "/metadata";
     const QString EXPORTER_MIME_TYPE = "application/json";
 
