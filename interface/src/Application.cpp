@@ -4065,7 +4065,7 @@ std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl dom
     bool success = tmpTree->readFromByteArray(domainURL.toString(), data);
     if (success) {
         tmpTree->reaverageOctreeElements();
-        tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), nullptr, 0, 0, 0);
+        tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), "domain", 0, 0, 0);
     }
     std::map<QString, QString> namedPaths = tmpTree->getNamedPaths();
 

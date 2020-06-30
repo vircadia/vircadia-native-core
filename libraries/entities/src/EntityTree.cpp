@@ -2751,9 +2751,10 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
         EntityItemID oldID = item->getEntityItemID();
         EntityItemID newID = getMapped(oldID);
         EntityItemProperties properties = item->getProperties();
-        
-        if (args->entityHostType != nullptr) {
-            properties.setEntityHostTypeFromString(args->entityHostType);
+
+        properties.setEntityHostTypeFromString(args->entityHostType);
+        if (properties.getEntityHostType() == entity::HostType::AVATAR) {
+            properties.setOwningAvatarID(AVATAR_SELF_ID);
         }
 
         EntityItemID oldParentID = properties.getParentID();
