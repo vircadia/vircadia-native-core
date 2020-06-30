@@ -60,13 +60,13 @@ bool ClipboardScriptingInterface::importEntities(
     return retVal;
 }
 
-QVector<EntityItemID> ClipboardScriptingInterface::pasteEntities(glm::vec3 position, QString entityHostType) {
+QVector<EntityItemID> ClipboardScriptingInterface::pasteEntities(const glm::vec3& position, const QString& entityHostType) {
     QVector<EntityItemID> retVal;
     BLOCKING_INVOKE_METHOD(qApp, "pasteEntities",
                               Q_RETURN_ARG(QVector<EntityItemID>, retVal),
-                              Q_ARG(QString, entityHostType),
-                              Q_ARG(float, position.x),
-                              Q_ARG(float, position.y),
-                              Q_ARG(float, position.z));
+                              Q_ARG(const QString&, entityHostType),
+                              Q_ARG(const float&, position.x),
+                              Q_ARG(const float&, position.y),
+                              Q_ARG(const float&, position.z));
     return retVal;
 }
