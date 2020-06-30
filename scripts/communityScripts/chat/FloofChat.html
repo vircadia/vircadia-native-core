@@ -29,8 +29,16 @@
         </span>
         <div class="switch muteSwitch col s2">
             <label>
-                <span style="font-size: 20px" id="muteText">Mute</span>
+                <span id="muteText">Hide Popups</span>
                 <input type="checkbox" id="muteInput" onclick="muteSwitchToggle()">
+                <span class="lever waves-light"></span>
+            </label>
+        </div>
+        
+        <div class="switch muteSwitch col s2">
+            <label>
+                <span id="muteAudioText">Mute Sound</span>
+                <input type="checkbox" id="muteAudioInput" onclick="muteAudioSwitchToggle()">
                 <span class="lever waves-light"></span>
             </label>
         </div>
@@ -47,6 +55,7 @@
 
 <script>
     var muted = {"Local": false, "Domain": false, "Grid": false};
+    var mutedAudio = {"Local": false, "Domain": false, "Grid": false};
     var instance;
     var appUUID;
     var messageData = {}; // The data that is sent along with the message.
@@ -380,18 +389,23 @@
 
     function time() {
         var d = new Date();
+        var month = (d.getMonth()).toString();
+        var day = (d.getDate()).toString();
         var h = (d.getHours()).toString();
         var m = (d.getMinutes()).toString();
         var s = (d.getSeconds()).toString();
         var h2 = ("0" + h).slice(-2);
         var m2 = ("0" + m).slice(-2);
         var s2 = ("0" + s).slice(-2);
-        s2 += (d.getMilliseconds() / 1000).toFixed(2).slice(1);
-        return h2 + ":" + m2 + ":" + s2;
+        // s2 += (d.getMilliseconds() / 1000).toFixed(2).slice(1);
+        return month + "/" + day + " - " + h2 + ":" + m2 + ":" + s2;
     }
 
     var muteInput;
     var muteText;
+    
+    var muteAudioInput;
+    var muteAudioText;
 
     function muteSwitchToggle() {
         muted[getCurrTab()] = muteInput.checked;
@@ -399,18 +413,33 @@
         muteText.classList.remove(!muteInput.checked ? "red-text" : "white-text");
         emitWebEvent({type: "CMD", cmd: "MUTED", muted: muted});
     }
+    
+    function muteAudioSwitchToggle() {
+        mutedAudio[getCurrTab()] = muteAudioInput.checked;
+        muteAudioText.classList.add(muteAudioInput.checked ? "red-text" : "white-text");
+        muteAudioText.classList.remove(!muteAudioInput.checked ? "red-text" : "white-text");
+        emitWebEvent({type: "CMD", cmd: "MUTEDAUDIO", muted: mutedAudio});
+    }
 
     function main() {
 
         muteInput = document.getElementById("muteInput");
         muteText = document.getElementById("muteText");
+        
+        muteAudioInput = document.getElementById("muteAudioInput");
+        muteAudioText = document.getElementById("muteAudioText");
 
         instance = M.Tabs.init(document.getElementById("tabs"), {
             "onShow": function (e) {
                 scrollChatLog(getCurrTab());
+                
                 muteInput.checked = muted[getCurrTab()];
                 muteText.classList.add(muteInput.checked ? "red-text" : "white-text");
                 muteText.classList.remove(!muteInput.checked ? "red-text" : "white-text");
+                
+                muteAudioInput.checked = mutedAudio[getCurrTab()];
+                muteAudioText.classList.add(muteAudioInput.checked ? "red-text" : "white-text");
+                muteAudioText.classList.remove(!muteAudioInput.checked ? "red-text" : "white-text");
             }
         });
         instance.select("Local");
@@ -474,6 +503,12 @@
                             muteInput.checked = muted[getCurrTab()];
                             muteText.classList.add(muteInput.checked ? "red-text" : "white-text");
                             muteText.classList.remove(!muteInput.checked ? "red-text" : "white-text");
+                        }
+                        if (cmd.cmd === "MUTEDAUDIO") {
+                            mutedAudio = cmd.muted;
+                            muteAudioInput.checked = mutedAudio[getCurrTab()];
+                            muteAudioText.classList.add(muteAudioInput.checked ? "red-text" : "white-text");
+                            muteAudioText.classList.remove(!muteAudioInput.checked ? "red-text" : "white-text");
                         }
                     }
                 });

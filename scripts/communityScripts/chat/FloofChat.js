@@ -57,6 +57,8 @@ var vircadiaGotoUrl = "https://metaverse.vircadia.com/interim/d-goto/app/goto.js
 var gotoJSONUrl = Settings.getValue(settingsRoot + "/gotoJSONUrl", vircadiaGotoUrl);
 
 var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain": false, "Grid": true});
+var mutedAudio = Settings.getValue(settingsRoot + "/mutedAudio", {"Local": false, "Domain": false, "Grid": true});
+var notificationSound = SoundCache.getSound(Script.resolvePath("resources/bubblepop.wav"));
 
 var ws;
 var wsReady = false;
@@ -285,11 +287,16 @@ function onWebEventReceived(event) {
     if (event.type === "ready") {
         chatHistory.emitScriptEvent(JSON.stringify({type: "MSG", data: historyLog}));
         chatHistory.emitScriptEvent(JSON.stringify({type: "CMD", cmd: "MUTED", muted: muted}));
+        chatHistory.emitScriptEvent(JSON.stringify({type: "CMD", cmd: "MUTEDAUDIO", muted: mutedAudio}));
     }
     if (event.type === "CMD") {
         if (event.cmd === "MUTED") {
             muted = event.muted;
             Settings.setValue(settingsRoot + "/muted", muted);
+        }
+        if (event.cmd === "MUTEDAUDIO") {
+            mutedAudio = event.muted;
+            Settings.setValue(settingsRoot + "/mutedAudio", mutedAudio);
         }
         if (event.cmd === "COLOUR") {
             Settings.setValue(settingsRoot + "/" + event.colourType + "Colour", event.colour);
@@ -343,6 +350,16 @@ function onWebEventReceived(event) {
             displayName: event.avatarName
         }));
         setVisible(false);
+    }
+}
+
+function playNotificationSound() {
+    if (notificationSound.downloaded) {
+        var injectorOptions = {
+            position: MyAvatar.position,
+            volume: 0.25
+        };
+        var injector = Audio.playSound(notificationSound, injectorOptions);
     }
 }
 
@@ -429,6 +446,11 @@ function messageReceived(channel, message) {
                 if (cmd.channel === "Local") {
                     if (Vec3.withinEpsilon(MyAvatar.position, cmd.position, 20)) {
                         addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+                        
+                        if (!mutedAudio["Local"]) {
+                            playNotificationSound();
+                        }
+                        
                         if (!muted["Local"]) {
                             Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                                 sender: "(L) " + cmd.displayName,
@@ -439,6 +461,11 @@ function messageReceived(channel, message) {
                     }
                 } else if (cmd.channel === "Domain") {
                     addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+                    
+                    if (!mutedAudio["Domain"]) {
+                        playNotificationSound();
+                    }
+                    
                     if (!muted["Domain"]) {
                         Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                             sender: "(D) " + cmd.displayName,
@@ -448,6 +475,11 @@ function messageReceived(channel, message) {
                     }
                 } else if (cmd.channel === "Grid") {
                     addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+                    
+                    if (!mutedAudio["Grid"]) {
+                        playNotificationSound();
+                    }
+                    
                     if (!muted["Grid"]) {
                         Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                             sender: "(G) " + cmd.displayName,
@@ -457,6 +489,9 @@ function messageReceived(channel, message) {
                     }
                 } else {
                     addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+                    
+                    playNotificationSound();
+                    
                     Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                         sender: cmd.displayName,
                         text: replaceFormatting(cmd.message),
