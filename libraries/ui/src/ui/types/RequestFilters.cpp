@@ -29,7 +29,7 @@ namespace {
         auto metaverseServerURL = MetaverseAPI::getCurrentMetaverseServerURL();
         static const QStringList HF_HOSTS = {
             "highfidelity.com", "highfidelity.io",
-            metaverseServerURL.toString(), "metaverse.highfidelity.io"
+            metaverseServerURL.toString(),
         };
         const auto& scheme = url.scheme();
         const auto& host = url.host();

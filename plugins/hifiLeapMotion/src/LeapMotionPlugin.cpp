@@ -281,6 +281,7 @@ void LeapMotionPlugin::InputDevice::update(float deltaTime, const controller::In
 
         glm::vec3 pos;
         glm::quat rot;
+        glm::quat prevRot;
         if (_isLeapOnHMD) {
             auto jointPosition = joints[i].position;
             const glm::vec3 HMD_EYE_TO_LEAP_OFFSET = glm::vec3(0.0f, 0.0f, -0.09f);  // Eyes to surface of Leap Motion.
@@ -291,17 +292,24 @@ void LeapMotionPlugin::InputDevice::update(float deltaTime, const controller::In
             glm::quat jointOrientation = joints[i].orientation;
             jointOrientation = glm::quat(jointOrientation.w, -jointOrientation.x, -jointOrientation.z, -jointOrientation.y);
             rot = controllerToAvatarRotation * hmdSensorOrientation * jointOrientation;
+
+            glm::quat prevJointOrientation = prevJoints[i].orientation;
+            prevJointOrientation =
+                glm::quat(prevJointOrientation.w, -prevJointOrientation.x, -prevJointOrientation.z, -prevJointOrientation.y);
+            prevRot = controllerToAvatarRotation * hmdSensorOrientation * prevJointOrientation;
+
         } else {
             pos = controllerToAvatarRotation * (joints[i].position - leapMotionOffset);
             const glm::quat ZERO_HAND_ORIENTATION = glm::quat(glm::vec3(PI_OVER_TWO, PI, 0.0f));
             rot = controllerToAvatarRotation * joints[i].orientation * ZERO_HAND_ORIENTATION;
+            prevRot = controllerToAvatarRotation * prevJoints[i].orientation * ZERO_HAND_ORIENTATION;
         }
 
         glm::vec3 linearVelocity, angularVelocity;
         if (i < prevJoints.size()) {
             linearVelocity = (pos - (prevJoints[i].position * METERS_PER_CENTIMETER)) / deltaTime;  // m/s
             // quat log imaginary part points along the axis of rotation, with length of one half the angle of rotation.
-            glm::quat d = glm::log(rot * glm::inverse(prevJoints[i].orientation));
+            glm::quat d = glm::log(rot * glm::inverse(prevRot));
             angularVelocity = glm::vec3(d.x, d.y, d.z) / (0.5f * deltaTime); // radians/s
         }
 

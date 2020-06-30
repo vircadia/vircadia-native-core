@@ -347,7 +347,6 @@ static const QString STANDARD_TO_ACTION_MAPPING_NAME = "Standard to Action";
 static const QString NO_MOVEMENT_MAPPING_NAME = "Standard to Action (No Movement)";
 static const QString NO_MOVEMENT_MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/standard_nomovement.json";
 
-static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
 static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
 static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 static const QString ACTIVE_DISPLAY_PLUGIN_SETTING_NAME = "activeDisplayPlugin";
@@ -7620,7 +7619,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 
     QUrl scriptURL { scriptFilenameOrURL };
 
-    if (scriptURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
+    if (scriptURL.host().endsWith(NetworkingConstants::MARKETPLACE_CDN_HOSTNAME)) {
         int startIndex = shortName.lastIndexOf('/') + 1;
         int endIndex = shortName.lastIndexOf('?');
         shortName = shortName.mid(startIndex, endIndex - startIndex);
@@ -7743,7 +7742,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
     const int MAX_CHARACTERS_PER_LINE = 90;
     if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
         QUrl originURL { url };
-        if (originURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
+        if (originURL.host().endsWith(NetworkingConstants::MARKETPLACE_CDN_HOSTNAME)) {
             // Create a confirmation dialog when this call is made
             static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
                 "If you want to save what you have now, create a backup before proceeding. For more information about backing up "

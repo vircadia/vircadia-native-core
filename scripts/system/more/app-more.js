@@ -6,7 +6,7 @@
 //  Created by Keb Helion, February 2020.
 //  Copyright 2020 Vircadia contributors.
 //
-//  This script adds a "More Apps" selector to "Project Athena" to allow the user to add optional functionalities to the tablet.
+//  This script adds a "More Apps" selector to Vircadia to allow the user to add optional functionalities to the tablet.
 //  This application has been designed to work directly from the Github repository.
 //
 //  Distributed under the Apache License, Version 2.0.
