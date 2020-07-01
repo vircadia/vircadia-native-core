@@ -2657,7 +2657,7 @@ QByteArray EntityTree::remapActionDataIDs(QByteArray actionData, QHash<EntityIte
 }
 
 QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
-                                               QString entityHostType, float x, float y, float z) {
+                                               const QString& entityHostType, float x, float y, float z) {
     SendEntitiesOperationArgs args;
     args.ourTree = this;
     args.otherTree = localTree;

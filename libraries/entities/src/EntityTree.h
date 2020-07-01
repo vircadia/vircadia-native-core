@@ -178,7 +178,7 @@ public:
     static QByteArray remapActionDataIDs(QByteArray actionData, QHash<EntityItemID, EntityItemID>& map);
 
     QVector<EntityItemID> sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
-                                       QString entityHostType, float x, float y, float z);
+                                       const QString& entityHostType, float x, float y, float z);
 
     void entityChanged(EntityItemPointer entity);
 
