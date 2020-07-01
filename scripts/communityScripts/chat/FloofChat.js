@@ -85,7 +85,7 @@ function init() {
     setupHistoryWindow(false);
 
     chatBar = new OverlayWindow({
-        source: Paths.defaultScripts + '/communityScripts/chat/FloofChat.qml?' + Date.now(),
+        source: ROOT + "FloofChat.qml?" + Date.now(),
         width: 360,
         height: 180
     });
