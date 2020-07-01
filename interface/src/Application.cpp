@@ -5545,7 +5545,7 @@ bool Application::importEntities(const QString& urlOrFilename, const bool isObse
     return success;
 }
 
-QVector<EntityItemID> Application::pasteEntities(QString entityHostType, float x, float y, float z) {
+QVector<EntityItemID> Application::pasteEntities(const QString entityHostType, const float x, const float y, const float z) {
     return _entityClipboard->sendEntities(&_entityEditSender, getEntities()->getTree(), entityHostType, x, y, z);
 }
 
