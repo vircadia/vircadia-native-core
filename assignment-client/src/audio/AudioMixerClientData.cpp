@@ -668,6 +668,12 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
     downstreamStats["min_gap_30s"] = formatUsecTime(streamStats._timeGapWindowMin);
     downstreamStats["max_gap_30s"] = formatUsecTime(streamStats._timeGapWindowMax);
     downstreamStats["avg_gap_30s"] = formatUsecTime(streamStats._timeGapWindowAverage);
+    downstreamStats["min_gap_usecs"] = static_cast<double>(streamStats._timeGapMin);
+    downstreamStats["max_gap_usecs"] = static_cast<double>(streamStats._timeGapMax);
+    downstreamStats["avg_gap_usecs"] = static_cast<double>(streamStats._timeGapAverage);
+    downstreamStats["min_gap_30s_usecs"] = static_cast<double>(streamStats._timeGapWindowMin);
+    downstreamStats["max_gap_30s_usecs"] = static_cast<double>(streamStats._timeGapWindowMax);
+    downstreamStats["avg_gap_30s_usecs"] = static_cast<double>(streamStats._timeGapWindowAverage);
 
     result["downstream"] = downstreamStats;
 
@@ -694,6 +700,13 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
         upstreamStats["min_gap_30s"] = formatUsecTime(streamStats._timeGapWindowMin);
         upstreamStats["max_gap_30s"] = formatUsecTime(streamStats._timeGapWindowMax);
         upstreamStats["avg_gap_30s"] = formatUsecTime(streamStats._timeGapWindowAverage);
+
+        upstreamStats["min_gap_usecs"] = static_cast<double>(streamStats._timeGapMin);
+        upstreamStats["max_gap_usecs"] = static_cast<double>(streamStats._timeGapMax);
+        upstreamStats["avg_gap_usecs"] = static_cast<double>(streamStats._timeGapAverage);
+        upstreamStats["min_gap_30s_usecs"] = static_cast<double>(streamStats._timeGapWindowMin);
+        upstreamStats["max_gap_30s_usecs"] = static_cast<double>(streamStats._timeGapWindowMax);
+        upstreamStats["avg_gap_30s_usecs"] = static_cast<double>(streamStats._timeGapWindowAverage);
 
         result["upstream"] = upstreamStats;
     } else {
@@ -725,6 +738,12 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
             upstreamStats["max_gap_30s"] = formatUsecTime(streamStats._timeGapWindowMax);
             upstreamStats["avg_gap_30s"] = formatUsecTime(streamStats._timeGapWindowAverage);
 
+            upstreamStats["min_gap_usecs"] = static_cast<double>(streamStats._timeGapMin);
+            upstreamStats["max_gap_usecs"] = static_cast<double>(streamStats._timeGapMax);
+            upstreamStats["avg_gap_usecs"] = static_cast<double>(streamStats._timeGapAverage);
+            upstreamStats["min_gap_30s_usecs"] = static_cast<double>(streamStats._timeGapWindowMin);
+            upstreamStats["max_gap_30s_usecs"] = static_cast<double>(streamStats._timeGapWindowMax);
+            upstreamStats["avg_gap_30s_usecs"] = static_cast<double>(streamStats._timeGapWindowAverage);
             injectorArray.push_back(upstreamStats);
         }
     }

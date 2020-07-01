@@ -799,19 +799,19 @@ Menu::Menu() {
     // Help > Vircadia Docs
     action = addActionToQMenuAndActionHash(helpMenu, "Online Documentation");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://docs.vircadia.dev/"));
+        QDesktopServices::openUrl(NetworkingConstants::HELP_DOCS_URL);
     });
 
     // Help > Vircadia Forum
     /* action = addActionToQMenuAndActionHash(helpMenu, "Online Forums");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://forums.highfidelity.com/"));
+        QDesktopServices::openUrl(NetworkingConstants::HELP_FORUM_URL));
     }); */
 
     // Help > Scripting Reference
     action = addActionToQMenuAndActionHash(helpMenu, "Online Script Reference");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://apidocs.vircadia.dev/"));
+        QDesktopServices::openUrl(NetworkingConstants::HELP_SCRIPTING_REFERENCE_URL);
     });
 
     addActionToQMenuAndActionHash(helpMenu, "Controls Reference", 0, qApp, SLOT(showHelp()));
@@ -821,13 +821,13 @@ Menu::Menu() {
     // Help > Release Notes
     action = addActionToQMenuAndActionHash(helpMenu, "Release Notes");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://docs.vircadia.dev/release-notes.html"));
+        QDesktopServices::openUrl(NetworkingConstants::HELP_RELEASE_NOTES_URL);
     });
 
     // Help > Report a Bug!
     action = addActionToQMenuAndActionHash(helpMenu, "Report a Bug!");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://github.com/kasenvr/project-athena/issues"));
+        QDesktopServices::openUrl(NetworkingConstants::HELP_BUG_REPORT_URL);
     });
 }
 

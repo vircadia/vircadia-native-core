@@ -47,7 +47,7 @@ ScrollingWindow {
 
         Image {
             id: logo
-            source: "../images/hifi-logo.svg"
+            source: "../images/vircadia-logo.svg"
             width: updateDialog.logoSize
             height: updateDialog.logoSize
             anchors {
