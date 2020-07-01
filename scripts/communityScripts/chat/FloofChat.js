@@ -111,6 +111,11 @@ function connectWebSocket(timeout) {
         }
         if (!cmd.FAILED) {
             addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+            
+            if (!mutedAudio["Grid"] && MyAvatar.sessionDisplayName !== cmd.displayName) {
+                playNotificationSound();
+            }
+            
             if (!muted["Grid"]) {
                 Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                     sender: "(G) " + cmd.displayName,
