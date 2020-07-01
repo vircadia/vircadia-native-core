@@ -26,6 +26,9 @@ var FLOOF_NOTIFICATION_CHANNEL = "Floof-Notif";
 var MAIN_CHAT_WINDOW_HEIGHT = 450;
 var MAIN_CHAT_WINDOW_WIDTH = 750;
 
+var CHAT_BAR_HISTORY_LIMIT = 256;
+var CHAT_HISTORY_LIMIT = 500;
+
 Script.scriptEnding.connect(function () {
     shutdown();
 });
@@ -44,8 +47,8 @@ var appUUID = Uuid.generate();
 
 var chatBar;
 var chatHistory;
-var chatBarHistoryLimit = Settings.getValue(settingsRoot + "/chatBarHistoryLimit", 256);
-var chatHistoryLimit = Settings.getValue(settingsRoot + "/chatHistoryLimit", 500);
+var chatBarHistoryLimit = Settings.getValue(settingsRoot + "/chatBarHistoryLimit", CHAT_BAR_HISTORY_LIMIT);
+var chatHistoryLimit = Settings.getValue(settingsRoot + "/chatHistoryLimit", CHAT_HISTORY_LIMIT);
 var chatBarHistory = Settings.getValue(settingsRoot + "/chatBarHistory", ["Meow :3"]);
 var historyLog = [];
 
@@ -90,7 +93,7 @@ function init() {
         height: 180
     });
 
-    button.clicked.connect(toggleChatHistory);
+    button.clicked.connect(toggleMainChatWindow);
     chatBar.fromQml.connect(fromQml);
     chatBar.sendToQml(JSON.stringify({visible: false, history: chatBarHistory}));
     Controller.keyPressEvent.connect(keyPressEvent);
@@ -182,7 +185,7 @@ function setupHistoryWindow() {
     });
     chatHistory.setPosition({x: 0, y: Window.innerHeight - MAIN_CHAT_WINDOW_HEIGHT});
     chatHistory.webEventReceived.connect(onWebEventReceived);
-    chatHistory.closed.connect(toggleChatHistory);
+    chatHistory.closed.connect(toggleMainChatWindow);
 }
 
 function emitScriptEvent(obj) {
@@ -190,7 +193,7 @@ function emitScriptEvent(obj) {
     tablet.emitScriptEvent(JSON.stringify(obj));
 }
 
-function toggleChatHistory() {
+function toggleMainChatWindow() {
     historyVisible = !historyVisible;
     button.editProperties({isActive: historyVisible});
     chatHistory.visible = historyVisible;
@@ -592,7 +595,7 @@ function fromQml(message) {
             setVisible(false);
         } else if (cmd.type === "CMD") {
             if (cmd.cmd === "Clicked") {
-                toggleChatHistory()
+                toggleMainChatWindow()
             }
         }
     }
@@ -617,7 +620,7 @@ function setVisible(_visible) {
 
 function keyPressEvent(event) {
     if (event.key === H_KEY && !event.isAutoRepeat && event.isControl) {
-        toggleChatHistory()
+        toggleMainChatWindow()
     }
     if (event.key === ENTER_KEY && !event.isAutoRepeat && !visible) {
         setVisible(true);
