@@ -249,8 +249,9 @@ public slots:
      * Takes you to a specified metaverse address.
      * @function location.handleLookupString
      * @param {string} address - The address to go to: a <code>"hifi://"</code> address, an IP address (e.g., 
-     *     <code>"127.0.0.1"</code> or <code>"localhost"</code>), a domain name, a named path on a domain (starts with 
-     *     <code>"/"</code>), a position or position and orientation, or a user (starts with <code>"@"</code>).
+     *     <code>"127.0.0.1"</code> or <code>"localhost"</code>), a <code>file:///</code> address, a domain name, a named path 
+     *     on a domain (starts with <code>"/"</code>), a position or position and orientation, or a user (starts with 
+     *     <code>"@"</code>).
      * @param {boolean} [fromSuggestions=false] - Set to <code>true</code> if the address is obtained from the "Goto" dialog.
      *     Helps ensure that user's location history is correctly maintained.
      */

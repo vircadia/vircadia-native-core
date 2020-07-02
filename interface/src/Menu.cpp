@@ -816,6 +816,8 @@ Menu::Menu() {
 
     addActionToQMenuAndActionHash(helpMenu, "Controls Reference", 0, qApp, SLOT(showHelp()));
 
+    addActionToQMenuAndActionHash(helpMenu, "Tutorial", 0, qApp, SLOT(gotoTutorial()));
+
     helpMenu->addSeparator();
 
     // Help > Release Notes

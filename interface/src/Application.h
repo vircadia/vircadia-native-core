@@ -425,6 +425,7 @@ public slots:
 #endif
 
     static void showHelp();
+    static void gotoTutorial();
 
     void cycleCamera();
     void cameraModeChanged();

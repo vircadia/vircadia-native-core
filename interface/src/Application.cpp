@@ -3857,6 +3857,11 @@ void Application::showHelp() {
     //InfoView::show(INFO_HELP_PATH, false, queryString.toString());
 }
 
+void Application::gotoTutorial() {
+    const QString TUTORIAL_ADDRESS = "file:///~/serverless/tutorial.json";
+    DependencyManager::get<AddressManager>()->handleLookupString(TUTORIAL_ADDRESS);
+}
+
 void Application::resizeEvent(QResizeEvent* event) {
     resizeGL();
 }
