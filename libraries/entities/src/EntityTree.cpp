@@ -2657,11 +2657,12 @@ QByteArray EntityTree::remapActionDataIDs(QByteArray actionData, QHash<EntityIte
 }
 
 QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
-                                               float x, float y, float z) {
+                                               const QString& entityHostType, float x, float y, float z) {
     SendEntitiesOperationArgs args;
     args.ourTree = this;
     args.otherTree = localTree;
     args.root = glm::vec3(x, y, z);
+    args.entityHostType = entityHostType;
     // If this is called repeatedly (e.g., multiple pastes with the same data), the new elements will clash unless we
     // use new identifiers.  We need to keep a map so that we can map parent identifiers correctly.
     QHash<EntityItemID, EntityItemID> map;
@@ -2750,6 +2751,11 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
         EntityItemID oldID = item->getEntityItemID();
         EntityItemID newID = getMapped(oldID);
         EntityItemProperties properties = item->getProperties();
+
+        properties.setEntityHostTypeFromString(args->entityHostType);
+        if (properties.getEntityHostType() == entity::HostType::AVATAR) {
+            properties.setOwningAvatarID(AVATAR_SELF_ID);
+        }
 
         EntityItemID oldParentID = properties.getParentID();
         if (oldParentID.isInvalidID()) {  // no parent
