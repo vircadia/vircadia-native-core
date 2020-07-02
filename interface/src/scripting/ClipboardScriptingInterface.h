@@ -117,10 +117,10 @@ public:
      * Pastes the contents of the clipboard into the domain.
      * @function Clipboard.pasteEntities
      * @param {Vec3} position -  The position to paste the clipboard contents at.
-     * @param {Entities.EntityHostType} [entityHostType="domain"] - The type of entity to create.
+     * @param {Entities.EntityHostType} [entityHostType="domain"] - The type of entities to create.
      * @returns {Uuid[]} The IDs of the new entities that were created as a result of the paste operation. If entities couldn't 
      *     be created then an empty array is returned.
-    */
+     */
     Q_INVOKABLE QVector<EntityItemID> pasteEntities(glm::vec3 position, const QString& entityHostType = "domain");
 };
 
