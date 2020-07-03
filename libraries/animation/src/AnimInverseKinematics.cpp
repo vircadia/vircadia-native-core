@@ -25,7 +25,9 @@
 
 static const int MAX_TARGET_MARKERS = 30;
 static const float JOINT_CHAIN_INTERP_TIME = 0.5f;
-static const int WARNING_DEBOUNCE_TIME = 30000; // 30 seconds
+
+static QTime debounceJointWarningsClock;
+static const int JOINT_WARNING_DEBOUNCE_TIME = 30000; // 30 seconds
 
 static void lookupJointInfo(const AnimInverseKinematics::JointChainInfo& jointChainInfo,
                             int indexA, int indexB,
@@ -160,10 +162,8 @@ void AnimInverseKinematics::setTargetVars(const QString& jointName, const QStrin
 }
 
 bool debounceJointWarnings() {
-    static QTime last_call;
-
-    if (last_call.elapsed() >= WARNING_DEBOUNCE_TIME || !last_call.isValid()) {
-        last_call.restart();
+    if (debounceJointWarningsClock.elapsed() >= JOINT_WARNING_DEBOUNCE_TIME || !debounceJointWarningsClock.isValid()) {
+        debounceJointWarningsClock.restart();
         return true;
     }
     return false;
