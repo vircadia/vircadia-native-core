@@ -40,6 +40,7 @@ public:
 class SendEntitiesOperationArgs {
 public:
     glm::vec3 root;
+    QString entityHostType;
     EntityTree* ourTree;
     EntityTreePointer otherTree;
     QHash<EntityItemID, EntityItemID>* map;
@@ -177,7 +178,7 @@ public:
     static QByteArray remapActionDataIDs(QByteArray actionData, QHash<EntityItemID, EntityItemID>& map);
 
     QVector<EntityItemID> sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
-                                       float x, float y, float z);
+                                       const QString& entityHostType, float x, float y, float z);
 
     void entityChanged(EntityItemPointer entity);
 
