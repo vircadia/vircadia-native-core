@@ -537,7 +537,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
     return true;
 }
 
-EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool isClone, bool isImport) {
+EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool isClone, const bool isImport) {
     EntityItemProperties props = properties;
 
     auto nodeList = DependencyManager::get<NodeList>();

@@ -118,7 +118,7 @@ public:
     // The newer API...
     void postAddEntity(EntityItemPointer entityItem);
 
-    EntityItemPointer addEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool isClone = false, bool isImport = false);
+    EntityItemPointer addEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool isClone = false, const bool isImport = false);
 
     // use this method if you only know the entityID
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
