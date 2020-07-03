@@ -8,16 +8,12 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 [Homebrew](https://brew.sh/) is an excellent package manager for macOS. It makes install of some Vircadia dependencies very simple.
 
-    brew install cmake openssl
+    brew install cmake openssl npm
 
 ### Python 3
 
 Download an install Python 3.6.6 or higher from [here](https://www.python.org/downloads/).  
 Execute the `Update Shell Profile.command` script that is provided with the installer.
-
-### npm
-
-Install npm via `brew install npm`, as it is needed for generating the included jsdocs.
 
 ### OSX SDK
 
