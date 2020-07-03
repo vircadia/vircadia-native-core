@@ -326,10 +326,10 @@ Rectangle {
                 size: 16;
 
                 text: (bar.currentIndex === 0) ? qsTr("Press and hold the button \"T\" to talk.") :
-                                qsTr("Press and hold triggers on both of your controllers to talk.");
+                                qsTr("Press and hold grip triggers on your controllers to talk.");
             }
         }
-        
+
         Item {
             id: avatarGainContainer
             x: margins.paddings;
@@ -546,29 +546,28 @@ Rectangle {
                 color: hifi.colors.white;
                 text: qsTr("Choose input device");
             }
-        }
-        
-        AudioControls.LoopbackAudio {
-            id: loopbackAudio
-            x: margins.paddings
-            anchors.top: inputDeviceHeader.bottom;
-            anchors.topMargin: 10;
+            AudioControls.LoopbackAudio {
+                id: loopbackAudio
+                x: margins.paddings
+                anchors.top: inputDeviceHeader.bottom;
+                anchors.topMargin: 10;
 
-            visible: (bar.currentIndex === 1 && isVR) ||
-                (bar.currentIndex === 0 && !isVR);
-            anchors { left: parent.left; leftMargin: margins.paddings }
+                visible: (bar.currentIndex === 1 && isVR) ||
+                    (bar.currentIndex === 0 && !isVR);
+                anchors { left: parent.left; leftMargin: margins.paddings }
+            }
+
+            AudioControls.InputPeak {
+                id: inputLevel
+                anchors.right: parent.right
+                peak: model.peak;
+                anchors.verticalCenter: parent.verticalCenter
+                visible: ((bar.currentIndex === 1 && isVR) ||
+                    (bar.currentIndex === 0 && !isVR)) &&
+                    AudioScriptingInterface.devices.input.peakValuesAvailable;
+            }
         }
-        
-        AudioControls.InputPeak {
-                    id: inputLevel
-                    anchors.right: parent.right
-                    peak: model.peak;
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: ((bar.currentIndex === 1 && isVR) ||
-                             (bar.currentIndex === 0 && !isVR)) &&
-                             AudioScriptingInterface.devices.input.peakValuesAvailable;
-        }
-        
+
         ListView {
             id: inputView;
             width: rightMostInputLevelPos;
@@ -577,14 +576,14 @@ Rectangle {
             x: margins.paddings
             interactive: false;
             height: contentHeight;
-            
+
             clip: true;
             model: AudioScriptingInterface.devices.input;
             delegate: Item {
                 width: rightMostInputLevelPos - margins.paddings*2
-                height: ((type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)) ?  
+                height: ((type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)) ?
                         (margins.sizeCheckBox > checkBoxInput.implicitHeight ? margins.sizeCheckBox + 4 : checkBoxInput.implicitHeight + 4) : 0
-                visible: (type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1) 
+                visible: (type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)
                 AudioControls.CheckBox {
                     id: checkBoxInput
                     anchors.left: parent.left
@@ -605,7 +604,7 @@ Rectangle {
                             AudioScriptingInterface.setInputDevice(info, bar.currentIndex === 1);
                         }
                     }
-                }  
+                }
             }
         }
 
@@ -642,15 +641,15 @@ Rectangle {
                 color: hifi.colors.white;
                 text: qsTr("Choose output device");
             }
+
+            AudioControls.PlaySampleSound {
+                id: playSampleSound
+                x: margins.paddings
+                anchors.top: outputDeviceHeader.bottom;
+                anchors.topMargin: 10;
+            }
         }
-        
-        AudioControls.PlaySampleSound {
-            id: playSampleSound
-            x: margins.paddings
-            anchors.top: outputDeviceHeader.bottom;
-            anchors.topMargin: 10;
-        }
-        
+
         ListView {
             id: outputView
             width: parent.width - margins.paddings*2
@@ -663,9 +662,9 @@ Rectangle {
             model: AudioScriptingInterface.devices.output;
             delegate: Item {
                 width: rightMostInputLevelPos
-                height: ((type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)) ? 
+                height: ((type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)) ?
                         (margins.sizeCheckBox > checkBoxOutput.implicitHeight ? margins.sizeCheckBox + 4 : checkBoxOutput.implicitHeight + 4) : 0
-                visible: (type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1) 
+                visible: (type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)
 
                 AudioControls.CheckBox {
                     id: checkBoxOutput
@@ -685,8 +684,8 @@ Rectangle {
                 }
             }
         }
-        
-        // Spacer item 
+
+        // Spacer item
         Item {
             anchors.top: outputView.bottom;
             anchors.topMargin: 10;
