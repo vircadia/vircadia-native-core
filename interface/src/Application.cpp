@@ -5542,7 +5542,7 @@ bool Application::importEntities(const QString& urlOrFilename, const bool isObse
 
         // FIXME: readFromURL() can take over the main event loop which may cause problems, especially if downloading the JSON
         // from the Web.
-        success = _entityClipboard->readFromURL(urlOrFilename, isObservable, callerId);
+        success = _entityClipboard->readFromURL(urlOrFilename, isObservable, callerId, true);
         if (success) {
             _entityClipboard->reaverageOctreeElements();
         }
