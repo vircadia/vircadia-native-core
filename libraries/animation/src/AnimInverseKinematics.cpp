@@ -94,6 +94,7 @@ AnimInverseKinematics::IKTargetVar::IKTargetVar(const IKTargetVar& orig) :
 }
 
 AnimInverseKinematics::AnimInverseKinematics(const QString& id) : AnimNode(AnimNode::Type::InverseKinematics, id) {
+    debounceJointWarningsClock.start();
 }
 
 AnimInverseKinematics::~AnimInverseKinematics() {
@@ -162,7 +163,7 @@ void AnimInverseKinematics::setTargetVars(const QString& jointName, const QStrin
 }
 
 bool debounceJointWarnings() {
-    if (debounceJointWarningsClock.elapsed() >= JOINT_WARNING_DEBOUNCE_TIME || !debounceJointWarningsClock.isValid()) {
+    if (debounceJointWarningsClock.elapsed() >= JOINT_WARNING_DEBOUNCE_TIME) {
         debounceJointWarningsClock.restart();
         return true;
     }
