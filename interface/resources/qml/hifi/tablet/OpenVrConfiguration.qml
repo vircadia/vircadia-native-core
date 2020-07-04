@@ -865,8 +865,8 @@ Flickable {
             }
 
             RalewayRegular {
-                id: privacyStatement
-                text: "Privacy Statement"
+                id: privacyPolicy
+                text: "Privacy Policy"
                 color: hifi.colors.blueHighlight
                 size: 12
                 anchors {
@@ -876,14 +876,14 @@ Flickable {
                 }
 
                 Rectangle {
-                    id: privacyStatementUnderline
+                    id: privacyPolicyUnderline
                     color: hifi.colors.blueHighlight
-                    width: privacyStatement.width
+                    width: privacyPolicy.width
                     height: 1
                     anchors {
-                        top: privacyStatement.bottom
+                        top: privacyPolicy.bottom
                         topMargin: 1
-                        left: privacyStatement.left
+                        left: privacyPolicy.left
                     }
                     visible: false
                 }
@@ -891,9 +891,9 @@ Flickable {
                 MouseArea {
                     anchors.fill: parent;
                     hoverEnabled: true
-                    onEntered: privacyStatementUnderline.visible = true;
-                    onExited: privacyStatementUnderline.visible = false;
-                    onClicked: HiFiAbout.openUrl("https://vircadia.com/");  // FIXME: URL for privacy statement.
+                    onEntered: privacyPolicyUnderline.visible = true;
+                    onExited: privacyPolicyUnderline.visible = false;
+                    onClicked: HiFiAbout.openUrl("https://vircadia.com/privacy-policy");
                 }
             }
 
