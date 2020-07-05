@@ -2399,7 +2399,9 @@ signals:
 
 
     /**jsdoc
-     * Triggered when an avatar enters an entity, but only if the entity has an entity method exposed for this event.
+     * Triggered when an avatar enters an entity, but only if the entity has an entity method exposed for this event. 
+     * Note: At the initial loading of the script, if the avatar is already present inside the entity, it might be too late 
+     * to catch this event when the script runs, so it won't trigger. The 'preload' signal can be used to handle those cases.
      * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.enterEntity
      * @param {Uuid} entityID - The ID of the entity that the avatar entered.
