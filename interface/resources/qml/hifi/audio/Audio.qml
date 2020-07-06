@@ -326,7 +326,7 @@ Rectangle {
                 size: 16;
 
                 text: (bar.currentIndex === 0) ? qsTr("Press and hold the button \"T\" to talk.") :
-                                qsTr("Press and hold grip triggers on your controllers to talk.");
+                                qsTr("Press and hold grip triggers on both controllers to talk.");
             }
         }
 
@@ -537,6 +537,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter;
                 size: 30;
             }
+
             RalewayRegular {
                 anchors.verticalCenter: parent.verticalCenter;
                 width: margins.sizeText + margins.sizeLevel;
@@ -546,26 +547,16 @@ Rectangle {
                 color: hifi.colors.white;
                 text: qsTr("Choose input device");
             }
-            AudioControls.LoopbackAudio {
-                id: loopbackAudio
-                x: margins.paddings
-                anchors.top: inputDeviceHeader.bottom;
-                anchors.topMargin: 10;
+        }
 
-                visible: (bar.currentIndex === 1 && isVR) ||
-                    (bar.currentIndex === 0 && !isVR);
-                anchors { left: parent.left; leftMargin: margins.paddings }
-            }
-
-            AudioControls.InputPeak {
-                id: inputLevel
-                anchors.right: parent.right
-                peak: model.peak;
-                anchors.verticalCenter: parent.verticalCenter
-                visible: ((bar.currentIndex === 1 && isVR) ||
-                    (bar.currentIndex === 0 && !isVR)) &&
-                    AudioScriptingInterface.devices.input.peakValuesAvailable;
-            }
+        AudioControls.LoopbackAudio {
+            id: loopbackAudio
+            x: margins.paddings
+            anchors.top: inputDeviceHeader.bottom;
+            anchors.topMargin: 10;
+            visible: (bar.currentIndex === 1 && isVR) ||
+                (bar.currentIndex === 0 && !isVR);
+            anchors { left: parent.left; leftMargin: margins.paddings }
         }
 
         ListView {
@@ -605,6 +596,15 @@ Rectangle {
                         }
                     }
                 }
+                AudioControls.InputPeak {
+                id: inputLevel
+                anchors.right: parent.right
+                peak: model.peak;
+                anchors.verticalCenter: parent.verticalCenter
+                visible: ((bar.currentIndex === 1 && isVR) ||
+                         (bar.currentIndex === 0 && !isVR)) &&
+                         AudioScriptingInterface.devices.input.peakValuesAvailable;
+                }
             }
         }
 
@@ -641,13 +641,13 @@ Rectangle {
                 color: hifi.colors.white;
                 text: qsTr("Choose output device");
             }
+        }
 
-            AudioControls.PlaySampleSound {
-                id: playSampleSound
-                x: margins.paddings
-                anchors.top: outputDeviceHeader.bottom;
-                anchors.topMargin: 10;
-            }
+        AudioControls.PlaySampleSound {
+            id: playSampleSound
+            x: margins.paddings
+            anchors.top: outputDeviceHeader.bottom;
+            anchors.topMargin: 10;
         }
 
         ListView {
@@ -655,7 +655,7 @@ Rectangle {
             width: parent.width - margins.paddings*2
             x: margins.paddings;
             interactive: false;
-            height: contentHeight;
+            height: contentHeight + 10;
             anchors.top: playSampleSound.bottom;
             anchors.topMargin: 10;
             clip: true;
@@ -665,7 +665,6 @@ Rectangle {
                 height: ((type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)) ?
                         (margins.sizeCheckBox > checkBoxOutput.implicitHeight ? margins.sizeCheckBox + 4 : checkBoxOutput.implicitHeight + 4) : 0
                 visible: (type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)
-
                 AudioControls.CheckBox {
                     id: checkBoxOutput
                     width: parent.width
@@ -684,12 +683,5 @@ Rectangle {
                 }
             }
         }
-
-        // Spacer item
-        Item {
-            anchors.top: outputView.bottom;
-            anchors.topMargin: 10;
-        }
     }
-
 }
