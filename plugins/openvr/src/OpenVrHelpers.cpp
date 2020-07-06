@@ -293,11 +293,20 @@ void handleOpenVrEvents() {
                 ulong promitySensorFlag = (1UL << ((int)vr::k_EButton_ProximitySensor));
                 _headInHeadset = (controllerState.ulButtonPressed & promitySensorFlag) == promitySensorFlag;
             }
-
         }
 
         #if DEV_BUILD
-            qDebug() << "OpenVR: Event " << activeHmd->GetEventTypeNameFromEnum((vr::EVREventType)event.eventType) << "(" << event.eventType << ")";
+            //qDebug() << "OpenVR: Event " << activeHmd->GetEventTypeNameFromEnum((vr::EVREventType)event.eventType) << "(" << event.eventType << ")";
+            // FIXME: Reinstate the line above and remove the following lines once the problem with excessive occurrences of 
+            // VREvent_ActionBindingReloaded events is fixed in SteamVR for Linux. 
+            // https://github.com/ValveSoftware/SteamVR-for-Linux/issues/307
+            #ifdef Q_OS_LINUX
+                if (event.eventType != vr::VREvent_ActionBindingReloaded) {
+                    qDebug() << "OpenVR: Event " << activeHmd->GetEventTypeNameFromEnum((vr::EVREventType)event.eventType) << "(" << event.eventType << ")";
+                };
+            #else
+                qDebug() << "OpenVR: Event " << activeHmd->GetEventTypeNameFromEnum((vr::EVREventType)event.eventType) << "(" << event.eventType << ")";
+            #endif
         #endif
     }
 
