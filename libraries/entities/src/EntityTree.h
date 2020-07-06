@@ -40,6 +40,7 @@ public:
 class SendEntitiesOperationArgs {
 public:
     glm::vec3 root;
+    QString entityHostType;
     EntityTree* ourTree;
     EntityTreePointer otherTree;
     QHash<EntityItemID, EntityItemID>* map;
@@ -177,7 +178,7 @@ public:
     static QByteArray remapActionDataIDs(QByteArray actionData, QHash<EntityItemID, EntityItemID>& map);
 
     QVector<EntityItemID> sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
-                                       float x, float y, float z);
+                                       const QString& entityHostType, float x, float y, float z);
 
     void entityChanged(EntityItemPointer entity);
 
@@ -239,9 +240,9 @@ public:
     Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name) const;
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID) const;
 
-    void knowAvatarID(QUuid avatarID) { _avatarIDs += avatarID; }
-    void forgetAvatarID(QUuid avatarID) { _avatarIDs -= avatarID; }
-    void deleteDescendantsOfAvatar(QUuid avatarID);
+    void knowAvatarID(const QUuid& avatarID);
+    void forgetAvatarID(const QUuid& avatarID);
+    void deleteDescendantsOfAvatar(const QUuid& avatarID);
     void removeFromChildrenOfAvatars(EntityItemPointer entity);
 
     void addToNeedsParentFixupList(EntityItemPointer entity);
@@ -364,8 +365,10 @@ protected:
     QVector<EntityItemWeakPointer> _needsParentFixup; // entites with a parentID but no (yet) known parent instance
     mutable QReadWriteLock _needsParentFixupLock;
 
+    std::mutex _avatarIDsLock;
     // we maintain a list of avatarIDs to notice when an entity is a child of one.
     QSet<QUuid> _avatarIDs; // IDs of avatars connected to entity server
+    std::mutex _childrenOfAvatarsLock;
     QHash<QUuid, QSet<EntityItemID>> _childrenOfAvatars;  // which entities are children of which avatars
 
     float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };

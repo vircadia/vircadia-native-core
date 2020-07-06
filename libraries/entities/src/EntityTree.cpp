@@ -2233,15 +2233,24 @@ void EntityTree::fixupNeedsParentFixups() {
             }
 
             entity->postParentFixup();
-        } else if (getIsServer() || _avatarIDs.contains(entity->getParentID())) {
-            // this is a child of an avatar, which the entity server will never have
-            // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
-            if (!_childrenOfAvatars.contains(entity->getParentID())) {
-                _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
+        } else {
+            bool needsUpdate = getIsServer();
+            if (!needsUpdate) {
+                std::lock_guard<std::mutex> lock(_avatarIDsLock);
+                needsUpdate = _avatarIDs.contains(entity->getParentID());
             }
-            _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
-            doMove = true;
-            iter.remove(); // and pull it out of the list
+
+            if (needsUpdate) {
+                std::lock_guard<std::mutex> lock(_childrenOfAvatarsLock);
+                // this is a child of an avatar, which the entity server will never have
+                // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
+                if (!_childrenOfAvatars.contains(entity->getParentID())) {
+                    _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
+                }
+                _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
+                doMove = true;
+                iter.remove(); // and pull it out of the list
+            }
         }
 
         if (queryAACubeSuccess && doMove) {
@@ -2261,8 +2270,19 @@ void EntityTree::fixupNeedsParentFixups() {
     }
 }
 
-void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
-    QHash<QUuid, QSet<EntityItemID>>::const_iterator itr = _childrenOfAvatars.constFind(avatarID);
+void EntityTree::knowAvatarID(const QUuid& avatarID) {
+    std::lock_guard<std::mutex> lock(_avatarIDsLock);
+    _avatarIDs += avatarID;
+}
+
+void EntityTree::forgetAvatarID(const QUuid& avatarID) {
+    std::lock_guard<std::mutex> lock(_avatarIDsLock);
+    _avatarIDs -= avatarID;
+}
+
+void EntityTree::deleteDescendantsOfAvatar(const QUuid& avatarID) {
+    std::lock_guard<std::mutex> lock(_childrenOfAvatarsLock);
+    auto itr = _childrenOfAvatars.find(avatarID);
     if (itr != _childrenOfAvatars.end()) {
         if (!itr.value().empty()) {
             std::vector<EntityItemID> ids;
@@ -2280,8 +2300,10 @@ void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
 
 void EntityTree::removeFromChildrenOfAvatars(EntityItemPointer entity) {
     QUuid avatarID = entity->getParentID();
-    if (_childrenOfAvatars.contains(avatarID)) {
-        _childrenOfAvatars[avatarID].remove(entity->getID());
+    std::lock_guard<std::mutex> lock(_childrenOfAvatarsLock);
+    auto itr = _childrenOfAvatars.find(avatarID);
+    if (itr != _childrenOfAvatars.end()) {
+        itr.value().remove(entity->getID());
     }
 }
 
@@ -2657,11 +2679,12 @@ QByteArray EntityTree::remapActionDataIDs(QByteArray actionData, QHash<EntityIte
 }
 
 QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
-                                               float x, float y, float z) {
+                                               const QString& entityHostType, float x, float y, float z) {
     SendEntitiesOperationArgs args;
     args.ourTree = this;
     args.otherTree = localTree;
     args.root = glm::vec3(x, y, z);
+    args.entityHostType = entityHostType;
     // If this is called repeatedly (e.g., multiple pastes with the same data), the new elements will clash unless we
     // use new identifiers.  We need to keep a map so that we can map parent identifiers correctly.
     QHash<EntityItemID, EntityItemID> map;
@@ -2750,6 +2773,11 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
         EntityItemID oldID = item->getEntityItemID();
         EntityItemID newID = getMapped(oldID);
         EntityItemProperties properties = item->getProperties();
+
+        properties.setEntityHostTypeFromString(args->entityHostType);
+        if (properties.getEntityHostType() == entity::HostType::AVATAR) {
+            properties.setOwningAvatarID(AVATAR_SELF_ID);
+        }
 
         EntityItemID oldParentID = properties.getParentID();
         if (oldParentID.isInvalidID()) {  // no parent
