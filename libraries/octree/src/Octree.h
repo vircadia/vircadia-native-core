@@ -219,7 +219,6 @@ public:
     bool readFromURL(const QString& url, const bool isObservable = true, const qint64 callerId = -1, const bool isImport = false); // will support file urls as well...
     bool readFromByteArray(const QString& url, const QByteArray& byteArray);
     bool readFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="", const bool isImport = false);
-    bool readSVOFromStream(uint64_t streamLength, QDataStream& inputStream);
     bool readJSONFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="", const bool isImport = false);
     bool readJSONFromGzippedFile(QString qFileName);
     virtual bool readFromMap(QVariantMap& entityDescription, const bool isImport = false) = 0;
