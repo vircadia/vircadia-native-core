@@ -24,7 +24,7 @@ You will need the OSX SDK for building. The easiest way to get this is to instal
 Assuming you've installed OpenSSL using the homebrew instructions above, you'll need to set OPENSSL_ROOT_DIR so CMake can find your installations.  
 For OpenSSL installed via homebrew, set OPENSSL_ROOT_DIR via
     `export OPENSSL_ROOT_DIR=/usr/local/opt/openssl`
-    or by appending `-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl` to cmake
+    or by appending `-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl` to `cmake`
 
 ### Xcode
 
