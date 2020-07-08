@@ -122,7 +122,7 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
     QUrl url{ MetaverseAPI::getCurrentMetaverseServerURL().toString() + metaversePath };
 
     QNetworkRequest req(url);
-    req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    req.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
     if (accessTokenVariant.isValid()) {
@@ -2458,7 +2458,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             url.setQuery("access_token=" + accessTokenVariant.toString());
 
             QNetworkRequest req(url);
-            req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+            req.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
             req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
             QNetworkReply* reply = NetworkAccessManager::getInstance().put(req, doc.toJson());
 
@@ -2559,7 +2559,7 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
 
             QNetworkRequest tokenRequest(tokenRequestUrl);
             tokenRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-            tokenRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+            tokenRequest.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
             tokenRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
             QNetworkReply* tokenReply = NetworkAccessManager::getInstance().post(tokenRequest, tokenPostBody.toLocal8Bit());
@@ -2871,7 +2871,7 @@ QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenR
 
     QNetworkRequest profileRequest(profileURL);
     profileRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    profileRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    profileRequest.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
     return NetworkAccessManager::getInstance().get(profileRequest);
 }
 
