@@ -67,16 +67,13 @@ Q_LOGGING_CATEGORY(domain_server_ice, "hifi.domain_server.ice")
 
 const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
 const QString DomainServer::REPLACEMENT_FILE_EXTENSION = ".replace";
+const int MIN_PORT = 1;
+const int MAX_PORT = 65535;
+
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
-#if USE_STABLE_GLOBAL_SERVICES
-const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
-#else
-const QString ICE_SERVER_DEFAULT_HOSTNAME = "dev-ice.highfidelity.com";
-#endif
-
-QString DomainServer::_iceServerAddr { ICE_SERVER_DEFAULT_HOSTNAME };
+QString DomainServer::_iceServerAddr { NetworkingConstants::ICE_SERVER_DEFAULT_HOSTNAME };
 int DomainServer::_iceServerPort { ICE_SERVER_DEFAULT_PORT };
 bool DomainServer::_overrideDomainID { false };
 QUuid DomainServer::_overridingDomainID;
@@ -229,7 +226,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             this, &DomainServer::updateDownstreamNodes);
     connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
             this, &DomainServer::updateUpstreamNodes);
-
     setupGroupCacheRefresh();
 
     optionallySetupOAuth();
@@ -330,6 +326,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _nodePingMonitorTimer = new QTimer{ this };
     connect(_nodePingMonitorTimer, &QTimer::timeout, this, &DomainServer::nodePingMonitor);
     _nodePingMonitorTimer->start(NODE_PING_MONITOR_INTERVAL_MSECS);
+
+    initializeExporter();
 }
 
 void DomainServer::parseCommandLine(int argc, char* argv[]) {
@@ -422,6 +420,11 @@ DomainServer::~DomainServer() {
     if (_contentManager) {
         _contentManager->aboutToFinish();
         _contentManager->terminate();
+    }
+
+    if (_httpExporterManager) {
+        _httpExporterManager->close();
+        delete _httpExporterManager;
     }
 
     DependencyManager::destroy<AccountManager>();
@@ -767,6 +770,7 @@ void DomainServer::setupNodeListAndAssignments() {
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
     packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
     packetReceiver.registerListener(PacketType::DomainDisconnectRequest, this, "processNodeDisconnectRequestPacket");
+    packetReceiver.registerListener(PacketType::AvatarZonePresence, this, "processAvatarZonePresencePacket");
 
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
     packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
@@ -1976,7 +1980,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_API_BACKUPS_ID = "/api/backups/";
     const QString URI_API_BACKUPS_DOWNLOAD_ID = "/api/backups/download/";
     const QString URI_API_BACKUPS_RECOVER = "/api/backups/recover/";
-
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
     QPointer<HTTPConnection> connectionPtr { connection };
@@ -3036,6 +3039,27 @@ void DomainServer::updateUpstreamNodes() {
     updateReplicationNodes(Upstream);
 }
 
+void DomainServer::initializeExporter()
+{
+    static const QString ENABLE_EXPORTER = "monitoring.enable_prometheus_exporter";
+    static const QString EXPORTER_PORT = "monitoring.prometheus_exporter_port";
+
+    bool isExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_EXPORTER).toBool();
+    int exporterPort = _settingsManager.valueOrDefaultValueForKeyPath(EXPORTER_PORT).toInt();
+
+    if (exporterPort < MIN_PORT || exporterPort > MAX_PORT) {
+        qCWarning(domain_server) << "Prometheus exporter port " << exporterPort << " is out of range.";
+        isExporterEnabled = false;
+    }
+
+    qCDebug(domain_server) << "Setting up Prometheus exporter";
+
+    if (isExporterEnabled && !_httpExporterManager) {
+        qCInfo(domain_server) << "Starting Prometheus exporter on port " << exporterPort;
+        _httpExporterManager = new HTTPManager(QHostAddress::Any, (quint16)exporterPort, QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()), &_exporter);
+    }
+}
+
 void DomainServer::updateReplicatedNodes() {
     // Make sure we have downstream nodes in our list
     static const QString REPLICATED_USERS_KEY = "users";
@@ -3613,4 +3637,82 @@ void DomainServer::handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMes
         }
         handleOctreeFileReplacement(message->readAll(), QString(), QString(), username);
     }
+}
+
+void DomainServer::processAvatarZonePresencePacket(QSharedPointer<ReceivedMessage> message) {
+    QUuid avatarID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    QUuid zoneID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+    if (avatarID.isNull()) {
+        qCWarning(domain_server) << "Ignoring null avatar presence";
+        return;
+    }
+    static const int SCREENSHARE_EXPIRATION_SECONDS = 24 * 60 * 60;
+    screensharePresence(zoneID.isNull() ? "" : zoneID.toString(), avatarID, SCREENSHARE_EXPIRATION_SECONDS);
+}
+
+void DomainServer::screensharePresence(QString roomname, QUuid avatarID, int expirationSeconds) {
+    if (!DependencyManager::get<AccountManager>()->hasValidAccessToken()) {
+        static std::once_flag presenceAuthorityWarning;
+        std::call_once(presenceAuthorityWarning, [] {
+            qCDebug(domain_server) << "No authority to send screensharePresence.";
+        });
+        return;
+    }
+
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    auto matchingNode = limitedNodeList->nodeWithUUID(avatarID);
+    if (!matchingNode) {
+        qCWarning(domain_server) << "Ignoring avatar presence for unknown avatar ID" << avatarID;
+        return;
+    }
+    QString verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
+    if (verifiedUsername.isEmpty()) { // Silently bail for users who are not logged in.
+        return;
+    }
+
+    JSONCallbackParameters callbackParams;
+    callbackParams.callbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "handleSuccessfulScreensharePresence";
+    callbackParams.errorCallbackMethod = "handleFailedScreensharePresence";
+    // Construct `callbackData`, which is data that will be available to the callback functions.
+    // In this case, the "success" callback needs access to the "roomname" (the zone ID) and the 
+    // relevant avatar's UUID.
+    QJsonObject callbackData;
+    callbackData.insert("roomname", roomname);
+    callbackData.insert("avatarID", avatarID.toString());
+    callbackParams.callbackData = callbackData;
+    const QString PATH = "api/v1/domains/%1/screenshare";
+    QString domain_id = uuidStringWithoutCurlyBraces(getID());
+    QJsonObject json, screenshare;
+    screenshare["username"] = verifiedUsername;
+    screenshare["roomname"] = roomname;
+    if (expirationSeconds > 0) {
+        screenshare["expiration"] = expirationSeconds;
+    }
+    json["screenshare"] = screenshare;
+    DependencyManager::get<AccountManager>()->sendRequest(
+        PATH.arg(domain_id),
+        AccountManagerAuth::Required,
+        QNetworkAccessManager::PostOperation,
+        callbackParams, QJsonDocument(json).toJson()
+        );
+}
+
+void DomainServer::handleSuccessfulScreensharePresence(QNetworkReply* requestReply, QJsonObject callbackData) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply->readAll()).object();
+    if (jsonObject["status"].toString() != "success") {
+        qCWarning(domain_server) << "screensharePresence api call failed:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
+        return;
+    }
+
+    // Tell the client that we just authorized to screenshare which zone ID in which they are authorized to screenshare.
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    auto packet = NLPacket::create(PacketType::AvatarZonePresence, NUM_BYTES_RFC4122_UUID, true);
+    packet->write(QUuid(callbackData["roomname"].toString()).toRfc4122());
+    nodeList->sendPacket(std::move(packet), *(nodeList->nodeWithUUID(QUuid(callbackData["avatarID"].toString()))));
+}
+
+void DomainServer::handleFailedScreensharePresence(QNetworkReply* requestReply) {
+    qCWarning(domain_server) << "screensharePresence api call failed:" << requestReply->error();
 }

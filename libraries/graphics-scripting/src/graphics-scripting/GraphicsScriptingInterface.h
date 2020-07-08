@@ -23,7 +23,10 @@
 
 
 /**jsdoc
- * The experimental Graphics API <em>(experimental)</em> lets you query and manage certain graphics-related structures (like underlying meshes and textures) from scripting.
+ * The <code>Graphics</code> API enables you to access and manipulate avatar, entity, and overlay models in the rendered scene. 
+ * This includes getting mesh and material information for applying {@link Entities.EntityProperties-Material|Material} 
+ * entities.
+ *
  * @namespace Graphics
  *
  * @hifi-interface
@@ -40,44 +43,83 @@ public:
 
 public slots:
     /**jsdoc
-     * Returns a model reference object associated with the specified UUID ({@link EntityID} or {@link AvatarID}).
-     *
+     * Gets a handle to the model data used for displaying an avatar, 3D entity, or 3D overlay.
+     * <p>Note: The model data may be used for more than one instance of the item displayed in the scene.</p>
      * @function Graphics.getModel
-     * @param {UUID} entityID - The objectID of the model whose meshes are to be retrieved.
-     * @returns {Graphics.Model} the resulting Model object
+     * @param {UUID} id - The ID of the avatar, 3D entity, or 3D overlay.
+     * @returns {GraphicsModel} The model data for the avatar, entity, or overlay, as displayed. This includes the results of 
+     *     applying any {@link Entities.EntityProperties-Material|Material} entities to the item.
+     * @example <caption>Report some details of your avatar's model.</caption>
+     * var model = Graphics.getModel(MyAvatar.sessionUUID);
+     * var meshes = model.meshes;
+     * var numMeshparts = 0;
+     * for (var i = 0; i < meshes.length; i++) {
+     *     numMeshparts += meshes[i].numParts;
+     * }
+     * 
+     * print("Avatar:", MyAvatar.skeletonModelURL);
+     * print("Number of meshes:", model.numMeshes);
+     * print("Number of mesh parts:", numMeshparts);
+     * print("Material names: ", model.materialNames);
+     * print("Material layers:", Object.keys(model.materialLayers));
      */
     scriptable::ScriptableModelPointer getModel(const QUuid& uuid);
 
     /**jsdoc
+     * Updates the model for an avatar, 3D entity, or 3D overlay in the rendered scene.
      * @function Graphics.updateModel
-     * @param {Uuid} id
-     * @param {Graphics.Model} model
-     * @returns {boolean}
+     * @param {Uuid} id - The ID of the avatar, 3D entity, or 3D overlay to update.
+     * @param {GraphicsModel} model - The model to update the avatar, 3D entity, or 3D overlay with.
+     * @returns {boolean} <code>true</code> if the update was completed successfully, <code>false</code> if it wasn't.
      */
     bool updateModel(const QUuid& uuid, const scriptable::ScriptableModelPointer& model);
 
     /**jsdoc
+     * Checks whether the model for an avatar, entity, or overlay can be updated in the rendered scene. Only avatars, 
+     * <code>"Model"</code> entities and <code>"model"</code> overlays can have their meshes updated.
      * @function Graphics.canUpdateModel
-     * @param {Uuid} id
-     * @param {number} [meshIndex=-1]
-     * @param {number} [partNumber=-1]
-     * @returns {boolean}
+     * @param {Uuid} id - The ID of the avatar, entity, or overlay.
+     * @param {number} [meshIndex=-1] - <em>Not used.</em>
+     * @param {number} [partNumber=-1] - <em>Not used.</em>
+     * @returns {boolean} <code>true</code> if the model can be updated, <code>false</code> if it can't.
+     * @example <caption>Test whether different types of items can be updated.</caption>
+     * var modelEntityID = Entities.addEntity({
+     *     type: "Model",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(Camera.orientation, { x: -0.5, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     modelURL: "https://apidocs.vircadia.dev/models/cowboy-hat.fbx",
+     *     dimensions: { x: 0.8569, y: 0.3960, z: 1.0744 },
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     * var shapeEntityID = Entities.addEntity({
+     *     type: "Shape",
+     *     shape: "Cylinder",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(Camera.orientation, { x: 0.5, y: 0, z: -3 })),
+     *     dimensions: { x: 0.4, y: 0.6, z: 0.4 },
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     * 
+     * Script.setTimeout(function () {
+     *     print("Can update avatar:", Graphics.canUpdateModel(MyAvatar.sessionUUID));  // true
+     *     print("Can update model entity:", Graphics.canUpdateModel(modelEntityID));  // true
+     *     print("Can update shape entity:", Graphics.canUpdateModel(shapeEntityID));  // false
+     * }, 1000);  // Wait for the entities to rez.
      */
     bool canUpdateModel(const QUuid& uuid, int meshIndex = -1, int partNumber = -1);
 
     /**jsdoc
+     * Creates a new graphics model from meshes.
      * @function Graphics.newModel
-     * @param {Graphics.Mesh[]} meshes
-     * @returns {Graphics.Model}
+     * @param {GraphicsMesh[]} meshes - The meshes to include in the model.
+     * @returns {GraphicsModel} The new graphics model.
      */
     scriptable::ScriptableModelPointer newModel(const scriptable::ScriptableMeshes& meshes);
 
     /**jsdoc
-     * Create a new Mesh / Mesh Part with the specified data buffers.
-     *
+     * Creates a new graphics mesh.
      * @function Graphics.newMesh
-     * @param {Graphics.IFSData} ifsMeshData Index-Faced Set (IFS) arrays used to create the new mesh.
-     * @returns {Graphics.Mesh} the resulting Mesh / Mesh Part object
+     * @param {Graphics.IFSData} ifsMeshData - Index-Faced Set (IFS) data defining the mesh.
+     * @returns {GraphicsMesh} The new graphics mesh.
      */
     scriptable::ScriptableMeshPointer newMesh(const QVariantMap& ifsMeshData);
 
@@ -89,11 +131,13 @@ public slots:
 #endif
 
     /**jsdoc
+     * Exports a model to OBJ format.
      * @function Graphics.exportModelToOBJ
-     * @param {Graphics.Model} model
-     * @returns {string}
+     * @param {GraphicsModel} model - The model to export.
+     * @returns {string} The OBJ format representation of the model.
      */
-    QString exportModelToOBJ(const scriptable::ScriptableModel& in);
+    // FIXME: If you put the OBJ on the Asset Server and rez it, Interface keeps crashing until the model is removed.
+    QString exportModelToOBJ(const scriptable::ScriptableModelPointer& model);
 
 private:
     scriptable::ModelProviderPointer getModelProvider(const QUuid& uuid);

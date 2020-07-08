@@ -1,52 +1,63 @@
 <!--
+//
 //  entityProperties.html
 //
 //  Created by Ryan Huffman on 13 Nov 2014
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 -->
 <html>
-
-<head>
-    <title>Properties</title>
-    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-    <link rel="stylesheet" type="text/css" href="../../../html/css/edit-style.css">
-    <link rel="stylesheet" type="text/css" href="../../../html/css/colpick.css">
-    <link rel="stylesheet" type="text/css" href="../../../html/css/jsoneditor.css">
-    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
-    <script src="../../../html/js/jquery-2.1.4.min.js"></script>
-    <script type="text/javascript" src="../../../html/js/colpick.js"></script>
-    <script type="text/javascript" src="../../../html/js/jsoneditor.min.js"></script>
-    <script type="text/javascript" src="../../../html/js/eventBridgeLoader.js"></script>
-    <script type="text/javascript" src="../../../html/js/spinButtons.js"></script>
-    <script type="text/javascript" src="../../../html/js/utils.js"></script>
-    <script type="text/javascript" src="../../../html/js/includes.js"></script>
-    <script type="text/javascript" src="js/underscore-min.js"></script>
-    <script type="text/javascript" src="js/createAppTooltip.js"></script>
-    <script type="text/javascript" src="js/draggableNumber.js"></script>
-    <script type="text/javascript" src="js/entityProperties.js"></script>
-    
-</head>
-
-<body onload='loaded();'>
-    <div id="properties-list">
-        <div class='property container'>
-            <label id='placeholder-property-type'></label>
-            <div class='value'>
-                <div class='row flex-center' style='padding-bottom: 8px;'>
-                    <div id="placeholder-property-name" class="stretch"></div>
-                    <div id="placeholder-property-locked" class="shrink"></div>
-                    <div id="placeholder-property-visible" class="shrink"></div>
-                </div>
-                <div class='row'>
-                    <div id="placeholder-property-id" class="stretch"></div>
+    <head>
+        <title>Properties</title>
+        <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="../../../html/css/edit-style.css">
+        <link rel="stylesheet" type="text/css" href="../../../html/css/colpick.css">
+        <link rel="stylesheet" type="text/css" href="../../../html/css/jsoneditor.css">
+        <link rel="stylesheet" type="text/css" href="../../../html/css/tabs.css">    
+        <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+        <script src="../../../html/js/jquery-2.1.4.min.js"></script>
+        <script type="text/javascript" src="../../../html/js/colpick.js"></script>
+        <script type="text/javascript" src="../../../html/js/jsoneditor.min.js"></script>
+        <script type="text/javascript" src="../../../html/js/eventBridgeLoader.js"></script>
+        <script type="text/javascript" src="../../../html/js/spinButtons.js"></script>
+        <script type="text/javascript" src="../../../html/js/utils.js"></script>
+        <script type="text/javascript" src="../../../html/js/includes.js"></script>
+        <script type="text/javascript" src="js/underscore-min.js"></script>
+        <script type="text/javascript" src="js/createAppTooltip.js"></script>
+        <script type="text/javascript" src="js/draggableNumber.js"></script>
+        <script type="text/javascript" src="js/entityProperties.js"></script>    
+    </head>
+    <body onload='loaded();'>
+        <div id="properties-list">
+            <div class='property container'>
+                <label id='placeholder-property-type'></label>
+                <div class='value'>
+                    <div class='row flex-center' style='padding-bottom: 8px;'>
+                        <div id="placeholder-property-name" class="stretch"></div>
+                        <div id="placeholder-property-locked" class="shrink"></div>
+                        <div id="placeholder-property-visible" class="shrink"></div>
+                    </div>
+                    <div class='row'>
+                        <div id="placeholder-property-id" class="stretch"></div>
+                    </div>
                 </div>
             </div>
+            <table class="tabsTableFrame">
+                <tr class="tabsTrFrame">
+                    <td class = "tabsFrame">
+                        <div id="tabs" class="tabsContainer"></div>
+                    </td>
+                    <td class="tabsPropertiesFrame">
+                        <div class="tabsPropertiesPage" id="properties-pages">
+                            <!-- each property is added at runtime in entityProperties -->
+                        </div>
+                    </td>
+                </tr>
+            </table>
         </div>
-        <!-- each property is added at runtime in entityProperties -->
-    </div>
-</body>
-
+    </body>
 </html>

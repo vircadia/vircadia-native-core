@@ -280,6 +280,17 @@ void ScriptableAvatar::setJointMappingsFromNetworkReply() {
 }
 
 AvatarEntityMap ScriptableAvatar::getAvatarEntityData() const {
+    auto data = getAvatarEntityDataInternal(true);
+    return data;
+}
+
+AvatarEntityMap ScriptableAvatar::getAvatarEntityDataNonDefault() const {
+    auto data = getAvatarEntityDataInternal(false);
+    return data;
+
+}
+
+AvatarEntityMap ScriptableAvatar::getAvatarEntityDataInternal(bool allProperties) const {
     // DANGER: Now that we store the AvatarEntityData in packed format this call is potentially Very Expensive!
     // Avoid calling this method if possible.
     AvatarEntityMap data;
@@ -288,9 +299,18 @@ AvatarEntityMap ScriptableAvatar::getAvatarEntityData() const {
         for (const auto& itr : _entities) {
             QUuid id = itr.first;
             EntityItemPointer entity = itr.second;
-            EntityItemProperties properties = entity->getProperties();
+
+            EncodeBitstreamParams params;
+            auto desiredProperties = entity->getEntityProperties(params);
+            desiredProperties += PROP_LOCAL_POSITION;
+            desiredProperties += PROP_LOCAL_ROTATION;
+            desiredProperties += PROP_LOCAL_VELOCITY;
+            desiredProperties += PROP_LOCAL_ANGULAR_VELOCITY;
+            desiredProperties += PROP_LOCAL_DIMENSIONS;
+            EntityItemProperties properties = entity->getProperties(desiredProperties);
+
             QByteArray blob;
-            EntityItemProperties::propertiesToBlob(_scriptEngine, sessionID, properties, blob);
+            EntityItemProperties::propertiesToBlob(_scriptEngine, sessionID, properties, blob, allProperties);
             data[id] = blob;
         }
     });

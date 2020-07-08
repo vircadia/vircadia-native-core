@@ -1,7 +1,7 @@
 {
-  "name": "HighFidelityConsole",
-  "description": "High Fidelity Console",
-  "author": "High Fidelity",
+  "name": "VircadiaConsole",
+  "description": "Vircadia Console",
+  "author": "Vircadia",
   "license": "Apache-2.0",
   "version": "1.0.0",
   "keywords": [
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/highfidelity/hifi.git"
+    "url": "https://github.com/kasenvr/project-athena.git"
   },
   "main": "src/main.js",
   "scripts": {

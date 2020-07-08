@@ -127,6 +127,16 @@ int scriptable::ScriptableMesh::getSlotNumber(const QString& attributeName) cons
     return -1;
 }
 
+/**jsdoc
+ * Details of buffer's format.
+ * @typedef {object} Graphics.BufferFormat
+ * @property {number} slot - Slot.
+ * @property {number} length - Length.
+ * @property {number} byteLength - Byte length.
+ * @property {number} offset - Offset.
+ * @property {number} stride - Stride.
+ * @property {Graphics.BufferElementFormat} element - Element format.
+ */
 QVariantMap scriptable::ScriptableMesh::getBufferFormats() const {
     QVariantMap result;
     for (const auto& a : buffer_helpers::ATTRIBUTES.toStdMap()) {
@@ -247,6 +257,13 @@ bool scriptable::ScriptableMesh::setVertexProperty(glm::uint32 vertexIndex, cons
     return buffer_helpers::setValue(bufferView, vertexIndex, value);
 }
 
+/**jsdoc
+ * Called for each vertex when {@link GraphicsMesh.updateVertexAttributes} is called.
+ * @callback GraphicsMesh~forEachVertextCallback
+ * @param {Object<Graphics.BufferTypeName, Graphics.BufferType>} attributes - The attributes  of the vertex.
+ * @param {number} index - The vertex index.
+ * @param {object} properties - The properties of the mesh, per {@link GraphicsMesh}.
+ */
 glm::uint32 scriptable::ScriptableMesh::forEachVertex(QScriptValue _callback) {
     auto mesh = getMeshPointer();
     if (!mesh) {
@@ -275,7 +292,16 @@ glm::uint32 scriptable::ScriptableMesh::forEachVertex(QScriptValue _callback) {
     return numProcessed;
 }
 
-
+/**jsdoc
+ * Called for each vertex when {@link GraphicsMesh.updateVertexAttributes} is called. The value returned by the script function 
+ * should be the modified attributes to update the vertex with, or <code>false</code> to not update the particular vertex.
+ * @callback GraphicsMesh~updateVertexAttributesCallback
+ * @param {Object<Graphics.BufferTypeName, Graphics.BufferType>} attributes - The attributes  of the vertex.
+ * @param {number} index - The vertex index.
+ * @param {object} properties - The properties of the mesh, per {@link GraphicsMesh}.
+ * @returns {Object<Graphics.BufferTypeName, Graphics.BufferType>|boolean} The attribute values to update the vertex with, or 
+ *     <code>false</code> to not update the vertex.
+ */
 glm::uint32 scriptable::ScriptableMesh::updateVertexAttributes(QScriptValue _callback) {
     auto mesh = getMeshPointer();
     if (!mesh) {

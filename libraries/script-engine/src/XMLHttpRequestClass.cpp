@@ -109,6 +109,10 @@ QScriptValue XMLHttpRequestClass::getResponseHeader(const QString& name) const {
     return QScriptValue::NullValue;
 }
 
+/**jsdoc
+ * Called when the request's ready state changes.
+ * @callback XMLHttpRequest~onReadyStateChangeCallback
+ */
 void XMLHttpRequestClass::setReadyState(ReadyState readyState) {
     if (readyState != _readyState) {
         _readyState = readyState;
@@ -184,6 +188,10 @@ void XMLHttpRequestClass::doSend() {
     }
 }
 
+/**jsdoc
+ * Called when the request times out.
+ * @callback XMLHttpRequest~onTimeoutCallback 
+ */
 void XMLHttpRequestClass::requestTimeout() {
     if (_onTimeout.isFunction()) {
         _onTimeout.call(QScriptValue::NullValue);

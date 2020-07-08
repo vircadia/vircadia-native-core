@@ -34,7 +34,9 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/nearTabletHighlight.js",
     "controllerModules/nearGrabEntity.js",
     "controllerModules/farGrabEntity.js",
-    "controllerModules/pushToTalk.js"
+    "controllerModules/pushToTalk.js",
+    "controllerModules/trackedHandWalk.js",
+    "controllerModules/trackedHandTablet.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";

@@ -1,0 +1,177 @@
+
+.disabledrag {
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    user-drag: none !important;
+}
+
+html {
+    height: 100%;
+}
+
+div.dockButton {
+
+    position: absolute; /*or fixed*/
+    right: 10px;
+
+
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+
+div.dockButton button {
+    background-color: inherit;
+    float: right;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+}
+
+/* Change background color of buttons on hover */
+div.dockButton button:hover {
+    background-color: #ddd;
+}
+
+/* Create an active/current tablink class */
+div.dockButton button.active {
+    background-color: #ccc;
+}
+
+/* Style the tab content */
+.TabContent {
+    display: none;
+
+    padding: 6px 12px;
+    border-top: none;
+}
+
+#tabs {
+    width: 250px !important;
+}
+
+
+
+body {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    margin: 0;
+    font-family: 'Raleway', sans-serif;
+    color: white;
+    background: linear-gradient(#2b2b2b, #0f212e);
+}
+
+.Content {
+    min-height: 100vh;
+    font-size: 20px;
+    width: 100%;
+    height: 100%;
+}
+
+.ChatLog {
+    height: calc(100vh - 127px);
+    padding: 10px !important;
+    font-size: 18px;
+    font-family: 'Roboto', sans-serif;
+    color: white;
+    background-color: black;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    word-wrap: break-word;
+}
+
+.ChatLogLine {
+    margin-bottom: 7px;
+}
+
+.ChatLogLineDisplayName {
+    font-weight: bold;
+}
+
+.ChatLogLineMessage {
+}
+
+.LogLogLine {
+    margin-bottom: 7px;
+    padding: 6px !important;
+}
+
+.LogLogLineMessage {
+    /*font-style: italic;*/
+}
+
+.LogLogLineTimestamp {
+    font-weight: 300;
+    font-size: 16px;
+}
+
+.ChatInput {
+    color: #252525;
+    background: #252525;
+    height: 45px !important;
+}
+
+.ChatInputText {
+    padding: 5px 5px 5px 10px !important;
+    height: 35px !important;
+    width: calc(100vw - 20px) !important;
+    font-size: 18px !important;
+    background-color: white !important;
+    border-style: solid !important;
+    border-color: #232323 !important;
+    border-width: 5px 5px 5px 5px !important;
+
+}
+
+.responsive {
+    width: 100%;
+    max-width: 420px;
+    height: auto;
+}
+
+.row .col {
+    padding: 0;
+}
+
+.switch label .lever {
+    content: "";
+    display: inline-block;
+    position: relative;
+    width: 36px;
+    height: 14px;
+    background-color: rgba(0, 0, 0, 0.38);
+    border-radius: 15px;
+    margin-right: 10px;
+    -webkit-transition: background 0.3s ease;
+    transition: background 0.3s ease;
+    vertical-align: middle;
+    margin: 0 16px;
+}
+
+.muteSwitch label input[type=checkbox]:checked + .lever:after {
+    background-color: #a62113 !important;
+}
+
+#muteText {
+    font-size: 16px;
+}
+
+#muteAudioText {
+    font-size: 16px;
+}
+
+img, a{
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    user-drag: none;
+    -webkit-touch-callout: none;
+}

@@ -1,42 +1,46 @@
-# Project Athena 
+# Vircadia 
 
 ### What is this?
 
-Project Athena is a 3D social software project seeking to incrementally bring about a truly free and open metaverse, in desktop and XR.
+Vircadia is a 3D social software project seeking to incrementally bring about a truly free and open metaverse, in desktop and XR.
 
-### [Download](https://projectathena.io/download-athena/)
+### [Download](https://vircadia.com/download-vircadia/)
 
 ### Releases
 
-#### v0.86.0 K2 (TBD)
-
-##### Features, Bugs, and Housekeeping
-Check out the releases page for more information!
-
-#### v0.86.0 K1 (12/3/19)
-
-* Audio Buffer choppy audio bugfix by increasing the buffer size.
-* User Activity Logger disabled, option in code to log the reports to console.
-* CMakeLists.txt configured to work for Polyvox, Interface JSDocs. (May be obsolete.)
-* Custom Application Title.
-* Entity Script Whitelist, no scripts are whitelisted by default.
-* Background CMD outputs full log, instant close of application on closing of the CMD-line.
+[View Releases here](https://github.com/kasenvr/project-athena/releases/)
 
 ### How to build the Interface
 
-[For Windows](https://github.com/kasenvr/project-athena/blob/kasen/core/BUILD_WIN.md)
+[For Windows](https://github.com/kasenvr/project-athena/blob/master/BUILD_WIN.md)
 
-[For Linux](https://github.com/kasenvr/project-athena/blob/kasen/core/BUILD_LINUX.md)
+[For Mac](https://github.com/kasenvr/project-athena/blob/master/BUILD_OSX.md)
 
-[For Linux - Athena Builder](https://github.com/daleglass/athena-builder)
+[For Linux](https://github.com/kasenvr/project-athena/blob/master/BUILD_LINUX.md)
+
+[For Linux - Vircadia Builder](https://github.com/kasenvr/vircadia-builder)
+
+### How to deploy a Server
+
+[For Windows and Linux](https://vircadia.com/deploy-a-server/)
+
+### How to build a Server
+
+[For Linux - Vircadia Builder](https://github.com/kasenvr/vircadia-builder)
+
+### How to generate an Installer
+
+[For Windows](https://github.com/kasenvr/project-athena/blob/master/INSTALL.md)
+
+[For Linux - AppImage - Vircadia Builder](https://github.com/kasenvr/vircadia-builder/blob/master/README.md#building-appimages)
 
 ### Boot to Metaverse: The Goal
 
-Having a place to experience adventure, a place to relax with calm breath, that's a world to live in. An engine to support infinite combinations and possibilities of worlds without censorship and interruption, that's a metaverse. Finding a way to make infinite realities our reality, that's the dream.
+Having a place to experience adventure, a place to relax with calm breath, that's a world to live in. An engine to support infinite combinations and possibilities of worlds without censorship and interruption, that's a metaverse. Finding a way to make infinite realities our reality is the dream.
 
 ### Boot to Metaverse: The Technicals
 
-Many developers have personal combinations of High Fidelity from C++ modifications to different default scripts, all of which are lost to time as their fullest potential is never truly shared and propagated through the system.
+Many developers have had personal combinations of High Fidelity from C++ modifications to different default scripts, all of which are lost to time as their fullest potential is never truly shared and propagated through the system.
 
 The goal of this project is to achieve the metaverse dream through shared contribution and building. Setting goals that are achievable yet meaningful is key to making proper forward progress on the technical front whilst maintaining morale.
 
@@ -52,6 +56,6 @@ We need to do the best we can with what we've got and our best bet as open sourc
 
 ### Contribution
 
-A special thanks to the contributors of the Project Athena.
+A special thanks to the contributors of Vircadia.
 
 [Contribution](CONTRIBUTING.md)

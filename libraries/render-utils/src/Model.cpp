@@ -880,8 +880,8 @@ void Model::updateRenderItemsKey(const render::ScenePointer& scene) {
     }
     auto renderItemsKey = _renderItemKeyGlobalFlags;
     render::Transaction transaction;
-    foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-        transaction.updateItem<ModelMeshPartPayload>(item, [renderItemsKey](ModelMeshPartPayload& data) {
+    for (auto itemID: _modelMeshRenderItemIDs) {
+        transaction.updateItem<ModelMeshPartPayload>(itemID, [renderItemsKey](ModelMeshPartPayload& data) {
             data.updateKey(renderItemsKey);
         });
     }
@@ -966,7 +966,7 @@ void Model::setCullWithParent(bool cullWithParent) {
 
         render::Transaction transaction;
         auto renderItemsKey = _renderItemKeyGlobalFlags;
-        for(auto item : _modelMeshRenderItemIDs) {
+        for (auto item : _modelMeshRenderItemIDs) {
             transaction.updateItem<ModelMeshPartPayload>(item, [cullWithParent, renderItemsKey](ModelMeshPartPayload& data) {
                 data.setCullWithParent(cullWithParent);
                 data.updateKey(renderItemsKey);
@@ -974,6 +974,16 @@ void Model::setCullWithParent(bool cullWithParent) {
         }
         AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
     }
+}
+
+void Model::setRenderWithZones(const QVector<QUuid>& renderWithZones) {
+    render::Transaction transaction;
+    for (auto item : _modelMeshRenderItemIDs) {
+        transaction.updateItem<ModelMeshPartPayload>(item, [renderWithZones](ModelMeshPartPayload& data) {
+            data.setRenderWithZones(renderWithZones);
+        });
+    }
+    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
 }
 
 const render::ItemKey Model::getRenderItemKeyGlobalFlags() const {
@@ -984,7 +994,9 @@ bool Model::addToScene(const render::ScenePointer& scene,
                        render::Transaction& transaction,
                        render::Item::Status::Getters& statusGetters,
                        BlendShapeOperator modelBlendshapeOperator) {
+
     if (!_addedToScene && isLoaded()) {
+        updateGeometry();
         updateClusterMatrices();
         if (_modelMeshRenderItems.empty()) {
             createRenderItemSet();
@@ -1427,9 +1439,13 @@ void Model::updateClusterMatrices() {
         }
     }
 
+    updateBlendshapes();
+}
+
+void Model::updateBlendshapes() {
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (modelBlender->shouldComputeBlendshapes() && hfmModel.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (modelBlender->shouldComputeBlendshapes() && getHFMModel().hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }

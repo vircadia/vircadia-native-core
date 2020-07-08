@@ -40,6 +40,7 @@ public:
 class SendEntitiesOperationArgs {
 public:
     glm::vec3 root;
+    QString entityHostType;
     EntityTree* ourTree;
     EntityTreePointer otherTree;
     QHash<EntityItemID, EntityItemID>* map;
@@ -126,7 +127,9 @@ public:
     void unhookChildAvatar(const EntityItemID entityID);
     void cleanupCloneIDs(const EntityItemID& entityID);
     void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = true);
-    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = true);
+
+    void deleteEntitiesByID(const std::vector<EntityItemID>& entityIDs, bool force = false, bool ignoreWarnings = true);
+    void deleteEntitiesByPointer(const std::vector<EntityItemPointer>& entities);
 
     EntityItemPointer findEntityByID(const QUuid& id) const;
     EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID) const;
@@ -175,7 +178,7 @@ public:
     static QByteArray remapActionDataIDs(QByteArray actionData, QHash<EntityItemID, EntityItemID>& map);
 
     QVector<EntityItemID> sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
-                                       float x, float y, float z);
+                                       const QString& entityHostType, float x, float y, float z);
 
     void entityChanged(EntityItemPointer entity);
 
@@ -237,9 +240,9 @@ public:
     Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name) const;
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID) const;
 
-    void knowAvatarID(QUuid avatarID) { _avatarIDs += avatarID; }
-    void forgetAvatarID(QUuid avatarID) { _avatarIDs -= avatarID; }
-    void deleteDescendantsOfAvatar(QUuid avatarID);
+    void knowAvatarID(const QUuid& avatarID);
+    void forgetAvatarID(const QUuid& avatarID);
+    void deleteDescendantsOfAvatar(const QUuid& avatarID);
     void removeFromChildrenOfAvatars(EntityItemPointer entity);
 
     void addToNeedsParentFixupList(EntityItemPointer entity);
@@ -294,6 +297,7 @@ signals:
 
 protected:
 
+    void recursivelyFilterAndCollectForDelete(const EntityItemPointer& entity, std::vector<EntityItemPointer>& entitiesToDelete, bool force) const;
     void processRemovedEntities(const DeleteEntityOperator& theOperator);
     bool updateEntity(EntityItemPointer entity, const EntityItemProperties& properties,
             const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
@@ -342,12 +346,12 @@ protected:
     int _totalEditMessages = 0;
     int _totalUpdates = 0;
     int _totalCreates = 0;
-    quint64 _totalDecodeTime = 0;
-    quint64 _totalLookupTime = 0;
-    quint64 _totalUpdateTime = 0;
-    quint64 _totalCreateTime = 0;
-    quint64 _totalLoggingTime = 0;
-    quint64 _totalFilterTime = 0;
+    mutable quint64 _totalDecodeTime = 0;
+    mutable quint64 _totalLookupTime = 0;
+    mutable quint64 _totalUpdateTime = 0;
+    mutable quint64 _totalCreateTime = 0;
+    mutable quint64 _totalLoggingTime = 0;
+    mutable quint64 _totalFilterTime = 0;
 
     // these performance statistics are only used in the client
     void resetClientEditStats();
@@ -361,13 +365,15 @@ protected:
     QVector<EntityItemWeakPointer> _needsParentFixup; // entites with a parentID but no (yet) known parent instance
     mutable QReadWriteLock _needsParentFixupLock;
 
+    std::mutex _avatarIDsLock;
     // we maintain a list of avatarIDs to notice when an entity is a child of one.
     QSet<QUuid> _avatarIDs; // IDs of avatars connected to entity server
+    std::mutex _childrenOfAvatarsLock;
     QHash<QUuid, QSet<EntityItemID>> _childrenOfAvatars;  // which entities are children of which avatars
 
     float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };
 
-    bool filterProperties(EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType);
+    bool filterProperties(const EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType) const;
     bool _hasEntityEditFilter{ false };
     QStringList _entityScriptSourceWhitelist;
 
@@ -397,8 +403,9 @@ private:
 
     std::map<QString, QString> _namedPaths;
 
-    void updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
-                                       MovingEntitiesOperator& moveOperator, bool force, bool tellServer);
+    // Return an AACube containing object and all its entity descendants
+    AACube updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
+                                         MovingEntitiesOperator& moveOperator, bool force, bool tellServer);
 };
 
 void convertGrabUserDataToProperties(EntityItemProperties& properties);

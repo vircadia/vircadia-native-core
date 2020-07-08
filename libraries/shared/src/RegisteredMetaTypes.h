@@ -247,6 +247,8 @@ QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array);
 QScriptValue qVectorIntToScriptValue(QScriptEngine* engine, const QVector<uint32_t>& vector);
 void qVectorIntFromScriptValue(const QScriptValue& array, QVector<uint32_t>& vector);
 
+QScriptValue qVectorQUuidToScriptValue(QScriptEngine* engine, const QVector<QUuid>& vector);
+void qVectorQUuidFromScriptValue(const QScriptValue& array, QVector<QUuid>& vector);
 QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array);
 
 QScriptValue aaCubeToScriptValue(QScriptEngine* engine, const AACube& aaCube);
@@ -687,8 +689,10 @@ namespace graphics {
 using MeshPointer = std::shared_ptr<graphics::Mesh>;
 
 /**jsdoc
- * A handle for a mesh in an entity, such as returned by {@link Entities.getMeshes}.
+ * A mesh, such as returned by {@link Entities.getMeshes} or {@link Model} API functions.
+ *
  * @class MeshProxy
+ * @hideconstructor
  *
  * @hifi-interface
  * @hifi-client-entity
@@ -705,16 +709,16 @@ public:
     virtual MeshPointer getMeshPointer() const = 0;
     
     /**jsdoc
-     * Get the number of vertices in the mesh.
+     * Gets the number of vertices in the mesh.
      * @function MeshProxy#getNumVertices
      * @returns {number} Integer number of vertices in the mesh.
      */
     Q_INVOKABLE virtual int getNumVertices() const = 0;
 
     /**jsdoc
-     * Get the position of a vertex in the mesh.
+     * Gets the position of a vertex in the mesh.
      * @function MeshProxy#getPos
-     * @param {number} index - Integer index of the mesh vertex.
+     * @param {number} index - Integer index of the vertex.
      * @returns {Vec3} Local position of the vertex relative to the mesh.
      */
     Q_INVOKABLE virtual glm::vec3 getPos(int index) const = 0;

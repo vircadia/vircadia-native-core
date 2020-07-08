@@ -376,7 +376,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                 tranlationChangedSince(lastSentTime) ||
                 parentInfoChangedSince(lastSentTime));
             hasHandControllers = _controllerLeftHandMatrixCache.isValid() || _controllerRightHandMatrixCache.isValid();
-            hasFaceTrackerInfo = !dropFaceTracking && getHasScriptedBlendshapes() &&
+            hasFaceTrackerInfo = !dropFaceTracking && (getHasScriptedBlendshapes() || _headData->_hasInputDrivenBlendshapes) &&
                 (sendAll || faceTrackerInfoChangedSince(lastSentTime));
             hasJointData = !sendMinimum;
             hasJointDefaultPoseFlags = hasJointData;
@@ -3033,15 +3033,12 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
 }
 
 void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
-
+    // NOTE: requiresRemovalFromTree is unused
     bool removedEntity = false;
-
     _avatarEntitiesLock.withWriteLock([this, &removedEntity, &entityID] {
         removedEntity = _packedAvatarEntityData.remove(entityID);
     });
-
     insertRemovedEntityID(entityID);
-
     if (removedEntity && _clientTraitsHandler) {
         // we have a client traits handler, so we need to mark this removed instance trait as deleted
         // so that changes are sent next frame
@@ -3050,6 +3047,12 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFr
 }
 
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
+    // overridden where needed
+    // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
+    return AvatarEntityMap();
+}
+
+AvatarEntityMap AvatarData::getAvatarEntityDataNonDefault() const {
     // overridden where needed
     // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
     return AvatarEntityMap();

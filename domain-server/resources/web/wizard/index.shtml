@@ -24,7 +24,7 @@
   <div class="row">
     <div class="col-md-12">
       <span class='step-description'>
-        <a target='_blank' href='https://docs.highfidelity.com/create-and-explore/start-working-in-your-sandbox/place-names'>Place names</a> are similar to web addresses. Users who want to visit your domain can
+        <a target='_blank' href='https://docs.vircadia.dev/create-and-explore/start-working-in-your-sandbox/place-names'>Place names</a> are similar to web addresses. Users who want to visit your domain can
         enter its Place Name in High Fidelity's Interface. You can choose a Place Name for your domain.</br>
         Your domain may also be reachable by <b>IP address</b>.
       </span>

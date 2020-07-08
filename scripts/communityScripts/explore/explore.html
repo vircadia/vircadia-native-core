@@ -73,6 +73,9 @@
 <body onload="retrieveAddressList()">
 
     <h3>Explore</h3>
+    <button class="myButton" onclick="navigateBack()">< Back</button>
+    <button class="myButton" onclick="navigateHome()">Home</button>
+    <button class="myButton" onclick="navigateForward()">Forward ></button>
 
     <input type="text" id="domainAddressInput" placeholder="Type domain address here">
 
@@ -85,14 +88,35 @@
     <script>
 
         function myDomainAddressInputGoTo() {
-            var hifiUrl = document.getElementById("domainAddressInput").value;
-            if (hifiUrl != "") {
+            var vircadiaUrl = document.getElementById("domainAddressInput").value;
+            if (vircadiaUrl !== "") {
                 var readyEvent = {
                     "action": "goToUrl",
-                    "visit": hifiUrl,
+                    "visit": vircadiaUrl,
                 };
                 EventBridge.emitWebEvent(JSON.stringify(readyEvent));
             }
+        }
+        
+        function navigateBack() {
+            var readyEvent = {
+                "action": "navigateBack"
+            }
+            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+        }
+        
+        function navigateHome() {
+            var readyEvent = {
+                "action": "navigateHome"
+            }
+            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+        }
+        
+        function navigateForward() {
+            var readyEvent = {
+                "action": "navigateForward"
+            }
+            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
         }
 
         function navigateTo(url) {

@@ -125,7 +125,6 @@ protected:
     QVector<float> _blendshapeCoefficients;
     QVector<float> _transientBlendshapeCoefficients;
     QVector<float> _summedBlendshapeCoefficients;
-    QMap<QString, int> _blendshapeLookupMap;
     AvatarData* _owningAvatar;
 
 private:
@@ -134,7 +133,6 @@ private:
     HeadData& operator= (const HeadData&);
 
     void setHeadOrientation(const glm::quat& orientation);
-    void computeBlendshapesLookupMap();
 };
 
 #endif // hifi_HeadData_h

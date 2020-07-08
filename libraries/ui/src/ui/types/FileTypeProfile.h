@@ -25,8 +25,12 @@ class FileTypeProfile : public ContextAwareProfile {
 public:
     static void registerWithContext(QQmlContext* parent);
 
+    static void clearCache();
+
 protected:
     FileTypeProfile(QQmlContext* parent);
+    virtual ~FileTypeProfile();
+
     class RequestInterceptor : public Parent::RequestInterceptor {
     public:
         RequestInterceptor(ContextAwareProfile* parent) : Parent::RequestInterceptor(parent) {}

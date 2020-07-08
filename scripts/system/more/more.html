@@ -3,7 +3,7 @@
 //  more.html
 //
 //  Created by Keb Helion, February 2020.
-//  Copyright 2020 Project Athena and contributors.
+//  Copyright 2020 Vircadia contributors.
 //
 //  App maintained in: https://github.com/kasenvr/community-apps
 //  App copied to: https://github.com/kasenvr/project-athena
@@ -15,33 +15,12 @@
 <html>
     <head>
         <meta charset="UTF-8">
-        <script id="metadataScriptTag" type="text/javascript" src="https://kasenvr.github.io/community-apps/applications/metadata.js"></script>
+        <script src="jquery-3.5.1.min.js"></script>
         <script>
             //Defaults
             var DEFAULT_PER_PAGE = 3;
             var DEFAULT_OFFSET = 0;
-
-            //Paths
-            var currentPath = window.location.protocol + "//" + window.location.host + window.location.pathname;
-            var rootPath;
-            var metadataScript = document.getElementById("metadataScriptTag");
-
-            if (currentPath.includes("kasenvr.github.io") || !currentPath.includes("file:/")) { // Loading app from repo or filesystem.
-                rootPath = currentPath.replace("more/more.html", "applications/");
-                if (metadataScript.src !== "../applications/metadata.js") {
-                    metadataScript.src = "../applications/metadata.js";
-                    console.info("Loading apps and metadata locally.");
-                }
-            } else {
-                rootPath = "https://kasenvr.github.io/community-apps/applications/";
-                if (metadataScript.src !== "https://kasenvr.github.io/community-apps/applications/metadata.js") {
-                    metadataScript.src = "https://kasenvr.github.io/community-apps/applications/metadata.js";
-                    console.info("Loading apps and metadata remotely.");
-                }
-            }
-
-            document.getElementsByTagName("head")[0].appendChild(metadataScript);
-
+            
             //Parameters
             function findGetParameter(parameterName) {
                 var result = null,
@@ -70,7 +49,24 @@
             if (search === null) {
                 search = "";
             }
-    
+
+            //Paths
+            var currentPath = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            var developmentMode = window.location.toString().split("?")[1];
+            var rootPath;    
+            var metadataScriptSrc = "https://cdn.vircadia.com/community-apps/applications/metadata.js";
+            
+            if (developmentMode === "dev") { // Development mode loads locally, if not, load from repo.
+                console.info("Setting applications to local.")
+                rootPath = currentPath.replace("more/more.html", "applications/");
+                console.info("Loading metadata locally.");
+                metadataScriptSrc = "../applications/metadata.js";
+            } else {
+                console.info("Setting applications to remote URL.")
+                console.info("Loading metadata remotely.");
+                rootPath = "https://cdn.vircadia.com/community-apps/applications/";
+            }
+
             //Search
             function doSearch(keyword) {
                 offset = 0;
@@ -172,7 +168,7 @@
         </div>
         <hr>
         <p class="mainDesc">Want to contribute and add your own app?<br>
-        Read the <a href="https://kasenvr.github.io/community-apps/web/index.html">guide</a>!</p>
+        Read the <a href="https://cdn.vircadia.com/community-apps/web/index.html">guide</a>!</p>
         <script>        
              function monitorEnter(e) {
                 var code = (e.keyCode ? e.keyCode : e.which);
@@ -268,8 +264,11 @@
                 offset = offset + perpage;
                 listBuilder(search, offset, perpage);
             }
+            
+            $.getScript(metadataScriptSrc, function(data, textStatus, jqxhr) {
 
-            listBuilder(search, offset, perpage);
+                listBuilder(search, offset, perpage);
+            });
 
         </script>
     </body>
