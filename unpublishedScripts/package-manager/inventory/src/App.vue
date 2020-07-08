@@ -702,24 +702,24 @@ if (!browserDevelopment()) {
     EventBridge.scriptEventReceived.connect(function(receivedCommand) {
         receivedCommand = JSON.parse(receivedCommand);
         // alert("RECEIVED COMMAND:" + receivedCommand.command)
-        if (receivedCommand.app == "inventory") {
+        if (receivedCommand.app === "inventory") {
         // We route the data based on the command given.
-            if (receivedCommand.command == 'script-to-web-inventory') {
+            if (receivedCommand.command === 'script-to-web-inventory') {
                 // alert("INVENTORY RECEIVED ON APP:" + JSON.stringify(receivedCommand.data));
                 vue_this.receiveInventory(receivedCommand.data);
             }
     
-            if (receivedCommand.command == 'script-to-web-receiving-item-queue') {
+            if (receivedCommand.command === 'script-to-web-receiving-item-queue') {
                 // alert("RECEIVING ITEM QUEUE:" + JSON.stringify(receivedCommand.data));
                 vue_this.receiveReceivingItemQueue(receivedCommand.data);
             }
     
-            if (receivedCommand.command == 'script-to-web-nearby-users') {
+            if (receivedCommand.command === 'script-to-web-nearby-users') {
                 // alert("RECEIVING NEARBY USERS:" + JSON.stringify(receivedCommand.data));
                 vue_this.receiveNearbyUsers(receivedCommand.data);
             }
             
-            if (receivedCommand.command == 'script-to-web-settings') {
+            if (receivedCommand.command === 'script-to-web-settings') {
                 // alert("RECEIVING SETTINGS:" + JSON.stringify(receivedCommand.data));
                 vue_this.receiveSettings(receivedCommand.data);
             }
@@ -875,11 +875,8 @@ export default {
                 case ".json":
                     detectedItemType = "JSON";
                     break;
-            }
-            
-            if (detectedItemType == null) {
-                // This is not a known item...
-                detectedItemType = "UNKNOWN";
+                default:
+                    detectedItemType = "UNKNOWN";
             }
             
             return detectedItemType;
@@ -889,12 +886,12 @@ export default {
             itemType = itemType.toUpperCase();
             
             this.$store.state.supportedItemTypes.forEach(function (itemTypeInList) {
-                if (itemTypeInList == itemType) {
+                if (itemTypeInList === itemType) {
                     detectedItemType = itemTypeInList;
                 }
             });
             
-            if (detectedItemType == null) {
+            if (detectedItemType === null) {
                 // This is not a known item type...
                 detectedItemType = "UNKNOWN";
             }
@@ -917,8 +914,8 @@ export default {
             if (findFolder) {
                 findFolder.returnedItem.name = this.$store.state.editFolderDialog.data.name;
                 
-                if (this.$store.state.editFolderDialog.data.folder !== null && this.$store.state.editFolderDialog.data.folder !== "No Change") {
-                    if (findFolder.returnedItem.folder !== this.$store.state.editFolderDialog.data.folder && this.$store.state.editFolderDialog.data.folder !== "No Folder") {
+                if (this.$store.state.editFolderDialog.data.folder !=== null && this.$store.state.editFolderDialog.data.folder !=== "No Change") {
+                    if (findFolder.returnedItem.folder !=== this.$store.state.editFolderDialog.data.folder && this.$store.state.editFolderDialog.data.folder !=== "No Folder") {
                         this.moveFolder(uuid, this.$store.state.editFolderDialog.data.folder);
                     } else if (this.$store.state.editFolderDialog.data.folder === "No Folder") {
                         this.moveFolder(uuid, "top");
@@ -1069,7 +1066,7 @@ export default {
             var generateList;
             this.recursiveFolderHoldingList = []; // Clear that list before we do anything.
             
-            if (request == "edit") {
+            if (request === "edit") {
                 this.folderList = [
                     {
                         "name": "No Change",
@@ -1083,7 +1080,7 @@ export default {
                 
                 generateList = this.recursiveFolderPopulate(this.itemsStore, null);
                 
-            } else if (request == "add") {
+            } else if (request === "add") {
                 this.folderList = [
                     {
                         "name": "No Folder", 
@@ -1093,7 +1090,7 @@ export default {
                 
                 generateList = this.recursiveFolderPopulate(this.itemsStore, null);
                 
-            } else if (request == "editFolder") {
+            } else if (request === "editFolder") {
                 this.folderList = [
                     {
                         "name": "No Change",
@@ -1165,7 +1162,7 @@ export default {
         },
         recursiveSingularSearch: function(uuid, indexToSearch) {
             for (var i = 0; i < indexToSearch.length; i++) {
-                if (indexToSearch[i].uuid == uuid) {
+                if (indexToSearch[i].uuid === uuid) {
                     var foundItem = {
                         "returnedItem": indexToSearch[i],
                         "iteration": i,
@@ -1424,7 +1421,7 @@ export default {
         },
         receivingItemQueue: {
             handler: function() {
-                
+                // Do nothing.
             }
         },
     }

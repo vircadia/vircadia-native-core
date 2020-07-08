@@ -17,6 +17,7 @@ export const store = new Vuex.Store({
     devtools: true,
     state: {
         items: [
+            // This is test data and is primarily used for in browser development.
             {
                 "type": "script",
                 "name": "VRGrabScale",
@@ -52,62 +53,6 @@ export const store = new Vuex.Store({
                 ],
                 "uuid": "sdfsdf",
             },
-            // {
-            //     "hasChildren": true,
-            //     "name": "Test Folder",
-            //     "folder": "No Folder",
-            //     "items": [
-            //         {
-            //             "hasChildren": false,
-            //             "type": "script",
-            //             "name": "TESTFOLDERSCRIPT",
-            //             "url": "https://googfdafsgaergale.com/vr.js",
-            //             "folder": "Test Folder",
-            //             "uuid": "54hgfhgf25fdfadf4354353",
-            //         },
-            //         {
-            //             "hasChildren": false,
-            //             "type": "script",
-            //             "name": "FOLDERSCRIPT2",
-            //             "url": "https://googfdafsgaergale.com/vr.js",
-            //             "folder": "Test Folder",
-            //             "uuid": "54hgfhgf25ffdafddfadf4354353",
-            //         },
-            //         {
-            //             "hasChildren": true,
-            //             "name": "FolderWithinAFolder",
-            //             "folder": "Test Folder",
-            //             "items": [
-            //                 {
-            //                     "hasChildren": false,
-            //                     "type": "script",
-            //                     "name": "inception1",
-            //                     "url": "https://googfdafsgaergale.com/vr.js",
-            //                     "folder": "FolderWithinAFolder",
-            //                     "uuid": "54hgfhgf25fdfadeqwqeqf4354353",
-            //                 },
-            //                 {
-            //                     "hasChildren": false,
-            //                     "type": "script",
-            //                     "name": "123what",
-            //                     "url": "https://googfdafsgaergale.com/vr.js",
-            //                     "folder": "FolderWithinAFolder",
-            //                     "uuid": "54hgfhgf25ffdafdWDQDdsadasQWWQdfadf4354353",
-            //                 },
-            //                 {
-            //                     "hasChildren": false,
-            //                     "type": "script",
-            //                     "name": "inception432",
-            //                     "url": "https://googfdafsgaergale.com/vr.js",
-            //                     "folder": "FolderWithinAFolder",
-            //                     "uuid": "54hgfhgf25ffdafdWDQDQWWQdfadf4354353",
-            //                 },
-            //             ],
-            //             "uuid": "54354363wgtrhtrhegs45ujs"
-            //         },
-            //     ],
-            //     "uuid": "54354363wgsegs45ujs",
-            // },
             {
                 "type": "script",
                 "name": "VRGrabScale",
