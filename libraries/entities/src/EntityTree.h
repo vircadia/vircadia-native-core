@@ -118,7 +118,7 @@ public:
     // The newer API...
     void postAddEntity(EntityItemPointer entityItem);
 
-    EntityItemPointer addEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool isClone = false);
+    EntityItemPointer addEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool isClone = false, const bool isImport = false);
 
     // use this method if you only know the entityID
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
@@ -196,7 +196,7 @@ public:
 
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
                             bool skipThoseWithBadParents) override;
-    virtual bool readFromMap(QVariantMap& entityDescription) override;
+    virtual bool readFromMap(QVariantMap& entityDescription, const bool isImport = false) override;
     virtual bool writeToJSON(QString& jsonString, const OctreeElementPointer& element) override;
 
 
