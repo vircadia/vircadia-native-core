@@ -11,15 +11,23 @@ vcpkg_from_github(
 set(VCPKG_LIBRARY_LINKAGE dynamic)
 
 if(VCPKG_TARGET_ARCHITECTURE STREQUAL "x64")
-    set(ARCH_PATH "win64")
+    if(WIN32)
+        set(ARCH_PATH "win64")
+    else()
+        set(ARCH_PATH "linux64")
+    endif()
 elseif(VCPKG_TARGET_ARCHITECTURE STREQUAL "x86")
-    set(ARCH_PATH "win32")
+    if(WIN32)
+        set(ARCH_PATH "win32")
+    else()
+        set(ARCH_PATH "linux32")
+    endif()
 else()
-    message(FATAL_ERROR "Package only supports x64 and x86 windows.")
+    message(FATAL_ERROR "Package only supports x64 and x86 Windows and Linux.")
 endif()
 
-if(VCPKG_CMAKE_SYSTEM_NAME)
-    message(FATAL_ERROR "Package only supports windows desktop.")
+if(VCPKG_CMAKE_SYSTEM_NAME AND NOT (VCPKG_CMAKE_SYSTEM_NAME STREQUAL "Linux"))
+    message(FATAL_ERROR "Package only supports Windows or Linux desktop.")
 endif()
 
 file(MAKE_DIRECTORY
@@ -28,18 +36,35 @@ file(MAKE_DIRECTORY
     ${CURRENT_PACKAGES_DIR}/debug/lib
     ${CURRENT_PACKAGES_DIR}/debug/bin
 )
-file(COPY ${SOURCE_PATH}/lib/${ARCH_PATH}/openvr_api.lib DESTINATION ${CURRENT_PACKAGES_DIR}/lib)
-file(COPY ${SOURCE_PATH}/lib/${ARCH_PATH}/openvr_api.lib DESTINATION ${CURRENT_PACKAGES_DIR}/debug/lib)
-file(COPY
-    ${SOURCE_PATH}/bin/${ARCH_PATH}/openvr_api.dll
-    ${SOURCE_PATH}/bin/${ARCH_PATH}/openvr_api.pdb
-    DESTINATION ${CURRENT_PACKAGES_DIR}/bin
-)
-file(COPY
-    ${SOURCE_PATH}/bin/${ARCH_PATH}/openvr_api.dll
-    ${SOURCE_PATH}/bin/${ARCH_PATH}/openvr_api.pdb
-    DESTINATION ${CURRENT_PACKAGES_DIR}/debug/bin
-)
+
+if(WIN32)
+    file(COPY ${SOURCE_PATH}/lib/${ARCH_PATH}/openvr_api.lib DESTINATION ${CURRENT_PACKAGES_DIR}/lib)
+    file(COPY ${SOURCE_PATH}/lib/${ARCH_PATH}/openvr_api.lib DESTINATION ${CURRENT_PACKAGES_DIR}/debug/lib)
+    file(COPY
+        ${SOURCE_PATH}/bin/${ARCH_PATH}/openvr_api.dll
+        ${SOURCE_PATH}/bin/${ARCH_PATH}/openvr_api.pdb
+        DESTINATION ${CURRENT_PACKAGES_DIR}/bin
+    )
+    file(COPY
+        ${SOURCE_PATH}/bin/${ARCH_PATH}/openvr_api.dll
+        ${SOURCE_PATH}/bin/${ARCH_PATH}/openvr_api.pdb
+        DESTINATION ${CURRENT_PACKAGES_DIR}/debug/bin
+    )
+else()
+    file(COPY ${SOURCE_PATH}/lib/${ARCH_PATH}/libopenvr_api.so DESTINATION ${CURRENT_PACKAGES_DIR}/lib)
+    file(COPY ${SOURCE_PATH}/lib/${ARCH_PATH}/libopenvr_api.so DESTINATION ${CURRENT_PACKAGES_DIR}/debug/lib)
+    file(COPY
+        ${SOURCE_PATH}/bin/${ARCH_PATH}/libopenvr_api.so
+        ${SOURCE_PATH}/bin/${ARCH_PATH}/libopenvr_api.so.dbg
+        DESTINATION ${CURRENT_PACKAGES_DIR}/bin
+    )
+    file(COPY
+        ${SOURCE_PATH}/bin/${ARCH_PATH}/libopenvr_api.so
+        ${SOURCE_PATH}/bin/${ARCH_PATH}/libopenvr_api.so.dbg
+        DESTINATION ${CURRENT_PACKAGES_DIR}/debug/bin
+    )
+endif()
+
 file(COPY ${SOURCE_PATH}/headers DESTINATION ${CURRENT_PACKAGES_DIR})
 file(RENAME ${CURRENT_PACKAGES_DIR}/headers ${CURRENT_PACKAGES_DIR}/include)
 
