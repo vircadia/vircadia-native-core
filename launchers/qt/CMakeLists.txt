@@ -276,12 +276,12 @@ if (APPLE)
   include(CPackComponent)
 
   set(CPACK_PACKAGE_NAME "HQ Launcher")
-  set(CPACK_PACKAGE_VENDOR "High Fidelity")
+  set(CPACK_PACKAGE_VENDOR "Vircadia")
   set(CPACK_PACKAGE_FILE_NAME "HQ Launcher")
 
   set(CPACK_NSIS_DISPLAY_NAME ${_DISPLAY_NAME})
 
-  set(DMG_SUBFOLDER_NAME "High Fidelity")
+  set(DMG_SUBFOLDER_NAME "Vircadia")
   set(ESCAPED_DMG_SUBFOLDER_NAME "")
   set(DMG_SUBFOLDER_ICON "${CMAKE_SOURCE_DIR}/cmake/installer/install-folder.rsrc")
 
