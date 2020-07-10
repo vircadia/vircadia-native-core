@@ -32,7 +32,7 @@ namespace NetworkingConstants {
     const QString AUTH_HOSTNAME_BASE = "highfidelity.com";
     
     // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
-    const QByteArray VIRCADIA_USER_AGENT = "Mozilla/5.0 (HighFidelityInterface)";
+    const QByteArray VIRCADIA_USER_AGENT = "Mozilla/5.0 (VircadiaInterface)";
 
     const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
     const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");
