@@ -216,13 +216,12 @@ public:
 
     // Octree importers
     bool readFromFile(const char* filename);
-    bool readFromURL(const QString& url, const bool isObservable = true, const qint64 callerId = -1); // will support file urls as well...
+    bool readFromURL(const QString& url, const bool isObservable = true, const qint64 callerId = -1, const bool isImport = false); // will support file urls as well...
     bool readFromByteArray(const QString& url, const QByteArray& byteArray);
-    bool readFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="");
-    bool readSVOFromStream(uint64_t streamLength, QDataStream& inputStream);
-    bool readJSONFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="");
+    bool readFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="", const bool isImport = false);
+    bool readJSONFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="", const bool isImport = false);
     bool readJSONFromGzippedFile(QString qFileName);
-    virtual bool readFromMap(QVariantMap& entityDescription) = 0;
+    virtual bool readFromMap(QVariantMap& entityDescription, const bool isImport = false) = 0;
 
     uint64_t getOctreeElementsCount();
 

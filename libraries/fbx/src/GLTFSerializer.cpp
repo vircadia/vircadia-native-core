@@ -1055,6 +1055,11 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                 int indicesAccessorIdx = primitive.indices;
 
+                if (indicesAccessorIdx > _file.accessors.size()) {
+                    qWarning(modelformat) << "Indices accessor index is out of bounds for model " << _url;
+                    continue;
+                }
+                
                 GLTFAccessor& indicesAccessor = _file.accessors[indicesAccessorIdx];
 
                 // Buffers
@@ -1092,6 +1097,11 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                 foreach(auto &key, keys) {
                     int accessorIdx = primitive.attributes.values[key];
+
+                    if (accessorIdx > _file.accessors.size()) {
+                        qWarning(modelformat) << "Accessor index is out of bounds for model " << _url;
+                        continue;
+                    }
 
                     GLTFAccessor& accessor = _file.accessors[accessorIdx];
 
@@ -1239,6 +1249,11 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         int v2_index = (indices[n + 1] * 3);
                         int v3_index = (indices[n + 2] * 3);
 
+                        if (v1_index + 2 >= vertices.size() || v2_index + 2 >= vertices.size() || v3_index + 2 >= vertices.size()) {
+                            qWarning(modelformat) << "Indices out of range for model " << _url;
+                            break;
+                        }
+
                         glm::vec3 v1 = glm::vec3(vertices[v1_index], vertices[v1_index + 1], vertices[v1_index + 2]);
                         glm::vec3 v2 = glm::vec3(vertices[v2_index], vertices[v2_index + 1], vertices[v2_index + 2]);
                         glm::vec3 v3 = glm::vec3(vertices[v3_index], vertices[v3_index + 1], vertices[v3_index + 2]);
@@ -1333,7 +1348,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 }
 
                 if (validatedIndices.size() == 0) {
-                    qWarning(modelformat) << "Indices out of range for model " << _url;
+                    qWarning(modelformat) << "No valid indices for model " << _url;
                     continue;
                 }
 

@@ -6,6 +6,7 @@
 //
 //  Created by Vlad Stelmahovsky on 03/22/2017
 //  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -325,178 +326,14 @@ Rectangle {
                 size: 16;
 
                 text: (bar.currentIndex === 0) ? qsTr("Press and hold the button \"T\" to talk.") :
-                                qsTr("Press and hold grip triggers on both of your controllers to talk.");
-            }
-        }
-
-        Separator {
-            id: secondSeparator;
-            anchors.top: pttTextContainer.visible ? pttTextContainer.bottom : switchesContainer.bottom;
-            anchors.topMargin: 10;
-        }
-
-        Item {
-            id: inputDeviceHeader
-            x: margins.paddings;
-            width: parent.width - margins.paddings*2;
-            height: 36;
-            anchors.top: secondSeparator.bottom;
-            anchors.topMargin: 10;
-
-            HiFiGlyphs {
-                width: margins.sizeCheckBox;
-                text: hifi.glyphs.mic;
-                color: hifi.colors.white;
-                anchors.left: parent.left;
-                anchors.leftMargin: -size/4; //the glyph has empty space at left about 25%
-                anchors.verticalCenter: parent.verticalCenter;
-                size: 30;
-            }
-            RalewayRegular {
-                anchors.verticalCenter: parent.verticalCenter;
-                width: margins.sizeText + margins.sizeLevel;
-                anchors.left: parent.left;
-                anchors.leftMargin: margins.sizeCheckBox;
-                size: 22;
-                color: hifi.colors.white;
-                text: qsTr("Choose input device");
-            }
-        }
-
-        ListView {
-            id: inputView;
-            width: rightMostInputLevelPos;
-            anchors.top: inputDeviceHeader.bottom;
-            anchors.topMargin: 10;
-            x: margins.paddings
-            interactive: false;
-            height: contentHeight;
-            
-            clip: true;
-            model: AudioScriptingInterface.devices.input;
-            delegate: Item {
-                width: rightMostInputLevelPos - margins.paddings*2
-                height: ((type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)) ?  
-                        (margins.sizeCheckBox > checkBoxInput.implicitHeight ? margins.sizeCheckBox + 4 : checkBoxInput.implicitHeight + 4) : 0
-                visible: (type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1) 
-                AudioControls.CheckBox {
-                    id: checkBoxInput
-                    anchors.left: parent.left
-                    spacing: margins.sizeCheckBox - boxSize
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width - inputLevel.width
-                    clip: true
-                    checkable: !checked
-                    checked: bar.currentIndex === 0 ? selectedDesktop : selectedHMD;
-                    boxSize: margins.sizeCheckBox / 2
-                    isRound: true
-                    text: devicename
-                    fontSize: 16;
-                    onPressed: {
-                        if (!checked) {
-                            stereoInput.checked = false;
-                            AudioScriptingInterface.setStereoInput(false); // the next selected audio device might not support stereo
-                            AudioScriptingInterface.setInputDevice(info, bar.currentIndex === 1);
-                        }
-                    }
-                }
-                AudioControls.InputPeak {
-                    id: inputLevel
-                    anchors.right: parent.right
-                    peak: model.peak;
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: ((bar.currentIndex === 1 && isVR) ||
-                             (bar.currentIndex === 0 && !isVR)) &&
-                             AudioScriptingInterface.devices.input.peakValuesAvailable;
-                }
-            }
-        }
-
-        AudioControls.LoopbackAudio {
-            id: loopbackAudio
-            x: margins.paddings
-            anchors.top: inputView.bottom;
-            anchors.topMargin: 10;
-
-            visible: (bar.currentIndex === 1 && isVR) ||
-                (bar.currentIndex === 0 && !isVR);
-            anchors { left: parent.left; leftMargin: margins.paddings }
-        }
-
-        Separator {
-            id: thirdSeparator;
-            anchors.top: loopbackAudio.visible ? loopbackAudio.bottom : inputView.bottom;
-            anchors.topMargin: 10;
-        }
-
-        Item {
-            id: outputDeviceHeader;
-            anchors.topMargin: 10;
-            anchors.top: thirdSeparator.bottom;
-            x: margins.paddings;
-            width: parent.width - margins.paddings*2
-            height: 36
-
-            HiFiGlyphs {
-                anchors.left: parent.left
-                anchors.leftMargin: -size/4 //the glyph has empty space at left about 25%
-                anchors.verticalCenter: parent.verticalCenter;
-                width: margins.sizeCheckBox
-                text: hifi.glyphs.unmuted;
-                color: hifi.colors.white;
-                size: 36;
-            }
-
-            RalewayRegular {
-                width: margins.sizeText + margins.sizeLevel
-                anchors.left: parent.left
-                anchors.leftMargin: margins.sizeCheckBox
-                anchors.verticalCenter: parent.verticalCenter;
-                size: 22;
-                color: hifi.colors.white;
-                text: qsTr("Choose output device");
-            }
-        }
-
-        ListView {
-            id: outputView
-            width: parent.width - margins.paddings*2
-            x: margins.paddings;
-            interactive: false;
-            height: contentHeight;
-            anchors.top: outputDeviceHeader.bottom;
-            anchors.topMargin: 10;
-            clip: true;
-            model: AudioScriptingInterface.devices.output;
-            delegate: Item {
-                width: rightMostInputLevelPos
-                height: ((type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)) ? 
-                        (margins.sizeCheckBox > checkBoxOutput.implicitHeight ? margins.sizeCheckBox + 4 : checkBoxOutput.implicitHeight + 4) : 0
-                visible: (type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1) 
-
-                AudioControls.CheckBox {
-                    id: checkBoxOutput
-                    width: parent.width
-                    spacing: margins.sizeCheckBox - boxSize
-                    boxSize: margins.sizeCheckBox / 2
-                    isRound: true
-                    checked: bar.currentIndex === 0 ? selectedDesktop :  selectedHMD;
-                    checkable: !checked
-                    text: devicename
-                    fontSize: 16
-                    onPressed: {
-                        if (!checked) {
-                            AudioScriptingInterface.setOutputDevice(info, bar.currentIndex === 1);
-                        }
-                    }
-                }
+                                qsTr("Press and hold grip triggers on both controllers to talk.");
             }
         }
 
         Item {
             id: avatarGainContainer
             x: margins.paddings;
-            anchors.top: outputView.bottom;
+            anchors.top: pttTextContainer.bottom;
             anchors.topMargin: 10;
             width: parent.width - margins.paddings*2
             height: avatarGainSliderTextMetrics.height
@@ -677,12 +514,174 @@ Rectangle {
             }
         }
 
-        AudioControls.PlaySampleSound {
-            id: playSampleSound
-            x: margins.paddings
+        Separator {
+            id: secondSeparator;
             anchors.top: systemInjectorGainContainer.bottom;
             anchors.topMargin: 10;
         }
-    }
 
+        Item {
+            id: inputDeviceHeader
+            x: margins.paddings;
+            width: parent.width - margins.paddings*2;
+            height: 36;
+            anchors.top: secondSeparator.bottom;
+            anchors.topMargin: 10;
+
+            HiFiGlyphs {
+                width: margins.sizeCheckBox;
+                text: hifi.glyphs.mic;
+                color: hifi.colors.white;
+                anchors.left: parent.left;
+                anchors.leftMargin: -size/4; //the glyph has empty space at left about 25%
+                anchors.verticalCenter: parent.verticalCenter;
+                size: 30;
+            }
+
+            RalewayRegular {
+                anchors.verticalCenter: parent.verticalCenter;
+                width: margins.sizeText + margins.sizeLevel;
+                anchors.left: parent.left;
+                anchors.leftMargin: margins.sizeCheckBox;
+                size: 22;
+                color: hifi.colors.white;
+                text: qsTr("Choose input device");
+            }
+        }
+
+        AudioControls.LoopbackAudio {
+            id: loopbackAudio
+            x: margins.paddings
+            anchors.top: inputDeviceHeader.bottom;
+            anchors.topMargin: 10;
+            visible: (bar.currentIndex === 1 && isVR) ||
+                (bar.currentIndex === 0 && !isVR);
+            anchors { left: parent.left; leftMargin: margins.paddings }
+        }
+
+        ListView {
+            id: inputView;
+            width: rightMostInputLevelPos;
+            anchors.top: loopbackAudio.visible ? loopbackAudio.bottom : inputDeviceHeader.bottom;
+            anchors.topMargin: 10;
+            x: margins.paddings
+            interactive: false;
+            height: contentHeight;
+
+            clip: true;
+            model: AudioScriptingInterface.devices.input;
+            delegate: Item {
+                width: rightMostInputLevelPos - margins.paddings*2
+                height: ((type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)) ?
+                        (margins.sizeCheckBox > checkBoxInput.implicitHeight ? margins.sizeCheckBox + 4 : checkBoxInput.implicitHeight + 4) : 0
+                visible: (type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)
+                AudioControls.CheckBox {
+                    id: checkBoxInput
+                    anchors.left: parent.left
+                    spacing: margins.sizeCheckBox - boxSize
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - inputLevel.width
+                    clip: true
+                    checkable: !checked
+                    checked: bar.currentIndex === 0 ? selectedDesktop : selectedHMD;
+                    boxSize: margins.sizeCheckBox / 2
+                    isRound: true
+                    text: devicename
+                    fontSize: 16;
+                    onPressed: {
+                        if (!checked) {
+                            stereoInput.checked = false;
+                            AudioScriptingInterface.setStereoInput(false); // the next selected audio device might not support stereo
+                            AudioScriptingInterface.setInputDevice(info, bar.currentIndex === 1);
+                        }
+                    }
+                }
+                AudioControls.InputPeak {
+                id: inputLevel
+                anchors.right: parent.right
+                peak: model.peak;
+                anchors.verticalCenter: parent.verticalCenter
+                visible: ((bar.currentIndex === 1 && isVR) ||
+                         (bar.currentIndex === 0 && !isVR)) &&
+                         AudioScriptingInterface.devices.input.peakValuesAvailable;
+                }
+            }
+        }
+
+        Separator {
+            id: thirdSeparator;
+            anchors.top: inputView.bottom;
+            anchors.topMargin: 10;
+        }
+
+        Item {
+            id: outputDeviceHeader;
+            anchors.topMargin: 10;
+            anchors.top: thirdSeparator.bottom;
+            x: margins.paddings;
+            width: parent.width - margins.paddings*2
+            height: 36
+
+            HiFiGlyphs {
+                anchors.left: parent.left
+                anchors.leftMargin: -size/4 //the glyph has empty space at left about 25%
+                anchors.verticalCenter: parent.verticalCenter;
+                width: margins.sizeCheckBox
+                text: hifi.glyphs.unmuted;
+                color: hifi.colors.white;
+                size: 36;
+            }
+
+            RalewayRegular {
+                width: margins.sizeText + margins.sizeLevel
+                anchors.left: parent.left
+                anchors.leftMargin: margins.sizeCheckBox
+                anchors.verticalCenter: parent.verticalCenter;
+                size: 22;
+                color: hifi.colors.white;
+                text: qsTr("Choose output device");
+            }
+        }
+
+        AudioControls.PlaySampleSound {
+            id: playSampleSound
+            x: margins.paddings
+            anchors.top: outputDeviceHeader.bottom;
+            anchors.topMargin: 10;
+        }
+
+        ListView {
+            id: outputView
+            width: parent.width - margins.paddings*2
+            x: margins.paddings;
+            interactive: false;
+            height: contentHeight + 10;
+            anchors.top: playSampleSound.bottom;
+            anchors.topMargin: 10;
+            clip: true;
+            model: AudioScriptingInterface.devices.output;
+            delegate: Item {
+                width: rightMostInputLevelPos
+                height: ((type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)) ?
+                        (margins.sizeCheckBox > checkBoxOutput.implicitHeight ? margins.sizeCheckBox + 4 : checkBoxOutput.implicitHeight + 4) : 0
+                visible: (type != "hmd" && bar.currentIndex === 0) || (type != "desktop" && bar.currentIndex === 1)
+                AudioControls.CheckBox {
+                    id: checkBoxOutput
+                    width: parent.width
+                    spacing: margins.sizeCheckBox - boxSize
+                    boxSize: margins.sizeCheckBox / 2
+                    isRound: true
+                    checked: bar.currentIndex === 0 ? selectedDesktop :  selectedHMD;
+                    checkable: !checked
+                    text: devicename
+                    fontSize: 16
+                    onPressed: {
+                        if (!checked) {
+                            AudioScriptingInterface.setOutputDevice(info, bar.currentIndex === 1);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

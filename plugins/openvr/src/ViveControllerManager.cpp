@@ -1,6 +1,5 @@
 //
 //  ViveControllerManager.cpp
-//  input-plugins/src/input-plugins
 //
 //  Created by Sam Gondelman on 6/29/15.
 //  Copyright 2013 High Fidelity, Inc.
@@ -20,10 +19,12 @@
 #pragma warning( disable : 4334 )
 #endif
 
+#ifdef VIVE_PRO_EYE
 #include <SRanipal.h>
 #include <SRanipal_Eye.h>
 #include <SRanipal_Enums.h>
 #include <interface_gesture.hpp>
+#endif
 
 #ifdef _WIN32
 #pragma warning( pop )
@@ -50,7 +51,7 @@
 #include <plugins/DisplayPlugin.h>
 
 #include <controllers/UserInputMapper.h>
-#include <Plugins/InputConfiguration.h>
+#include <plugins/InputConfiguration.h>
 #include <controllers/StandardControls.h>
 
 #include "OpenVrDisplayPlugin.h"
@@ -61,12 +62,7 @@ vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem();
 
 static const QString OPENVR_LAYOUT = QString("OpenVrConfiguration.qml");
-static const char* CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
 const quint64 CALIBRATION_TIMELAPSE = 1 * USECS_PER_SECOND;
-
-static const char* MENU_PARENT = "Avatar";
-static const char* MENU_NAME = "Vive Controllers";
-static const char* MENU_PATH = "Avatar" ">" "Vive Controllers";
 
 static const int MIN_HEAD = 1;
 static const int MIN_PUCK_COUNT = 2;
@@ -80,6 +76,7 @@ static const int SECOND_FOOT = 1;
 static const int HIP = 2;
 static const int CHEST = 3;
 
+#ifdef VIVE_PRO_EYE
 enum ViveHandJointIndex {
     HAND = 0,
     THUMB_1,
@@ -105,6 +102,7 @@ enum ViveHandJointIndex {
 
     Size
 };
+#endif
 
 const char* ViveControllerManager::NAME { "OpenVR" };
 
@@ -158,22 +156,7 @@ static QString deviceTrackingResultToString(vr::ETrackingResult trackingResult) 
     return result;
 }
 
-static glm::mat4 calculateResetMat() {
-    auto chaperone = vr::VRChaperone();
-    if (chaperone) {
-        float const UI_RADIUS = 1.0f;
-        float const UI_HEIGHT = 1.6f;
-        float const UI_Z_OFFSET = 0.5;
-
-        float xSize, zSize;
-        chaperone->GetPlayAreaSize(&xSize, &zSize);
-        glm::vec3 uiPos(0.0f, UI_HEIGHT, UI_RADIUS - (0.5f * zSize) - UI_Z_OFFSET);
-
-        return glm::inverse(createMatFromQuatAndPos(glm::quat(), uiPos));
-    }
-    return glm::mat4();
-}
-
+#ifdef VIVE_PRO_EYE
 class ViveProEyeReadThread : public QThread {
 public:
     ViveProEyeReadThread() {
@@ -217,6 +200,7 @@ public:
     QMutex eyeDataMutex;
     EyeDataBuffer eyeDataBuffer;
 };
+#endif
 
 
 static QString outOfRangeDataStrategyToString(ViveControllerManager::OutOfRangeDataStrategy strategy) {
@@ -334,7 +318,7 @@ bool areBothHandControllersActive(vr::IVRSystem*& system) {
         isHandControllerActive(system, vr::TrackedControllerRole_RightHand);
 }
 
-
+#ifdef VIVE_PRO_EYE
 void ViveControllerManager::enableGestureDetection() {
     if (_viveCameraHandTracker) {
         return;
@@ -379,6 +363,7 @@ void ViveControllerManager::disableGestureDetection() {
     StopGestureDetection();
     _viveCameraHandTracker = false;
 }
+#endif
 
 bool ViveControllerManager::activate() {
     InputPlugin::activate();
@@ -400,6 +385,7 @@ bool ViveControllerManager::activate() {
     userInputMapper->registerDevice(_inputDevice);
     _registeredWithInputMapper = true;
 
+#ifdef VIVE_PRO_EYE
     if (ViveSR::anipal::Eye::IsViveProEye()) {
         qDebug() << "Vive Pro eye-tracking detected";
 
@@ -420,6 +406,7 @@ bool ViveControllerManager::activate() {
             _viveProEyeReadThread->start(QThread::HighPriority);
         }
     }
+#endif
 
     return true;
 }
@@ -442,12 +429,14 @@ void ViveControllerManager::deactivate() {
     userInputMapper->removeDevice(_inputDevice->_deviceID);
     _registeredWithInputMapper = false;
 
+#ifdef VIVE_PRO_EYE
     if (_viveProEyeReadThread) {
         _viveProEyeReadThread->quit = true;
         _viveProEyeReadThread->wait();
         _viveProEyeReadThread = nullptr;
         ViveSR::anipal::Release(ViveSR::anipal::Eye::ANIPAL_TYPE_EYE);
     }
+#endif
 
     saveSettings();
 }
@@ -460,13 +449,13 @@ bool ViveControllerManager::isHeadControllerMounted() const {
     return activityLevel == vr::k_EDeviceActivityLevel_UserInteraction;
 }
 
+#ifdef VIVE_PRO_EYE
 void ViveControllerManager::invalidateEyeInputs() {
     _inputDevice->_poseStateMap[controller::LEFT_EYE].valid = false;
     _inputDevice->_poseStateMap[controller::RIGHT_EYE].valid = false;
     _inputDevice->_axisStateMap[controller::EYEBLINK_L].valid = false;
     _inputDevice->_axisStateMap[controller::EYEBLINK_R].valid = false;
 }
-
 
 void ViveControllerManager::updateEyeTracker(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     if (!isHeadControllerMounted()) {
@@ -769,6 +758,7 @@ void ViveControllerManager::updateCameraHandTracker(float deltaTime,
     }
     _lastHandTrackerFrameIndex = handTrackerFrameIndex;
 }
+#endif
 
 
 void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
@@ -807,11 +797,14 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
         _registeredWithInputMapper = true;
     }
 
+#ifdef VIVE_PRO_EYE
     if (_viveProEye && _eyeTrackingEnabled) {
         updateEyeTracker(deltaTime, inputCalibrationData);
     }
 
     updateCameraHandTracker(deltaTime, inputCalibrationData);
+#endif
+
 }
 
 void ViveControllerManager::loadSettings() {
@@ -893,7 +886,7 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     handleHandController(deltaTime, rightHandDeviceIndex, inputCalibrationData, false);
 
     // collect poses for all generic trackers
-    for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+    for (uint32_t i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
         handleTrackedObject(i, inputCalibrationData);
         handleHmd(i, inputCalibrationData);
     }
@@ -968,8 +961,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHead = headObject["override"].toBool();
                 if (overrideHead) {
                     _headConfig = HeadConfig::Puck;
-                    _headPuckYOffset = headObject["Y"].toDouble() * CM_TO_M;
-                    _headPuckZOffset = headObject["Z"].toDouble() * CM_TO_M;
+                    _headPuckYOffset = (float)headObject["Y"].toDouble() * CM_TO_M;
+                    _headPuckZOffset = (float)headObject["Z"].toDouble() * CM_TO_M;
                 } else {
                     _headConfig = HeadConfig::HMD;
                 }
@@ -978,8 +971,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHands = handsObject["override"].toBool();
                 if (overrideHands) {
                     _handConfig = HandConfig::Pucks;
-                    _handPuckYOffset = handsObject["Y"].toDouble() * CM_TO_M;
-                    _handPuckZOffset = handsObject["Z"].toDouble() * CM_TO_M;
+                    _handPuckYOffset = (float)handsObject["Y"].toDouble() * CM_TO_M;
+                    _handPuckZOffset = (float)handsObject["Z"].toDouble() * CM_TO_M;
                 } else {
                     _handConfig = HandConfig::HandController;
                 }
@@ -1013,8 +1006,8 @@ QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD);
     configurationSettings["handController"] = (_handConfig == HandConfig::HandController);
     configurationSettings["puckCount"] = (int)_validTrackedObjects.size();
-    configurationSettings["armCircumference"] = (double)_armCircumference * M_TO_CM;
-    configurationSettings["shoulderWidth"] = (double)_shoulderWidth * M_TO_CM;
+    configurationSettings["armCircumference"] = (double)(_armCircumference * M_TO_CM);
+    configurationSettings["shoulderWidth"] = (double)(_shoulderWidth * M_TO_CM);
     configurationSettings["outOfRangeDataStrategy"] = outOfRangeDataStrategyToString(_outOfRangeDataStrategy);
     return configurationSettings;
 }
@@ -1231,8 +1224,6 @@ bool ViveControllerManager::InputDevice::configureHead(const glm::mat4& defaultT
 bool ViveControllerManager::InputDevice::configureBody(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
     std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksYPosition);
     int puckCount = (int)_validTrackedObjects.size();
-    glm::vec3 headXAxis = getReferenceHeadXAxis(defaultToReferenceMat, inputCalibration.defaultHeadMat);
-    glm::vec3 headPosition = getReferenceHeadPosition(defaultToReferenceMat, inputCalibration.defaultHeadMat);
     if (_config == Config::None) {
         return true;
     } else if (_config == Config::Feet && puckCount >= MIN_PUCK_COUNT) {
@@ -1330,8 +1321,6 @@ controller::Pose ViveControllerManager::InputDevice::addOffsetToPuckPose(const c
 }
 
 void ViveControllerManager::InputDevice::handleHmd(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {
-     uint32_t poseIndex = controller::TRACKED_OBJECT_00 + deviceIndex;
-
      if (_system->IsTrackedDeviceConnected(deviceIndex) &&
          _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_HMD &&
          _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid) {
@@ -1505,11 +1494,11 @@ void ViveControllerManager::InputDevice::printDeviceTrackingResultChange(uint32_
 }
 
 bool ViveControllerManager::InputDevice::checkForCalibrationEvent() {
-    auto& endOfMap = _buttonPressedMap.end();
-    auto& leftTrigger = _buttonPressedMap.find(controller::LT);
-    auto& rightTrigger = _buttonPressedMap.find(controller::RT);
-    auto& leftAppButton = _buttonPressedMap.find(LEFT_APP_MENU);
-    auto& rightAppButton = _buttonPressedMap.find(RIGHT_APP_MENU);
+    auto endOfMap = _buttonPressedMap.end();
+    auto leftTrigger = _buttonPressedMap.find(controller::LT);
+    auto rightTrigger = _buttonPressedMap.find(controller::RT);
+    auto leftAppButton = _buttonPressedMap.find(LEFT_APP_MENU);
+    auto rightAppButton = _buttonPressedMap.find(RIGHT_APP_MENU);
     return ((leftTrigger != endOfMap && leftAppButton != endOfMap) && (rightTrigger != endOfMap && rightAppButton != endOfMap));
 }
 
@@ -1860,10 +1849,74 @@ void ViveControllerManager::InputDevice::setConfigFromString(const QString& valu
  *     <tr><td><code>Hips</code></td><td>number</td><td>{@link Pose}</td><td>Hips pose.</td></tr>
  *     <tr><td><code>Spine2</code></td><td>number</td><td>{@link Pose}</td><td>Spine2 pose.</td></tr>
  *     <tr><td><code>Head</code></td><td>number</td><td>{@link Pose}</td><td>Head pose.</td></tr>
+ *     <tr><td><code>LeftEye</code></td><td>number</td><td>{@link Pose}</td><td>Left eye pose.</td></tr>
+ *     <tr><td><code>RightEye</code></td><td>number</td><td>{@link Pose}</td><td>Right eye pose.</td></tr>
+ *     <tr><td><code>EyeBlink_L</code></td><td>number</td><td>number</td><td>Left eyelid blink.</td></tr>
+ *     <tr><td><code>EyeBlink_R</code></td><td>number</td><td>number</td><td>Right eyelid blink.</td></tr>
  *     <tr><td><code>LeftArm</code></td><td>number</td><td>{@link Pose}</td><td>Left arm pose.</td></tr>
  *     <tr><td><code>RightArm</code></td><td>number</td><td>{@link Pose}</td><td>Right arm pose</td></tr>
  *     <tr><td><code>LeftHand</code></td><td>number</td><td>{@link Pose}</td><td>Left hand pose.</td></tr>
+ *     <tr><td><code>LeftHandThumb1</code></td><td>number</td><td>{@link Pose}</td><td>Left thumb 1 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandThumb2</code></td><td>number</td><td>{@link Pose}</td><td>Left thumb 2 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandThumb3</code></td><td>number</td><td>{@link Pose}</td><td>Left thumb 3 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandThumb4</code></td><td>number</td><td>{@link Pose}</td><td>Left thumb 4 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandIndex1</code></td><td>number</td><td>{@link Pose}</td><td>Left index 1 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandIndex2</code></td><td>number</td><td>{@link Pose}</td><td>Left index 2 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandIndex3</code></td><td>number</td><td>{@link Pose}</td><td>Left index 3 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandIndex4</code></td><td>number</td><td>{@link Pose}</td><td>Left index 4 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandMiddle1</code></td><td>number</td><td>{@link Pose}</td><td>Left middle 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>LeftHandMiddle2</code></td><td>number</td><td>{@link Pose}</td><td>Left middle 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>LeftHandMiddle3</code></td><td>number</td><td>{@link Pose}</td><td>Left middle 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>LeftHandMiddle4</code></td><td>number</td><td>{@link Pose}</td><td>Left middle 4 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>LeftHandRing1</code></td><td>number</td><td>{@link Pose}</td><td>Left ring 1 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandRing2</code></td><td>number</td><td>{@link Pose}</td><td>Left ring 2 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandRing3</code></td><td>number</td><td>{@link Pose}</td><td>Left ring 3 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandRing4</code></td><td>number</td><td>{@link Pose}</td><td>Left ring 4 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandPinky1</code></td><td>number</td><td>{@link Pose}</td><td>Left pinky 1 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandPinky2</code></td><td>number</td><td>{@link Pose}</td><td>Left pinky 2 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandPinky3</code></td><td>number</td><td>{@link Pose}</td><td>Left pinky 3 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandPinky4</code></td><td>number</td><td>{@link Pose}</td><td>Left pinky 4 finger joint pose.</td></tr>
  *     <tr><td><code>RightHand</code></td><td>number</td><td>{@link Pose}</td><td>Right hand pose.</td></tr>
+ *     <tr><td><code>RightHandThumb1</code></td><td>number</td><td>{@link Pose}</td><td>Right thumb 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandThumb2</code></td><td>number</td><td>{@link Pose}</td><td>Right thumb 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandThumb3</code></td><td>number</td><td>{@link Pose}</td><td>Right thumb 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandThumb4</code></td><td>number</td><td>{@link Pose}</td><td>Right thumb 4 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandIndex1</code></td><td>number</td><td>{@link Pose}</td><td>Right index 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandIndex2</code></td><td>number</td><td>{@link Pose}</td><td>Right index 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandIndex3</code></td><td>number</td><td>{@link Pose}</td><td>Right index 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandIndex4</code></td><td>number</td><td>{@link Pose}</td><td>Right index 4 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandMiddle1</code></td><td>number</td><td>{@link Pose}</td><td>Right middle 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandMiddle2</code></td><td>number</td><td>{@link Pose}</td><td>Right middle 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandMiddle3</code></td><td>number</td><td>{@link Pose}</td><td>Right middle 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandMiddle4</code></td><td>number</td><td>{@link Pose}</td><td>Right middle 4 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandRing1</code></td><td>number</td><td>{@link Pose}</td><td>Right ring 1 finger joint pose.</td></tr>
+ *     <tr><td><code>RightHandRing2</code></td><td>number</td><td>{@link Pose}</td><td>Right ring 2 finger joint pose.</td></tr>
+ *     <tr><td><code>RightHandRing3</code></td><td>number</td><td>{@link Pose}</td><td>Right ring 3 finger joint pose.</td></tr>
+ *     <tr><td><code>RightHandRing4</code></td><td>number</td><td>{@link Pose}</td><td>Right ring 4 finger joint pose.</td></tr>
+ *     <tr><td><code>RightHandPinky1</code></td><td>number</td><td>{@link Pose}</td><td>Right pinky 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandPinky2</code></td><td>number</td><td>{@link Pose}</td><td>Right pinky 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandPinky3</code></td><td>number</td><td>{@link Pose}</td><td>Right pinky 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandPinky4</code></td><td>number</td><td>{@link Pose}</td><td>Right pinky 4 finger joint pose.
+ *       </td></tr>
  *     <tr><td colspan="4"><strong>Trackers</strong></td></tr>
  *     <tr><td><code>TrackedObject00</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 0 pose.</td></tr>
  *     <tr><td><code>TrackedObject01</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 1 pose.</td></tr>
