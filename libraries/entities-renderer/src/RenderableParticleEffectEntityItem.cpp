@@ -219,7 +219,7 @@ float importanceSample3DDimension(float startDim) {
     return dimension;
 }
 
-ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
+ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(const Transform& baseTransform, const particle::Properties& particleProperties,
                                                                                        const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource,
                                                                                        const TriangleInfo& triangleInfo) {
     CpuParticle particle;
@@ -237,7 +237,7 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
     const auto& polarFinish = particleProperties.polar.finish;
 
     particle.seed = randFloatInRange(-1.0f, 1.0f);
-    particle.expiration = now + (uint64_t)(particleProperties.lifespan * USECS_PER_SECOND);
+    particle.expiration = (uint64_t)(particleProperties.lifespan * USECS_PER_SECOND);
 
     particle.relativePosition = glm::vec3(0.0f);
     particle.basePosition = baseTransform.getTranslation();
@@ -423,7 +423,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
                     computeTriangles(geometryResource->getHFMModel());
                 }
                 // emit particle
-                _cpuParticles.push_back(createParticle(now, modelTransform, particleProperties, shapeType, geometryResource, _triangleInfo));
+                _cpuParticles.push_back(createParticle(modelTransform, particleProperties, shapeType, geometryResource, _triangleInfo));
                 _timeUntilNextEmit = emitInterval;
                 if (emitInterval < timeRemaining) {
                     timeRemaining -= emitInterval;
@@ -435,7 +435,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
     }
 
     // Kill any particles that have expired or are over the max size
-    while (_cpuParticles.size() > particleProperties.maxParticles || (!_cpuParticles.empty() && _cpuParticles.front().expiration <= now)) {
+    while (_cpuParticles.size() > particleProperties.maxParticles || (!_cpuParticles.empty() && _cpuParticles.front().expiration == 0)) {
         _cpuParticles.pop_front();
     }
 
@@ -448,6 +448,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
             }
             particle.basePosition = modelTransform.getTranslation();
         }
+        particle.expiration = particle.expiration >= interval ? particle.expiration - interval : 0;
         particle.integrate(deltaTime);
     }
     _prevEmitterShouldTrail = particleProperties.emission.shouldTrail;
