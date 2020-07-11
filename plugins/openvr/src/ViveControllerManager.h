@@ -262,9 +262,10 @@ private:
     vr::IVRSystem* _system { nullptr };
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_system) };
 
+    bool _eyeTrackingEnabled{ false };
+
 #ifdef VIVE_PRO_EYE
     bool _viveProEye { false };
-    bool _eyeTrackingEnabled { false };
     std::shared_ptr<ViveProEyeReadThread> _viveProEyeReadThread;
     EyeDataBuffer _prevEyeData;
 
