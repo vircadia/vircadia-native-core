@@ -691,9 +691,9 @@ var vue_this;
 
 function browserDevelopment() {
     if (typeof EventBridge !== 'undefined') {
-        return false; // We are in the browser, probably for development purposes.
+        return false; // We are in Vircadia.
     } else {
-        return true; // We are in Vircadia.
+        return true; // We are in the browser, probably for development purposes.
     }
 }
 
@@ -914,8 +914,8 @@ export default {
             if (findFolder) {
                 findFolder.returnedItem.name = this.$store.state.editFolderDialog.data.name;
                 
-                if (this.$store.state.editFolderDialog.data.folder !=== null && this.$store.state.editFolderDialog.data.folder !=== "No Change") {
-                    if (findFolder.returnedItem.folder !=== this.$store.state.editFolderDialog.data.folder && this.$store.state.editFolderDialog.data.folder !=== "No Folder") {
+                if (this.$store.state.editFolderDialog.data.folder !== null && this.$store.state.editFolderDialog.data.folder !== "No Change") {
+                    if (findFolder.returnedItem.folder !== this.$store.state.editFolderDialog.data.folder && this.$store.state.editFolderDialog.data.folder !== "No Folder") {
                         this.moveFolder(uuid, this.$store.state.editFolderDialog.data.folder);
                     } else if (this.$store.state.editFolderDialog.data.folder === "No Folder") {
                         this.moveFolder(uuid, "top");
