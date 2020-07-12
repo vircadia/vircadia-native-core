@@ -29,6 +29,14 @@
                         <v-list-item-title>Manage Slides</v-list-item-title>
                     </v-list-item-content>
                 </v-list-item>
+                <v-list-item link @click="changePresentationChannelDialogShow = !changePresentationChannelDialogShow">
+                    <v-list-item-action>
+                    <v-icon>mdi-remote</v-icon>
+                    </v-list-item-action>
+                    <v-list-item-content>
+                        <v-list-item-title>Presentation Channel</v-list-item-title>
+                    </v-list-item-content>
+                </v-list-item>
             </v-list>
         </v-navigation-drawer>
 
@@ -40,13 +48,15 @@
             <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
             <v-toolbar-title>Slides Presenter</v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-btn medium fab @click="currentSlide--">
-                <v-icon>mdi-arrow-left</v-icon>
-            </v-btn>
-            <span class="mx-4">{{ currentSlide + 1 }} / {{ slides.length }}</span>
-            <v-btn medium fab @click="currentSlide++">
-                <v-icon>mdi-arrow-right</v-icon>
-            </v-btn>
+            <div v-show="slides.length > 0">
+                <v-btn medium fab @click="currentSlide--">
+                    <v-icon>mdi-arrow-left</v-icon>
+                </v-btn>
+                <span class="mx-4">{{ currentSlide + 1 }} / {{ slides.length }}</span>
+                <v-btn medium fab @click="currentSlide++">
+                    <v-icon>mdi-arrow-right</v-icon>
+                </v-btn>
+            </div>
         </v-app-bar>
         
         <!-- Main Slider Control Area -->
@@ -76,17 +86,18 @@
         
         <v-dialog v-model="addSlidesByURLDialogShow" persistent>
             <v-card>
-                <v-card-title class="headline">Add Slide by URL</v-card-title>
+                <v-toolbar>
+                    <v-toolbar-title>Add Slide by URL</v-toolbar-title>
+                    <v-spacer></v-spacer>
+                    <v-btn class="mx-2" color="red darken-1" @click="addSlidesByURLDialogShow = false">Close</v-btn>
+                    <v-btn class="mx-2" color="green darken-1" @click="addSlidesByURLDialogShow = false; addSlideByURL()">Add</v-btn>
+                </v-toolbar>
+
                 <v-text-field
                     placeholder="Enter URL Here"
                     v-model="addSlideByURLField"
                     filled
                 ></v-text-field>
-                <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn color="red darken-1" @click="addSlidesByURLDialogShow = false">Close</v-btn>
-                    <v-btn color="green darken-1" @click="addSlidesByURLDialogShow = false; addSlideByURL()">Add</v-btn>
-                </v-card-actions>
             </v-card>
         </v-dialog>
         
@@ -96,7 +107,12 @@
         
         <v-dialog v-model="uploadSlidesDialogShow" persistent>
             <v-card>
-                <v-card-title class="headline">Upload Slide</v-card-title>
+                <v-toolbar>
+                    <v-toolbar-title>Upload Slide</v-toolbar-title>
+                    <v-spacer></v-spacer>
+                    <v-btn class="mx-2" color="red darken-1" @click="uploadSlidesDialogShow = false">Close</v-btn>
+                    <v-btn class="mx-2" color="green darken-1" @click="uploadSlidesDialogShow = false; uploadSlide()">Upload</v-btn>
+                </v-toolbar>
                 <v-file-input
                     v-model="uploadSlidesDialogFiles"
                     :rules="uploadSlidesDialogRules"
@@ -105,11 +121,6 @@
                     prepend-icon="mdi-image-search"
                     label="Slide"
                 ></v-file-input>
-                <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn color="red darken-1" @click="uploadSlidesDialogShow = false">Close</v-btn>
-                    <v-btn color="green darken-1" @click="uploadSlidesDialogShow = false; uploadSlide()">Upload</v-btn>
-                </v-card-actions>
             </v-card>
         </v-dialog>
         
@@ -143,7 +154,11 @@
         
         <v-dialog v-model="manageSlidesDialogShow" persistent>
             <v-card>
-                <v-card-title class="headline">Manage Slides</v-card-title>
+                <v-toolbar>
+                    <v-toolbar-title>Manage Slides</v-toolbar-title>
+                    <v-spacer></v-spacer>
+                    <v-btn class="mx-2" color="green" @click="manageSlidesDialogShow = false">Done</v-btn>
+                </v-toolbar>
                 <v-list subheader>
                     <v-subheader>Slides</v-subheader>
 
@@ -173,10 +188,6 @@
                         </v-list-item-icon>
                     </v-list-item>
                 </v-list>
-                <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn color="green" @click="manageSlidesDialogShow = false">Done</v-btn>
-                </v-card-actions>
             </v-card>
         </v-dialog>
         
@@ -186,17 +197,18 @@
         
         <v-dialog v-model="changePresentationChannelDialogShow" persistent>
             <v-card>
-                <v-card-title class="headline">Change Presentation Channel</v-card-title>
+                <v-toolbar>
+                    <v-toolbar-title>Change Presentation Channel</v-toolbar-title>
+                    <v-spacer></v-spacer>
+                    <v-btn class="mx-2" color="red darken-1" @click="changePresentationChannelDialogShow = false">Close</v-btn>
+                    <v-btn class="mx-2" color="green darken-1" @click="changePresentationChannelDialogShow = false; sendChannelUpdate()">Update</v-btn>
+                </v-toolbar>
+
                 <v-text-field
                     placeholder="Enter channel here"
-                    v-model="presentationChannel"
+                    v-model="changePresentationChannelDialogText"
                     filled
                 ></v-text-field>
-                <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn color="red darken-1" @click="changePresentationChannelDialogShow = false">Close</v-btn>
-                    <v-btn color="green darken-1" @click="changePresentationChannelDialogShow = false; updatePresentationChannel()">Update</v-btn>
-                </v-card-actions>
             </v-card>
         </v-dialog>
         
@@ -234,6 +246,11 @@ if (!browserDevelopment()) {
                 // alert("SLIDES RECEIVED ON APP:" + JSON.stringify(receivedCommand.data));
                 vue_this.receiveSlides(receivedCommand.data);
             }
+            
+            if (receivedCommand.command === 'script-to-web-channel') {
+                // alert("SLIDES RECEIVED ON APP:" + JSON.stringify(receivedCommand.data));
+                vue_this.receiveChannelUpdate(receivedCommand.data);
+            }
         }
     });
 }
@@ -248,7 +265,15 @@ export default {
         slides: [
             'https://wallpapertag.com/wallpaper/full/d/5/e/154983-anime-girl-wallpaper-hd-1920x1200-for-hd.jpg',
             'https://wallpapertag.com/wallpaper/full/7/3/0/234884-anime-girls-wallpaper-3840x2160-ipad.jpg',
-            'http://getwallpapers.com/wallpaper/full/2/7/b/596546.jpg'
+            'http://getwallpapers.com/wallpaper/full/2/7/b/596546.jpg',
+            'https://images4.alphacoders.com/671/671041.jpg',
+            'https://images4.alphacoders.com/671/671041.jpg',
+            'https://images4.alphacoders.com/671/671041.jpg',
+            'https://images4.alphacoders.com/671/671041.jpg',
+            'https://images4.alphacoders.com/671/671041.jpg',
+            'https://images4.alphacoders.com/671/671041.jpg',
+            'https://images4.alphacoders.com/671/671041.jpg',
+            'https://images4.alphacoders.com/671/671041.jpg',
         ],
         currentSlide: 0,
         presentationChannel: "ps-channel-1",
@@ -258,7 +283,7 @@ export default {
         // Upload Slides Dialog
         uploadSlidesDialogShow: false,
         uploadSlidesDialogImgBBAPIKey: '3c004374cf70ad588aad5823ac2baaca', // Make this pull from UserData later.
-        uploadSlidesdialogImgBBExpiry: 0, // Image expiry time: 0 = never. 43200 = 12 hours.
+        uploadSlidesDialogImgBBExpiry: 0, // Image expiry time: 0 = never. 43200 = 12 hours.
         uploadSlidesDialogFiles: null,
         uploadSlidesFailedSnackbar: false,
         uploadSlidesFailedError: '',
@@ -270,6 +295,7 @@ export default {
         manageSlidesDialogShow: false,
         // Change Presentation Channel Dialog
         changePresentationChannelDialogShow: false,
+        changePresentationChannelDialogText: '',
     }),
     methods: {
         deleteSlide: function (slideIndex) {
@@ -291,9 +317,9 @@ export default {
                 
                 imageFiles.append('image', this.uploadSlidesDialogFiles);
                 
-                if (this.uploadSlidesdialogImgBBExpiry !== 0) {
+                if (this.uploadSlidesDialogImgBBExpiry !== 0) {
                     urlToPost = 'https://api.imgbb.com/1/upload?expiration=' 
-                        + this.uploadSlidesdialogImgBBExpiry 
+                        + this.uploadSlidesDialogImgBBExpiry 
                         + '&key=' 
                         + this.uploadSlidesDialogImgBBAPIKey;
                 } else {
@@ -335,10 +361,19 @@ export default {
             var slideToMove = this.slides.splice(slideIndex, 1)[0];
             this.slides.splice(newPosition, 0, slideToMove);
         },
-        receiveSlides: function () {
+        receiveSlides: function (data) {
+            this.slides = data;
         },
-        updatePresentationChannel: function () {
-            this.sendAppMessage("update-channel", this.presentationChannel);
+        saveSlides: function () {
+            this.sendAppMessage("web-to-script-save-slides", this.slides);
+        },
+        sendChannelUpdate: function () {
+            this.presentationChannel = this.changePresentationChannelDialogText;
+            this.sendAppMessage("web-to-script-channel", this.changePresentationChannelDialogText);
+            this.changePresentationChannelDialogText = '';
+        },
+        receiveChannelUpdate: function (data) {
+            this.presentationChannel = data;
         },
         sendAppMessage: function(command, data) {
             var JSONtoSend = {
