@@ -5,6 +5,7 @@ import vuetify from './plugins/vuetify';
 Vue.config.productionTip = false
 
 window.$ = window.jQuery = require('jquery')
+window.$arrayMove = require('array-move')
 
 new Vue({
   vuetify,
