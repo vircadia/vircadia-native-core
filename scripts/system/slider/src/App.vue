@@ -113,6 +113,30 @@
             </v-card>
         </v-dialog>
         
+        <v-snackbar
+            v-model="uploadSlidesFailedSnackbar"
+            absolute
+            centered
+            color="red"
+            elevation="24"
+        >
+            Upload Failed: {{ uploadSlidesFailedError }}
+        </v-snackbar>
+        
+        <v-overlay
+            opacity="0.9"
+            v-model="uploadProcessingOverlay"
+        >
+            <v-btn
+                icon
+                @click="uploadProcessingOverlay = false"
+            >
+                <v-icon>mdi-close</v-icon>
+            </v-btn>
+            <br />
+            <v-progress-circular indeterminate color="blue" size="64"></v-progress-circular>
+        </v-overlay>
+        
         <!-- Add Slide by Upload Dialog -->
         
         <!-- Manage Slides Dialog -->
@@ -127,11 +151,12 @@
                         v-for="(slide, i) in slides"
                         :key="slide"
                     >
-                        <v-list-item-avatar>
+                        <v-list-item-avatar size="64">
                             <v-img :src="slide"></v-img>
                         </v-list-item-avatar>
 
                         <v-list-item-content>
+                            <v-list-item-subtitle>Slide {{i}}</v-list-item-subtitle>
                             <v-list-item-title v-text="slide"></v-list-item-title>
                         </v-list-item-content>
 
@@ -233,8 +258,11 @@ export default {
         // Upload Slides Dialog
         uploadSlidesDialogShow: false,
         uploadSlidesDialogImgBBAPIKey: '3c004374cf70ad588aad5823ac2baaca', // Make this pull from UserData later.
-        uploadSlidesdialogImgBBExpiry: 0, // 0 = never? 43200 = 12 hours
+        uploadSlidesdialogImgBBExpiry: 0, // Image expiry time: 0 = never. 43200 = 12 hours.
         uploadSlidesDialogFiles: null,
+        uploadSlidesFailedSnackbar: false,
+        uploadSlidesFailedError: '',
+        uploadProcessingOverlay: false,
         uploadSlidesDialogRules: [
             value => !value || value.size < 10000000 || 'Image size should be less than 10MB!'
         ],
@@ -246,7 +274,7 @@ export default {
     methods: {
         deleteSlide: function (slideIndex) {
             this.slides.splice(slideIndex, 1);
-            
+
             if (this.slides.length === 0) {
                 this.manageSlidesDialogShow = false; // Hide the dialog if the user has deleted the last of the slides.
             }
@@ -259,20 +287,39 @@ export default {
             // ImgBB Upload
             if (this.uploadSlidesDialogFiles) {
                 let imageFiles = new FormData();
+                var urlToPost;
+                
                 imageFiles.append('image', this.uploadSlidesDialogFiles);
                 
+                if (this.uploadSlidesdialogImgBBExpiry !== 0) {
+                    urlToPost = 'https://api.imgbb.com/1/upload?expiration=' 
+                        + this.uploadSlidesdialogImgBBExpiry 
+                        + '&key=' 
+                        + this.uploadSlidesDialogImgBBAPIKey;
+                } else {
+                    urlToPost = 'https://api.imgbb.com/1/upload?key='
+                        + this.uploadSlidesDialogImgBBAPIKey;
+                }
+                
+                vue_this.uploadProcessingOverlay = true;
                 window.$.ajax({
                     type: 'POST',
-                    url: 'https://api.imgbb.com/1/upload?expiration=' + this.uploadSlidesdialogImgBBExpiry + '&key=' + this.uploadSlidesDialogImgBBAPIKey,
+                    url: urlToPost,
                     data: imageFiles,
                     processData: false,
                     contentType: false,
                 })
                     .done(function (result) {
-                        console.info('success:', result);
+                        vue_this.uploadProcessingOverlay = false;
+                        vue_this.slides.push(result.data.display_url);
+                        vue_this.currentSlide = vue_this.slides.length - 1; // The array starts at 0, so the length will always be +1, so we account for that.
+                        // console.info('success:', result);
                     })
                     .fail(function (result) {
-                        console.info('fail:', result);
+                        vue_this.uploadProcessingOverlay = false;
+                        vue_this.uploadSlidesFailedSnackbar = true;
+                        vue_this.uploadSlidesFailedError = result.responseJSON.error.message;
+                        // console.info('fail:', result);
                     })
             }
         },
