@@ -1,7 +1,7 @@
 module.exports = {
-  "transpileDependencies": [
-    "vuetify"
-],
+    "transpileDependencies": [
+        "vuetify"
+    ],
     pages: {
         'index': {
             entry: './src/main.js',
@@ -15,5 +15,6 @@ module.exports = {
             title: 'Display',
             chunks: [ 'chunk-vendors', 'chunk-common', 'display' ]
         }
-    }
+    },
+    publicPath: '/assets/public/script/slider/'
 }
