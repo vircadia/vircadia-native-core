@@ -1,8 +1,8 @@
 <!--
 //
-//  App.vue
+//  Display.vue
 //
-//  Created by kasenvr@gmail.com on 11 Jul 2020
+//  Created by kasenvr@gmail.com on 13 Jul 2020
 //  Copyright 2020 Vircadia and contributors.
 //
 //  Distributed under the Apache License, Version 2.0.

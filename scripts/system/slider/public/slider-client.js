@@ -7,6 +7,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 (function () {
     "use strict";
     this.entityID = null;
@@ -67,7 +68,6 @@
     
     this.preload = function (ourID) {
         this.entityID = ourID;
-        print("Entity ID: " + this.entityID);
         
         Entities.webEventReceived.connect(onWebAppEventReceived);
     };
