@@ -296,6 +296,9 @@ export default {
             'https://get.wallhere.com/photo/anime-manga-anime-girls-minimalism-simple-background-school-swimsuit-schoolgirl-blue-short-hair-1445637.jpg',
             'https://www.pixelstalk.net/wp-content/uploads/2016/06/Images-Download-Anime-Girl-Backgrounds.jpg',
             'https://mangadex.org/images/groups/9766.jpg?1572281708',
+            'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpapersite.com%2Fimages%2Fwallpapers%2Fquna-2560x1440-phantasy-star-online-2-4k-2336.jpg&f=1&nofb=1',
+            'https://hdqwalls.com/wallpapers/anime-girl-aqua-blue-4k-gu.jpg',
+            'https://images3.alphacoders.com/729/729085.jpg'
         ],
         currentSlide: 0,
         presentationChannel: "default-presentation-channel",
