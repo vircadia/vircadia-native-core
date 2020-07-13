@@ -77,7 +77,7 @@
                 class="fill-height"
                 fluid
             >
-                <v-carousel v-model="currentSlide" height="800">
+                <v-carousel v-model="currentSlide" height="100%">
                     <v-carousel-item
                         v-for="(slide, index) in slides"
                         track-by="$index"
