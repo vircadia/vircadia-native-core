@@ -171,7 +171,7 @@
                         </v-list-item-avatar>
 
                         <v-list-item-content>
-                            <v-list-item-subtitle>Slide {{i}}</v-list-item-subtitle>
+                            <v-list-item-subtitle>Slide {{i + 1}}</v-list-item-subtitle>
                             <v-list-item-title v-text="slide"></v-list-item-title>
                         </v-list-item-content>
 
@@ -238,13 +238,15 @@ function browserDevelopment() {
 if (!browserDevelopment()) {
     // eslint-disable-next-line
     EventBridge.scriptEventReceived.connect(function(receivedCommand) {
+        // console.log("receivedCommand:" + receivedCommand);
+
         receivedCommand = JSON.parse(receivedCommand);
         // alert("RECEIVED COMMAND:" + receivedCommand.command)
-        if (receivedCommand.app === "slider-app-control") {
+        if (receivedCommand.app === "slider-client-app") {
         // We route the data based on the command given.
-            if (receivedCommand.command === 'script-to-web-slides') {
+            if (receivedCommand.command === 'script-to-web-initialize') {
                 // alert("SLIDES RECEIVED ON APP:" + JSON.stringify(receivedCommand.data));
-                vue_this.receiveSlides(receivedCommand.data);
+                vue_this.initializeWebApp(receivedCommand.data);
             }
             
             if (receivedCommand.command === 'script-to-web-channel') {
@@ -267,16 +269,13 @@ export default {
             'https://wallpapertag.com/wallpaper/full/7/3/0/234884-anime-girls-wallpaper-3840x2160-ipad.jpg',
             'http://getwallpapers.com/wallpaper/full/2/7/b/596546.jpg',
             'https://images4.alphacoders.com/671/671041.jpg',
-            'https://images4.alphacoders.com/671/671041.jpg',
-            'https://images4.alphacoders.com/671/671041.jpg',
-            'https://images4.alphacoders.com/671/671041.jpg',
-            'https://images4.alphacoders.com/671/671041.jpg',
-            'https://images4.alphacoders.com/671/671041.jpg',
-            'https://images4.alphacoders.com/671/671041.jpg',
-            'https://images4.alphacoders.com/671/671041.jpg',
+            'https://get.wallhere.com/photo/anime-anime-girls-Dagashi-Kashi-Shidare-Hotaru-bikini-lingerie-clothing-undergarment-312172.jpg',
+            'https://get.wallhere.com/photo/anime-manga-anime-girls-minimalism-simple-background-school-swimsuit-schoolgirl-blue-short-hair-1445637.jpg',
+            'https://www.pixelstalk.net/wp-content/uploads/2016/06/Images-Download-Anime-Girl-Backgrounds.jpg',
+            'https://mangadex.org/images/groups/9766.jpg?1572281708',
         ],
         currentSlide: 0,
-        presentationChannel: "ps-channel-1",
+        presentationChannel: "default-presentation-channel",
         // Add Slides Dialog
         addSlidesByURLDialogShow: false,
         addSlideByURLField: "",
@@ -297,7 +296,28 @@ export default {
         changePresentationChannelDialogShow: false,
         changePresentationChannelDialogText: '',
     }),
+    watch: {
+        currentSlide: function (newSlide) {
+            this.sendSlideChange(newSlide);
+        },
+        slides: function (newSlides) {
+            this.sendSync(newSlides);
+        }
+    },
     methods: {
+        initializeWebApp: function (data) {
+            // The data should already be parsed.
+            // console.log("DATA RECEIVED ON INIT:" + JSON.stringify(data));
+            var parsedUserData = data.userData; 
+            
+            if (parsedUserData.slides) {
+                this.slides = parsedUserData.slides;
+            }
+
+            if (parsedUserData.presentationChannel) {
+                this.presentationChannel = parsedUserData.presentationChannel;
+            }
+        },
         deleteSlide: function (slideIndex) {
             this.slides.splice(slideIndex, 1);
 
@@ -336,12 +356,14 @@ export default {
                     contentType: false,
                 })
                     .done(function (result) {
+                        vue_this.uploadSlidesDialogFiles = null; // Reset the file upload dialog field.
                         vue_this.uploadProcessingOverlay = false;
                         vue_this.slides.push(result.data.display_url);
                         vue_this.currentSlide = vue_this.slides.length - 1; // The array starts at 0, so the length will always be +1, so we account for that.
                         // console.info('success:', result);
                     })
                     .fail(function (result) {
+                        vue_this.uploadSlidesDialogFiles = null; // Reset the file upload dialog field.
                         vue_this.uploadProcessingOverlay = false;
                         vue_this.uploadSlidesFailedSnackbar = true;
                         vue_this.uploadSlidesFailedError = result.responseJSON.error.message;
@@ -364,24 +386,35 @@ export default {
         receiveSlides: function (data) {
             this.slides = data;
         },
-        saveSlides: function () {
-            this.sendAppMessage("web-to-script-save-slides", this.slides);
-        },
         sendChannelUpdate: function () {
             this.presentationChannel = this.changePresentationChannelDialogText;
-            this.sendAppMessage("web-to-script-channel", this.changePresentationChannelDialogText);
             this.changePresentationChannelDialogText = '';
+            this.sendSync();
         },
         receiveChannelUpdate: function (data) {
             this.presentationChannel = data;
         },
+        sendSlideChange: function (slideIndex) {
+            console.log("Slide changed, web app." + slideIndex);
+            this.sendAppMessage("web-to-script-slide-changed", this.slides[slideIndex]);
+        },
+        sendSync: function (slidesToSync) {
+            if (!slidesToSync) {
+                slidesToSync = this.slides;
+            }
+            
+            this.sendAppMessage("web-to-script-sync-state", { 
+                "slides": slidesToSync, 
+                "presentationChannel": this.presentationChannel 
+            });
+        },
         sendAppMessage: function(command, data) {
             var JSONtoSend = {
-                "app": "slide-presenter",
+                "app": "slider-client-web",
                 "command": command,
                 "data": data
             };
-                    
+            
             if (!browserDevelopment()) {
                 // eslint-disable-next-line
                 EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
@@ -392,6 +425,8 @@ export default {
     },
     created: function () {
         vue_this = this;
+        
+        this.sendAppMessage("ready", "");
     }
 }
 </script>
