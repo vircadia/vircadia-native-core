@@ -4,7 +4,7 @@
             v-model="drawer"
             app
         >
-            <v-list dense>
+            <v-list>
                 <v-list-item link @click="addSlidesByURLDialogShow = !addSlidesByURLDialogShow">
                     <v-list-item-action>
                     <v-icon>mdi-plus</v-icon>
@@ -46,7 +46,7 @@
             dark
         >
             <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
-            <v-toolbar-title>Slides Presenter</v-toolbar-title>
+            <v-toolbar-title>Presenter Panel</v-toolbar-title>
             <v-spacer></v-spacer>
             <div v-show="slides.length > 0">
                 <v-btn medium fab @click="currentSlide--">
@@ -76,7 +76,17 @@
                             height="100%"
                             class="grey darken-4"
                             lazy-src="./assets/logo.png"
-                        ></v-img>
+                        >
+                            <template v-slot:placeholder>
+                                <v-row
+                                    class="fill-height ma-0"
+                                    align="center"
+                                    justify="center"
+                                >
+                                    <v-progress-circular size="128" width="16" indeterminate color="blue lighten-4"></v-progress-circular>
+                                </v-row>
+                            </template>
+                        </v-img>
                     </v-carousel-item>
                 </v-carousel>
             </v-container>
@@ -219,7 +229,7 @@
             color="primary"
             app
         >
-            <span class="white--text">Presenting on channel {{ presentationChannel }}</span>
+            <span class="">Presenting on channel: <b>{{ presentationChannel }}</b></span>
         </v-footer>
     </v-app>
 </template>
@@ -396,7 +406,6 @@ export default {
             this.presentationChannel = data;
         },
         sendSlideChange: function (slideIndex) {
-            console.log("Slide changed, web app." + slideIndex);
             this.sendAppMessage("web-to-script-slide-changed", this.slides[slideIndex]);
         },
         sendSync: function (slidesToSync) {

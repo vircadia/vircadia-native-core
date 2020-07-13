@@ -29,12 +29,14 @@
                 }
         
                 if (eventJSON.command === "web-to-script-sync-state") {
+                    // This data has to be stringified because userData only takes JSON strings and not actual objects.
                     console.log("web-to-script-sync-state" + JSON.stringify(eventJSON.data));
                     Entities.editEntity(_this.entityID, { "userData": JSON.stringify(eventJSON.data) });
                 }
                     
                 if (eventJSON.command === "web-to-script-slide-changed") {
-                    console.info("web-to-script-slide-changed");
+                    sendMessage(eventJSON.data);
+                    console.log("web-to-script-slide-changed");
                 }
             }
         }
