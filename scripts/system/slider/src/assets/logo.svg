@@ -1,1 +1,14 @@
-<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 87.5 100"><defs><style>.cls-1{fill:#1697f6;}.cls-2{fill:#7bc6ff;}.cls-3{fill:#1867c0;}.cls-4{fill:#aeddff;}</style></defs><title>Artboard 46</title><polyline class="cls-1" points="43.75 0 23.31 0 43.75 48.32"/><polygon class="cls-2" points="43.75 62.5 43.75 100 0 14.58 22.92 14.58 43.75 62.5"/><polyline class="cls-3" points="43.75 0 64.19 0 43.75 48.32"/><polygon class="cls-4" points="64.58 14.58 87.5 14.58 43.75 100 43.75 62.5 64.58 14.58"/></svg>
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" width="256" height="256" viewBox="0 0 256.00 256.00" enable-background="new 0 0 256.00 256.00" xml:space="preserve">
+	<radialGradient id="SVGID_Fill1_" cx="-40.8654" cy="-40.8654" r="410" gradientUnits="userSpaceOnUse">
+		<stop offset="0.35814" stop-color="#01BDFF" stop-opacity="1"/>
+		<stop offset="0.618605" stop-color="#466BFF" stop-opacity="1"/>
+		<stop offset="0.855814" stop-color="#8C1AFF" stop-opacity="1"/>
+	</radialGradient>
+	<ellipse fill="url(#SVGID_Fill1_)" stroke-width="0.2" stroke-linejoin="round" cx="128" cy="128" rx="125" ry="125"/>
+	<g>
+		<path fill="#FFFFFF" fill-opacity="1" fill-rule="evenodd" stroke-width="0.2" stroke-linejoin="round" d="M 48,65.0981L 112.513,202.902L 144.342,202.902L 145.643,200.613L 84.3151,65.0981L 48,65.0981 Z "/>
+		<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" d="M 154.913,180.019L 208,65.0978L 171.685,65.0978L 137.359,141.206L 154.913,180.019 Z "/>
+	</g>
+</svg>

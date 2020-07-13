@@ -75,6 +75,7 @@
                             :src="slide"
                             height="100%"
                             class="grey darken-4"
+                            lazy-src="./assets/logo.png"
                         ></v-img>
                     </v-carousel-item>
                 </v-carousel>
