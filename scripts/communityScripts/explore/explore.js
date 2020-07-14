@@ -42,7 +42,8 @@
         ui = new AppUi({
             buttonName: "EXPLORE",
             home: Script.resolvePath("explore.html"),
-            graphicsDirectory: scriptDir
+            graphicsDirectory: scriptDir,
+            sortOrder: 8
         });
     }
 
