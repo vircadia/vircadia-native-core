@@ -1,6 +1,6 @@
 # Build OSX
 
-*Last Updated on July 3, 2020*
+*Last Updated on July 13, 2020*
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only macOS specific instructions are found in this document.
 
@@ -28,7 +28,9 @@ For OpenSSL installed via homebrew, set OPENSSL_ROOT_DIR via
 
 ### Xcode
 
-If Xcode is your editor of choice, you can ask CMake to generate Xcode project files instead of Unix Makefiles.
+If Xcode is your editor of choice, you can ask CMake to generate Xcode project files instead of Unix Makefiles. You will need to select the Xcode installation in the terminal first if you have not done so already.
+    
+    sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 
     cmake .. -G Xcode
 
