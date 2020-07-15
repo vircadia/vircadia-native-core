@@ -76,9 +76,9 @@
         // console.log("retrievedUserData.presentationChannel:" + retrievedUserData.presentationChannel);
         if (retrievedUserData.presentationChannel) {
             // console.log("Triggering an update for presentation channel to:" + retrievedUserData.presentationChannel);
-            updatePresentationChannel(retrievedUserData.presentationChannel)
+            updatePresentationChannel(retrievedUserData.presentationChannel);
         }
-        
+        // console.log("SENDING USERDATA:" + retrievedUserData);
         sendToWeb("script-to-web-initialize", { userData: retrievedUserData });
     }
     

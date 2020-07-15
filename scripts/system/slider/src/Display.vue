@@ -105,7 +105,7 @@ if (!browserDevelopment()) {
         if (receivedCommand.app === "slider-client-app") {
         // We route the data based on the command given.
             if (receivedCommand.command === 'script-to-web-initialize') {
-                // alert("INIT RECEIVED ON DISPLAY APP:" + JSON.stringify(receivedCommand.data));
+                // console.log("INIT RECEIVED ON DISPLAY APP:" + JSON.stringify(receivedCommand.data));
                 vue_this.initializeWebApp(receivedCommand.data);
             }
             
@@ -116,7 +116,7 @@ if (!browserDevelopment()) {
             
             if (receivedCommand.command === 'script-to-web-display-slide') {
                 // console.log("SLIDE RECEIVED ON DISPLAY APP:" + JSON.stringify(receivedCommand.data));
-                vue_this.slides.splice(0, vue_this.slides.length, receivedCommand.data);
+                vue_this.receiveSlides(receivedCommand.data);
             }
         }
     });
@@ -137,9 +137,6 @@ export default {
         changePresentationChannelDialogText: '',
     }),
     watch: {
-        currentSlide: function () {
-            this.sendSync();
-        }
     },
     methods: {
         initializeWebApp: function (data) {
@@ -152,7 +149,7 @@ export default {
             // }
             
             if (parsedUserData.currentSlide) {
-                this.slides[0] = parsedUserData.currentSlide;
+                vue_this.receiveSlides(parsedUserData.currentSlide);
             }
 
             if (parsedUserData.presentationChannel) {
@@ -160,7 +157,8 @@ export default {
             }
         },
         receiveSlides: function (data) {
-            this.slides = data;
+            this.slides.splice(0, this.slides.length, data);
+            this.sendSync();
         },
         sendChannelUpdate: function () {
             this.presentationChannel = this.changePresentationChannelDialogText;
