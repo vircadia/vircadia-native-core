@@ -31,12 +31,13 @@
         
                 if (eventJSON.command === "web-to-script-sync-state") {
                     // This data has to be stringified because userData only takes JSON strings and not actual objects.
-                    console.log("web-to-script-sync-state" + JSON.stringify(eventJSON.data));
+                    // console.log("web-to-script-sync-state" + JSON.stringify(eventJSON.data));
+                    presentationChannel = eventJSON.data.presentationChannel;
                     Entities.editEntity(_this.entityID, { "userData": JSON.stringify(eventJSON.data) });
                 }
                     
                 if (eventJSON.command === "web-to-script-slide-changed") {
-                    console.log("web-to-script-slide-changed");
+                    // console.log("web-to-script-slide-changed:" + eventJSON.data);
                     var dataPacket = {
                         command: "display-slide",
                         data: eventJSON.data
@@ -57,6 +58,8 @@
     }
 
     function sendMessage(dataToSend) {
+        // console.log("Sending message from client:" + JSON.stringify(dataToSend));
+        // console.log("On channel:" + presentationChannel);
         Messages.sendMessage(presentationChannel, JSON.stringify(dataToSend));
     }
     

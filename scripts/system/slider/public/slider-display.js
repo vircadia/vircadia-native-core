@@ -1,5 +1,5 @@
 //
-//  slider-client.js
+//  slider-display.js
 //
 //  Created by kasenvr@gmail.com on 12 Jul 2020
 //  Copyright 2020 Vircadia and contributors.
@@ -31,7 +31,11 @@
         
                 if (eventJSON.command === "web-to-script-sync-state") {
                     // This data has to be stringified because userData only takes JSON strings and not actual objects.
-                    console.log("web-to-script-sync-state" + JSON.stringify(eventJSON.data));
+                    // console.log("web-to-script-sync-state" + JSON.stringify(eventJSON.data));
+                    if (presentationChannel !== eventJSON.data.presentationChannel) {
+                        // console.log("Triggering an update for presentation channel to:" + eventJSON.data.presentationChannel);
+                        updatePresentationChannel(eventJSON.data.presentationChannel);
+                    }
                     Entities.editEntity(_this.entityID, { "userData": JSON.stringify(eventJSON.data) });
                 }
             }
@@ -65,10 +69,23 @@
     
     function initializeSliderDisplayApp () {
         var retrievedUserData = Entities.getEntityProperties(_this.entityID).userData;
+        
         if (retrievedUserData != "") {
             retrievedUserData = JSON.parse(retrievedUserData);
-        }        
+        }
+        
+        if (retrievedUserData.presentationChannel) {
+            // console.log("Triggering an update for presentation channel to:" + retrievedUserData.presentationChannel);
+            updatePresentationChannel(retrievedUserData.presentationChannel)
+        }
+        
         sendToWeb("script-to-web-initialize", { userData: retrievedUserData });
+    }
+    
+    function updatePresentationChannel (newChannel) {
+        Messages.unsubscribe(presentationChannel);
+        presentationChannel = newChannel;
+        Messages.subscribe(presentationChannel);
     }
     
     // Standard preload and unload, initialize the entity script here.
