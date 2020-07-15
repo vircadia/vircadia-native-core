@@ -70,7 +70,19 @@
         if (retrievedUserData != "") {
             retrievedUserData = JSON.parse(retrievedUserData);
         }
+        
+        if (retrievedUserData.presentationChannel) {
+            // console.log("Triggering an update for presentation channel to:" + retrievedUserData.presentationChannel);
+            updatePresentationChannel(retrievedUserData.presentationChannel)
+        }
+        
         sendToWeb("script-to-web-initialize", { userData: retrievedUserData });
+    }
+    
+    function updatePresentationChannel (newChannel) {
+        Messages.unsubscribe(presentationChannel);
+        presentationChannel = newChannel;
+        Messages.subscribe(presentationChannel);
     }
     
     // Standard preload and unload, initialize the entity script here.

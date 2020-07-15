@@ -73,7 +73,7 @@
         if (retrievedUserData != "") {
             retrievedUserData = JSON.parse(retrievedUserData);
         }
-        
+        // console.log("retrievedUserData.presentationChannel:" + retrievedUserData.presentationChannel);
         if (retrievedUserData.presentationChannel) {
             // console.log("Triggering an update for presentation channel to:" + retrievedUserData.presentationChannel);
             updatePresentationChannel(retrievedUserData.presentationChannel)
