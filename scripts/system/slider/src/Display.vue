@@ -115,7 +115,7 @@ if (!browserDevelopment()) {
             }
             
             if (receivedCommand.command === 'script-to-web-display-slide') {
-                console.log("SLIDE RECEIVED ON DISPLAY APP:" + JSON.stringify(receivedCommand.data));
+                // console.log("SLIDE RECEIVED ON DISPLAY APP:" + JSON.stringify(receivedCommand.data));
                 vue_this.slides.splice(0, vue_this.slides.length, receivedCommand.data);
             }
         }
@@ -129,14 +129,17 @@ export default {
     },
     data: () => ({
         drawer: null,
-        slides: [],
+        slides: ['./assets/logo.png'], // Default slide on load...
         currentSlide: 0,
-        presentationChannel: "default-presentation-channel",
+        presentationChannel: 'default-presentation-channel',
         // Change Presentation Channel Dialog
         changePresentationChannelDialogShow: false,
         changePresentationChannelDialogText: '',
     }),
     watch: {
+        currentSlide: function () {
+            this.sendSync();
+        }
     },
     methods: {
         initializeWebApp: function (data) {
@@ -144,8 +147,12 @@ export default {
             // console.log("DATA RECEIVED ON INIT:" + JSON.stringify(data));
             var parsedUserData = data.userData; 
             
-            if (parsedUserData.slides) {
-                this.slides = parsedUserData.slides;
+            // if (parsedUserData.slides) {
+            //     this.slides = parsedUserData.slides;
+            // }
+            
+            if (parsedUserData.currentSlide) {
+                this.slides[0] = parsedUserData.currentSlide;
             }
 
             if (parsedUserData.presentationChannel) {
@@ -165,7 +172,8 @@ export default {
         },
         sendSync: function () {
             this.sendAppMessage("web-to-script-sync-state", { 
-                "presentationChannel": this.presentationChannel 
+                "presentationChannel": this.presentationChannel,
+                "currentSlide": this.slides[this.currentSlide]
             });
         },
         sendAppMessage: function(command, data) {
