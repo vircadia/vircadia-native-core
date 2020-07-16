@@ -381,19 +381,19 @@ export default {
         slides: {
             'default': [
                 './assets/logo.png'
-            ],
-            'Slide Deck 1': [
-                'https://wallpapertag.com/wallpaper/full/d/5/e/154983-anime-girl-wallpaper-hd-1920x1200-for-hd.jpg',
-                'https://wallpapertag.com/wallpaper/full/7/3/0/234884-anime-girls-wallpaper-3840x2160-ipad.jpg',
-                'http://getwallpapers.com/wallpaper/full/2/7/b/596546.jpg',
-                'https://images4.alphacoders.com/671/671041.jpg'
-            ],
-            'Slide Deck 2': [
-                'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpapersite.com%2Fimages%2Fwallpapers%2Fquna-2560x1440-phantasy-star-online-2-4k-2336.jpg&f=1&nofb=1',
-                'https://hdqwalls.com/wallpapers/anime-girl-aqua-blue-4k-gu.jpg',
-                'https://images3.alphacoders.com/729/729085.jpg',
-                'https://mangadex.org/images/groups/9766.jpg?1572281708'
             ]
+            // 'Slide Deck 1': [
+            //     'https://wallpapertag.com/wallpaper/full/d/5/e/154983-anime-girl-wallpaper-hd-1920x1200-for-hd.jpg',
+            //     'https://wallpapertag.com/wallpaper/full/7/3/0/234884-anime-girls-wallpaper-3840x2160-ipad.jpg',
+            //     'http://getwallpapers.com/wallpaper/full/2/7/b/596546.jpg',
+            //     'https://images4.alphacoders.com/671/671041.jpg'
+            // ],
+            // 'Slide Deck 2': [
+            //     'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpapersite.com%2Fimages%2Fwallpapers%2Fquna-2560x1440-phantasy-star-online-2-4k-2336.jpg&f=1&nofb=1',
+            //     'https://hdqwalls.com/wallpapers/anime-girl-aqua-blue-4k-gu.jpg',
+            //     'https://images3.alphacoders.com/729/729085.jpg',
+            //     'https://mangadex.org/images/groups/9766.jpg?1572281708'
+            // ]
         },
         currentSlide: 0,
         presentationChannel: 'default-presentation-channel',
@@ -444,8 +444,9 @@ export default {
             // console.log("DATA RECEIVED ON INIT:" + JSON.stringify(data));
             var parsedUserData = data.userData; 
             
-            if (parsedUserData.slides) {
-                this.slides = parsedUserData.slides;
+            // We are receiving the full slides, including slideChannels within.
+            for (let i in parsedUserData.slides) {
+                this.$set(this.slides, i, parsedUserData.slides[i]);
             }
 
             if (parsedUserData.presentationChannel) {
@@ -535,10 +536,6 @@ export default {
         // 
         // 
         // },
-        receiveSlides: function (data) {
-            // We are receiving the full slides, including slideChannels within.
-            this.slides = data;
-        },
         sendChannelUpdate: function () {
             this.presentationChannel = this.changePresentationChannelDialogText;
             this.changePresentationChannelDialogText = '';
