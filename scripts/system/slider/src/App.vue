@@ -213,7 +213,7 @@
                             <v-btn :disabled="i === slides.length - 1" @click="rearrangeSlide(i, 'down')" color="blue" class="mx-2" fab medium>
                                 <v-icon>mdi-arrow-collapse-down</v-icon>
                             </v-btn>
-                            <v-btn @click="deleteSlide(i)" color="red" class="mx-2" fab medium>
+                            <v-btn @click="confirmDeleteSlideDialogShow = true; confirmDeleteSlideDialogWhich = i" color="red" class="mx-2" fab medium>
                                 <v-icon>mdi-delete</v-icon>
                             </v-btn>
                         </v-list-item-icon>
@@ -311,7 +311,25 @@
         
         <!-- Change Slide Channel Dialog -->
         
-        <!-- Confirm Delete Channel Dialog -->
+        <!-- Confirm Delete Slide Dialog -->
+        
+        <v-dialog v-model="confirmDeleteSlideDialogShow" persistent>
+            <v-card>
+                <v-toolbar>
+                    <v-toolbar-title>Delete Slide</v-toolbar-title>
+                    <v-spacer></v-spacer>
+                    <v-btn class="mx-2" color="primary" @click="confirmDeleteSlideDialogShow = false">Close</v-btn>
+                    <v-btn class="mx-2" color="red darken-1" @click="confirmDeleteSlideDialogShow = false; deleteChannel(confirmDeleteSlideDialogWhich)">Delete</v-btn>
+                </v-toolbar>
+
+                <v-card-title>Are you sure you want to delete the slide channel {{ confirmDeleteSlideDialogWhich }}?</v-card-title>
+                <v-card-subtitle>You cannot undo this action.</v-card-subtitle>
+            </v-card>
+        </v-dialog>
+        
+        <!-- Confirm Delete Slide Dialog -->
+        
+        <!-- Confirm Delete Slide Channel Dialog -->
         
         <v-dialog v-model="confirmDeleteSlideChannelDialogShow" persistent>
             <v-card>
@@ -327,7 +345,7 @@
             </v-card>
         </v-dialog>
         
-        <!-- Confirm Delete Channel Dialog -->
+        <!-- Confirm Delete Slide Channel Dialog -->
         
         <v-footer
             color="primary"
@@ -423,6 +441,9 @@ export default {
         // Confirm Delete Slide Channel Dialog
         confirmDeleteSlideChannelDialogShow: false,
         confirmDeleteSlideChannelDialogWhich: ''
+        // Confirm Delete Slide Dialog
+        confirmDeleteSlideDialogShow: false,
+        confirmDeleteSlideDialogWhich: ''
     }),
     watch: {
         currentSlide: function (newSlide) {
