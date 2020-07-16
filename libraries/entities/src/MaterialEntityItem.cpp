@@ -38,8 +38,8 @@ EntityItemProperties MaterialEntityItem::getProperties(const EntityPropertyFlags
     return properties;
 }
 
-bool MaterialEntityItem::setProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
+bool MaterialEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = false;
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialURL, setMaterialURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialMappingMode, setMaterialMappingMode);
@@ -51,17 +51,6 @@ bool MaterialEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialData, setMaterialData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialRepeat, setMaterialRepeat);
 
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "MaterialEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties.getLastEdited());
-        somethingChangedNotification();
-    }
     return somethingChanged;
 }
 

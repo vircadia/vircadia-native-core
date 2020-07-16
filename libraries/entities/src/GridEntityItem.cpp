@@ -46,8 +46,8 @@ EntityItemProperties GridEntityItem::getProperties(const EntityPropertyFlags& de
     return properties;
 }
 
-bool GridEntityItem::setProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
+bool GridEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = false;
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
@@ -61,17 +61,6 @@ bool GridEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(majorGridEvery, setMajorGridEvery);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(minorGridEvery, setMinorGridEvery);
 
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "GridEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties.getLastEdited());
-        somethingChangedNotification();
-    }
     return somethingChanged;
 }
 
