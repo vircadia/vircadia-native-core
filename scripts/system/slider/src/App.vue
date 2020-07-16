@@ -262,34 +262,35 @@
 
                 <v-list subheader>
                     <v-subheader>{{ Object.keys(slides).length }} Slide Channels</v-subheader>
-                    <v-list-item-group v-model="slideChannel" color="primary" mandatory>
-                        <v-list-item
-                            v-for="(channel, i, index) in slides"
-                            track-by="$index"
-                            :key="index"
-                        >
-                            <v-list-item-avatar size="64">
-                                <v-img :src="channel[0]"></v-img>
-                            </v-list-item-avatar>
+                    <v-list-item
+                        v-for="(channel, i, index) in slides"
+                        track-by="$index"
+                        :key="index"
+                    >
+                        <v-list-item-avatar size="64">
+                            <v-img :src="channel[0]"></v-img>
+                        </v-list-item-avatar>
 
-                            <v-list-item-content>
-                                <v-list-item-subtitle>Channel {{ i }}</v-list-item-subtitle>
-                                <v-list-item-title>{{ slides[i][0] }}</v-list-item-title>
-                            </v-list-item-content>
+                        <v-list-item-content>
+                            <v-list-item-subtitle>Channel {{ i }}</v-list-item-subtitle>
+                            <v-list-item-title>{{ slides[i][0] }}</v-list-item-title>
+                        </v-list-item-content>
 
-                            <v-list-item-icon>
-                                <v-btn :disabled="index === 0" @click="rearrangeSlideChannel(i, 'up')" color="blue" class="mx-2" fab medium>
-                                    <v-icon>mdi-arrow-collapse-up</v-icon>
-                                </v-btn>
-                                <v-btn :disabled="index === Object.keys(slides).length - 1" @click="rearrangeSlideChannel(i, 'down')" color="blue" class="mx-2" fab medium>
-                                    <v-icon>mdi-arrow-collapse-down</v-icon>
-                                </v-btn>
-                                <v-btn :disabled="i === slideChannel || i === 'default'" @click="deleteSlideChannel(i)" color="red" class="mx-2" fab medium>
-                                    <v-icon>mdi-delete</v-icon>
-                                </v-btn>
-                            </v-list-item-icon>
-                        </v-list-item>
-                    </v-list-item-group>
+                        <v-list-item-icon>
+                            <v-btn @click="slideChannel = i" color="green" class="mx-2" fab medium>
+                                <v-icon>mdi-cursor-default-click</v-icon>
+                            </v-btn>
+                            <!-- <v-btn :disabled="index === 0" @click="rearrangeSlideChannel(i, 'up')" color="blue" class="mx-2" fab medium>
+                                <v-icon>mdi-arrow-collapse-up</v-icon>
+                            </v-btn>
+                            <v-btn :disabled="index === Object.keys(slides).length - 1" @click="rearrangeSlideChannel(i, 'down')" color="blue" class="mx-2" fab medium>
+                                <v-icon>mdi-arrow-collapse-down</v-icon>
+                            </v-btn> -->
+                            <v-btn :disabled="i === slideChannel || i === 'default'" @click="deleteSlideChannel(i)" color="red" class="mx-2" fab medium>
+                                <v-icon>mdi-delete</v-icon>
+                            </v-btn>
+                        </v-list-item-icon>
+                    </v-list-item>
                 </v-list>
 
                 <v-footer>
@@ -299,9 +300,11 @@
                         filled
                     >
                         <template slot="append-outer">
-                            <v-btn class="mx-2" color="green darken-1" @click="changeSlideChannelDialogShow = false; addSlideChannel()">Add</v-btn>
+                            <v-btn class="mx-2" color="green darken-1" @click="addSlideChannel()">Add</v-btn>
                         </template>
                     </v-text-field>
+                    <v-spacer></v-spacer>
+                    <div>Current Slide Channel: <b>{{ slideChannel }}</b></div>
                 </v-footer>
             </v-card>
         </v-dialog>
@@ -312,13 +315,12 @@
             color="primary"
             app
         >
-            <span class="">Presenting on channel: <b>{{ presentationChannel }}</b></span>
+            <span class="">Current Slide Channel: <b>{{ slideChannel }}</b></span>
         </v-footer>
     </v-app>
 </template>
 
 <script>
-import Vue from 'vue';
 var vue_this;
 
 function browserDevelopment() {
@@ -383,7 +385,6 @@ export default {
         currentSlide: 0,
         presentationChannel: 'default-presentation-channel',
         slideChannel: 'default',
-        slideChannelIndex: 0,
         // Add Slides Dialog
         addSlidesByURLDialogShow: false,
         addSlideByURLField: '',
@@ -410,9 +411,9 @@ export default {
     watch: {
         currentSlide: function (newSlide) {
             this.sendSlideChange(newSlide);
+            this.sendSync();
         },
         slides: function (newSlides) {
-            console.info('newSlides', newSlides);
             this.sendSync(newSlides);
         }
     },
@@ -438,10 +439,14 @@ export default {
             }
         },
         deleteSlideChannel: function (slideChannelKey) {
-            Vue.delete(this.slides, slideChannelKey);
+            this.$delete(this.slides, slideChannelKey);
+        },
+        addSlideChannel: function () {
+            this.$set(this.slides, this.changeSlideChannelDialogText, ['./assets/logo.png']);
         },
         addSlideByURL: function () {
             this.slides[this.slideChannel].push(this.addSlideByURLField);
+            vue_this.currentSlide = vue_this.slides[vue_this.slideChannel].length - 1; // The array starts at 0, so the length will always be +1, so we account for that.
             this.addSlideByURLField = '';
         },
         uploadSlide: function () {
@@ -532,7 +537,8 @@ export default {
             
             this.sendAppMessage("web-to-script-sync-state", { 
                 "slides": slidesToSync, 
-                "presentationChannel": this.presentationChannel 
+                "presentationChannel": this.presentationChannel,
+                "currentSlide": this.currentSlide
             });
         },
         sendAppMessage: function(command, data) {
