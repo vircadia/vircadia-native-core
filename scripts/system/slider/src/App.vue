@@ -277,7 +277,7 @@
                         </v-list-item-content>
 
                         <v-list-item-icon>
-                            <v-btn @click="slideChannel = i" color="green" class="mx-2" fab medium>
+                            <v-btn @click="changeSlideChannelDialogShow = false; slideChannel = i" color="green" class="mx-2" fab medium>
                                 <v-icon>mdi-cursor-default-click</v-icon>
                             </v-btn>
                             <!-- <v-btn :disabled="index === 0" @click="rearrangeSlideChannel(i, 'up')" color="blue" class="mx-2" fab medium>
