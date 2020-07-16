@@ -286,7 +286,7 @@
                             <v-btn :disabled="index === Object.keys(slides).length - 1" @click="rearrangeSlideChannel(i, 'down')" color="blue" class="mx-2" fab medium>
                                 <v-icon>mdi-arrow-collapse-down</v-icon>
                             </v-btn> -->
-                            <v-btn :disabled="i === slideChannel || i === 'default'" @click="deleteSlideChannel(i)" color="red" class="mx-2" fab medium>
+                            <v-btn :disabled="i === slideChannel || i === 'default'" @click="confirmDeleteSlideChannelDialogShow = true; confirmDeleteSlideChannelDialogWhich = i" color="red" class="mx-2" fab medium>
                                 <v-icon>mdi-delete</v-icon>
                             </v-btn>
                         </v-list-item-icon>
@@ -310,6 +310,24 @@
         </v-dialog>
         
         <!-- Change Slide Channel Dialog -->
+        
+        <!-- Confirm Delete Channel Dialog -->
+        
+        <v-dialog v-model="confirmDeleteSlideChannelDialogShow" persistent>
+            <v-card>
+                <v-toolbar>
+                    <v-toolbar-title>Delete Slide Channel</v-toolbar-title>
+                    <v-spacer></v-spacer>
+                    <v-btn class="mx-2" color="primary" @click="confirmDeleteSlideChannelDialogShow = false">Close</v-btn>
+                    <v-btn class="mx-2" color="red darken-1" @click="confirmDeleteSlideChannelDialogShow = false; deleteSlideChannel(confirmDeleteSlideChannelDialogWhich)">Delete</v-btn>
+                </v-toolbar>
+
+                <v-card-title>Are you sure you want to delete the slide channel {{ confirmDeleteSlideChannelDialogWhich }}?</v-card-title>
+                <v-card-subtitle>You cannot undo this action.</v-card-subtitle>
+            </v-card>
+        </v-dialog>
+        
+        <!-- Confirm Delete Channel Dialog -->
         
         <v-footer
             color="primary"
@@ -406,11 +424,17 @@ export default {
         changePresentationChannelDialogText: '',
         // Change Slide Channel Dialog
         changeSlideChannelDialogShow: false,
-        changeSlideChannelDialogText: ''
+        changeSlideChannelDialogText: '',
+        // Confirm Delete Slide Channel Dialog
+        confirmDeleteSlideChannelDialogShow: false,
+        confirmDeleteSlideChannelDialogWhich: ''
     }),
     watch: {
         currentSlide: function (newSlide) {
             this.sendSlideChange(newSlide);
+        },
+        slideChannel: function () {
+            this.sendSlideChange(this.currentSlide)
         },
         slides: function (newSlides) {
             this.sendSync(newSlides);
