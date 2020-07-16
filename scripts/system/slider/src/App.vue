@@ -382,22 +382,17 @@ export default {
             'default': [
                 './assets/logo.png'
             ],
-            'waifu1': [
+            'Slide Deck 1': [
                 'https://wallpapertag.com/wallpaper/full/d/5/e/154983-anime-girl-wallpaper-hd-1920x1200-for-hd.jpg',
                 'https://wallpapertag.com/wallpaper/full/7/3/0/234884-anime-girls-wallpaper-3840x2160-ipad.jpg',
                 'http://getwallpapers.com/wallpaper/full/2/7/b/596546.jpg',
                 'https://images4.alphacoders.com/671/671041.jpg'
             ],
-            'waifu2': [
-                'https://get.wallhere.com/photo/anime-anime-girls-Dagashi-Kashi-Shidare-Hotaru-bikini-lingerie-clothing-undergarment-312172.jpg',
-                'https://get.wallhere.com/photo/anime-manga-anime-girls-minimalism-simple-background-school-swimsuit-schoolgirl-blue-short-hair-1445637.jpg',
-                'https://www.pixelstalk.net/wp-content/uploads/2016/06/Images-Download-Anime-Girl-Backgrounds.jpg',
-                'https://mangadex.org/images/groups/9766.jpg?1572281708'
-            ],
-            'nani': [
+            'Slide Deck 2': [
                 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpapersite.com%2Fimages%2Fwallpapers%2Fquna-2560x1440-phantasy-star-online-2-4k-2336.jpg&f=1&nofb=1',
                 'https://hdqwalls.com/wallpapers/anime-girl-aqua-blue-4k-gu.jpg',
-                'https://images3.alphacoders.com/729/729085.jpg'
+                'https://images3.alphacoders.com/729/729085.jpg',
+                'https://mangadex.org/images/groups/9766.jpg?1572281708'
             ]
         },
         currentSlide: 0,
