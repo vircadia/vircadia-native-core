@@ -16,7 +16,7 @@ Vue.config.productionTip = false
 
 window.$ = window.jQuery = require('jquery')
 
-new Vue({
+window.vm = new Vue({
   vuetify,
   render: h => h(App)
 }).$mount('#app')

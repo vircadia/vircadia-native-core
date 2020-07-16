@@ -49,6 +49,14 @@
                         <v-list-item-title>Presentation Channel</v-list-item-title>
                     </v-list-item-content>
                 </v-list-item>
+                <v-list-item link @click="changeSlideChannelDialogShow = !changeSlideChannelDialogShow">
+                    <v-list-item-action>
+                    <v-icon>mdi-database</v-icon>
+                    </v-list-item-action>
+                    <v-list-item-content>
+                        <v-list-item-title>Slide Channel</v-list-item-title>
+                    </v-list-item-content>
+                </v-list-item>
             </v-list>
         </v-navigation-drawer>
 
@@ -79,7 +87,7 @@
             >
                 <v-carousel v-model="currentSlide" height="100%">
                     <v-carousel-item
-                        v-for="(slide, index) in slides"
+                        v-for="(slide, index) in slides[slideChannel]"
                         track-by="$index"
                         :key="index"
                     >
@@ -178,15 +186,15 @@
         <v-dialog v-model="manageSlidesDialogShow" persistent>
             <v-card>
                 <v-toolbar>
-                    <v-toolbar-title>Manage Slides</v-toolbar-title>
+                    <v-toolbar-title>Manage Slides for {{ slideChannel }}</v-toolbar-title>
                     <v-spacer></v-spacer>
                     <v-btn class="mx-2" color="green" @click="manageSlidesDialogShow = false">Done</v-btn>
                 </v-toolbar>
                 <v-list subheader>
-                    <v-subheader>Slides</v-subheader>
+                    <v-subheader>{{ slides[slideChannel].length }} Slides</v-subheader>
 
                     <v-list-item
-                        v-for="(slide, i) in slides"
+                        v-for="(slide, i) in slides[slideChannel]"
                         :key="slide"
                     >
                         <v-list-item-avatar size="64">
@@ -232,6 +240,69 @@
                     v-model="changePresentationChannelDialogText"
                     filled
                 ></v-text-field>
+                
+                <v-footer>
+                    <v-spacer></v-spacer>
+                    <div>Current Channel: <b>{{ presentationChannel }}</b></div>
+                </v-footer>
+            </v-card>
+        </v-dialog>
+        
+        <!-- Change Presentation Channel Dialog -->
+        
+        <!-- Change Slide Channel Dialog -->
+        
+        <v-dialog v-model="changeSlideChannelDialogShow" persistent>
+            <v-card>
+                <v-toolbar>
+                    <v-toolbar-title>Change Slide Channel</v-toolbar-title>
+                    <v-spacer></v-spacer>
+                    <v-btn class="mx-2" color="green darken-1" @click="changeSlideChannelDialogShow = false">Done</v-btn>
+                </v-toolbar>
+
+                <v-list subheader>
+                    <v-subheader>{{ Object.keys(slides).length }} Slide Channels</v-subheader>
+                    <v-list-item-group v-model="slideChannel" color="primary" mandatory>
+                        <v-list-item
+                            v-for="(channel, i, index) in slides"
+                            track-by="$index"
+                            :key="index"
+                        >
+                            <v-list-item-avatar size="64">
+                                <v-img :src="channel[0]"></v-img>
+                            </v-list-item-avatar>
+
+                            <v-list-item-content>
+                                <v-list-item-subtitle>Channel {{ i }}</v-list-item-subtitle>
+                                <v-list-item-title>{{ slides[i][0] }}</v-list-item-title>
+                            </v-list-item-content>
+
+                            <v-list-item-icon>
+                                <v-btn :disabled="index === 0" @click="rearrangeSlideChannel(i, 'up')" color="blue" class="mx-2" fab medium>
+                                    <v-icon>mdi-arrow-collapse-up</v-icon>
+                                </v-btn>
+                                <v-btn :disabled="index === Object.keys(slides).length - 1" @click="rearrangeSlideChannel(i, 'down')" color="blue" class="mx-2" fab medium>
+                                    <v-icon>mdi-arrow-collapse-down</v-icon>
+                                </v-btn>
+                                <v-btn :disabled="i === slideChannel || i === 'default'" @click="deleteSlideChannel(i)" color="red" class="mx-2" fab medium>
+                                    <v-icon>mdi-delete</v-icon>
+                                </v-btn>
+                            </v-list-item-icon>
+                        </v-list-item>
+                    </v-list-item-group>
+                </v-list>
+
+                <v-footer>
+                    <v-text-field
+                        placeholder="Create new channel here"
+                        v-model="changeSlideChannelDialogText"
+                        filled
+                    >
+                        <template slot="append-outer">
+                            <v-btn class="mx-2" color="green darken-1" @click="changeSlideChannelDialogShow = false; addSlideChannel()">Add</v-btn>
+                        </template>
+                    </v-text-field>
+                </v-footer>
             </v-card>
         </v-dialog>
         
@@ -247,7 +318,7 @@
 </template>
 
 <script>
-
+import Vue from 'vue';
 var vue_this;
 
 function browserDevelopment() {
@@ -287,24 +358,35 @@ export default {
     },
     data: () => ({
         drawer: null,
-        slides: [
-            'https://wallpapertag.com/wallpaper/full/d/5/e/154983-anime-girl-wallpaper-hd-1920x1200-for-hd.jpg',
-            'https://wallpapertag.com/wallpaper/full/7/3/0/234884-anime-girls-wallpaper-3840x2160-ipad.jpg',
-            'http://getwallpapers.com/wallpaper/full/2/7/b/596546.jpg',
-            'https://images4.alphacoders.com/671/671041.jpg',
-            'https://get.wallhere.com/photo/anime-anime-girls-Dagashi-Kashi-Shidare-Hotaru-bikini-lingerie-clothing-undergarment-312172.jpg',
-            'https://get.wallhere.com/photo/anime-manga-anime-girls-minimalism-simple-background-school-swimsuit-schoolgirl-blue-short-hair-1445637.jpg',
-            'https://www.pixelstalk.net/wp-content/uploads/2016/06/Images-Download-Anime-Girl-Backgrounds.jpg',
-            'https://mangadex.org/images/groups/9766.jpg?1572281708',
-            'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpapersite.com%2Fimages%2Fwallpapers%2Fquna-2560x1440-phantasy-star-online-2-4k-2336.jpg&f=1&nofb=1',
-            'https://hdqwalls.com/wallpapers/anime-girl-aqua-blue-4k-gu.jpg',
-            'https://images3.alphacoders.com/729/729085.jpg'
-        ],
+        slides: {
+            'default': [
+                './assets/logo.png'
+            ],
+            'waifu1': [
+                'https://wallpapertag.com/wallpaper/full/d/5/e/154983-anime-girl-wallpaper-hd-1920x1200-for-hd.jpg',
+                'https://wallpapertag.com/wallpaper/full/7/3/0/234884-anime-girls-wallpaper-3840x2160-ipad.jpg',
+                'http://getwallpapers.com/wallpaper/full/2/7/b/596546.jpg',
+                'https://images4.alphacoders.com/671/671041.jpg'
+            ],
+            'waifu2': [
+                'https://get.wallhere.com/photo/anime-anime-girls-Dagashi-Kashi-Shidare-Hotaru-bikini-lingerie-clothing-undergarment-312172.jpg',
+                'https://get.wallhere.com/photo/anime-manga-anime-girls-minimalism-simple-background-school-swimsuit-schoolgirl-blue-short-hair-1445637.jpg',
+                'https://www.pixelstalk.net/wp-content/uploads/2016/06/Images-Download-Anime-Girl-Backgrounds.jpg',
+                'https://mangadex.org/images/groups/9766.jpg?1572281708'
+            ],
+            'nani': [
+                'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpapersite.com%2Fimages%2Fwallpapers%2Fquna-2560x1440-phantasy-star-online-2-4k-2336.jpg&f=1&nofb=1',
+                'https://hdqwalls.com/wallpapers/anime-girl-aqua-blue-4k-gu.jpg',
+                'https://images3.alphacoders.com/729/729085.jpg'
+            ]
+        },
         currentSlide: 0,
-        presentationChannel: "default-presentation-channel",
+        presentationChannel: 'default-presentation-channel',
+        slideChannel: 'default',
+        slideChannelIndex: 0,
         // Add Slides Dialog
         addSlidesByURLDialogShow: false,
-        addSlideByURLField: "",
+        addSlideByURLField: '',
         // Upload Slides Dialog
         uploadSlidesDialogShow: false,
         uploadSlidesDialogImgBBAPIKey: '3c004374cf70ad588aad5823ac2baaca', // Make this pull from UserData later.
@@ -321,12 +403,16 @@ export default {
         // Change Presentation Channel Dialog
         changePresentationChannelDialogShow: false,
         changePresentationChannelDialogText: '',
+        // Change Slide Channel Dialog
+        changeSlideChannelDialogShow: false,
+        changeSlideChannelDialogText: ''
     }),
     watch: {
         currentSlide: function (newSlide) {
             this.sendSlideChange(newSlide);
         },
         slides: function (newSlides) {
+            console.info('newSlides', newSlides);
             this.sendSync(newSlides);
         }
     },
@@ -345,14 +431,17 @@ export default {
             }
         },
         deleteSlide: function (slideIndex) {
-            this.slides.splice(slideIndex, 1);
+            this.slides[this.slideChannel].splice(slideIndex, 1);
 
-            if (this.slides.length === 0) {
+            if (this.slides[this.slideChannel].length === 0) {
                 this.manageSlidesDialogShow = false; // Hide the dialog if the user has deleted the last of the slides.
             }
         },
+        deleteSlideChannel: function (slideChannelKey) {
+            Vue.delete(this.slides, slideChannelKey);
+        },
         addSlideByURL: function () {
-            this.slides.push(this.addSlideByURLField);
+            this.slides[this.slideChannel].push(this.addSlideByURLField);
             this.addSlideByURLField = '';
         },
         uploadSlide: function () {
@@ -384,8 +473,8 @@ export default {
                     .done(function (result) {
                         vue_this.uploadSlidesDialogFiles = null; // Reset the file upload dialog field.
                         vue_this.uploadProcessingOverlay = false;
-                        vue_this.slides.push(result.data.display_url);
-                        vue_this.currentSlide = vue_this.slides.length - 1; // The array starts at 0, so the length will always be +1, so we account for that.
+                        vue_this.slides[vue_this.slideChannel].push(result.data.display_url);
+                        vue_this.currentSlide = vue_this.slides[vue_this.slideChannel].length - 1; // The array starts at 0, so the length will always be +1, so we account for that.
                         // console.info('success:', result);
                     })
                     .fail(function (result) {
@@ -406,22 +495,35 @@ export default {
                 newPosition = slideIndex + 1; // Down means higher in the array... down the list.
             }
             
-            var slideToMove = this.slides.splice(slideIndex, 1)[0];
-            this.slides.splice(newPosition, 0, slideToMove);
+            var slideToMove = this.slides[this.slideChannel].splice(slideIndex, 1)[0];
+            this.slides[this.slideChannel].splice(newPosition, 0, slideToMove);
         },
+        // rearrangeSlideChannel: function (slideChannelIndex, direction) {
+        //     var newPosition;
+        // 
+        //     if (direction === "up") {
+        //         newPosition = slideChannelIndex - 1; // Up means lower in the array... up the list.
+        //     } else if (direction === "down") {
+        //         newPosition = slideChannelIndex + 1; // Down means higher in the array... down the list.
+        //     }
+        // 
+        // 
+        // },
         receiveSlides: function (data) {
+            // We are receiving the full slides, including slideChannels within.
             this.slides = data;
         },
         sendChannelUpdate: function () {
             this.presentationChannel = this.changePresentationChannelDialogText;
             this.changePresentationChannelDialogText = '';
-            this.sendSync();
         },
         receiveChannelUpdate: function (data) {
             this.presentationChannel = data;
         },
         sendSlideChange: function (slideIndex) {
-            this.sendAppMessage("web-to-script-slide-changed", this.slides[slideIndex]);
+            if (this.slides[this.slideChannel]) {
+                this.sendAppMessage("web-to-script-slide-changed", this.slides[this.slideChannel][slideIndex]);
+            }
         },
         sendSync: function (slidesToSync) {
             if (!slidesToSync) {
