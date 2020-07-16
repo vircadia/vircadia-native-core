@@ -41,7 +41,7 @@
                         <v-list-item-title>Manage Slides</v-list-item-title>
                     </v-list-item-content>
                 </v-list-item>
-                <v-list-item link @click="changePresentationChannelDialogShow = !changePresentationChannelDialogShow">
+                <v-list-item v-if="false" link @click="changePresentationChannelDialogShow = !changePresentationChannelDialogShow">
                     <v-list-item-action>
                     <v-icon>mdi-remote</v-icon>
                     </v-list-item-action>
