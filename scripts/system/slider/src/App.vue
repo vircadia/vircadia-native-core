@@ -68,11 +68,11 @@
             <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
             <v-toolbar-title>Presenter Panel</v-toolbar-title>
             <v-spacer></v-spacer>
-            <div v-show="slides.length > 0">
+            <div v-show="slides[slideChannel].length > 0">
                 <v-btn medium fab @click="currentSlide--">
                     <v-icon>mdi-arrow-left</v-icon>
                 </v-btn>
-                <span class="mx-4">{{ currentSlide + 1 }} / {{ slides.length }}</span>
+                <span class="mx-4">{{ currentSlide + 1 }} / {{ slides[slideChannel].length }}</span>
                 <v-btn medium fab @click="currentSlide++">
                     <v-icon>mdi-arrow-right</v-icon>
                 </v-btn>
@@ -411,7 +411,6 @@ export default {
     watch: {
         currentSlide: function (newSlide) {
             this.sendSlideChange(newSlide);
-            this.sendSync();
         },
         slides: function (newSlides) {
             this.sendSync(newSlides);
@@ -537,8 +536,7 @@ export default {
             
             this.sendAppMessage("web-to-script-sync-state", { 
                 "slides": slidesToSync, 
-                "presentationChannel": this.presentationChannel,
-                "currentSlide": this.currentSlide
+                "presentationChannel": this.presentationChannel
             });
         },
         sendAppMessage: function(command, data) {
