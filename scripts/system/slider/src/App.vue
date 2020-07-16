@@ -431,8 +431,11 @@ export default {
         slideChannel: function () {
             this.sendSlideChange(this.currentSlide)
         },
-        slides: function (newSlides) {
-            this.sendSync(newSlides);
+        slides: {
+            handler: function (newSlides) {
+                this.sendSync(newSlides);
+            },
+            deep: true
         }
     },
     methods: {
