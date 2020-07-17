@@ -41,7 +41,7 @@
                         <v-list-item-title>Manage Slides</v-list-item-title>
                     </v-list-item-content>
                 </v-list-item>
-                <v-list-item v-if="false" link @click="changePresentationChannelDialogShow = !changePresentationChannelDialogShow">
+                <v-list-item link @click="changePresentationChannelDialogShow = !changePresentationChannelDialogShow">
                     <v-list-item-action>
                     <v-icon>mdi-remote</v-icon>
                     </v-list-item-action>
@@ -323,7 +323,7 @@
                     <v-btn class="mx-2" color="red darken-1" @click="confirmDeleteSlideDialogShow = false; deleteSlide(confirmDeleteSlideDialogWhich)">Delete</v-btn>
                 </v-toolbar>
 
-                <v-card-title>Are you sure you want to delete this slide {{ confirmDeleteSlideDialogWhich }}?</v-card-title>
+                <v-card-title>Are you sure you want to delete slide {{ confirmDeleteSlideDialogWhich + 1 }}?</v-card-title>
                 <v-card-subtitle>You cannot undo this action.</v-card-subtitle>
             </v-card>
         </v-dialog>
@@ -520,7 +520,7 @@ export default {
                             + this.uploadSlidesDialogImgBBAPIKey;
                     }
                     
-                    this.imgBBUpload(urlToPost, imageFiles);
+                    this.imgBBUpload(urlToPost, imageFiles)
                 }
             }
         },
