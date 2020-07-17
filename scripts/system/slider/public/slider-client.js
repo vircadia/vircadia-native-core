@@ -78,7 +78,7 @@
             Assets.getAsset(
                 {
                     url: retrievedUserData.atp.path,
-                    responseType: "text"
+                    responseType: "json"
                 },
                 function (error, result) {
                     if (error) {
@@ -87,19 +87,20 @@
                         sendToWeb("script-to-web-initialize", { userData: retrievedUserData });
                     } else {
                         if (result != "") {
-                            result = JSON.parse(result);
+                            // console.log("STRINGIFIED: " + JSON.stringify(result));
+                            // result = JSON.parse(result);
                         }
                         
-                        print("Retrieved Slide Data: " + result.response);
+                        // print("Retrieved Slide Data: " + result.response);
                         
                         if (result.presentationChannel) {
                             // console.log("Triggering an update for presentation channel to:" + retrievedUserData.presentationChannel);
-                            updatePresentationChannel(result.presentationChannel)
+                            updatePresentationChannel(result.response.presentationChannel)
                         }
                         
-                        result.atp = retrievedUserData.atp;
+                        result.response.atp = retrievedUserData.atp;
 
-                        sendToWeb("script-to-web-initialize", { userData: result });
+                        sendToWeb("script-to-web-initialize", { userData: result.response });
                     }
                 }
             );
