@@ -413,6 +413,10 @@ export default {
             //     'https://mangadex.org/images/groups/9766.jpg?1572281708'
             // ]
         },
+        atp: {
+            'use': null,
+            'path': null
+        },
         currentSlide: 0,
         presentationChannel: 'default-presentation-channel',
         slideChannel: 'default',
@@ -440,7 +444,7 @@ export default {
         changeSlideChannelDialogText: '',
         // Confirm Delete Slide Channel Dialog
         confirmDeleteSlideChannelDialogShow: false,
-        confirmDeleteSlideChannelDialogWhich: ''
+        confirmDeleteSlideChannelDialogWhich: '',
         // Confirm Delete Slide Dialog
         confirmDeleteSlideDialogShow: false,
         confirmDeleteSlideDialogWhich: ''
@@ -472,6 +476,11 @@ export default {
 
             if (parsedUserData.presentationChannel) {
                 this.presentationChannel = parsedUserData.presentationChannel;
+            }
+
+            if (parsedUserData.atp) {
+                // console.log("setting userData for ATP: " + parsedUserData.atp.use + parsedUserData.atp.path);
+                this.atp = parsedUserData.atp;
             }
         },
         deleteSlide: function (slideIndex) {
@@ -576,7 +585,8 @@ export default {
             
             this.sendAppMessage("web-to-script-sync-state", { 
                 "slides": slidesToSync, 
-                "presentationChannel": this.presentationChannel
+                "presentationChannel": this.presentationChannel,
+                "atp": this.atp
             });
         },
         sendAppMessage: function(command, data) {

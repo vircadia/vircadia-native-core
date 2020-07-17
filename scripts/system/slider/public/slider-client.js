@@ -33,7 +33,7 @@
                     // This data has to be stringified because userData only takes JSON strings and not actual objects.
                     // console.log("web-to-script-sync-state" + JSON.stringify(eventJSON.data));
                     presentationChannel = eventJSON.data.presentationChannel;
-                    Entities.editEntity(_this.entityID, { "userData": JSON.stringify(eventJSON.data) });
+                    saveState(eventJSON.data);
                 }
                     
                 if (eventJSON.command === "web-to-script-slide-changed") {
@@ -71,18 +71,88 @@
             retrievedUserData = JSON.parse(retrievedUserData);
         }
         
-        if (retrievedUserData.presentationChannel) {
-            // console.log("Triggering an update for presentation channel to:" + retrievedUserData.presentationChannel);
-            updatePresentationChannel(retrievedUserData.presentationChannel)
-        }
+        // console.log("THIS IS OUR RETRIEVAL PATH: " + retrievedUserData.atp.path);
+        // console.log("IS VALID PATH: " + Assets.isValidFilePath(retrievedUserData.atp.path));
         
-        sendToWeb("script-to-web-initialize", { userData: retrievedUserData });
+        if (retrievedUserData.atp && retrievedUserData.atp.use === true) {
+            Assets.getAsset(
+                {
+                    url: retrievedUserData.atp.path,
+                    responseType: "text"
+                },
+                function (error, result) {
+                    if (error) {
+                        print("ERROR: Slide data not downloaded, bootstrapping for ATP use: "+ error);
+
+                        sendToWeb("script-to-web-initialize", { userData: retrievedUserData });
+                    } else {
+                        if (result != "") {
+                            result = JSON.parse(result);
+                        }
+                        
+                        print("Retrieved Slide Data: " + result.response);
+                        
+                        if (result.presentationChannel) {
+                            // console.log("Triggering an update for presentation channel to:" + retrievedUserData.presentationChannel);
+                            updatePresentationChannel(result.presentationChannel)
+                        }
+                        
+                        result.atp = retrievedUserData.atp;
+
+                        sendToWeb("script-to-web-initialize", { userData: result });
+                    }
+                }
+            );
+        } else {
+            if (retrievedUserData.presentationChannel) {
+                // console.log("Triggering an update for presentation channel to:" + retrievedUserData.presentationChannel);
+                updatePresentationChannel(retrievedUserData.presentationChannel)
+            }
+            
+            sendToWeb("script-to-web-initialize", { userData: retrievedUserData });
+        }
     }
     
     function updatePresentationChannel (newChannel) {
         Messages.unsubscribe(presentationChannel);
         presentationChannel = newChannel;
         Messages.subscribe(presentationChannel);
+    }
+    
+    function saveState (data) {
+        if (data.atp && data.atp.use === true) {
+            // If ATP is activated, save there...
+            // console.log("SAVING TO ATP!");
+            
+            Assets.putAsset(
+                {
+                    data: JSON.stringify(data),
+                    path: data.atp.path
+                },
+                function (error, result) {
+                    if (error) {
+                        print("ERROR: Slider data not uploaded or mapping not set: " + error);
+                    } else {
+                        print("Successfully saved: " + result.url);  // atp:/assetsExamples/helloWorld.txt
+                    }
+                }
+            );
+            
+            // We want to add the latest ATP state back in whenever syncing.
+            var retrievedUserData = Entities.getEntityProperties(_this.entityID).userData;
+            if (retrievedUserData != "") {
+                retrievedUserData = JSON.parse(retrievedUserData);
+            }
+            
+            retrievedUserData.atp = data.atp;
+            
+            Entities.editEntity(_this.entityID, { "userData": JSON.stringify(retrievedUserData) });
+        } else {
+            // If ATP is not active, save all to userData...
+            // console.log("NOT SAVING TO ATP!");
+            // console.log("data.atp - " + JSON.stringify(data.atp));
+            Entities.editEntity(_this.entityID, { "userData": JSON.stringify(data) });
+        }
     }
     
     // Standard preload and unload, initialize the entity script here.
