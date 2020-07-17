@@ -615,7 +615,7 @@ void Agent::setIsAvatar(bool isAvatar) {
             delete _avatarQueryTimer;
             _avatarQueryTimer = nullptr;
 
-            // Clear the skeleton model so thatk if agent is set to an avatar again the skeleton model is (re)loaded.
+            // Clear the skeleton model so that if agent is set to an avatar again the skeleton model is (re)loaded.
             auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
             scriptedAvatar->setSkeletonModelURL(QUrl());
 
