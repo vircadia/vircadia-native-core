@@ -319,10 +319,10 @@
                     <v-toolbar-title>Delete Slide</v-toolbar-title>
                     <v-spacer></v-spacer>
                     <v-btn class="mx-2" color="primary" @click="confirmDeleteSlideDialogShow = false">Close</v-btn>
-                    <v-btn class="mx-2" color="red darken-1" @click="confirmDeleteSlideDialogShow = false; deleteChannel(confirmDeleteSlideDialogWhich)">Delete</v-btn>
+                    <v-btn class="mx-2" color="red darken-1" @click="confirmDeleteSlideDialogShow = false; deleteSlide(confirmDeleteSlideDialogWhich)">Delete</v-btn>
                 </v-toolbar>
 
-                <v-card-title>Are you sure you want to delete the slide channel {{ confirmDeleteSlideDialogWhich }}?</v-card-title>
+                <v-card-title>Are you sure you want to delete this slide {{ confirmDeleteSlideDialogWhich }}?</v-card-title>
                 <v-card-subtitle>You cannot undo this action.</v-card-subtitle>
             </v-card>
         </v-dialog>
