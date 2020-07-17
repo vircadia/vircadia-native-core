@@ -58,6 +58,7 @@
     }
 
     function sendMessage(dataToSend) {
+        dataToSend.data.senderEntityID = _this.entityID;
         // console.log("Sending message from client:" + JSON.stringify(dataToSend));
         // console.log("On channel:" + presentationChannel);
         Messages.sendMessage(presentationChannel, JSON.stringify(dataToSend));
@@ -114,6 +115,26 @@
         }
     }
     
+    function onMessageReceived(channel, message, sender, localOnly) {
+        if (channel === presentationChannel) {
+            var messageJSON = JSON.parse(message);
+            if (messageJSON.command === "display-slide" ) { // We are receiving a slide.
+                if (messageJSON.data.senderEntityID === _this.entityID && MyAvatar.sessionUUID != sender) {
+                    // We got a message that this entity changed a slide, so let's update all instances of this entity for everyone.
+                    sendToWeb('script-to-web-update-slide-state', messageJSON.data);
+                }
+                console.log("FULL MESSAGE RECEIVED: " + JSON.stringify(messageJSON.data));
+                console.log("Who are they?" + messageJSON.data.senderEntityID);
+                console.log("Who are we? " + _this.entityID);
+            } 
+        }
+        print("Message received on Slider Presenter App:");
+        print("- channel: " + channel);
+        print("- message: " + message);
+        print("- sender: " + sender);
+        print("- localOnly: " + localOnly);
+    }
+    
     function updatePresentationChannel (newChannel) {
         Messages.unsubscribe(presentationChannel);
         presentationChannel = newChannel;
@@ -162,9 +183,13 @@
         this.entityID = ourID;
         
         Entities.webEventReceived.connect(onWebAppEventReceived);
+        Messages.messageReceived.connect(onMessageReceived);
+        Messages.subscribe(presentationChannel);
     };
     
     this.unload = function(entityID) {
+        Messages.messageReceived.disconnect(onMessageReceived);
+        Messages.unsubscribe(presentationChannel);
     };
     
 });

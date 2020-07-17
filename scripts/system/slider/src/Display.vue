@@ -116,7 +116,7 @@ if (!browserDevelopment()) {
             
             if (receivedCommand.command === 'script-to-web-display-slide') {
                 // console.log("SLIDE RECEIVED ON DISPLAY APP:" + JSON.stringify(receivedCommand.data));
-                vue_this.receiveSlides(receivedCommand.data);
+                vue_this.receiveSlides(receivedCommand.data.slide);
             }
         }
     });

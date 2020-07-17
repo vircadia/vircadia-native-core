@@ -386,6 +386,10 @@ if (!browserDevelopment()) {
                 // alert("SLIDES RECEIVED ON APP:" + JSON.stringify(receivedCommand.data));
                 vue_this.receiveChannelUpdate(receivedCommand.data);
             }
+            
+            if (receivedCommand.command === 'script-to-web-update-slide-state') {
+                vue_this.updateSlideState(receivedCommand.data);
+            }
         }
     });
 }
@@ -421,6 +425,9 @@ export default {
         currentSlide: 0,
         presentationChannel: 'default-presentation-channel',
         slideChannel: 'default',
+        // Slide Messaging Data
+        lastSlideChannelReceived: null,
+        lastCurrentSlideReceived: null,
         // Add Slides Dialog
         addSlidesByURLDialogShow: false,
         addSlideByURLField: '',
@@ -580,9 +587,23 @@ export default {
         receiveChannelUpdate: function (data) {
             this.presentationChannel = data;
         },
+        updateSlideState: function (data) {
+            // This function receives the message from sendSlideChange
+            this.lastSlideChannelReceived = data.slideChannel;
+            this.lastCurrentSlideReceived = data.currentSlide;
+            this.slideChannel = data.slideChannel;
+            this.currentSlide = data.currentSlide;
+        },
         sendSlideChange: function (slideIndex) {
-            if (this.slides[this.slideChannel]) {
-                this.sendAppMessage("web-to-script-slide-changed", this.slides[this.slideChannel][slideIndex]);
+            if (this.slides[this.slideChannel] 
+                && this.slideChannel !== this.lastSlideChannelReceived
+                && this.currentSlide !== this.lastCurrentSlideReceived
+            ) {
+                this.sendAppMessage("web-to-script-slide-changed", {
+                    'slide': this.slides[this.slideChannel][slideIndex],
+                    'slideChannel': this.slideChannel,
+                    'currentSlide': this.currentSlide
+                });
             }
         },
         sendSync: function (slidesToSync) {

@@ -58,7 +58,7 @@
                 sendToWeb('script-to-web-display-slide', messageJSON.data);
             } 
         }
-        print("Message received:");
+        print("Message received on Display App:");
         print("- channel: " + channel);
         print("- message: " + message);
         print("- sender: " + sender);
