@@ -147,6 +147,7 @@
                 <v-file-input
                     v-model="uploadSlidesDialogFiles"
                     :rules="uploadSlidesDialogRules"
+                    :multiple="true"
                     accept="image/png, image/jpeg"
                     placeholder="Pick an image to upload as a slide"
                     prepend-icon="mdi-image-search"
@@ -432,7 +433,7 @@ export default {
         uploadSlidesFailedError: '',
         uploadProcessingOverlay: false,
         uploadSlidesDialogRules: [
-            value => !value || value.size < 10000000 || 'Image size should be less than 10MB!'
+            // value => !value || value.size < 10000000 || 'Image size should be less than 10MB!'
         ],
         // Manage Slides Dialog
         manageSlidesDialogShow: false,
@@ -504,44 +505,50 @@ export default {
         uploadSlide: function () {
             // ImgBB Upload
             if (this.uploadSlidesDialogFiles) {
-                let imageFiles = new FormData();
-                var urlToPost;
-                
-                imageFiles.append('image', this.uploadSlidesDialogFiles);
-                
-                if (this.uploadSlidesDialogImgBBExpiry !== 0) {
-                    urlToPost = 'https://api.imgbb.com/1/upload?expiration=' 
-                        + this.uploadSlidesDialogImgBBExpiry 
-                        + '&key=' 
-                        + this.uploadSlidesDialogImgBBAPIKey;
-                } else {
-                    urlToPost = 'https://api.imgbb.com/1/upload?key='
-                        + this.uploadSlidesDialogImgBBAPIKey;
+                for (var image of this.uploadSlidesDialogFiles) {
+                    var urlToPost;
+                    let imageFiles = new FormData();
+                    imageFiles.append('image', image);
+                    
+                    if (this.uploadSlidesDialogImgBBExpiry !== 0) {
+                        urlToPost = 'https://api.imgbb.com/1/upload?expiration=' 
+                            + this.uploadSlidesDialogImgBBExpiry 
+                            + '&key=' 
+                            + this.uploadSlidesDialogImgBBAPIKey;
+                    } else {
+                        urlToPost = 'https://api.imgbb.com/1/upload?key='
+                            + this.uploadSlidesDialogImgBBAPIKey;
+                    }
+                    
+                    this.imgBBUpload(urlToPost, imageFiles);
                 }
-                
-                vue_this.uploadProcessingOverlay = true;
-                window.$.ajax({
-                    type: 'POST',
-                    url: urlToPost,
-                    data: imageFiles,
-                    processData: false,
-                    contentType: false,
-                })
-                    .done(function (result) {
-                        vue_this.uploadSlidesDialogFiles = null; // Reset the file upload dialog field.
-                        vue_this.uploadProcessingOverlay = false;
-                        vue_this.slides[vue_this.slideChannel].push(result.data.display_url);
-                        vue_this.currentSlide = vue_this.slides[vue_this.slideChannel].length - 1; // The array starts at 0, so the length will always be +1, so we account for that.
-                        // console.info('success:', result);
-                    })
-                    .fail(function (result) {
-                        vue_this.uploadSlidesDialogFiles = null; // Reset the file upload dialog field.
-                        vue_this.uploadProcessingOverlay = false;
-                        vue_this.uploadSlidesFailedSnackbar = true;
-                        vue_this.uploadSlidesFailedError = result.responseJSON.error.message;
-                        // console.info('fail:', result);
-                    })
             }
+        },
+        imgBBUpload: function (urlToPost, imageFiles) {
+            vue_this.uploadProcessingOverlay = true;
+            window.$.ajax({
+                type: 'POST',
+                url: urlToPost,
+                data: imageFiles,
+                processData: false,
+                contentType: false,
+            })
+                .done(function (result) {
+                    vue_this.uploadSlidesDialogFiles = null; // Reset the file upload dialog field.
+                    vue_this.uploadProcessingOverlay = false;
+                    vue_this.slides[vue_this.slideChannel].push(result.data.display_url);
+                    vue_this.currentSlide = vue_this.slides[vue_this.slideChannel].length - 1; // The array starts at 0, so the length will always be +1, so we account for that.
+                    // console.info('success:', result);
+                    return true;
+                })
+                .fail(function (result) {
+                    vue_this.uploadSlidesDialogFiles = null; // Reset the file upload dialog field.
+                    vue_this.uploadProcessingOverlay = false;
+                    vue_this.uploadSlidesFailedSnackbar = true;
+                    vue_this.uploadSlidesFailedError = result.responseJSON.error.message;
+                    // console.info('fail:', result);
+                    return true;
+                })
         },
         rearrangeSlide: function (slideIndex, direction) {
             var newPosition;
@@ -600,7 +607,7 @@ export default {
                 // eslint-disable-next-line
                 EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
             } else {
-                alert(JSON.stringify(JSONtoSend));
+                // alert(JSON.stringify(JSONtoSend));
             }
         }
     },
