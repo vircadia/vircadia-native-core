@@ -1075,7 +1075,7 @@ export default {
                     {
                         "name": "No Folder", 
                         "uuid": "No Folder"
-                    },
+                    }
                 ];
                 
                 generateList = this.recursiveFolderPopulate(this.itemsStore, null);
@@ -1085,7 +1085,7 @@ export default {
                     {
                         "name": "No Folder", 
                         "uuid": "No Folder"
-                    },
+                    }
                 ];
                 
                 generateList = this.recursiveFolderPopulate(this.itemsStore, null);
@@ -1099,7 +1099,7 @@ export default {
                     {
                         "name": "No Folder", 
                         "uuid": "No Folder"
-                    },
+                    }
                 ];
                 
                 generateList = this.recursiveFolderPopulate(this.itemsStore, this.$store.state.editFolderDialog.data.uuid);
