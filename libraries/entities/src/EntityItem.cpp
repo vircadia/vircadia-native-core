@@ -1572,7 +1572,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
             qCDebug(entities) << "EntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         #endif
-        setLastEdited(now);
+        setLastEdited(properties._lastEdited);
         if (getDirtyFlags() & (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES)) {
             // anything that sets the transform or velocity must update _lastSimulated which is used
             // for kinematic extrapolation (e.g. we want to extrapolate forward from this moment
