@@ -23,7 +23,7 @@ export const store = new Vuex.Store({
                 "name": "VRGrabScale",
                 "url": "https://gooawefaweawfgle.com/vr.js",
                 "folder": "No Folder",
-                "uuid": "54254354353",
+                "uuid": "54254354353"
             },
             {
                 "name": "Test Folder",
@@ -284,7 +284,7 @@ export const store = new Vuex.Store({
                 // console.info("Containing these items...", payload.findFolder.returnedItem.items);
 
                 items.push(payload.findFolder.returnedItem);
-                Vue.set(state,'items', items);
+                Vue.set(state, 'items', items);
                                 
             } else if (payload.findParentFolder) {                
                 // console.info("Going to push...", payload.findFolder.returnedItem);

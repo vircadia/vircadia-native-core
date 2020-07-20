@@ -769,8 +769,8 @@ export default {
                             "uuid": "REALLYLONNGGGGGGGG",
                         }
                     }
-                ],
-            },
+                ]
+            }
         },
         folderList: [],
         recursiveFolderHoldingList: [],
@@ -789,7 +789,7 @@ export default {
                 name: "This?",
                 uuid: "{4131531676575653652562}",
                 distance: 1,
-            },
+            }
         ],
         sortBy: "alphabetical",
         settings: {
@@ -799,13 +799,13 @@ export default {
                     "List",
                     "Compact",
                     "Large",
-                ],
-            },
+                ]
+            }
         },
         appVersion: "2.0.2",
         darkTheme: true,
         drawer: false,
-        disabledProp: true,
+        disabledProp: true
     }),
     created: function () {
         vue_this = this;

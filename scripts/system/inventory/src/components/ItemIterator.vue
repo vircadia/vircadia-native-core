@@ -196,7 +196,7 @@
 <script>
 
 import { EventBus } from '../plugins/event-bus.js';
-import draggable from 'vuedraggable'
+import draggable from 'vuedraggable';
 
 export default {
     name: 'itemiterator',
@@ -230,7 +230,7 @@ export default {
                     property: 'addDialog', 
                     with: value
                 });
-            },
+            }
         },
         editDialogStore: {
             get() {
