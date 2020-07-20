@@ -123,16 +123,16 @@
                     // We got a message that this entity changed a slide, so let's update all instances of this entity for everyone.
                     sendToWeb('script-to-web-update-slide-state', messageJSON.data);
                 }
-                console.log("FULL MESSAGE RECEIVED: " + JSON.stringify(messageJSON.data));
-                console.log("Who are they?" + messageJSON.data.senderEntityID);
-                console.log("Who are we? " + _this.entityID);
+                // console.log("FULL MESSAGE RECEIVED: " + JSON.stringify(messageJSON.data));
+                // console.log("Who are they?" + sender);
+                // console.log("Who are we? " + MyAvatar.sessionUUID);
             } 
         }
-        print("Message received on Slider Presenter App:");
-        print("- channel: " + channel);
-        print("- message: " + message);
-        print("- sender: " + sender);
-        print("- localOnly: " + localOnly);
+        // print("Message received on Slider Presenter App:");
+        // print("- channel: " + channel);
+        // print("- message: " + message);
+        // print("- sender: " + sender);
+        // print("- localOnly: " + localOnly);
     }
     
     function updatePresentationChannel (newChannel) {

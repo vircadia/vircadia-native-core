@@ -590,8 +590,10 @@ export default {
         },
         updateSlideState: function (data) {
             // This function receives the message from sendSlideChange
-            this.slideChannel = data.slideChannel;
-            this.currentSlide = data.currentSlide;
+            if (this.slides[data.slideChannel] && this.slides[data.slideChannel][data.currentSlide]) {
+                this.slideChannel = data.slideChannel;
+                this.currentSlide = data.currentSlide;
+            }
         },
         sendSlideChange: function (slideIndex) {
             if (this.slides[this.slideChannel]) {
