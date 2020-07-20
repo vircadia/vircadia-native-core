@@ -425,9 +425,6 @@ export default {
         currentSlide: 0,
         presentationChannel: 'default-presentation-channel',
         slideChannel: 'default',
-        // Slide Messaging Data
-        lastSlideChannelReceived: null,
-        lastCurrentSlideReceived: null,
         // Add Slides Dialog
         addSlidesByURLDialogShow: false,
         addSlideByURLField: '',
@@ -458,11 +455,15 @@ export default {
         confirmDeleteSlideDialogWhich: ''
     }),
     watch: {
-        currentSlide: function (newSlide) {
-            this.sendSlideChange(newSlide);
+        currentSlide: function (newSlide, oldSlide) {
+            if (newSlide !== oldSlide) {
+                this.sendSlideChange(newSlide);
+            }
         },
-        slideChannel: function () {
-            this.sendSlideChange(this.currentSlide)
+        slideChannel: function (newChannel, oldChannel) {
+            if (newChannel !== oldChannel) {
+                this.sendSlideChange(this.currentSlide)
+            }
         },
         slides: {
             handler: function (newSlides) {
@@ -589,16 +590,11 @@ export default {
         },
         updateSlideState: function (data) {
             // This function receives the message from sendSlideChange
-            this.lastSlideChannelReceived = data.slideChannel;
-            this.lastCurrentSlideReceived = data.currentSlide;
             this.slideChannel = data.slideChannel;
             this.currentSlide = data.currentSlide;
         },
         sendSlideChange: function (slideIndex) {
-            if (this.slides[this.slideChannel] 
-                && this.slideChannel !== this.lastSlideChannelReceived
-                && this.currentSlide !== this.lastCurrentSlideReceived
-            ) {
+            if (this.slides[this.slideChannel]) {
                 this.sendAppMessage("web-to-script-slide-changed", {
                     'slide': this.slides[this.slideChannel][slideIndex],
                     'slideChannel': this.slideChannel,
