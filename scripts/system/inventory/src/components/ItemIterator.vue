@@ -241,7 +241,7 @@ export default {
                     property: 'editDialog', 
                     with: value
                 });
-            },
+            }
         },
         editFolderDialogStore: {
             get() {
@@ -252,7 +252,7 @@ export default {
                     property: 'editFolderDialog', 
                     with: value
                 });
-            },
+            }
         },
         shareDialogStore: {
             get() {
@@ -263,7 +263,7 @@ export default {
                     property: 'shareDialog', 
                     with: value
                 });
-            },
+            }
         },
         removeFolderDialogStore: {
             get() {
@@ -274,7 +274,7 @@ export default {
                     property: 'removeFolderDialog', 
                     with: value
                 });
-            },
+            }
         },
         removeDialogStore: {
             get() {
@@ -285,7 +285,7 @@ export default {
                     property: 'removeDialog', 
                     with: value
                 });
-            },
+            }
         }
     },
     watch: {

@@ -16,7 +16,7 @@ import { store } from './plugins/store';
 Vue.config.productionTip = false;
 
 window.vm = new Vue({
-  vuetify,
-  store,
-  render: h => h(App)
+    vuetify,
+    store,
+    render: h => h(App)
 }).$mount('#app');

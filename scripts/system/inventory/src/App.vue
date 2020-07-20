@@ -703,27 +703,25 @@ if (!browserDevelopment()) {
         receivedCommand = JSON.parse(receivedCommand);
         // alert("RECEIVED COMMAND:" + receivedCommand.command)
         if (receivedCommand.app === "inventory") {
-        // We route the data based on the command given.
-            if (receivedCommand.command === 'script-to-web-inventory') {
-                // alert("INVENTORY RECEIVED ON APP:" + JSON.stringify(receivedCommand.data));
-                vue_this.receiveInventory(receivedCommand.data);
+            // We route the data based on the command given.
+            switch (receivedCommand.command) {
+                case 'script-to-web-inventory':
+                    // alert("INVENTORY RECEIVED ON APP:" + JSON.stringify(receivedCommand.data));
+                    vue_this.receiveInventory(receivedCommand.data);
+                    break;
+                case 'script-to-web-receiving-item-queue':
+                    // alert("RECEIVING ITEM QUEUE:" + JSON.stringify(receivedCommand.data));
+                    vue_this.receiveReceivingItemQueue(receivedCommand.data);
+                    break;
+                case 'script-to-web-nearby-users':
+                    // alert("RECEIVING NEARBY USERS:" + JSON.stringify(receivedCommand.data));
+                    vue_this.receiveNearbyUsers(receivedCommand.data);
+                    break;
+                case 'script-to-web-settings':
+                    // alert("RECEIVING SETTINGS:" + JSON.stringify(receivedCommand.data));
+                    vue_this.receiveSettings(receivedCommand.data);
+                    break;
             }
-    
-            if (receivedCommand.command === 'script-to-web-receiving-item-queue') {
-                // alert("RECEIVING ITEM QUEUE:" + JSON.stringify(receivedCommand.data));
-                vue_this.receiveReceivingItemQueue(receivedCommand.data);
-            }
-    
-            if (receivedCommand.command === 'script-to-web-nearby-users') {
-                // alert("RECEIVING NEARBY USERS:" + JSON.stringify(receivedCommand.data));
-                vue_this.receiveNearbyUsers(receivedCommand.data);
-            }
-            
-            if (receivedCommand.command === 'script-to-web-settings') {
-                // alert("RECEIVING SETTINGS:" + JSON.stringify(receivedCommand.data));
-                vue_this.receiveSettings(receivedCommand.data);
-            }
-    
         }
     });
     
@@ -1156,7 +1154,7 @@ export default {
                     "returnedItem": foundItem.returnedItem,
                     "iteration": foundItem.iteration,
                     "parentArray": foundItem.parentArray,
-                    "itemUUID": uuid,
+                    "itemUUID": uuid
                 }
             }
         },
@@ -1166,7 +1164,7 @@ export default {
                     var foundItem = {
                         "returnedItem": indexToSearch[i],
                         "iteration": i,
-                        "parentArray": indexToSearch,
+                        "parentArray": indexToSearch
                     }
                     return foundItem;
                 } else if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items") && indexToSearch[i].items.length > 0) {
@@ -1187,7 +1185,7 @@ export default {
                         // console.info("AvoidFolder", avoidFolder, "indexToSearch[i].uuid", indexToSearch[i].uuid);
                         this.recursiveFolderHoldingList.push({
                             "name": indexToSearch[i].name,
-                            "uuid": indexToSearch[i].uuid,
+                            "uuid": indexToSearch[i].uuid
                         });
                         
                         this.recursiveFolderPopulate(indexToSearch[i].items, avoidFolder);
@@ -1269,7 +1267,7 @@ export default {
                     property: 'items', 
                     with: value
                 });
-            },
+            }
         },
         addDialogStore: {
             get() {
@@ -1280,7 +1278,7 @@ export default {
                     property: 'addDialog', 
                     with: value
                 });
-            },
+            }
         },
         editDialogStore: {
             get() {
@@ -1291,7 +1289,7 @@ export default {
                     property: 'editDialog', 
                     with: value
                 });
-            },
+            }
         },
         editDialogShow: function() {
             return this.$store.state.editDialog.show;
@@ -1305,7 +1303,7 @@ export default {
                     property: 'editFolderDialog', 
                     with: value
                 });
-            },
+            }
         },
         editFolderDialogShow: function() {
             return this.$store.state.editFolderDialog.show;
@@ -1313,13 +1311,13 @@ export default {
         createFolderDialogStore: {
             get() {
                 return this.$store.state.createFolderDialog;
-            },
+            }
             set(value) {
                 this.$store.commit('mutate', {
                     property: 'createFolderDialog', 
                     with: value
                 });
-            },
+            }
         },
         receiveDialogStore: {
             get() {
@@ -1330,7 +1328,7 @@ export default {
                     property: 'receiveDialog', 
                     with: value
                 });
-            },
+            }
         },
         shareDialogShow: function() {
             return this.$store.state.shareDialog.show;
@@ -1344,7 +1342,7 @@ export default {
                     property: 'shareDialog', 
                     with: value
                 });
-            },
+            }
         },
         removeFolderDialogStore: {
             get() {
@@ -1355,7 +1353,7 @@ export default {
                     property: 'removeFolderDialog', 
                     with: value
                 });
-            },
+            }
         },
         removeDialogStore: {
             get() {
@@ -1366,7 +1364,7 @@ export default {
                     property: 'removeDialog', 
                     with: value
                 });
-            },
+            }
         },
         receivingItemQueue: {
             get() {

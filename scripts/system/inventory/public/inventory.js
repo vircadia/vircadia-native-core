@@ -267,11 +267,9 @@ Tablet Vec3 Window */
     }
 
     function onOpened() {
-        console.log("hello world!");
     }
 
     function onClosed() {
-        console.log("hello world!");
     }
 
     function startup() {
