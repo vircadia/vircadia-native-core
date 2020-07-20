@@ -3079,14 +3079,14 @@ void DomainServer::initializeMetadataExporter() {
     int metadataExporterPort = _settingsManager.valueOrDefaultValueForKeyPath(EXPORTER_PORT).toInt();
 
     if (metadataExporterPort < MIN_PORT || metadataExporterPort > MAX_PORT) {
-        qCWarning(domain_server) << "Metadata exporter port " << metadataExporterPort << " is out of range.";
+        qCWarning(domain_server) << "Metadata exporter port" << metadataExporterPort << "is out of range.";
         isMetadataExporterEnabled = false;
     }
 
     qCDebug(domain_server) << "Setting up Metadata exporter.";
 
     if (isMetadataExporterEnabled && !_httpMetadataExporterManager) {
-        qCInfo(domain_server) << "Starting Metadata exporter on port " << metadataExporterPort;
+        qCInfo(domain_server) << "Starting Metadata exporter on port" << metadataExporterPort;
         _httpMetadataExporterManager = new HTTPManager(QHostAddress::Any, (quint16)metadataExporterPort, QString("%1/resources/metadata_exporter/").arg(QCoreApplication::applicationDirPath()), _metadata);
     }
 }

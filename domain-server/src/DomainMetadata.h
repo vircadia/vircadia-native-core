@@ -44,12 +44,11 @@ public:
 
     DomainMetadata(QObject* domainServer);
     ~DomainMetadata() = default;
-    
     // Get cached metadata
     QJsonObject get();
     QJsonObject get(const QString& group);
 
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
 
 public slots:
     void descriptorsChanged();
