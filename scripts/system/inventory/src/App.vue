@@ -1311,7 +1311,7 @@ export default {
         createFolderDialogStore: {
             get() {
                 return this.$store.state.createFolderDialog;
-            }
+            },
             set(value) {
                 this.$store.commit('mutate', {
                     property: 'createFolderDialog', 
