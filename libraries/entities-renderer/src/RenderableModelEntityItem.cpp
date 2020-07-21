@@ -1337,7 +1337,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             _model->setCullWithParent(_cullWithParent);
             _model->setRenderWithZones(_renderWithZones);
             emit requestRenderUpdate();
-            if(didVisualGeometryRequestSucceed) {
+            if (didVisualGeometryRequestSucceed) {
                 emit DependencyManager::get<scriptable::ModelProviderFactory>()->
                     modelAddedToScene(entity->getEntityItemID(), NestableType::Entity, _model);
             }
