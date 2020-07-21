@@ -3067,7 +3067,13 @@ void DomainServer::initializeExporter() {
 
     if (isExporterEnabled && !_httpExporterManager) {
         qCInfo(domain_server) << "Starting Prometheus exporter on port " << exporterPort;
-        _httpExporterManager = new HTTPManager(QHostAddress::Any, (quint16)exporterPort, QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()), &_exporter);
+        _httpExporterManager = new HTTPManager
+        (
+            QHostAddress::Any, 
+            (quint16)exporterPort, 
+            QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()), 
+            &_exporter
+        );
     }
 }
 
@@ -3087,7 +3093,13 @@ void DomainServer::initializeMetadataExporter() {
 
     if (isMetadataExporterEnabled && !_httpMetadataExporterManager) {
         qCInfo(domain_server) << "Starting Metadata exporter on port" << metadataExporterPort;
-        _httpMetadataExporterManager = new HTTPManager(QHostAddress::Any, (quint16)metadataExporterPort, QString("%1/resources/metadata_exporter/").arg(QCoreApplication::applicationDirPath()), _metadata);
+        _httpMetadataExporterManager = new HTTPManager
+        (
+            QHostAddress::Any, 
+            (quint16)metadataExporterPort, 
+            QString("%1/resources/metadata_exporter/").arg(QCoreApplication::applicationDirPath()), 
+            _metadata
+        );
     }
 }
 
