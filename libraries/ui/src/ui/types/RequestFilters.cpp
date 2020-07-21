@@ -85,7 +85,7 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info,
     static const QString USER_AGENT = "User-Agent";
     const QString tokenStringMobile{ NetworkingConstants::MOBILE_USER_AGENT };
     const QString tokenStringMetaverse{ NetworkingConstants::METAVERSE_USER_AGENT };
-    const QString tokenStringLimitedCommerce{ "Chrome/48.0 (HighFidelityInterface limitedCommerce)" };
+    const QString tokenStringLimitedCommerce{ "Chrome/48.0 (VircadiaInterface limitedCommerce)" };
 
     const QString tokenString = !isAuthable ? tokenStringMobile : (accountManager->getLimitedCommerce() ? tokenStringLimitedCommerce : tokenStringMetaverse);
     info.setHttpHeader(USER_AGENT.toLocal8Bit(), tokenString.toLocal8Bit());
