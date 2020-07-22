@@ -2793,6 +2793,17 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
             }
         }
 
+        QVector<QUuid> oldRenderWithZones = properties.getRenderWithZones();
+        if (!oldRenderWithZones.isEmpty()) {
+            QVector<QUuid> newRenderWithZones;
+            for (QUuid oldRenderWithZoneID : oldRenderWithZones) {
+                if (args->ourTree->findEntityByEntityItemID(oldRenderWithZoneID)) {
+                    newRenderWithZones.append(getMapped(oldRenderWithZoneID));
+                }
+            }
+            properties.setRenderWithZones(newRenderWithZones);
+        }
+
         properties.setXNNeighborID(getMapped(properties.getXNNeighborID()));
         properties.setXPNeighborID(getMapped(properties.getXPNeighborID()));
         properties.setYNNeighborID(getMapped(properties.getYNNeighborID()));
