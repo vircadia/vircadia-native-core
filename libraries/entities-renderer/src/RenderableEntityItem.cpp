@@ -41,6 +41,10 @@ const Transform& EntityRenderer::getModelTransform() const {
     return _modelTransform;
 }
 
+const Transform& EntityRenderer::getPreviousModelTransform() const {
+    return _prevModelTransform;
+}
+
 void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters) {
     auto nodeList = DependencyManager::get<NodeList>();
     // DANGER: nodeList->getSessionUUID() will return null id when not connected to domain.
@@ -414,6 +418,7 @@ void EntityRenderer::updateModelTransformAndBound() {
     bool success = false;
     auto newModelTransform = _entity->getTransformToCenter(success);
     if (success) {
+        _prevModelTransform = _modelTransform;
         _modelTransform = newModelTransform;
     }
 

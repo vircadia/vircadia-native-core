@@ -76,6 +76,8 @@ public:
         void allocateStorage() const;
         void syncSampler() const override;
         const Size _size { 0 };
+
+
     };
 
     class GLESAttachmentTexture : public GLESFixedAllocationTexture {
@@ -163,6 +165,8 @@ protected:
     // Resource Stage
     bool bindResourceBuffer(uint32_t slot, const BufferPointer& buffer) override;
     void releaseResourceBuffer(uint32_t slot) override;
+
+    void do_copySavedViewProjectionTransformToBuffer(const Batch& batch, size_t paramOffset) override;
 
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;

@@ -1,2 +1,2 @@
 VERTEX DrawUnitQuad
-FRAGMENT DrawColor
+FRAGMENT DrawWhite

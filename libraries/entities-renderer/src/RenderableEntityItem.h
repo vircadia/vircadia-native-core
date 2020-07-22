@@ -162,6 +162,7 @@ protected:
     // to trigger an update, so the member must not be visible to derived classes as a modifiable
     // transform
     Transform _modelTransform;
+    Transform _prevModelTransform;
     // The rendering code only gets access to the entity in very specific circumstances
     // i.e. to see if the rendering code needs to update because of a change in state of the 
     // entity.  This forces all the rendering code itself to be independent of the entity
