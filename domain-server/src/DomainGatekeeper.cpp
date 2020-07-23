@@ -600,15 +600,15 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
                 return true;
 
             } else {
-                // we only send back a LoginError if this wasn't an "optimistic" key
+                // we only send back a LoginErrorMetaverse if this wasn't an "optimistic" key
                 // (a key that we hoped would work but is probably stale)
 
                 if (!senderSockAddr.isNull() && !isOptimisticKey) {
-                    qDebug() << "Error decrypting username signature for" << username << "- denying connection.";
+                    qDebug() << "Error decrypting metaverse username signature for" << username << "- denying connection.";
                     sendConnectionDeniedPacket("Error decrypting username signature.", senderSockAddr,
-                        DomainHandler::ConnectionRefusedReason::LoginError);
+                        DomainHandler::ConnectionRefusedReason::LoginErrorMetaverse);
                 } else if (!senderSockAddr.isNull()) {
-                    qDebug() << "Error decrypting username signature for" << username << "with optimisitic key -"
+                    qDebug() << "Error decrypting metaverse username signature for" << username << "with optimistic key -"
                         << "re-requesting public key and delaying connection";
                 }
 
@@ -622,7 +622,7 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
             if (!senderSockAddr.isNull()) {
                 qDebug() << "Couldn't convert data to RSA key for" << username << "- denying connection.";
                 sendConnectionDeniedPacket("Couldn't convert data to RSA key.", senderSockAddr,
-                    DomainHandler::ConnectionRefusedReason::LoginError);
+                    DomainHandler::ConnectionRefusedReason::LoginErrorMetaverse);
             }
         }
     } else {

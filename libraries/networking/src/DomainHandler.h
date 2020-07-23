@@ -172,9 +172,9 @@ public:
      *       <td>The communications protocols of the domain and your Interface are not the same.</td>
      *     </tr>
      *     <tr>
-     *       <td><strong>LoginError</strong></td>
+     *       <td><strong>LoginErrorMetaverse</strong></td>
      *       <td><code>2</code></td>
-     *       <td>You could not be logged into the domain.</td>
+     *       <td>You could not be logged into the domain per your metaverse login.</td>
      *     </tr>
      *     <tr>
      *       <td><strong>NotAuthorizedMetaverse</strong></td>
@@ -192,6 +192,11 @@ public:
      *       <td>Connecting to the domain timed out.</td>
      *     </tr>
      *     <tr>
+     *       <td><strong>LoginErrorDomain</strong></td>
+     *       <td><code>2</code></td>
+     *       <td>You could not be logged into the domain per your domain login.</td>
+     *     </tr>
+     *     <tr>
      *       <td><strong>NotAuthorizedDomain</strong></td>
      *       <td><code>6</code></td>
      *       <td>You are not authorized to connect to the domain per your domain login.</td>
@@ -203,10 +208,11 @@ public:
     enum class ConnectionRefusedReason : uint8_t {
         Unknown,
         ProtocolMismatch,
-        LoginError,
+        LoginErrorMetaverse,
         NotAuthorizedMetaverse,
         TooManyUsers,
         TimedOut,
+        LoginErrorDomain,
         NotAuthorizedDomain
     };
 
