@@ -177,9 +177,9 @@ public:
      *       <td>You could not be logged into the domain.</td>
      *     </tr>
      *     <tr>
-     *       <td><strong>NotAuthorized</strong></td>
+     *       <td><strong>NotAuthorizedMetaverse</strong></td>
      *       <td><code>3</code></td>
-     *       <td>You are not authorized to connect to the domain.</td>
+     *       <td>You are not authorized to connect to the domain per your metaverse login.</td>
      *     </tr>
      *     <tr>
      *       <td><strong>TooManyUsers</strong></td>
@@ -191,6 +191,11 @@ public:
      *       <td><code>5</code></td>
      *       <td>Connecting to the domain timed out.</td>
      *     </tr>
+     *     <tr>
+     *       <td><strong>NotAuthorizedDomain</strong></td>
+     *       <td><code>6</code></td>
+     *       <td>You are not authorized to connect to the domain per your domain login.</td>
+     *     </tr>
      *   </tbody>
      * </table>
      * @typedef {number} Window.ConnectionRefusedReason
@@ -200,9 +205,9 @@ public:
         ProtocolMismatch,
         LoginError,
         NotAuthorizedMetaverse,
-        NotAuthorizedDomain,
         TooManyUsers,
-        TimedOut
+        TimedOut,
+        NotAuthorizedDomain
     };
 
 public slots:
