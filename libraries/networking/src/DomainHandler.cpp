@@ -144,7 +144,8 @@ void DomainHandler::hardReset(QString reason) {
 bool DomainHandler::isHardRefusal(int reasonCode) {
     return (reasonCode == (int)ConnectionRefusedReason::ProtocolMismatch ||
             reasonCode == (int)ConnectionRefusedReason::TooManyUsers ||
-            reasonCode == (int)ConnectionRefusedReason::NotAuthorized ||
+            reasonCode == (int)ConnectionRefusedReason::NotAuthorizedMetaverse ||
+            reasonCode == (int)ConnectionRefusedReason::NotAuthorizedDomain ||
             reasonCode == (int)ConnectionRefusedReason::TimedOut);
 }
 
@@ -489,10 +490,25 @@ void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> mes
     }
 }
 
-bool DomainHandler::reasonSuggestsLogin(ConnectionRefusedReason reasonCode) {
+bool DomainHandler::reasonSuggestsMetaverseLogin(ConnectionRefusedReason reasonCode) {
     switch (reasonCode) {
         case ConnectionRefusedReason::LoginError:
-        case ConnectionRefusedReason::NotAuthorized:
+        case ConnectionRefusedReason::NotAuthorizedMetaverse:
+            return true;
+
+        default:
+        case ConnectionRefusedReason::Unknown:
+        case ConnectionRefusedReason::ProtocolMismatch:
+        case ConnectionRefusedReason::TooManyUsers:
+            return false;
+    }
+    return false;
+}
+
+bool DomainHandler::reasonSuggestsDomainLogin(ConnectionRefusedReason reasonCode) {
+    switch (reasonCode) {
+        case ConnectionRefusedReason::LoginError:
+        case ConnectionRefusedReason::NotAuthorizedDomain:
             return true;
 
         default:
@@ -543,9 +559,9 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 
     auto accountManager = DependencyManager::get<AccountManager>();
 
-    // Some connection refusal reasons imply that a login is required. If so, suggest a new login
-    if (reasonSuggestsLogin(reasonCode)) {
-        qCWarning(networking) << "Make sure you are logged in.";
+    // Some connection refusal reasons imply that a login is required. If so, suggest a new login.
+    if (reasonSuggestsMetaverseLogin(reasonCode)) {
+        qCWarning(networking) << "Make sure you are logged in to the metaverse.";
 
         if (!_hasCheckedForAccessToken) {
             accountManager->checkAndSignalForAccessToken();
@@ -559,6 +575,10 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
             accountManager->generateNewUserKeypair();
             _connectionDenialsSinceKeypairRegen = 0;
         }
+    } else if (reasonSuggestsDomainLogin(reasonCode)) {
+        qCWarning(networking) << "Make sure you are logged in to the domain.";
+        
+        
     }
 }
 

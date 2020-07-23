@@ -439,7 +439,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
         sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
-                nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorized);
+                nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedMetaverse);
 #ifdef WANT_DEBUG
         qDebug() << "stalling login due to permissions:" << username;
 #endif

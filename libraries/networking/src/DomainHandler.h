@@ -199,7 +199,8 @@ public:
         Unknown,
         ProtocolMismatch,
         LoginError,
-        NotAuthorized,
+        NotAuthorizedMetaverse,
+        NotAuthorizedDomain,
         TooManyUsers,
         TimedOut
     };
@@ -247,7 +248,8 @@ signals:
     void limitOfSilentDomainCheckInsReached();
 
 private:
-    bool reasonSuggestsLogin(ConnectionRefusedReason reasonCode);
+    bool reasonSuggestsMetaverseLogin(ConnectionRefusedReason reasonCode);
+    bool reasonSuggestsDomainLogin(ConnectionRefusedReason reasonCode);
     void sendDisconnectPacket();
     void hardReset(QString reason);
 
