@@ -19,7 +19,7 @@ Item {
                                             buttons: OriginalDialogs.StandardButton.Ok,
                                             defaultButton: OriginalDialogs.StandardButton.NoButton,
                                             title: "No Connection",
-                                            text: "Unable to connect to this domain. Click the 'GO TO' button on the toolbar to visit another domain."
+                                            text: "Unable to connect to this domain. Click the 'EXPLORE' button on the toolbar to visit another domain."
                                         });
         object.selected.connect(function(button) {
             if (button === OriginalDialogs.StandardButton.Ok) {
