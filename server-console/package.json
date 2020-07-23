@@ -8,7 +8,7 @@
     ""
   ],
   "devDependencies": {
-    "electron": "^3.0.0",
+    "electron": "^9.1.1",
     "electron-packager": "^12.1.2"
   },
   "repository": {
