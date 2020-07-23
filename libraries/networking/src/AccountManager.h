@@ -58,7 +58,7 @@ const auto METAVERSE_SESSION_ID_HEADER = QString("HFM-SessionID").toLocal8Bit();
 
 using UserAgentGetter = std::function<QString()>;
 
-const auto DEFAULT_USER_AGENT_GETTER = []() -> QString { return HIGH_FIDELITY_USER_AGENT; };
+const auto DEFAULT_USER_AGENT_GETTER = []() -> QString { return NetworkingConstants::VIRCADIA_USER_AGENT; };
 
 class AccountManager : public QObject, public Dependency {
     Q_OBJECT
