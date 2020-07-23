@@ -142,8 +142,11 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     }
 }
 
-NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QString verifiedUsername, const QHostAddress& senderAddress,
-                                                        const QString& hardwareAddress, const QUuid& machineFingerprint) {
+NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QString verifiedUsername,
+                                                        QString verifiedAuxliaryUsername, 
+                                                        QStringList verifiedAuxiliaryUserGroups,
+                                                        const QHostAddress& senderAddress, const QString& hardwareAddress,
+                                                        const QUuid& machineFingerprint) {
     NodePermissions userPerms;
 
     userPerms.setAll(false);
@@ -153,6 +156,23 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
 #ifdef WANT_DEBUG
         qDebug() << "|  user-permissions: is local user, so:" << userPerms;
 #endif
+    }
+
+    // If this user is a known member of an externally-hosted group, give them the implied permissions.
+    // Do before processing verifiedUsername in case user is logged into the metaverse and is a member of a blacklist group.
+    if (!verifiedAuxliaryUsername.isEmpty() && !verifiedAuxiliaryUserGroups.isEmpty()) {
+        foreach (QString group, verifiedAuxiliaryUserGroups) {
+            if (_server->_settingsManager.getAllKnownGroupNames().contains(group)) {
+                userPerms |= _server->_settingsManager.getPermissionsForGroup(group, QUuid());
+//#ifdef WANT_DEBUG
+                qDebug() << "|  user-permissions: auxiliary user " << verifiedAuxliaryUsername << "is in group:" << group << "so:" << userPerms;
+//#endif
+
+            }
+        }
+
+        userPerms.setVerifiedAuxiliaryUserName(verifiedAuxliaryUsername);
+        userPerms.setVerifiedAuxiliaryUserGroups(verifiedAuxiliaryUserGroups);
     }
 
     if (verifiedUsername.isEmpty()) {
@@ -275,6 +295,8 @@ void DomainGatekeeper::updateNodePermissions() {
         // the id and the username in NodePermissions will often be the same, but id is set before
         // authentication and verifiedUsername is only set once they user's key has been confirmed.
         QString verifiedUsername = node->getPermissions().getVerifiedUserName();
+        QString verifiedAuxiliaryUsername = node->getPermissions().getVerifiedAuxiliaryUserName();
+        QStringList verifiedAuxiliaryUserGroups = node->getPermissions().getVerifiedAuxiliaryUserGroups();
         NodePermissions userPerms(NodePermissionsKey(verifiedUsername, 0));
 
         if (node->getPermissions().isAssignment) {
@@ -309,7 +331,9 @@ void DomainGatekeeper::updateNodePermissions() {
                                sendingAddress == QHostAddress::LocalHost);
             }
 
-            userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, connectingAddr.getAddress(), hardwareAddress, machineFingerprint);
+            userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, verifiedAuxiliaryUsername, 
+                                              verifiedAuxiliaryUserGroups,  connectingAddr.getAddress(), 
+                                              hardwareAddress, machineFingerprint);
         }
 
         node->setPermissions(userPerms);
@@ -434,8 +458,22 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         }
     }
 
-    userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, nodeConnection.senderSockAddr.getAddress(),
-                                      nodeConnection.hardwareAddress, nodeConnection.machineFingerprint);
+    // Auxiliary user name and groups may be provided by an external authentication service.
+    // This is enabled in the server settings by ... #######: TODO: What server name or tag to set in the server's settings?
+    QString verifiedAuxiliaryUsername;
+    QStringList verifiedAuxiliaryUserGroups;
+
+    // #######: TODO: Obtain auxiliary login's user name and auxiliary groups if server tags indicate that this is required.
+    //                May already have auxiliary login's user name, in which case groups should probably be re-obtained to 
+    //                ensure that they're up to date.
+
+    // #######: TODO: Delete this development code.
+    verifiedAuxiliaryUsername = "a@b.c";
+    verifiedAuxiliaryUserGroups = QString("test-group").toLower().split(" ");
+
+    userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, verifiedAuxiliaryUsername, verifiedAuxiliaryUserGroups,
+                                      nodeConnection.senderSockAddr.getAddress(), nodeConnection.hardwareAddress,
+                                      nodeConnection.machineFingerprint);
 
     if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
         sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
@@ -1029,7 +1067,7 @@ void DomainGatekeeper::refreshGroupsCache() {
 
     updateNodePermissions();
 
-#if WANT_DEBUG
+#ifdef WANT_DEBUG
     _server->_settingsManager.debugDumpGroupsState();
 #endif
 }
