@@ -495,6 +495,12 @@ bool DomainHandler::reasonSuggestsMetaverseLogin(ConnectionRefusedReason reasonC
         case ConnectionRefusedReason::LoginError:
         case ConnectionRefusedReason::NotAuthorizedMetaverse:
             return true;
+
+        default:
+        case ConnectionRefusedReason::Unknown:
+        case ConnectionRefusedReason::ProtocolMismatch:
+        case ConnectionRefusedReason::TooManyUsers:
+            return false;
     }
     return false;
 }
@@ -504,6 +510,12 @@ bool DomainHandler::reasonSuggestsDomainLogin(ConnectionRefusedReason reasonCode
         case ConnectionRefusedReason::LoginError:
         case ConnectionRefusedReason::NotAuthorizedDomain:
             return true;
+
+        default:
+        case ConnectionRefusedReason::Unknown:
+        case ConnectionRefusedReason::ProtocolMismatch:
+        case ConnectionRefusedReason::TooManyUsers:
+            return false;
     }
     return false;
 }
