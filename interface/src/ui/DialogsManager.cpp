@@ -121,9 +121,22 @@ void DialogsManager::hideLoginDialog() {
     LoginDialog::hide();
 }
 
+
+void DialogsManager::showDomainLoginDialog() {
+
+    // #######: TODO
+
+    qDebug() << "#######: showDomainLoginDialog()";
+
+}
+
+// #######: TODO
+
+
 void DialogsManager::showUpdateDialog() {
     UpdateDialog::show();
 }
+
 
 void DialogsManager::octreeStatsDetails() {
     if (!_octreeStatsDialog) {

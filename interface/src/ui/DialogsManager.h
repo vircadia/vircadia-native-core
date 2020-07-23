@@ -49,6 +49,7 @@ public slots:
     void toggleLoginDialog();
     void showLoginDialog();
     void hideLoginDialog();
+    void showDomainLoginDialog();
     void octreeStatsDetails();
     void lodTools();
     void hmdTools(bool showTools);

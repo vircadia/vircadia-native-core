@@ -65,6 +65,7 @@
 #include <Trace.h>
 #include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
+#include <DomainAccountManager.h>
 #include <AddressManager.h>
 #include <AnimDebugDraw.h>
 #include <BuildInfo.h>
@@ -1347,6 +1348,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
 #endif
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
+
+
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
+    connect(domainAccountManager.data(), &DomainAccountManager::authRequired, dialogsManager.data(), 
+        &DialogsManager::showDomainLoginDialog);
+
+    // ####### TODO
+
 
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter([] {
