@@ -121,6 +121,7 @@ public:
     void setCullWithParent(bool value);
 
     void setRenderWithZones(const QVector<QUuid>& renderWithZones);
+    const QVector<QUuid>& getRenderWithZones() const { return _renderWithZones; }
 
     // Access the current RenderItemKey Global Flags used by the model and applied to the render items  representing the parts of the model.
     const render::ItemKey getRenderItemKeyGlobalFlags() const;
@@ -499,6 +500,7 @@ protected:
     render::ItemKey _renderItemKeyGlobalFlags;
     bool _cauterized { false };
     bool _cullWithParent { false };
+    QVector<QUuid> _renderWithZones;
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
