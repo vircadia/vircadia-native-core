@@ -89,10 +89,12 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
 
     SharedNodePointer node;
     QString username;
+    QString domainUsername;
     if (pendingAssignment != _pendingAssignedNodes.end()) {
         node = processAssignmentConnectRequest(nodeConnection, pendingAssignment->second);
     } else if (!STATICALLY_ASSIGNED_NODES.contains(nodeConnection.nodeType)) {
         QByteArray usernameSignature;
+        QByteArray domainUsernameSignature;
 
         if (message->getBytesLeftToRead() > 0) {
             // read username from packet
@@ -101,10 +103,20 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
             if (message->getBytesLeftToRead() > 0) {
                 // read user signature from packet
                 packetStream >> usernameSignature;
+
+                if (message->getBytesLeftToRead() > 0) {
+                    // Read domain username from packet.
+                    packetStream >> domainUsername;
+
+                    if (message->getBytesLeftToRead() > 0) {
+                        // Read domain signature from packet.
+                        packetStream >> domainUsernameSignature;
+                    }
+                }
             }
         }
 
-        node = processAgentConnectRequest(nodeConnection, username, usernameSignature);
+        node = processAgentConnectRequest(nodeConnection, username, usernameSignature, domainUsername, domainUsernameSignature);
     }
 
     if (node) {
@@ -142,8 +154,11 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     }
 }
 
-NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QString verifiedUsername, const QHostAddress& senderAddress,
-                                                        const QString& hardwareAddress, const QUuid& machineFingerprint) {
+NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QString verifiedUsername,
+                                                        QString verifiedDomainUserName, 
+                                                        QStringList verifiedDomainUserGroups,
+                                                        const QHostAddress& senderAddress, const QString& hardwareAddress,
+                                                        const QUuid& machineFingerprint) {
     NodePermissions userPerms;
 
     userPerms.setAll(false);
@@ -153,6 +168,23 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
 #ifdef WANT_DEBUG
         qDebug() << "|  user-permissions: is local user, so:" << userPerms;
 #endif
+    }
+
+    // If this user is a known member of an externally-hosted group, give them the implied permissions.
+    // Do before processing verifiedUsername in case user is logged into the metaverse and is a member of a blacklist group.
+    if (!verifiedDomainUserName.isEmpty() && !verifiedDomainUserGroups.isEmpty()) {
+        foreach (QString group, verifiedDomainUserGroups) {
+            if (_server->_settingsManager.getAllKnownGroupNames().contains(group)) {
+                userPerms |= _server->_settingsManager.getPermissionsForGroup(group, QUuid());
+//#ifdef WANT_DEBUG
+                qDebug() << "|  user-permissions: domain user " << verifiedDomainUserName << "is in group:" << group << "so:" << userPerms;
+//#endif
+
+            }
+        }
+
+        userPerms.setVerifiedDomainUserName(verifiedDomainUserName);
+        userPerms.setVerifiedDomainUserGroups(verifiedDomainUserGroups);
     }
 
     if (verifiedUsername.isEmpty()) {
@@ -275,6 +307,8 @@ void DomainGatekeeper::updateNodePermissions() {
         // the id and the username in NodePermissions will often be the same, but id is set before
         // authentication and verifiedUsername is only set once they user's key has been confirmed.
         QString verifiedUsername = node->getPermissions().getVerifiedUserName();
+        QString verifiedDomainUserName = node->getPermissions().getVerifiedDomainUserName();
+        QStringList verifiedDomainUserGroups = node->getPermissions().getVerifiedDomainUserGroups();
         NodePermissions userPerms(NodePermissionsKey(verifiedUsername, 0));
 
         if (node->getPermissions().isAssignment) {
@@ -309,7 +343,9 @@ void DomainGatekeeper::updateNodePermissions() {
                                sendingAddress == QHostAddress::LocalHost);
             }
 
-            userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, connectingAddr.getAddress(), hardwareAddress, machineFingerprint);
+            userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, verifiedDomainUserName, 
+                                              verifiedDomainUserGroups, connectingAddr.getAddress(), 
+                                              hardwareAddress, machineFingerprint);
         }
 
         node->setPermissions(userPerms);
@@ -392,7 +428,9 @@ const QString MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION = "security.maximum_user_c
 
 SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnectionData& nodeConnection,
                                                                const QString& username,
-                                                               const QByteArray& usernameSignature) {
+                                                               const QByteArray& usernameSignature,
+                                                               const QString& domainUsername,
+                                                               const QByteArray& domainUsernameSignature) {
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
@@ -419,7 +457,9 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 #ifdef WANT_DEBUG
             qDebug() << "stalling login because we have no username-signature:" << username;
 #endif
-            return SharedNodePointer();
+            if (!domainHasLogin() || domainUsername.isEmpty()) {
+                return SharedNodePointer();
+            }
         } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
             // they sent us a username and the signature verifies it
             getGroupMemberships(username);
@@ -430,16 +470,57 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 #ifdef WANT_DEBUG
             qDebug() << "stalling login because signature verification failed:" << username;
 #endif
+            if (!domainHasLogin() || domainUsername.isEmpty()) {
+                return SharedNodePointer();
+            }
+        }
+    }
+
+    // The domain may have its own users and groups.
+    QString verifiedDomainUsername;
+    QStringList verifiedDomainUserGroups;
+    if (domainHasLogin() && !domainUsername.isEmpty()) {
+        if (domainUsernameSignature.isEmpty()) {
+            // User is attempting to prove their domain identity.
+
+            // ####### TODO: OAuth2 corollary of metaverse code, above.
+
+            return SharedNodePointer();
+        } else if (verifyDomainUserSignature(domainUsername, domainUsernameSignature, nodeConnection.senderSockAddr)) {
+            // User's domain identity is confirmed.
+
+            // ####### TODO: Get user's domain group memberships (WordPress roles) from domain.
+            //               This may already be provided at the same time as the "verify" call to the domain API.
+            //               If it isn't, need to initiate getting them then handle their receipt along the lines of the 
+            //               metaverse code, above.
+            verifiedDomainUserGroups = QString("test-group").toLower().split(" ");
+
+            verifiedDomainUsername = domainUsername.toLower();
+
+        } else {
+            // User's identity didn't check out.
+
+            // ####### TODO: OAuth2 corollary of metaverse code, above.
+
+#ifdef WANT_DEBUG
+            qDebug() << "stalling login because signature verification failed:" << username;
+#endif
             return SharedNodePointer();
         }
     }
 
-    userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, nodeConnection.senderSockAddr.getAddress(),
-                                      nodeConnection.hardwareAddress, nodeConnection.machineFingerprint);
+    userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, verifiedDomainUsername, verifiedDomainUserGroups,
+                                      nodeConnection.senderSockAddr.getAddress(), nodeConnection.hardwareAddress,
+                                      nodeConnection.machineFingerprint);
 
     if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
-        sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
+        if (domainHasLogin() && !domainUsername.isEmpty()) {
+            sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
+                nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedDomain);
+        } else {
+            sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
                 nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedMetaverse);
+        }
 #ifdef WANT_DEBUG
         qDebug() << "stalling login due to permissions:" << username;
 #endif
@@ -600,15 +681,15 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
                 return true;
 
             } else {
-                // we only send back a LoginError if this wasn't an "optimistic" key
+                // we only send back a LoginErrorMetaverse if this wasn't an "optimistic" key
                 // (a key that we hoped would work but is probably stale)
 
                 if (!senderSockAddr.isNull() && !isOptimisticKey) {
-                    qDebug() << "Error decrypting username signature for" << username << "- denying connection.";
+                    qDebug() << "Error decrypting metaverse username signature for" << username << "- denying connection.";
                     sendConnectionDeniedPacket("Error decrypting username signature.", senderSockAddr,
-                        DomainHandler::ConnectionRefusedReason::LoginError);
+                        DomainHandler::ConnectionRefusedReason::LoginErrorMetaverse);
                 } else if (!senderSockAddr.isNull()) {
-                    qDebug() << "Error decrypting username signature for" << username << "with optimisitic key -"
+                    qDebug() << "Error decrypting metaverse username signature for" << username << "with optimistic key -"
                         << "re-requesting public key and delaying connection";
                 }
 
@@ -622,7 +703,7 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
             if (!senderSockAddr.isNull()) {
                 qDebug() << "Couldn't convert data to RSA key for" << username << "- denying connection.";
                 sendConnectionDeniedPacket("Couldn't convert data to RSA key.", senderSockAddr,
-                    DomainHandler::ConnectionRefusedReason::LoginError);
+                    DomainHandler::ConnectionRefusedReason::LoginErrorMetaverse);
             }
         }
     } else {
@@ -632,6 +713,21 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
     }
 
     requestUserPublicKey(username); // no joy.  maybe next time?
+    return false;
+}
+
+bool DomainGatekeeper::verifyDomainUserSignature(const QString& domainUsername, 
+                                                 const QByteArray& domainUsernameSignature,
+                                                 const HifiSockAddr& senderSockAddr) {
+
+    // ####### TODO: Verify via domain OAuth2.
+    bool success = true;
+    if (success) {
+        return true;
+    }
+
+    sendConnectionDeniedPacket("Error decrypting domain username signature.", senderSockAddr,
+        DomainHandler::ConnectionRefusedReason::LoginErrorDomain);
     return false;
 }
 
@@ -1029,9 +1125,20 @@ void DomainGatekeeper::refreshGroupsCache() {
 
     updateNodePermissions();
 
-#if WANT_DEBUG
+#ifdef WANT_DEBUG
     _server->_settingsManager.debugDumpGroupsState();
 #endif
+}
+
+bool DomainGatekeeper::domainHasLogin() {
+    // The domain may have its own users and groups. This is enabled in the server settings by ...
+    // ####### TODO: Use a particular string in the server name or set a particular tag in the server's settings?
+    //                Or add a new server setting?
+
+    // ####### TODO: Also configure URL for getting user's group memberships, in the server's settings?
+
+    // ####### TODO
+    return true;
 }
 
 void DomainGatekeeper::initLocalIDManagement() {

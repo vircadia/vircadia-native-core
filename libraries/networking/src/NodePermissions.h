@@ -51,6 +51,11 @@ public:
     void setVerifiedUserName(QString userName) { _verifiedUserName = userName.toLower(); }
     const QString& getVerifiedUserName() const { return _verifiedUserName; }
 
+    void setVerifiedDomainUserName(QString userName) { _verifiedDomainUserName = userName.toLower(); }
+    const QString& getVerifiedDomainUserName() const { return _verifiedDomainUserName; }
+    void setVerifiedDomainUserGroups(QStringList userGroups) { _verifiedDomainUserGroups = userGroups; }
+    const QStringList& getVerifiedDomainUserGroups() const { return _verifiedDomainUserGroups; }
+
     void setGroupID(QUuid groupID) { _groupID = groupID; if (!groupID.isNull()) { _groupIDSet = true; }}
     QUuid getGroupID() const { return _groupID; }
     bool isGroup() const { return _groupIDSet; }
@@ -99,6 +104,8 @@ protected:
     QString _id;
     QUuid _rankID { QUuid() }; // 0 unless this is for a group
     QString _verifiedUserName;
+    QString _verifiedDomainUserName;
+    QStringList _verifiedDomainUserGroups;
 
     bool _groupIDSet { false };
     QUuid _groupID;

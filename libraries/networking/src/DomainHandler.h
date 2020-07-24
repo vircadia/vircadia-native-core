@@ -172,14 +172,14 @@ public:
      *       <td>The communications protocols of the domain and your Interface are not the same.</td>
      *     </tr>
      *     <tr>
-     *       <td><strong>LoginError</strong></td>
+     *       <td><strong>LoginErrorMetaverse</strong></td>
      *       <td><code>2</code></td>
-     *       <td>You could not be logged into the domain.</td>
+     *       <td>You could not be logged into the domain per your metaverse login.</td>
      *     </tr>
      *     <tr>
-     *       <td><strong>NotAuthorized</strong></td>
+     *       <td><strong>NotAuthorizedMetaverse</strong></td>
      *       <td><code>3</code></td>
-     *       <td>You are not authorized to connect to the domain.</td>
+     *       <td>You are not authorized to connect to the domain per your metaverse login.</td>
      *     </tr>
      *     <tr>
      *       <td><strong>TooManyUsers</strong></td>
@@ -191,6 +191,16 @@ public:
      *       <td><code>5</code></td>
      *       <td>Connecting to the domain timed out.</td>
      *     </tr>
+     *     <tr>
+     *       <td><strong>LoginErrorDomain</strong></td>
+     *       <td><code>2</code></td>
+     *       <td>You could not be logged into the domain per your domain login.</td>
+     *     </tr>
+     *     <tr>
+     *       <td><strong>NotAuthorizedDomain</strong></td>
+     *       <td><code>6</code></td>
+     *       <td>You are not authorized to connect to the domain per your domain login.</td>
+     *     </tr>
      *   </tbody>
      * </table>
      * @typedef {number} Window.ConnectionRefusedReason
@@ -198,11 +208,12 @@ public:
     enum class ConnectionRefusedReason : uint8_t {
         Unknown,
         ProtocolMismatch,
-        LoginError,
+        LoginErrorMetaverse,
         NotAuthorizedMetaverse,
-        NotAuthorizedDomain,
         TooManyUsers,
-        TimedOut
+        TimedOut,
+        LoginErrorDomain,
+        NotAuthorizedDomain
     };
 
 public slots:

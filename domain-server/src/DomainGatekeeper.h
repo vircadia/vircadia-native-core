@@ -76,11 +76,17 @@ private:
                                                       const PendingAssignedNodeData& pendingAssignment);
     SharedNodePointer processAgentConnectRequest(const NodeConnectionData& nodeConnection,
                                                  const QString& username,
-                                                 const QByteArray& usernameSignature);
+                                                 const QByteArray& usernameSignature,
+                                                 const QString& domainUsername,
+                                                 const QByteArray& domainUsernameSignature);
     SharedNodePointer addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection);
     
     bool verifyUserSignature(const QString& username, const QByteArray& usernameSignature,
                              const HifiSockAddr& senderSockAddr);
+    
+    bool verifyDomainUserSignature(const QString& domainUsername, const QByteArray& domainUsernameSignature,
+                                   const HifiSockAddr& senderSockAddr);
+
     bool isWithinMaxCapacity();
     
     bool shouldAllowConnectionFromNode(const QString& username, const QByteArray& usernameSignature,
@@ -120,12 +126,15 @@ private:
     QSet<QString> _domainOwnerFriends; // keep track of friends of the domain owner
     QSet<QString> _inFlightGroupMembershipsRequests; // keep track of which we've already asked for
 
-    NodePermissions setPermissionsForUser(bool isLocalUser, QString verifiedUsername, const QHostAddress& senderAddress, 
+    NodePermissions setPermissionsForUser(bool isLocalUser, QString verifiedUsername, QString verifiedDomainUsername,
+                                          QStringList verifiedDomainUserGroups, const QHostAddress& senderAddress,
                                           const QString& hardwareAddress, const QUuid& machineFingerprint);
 
     void getGroupMemberships(const QString& username);
     // void getIsGroupMember(const QString& username, const QUuid groupID);
     void getDomainOwnerFriendsList();
+
+    bool domainHasLogin();
 
     // Local ID management.
     void initLocalIDManagement();

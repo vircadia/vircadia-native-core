@@ -492,7 +492,7 @@ void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> mes
 
 bool DomainHandler::reasonSuggestsMetaverseLogin(ConnectionRefusedReason reasonCode) {
     switch (reasonCode) {
-        case ConnectionRefusedReason::LoginError:
+        case ConnectionRefusedReason::LoginErrorMetaverse:
         case ConnectionRefusedReason::NotAuthorizedMetaverse:
             return true;
 
@@ -507,7 +507,7 @@ bool DomainHandler::reasonSuggestsMetaverseLogin(ConnectionRefusedReason reasonC
 
 bool DomainHandler::reasonSuggestsDomainLogin(ConnectionRefusedReason reasonCode) {
     switch (reasonCode) {
-        case ConnectionRefusedReason::LoginError:
+        case ConnectionRefusedReason::LoginErrorDomain:
         case ConnectionRefusedReason::NotAuthorizedDomain:
             return true;
 
