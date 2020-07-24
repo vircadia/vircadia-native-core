@@ -31,6 +31,7 @@ Item {
     property bool linkSteam: linkSteam
     property bool linkOculus: linkOculus
     property bool createOculus: createOculus
+    property bool isLoggingInToDomain: isLoggingInToDomain
     property string displayName: ""
 
     readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
@@ -106,6 +107,9 @@ Item {
             loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Oculus";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
+        } else if (loggingInBody.isLoggingInToDomain) {
+            loggingInText.text = "Logging in to Domain";
+            loggingInText.anchors.centerIn = loggingInHeader;
         } else {
             loggingInText.text = "Logging in";
             loggingInText.anchors.centerIn = loggingInHeader;
