@@ -379,6 +379,7 @@ void NodeList::sendDomainServerCheckIn() {
         if (domainPacketType == PacketType::DomainConnectRequest) {
 
 #if (PR_BUILD || DEV_BUILD)
+            // #######
             if (_shouldSendNewerVersion) {
                 domainPacket->setVersion(versionForPacketType(domainPacketType) + 1);
             }
