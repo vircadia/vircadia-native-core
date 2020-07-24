@@ -79,6 +79,7 @@ layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
     layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
     layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
     layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+    layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
     <@if HIFI_USE_NORMALMAP@>
         layout(location=RENDER_UTILS_ATTR_TANGENT_WS) in vec3 _tangentWS;
     <@endif@>
@@ -255,6 +256,7 @@ void main(void) {
         <@if not HIFI_USE_TRANSLUCENT@>
             <@if not HIFI_USE_LIGHTMAP@>
                 packDeferredFragment(
+                    _prevPositionCS,
                     fragNormalWS,
                     opacity,
                     albedo,
@@ -269,6 +271,7 @@ void main(void) {
                     scattering);
             <@else@>
                 packDeferredFragmentLightmap(
+                    _prevPositionCS,
                     fragNormalWS,
                     evalOpaqueFinalAlpha(getMaterialOpacity(mat), opacity),
                     albedo,

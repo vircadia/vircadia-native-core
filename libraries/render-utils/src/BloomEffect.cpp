@@ -68,7 +68,6 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
     if (!_pipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::bloomThreshold);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        PrepareStencil::testNoBloom(*state);
         _pipeline = gpu::Pipeline::create(program, state);
     }
 

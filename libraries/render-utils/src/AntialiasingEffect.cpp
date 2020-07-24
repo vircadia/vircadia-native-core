@@ -102,9 +102,8 @@ AntialiasingSetup::AntialiasingSetup() {
     _sampleSequence.reserve(TAA_JITTER_SEQUENCE_LENGTH + 1);
     // Fill in with jitter samples
     for (int i = 0; i < TAA_JITTER_SEQUENCE_LENGTH; i++) {
-        _sampleSequence.emplace_back(glm::vec2(evaluateHalton<2>(i), evaluateHalton<3>(i)) - vec2(0.5f));
+        _sampleSequence.emplace_back(glm::vec2(halton::evaluate<2>(i), halton::evaluate<3>(i)) - vec2(0.5f));
     }
-    return _blendPipeline;
 }
 
 void AntialiasingSetup::configure(const Config& config) {

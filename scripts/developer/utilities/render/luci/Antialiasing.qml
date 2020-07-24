@@ -49,7 +49,7 @@ Column{
     Prop.PropEnum {
         id: jitter
         label: "Jitter"
-        object: Render.getConfig("RenderMainView.JitterCam")
+        object: Render.getConfig("RenderMainView.AntialiasingSetup")
         property: "state"
         enums: [
             "Off",
@@ -60,9 +60,9 @@ Column{
     Separator {}          
 
     Prop.PropScalar {
-        visible: (Render.getConfig("RenderMainView.JitterCam").state == 2)
+        visible: (Render.getConfig("RenderMainView.AntialiasingSetup").state == 2)
         label: "Sample Index"
-        object: Render.getConfig("RenderMainView.JitterCam")
+        object: Render.getConfig("RenderMainView.AntialiasingSetup")
         property: "index"
       //  min: -1
       //  max: 32
@@ -70,17 +70,26 @@ Column{
         integral: true
     }
     Row {
-        visible: (Render.getConfig("RenderMainView.JitterCam").state == 2)
+        visible: (Render.getConfig("RenderMainView.AntialiasingSetup").state == 2)
         spacing: 10
 
         HifiControls.Button {
             text: "<"
-            onClicked: { Render.getConfig("RenderMainView.JitterCam").prev(); }
+            onClicked: { Render.getConfig("RenderMainView.AntialiasingSetup").prev(); }
         } 
         HifiControls.Button {
             text: ">"
-            onClicked: { Render.getConfig("RenderMainView.JitterCam").next(); }
+            onClicked: { Render.getConfig("RenderMainView.AntialiasingSetup").next(); }
         }
+    }
+    ConfigSlider {
+        label: qsTr("Jitter scale")
+        integral: false
+        config: Render.getConfig("RenderMainView.AntialiasingSetup")
+        property: "scale"
+        max: 2.0
+        min: 0.25
+        height: 38
     }
     Separator {}
     Prop.PropBool {
@@ -96,11 +105,19 @@ Column{
         min: 0.5
     }                       
     Separator {}
-    Prop.PropBool {
-        label: "Feedback history color"
-        object: Render.getConfig("RenderMainView.Antialiasing")
-        property: "feedbackColor"
-    }           
+    Row {
+        spacing: 10
+        Prop.PropBool {
+            label: "Feedback history color"
+            object: Render.getConfig("RenderMainView.Antialiasing")
+            property: "feedbackColor"
+        }
+        Prop.PropBool {
+            label: "History bicubic fetch"
+            object: Render.getConfig("RenderMainView.Antialiasing")
+            property: "bicubicHistoryFetch"
+        }
+    }
     Prop.PropScalar {
         label: "Source blend"
         object: Render.getConfig("RenderMainView.Antialiasing")

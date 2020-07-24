@@ -34,6 +34,8 @@
 
 <@if HIFI_USE_TRANSLUCENT or HIFI_USE_FORWARD@>
     layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
+<@else@>
+    layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
 <@endif@>
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
@@ -56,6 +58,7 @@ void main() {
         _fragColor0 = vec4(color.rgb * isUnlitEnabled(), color.a);
     <@else@>
         packDeferredFragmentUnlit(
+            _prevPositionCS,
             normalize(_normalWS),
             color.a,
             color.rgb);
@@ -93,6 +96,7 @@ void main() {
         <@endif@>
     <@else@>
         packDeferredFragment(
+            _prevPositionCS,
             normalize(_normalWS),
             color.a,
             color.rgb,
