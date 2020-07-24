@@ -135,6 +135,12 @@ void LoginDialog::login(const QString& username, const QString& password) const 
     DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
 }
 
+void LoginDialog::loginDomain(const QString& username, const QString& password, const QUrl domainAuthProvider) const {
+    qDebug() << "Attempting to login " << username << "into a domain through" << domainAuthProvider;
+    // TODO:
+    // DependencyManager::get<DomainAccountManager>()->requestAccessToken(username, password, domainAuthProvider);
+}
+
 void LoginDialog::loginThroughOculus() {
    qDebug() << "Attempting to login through Oculus";
     if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
