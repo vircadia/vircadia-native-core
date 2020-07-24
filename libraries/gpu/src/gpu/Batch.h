@@ -537,7 +537,7 @@ public:
 
     NamedBatchDataMap _namedData;
 
-    bool _isJitterOnProjectionEnabled{ false };
+    bool _isJitterOnProjectionEnabled { false };
 
     uint16_t _drawcallUniform{ 0 };
     uint16_t _drawcallUniformReset{ 0 };

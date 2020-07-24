@@ -71,7 +71,7 @@ void DrawLayered3D::run(const RenderContextPointer& renderContext, const Inputs&
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
     const auto& inItems = inputs.get0();
-    const auto& frameTransform = inputs.get1()
+    const auto& frameTransform = inputs.get1();
     const auto& lightingModel = inputs.get2();
     const auto& hazeFrame = inputs.get3();
     

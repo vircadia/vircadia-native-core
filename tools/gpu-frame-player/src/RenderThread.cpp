@@ -122,8 +122,7 @@ void RenderThread::renderFrame(gpu::FramePointer& frame) {
     if (_correction != glm::mat4()) {
        std::unique_lock<std::mutex> lock(_frameLock);
        if (_correction != glm::mat4()) {
-           _backend->setCameraCorrection(_correction, _activeFrame->view);
-           //_prevRenderView = _correction * _activeFrame->view;
+           _backend->updatePresentFrame(_correction, true);
        }
     }
     _backend->recycle();

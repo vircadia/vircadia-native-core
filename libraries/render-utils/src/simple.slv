@@ -25,10 +25,11 @@
 <@endif@>
 
 <@if HIFI_USE_FORWARD or HIFI_USE_TRANSLUCENT@>
-    layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) out vec4 _prevPositionCS;
     <@if not HIFI_USE_UNLIT@>
         layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
     <@endif@>
+<@else@>
+    layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) out vec4 _prevPositionCS;
 <@endif@>
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
 layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;

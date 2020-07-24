@@ -260,7 +260,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         _intensityFramebuffer->setStencilBuffer(deferredFrameBuffer->getDeferredFramebuffer()->getDepthStencilBuffer(), deferredFrameBuffer->getDeferredFramebuffer()->getDepthStencilBufferFormat());
     }
 
-    outputs = _intensityTexture;
+    output = _intensityTexture;
 
     gpu::doInBatch("Antialiasing::run", args->_context, [&](gpu::Batch& batch) {
         PROFILE_RANGE_BATCH(batch, "TAA");

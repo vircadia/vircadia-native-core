@@ -411,7 +411,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
     auto& surfaceGeometryFramebuffer = inputs.get2();
     auto& ambientOcclusionFramebuffer = inputs.get3();
     auto& frameTransform = inputs.get4();
-    auto& lightFrame = inputs.get5();
+    auto& shadowFrame = inputs.get5();
     const auto& antialiasingIntensityTexture = inputs.get6();
 
     gpu::doInBatch("DebugDeferredBuffer::run", args->_context, [&](gpu::Batch& batch) {

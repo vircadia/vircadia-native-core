@@ -186,7 +186,7 @@ private:
     gpu::PipelinePointer _depthPipeline;
     int _geometryDepthId { 0 };
     bool _isDisplayEnabled { false };
-    uint transformSlot;
+    uint _transformSlot;
 
     const gpu::PipelinePointer& getDepthPipeline();
     void initializePipelines();

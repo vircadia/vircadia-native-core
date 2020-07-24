@@ -220,8 +220,8 @@ json Serializer::writeBatch(const Batch& batch) {
     if (batch._enableStereo != DEFAULT_BATCH._enableStereo) {
         batchNode[keys::stereo] = batch._enableStereo;
     }
-    if (batch._projectionJitter != DEFAULT_BATCH._projectionJitter) {
-        batchNode[keys::projectionJitter] = writeVec2(batch._projectionJitter);
+    if (batch._isJitterOnProjectionEnabled != DEFAULT_BATCH._isJitterOnProjectionEnabled) {
+        batchNode[keys::isJitterOnProjectionEnabled] = batch._isJitterOnProjectionEnabled;
     }
     if (batch._drawcallUniform != DEFAULT_BATCH._drawcallUniform) {
         batchNode[keys::drawcallUniform] = batch._drawcallUniform;

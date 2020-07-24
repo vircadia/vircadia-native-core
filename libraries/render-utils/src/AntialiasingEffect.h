@@ -202,8 +202,6 @@ private:
     gpu::FramebufferPointer _intensityFramebuffer;
     gpu::TexturePointer _intensityTexture;
     gpu::BufferPointer _blendParamsBuffer;
-    gpu::PipelinePointer _antialiasingPipeline;
-    gpu::PipelinePointer _blendPipeline;
 
     static gpu::PipelinePointer _antialiasingPipeline;
     static gpu::PipelinePointer _intensityPipeline;
