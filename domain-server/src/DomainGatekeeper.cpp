@@ -89,10 +89,12 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
 
     SharedNodePointer node;
     QString username;
+    QString domainUsername;
     if (pendingAssignment != _pendingAssignedNodes.end()) {
         node = processAssignmentConnectRequest(nodeConnection, pendingAssignment->second);
     } else if (!STATICALLY_ASSIGNED_NODES.contains(nodeConnection.nodeType)) {
         QByteArray usernameSignature;
+        QByteArray domainUsernameSignature;
 
         if (message->getBytesLeftToRead() > 0) {
             // read username from packet
@@ -101,10 +103,20 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
             if (message->getBytesLeftToRead() > 0) {
                 // read user signature from packet
                 packetStream >> usernameSignature;
+
+                if (message->getBytesLeftToRead() > 0) {
+                    // Read domain username from packet.
+                    packetStream >> domainUsername;
+
+                    if (message->getBytesLeftToRead() > 0) {
+                        // Read domain signature from packet.
+                        packetStream >> domainUsernameSignature;
+                    }
+                }
             }
         }
 
-        node = processAgentConnectRequest(nodeConnection, username, usernameSignature);
+        node = processAgentConnectRequest(nodeConnection, username, usernameSignature, domainUsername, domainUsernameSignature);
     }
 
     if (node) {
@@ -416,7 +428,9 @@ const QString MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION = "security.maximum_user_c
 
 SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnectionData& nodeConnection,
                                                                const QString& username,
-                                                               const QByteArray& usernameSignature) {
+                                                               const QByteArray& usernameSignature,
+                                                               const QString& domainUsername,
+                                                               const QByteArray& domainUsernameSignature) {
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
@@ -443,7 +457,9 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 #ifdef WANT_DEBUG
             qDebug() << "stalling login because we have no username-signature:" << username;
 #endif
-            return SharedNodePointer();
+            if (!domainHasLogin() || domainUsername.isEmpty()) {
+                return SharedNodePointer();
+            }
         } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
             // they sent us a username and the signature verifies it
             getGroupMemberships(username);
@@ -454,30 +470,57 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 #ifdef WANT_DEBUG
             qDebug() << "stalling login because signature verification failed:" << username;
 #endif
+            if (!domainHasLogin() || domainUsername.isEmpty()) {
+                return SharedNodePointer();
+            }
+        }
+    }
+
+    // The domain may have its own users and groups.
+    QString verifiedDomainUsername;
+    QStringList verifiedDomainUserGroups;
+    if (domainHasLogin() && !domainUsername.isEmpty()) {
+        if (domainUsernameSignature.isEmpty()) {
+            // User is attempting to prove their domain identity.
+
+            // ####### TODO: OAuth2 corollary of metaverse code, above.
+
+            return SharedNodePointer();
+        } else if (verifyDomainUserSignature(domainUsername, domainUsernameSignature, nodeConnection.senderSockAddr)) {
+            // User's domain identity is confirmed.
+
+            // ####### TODO: Get user's domain group memberships (WordPress roles) from domain.
+            //               This may already be provided at the same time as the "verify" call to the domain API.
+            //               If it isn't, need to initiate getting them then handle their receipt along the lines of the 
+            //               metaverse code, above.
+            verifiedDomainUserGroups = QString("test-group").toLower().split(" ");
+
+            verifiedDomainUsername = domainUsername.toLower();
+
+        } else {
+            // User's identity didn't check out.
+
+            // ####### TODO: OAuth2 corollary of metaverse code, above.
+
+#ifdef WANT_DEBUG
+            qDebug() << "stalling login because signature verification failed:" << username;
+#endif
             return SharedNodePointer();
         }
     }
 
-    // Auxiliary user name and groups may be provided by an external authentication service.
-    // This is enabled in the server settings by ... #######: TODO: What server name or tag to set in the server's settings?
-    QString verifiedAuxiliaryUsername;
-    QStringList verifiedAuxiliaryUserGroups;
-
-    // #######: TODO: Obtain auxiliary login's user name and auxiliary groups if server tags indicate that this is required.
-    //                May already have auxiliary login's user name, in which case groups should probably be re-obtained to 
-    //                ensure that they're up to date.
-
-    // #######: TODO: Delete this development code.
-    verifiedAuxiliaryUsername = "a@b.c";
-    verifiedAuxiliaryUserGroups = QString("test-group").toLower().split(" ");
-
-    userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, verifiedAuxiliaryUsername, verifiedAuxiliaryUserGroups,
+    userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, verifiedDomainUsername, verifiedDomainUserGroups,
                                       nodeConnection.senderSockAddr.getAddress(), nodeConnection.hardwareAddress,
                                       nodeConnection.machineFingerprint);
 
     if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
-        sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
+        if (domainHasLogin() && !domainUsername.isEmpty()) {
+            sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
+                nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedDomain);
+        } else {
+            sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
                 nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedMetaverse);
+        }
 #ifdef WANT_DEBUG
         qDebug() << "stalling login due to permissions:" << username;
 #endif
@@ -670,6 +713,21 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
     }
 
     requestUserPublicKey(username); // no joy.  maybe next time?
+    return false;
+}
+
+bool DomainGatekeeper::verifyDomainUserSignature(const QString& domainUsername, 
+                                                 const QByteArray& domainUsernameSignature,
+                                                 const HifiSockAddr& senderSockAddr) {
+
+    // ####### TODO: Verify via domain OAuth2.
+    bool success = true;
+    if (success) {
+        return true;
+    }
+
+    sendConnectionDeniedPacket("Error decrypting domain username signature.", senderSockAddr,
+        DomainHandler::ConnectionRefusedReason::LoginErrorDomain);
     return false;
 }
 
@@ -1070,6 +1128,17 @@ void DomainGatekeeper::refreshGroupsCache() {
 #ifdef WANT_DEBUG
     _server->_settingsManager.debugDumpGroupsState();
 #endif
+}
+
+bool DomainGatekeeper::domainHasLogin() {
+    // The domain may have its own users and groups. This is enabled in the server settings by ...
+    // ####### TODO: Use a particular string in the server name or set a particular tag in the server's settings?
+    //                Or add a new server setting?
+
+    // ####### TODO: Also configure URL for getting user's group memberships, in the server's settings?
+
+    // ####### TODO
+    return true;
 }
 
 void DomainGatekeeper::initLocalIDManagement() {

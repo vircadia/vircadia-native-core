@@ -474,6 +474,22 @@ void NodeList::sendDomainServerCheckIn() {
             if (requiresUsernameSignature && accountManager->getAccountInfo().hasPrivateKey()) {
                 const QByteArray& usernameSignature = accountManager->getAccountInfo().getUsernameSignature(connectionToken);
                 packetStream << usernameSignature;
+            } else {
+                packetStream << QString("");  // Placeholder in case have domainUsername.
+            }
+        } else {
+            packetStream << QString("");  // Placeholder in case have domainUsername.
+        }
+
+        // ####### TODO: Send domain username and signature if domain has these and aren't logged in.
+        // #######       If get into difficulties, could perhaps send domain's username and signature instead of metaverse.
+        bool domainLoginIsConnected = false;
+        if (!domainLoginIsConnected) {
+            if (true) {
+                packetStream << QString("a@b.c");
+                if (true) {
+                    packetStream << QString("signature");
+                }
             }
         }
 
