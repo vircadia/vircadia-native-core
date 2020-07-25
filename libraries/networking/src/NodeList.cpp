@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/15/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
