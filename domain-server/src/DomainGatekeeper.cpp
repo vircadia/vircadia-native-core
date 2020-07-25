@@ -514,7 +514,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
                                       nodeConnection.machineFingerprint);
 
     if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
-        if (domainHasLogin() && !domainUsername.isEmpty()) {
+        if (domainHasLogin()) {
             sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
                 nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedDomain);
         } else {

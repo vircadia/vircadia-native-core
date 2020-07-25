@@ -221,6 +221,8 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
         QString previousHost = _domainURL.host();
         _domainURL = domainURL;
 
+        _hasCheckedForDomainAccessToken = false;
+
         if (previousHost != domainURL.host()) {
             qCDebug(networking) << "Updated domain hostname to" << domainURL.host();
 

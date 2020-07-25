@@ -486,10 +486,10 @@ void NodeList::sendDomainServerCheckIn() {
         // #######       If get into difficulties, could perhaps send domain's username and signature instead of metaverse.
         bool domainLoginIsConnected = false;
         if (!domainLoginIsConnected) {
-            if (true) {
+            if (false) {  // ####### For testing, false causes user to be considered "not logged in".
                 packetStream << QString("a@b.c");
-                if (true) {
-                    packetStream << QString("signature");
+                if (true) {  // ####### For testing, false is unhandled at this stage.
+                    packetStream << QString("signature");  // #######: Consider "logged in" if this is sent during testing.
                 }
             }
         }
