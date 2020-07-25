@@ -71,6 +71,7 @@ protected slots:
     Q_INVOKABLE QString oculusUserID() const;
 
     Q_INVOKABLE void login(const QString& username, const QString& password) const;
+    Q_INVOKABLE void loginDomain(const QString& username, const QString& password, const QUrl domainAuthProvider) const;
     Q_INVOKABLE void loginThroughSteam();
     Q_INVOKABLE void linkSteam();
     Q_INVOKABLE void createAccountFromSteam(QString username = QString());

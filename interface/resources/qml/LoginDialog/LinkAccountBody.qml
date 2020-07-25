@@ -45,6 +45,11 @@ Item {
     property bool lostFocus: false
 
     readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
+    // TODO:
+    // readonly property bool isLoggingInToDomain: loginDialog.getDomainLoginRequested()
+    // readonly property bool domainAuthProvider: loginDialog.getDomainLoginAuthProvider()
+    readonly property bool isLoggingInToDomain: true
+    readonly property string domainAuthProvider: "https://example.com/oauth2"
 
     QtObject {
         id: d
@@ -71,7 +76,12 @@ Item {
     }
 
     function login() {
-        loginDialog.login(emailField.text, passwordField.text);
+        if (!isLoggingInToDomain) {
+            loginDialog.login(emailField.text, passwordField.text);
+        } else {
+            loginDialog.loginDomain(emailField.text, passwordField.text, domainAuthProvider);
+        }
+        
         if (linkAccountBody.loginDialogPoppedUp) {
             var data;
             if (linkAccountBody.linkSteam) {
@@ -87,7 +97,7 @@ Item {
         }
         bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam,
             "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam, "linkOculus": linkAccountBody.linkOculus,
-            "displayName":displayNameField.text });
+            "displayName":displayNameField.text, "isLoggingInToDomain": linkAccountBody.isLoggingInToDomain });
     }
 
     function init() {
@@ -99,6 +109,7 @@ Item {
             errorContainer.height = (loginErrorMessageTextMetrics.width / displayNameField.width) * loginErrorMessageTextMetrics.height;
         }
         loginButton.text = (!linkAccountBody.linkSteam && !linkAccountBody.linkOculus) ? "Log In" : "Link Account";
+        loginButton.text = (!isLoggingInToDomain) ? "Log In" : "Log In to Domain";
         loginButton.color = hifi.buttons.blue;
         displayNameField.placeholderText = "Display Name (optional)";
         var savedDisplayName = Settings.getValue("Avatar/displayName", "");
@@ -393,7 +404,7 @@ Item {
             HifiStylesUit.ShortcutText {
                 id: cantAccessText
                 z: 10
-                visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus
+                visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus && !linkAccountBody.isLoggingInToDomain
                 anchors {
                     top: loginButton.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
@@ -492,7 +503,7 @@ Item {
             id: signUpContainer
             width: loginContainer.width
             height: signUpTextMetrics.height
-            visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus
+            visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus && !linkAccountBody.isLoggingInToDomain
             anchors {
                 left: loginContainer.left
                 top: loginContainer.bottom
