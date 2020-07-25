@@ -117,8 +117,6 @@ void DialogsManager::toggleLoginDialog() {
 
 void DialogsManager::showLoginDialog() {
 
-    qDebug() << "#######: showLoginDialog()";
-
     // ####### TODO: May be called from script via DialogsManagerScriptingInterface. Need to handle the case that it's already
     //               displayed and may be the domain login version.
 
@@ -132,9 +130,6 @@ void DialogsManager::hideLoginDialog() {
 
 
 void DialogsManager::showDomainLoginDialog() {
-
-    qDebug() << "#######: showDomainLoginDialog()";
-
     _isDomainLogin = true;
     LoginDialog::showWithSelection();
 }

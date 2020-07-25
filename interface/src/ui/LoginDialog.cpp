@@ -133,14 +133,12 @@ void LoginDialog::dismissLoginDialog() {
 }
 
 void LoginDialog::login(const QString& username, const QString& password) const {
-    qDebug() << "Attempting to login " << username;
+    qDebug() << "Attempting to login" << username;
     DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
 }
 
 void LoginDialog::loginDomain(const QString& username, const QString& password, const QString& domainAuthProvider) const {
-    qDebug() << "####### LoginDialog::loginDomain()";
-
-    qDebug() << "Attempting to login " << username << "into a domain through" << domainAuthProvider;
+    qDebug() << "Attempting to login" << username << "into a domain through" << domainAuthProvider;
     // ####### TODO
     // DependencyManager::get<DomainAccountManager>()->requestAccessToken(username, password, domainAuthProvider);
 

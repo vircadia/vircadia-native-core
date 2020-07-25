@@ -11,6 +11,8 @@
 
 #include "DomainAccountManager.h"
 
+#include <QTimer>
+
 
 DomainAccountManager::DomainAccountManager() {
 
@@ -28,7 +30,9 @@ bool DomainAccountManager::checkAndSignalForAccessToken() {
 
     if (!hasToken) {
         // Emit a signal so somebody can call back to us and request an access token given a user name and password.
-        emit authRequired();
+
+        // Dialog can be hidden immediately after showing if we've just teleported to the domain, unless the signal is delayed.
+        QTimer::singleShot(500, this, [this] { emit this->authRequired(); });
     }
 
     return hasToken;
