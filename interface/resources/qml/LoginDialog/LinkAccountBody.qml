@@ -112,8 +112,13 @@ Item {
         var savedDisplayName = Settings.getValue("Avatar/displayName", "");
         displayNameField.text = savedDisplayName;
         emailField.placeholderText = "Username or Email";
-        var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
-        emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
+        if (!isLoggingInToDomain) {
+            var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
+            emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
+        } else {
+            // ####### TODO
+        }
+
         if (linkAccountBody.linkSteam || linkAccountBody.linkOculus) {
             loginButton.width = (passwordField.width - hifi.dimensions.contentSpacing.x) / 2;
             loginButton.anchors.right = displayNameField.right;
@@ -201,7 +206,11 @@ Item {
                         case Qt.Key_Return:
                             event.accepted = true;
                             if (keepMeLoggedInCheckbox.checked) {
-                                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                if (!isLoggingInToDomain) {
+                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                } else {
+                                    // ####### TODO
+                                }
                             }
                             linkAccountBody.login();
                             break;
@@ -240,7 +249,11 @@ Item {
                         case Qt.Key_Return:
                             event.accepted = true;
                             if (keepMeLoggedInCheckbox.checked) {
-                                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                if (!isLoggingInToDomain) {
+                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                } else {
+                                    // ####### TODO
+                                }
                             }
                             linkAccountBody.login();
                             break;
@@ -320,7 +333,11 @@ Item {
                         case Qt.Key_Return:
                             event.accepted = true;
                             if (keepMeLoggedInCheckbox.checked) {
-                                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                if (!isLoggingInToDomain) {
+                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                } else {
+                                    // ####### TODO
+                                }
                             }
                             linkAccountBody.login();
                             break;
@@ -329,7 +346,7 @@ Item {
             }
             HifiControlsUit.CheckBox {
                 id: keepMeLoggedInCheckbox
-                checked: Settings.getValue("keepMeLoggedIn", false);
+                checked: !isLoggingInToDomain ? Settings.getValue("keepMeLoggedIn", false) : false;  // ####### TODO
                 text: qsTr("Keep Me Logged In");
                 boxSize: 18;
                 labelFontFamily: linkAccountBody.fontFamily
@@ -342,14 +359,22 @@ Item {
                 }
                 onCheckedChanged: {
                     Settings.setValue("keepMeLoggedIn", checked);
-                    if (keepMeLoggedInCheckbox.checked) {
-                        Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                    if (!isLoggingInToDomain) {
+                        if (keepMeLoggedInCheckbox.checked) {
+                            Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                        } else {
+                            Settings.setValue("keepMeLoggedIn/savedUsername", "");
+                        }
                     } else {
-                        Settings.setValue("keepMeLoggedIn/savedUsername", "");
+                        // ####### TODO
                     }
                 }
                 Component.onCompleted: {
-                    keepMeLoggedInCheckbox.checked = !Account.loggedIn;
+                    if (!isLoggingInToDomain) {
+                        keepMeLoggedInCheckbox.checked = !Account.loggedIn;
+                    } else {
+                        // ####### TODO
+                    }
                 }
             }
             HifiControlsUit.Button {
