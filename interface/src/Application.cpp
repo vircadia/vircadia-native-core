@@ -1356,7 +1356,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(domainAccountManager.data(), &DomainAccountManager::authRequired, dialogsManager.data(), 
         &DialogsManager::showDomainLoginDialog);
 
-    // ####### TODO
+    // ####### TODO: Connect any other signals from domainAccountManager.
 
 
     // use our MyAvatar position and quat for address manager path

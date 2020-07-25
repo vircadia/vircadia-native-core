@@ -41,6 +41,7 @@ public:
     QPointer<TestingDialog> getTestingDialog() const { return _testingDialog; }
     void emitAddressBarShown(bool visible) { emit addressBarShown(visible); }
     void setAddressBarVisible(bool addressBarVisible);
+    bool getIsDomainLogin() { return _isDomainLogin; }
 
 public slots:
     void showAddressBar();
@@ -84,6 +85,8 @@ private:
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
     bool _dialogCreatedWhileShown { false };
     bool _addressBarVisible { false };
+
+    bool _isDomainLogin { false };
 };
 
 #endif // hifi_DialogsManager_h

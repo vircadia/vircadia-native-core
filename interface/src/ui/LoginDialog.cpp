@@ -4,6 +4,7 @@
 //
 //  Created by Bradley Austin Davis on 2015/04/14
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -25,6 +26,7 @@
 
 #include "AccountManager.h"
 #include "DependencyManager.h"
+#include "DialogsManager.h"
 #include "Menu.h"
 
 #include "Application.h"
@@ -135,10 +137,15 @@ void LoginDialog::login(const QString& username, const QString& password) const 
     DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
 }
 
-void LoginDialog::loginDomain(const QString& username, const QString& password, const QUrl domainAuthProvider) const {
+void LoginDialog::loginDomain(const QString& username, const QString& password, const QString& domainAuthProvider) const {
+    qDebug() << "####### LoginDialog::loginDomain()";
+
     qDebug() << "Attempting to login " << username << "into a domain through" << domainAuthProvider;
-    // TODO:
+    // ####### TODO
     // DependencyManager::get<DomainAccountManager>()->requestAccessToken(username, password, domainAuthProvider);
+
+    // ####### TODO: It may not be necessary to pass domainAuthProvider to the login dialog and through to here because it was 
+    //               originally provided to the QML from C++.
 }
 
 void LoginDialog::loginThroughOculus() {
@@ -415,4 +422,14 @@ void LoginDialog::signupFailed(QNetworkReply* reply) {
         static const QString DEFAULT_SIGN_UP_FAILURE_MESSAGE = "There was an unknown error while creating your account. Please try again later.";
         emit handleSignupFailed(DEFAULT_SIGN_UP_FAILURE_MESSAGE);
     }
+}
+
+bool LoginDialog::getDomainLoginRequested() const {
+    return DependencyManager::get<DialogsManager>()->getIsDomainLogin();
+}
+
+// ####### TODO: This method may not be necessary.
+QString LoginDialog::getDomainLoginAuthProvider() const {
+    // ####### TODO
+    return QString("https://example.com/oauth2");
 }

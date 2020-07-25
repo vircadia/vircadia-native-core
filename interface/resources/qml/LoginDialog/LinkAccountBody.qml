@@ -45,11 +45,8 @@ Item {
     property bool lostFocus: false
 
     readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
-    // TODO:
-    // readonly property bool isLoggingInToDomain: loginDialog.getDomainLoginRequested()
-    // readonly property bool domainAuthProvider: loginDialog.getDomainLoginAuthProvider()
-    readonly property bool isLoggingInToDomain: true
-    readonly property string domainAuthProvider: "https://example.com/oauth2"
+    readonly property bool isLoggingInToDomain: loginDialog.getDomainLoginRequested()
+    readonly property string domainAuthProvider: loginDialog.getDomainLoginAuthProvider()
 
     QtObject {
         id: d

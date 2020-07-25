@@ -111,10 +111,18 @@ void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
 }
 
 void DialogsManager::toggleLoginDialog() {
+    _isDomainLogin = false;
     LoginDialog::toggleAction();
 }
 
 void DialogsManager::showLoginDialog() {
+
+    qDebug() << "#######: showLoginDialog()";
+
+    // ####### TODO: May be called from script via DialogsManagerScriptingInterface. Need to handle the case that it's already
+    //               displayed and may be the domain login version.
+
+    _isDomainLogin = false;
     LoginDialog::showWithSelection();
 }
 
@@ -125,13 +133,15 @@ void DialogsManager::hideLoginDialog() {
 
 void DialogsManager::showDomainLoginDialog() {
 
-    // #######: TODO
-
     qDebug() << "#######: showDomainLoginDialog()";
 
+    _isDomainLogin = true;
+    LoginDialog::showWithSelection();
 }
 
-// #######: TODO
+// #######: TODO: Domain version of toggleLoginDialog()?
+
+// #######: TODO: Domain version of hiadLoginDialog()?
 
 
 void DialogsManager::showUpdateDialog() {
