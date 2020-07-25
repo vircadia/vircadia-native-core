@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/15/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -486,10 +487,10 @@ void NodeList::sendDomainServerCheckIn() {
         // #######       If get into difficulties, could perhaps send domain's username and signature instead of metaverse.
         bool domainLoginIsConnected = false;
         if (!domainLoginIsConnected) {
-            if (true) {
+            if (false) {  // ####### For testing, false causes user to be considered "not logged in".
                 packetStream << QString("a@b.c");
-                if (true) {
-                    packetStream << QString("signature");
+                if (true) {  // ####### For testing, false is unhandled at this stage.
+                    packetStream << QString("signature");  // #######: Consider "logged in" if this is sent during testing.
                 }
             }
         }

@@ -45,6 +45,8 @@ Item {
     property bool lostFocus: false
 
     readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
+    readonly property bool isLoggingInToDomain: loginDialog.getDomainLoginRequested()
+    readonly property string domainAuthProvider: loginDialog.getDomainLoginAuthProvider()
 
     QtObject {
         id: d
@@ -71,7 +73,12 @@ Item {
     }
 
     function login() {
-        loginDialog.login(emailField.text, passwordField.text);
+        if (!isLoggingInToDomain) {
+            loginDialog.login(emailField.text, passwordField.text);
+        } else {
+            loginDialog.loginDomain(emailField.text, passwordField.text, domainAuthProvider);
+        }
+        
         if (linkAccountBody.loginDialogPoppedUp) {
             var data;
             if (linkAccountBody.linkSteam) {
@@ -87,7 +94,7 @@ Item {
         }
         bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam,
             "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam, "linkOculus": linkAccountBody.linkOculus,
-            "displayName":displayNameField.text });
+            "displayName":displayNameField.text, "isLoggingInToDomain": linkAccountBody.isLoggingInToDomain });
     }
 
     function init() {
@@ -99,13 +106,19 @@ Item {
             errorContainer.height = (loginErrorMessageTextMetrics.width / displayNameField.width) * loginErrorMessageTextMetrics.height;
         }
         loginButton.text = (!linkAccountBody.linkSteam && !linkAccountBody.linkOculus) ? "Log In" : "Link Account";
+        loginButton.text = (!isLoggingInToDomain) ? "Log In" : "Log In to Domain";
         loginButton.color = hifi.buttons.blue;
         displayNameField.placeholderText = "Display Name (optional)";
         var savedDisplayName = Settings.getValue("Avatar/displayName", "");
         displayNameField.text = savedDisplayName;
         emailField.placeholderText = "Username or Email";
-        var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
-        emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
+        if (!isLoggingInToDomain) {
+            var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
+            emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
+        } else {
+            // ####### TODO
+        }
+
         if (linkAccountBody.linkSteam || linkAccountBody.linkOculus) {
             loginButton.width = (passwordField.width - hifi.dimensions.contentSpacing.x) / 2;
             loginButton.anchors.right = displayNameField.right;
@@ -193,7 +206,11 @@ Item {
                         case Qt.Key_Return:
                             event.accepted = true;
                             if (keepMeLoggedInCheckbox.checked) {
-                                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                if (!isLoggingInToDomain) {
+                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                } else {
+                                    // ####### TODO
+                                }
                             }
                             linkAccountBody.login();
                             break;
@@ -232,7 +249,11 @@ Item {
                         case Qt.Key_Return:
                             event.accepted = true;
                             if (keepMeLoggedInCheckbox.checked) {
-                                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                if (!isLoggingInToDomain) {
+                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                } else {
+                                    // ####### TODO
+                                }
                             }
                             linkAccountBody.login();
                             break;
@@ -312,7 +333,11 @@ Item {
                         case Qt.Key_Return:
                             event.accepted = true;
                             if (keepMeLoggedInCheckbox.checked) {
-                                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                if (!isLoggingInToDomain) {
+                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                } else {
+                                    // ####### TODO
+                                }
                             }
                             linkAccountBody.login();
                             break;
@@ -321,7 +346,7 @@ Item {
             }
             HifiControlsUit.CheckBox {
                 id: keepMeLoggedInCheckbox
-                checked: Settings.getValue("keepMeLoggedIn", false);
+                checked: !isLoggingInToDomain ? Settings.getValue("keepMeLoggedIn", false) : false;  // ####### TODO
                 text: qsTr("Keep Me Logged In");
                 boxSize: 18;
                 labelFontFamily: linkAccountBody.fontFamily
@@ -334,14 +359,22 @@ Item {
                 }
                 onCheckedChanged: {
                     Settings.setValue("keepMeLoggedIn", checked);
-                    if (keepMeLoggedInCheckbox.checked) {
-                        Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                    if (!isLoggingInToDomain) {
+                        if (keepMeLoggedInCheckbox.checked) {
+                            Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                        } else {
+                            Settings.setValue("keepMeLoggedIn/savedUsername", "");
+                        }
                     } else {
-                        Settings.setValue("keepMeLoggedIn/savedUsername", "");
+                        // ####### TODO
                     }
                 }
                 Component.onCompleted: {
-                    keepMeLoggedInCheckbox.checked = !Account.loggedIn;
+                    if (!isLoggingInToDomain) {
+                        keepMeLoggedInCheckbox.checked = !Account.loggedIn;
+                    } else {
+                        // ####### TODO
+                    }
                 }
             }
             HifiControlsUit.Button {
@@ -393,7 +426,7 @@ Item {
             HifiStylesUit.ShortcutText {
                 id: cantAccessText
                 z: 10
-                visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus
+                visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus && !linkAccountBody.isLoggingInToDomain
                 anchors {
                     top: loginButton.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
@@ -492,7 +525,7 @@ Item {
             id: signUpContainer
             width: loginContainer.width
             height: signUpTextMetrics.height
-            visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus
+            visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus && !linkAccountBody.isLoggingInToDomain
             anchors {
                 left: loginContainer.left
                 top: loginContainer.bottom

@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/18/2014.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -24,6 +25,7 @@
 
 #include "AddressManager.h"
 #include "Assignment.h"
+#include "DomainAccountManager.h"
 #include "HifiSockAddr.h"
 #include "NodeList.h"
 #include "udt/Packet.h"
@@ -219,6 +221,8 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
 
         QString previousHost = _domainURL.host();
         _domainURL = domainURL;
+
+        _hasCheckedForDomainAccessToken = false;
 
         if (previousHost != domainURL.host()) {
             qCDebug(networking) << "Updated domain hostname to" << domainURL.host();
@@ -500,6 +504,7 @@ bool DomainHandler::reasonSuggestsMetaverseLogin(ConnectionRefusedReason reasonC
         case ConnectionRefusedReason::Unknown:
         case ConnectionRefusedReason::ProtocolMismatch:
         case ConnectionRefusedReason::TooManyUsers:
+        case ConnectionRefusedReason::NotAuthorizedDomain:
             return false;
     }
     return false;
@@ -515,6 +520,7 @@ bool DomainHandler::reasonSuggestsDomainLogin(ConnectionRefusedReason reasonCode
         case ConnectionRefusedReason::Unknown:
         case ConnectionRefusedReason::ProtocolMismatch:
         case ConnectionRefusedReason::TooManyUsers:
+        case ConnectionRefusedReason::NotAuthorizedMetaverse:
             return false;
     }
     return false;
@@ -557,11 +563,12 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 #endif
     }
 
-    auto accountManager = DependencyManager::get<AccountManager>();
 
     // Some connection refusal reasons imply that a login is required. If so, suggest a new login.
     if (reasonSuggestsMetaverseLogin(reasonCode)) {
         qCWarning(networking) << "Make sure you are logged in to the metaverse.";
+
+        auto accountManager = DependencyManager::get<AccountManager>();
 
         if (!_hasCheckedForAccessToken) {
             accountManager->checkAndSignalForAccessToken();
@@ -578,7 +585,15 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
     } else if (reasonSuggestsDomainLogin(reasonCode)) {
         qCWarning(networking) << "Make sure you are logged in to the domain.";
         
-        
+        auto accountManager = DependencyManager::get<DomainAccountManager>();
+
+        if (!_hasCheckedForDomainAccessToken) {
+            accountManager->checkAndSignalForAccessToken();
+            _hasCheckedForDomainAccessToken = true;
+        }
+
+        // ####### TODO: regenerate key-pair after several failed connection attempts, similar to metaverse login code?
+
     }
 }
 

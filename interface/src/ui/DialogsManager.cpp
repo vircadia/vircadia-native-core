@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 1/18/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -110,10 +111,16 @@ void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
 }
 
 void DialogsManager::toggleLoginDialog() {
+    _isDomainLogin = false;
     LoginDialog::toggleAction();
 }
 
 void DialogsManager::showLoginDialog() {
+
+    // ####### TODO: May be called from script via DialogsManagerScriptingInterface. Need to handle the case that it's already
+    //               displayed and may be the domain login version.
+
+    _isDomainLogin = false;
     LoginDialog::showWithSelection();
 }
 
@@ -121,9 +128,21 @@ void DialogsManager::hideLoginDialog() {
     LoginDialog::hide();
 }
 
+
+void DialogsManager::showDomainLoginDialog() {
+    _isDomainLogin = true;
+    LoginDialog::showWithSelection();
+}
+
+// #######: TODO: Domain version of toggleLoginDialog()?
+
+// #######: TODO: Domain version of hiadLoginDialog()?
+
+
 void DialogsManager::showUpdateDialog() {
     UpdateDialog::show();
 }
+
 
 void DialogsManager::octreeStatsDetails() {
     if (!_octreeStatsDialog) {
