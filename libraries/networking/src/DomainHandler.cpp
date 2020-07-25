@@ -24,6 +24,7 @@
 
 #include "AddressManager.h"
 #include "Assignment.h"
+#include "DomainAccountManager.h"
 #include "HifiSockAddr.h"
 #include "NodeList.h"
 #include "udt/Packet.h"
@@ -500,6 +501,7 @@ bool DomainHandler::reasonSuggestsMetaverseLogin(ConnectionRefusedReason reasonC
         case ConnectionRefusedReason::Unknown:
         case ConnectionRefusedReason::ProtocolMismatch:
         case ConnectionRefusedReason::TooManyUsers:
+        case ConnectionRefusedReason::NotAuthorizedDomain:
             return false;
     }
     return false;
@@ -515,6 +517,7 @@ bool DomainHandler::reasonSuggestsDomainLogin(ConnectionRefusedReason reasonCode
         case ConnectionRefusedReason::Unknown:
         case ConnectionRefusedReason::ProtocolMismatch:
         case ConnectionRefusedReason::TooManyUsers:
+        case ConnectionRefusedReason::NotAuthorizedMetaverse:
             return false;
     }
     return false;
@@ -557,11 +560,12 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 #endif
     }
 
-    auto accountManager = DependencyManager::get<AccountManager>();
 
     // Some connection refusal reasons imply that a login is required. If so, suggest a new login.
     if (reasonSuggestsMetaverseLogin(reasonCode)) {
         qCWarning(networking) << "Make sure you are logged in to the metaverse.";
+
+        auto accountManager = DependencyManager::get<AccountManager>();
 
         if (!_hasCheckedForAccessToken) {
             accountManager->checkAndSignalForAccessToken();
@@ -578,7 +582,15 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
     } else if (reasonSuggestsDomainLogin(reasonCode)) {
         qCWarning(networking) << "Make sure you are logged in to the domain.";
         
-        
+        auto accountManager = DependencyManager::get<DomainAccountManager>();
+
+        if (!_hasCheckedForDomainAccessToken) {
+            accountManager->checkAndSignalForAccessToken();
+            _hasCheckedForDomainAccessToken = true;
+        }
+
+        // ####### TODO: regenerate key-pair after several failed connection attempts, similar to metaverse login code?
+
     }
 }
 
