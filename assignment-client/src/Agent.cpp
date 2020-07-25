@@ -615,6 +615,10 @@ void Agent::setIsAvatar(bool isAvatar) {
             delete _avatarQueryTimer;
             _avatarQueryTimer = nullptr;
 
+            // Clear the skeleton model so that if agent is set to an avatar again the skeleton model is (re)loaded.
+            auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+            scriptedAvatar->setSkeletonModelURL(QUrl());
+
             // The avatar mixer never times out a connection (e.g., based on identity or data packets)
             // but rather keeps avatars in its list as long as "connected". As a result, clients timeout
             // when we stop sending identity, but then get woken up again by the mixer itself, which sends

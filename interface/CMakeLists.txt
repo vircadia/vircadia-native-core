@@ -121,14 +121,14 @@ if (APPLE)
   # configure CMake to use a custom Info.plist
   set_target_properties(${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
 
-  set(MACOSX_BUNDLE_BUNDLE_NAME "High Fidelity")
+  set(MACOSX_BUNDLE_BUNDLE_NAME "Vircadia")
   if (PRODUCTION_BUILD)
-    set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface)
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER com.vircadia.interface)
   else ()
     if (DEV_BUILD)
-      set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface-dev)
+      set(MACOSX_BUNDLE_GUI_IDENTIFIER com.vircadia.interface-dev)
     elseif (PR_BUILD)
-      set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface-pr)
+      set(MACOSX_BUNDLE_GUI_IDENTIFIER com.vircadia.interface-pr)
     endif ()
   endif ()
 
