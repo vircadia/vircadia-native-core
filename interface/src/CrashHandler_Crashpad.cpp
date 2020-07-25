@@ -42,8 +42,8 @@
 #include <FingerprintUtils.h>
 #include <UUID.h>
 
-static const std::string BACKTRACE_URL { CMAKE_BACKTRACE_URL };
-static const std::string BACKTRACE_TOKEN { CMAKE_BACKTRACE_TOKEN };
+static const std::string BACKTRACE_URL{ CMAKE_BACKTRACE_URL };
+static const std::string BACKTRACE_TOKEN{ CMAKE_BACKTRACE_TOKEN };
 
 // ------------------------------------------------------------------------------------------------
 // SpinLock - a lock that can timeout attempting to lock a block of code, and is in a busy-wait cycle while trying to acquire
@@ -55,6 +55,7 @@ public:
     void lock();
     bool lock(int msecs);
     void unlock();
+
 private:
     QAtomicInteger<int> _lock{ 0 };
 
@@ -132,12 +133,12 @@ bool SpinLockLocker::relock(int msecs /* = -1 */ ) {
 
 crashpad::CrashpadClient* client{ nullptr };
 SpinLock crashpadAnnotationsProtect;
-crashpad::SimpleStringDictionary* crashpadAnnotations { nullptr };
+crashpad::SimpleStringDictionary* crashpadAnnotations{ nullptr };
 
 #if defined(Q_OS_WIN)
-static const QString CRASHPAD_HANDLER_NAME { "crashpad_handler.exe" };
+static const QString CRASHPAD_HANDLER_NAME{ "crashpad_handler.exe" };
 #else
-static const QString CRASHPAD_HANDLER_NAME { "crashpad_handler" };
+static const QString CRASHPAD_HANDLER_NAME{ "crashpad_handler" };
 #endif
 
 #ifdef Q_OS_WIN
@@ -154,19 +155,19 @@ static const QString CRASHPAD_HANDLER_NAME { "crashpad_handler" };
 
 static constexpr DWORD STATUS_MSVC_CPP_EXCEPTION = 0xE06D7363;
 static constexpr ULONG_PTR MSVC_CPP_EXCEPTION_SIGNATURE = 0x19930520;
-static constexpr int ANNOTATION_LOCK_WEAK_ATTEMPT = 5000; // attempt to lock the annotations list, but give up if it takes more than 5 seconds
+static constexpr int ANNOTATION_LOCK_WEAK_ATTEMPT = 5000;  // attempt to lock the annotations list, but give up if it takes more than 5 seconds
 
 LPTOP_LEVEL_EXCEPTION_FILTER gl_crashpadUnhandledExceptionFilter = nullptr;
-QTimer unhandledExceptionTimer; // checks occasionally in case loading an external DLL reset the unhandled exception pointer
+QTimer unhandledExceptionTimer;  // checks occasionally in case loading an external DLL reset the unhandled exception pointer
 
-void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo); // extracts type information from a thrown C++ exception
-LONG WINAPI firstChanceExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo); // called on any thrown exception (whether or not it's caught)
-LONG WINAPI unhandledExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo); // called on any exception without a corresponding catch
+void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo);  // extracts type information from a thrown C++ exception
+LONG WINAPI firstChanceExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo);  // called on any thrown exception (whether or not it's caught)
+LONG WINAPI unhandledExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo);  // called on any exception without a corresponding catch
 
 static LONG WINAPI firstChanceExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
     // we're catching these exceptions on first-chance as the system state is corrupted at this point and they may not survive the exception handling mechanism
     if (client && (pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_HEAP_CORRUPTION ||
-        pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_STACK_BUFFER_OVERRUN)) {
+                   pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_STACK_BUFFER_OVERRUN)) {
         client->DumpAndCrash(pExceptionInfo);
     }
 
@@ -194,31 +195,31 @@ static LONG WINAPI unhandledExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo)
 
 #pragma pack(push, ehdata, 4)
 
-struct PMD_internal { // internal name: _PMD (no changes, so could in theory just use the original)
+struct PMD_internal {  // internal name: _PMD (no changes, so could in theory just use the original)
     int mdisp;
     int pdisp;
     int vdisp;
 };
 
-struct ThrowInfo_internal { // internal name: _ThrowInfo (changed all pointers into __int32)
+struct ThrowInfo_internal {  // internal name: _ThrowInfo (changed all pointers into __int32)
     __int32 attributes;
     __int32 pmfnUnwind;           // 32-bit RVA
     __int32 pForwardCompat;       // 32-bit RVA
     __int32 pCatchableTypeArray;  // 32-bit RVA
 };
 
-struct CatchableType_internal { // internal name: _CatchableType (changed all pointers into __int32)
+struct CatchableType_internal {  // internal name: _CatchableType (changed all pointers into __int32)
     __int32 properties;
-    __int32 pType;                // 32-bit RVA
+    __int32 pType;               // 32-bit RVA
     PMD_internal thisDisplacement;
     __int32 sizeOrOffset;
-    __int32 copyFunction;         // 32-bit RVA
+    __int32 copyFunction;        // 32-bit RVA
 };
 
 #pragma warning(disable : 4200)
-struct CatchableTypeArray_internal { // internal name: _CatchableTypeArray (changed all pointers into __int32)
+struct CatchableTypeArray_internal {  // internal name: _CatchableTypeArray (changed all pointers into __int32)
     int nCatchableTypes;
-    __int32 arrayOfCatchableTypes[0]; // 32-bit RVA
+    __int32 arrayOfCatchableTypes[0];  // 32-bit RVA
 };
 #pragma warning(default : 4200)
 
@@ -255,23 +256,25 @@ static void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo) {
     // get the ThrowInfo struct from the exception arguments
     ThrowInfo_internal* pThrowInfo = reinterpret_cast<ThrowInfo_internal*>(ExceptionRecord->ExceptionInformation[2]);
     ULONG_PTR moduleBase = ExceptionRecord->ExceptionInformation[3];
-    if(moduleBase == 0 || pThrowInfo == NULL) {
-      return; // broken assumption
+    if (moduleBase == 0 || pThrowInfo == NULL) {
+        return;  // broken assumption
     }
 
     // get the CatchableTypeArray* struct from ThrowInfo
-    if(pThrowInfo->pCatchableTypeArray == 0) {
-      return; // broken assumption
+    if (pThrowInfo->pCatchableTypeArray == 0) {
+        return;  // broken assumption
     }
-    CatchableTypeArray_internal* pCatchableTypeArray = reinterpret_cast<CatchableTypeArray_internal*>(moduleBase + pThrowInfo->pCatchableTypeArray);
-    if(pCatchableTypeArray->nCatchableTypes == 0 || pCatchableTypeArray->arrayOfCatchableTypes[0] == 0) {
-      return; // broken assumption
+    CatchableTypeArray_internal* pCatchableTypeArray =
+        reinterpret_cast<CatchableTypeArray_internal*>(moduleBase + pThrowInfo->pCatchableTypeArray);
+    if (pCatchableTypeArray->nCatchableTypes == 0 || pCatchableTypeArray->arrayOfCatchableTypes[0] == 0) {
+        return;  // broken assumption
     }
 
     // get the CatchableType struct for the actual exception type from CatchableTypeArray
-    CatchableType_internal* pCatchableType = reinterpret_cast<CatchableType_internal*>(moduleBase + pCatchableTypeArray->arrayOfCatchableTypes[0]);
-    if(pCatchableType->pType == 0) {
-      return; // broken assumption
+    CatchableType_internal* pCatchableType =
+        reinterpret_cast<CatchableType_internal*>(moduleBase + pCatchableTypeArray->arrayOfCatchableTypes[0]);
+    if (pCatchableType->pType == 0) {
+        return;  // broken assumption
     }
     const std::type_info* type = reinterpret_cast<std::type_info*>(moduleBase + pCatchableType->pType);
 
@@ -281,9 +284,10 @@ static void fatalCxxException(PEXCEPTION_POINTERS pExceptionInfo) {
     // catch() commands that could have caught this so we can find the list of its superclasses
     QString compatibleObjects;
     for (int catchTypeIdx = 1; catchTypeIdx < pCatchableTypeArray->nCatchableTypes; catchTypeIdx++) {
-        CatchableType_internal* pCatchableSuperclassType = reinterpret_cast<CatchableType_internal*>(moduleBase + pCatchableTypeArray->arrayOfCatchableTypes[catchTypeIdx]);
+        CatchableType_internal* pCatchableSuperclassType =
+            reinterpret_cast<CatchableType_internal*>(moduleBase + pCatchableTypeArray->arrayOfCatchableTypes[catchTypeIdx]);
         if (pCatchableSuperclassType->pType == 0) {
-          return; // broken assumption
+            return;  // broken assumption
         }
         const std::type_info* superclassType = reinterpret_cast<std::type_info*>(moduleBase + pCatchableSuperclassType->pType);
 
@@ -305,7 +309,7 @@ void checkUnhandledExceptionHook() {
 
 // End of code specific to the Microsoft C++ compiler
 // ------------------------------------------------------------------------------------------------
-#endif // Q_OS_WIN
+#endif  // Q_OS_WIN
 
 bool startCrashHandler(std::string appPath) {
     if (BACKTRACE_URL.empty() || BACKTRACE_TOKEN.empty()) {
@@ -325,17 +329,16 @@ bool startCrashHandler(std::string appPath) {
     auto machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
     annotations["machine_fingerprint"] = machineFingerPrint.toStdString();
 
-
     arguments.push_back("--no-rate-limit");
 
     // Setup Crashpad DB directory
     const auto crashpadDbName = "crashpad-db";
     const auto crashpadDbDir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    QDir(crashpadDbDir).mkpath(crashpadDbName); // Make sure the directory exists
+    QDir(crashpadDbDir).mkpath(crashpadDbName);  // Make sure the directory exists
     const auto crashpadDbPath = crashpadDbDir.toStdString() + "/" + crashpadDbName;
 
     // Locate Crashpad handler
-    const QFileInfo interfaceBinary { QString::fromStdString(appPath) };
+    const QFileInfo interfaceBinary{ QString::fromStdString(appPath) };
     const QDir interfaceDir = interfaceBinary.dir();
     assert(interfaceDir.exists(CRASHPAD_HANDLER_NAME));
     const std::string CRASHPAD_HANDLER_PATH = interfaceDir.filePath(CRASHPAD_HANDLER_NAME).toStdString();
@@ -373,7 +376,7 @@ void setCrashAnnotation(std::string name, std::string value) {
     if (client) {
         SpinLockLocker guard(crashpadAnnotationsProtect);
         if (!crashpadAnnotations) {
-            crashpadAnnotations = new crashpad::SimpleStringDictionary(); // don't free this, let it leak
+            crashpadAnnotations = new crashpad::SimpleStringDictionary();  // don't free this, let it leak
             crashpad::CrashpadInfo* crashpad_info = crashpad::CrashpadInfo::GetCrashpadInfo();
             crashpad_info->set_simple_annotations(crashpadAnnotations);
         }
@@ -393,7 +396,7 @@ void startCrashHookMonitor(QCoreApplication* app) {
     unhandledExceptionTimer.moveToThread(app->thread());
     QObject::connect(&unhandledExceptionTimer, &QTimer::timeout, checkUnhandledExceptionHook);
     unhandledExceptionTimer.start(60000);
-#endif // Q_OS_WIN
+#endif  // Q_OS_WIN
 }
 
-#endif // HAS_CRASHPAD
+#endif  // HAS_CRASHPAD
