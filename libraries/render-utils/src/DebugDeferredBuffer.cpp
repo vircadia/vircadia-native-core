@@ -232,7 +232,7 @@ static const std::string DEFAULT_VELOCITY_SHADER{
     "vec4 getFragmentColor() {"
     "    vec2 velocity = texture(debugTexture0, uv).xy * getWidthHeight(0);"
     "    vec4 velColor = vec4(0.1f * velocity + 0.5f, 0.0f, 1.0f);"
-    "    return dot(velocity,velocity) > 1e-4 ? velColor : vec4(0f, 0f, 1f, 0f);"
+    "    return dot(velocity, velocity) > 1e-4 ? velColor : vec4(0.0f, 0.0f, 1.0f, 0.0f);"
     "}"
 };
 

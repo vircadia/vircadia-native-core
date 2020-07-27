@@ -89,7 +89,7 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
             batch.setStateScissorRect(args->_viewport);
 
             bool forward = args->_renderMethod == render::Args::RenderMethod::FORWARD;
-            batch.setProjectionJitterEnabled(forward);
+            batch.setProjectionJitterEnabled(!forward);
 
             // If we're using forward rendering, we need to calculate haze
             if (forward) {

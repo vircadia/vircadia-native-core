@@ -228,6 +228,11 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
                 case Batch::COMMAND_setProjectionTransform:
+                case Batch::COMMAND_setProjectionJitterEnabled:
+                case Batch::COMMAND_setProjectionJitterSequence:
+                case Batch::COMMAND_setProjectionJitterScale:
+                case Batch::COMMAND_saveViewProjectionTransform:
+                case Batch::COMMAND_setSavedViewProjectionTransform:
                 {
                     CommandCall call = _commandCalls[(*command)];
                     (this->*(call))(batch, *offset);

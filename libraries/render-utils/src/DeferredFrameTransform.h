@@ -49,8 +49,6 @@ using DeferredFrameTransformPointer = std::shared_ptr<DeferredFrameTransform>;
 
 class GenerateDeferredFrameTransform {
 public:
-
-    using Input = glm::vec2;
     using Output = DeferredFrameTransformPointer;
     using JobModel = render::Job::ModelO<GenerateDeferredFrameTransform, Output>;
 
