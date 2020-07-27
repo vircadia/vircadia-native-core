@@ -194,8 +194,6 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
 }
 
 void Antialiasing::configure(const Config& config) {
-    _mode = (AntialiasingConfig::Mode) config.getAAMode();
-
     _sharpen = config.sharpen * 0.25f;
     if (!_isSharpenEnabled) {
         _sharpen = 0.0f;
@@ -243,7 +241,8 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         _antialiasingTextures[1].reset();
     }
 
-    if (!_antialiasingBuffers || !_intensityFramebuffer) {        std::vector<gpu::FramebufferPointer> antiAliasingBuffers;
+    if (!_antialiasingBuffers || !_intensityFramebuffer) {
+        std::vector<gpu::FramebufferPointer> antiAliasingBuffers;
         // Link the antialiasing FBO to texture
         auto format = gpu::Element(gpu::VEC4, gpu::HALF, gpu::RGBA);        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP);
         for (int i = 0; i < 2; i++) {

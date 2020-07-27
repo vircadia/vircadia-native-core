@@ -41,7 +41,7 @@ const Transform& EntityRenderer::getModelTransform() const {
     return _modelTransform;
 }
 
-const Transform& EntityRenderer::getPreviousModelTransform() const {
+const Transform& EntityRenderer::getPrevModelTransform() const {
     return _prevModelTransform;
 }
 

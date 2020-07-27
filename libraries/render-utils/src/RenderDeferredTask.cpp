@@ -270,34 +270,34 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
     // RenderShadowTask out
     const auto& shadowOut = inputs.get1();
         const auto& renderShadowTaskOut = shadowOut[0];
-        const auto& shadowFrame = shadowOut.get1();
+        const auto& shadowFrame = shadowOut[1];
 
     // Extract the Lighting Stages Current frame ( and zones)
     const auto lightingStageInputs = inputs.get2();
         // Fetch the current frame stacks from all the stages
-        const auto stageCurrentFrames = lightingStageInputs.get0();
-            const auto lightFrame = stageCurrentFrames.get0();
-            const auto backgroundFrame = stageCurrentFrames.get1();
-            const auto hazeFrame = stageCurrentFrames.get2();
-            const auto bloomFrame = stageCurrentFrames.get3();
+        const auto stageCurrentFrames = lightingStageInputs[0];
+            const auto lightFrame = stageCurrentFrames[0];
+            const auto backgroundFrame = stageCurrentFrames[1];
+            const auto hazeFrame = stageCurrentFrames[2];
+            const auto bloomFrame = stageCurrentFrames[3];
 
         // Zones
-        const auto& zones = lightingStageInputs.get1();
+        const auto& zones = lightingStageInputs[1];
 
     // Light CLuster
     const auto& lightClusters = inputs.get3();
 
     // PrepareDeferred out
     const auto& prepareDeferredOutputs = inputs.get4();
-        const auto& deferredFramebuffer = prepareDeferredOutputs.get0();
+        const auto& deferredFramebuffer = prepareDeferredOutputs[0];
 
     // extraDeferredBuffer 
     const auto& extraDeferredBuffer = inputs.get5();
-        const auto& linearDepthTarget = extraDeferredBuffer.get0();
-        const auto& surfaceGeometryFramebuffer = extraDeferredBuffer.get1();
-        const auto& ambientOcclusionFramebuffer = extraDeferredBuffer.get2();
-        const auto& ambientOcclusionUniforms = extraDeferredBuffer.get3();
-        const auto& scatteringResource = extraDeferredBuffer.get4();
+        const auto& linearDepthTarget = extraDeferredBuffer[0];
+        const auto& surfaceGeometryFramebuffer = extraDeferredBuffer[1];
+        const auto& ambientOcclusionFramebuffer = extraDeferredBuffer[2];
+        const auto& ambientOcclusionUniforms = extraDeferredBuffer[3];
+        const auto& scatteringResource = extraDeferredBuffer[4];
 
     // GenerateDeferredFrameTransform out
     const auto& deferredFrameTransform = inputs.get6();
@@ -362,8 +362,8 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
     }
 
     { // Debug the bounds of the layered objects, still look at the zbuffer
-        task.addJob<DrawBounds>("DrawHUDOpaqueBounds", hudOpaque);
-        task.addJob<DrawBounds>("DrawHUDTransparentBounds", hudTransparent);
+        task.addJob<DrawBounds>("DrawHUDOpaqueBounds", hudOpaque, mainViewTransformSlot);
+        task.addJob<DrawBounds>("DrawHUDTransparentBounds", hudTransparent, mainViewTransformSlot);
     }
 
     // Debugging stages

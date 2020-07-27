@@ -26,20 +26,15 @@ void main() {
         return;
     }
 
-    nextColor = mix(mix(historyColor, sourceColor, params.blend), taa_evalFeedbackColor(sourceColor, historyColor, params.blend), float(taa_feedbackColor()));
-
-    outFragColor = vec4(taa_resolveColor(nextColor), 1.0);
-
     vec4 sourceColor;
     vec4 historyColor;
-    vec4 nextColor;
 
     vec2 fragVel = taa_fetchVelocityMapBest(fragUV).xy;
     bool needsTAA = taa_fetchSourceAndHistory(fragUV, fragVel, sourceColor, historyColor);
     vec4 nextColor = sourceColor;
     if (needsTAA) {
         // clamp history to neighbourhood of current sample
-        historyColor.rgb = mix(historyColor.rgb, taa_evalConstrainColor(sourceColor, fragUV, fragVel, historyColor).rgb, float(taa_constrainColor()));
+        historyColor.rgb = mix(historyColor.rgb, taa_evalConstrainColor(sourceColor.rgb, fragUV, fragVel, historyColor.rgb).rgb, float(taa_constrainColor()));
 
         if (taa_feedbackColor()) {
             nextColor = taa_evalFeedbackColor(sourceColor, historyColor, params.blend);

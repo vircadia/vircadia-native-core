@@ -130,6 +130,7 @@ protected:
 
     static void makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters);
     const Transform& getModelTransform() const;
+    const Transform& getPrevModelTransform() const;
 
     Item::Bound _bound;
     SharedSoundPointer _collisionSound;

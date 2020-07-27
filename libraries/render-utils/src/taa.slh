@@ -202,6 +202,7 @@ vec3 taa_findClosestFragment3x3(vec2 uv)
     vec2 dd = taa_getTexelSize();
     vec2 du = vec2(dd.x, 0.0);
     vec2 dv = vec2(0.0, dd.y);
+    vec2 dm = vec2(-dd.x, dd.y);
 
     vec3 dtl = vec3(-1, -1, taa_fetchDepth(uv - dd));
     vec3 dtc = vec3( 0, -1, taa_fetchDepth(uv - dv));
@@ -234,6 +235,7 @@ vec2 taa_fetchVelocityMapBest(vec2 uv) {
     vec2 dd = taa_getTexelSize();
     vec2 du = vec2(dd.x, 0.0);
     vec2 dv = vec2(0.0, dd.y);
+    vec2 dm = vec2(dd.x, -dd.y);
 
     vec2 dtl = taa_fetchVelocityMap(uv - dd);
     vec2 dtc = taa_fetchVelocityMap(uv - dv);
@@ -297,7 +299,7 @@ vec2 taa_computePrevFragAndEyeUV(vec2 fragUV, vec2 fragVelocity, out vec2 prevEy
     return taa_fromEyeUVToFragUV(prevEyeUV, stereoSide);
 }
 
-vec2 taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec3 sourceColor, out vec3 historyColor) {
+bool taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec4 sourceColor, out vec4 historyColor) {
     sourceColor.rgb = texture(sourceMap, fragUV).rgb;
     // Store AA intensity in alpha  
     sourceColor.a = texture(intensityMap, fragUV).r;
@@ -307,7 +309,7 @@ vec2 taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec3 sourceCo
         vec2 prevEyeUV;
         vec2 prevFragUV = taa_computePrevFragAndEyeUV(fragUV, fragVelocity, prevEyeUV);
         sourceColor = taa_transformColor(sourceColor);
-        historyColor = mix(sourceColor, taa_fetchHistoryMap(prevFragUV).xyz, float(!(any(lessThan(prevEyeUV, vec2(0.0))) || any(greaterThan(prevEyeUV, vec2(1.0))))));
+        historyColor = mix(sourceColor, taa_fetchHistoryMap(prevFragUV), float(!(any(lessThan(prevEyeUV, vec2(0.0))) || any(greaterThan(prevEyeUV, vec2(1.0))))));
         return true;
     } else {
         historyColor = sourceColor;
@@ -483,7 +485,7 @@ vec3 taa_evalConstrainColor(vec3 sourceColor, vec2 sourceUV, vec2 sourceVel, vec
     return taa_clampColor(colorMinMaxAvg[0], colorMinMaxAvg[1], sourceColor, candidateColor);
 }
 
-vec3 taa_evalFeedbackColor(vec4 sourceColor, vec4 historyColor, float blendFactor) {
+vec4 taa_evalFeedbackColor(vec4 sourceColor, vec4 historyColor, float blendFactor) {
     const float _FeedbackMin = 0.1;
     const float _FeedbackMax = 0.9;
     // feedback weight from unbiased luminance diff (t.lottes)

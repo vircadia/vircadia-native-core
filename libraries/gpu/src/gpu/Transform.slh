@@ -11,6 +11,10 @@
 <@def GPU_TRANSFORM_STATE_SLH@>
 
 <@func declareStandardCameraTransform()@>
+
+#ifndef STANDARD_TRANSFORM_CAMERA
+#define STANDARD_TRANSFORM_CAMERA
+
 <@include gpu/ShaderConstants.h@>
 <@include gpu/TransformCamera_shared.slh@>
 
@@ -100,6 +104,8 @@ float cam_getStereoSide() {
 vec2 cam_getInvWidthHeight() {
     return getTransformCamera()._stereoInfo.zw;
 }
+
+#endif // STANDARD_TRANSFORM_CAMERA
 
 <@endfunc@>
 

@@ -40,12 +40,12 @@ void RenderHUDLayerTask::build(JobModel& task, const render::Varying& input, ren
         render::ShapePlumberPointer shapePlumber, uint transformSlot) {
     const auto& inputs = input.get<Input>();
 
-    const auto& primaryFramebuffer = inputs.get0();
-    const auto& lightingModel = inputs.get1();
-    const auto& hudOpaque = inputs.get2();
-    const auto& hudTransparent = inputs.get3();
-    const auto& hazeFrame = inputs.get4();
-    const auto& deferredFrameTransform = inputs.get5();
+    const auto& primaryFramebuffer = inputs[0];
+    const auto& lightingModel = inputs[1];
+    const auto& hudOpaque = inputs[2];
+    const auto& hudTransparent = inputs[3];
+    const auto& hazeFrame = inputs[4];
+    const auto& deferredFrameTransform = inputs[5];
 
     // Composite the HUD and HUD overlays
     task.addJob<CompositeHUD>("HUD", primaryFramebuffer, transformSlot);

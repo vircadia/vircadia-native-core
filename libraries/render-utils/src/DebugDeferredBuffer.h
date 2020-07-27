@@ -44,7 +44,7 @@ public:
                                        SurfaceGeometryFramebufferPointer,
                                        AmbientOcclusionFramebufferPointer,
                                        DeferredFrameTransformPointer,
-                                       LightStage::FramePointer,
+                                       LightStage::ShadowFramePointer,
                                        gpu::TexturePointer>;
     using Config = DebugDeferredBufferConfig;
     using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;

@@ -119,7 +119,7 @@ void RenderThread::renderFrame(gpu::FramePointer& frame) {
 #ifdef USE_GL
     _context.makeCurrent();
 #endif
-    if (_correction != glm::mat4()) {
+    {
        std::unique_lock<std::mutex> lock(_frameLock);
        if (_correction != glm::mat4()) {
            _backend->updatePresentFrame(_correction, true);

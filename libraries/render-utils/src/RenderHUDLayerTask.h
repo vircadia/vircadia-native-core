@@ -11,6 +11,7 @@
 
 #include "LightingModel.h"
 #include "HazeStage.h"
+#include "DeferredFrameTransform.h"
 
 class CompositeHUD {
 public:
