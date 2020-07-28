@@ -74,7 +74,7 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
 <@if not HIFI_USE_SHADOW@>
-        <$transformModelToWorldAndEyeAndClipPosAndPrevClipPos(cam, obj, positionMS, _positionWS, _positionES, gl_Position, _prevPositionCS)$>
+        <$transformModelToWorldEyeClipPosAndPrevClipPos(cam, obj, positionMS, _positionWS, _positionES, gl_Position, _prevPositionCS)$>
         <$transformModelToWorldDir(cam, obj, normalMS, _normalWS)$>
 <@else@>
         <$transformModelToClipPos(cam, obj, positionMS, gl_Position)$>

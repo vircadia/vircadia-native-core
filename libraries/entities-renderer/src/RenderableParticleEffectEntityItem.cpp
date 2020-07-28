@@ -31,7 +31,7 @@ static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, co
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        PrepareStencil::testMask(*state);
+        PrepareStencil::testMaskResetNoAA(*state);
 
         auto program = gpu::Shader::createProgram(shader::entities_renderer::program::textured_particle);
         _texturedPipeline = texturedPipeline = gpu::Pipeline::create(program, state);
@@ -474,7 +474,7 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
         color.spread = EntityRenderer::calculatePulseColor(_particleProperties.getColorSpread(), _pulseProperties, _created);
     });
 
-    batch.setModelTransform(transform);
+    batch.setModelTransform(transform); // particles are currently always transparent so we don't worry about TAA right now
     batch.setUniformBuffer(0, _uniformBuffer);
     batch.setInputFormat(_vertexFormat);
     batch.setInputBuffer(0, _particleBuffer, 0, sizeof(GpuParticle));

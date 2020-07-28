@@ -185,13 +185,13 @@ TransformObject getTransformObject() {
     }
 <@endfunc@>
 
-<@func transformModelToPrevEyeWorldAlignedPos(cameraTransform, objectTransform, modelPos, eyeWorldAlignedPos)@>
+<@func transformModelToPrevEyeWorldAlignedPos(cameraTransform, objectTransform, modelPos, prevEyeWorldAlignedPos)@>
     <!// Bring the model pos in the world aligned space centered on the eye axis !>
     { // transformModelToPrevEyeWorldAlignedPos
         highp mat4 _mv = <$objectTransform$>._previousModel;
         _mv[3].xyz -= <$cameraTransform$>._previousViewInverse[3].xyz;
-        highp vec4 _eyeWApos = (_mv * <$modelPos$>);
-        <$eyeWorldAlignedPos$> = _eyeWApos;
+        highp vec4 _prevEyeWApos = (_mv * <$modelPos$>);
+        <$prevEyeWorldAlignedPos$> = _prevEyeWApos;
     }
 <@endfunc@>
 
@@ -275,8 +275,8 @@ TransformObject getTransformObject() {
     }
 <@endfunc@>
 
-<@func transformModelToWorldAndEyeAndClipPos(cameraTransform, objectTransform, modelPos, worldPos, eyePos, clipPos)@>
-    { // transformModelToWorldAndEyeAndClipPos
+<@func transformModelToWorldEyeAndClipPos(cameraTransform, objectTransform, modelPos, worldPos, eyePos, clipPos)@>
+    { // transformModelToWorldEyeAndClipPos
         vec4 eyeWAPos;
         <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
         <$worldPos$> = vec4(eyeWAPos.xyz + <$cameraTransform$>._viewInverse[3].xyz, 1.0);

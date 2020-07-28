@@ -255,7 +255,8 @@ void GizmoEntityRenderer::doRender(RenderArgs* args) {
         bool wireframe = render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES;
         geometryCache->bindSimpleProgram(batch, false, isTransparent(), wireframe, true, true, forward, graphics::MaterialKey::CULL_NONE);
 
-        batch.setModelTransform(transform);
+        batch.setModelTransform(transform, _prevRenderTransform);
+        _prevRenderTransform = transform;
 
         // Background circle
         geometryCache->renderVertices(batch, wireframe ? gpu::LINE_STRIP : _solidPrimitive, _ringGeometryID);

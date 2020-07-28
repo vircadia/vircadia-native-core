@@ -285,7 +285,7 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
         const auto& zones = lightingStageInputs[1];
 
     // Light CLuster
-    const auto& lightClusters = inputs.get3();
+    const auto& lightClusters = inputs[3];
 
     // PrepareDeferred out
     const auto& prepareDeferredOutputs = inputs.get4();
@@ -300,13 +300,13 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
         const auto& scatteringResource = extraDeferredBuffer[4];
 
     // GenerateDeferredFrameTransform out
-    const auto& deferredFrameTransform = inputs.get6();
+    const auto& deferredFrameTransform = inputs[6];
 
     // Lighting Model out
-    const auto& lightingModel = inputs.get7();
+    const auto& lightingModel = inputs[7];
 
     // Antialiasing out
-    const auto& antialiasingIntensityTexture = inputs.get8();
+    const auto& antialiasingIntensityTexture = inputs[8];
 
     // Light Cluster Grid Debuging job
     {

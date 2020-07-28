@@ -441,7 +441,8 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::render(RenderArgs* args) 
 
     Transform transform;
     transform.setTranslation(_origin);
-    batch.setModelTransform(transform);
+    batch.setModelTransform(transform, _prevTransform);
+    _prevTransform = transform;
 
     batch.setPipeline(getParabolaPipeline(args->_renderMethod == render::Args::RenderMethod::FORWARD));
 

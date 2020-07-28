@@ -130,7 +130,6 @@ protected:
 
     static void makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters);
     const Transform& getModelTransform() const;
-    const Transform& getPrevModelTransform() const;
 
     Item::Bound _bound;
     SharedSoundPointer _collisionSound;
@@ -152,6 +151,7 @@ protected:
     // Only touched on the rendering thread
     bool _renderUpdateQueued{ false };
     Transform _renderTransform;
+    Transform _prevRenderTransform; // each subclass is responsible for updating this after they render because they all handle transforms differently
 
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;
     std::mutex _materialsLock;
@@ -163,7 +163,6 @@ protected:
     // to trigger an update, so the member must not be visible to derived classes as a modifiable
     // transform
     Transform _modelTransform;
-    Transform _prevModelTransform;
     // The rendering code only gets access to the entity in very specific circumstances
     // i.e. to see if the rendering code needs to update because of a change in state of the 
     // entity.  This forces all the rendering code itself to be independent of the entity

@@ -34,9 +34,9 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
 <@if HIFI_USE_FORWARD@>
-    <$transformModelToWorldAndEyeAndClipPos(cam, obj, inPosition, _positionWS, _positionES, gl_Position)$>
+    <$transformModelToWorldEyeAndClipPos(cam, obj, inPosition, _positionWS, _positionES, gl_Position)$>
 <@else@>
-    <$transformModelToClipPosAndPrevClip(cam, obj, inPosition, gl_Position, _prevPositionCS)$>
+    <$transformModelToClipPosAndPrevClipPos(cam, obj, inPosition, gl_Position, _prevPositionCS)$>
     <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
 <@endif@>
 }

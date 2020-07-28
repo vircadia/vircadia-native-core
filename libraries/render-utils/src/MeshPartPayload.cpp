@@ -83,7 +83,6 @@ void MeshPartPayload::updateMeshPart(const std::shared_ptr<const graphics::Mesh>
 
 void MeshPartPayload::updateTransform(const Transform& transform, const Transform& offsetTransform) {
     _transform = transform;
-    _previousModelTransform = _drawTransform;
     Transform::mult(_drawTransform, _transform, offsetTransform);
     _worldBound = _localBound;
     _worldBound.transform(_drawTransform);
@@ -177,6 +176,7 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) {
 
 void MeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
     batch.setModelTransform(_drawTransform, _previousModelTransform);
+    _previousModelTransform = _drawTransform;
 }
 
 bool MeshPartPayload::passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const {
@@ -391,7 +391,6 @@ void ModelMeshPartPayload::updateClusterBuffer(const std::vector<Model::Transfor
 }
 
 void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform) {
-    _previousModelTransform = _transform;
     _transform = renderTransform;
     _worldBound = _adjustedLocalBound;
     _worldBound.transform(boundTransform);
@@ -500,6 +499,7 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMo
         batch.setUniformBuffer(graphics::slot::buffer::Skinning, _clusterBuffer);
     }
     batch.setModelTransform(_transform, _previousModelTransform);
+    _previousModelTransform = _transform;
 }
 
 void ModelMeshPartPayload::render(RenderArgs* args) {
