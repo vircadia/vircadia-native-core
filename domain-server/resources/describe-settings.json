@@ -3,7 +3,7 @@
   "settings": [
     {
       "name": "metaverse",
-      "label": "Metaverse / Networking",
+      "label": "Networking / Metaverse",
       "settings": [
         {
           "name": "access_token",
@@ -54,6 +54,41 @@
           "default": true,
           "type": "checkbox",
           "advanced":  true
+        }
+      ]
+    },
+    {
+      "name": "authentication",
+      "label": "Networking / Authentication",
+      "settings": [
+        {
+            "name": "enable_oauth2",
+            "label": "Enable OAuth2 Authentication",
+            "help": "Allow a WordPress-based OAuth2 service to assign users to groups based on their role with the service.",
+            "default": false,
+            "type": "checkbox",
+            "advanced": true
+        },
+        {
+            "name": "require_oauth2",
+            "label": "Require OAuth2 Authentication",
+            "help": "For any users not explicitly authorized in these settings, notify the Interface to authenticate through this method.",
+            "default": false,
+            "type": "checkbox",
+            "advanced": true
+        },
+        {
+            "name": "domain_access_token",
+            "label": "Domain API Access Token",
+            "help": "This is the access token that your domain-server will use to verify users and their roles. This token must grant access to that permission set on your REST API server.",
+            "advanced": true,
+            "backup": false
+        },
+        {
+            "name": "authentication_oauth2_url_base",
+            "label": "Authentication URL Base",
+            "help": "The URL base that the Interface and domain-server will use to make API requests.",
+            "advanced": true
         }
       ]
     },
