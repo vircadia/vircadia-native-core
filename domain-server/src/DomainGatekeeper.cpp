@@ -1082,6 +1082,8 @@ void DomainGatekeeper::getDomainGroupMemberships(const QString& domainUserName) 
     //         This may be able to be provided at the same time as the "authenticate user" call to the domain API, in which case
     //         a copy of some of the following code can be made there. However, this code is still needed for refreshing groups.
 
+    // ####### TODO: Check how often this method and the WordPress API is called.
+
     QStringList wordpressGroupsForUser;
     wordpressGroupsForUser << "silVER" << "gold" << "coal";
     _domainGroupMemberships[domainUserName] = wordpressGroupsForUser;
