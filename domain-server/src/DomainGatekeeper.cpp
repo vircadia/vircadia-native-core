@@ -169,27 +169,25 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
 #endif
     }
 
-    // If this user is a known member of an externally-hosted group, give them the implied permissions.
+    // If this user is a known member of a domain group, give them the implied permissions.
     // Do before processing verifiedUsername in case user is logged into the metaverse and is a member of a blacklist group.
     if (!verifiedDomainUserName.isEmpty()) {
         auto userGroups = _domainGroupMemberships[verifiedDomainUserName];
         foreach (QString userGroup, userGroups) {
             // Domain groups may be specified as comma- and/or space-separated lists of group names.
             // For example, "silver gold, platinum".
-            auto domainGroups = _server->_settingsManager.getAllKnownGroupNames()
+            auto domainGroups = _server->_settingsManager.getDomainGroupNames()
                 .filter(QRegularExpression("^(.*[\\s,])?" + userGroup + "([\\s,].*)?$", 
                     QRegularExpression::CaseInsensitiveOption));
             foreach(QString domainGroup, domainGroups) {
                 userPerms |= _server->_settingsManager.getPermissionsForGroup(domainGroup, QUuid()); // No rank for domain groups.
-// ####### Enable ifdef
-//#ifdef WANT_DEBUG
+#ifdef WANT_DEBUG
                 qDebug() << "|  user-permissions: domain user " << verifiedDomainUserName << "is in group:" << domainGroup
                     << "so:" << userPerms;
-//#endif
+#endif
             }
         }
 
-        userPerms.setVerifiedDomainUserName(verifiedDomainUserName);
     }
 
     if (verifiedUsername.isEmpty()) {
@@ -291,6 +289,26 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
 
         userPerms.setID(verifiedUsername);
         userPerms.setVerifiedUserName(verifiedUsername);
+    }
+
+    // If this user is a known member of an domain group that is blacklisted, remove the implied permissions.
+    if (!verifiedDomainUserName.isEmpty()) {
+        auto userGroups = _domainGroupMemberships[verifiedDomainUserName];
+        foreach(QString userGroup, userGroups) {
+            // Domain groups may be specified as comma- and/or space-separated lists of group names.
+            // For example, "silver gold, platinum".
+            auto domainGroups = _server->_settingsManager.getDomainBlacklistGroupNames()
+                .filter(QRegularExpression("^(.*[\\s,])?" + userGroup + "([\\s,].*)?$",
+                    QRegularExpression::CaseInsensitiveOption));
+            foreach(QString domainGroup, domainGroups) {
+                userPerms &= ~_server->_settingsManager.getForbiddensForGroup(domainGroup, QUuid());
+#ifdef WANT_DEBUG
+                qDebug() << "|  user-permissions: domain user is in blacklist group:" << domainGroup << "so:" << userPerms;
+#endif
+            }
+        }
+
+        userPerms.setVerifiedDomainUserName(verifiedDomainUserName);
     }
 
 #ifdef WANT_DEBUG
@@ -1065,7 +1083,7 @@ void DomainGatekeeper::getDomainGroupMemberships(const QString& domainUserName) 
     //         a copy of some of the following code can be made there. However, this code is still needed for refreshing groups.
 
     QStringList wordpressGroupsForUser;
-    wordpressGroupsForUser << "silVER" << "gold";
+    wordpressGroupsForUser << "silVER" << "gold" << "coal";
     _domainGroupMemberships[domainUserName] = wordpressGroupsForUser;
 }
 
