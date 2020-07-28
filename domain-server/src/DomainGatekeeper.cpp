@@ -174,11 +174,16 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
     if (!verifiedDomainUserName.isEmpty()) {
         auto userGroups = _domainGroupMemberships[verifiedDomainUserName];
         foreach (QString userGroup, userGroups) {
-            if (_server->_settingsManager.getAllKnownGroupNames().contains(userGroup, Qt::CaseInsensitive)) {
-                userPerms |= _server->_settingsManager.getPermissionsForGroup(userGroup, QUuid()); // No rank for domain groups.
+            // Domain groups may be specified as comma- and/or space-separated lists of group names.
+            // For example, "silver gold, platinum".
+            auto domainGroups = _server->_settingsManager.getAllKnownGroupNames()
+                .filter(QRegularExpression("^(.*[\\s,])?" + userGroup + "([\\s,].*)?$", 
+                    QRegularExpression::CaseInsensitiveOption));
+            foreach(QString domainGroup, domainGroups) {
+                userPerms |= _server->_settingsManager.getPermissionsForGroup(domainGroup, QUuid()); // No rank for domain groups.
 // ####### Enable ifdef
 //#ifdef WANT_DEBUG
-                qDebug() << "|  user-permissions: domain user " << verifiedDomainUserName << "is in group:" << userGroup 
+                qDebug() << "|  user-permissions: domain user " << verifiedDomainUserName << "is in group:" << domainGroup
                     << "so:" << userPerms;
 //#endif
             }
@@ -1059,7 +1064,8 @@ void DomainGatekeeper::getDomainGroupMemberships(const QString& domainUserName) 
     //         This may be able to be provided at the same time as the "authenticate user" call to the domain API, in which case
     //         a copy of some of the following code can be made there. However, this code is still needed for refreshing groups.
 
-    QStringList wordpressGroupsForUser = QStringList("siLVer");
+    QStringList wordpressGroupsForUser;
+    wordpressGroupsForUser << "silVER" << "gold";
     _domainGroupMemberships[domainUserName] = wordpressGroupsForUser;
 }
 
