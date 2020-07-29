@@ -25,6 +25,7 @@
 #include <UserActivityLogger.h>
 
 #include "AccountManager.h"
+#include "DomainAccountManager.h"
 #include "DependencyManager.h"
 #include "DialogsManager.h"
 #include "Menu.h"
@@ -40,11 +41,16 @@ const QUrl LOGIN_DIALOG = PathUtils::qmlUrl("OverlayLoginDialog.qml");
 
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     auto accountManager = DependencyManager::get<AccountManager>();
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
     // the login hasn't been dismissed yet if the user isn't logged in and is encouraged to login.
 #if !defined(Q_OS_ANDROID)
     connect(accountManager.data(), &AccountManager::loginComplete,
         this, &LoginDialog::handleLoginCompleted);
     connect(accountManager.data(), &AccountManager::loginFailed,
+            this, &LoginDialog::handleLoginFailed);
+    connect(domainAccountManager.data(), &DomainAccountManager::loginComplete,
+        this, &LoginDialog::handleLoginCompleted);
+    connect(domainAccountManager.data(), &DomainAccountManager::loginFailed,
             this, &LoginDialog::handleLoginFailed);
     connect(qApp, &Application::loginDialogFocusEnabled, this, &LoginDialog::focusEnabled);
     connect(qApp, &Application::loginDialogFocusDisabled, this, &LoginDialog::focusDisabled);
@@ -139,11 +145,7 @@ void LoginDialog::login(const QString& username, const QString& password) const 
 
 void LoginDialog::loginDomain(const QString& username, const QString& password, const QString& domainAuthProvider) const {
     qDebug() << "Attempting to login" << username << "into a domain through" << domainAuthProvider;
-    // ####### TODO
-    // DependencyManager::get<DomainAccountManager>()->requestAccessToken(username, password, domainAuthProvider);
-
-    // ####### TODO: It may not be necessary to pass domainAuthProvider to the login dialog and through to here because it was 
-    //               originally provided to the QML from C++.
+    DependencyManager::get<DomainAccountManager>()->requestAccessToken(username, password, domainAuthProvider);
 }
 
 void LoginDialog::loginThroughOculus() {

@@ -25,15 +25,22 @@ public:
     Q_INVOKABLE bool checkAndSignalForAccessToken();
 
 public slots:
-
+    void requestAccessToken(const QString& login, const QString& password, const QString& domainAuthProvider);
+    
+    void requestAccessTokenFinished();
 signals:
     void authRequired();
+    void loginComplete(const QUrl& authURL);
+    void loginFailed();
+    void logoutComplete();
 
 private slots:
 
 private:
     bool hasValidAccessToken();
-
+    bool accessTokenIsExpired();
+    void setAccessTokenFromJSON(const QJsonObject&);
+    void sendInterfaceAccessTokenToServer();
 };
 
 #endif  // hifi_DomainAccountManager_h
