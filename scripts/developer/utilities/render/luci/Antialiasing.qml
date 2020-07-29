@@ -38,7 +38,7 @@ Column{
 
     Prop.PropEnum {
         label: "Deferred AA Method"
-        object: Render.getConfig("RenderMainView.Antialiasing")
+        object: Render.getConfig("RenderMainView.AntialiasingSetup")
         property: "mode"
         enums: [
             "Off",
@@ -53,14 +53,14 @@ Column{
         property: "state"
         enums: [
             "Off",
-            "On",
             "Paused",
+            "On",
                 ]
     }
     Separator {}          
 
     Prop.PropScalar {
-        visible: (Render.getConfig("RenderMainView.AntialiasingSetup").state == 2)
+        visible: (Render.getConfig("RenderMainView.AntialiasingSetup").state == 1)
         label: "Sample Index"
         object: Render.getConfig("RenderMainView.AntialiasingSetup")
         property: "index"
@@ -70,7 +70,7 @@ Column{
         integral: true
     }
     Row {
-        visible: (Render.getConfig("RenderMainView.AntialiasingSetup").state == 2)
+        visible: (Render.getConfig("RenderMainView.AntialiasingSetup").state == 1)
         spacing: 10
 
         HifiControls.Button {
@@ -105,18 +105,15 @@ Column{
         min: 0.5
     }                       
     Separator {}
-    Row {
-        spacing: 10
-        Prop.PropBool {
-            label: "Feedback history color"
-            object: Render.getConfig("RenderMainView.Antialiasing")
-            property: "feedbackColor"
-        }
-        Prop.PropBool {
-            label: "History bicubic fetch"
-            object: Render.getConfig("RenderMainView.Antialiasing")
-            property: "bicubicHistoryFetch"
-        }
+    Prop.PropBool {
+        label: "Feedback history color"
+        object: Render.getConfig("RenderMainView.Antialiasing")
+        property: "feedbackColor"
+    }
+    Prop.PropBool {
+        label: "History bicubic fetch"
+        object: Render.getConfig("RenderMainView.Antialiasing")
+        property: "bicubicHistoryFetch"
     }
     Prop.PropScalar {
         label: "Source blend"

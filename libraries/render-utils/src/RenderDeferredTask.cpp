@@ -140,7 +140,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     fadeEffect->build(task, opaques);
 
-    task.addJob<AntialiasingSetup>("AntialiasingSetup");
+    const auto antialiasingMode = task.addJob<AntialiasingSetup>("AntialiasingSetup");
 
     // GPU jobs: Start preparing the primary, deferred and lighting buffer
     const auto scaledPrimaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBufferDeferred");
@@ -221,7 +221,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawLayered3D>("DrawInFrontTransparent", inFrontTransparentsInputs, shapePlumberForward, false, true, mainViewTransformSlot);
 
     // AA job before bloom to limit flickering
-    const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).asVarying();
+    const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, antialiasingMode).asVarying();
     const auto antialiasingIntensityTexture = task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 
     // Add bloom

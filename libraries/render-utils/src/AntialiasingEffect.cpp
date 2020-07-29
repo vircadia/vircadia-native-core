@@ -40,7 +40,27 @@ gpu::PipelinePointer Antialiasing::_debugBlendPipeline;
  #define TAA_JITTER_SEQUENCE_LENGTH 16
 
 void AntialiasingSetupConfig::setIndex(int current) {
-    _index = (current) % TAA_JITTER_SEQUENCE_LENGTH;
+    _index = (current + TAA_JITTER_SEQUENCE_LENGTH) % TAA_JITTER_SEQUENCE_LENGTH;
+    emit dirty();
+}
+
+void AntialiasingSetupConfig::setState(int state) {
+    _state = (state) % 3;
+    switch (_state) {
+        case 0: {
+            none();
+            break;
+        }
+        case 1: {
+            pause();
+            break;
+        }
+        case 2:
+        default: {
+            play();
+            break;
+        }
+    }
     emit dirty();
 }
 
@@ -114,11 +134,13 @@ void AntialiasingSetup::configure(const Config& config) {
         _freezedSampleIndex = config.getIndex();
     }
     _scale = config.scale;
+
+    _mode = config.mode;
 }
 
-void AntialiasingSetup::run(const render::RenderContextPointer& renderContext) {
+void AntialiasingSetup::run(const render::RenderContextPointer& renderContext, Output& output) {
     assert(renderContext->args);
-    if (!_isStopped) {
+    if (!_isStopped && _mode == AntialiasingSetupConfig::Mode::TAA) {
         RenderArgs* args = renderContext->args;
 
         gpu::doInBatch("AntialiasingSetup::run", args->_context, [&](gpu::Batch& batch) {
@@ -132,6 +154,8 @@ void AntialiasingSetup::run(const render::RenderContextPointer& renderContext) {
             batch.setProjectionJitterScale(_scale);
         });
     }
+
+    output = _mode;
 }
 
 Antialiasing::Antialiasing(bool isSharpenEnabled) : 
@@ -208,7 +232,7 @@ void Antialiasing::configure(const Config& config) {
     _params.edit().debugShowVelocityThreshold = config.debugShowVelocityThreshold;
 
     _params.edit().regionInfo.x = config.debugX;
-    _params.edit().regionInfo.z = config.debugFXAAX;
+    _debugFXAAX = config.debugFXAAX;
 
     _params.edit().setBicubicHistoryFetch(config.bicubicHistoryFetch);
 
@@ -231,7 +255,10 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
     const auto& sourceBuffer = deferredFrameBuffer->getLightingFramebuffer();
     const auto& linearDepthBuffer = inputs.get2();
     const auto& velocityTexture = deferredFrameBuffer->getDeferredVelocityTexture();
-    
+    const auto& mode = inputs.get3();
+
+    _params.edit().regionInfo.z = mode == AntialiasingSetupConfig::Mode::TAA ? _debugFXAAX : 0.0f;
+
     int width = sourceBuffer->getWidth();
     int height = sourceBuffer->getHeight();
 

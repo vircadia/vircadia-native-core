@@ -25,12 +25,23 @@ class AntialiasingSetupConfig : public render::Job::Config {
     Q_PROPERTY(bool freeze MEMBER freeze NOTIFY dirty)
     Q_PROPERTY(bool stop MEMBER stop NOTIFY dirty)
     Q_PROPERTY(int index READ getIndex NOTIFY dirty)
+    Q_PROPERTY(int state READ getState WRITE setState NOTIFY dirty)
+    Q_PROPERTY(int mode READ getAAMode WRITE setAAMode NOTIFY dirty)
+
 public:
     AntialiasingSetupConfig() : render::Job::Config(true) {}
+
+    enum Mode {
+        OFF = 0,
+        TAA,
+        FXAA,
+        MODE_COUNT
+    };
 
     float scale{ 1.0f };
     bool stop{ false };
     bool freeze{ false };
+    int mode { TAA };
 
     void setIndex(int current);
     void setState(int state);
@@ -45,6 +56,10 @@ public slots:
 
     int getIndex() const { return _index; }
     int getState() const { return _state; }
+
+    void setAAMode(int mode) { this->mode = std::min((int)AntialiasingSetupConfig::MODE_COUNT, std::max(0, mode)); emit dirty(); }
+    int getAAMode() const { return mode; }
+
 signals:
     void dirty();
 
@@ -58,12 +73,13 @@ class AntialiasingSetup {
 public:
 
     using Config = AntialiasingSetupConfig;
-    using JobModel = render::Job::Model<AntialiasingSetup, Config>;
+    using Output = int;
+    using JobModel = render::Job::ModelO<AntialiasingSetup, Output, Config>;
 
     AntialiasingSetup();
 
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext);
+    void run(const render::RenderContextPointer& renderContext, Output& output);
 
 private:
 
@@ -72,6 +88,7 @@ private:
     int _freezedSampleIndex { 0 };
     bool _isStopped { false };
     bool _isFrozen { false };
+    int _mode { AntialiasingSetupConfig::Mode::TAA };
 };
 
 
@@ -168,7 +185,7 @@ using TAAParamsBuffer = gpu::StructBuffer<TAAParams>;
 
 class Antialiasing {
 public:
-    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, DeferredFramebufferPointer, LinearDepthFramebufferPointer>;
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, DeferredFramebufferPointer, LinearDepthFramebufferPointer, int>;
     using Outputs = gpu::TexturePointer;
     using Config = AntialiasingConfig;
     using JobModel = render::Job::ModelIO<Antialiasing, Inputs, Outputs, Config>;
@@ -197,8 +214,9 @@ private:
     static gpu::PipelinePointer _debugBlendPipeline;
 
     TAAParamsBuffer _params;
-    float _sharpen{ 0.15f };
-    bool _isSharpenEnabled{ true };
+    float _sharpen { 0.15f };
+    bool _isSharpenEnabled { true };
+    float _debugFXAAX { 0.0f };
 };
 
 #endif // hifi_AntialiasingEffect_h
