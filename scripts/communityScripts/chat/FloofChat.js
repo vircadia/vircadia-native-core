@@ -626,19 +626,23 @@ function setVisible(_visible) {
 }
 
 function avatarJoinsDomain(sessionID) {
-    var messageText = AvatarManager.getPalData(sessionID).data[0].sessionDisplayName + " has joined."
-    var messageColor = {red: 122, green: 122, blue: 122};
-    addToLog(messageText, "Notice", messageColor, "Domain");
-    Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
-        sender: "(D)",
-        text:  messageText,
-        colour: {text: messageColor}
-    }));
+    Script.setTimeout(function () {
+        var messageText = AvatarManager.getPalData(sessionID).data[0].sessionDisplayName + " has joined."
+        var messageColor = {red: 122, green: 122, blue: 122};
+        playNotificationSound();
+        addToLog(messageText, "Notice", messageColor, "Domain");
+        Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
+            sender: "(D)",
+            text:  messageText,
+            colour: {text: messageColor}
+        }));
+    }, 500); // Wait 500ms for the avatar to load to properly get info about them.
 }
 
 function avatarLeavesDomain(sessionID) {
     var messageText = AvatarManager.getPalData(sessionID).data[0].sessionDisplayName + " has left."
     var messageColor = {red: 122, green: 122, blue: 122};
+    playNotificationSound();
     addToLog(messageText, "Notice", messageColor, "Domain");
     Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
         sender: "(D)",
