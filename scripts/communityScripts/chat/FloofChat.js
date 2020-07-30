@@ -516,7 +516,8 @@ function messageReceived(channel, message) {
 
 function time() {
     var d = new Date();
-    var month = (d.getMonth()).toString();
+    // Months are returned in range 0-11 instead of 1-12, so we have to add 1.
+    var month = (d.getMonth() + 1).toString(); 
     var day = (d.getDate()).toString();
     var h = (d.getHours()).toString();
     var m = (d.getMinutes()).toString();
