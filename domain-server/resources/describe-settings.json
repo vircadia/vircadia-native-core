@@ -59,12 +59,12 @@
     },
     {
       "name": "authentication",
-      "label": "Networking / Authentication",
+      "label": "Networking / WordPress OAuth2",
       "settings": [
         {
             "name": "enable_oauth2",
             "label": "Enable OAuth2 Authentication",
-            "help": "Allow a WordPress-based OAuth2 service to assign users to groups based on their role with the service.",
+            "help": "Allow a WordPress-based (miniOrange) OAuth2 service to assign users to groups based on their role with the service.",
             "default": false,
             "type": "checkbox",
             "advanced": true

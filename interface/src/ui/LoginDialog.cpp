@@ -428,8 +428,6 @@ bool LoginDialog::getDomainLoginRequested() const {
     return DependencyManager::get<DialogsManager>()->getIsDomainLogin();
 }
 
-// ####### TODO: This method may not be necessary.
 QString LoginDialog::getDomainLoginAuthProvider() const {
-    // ####### TODO
-    return QString("https://example.com/oauth2");
+    return DependencyManager::get<DialogsManager>()->getDomainLoginAuthProvider();
 }
