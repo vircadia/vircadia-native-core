@@ -6,6 +6,7 @@
 //
 //  Created by Fluffy Jenkins January 2020.
 //  Copyright 2020 Fluffy Jenkins
+//  Copyright 2020 Vircadia contributors.
 //
 //  For any future coders, please keep me in the loop when making changes.
 //  Please tag me in any Pull Requests.
@@ -98,6 +99,8 @@ function init() {
     chatBar.sendToQml(JSON.stringify({visible: false, history: chatBarHistory}));
     Controller.keyPressEvent.connect(keyPressEvent);
     Messages.messageReceived.connect(messageReceived);
+    AvatarManager.avatarAddedEvent.connect(avatarJoinsDomain);
+    AvatarManager.avatarRemovedEvent.connect(avatarLeavesDomain);
 
     connectWebSocket();
 }
@@ -510,6 +513,9 @@ function messageReceived(channel, message) {
                     }));
                 }
             }
+            if (cmd.type === "ShowChatWindow") {
+                toggleMainChatWindow();
+            }
         }
     }
 }
@@ -619,6 +625,28 @@ function setVisible(_visible) {
     visible = _visible;
 }
 
+function avatarJoinsDomain(sessionID) {
+    var messageText = AvatarManager.getPalData(sessionID).data[0].sessionDisplayName + " has joined."
+    var messageColor = {red: 122, green: 122, blue: 122};
+    addToLog(messageText, "Notice", messageColor, "Domain");
+    Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
+        sender: "(D)",
+        text:  messageText,
+        colour: {text: messageColor}
+    }));
+}
+
+function avatarLeavesDomain(sessionID) {
+    var messageText = AvatarManager.getPalData(sessionID).data[0].sessionDisplayName + " has left."
+    var messageColor = {red: 122, green: 122, blue: 122};
+    addToLog(messageText, "Notice", messageColor, "Domain");
+    Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
+        sender: "(D)",
+        text:  messageText,
+        colour: {text: messageColor}
+    }));
+}
+
 function keyPressEvent(event) {
     if (event.key === H_KEY && !event.isAutoRepeat && event.isControl) {
         toggleMainChatWindow()
@@ -637,11 +665,25 @@ function shutdown() {
     } catch (e) {
         // empty
     }
+    
+    try {
+        AvatarManager.avatarAddedEvent.disconnect(avatarJoinsDomain);
+    } catch (e) {
+        // empty
+    }
+    
+    try {
+        AvatarManager.avatarRemovedEvent.disconnect(avatarLeavesDomain);
+    } catch (e) {
+        // empty
+    }
+    
     try {
         Controller.keyPressEvent.disconnect(keyPressEvent);
     } catch (e) {
         // empty
     }
+    
     chatBar.close();
     chatHistory.close();
 }
