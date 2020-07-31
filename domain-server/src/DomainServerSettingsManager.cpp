@@ -2185,6 +2185,24 @@ QList<QUuid> DomainServerSettingsManager::getBlacklistGroupIDs() {
     return result.toList();
 }
 
+QStringList DomainServerSettingsManager::getDomainGroupNames() {
+    // Names as configured in domain server; not necessarily mnetaverse groups.
+    QSet<QString> result;
+    foreach(NodePermissionsKey groupKey, _groupPermissions.keys()) {
+        result += _groupPermissions[groupKey]->getID();
+    }
+    return result.toList();
+}
+
+QStringList DomainServerSettingsManager::getDomainBlacklistGroupNames() {
+    // Names as configured in domain server; not necessarily mnetaverse groups.
+    QSet<QString> result;
+    foreach (NodePermissionsKey groupKey, _groupForbiddens.keys()) {
+        result += _groupForbiddens[groupKey]->getID();
+    }
+    return result.toList();
+}
+
 void DomainServerSettingsManager::debugDumpGroupsState() {
     qDebug() << "--------- GROUPS ---------";
 
