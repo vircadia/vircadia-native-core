@@ -156,10 +156,8 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
 }
 
 NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QString verifiedUsername,
-                                                        QString verifiedDomainUserName, 
-                                                        QStringList verifiedDomainUserGroups,
-                                                        const QHostAddress& senderAddress, const QString& hardwareAddress,
-                                                        const QUuid& machineFingerprint) {
+                                                        QString verifiedDomainUserName, const QHostAddress& senderAddress, 
+                                                        const QString& hardwareAddress, const QUuid& machineFingerprint) {
     NodePermissions userPerms;
 
     userPerms.setAll(false);
@@ -171,21 +169,25 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
 #endif
     }
 
-    // If this user is a known member of an externally-hosted group, give them the implied permissions.
+    // If this user is a known member of a domain group, give them the implied permissions.
     // Do before processing verifiedUsername in case user is logged into the metaverse and is a member of a blacklist group.
-    if (!verifiedDomainUserName.isEmpty() && !verifiedDomainUserGroups.isEmpty()) {
-        foreach (QString group, verifiedDomainUserGroups) {
-            if (_server->_settingsManager.getAllKnownGroupNames().contains(group)) {
-                userPerms |= _server->_settingsManager.getPermissionsForGroup(group, QUuid());
-//#ifdef WANT_DEBUG
-                qDebug() << "|  user-permissions: domain user " << verifiedDomainUserName << "is in group:" << group << "so:" << userPerms;
-//#endif
-
+    if (!verifiedDomainUserName.isEmpty()) {
+        auto userGroups = _domainGroupMemberships[verifiedDomainUserName];
+        foreach (QString userGroup, userGroups) {
+            // Domain groups may be specified as comma- and/or space-separated lists of group names.
+            // For example, "silver gold, platinum".
+            auto domainGroups = _server->_settingsManager.getDomainGroupNames()
+                .filter(QRegularExpression("^(.*[\\s,])?" + userGroup + "([\\s,].*)?$", 
+                    QRegularExpression::CaseInsensitiveOption));
+            foreach(QString domainGroup, domainGroups) {
+                userPerms |= _server->_settingsManager.getPermissionsForGroup(domainGroup, QUuid()); // No rank for domain groups.
+#ifdef WANT_DEBUG
+                qDebug() << "|  user-permissions: domain user " << verifiedDomainUserName << "is in group:" << domainGroup
+                    << "so:" << userPerms;
+#endif
             }
         }
 
-        userPerms.setVerifiedDomainUserName(verifiedDomainUserName);
-        userPerms.setVerifiedDomainUserGroups(verifiedDomainUserGroups);
     }
 
     if (verifiedUsername.isEmpty()) {
@@ -289,6 +291,26 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
         userPerms.setVerifiedUserName(verifiedUsername);
     }
 
+    // If this user is a known member of an domain group that is blacklisted, remove the implied permissions.
+    if (!verifiedDomainUserName.isEmpty()) {
+        auto userGroups = _domainGroupMemberships[verifiedDomainUserName];
+        foreach(QString userGroup, userGroups) {
+            // Domain groups may be specified as comma- and/or space-separated lists of group names.
+            // For example, "silver gold, platinum".
+            auto domainGroups = _server->_settingsManager.getDomainBlacklistGroupNames()
+                .filter(QRegularExpression("^(.*[\\s,])?" + userGroup + "([\\s,].*)?$",
+                    QRegularExpression::CaseInsensitiveOption));
+            foreach(QString domainGroup, domainGroups) {
+                userPerms &= ~_server->_settingsManager.getForbiddensForGroup(domainGroup, QUuid());
+#ifdef WANT_DEBUG
+                qDebug() << "|  user-permissions: domain user is in blacklist group:" << domainGroup << "so:" << userPerms;
+#endif
+            }
+        }
+
+        userPerms.setVerifiedDomainUserName(verifiedDomainUserName);
+    }
+
 #ifdef WANT_DEBUG
     qDebug() << "|  user-permissions: final:" << userPerms;
 #endif
@@ -309,7 +331,6 @@ void DomainGatekeeper::updateNodePermissions() {
         // authentication and verifiedUsername is only set once they user's key has been confirmed.
         QString verifiedUsername = node->getPermissions().getVerifiedUserName();
         QString verifiedDomainUserName = node->getPermissions().getVerifiedDomainUserName();
-        QStringList verifiedDomainUserGroups = node->getPermissions().getVerifiedDomainUserGroups();
         NodePermissions userPerms(NodePermissionsKey(verifiedUsername, 0));
 
         if (node->getPermissions().isAssignment) {
@@ -345,8 +366,7 @@ void DomainGatekeeper::updateNodePermissions() {
             }
 
             userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, verifiedDomainUserName, 
-                                              verifiedDomainUserGroups, connectingAddr.getAddress(), 
-                                              hardwareAddress, machineFingerprint);
+                                              connectingAddr.getAddress(), hardwareAddress, machineFingerprint);
         }
 
         node->setPermissions(userPerms);
@@ -486,31 +506,28 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
             // ####### TODO: OAuth2 corollary of metaverse code, above.
 
+            getDomainGroupMemberships(domainUsernameSignature); // Optimistically get started on group memberships.
+#ifdef WANT_DEBUG
+            qDebug() << "stalling login because we have no domain username-signature:" << domainUsername;
+#endif
             return SharedNodePointer();
         } else if (verifyDomainUserSignature(domainUsername, domainUsernameSignature, nodeConnection.senderSockAddr)) {
             // User's domain identity is confirmed.
-
-            // ####### TODO: Get user's domain group memberships (WordPress roles) from domain.
-            //               This may already be provided at the same time as the "verify" call to the domain API.
-            //               If it isn't, need to initiate getting them then handle their receipt along the lines of the 
-            //               metaverse code, above.
-            verifiedDomainUserGroups = QString("test-group").toLower().split(" ");
-
+            getDomainGroupMemberships(domainUsername);
             verifiedDomainUsername = domainUsername.toLower();
-
         } else {
             // User's identity didn't check out.
 
             // ####### TODO: OAuth2 corollary of metaverse code, above.
 
 #ifdef WANT_DEBUG
-            qDebug() << "stalling login because signature verification failed:" << username;
+            qDebug() << "stalling login because domain signature verification failed:" << domainUsername;
 #endif
             return SharedNodePointer();
         }
     }
 
-    userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, verifiedDomainUsername, verifiedDomainUserGroups,
+    userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, verifiedDomainUsername,
                                       nodeConnection.senderSockAddr.getAddress(), nodeConnection.hardwareAddress,
                                       nodeConnection.machineFingerprint);
 
@@ -1004,7 +1021,6 @@ void DomainGatekeeper::getGroupMemberships(const QString& username) {
                                                           AccountManagerAuth::Required,
                                                           QNetworkAccessManager::PostOperation, callbackParams,
                                                           QJsonDocument(json).toJson());
-
 }
 
 QString extractUsernameFromGroupMembershipsReply(QNetworkReply* requestReply) {
@@ -1059,6 +1075,21 @@ void DomainGatekeeper::getIsGroupMemberErrorCallback(QNetworkReply* requestReply
     _inFlightGroupMembershipsRequests.remove(extractUsernameFromGroupMembershipsReply(requestReply));
 }
 
+
+void DomainGatekeeper::getDomainGroupMemberships(const QString& domainUserName) {
+
+    // ####### TODO: Get user's domain group memberships (WordPress roles) from domain.
+    //         This may be able to be provided at the same time as the "authenticate user" call to the domain API, in which case
+    //         a copy of some of the following code can be made there. However, this code is still needed for refreshing groups.
+
+    // ####### TODO: Check how often this method and the WordPress API is called.
+
+    QStringList wordpressGroupsForUser;
+    wordpressGroupsForUser << "silVER" << "gold" << "coal";
+    _domainGroupMemberships[domainUserName] = wordpressGroupsForUser;
+}
+
+
 void DomainGatekeeper::getDomainOwnerFriendsList() {
     JSONCallbackParameters callbackParams;
     callbackParams.callbackReceiver = this;
@@ -1107,6 +1138,7 @@ void DomainGatekeeper::getDomainOwnerFriendsListErrorCallback(QNetworkReply* req
     qDebug() << "getDomainOwnerFriendsList api call failed:" << requestReply->error();
 }
 
+// ####### TODO: Domain equivalent or addition
 void DomainGatekeeper::refreshGroupsCache() {
     // if agents are connected to this domain, refresh our cached information about groups and memberships in such.
     getDomainOwnerFriendsList();
