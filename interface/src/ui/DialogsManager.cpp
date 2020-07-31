@@ -144,6 +144,11 @@ void DialogsManager::showDomainLoginDialog() {
     LoginDialog::showWithSelection();
 }
 
+// #######: TODO: Domain version of toggleLoginDialog()?
+
+// #######: TODO: Domain version of hiadLoginDialog()?
+
+
 void DialogsManager::showUpdateDialog() {
     UpdateDialog::show();
 }

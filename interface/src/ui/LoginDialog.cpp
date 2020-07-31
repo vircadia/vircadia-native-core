@@ -146,6 +146,9 @@ void LoginDialog::login(const QString& username, const QString& password) const 
 void LoginDialog::loginDomain(const QString& username, const QString& password, const QString& domainAuthProvider) const {
     qDebug() << "Attempting to login" << username << "into a domain through" << domainAuthProvider;
     DependencyManager::get<DomainAccountManager>()->requestAccessToken(username, password, domainAuthProvider);
+
+    // ####### TODO: It may not be necessary to pass domainAuthProvider to the login dialog and through to here because it was 
+    //               originally provided to the QML from C++.
 }
 
 void LoginDialog::loginThroughOculus() {
