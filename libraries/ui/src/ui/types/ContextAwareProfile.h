@@ -11,9 +11,10 @@
 #ifndef hifi_ContextAwareProfile_h
 #define hifi_ContextAwareProfile_h
 
-#include <QtCore/QtGlobal>
+#include <atomic>
 #include <QtCore/QMap>
-#include <QtCore/QMutex>
+#include <QtCore/QReadWriteLock>
+#include <QtCore/QSet>
 #include <QtCore/QSharedPointer>
 
 #if !defined(Q_OS_ANDROID)
@@ -29,36 +30,7 @@ using ContextAwareProfileParent = QObject;
 using RequestInterceptorParent = QObject;
 #endif
 
-#include <NumericalConstants.h>
-
 class QQmlContext;
-
-class RestrictedContextMonitor : public QObject {
-    Q_OBJECT
-public:
-    typedef QSharedPointer<RestrictedContextMonitor> TSharedPointer;
-    typedef QWeakPointer<RestrictedContextMonitor> TWeakPointer;
-
-    inline RestrictedContextMonitor(QQmlContext* c) : _context(c) {}
-    ~RestrictedContextMonitor();
-
-    static TSharedPointer getMonitor(QQmlContext* context, bool createIfMissing);
-
-signals:
-    void onIsRestrictedChanged(bool newValue);
-
-public:
-    TWeakPointer _selfPointer;
-    QQmlContext* _context{ nullptr };
-    bool _isRestricted{ true };
-    bool _isUninitialized{ true };
-
-private:
-    typedef QMap<QQmlContext*, TWeakPointer> TMonitorMap;
-
-    static QMutex gl_monitorMapProtect;
-    static TMonitorMap gl_monitorMap;
-};
 
 class ContextAwareProfile : public ContextAwareProfileParent {
     Q_OBJECT
@@ -77,14 +49,18 @@ protected:
     };
 
     ContextAwareProfile(QQmlContext* parent);
-    QQmlContext* _context{ nullptr };
-    QAtomicInt _isRestricted{ 0 };
-
-private slots:
+    ~ContextAwareProfile();
     void onIsRestrictedChanged(bool newValue);
 
+    QQmlContext* _context{ nullptr };
+    std::atomic<bool> _isRestricted{ false };
+
 private:
-    RestrictedContextMonitor::TSharedPointer _monitor;
+    typedef QSet<ContextAwareProfile*> ContextAwareProfileSet;
+    typedef QMap<QQmlContext*, ContextAwareProfileSet> ContextMap;
+
+    static QReadWriteLock gl_contextMapProtect;
+    static ContextMap gl_contextMap;
 };
 
 #endif // hifi_FileTypeProfile_h

@@ -12,8 +12,9 @@
 #include "ContextAwareProfile.h"
 
 #include <cassert>
-#include <QtCore/QMutexLocker>
+#include <QtCore/QReadLocker>
 #include <QtCore/QThread>
+#include <QtCore/QWriteLocker>
 #include <QtQml/QQmlContext>
 
 #include <shared/QtHelpers.h>
@@ -21,53 +22,59 @@
 
 static const QString RESTRICTED_FLAG_PROPERTY = "RestrictFileAccess";
 
-QMutex RestrictedContextMonitor::gl_monitorMapProtect;
-RestrictedContextMonitor::TMonitorMap RestrictedContextMonitor::gl_monitorMap;
-
-RestrictedContextMonitor::~RestrictedContextMonitor() {
-    QMutexLocker locker(&gl_monitorMapProtect);
-    TMonitorMap::iterator lookup = gl_monitorMap.find(_context);
-    if (lookup != gl_monitorMap.end()) {
-        gl_monitorMap.erase(lookup);
-    }
-}
-
-RestrictedContextMonitor::TSharedPointer RestrictedContextMonitor::getMonitor(QQmlContext* context, bool createIfMissing) {
-    TSharedPointer monitor;
-
-    QMutexLocker locker(&gl_monitorMapProtect);
-    TMonitorMap::const_iterator lookup = gl_monitorMap.find(context);
-    if (lookup != gl_monitorMap.end()) {
-        monitor = lookup.value().lock();
-        assert(monitor);
-    } else if(createIfMissing) {
-        monitor = TSharedPointer::create(context);
-        monitor->_selfPointer = monitor;
-        gl_monitorMap.insert(context, monitor);
-    }
-    return monitor;
-}
+QReadWriteLock ContextAwareProfile::gl_contextMapProtect;
+ContextAwareProfile::ContextMap ContextAwareProfile::gl_contextMap;
 
 ContextAwareProfile::ContextAwareProfile(QQmlContext* context) : ContextAwareProfileParent(context), _context(context) {
     assert(context);
 
-    _monitor = RestrictedContextMonitor::getMonitor(context, true);
-    assert(_monitor);
-    connect(_monitor.get(), &RestrictedContextMonitor::onIsRestrictedChanged, this, &ContextAwareProfile::onIsRestrictedChanged);
-    if (_monitor->_isUninitialized) {
-        _monitor->_isRestricted = isRestrictedGetProperty();
-        _monitor->_isUninitialized = false;
+    {   // register our object for future updates
+        QWriteLocker guard(&gl_contextMapProtect);
+        ContextMap::iterator setLookup = gl_contextMap.find(_context);
+        if (setLookup == gl_contextMap.end()) {
+            setLookup = gl_contextMap.insert(_context, ContextAwareProfileSet());
+        }
+        assert(setLookup != gl_contextMap.end());
+        ContextAwareProfileSet& profileSet = setLookup.value();
+        assert(profileSet.find(this) == profileSet.end());
+        profileSet.insert(this);
     }
-    _isRestricted.store(_monitor->_isRestricted ? 1 : 0);
+
+    _isRestricted.store(isRestrictedGetProperty());
+}
+
+ContextAwareProfile::~ContextAwareProfile() {
+    {  // deregister our object
+        QWriteLocker guard(&gl_contextMapProtect);
+        ContextMap::iterator setLookup = gl_contextMap.find(_context);
+        assert(setLookup != gl_contextMap.end());
+        if (setLookup != gl_contextMap.end()) {
+            ContextAwareProfileSet& profileSet = setLookup.value();
+            assert(profileSet.find(this) != profileSet.end());
+            profileSet.remove(this);
+            if (profileSet.isEmpty()) {
+                gl_contextMap.erase(setLookup);
+            }
+        }
+    }
 }
 
 void ContextAwareProfile::restrictContext(QQmlContext* context, bool restrict) {
-    RestrictedContextMonitor::TSharedPointer monitor = RestrictedContextMonitor::getMonitor(context, false);
 
+    // set the QML property
     context->setContextProperty(RESTRICTED_FLAG_PROPERTY, restrict);
-    if (monitor && monitor->_isRestricted != restrict) {
-        monitor->_isRestricted = restrict;
-        monitor->onIsRestrictedChanged(restrict);
+
+    // broadcast the new value to any registered ContextAwareProfile objects
+    {  // deregister our object
+        QReadLocker guard(&gl_contextMapProtect);
+        ContextMap::const_iterator setLookup = gl_contextMap.find(context);
+        if (setLookup != gl_contextMap.end()) {
+            const ContextAwareProfileSet& profileSet = setLookup.value();
+            for (ContextAwareProfileSet::const_iterator profileIterator = profileSet.begin();
+                 profileIterator != profileSet.end(); profileIterator++) {
+                (*profileIterator)->onIsRestrictedChanged(restrict);
+            }
+        }
     }
 }
 
@@ -89,9 +96,9 @@ bool ContextAwareProfile::isRestrictedGetProperty() {
 }
 
 void ContextAwareProfile::onIsRestrictedChanged(bool newValue) {
-    _isRestricted.store(newValue ? 1 : 0);
+    _isRestricted.store(newValue);
 }
 
 bool ContextAwareProfile::isRestricted() {
-    return _isRestricted.load() != 0;
+    return _isRestricted.load();
 }
