@@ -627,7 +627,7 @@ function setVisible(_visible) {
 
 function avatarJoinsDomain(sessionID) {
     Script.setTimeout(function () {
-        var messageText = AvatarManager.getPalData(sessionID).data[0].sessionDisplayName + " has joined."
+        var messageText = AvatarManager.getPalData([sessionID]).data[0].sessionDisplayName + " has joined."
         var messageColor = {red: 122, green: 122, blue: 122};
         playNotificationSound();
         addToLog(messageText, "Notice", messageColor, "Domain");
@@ -640,7 +640,7 @@ function avatarJoinsDomain(sessionID) {
 }
 
 function avatarLeavesDomain(sessionID) {
-    var messageText = AvatarManager.getPalData(sessionID).data[0].sessionDisplayName + " has left."
+    var messageText = AvatarManager.getPalData([sessionID]).data[0].sessionDisplayName + " has left."
     var messageColor = {red: 122, green: 122, blue: 122};
     playNotificationSound();
     addToLog(messageText, "Notice", messageColor, "Domain");
