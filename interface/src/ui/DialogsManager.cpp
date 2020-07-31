@@ -135,7 +135,7 @@ void DialogsManager::showDomainLoginDialog() {
     static const QString WP_OAUTH2_SERVER_URL = "authentication_oauth2_url_base";
     
     if (!settingsObject.contains(WP_OAUTH2_SERVER_URL)) {
-        qDebug() << "Cannot log in to domain because an OAuth2 authorization was required but no authorization server was given.";
+        qDebug() << "Cannot log in to domain because an OAuth2 authorization was required but no authorization server was specified.";
         return;
     }
     
