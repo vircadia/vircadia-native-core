@@ -85,7 +85,7 @@
             "backup": false
         },
         {
-            "name": "authentication_oauth2_url_base",
+            "name": "oauth2_url_base",
             "label": "Authentication URL Base",
             "help": "The URL base that the Interface and domain-server will use to make API requests.",
             "advanced": true

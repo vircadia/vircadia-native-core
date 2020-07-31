@@ -13,6 +13,7 @@
 #define hifi_DomainAccountManager_h
 
 #include <QtCore/QObject>
+#include <QtCore/QUrl>
 
 #include <DependencyManager.h>
 
@@ -22,10 +23,12 @@ class DomainAccountManager : public QObject, public Dependency {
 public:
     DomainAccountManager();
 
+    void setAuthURL(const QUrl& authURL);
+
     Q_INVOKABLE bool checkAndSignalForAccessToken();
 
 public slots:
-    void requestAccessToken(const QString& login, const QString& password, const QString& domainAuthProvider);
+    void requestAccessToken(const QString& login, const QString& password);
     
     void requestAccessTokenFinished();
 signals:
@@ -41,6 +44,8 @@ private:
     bool accessTokenIsExpired();
     void setAccessTokenFromJSON(const QJsonObject&);
     void sendInterfaceAccessTokenToServer();
+
+    QUrl _authURL;
 };
 
 #endif  // hifi_DomainAccountManager_h

@@ -46,7 +46,6 @@ Item {
 
     readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
     readonly property bool isLoggingInToDomain: loginDialog.getDomainLoginRequested()
-    readonly property string domainAuthProvider: loginDialog.getDomainLoginAuthProvider()
 
     QtObject {
         id: d
@@ -76,7 +75,7 @@ Item {
         if (!isLoggingInToDomain) {
             loginDialog.login(emailField.text, passwordField.text);
         } else {
-            loginDialog.loginDomain(emailField.text, passwordField.text, domainAuthProvider);
+            loginDialog.loginDomain(emailField.text, passwordField.text);
         }
         
         if (linkAccountBody.loginDialogPoppedUp) {

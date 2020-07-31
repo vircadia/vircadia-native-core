@@ -42,7 +42,6 @@ public:
     void emitAddressBarShown(bool visible) { emit addressBarShown(visible); }
     void setAddressBarVisible(bool addressBarVisible);
     bool getIsDomainLogin() { return _isDomainLogin; }
-    QString getDomainLoginAuthProvider() { return _domainLoginAuthProvider; }
 
 public slots:
     void showAddressBar();
@@ -88,7 +87,6 @@ private:
     bool _addressBarVisible { false };
 
     bool _isDomainLogin { false };
-    QString _domainLoginAuthProvider { "" };
 };
 
 #endif // hifi_DialogsManager_h

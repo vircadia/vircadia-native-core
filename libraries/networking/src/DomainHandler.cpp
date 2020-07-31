@@ -584,8 +584,11 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
         }
     } else if (reasonSuggestsDomainLogin(reasonCode)) {
         qCWarning(networking) << "Make sure you are logged in to the domain.";
-        
+
         auto accountManager = DependencyManager::get<DomainAccountManager>();
+        if (!extraInfo.isEmpty()) {
+            accountManager->setAuthURL(extraInfo);
+        }
 
         if (!_hasCheckedForDomainAccessToken) {
             accountManager->checkAndSignalForAccessToken();

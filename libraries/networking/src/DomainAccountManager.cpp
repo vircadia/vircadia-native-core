@@ -45,7 +45,17 @@ DomainAccountManager::DomainAccountManager() {
     connect(this, &DomainAccountManager::loginComplete, this, &DomainAccountManager::sendInterfaceAccessTokenToServer);
 }
 
-void DomainAccountManager::requestAccessToken(const QString& login, const QString& password, const QString& domainAuthProvider) {
+void DomainAccountManager::setAuthURL(const QUrl& authURL) {
+    if (_authURL != authURL) {
+        _authURL = authURL;
+
+        qCDebug(networking) << "AccountManager URL for authenticated requests has been changed to" << qPrintable(_authURL.toString());
+
+        // ####### TODO: See AccountManager::setAuthURL().
+    }
+}
+
+void DomainAccountManager::requestAccessToken(const QString& login, const QString& password) {
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
@@ -53,7 +63,7 @@ void DomainAccountManager::requestAccessToken(const QString& login, const QStrin
     request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     request.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
 
-    _domainAuthProviderURL = domainAuthProvider;
+    _domainAuthProviderURL = _authURL;
     _domainAuthProviderURL.setPath("/oauth/token");
 
     QByteArray postData;

@@ -444,6 +444,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     return newNode;
 }
 
+const QString AUTHENTICATION_OAUTH2_URL_BASE = "authentication.oauth2_url_base";
 const QString MAXIMUM_USER_CAPACITY = "security.maximum_user_capacity";
 const QString MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION = "security.maximum_user_capacity_redirect_location";
 
@@ -533,8 +534,14 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
         if (domainHasLogin()) {
+            QString domainAuthURL;
+            auto domainAuthURLVariant = _server->_settingsManager.valueForKeyPath(AUTHENTICATION_OAUTH2_URL_BASE);
+            if (domainAuthURLVariant.canConvert<QString>()) {
+                domainAuthURL = domainAuthURLVariant.toString();
+                qDebug() << "Domain authorization URL:" << domainAuthURL;
+            }
             sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
-                nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedDomain);
+                nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedDomain, domainAuthURL);
         } else {
             sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
                 nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedMetaverse);
@@ -1164,13 +1171,8 @@ void DomainGatekeeper::refreshGroupsCache() {
 }
 
 bool DomainGatekeeper::domainHasLogin() {
-    // The domain may have its own users and groups. This is enabled in the server settings by ...
-    // ####### TODO: Use a particular string in the server name or set a particular tag in the server's settings?
-    //                Or add a new server setting?
-
-    // ####### TODO: Also configure URL for getting user's group memberships, in the server's settings?
-
-    // ####### TODO
+    // The domain may have its own users and groups. This is enabled in the server settings by ... #######
+    // ####### TODO: Base on server settings.
     return true;
 }
 
