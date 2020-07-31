@@ -29,17 +29,19 @@
 #include "udt/PacketHeaders.h"
 #include "NetworkAccessManager.h"
 
-const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
-const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
+// FIXME: Generalize to other OAuth2 sources for domain login.
 
+const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
+const QString DOMAIN_ACCOUNT_MANAGER_REQUESTED_SCOPE = "foo bar";  // ####### TODO: WordPress plugin's required scope.
+// ####### TODO: Should scope be configured in domain server settings?
+
+// ####### TODO: Add storing domain URL and check against it when retrieving values?
+// ####### TODO: Add storing _authURL and check against it when retrieving values?
 Setting::Handle<QString> domainAccessToken {"private/domainAccessToken", "" };
 Setting::Handle<QString> domainAccessRefreshToken {"private/domainAccessToken", "" };
 Setting::Handle<int> domainAccessTokenExpiresIn {"private/domainAccessTokenExpiresIn", -1 };
 Setting::Handle<QString> domainAccessTokenType {"private/domainAccessTokenType", "" };
 
-QUrl _domainAuthProviderURL;
-
-// FIXME: If you try to authenticate this way on another domain, no one knows what will happen. Probably death.
 
 DomainAccountManager::DomainAccountManager() {
     connect(this, &DomainAccountManager::loginComplete, this, &DomainAccountManager::sendInterfaceAccessTokenToServer);
@@ -57,25 +59,29 @@ void DomainAccountManager::setAuthURL(const QUrl& authURL) {
 
 void DomainAccountManager::requestAccessToken(const QString& login, const QString& password) {
 
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QNetworkRequest request;
-    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+
     request.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
-
-    _domainAuthProviderURL = _authURL;
-    _domainAuthProviderURL.setPath("/oauth/token");
-
-    QByteArray postData;
-    postData.append("grant_type=password&");
-    postData.append("username=" + QUrl::toPercentEncoding(login) + "&");
-    postData.append("password=" + QUrl::toPercentEncoding(password) + "&");
-    postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
-
-    request.setUrl(_domainAuthProviderURL);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+    // ####### TODO: WordPress plugin's authorization requirements.
+    request.setRawHeader(QByteArray("Authorization"), QByteArray("Basic b2F1dGgtY2xpZW50LTE6b2F1dGgtY2xpZW50LXNlY3JldC0x"));
 
-    QNetworkReply* requestReply = networkAccessManager.post(request, postData);
+    QByteArray formData;
+    formData.append("grant_type=password&");
+    formData.append("username=" + QUrl::toPercentEncoding(login) + "&");
+    formData.append("password=" + QUrl::toPercentEncoding(password) + "&");
+    formData.append("scope=" + DOMAIN_ACCOUNT_MANAGER_REQUESTED_SCOPE);
+    // ####### TODO: Include state?
+
+    QUrl domainAuthURL = _authURL;
+    domainAuthURL.setPath("/token");  // ####### TODO: miniOrange-mandated URL. ####### TODO: Should this be included in the server settings value?
+    request.setUrl(domainAuthURL);
+
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkReply* requestReply = networkAccessManager.post(request, formData);
     connect(requestReply, &QNetworkReply::finished, this, &DomainAccountManager::requestAccessTokenFinished);
 }
 
@@ -86,19 +92,25 @@ void DomainAccountManager::requestAccessTokenFinished() {
     const QJsonObject& rootObject = jsonResponse.object();
 
     if (!rootObject.contains("error")) {
-        // construct an OAuthAccessToken from the json object
+        // ####### TODO: Process response scope?
+        // ####### TODO: Process response state?
 
-        if (!rootObject.contains("access_token") || !rootObject.contains("expires_in")
+        if (!rootObject.contains("access_token") 
+            // ####### TODO: Does WordPRess plugin provide "expires_in"?
+            //               If so, handle here, or is it just the domain server that needs to use it?
+            //|| !rootObject.contains("expires_in")  
             || !rootObject.contains("token_type")) {
-            // TODO: error handling - malformed token response
+
             qCDebug(networking) << "Received a response for password grant that is missing one or more expected values.";
+            emit loginFailed();
+
         } else {
+
             // clear the path from the response URL so we have the right root URL for this access token
             QUrl rootURL = requestReply->url();
             rootURL.setPath("");
 
             qCDebug(networking) << "Storing a domain account with access-token for" << qPrintable(rootURL.toString());
-
             setAccessTokenFromJSON(rootObject);
 
             emit loginComplete(rootURL);
@@ -114,7 +126,11 @@ void DomainAccountManager::sendInterfaceAccessTokenToServer() {
 }
 
 bool DomainAccountManager::accessTokenIsExpired() {
+    // ####### TODO: accessTokenIsExpired()
+    return true;
+    /*
     return domainAccessTokenExpiresIn.get() != -1 && domainAccessTokenExpiresIn.get() <= QDateTime::currentMSecsSinceEpoch(); 
+    */
 }
 
 
@@ -125,7 +141,7 @@ bool DomainAccountManager::hasValidAccessToken() {
 
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
             qCDebug(networking) << "An access token is required for requests to"
-                                << qPrintable(_domainAuthProviderURL.toString());
+                                << qPrintable(_authURL.toString());
         }
 
         return false;
@@ -143,15 +159,23 @@ bool DomainAccountManager::hasValidAccessToken() {
 }
 
 void DomainAccountManager::setAccessTokenFromJSON(const QJsonObject& jsonObject) {
+    // ####### TODO: Enable and use these.
+    /*
     domainAccessToken.set(jsonObject["access_token"].toString());
     domainAccessRefreshToken.set(jsonObject["refresh_token"].toString());
     domainAccessTokenExpiresIn.set(QDateTime::currentMSecsSinceEpoch() + (jsonObject["expires_in"].toDouble() * 1000));
     domainAccessTokenType.set(jsonObject["token_type"].toString());
+    */
 }
 
 bool DomainAccountManager::checkAndSignalForAccessToken() {
     bool hasToken = hasValidAccessToken();
 
+    // ####### TODO: Handle hasToken == true. 
+    // It causes the login dialog not to display (OK) but somewhere the domain server needs to be sent it (and if domain server 
+    // gets error when trying to use it then user should be prompted to login).
+    hasToken = false;
+    
     if (!hasToken) {
         // Emit a signal so somebody can call back to us and request an access token given a user name and password.
 
