@@ -629,26 +629,40 @@ function avatarJoinsDomain(sessionID) {
     Script.setTimeout(function () {
         var messageText = AvatarManager.getPalData([sessionID]).data[0].sessionDisplayName + " has joined."
         var messageColor = {red: 122, green: 122, blue: 122};
-        playNotificationSound();
+        
         addToLog(messageText, "Notice", messageColor, "Domain");
-        Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
-            sender: "(D)",
-            text:  messageText,
-            colour: {text: messageColor}
-        }));
+        
+        if (!mutedAudio["Domain"]) {
+            playNotificationSound();
+        }
+        
+        if (!muted["Domain"]) {
+            Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
+                sender: "(D)",
+                text:  messageText,
+                colour: {text: messageColor}
+            }));
+        }
     }, 500); // Wait 500ms for the avatar to load to properly get info about them.
 }
 
 function avatarLeavesDomain(sessionID) {
     var messageText = AvatarManager.getPalData([sessionID]).data[0].sessionDisplayName + " has left."
     var messageColor = {red: 122, green: 122, blue: 122};
-    playNotificationSound();
+    
     addToLog(messageText, "Notice", messageColor, "Domain");
-    Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
-        sender: "(D)",
-        text:  messageText,
-        colour: {text: messageColor}
-    }));
+    
+    if (!mutedAudio["Domain"]) {
+        playNotificationSound();
+    }
+    
+    if (!muted["Domain"]) {
+        Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
+            sender: "(D)",
+            text:  messageText,
+            colour: {text: messageColor}
+        }));
+    }
 }
 
 function keyPressEvent(event) {
