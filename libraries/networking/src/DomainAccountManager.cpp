@@ -11,6 +11,8 @@
 
 #include "DomainAccountManager.h"
 
+// ####### TODO: Check that all #includes are still needed.
+
 #include <SettingHandle.h>
 
 #include <QTimer>
@@ -43,7 +45,12 @@ Setting::Handle<int> domainAccessTokenExpiresIn {"private/domainAccessTokenExpir
 Setting::Handle<QString> domainAccessTokenType {"private/domainAccessTokenType", "" };
 
 
-DomainAccountManager::DomainAccountManager() {
+DomainAccountManager::DomainAccountManager() : 
+    _authURL(),
+    _username(),
+    _access_token(),
+    _refresh_token()
+{
     connect(this, &DomainAccountManager::loginComplete, this, &DomainAccountManager::sendInterfaceAccessTokenToServer);
 }
 
@@ -57,8 +64,11 @@ void DomainAccountManager::setAuthURL(const QUrl& authURL) {
     }
 }
 
-void DomainAccountManager::requestAccessToken(const QString& login, const QString& password) {
+void DomainAccountManager::requestAccessToken(const QString& username, const QString& password) {
 
+    _username = username;
+    _access_token = "";
+    _refresh_token = "";
 
     QNetworkRequest request;
 
@@ -69,7 +79,7 @@ void DomainAccountManager::requestAccessToken(const QString& login, const QStrin
 
     QByteArray formData;
     formData.append("grant_type=password&");
-    formData.append("username=" + QUrl::toPercentEncoding(login) + "&");
+    formData.append("username=" + QUrl::toPercentEncoding(username) + "&");
     formData.append("password=" + QUrl::toPercentEncoding(password) + "&");
     formData.append("scope=" + DOMAIN_ACCOUNT_MANAGER_REQUESTED_SCOPE);
     // ####### TODO: Include state?
@@ -122,7 +132,7 @@ void DomainAccountManager::requestAccessTokenFinished() {
 }
 
 void DomainAccountManager::sendInterfaceAccessTokenToServer() {
-    // TODO: Send successful packet to the domain-server.
+    emit newTokens();
 }
 
 bool DomainAccountManager::accessTokenIsExpired() {
@@ -159,7 +169,11 @@ bool DomainAccountManager::hasValidAccessToken() {
 }
 
 void DomainAccountManager::setAccessTokenFromJSON(const QJsonObject& jsonObject) {
+    _access_token = jsonObject["access_token"].toString();
+    _refresh_token = jsonObject["refresh_token"].toString();
+
     // ####### TODO: Enable and use these.
+    // ####### TODO: Protect these per AccountManager?
     /*
     domainAccessToken.set(jsonObject["access_token"].toString());
     domainAccessRefreshToken.set(jsonObject["refresh_token"].toString());

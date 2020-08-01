@@ -95,7 +95,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
         node = processAssignmentConnectRequest(nodeConnection, pendingAssignment->second);
     } else if (!STATICALLY_ASSIGNED_NODES.contains(nodeConnection.nodeType)) {
         QByteArray usernameSignature;
-        QByteArray domainUsernameSignature;
+        QString domainTokens;
 
         if (message->getBytesLeftToRead() > 0) {
             // read username from packet
@@ -110,14 +110,14 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
                     packetStream >> domainUsername;
 
                     if (message->getBytesLeftToRead() > 0) {
-                        // Read domain signature from packet.
-                        packetStream >> domainUsernameSignature;
+                        // Read domain tokens from packet.
+                        packetStream >> domainTokens;
                     }
                 }
             }
         }
 
-        node = processAgentConnectRequest(nodeConnection, username, usernameSignature, domainUsername, domainUsernameSignature);
+        node = processAgentConnectRequest(nodeConnection, username, usernameSignature, domainUsername, domainTokens);
     }
 
     if (node) {
@@ -452,7 +452,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
                                                                const QString& username,
                                                                const QByteArray& usernameSignature,
                                                                const QString& domainUsername,
-                                                               const QByteArray& domainUsernameSignature) {
+                                                               const QString& domainTokens) {
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
@@ -502,17 +502,18 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     QString verifiedDomainUsername;
     QStringList verifiedDomainUserGroups;
     if (domainHasLogin() && !domainUsername.isEmpty()) {
-        if (domainUsernameSignature.isEmpty()) {
+        if (domainTokens.isEmpty()) {
             // User is attempting to prove their domain identity.
 
             // ####### TODO: OAuth2 corollary of metaverse code, above.
 
-            getDomainGroupMemberships(domainUsernameSignature); // Optimistically get started on group memberships.
+            // ####### TODO: Do the following now? Probably can't!
+            //getDomainGroupMemberships(domainUsername); // Optimistically get started on group memberships.
 #ifdef WANT_DEBUG
             qDebug() << "stalling login because we have no domain username-signature:" << domainUsername;
 #endif
             return SharedNodePointer();
-        } else if (verifyDomainUserSignature(domainUsername, domainUsernameSignature, nodeConnection.senderSockAddr)) {
+        } else if (verifyDomainUserSignature(domainUsername, domainTokens, nodeConnection.senderSockAddr)) {
             // User's domain identity is confirmed.
             getDomainGroupMemberships(domainUsername);
             verifiedDomainUsername = domainUsername.toLower();
@@ -742,10 +743,10 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
 }
 
 bool DomainGatekeeper::verifyDomainUserSignature(const QString& domainUsername, 
-                                                 const QByteArray& domainUsernameSignature,
+                                                 const QString& domainTokens,
                                                  const HifiSockAddr& senderSockAddr) {
 
-    // ####### TODO: Verify via domain OAuth2.
+    // ####### TODO: Verify response from domain OAuth2 request to WordPress, if it's arrived yet.
     bool success = true;
     if (success) {
         return true;

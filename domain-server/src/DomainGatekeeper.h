@@ -79,13 +79,13 @@ private:
                                                  const QString& username,
                                                  const QByteArray& usernameSignature,
                                                  const QString& domainUsername,
-                                                 const QByteArray& domainUsernameSignature);
+                                                 const QString& domainTokens);
     SharedNodePointer addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection);
     
     bool verifyUserSignature(const QString& username, const QByteArray& usernameSignature,
                              const HifiSockAddr& senderSockAddr);
     
-    bool verifyDomainUserSignature(const QString& domainUsername, const QByteArray& domainUsernameSignature,
+    bool verifyDomainUserSignature(const QString& domainUsername, const QString& domainUsernameSignature,
                                    const HifiSockAddr& senderSockAddr);
 
     bool isWithinMaxCapacity();
