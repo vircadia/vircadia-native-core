@@ -90,12 +90,13 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
 
     SharedNodePointer node;
     QString username;
-    QString domainUsername;
     if (pendingAssignment != _pendingAssignedNodes.end()) {
         node = processAssignmentConnectRequest(nodeConnection, pendingAssignment->second);
     } else if (!STATICALLY_ASSIGNED_NODES.contains(nodeConnection.nodeType)) {
         QByteArray usernameSignature;
-        QString domainTokens;
+
+        QString domainUsername;
+        QStringList domainTokens;
 
         if (message->getBytesLeftToRead() > 0) {
             // read username from packet
@@ -111,13 +112,17 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
 
                     if (message->getBytesLeftToRead() > 0) {
                         // Read domain tokens from packet.
-                        packetStream >> domainTokens;
+
+                        QString domainTokensString;
+                        packetStream >> domainTokensString;
+                        domainTokens = domainTokensString.split(":");
                     }
                 }
             }
         }
 
-        node = processAgentConnectRequest(nodeConnection, username, usernameSignature, domainUsername, domainTokens);
+        node = processAgentConnectRequest(nodeConnection, username, usernameSignature, 
+                                          domainUsername, domainTokens.value(0), domainTokens.value(1));
     }
 
     if (node) {
@@ -452,7 +457,8 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
                                                                const QString& username,
                                                                const QByteArray& usernameSignature,
                                                                const QString& domainUsername,
-                                                               const QString& domainTokens) {
+                                                               const QString& domainAccessToken,
+                                                               const QString& domainRefreshToken) {
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
@@ -502,30 +508,39 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     QString verifiedDomainUsername;
     QStringList verifiedDomainUserGroups;
     if (domainHasLogin() && !domainUsername.isEmpty()) {
-        if (domainTokens.isEmpty()) {
+
+        if (domainAccessToken.isEmpty()) {
             // User is attempting to prove their domain identity.
-
-            // ####### TODO: OAuth2 corollary of metaverse code, above.
-
-            // ####### TODO: Do the following now? Probably can't!
-            //getDomainGroupMemberships(domainUsername); // Optimistically get started on group memberships.
 #ifdef WANT_DEBUG
-            qDebug() << "stalling login because we have no domain username-signature:" << domainUsername;
+            qDebug() << "Stalling login because we have no domain OAuth2 tokens:" << domainUsername;
 #endif
             return SharedNodePointer();
-        } else if (verifyDomainUserSignature(domainUsername, domainTokens, nodeConnection.senderSockAddr)) {
+
+        } else if (!_verifiedDomainUserIdentities.contains(domainUsername)
+                   || _verifiedDomainUserIdentities[domainUsername] != QPair<QString, QString>(domainAccessToken, domainRefreshToken)) {
+            // ####### TODO: Write a function for the above test.
+            // User's domain identity needs to be confirmed.
+            if (_verifiedDomainUserIdentities.contains(domainUsername)) {
+                _verifiedDomainUserIdentities.remove(domainUsername);
+            }
+            requestDomainUser(domainUsername, domainAccessToken, domainRefreshToken);
+#ifdef WANT_DEBUG
+            qDebug() << "Stalling login because we haven't authenticated user yet:" << domainUsername;
+#endif
+
+        } else if (verifyDomainUserSignature(domainUsername, domainAccessToken, domainRefreshToken, 
+                                             nodeConnection.senderSockAddr)) {
             // User's domain identity is confirmed.
             getDomainGroupMemberships(domainUsername);
             verifiedDomainUsername = domainUsername.toLower();
+
         } else {
-            // User's identity didn't check out.
-
-            // ####### TODO: OAuth2 corollary of metaverse code, above.
-
+            // User's domain identity didn't check out.
 #ifdef WANT_DEBUG
-            qDebug() << "stalling login because domain signature verification failed:" << domainUsername;
+            qDebug() << "Stalling login because domain user verification failed:" << domainUsername;
 #endif
             return SharedNodePointer();
+
         }
     }
 
@@ -742,17 +757,17 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
     return false;
 }
 
-bool DomainGatekeeper::verifyDomainUserSignature(const QString& domainUsername, 
-                                                 const QString& domainTokens,
-                                                 const HifiSockAddr& senderSockAddr) {
+// ####### TODO: Rename to verifyDomainUser()?
+bool DomainGatekeeper::verifyDomainUserSignature(const QString& username, const QString& accessToken,
+                                                 const QString& refreshToken, const HifiSockAddr& senderSockAddr) {
 
     // ####### TODO: Verify response from domain OAuth2 request to WordPress, if it's arrived yet.
-    bool success = true;
-    if (success) {
+    // ####          Or assume the verification step has already occurred?
+    if (_verifiedDomainUserIdentities.contains(username)) {
         return true;
     }
 
-    sendConnectionDeniedPacket("Error decrypting domain username signature.", senderSockAddr,
+    sendConnectionDeniedPacket("Error verifying domain user.", senderSockAddr,
         DomainHandler::ConnectionRefusedReason::LoginErrorDomain);
     return false;
 }
@@ -1171,12 +1186,6 @@ void DomainGatekeeper::refreshGroupsCache() {
 #endif
 }
 
-bool DomainGatekeeper::domainHasLogin() {
-    // The domain may have its own users and groups. This is enabled in the server settings by ... #######
-    // ####### TODO: Base on server settings.
-    return true;
-}
-
 void DomainGatekeeper::initLocalIDManagement() {
     std::uniform_int_distribution<quint16> sixteenBitRand;
     std::random_device randomDevice;
@@ -1203,4 +1212,98 @@ Node::LocalID DomainGatekeeper::findOrCreateLocalID(const QUuid& uuid) {
     _uuidToLocalID.emplace(uuid, newLocalID);
     _localIDs.insert(newLocalID);
     return newLocalID;
+}
+
+
+bool DomainGatekeeper::domainHasLogin() {
+    // The domain may have its own users and groups. This is enabled in the server settings by ... #######
+    // ####### TODO: Base on server settings.
+    return true;
+}
+
+void DomainGatekeeper::requestDomainUser(const QString& username, const QString& accessToken, const QString& refreshToken) {
+
+    // ####### TODO: Move this further up the chain such that generates "invalid username or password" condition?
+    // Don't request identity for the standard psuedo-account-names.
+    if (NodePermissions::standardNames.contains(username, Qt::CaseInsensitive)) {
+        return;
+    }
+
+    if (_inFlightDomainUserIdentityRequests.contains(username)) {
+        // Domain identify request for this username is already flight.
+        return;
+    }
+    _inFlightDomainUserIdentityRequests.insert(username, QPair<QString, QString>(accessToken, refreshToken));
+
+    QString API_BASE = "http://127.0.0.1:9001/wp-json/";
+    // Typically "http://oursite.com/wp-json/". 
+    // However, if using non-pretty permalinks or otherwise get a 404 error then use "http://oursite.com/?rest_route=/".
+
+    // ####### TODO: Confirm API w.r.t. OAuth2 plugin's capabilities.
+    // Get data pertaining to "me", the user who generated the access token.
+    QString API_ROUTE = "wp/v2/users/me?context=edit&_fields=id,username,roles";  
+
+    // ####### TODO: Append a random key to check in response?
+
+    QNetworkRequest request;
+
+    request.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+    // ####### TODO: WordPress plugin's authorization requirements.
+    request.setRawHeader(QByteArray("Authorization"), QString("Bearer " + accessToken).toUtf8());
+
+    QByteArray formData;  // No data to send.
+
+    QUrl domainUserURL = API_BASE + API_ROUTE;
+    domainUserURL = "http://localhost:9002/resource";  // ####### TODO: Delete
+    request.setUrl(domainUserURL);
+
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+
+    // ####### TODO: Handle invalid URL (e.g., set timeout or similar).
+
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkReply* requestReply = networkAccessManager.post(request, formData);
+    connect(requestReply, &QNetworkReply::finished, this, &DomainGatekeeper::requestDomainUserFinished);
+}
+
+void DomainGatekeeper::requestDomainUserFinished() {
+
+    QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
+
+    auto httpStatus = requestReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    if (200 <= httpStatus && httpStatus < 300) {
+        // Success.
+        QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
+        const QJsonObject& rootObject = jsonResponse.object();
+        // ####### Expected response:
+        /*
+        {
+        id: 2,
+            username : 'apiuser',
+            roles : ['subscriber'] ,
+        }
+        */
+
+        // ####### TODO: Handle invalid / unexpected response.
+
+        QString username = rootObject["username"].toString().toLower();
+        // ####### TODO: Handle invalid username or one that isn't in the _inFlight list.
+
+        if (_inFlightDomainUserIdentityRequests.contains(username)) {
+            // Success! Verified user.
+            _verifiedDomainUserIdentities.insert(username, _inFlightDomainUserIdentityRequests.value(username));
+            _inFlightDomainUserIdentityRequests.remove(username);
+        } else {
+            // Unexpected response.
+            // ####### TODO
+        }
+
+    } else {
+        // Failure.
+        // ####### TODO: Is this the best way to handle _inFlightDomainUserIdentityRequests?
+        //               If there's a brief network glitch will it recover?
+        //               Perhaps clear on a timer? Cancel timer upon subsequent successful responses?
+        _inFlightDomainUserIdentityRequests.clear();
+    }
 }

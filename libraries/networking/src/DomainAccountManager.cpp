@@ -101,9 +101,12 @@ void DomainAccountManager::requestAccessTokenFinished() {
     QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
     const QJsonObject& rootObject = jsonResponse.object();
 
+    // ####### TODO: Test HTTP response codes rather than object contains "error".
+    // ####          reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200
     if (!rootObject.contains("error")) {
         // ####### TODO: Process response scope?
         // ####### TODO: Process response state?
+        // ####### TODO: Check that token type == "Bearer"?
 
         if (!rootObject.contains("access_token") 
             // ####### TODO: Does WordPRess plugin provide "expires_in"?
