@@ -22,19 +22,19 @@
 
 static const QString RESTRICTED_FLAG_PROPERTY = "RestrictFileAccess";
 
-QReadWriteLock ContextAwareProfile::gl_contextMapProtect;
-ContextAwareProfile::ContextMap ContextAwareProfile::gl_contextMap;
+QReadWriteLock ContextAwareProfile::_global_contextMapProtect;
+ContextAwareProfile::ContextMap ContextAwareProfile::_global_contextMap;
 
 ContextAwareProfile::ContextAwareProfile(QQmlContext* context) : ContextAwareProfileParent(context), _context(context) {
     assert(context);
 
     {   // register our object for future updates
-        QWriteLocker guard(&gl_contextMapProtect);
-        ContextMap::iterator setLookup = gl_contextMap.find(_context);
-        if (setLookup == gl_contextMap.end()) {
-            setLookup = gl_contextMap.insert(_context, ContextAwareProfileSet());
+        QWriteLocker guard(&_global_contextMapProtect);
+        ContextMap::iterator setLookup = _global_contextMap.find(_context);
+        if (setLookup == _global_contextMap.end()) {
+            setLookup = _global_contextMap.insert(_context, ContextAwareProfileSet());
         }
-        assert(setLookup != gl_contextMap.end());
+        assert(setLookup != _global_contextMap.end());
         ContextAwareProfileSet& profileSet = setLookup.value();
         assert(profileSet.find(this) == profileSet.end());
         profileSet.insert(this);
@@ -45,15 +45,15 @@ ContextAwareProfile::ContextAwareProfile(QQmlContext* context) : ContextAwarePro
 
 ContextAwareProfile::~ContextAwareProfile() {
     {  // deregister our object
-        QWriteLocker guard(&gl_contextMapProtect);
-        ContextMap::iterator setLookup = gl_contextMap.find(_context);
-        assert(setLookup != gl_contextMap.end());
-        if (setLookup != gl_contextMap.end()) {
+        QWriteLocker guard(&_global_contextMapProtect);
+        ContextMap::iterator setLookup = _global_contextMap.find(_context);
+        assert(setLookup != _global_contextMap.end());
+        if (setLookup != _global_contextMap.end()) {
             ContextAwareProfileSet& profileSet = setLookup.value();
             assert(profileSet.find(this) != profileSet.end());
             profileSet.remove(this);
             if (profileSet.isEmpty()) {
-                gl_contextMap.erase(setLookup);
+                _global_contextMap.erase(setLookup);
             }
         }
     }
@@ -65,15 +65,13 @@ void ContextAwareProfile::restrictContext(QQmlContext* context, bool restrict) {
     context->setContextProperty(RESTRICTED_FLAG_PROPERTY, restrict);
 
     // broadcast the new value to any registered ContextAwareProfile objects
-    {  // deregister our object
-        QReadLocker guard(&gl_contextMapProtect);
-        ContextMap::const_iterator setLookup = gl_contextMap.find(context);
-        if (setLookup != gl_contextMap.end()) {
-            const ContextAwareProfileSet& profileSet = setLookup.value();
-            for (ContextAwareProfileSet::const_iterator profileIterator = profileSet.begin();
-                 profileIterator != profileSet.end(); profileIterator++) {
-                (*profileIterator)->onIsRestrictedChanged(restrict);
-            }
+    QReadLocker guard(&_global_contextMapProtect);
+    ContextMap::const_iterator setLookup = _global_contextMap.find(context);
+    if (setLookup != _global_contextMap.end()) {
+        const ContextAwareProfileSet& profileSet = setLookup.value();
+        for (ContextAwareProfileSet::const_iterator profileIterator = profileSet.begin();
+                profileIterator != profileSet.end(); profileIterator++) {
+            (*profileIterator)->onIsRestrictedChanged(restrict);
         }
     }
 }

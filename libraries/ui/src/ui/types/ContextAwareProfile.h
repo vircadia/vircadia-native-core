@@ -12,7 +12,7 @@
 #define hifi_ContextAwareProfile_h
 
 #include <atomic>
-#include <QtCore/QMap>
+#include <QtCore/QHash>
 #include <QtCore/QReadWriteLock>
 #include <QtCore/QSet>
 #include <QtCore/QSharedPointer>
@@ -50,17 +50,18 @@ protected:
 
     ContextAwareProfile(QQmlContext* parent);
     ~ContextAwareProfile();
-    void onIsRestrictedChanged(bool newValue);
+
+private:
+    typedef QSet<ContextAwareProfile*> ContextAwareProfileSet;
+    typedef QHash<QQmlContext*, ContextAwareProfileSet> ContextMap;
 
     QQmlContext* _context{ nullptr };
     std::atomic<bool> _isRestricted{ false };
 
-private:
-    typedef QSet<ContextAwareProfile*> ContextAwareProfileSet;
-    typedef QMap<QQmlContext*, ContextAwareProfileSet> ContextMap;
+    static QReadWriteLock _global_contextMapProtect;
+    static ContextMap _global_contextMap;
 
-    static QReadWriteLock gl_contextMapProtect;
-    static ContextMap gl_contextMap;
+    void onIsRestrictedChanged(bool newValue);
 };
 
 #endif // hifi_FileTypeProfile_h
