@@ -90,8 +90,9 @@ private:
     bool verifyUserSignature(const QString& username, const QByteArray& usernameSignature,
                              const HifiSockAddr& senderSockAddr);
     
-    bool verifyDomainUserSignature(const QString& username, const QString& accessToken, const QString& refreshToken,
-                                   const HifiSockAddr& senderSockAddr);
+    bool needToVerifyDomainUserIdentity(const QString& username, const QString& accessToken, const QString& refreshToken);
+    bool verifyDomainUserIdentity(const QString& username, const QString& accessToken, const QString& refreshToken,
+                                  const HifiSockAddr& senderSockAddr);
 
     bool isWithinMaxCapacity();
     

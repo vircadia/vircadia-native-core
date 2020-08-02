@@ -517,20 +517,15 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 #endif
             return SharedNodePointer();
 
-        } else if (!_verifiedDomainUserIdentities.contains(domainUsername)
-                   || _verifiedDomainUserIdentities[domainUsername] != QPair<QString, QString>(domainAccessToken, domainRefreshToken)) {
-            // ####### TODO: Write a function for the above test.
+        } else if (needToVerifyDomainUserIdentity(domainUsername, domainAccessToken, domainRefreshToken)) {
             // User's domain identity needs to be confirmed.
-            if (_verifiedDomainUserIdentities.contains(domainUsername)) {
-                _verifiedDomainUserIdentities.remove(domainUsername);
-            }
             requestDomainUser(domainUsername, domainAccessToken, domainRefreshToken);
 #ifdef WANT_DEBUG
             qDebug() << "Stalling login because we haven't authenticated user yet:" << domainUsername;
 #endif
 
-        } else if (verifyDomainUserSignature(domainUsername, domainAccessToken, domainRefreshToken, 
-                                             nodeConnection.senderSockAddr)) {
+        } else if (verifyDomainUserIdentity(domainUsername, domainAccessToken, domainRefreshToken, 
+                                            nodeConnection.senderSockAddr)) {
             // User's domain identity is confirmed.
             getDomainGroupMemberships(domainUsername);
             verifiedDomainUsername = domainUsername.toLower();
@@ -758,13 +753,17 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
     return false;
 }
 
-// ####### TODO: Rename to verifyDomainUser()?
-bool DomainGatekeeper::verifyDomainUserSignature(const QString& username, const QString& accessToken,
-                                                 const QString& refreshToken, const HifiSockAddr& senderSockAddr) {
 
-    // ####### TODO: Verify response from domain OAuth2 request to WordPress, if it's arrived yet.
-    // ####          Or assume the verification step has already occurred?
-    if (_verifiedDomainUserIdentities.contains(username)) {
+bool DomainGatekeeper::needToVerifyDomainUserIdentity(const QString& username, const QString& accessToken, 
+                                                      const QString& refreshToken) {
+    return !_verifiedDomainUserIdentities.contains(username)
+        || _verifiedDomainUserIdentities.value(username) != QPair<QString, QString>(accessToken, refreshToken);
+}
+
+bool DomainGatekeeper::verifyDomainUserIdentity(const QString& username, const QString& accessToken,
+                                                const QString& refreshToken, const HifiSockAddr& senderSockAddr) {
+    if (_verifiedDomainUserIdentities.contains(username)
+            && _verifiedDomainUserIdentities.value(username) == QPair<QString, QString>(accessToken, refreshToken)) {
         return true;
     }
 
@@ -1235,6 +1234,10 @@ void DomainGatekeeper::requestDomainUser(const QString& username, const QString&
         return;
     }
     _inFlightDomainUserIdentityRequests.insert(username, QPair<QString, QString>(accessToken, refreshToken));
+
+    if (_verifiedDomainUserIdentities.contains(username)) {
+        _verifiedDomainUserIdentities.remove(username);
+    }
 
     QString apiBase = _server->_settingsManager.valueForKeyPath(AUTHENTICATION_WORDPRESS_URL_BASE).toString();
     if (!apiBase.endsWith("/")) {
