@@ -60,7 +60,12 @@ void DomainAccountManager::setAuthURL(const QUrl& authURL) {
 
         qCDebug(networking) << "AccountManager URL for authenticated requests has been changed to" << qPrintable(_authURL.toString());
 
-        // ####### TODO: See AccountManager::setAuthURL().
+        _access_token = "";
+        _refresh_token = "";
+
+        // ####### TODO: Restore and refresh OAuth2 tokens if have them for this domain.
+
+        // ####### TODO: Handle "keep me logged in".
     }
 }
 
@@ -84,9 +89,7 @@ void DomainAccountManager::requestAccessToken(const QString& username, const QSt
     formData.append("scope=" + DOMAIN_ACCOUNT_MANAGER_REQUESTED_SCOPE);
     // ####### TODO: Include state?
 
-    QUrl domainAuthURL = _authURL;
-    domainAuthURL.setPath("/token");  // ####### TODO: miniOrange-mandated URL. ####### TODO: Should this be included in the server settings value?
-    request.setUrl(domainAuthURL);
+    request.setUrl(_authURL);
 
     request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
 
@@ -96,40 +99,40 @@ void DomainAccountManager::requestAccessToken(const QString& username, const QSt
 }
 
 void DomainAccountManager::requestAccessTokenFinished() {
+
     QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
 
     QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
     const QJsonObject& rootObject = jsonResponse.object();
 
-    // ####### TODO: Test HTTP response codes rather than object contains "error".
-    // ####          reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200
-    if (!rootObject.contains("error")) {
-        // ####### TODO: Process response scope?
-        // ####### TODO: Process response state?
+    auto httpStatus = requestReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    if (200 <= httpStatus && httpStatus < 300) {
+
         // ####### TODO: Check that token type == "Bearer"?
+        // ####### TODO: Process response state?
+        // ####### TODO: Process response scope?
 
-        if (!rootObject.contains("access_token") 
-            // ####### TODO: Does WordPRess plugin provide "expires_in"?
-            //               If so, handle here, or is it just the domain server that needs to use it?
-            //|| !rootObject.contains("expires_in")  
-            || !rootObject.contains("token_type")) {
+        if (rootObject.contains("access_token")) {
+            // Success.
 
-            qCDebug(networking) << "Received a response for password grant that is missing one or more expected values.";
-            emit loginFailed();
-
-        } else {
-
-            // clear the path from the response URL so we have the right root URL for this access token
             QUrl rootURL = requestReply->url();
             rootURL.setPath("");
 
-            qCDebug(networking) << "Storing a domain account with access-token for" << qPrintable(rootURL.toString());
-            setAccessTokenFromJSON(rootObject);
+            setTokensFromJSON(rootObject, rootURL);
 
-            emit loginComplete(rootURL);
+            emit loginComplete();
+
+        } else {
+            // Failure.
+            qCDebug(networking) << "Received a response for password grant that is missing one or more expected values.";
+            emit loginFailed();
         }
+
     } else {
-        qCDebug(networking) <<  "Error in response for password grant -" << rootObject["error_description"].toString();
+        // Failure.
+
+        // ####### TODO: Error object fields to report. [plugin]
+        qCDebug(networking) << "Error in response for password grant -" << rootObject["error"].toString();
         emit loginFailed();
     }
 }
@@ -171,13 +174,14 @@ bool DomainAccountManager::hasValidAccessToken() {
     
 }
 
-void DomainAccountManager::setAccessTokenFromJSON(const QJsonObject& jsonObject) {
+void DomainAccountManager::setTokensFromJSON(const QJsonObject& jsonObject, const QUrl& url) {
     _access_token = jsonObject["access_token"].toString();
     _refresh_token = jsonObject["refresh_token"].toString();
 
     // ####### TODO: Enable and use these.
     // ####### TODO: Protect these per AccountManager?
     /*
+    qCDebug(networking) << "Storing a domain account with access-token for" << qPrintable(url.toString());
     domainAccessToken.set(jsonObject["access_token"].toString());
     domainAccessRefreshToken.set(jsonObject["refresh_token"].toString());
     domainAccessTokenExpiresIn.set(QDateTime::currentMSecsSinceEpoch() + (jsonObject["expires_in"].toDouble() * 1000));

@@ -155,7 +155,7 @@ private:
     void requestDomainUser(const QString& username, const QString& accessToken, const QString& refreshToken);
     
     typedef QHash<QString, QPair<QString, QString>> DomainUserIdentities; // <domainUserName, <access_token, refresh_token>>
-    DomainUserIdentities _inFlightDomainUserIdentityRequests;  // Keep track of domain user identity requests in progress.
+    DomainUserIdentities _inFlightDomainUserIdentityRequests;  // Domain user identity requests currently in progress.
     DomainUserIdentities _verifiedDomainUserIdentities;  // Verified domain users.
 
     void getDomainGroupMemberships(const QString& domainUserName);

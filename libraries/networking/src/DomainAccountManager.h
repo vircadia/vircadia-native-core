@@ -37,7 +37,7 @@ public slots:
     void requestAccessTokenFinished();
 signals:
     void authRequired();
-    void loginComplete(const QUrl& authURL);
+    void loginComplete();
     void loginFailed();
     void logoutComplete();
     void newTokens();
@@ -47,7 +47,7 @@ private slots:
 private:
     bool hasValidAccessToken();
     bool accessTokenIsExpired();
-    void setAccessTokenFromJSON(const QJsonObject&);
+    void setTokensFromJSON(const QJsonObject&, const QUrl& url);
     void sendInterfaceAccessTokenToServer();
 
     QUrl _authURL;

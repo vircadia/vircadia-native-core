@@ -450,7 +450,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
 }
 
 const QString AUTHENTICATION_ENAABLED = "authentication.enable_oauth2";
-const QString AUTHENTICATION_OAUTH2_URL_BASE = "authentication.oauth2_url_base";
+const QString AUTHENTICATION_OAUTH2_URL_PATH = "authentication.oauth2_url_path";
 const QString AUTHENTICATION_WORDPRESS_URL_BASE = "authentication.wordpress_url_base";
 const QString MAXIMUM_USER_CAPACITY = "security.maximum_user_capacity";
 const QString MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION = "security.maximum_user_capacity_redirect_location";
@@ -548,10 +548,9 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
         if (domainHasLogin()) {
             QString domainAuthURL;
-            auto domainAuthURLVariant = _server->_settingsManager.valueForKeyPath(AUTHENTICATION_OAUTH2_URL_BASE);
+            auto domainAuthURLVariant = _server->_settingsManager.valueForKeyPath(AUTHENTICATION_OAUTH2_URL_PATH);
             if (domainAuthURLVariant.canConvert<QString>()) {
                 domainAuthURL = domainAuthURLVariant.toString();
-                qDebug() << "Domain authorization URL:" << domainAuthURL;
             }
             sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
                 nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedDomain, domainAuthURL);
@@ -1220,7 +1219,7 @@ bool DomainGatekeeper::domainHasLogin() {
     // The domain may have its own users and groups in a WordPress site.
     // ####### TODO: Add checks of any further domain server settings used.
     return _server->_settingsManager.valueForKeyPath(AUTHENTICATION_ENAABLED).toBool()
-        && !_server->_settingsManager.valueForKeyPath(AUTHENTICATION_OAUTH2_URL_BASE).toString().isEmpty()
+        && !_server->_settingsManager.valueForKeyPath(AUTHENTICATION_OAUTH2_URL_PATH).toString().isEmpty()
         && !_server->_settingsManager.valueForKeyPath(AUTHENTICATION_WORDPRESS_URL_BASE).toString().isEmpty();
 }
 
@@ -1233,7 +1232,7 @@ void DomainGatekeeper::requestDomainUser(const QString& username, const QString&
     }
 
     if (_inFlightDomainUserIdentityRequests.contains(username)) {
-        // Domain identify request for this username is already flight.
+        // Domain identify request for this username is already in progress.
         return;
     }
     _inFlightDomainUserIdentityRequests.insert(username, QPair<QString, QString>(accessToken, refreshToken));
@@ -1248,9 +1247,9 @@ void DomainGatekeeper::requestDomainUser(const QString& username, const QString&
     }
 
     // Get data pertaining to "me", the user who generated the access token.
-    // ####### TODO: Confirm API_ROUTE w.r.t. OAuth2 plugin's capabilities.
-    QString API_ROUTE = "wp/v2/users/me?context=edit&_fields=id,username,roles";
-    QUrl domainUserURL = apiBase + API_ROUTE;
+    // ####### TODO: Confirm API route and data w.r.t. OAuth2 plugin's capabilities. [plugin]
+    const QString WORDPRESS_USER_ROUTE = "wp/v2/users/me?context=edit&_fields=id,username,roles";
+    QUrl domainUserURL = apiBase + WORDPRESS_USER_ROUTE;
 
     // ####### TODO: Append a random key to check in response?
 
@@ -1258,7 +1257,6 @@ void DomainGatekeeper::requestDomainUser(const QString& username, const QString&
 
     request.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-    // ####### TODO: WordPress plugin's authorization requirements.
     request.setRawHeader(QByteArray("Authorization"), QString("Bearer " + accessToken).toUtf8());
 
     QByteArray formData;  // No data to send.
@@ -1278,12 +1276,13 @@ void DomainGatekeeper::requestDomainUserFinished() {
 
     QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
 
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
+    const QJsonObject& rootObject = jsonResponse.object();
+
     auto httpStatus = requestReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     if (200 <= httpStatus && httpStatus < 300) {
         // Success.
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
-        const QJsonObject& rootObject = jsonResponse.object();
-        // ####### Expected response:
+        // ####### TODO: Verify Expected response. [plugin]
         /*
         {
         id: 2,
@@ -1292,22 +1291,24 @@ void DomainGatekeeper::requestDomainUserFinished() {
         }
         */
 
-        // ####### TODO: Handle invalid / unexpected response.
-
         QString username = rootObject["username"].toString().toLower();
-        // ####### TODO: Handle invalid username or one that isn't in the _inFlight list.
-
         if (_inFlightDomainUserIdentityRequests.contains(username)) {
             // Success! Verified user.
             _verifiedDomainUserIdentities.insert(username, _inFlightDomainUserIdentityRequests.value(username));
             _inFlightDomainUserIdentityRequests.remove(username);
         } else {
-            // Unexpected response.
-            // ####### TODO
+            // Failure.
+            qDebug() << "Unexpected username in response for user details -" << username;
         }
+
+        // ####### TODO: Handle roles if available. [plugin]
 
     } else {
         // Failure.
+
+        // ####### TODO: Error fields to report. [plugin]
+        qDebug() << "Error in response for user details -" << rootObject["error"].toString();
+
         // ####### TODO: Is this the best way to handle _inFlightDomainUserIdentityRequests?
         //               If there's a brief network glitch will it recover?
         //               Perhaps clear on a timer? Cancel timer upon subsequent successful responses?

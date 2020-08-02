@@ -85,9 +85,9 @@
             "backup": false
         },
         {
-            "name": "oauth2_url_base",
-            "label": "Authentication URL Base",
-            "help": "The URL base that the Interface will use to login via OAuth2.",
+            "name": "oauth2_url_path",
+            "label": "Authentication URL",
+            "help": "The URL that the Interface will use to login via OAuth2.",
             "advanced": true
         },
         {
