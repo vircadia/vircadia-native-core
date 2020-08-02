@@ -87,7 +87,13 @@
         {
             "name": "oauth2_url_base",
             "label": "Authentication URL Base",
-            "help": "The URL base that the Interface and domain-server will use to make API requests.",
+            "help": "The URL base that the Interface will use to login via OAuth2.",
+            "advanced": true
+        },
+        {
+            "name": "wordpress_url_base",
+            "label": "WordPress API URL Base",
+            "help": "The URL base that the domain server will use to make WordPress API calls. Typically \"http://oursite.com/wp-json/\". However, if using non-pretty permalinks or otherwise get a 404 error then use \"http://oursite.com/?rest_route=/\".",
             "advanced": true
         }
       ]

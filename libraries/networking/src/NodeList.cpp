@@ -501,6 +501,7 @@ void NodeList::sendDomainServerCheckIn() {
                 packetStream << domainAccountManager->getUsername();
                 if (!domainAccountManager->getAccessToken().isEmpty()) {
                     packetStream << (domainAccountManager->getAccessToken() + ":" + domainAccountManager->getRefreshToken());
+                }
             }
         }
 

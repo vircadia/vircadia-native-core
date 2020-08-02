@@ -450,6 +450,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
 }
 
 const QString AUTHENTICATION_OAUTH2_URL_BASE = "authentication.oauth2_url_base";
+const QString AUTHENTICATION_WORDPRESS_URL_BASE = "authentication.wordpress_url_base";
 const QString MAXIMUM_USER_CAPACITY = "security.maximum_user_capacity";
 const QString MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION = "security.maximum_user_capacity_redirect_location";
 
@@ -1235,13 +1236,15 @@ void DomainGatekeeper::requestDomainUser(const QString& username, const QString&
     }
     _inFlightDomainUserIdentityRequests.insert(username, QPair<QString, QString>(accessToken, refreshToken));
 
-    QString API_BASE = "http://127.0.0.1:9001/wp-json/";
-    // Typically "http://oursite.com/wp-json/". 
-    // However, if using non-pretty permalinks or otherwise get a 404 error then use "http://oursite.com/?rest_route=/".
+    QString apiBase = _server->_settingsManager.valueForKeyPath(AUTHENTICATION_WORDPRESS_URL_BASE).toString();
+    if (!apiBase.endsWith("/")) {
+        apiBase += "/";
+    }
 
-    // ####### TODO: Confirm API w.r.t. OAuth2 plugin's capabilities.
     // Get data pertaining to "me", the user who generated the access token.
-    QString API_ROUTE = "wp/v2/users/me?context=edit&_fields=id,username,roles";  
+    // ####### TODO: Confirm API_ROUTE w.r.t. OAuth2 plugin's capabilities.
+    QString API_ROUTE = "wp/v2/users/me?context=edit&_fields=id,username,roles";
+    QUrl domainUserURL = apiBase + API_ROUTE;
 
     // ####### TODO: Append a random key to check in response?
 
@@ -1254,8 +1257,6 @@ void DomainGatekeeper::requestDomainUser(const QString& username, const QString&
 
     QByteArray formData;  // No data to send.
 
-    QUrl domainUserURL = API_BASE + API_ROUTE;
-    domainUserURL = "http://localhost:9002/resource";  // ####### TODO: Delete
     request.setUrl(domainUserURL);
 
     request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
