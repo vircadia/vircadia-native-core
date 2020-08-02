@@ -449,6 +449,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     return newNode;
 }
 
+const QString AUTHENTICATION_ENAABLED = "authentication.enable_oauth2";
 const QString AUTHENTICATION_OAUTH2_URL_BASE = "authentication.oauth2_url_base";
 const QString AUTHENTICATION_WORDPRESS_URL_BASE = "authentication.wordpress_url_base";
 const QString MAXIMUM_USER_CAPACITY = "security.maximum_user_capacity";
@@ -1216,9 +1217,11 @@ Node::LocalID DomainGatekeeper::findOrCreateLocalID(const QUuid& uuid) {
 
 
 bool DomainGatekeeper::domainHasLogin() {
-    // The domain may have its own users and groups. This is enabled in the server settings by ... #######
-    // ####### TODO: Base on server settings.
-    return true;
+    // The domain may have its own users and groups in a WordPress site.
+    // ####### TODO: Add checks of any further domain server settings used.
+    return _server->_settingsManager.valueForKeyPath(AUTHENTICATION_ENAABLED).toBool()
+        && !_server->_settingsManager.valueForKeyPath(AUTHENTICATION_OAUTH2_URL_BASE).toString().isEmpty()
+        && !_server->_settingsManager.valueForKeyPath(AUTHENTICATION_WORDPRESS_URL_BASE).toString().isEmpty();
 }
 
 void DomainGatekeeper::requestDomainUser(const QString& username, const QString& accessToken, const QString& refreshToken) {
