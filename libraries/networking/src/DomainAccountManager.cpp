@@ -11,31 +11,23 @@
 
 #include "DomainAccountManager.h"
 
-// ####### TODO: Check that all #includes are still needed.
-
-#include <SettingHandle.h>
-
 #include <QTimer>
-#include <QtCore/QDateTime>
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonDocument>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
-#include <QtNetwork/QHttpMultiPart>
 
-#include "DomainAccountManager.h"
+#include <SettingHandle.h>
+
 #include "NetworkingConstants.h"
-#include "OAuthAccessToken.h"
 #include "NetworkLogging.h"
-#include "NodeList.h"
-#include "udt/PacketHeaders.h"
 #include "NetworkAccessManager.h"
 
 // FIXME: Generalize to other OAuth2 sources for domain login.
 
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
-const QString DOMAIN_ACCOUNT_MANAGER_REQUESTED_SCOPE = "foo bar";  // ####### TODO: WordPress plugin's required scope.
-// ####### TODO: Should scope be configured in domain server settings?
+const QString DOMAIN_ACCOUNT_MANAGER_REQUESTED_SCOPE = "foo bar";  // ####### TODO: WordPress plugin's required scope. [plugin]
+// ####### TODO: Should scope be configured in domain server settings? [plugin]
 
 // ####### TODO: Add storing domain URL and check against it when retrieving values?
 // ####### TODO: Add storing _authURL and check against it when retrieving values?
@@ -79,7 +71,7 @@ void DomainAccountManager::requestAccessToken(const QString& username, const QSt
 
     request.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-    // ####### TODO: WordPress plugin's authorization requirements.
+    // ####### TODO: WordPress plugin's authorization requirements. [plugin]
     request.setRawHeader(QByteArray("Authorization"), QByteArray("Basic b2F1dGgtY2xpZW50LTE6b2F1dGgtY2xpZW50LXNlY3JldC0x"));
 
     QByteArray formData;
@@ -87,7 +79,7 @@ void DomainAccountManager::requestAccessToken(const QString& username, const QSt
     formData.append("username=" + QUrl::toPercentEncoding(username) + "&");
     formData.append("password=" + QUrl::toPercentEncoding(password) + "&");
     formData.append("scope=" + DOMAIN_ACCOUNT_MANAGER_REQUESTED_SCOPE);
-    // ####### TODO: Include state?
+    // ####### TODO: Include state? [plugin]
 
     request.setUrl(_authURL);
 
@@ -108,10 +100,10 @@ void DomainAccountManager::requestAccessTokenFinished() {
     auto httpStatus = requestReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     if (200 <= httpStatus && httpStatus < 300) {
 
-        // ####### TODO: Check that token type == "Bearer"?
-        // ####### TODO: Process response state?
-        // ####### TODO: Process response scope?
+        // ####### TODO: Process response state? [plugin]
+        // ####### TODO: Process response scope? [plugin]
 
+        // ####### TODO: Which method are the tokens provided in? [plugin]
         if (rootObject.contains("access_token")) {
             // Success.
 
@@ -132,7 +124,8 @@ void DomainAccountManager::requestAccessTokenFinished() {
         // Failure.
 
         // ####### TODO: Error object fields to report. [plugin]
-        qCDebug(networking) << "Error in response for password grant -" << rootObject["error"].toString();
+        qCDebug(networking) << "Error in response for password grant -" << httpStatus << requestReply->error() 
+            << "_" << rootObject["error"].toString();
         emit loginFailed();
     }
 }

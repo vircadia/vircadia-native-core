@@ -1101,11 +1101,11 @@ void DomainGatekeeper::getIsGroupMemberErrorCallback(QNetworkReply* requestReply
 
 void DomainGatekeeper::getDomainGroupMemberships(const QString& domainUserName) {
 
-    // ####### TODO: Get user's domain group memberships (WordPress roles) from domain.
+    // ####### TODO: Get user's domain group memberships (WordPress roles) from domain. [plugin groups]
     //         This may be able to be provided at the same time as the "authenticate user" call to the domain API, in which case
     //         a copy of some of the following code can be made there. However, this code is still needed for refreshing groups.
 
-    // ####### TODO: Check how often this method and the WordPress API is called.
+    // ####### TODO: Check how often this method and the WordPress API is called. [plugin groups]
 
     QStringList wordpressGroupsForUser;
     wordpressGroupsForUser << "silVER" << "gold" << "coal";
@@ -1161,7 +1161,7 @@ void DomainGatekeeper::getDomainOwnerFriendsListErrorCallback(QNetworkReply* req
     qDebug() << "getDomainOwnerFriendsList api call failed:" << requestReply->error();
 }
 
-// ####### TODO: Domain equivalent or addition
+// ####### TODO: Domain equivalent or addition [plugin groups]
 void DomainGatekeeper::refreshGroupsCache() {
     // if agents are connected to this domain, refresh our cached information about groups and memberships in such.
     getDomainOwnerFriendsList();
@@ -1251,7 +1251,7 @@ void DomainGatekeeper::requestDomainUser(const QString& username, const QString&
     const QString WORDPRESS_USER_ROUTE = "wp/v2/users/me?context=edit&_fields=id,username,roles";
     QUrl domainUserURL = apiBase + WORDPRESS_USER_ROUTE;
 
-    // ####### TODO: Append a random key to check in response?
+    // ####### TODO: Append a random key to check in response? [security]
 
     QNetworkRequest request;
 
@@ -1264,8 +1264,6 @@ void DomainGatekeeper::requestDomainUser(const QString& username, const QString&
     request.setUrl(domainUserURL);
 
     request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-
-    // ####### TODO: Handle invalid URL (e.g., set timeout or similar).
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkReply* requestReply = networkAccessManager.post(request, formData);
@@ -1280,6 +1278,7 @@ void DomainGatekeeper::requestDomainUserFinished() {
     const QJsonObject& rootObject = jsonResponse.object();
 
     auto httpStatus = requestReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+
     if (200 <= httpStatus && httpStatus < 300) {
         // Success.
         // ####### TODO: Verify Expected response. [plugin]
@@ -1307,11 +1306,9 @@ void DomainGatekeeper::requestDomainUserFinished() {
         // Failure.
 
         // ####### TODO: Error fields to report. [plugin]
-        qDebug() << "Error in response for user details -" << rootObject["error"].toString();
+        qDebug() << "Error in response for user details -" << httpStatus << requestReply->error() 
+            << "-" << rootObject["error"].toString();
 
-        // ####### TODO: Is this the best way to handle _inFlightDomainUserIdentityRequests?
-        //               If there's a brief network glitch will it recover?
-        //               Perhaps clear on a timer? Cancel timer upon subsequent successful responses?
         _inFlightDomainUserIdentityRequests.clear();
     }
 }
