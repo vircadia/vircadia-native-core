@@ -553,10 +553,10 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
             if (domainAuthURLVariant.canConvert<QString>()) {
                 domainAuthURL = domainAuthURLVariant.toString();
             }
-            sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
+            sendConnectionDeniedPacket("You lack the required domain permissions to connect to this domain.",
                 nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedDomain, domainAuthURL);
         } else {
-            sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
+            sendConnectionDeniedPacket("You lack the required metaverse permissions to connect to this domain.",
                 nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedMetaverse);
         }
 #ifdef WANT_DEBUG

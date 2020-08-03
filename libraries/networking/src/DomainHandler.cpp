@@ -550,7 +550,9 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 
     // output to the log so the user knows they got a denied connection request
     // and check and signal for an access token so that we can make sure they are logged in
-    qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage << " extraInfo:" << extraInfo;
+    QString sanitizedExtraInfo = extraInfo.toLower().startsWith("http") ? "" : extraInfo;  // Don't log URLs.
+    qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage 
+        << " extraInfo:" << sanitizedExtraInfo;
 
     if (!_domainConnectionRefusals.contains(reasonMessage)) {
         _domainConnectionRefusals.insert(reasonMessage);
