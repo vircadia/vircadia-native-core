@@ -109,6 +109,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
                 if (message->getBytesLeftToRead() > 0) {
                     // Read domain username from packet.
                     packetStream >> domainUsername;
+                    domainUsername = domainUsername.toLower();  // Domain usernames are case-insensitive; internally lower-case.
 
                     if (message->getBytesLeftToRead() > 0) {
                         // Read domain tokens from packet.
@@ -528,8 +529,8 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         } else if (verifyDomainUserIdentity(domainUsername, domainAccessToken, domainRefreshToken, 
                                             nodeConnection.senderSockAddr)) {
             // User's domain identity is confirmed.
-            getDomainGroupMemberships(domainUsername);
-            verifiedDomainUsername = domainUsername.toLower();
+            verifiedDomainUsername = domainUsername;
+            getDomainGroupMemberships(verifiedDomainUsername);
 
         } else {
             // User's domain identity didn't check out.
