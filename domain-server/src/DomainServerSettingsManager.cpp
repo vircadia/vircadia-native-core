@@ -2186,7 +2186,7 @@ QList<QUuid> DomainServerSettingsManager::getBlacklistGroupIDs() {
 }
 
 QStringList DomainServerSettingsManager::getDomainGroupNames() {
-    // Names as configured in domain server; not necessarily mnetaverse groups.
+    // Names as configured in domain server; not necessarily metaverse groups.
     QSet<QString> result;
     foreach(NodePermissionsKey groupKey, _groupPermissions.keys()) {
         result += _groupPermissions[groupKey]->getID();

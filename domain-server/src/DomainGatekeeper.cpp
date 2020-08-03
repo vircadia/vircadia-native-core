@@ -1218,19 +1218,13 @@ Node::LocalID DomainGatekeeper::findOrCreateLocalID(const QUuid& uuid) {
 
 bool DomainGatekeeper::domainHasLogin() {
     // The domain may have its own users and groups in a WordPress site.
-    // ####### TODO: Add checks of any further domain server settings used.
+    // ####### TODO: Add checks of any further domain server settings used. [plugin, groups]
     return _server->_settingsManager.valueForKeyPath(AUTHENTICATION_ENAABLED).toBool()
         && !_server->_settingsManager.valueForKeyPath(AUTHENTICATION_OAUTH2_URL_PATH).toString().isEmpty()
         && !_server->_settingsManager.valueForKeyPath(AUTHENTICATION_WORDPRESS_URL_BASE).toString().isEmpty();
 }
 
 void DomainGatekeeper::requestDomainUser(const QString& username, const QString& accessToken, const QString& refreshToken) {
-
-    // ####### TODO: Move this further up the chain such that generates "invalid username or password" condition?
-    // Don't request identity for the standard psuedo-account-names.
-    if (NodePermissions::standardNames.contains(username, Qt::CaseInsensitive)) {
-        return;
-    }
 
     if (_inFlightDomainUserIdentityRequests.contains(username)) {
         // Domain identify request for this username is already in progress.

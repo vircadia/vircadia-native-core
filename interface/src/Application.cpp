@@ -9444,7 +9444,6 @@ void Application::forceDisplayName(const QString& displayName) {
     getMyAvatar()->setDisplayName(displayName);
 }
 void Application::forceLoginWithTokens(const QString& tokens) {
-    // ####### TODO
     DependencyManager::get<AccountManager>()->setAccessTokens(tokens);
     Setting::Handle<bool>(KEEP_ME_LOGGED_IN_SETTING_NAME, true).set(true);
 }
