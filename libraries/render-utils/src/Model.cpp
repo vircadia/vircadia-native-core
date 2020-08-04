@@ -886,13 +886,6 @@ void Model::updateRenderItemsKey(const render::ScenePointer& scene) {
     scene->enqueueTransaction(transaction);
 }
 
-void Model::setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePointer& scene) {
-    if (_primitiveMode != primitiveMode) {
-        _primitiveMode = primitiveMode;
-        updateRenderItemsKey(scene);
-    }
-}
-
 void Model::setVisibleInScene(bool visible, const render::ScenePointer& scene) {
     if (Model::isVisible() != visible) {
         auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
@@ -965,10 +958,10 @@ void Model::setCauterized(bool cauterized, const render::ScenePointer& scene) {
     }
 }
 
-void Model::setPrimitiveMode(PrimitiveMode primitiveMode) {
+void Model::setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePointer& scene) {
     if (_primitiveMode != primitiveMode) {
         _primitiveMode = primitiveMode;
-        setRenderItemsNeedUpdate();
+        updateRenderItemsKey(scene);
     }
 }
 
