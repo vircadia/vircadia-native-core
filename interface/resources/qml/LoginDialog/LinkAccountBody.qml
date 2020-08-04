@@ -143,21 +143,6 @@ Item {
             visible: false;
             anchors.fill: parent;
         }
-        
-        Text {
-            id: loginDialogText
-            text: qsTr("Log In")
-            anchors {
-                left: parent.left
-            }
-            lineHeight: 1
-            color: "white"
-            font.family: linkAccountBody.fontFamily
-            font.pixelSize: linkAccountBody.textFieldFontSize
-            font.bold: linkAccountBody.fontBold
-            verticalAlignment: Text.AlignVCenter
-            horizontalAlignment: Text.AlignHCenter
-        }
 
         Item {
             id: loginContainer
@@ -176,9 +161,9 @@ Item {
                 width: parent.width
                 height: loginErrorMessageTextMetrics.height
                 anchors {
-                    bottom: displayNameField.top;
+                    bottom: loginDialogText.top;
                     bottomMargin: hifi.dimensions.contentSpacing.y;
-                    left: displayNameField.left;
+                    left: loginDialogText.left;
                 }
                 TextMetrics {
                     id: loginErrorMessageTextMetrics
@@ -197,6 +182,23 @@ Item {
                     visible: false
                 }
             }
+            
+            Text {
+                id: loginDialogText
+                text: qsTr("Log In")
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    topMargin: errorContainer.height
+                }
+                lineHeight: 1
+                color: "white"
+                font.family: linkAccountBody.fontFamily
+                font.pixelSize: linkAccountBody.textFieldFontSize
+                font.bold: linkAccountBody.fontBold
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+            }
 
             HifiControlsUit.TextField {
                 id: displayNameField
@@ -205,8 +207,8 @@ Item {
                 font.pixelSize: linkAccountBody.textFieldFontSize
                 styleRenderType: Text.QtRendering
                 anchors {
-                    top: parent.top
-                    topMargin: errorContainer.height
+                    top: loginDialogText.bottom
+                    topMargin: 1.5 * hifi.dimensions.contentSpacing.y
                 }
                 placeholderText: "Display Name (optional)"
                 activeFocusOnPress: true
@@ -370,6 +372,7 @@ Item {
                 labelFontFamily: linkAccountBody.fontFamily
                 labelFontSize: 18;
                 color: hifi.colors.white;
+                visible: !isLoggingInToDomain
                 anchors {
                     top: passwordField.bottom;
                     topMargin: hifi.dimensions.contentSpacing.y;
