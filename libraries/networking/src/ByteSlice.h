@@ -53,7 +53,7 @@ private:
     typedef QSharedPointer<Bytestring> BytestringPointer;
     inline ByteSlice(BytestringPointer content, size_t offset, size_t length);
 
-    static quint8 gl_fallback;
+    static quint8 _fallback;
 
     BytestringPointer _content;
     size_t _offset;

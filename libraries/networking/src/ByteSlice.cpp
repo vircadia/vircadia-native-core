@@ -11,7 +11,7 @@
 
 #include "Byteslice.h"
 
-quint8 ByteSlice::gl_fallback{ 0 };
+quint8 ByteSlice::_fallback{ 0 };
 
 ByteSlice::Bytestring::Bytestring(const quint8* source, size_t length) {
     quint8* myContent = new quint8[length];
