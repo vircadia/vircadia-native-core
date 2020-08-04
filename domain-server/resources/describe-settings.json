@@ -70,14 +70,6 @@
             "advanced": true
         },
         {
-            "name": "require_oauth2",
-            "label": "Require OAuth2 Authentication",
-            "help": "For any users not explicitly authorized in these settings, notify the Interface to authenticate through this method.",
-            "default": false,
-            "type": "checkbox",
-            "advanced": true
-        },
-        {
             "name": "oauth2_url_path",
             "label": "Authentication URL",
             "help": "The URL that the Interface will use to login via OAuth2.",
