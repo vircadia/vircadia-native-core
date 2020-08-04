@@ -58,10 +58,8 @@ private:
     QQmlContext* _context{ nullptr };
     std::atomic<bool> _isRestricted{ false };
 
-    static QReadWriteLock _global_contextMapProtect;
-    static ContextMap _global_contextMap;
-
-    void onIsRestrictedChanged(bool newValue);
+    static QReadWriteLock _contextMapProtect;
+    static ContextMap _contextMap;
 };
 
 #endif // hifi_FileTypeProfile_h

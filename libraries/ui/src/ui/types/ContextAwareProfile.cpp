@@ -22,19 +22,19 @@
 
 static const QString RESTRICTED_FLAG_PROPERTY = "RestrictFileAccess";
 
-QReadWriteLock ContextAwareProfile::_global_contextMapProtect;
-ContextAwareProfile::ContextMap ContextAwareProfile::_global_contextMap;
+QReadWriteLock ContextAwareProfile::_contextMapProtect;
+ContextAwareProfile::ContextMap ContextAwareProfile::_contextMap;
 
 ContextAwareProfile::ContextAwareProfile(QQmlContext* context) : ContextAwareProfileParent(context), _context(context) {
     assert(context);
 
     {   // register our object for future updates
-        QWriteLocker guard(&_global_contextMapProtect);
-        ContextMap::iterator setLookup = _global_contextMap.find(_context);
-        if (setLookup == _global_contextMap.end()) {
-            setLookup = _global_contextMap.insert(_context, ContextAwareProfileSet());
+        QWriteLocker guard(&_contextMapProtect);
+        ContextMap::iterator setLookup = _contextMap.find(_context);
+        if (setLookup == _contextMap.end()) {
+            setLookup = _contextMap.insert(_context, ContextAwareProfileSet());
         }
-        assert(setLookup != _global_contextMap.end());
+        assert(setLookup != _contextMap.end());
         ContextAwareProfileSet& profileSet = setLookup.value();
         assert(profileSet.find(this) == profileSet.end());
         profileSet.insert(this);
@@ -44,17 +44,16 @@ ContextAwareProfile::ContextAwareProfile(QQmlContext* context) : ContextAwarePro
 }
 
 ContextAwareProfile::~ContextAwareProfile() {
-    {  // deregister our object
-        QWriteLocker guard(&_global_contextMapProtect);
-        ContextMap::iterator setLookup = _global_contextMap.find(_context);
-        assert(setLookup != _global_contextMap.end());
-        if (setLookup != _global_contextMap.end()) {
-            ContextAwareProfileSet& profileSet = setLookup.value();
-            assert(profileSet.find(this) != profileSet.end());
-            profileSet.remove(this);
-            if (profileSet.isEmpty()) {
-                _global_contextMap.erase(setLookup);
-            }
+    // deregister our object
+    QWriteLocker guard(&_contextMapProtect);
+    ContextMap::iterator setLookup = _contextMap.find(_context);
+    assert(setLookup != _contextMap.end());
+    if (setLookup != _contextMap.end()) {
+        ContextAwareProfileSet& profileSet = setLookup.value();
+        assert(profileSet.find(this) != profileSet.end());
+        profileSet.remove(this);
+        if (profileSet.isEmpty()) {
+            _contextMap.erase(setLookup);
         }
     }
 }
@@ -65,13 +64,13 @@ void ContextAwareProfile::restrictContext(QQmlContext* context, bool restrict) {
     context->setContextProperty(RESTRICTED_FLAG_PROPERTY, restrict);
 
     // broadcast the new value to any registered ContextAwareProfile objects
-    QReadLocker guard(&_global_contextMapProtect);
-    ContextMap::const_iterator setLookup = _global_contextMap.find(context);
-    if (setLookup != _global_contextMap.end()) {
+    QReadLocker guard(&_contextMapProtect);
+    ContextMap::const_iterator setLookup = _contextMap.find(context);
+    if (setLookup != _contextMap.end()) {
         const ContextAwareProfileSet& profileSet = setLookup.value();
         for (ContextAwareProfileSet::const_iterator profileIterator = profileSet.begin();
                 profileIterator != profileSet.end(); profileIterator++) {
-            (*profileIterator)->onIsRestrictedChanged(restrict);
+            (*profileIterator)->_isRestricted.store(restrict);
         }
     }
 }
@@ -91,10 +90,6 @@ bool ContextAwareProfile::isRestrictedGetProperty() {
     // BUGZ-1365 - we MUST defalut to restricted mode in the absence of a flag, or it's too easy for someone to make 
     // a new mechanism for loading web content that fails to restrict access to local files
     return true;
-}
-
-void ContextAwareProfile::onIsRestrictedChanged(bool newValue) {
-    _isRestricted.store(newValue);
 }
 
 bool ContextAwareProfile::isRestricted() {
