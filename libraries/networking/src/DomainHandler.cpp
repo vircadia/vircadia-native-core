@@ -550,7 +550,9 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 
     // output to the log so the user knows they got a denied connection request
     // and check and signal for an access token so that we can make sure they are logged in
-    qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage << " extraInfo:" << extraInfo;
+    QString sanitizedExtraInfo = extraInfo.toLower().startsWith("http") ? "" : extraInfo;  // Don't log URLs.
+    qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage 
+        << " extraInfo:" << sanitizedExtraInfo;
 
     if (!_domainConnectionRefusals.contains(reasonMessage)) {
         _domainConnectionRefusals.insert(reasonMessage);
@@ -584,8 +586,13 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
         }
     } else if (reasonSuggestsDomainLogin(reasonCode)) {
         qCWarning(networking) << "Make sure you are logged in to the domain.";
-        
+
         auto accountManager = DependencyManager::get<DomainAccountManager>();
+        if (!extraInfo.isEmpty()) {
+            auto extraInfoComponents = extraInfo.split("|");
+            accountManager->setAuthURL(extraInfoComponents.value(0));
+            accountManager->setClientID(extraInfoComponents.value(1));
+        }
 
         if (!_hasCheckedForDomainAccessToken) {
             accountManager->checkAndSignalForAccessToken();
