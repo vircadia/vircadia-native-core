@@ -531,7 +531,6 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
                                             nodeConnection.senderSockAddr)) {
             // User's domain identity is confirmed.
             verifiedDomainUsername = domainUsername;
-            getDomainGroupMemberships(verifiedDomainUsername);
 
         } else {
             // User's domain identity didn't check out.
@@ -1108,20 +1107,6 @@ void DomainGatekeeper::getIsGroupMemberErrorCallback(QNetworkReply* requestReply
 }
 
 
-void DomainGatekeeper::getDomainGroupMemberships(const QString& domainUserName) {
-
-    // ####### TODO: Get user's domain group memberships (WordPress roles) from domain. [plugin groups]
-    //         This may be able to be provided at the same time as the "authenticate user" call to the domain API, in which case
-    //         a copy of some of the following code can be made there. However, this code is still needed for refreshing groups.
-
-    // ####### TODO: Check how often this method and the WordPress API is called. [plugin groups]
-
-    QStringList wordpressGroupsForUser;
-    wordpressGroupsForUser << "silVER" << "gold" << "coal";
-    _domainGroupMemberships[domainUserName] = wordpressGroupsForUser;
-}
-
-
 void DomainGatekeeper::getDomainOwnerFriendsList() {
     JSONCallbackParameters callbackParams;
     callbackParams.callbackReceiver = this;
@@ -1282,13 +1267,19 @@ void DomainGatekeeper::requestDomainUserFinished() {
 
     if (200 <= httpStatus && httpStatus < 300) {
 
-        QString username = rootObject["username"].toString().toLower();
+        QString username = rootObject.value("username").toString().toLower();
         if (_inFlightDomainUserIdentityRequests.contains(username)) {
             // Success! Verified user.
             _verifiedDomainUserIdentities.insert(username, _inFlightDomainUserIdentityRequests.value(username));
             _inFlightDomainUserIdentityRequests.remove(username);
 
-            // ####### TODO: Handle roles.
+            // User user's WordPress roles as domain groups.
+            QStringList domainUserGroups;
+            auto userRoles = rootObject.value("roles").toArray();
+            foreach (auto role, userRoles) {
+                domainUserGroups.append(role.toString());
+            }
+            _domainGroupMemberships[username] = domainUserGroups;
 
         } else {
             // Failure.

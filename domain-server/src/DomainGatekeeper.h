@@ -158,7 +158,6 @@ private:
     DomainUserIdentities _inFlightDomainUserIdentityRequests;  // Domain user identity requests currently in progress.
     DomainUserIdentities _verifiedDomainUserIdentities;  // Verified domain users.
 
-    void getDomainGroupMemberships(const QString& domainUserName);
     QHash<QString, QStringList> _domainGroupMemberships;  // <domainUserName, [domainGroupName]>
 };
 
