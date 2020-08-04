@@ -36,8 +36,9 @@ public slots:
     void requestAccessToken(const QString& username, const QString& password);
     
     void requestAccessTokenFinished();
+
 signals:
-    void authRequired();
+    void authRequired(const QString& domain);
     void loginComplete();
     void loginFailed();
     void logoutComplete();

@@ -85,6 +85,7 @@ protected slots:
     Q_INVOKABLE bool getLoginDialogPoppedUp() const;
 
     Q_INVOKABLE bool getDomainLoginRequested() const;
+    Q_INVOKABLE QString getDomainLoginDomain() const;
 
 };
 

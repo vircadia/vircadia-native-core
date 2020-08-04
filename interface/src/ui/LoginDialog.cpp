@@ -427,3 +427,7 @@ void LoginDialog::signupFailed(QNetworkReply* reply) {
 bool LoginDialog::getDomainLoginRequested() const {
     return DependencyManager::get<DialogsManager>()->getIsDomainLogin();
 }
+
+QString LoginDialog::getDomainLoginDomain() const {
+    return DependencyManager::get<DialogsManager>()->getDomainLoginDomain();
+}

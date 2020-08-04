@@ -46,6 +46,7 @@ Item {
 
     readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
     readonly property bool isLoggingInToDomain: loginDialog.getDomainLoginRequested()
+    readonly property string domainLoginDomain: loginDialog.getDomainLoginDomain()
 
     QtObject {
         id: d

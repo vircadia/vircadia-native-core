@@ -184,7 +184,10 @@ bool DomainAccountManager::checkAndSignalForAccessToken() {
         // Emit a signal so somebody can call back to us and request an access token given a user name and password.
 
         // Dialog can be hidden immediately after showing if we've just teleported to the domain, unless the signal is delayed.
-        QTimer::singleShot(500, this, [this] { emit this->authRequired(); });
+        auto domain = _authURL.host();
+        QTimer::singleShot(500, this, [this, domain] {
+            emit this->authRequired(domain); 
+        });
     }
 
     return hasToken;
