@@ -181,7 +181,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
         auto userGroups = _domainGroupMemberships[verifiedDomainUserName];
         foreach (QString userGroup, userGroups) {
             // Domain groups may be specified as comma- and/or space-separated lists of group names.
-            // For example, "silver gold, platinum".
+            // For example, "@silver @Gold, @platinum".
             auto domainGroups = _server->_settingsManager.getDomainGroupNames()
                 .filter(QRegularExpression("^(.*[\\s,])?" + userGroup + "([\\s,].*)?$", 
                     QRegularExpression::CaseInsensitiveOption));
@@ -302,7 +302,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
         auto userGroups = _domainGroupMemberships[verifiedDomainUserName];
         foreach(QString userGroup, userGroups) {
             // Domain groups may be specified as comma- and/or space-separated lists of group names.
-            // For example, "silver gold, platinum".
+            // For example, "@silver @Gold, @platinum".
             auto domainGroups = _server->_settingsManager.getDomainBlacklistGroupNames()
                 .filter(QRegularExpression("^(.*[\\s,])?" + userGroup + "([\\s,].*)?$",
                     QRegularExpression::CaseInsensitiveOption));
@@ -1277,7 +1277,8 @@ void DomainGatekeeper::requestDomainUserFinished() {
             QStringList domainUserGroups;
             auto userRoles = rootObject.value("roles").toArray();
             foreach (auto role, userRoles) {
-                domainUserGroups.append(role.toString());
+                // Distinguish domain groups from metaverse groups by a leading special character.
+                domainUserGroups.append(DOMAIN_GROUP_CHAR + role.toString().toLower());
             }
             _domainGroupMemberships[username] = domainUserGroups;
 

@@ -30,6 +30,8 @@
 #include "NodeConnectionData.h"
 #include "PendingAssignedNodeData.h"
 
+const QString DOMAIN_GROUP_CHAR = "@";
+
 class DomainServer;
 
 class DomainGatekeeper : public QObject {

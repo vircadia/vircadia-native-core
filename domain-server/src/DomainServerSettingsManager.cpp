@@ -1966,6 +1966,10 @@ void DomainServerSettingsManager::apiRefreshGroupInformation() {
     QStringList groupNames = getAllKnownGroupNames();
     foreach (QString groupName, groupNames) {
         QString lowerGroupName = groupName.toLower();
+        if (lowerGroupName.contains(DOMAIN_GROUP_CHAR)) {
+            // Ignore domain groups.
+            return;
+        }
         if (_groupIDs.contains(lowerGroupName)) {
             // we already know about this one.  recall setGroupID in case the group has been
             // added to another section (the same group is found in both groups and blacklists).
