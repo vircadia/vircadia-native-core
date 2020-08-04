@@ -226,6 +226,7 @@ void Model::updateRenderItems() {
         modelTransform.setScale(glm::vec3(1.0f));
 
         PrimitiveMode primitiveMode = self->getPrimitiveMode();
+        auto renderWithZones = self->getRenderWithZones();
         auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
         bool cauterized = self->isCauterized();
 
@@ -241,7 +242,8 @@ void Model::updateRenderItems() {
             bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
             transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
-                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
+                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags,
+                                                                  cauterized, renderWithZones](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
                     data.computeAdjustedLocalBound(meshState.clusterDualQuaternions);
@@ -268,6 +270,7 @@ void Model::updateRenderItems() {
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
                 data.setCauterized(cauterized);
+                data.setRenderWithZones(renderWithZones);
                 data.updateKey(renderItemKeyGlobalFlags);
                 data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
             });
@@ -962,6 +965,13 @@ void Model::setCauterized(bool cauterized, const render::ScenePointer& scene) {
     }
 }
 
+void Model::setPrimitiveMode(PrimitiveMode primitiveMode) {
+    if (_primitiveMode != primitiveMode) {
+        _primitiveMode = primitiveMode;
+        setRenderItemsNeedUpdate();
+    }
+}
+
 void Model::setCullWithParent(bool cullWithParent) {
     if (_cullWithParent != cullWithParent) {
         _cullWithParent = cullWithParent;
@@ -979,13 +989,10 @@ void Model::setCullWithParent(bool cullWithParent) {
 }
 
 void Model::setRenderWithZones(const QVector<QUuid>& renderWithZones) {
-    render::Transaction transaction;
-    for (auto item : _modelMeshRenderItemIDs) {
-        transaction.updateItem<ModelMeshPartPayload>(item, [renderWithZones](ModelMeshPartPayload& data) {
-            data.setRenderWithZones(renderWithZones);
-        });
+    if (_renderWithZones != renderWithZones) {
+        _renderWithZones = renderWithZones;
+        setRenderItemsNeedUpdate();
     }
-    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
 }
 
 const render::ItemKey Model::getRenderItemKeyGlobalFlags() const {

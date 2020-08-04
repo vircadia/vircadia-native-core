@@ -310,7 +310,7 @@ BOOL LauncherManager::getAndCreatePaths(PathType type, CString& outPath) {
                 outPath += DIRECTORY_NAME_INTERFACE;
             } else if (type == PathType::Content_Directory) {
                 outPath += DIRECTORY_NAME_CONTENT;
-            } 
+            }
             return (CreateDirectory(outPath, NULL) || ERROR_ALREADY_EXISTS == GetLastError());
         }
     }
@@ -377,7 +377,7 @@ BOOL LauncherManager::createConfigJSON() {
     return TRUE;
 }
 
-LauncherUtils::ResponseError LauncherManager::readConfigJSON(CString& version, CString& domain, 
+LauncherUtils::ResponseError LauncherManager::readConfigJSON(CString& version, CString& domain,
                                                              CString& content, bool& loggedIn, CString& organizationBuildTag) {
     CString configPath;
     getAndCreatePaths(PathType::Interface_Directory, configPath);
@@ -388,7 +388,7 @@ LauncherUtils::ResponseError LauncherManager::readConfigJSON(CString& version, C
     }
     Json::Value config;
     configFile >> config;
-    if (config["version"].isString() && 
+    if (config["version"].isString() &&
         config["domain"].isString() &&
         config["content"].isString()) {
         loggedIn = config["loggedIn"].asBool();
@@ -446,7 +446,7 @@ LauncherUtils::ResponseError LauncherManager::readOrganizationJSON(const CString
     CString url = _T("/organizations/") + hash + _T(".json");
     LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(getHttpUserAgent(),
                                                                      true, L"orgs.highfidelity.com", url,
-                                                                     contentTypeJson, CStringA(), 
+                                                                     contentTypeJson, CStringA(),
                                                                      response, false);
     if (error != LauncherUtils::ResponseError::NoError) {
         return error;
@@ -557,7 +557,7 @@ void LauncherManager::onMostRecentBuildsReceived(const CString& response, Launch
                 addToLog(_T("Already running most recent build. Launching interface.exe"));
             } else {
                 addToLog(_T("Updating the launcher was not allowed --noUpdate"));
-            }            
+            }
             if (isInstalled) {
                 addToLog(_T("Installed version: ") + currentVersion);
                 if (!newInterfaceVersion) {
@@ -576,7 +576,7 @@ void LauncherManager::onMostRecentBuildsReceived(const CString& response, Launch
             }
         }
         _shouldWait = FALSE;
-        
+
     } else {
         setFailed(true);
         CString msg;
@@ -587,7 +587,7 @@ void LauncherManager::onMostRecentBuildsReceived(const CString& response, Launch
     }
 }
 
-LauncherUtils::ResponseError LauncherManager::getAccessTokenForCredentials(const CString& username, 
+LauncherUtils::ResponseError LauncherManager::getAccessTokenForCredentials(const CString& username,
                                                                            const CString& password) {
     CStringA post = "grant_type=password&username=";
     post += username;
@@ -599,9 +599,9 @@ LauncherUtils::ResponseError LauncherManager::getAccessTokenForCredentials(const
     CString response;
     LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(getHttpUserAgent(),
                                                                      true,
-                                                                     L"metaverse.highfidelity.com", 
+                                                                     L"metaverse.highfidelity.com",
                                                                      L"/oauth/token",
-                                                                     contentTypeText, post, 
+                                                                     contentTypeText, post,
                                                                      response, true);
     if (error != LauncherUtils::ResponseError::NoError) {
         return error;
@@ -629,7 +629,7 @@ BOOL LauncherManager::createApplicationRegistryKeys(int size) {
     success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "UninstallString", uninstallPath);
     success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "DisplayVersion", LauncherUtils::cStringToStd(_latestVersion));
     success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "DisplayIcon", applicationExe);
-    success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "Publisher", "High Fidelity");
+    success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "Publisher", "Vircadia");
     success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "InstallDate", LauncherUtils::cStringToStd(CTime::GetCurrentTime().Format("%Y%m%d")));
     success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "EstimatedSize", (DWORD)size);
     success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "NoModify", (DWORD)1);
@@ -686,9 +686,9 @@ BOOL LauncherManager::extractApplication() {
         updateProgress(ProcessType::UnzipApplication, max(progress, 0.0f));
     };
     _currentProcess = ProcessType::UnzipApplication;
-    BOOL success = LauncherUtils::unzipFileOnThread(ProcessType::UnzipApplication, 
+    BOOL success = LauncherUtils::unzipFileOnThread(ProcessType::UnzipApplication,
                                                     LauncherUtils::cStringToStd(_applicationZipPath),
-                                                    LauncherUtils::cStringToStd(installPath), 
+                                                    LauncherUtils::cStringToStd(installPath),
                                                     onExtractFinished, onProgress);
     if (success) {
         addToLog(_T("Created thread for unzipping application."));
@@ -737,7 +737,7 @@ void LauncherManager::restartNewLauncher() {
         continueAction = ContinueActionOnStart::ContinueUpdate;
     } else if (_keepLoggingIn) {
         continueAction = ContinueActionOnStart::ContinueLogIn;
-    }    
+    }
     CStringW params;
     params.Format(_T(" --restart --noUpdate --continueAction %s"), getContinueActionParam(continueAction));
     LauncherUtils::launchApplication(_tempLauncherPath, params.GetBuffer());

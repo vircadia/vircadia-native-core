@@ -2614,7 +2614,7 @@ QString Application::getUserAgent() {
         return userAgent;
     }
 
-    QString userAgent = "Mozilla/5.0 (HighFidelityInterface/" + BuildInfo::VERSION + "; "
+    QString userAgent = NetworkingConstants::VIRCADIA_USER_AGENT + "/" + BuildInfo::VERSION + "; "
         + QSysInfo::productType() + " " + QSysInfo::productVersion() + ")";
 
     auto formatPluginName = [](QString name) -> QString { return name.trimmed().replace(" ", "-");  };
@@ -3939,12 +3939,15 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMDAndHandControllers;
 
-    // when --url in command line, teleport to location
-    const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
-    int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
     QString addressLookupString;
-    if (urlIndex != -1) {
-        QUrl url(arguments().value(urlIndex + 1));
+
+    // when --url in command line, teleport to location
+    QCommandLineParser parser;
+    QCommandLineOption urlOption("url", "", "value");
+    parser.addOption(urlOption);
+    parser.parse(arguments());
+    if (parser.isSet(urlOption)) {
+        QUrl url = QUrl(parser.value(urlOption));
         if (url.scheme() == URL_SCHEME_HIFIAPP) {
             Setting::Handle<QVariant>("startUpApp").set(url.path());
         } else {
@@ -7655,7 +7658,7 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(url);
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(networkRequest);
     int requestNumber = ++_avatarAttachmentRequest;
     connect(reply, &QNetworkReply::finished, [this, reply, url, requestNumber]() {
