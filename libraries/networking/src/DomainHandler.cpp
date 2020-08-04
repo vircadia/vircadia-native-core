@@ -589,7 +589,9 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 
         auto accountManager = DependencyManager::get<DomainAccountManager>();
         if (!extraInfo.isEmpty()) {
-            accountManager->setAuthURL(extraInfo);
+            auto extraInfoComponents = extraInfo.split("|");
+            accountManager->setAuthURL(extraInfoComponents.value(0));
+            accountManager->setClientID(extraInfoComponents.value(1));
         }
 
         if (!_hasCheckedForDomainAccessToken) {

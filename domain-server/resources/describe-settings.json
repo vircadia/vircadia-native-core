@@ -78,13 +78,6 @@
             "advanced": true
         },
         {
-            "name": "domain_access_token",
-            "label": "Domain API Access Token",
-            "help": "This is the access token that your domain-server will use to verify users and their roles. This token must grant access to that permission set on your REST API server.",
-            "advanced": true,
-            "backup": false
-        },
-        {
             "name": "oauth2_url_path",
             "label": "Authentication URL",
             "help": "The URL that the Interface will use to login via OAuth2.",
@@ -95,6 +88,13 @@
             "label": "WordPress API URL Base",
             "help": "The URL base that the domain server will use to make WordPress API calls. Typically \"https://oursite.com/wp-json/\". However, if using non-pretty permalinks or otherwise get a 404 error then try \"https://oursite.com/?rest_route=/\".",
             "advanced": true
+        },
+        {
+            "name": "plugin_client_id",
+            "label": "WordPress Plugin Client ID",
+            "help": "This is the client ID from the WordPress plugin configuration.",
+            "advanced": true,
+            "backup": false
         }
       ]
     },

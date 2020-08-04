@@ -24,6 +24,7 @@ public:
     DomainAccountManager();
 
     void setAuthURL(const QUrl& authURL);
+    void setClientID(const QString& clientID) { _clientID = clientID; }
 
     QString getUsername() { return _username; }
     QString getAccessToken() { return _access_token; }
@@ -51,6 +52,7 @@ private:
     void sendInterfaceAccessTokenToServer();
 
     QUrl _authURL;
+    QString _clientID;
     QString _username;      // ####### TODO: Store elsewhere?
     QString _access_token;  // ####... ""
     QString _refresh_token; // ####... ""

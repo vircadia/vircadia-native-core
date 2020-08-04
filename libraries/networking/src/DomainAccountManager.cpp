@@ -26,8 +26,6 @@
 // FIXME: Generalize to other OAuth2 sources for domain login.
 
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
-const QString DOMAIN_ACCOUNT_MANAGER_REQUESTED_SCOPE = "foo bar";  // ####### TODO: WordPress plugin's required scope. [plugin]
-// ####### TODO: Should scope be configured in domain server settings? [plugin]
 
 // ####### TODO: Add storing domain URL and check against it when retrieving values?
 // ####### TODO: Add storing _authURL and check against it when retrieving values?
@@ -71,15 +69,15 @@ void DomainAccountManager::requestAccessToken(const QString& username, const QSt
 
     request.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-    // ####### TODO: WordPress plugin's authorization requirements. [plugin]
-    request.setRawHeader(QByteArray("Authorization"), QByteArray("Basic b2F1dGgtY2xpZW50LTE6b2F1dGgtY2xpZW50LXNlY3JldC0x"));
 
+    // miniOrange WordPress API Authentication plugin:
+    // - Requires "client_id" parameter.
+    // - Ignores "state" parameter.
     QByteArray formData;
     formData.append("grant_type=password&");
     formData.append("username=" + QUrl::toPercentEncoding(username) + "&");
     formData.append("password=" + QUrl::toPercentEncoding(password) + "&");
-    formData.append("scope=" + DOMAIN_ACCOUNT_MANAGER_REQUESTED_SCOPE);
-    // ####### TODO: Include state? [plugin]
+    formData.append("client_id=" + _clientID);
 
     request.setUrl(_authURL);
 
@@ -100,20 +98,13 @@ void DomainAccountManager::requestAccessTokenFinished() {
     auto httpStatus = requestReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     if (200 <= httpStatus && httpStatus < 300) {
 
-        // ####### TODO: Process response state? [plugin]
-        // ####### TODO: Process response scope? [plugin]
-
-        // ####### TODO: Which method are the tokens provided in? [plugin]
+        // miniOrange plugin provides no scope.
         if (rootObject.contains("access_token")) {
             // Success.
-
             QUrl rootURL = requestReply->url();
             rootURL.setPath("");
-
             setTokensFromJSON(rootObject, rootURL);
-
             emit loginComplete();
-
         } else {
             // Failure.
             qCDebug(networking) << "Received a response for password grant that is missing one or more expected values.";
@@ -122,10 +113,8 @@ void DomainAccountManager::requestAccessTokenFinished() {
 
     } else {
         // Failure.
-
-        // ####### TODO: Error object fields to report. [plugin]
-        qCDebug(networking) << "Error in response for password grant -" << httpStatus << requestReply->error() 
-            << "_" << rootObject["error"].toString();
+        qCDebug(networking) << "Error in response for password grant -" << httpStatus << requestReply->error()
+            << "-" << rootObject["error"].toString() << rootObject["error_description"].toString();
         emit loginFailed();
     }
 }
@@ -173,6 +162,7 @@ void DomainAccountManager::setTokensFromJSON(const QJsonObject& jsonObject, cons
 
     // ####### TODO: Enable and use these.
     // ####### TODO: Protect these per AccountManager?
+    // ######: TODO: clientID needed?
     /*
     qCDebug(networking) << "Storing a domain account with access-token for" << qPrintable(url.toString());
     domainAccessToken.set(jsonObject["access_token"].toString());

@@ -453,6 +453,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
 const QString AUTHENTICATION_ENAABLED = "authentication.enable_oauth2";
 const QString AUTHENTICATION_OAUTH2_URL_PATH = "authentication.oauth2_url_path";
 const QString AUTHENTICATION_WORDPRESS_URL_BASE = "authentication.wordpress_url_base";
+const QString AUTHENTICATION_PLUGIN_CLIENT_ID = "authentication.plugin_client_id";
 const QString MAXIMUM_USER_CAPACITY = "security.maximum_user_capacity";
 const QString MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION = "security.maximum_user_capacity_redirect_location";
 
@@ -553,8 +554,15 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
             if (domainAuthURLVariant.canConvert<QString>()) {
                 domainAuthURL = domainAuthURLVariant.toString();
             }
+            QString domainAuthClientID;
+            auto domainAuthClientIDVariant = _server->_settingsManager.valueForKeyPath(AUTHENTICATION_PLUGIN_CLIENT_ID);
+            if (domainAuthClientIDVariant.canConvert<QString>()) {
+                domainAuthClientID = domainAuthClientIDVariant.toString();
+            }
+
             sendConnectionDeniedPacket("You lack the required domain permissions to connect to this domain.",
-                nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedDomain, domainAuthURL);
+                nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedDomain, 
+                    domainAuthURL + "|" + domainAuthClientID);
         } else {
             sendConnectionDeniedPacket("You lack the required metaverse permissions to connect to this domain.",
                 nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorizedMetaverse);
@@ -1242,11 +1250,9 @@ void DomainGatekeeper::requestDomainUser(const QString& username, const QString&
     }
 
     // Get data pertaining to "me", the user who generated the access token.
-    // ####### TODO: Confirm API route and data w.r.t. OAuth2 plugin's capabilities. [plugin]
-    const QString WORDPRESS_USER_ROUTE = "wp/v2/users/me?context=edit&_fields=id,username,roles";
-    QUrl domainUserURL = apiBase + WORDPRESS_USER_ROUTE;
-
-    // ####### TODO: Append a random key to check in response? [security]
+    const QString WORDPRESS_USER_ROUTE = "wp/v2/users/me";
+    const QString WORDPRESS_USER_QUERY = "_fields=username,roles";
+    QUrl domainUserURL = apiBase + WORDPRESS_USER_ROUTE + (apiBase.contains("?") ? "&" : "?") + WORDPRESS_USER_QUERY;
 
     QNetworkRequest request;
 
@@ -1275,34 +1281,24 @@ void DomainGatekeeper::requestDomainUserFinished() {
     auto httpStatus = requestReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 
     if (200 <= httpStatus && httpStatus < 300) {
-        // Success.
-        // ####### TODO: Verify Expected response. [plugin]
-        /*
-        {
-        id: 2,
-            username : 'apiuser',
-            roles : ['subscriber'] ,
-        }
-        */
 
         QString username = rootObject["username"].toString().toLower();
         if (_inFlightDomainUserIdentityRequests.contains(username)) {
             // Success! Verified user.
             _verifiedDomainUserIdentities.insert(username, _inFlightDomainUserIdentityRequests.value(username));
             _inFlightDomainUserIdentityRequests.remove(username);
+
+            // ####### TODO: Handle roles.
+
         } else {
             // Failure.
             qDebug() << "Unexpected username in response for user details -" << username;
         }
 
-        // ####### TODO: Handle roles if available. [plugin]
-
     } else {
         // Failure.
-
-        // ####### TODO: Error fields to report. [plugin]
         qDebug() << "Error in response for user details -" << httpStatus << requestReply->error() 
-            << "-" << rootObject["error"].toString();
+            << "-" << rootObject["error"].toString() << rootObject["error_description"].toString();
 
         _inFlightDomainUserIdentityRequests.clear();
     }
