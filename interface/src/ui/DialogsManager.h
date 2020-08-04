@@ -42,7 +42,7 @@ public:
     void emitAddressBarShown(bool visible) { emit addressBarShown(visible); }
     void setAddressBarVisible(bool addressBarVisible);
     bool getIsDomainLogin() { return _isDomainLogin; }
-    QString getDomainLoginAuthProvider() { return _domainLoginAuthProvider; }
+    QString getDomainLoginDomain() { return _domainLoginDomain; }
 
 public slots:
     void showAddressBar();
@@ -52,7 +52,7 @@ public slots:
     void toggleLoginDialog();
     void showLoginDialog();
     void hideLoginDialog();
-    void showDomainLoginDialog();
+    void showDomainLoginDialog(const QString& domain);
     void octreeStatsDetails();
     void lodTools();
     void hmdTools(bool showTools);
@@ -87,8 +87,9 @@ private:
     bool _dialogCreatedWhileShown { false };
     bool _addressBarVisible { false };
 
+    void setDomainLogin(bool isDomainLogin, const QString& domain = "");
     bool _isDomainLogin { false };
-    QString _domainLoginAuthProvider { "" };
+    QString _domainLoginDomain;
 };
 
 #endif // hifi_DialogsManager_h

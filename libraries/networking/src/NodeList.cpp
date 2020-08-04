@@ -34,6 +34,7 @@
 #include "AddressManager.h"
 #include "Assignment.h"
 #include "AudioHelpers.h"
+#include "DomainAccountManager.h"
 #include "HifiSockAddr.h"
 #include "FingerprintUtils.h"
 
@@ -103,6 +104,13 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
 
     // clear our NodeList when logout is requested
     connect(accountManager.data(), &AccountManager::logoutComplete , this, [this]{ reset("Logged out"); });
+
+    // Only used in Interface.
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
+    if (domainAccountManager) {
+        _hasDomainAccountManager = true;
+        connect(domainAccountManager.data(), &DomainAccountManager::newTokens, this, &NodeList::sendDomainServerCheckIn);
+    }
 
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
@@ -468,6 +476,7 @@ void NodeList::sendDomainServerCheckIn() {
         packetStream << _ownerType.load() << publicSockAddr << localSockAddr << _nodeTypesOfInterest.toList();
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
+        // ####### TODO: Also send if need to send new domainLogin data?
         if (!domainIsConnected) {
             DataServerAccountInfo& accountInfo = accountManager->getAccountInfo();
             packetStream << accountInfo.getUsername();
@@ -477,20 +486,21 @@ void NodeList::sendDomainServerCheckIn() {
                 const QByteArray& usernameSignature = accountManager->getAccountInfo().getUsernameSignature(connectionToken);
                 packetStream << usernameSignature;
             } else {
-                packetStream << QString("");  // Placeholder in case have domainUsername.
+                // ####### TODO: Only append if are going to send domain username?
+                packetStream << QString("");  // Placeholder in case have domain username.
             }
         } else {
-            packetStream << QString("");  // Placeholder in case have domainUsername.
+            // ####### TODO: Only append if are going to send domainUsername?
+            packetStream << QString("") << QString("");  // Placeholders in case have domain username.
         }
 
-        // ####### TODO: Send domain username and signature if domain has these and aren't logged in.
-        // #######       If get into difficulties, could perhaps send domain's username and signature instead of metaverse.
-        bool domainLoginIsConnected = false;
-        if (!domainLoginIsConnected) {
-            if (false) {  // ####### For testing, false causes user to be considered "not logged in".
-                packetStream << QString("a@b.c");
-                if (true) {  // ####### For testing, false is unhandled at this stage.
-                    packetStream << QString("signature");  // #######: Consider "logged in" if this is sent during testing.
+        // Send domain domain login data from Interface to domain server.
+        if (_hasDomainAccountManager) {
+            auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
+            if (!domainAccountManager->getUsername().isEmpty()) {
+                packetStream << domainAccountManager->getUsername();
+                if (!domainAccountManager->getAccessToken().isEmpty()) {
+                    packetStream << (domainAccountManager->getAccessToken() + ":" + domainAccountManager->getRefreshToken());
                 }
             }
         }

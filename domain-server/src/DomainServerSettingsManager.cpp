@@ -1966,6 +1966,10 @@ void DomainServerSettingsManager::apiRefreshGroupInformation() {
     QStringList groupNames = getAllKnownGroupNames();
     foreach (QString groupName, groupNames) {
         QString lowerGroupName = groupName.toLower();
+        if (lowerGroupName.contains(DOMAIN_GROUP_CHAR)) {
+            // Ignore domain groups.
+            return;
+        }
         if (_groupIDs.contains(lowerGroupName)) {
             // we already know about this one.  recall setGroupID in case the group has been
             // added to another section (the same group is found in both groups and blacklists).
@@ -2181,6 +2185,24 @@ QList<QUuid> DomainServerSettingsManager::getBlacklistGroupIDs() {
         if (_groupForbiddens[groupKey]->isGroup()) {
             result += _groupForbiddens[groupKey]->getGroupID();
         }
+    }
+    return result.toList();
+}
+
+QStringList DomainServerSettingsManager::getDomainGroupNames() {
+    // Names as configured in domain server; not necessarily metaverse groups.
+    QSet<QString> result;
+    foreach(NodePermissionsKey groupKey, _groupPermissions.keys()) {
+        result += _groupPermissions[groupKey]->getID();
+    }
+    return result.toList();
+}
+
+QStringList DomainServerSettingsManager::getDomainBlacklistGroupNames() {
+    // Names as configured in domain server; not necessarily mnetaverse groups.
+    QSet<QString> result;
+    foreach (NodePermissionsKey groupKey, _groupForbiddens.keys()) {
+        result += _groupForbiddens[groupKey]->getID();
     }
     return result.toList();
 }

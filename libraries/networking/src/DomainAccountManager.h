@@ -13,6 +13,7 @@
 #define hifi_DomainAccountManager_h
 
 #include <QtCore/QObject>
+#include <QtCore/QUrl>
 
 #include <DependencyManager.h>
 
@@ -22,25 +23,40 @@ class DomainAccountManager : public QObject, public Dependency {
 public:
     DomainAccountManager();
 
+    void setAuthURL(const QUrl& authURL);
+    void setClientID(const QString& clientID) { _clientID = clientID; }
+
+    QString getUsername() { return _username; }
+    QString getAccessToken() { return _access_token; }
+    QString getRefreshToken() { return _refresh_token; }
+
     Q_INVOKABLE bool checkAndSignalForAccessToken();
 
 public slots:
-    void requestAccessToken(const QString& login, const QString& password, const QString& domainAuthProvider);
+    void requestAccessToken(const QString& username, const QString& password);
     
     void requestAccessTokenFinished();
+
 signals:
-    void authRequired();
-    void loginComplete(const QUrl& authURL);
+    void authRequired(const QString& domain);
+    void loginComplete();
     void loginFailed();
     void logoutComplete();
+    void newTokens();
 
 private slots:
 
 private:
     bool hasValidAccessToken();
     bool accessTokenIsExpired();
-    void setAccessTokenFromJSON(const QJsonObject&);
+    void setTokensFromJSON(const QJsonObject&, const QUrl& url);
     void sendInterfaceAccessTokenToServer();
+
+    QUrl _authURL;
+    QString _clientID;
+    QString _username;      // ####### TODO: Store elsewhere?
+    QString _access_token;  // ####... ""
+    QString _refresh_token; // ####... ""
 };
 
 #endif  // hifi_DomainAccountManager_h

@@ -30,6 +30,8 @@
 #include "NodeConnectionData.h"
 #include "PendingAssignedNodeData.h"
 
+const QString DOMAIN_GROUP_CHAR = "@";
+
 class DomainServer;
 
 class DomainGatekeeper : public QObject {
@@ -72,6 +74,10 @@ public slots:
 
 private slots:
     void handlePeerPingTimeout();
+
+    // Login and groups for domain, separate from metaverse.
+    void requestDomainUserFinished();
+
 private:
     SharedNodePointer processAssignmentConnectRequest(const NodeConnectionData& nodeConnection,
                                                       const PendingAssignedNodeData& pendingAssignment);
@@ -79,14 +85,16 @@ private:
                                                  const QString& username,
                                                  const QByteArray& usernameSignature,
                                                  const QString& domainUsername,
-                                                 const QByteArray& domainUsernameSignature);
+                                                 const QString& domainAccessToken,
+                                                 const QString& domainRefreshToken);
     SharedNodePointer addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection);
     
     bool verifyUserSignature(const QString& username, const QByteArray& usernameSignature,
                              const HifiSockAddr& senderSockAddr);
     
-    bool verifyDomainUserSignature(const QString& domainUsername, const QByteArray& domainUsernameSignature,
-                                   const HifiSockAddr& senderSockAddr);
+    bool needToVerifyDomainUserIdentity(const QString& username, const QString& accessToken, const QString& refreshToken);
+    bool verifyDomainUserIdentity(const QString& username, const QString& accessToken, const QString& refreshToken,
+                                  const HifiSockAddr& senderSockAddr);
 
     bool isWithinMaxCapacity();
     
@@ -128,14 +136,12 @@ private:
     QSet<QString> _inFlightGroupMembershipsRequests; // keep track of which we've already asked for
 
     NodePermissions setPermissionsForUser(bool isLocalUser, QString verifiedUsername, QString verifiedDomainUsername,
-                                          QStringList verifiedDomainUserGroups, const QHostAddress& senderAddress,
-                                          const QString& hardwareAddress, const QUuid& machineFingerprint);
+                                          const QHostAddress& senderAddress, const QString& hardwareAddress, 
+                                          const QUuid& machineFingerprint);
 
     void getGroupMemberships(const QString& username);
     // void getIsGroupMember(const QString& username, const QUuid groupID);
     void getDomainOwnerFriendsList();
-
-    bool domainHasLogin();
 
     // Local ID management.
     void initLocalIDManagement();
@@ -143,9 +149,18 @@ private:
     using LocalIDs = std::unordered_set<Node::LocalID>;
     LocalIDs _localIDs;
     UUIDToLocalID _uuidToLocalID;
-
     Node::LocalID _currentLocalID;
     Node::LocalID _idIncrement;
+
+    // Login and groups for domain, separate from metaverse.
+    bool domainHasLogin();
+    void requestDomainUser(const QString& username, const QString& accessToken, const QString& refreshToken);
+    
+    typedef QHash<QString, QPair<QString, QString>> DomainUserIdentities; // <domainUserName, <access_token, refresh_token>>
+    DomainUserIdentities _inFlightDomainUserIdentityRequests;  // Domain user identity requests currently in progress.
+    DomainUserIdentities _verifiedDomainUserIdentities;  // Verified domain users.
+
+    QHash<QString, QStringList> _domainGroupMemberships;  // <domainUserName, [domainGroupName]>
 };
 
 

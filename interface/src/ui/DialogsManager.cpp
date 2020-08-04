@@ -29,7 +29,6 @@
 #include "OctreeStatsDialog.h"
 #include "PreferencesDialog.h"
 #include "UpdateDialog.h"
-#include "DomainHandler.h"
 
 #include "scripting/HMDScriptingInterface.h"
 
@@ -111,8 +110,14 @@ void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
     }
 }
 
+
+void DialogsManager::setDomainLogin(bool isDomainLogin, const QString& domain) {
+    _isDomainLogin = isDomainLogin;
+    _domainLoginDomain = domain;
+}
+
 void DialogsManager::toggleLoginDialog() {
-    _isDomainLogin = false;
+    setDomainLogin(false);
     LoginDialog::toggleAction();
 }
 
@@ -121,7 +126,7 @@ void DialogsManager::showLoginDialog() {
     // ####### TODO: May be called from script via DialogsManagerScriptingInterface. Need to handle the case that it's already
     //               displayed and may be the domain login version.
 
-    _isDomainLogin = false;
+    setDomainLogin(false);
     LoginDialog::showWithSelection();
 }
 
@@ -130,19 +135,15 @@ void DialogsManager::hideLoginDialog() {
 }
 
 
-void DialogsManager::showDomainLoginDialog() {
-    const QJsonObject& settingsObject = DependencyManager::get<NodeList>()->getDomainHandler().getSettingsObject();
-    static const QString WP_OAUTH2_SERVER_URL = "authentication_oauth2_url_base";
-    
-    if (!settingsObject.contains(WP_OAUTH2_SERVER_URL)) {
-        qDebug() << "Cannot log in to domain because an OAuth2 authorization was required but no authorization server was specified.";
-        return;
-    }
-    
-    _domainLoginAuthProvider = settingsObject[WP_OAUTH2_SERVER_URL].toString();
-    _isDomainLogin = true;
+void DialogsManager::showDomainLoginDialog(const QString& domain) {
+    setDomainLogin(true, domain);
     LoginDialog::showWithSelection();
 }
+
+// #######: TODO: Domain version of toggleLoginDialog()?
+
+// #######: TODO: Domain version of hiadLoginDialog()?
+
 
 void DialogsManager::showUpdateDialog() {
     UpdateDialog::show();

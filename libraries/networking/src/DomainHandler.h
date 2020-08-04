@@ -125,6 +125,7 @@ public:
 
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
+
     bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
     bool getInterstitialModeEnabled() const;
     void setInterstitialModeEnabled(bool enableInterstitialMode);

@@ -143,9 +143,9 @@ void LoginDialog::login(const QString& username, const QString& password) const 
     DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
 }
 
-void LoginDialog::loginDomain(const QString& username, const QString& password, const QString& domainAuthProvider) const {
-    qDebug() << "Attempting to login" << username << "into a domain through" << domainAuthProvider;
-    DependencyManager::get<DomainAccountManager>()->requestAccessToken(username, password, domainAuthProvider);
+void LoginDialog::loginDomain(const QString& username, const QString& password) const {
+    qDebug() << "Attempting to login" << username << "into a domain";
+    DependencyManager::get<DomainAccountManager>()->requestAccessToken(username, password);
 }
 
 void LoginDialog::loginThroughOculus() {
@@ -428,6 +428,6 @@ bool LoginDialog::getDomainLoginRequested() const {
     return DependencyManager::get<DialogsManager>()->getIsDomainLogin();
 }
 
-QString LoginDialog::getDomainLoginAuthProvider() const {
-    return DependencyManager::get<DialogsManager>()->getDomainLoginAuthProvider();
+QString LoginDialog::getDomainLoginDomain() const {
+    return DependencyManager::get<DialogsManager>()->getDomainLoginDomain();
 }

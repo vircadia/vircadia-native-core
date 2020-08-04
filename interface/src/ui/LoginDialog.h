@@ -72,7 +72,7 @@ protected slots:
     Q_INVOKABLE QString oculusUserID() const;
 
     Q_INVOKABLE void login(const QString& username, const QString& password) const;
-    Q_INVOKABLE void loginDomain(const QString& username, const QString& password, const QString& domainAuthProvider) const;
+    Q_INVOKABLE void loginDomain(const QString& username, const QString& password) const;
     Q_INVOKABLE void loginThroughSteam();
     Q_INVOKABLE void linkSteam();
     Q_INVOKABLE void createAccountFromSteam(QString username = QString());
@@ -85,7 +85,7 @@ protected slots:
     Q_INVOKABLE bool getLoginDialogPoppedUp() const;
 
     Q_INVOKABLE bool getDomainLoginRequested() const;
-    Q_INVOKABLE QString getDomainLoginAuthProvider() const;
+    Q_INVOKABLE QString getDomainLoginDomain() const;
 
 };
 
