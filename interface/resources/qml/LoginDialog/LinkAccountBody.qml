@@ -45,6 +45,7 @@ Item {
     property bool lostFocus: false
 
     readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
+    // If not logging into domain, then we must be logging into the metaverse...
     readonly property bool isLoggingInToDomain: loginDialog.getDomainLoginRequested()
     readonly property string domainAuthProvider: loginDialog.getDomainLoginAuthProvider()
 
@@ -105,8 +106,9 @@ Item {
             loginErrorMessage.wrapMode = Text.WordWrap;
             errorContainer.height = (loginErrorMessageTextMetrics.width / displayNameField.width) * loginErrorMessageTextMetrics.height;
         }
+        loginDialogText.text = (!isLoggingInToDomain) ? "Log In to Metaverse" : "Log In to Domain";
         loginButton.text = (!linkAccountBody.linkSteam && !linkAccountBody.linkOculus) ? "Log In" : "Link Account";
-        loginButton.text = (!isLoggingInToDomain) ? "Log In" : "Log In to Domain";
+        loginButton.text = (!isLoggingInToDomain) ? "Log In to Metaverse" : "Log In to Domain";
         loginButton.color = hifi.buttons.blue;
         displayNameField.placeholderText = "Display Name (optional)";
         var savedDisplayName = Settings.getValue("Avatar/displayName", "");
@@ -139,6 +141,21 @@ Item {
             id: lightboxPopup;
             visible: false;
             anchors.fill: parent;
+        }
+        
+        Text {
+            id: loginDialogText
+            text: qsTr("Log In")
+            anchors {
+                left: parent.left
+            }
+            lineHeight: 1
+            color: "white"
+            font.family: linkAccountBody.fontFamily
+            font.pixelSize: linkAccountBody.textFieldFontSize
+            font.bold: linkAccountBody.fontBold
+            verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
         }
 
         Item {
@@ -625,6 +642,24 @@ Item {
                     }
                     root.tryDestroy();
                 }
+            }
+            
+            Text {
+                id: loginSkipTipText
+                text: qsTr("Not all domains require you to have a metaverse account. \n Some domains have their own login dialogs.")
+                visible: !linkAccountBody.isLoggingInToDomain
+                anchors {
+                    top: dismissButton.bottom
+                    topMargin: hifi.dimensions.contentSpacing.y
+                    left: parent.left
+                }
+                lineHeight: 1
+                color: "white"
+                font.family: linkAccountBody.fontFamily
+                font.pixelSize: linkAccountBody.textFieldFontSize
+                font.bold: linkAccountBody.fontBold
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
             }
         }
     }
