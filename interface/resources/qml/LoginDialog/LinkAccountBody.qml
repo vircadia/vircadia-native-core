@@ -95,7 +95,7 @@ Item {
         }
         bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam,
             "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam, "linkOculus": linkAccountBody.linkOculus,
-            "displayName":displayNameField.text, "isLoggingInToDomain": linkAccountBody.isLoggingInToDomain });
+            "displayName":displayNameField.text, "isLoggingInToDomain": linkAccountBody.isLoggingInToDomain, "domainLoginDomain": linkAccountBody.domainLoginDomain });
     }
 
     function init() {
@@ -106,7 +106,8 @@ Item {
             loginErrorMessage.wrapMode = Text.WordWrap;
             errorContainer.height = (loginErrorMessageTextMetrics.width / displayNameField.width) * loginErrorMessageTextMetrics.height;
         }
-        loginDialogText.text = (!isLoggingInToDomain) ? "Log In to Metaverse" : "Log In to Domain";
+        var domainLoginText = "Log In to Domain: " + domainLoginDomain;
+        loginDialogText.text = (!isLoggingInToDomain) ? "Log In to Metaverse" : domainLoginText;
         loginButton.text = (!linkAccountBody.linkSteam && !linkAccountBody.linkOculus) ? "Log In" : "Link Account";
         loginButton.text = (!isLoggingInToDomain) ? "Log In to Metaverse" : "Log In to Domain";
         loginButton.color = hifi.buttons.blue;
