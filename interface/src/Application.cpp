@@ -7123,13 +7123,14 @@ void Application::updateWindowTitle() const {
 
     QString domainDetails;
     if (isDomainLoggedIn) {
+        // ###### TODO
         // domainDetails = "Domain: Logged in as " + domainUsername;
         domainDetails = "Domain: Logged In";
     } else {
         domainDetails = "Domain: Not Logged In";
     }
 
-    QString title = QString() + currentPlaceName + connectionStatus + " (" + metaverseDetails + " - " + domainDetails + ")" 
+    QString title = QString() + currentPlaceName + connectionStatus + " (" + metaverseDetails + ") (" + domainDetails + ")" 
         + buildVersion;
 
 #ifndef WIN32

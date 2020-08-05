@@ -110,6 +110,9 @@ void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
     }
 }
 
+void DialogsManager::requestMetaverseLogin() {
+    DialogsManager::setDomainLogin(false);
+}
 
 void DialogsManager::setDomainLogin(bool isDomainLogin, const QString& domain) {
     _isDomainLogin = isDomainLogin;

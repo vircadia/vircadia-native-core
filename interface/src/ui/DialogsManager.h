@@ -41,6 +41,7 @@ public:
     QPointer<TestingDialog> getTestingDialog() const { return _testingDialog; }
     void emitAddressBarShown(bool visible) { emit addressBarShown(visible); }
     void setAddressBarVisible(bool addressBarVisible);
+    void requestMetaverseLogin();
     bool getIsDomainLogin() { return _isDomainLogin; }
     QString getDomainLoginDomain() { return _domainLoginDomain; }
 
