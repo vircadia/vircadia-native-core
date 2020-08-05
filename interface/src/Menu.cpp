@@ -9,6 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// For happ(ier) development of QML, use these two things:
+// This forces QML files to be pulled from the source as you edit it: HIFI_USE_SOURCE_TREE_RESOURCES=1
+// Use this to live reload: DependencyManager::get<OffscreenUi>()->clearCache();
+
 #include "Menu.h"
 #include <QDesktopServices>
 #include <QFileDialog>
@@ -83,6 +87,13 @@ Menu::Menu() {
         connect(accountManager.data(), &AccountManager::logoutComplete,
                 dialogsManager.data(), &DialogsManager::toggleLoginDialog);
     }
+
+    auto domainLogin = addActionToQMenuAndActionHash(fileMenu, "Domain: Log In");
+    connect(domainLogin, &QAction::triggered, [] {
+        auto dialogsManager = DependencyManager::get<DialogsManager>();
+        dialogsManager->requestDomainLoginState();
+        dialogsManager->showDomainLoginDialog();
+    });
 
     // File > Quit
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Quit, Qt::CTRL | Qt::Key_Q, qApp, SLOT(quit()), QAction::QuitRole);
