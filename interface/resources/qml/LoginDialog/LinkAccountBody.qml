@@ -189,7 +189,7 @@ Item {
                 anchors {
                     top: parent.top
                     left: parent.left
-                    right: parent.right;
+                    right: parent.right
                     topMargin: 1.5 * hifi.dimensions.contentSpacing.y
                     // horizontalCenter: mainContainer.horizontalCenter
                 }
@@ -595,7 +595,7 @@ Item {
                      leftMargin: hifi.dimensions.contentSpacing.x
                 }
 
-                text: "<a href='http://metaverse.vircadia.com/users/register'>Sign Up</a>"
+                text: "<a href='https://metaverse.vircadia.com/users/register'>Sign Up</a>"
 
                 linkColor: hifi.colors.blueAccent
                 onLinkActivated: {

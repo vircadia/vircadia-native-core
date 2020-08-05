@@ -10,7 +10,7 @@
 //
 
 // For happ(ier) development of QML, use these two things:
-// This forces QML files to be pulled from the source as you edit it: HIFI_USE_SOURCE_TREE_RESOURCES=1
+// This forces QML files to be pulled from the source as you edit it: set environment variable HIFI_USE_SOURCE_TREE_RESOURCES=1
 // Use this to live reload: DependencyManager::get<OffscreenUi>()->clearCache();
 
 #include "Menu.h"
