@@ -91,7 +91,7 @@ Menu::Menu() {
     auto domainLogin = addActionToQMenuAndActionHash(fileMenu, "Domain: Log In");
     connect(domainLogin, &QAction::triggered, [] {
         auto dialogsManager = DependencyManager::get<DialogsManager>();
-        dialogsManager->requestDomainLoginState();
+        dialogsManager->setDomainLoginState();
         dialogsManager->showDomainLoginDialog();
     });
 

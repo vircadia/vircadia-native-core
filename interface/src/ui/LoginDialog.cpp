@@ -108,7 +108,7 @@ void LoginDialog::toggleAction() {
             // if not in login state, show.
             if (!qApp->getLoginDialogPoppedUp()) {
                 auto dialogsManager = DependencyManager::get<DialogsManager>();
-                dialogsManager->requestMetaverseLoginState();
+                dialogsManager->setMetaverseLoginState();
                 LoginDialog::showWithSelection();
             }
         });

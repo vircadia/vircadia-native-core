@@ -110,16 +110,8 @@ void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
     }
 }
 
-void DialogsManager::requestMetaverseLoginState() {
-    DialogsManager::setMetaverseLoginState();
-}
-
-void DialogsManager::requestDomainLoginState() {
-    DialogsManager::setDomainLoginState();
-}
-
 void DialogsManager::setMetaverseLoginState() {
-    // We're only turning off the domain login trigger but the actual domain auth URL is still saved. 
+    // We're only turning off the domain login trigger but the actual domain auth URL is still saved.
     // So we can continue the domain login if desired.
     _isDomainLogin = false;
 }
