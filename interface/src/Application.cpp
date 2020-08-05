@@ -1351,15 +1351,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
 
-
     auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
     connect(domainAccountManager.data(), &DomainAccountManager::authRequired, dialogsManager.data(), 
         &DialogsManager::showDomainLoginDialog);
-        
     connect(domainAccountManager.data(), &DomainAccountManager::loginComplete, this, 
         &Application::updateWindowTitle);
     // ####### TODO: Connect any other signals from domainAccountManager.
-
 
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter([] {
@@ -7122,8 +7119,6 @@ void Application::updateWindowTitle() const {
 
     QString domainDetails;
     if (currentPlaceName == authedDomain && isDomainLoggedIn) {
-        // ###### TODO
-        // domainDetails = "Domain: Logged in as " + domainUsername;
         domainDetails = "Domain: Logged in as " + domainUsername;
     } else {
         domainDetails = "Domain: Not Logged In";

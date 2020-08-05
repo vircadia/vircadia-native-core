@@ -450,7 +450,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     return newNode;
 }
 
-const QString AUTHENTICATION_ENAABLED = "authentication.enable_oauth2";
+const QString AUTHENTICATION_ENABLE_OAUTH2 = "authentication.enable_oauth2";
 const QString AUTHENTICATION_OAUTH2_URL_PATH = "authentication.oauth2_url_path";
 const QString AUTHENTICATION_WORDPRESS_URL_BASE = "authentication.wordpress_url_base";
 const QString AUTHENTICATION_PLUGIN_CLIENT_ID = "authentication.plugin_client_id";
@@ -1155,7 +1155,7 @@ void DomainGatekeeper::getDomainOwnerFriendsListErrorCallback(QNetworkReply* req
     qDebug() << "getDomainOwnerFriendsList api call failed:" << requestReply->error();
 }
 
-// ####### TODO: Domain equivalent or addition [plugin groups]
+// ####### TODO: Domain equivalent or addition
 void DomainGatekeeper::refreshGroupsCache() {
     // if agents are connected to this domain, refresh our cached information about groups and memberships in such.
     getDomainOwnerFriendsList();
@@ -1211,10 +1211,10 @@ Node::LocalID DomainGatekeeper::findOrCreateLocalID(const QUuid& uuid) {
 
 bool DomainGatekeeper::domainHasLogin() {
     // The domain may have its own users and groups in a WordPress site.
-    // ####### TODO: Add checks of any further domain server settings used. [plugin, groups]
-    return _server->_settingsManager.valueForKeyPath(AUTHENTICATION_ENAABLED).toBool()
+    return _server->_settingsManager.valueForKeyPath(AUTHENTICATION_ENABLE_OAUTH2).toBool()
         && !_server->_settingsManager.valueForKeyPath(AUTHENTICATION_OAUTH2_URL_PATH).toString().isEmpty()
-        && !_server->_settingsManager.valueForKeyPath(AUTHENTICATION_WORDPRESS_URL_BASE).toString().isEmpty();
+        && !_server->_settingsManager.valueForKeyPath(AUTHENTICATION_WORDPRESS_URL_BASE).toString().isEmpty()
+        && !_server->_settingsManager.valueForKeyPath(AUTHENTICATION_PLUGIN_CLIENT_ID).toString().isEmpty();
 }
 
 void DomainGatekeeper::requestDomainUser(const QString& username, const QString& accessToken, const QString& refreshToken) {
