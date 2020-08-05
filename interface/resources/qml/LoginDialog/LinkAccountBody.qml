@@ -107,7 +107,7 @@ Item {
             errorContainer.height = (loginErrorMessageTextMetrics.width / displayNameField.width) * loginErrorMessageTextMetrics.height;
         }
         var domainLoginText = "Log In to Domain\n" + domainLoginDomain;
-        loginDialogText.text = (!isLoggingInToDomain) ? "Log In to Metaverse (Not Required)" : domainLoginText;
+        loginDialogText.text = (!isLoggingInToDomain) ? "Log In to Metaverse" : domainLoginText;
         loginButton.text = (!linkAccountBody.linkSteam && !linkAccountBody.linkOculus) ? "Log In" : "Link Account";
         loginButton.text = (!isLoggingInToDomain) ? "Log In to Metaverse" : "Log In to Domain";
         loginButton.color = hifi.buttons.blue;
@@ -147,7 +147,7 @@ Item {
         Item {
             id: loginContainer
             width: displayNameField.width
-            height: errorContainer.height + displayNameField.height + emailField.height + passwordField.height + 5.5 * hifi.dimensions.contentSpacing.y +
+            height: errorContainer.height + loginDialogTextContainer.height + displayNameField.height + emailField.height + passwordField.height + 5.5 * hifi.dimensions.contentSpacing.y +
                 keepMeLoggedInCheckbox.height + loginButton.height + cantAccessTextMetrics.height + continueButton.height
             anchors {
                 top: parent.top
@@ -469,7 +469,7 @@ Item {
                 font.pixelSize: linkAccountBody.textFieldFontSize
                 font.bold: linkAccountBody.fontBold
 
-                text: "<a href='metaverse.vircadia.com/users/password/new'> Can't access your account?</a>"
+                text: "<a href='http://metaverse.vircadia.com/users/password/new'> Can't access your account?</a>"
 
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
@@ -595,7 +595,7 @@ Item {
                      leftMargin: hifi.dimensions.contentSpacing.x
                 }
 
-                text: "<a href='metaverse.vircadia.com/users/register'>Sign Up</a>"
+                text: "<a href='http://metaverse.vircadia.com/users/register'>Sign Up</a>"
 
                 linkColor: hifi.colors.blueAccent
                 onLinkActivated: {
