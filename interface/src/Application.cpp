@@ -7085,7 +7085,7 @@ void Application::updateWindowTitle() const {
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
     bool isMetaverseLoggedIn = accountManager->isLoggedIn();
     bool isDomainLoggedIn = domainAccountManager->isLoggedIn();
-    qCDebug(interfaceapp) << "Is Logged Into Domain:" << isDomainLoggedIn;
+    QString authedDomain = domainAccountManager->getAuthedDomain();
 
     QString buildVersion = " - Vircadia - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
@@ -7095,8 +7095,7 @@ void Application::updateWindowTitle() const {
         nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
 
     QString metaverseUsername = accountManager->getAccountInfo().getUsername();
-    // ###### TODO
-    // QString domainUsername = domainAccountManager->getUsername();
+    QString domainUsername = domainAccountManager->getUsername();
 
     setCrashAnnotation("sentry[user][metaverseUsername]", metaverseUsername.toStdString());
 
@@ -7122,10 +7121,10 @@ void Application::updateWindowTitle() const {
     }
 
     QString domainDetails;
-    if (isDomainLoggedIn) {
+    if (currentPlaceName == authedDomain && isDomainLoggedIn) {
         // ###### TODO
         // domainDetails = "Domain: Logged in as " + domainUsername;
-        domainDetails = "Domain: Logged In";
+        domainDetails = "Domain: Logged in as " + domainUsername;
     } else {
         domainDetails = "Domain: Not Logged In";
     }

@@ -18,7 +18,9 @@
 #include <QtNetwork/QNetworkReply>
 
 #include <SettingHandle.h>
+#include <DependencyManager.h>
 
+#include "NodeList.h"
 #include "NetworkingConstants.h"
 #include "NetworkLogging.h"
 #include "NetworkAccessManager.h"
@@ -101,6 +103,8 @@ void DomainAccountManager::requestAccessTokenFinished() {
         // miniOrange plugin provides no scope.
         if (rootObject.contains("access_token")) {
             // Success.
+            auto nodeList = DependencyManager::get<NodeList>();
+            _domain_name = nodeList->getDomainHandler().getHostname();
             QUrl rootURL = requestReply->url();
             rootURL.setPath("");
             setTokensFromJSON(rootObject, rootURL);
@@ -133,10 +137,12 @@ bool DomainAccountManager::accessTokenIsExpired() {
 
 
 bool DomainAccountManager::hasValidAccessToken() {
-    QString currentDomainAccessToken = domainAccessToken.get();
-    
-    if (currentDomainAccessToken.isEmpty() || accessTokenIsExpired()) {
+    // ###### TODO: wire this up to actually retrieve a token (based on session or storage) and confirm that it is in fact valid and relevant to the current domain.
+    // QString currentDomainAccessToken = domainAccessToken.get();
+    QString currentDomainAccessToken = _access_token;
 
+    // if (currentDomainAccessToken.isEmpty() || accessTokenIsExpired()) {
+    if (currentDomainAccessToken.isEmpty()) {
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
             qCDebug(networking) << "An access token is required for requests to"
                                 << qPrintable(_authURL.toString());
@@ -153,23 +159,20 @@ bool DomainAccountManager::hasValidAccessToken() {
 
         return true;
     }
-    
 }
 
 void DomainAccountManager::setTokensFromJSON(const QJsonObject& jsonObject, const QUrl& url) {
     _access_token = jsonObject["access_token"].toString();
     _refresh_token = jsonObject["refresh_token"].toString();
 
-    // ####### TODO: Enable and use these.
     // ####### TODO: Protect these per AccountManager?
     // ######: TODO: clientID needed?
-    /*
-    qCDebug(networking) << "Storing a domain account with access-token for" << qPrintable(url.toString());
-    domainAccessToken.set(jsonObject["access_token"].toString());
-    domainAccessRefreshToken.set(jsonObject["refresh_token"].toString());
-    domainAccessTokenExpiresIn.set(QDateTime::currentMSecsSinceEpoch() + (jsonObject["expires_in"].toDouble() * 1000));
-    domainAccessTokenType.set(jsonObject["token_type"].toString());
-    */
+
+    // qCDebug(networking) << "Storing a domain account with access-token for" << qPrintable(url.toString());
+    // domainAccessToken.set(jsonObject["access_token"].toString());
+    // domainAccessRefreshToken.set(jsonObject["refresh_token"].toString());
+    // domainAccessTokenExpiresIn.set(QDateTime::currentMSecsSinceEpoch() + (jsonObject["expires_in"].toDouble() * 1000));
+    // domainAccessTokenType.set(jsonObject["token_type"].toString());
 }
 
 bool DomainAccountManager::checkAndSignalForAccessToken() {
