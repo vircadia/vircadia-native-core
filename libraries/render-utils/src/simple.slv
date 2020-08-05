@@ -27,6 +27,8 @@
 <@if HIFI_USE_FORWARD or HIFI_USE_TRANSLUCENT@>
     <@if not HIFI_USE_UNLIT@>
         layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
+    <@elif not HIFI_USE_FORWARD@>
+        layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) out vec4 _prevPositionCS;
     <@endif@>
 <@else@>
     layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) out vec4 _prevPositionCS;
@@ -44,6 +46,8 @@ void main(void) {
 <@if HIFI_USE_FORWARD or HIFI_USE_TRANSLUCENT@>
     <@if not HIFI_USE_UNLIT@>
         <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
+    <@elif not HIFI_USE_FORWARD@>
+        <$transformModelToClipPosAndPrevClipPos(cam, obj, inPosition, gl_Position, _prevPositionCS)$>
     <@endif@>
 <@else@>
     <$transformModelToClipPosAndPrevClipPos(cam, obj, inPosition, gl_Position, _prevPositionCS)$>

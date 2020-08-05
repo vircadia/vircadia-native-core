@@ -31,7 +31,14 @@
         <@endif@>
         <@include gpu/Transform.slh@>
         <$declareStandardCameraTransform()$>
-        layout(location=0) out vec4 _fragColor0;
+
+        <@if HIFI_USE_FORWARD@>
+            layout(location=0) out vec4 _fragColor0;
+        <@elif HIFI_USE_UNLIT and HIFI_USE_TRANSLUCENT@>
+            <@include DeferredBufferWrite.slh@>
+        <@else@>
+            layout(location=0) out vec4 _fragColor0;
+        <@endif@>
     <@else@>
         <@include DeferredBufferWrite.slh@>
     <@endif@>
@@ -127,8 +134,14 @@ void main(void) {
 
     <@if HIFI_USE_SHADOW@>
             _fragColor0 = vec4(1.0);
-    <@elif HIFI_USE_TRANSLUCENT or HIFI_USE_FORWARD@>
+    <@elif HIFI_USE_FORWARD@>
             _fragColor0 = vec4(albedo * isUnlitEnabled(), opacity);
+    <@elif HIFI_USE_TRANSLUCENT@>
+            packDeferredFragmentTranslucentUnlit(
+                _prevPositionCS,
+                evalFrontOrBackFaceNormal(normalize(_normalWS)),
+                opacity,
+                albedo * isUnlitEnabled());
     <@else@>
             packDeferredFragmentUnlit(
                 _prevPositionCS,

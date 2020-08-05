@@ -78,4 +78,15 @@ void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 albedo, floa
     _lighting = vec4(0.0);
 }
 
+void packDeferredFragmentTranslucentUnlit(vec4 prevPositionCS, vec3 normal, float alpha, vec3 color) {
+    if (alpha <= 0.0) {
+        discard;
+    }
+    _fragColor0 = vec4(color, alpha);
+    _fragColor1 = vec4(packNormal(normal), 1.0);
+    _fragColor2 = vec4(vec3(0.0), 1.0);
+    _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
+    _lighting = vec4(color, 1.0);
+}
+
 <@endif@>
