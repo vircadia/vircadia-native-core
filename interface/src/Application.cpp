@@ -1584,7 +1584,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // Do not show login dialog if requested not to on the command line
         QString hifiNoLoginCommandLineKey = QString("--").append(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
         int index = arguments().indexOf(hifiNoLoginCommandLineKey);
-        if (index != -1) {
+        if (index != -1 || _disableLoginScreen) {
             resumeAfterLoginDialogActionTaken();
             return;
         }
