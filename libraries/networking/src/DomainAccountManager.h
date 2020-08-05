@@ -29,6 +29,9 @@ public:
     QString getUsername() { return _username; }
     QString getAccessToken() { return _access_token; }
     QString getRefreshToken() { return _refresh_token; }
+    QString getAuthedDomain() { return _domain_name; }
+
+    bool isLoggedIn() { return !_authURL.isEmpty() && hasValidAccessToken(); }
 
     Q_INVOKABLE bool checkAndSignalForAccessToken();
 
@@ -57,6 +60,7 @@ private:
     QString _username;      // ####### TODO: Store elsewhere?
     QString _access_token;  // ####... ""
     QString _refresh_token; // ####... ""
+    QString _domain_name;   // 
 };
 
 #endif  // hifi_DomainAccountManager_h

@@ -110,10 +110,21 @@ void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
     }
 }
 
+void DialogsManager::setMetaverseLoginState() {
+    // We're only turning off the domain login trigger but the actual domain auth URL is still saved.
+    // So we can continue the domain login if desired.
+    _isDomainLogin = false;
+}
+
+void DialogsManager::setDomainLoginState() {
+    _isDomainLogin = true;
+}
 
 void DialogsManager::setDomainLogin(bool isDomainLogin, const QString& domain) {
     _isDomainLogin = isDomainLogin;
-    _domainLoginDomain = domain;
+    if (!domain.isEmpty()) {
+        _domainLoginDomain = domain;
+    }
 }
 
 void DialogsManager::toggleLoginDialog() {

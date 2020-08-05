@@ -414,6 +414,7 @@
           "name": "group_permissions",
           "type": "table",
           "caption": "Permissions for Users in Groups",
+          "help": "For groups that are provided from WordPress you need to denote them by putting an \"@\" symbol in front of each item, e.g., \"@silver\"".
           "categorize_by_key": "permissions_id",
           "can_add_new_categories": true,
           "can_add_new_rows": false,
@@ -542,6 +543,7 @@
           "name": "group_forbiddens",
           "type": "table",
           "caption": "Permissions Denied to Users in Groups",
+          "help": "For groups that are provided from WordPress you need to denote them by putting an \"@\" symbol in front of each item, e.g., \"@silver\"".
           "categorize_by_key": "permissions_id",
           "can_add_new_categories": true,
           "can_add_new_rows": false,

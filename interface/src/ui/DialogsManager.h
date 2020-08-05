@@ -41,6 +41,8 @@ public:
     QPointer<TestingDialog> getTestingDialog() const { return _testingDialog; }
     void emitAddressBarShown(bool visible) { emit addressBarShown(visible); }
     void setAddressBarVisible(bool addressBarVisible);
+    void setMetaverseLoginState();
+    void setDomainLoginState();
     bool getIsDomainLogin() { return _isDomainLogin; }
     QString getDomainLoginDomain() { return _domainLoginDomain; }
 
@@ -52,7 +54,7 @@ public slots:
     void toggleLoginDialog();
     void showLoginDialog();
     void hideLoginDialog();
-    void showDomainLoginDialog(const QString& domain);
+    void showDomainLoginDialog(const QString& domain = "");
     void octreeStatsDetails();
     void lodTools();
     void hmdTools(bool showTools);
