@@ -161,9 +161,10 @@ Item {
                 width: parent.width
                 height: loginErrorMessageTextMetrics.height
                 anchors {
-                    bottom: loginDialogTextContainer.top;
-                    bottomMargin: hifi.dimensions.contentSpacing.y;
-                    left: loginDialogTextContainer.left;
+                    bottom: loginDialogTextContainer.top
+                    bottomMargin: hifi.dimensions.contentSpacing.y
+                    left: loginDialogTextContainer.left
+                    right: loginDialogTextContainer.right
                 }
                 TextMetrics {
                     id: loginErrorMessageTextMetrics
@@ -176,6 +177,11 @@ Item {
                     font.family: linkAccountBody.fontFamily
                     font.pixelSize: linkAccountBody.textFieldFontSize
                     font.bold: linkAccountBody.fontBold
+                    anchors {
+                        top: parent.top
+                        left: parent.left
+                        right: parent.right
+                    }
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                     text: ""
@@ -191,7 +197,6 @@ Item {
                     left: parent.left
                     right: parent.right
                     topMargin: 1.5 * hifi.dimensions.contentSpacing.y
-                    // horizontalCenter: mainContainer.horizontalCenter
                 }
             
                 Text {
