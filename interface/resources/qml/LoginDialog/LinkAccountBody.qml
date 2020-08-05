@@ -469,7 +469,7 @@ Item {
                 font.pixelSize: linkAccountBody.textFieldFontSize
                 font.bold: linkAccountBody.fontBold
 
-                text: "<a href='http://metaverse.vircadia.com/users/password/new'> Can't access your account?</a>"
+                text: "<a href='https://metaverse.vircadia.com/users/password/new'> Can't access your account?</a>"
 
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
