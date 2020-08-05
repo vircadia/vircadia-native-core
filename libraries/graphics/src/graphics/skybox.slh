@@ -1,0 +1,59 @@
+<!
+//  skybox.slh
+//  libraries/graphics/src
+//
+//  Created by HifiExperiments on 8/5/2020.
+//  Copyright 2020 Vircadia
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not SKYBOX_SLH@>
+<@def SKYBOX_SLH@>
+
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
+
+LAYOUT(binding=GRAPHICS_TEXTURE_SKYBOX) uniform samplerCube cubeMap;
+
+struct Skybox {
+    vec4 color;
+};
+
+LAYOUT(binding=GRAPHICS_BUFFER_SKYBOX_PARAMS) uniform skyboxBuffer {
+    Skybox skybox;
+};
+
+<@func declarePackDeferredFragmentSky()@>
+// This code is duplicated from render-utils/VelocityWrite.slh because graphics can't include render-utils, but ideally this would only be in one place
+
+vec2 getEyeTexcoordPos() {
+    // No need to add 0.5 as, by default, frag coords are pixel centered at (0.5, 0.5)
+    vec2 texCoordPos = gl_FragCoord.xy;
+    texCoordPos *= cam_getInvWidthHeight();
+    texCoordPos.x -= cam_getStereoSide();
+    return texCoordPos;
+}
+
+vec2 packVelocity(vec4 prevPositionCS) {
+    vec2 uv = getEyeTexcoordPos();
+    vec2 prevUV =  (prevPositionCS.xy / prevPositionCS.w) * 0.5 + 0.5;
+    vec2 deltaUV = uv - prevUV;
+    // Velocity should be computed without any jitter inside.
+    return deltaUV;
+}
+
+//layout(location = 0) out vec4 _fragColor0; // albedo / metallic
+//layout(location = 1) out vec4 _fragColor1; // normal
+//layout(location = 2) out vec4 _fragColor2; // scattering / emissive / occlusion
+layout(location = 3) out vec4 _velocity;   // velocity
+layout(location = 4) out vec4 _lighting;   // emissive
+
+void packDeferredFragmentSky(vec4 prevPositionCS, vec3 color) {
+    _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
+    _lighting = vec4(color, 1.0);
+}
+
+<@endfunc@>
+
+<@endif@>

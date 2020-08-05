@@ -14,6 +14,9 @@
 <$declareStandardTransform()$>
 
 layout(location=0) out vec3 _normal;
+<@if not HIFI_USE_FORWARD@>
+    layout(location=1) out vec4 _prevPositionCS;
+<@endif@>
 
 void main(void) {
     const float depth = 0.0;
@@ -30,6 +33,10 @@ void main(void) {
     vec3 eyeDir;
     <$transformClipToEyeDir(cam, clipDir, eyeDir)$>
     <$transformEyeToWorldDir(cam, eyeDir, _normal)$>
+
+<@if not HIFI_USE_FORWARD@>
+    _prevPositionCS = cam._previousProjectionViewUntranslated * (cam._viewInverse * (cam._projectionInverse * vec4(clipDir, 1.0)));
+<@endif@>
     
     // Position is supposed to come in clip space
     gl_Position = vec4(clipDir, 1.0);

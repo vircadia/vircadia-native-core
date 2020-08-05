@@ -103,7 +103,7 @@ const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const
     // This may sound counter-intuitive to use the same jitter value but in fact it is needed.
     // Think of it this way:
     // If we have no velocity (no camera or object movement) then we wish to reproject to exactly
-    // the same pixel value. The current pixel UV when computing the motion vectoris trivially computed
+    // the same pixel value. The current pixel UV when computing the motion vector is trivially computed
     // from the fragment coordinates but the previous UV is computed conceptually with an unjittered
     // projection * previous view matrix in the vertex shader and sent to the fragment to write in the
     // motion vector as an interpolated attribute. But since the current projection * view matrix is
