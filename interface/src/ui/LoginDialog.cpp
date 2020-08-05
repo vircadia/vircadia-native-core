@@ -99,11 +99,11 @@ void LoginDialog::toggleAction() {
 
     if (accountManager->isLoggedIn()) {
         // change the menu item to logout
-        loginAction->setText("Logout " + accountManager->getAccountInfo().getUsername());
+        loginAction->setText("Metaverse: Logout " + accountManager->getAccountInfo().getUsername());
         connection = connect(loginAction, &QAction::triggered, accountManager.data(), &AccountManager::logout);
     } else {
         // change the menu item to login
-        loginAction->setText("Log In / Sign Up");
+        loginAction->setText("Metaverse: Log In / Sign Up");
         connection = connect(loginAction, &QAction::triggered, [] {
             // if not in login state, show.
             if (!qApp->getLoginDialogPoppedUp()) {

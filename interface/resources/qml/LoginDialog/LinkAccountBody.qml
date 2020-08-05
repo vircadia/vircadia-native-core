@@ -651,6 +651,7 @@ Item {
             Text {
                 id: loginSkipTipText
                 text: qsTr("Not all domains require you to have a metaverse account. \n Some domains have their own login dialogs.")
+                wrapMode: Text.WordWrap
                 visible: !linkAccountBody.isLoggingInToDomain
                 anchors {
                     top: dismissButton.bottom

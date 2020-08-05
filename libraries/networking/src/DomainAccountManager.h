@@ -30,6 +30,8 @@ public:
     QString getAccessToken() { return _access_token; }
     QString getRefreshToken() { return _refresh_token; }
 
+    bool isLoggedIn() { return hasValidAccessToken(); }
+
     Q_INVOKABLE bool checkAndSignalForAccessToken();
 
 public slots:

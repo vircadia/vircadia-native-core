@@ -1355,7 +1355,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
     connect(domainAccountManager.data(), &DomainAccountManager::authRequired, dialogsManager.data(), 
         &DialogsManager::showDomainLoginDialog);
-
+        
+    connect(domainAccountManager.data(), &DomainAccountManager::loginComplete, this, 
+        &Application::updateWindowTitle);
     // ####### TODO: Connect any other signals from domainAccountManager.
 
 
@@ -7079,20 +7081,24 @@ void Application::updateWindowTitle() const {
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto accountManager = DependencyManager::get<AccountManager>();
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
+    bool isMetaverseLoggedIn = accountManager->isLoggedIn();
+    bool isDomainLoggedIn = domainAccountManager->isLoggedIn();
+    qCDebug(interfaceapp) << "Is Logged Into Domain:" << isDomainLoggedIn;
 
     QString buildVersion = " - Vircadia - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
 
-    // ####### TODO
-    QString loginStatus = accountManager->isLoggedIn() ? "" : " (NOT LOGGED IN)";
-
     QString connectionStatus = isInErrorState ? " (ERROR CONNECTING)" :
         nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
-    QString username = accountManager->getAccountInfo().getUsername();
 
-    setCrashAnnotation("sentry[user][username]", username.toStdString());
+    QString metaverseUsername = accountManager->getAccountInfo().getUsername();
+    // ###### TODO
+    // QString domainUsername = domainAccountManager->getUsername();
+
+    setCrashAnnotation("sentry[user][metaverseUsername]", metaverseUsername.toStdString());
 
     QString currentPlaceName;
     if (isServerlessMode()) {
@@ -7108,8 +7114,23 @@ void Application::updateWindowTitle() const {
         }
     }
 
-    QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + currentPlaceName + connectionStatus + loginStatus + buildVersion;
+    QString metaverseDetails;
+    if (isMetaverseLoggedIn) {
+        metaverseDetails = "Metaverse: Logged in as " + metaverseUsername;
+    } else {
+        metaverseDetails = "Metaverse: Not Logged In";
+    }
+
+    QString domainDetails;
+    if (isDomainLoggedIn) {
+        // domainDetails = "Domain: Logged in as " + domainUsername;
+        domainDetails = "Domain: Logged In";
+    } else {
+        domainDetails = "Domain: Not Logged In";
+    }
+
+    QString title = QString() + currentPlaceName + connectionStatus + " (" + metaverseDetails + " - " + domainDetails + ")" 
+        + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32
