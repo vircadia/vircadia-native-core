@@ -106,15 +106,15 @@ Item {
             loginErrorMessage.wrapMode = Text.WordWrap;
             errorContainer.height = (loginErrorMessageTextMetrics.width / displayNameField.width) * loginErrorMessageTextMetrics.height;
         }
-        var domainLoginText = "Log In to Domain: " + domainLoginDomain;
-        loginDialogText.text = (!isLoggingInToDomain) ? "Log In to Metaverse" : domainLoginText;
+        var domainLoginText = "Log In to Domain\n" + domainLoginDomain;
+        loginDialogText.text = (!isLoggingInToDomain) ? "Log In to Metaverse (Not Required)" : domainLoginText;
         loginButton.text = (!linkAccountBody.linkSteam && !linkAccountBody.linkOculus) ? "Log In" : "Link Account";
         loginButton.text = (!isLoggingInToDomain) ? "Log In to Metaverse" : "Log In to Domain";
         loginButton.color = hifi.buttons.blue;
         displayNameField.placeholderText = "Display Name (optional)";
         var savedDisplayName = Settings.getValue("Avatar/displayName", "");
         displayNameField.text = savedDisplayName;
-        emailField.placeholderText = "Username or Email";
+        emailField.placeholderText = (!isLoggingInToDomain) ? "Username or Email" : "Username";
         if (!isLoggingInToDomain) {
             var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
             emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
@@ -161,9 +161,9 @@ Item {
                 width: parent.width
                 height: loginErrorMessageTextMetrics.height
                 anchors {
-                    bottom: loginDialogText.top;
+                    bottom: loginDialogTextContainer.top;
                     bottomMargin: hifi.dimensions.contentSpacing.y;
-                    left: loginDialogText.left;
+                    left: loginDialogTextContainer.left;
                 }
                 TextMetrics {
                     id: loginErrorMessageTextMetrics
@@ -183,21 +183,33 @@ Item {
                 }
             }
             
-            Text {
-                id: loginDialogText
-                text: qsTr("Log In")
+            Item {
+                id: loginDialogTextContainer
+                height: 56
                 anchors {
                     top: parent.top
                     left: parent.left
-                    topMargin: errorContainer.height
+                    right: parent.right;
+                    topMargin: 1.5 * hifi.dimensions.contentSpacing.y
+                    // horizontalCenter: mainContainer.horizontalCenter
                 }
-                lineHeight: 1
-                color: "white"
-                font.family: linkAccountBody.fontFamily
-                font.pixelSize: linkAccountBody.textFieldFontSize
-                font.bold: linkAccountBody.fontBold
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
+            
+                Text {
+                    id: loginDialogText
+                    text: qsTr("Log In")
+                    lineHeight: 1
+                    color: "white"
+                    anchors {
+                        top: parent.top
+                        left: parent.left
+                        right: parent.right
+                    }
+                    font.family: linkAccountBody.fontFamily
+                    font.pixelSize: 24
+                    font.bold: linkAccountBody.fontBold
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                }
             }
 
             HifiControlsUit.TextField {
@@ -207,7 +219,7 @@ Item {
                 font.pixelSize: linkAccountBody.textFieldFontSize
                 styleRenderType: Text.QtRendering
                 anchors {
-                    top: loginDialogText.bottom
+                    top: loginDialogTextContainer.bottom
                     topMargin: 1.5 * hifi.dimensions.contentSpacing.y
                 }
                 placeholderText: "Display Name (optional)"
@@ -646,25 +658,6 @@ Item {
                     }
                     root.tryDestroy();
                 }
-            }
-            
-            Text {
-                id: loginSkipTipText
-                text: qsTr("Not all domains require you to have a metaverse account. \n Some domains have their own login dialogs.")
-                wrapMode: Text.WordWrap
-                visible: !linkAccountBody.isLoggingInToDomain
-                anchors {
-                    top: dismissButton.bottom
-                    topMargin: hifi.dimensions.contentSpacing.y
-                    left: parent.left
-                }
-                lineHeight: 1
-                color: "white"
-                font.family: linkAccountBody.fontFamily
-                font.pixelSize: linkAccountBody.textFieldFontSize
-                font.bold: linkAccountBody.fontBold
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
             }
         }
     }
