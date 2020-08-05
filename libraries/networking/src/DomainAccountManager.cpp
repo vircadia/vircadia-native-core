@@ -17,31 +17,34 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
-#include <SettingHandle.h>
 #include <DependencyManager.h>
+#include <SettingHandle.h>
 
-#include "NodeList.h"
 #include "NetworkingConstants.h"
-#include "NetworkLogging.h"
 #include "NetworkAccessManager.h"
+#include "NetworkLogging.h"
+#include "NodeList.h"
 
 // FIXME: Generalize to other OAuth2 sources for domain login.
 
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
+// ####### TODO: Enable and use these?
 // ####### TODO: Add storing domain URL and check against it when retrieving values?
 // ####### TODO: Add storing _authURL and check against it when retrieving values?
+/*
 Setting::Handle<QString> domainAccessToken {"private/domainAccessToken", "" };
 Setting::Handle<QString> domainAccessRefreshToken {"private/domainAccessToken", "" };
 Setting::Handle<int> domainAccessTokenExpiresIn {"private/domainAccessTokenExpiresIn", -1 };
 Setting::Handle<QString> domainAccessTokenType {"private/domainAccessTokenType", "" };
-
+*/
 
 DomainAccountManager::DomainAccountManager() : 
     _authURL(),
     _username(),
     _access_token(),
-    _refresh_token()
+    _refresh_token(),
+    _domain_name()
 {
     connect(this, &DomainAccountManager::loginComplete, this, &DomainAccountManager::sendInterfaceAccessTokenToServer);
 }
@@ -59,6 +62,10 @@ void DomainAccountManager::setAuthURL(const QUrl& authURL) {
 
         // ####### TODO: Handle "keep me logged in".
     }
+}
+
+bool DomainAccountManager::isLoggedIn() { 
+    return !_authURL.isEmpty() && hasValidAccessToken();
 }
 
 void DomainAccountManager::requestAccessToken(const QString& username, const QString& password) {
@@ -149,25 +156,24 @@ bool DomainAccountManager::hasValidAccessToken() {
         }
 
         return false;
-    } else {
-
-        // ####### TODO::
-        
-        // if (!_isWaitingForTokenRefresh && needsToRefreshToken()) {
-        //     refreshAccessToken();
-        // }
-
-        return true;
     }
+
+    // ####### TODO
+        
+    // if (!_isWaitingForTokenRefresh && needsToRefreshToken()) {
+    //     refreshAccessToken();
+    // }
+
+    return true;
 }
 
 void DomainAccountManager::setTokensFromJSON(const QJsonObject& jsonObject, const QUrl& url) {
     _access_token = jsonObject["access_token"].toString();
     _refresh_token = jsonObject["refresh_token"].toString();
 
+    // ####### TODO: Enable and use these?
     // ####### TODO: Protect these per AccountManager?
     // ######: TODO: clientID needed?
-
     // qCDebug(networking) << "Storing a domain account with access-token for" << qPrintable(url.toString());
     // domainAccessToken.set(jsonObject["access_token"].toString());
     // domainAccessRefreshToken.set(jsonObject["refresh_token"].toString());

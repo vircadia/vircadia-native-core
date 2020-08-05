@@ -153,7 +153,7 @@ void DialogsManager::showDomainLoginDialog(const QString& domain) {
 
 // #######: TODO: Domain version of toggleLoginDialog()?
 
-// #######: TODO: Domain version of hiadLoginDialog()?
+// #######: TODO: Domain version of hideLoginDialog()?
 
 
 void DialogsManager::showUpdateDialog() {
