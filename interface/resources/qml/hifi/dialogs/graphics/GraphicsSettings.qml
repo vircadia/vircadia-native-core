@@ -336,8 +336,8 @@ Item {
                         height: parent.height
                         colorScheme: hifi.colorSchemes.dark
                         minimumValue: 0.25
-                        maximumValue: 1.0
-                        stepSize: 0.02
+                        maximumValue: 2.0
+                        stepSize: 0.05
                         value: Render.viewportResolutionScale
                         live: true
 

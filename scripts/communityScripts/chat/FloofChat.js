@@ -6,6 +6,7 @@
 //
 //  Created by Fluffy Jenkins January 2020.
 //  Copyright 2020 Fluffy Jenkins
+//  Copyright 2020 Vircadia contributors.
 //
 //  For any future coders, please keep me in the loop when making changes.
 //  Please tag me in any Pull Requests.
@@ -22,6 +23,12 @@ var CONTROL_KEY = 67108864;
 var SHIFT_KEY = 33554432;
 var FLOOF_CHAT_CHANNEL = "Chat";
 var FLOOF_NOTIFICATION_CHANNEL = "Floof-Notif";
+
+var MAIN_CHAT_WINDOW_HEIGHT = 450;
+var MAIN_CHAT_WINDOW_WIDTH = 750;
+
+var CHAT_BAR_HISTORY_LIMIT = 256;
+var CHAT_HISTORY_LIMIT = 500;
 
 Script.scriptEnding.connect(function () {
     shutdown();
@@ -41,8 +48,8 @@ var appUUID = Uuid.generate();
 
 var chatBar;
 var chatHistory;
-var chatBarHistoryLimit = Settings.getValue(settingsRoot + "/chatBarHistoryLimit", 256);
-var chatHistoryLimit = Settings.getValue(settingsRoot + "/chatHistoryLimit", 500);
+var chatBarHistoryLimit = Settings.getValue(settingsRoot + "/chatBarHistoryLimit", CHAT_BAR_HISTORY_LIMIT);
+var chatHistoryLimit = Settings.getValue(settingsRoot + "/chatHistoryLimit", CHAT_HISTORY_LIMIT);
 var chatBarHistory = Settings.getValue(settingsRoot + "/chatBarHistory", ["Meow :3"]);
 var historyLog = [];
 
@@ -50,14 +57,16 @@ var visible = false;
 var historyVisible = false;
 var settingsRoot = "FloofChat";
 
-var athenaGotoUrl = "https://metaverse.projectathena.io/interim/d-goto/app/goto.json";
-var gotoJSONUrl = Settings.getValue(settingsRoot + "/gotoJSONUrl", athenaGotoUrl);
+var vircadiaGotoUrl = "https://metaverse.vircadia.com/interim/d-goto/app/goto.json";
+var gotoJSONUrl = Settings.getValue(settingsRoot + "/gotoJSONUrl", vircadiaGotoUrl);
 
 var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain": false, "Grid": true});
+var mutedAudio = Settings.getValue(settingsRoot + "/mutedAudio", {"Local": false, "Domain": false, "Grid": true});
+var notificationSound = SoundCache.getSound(Script.resolvePath("resources/bubblepop.wav"));
 
 var ws;
 var wsReady = false;
-var WEB_SOCKET_URL = "ws://chat.projectathena.io:8880";  // WebSocket for Grid chat.
+var WEB_SOCKET_URL = "ws://chat.vircadia.com:8880";  // WebSocket for Grid chat.
 var shutdownBool = false;
 
 var defaultColour = {red: 255, green: 255, blue: 255};
@@ -80,16 +89,18 @@ function init() {
     setupHistoryWindow(false);
 
     chatBar = new OverlayWindow({
-        source: Paths.defaultScripts + '/communityModules/chat/FloofChat.qml?' + Date.now(),
+        source: ROOT + "FloofChat.qml?" + Date.now(),
         width: 360,
         height: 180
     });
 
-    button.clicked.connect(toggleChatHistory);
+    button.clicked.connect(toggleMainChatWindow);
     chatBar.fromQml.connect(fromQml);
     chatBar.sendToQml(JSON.stringify({visible: false, history: chatBarHistory}));
     Controller.keyPressEvent.connect(keyPressEvent);
     Messages.messageReceived.connect(messageReceived);
+    AvatarManager.avatarAddedEvent.connect(avatarJoinsDomain);
+    AvatarManager.avatarRemovedEvent.connect(avatarLeavesDomain);
 
     connectWebSocket();
 }
@@ -106,6 +117,11 @@ function connectWebSocket(timeout) {
         }
         if (!cmd.FAILED) {
             addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+            
+            if (!mutedAudio["Grid"] && MyAvatar.sessionDisplayName !== cmd.displayName) {
+                playNotificationSound();
+            }
+            
             if (!muted["Grid"]) {
                 Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                     sender: "(G) " + cmd.displayName,
@@ -166,13 +182,13 @@ function setupHistoryWindow() {
     chatHistory = new OverlayWebWindow({
         title: 'Chat',
         source: ROOT + "FloofChat.html?appUUID=" + appUUID + "&" + Date.now(),
-        width: 900,
-        height: 700,
+        width: MAIN_CHAT_WINDOW_WIDTH,
+        height: MAIN_CHAT_WINDOW_HEIGHT,
         visible: false
     });
-    chatHistory.setPosition({x: 0, y: Window.innerHeight - 700});
+    chatHistory.setPosition({x: 0, y: Window.innerHeight - MAIN_CHAT_WINDOW_HEIGHT});
     chatHistory.webEventReceived.connect(onWebEventReceived);
-    chatHistory.closed.connect(toggleChatHistory);
+    chatHistory.closed.connect(toggleMainChatWindow);
 }
 
 function emitScriptEvent(obj) {
@@ -180,7 +196,7 @@ function emitScriptEvent(obj) {
     tablet.emitScriptEvent(JSON.stringify(obj));
 }
 
-function toggleChatHistory() {
+function toggleMainChatWindow() {
     historyVisible = !historyVisible;
     button.editProperties({isActive: historyVisible});
     chatHistory.visible = historyVisible;
@@ -282,18 +298,23 @@ function onWebEventReceived(event) {
     if (event.type === "ready") {
         chatHistory.emitScriptEvent(JSON.stringify({type: "MSG", data: historyLog}));
         chatHistory.emitScriptEvent(JSON.stringify({type: "CMD", cmd: "MUTED", muted: muted}));
+        chatHistory.emitScriptEvent(JSON.stringify({type: "CMD", cmd: "MUTEDAUDIO", muted: mutedAudio}));
     }
     if (event.type === "CMD") {
         if (event.cmd === "MUTED") {
             muted = event.muted;
             Settings.setValue(settingsRoot + "/muted", muted);
         }
+        if (event.cmd === "MUTEDAUDIO") {
+            mutedAudio = event.muted;
+            Settings.setValue(settingsRoot + "/mutedAudio", mutedAudio);
+        }
         if (event.cmd === "COLOUR") {
             Settings.setValue(settingsRoot + "/" + event.colourType + "Colour", event.colour);
             colours[event.colourType] = event.colour;
         }
         if (event.cmd === "REDOCK") {
-            chatHistory.setPosition({x: 0, y: Window.innerHeight - 700});
+            chatHistory.setPosition({x: 0, y: Window.innerHeight - MAIN_CHAT_WINDOW_HEIGHT});
         }
         if (event.cmd === "GOTO") {
             gotoConfirm(event.url);
@@ -307,12 +328,15 @@ function onWebEventReceived(event) {
                 visible: true
             });
         }
+        if (event.cmd === "EXTERNALURL") {
+            Window.openUrl(event.url);
+        }
         if (event.cmd === "COPY") {
             Window.copyToClipboard(event.url);
         }
     }
     if (event.type === "WEBMSG") {
-        event.avatarName = MyAvatar.displayName;
+        event.avatarName = MyAvatar.sessionDisplayName;
         event = processChat(event);
         if (event.message === "") return;
         sendWS({
@@ -325,7 +349,7 @@ function onWebEventReceived(event) {
         });
     }
     if (event.type === "MSG") {
-        event.avatarName = MyAvatar.displayName;
+        event.avatarName = MyAvatar.sessionDisplayName;
         event = processChat(event);
         if (event.message === "") return;
         Messages.sendMessage("Chat", JSON.stringify({
@@ -337,6 +361,17 @@ function onWebEventReceived(event) {
             displayName: event.avatarName
         }));
         setVisible(false);
+    }
+}
+
+function playNotificationSound() {
+    if (notificationSound.downloaded) {
+        var injectorOptions = {
+            localOnly: true,
+            position: MyAvatar.position,
+            volume: 0.02
+        };
+        Audio.playSound(notificationSound, injectorOptions);
     }
 }
 
@@ -423,6 +458,11 @@ function messageReceived(channel, message) {
                 if (cmd.channel === "Local") {
                     if (Vec3.withinEpsilon(MyAvatar.position, cmd.position, 20)) {
                         addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+                        
+                        if (!mutedAudio["Local"] && MyAvatar.sessionDisplayName !== cmd.displayName) {
+                            playNotificationSound();
+                        }
+                        
                         if (!muted["Local"]) {
                             Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                                 sender: "(L) " + cmd.displayName,
@@ -433,6 +473,11 @@ function messageReceived(channel, message) {
                     }
                 } else if (cmd.channel === "Domain") {
                     addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+                    
+                    if (!mutedAudio["Domain"] && MyAvatar.sessionDisplayName !== cmd.displayName) {
+                        playNotificationSound();
+                    }
+                    
                     if (!muted["Domain"]) {
                         Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                             sender: "(D) " + cmd.displayName,
@@ -442,6 +487,11 @@ function messageReceived(channel, message) {
                     }
                 } else if (cmd.channel === "Grid") {
                     addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+                    
+                    if (!mutedAudio["Grid"] && MyAvatar.sessionDisplayName !== cmd.displayName) {
+                        playNotificationSound();
+                    }
+                    
                     if (!muted["Grid"]) {
                         Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                             sender: "(G) " + cmd.displayName,
@@ -451,6 +501,11 @@ function messageReceived(channel, message) {
                     }
                 } else {
                     addToLog(cmd.message, cmd.displayName, cmd.colour, cmd.channel);
+                    
+                    if (MyAvatar.sessionDisplayName !== cmd.displayName) {
+                        playNotificationSound();
+                    }
+                    
                     Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
                         sender: cmd.displayName,
                         text: replaceFormatting(cmd.message),
@@ -458,25 +513,32 @@ function messageReceived(channel, message) {
                     }));
                 }
             }
+            if (cmd.type === "ShowChatWindow") {
+                toggleMainChatWindow();
+            }
         }
     }
 }
 
 function time() {
     var d = new Date();
+    // Months are returned in range 0-11 instead of 1-12, so we have to add 1.
+    var month = (d.getMonth() + 1).toString(); 
+    var day = (d.getDate()).toString();
     var h = (d.getHours()).toString();
     var m = (d.getMinutes()).toString();
     var s = (d.getSeconds()).toString();
     var h2 = ("0" + h).slice(-2);
     var m2 = ("0" + m).slice(-2);
     var s2 = ("0" + s).slice(-2);
-    s2 += (d.getMilliseconds() / 1000).toFixed(2).slice(1);
-    return h2 + ":" + m2 + ":" + s2;
+    // s2 += (d.getMilliseconds() / 1000).toFixed(2).slice(1);
+    return month + "/" + day + " - " + h2 + ":" + m2 + ":" + s2;
 }
 
 function addToLog(msg, dp, colour, tab) {
-    historyLog.push([time(), msg, dp, colour, tab]);
-    chatHistory.emitScriptEvent(JSON.stringify({type: "MSG", data: [[time(), msg, dp, colour, tab]]}));
+    var currentTimestamp = time();
+    historyLog.push([currentTimestamp, msg, dp, colour, tab]);
+    chatHistory.emitScriptEvent(JSON.stringify({ type: "MSG", data: [[currentTimestamp, msg, dp, colour, tab]]}));
     while (historyLog.length > chatHistoryLimit) {
         historyLog.shift();
     }
@@ -503,7 +565,7 @@ function fromQml(message) {
             if (cmd.message !== "") {
                 addToChatBarHistory(cmd.message);
                 if (cmd.event.modifiers === CONTROL_KEY) {
-                    cmd.avatarName = MyAvatar.displayName;
+                    cmd.avatarName = MyAvatar.sessionDisplayName;
                     cmd = processChat(cmd);
                     if (cmd.message === "") return;
                     Messages.sendMessage(FLOOF_CHAT_CHANNEL, JSON.stringify({
@@ -512,7 +574,7 @@ function fromQml(message) {
                         displayName: cmd.avatarName
                     }));
                 } else if (cmd.event.modifiers === CONTROL_KEY + SHIFT_KEY) {
-                    cmd.avatarName = MyAvatar.displayName;
+                    cmd.avatarName = MyAvatar.sessionDisplayName;
                     cmd = processChat(cmd);
                     if (cmd.message === "") return;
                     sendWS({
@@ -524,7 +586,7 @@ function fromQml(message) {
                         displayName: cmd.avatarName
                     });
                 } else {
-                    cmd.avatarName = MyAvatar.displayName;
+                    cmd.avatarName = MyAvatar.sessionDisplayName;
                     cmd = processChat(cmd);
                     if (cmd.message === "") return;
                     Messages.sendMessage(FLOOF_CHAT_CHANNEL, JSON.stringify({
@@ -540,7 +602,7 @@ function fromQml(message) {
             setVisible(false);
         } else if (cmd.type === "CMD") {
             if (cmd.cmd === "Clicked") {
-                toggleChatHistory()
+                toggleMainChatWindow()
             }
         }
     }
@@ -563,9 +625,49 @@ function setVisible(_visible) {
     visible = _visible;
 }
 
+function avatarJoinsDomain(sessionID) {
+    Script.setTimeout(function () {
+        var messageText = AvatarManager.getPalData([sessionID]).data[0].sessionDisplayName + " has joined."
+        var messageColor = { red: 122, green: 122, blue: 122 };
+        
+        addToLog(messageText, "Notice", messageColor, "Domain");
+        
+        if (!mutedAudio["Domain"]) {
+            playNotificationSound();
+        }
+        
+        if (!muted["Domain"]) {
+            Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
+                sender: "(D)",
+                text:  messageText,
+                colour: { text: messageColor }
+            }));
+        }
+    }, 500); // Wait 500ms for the avatar to load to properly get info about them.
+}
+
+function avatarLeavesDomain(sessionID) {
+    var messageText = AvatarManager.getPalData([sessionID]).data[0].sessionDisplayName + " has left."
+    var messageColor = { red: 122, green: 122, blue: 122 };
+    
+    addToLog(messageText, "Notice", messageColor, "Domain");
+    
+    if (!mutedAudio["Domain"]) {
+        playNotificationSound();
+    }
+    
+    if (!muted["Domain"]) {
+        Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
+            sender: "(D)",
+            text:  messageText,
+            colour: { text: messageColor }
+        }));
+    }
+}
+
 function keyPressEvent(event) {
     if (event.key === H_KEY && !event.isAutoRepeat && event.isControl) {
-        toggleChatHistory()
+        toggleMainChatWindow()
     }
     if (event.key === ENTER_KEY && !event.isAutoRepeat && !visible) {
         setVisible(true);
@@ -581,11 +683,25 @@ function shutdown() {
     } catch (e) {
         // empty
     }
+    
+    try {
+        AvatarManager.avatarAddedEvent.disconnect(avatarJoinsDomain);
+    } catch (e) {
+        // empty
+    }
+    
+    try {
+        AvatarManager.avatarRemovedEvent.disconnect(avatarLeavesDomain);
+    } catch (e) {
+        // empty
+    }
+    
     try {
         Controller.keyPressEvent.disconnect(keyPressEvent);
     } catch (e) {
         // empty
     }
+    
     chatBar.close();
     chatHistory.close();
 }

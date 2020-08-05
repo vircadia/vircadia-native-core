@@ -734,7 +734,8 @@ QString getMarketplaceID(const QString& urlString) {
 bool Octree::readFromURL(
     const QString& urlString,
     const bool isObservable,
-    const qint64 callerId
+    const qint64 callerId,
+    const bool isImport
 ) {
     QString trimmedUrl = urlString.trimmed();
     QString marketplaceID = getMarketplaceID(trimmedUrl);
@@ -766,7 +767,7 @@ bool Octree::readFromURL(
     }
 
     QDataStream inputStream(data);
-    return readFromStream(data.size(), inputStream, marketplaceID);
+    return readFromStream(data.size(), inputStream, marketplaceID, isImport);
 }
 
 bool Octree::readFromByteArray(
@@ -791,7 +792,8 @@ bool Octree::readFromByteArray(
 bool Octree::readFromStream(
     uint64_t streamLength,
     QDataStream& inputStream,
-    const QString& marketplaceID
+    const QString& marketplaceID,
+    const bool isImport
 ) {
     // decide if this is binary SVO or JSON-formatted SVO
     QIODevice *device = inputStream.device();
@@ -804,7 +806,7 @@ bool Octree::readFromStream(
         return false;
     } else {
         qCDebug(octree) << "Reading from JSON SVO Stream length:" << streamLength;
-        return readJSONFromStream(streamLength, inputStream, marketplaceID);
+        return readJSONFromStream(streamLength, inputStream, marketplaceID, isImport);
     }
 }
 
@@ -834,7 +836,8 @@ const int READ_JSON_BUFFER_SIZE = 2048;
 bool Octree::readJSONFromStream(
     uint64_t streamLength,
     QDataStream& inputStream,
-    const QString& marketplaceID /*=""*/
+    const QString& marketplaceID, /*=""*/
+    const bool isImport
 ) {
     // if the data is gzipped we may not have a useful bytesAvailable() result, so just keep reading until
     // we get an eof.  Leave streamLength parameter for consistency.
@@ -866,7 +869,7 @@ bool Octree::readJSONFromStream(
         addMarketplaceIDToDocumentEntities(asMap, marketplaceID);
     }
 
-    bool success = readFromMap(asMap);
+    bool success = readFromMap(asMap, isImport);
     delete[] rawData;
     return success;
 }

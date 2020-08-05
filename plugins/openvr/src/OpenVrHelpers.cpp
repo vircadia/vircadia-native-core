@@ -1,6 +1,7 @@
 //
 //  Created by Bradley Austin Davis on 2015/11/01
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -18,8 +19,6 @@
 #include <QtGui/QInputMethodEvent>
 #include <QtQuick/QQuickWindow>
 
-#include <PathUtils.h>
-#include <Windows.h>
 #include <OffscreenUi.h>
 #include <controllers/Pose.h>
 #include <NumericalConstants.h>
@@ -51,7 +50,7 @@ static const uint32_t RELEASE_OPENVR_HMD_DELAY_MS = 5000;
 
 bool isOculusPresent() {
     bool result = false;
-#if defined(Q_OS_WIN32)
+#ifdef Q_OS_WIN 
     HANDLE oculusServiceEvent = ::OpenEventW(SYNCHRONIZE, FALSE, L"OculusHMDConnected");
     // The existence of the service indicates a running Oculus runtime
     if (oculusServiceEvent) {
@@ -208,8 +207,10 @@ void finishOpenVrKeyboardInput() {
     updateFromOpenVrKeyboardInput();
     // Simulate an enter press on the top level window to trigger the action
     if (0 == (_currentHints & Qt::ImhMultiLine)) {
-        qApp->sendEvent(offscreenUi->getWindow(), &QKeyEvent(QEvent::KeyPress, Qt::Key_Return, Qt::KeyboardModifiers(), QString("\n")));
-        qApp->sendEvent(offscreenUi->getWindow(), &QKeyEvent(QEvent::KeyRelease, Qt::Key_Return, Qt::KeyboardModifiers()));
+        auto keyPress = QKeyEvent(QEvent::KeyPress, Qt::Key_Return, Qt::KeyboardModifiers(), QString("\n"));
+        auto keyRelease = QKeyEvent(QEvent::KeyRelease, Qt::Key_Return, Qt::KeyboardModifiers());
+        qApp->sendEvent(offscreenUi->getWindow(), &keyPress);
+        qApp->sendEvent(offscreenUi->getWindow(), &keyRelease);
     }
 }
 
@@ -293,11 +294,20 @@ void handleOpenVrEvents() {
                 ulong promitySensorFlag = (1UL << ((int)vr::k_EButton_ProximitySensor));
                 _headInHeadset = (controllerState.ulButtonPressed & promitySensorFlag) == promitySensorFlag;
             }
-
         }
 
         #if DEV_BUILD
-            qDebug() << "OpenVR: Event " << activeHmd->GetEventTypeNameFromEnum((vr::EVREventType)event.eventType) << "(" << event.eventType << ")";
+            //qDebug() << "OpenVR: Event " << activeHmd->GetEventTypeNameFromEnum((vr::EVREventType)event.eventType) << "(" << event.eventType << ")";
+            // FIXME: Reinstate the line above and remove the following lines once the problem with excessive occurrences of 
+            // VREvent_ActionBindingReloaded events is fixed in SteamVR for Linux. 
+            // https://github.com/ValveSoftware/SteamVR-for-Linux/issues/307
+            #ifdef Q_OS_LINUX
+                if (event.eventType != vr::VREvent_ActionBindingReloaded) {
+                    qDebug() << "OpenVR: Event " << activeHmd->GetEventTypeNameFromEnum((vr::EVREventType)event.eventType) << "(" << event.eventType << ")";
+                };
+            #else
+                qDebug() << "OpenVR: Event " << activeHmd->GetEventTypeNameFromEnum((vr::EVREventType)event.eventType) << "(" << event.eventType << ")";
+            #endif
         #endif
     }
 
@@ -407,8 +417,31 @@ void showMinSpecWarning() {
         qFatal("Unable to create overlay");
     }
 
-    // Needed here for PathUtils
+#ifdef Q_OS_LINUX
+    QFile cmdlineFile("/proc/self/cmdline");
+    if (!cmdlineFile.open(QIODevice::ReadOnly)) {
+        qFatal("Unable to open /proc/self/cmdline");
+    }
+
+    auto contents = cmdlineFile.readAll();
+    auto arguments = contents.split('\0');
+    arguments.pop_back();  // Last element is empty.
+    cmdlineFile.close();
+
+    int __argc = arguments.count();
+    char** __argv = new char* [__argc];
+    for (int i = 0; i < __argc; i++) {
+        __argv[i] = arguments[i].data();
+    }
+#endif
+
     QCoreApplication miniApp(__argc, __argv);
+
+#ifdef Q_OS_LINUX
+    QObject::connect(&miniApp, &QCoreApplication::destroyed, [=] {
+        delete[] __argv;
+    });
+#endif
 
     vrSystem->ResetSeatedZeroPose();
     QString imagePath = PathUtils::resourcesPath() + "/images/steam-min-spec-failed.png";
@@ -487,7 +520,12 @@ bool checkMinSpecImpl() {
 }
 
 extern "C" {
+#if defined(Q_OS_WIN32)
     __declspec(dllexport) int __stdcall CheckMinSpec() {
+#else
+    __attribute__((visibility("default"))) int CheckMinSpec() {
+#endif
         return checkMinSpecImpl() ? 1 : 0;
     }
+
 }
