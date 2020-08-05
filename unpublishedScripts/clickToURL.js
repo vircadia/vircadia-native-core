@@ -32,8 +32,6 @@
         }
     }
 
-    Entities.mousePressOnEntity.connect(onMousePressOnEntity);
-
     this.preload = function (ourID) {
         this.entityID = ourID;
         
