@@ -871,7 +871,7 @@ Function PostInstallOptionsPage
   Pop $LaunchConsoleNowCheckbox
 
   ; set the checkbox state depending on what is present in the registry
-  !insertmacro SetInstallOption $LaunchConsoleNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+  !insertmacro SetInstallOption $LaunchConsoleNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_UNCHECKED}
   ${StrContains} $substringResult "/forceNoLaunchServer" $CMDLINE
   ${IfNot} $substringResult == ""
       ${NSD_SetState} $LaunchConsoleNowCheckbox ${BST_UNCHECKED}
@@ -942,7 +942,7 @@ Function ReadInstallTypes
     StrCpy $DesktopClientState ${BST_CHECKED}
     StrCpy $ConsoleStartupState ${BST_UNCHECKED}
     StrCpy $LaunchConsoleNowState ${BST_CHECKED}
-    StrCpy $LaunchClientNowState ${BST_CHECKED}
+    StrCpy $LaunchClientNowState ${BST_UNCHECKED}
     StrCpy $CleanInstallState ${BST_UNCHECKED}
     StrCpy $DesktopConsoleState ${BST_UNCHECKED}
 
