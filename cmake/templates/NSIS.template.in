@@ -941,8 +941,8 @@ Function ReadInstallTypes
 
     StrCpy $DesktopClientState ${BST_CHECKED}
     StrCpy $ConsoleStartupState ${BST_UNCHECKED}
-    StrCpy $LaunchConsoleNowState ${BST_CHECKED}
-    StrCpy $LaunchClientNowState ${BST_UNCHECKED}
+    StrCpy $LaunchConsoleNowState ${BST_UNCHECKED}
+    StrCpy $LaunchClientNowState ${BST_CHECKED}
     StrCpy $CleanInstallState ${BST_UNCHECKED}
     StrCpy $DesktopConsoleState ${BST_UNCHECKED}
 
