@@ -7097,7 +7097,7 @@ void Application::updateWindowTitle() const {
     QString metaverseUsername = accountManager->getAccountInfo().getUsername();
     QString domainUsername = domainAccountManager->getUsername();
 
-    setCrashAnnotation("sentry[user][metaverseUsername]", metaverseUsername.toStdString());
+    setCrashAnnotation("sentry[user][username]", metaverseUsername.toStdString());
 
     QString currentPlaceName;
     if (isServerlessMode()) {
