@@ -1966,8 +1966,8 @@ void DomainServerSettingsManager::apiRefreshGroupInformation() {
     QStringList groupNames = getAllKnownGroupNames();
     foreach (QString groupName, groupNames) {
         QString lowerGroupName = groupName.toLower();
-        if (lowerGroupName.contains(DOMAIN_GROUP_CHAR)) {
-            // Ignore domain groups.
+        if (lowerGroupName.startsWith(DOMAIN_GROUP_CHAR)) {
+            // Ignore domain groups. (Assumption: metaverse group names can't start with a "@".)
             return;
         }
         if (_groupIDs.contains(lowerGroupName)) {
@@ -2189,8 +2189,8 @@ QList<QUuid> DomainServerSettingsManager::getBlacklistGroupIDs() {
     return result.toList();
 }
 
-QStringList DomainServerSettingsManager::getDomainGroupNames() {
-    // Names as configured in domain server; not necessarily metaverse groups.
+QStringList DomainServerSettingsManager::getDomainServerGroupNames() {
+    // All names as listed in the domain server settings; both metaverse groups and domain groups
     QSet<QString> result;
     foreach(NodePermissionsKey groupKey, _groupPermissions.keys()) {
         result += _groupPermissions[groupKey]->getID();
@@ -2198,8 +2198,8 @@ QStringList DomainServerSettingsManager::getDomainGroupNames() {
     return result.toList();
 }
 
-QStringList DomainServerSettingsManager::getDomainBlacklistGroupNames() {
-    // Names as configured in domain server; not necessarily mnetaverse groups.
+QStringList DomainServerSettingsManager::getDomainServerBlacklistGroupNames() {
+    // All names as listed in the domain server settings; not necessarily mnetaverse groups.
     QSet<QString> result;
     foreach (NodePermissionsKey groupKey, _groupForbiddens.keys()) {
         result += _groupForbiddens[groupKey]->getID();

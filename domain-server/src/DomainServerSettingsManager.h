@@ -105,8 +105,8 @@ public:
     QList<QUuid> getGroupIDs();
     QList<QUuid> getBlacklistGroupIDs();
 
-    QStringList getDomainGroupNames();
-    QStringList getDomainBlacklistGroupNames();
+    QStringList getDomainServerGroupNames();
+    QStringList getDomainServerBlacklistGroupNames();
 
     // these are used to locally cache the result of calling "api/v1/groups/.../is_member/..." on metaverse's api
     void clearGroupMemberships(const QString& name) { _groupMembership[name.toLower()].clear(); }
