@@ -185,7 +185,11 @@ void GLTextureTransferEngineDefault::updateMemoryPressure() {
 
     size_t allowedMemoryAllocation = gpu::Texture::getAllowedGPUMemoryUsage();
     if (0 == allowedMemoryAllocation) {
-        allowedMemoryAllocation = DEFAULT_ALLOWED_TEXTURE_MEMORY;
+        allowedMemoryAllocation = GLBackend::getTotalMemory();
+        if ( 0 == allowedMemoryAllocation ) {
+            // Last resort, if we failed to detect
+            allowedMemoryAllocation = DEFAULT_ALLOWED_TEXTURE_MEMORY;
+        }
     }
 
     // Clear any defunct textures (weak pointers that no longer have a valid texture)

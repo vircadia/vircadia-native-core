@@ -67,6 +67,12 @@ protected:
     GLBackend();
 
 public:
+    enum VideoCardType {
+        ATI,
+        NVIDIA,
+        Unknown
+    };
+
 #if defined(USE_GLES)
     // https://www.khronos.org/registry/OpenGL-Refpages/es3/html/glGet.xhtml
     static const GLint MIN_REQUIRED_TEXTURE_IMAGE_UNITS = 16;
@@ -89,6 +95,24 @@ public:
     static GLint MAX_COMBINED_TEXTURE_IMAGE_UNITS;
     static GLint MAX_UNIFORM_BLOCK_SIZE;
     static GLint UNIFORM_BUFFER_OFFSET_ALIGNMENT;
+    static GLint GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX;
+    static GLint GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX;
+    static GLint GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
+    static GLint TEXTURE_FREE_MEMORY_ATI;
+
+
+    static size_t _total_memory;
+    static size_t _dedicated_memory;
+    static VideoCardType _video_card;
+
+
+    static size_t getTotalMemory() { return _total_memory; }
+    static size_t getDedicatedMemory() { return _dedicated_memory; }
+
+    static size_t getAvailableMemory();
+
+
+
 
     virtual ~GLBackend();
 
