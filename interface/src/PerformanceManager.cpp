@@ -27,7 +27,7 @@ void PerformanceManager::setupPerformancePresetSettings(bool evaluatePlatformTie
         // If evaluatePlatformTier, evalute the Platform Tier and assign the matching Performance profile by default.
         // A bunch of Performance, Simulation and Render settings will be set to a matching default value from this
 
-        // Here is the mapping between pelatformTIer and performance profile
+        // Here is the mapping between pelatformTier and performance profile
         const std::array<PerformanceManager::PerformancePreset, platform::Profiler::NumTiers> platformToPerformancePresetMap = { {
             PerformanceManager::PerformancePreset::MID,  // platform::Profiler::UNKNOWN
             PerformanceManager::PerformancePreset::LOW,  // platform::Profiler::LOW
