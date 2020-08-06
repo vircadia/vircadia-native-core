@@ -8,8 +8,6 @@
     See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
 
-// Standard preload and unload, initialize the entity script here.
-
 (function () {
     "use strict";
     this.entityID = null;
@@ -31,6 +29,8 @@
             });
         }
     }
+    
+    // Standard preload and unload, initialize the entity script here.
 
     this.preload = function (ourID) {
         this.entityID = ourID;
