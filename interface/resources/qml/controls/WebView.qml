@@ -42,6 +42,7 @@ Item {
         id: webroot
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
+        // backgroundColor: "transparent"
 
         onLoadingChangedCallback: {
             keyboardRaised = false;

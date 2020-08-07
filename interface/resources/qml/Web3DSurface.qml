@@ -3,6 +3,7 @@
 //
 //  Created by David Rowe on 16 Dec 2016.
 //  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -43,6 +44,7 @@ Item {
             root.item = newItem
             root.item.url = url
             root.item.scriptUrl = scriptUrl
+            root.item.transparentBackground = true
         })
     }
 

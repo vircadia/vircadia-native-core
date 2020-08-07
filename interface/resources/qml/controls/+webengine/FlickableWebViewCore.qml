@@ -98,6 +98,7 @@ Item {
 
         width: parent.width
         height: parent.height
+        backgroundColor: "transparent"
 
         profile: HFWebEngineProfile;
         settings.pluginsEnabled: true
