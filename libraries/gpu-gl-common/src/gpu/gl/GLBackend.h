@@ -111,6 +111,7 @@ public:
     static size_t getDedicatedMemory() { return _dedicatedMemory; }
 
     static size_t getAvailableMemory();
+    static bool availableMemoryKnown();
 
 
 

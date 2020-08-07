@@ -148,6 +148,8 @@ void GLBackend::init() {
         GL_GET_INTEGER(MAX_UNIFORM_BLOCK_SIZE);
         GL_GET_INTEGER(UNIFORM_BUFFER_OFFSET_ALIGNMENT);
 
+        GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer);
+
         if (vendor.contains("NVIDIA") ) {
             qCDebug(gpugllogging) << "NVIDIA card detected";
             GL_GET_INTEGER(GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX);
@@ -178,12 +180,17 @@ void GLBackend::init() {
                 _totalMemory = mem * BYTES_PER_MIB;
                 _dedicatedMemory = _totalMemory;
                 _videoCard = Intel;
+            } else {
+                qCWarning(gpugllogging) << "Intel card on non-Linux system, trying GPUIdent fallback";
+                _videoCard = Unknown;
+                _dedicatedMemory = gpu->getMemory();
+                _totalMemory = _dedicatedMemory;
             }
         } else {
             qCCritical(gpugllogging) << "Don't know how to get memory for OpenGL vendor " << vendor;
             _videoCard = Unknown;
-            _dedicatedMemory = 0;
-            _totalMemory = 0;
+            _dedicatedMemory = gpu->getMemory();
+            _totalMemory = _dedicatedMemory;
         }
 
         qCDebug(gpugllogging) << "dedicated: " << _dedicatedMemory;
@@ -191,7 +198,7 @@ void GLBackend::init() {
 
 
         LOG_GL_CONTEXT_INFO(gpugllogging, contextInfo);
-        GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer);
+
 
         // From here on, GPUIdent::getInstance()->getMumble() should efficiently give the same answers.
         qCDebug(gpugllogging) << "GPU:";
@@ -231,6 +238,17 @@ size_t GLBackend::getAvailableMemory() {
 
     return 0;
 
+}
+
+bool GLBackend::availableMemoryKnown() {
+    switch( _videoCard ) {
+        case NVIDIA: return true;
+        case ATI: return true;
+        case Intel: return false;
+        case Unknown: return false;
+    }
+
+    return false;
 }
 
 GLBackend::GLBackend(bool syncCache) {

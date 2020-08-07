@@ -19,6 +19,8 @@
 #define MAX_RESOURCE_TEXTURES_PER_FRAME 2
 #define NO_BUFFER_WORK_SLEEP_TIME_MS 2
 #define THREADED_TEXTURE_BUFFERING 1
+#define MAX_AUTO_FRACTION_OF_TOTAL_MEMORY 0.8f
+#define AUTO_RESERVE_TEXTURE_MEMORY MB_TO_BYTES(64)
 
 static const size_t DEFAULT_ALLOWED_TEXTURE_MEMORY = MB_TO_BYTES(DEFAULT_ALLOWED_TEXTURE_MEMORY_MB);
 
@@ -183,12 +185,24 @@ void GLTextureTransferEngineDefault::manageMemory() {
 void GLTextureTransferEngineDefault::updateMemoryPressure() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
 
+    bool useAvailableGlMemory = false;
     size_t allowedMemoryAllocation = gpu::Texture::getAllowedGPUMemoryUsage();
+
     if (0 == allowedMemoryAllocation) {
-        allowedMemoryAllocation = GLBackend::getTotalMemory();
-        if ( 0 == allowedMemoryAllocation ) {
-            // Last resort, if we failed to detect
-            allowedMemoryAllocation = DEFAULT_ALLOWED_TEXTURE_MEMORY;
+        // Automatic allocation
+
+        if ( GLBackend::availableMemoryKnown() ) {
+            // If we know how much is free, then we use that
+            useAvailableGlMemory = true;
+        } else {
+            // We don't know how much is free, so leave some reasonable spare room
+            // and hope it works.
+            allowedMemoryAllocation = GLBackend::getTotalMemory() * MAX_AUTO_FRACTION_OF_TOTAL_MEMORY;
+
+            if ( 0 == allowedMemoryAllocation ) {
+                // Last resort, if we failed to detect
+                allowedMemoryAllocation = DEFAULT_ALLOWED_TEXTURE_MEMORY;
+            }
         }
     }
 
@@ -222,7 +236,19 @@ void GLTextureTransferEngineDefault::updateMemoryPressure() {
 
     Backend::textureResourceIdealGPUMemSize.set(idealMemoryAllocation);
     size_t unallocated = idealMemoryAllocation - totalVariableMemoryAllocation;
-    float pressure = (float)totalVariableMemoryAllocation / (float)allowedMemoryAllocation;
+    float pressure = 0;
+
+    if ( useAvailableGlMemory ) {
+        float total_mem = GLBackend::getTotalMemory();
+        float avail_mem = GLBackend::getAvailableMemory() - AUTO_RESERVE_TEXTURE_MEMORY;
+        if ( avail_mem < 0 ) {
+            avail_mem = 0;
+        }
+
+        pressure = (total_mem - avail_mem) / total_mem;
+    } else {
+        pressure = (float)totalVariableMemoryAllocation / (float)allowedMemoryAllocation;
+    }
 
     // If we're oversubscribed we need to demote textures IMMEDIATELY
     if (pressure > OVERSUBSCRIBED_PRESSURE_VALUE && canDemote) {
