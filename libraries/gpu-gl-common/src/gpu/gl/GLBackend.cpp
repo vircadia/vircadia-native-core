@@ -122,9 +122,9 @@ GLint GLBackend::GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX{ 0 };
 GLint GLBackend::GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX{ 0 };
 GLint GLBackend::TEXTURE_FREE_MEMORY_ATI{ 0 };
 
-size_t GLBackend::_total_memory{ 0 };
-size_t GLBackend::_dedicated_memory{ 0 };
-GLBackend::VideoCardType GLBackend::_video_card{ GLBackend::Unknown };
+size_t GLBackend::_totalMemory{ 0 };
+size_t GLBackend::_dedicatedMemory{ 0 };
+GLBackend::VideoCardType GLBackend::_videoCard{ GLBackend::Unknown };
 
 
 #define GLX_RENDERER_VIDEO_MEMORY_MESA 0x8187
@@ -148,7 +148,7 @@ void GLBackend::init() {
         GL_GET_INTEGER(MAX_UNIFORM_BLOCK_SIZE);
         GL_GET_INTEGER(UNIFORM_BUFFER_OFFSET_ALIGNMENT);
 
-        if ( vendor.contains("NVIDIA") ) {
+        if (vendor.contains("NVIDIA") ) {
             qCDebug(gpugllogging) << "NVIDIA card detected";
             GL_GET_INTEGER(GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX);
             GL_GET_INTEGER(GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX);
@@ -157,44 +157,48 @@ void GLBackend::init() {
             qCDebug(gpugllogging) << "GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX: " << GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX;
             qCDebug(gpugllogging) << "GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX: " << GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX;
             qCDebug(gpugllogging) << "GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX: " << GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
-            qCDebug(gpugllogging) << "sz: " << sizeof(_total_memory);
+            qCDebug(gpugllogging) << "sz: " << sizeof(_totalMemory);
 
-            _total_memory = GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX * BYTES_PER_KIB;
-            _dedicated_memory = GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX * BYTES_PER_KIB;
-            _video_card = NVIDIA;
+            _totalMemory = GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX * BYTES_PER_KIB;
+            _dedicatedMemory = GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX * BYTES_PER_KIB;
+            _videoCard = NVIDIA;
 
 
-        } else if ( vendor.contains("ATI")) {
+        } else if (vendor.contains("ATI")) {
             qCDebug(gpugllogging) << "ATI card detected";
             GL_GET_INTEGER(TEXTURE_FREE_MEMORY_ATI);
 
-            _total_memory = TEXTURE_FREE_MEMORY_ATI * BYTES_PER_KIB;
-            _dedicated_memory = _total_memory;
-            _video_card = ATI;
-        } else if ( vendor.contains("Intel")) {
+            _totalMemory = TEXTURE_FREE_MEMORY_ATI * BYTES_PER_KIB;
+            _dedicatedMemory = _totalMemory;
+            _videoCard = ATI;
+        } else if (vendor.contains("Intel")) {
             unsigned int mem;
 
            if ( ::gl::queryCurrentRendererIntegerMESA(GLX_RENDERER_VIDEO_MEMORY_MESA, &mem) ) {
-                _total_memory = mem * BYTES_PER_MIB;
-                _dedicated_memory = _total_memory;
+                _totalMemory = mem * BYTES_PER_MIB;
+                _dedicatedMemory = _totalMemory;
+                _videoCard = Intel;
             }
         } else {
             qCCritical(gpugllogging) << "Don't know how to get memory for OpenGL vendor " << vendor;
-            _video_card = Unknown;
-            _dedicated_memory = 0;
-            _total_memory = 0;
+            _videoCard = Unknown;
+            _dedicatedMemory = 0;
+            _totalMemory = 0;
         }
 
-        qCDebug(gpugllogging) << "dedicated: " << _dedicated_memory;
-        qCDebug(gpugllogging) << "total: " << _total_memory;
+        qCDebug(gpugllogging) << "dedicated: " << _dedicatedMemory;
+        qCDebug(gpugllogging) << "total: " << _totalMemory;
 
 
         LOG_GL_CONTEXT_INFO(gpugllogging, contextInfo);
+        GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer);
 
         // From here on, GPUIdent::getInstance()->getMumble() should efficiently give the same answers.
         qCDebug(gpugllogging) << "GPU:";
-        qCDebug(gpugllogging) << "\ttotal memory:" << (_total_memory / BYTES_PER_KIB) << "KB";
-        qCDebug(gpugllogging) << "\tdedicated memory:" << (_dedicated_memory / BYTES_PER_KIB) << "KB";
+        qCDebug(gpugllogging) << "\tcard:" << gpu->getName();
+        qCDebug(gpugllogging) << "\tdriver:" << gpu->getDriver();
+        qCDebug(gpugllogging) << "\ttotal memory:" << (_totalMemory / BYTES_PER_KIB) << "KB";
+        qCDebug(gpugllogging) << "\tdedicated memory:" << (_dedicatedMemory / BYTES_PER_KIB) << "KB";
         qCDebug(gpugllogging) << "\tavailable memory:" << (getAvailableMemory()  / BYTES_PER_KIB) << "KB";
         qCDebug(gpugllogging) << "Limits:";
         qCDebug(gpugllogging) << "\tmax textures:" << MAX_TEXTURE_IMAGE_UNITS;
@@ -212,13 +216,15 @@ void GLBackend::init() {
 size_t GLBackend::getAvailableMemory() {
     GLint mem;
 
-    switch( _video_card ) {
+    switch( _videoCard ) {
         case NVIDIA:
             glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &mem);
             return mem * BYTES_PER_KIB;
         case ATI:
             glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &mem);
             return mem * BYTES_PER_KIB;
+        case Intel:
+            return 0; // Don't know the current value
         case Unknown:
             break;
     }

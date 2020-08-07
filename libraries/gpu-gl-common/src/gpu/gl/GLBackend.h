@@ -70,6 +70,7 @@ public:
     enum VideoCardType {
         ATI,
         NVIDIA,
+        Intel,
         Unknown
     };
 
@@ -101,13 +102,13 @@ public:
     static GLint TEXTURE_FREE_MEMORY_ATI;
 
 
-    static size_t _total_memory;
-    static size_t _dedicated_memory;
-    static VideoCardType _video_card;
+    static size_t _totalMemory;
+    static size_t _dedicatedMemory;
+    static VideoCardType _videoCard;
 
 
-    static size_t getTotalMemory() { return _total_memory; }
-    static size_t getDedicatedMemory() { return _dedicated_memory; }
+    static size_t getTotalMemory() { return _totalMemory; }
+    static size_t getDedicatedMemory() { return _dedicatedMemory; }
 
     static size_t getAvailableMemory();
 

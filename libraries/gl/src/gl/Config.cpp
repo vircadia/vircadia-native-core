@@ -75,7 +75,7 @@ static void* getGlProcessAddress(const char *namez) {
 #else
 
 
-typedef Bool ( *PFNGLXQUERYCURRENTRENDERERINTEGERMESAPROC) (int attribute, unsigned int *value);
+typedef Bool (*PFNGLXQUERYCURRENTRENDERERINTEGERMESAPROC) (int attribute, unsigned int *value);
 PFNGLXQUERYCURRENTRENDERERINTEGERMESAPROC QueryCurrentRendererIntegerMESA;
 
 static void* getGlProcessAddress(const char *namez) {
