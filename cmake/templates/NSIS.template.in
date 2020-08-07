@@ -871,7 +871,7 @@ Function PostInstallOptionsPage
   Pop $LaunchConsoleNowCheckbox
 
   ; set the checkbox state depending on what is present in the registry
-  !insertmacro SetInstallOption $LaunchConsoleNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+  !insertmacro SetInstallOption $LaunchConsoleNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_UNCHECKED}
   ${StrContains} $substringResult "/forceNoLaunchServer" $CMDLINE
   ${IfNot} $substringResult == ""
       ${NSD_SetState} $LaunchConsoleNowCheckbox ${BST_UNCHECKED}
@@ -887,7 +887,7 @@ Function PostInstallOptionsPage
   IntOp $CurrentOffset $CurrentOffset + 15
 
   ; set the checkbox state depending on what is present in the registry
-  !insertmacro SetInstallOption $ConsoleStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
+  !insertmacro SetInstallOption $ConsoleStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_UNCHECKED}
 
   ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Perform a clean install (Delete older settings and content)"
   Pop $CleanInstallCheckbox
@@ -940,8 +940,8 @@ Function ReadInstallTypes
     StrCpy $Express "1"
 
     StrCpy $DesktopClientState ${BST_CHECKED}
-    StrCpy $ConsoleStartupState ${BST_CHECKED}
-    StrCpy $LaunchConsoleNowState ${BST_CHECKED}
+    StrCpy $ConsoleStartupState ${BST_UNCHECKED}
+    StrCpy $LaunchConsoleNowState ${BST_UNCHECKED}
     StrCpy $LaunchClientNowState ${BST_CHECKED}
     StrCpy $CleanInstallState ${BST_UNCHECKED}
     StrCpy $DesktopConsoleState ${BST_UNCHECKED}
