@@ -20,7 +20,6 @@
 const SPACE_LOCAL = "local";
 const SPACE_WORLD = "world";
 const HIGHLIGHT_LIST_NAME = "editHandleHighlightList";
-const ENTIRE_DOMAIN_SCAN_RADIUS = 27713;
 
 Script.include([
     "../../libraries/controllers.js",
@@ -33,51 +32,42 @@ function deepCopy(v) {
     return JSON.parse(JSON.stringify(v));
 }
 
-function getDuplicateAppendedName(originalName, forcedIncrement) {
-    var duplicateName, existingNames;
-    var delayCounter = forcedIncrement;
-    var duplicateNumber = 1;
-    var rippedOriginalName = removeNameAppendice(originalName);
-
-    do {
-        duplicateNumber++;
-                if (rippedOriginalName === "") {
-                    duplicateName = "(" + duplicateNumber + ")";
-                } else {
-                    duplicateName = rippedOriginalName + " (" + duplicateNumber + ")";
-                }
-                existingNames = Entities.findEntitiesByName(duplicateName, Vec3.ZERO, ENTIRE_DOMAIN_SCAN_RADIUS, false);
-                if (existingNames.length === 0) {
-                    delayCounter--;
-                }
-    } while (existingNames.length !== 0 || delayCounter >= 0);
-    return duplicateName;
-}
-
-function removeNameAppendice(name) {
+function getDuplicateAppendedName(name) {
     var appendiceChar = "(0123456789)";
+    var currentChar = "";
     var rippedName = name;
-
+    var existingSequence = 0;
+    var sequenceReader = "";
     for (var i = name.length - 1; i >= 0; i--) {
-        if (i === (name.length - 1) && name.charAt(i) !== ")") {
+        currentChar = name.charAt(i);
+        if (i === (name.length - 1) && currentChar !== ")") {
             rippedName = name;
             break;
         } else {
-            if (appendiceChar.indexOf(name.charAt(i)) === -1) {
+            if (appendiceChar.indexOf(currentChar) === -1) {
                 rippedName = name;
                 break;
             } else {
-                if (name.charAt(i) == "(" && i === name.length - 2) {
+                if (currentChar == "(" && i === name.length - 2) {
                     rippedName = name;
                     break;
                 } else {
-                    if (name.charAt(i) == "(") {
+                    if (currentChar == "(") {
                         rippedName = name.substr(0, i-1);
+                        existingSequence = parseInt(sequenceReader);
                         break;
+                    } else {
+                        sequenceReader = currentChar + sequenceReader;
                     }
                 }
             }
         }
+    }
+    if (existingSequence === 0) {
+        rippedName = rippedName.trim() + " (2)";
+    } else {
+        existingSequence++;
+        rippedName = rippedName.trim() + " (" + existingSequence + ")";
     }
     return rippedName.trim();
 }
@@ -340,7 +330,7 @@ SelectionManager = (function() {
                     properties.localRotation = properties.rotation;
                 }
 
-                properties.name = getDuplicateAppendedName(properties.name, 0);
+                properties.name = getDuplicateAppendedName(properties.name);
 
                 properties.localVelocity = Vec3.ZERO;
                 properties.localAngularVelocity = Vec3.ZERO;
@@ -530,7 +520,6 @@ SelectionManager = (function() {
 
         var copiedProperties = [];
         var ids = [];
-        var selectionNo = 0;
         entityClipboard.entities.forEach(function(originalProperties) {
             var properties = deepCopy(originalProperties);
             if (properties.root) {
@@ -539,8 +528,7 @@ SelectionManager = (function() {
             } else {
                 delete properties.position;
             }
-            properties.name = getDuplicateAppendedName(properties.name, selectionNo);
-            selectionNo++;
+            properties.name = getDuplicateAppendedName(properties.name);
             copiedProperties.push(properties);
         });
 
