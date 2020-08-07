@@ -4,6 +4,7 @@
 //
 //  Created by Andrzej Kapolka on 5/10/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -65,6 +66,7 @@
 #include <Trace.h>
 #include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
+#include <DomainAccountManager.h>
 #include <AddressManager.h>
 #include <AnimDebugDraw.h>
 #include <BuildInfo.h>
@@ -852,6 +854,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 #else
     DependencyManager::set<AccountManager>(true, std::bind(&Application::getUserAgent, qApp));
 #endif
+    DependencyManager::set<DomainAccountManager>();
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT, defaultScriptsOverrideOption);
     DependencyManager::set<Preferences>();
@@ -1348,6 +1351,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
 
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
+    connect(domainAccountManager.data(), &DomainAccountManager::authRequired, dialogsManager.data(), 
+        &DialogsManager::showDomainLoginDialog);
+    connect(domainAccountManager.data(), &DomainAccountManager::loginComplete, this, 
+        &Application::updateWindowTitle);
+    // ####### TODO: Connect any other signals from domainAccountManager.
+
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter([] {
         auto avatarManager = DependencyManager::get<AvatarManager>();
@@ -1571,7 +1581,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // Do not show login dialog if requested not to on the command line
         QString hifiNoLoginCommandLineKey = QString("--").append(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
         int index = arguments().indexOf(hifiNoLoginCommandLineKey);
-        if (index != -1) {
+        if (index != -1 || _disableLoginScreen) {
             resumeAfterLoginDialogActionTaken();
             return;
         }
@@ -2801,6 +2811,7 @@ void Application::cleanupBeforeQuit() {
     if (!keepMeLoggedIn) {
         DependencyManager::get<AccountManager>()->removeAccountFromFile();
     }
+    // ####### TODO
 
     _displayPlugin.reset();
     PluginManager::getInstance()->shutdown();
@@ -3150,6 +3161,7 @@ extern void setupPreferences();
 static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, int index, bool active = false);
 #endif
 
+// ####### TODO
 void Application::showLoginScreen() {
 #if !defined(DISABLE_QML)
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -7069,19 +7081,23 @@ void Application::updateWindowTitle() const {
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto accountManager = DependencyManager::get<AccountManager>();
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
+    bool isMetaverseLoggedIn = accountManager->isLoggedIn();
+    bool isDomainLoggedIn = domainAccountManager->isLoggedIn();
+    QString authedDomain = domainAccountManager->getAuthedDomain();
 
     QString buildVersion = " - Vircadia - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
 
-    QString loginStatus = accountManager->isLoggedIn() ? "" : " (NOT LOGGED IN)";
-
     QString connectionStatus = isInErrorState ? " (ERROR CONNECTING)" :
         nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
-    QString username = accountManager->getAccountInfo().getUsername();
 
-    setCrashAnnotation("sentry[user][username]", username.toStdString());
+    QString metaverseUsername = accountManager->getAccountInfo().getUsername();
+    QString domainUsername = domainAccountManager->getUsername();
+
+    setCrashAnnotation("sentry[user][username]", metaverseUsername.toStdString());
 
     QString currentPlaceName;
     if (isServerlessMode()) {
@@ -7097,8 +7113,22 @@ void Application::updateWindowTitle() const {
         }
     }
 
-    QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + currentPlaceName + connectionStatus + loginStatus + buildVersion;
+    QString metaverseDetails;
+    if (isMetaverseLoggedIn) {
+        metaverseDetails = "Metaverse: Logged in as " + metaverseUsername;
+    } else {
+        metaverseDetails = "Metaverse: Not Logged In";
+    }
+
+    QString domainDetails;
+    if (currentPlaceName == authedDomain && isDomainLoggedIn) {
+        domainDetails = "Domain: Logged in as " + domainUsername;
+    } else {
+        domainDetails = "Domain: Not Logged In";
+    }
+
+    QString title = QString() + currentPlaceName + connectionStatus + " (" + metaverseDetails + ") (" + domainDetails + ")" 
+        + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32

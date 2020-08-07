@@ -733,6 +733,7 @@ private:
     GraphicsEngine _graphicsEngine;
     void updateRenderArgs(float deltaTime);
 
+    bool _disableLoginScreen { true };
 
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
