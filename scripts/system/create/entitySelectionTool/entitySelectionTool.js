@@ -6,6 +6,7 @@
 //    Modified by Daniela Fontes * @DanielaFifo and Tiago Andrade @TagoWill on 4/7/2017
 //    Modified by David Back on 1/9/2018
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors
 //
 //  This script implements a class useful for building tools for editing entities.
 //
@@ -19,6 +20,7 @@
 const SPACE_LOCAL = "local";
 const SPACE_WORLD = "world";
 const HIGHLIGHT_LIST_NAME = "editHandleHighlightList";
+const ENTIRE_DOMAIN_SCAN_RADIUS = 27713;
 
 Script.include([
     "../../libraries/controllers.js",
@@ -29,6 +31,55 @@ Script.include([
 
 function deepCopy(v) {
     return JSON.parse(JSON.stringify(v));
+}
+
+function getDuplicateAppendedName(originalName, forcedIncrement) {
+    var duplicateName, existingNames;
+    var delayCounter = forcedIncrement;
+    var duplicateNumber = 1;
+    var rippedOriginalName = removeNameAppendice(originalName);
+
+    do {
+        duplicateNumber++;
+                if (rippedOriginalName === "") {
+                    duplicateName = "(" + duplicateNumber + ")";
+                } else {
+                    duplicateName = rippedOriginalName + " (" + duplicateNumber + ")";
+                }
+                existingNames = Entities.findEntitiesByName(duplicateName, Vec3.ZERO, ENTIRE_DOMAIN_SCAN_RADIUS, false);
+                if (existingNames.length === 0) {
+                    delayCounter--;
+                }
+    } while (existingNames.length !== 0 || delayCounter >= 0);
+    return duplicateName;
+}
+
+function removeNameAppendice(name) {
+    var appendiceChar = "(0123456789)";
+    var rippedName = name;
+
+    for (var i = name.length - 1; i >= 0; i--) {
+        if (i === (name.length - 1) && name.charAt(i) !== ")") {
+            rippedName = name;
+            break;
+        } else {
+            if (appendiceChar.indexOf(name.charAt(i)) === -1) {
+                rippedName = name;
+                break;
+            } else {
+                if (name.charAt(i) == "(" && i === name.length - 2) {
+                    rippedName = name;
+                    break;
+                } else {
+                    if (name.charAt(i) == "(") {
+                        rippedName = name.substr(0, i-1);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return rippedName.trim();
 }
 
 SelectionManager = (function() {
@@ -289,6 +340,8 @@ SelectionManager = (function() {
                     properties.localRotation = properties.rotation;
                 }
 
+                properties.name = getDuplicateAppendedName(properties.name, 0);
+
                 properties.localVelocity = Vec3.ZERO;
                 properties.localAngularVelocity = Vec3.ZERO;
 
@@ -477,6 +530,7 @@ SelectionManager = (function() {
 
         var copiedProperties = [];
         var ids = [];
+        var selectionNo = 0;
         entityClipboard.entities.forEach(function(originalProperties) {
             var properties = deepCopy(originalProperties);
             if (properties.root) {
@@ -485,6 +539,8 @@ SelectionManager = (function() {
             } else {
                 delete properties.position;
             }
+            properties.name = getDuplicateAppendedName(properties.name, selectionNo);
+            selectionNo++;
             copiedProperties.push(properties);
         });
 
