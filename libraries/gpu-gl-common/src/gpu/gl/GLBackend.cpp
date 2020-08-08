@@ -149,6 +149,7 @@ void GLBackend::init() {
         GL_GET_INTEGER(UNIFORM_BUFFER_OFFSET_ALIGNMENT);
 
         GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer);
+        unsigned int mem;
 
         if (vendor.contains("NVIDIA") ) {
             qCDebug(gpugllogging) << "NVIDIA card detected";
@@ -173,21 +174,15 @@ void GLBackend::init() {
             _totalMemory = TEXTURE_FREE_MEMORY_ATI * BYTES_PER_KIB;
             _dedicatedMemory = _totalMemory;
             _videoCard = ATI;
-        } else if (vendor.contains("Intel")) {
-            unsigned int mem;
-
-           if ( ::gl::queryCurrentRendererIntegerMESA(GLX_RENDERER_VIDEO_MEMORY_MESA, &mem) ) {
+        } else if ( ::gl::queryCurrentRendererIntegerMESA(GLX_RENDERER_VIDEO_MEMORY_MESA, &mem) ) {
+                // This works only on Linux. queryCurrentRendererIntegerMESA will return false if the
+                // function is not supported because we're not on Linux, or for any other reason.
+                qCDebug(gpugllogging) << "MESA card detected";
                 _totalMemory = mem * BYTES_PER_MIB;
                 _dedicatedMemory = _totalMemory;
-                _videoCard = Intel;
-            } else {
-                qCWarning(gpugllogging) << "Intel card on non-Linux system, trying GPUIdent fallback";
-                _videoCard = Unknown;
-                _dedicatedMemory = gpu->getMemory();
-                _totalMemory = _dedicatedMemory;
-            }
+                _videoCard = MESA;
         } else {
-            qCCritical(gpugllogging) << "Don't know how to get memory for OpenGL vendor " << vendor;
+            qCCritical(gpugllogging) << "Don't know how to get memory for OpenGL vendor " << vendor << "; renderer " << renderer << ", trying fallback";
             _videoCard = Unknown;
             _dedicatedMemory = gpu->getMemory();
             _totalMemory = _dedicatedMemory;
@@ -230,7 +225,7 @@ size_t GLBackend::getAvailableMemory() {
         case ATI:
             glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &mem);
             return mem * BYTES_PER_KIB;
-        case Intel:
+        case MESA:
             return 0; // Don't know the current value
         case Unknown:
             break;
@@ -244,7 +239,7 @@ bool GLBackend::availableMemoryKnown() {
     switch( _videoCard ) {
         case NVIDIA: return true;
         case ATI: return true;
-        case Intel: return false;
+        case MESA: return false;
         case Unknown: return false;
     }
 

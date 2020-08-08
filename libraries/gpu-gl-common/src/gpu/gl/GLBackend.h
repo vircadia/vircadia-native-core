@@ -70,7 +70,7 @@ public:
     enum VideoCardType {
         ATI,
         NVIDIA,
-        Intel,
+        MESA,
         Unknown
     };
 
