@@ -319,7 +319,7 @@
         "tooltip": "The finish color of each particle."
     },
     "colorSpread": {
-        "tooltip": "The spread in color that each particle is given, resulting in a variety of colors."
+        "tooltip": "The spread in color that each particle is given, resulting in a variety of colors. The variation range (-/+) on each RGB channel to use around the RGB values of the particle color."
     },
     "particleAlphaTriple": {
         "tooltip": "The opacity of each particle between 0.0 fully transparent and 1.0 completely opaque.",
@@ -531,7 +531,7 @@
         "tooltip": "If enabled, grabbed entities will follow the movements of your hand controller instead of your avatar's hand."
     },
     "canCastShadow": {
-        "tooltip": "If enabled, the geometry of this entity casts shadows when a shadow-casting light source shines on it. Note: Shadows are rendered only on high-profiled computers. This setting will have no effect on computers profiled to medium or low graphics.."
+        "tooltip": "If enabled, the geometry of this entity casts shadows when a shadow-casting light source shines on it. Note: Shadows are rendered only on high-profiled computers. This setting will have no effect on computers profiled to medium or low graphics."
     },
     "ignorePickIntersection": {
         "tooltip": "If enabled, this entity will not be considered for ray picks, and will also not occlude other entities when picking."
@@ -569,13 +569,13 @@
         "tooltip": "The linear velocity vector of the entity. The velocity at which this entity moves forward in space."
     },
     "damping": {
-        "tooltip": "The linear damping to slow down the linear velocity of an entity over time."
+        "tooltip": "The linear damping to slow down the linear velocity of an entity over time. A higher damping value slows down the entity more quickly. The default value is for an exponential decay timescale of 2.0s, where it takes 2.0s for the movement to slow to 1/e = 0.368 of its initial value."
     },
     "localAngularVelocity": {
-        "tooltip": "The angular velocity of the entity in rad/s with respect to its axes, about its pivot point."
+        "tooltip": "The angular velocity of the entity in 'deg/s' with respect to its axes, about its pivot point."
     },
     "angularDamping": {
-        "tooltip": "The angular damping to slow down the angular velocity of an entity over time."
+        "tooltip": "The angular damping to slow down the angular velocity of an entity over time. A higher damping value slows down the entity more quickly. The default value is for an exponential decay timescale of 2.0s, where it takes 2.0s for the movement to slow to 1/e = 0.368 of its initial value."
     },
     "restitution": {
         "tooltip": "If enabled, the entity can bounce against other objects that also have Bounciness."
