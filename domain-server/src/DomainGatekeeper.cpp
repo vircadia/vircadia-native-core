@@ -17,7 +17,8 @@
 #include <openssl/x509.h>
 #include <random>
 
-#include <QDataStream>
+#include <QtCore/QDataStream>
+#include <QtCore/QMetaMethod>
 
 #include <AccountManager.h>
 #include <Assignment.h>

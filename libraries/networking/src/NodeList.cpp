@@ -139,20 +139,34 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     startSTUNPublicSocketUpdate();
 
     auto& packetReceiver = getPacketReceiver();
-    packetReceiver.registerListener(PacketType::DomainList, this, "processDomainServerList");
-    packetReceiver.registerListener(PacketType::Ping, this, "processPingPacket");
-    packetReceiver.registerListener(PacketType::PingReply, this, "processPingReplyPacket");
-    packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
-    packetReceiver.registerListener(PacketType::DomainServerAddedNode, this, "processDomainServerAddedNode");
-    packetReceiver.registerListener(PacketType::DomainServerConnectionToken, this, "processDomainServerConnectionTokenPacket");
-    packetReceiver.registerListener(PacketType::DomainConnectionDenied, &_domainHandler, "processDomainServerConnectionDeniedPacket");
-    packetReceiver.registerListener(PacketType::DomainSettings, &_domainHandler, "processSettingsPacketList");
-    packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
-    packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
-    packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
-    packetReceiver.registerListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathResponse");
-    packetReceiver.registerListener(PacketType::DomainServerRemovedNode, this, "processDomainServerRemovedNode");
-    packetReceiver.registerListener(PacketType::UsernameFromIDReply, this, "processUsernameFromIDReply");
+    packetReceiver.registerListener(PacketType::DomainList,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerList));
+    packetReceiver.registerListener(PacketType::Ping,
+        PacketReceiver::makeSourcedListenerReference<NodeList>(this, &NodeList::processPingPacket));
+    packetReceiver.registerListener(PacketType::PingReply,
+        PacketReceiver::makeSourcedListenerReference<NodeList>(this, &NodeList::processPingReplyPacket));
+    packetReceiver.registerListener(PacketType::ICEPing,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processICEPingPacket));
+    packetReceiver.registerListener(PacketType::DomainServerAddedNode,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerAddedNode));
+    packetReceiver.registerListener(PacketType::DomainServerConnectionToken,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerConnectionTokenPacket));
+    packetReceiver.registerListener(PacketType::DomainConnectionDenied,
+        PacketReceiver::makeUnsourcedListenerReference<DomainHandler>(&_domainHandler, &DomainHandler::processDomainServerConnectionDeniedPacket));
+    packetReceiver.registerListener(PacketType::DomainSettings,
+        PacketReceiver::makeUnsourcedListenerReference<DomainHandler>(&_domainHandler, &DomainHandler::processSettingsPacketList));
+    packetReceiver.registerListener(PacketType::ICEServerPeerInformation,
+        PacketReceiver::makeUnsourcedListenerReference<DomainHandler>(&_domainHandler, &DomainHandler::processICEResponsePacket));
+    packetReceiver.registerListener(PacketType::DomainServerRequireDTLS,
+        PacketReceiver::makeUnsourcedListenerReference<DomainHandler>(&_domainHandler, &DomainHandler::processDTLSRequirementPacket));
+    packetReceiver.registerListener(PacketType::ICEPingReply,
+        PacketReceiver::makeUnsourcedListenerReference<DomainHandler>(&_domainHandler, &DomainHandler::processICEPingReplyPacket));
+    packetReceiver.registerListener(PacketType::DomainServerPathResponse,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerPathResponse));
+    packetReceiver.registerListener(PacketType::DomainServerRemovedNode,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerRemovedNode));
+    packetReceiver.registerListener(PacketType::UsernameFromIDReply,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processUsernameFromIDReply));
 }
 
 qint64 NodeList::sendStats(QJsonObject statsObject, HifiSockAddr destination) {

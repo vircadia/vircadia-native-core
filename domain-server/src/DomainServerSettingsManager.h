@@ -211,6 +211,8 @@ private:
 
     /// guard read/write access from multiple threads to settings 
     QReadWriteLock _settingsLock { QReadWriteLock::Recursive };
+
+    friend class DomainServer;
 };
 
 #endif // hifi_DomainServerSettingsManager_h
