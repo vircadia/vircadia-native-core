@@ -20,6 +20,8 @@
 #include <QtCore/QObject>
 #include <QtCore/QPointer>
 #include <QtCore/QSet>
+#include <QtCore/QSharedPointer>
+#include <QtCore/QEnableSharedFromThis>
 
 #include "NLPacket.h"
 #include "NLPacketList.h"
@@ -42,7 +44,7 @@ namespace std {
 class PacketReceiver : public QObject {
     Q_OBJECT
 public:
-    class ListenerReference {
+    class ListenerReference : public QEnableSharedFromThis<ListenerReference> {
     public:
         virtual bool invokeDirectly(const QSharedPointer<ReceivedMessage>& receivedMessagePointer, const QSharedPointer<Node>& sourceNode) = 0;
         bool invokeWithQt(const QSharedPointer<ReceivedMessage>& receivedMessagePointer, const QSharedPointer<Node>& sourceNode);

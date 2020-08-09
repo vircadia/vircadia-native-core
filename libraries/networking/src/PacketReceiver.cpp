@@ -27,8 +27,9 @@ PacketReceiver::PacketReceiver(QObject* parent) : QObject(parent) {
 }
 
 bool PacketReceiver::ListenerReference::invokeWithQt(const QSharedPointer<ReceivedMessage>& receivedMessagePointer, const QSharedPointer<Node>& sourceNode) {
+    ListenerReferencePointer thisPointer = sharedFromThis();
     return QMetaObject::invokeMethod(getObject(), [=]() {
-        this->invokeDirectly(receivedMessagePointer, sourceNode);
+        thisPointer->invokeDirectly(receivedMessagePointer, sourceNode);
     });
 }
 
