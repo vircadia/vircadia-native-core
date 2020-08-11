@@ -1342,17 +1342,19 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         }
 
         glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
-        joint.localTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
+        glm::mat4 localTransform = glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
 
         if (joint.parentIndex == -1) {
-            joint.transform = joint.localTransform;
-            joint.globalTransform = hfmModel.offset * joint.localTransform;
+            joint.transform = localTransform * joint.geometricOffset;
+            joint.globalTransform = hfmModel.offset * localTransform * joint.geometricOffset;
+            joint.globalTransformForChildren = hfmModel.offset * localTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation);
             joint.distanceToParent = 0.0f;
         } else {
             const HFMJoint& parentJoint = hfmModel.joints.at(joint.parentIndex);
-            joint.transform = parentJoint.transform * joint.localTransform;
-            joint.globalTransform = parentJoint.globalTransform * joint.localTransform;
+            joint.transform = parentJoint.transform * localTransform * joint.geometricOffset;
+            joint.globalTransform = parentJoint.globalTransformForChildren * localTransform * joint.geometricOffset;
+            joint.globalTransformForChildren = parentJoint.globalTransformForChildren * localTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation) * parentJoint.inverseDefaultRotation;
             joint.distanceToParent = glm::distance(extractTranslation(parentJoint.transform), extractTranslation(joint.transform));
         }

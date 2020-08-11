@@ -88,7 +88,7 @@ private:
         glm::mat4 transform;
     } _triangleInfo;
 
-    static CpuParticle createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
+    static CpuParticle createParticle(const Transform& baseTransform, const particle::Properties& particleProperties,
                                       const ShapeType& shapeType, const ModelResource::Pointer& geometryResource,
                                       const TriangleInfo& triangleInfo);
     void stepSimulation();

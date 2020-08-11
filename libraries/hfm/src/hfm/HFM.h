@@ -113,14 +113,12 @@ public:
     bool isSkeletonJoint;
     bool bindTransformFoundInCluster;
 
-
     // geometric offset is applied in local space but does NOT affect children.
-    // TODO: Apply hfm::Joint.geometricOffset to transforms in the model preparation step
+    // TODO: currently only supported by FBX.  if added to GLTF, move calculations from FBXSerializer to model preparation step
     glm::mat4 geometricOffset;
 
-    // globalTransform is the transform of the joint with all parent transforms applied, plus the geometric offset
-    glm::mat4 localTransform;
-    glm::mat4 globalTransform;
+    glm::mat4 globalTransform; // transform of the joint with all parent transforms applied, plus the geometric offset
+    glm::mat4 globalTransformForChildren; // transform of the joint with all parent transforms applied, but not the geometric offset, which doesn't propogate to children
 };
 
 

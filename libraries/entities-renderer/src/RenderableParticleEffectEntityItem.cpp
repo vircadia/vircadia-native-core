@@ -199,7 +199,7 @@ float importanceSample3DDimension(float startDim) {
     return dimension;
 }
 
-ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
+ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(const Transform& baseTransform, const particle::Properties& particleProperties,
                                                                                        const ShapeType& shapeType, const ModelResource::Pointer& geometryResource,
                                                                                        const TriangleInfo& triangleInfo) {
     CpuParticle particle;

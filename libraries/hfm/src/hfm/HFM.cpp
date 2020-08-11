@@ -332,7 +332,6 @@ void hfm::Model::debugDump() const {
 
         qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;
         qCDebug(modelformat) << "    distanceToParent" << joint.distanceToParent;
-        qCDebug(modelformat) << "    localTransform" << joint.localTransform;
         qCDebug(modelformat) << "    transform" << joint.transform;
         qCDebug(modelformat) << "    globalTransform" << joint.globalTransform;
 
