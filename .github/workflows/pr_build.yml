@@ -27,13 +27,19 @@ env:
 
 jobs:
   build:
+    name: "build (${{matrix.os}}, ${{matrix.build_type}})"
     strategy:
         matrix:
-          os: [windows-latest, macOS-latest, ubuntu-18.04]
-          build_type: [full]
           include:
+            - os: windows-latest
+              build_type: full
+            - os: macOS-latest
+              build_type: full
             - os: ubuntu-18.04
               build_type: full
+              apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+            - os: ubuntu-18.04
+              build_type: android
               apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
         fail-fast: false
     runs-on: ${{matrix.os}}
@@ -65,14 +71,25 @@ jobs:
           echo ::set-env name=INSTALLER_EXT::exe
           echo ::set-env name=CMAKE_EXTRA::"-A x64"
         fi
+        # Android + Quest build variables
+        if [[ "${{ matrix.build_type }}" == "android" ]]; then
+          HIFI_ANDROID_PRECOMPILED="${{runner.workspace}}/dependencies"
+          echo ::set-env name=HIFI_ANDROID_PRECOMPILED::"$HIFI_ANDROID_PRECOMPILED"
+          mkdir $HIFI_ANDROID_PRECOMPILED
+          echo ::set-env name=INSTALLER_EXT::apk
+        fi
     # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
     - name: Configure Build Environment 2
       shell: bash
       run: |
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
-        echo ::set-env name=ARTIFACT_PATTERN::Vircadia-Alpha-PR${{ github.event.number }}-*.$INSTALLER_EXT
-        # Build type variables
-        echo ::set-env name=INSTALLER::Vircadia-Alpha-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+        if [[ "${{ matrix.build_type }}" != "android" ]]; then
+          echo ::set-env name=ARTIFACT_PATTERN::Vircadia-Alpha-PR${{ github.event.number }}-*.$INSTALLER_EXT
+          # Build type variables
+          echo ::set-env name=INSTALLER::Vircadia-Alpha-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+        else
+          echo ::set-env name=ARTIFACT_PATTERN::*.$INSTALLER_EXT
+        fi
     - name: Clear Working Directory
       if: startsWith(matrix.os, 'windows')
       shell: bash
@@ -98,26 +115,32 @@ jobs:
       shell: bash
       run: cmake -E make_directory "${{runner.workspace}}/build"
     - name: Configure CMake
+      if: matrix.build_type != 'android'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release $CMAKE_EXTRA
     - name: Build Application
+      if: matrix.build_type == 'full' || matrix.build_type == 'client'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target $APP_NAME $CMAKE_BUILD_EXTRA
     - name: Build Domain Server
+      if: matrix.build_type == 'full'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target domain-server $CMAKE_BUILD_EXTRA
     - name: Build Assignment Client
+      if: matrix.build_type == 'full'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target assignment-client $CMAKE_BUILD_EXTRA
     - name: Build Console
+      if: matrix.build_type == 'full'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target packaged-server-console $CMAKE_BUILD_EXTRA
     - name: Build Installer
+      if: matrix.build_type != 'android'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: |
@@ -144,6 +167,18 @@ jobs:
           done
         }
         retry cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA
+    - name: Build for Android + Quest
+      if: matrix.build_type == 'android'
+      shell: bash
+      working-directory: ${{runner.workspace}}/project-athena
+      run: |
+        echo "Pre-cache the vcpkg managed dependencies"
+        $PYTHON_EXEC prebuild.py --build-root ${{runner.workspace}}/build --android interface
+        cd android
+        # Pre-cache the gradle dependencies
+        ./gradlew -m tasks -PHIFI_ANDROID_PRECOMPILED=$HIFI_ANDROID_PRECOMPILED
+        # Build!
+        ./build_android.sh
     - name: Output system stats
       if: ${{ always() }}
       working-directory: ${{runner.workspace}}/build
@@ -161,4 +196,8 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
-      run: $PYTHON_EXEC "$GITHUB_WORKSPACE/tools/ci-scripts/upload_to_publish_server.py"
+      run: |
+        if [[ "${{ matrix.build_type }}" == "android" ]]; then
+          cd $GITHUB_WORKSPACE/android
+        fi
+        $PYTHON_EXEC "$GITHUB_WORKSPACE/tools/ci-scripts/upload_to_publish_server.py"
