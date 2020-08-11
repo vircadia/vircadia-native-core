@@ -127,7 +127,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index, bool deduplic
 
 
     glm::vec4 color;
-    bool hasColors = (data.colors.size() > 1);
+    bool hasColors = (data.colors.size() > 0);
     if (hasColors) {
         int colorIndex = data.colorsByVertex ? vertexIndex : index;
         if (data.colorIndices.isEmpty()) {    

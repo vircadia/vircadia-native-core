@@ -25,6 +25,7 @@
 #include "HTTPResourceRequest.h"
 #include "NetworkAccessManager.h"
 #include "NetworkLogging.h"
+#include "NetworkingConstants.h"
 
 ResourceManager::ResourceManager(bool atpSupportEnabled) : _atpSupportEnabled(atpSupportEnabled) {
     _thread.setObjectName("Resource Manager Thread");
@@ -157,7 +158,7 @@ bool ResourceManager::resourceExists(const QUrl& url) {
         QNetworkRequest request{ url };
 
         request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-        request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        request.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
 
         auto reply = networkAccessManager.head(request);
 

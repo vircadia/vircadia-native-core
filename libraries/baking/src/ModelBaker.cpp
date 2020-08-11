@@ -13,6 +13,7 @@
 
 #include <PathUtils.h>
 #include <NetworkAccessManager.h>
+#include <NetworkingConstants.h>
 
 #include <DependencyManager.h>
 #include <hfm/ModelFormatRegistry.h>
@@ -159,7 +160,7 @@ void ModelBaker::saveSourceModel() {
         // setup the request to follow re-directs and always hit the network
         networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
-        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
 
         networkRequest.setUrl(_modelURL);
 

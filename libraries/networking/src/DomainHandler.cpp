@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/18/2014.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -24,6 +25,7 @@
 
 #include "AddressManager.h"
 #include "Assignment.h"
+#include "DomainAccountManager.h"
 #include "HifiSockAddr.h"
 #include "NodeList.h"
 #include "udt/Packet.h"
@@ -144,7 +146,8 @@ void DomainHandler::hardReset(QString reason) {
 bool DomainHandler::isHardRefusal(int reasonCode) {
     return (reasonCode == (int)ConnectionRefusedReason::ProtocolMismatch ||
             reasonCode == (int)ConnectionRefusedReason::TooManyUsers ||
-            reasonCode == (int)ConnectionRefusedReason::NotAuthorized ||
+            reasonCode == (int)ConnectionRefusedReason::NotAuthorizedMetaverse ||
+            reasonCode == (int)ConnectionRefusedReason::NotAuthorizedDomain ||
             reasonCode == (int)ConnectionRefusedReason::TimedOut);
 }
 
@@ -211,12 +214,15 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
     // if it's in the error state, reset and try again.
     if (_domainURL != domainURL 
         || (_sockAddr.getPort() != domainPort && domainURL.scheme() == URL_SCHEME_HIFI)
+        || isServerless() // For reloading content in serverless domain.
         || _isInErrorState) {
         // re-set the domain info so that auth information is reloaded
         hardReset("Changing domain URL");
 
         QString previousHost = _domainURL.host();
         _domainURL = domainURL;
+
+        _hasCheckedForDomainAccessToken = false;
 
         if (previousHost != domainURL.host()) {
             qCDebug(networking) << "Updated domain hostname to" << domainURL.host();
@@ -488,16 +494,33 @@ void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> mes
     }
 }
 
-bool DomainHandler::reasonSuggestsLogin(ConnectionRefusedReason reasonCode) {
+bool DomainHandler::reasonSuggestsMetaverseLogin(ConnectionRefusedReason reasonCode) {
     switch (reasonCode) {
-        case ConnectionRefusedReason::LoginError:
-        case ConnectionRefusedReason::NotAuthorized:
+        case ConnectionRefusedReason::LoginErrorMetaverse:
+        case ConnectionRefusedReason::NotAuthorizedMetaverse:
             return true;
 
         default:
         case ConnectionRefusedReason::Unknown:
         case ConnectionRefusedReason::ProtocolMismatch:
         case ConnectionRefusedReason::TooManyUsers:
+        case ConnectionRefusedReason::NotAuthorizedDomain:
+            return false;
+    }
+    return false;
+}
+
+bool DomainHandler::reasonSuggestsDomainLogin(ConnectionRefusedReason reasonCode) {
+    switch (reasonCode) {
+        case ConnectionRefusedReason::LoginErrorDomain:
+        case ConnectionRefusedReason::NotAuthorizedDomain:
+            return true;
+
+        default:
+        case ConnectionRefusedReason::Unknown:
+        case ConnectionRefusedReason::ProtocolMismatch:
+        case ConnectionRefusedReason::TooManyUsers:
+        case ConnectionRefusedReason::NotAuthorizedMetaverse:
             return false;
     }
     return false;
@@ -527,7 +550,9 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 
     // output to the log so the user knows they got a denied connection request
     // and check and signal for an access token so that we can make sure they are logged in
-    qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage << " extraInfo:" << extraInfo;
+    QString sanitizedExtraInfo = extraInfo.toLower().startsWith("http") ? "" : extraInfo;  // Don't log URLs.
+    qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage 
+        << " extraInfo:" << sanitizedExtraInfo;
 
     if (!_domainConnectionRefusals.contains(reasonMessage)) {
         _domainConnectionRefusals.insert(reasonMessage);
@@ -540,11 +565,12 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 #endif
     }
 
-    auto accountManager = DependencyManager::get<AccountManager>();
 
-    // Some connection refusal reasons imply that a login is required. If so, suggest a new login
-    if (reasonSuggestsLogin(reasonCode)) {
-        qCWarning(networking) << "Make sure you are logged in.";
+    // Some connection refusal reasons imply that a login is required. If so, suggest a new login.
+    if (reasonSuggestsMetaverseLogin(reasonCode)) {
+        qCWarning(networking) << "Make sure you are logged in to the metaverse.";
+
+        auto accountManager = DependencyManager::get<AccountManager>();
 
         if (!_hasCheckedForAccessToken) {
             accountManager->checkAndSignalForAccessToken();
@@ -558,6 +584,23 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
             accountManager->generateNewUserKeypair();
             _connectionDenialsSinceKeypairRegen = 0;
         }
+    } else if (reasonSuggestsDomainLogin(reasonCode)) {
+        qCWarning(networking) << "Make sure you are logged in to the domain.";
+
+        auto accountManager = DependencyManager::get<DomainAccountManager>();
+        if (!extraInfo.isEmpty()) {
+            auto extraInfoComponents = extraInfo.split("|");
+            accountManager->setAuthURL(extraInfoComponents.value(0));
+            accountManager->setClientID(extraInfoComponents.value(1));
+        }
+
+        if (!_hasCheckedForDomainAccessToken) {
+            accountManager->checkAndSignalForAccessToken();
+            _hasCheckedForDomainAccessToken = true;
+        }
+
+        // ####### TODO: regenerate key-pair after several failed connection attempts, similar to metaverse login code?
+
     }
 }
 

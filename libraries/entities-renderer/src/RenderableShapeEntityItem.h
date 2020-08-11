@@ -45,7 +45,7 @@ private:
     PulsePropertyGroup _pulseProperties;
     std::shared_ptr<graphics::ProceduralMaterial> _material { std::make_shared<graphics::ProceduralMaterial>() };
     glm::vec3 _color { NAN };
-    float _alpha;
+    float _alpha { NAN };
 
     glm::vec3 _position;
     glm::vec3 _dimensions;

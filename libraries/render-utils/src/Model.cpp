@@ -226,6 +226,7 @@ void Model::updateRenderItems() {
         modelTransform.setScale(glm::vec3(1.0f));
 
         PrimitiveMode primitiveMode = self->getPrimitiveMode();
+        auto renderWithZones = self->getRenderWithZones();
         auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
         bool cauterized = self->isCauterized();
 
@@ -238,7 +239,6 @@ void Model::updateRenderItems() {
             auto skinDeformerIndex = shapeState._skinDeformerIndex;
 
             bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(shapeState._meshIndex);
-
             if (skinDeformerIndex != hfm::UNDEFINED_KEY) {
                 const auto& meshState = self->getMeshState(skinDeformerIndex);
                 bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
@@ -279,11 +279,6 @@ void Model::updateRenderItems() {
 void Model::setRenderItemsNeedUpdate() {
     _renderItemsNeedUpdate = true;
     emit requestRenderUpdate();
-}
-
-void Model::setPrimitiveMode(PrimitiveMode primitiveMode) {
-    _primitiveMode = primitiveMode;
-    setRenderItemsNeedUpdate();
 }
 
 void Model::reset() {
@@ -973,6 +968,13 @@ void Model::setCauterized(bool cauterized, const render::ScenePointer& scene) {
     }
 }
 
+void Model::setPrimitiveMode(PrimitiveMode primitiveMode) {
+    if (_primitiveMode != primitiveMode) {
+        _primitiveMode = primitiveMode;
+        setRenderItemsNeedUpdate();
+    }
+}
+
 void Model::setCullWithParent(bool cullWithParent) {
     if (_cullWithParent != cullWithParent) {
         _cullWithParent = cullWithParent;
@@ -990,13 +992,10 @@ void Model::setCullWithParent(bool cullWithParent) {
 }
 
 void Model::setRenderWithZones(const QVector<QUuid>& renderWithZones) {
-    render::Transaction transaction;
-    for (auto item : _modelMeshRenderItemIDs) {
-        transaction.updateItem<ModelMeshPartPayload>(item, [renderWithZones](ModelMeshPartPayload& data) {
-            data.setRenderWithZones(renderWithZones);
-        });
+    if (_renderWithZones != renderWithZones) {
+        _renderWithZones = renderWithZones;
+        setRenderItemsNeedUpdate();
     }
-    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
 }
 
 const render::ItemKey Model::getRenderItemKeyGlobalFlags() const {

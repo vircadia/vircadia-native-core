@@ -97,7 +97,7 @@ endif()
 
 option(VCPKG_APPLOCAL_DEPS OFF)
 
-project(athena)
+project(vircadia)
 include("cmake/init.cmake")
 include("cmake/compiler.cmake")
 option(VCPKG_APPLOCAL_DEPS OFF)

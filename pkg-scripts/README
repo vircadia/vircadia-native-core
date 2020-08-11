@@ -1,5 +1,5 @@
 Collection of scripts to create server distribution packages.  Most of these scripts assume
-use of the build script at https://github.com/daleglass/athena-builder, specifically that
+use of the build script at https://github.com/kasenvr/vircadia-builder, specifically that
 the following directory structure exists
 
 base folder/
@@ -9,7 +9,7 @@ base folder/
 
 These scripts assume that the current directory is the pkg-scripts folder inside of the source directory
 and that the base folder can be reached by going to "../..".  This may not work if pkg-scripts is a symlink;
-adding an ATHENA=~/Athena to the beginning of the commandline will override where it looks for the base folder
+adding an VIRCADIA=~/Vircadia to the beginning of the commandline will override where it looks for the base folder
 
 Ubuntu:
 	DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
@@ -30,24 +30,24 @@ Docker:
 
 Results:
 	The following directory structure is created for binaries:
-		/opt/athena - executables
-		/opt/athena/lib - private shared libraries required for executables
-		/opt/athena/resources - files required by domain-server administrative website
-		/opt/athena/plugins - files required by assignment-client, mainly for audio codecs
+		/opt/vircadia - executables
+		/opt/vircadia/lib - private shared libraries required for executables
+		/opt/vircadia/resources - files required by domain-server administrative website
+		/opt/vircadia/plugins - files required by assignment-client, mainly for audio codecs
 
 	The following systemd services are installed in /usr/lib/systemd/system:
-		athena-assignment-client.service
-		athena-domain-server.service
-		athena-server.target - used to launch/shutdown the two prior services
-		athena-assignment-client@.service
-		athena-domain-server@.service
-		athena-server@.target - used to launch/shutdown the two prior services
+		vircadia-assignment-client.service
+		vircadia-domain-server.service
+		vircadia-server.target - used to launch/shutdown the two prior services
+		vircadia-assignment-client@.service
+		vircadia-domain-server@.service
+		vircadia-server@.target - used to launch/shutdown the two prior services
 
-		The top three services in this list are the "normal" services that launch Athena
+		The top three services in this list are the "normal" services that launch Vircadia
 		in the typical fashion.  The bottom three services are "template" services designed
 		to permit multiple services to be installed and running on a single machine.
 
-		The script "/opt/athena/new-server serverName basePort" will do the necessary
+		The script "/opt/vircadia/new-server serverName basePort" will do the necessary
 		setup for a new domain with the specified server name and port.  Upon installation
 		the package will create and launch a domain named "default" at base port 40100.
 		The domain name here has nothing to do with the name people will use to find your
@@ -55,6 +55,6 @@ Results:
 		used to configure and run the domain on your server.
 
 	The server stores its files in the following locations:
-		/var/lib/athena/.local - "unnamed" services (the default location for Athena servers)
-		/var/lib/athena/serverName - "named" (template) domains
-		/etc/opt/athena - environment variables when launching named domains
+		/var/lib/vircadia/.local - "unnamed" services (the default location for Vircadia servers)
+		/var/lib/vircadia/serverName - "named" (template) domains
+		/etc/opt/vircadia - environment variables when launching named domains

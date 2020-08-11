@@ -312,7 +312,10 @@ void UserInputMapper::update(float deltaTime) {
 Input::NamedVector UserInputMapper::getAvailableInputs(uint16 deviceID) const {
     Locker locker(_lock);
     auto iterator = _registeredDevices.find(deviceID);
-    return iterator->second->getAvailableInputs();
+    if (iterator != _registeredDevices.end()) {
+        return iterator->second->getAvailableInputs();
+    }
+    return Input::NamedVector();
 }
 
 QVector<Action> UserInputMapper::getAllActions() const {
@@ -366,7 +369,7 @@ bool UserInputMapper::triggerHapticPulse(float strength, float duration, control
     Locker locker(_lock);
     bool toReturn = false;
     for (const auto& device : _registeredDevices) {
-        toReturn = toReturn || device.second->triggerHapticPulse(strength, duration, hand);
+        toReturn = device.second->triggerHapticPulse(strength, duration, hand) || toReturn;
     }
     return toReturn;
 }
@@ -1237,14 +1240,40 @@ void UserInputMapper::disableMapping(const Mapping::Pointer& mapping) {
 }
 
 void UserInputMapper::setActionState(Action action, float value, bool valid) {
+    Locker locker(_lock);
     _actionStates[toInt(action)] = value;
     _actionStatesValid[toInt(action)] = valid;
 }
 
 void UserInputMapper::deltaActionState(Action action, float delta, bool valid) {
+    Locker locker(_lock);
     _actionStates[toInt(action)] += delta;
     bool wasValid = _actionStatesValid[toInt(action)];
     _actionStatesValid[toInt(action)] = wasValid & valid;
+}
+
+float UserInputMapper::getActionState(Action action) const {
+    Locker locker(_lock);
+
+    int index = toInt(action);
+    if (index >= 0 && index < _actionStates.size()) {
+        return _actionStates[index];
+    }
+
+    qCDebug(controllers) << "UserInputMapper::getActionState invalid action:" << index;
+    return 0.0f;
+}
+
+bool UserInputMapper::getActionStateValid(Action action) const {
+    Locker locker(_lock);
+
+    int index = toInt(action);
+    if (index >= 0 && index < _actionStatesValid.size()) {
+        return _actionStatesValid[index];
+    }
+
+    qCDebug(controllers) << "UserInputMapper::getActionStateValid invalid action:" << index;
+    return false;
 }
 
 

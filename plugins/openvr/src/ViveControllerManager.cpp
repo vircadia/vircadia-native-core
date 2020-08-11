@@ -1,9 +1,9 @@
 //
 //  ViveControllerManager.cpp
-//  input-plugins/src/input-plugins
 //
 //  Created by Sam Gondelman on 6/29/15.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,6 +12,23 @@
 #include "ViveControllerManager.h"
 #include <algorithm>
 #include <string>
+
+#ifdef _WIN32
+#pragma warning( push )
+#pragma warning( disable : 4091 )
+#pragma warning( disable : 4334 )
+#endif
+
+#ifdef VIVE_PRO_EYE
+#include <SRanipal.h>
+#include <SRanipal_Eye.h>
+#include <SRanipal_Enums.h>
+#include <interface_gesture.hpp>
+#endif
+
+#ifdef _WIN32
+#pragma warning( pop )
+#endif
 
 #include <PerfStat.h>
 #include <PathUtils.h>
@@ -34,8 +51,10 @@
 #include <plugins/DisplayPlugin.h>
 
 #include <controllers/UserInputMapper.h>
-#include <Plugins/InputConfiguration.h>
+#include <plugins/InputConfiguration.h>
 #include <controllers/StandardControls.h>
+
+#include "OpenVrDisplayPlugin.h"
 
 extern PoseData _nextSimPoseData;
 
@@ -43,12 +62,7 @@ vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem();
 
 static const QString OPENVR_LAYOUT = QString("OpenVrConfiguration.qml");
-static const char* CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
 const quint64 CALIBRATION_TIMELAPSE = 1 * USECS_PER_SECOND;
-
-static const char* MENU_PARENT = "Avatar";
-static const char* MENU_NAME = "Vive Controllers";
-static const char* MENU_PATH = "Avatar" ">" "Vive Controllers";
 
 static const int MIN_HEAD = 1;
 static const int MIN_PUCK_COUNT = 2;
@@ -61,6 +75,34 @@ static const int FIRST_FOOT = 0;
 static const int SECOND_FOOT = 1;
 static const int HIP = 2;
 static const int CHEST = 3;
+
+#ifdef VIVE_PRO_EYE
+enum ViveHandJointIndex {
+    HAND = 0,
+    THUMB_1,
+    THUMB_2,
+    THUMB_3,
+    THUMB_4,
+    INDEX_1,
+    INDEX_2,
+    INDEX_3,
+    INDEX_4,
+    MIDDLE_1,
+    MIDDLE_2,
+    MIDDLE_3,
+    MIDDLE_4,
+    RING_1,
+    RING_2,
+    RING_3,
+    RING_4,
+    PINKY_1,
+    PINKY_2,
+    PINKY_3,
+    PINKY_4,
+
+    Size
+};
+#endif
 
 const char* ViveControllerManager::NAME { "OpenVR" };
 
@@ -114,21 +156,52 @@ static QString deviceTrackingResultToString(vr::ETrackingResult trackingResult) 
     return result;
 }
 
-static glm::mat4 calculateResetMat() {
-    auto chaperone = vr::VRChaperone();
-    if (chaperone) {
-        float const UI_RADIUS = 1.0f;
-        float const UI_HEIGHT = 1.6f;
-        float const UI_Z_OFFSET = 0.5;
-
-        float xSize, zSize;
-        chaperone->GetPlayAreaSize(&xSize, &zSize);
-        glm::vec3 uiPos(0.0f, UI_HEIGHT, UI_RADIUS - (0.5f * zSize) - UI_Z_OFFSET);
-
-        return glm::inverse(createMatFromQuatAndPos(glm::quat(), uiPos));
+#ifdef VIVE_PRO_EYE
+class ViveProEyeReadThread : public QThread {
+public:
+    ViveProEyeReadThread() {
+        setObjectName("OpenVR ViveProEye Read Thread");
     }
-    return glm::mat4();
-}
+    void run() override {
+        while (!quit) {
+            ViveSR::anipal::Eye::EyeData eyeData;
+            int result = ViveSR::anipal::Eye::GetEyeData(&eyeData);
+            {
+                QMutexLocker locker(&eyeDataMutex);
+                eyeDataBuffer.getEyeDataResult = result;
+                if (result == ViveSR::Error::WORK) {
+                    uint64_t leftValids = eyeData.verbose_data.left.eye_data_validata_bit_mask;
+                    uint64_t rightValids = eyeData.verbose_data.right.eye_data_validata_bit_mask;
+
+                    eyeDataBuffer.leftDirectionValid =
+                        (leftValids & (uint64_t)ViveSR::anipal::Eye::SINGLE_EYE_DATA_GAZE_DIRECTION_VALIDITY) > (uint64_t)0;
+                    eyeDataBuffer.rightDirectionValid =
+                        (rightValids & (uint64_t)ViveSR::anipal::Eye::SINGLE_EYE_DATA_GAZE_DIRECTION_VALIDITY) > (uint64_t)0;
+                    eyeDataBuffer.leftOpennessValid =
+                        (leftValids & (uint64_t)ViveSR::anipal::Eye::SINGLE_EYE_DATA_EYE_OPENNESS_VALIDITY) > (uint64_t)0;
+                    eyeDataBuffer.rightOpennessValid =
+                        (rightValids & (uint64_t)ViveSR::anipal::Eye::SINGLE_EYE_DATA_EYE_OPENNESS_VALIDITY) > (uint64_t)0;
+
+                    float *leftGaze = eyeData.verbose_data.left.gaze_direction_normalized.elem_;
+                    float *rightGaze = eyeData.verbose_data.right.gaze_direction_normalized.elem_;
+                    eyeDataBuffer.leftEyeGaze = glm::vec3(leftGaze[0], leftGaze[1], leftGaze[2]);
+                    eyeDataBuffer.rightEyeGaze = glm::vec3(rightGaze[0], rightGaze[1], rightGaze[2]);
+
+                    eyeDataBuffer.leftEyeOpenness = eyeData.verbose_data.left.eye_openness;
+                    eyeDataBuffer.rightEyeOpenness = eyeData.verbose_data.right.eye_openness;
+                }
+            }
+        }
+    }
+
+    bool quit { false };
+
+    // mutex and buffer for moving data from this thread to the other one
+    QMutex eyeDataMutex;
+    EyeDataBuffer eyeDataBuffer;
+};
+#endif
+
 
 static QString outOfRangeDataStrategyToString(ViveControllerManager::OutOfRangeDataStrategy strategy) {
     switch (strategy) {
@@ -191,6 +264,10 @@ void ViveControllerManager::setConfigurationSettings(const QJsonObject configura
             _hmdDesktopTracking = configurationSettings["hmdDesktopTracking"].toBool();
         }
 
+        if (configurationSettings.contains("eyeTrackingEnabled")) {
+            _eyeTrackingEnabled = configurationSettings["eyeTrackingEnabled"].toBool();
+        }
+
         _inputDevice->configureCalibrationSettings(configurationSettings);
         saveSettings();
     }
@@ -201,6 +278,7 @@ QJsonObject ViveControllerManager::configurationSettings() {
         QJsonObject configurationSettings = _inputDevice->configurationSettings();
         configurationSettings["desktopMode"] = _desktopMode;
         configurationSettings["hmdDesktopTracking"] = _hmdDesktopTracking;
+        configurationSettings["eyeTrackingEnabled"] = _eyeTrackingEnabled;
         return configurationSettings;
     }
 
@@ -210,6 +288,82 @@ QJsonObject ViveControllerManager::configurationSettings() {
 QString ViveControllerManager::configurationLayout() {
     return OPENVR_LAYOUT;
 }
+
+bool isDeviceIndexActive(vr::IVRSystem*& system, uint32_t deviceIndex) {
+    if (!system) {
+        return false;
+    }
+    if (deviceIndex != vr::k_unTrackedDeviceIndexInvalid &&
+        system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_Controller &&
+        system->IsTrackedDeviceConnected(deviceIndex)) {
+        vr::EDeviceActivityLevel activityLevel = system->GetTrackedDeviceActivityLevel(deviceIndex);
+        if (activityLevel == vr::k_EDeviceActivityLevel_UserInteraction) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool isHandControllerActive(vr::IVRSystem*& system, vr::ETrackedControllerRole deviceRole) {
+    if (!system) {
+        return false;
+    }
+    auto deviceIndex = system->GetTrackedDeviceIndexForControllerRole(deviceRole);
+    return isDeviceIndexActive(system, deviceIndex);
+}
+
+bool areBothHandControllersActive(vr::IVRSystem*& system) {
+    return
+        isHandControllerActive(system, vr::TrackedControllerRole_LeftHand) &&
+        isHandControllerActive(system, vr::TrackedControllerRole_RightHand);
+}
+
+#ifdef VIVE_PRO_EYE
+void ViveControllerManager::enableGestureDetection() {
+    if (_viveCameraHandTracker) {
+        return;
+    }
+    if (!ViveSR::anipal::Eye::IsViveProEye()) {
+        return;
+    }
+
+// #define HAND_TRACKER_USE_EXTERNAL_TRANSFORM 1
+
+#ifdef HAND_TRACKER_USE_EXTERNAL_TRANSFORM
+    UseExternalTransform(true); // camera hand tracker results are in HMD frame
+#else
+    UseExternalTransform(false); // camera hand tracker results are in sensor frame
+#endif
+    GestureOption options; // defaults are GestureBackendAuto and GestureModeSkeleton
+    GestureFailure gestureFailure = StartGestureDetection(&options);
+    switch (gestureFailure) {
+        case GestureFailureNone:
+            qDebug() << "StartGestureDetection success";
+            _viveCameraHandTracker = true;
+            break;
+        case GestureFailureOpenCL:
+            qDebug() << "StartGestureDetection (Only on Windows) OpenCL is not supported on the machine";
+            break;
+        case GestureFailureCamera:
+            qDebug() << "StartGestureDetection Start camera failed";
+            break;
+        case GestureFailureInternal:
+            qDebug() << "StartGestureDetection Internal errors";
+            break;
+        case GestureFailureCPUOnPC:
+            qDebug() << "StartGestureDetection CPU backend is not supported on Windows";
+            break;
+    }
+}
+
+void ViveControllerManager::disableGestureDetection() {
+    if (!_viveCameraHandTracker) {
+        return;
+    }
+    StopGestureDetection();
+    _viveCameraHandTracker = false;
+}
+#endif
 
 bool ViveControllerManager::activate() {
     InputPlugin::activate();
@@ -230,6 +384,30 @@ bool ViveControllerManager::activate() {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->registerDevice(_inputDevice);
     _registeredWithInputMapper = true;
+
+#ifdef VIVE_PRO_EYE
+    if (ViveSR::anipal::Eye::IsViveProEye()) {
+        qDebug() << "Vive Pro eye-tracking detected";
+
+        int error = ViveSR::anipal::Initial(ViveSR::anipal::Eye::ANIPAL_TYPE_EYE, NULL);
+        if (error == ViveSR::Error::WORK) {
+            _viveProEye = true;
+            qDebug() << "Successfully initialize Eye engine.";
+        } else if (error == ViveSR::Error::RUNTIME_NOT_FOUND) {
+            _viveProEye = false;
+            qDebug() << "please follows SRanipal SDK guide to install SR_Runtime first";
+        } else {
+            _viveProEye = false;
+            qDebug() << "Failed to initialize Eye engine. please refer to ViveSR error code:" << error;
+        }
+
+        if (_viveProEye) {
+            _viveProEyeReadThread = std::make_shared<ViveProEyeReadThread>();
+            _viveProEyeReadThread->start(QThread::HighPriority);
+        }
+    }
+#endif
+
     return true;
 }
 
@@ -251,6 +429,15 @@ void ViveControllerManager::deactivate() {
     userInputMapper->removeDevice(_inputDevice->_deviceID);
     _registeredWithInputMapper = false;
 
+#ifdef VIVE_PRO_EYE
+    if (_viveProEyeReadThread) {
+        _viveProEyeReadThread->quit = true;
+        _viveProEyeReadThread->wait();
+        _viveProEyeReadThread = nullptr;
+        ViveSR::anipal::Release(ViveSR::anipal::Eye::ANIPAL_TYPE_EYE);
+    }
+#endif
+
     saveSettings();
 }
 
@@ -261,6 +448,318 @@ bool ViveControllerManager::isHeadControllerMounted() const {
     vr::EDeviceActivityLevel activityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
     return activityLevel == vr::k_EDeviceActivityLevel_UserInteraction;
 }
+
+#ifdef VIVE_PRO_EYE
+void ViveControllerManager::invalidateEyeInputs() {
+    _inputDevice->_poseStateMap[controller::LEFT_EYE].valid = false;
+    _inputDevice->_poseStateMap[controller::RIGHT_EYE].valid = false;
+    _inputDevice->_axisStateMap[controller::EYEBLINK_L].valid = false;
+    _inputDevice->_axisStateMap[controller::EYEBLINK_R].valid = false;
+}
+
+void ViveControllerManager::updateEyeTracker(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+    if (!isHeadControllerMounted()) {
+        invalidateEyeInputs();
+        return;
+    }
+
+    EyeDataBuffer eyeDataBuffer;
+    {
+        // GetEyeData takes around 4ms to finish, so we run it on a thread.
+        QMutexLocker locker(&_viveProEyeReadThread->eyeDataMutex);
+        memcpy(&eyeDataBuffer, &_viveProEyeReadThread->eyeDataBuffer, sizeof(eyeDataBuffer));
+    }
+
+    if (eyeDataBuffer.getEyeDataResult != ViveSR::Error::WORK) {
+        invalidateEyeInputs();
+        return;
+    }
+
+    // only update from buffer values if the new data is "valid"
+    if (!eyeDataBuffer.leftDirectionValid) {
+        eyeDataBuffer.leftEyeGaze = _prevEyeData.leftEyeGaze;
+        eyeDataBuffer.leftDirectionValid = _prevEyeData.leftDirectionValid;
+    }
+    if (!eyeDataBuffer.rightDirectionValid) {
+        eyeDataBuffer.rightEyeGaze = _prevEyeData.rightEyeGaze;
+        eyeDataBuffer.rightDirectionValid = _prevEyeData.rightDirectionValid;
+    }
+    if (!eyeDataBuffer.leftOpennessValid) {
+        eyeDataBuffer.leftEyeOpenness = _prevEyeData.leftEyeOpenness;
+        eyeDataBuffer.leftOpennessValid = _prevEyeData.leftOpennessValid;
+    }
+    if (!eyeDataBuffer.rightOpennessValid) {
+        eyeDataBuffer.rightEyeOpenness = _prevEyeData.rightEyeOpenness;
+        eyeDataBuffer.rightOpennessValid = _prevEyeData.rightOpennessValid;
+    }
+    _prevEyeData = eyeDataBuffer;
+
+    // transform data into what the controller system expects.
+
+    // in the data from sranipal, left=+x, up=+y, forward=+z
+    mat4 localLeftEyeMat = glm::lookAt(vec3(0.0f, 0.0f, 0.0f),
+                                       glm::vec3(eyeDataBuffer.leftEyeGaze[0],
+                                                 eyeDataBuffer.leftEyeGaze[1],
+                                                 -eyeDataBuffer.leftEyeGaze[2]),
+                                       vec3(0.0f, 1.0f, 0.0f));
+    quat localLeftEyeRot = glm::quat_cast(localLeftEyeMat);
+    quat avatarLeftEyeRot = _inputDevice->_poseStateMap[controller::HEAD].rotation * localLeftEyeRot;
+
+    mat4 localRightEyeMat = glm::lookAt(vec3(0.0f, 0.0f, 0.0f),
+                                        glm::vec3(eyeDataBuffer.rightEyeGaze[0],
+                                                  eyeDataBuffer.rightEyeGaze[1],
+                                                  -eyeDataBuffer.rightEyeGaze[2]),
+                                        vec3(0.0f, 1.0f, 0.0f));
+    quat localRightEyeRot = glm::quat_cast(localRightEyeMat);
+    quat avatarRightEyeRot = _inputDevice->_poseStateMap[controller::HEAD].rotation * localRightEyeRot;
+
+    // TODO -- figure out translations for eyes
+    if (eyeDataBuffer.leftDirectionValid) {
+        _inputDevice->_poseStateMap[controller::LEFT_EYE] = controller::Pose(glm::vec3(), avatarLeftEyeRot);
+        _inputDevice->_poseStateMap[controller::LEFT_EYE].valid = true;
+    } else {
+        _inputDevice->_poseStateMap[controller::LEFT_EYE].valid = false;
+    }
+    if (eyeDataBuffer.rightDirectionValid) {
+        _inputDevice->_poseStateMap[controller::RIGHT_EYE] = controller::Pose(glm::vec3(), avatarRightEyeRot);
+        _inputDevice->_poseStateMap[controller::RIGHT_EYE].valid = true;
+    } else {
+        _inputDevice->_poseStateMap[controller::RIGHT_EYE].valid = false;
+    }
+
+    quint64 now = usecTimestampNow();
+
+    // in hifi, 0 is open 1 is closed.  in SRanipal 1 is open, 0 is closed.
+    if (eyeDataBuffer.leftOpennessValid) {
+        _inputDevice->_axisStateMap[controller::EYEBLINK_L] =
+            controller::AxisValue(1.0f - eyeDataBuffer.leftEyeOpenness, now);
+    } else {
+        _inputDevice->_poseStateMap[controller::EYEBLINK_L].valid = false;
+    }
+    if (eyeDataBuffer.rightOpennessValid) {
+        _inputDevice->_axisStateMap[controller::EYEBLINK_R] =
+            controller::AxisValue(1.0f - eyeDataBuffer.rightEyeOpenness, now);
+    } else {
+        _inputDevice->_poseStateMap[controller::EYEBLINK_R].valid = false;
+    }
+}
+
+glm::vec3 ViveControllerManager::getRollingAverageHandPoint(int handIndex, int pointIndex) const {
+#if 0
+    return _handPoints[0][handIndex][pointIndex];
+#else
+    glm::vec3 result;
+    for (int s = 0; s < NUMBER_OF_HAND_TRACKER_SMOOTHING_FRAMES; s++) {
+        result += _handPoints[s][handIndex][pointIndex];
+    }
+    return result / NUMBER_OF_HAND_TRACKER_SMOOTHING_FRAMES;
+#endif
+}
+
+
+controller::Pose ViveControllerManager::trackedHandDataToPose(int hand, const glm::vec3& palmFacing,
+                                                              int nearHandPositionIndex, int farHandPositionIndex) {
+    glm::vec3 nearPoint = getRollingAverageHandPoint(hand, nearHandPositionIndex);
+
+    glm::quat poseRot;
+    if (nearHandPositionIndex != farHandPositionIndex) {
+        glm::vec3 farPoint = getRollingAverageHandPoint(hand, farHandPositionIndex);
+
+        glm::vec3 pointingDir = farPoint - nearPoint; // y axis
+        glm::vec3 otherAxis = glm::cross(pointingDir, palmFacing);
+
+        glm::mat4 rotMat;
+        rotMat = glm::mat4(glm::vec4(otherAxis, 0.0f),
+                           glm::vec4(pointingDir, 0.0f),
+                           glm::vec4(palmFacing * (hand == 0 ? 1.0f : -1.0f), 0.0f),
+                           glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+        poseRot = glm::normalize(glmExtractRotation(rotMat));
+    }
+
+    if (!isNaN(poseRot)) {
+        controller::Pose pose(nearPoint, poseRot);
+        return pose;
+    } else {
+        controller::Pose pose;
+        pose.valid = false;
+        return pose;
+    }
+}
+
+
+void ViveControllerManager::trackFinger(int hand, int jointIndex1, int jointIndex2, int jointIndex3, int jointIndex4,
+                                        controller::StandardPoseChannel joint1, controller::StandardPoseChannel joint2,
+                                        controller::StandardPoseChannel joint3, controller::StandardPoseChannel joint4) {
+
+    glm::vec3 point1 = getRollingAverageHandPoint(hand, jointIndex1);
+    glm::vec3 point2 = getRollingAverageHandPoint(hand, jointIndex2);
+    glm::vec3 point3 = getRollingAverageHandPoint(hand, jointIndex3);
+    glm::vec3 point4 = getRollingAverageHandPoint(hand, jointIndex4);
+
+    glm::vec3 wristPos = getRollingAverageHandPoint(hand, ViveHandJointIndex::HAND);
+    glm::vec3 thumb2 = getRollingAverageHandPoint(hand, ViveHandJointIndex::THUMB_2);
+    glm::vec3 pinkie1 = getRollingAverageHandPoint(hand, ViveHandJointIndex::PINKY_1);
+
+    // 1st
+    glm::vec3 palmFacing = glm::normalize(glm::cross(pinkie1 - wristPos, thumb2 - wristPos));
+    glm::vec3 handForward = glm::normalize(point1 - wristPos);
+    glm::vec3 x = glm::normalize(glm::cross(palmFacing, handForward));
+    glm::vec3 y = glm::normalize(point2 - point1);
+    glm::vec3 z = (hand == 0) ? glm::cross(y, x) : glm::cross(x, y);
+    glm::mat4 rotMat1 = glm::mat4(glm::vec4(x, 0.0f),
+                                  glm::vec4(y, 0.0f),
+                                  glm::vec4(z, 0.0f),
+                                  glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    glm::quat rot1 = glm::normalize(glmExtractRotation(rotMat1));
+    if (!isNaN(rot1)) {
+        _inputDevice->_poseStateMap[joint1] = controller::Pose(point1, rot1);
+    }
+
+
+    // 2nd
+    glm::vec3 x2 = x; // glm::normalize(glm::cross(point3 - point2, point2 - point1));
+    glm::vec3 y2 = glm::normalize(point3 - point2);
+    glm::vec3 z2 = (hand == 0) ? glm::cross(y2, x2) : glm::cross(x2, y2);
+
+    glm::mat4 rotMat2 = glm::mat4(glm::vec4(x2, 0.0f),
+                                  glm::vec4(y2, 0.0f),
+                                  glm::vec4(z2, 0.0f),
+                                  glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    glm::quat rot2 = glm::normalize(glmExtractRotation(rotMat2));
+    if (!isNaN(rot2)) {
+        _inputDevice->_poseStateMap[joint2] = controller::Pose(point2, rot2);
+    }
+
+
+    // 3rd
+    glm::vec3 x3 = x; // glm::normalize(glm::cross(point4 - point3, point3 - point1));
+    glm::vec3 y3 = glm::normalize(point4 - point3);
+    glm::vec3 z3 = (hand == 0) ? glm::cross(y3, x3) : glm::cross(x3, y3);
+
+    glm::mat4 rotMat3 = glm::mat4(glm::vec4(x3, 0.0f),
+                                  glm::vec4(y3, 0.0f),
+                                  glm::vec4(z3, 0.0f),
+                                  glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    glm::quat rot3 = glm::normalize(glmExtractRotation(rotMat3));
+    if (!isNaN(rot3)) {
+        _inputDevice->_poseStateMap[joint3] = controller::Pose(point3, rot3);
+    }
+
+
+    // 4th
+    glm::quat rot4 = rot3;
+    if (!isNaN(rot4)) {
+        _inputDevice->_poseStateMap[joint4] = controller::Pose(point4, rot4);
+    }
+}
+
+
+void ViveControllerManager::updateCameraHandTracker(float deltaTime,
+                                                    const controller::InputCalibrationData& inputCalibrationData) {
+
+    if (areBothHandControllersActive(_system)) {
+        // if both hand-controllers are in use, don't do camera hand tracking
+        disableGestureDetection();
+    } else {
+        enableGestureDetection();
+    }
+
+    if (!_viveCameraHandTracker) {
+        return;
+    }
+
+    const GestureResult* results = NULL;
+    int handTrackerFrameIndex { -1 };
+    int resultsHandCount = GetGestureResult(&results, &handTrackerFrameIndex);
+
+    // FIXME: Why the commented-out condition?
+    if (handTrackerFrameIndex >= 0 /* && handTrackerFrameIndex != _lastHandTrackerFrameIndex */) {
+#ifdef HAND_TRACKER_USE_EXTERNAL_TRANSFORM
+        glm::mat4 trackedHandToAvatar =
+            glm::inverse(inputCalibrationData.avatarMat) *
+            inputCalibrationData.sensorToWorldMat *
+            inputCalibrationData.hmdSensorMat;
+        // glm::mat4 trackedHandToAvatar = _inputDevice->_poseStateMap[controller::HEAD].getMatrix() * Matrices::Y_180;
+#else
+        DisplayPluginPointer displayPlugin = _container->getActiveDisplayPlugin();
+        std::shared_ptr<OpenVrDisplayPlugin> openVRDisplayPlugin =
+            std::dynamic_pointer_cast<OpenVrDisplayPlugin>(displayPlugin);
+        glm::mat4 sensorResetMatrix;
+        if (openVRDisplayPlugin) {
+            sensorResetMatrix = openVRDisplayPlugin->getSensorResetMatrix();
+        }
+
+        glm::mat4 trackedHandToAvatar =
+            glm::inverse(inputCalibrationData.avatarMat) *
+            inputCalibrationData.sensorToWorldMat *
+            sensorResetMatrix;
+#endif
+
+        // roll all the old points in the rolling average
+        memmove(&(_handPoints[1]),
+                &(_handPoints[0]),
+                sizeof(_handPoints[0]) * (NUMBER_OF_HAND_TRACKER_SMOOTHING_FRAMES - 1));
+
+        for (int handIndex = 0; handIndex < resultsHandCount; handIndex++) {
+            bool isLeftHand = results[handIndex].isLeft;
+
+            vr::ETrackedControllerRole controllerRole =
+                isLeftHand ? vr::TrackedControllerRole_LeftHand : vr::TrackedControllerRole_RightHand;
+            if (isHandControllerActive(_system, controllerRole)) {
+                continue; // if the controller for this hand is tracked, ignore camera hand tracking
+            }
+
+            int hand =  isLeftHand ? 0 : 1;
+            for (int pointIndex = 0; pointIndex < NUMBER_OF_HAND_POINTS; pointIndex++) {
+                glm::vec3 pos(results[handIndex].points[3 * pointIndex],
+                              results[handIndex].points[3 * pointIndex + 1],
+                              -results[handIndex].points[3 * pointIndex + 2]);
+                _handPoints[0][hand][pointIndex] = transformPoint(trackedHandToAvatar, pos);
+            }
+
+            glm::vec3 wristPos = getRollingAverageHandPoint(hand, ViveHandJointIndex::HAND);
+            glm::vec3 thumb2 = getRollingAverageHandPoint(hand, ViveHandJointIndex::THUMB_2);
+            glm::vec3 pinkie1 = getRollingAverageHandPoint(hand, ViveHandJointIndex::PINKY_1);
+            glm::vec3 palmFacing = glm::cross(pinkie1 - wristPos, thumb2 - wristPos); // z axis
+
+            _inputDevice->_poseStateMap[isLeftHand ? controller::LEFT_HAND : controller::RIGHT_HAND] =
+                trackedHandDataToPose(hand, palmFacing, ViveHandJointIndex::HAND, ViveHandJointIndex::MIDDLE_1);
+            trackFinger(hand, ViveHandJointIndex::THUMB_1, ViveHandJointIndex::THUMB_2, ViveHandJointIndex::THUMB_3,
+                        ViveHandJointIndex::THUMB_4,
+                        isLeftHand ? controller::LEFT_HAND_THUMB1 : controller::RIGHT_HAND_THUMB1,
+                        isLeftHand ? controller::LEFT_HAND_THUMB2 : controller::RIGHT_HAND_THUMB2,
+                        isLeftHand ? controller::LEFT_HAND_THUMB3 : controller::RIGHT_HAND_THUMB3,
+                        isLeftHand ? controller::LEFT_HAND_THUMB4 : controller::RIGHT_HAND_THUMB4);
+            trackFinger(hand, ViveHandJointIndex::INDEX_1, ViveHandJointIndex::INDEX_2, ViveHandJointIndex::INDEX_3,
+                        ViveHandJointIndex::INDEX_4,
+                        isLeftHand ? controller::LEFT_HAND_INDEX1 : controller::RIGHT_HAND_INDEX1,
+                        isLeftHand ? controller::LEFT_HAND_INDEX2 : controller::RIGHT_HAND_INDEX2,
+                        isLeftHand ? controller::LEFT_HAND_INDEX3 : controller::RIGHT_HAND_INDEX3,
+                        isLeftHand ? controller::LEFT_HAND_INDEX4 : controller::RIGHT_HAND_INDEX4);
+            trackFinger(hand, ViveHandJointIndex::MIDDLE_1, ViveHandJointIndex::MIDDLE_2, ViveHandJointIndex::MIDDLE_3,
+                        ViveHandJointIndex::MIDDLE_4,
+                        isLeftHand ? controller::LEFT_HAND_MIDDLE1 : controller::RIGHT_HAND_MIDDLE1,
+                        isLeftHand ? controller::LEFT_HAND_MIDDLE2 : controller::RIGHT_HAND_MIDDLE2,
+                        isLeftHand ? controller::LEFT_HAND_MIDDLE3 : controller::RIGHT_HAND_MIDDLE3,
+                        isLeftHand ? controller::LEFT_HAND_MIDDLE4 : controller::RIGHT_HAND_MIDDLE4);
+            trackFinger(hand, ViveHandJointIndex::RING_1, ViveHandJointIndex::RING_2, ViveHandJointIndex::RING_3,
+                        ViveHandJointIndex::RING_4,
+                        isLeftHand ? controller::LEFT_HAND_RING1 : controller::RIGHT_HAND_RING1,
+                        isLeftHand ? controller::LEFT_HAND_RING2 : controller::RIGHT_HAND_RING2,
+                        isLeftHand ? controller::LEFT_HAND_RING3 : controller::RIGHT_HAND_RING3,
+                        isLeftHand ? controller::LEFT_HAND_RING4 : controller::RIGHT_HAND_RING4);
+            trackFinger(hand, ViveHandJointIndex::PINKY_1, ViveHandJointIndex::PINKY_2, ViveHandJointIndex::PINKY_3,
+                        ViveHandJointIndex::PINKY_4,
+                        isLeftHand ? controller::LEFT_HAND_PINKY1 : controller::RIGHT_HAND_PINKY1,
+                        isLeftHand ? controller::LEFT_HAND_PINKY2 : controller::RIGHT_HAND_PINKY2,
+                        isLeftHand ? controller::LEFT_HAND_PINKY3 : controller::RIGHT_HAND_PINKY3,
+                        isLeftHand ? controller::LEFT_HAND_PINKY4 : controller::RIGHT_HAND_PINKY4);
+        }
+    }
+    _lastHandTrackerFrameIndex = handTrackerFrameIndex;
+}
+#endif
+
 
 void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
 
@@ -297,6 +796,15 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
         userInputMapper->registerDevice(_inputDevice);
         _registeredWithInputMapper = true;
     }
+
+#ifdef VIVE_PRO_EYE
+    if (_viveProEye && _eyeTrackingEnabled) {
+        updateEyeTracker(deltaTime, inputCalibrationData);
+    }
+
+    updateCameraHandTracker(deltaTime, inputCalibrationData);
+#endif
+
 }
 
 void ViveControllerManager::loadSettings() {
@@ -312,6 +820,9 @@ void ViveControllerManager::loadSettings() {
             _inputDevice->_shoulderWidth = settings.value("shoulderWidth", QVariant(DEFAULT_SHOULDER_WIDTH)).toDouble();
             _inputDevice->_outOfRangeDataStrategy = stringToOutOfRangeDataStrategy(settings.value("outOfRangeDataStrategy", QVariant(DEFAULT_OUT_OF_RANGE_STRATEGY)).toString());
         }
+
+        const bool DEFAULT_EYE_TRACKING_ENABLED = false;
+        _eyeTrackingEnabled = settings.value("eyeTrackingEnabled", QVariant(DEFAULT_EYE_TRACKING_ENABLED)).toBool();
     }
     settings.endGroup();
 }
@@ -326,6 +837,8 @@ void ViveControllerManager::saveSettings() const {
             settings.setValue(QString("shoulderWidth"), _inputDevice->_shoulderWidth);
             settings.setValue(QString("outOfRangeDataStrategy"), outOfRangeDataStrategyToString(_inputDevice->_outOfRangeDataStrategy));
         }
+
+        settings.setValue(QString("eyeTrackingEnabled"), _eyeTrackingEnabled);
     }
     settings.endGroup();
 }
@@ -354,6 +867,9 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
         if (_headsetName == "HTC") {
             _headsetName += " Vive";
         }
+        if (oculusViaOpenVR()) {
+            _headsetName = "OpenVR";  // Enables calibration dialog to function when debugging using Oculus.
+        }
     }
     // While the keyboard is open, we defer strictly to the keyboard values
     if (isOpenVrKeyboardShown()) {
@@ -370,7 +886,7 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     handleHandController(deltaTime, rightHandDeviceIndex, inputCalibrationData, false);
 
     // collect poses for all generic trackers
-    for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+    for (uint32_t i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
         handleTrackedObject(i, inputCalibrationData);
         handleHmd(i, inputCalibrationData);
     }
@@ -445,8 +961,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHead = headObject["override"].toBool();
                 if (overrideHead) {
                     _headConfig = HeadConfig::Puck;
-                    _headPuckYOffset = headObject["Y"].toDouble() * CM_TO_M;
-                    _headPuckZOffset = headObject["Z"].toDouble() * CM_TO_M;
+                    _headPuckYOffset = (float)headObject["Y"].toDouble() * CM_TO_M;
+                    _headPuckZOffset = (float)headObject["Z"].toDouble() * CM_TO_M;
                 } else {
                     _headConfig = HeadConfig::HMD;
                 }
@@ -455,8 +971,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHands = handsObject["override"].toBool();
                 if (overrideHands) {
                     _handConfig = HandConfig::Pucks;
-                    _handPuckYOffset = handsObject["Y"].toDouble() * CM_TO_M;
-                    _handPuckZOffset = handsObject["Z"].toDouble() * CM_TO_M;
+                    _handPuckYOffset = (float)handsObject["Y"].toDouble() * CM_TO_M;
+                    _handPuckZOffset = (float)handsObject["Z"].toDouble() * CM_TO_M;
                 } else {
                     _handConfig = HandConfig::HandController;
                 }
@@ -490,8 +1006,8 @@ QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD);
     configurationSettings["handController"] = (_handConfig == HandConfig::HandController);
     configurationSettings["puckCount"] = (int)_validTrackedObjects.size();
-    configurationSettings["armCircumference"] = (double)_armCircumference * M_TO_CM;
-    configurationSettings["shoulderWidth"] = (double)_shoulderWidth * M_TO_CM;
+    configurationSettings["armCircumference"] = (double)(_armCircumference * M_TO_CM);
+    configurationSettings["shoulderWidth"] = (double)(_shoulderWidth * M_TO_CM);
     configurationSettings["outOfRangeDataStrategy"] = outOfRangeDataStrategyToString(_outOfRangeDataStrategy);
     return configurationSettings;
 }
@@ -708,8 +1224,6 @@ bool ViveControllerManager::InputDevice::configureHead(const glm::mat4& defaultT
 bool ViveControllerManager::InputDevice::configureBody(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
     std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksYPosition);
     int puckCount = (int)_validTrackedObjects.size();
-    glm::vec3 headXAxis = getReferenceHeadXAxis(defaultToReferenceMat, inputCalibration.defaultHeadMat);
-    glm::vec3 headPosition = getReferenceHeadPosition(defaultToReferenceMat, inputCalibration.defaultHeadMat);
     if (_config == Config::None) {
         return true;
     } else if (_config == Config::Feet && puckCount >= MIN_PUCK_COUNT) {
@@ -807,8 +1321,6 @@ controller::Pose ViveControllerManager::InputDevice::addOffsetToPuckPose(const c
 }
 
 void ViveControllerManager::InputDevice::handleHmd(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {
-     uint32_t poseIndex = controller::TRACKED_OBJECT_00 + deviceIndex;
-
      if (_system->IsTrackedDeviceConnected(deviceIndex) &&
          _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_HMD &&
          _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid) {
@@ -830,9 +1342,7 @@ void ViveControllerManager::InputDevice::handleHmd(uint32_t deviceIndex, const c
 
 void ViveControllerManager::InputDevice::handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand) {
 
-    if (_system->IsTrackedDeviceConnected(deviceIndex) &&
-        _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_Controller &&
-        _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid) {
+    if (isDeviceIndexActive(_system, deviceIndex) && _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid) {
 
         // process pose
         const mat4& mat = _nextSimPoseData.poses[deviceIndex];
@@ -984,11 +1494,11 @@ void ViveControllerManager::InputDevice::printDeviceTrackingResultChange(uint32_
 }
 
 bool ViveControllerManager::InputDevice::checkForCalibrationEvent() {
-    auto& endOfMap = _buttonPressedMap.end();
-    auto& leftTrigger = _buttonPressedMap.find(controller::LT);
-    auto& rightTrigger = _buttonPressedMap.find(controller::RT);
-    auto& leftAppButton = _buttonPressedMap.find(LEFT_APP_MENU);
-    auto& rightAppButton = _buttonPressedMap.find(RIGHT_APP_MENU);
+    auto endOfMap = _buttonPressedMap.end();
+    auto leftTrigger = _buttonPressedMap.find(controller::LT);
+    auto rightTrigger = _buttonPressedMap.find(controller::RT);
+    auto leftAppButton = _buttonPressedMap.find(LEFT_APP_MENU);
+    auto rightAppButton = _buttonPressedMap.find(RIGHT_APP_MENU);
     return ((leftTrigger != endOfMap && leftAppButton != endOfMap) && (rightTrigger != endOfMap && rightAppButton != endOfMap));
 }
 
@@ -1339,10 +1849,74 @@ void ViveControllerManager::InputDevice::setConfigFromString(const QString& valu
  *     <tr><td><code>Hips</code></td><td>number</td><td>{@link Pose}</td><td>Hips pose.</td></tr>
  *     <tr><td><code>Spine2</code></td><td>number</td><td>{@link Pose}</td><td>Spine2 pose.</td></tr>
  *     <tr><td><code>Head</code></td><td>number</td><td>{@link Pose}</td><td>Head pose.</td></tr>
+ *     <tr><td><code>LeftEye</code></td><td>number</td><td>{@link Pose}</td><td>Left eye pose.</td></tr>
+ *     <tr><td><code>RightEye</code></td><td>number</td><td>{@link Pose}</td><td>Right eye pose.</td></tr>
+ *     <tr><td><code>EyeBlink_L</code></td><td>number</td><td>number</td><td>Left eyelid blink.</td></tr>
+ *     <tr><td><code>EyeBlink_R</code></td><td>number</td><td>number</td><td>Right eyelid blink.</td></tr>
  *     <tr><td><code>LeftArm</code></td><td>number</td><td>{@link Pose}</td><td>Left arm pose.</td></tr>
  *     <tr><td><code>RightArm</code></td><td>number</td><td>{@link Pose}</td><td>Right arm pose</td></tr>
  *     <tr><td><code>LeftHand</code></td><td>number</td><td>{@link Pose}</td><td>Left hand pose.</td></tr>
+ *     <tr><td><code>LeftHandThumb1</code></td><td>number</td><td>{@link Pose}</td><td>Left thumb 1 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandThumb2</code></td><td>number</td><td>{@link Pose}</td><td>Left thumb 2 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandThumb3</code></td><td>number</td><td>{@link Pose}</td><td>Left thumb 3 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandThumb4</code></td><td>number</td><td>{@link Pose}</td><td>Left thumb 4 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandIndex1</code></td><td>number</td><td>{@link Pose}</td><td>Left index 1 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandIndex2</code></td><td>number</td><td>{@link Pose}</td><td>Left index 2 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandIndex3</code></td><td>number</td><td>{@link Pose}</td><td>Left index 3 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandIndex4</code></td><td>number</td><td>{@link Pose}</td><td>Left index 4 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandMiddle1</code></td><td>number</td><td>{@link Pose}</td><td>Left middle 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>LeftHandMiddle2</code></td><td>number</td><td>{@link Pose}</td><td>Left middle 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>LeftHandMiddle3</code></td><td>number</td><td>{@link Pose}</td><td>Left middle 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>LeftHandMiddle4</code></td><td>number</td><td>{@link Pose}</td><td>Left middle 4 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>LeftHandRing1</code></td><td>number</td><td>{@link Pose}</td><td>Left ring 1 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandRing2</code></td><td>number</td><td>{@link Pose}</td><td>Left ring 2 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandRing3</code></td><td>number</td><td>{@link Pose}</td><td>Left ring 3 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandRing4</code></td><td>number</td><td>{@link Pose}</td><td>Left ring 4 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandPinky1</code></td><td>number</td><td>{@link Pose}</td><td>Left pinky 1 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandPinky2</code></td><td>number</td><td>{@link Pose}</td><td>Left pinky 2 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandPinky3</code></td><td>number</td><td>{@link Pose}</td><td>Left pinky 3 finger joint pose.</td></tr>
+ *     <tr><td><code>LeftHandPinky4</code></td><td>number</td><td>{@link Pose}</td><td>Left pinky 4 finger joint pose.</td></tr>
  *     <tr><td><code>RightHand</code></td><td>number</td><td>{@link Pose}</td><td>Right hand pose.</td></tr>
+ *     <tr><td><code>RightHandThumb1</code></td><td>number</td><td>{@link Pose}</td><td>Right thumb 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandThumb2</code></td><td>number</td><td>{@link Pose}</td><td>Right thumb 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandThumb3</code></td><td>number</td><td>{@link Pose}</td><td>Right thumb 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandThumb4</code></td><td>number</td><td>{@link Pose}</td><td>Right thumb 4 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandIndex1</code></td><td>number</td><td>{@link Pose}</td><td>Right index 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandIndex2</code></td><td>number</td><td>{@link Pose}</td><td>Right index 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandIndex3</code></td><td>number</td><td>{@link Pose}</td><td>Right index 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandIndex4</code></td><td>number</td><td>{@link Pose}</td><td>Right index 4 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandMiddle1</code></td><td>number</td><td>{@link Pose}</td><td>Right middle 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandMiddle2</code></td><td>number</td><td>{@link Pose}</td><td>Right middle 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandMiddle3</code></td><td>number</td><td>{@link Pose}</td><td>Right middle 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandMiddle4</code></td><td>number</td><td>{@link Pose}</td><td>Right middle 4 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandRing1</code></td><td>number</td><td>{@link Pose}</td><td>Right ring 1 finger joint pose.</td></tr>
+ *     <tr><td><code>RightHandRing2</code></td><td>number</td><td>{@link Pose}</td><td>Right ring 2 finger joint pose.</td></tr>
+ *     <tr><td><code>RightHandRing3</code></td><td>number</td><td>{@link Pose}</td><td>Right ring 3 finger joint pose.</td></tr>
+ *     <tr><td><code>RightHandRing4</code></td><td>number</td><td>{@link Pose}</td><td>Right ring 4 finger joint pose.</td></tr>
+ *     <tr><td><code>RightHandPinky1</code></td><td>number</td><td>{@link Pose}</td><td>Right pinky 1 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandPinky2</code></td><td>number</td><td>{@link Pose}</td><td>Right pinky 2 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandPinky3</code></td><td>number</td><td>{@link Pose}</td><td>Right pinky 3 finger joint pose.
+ *       </td></tr>
+ *     <tr><td><code>RightHandPinky4</code></td><td>number</td><td>{@link Pose}</td><td>Right pinky 4 finger joint pose.
+ *       </td></tr>
  *     <tr><td colspan="4"><strong>Trackers</strong></td></tr>
  *     <tr><td><code>TrackedObject00</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 0 pose.</td></tr>
  *     <tr><td><code>TrackedObject01</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 1 pose.</td></tr>
@@ -1401,9 +1975,52 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         makePair(LEFT_GRIP, "LeftGrip"),
         makePair(RIGHT_GRIP, "RightGrip"),
 
-        // 3d location of controller
+        // 3d location of left controller and fingers
         makePair(LEFT_HAND, "LeftHand"),
+        makePair(LEFT_HAND_THUMB1, "LeftHandThumb1"),
+        makePair(LEFT_HAND_THUMB2, "LeftHandThumb2"),
+        makePair(LEFT_HAND_THUMB3, "LeftHandThumb3"),
+        makePair(LEFT_HAND_THUMB4, "LeftHandThumb4"),
+        makePair(LEFT_HAND_INDEX1, "LeftHandIndex1"),
+        makePair(LEFT_HAND_INDEX2, "LeftHandIndex2"),
+        makePair(LEFT_HAND_INDEX3, "LeftHandIndex3"),
+        makePair(LEFT_HAND_INDEX4, "LeftHandIndex4"),
+        makePair(LEFT_HAND_MIDDLE1, "LeftHandMiddle1"),
+        makePair(LEFT_HAND_MIDDLE2, "LeftHandMiddle2"),
+        makePair(LEFT_HAND_MIDDLE3, "LeftHandMiddle3"),
+        makePair(LEFT_HAND_MIDDLE4, "LeftHandMiddle4"),
+        makePair(LEFT_HAND_RING1, "LeftHandRing1"),
+        makePair(LEFT_HAND_RING2, "LeftHandRing2"),
+        makePair(LEFT_HAND_RING3, "LeftHandRing3"),
+        makePair(LEFT_HAND_RING4, "LeftHandRing4"),
+        makePair(LEFT_HAND_PINKY1, "LeftHandPinky1"),
+        makePair(LEFT_HAND_PINKY2, "LeftHandPinky2"),
+        makePair(LEFT_HAND_PINKY3, "LeftHandPinky3"),
+        makePair(LEFT_HAND_PINKY4, "LeftHandPinky4"),
+
+        // 3d location of right controller and fingers
         makePair(RIGHT_HAND, "RightHand"),
+        makePair(RIGHT_HAND_THUMB1, "RightHandThumb1"),
+        makePair(RIGHT_HAND_THUMB2, "RightHandThumb2"),
+        makePair(RIGHT_HAND_THUMB3, "RightHandThumb3"),
+        makePair(RIGHT_HAND_THUMB4, "RightHandThumb4"),
+        makePair(RIGHT_HAND_INDEX1, "RightHandIndex1"),
+        makePair(RIGHT_HAND_INDEX2, "RightHandIndex2"),
+        makePair(RIGHT_HAND_INDEX3, "RightHandIndex3"),
+        makePair(RIGHT_HAND_INDEX4, "RightHandIndex4"),
+        makePair(RIGHT_HAND_MIDDLE1, "RightHandMiddle1"),
+        makePair(RIGHT_HAND_MIDDLE2, "RightHandMiddle2"),
+        makePair(RIGHT_HAND_MIDDLE3, "RightHandMiddle3"),
+        makePair(RIGHT_HAND_MIDDLE4, "RightHandMiddle4"),
+        makePair(RIGHT_HAND_RING1, "RightHandRing1"),
+        makePair(RIGHT_HAND_RING2, "RightHandRing2"),
+        makePair(RIGHT_HAND_RING3, "RightHandRing3"),
+        makePair(RIGHT_HAND_RING4, "RightHandRing4"),
+        makePair(RIGHT_HAND_PINKY1, "RightHandPinky1"),
+        makePair(RIGHT_HAND_PINKY2, "RightHandPinky2"),
+        makePair(RIGHT_HAND_PINKY3, "RightHandPinky3"),
+        makePair(RIGHT_HAND_PINKY4, "RightHandPinky4"),
+
         makePair(LEFT_FOOT, "LeftFoot"),
         makePair(RIGHT_FOOT, "RightFoot"),
         makePair(HIPS, "Hips"),
@@ -1411,6 +2028,10 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         makePair(HEAD, "Head"),
         makePair(LEFT_ARM, "LeftArm"),
         makePair(RIGHT_ARM, "RightArm"),
+        makePair(LEFT_EYE, "LeftEye"),
+        makePair(RIGHT_EYE, "RightEye"),
+        makePair(EYEBLINK_L, "EyeBlink_L"),
+        makePair(EYEBLINK_R, "EyeBlink_R"),
 
         // 16 tracked poses
         makePair(TRACKED_OBJECT_00, "TrackedObject00"),

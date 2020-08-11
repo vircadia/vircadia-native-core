@@ -296,6 +296,13 @@ public slots:
     QString checkVersion();
 
     /**jsdoc
+     * Gets Interface's user agent.
+     * @function Window.getUserAgent
+     * @returns {string} Interface's user agent.
+     */
+    QString getUserAgent();
+
+    /**jsdoc
      * Gets the signature for Interface's protocol version.
      * @function Window.protocolSignature
      * @returns {string} A string uniquely identifying the version of the metaverse protocol that Interface is using.

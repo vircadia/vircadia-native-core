@@ -4,6 +4,7 @@
 //
 //  Created by Andrzej Kapolka on 5/10/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -65,6 +66,7 @@
 #include <Trace.h>
 #include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
+#include <DomainAccountManager.h>
 #include <AddressManager.h>
 #include <AnimDebugDraw.h>
 #include <BuildInfo.h>
@@ -347,7 +349,6 @@ static const QString STANDARD_TO_ACTION_MAPPING_NAME = "Standard to Action";
 static const QString NO_MOVEMENT_MAPPING_NAME = "Standard to Action (No Movement)";
 static const QString NO_MOVEMENT_MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/standard_nomovement.json";
 
-static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
 static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
 static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 static const QString ACTIVE_DISPLAY_PLUGIN_SETTING_NAME = "activeDisplayPlugin";
@@ -656,8 +657,8 @@ private:
 /**jsdoc
  * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property
  * values are integer IDs, uniquely identifying each output. <em>Read-only.</em></p>
- * <p>These states can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject} 
- * mapping (e.g., using the {@link RouteObject#when} method). Each data value is either <code>1.0</code> for "true" or 
+ * <p>These states can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject}
+ * mapping (e.g., using the {@link RouteObject#when} method). Each data value is either <code>1.0</code> for "true" or
  * <code>0.0</code> for "false".</p>
  * <table>
  *   <thead>
@@ -679,7 +680,7 @@ private:
  *     <tr><td><code>CameraIndependent</code></td><td>number</td><td>number</td><td>The camera is in independent mode.</td></tr>
  *     <tr><td><code>CameraEntity</code></td><td>number</td><td>number</td><td>The camera is in entity mode.</td></tr>
  *     <tr><td><code>InHMD</code></td><td>number</td><td>number</td><td>The user is in HMD mode.</td></tr>
- *     <tr><td><code>AdvancedMovement</code></td><td>number</td><td>number</td><td>Advanced movement (walking) controls are 
+ *     <tr><td><code>AdvancedMovement</code></td><td>number</td><td>number</td><td>Advanced movement (walking) controls are
  *       enabled.</td></tr>
  *     <tr><td><code>StrafeEnabled</code></td><td>number</td><td>number</td><td>Strafing is enabled</td></tr>
  *     <tr><td><code>LeftHandDominant</code></td><td>number</td><td>number</td><td>Dominant hand set to left.</td></tr>
@@ -829,7 +830,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         audioDLLPath += "/audioWin7";
     }
     QCoreApplication::addLibraryPath(audioDLLPath);
-#endif 
+#endif
 
     QString defaultScriptsOverrideOption = getCmdOption(argc, constArgv, "--defaultScriptsOverride");
 
@@ -853,6 +854,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 #else
     DependencyManager::set<AccountManager>(true, std::bind(&Application::getUserAgent, qApp));
 #endif
+    DependencyManager::set<DomainAccountManager>();
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT, defaultScriptsOverrideOption);
     DependencyManager::set<Preferences>();
@@ -949,7 +951,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AvatarPackager>();
     DependencyManager::set<ScreenshareScriptingInterface>();
     PlatformHelper::setup();
-    
+
     QObject::connect(PlatformHelper::instance(), &PlatformHelper::systemWillWake, [] {
         QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "noteAwakening", Qt::QueuedConnection);
@@ -1162,7 +1164,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         deadlockWatchdogThread->setMainThreadID(QThread::currentThreadId());
         deadlockWatchdogThread->start();
 
-        // Pause the deadlock watchdog when we sleep, or it might 
+        // Pause the deadlock watchdog when we sleep, or it might
         // trigger a false positive when we wake back up
         auto platformHelper = PlatformHelper::instance();
 
@@ -1348,6 +1350,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
 #endif
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
+
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
+    connect(domainAccountManager.data(), &DomainAccountManager::authRequired, dialogsManager.data(), 
+        &DialogsManager::showDomainLoginDialog);
+    connect(domainAccountManager.data(), &DomainAccountManager::loginComplete, this, 
+        &Application::updateWindowTitle);
+    // ####### TODO: Connect any other signals from domainAccountManager.
 
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter([] {
@@ -1572,7 +1581,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // Do not show login dialog if requested not to on the command line
         QString hifiNoLoginCommandLineKey = QString("--").append(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
         int index = arguments().indexOf(hifiNoLoginCommandLineKey);
-        if (index != -1) {
+        if (index != -1 || _disableLoginScreen) {
             resumeAfterLoginDialogActionTaken();
             return;
         }
@@ -2615,7 +2624,7 @@ QString Application::getUserAgent() {
         return userAgent;
     }
 
-    QString userAgent = "Mozilla/5.0 (HighFidelityInterface/" + BuildInfo::VERSION + "; "
+    QString userAgent = NetworkingConstants::VIRCADIA_USER_AGENT + "/" + BuildInfo::VERSION + "; "
         + QSysInfo::productType() + " " + QSysInfo::productVersion() + ")";
 
     auto formatPluginName = [](QString name) -> QString { return name.trimmed().replace(" ", "-");  };
@@ -2802,6 +2811,7 @@ void Application::cleanupBeforeQuit() {
     if (!keepMeLoggedIn) {
         DependencyManager::get<AccountManager>()->removeAccountFromFile();
     }
+    // ####### TODO
 
     _displayPlugin.reset();
     PluginManager::getInstance()->shutdown();
@@ -3151,6 +3161,7 @@ extern void setupPreferences();
 static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, int index, bool active = false);
 #endif
 
+// ####### TODO
 void Application::showLoginScreen() {
 #if !defined(DISABLE_QML)
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -3790,9 +3801,8 @@ void Application::setPreferredCursor(const QString& cursorName) {
 
     if (_displayPlugin && _displayPlugin->isHmd()) {
         _preferredCursor.set(cursorName.isEmpty() ? DEFAULT_CURSOR_NAME : cursorName);
-    }
-    else { 
-        _preferredCursor.set(cursorName.isEmpty() ? Cursor::Manager::getIconName(Cursor::Icon::SYSTEM) : cursorName); 
+    } else {
+        _preferredCursor.set(cursorName.isEmpty() ? Cursor::Manager::getIconName(Cursor::Icon::SYSTEM) : cursorName);
     }
 
     showCursor(Cursor::Manager::lookupIcon(_preferredCursor.get()));
@@ -3857,6 +3867,11 @@ void Application::showHelp() {
     tablet->gotoWebScreen(PathUtils::resourcesUrl() + INFO_HELP_PATH + "?" + queryString.toString());
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
     //InfoView::show(INFO_HELP_PATH, false, queryString.toString());
+}
+
+void Application::gotoTutorial() {
+    const QString TUTORIAL_ADDRESS = "file:///~/serverless/tutorial.json";
+    DependencyManager::get<AddressManager>()->handleLookupString(TUTORIAL_ADDRESS);
 }
 
 void Application::resizeEvent(QResizeEvent* event) {
@@ -3936,12 +3951,15 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMDAndHandControllers;
 
-    // when --url in command line, teleport to location
-    const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
-    int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
     QString addressLookupString;
-    if (urlIndex != -1) {
-        QUrl url(arguments().value(urlIndex + 1));
+
+    // when --url in command line, teleport to location
+    QCommandLineParser parser;
+    QCommandLineOption urlOption("url", "", "value");
+    parser.addOption(urlOption);
+    parser.parse(arguments());
+    if (parser.isSet(urlOption)) {
+        QUrl url = QUrl(parser.value(urlOption));
         if (url.scheme() == URL_SCHEME_HIFIAPP) {
             Setting::Handle<QVariant>("startUpApp").set(url.path());
         } else {
@@ -3979,7 +3997,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
         sentTo = SENT_TO_PREVIOUS_LOCATION;
     }
-    
+
     UserActivityLogger::getInstance().logAction("startup_sent_to", {
         { "sent_to", sentTo },
         { "sandbox_is_running", sandboxIsRunning },
@@ -4067,7 +4085,7 @@ std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl dom
     bool success = tmpTree->readFromByteArray(domainURL.toString(), data);
     if (success) {
         tmpTree->reaverageOctreeElements();
-        tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), 0, 0, 0);
+        tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), "domain", 0, 0, 0);
     }
     std::map<QString, QString> namedPaths = tmpTree->getNamedPaths();
 
@@ -4214,7 +4232,7 @@ bool Application::event(QEvent* event) {
             idle();
 
 #ifdef DEBUG_EVENT_QUEUE_DEPTH
-            // The event queue may very well grow beyond 400, so 
+            // The event queue may very well grow beyond 400, so
             // this code should only be enabled on local builds
             {
                 int count = ::hifi::qt::getEventQueueSize(QThread::currentThread());
@@ -4253,7 +4271,7 @@ bool Application::event(QEvent* event) {
         { //testing to see if we can set focus when focus is not set to root window.
             _glWidget->activateWindow();
             _glWidget->setFocus();
-            return true; 
+            return true;
         }
 
         case QEvent::TouchBegin:
@@ -5238,7 +5256,7 @@ void Application::idle() {
         }
     }
 #endif
-    
+
     checkChangeCursor();
 
 #if !defined(DISABLE_QML)
@@ -5491,7 +5509,7 @@ void Application::loadSettings() {
     RenderScriptingInterface::getInstance()->loadSettings();
 
     // Setup the PerformanceManager which will enforce the several settings to match the Preset
-    // On the first run, the Preset is evaluated from the 
+    // On the first run, the Preset is evaluated from the
     getPerformanceManager().setupPerformancePresetSettings(_firstRun.get());
 
     // finish initializing the camera, based on everything we checked above. Third person camera will be used if no settings
@@ -5537,9 +5555,9 @@ bool Application::importEntities(const QString& urlOrFilename, const bool isObse
     _entityClipboard->withWriteLock([&] {
         _entityClipboard->eraseAllOctreeElements();
 
-        // FIXME: readFromURL() can take over the main event loop which may cause problems, especially if downloading the JSON 
+        // FIXME: readFromURL() can take over the main event loop which may cause problems, especially if downloading the JSON
         // from the Web.
-        success = _entityClipboard->readFromURL(urlOrFilename, isObservable, callerId);
+        success = _entityClipboard->readFromURL(urlOrFilename, isObservable, callerId, true);
         if (success) {
             _entityClipboard->reaverageOctreeElements();
         }
@@ -5547,8 +5565,8 @@ bool Application::importEntities(const QString& urlOrFilename, const bool isObse
     return success;
 }
 
-QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
-    return _entityClipboard->sendEntities(&_entityEditSender, getEntities()->getTree(), x, y, z);
+QVector<EntityItemID> Application::pasteEntities(const QString& entityHostType, float x, float y, float z) {
+    return _entityClipboard->sendEntities(&_entityEditSender, getEntities()->getTree(), entityHostType, x, y, z);
 }
 
 void Application::init() {
@@ -7063,19 +7081,23 @@ void Application::updateWindowTitle() const {
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto accountManager = DependencyManager::get<AccountManager>();
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
+    bool isMetaverseLoggedIn = accountManager->isLoggedIn();
+    bool isDomainLoggedIn = domainAccountManager->isLoggedIn();
+    QString authedDomain = domainAccountManager->getAuthedDomain();
 
     QString buildVersion = " - Vircadia - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
 
-    QString loginStatus = accountManager->isLoggedIn() ? "" : " (NOT LOGGED IN)";
-
     QString connectionStatus = isInErrorState ? " (ERROR CONNECTING)" :
         nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
-    QString username = accountManager->getAccountInfo().getUsername();
 
-    setCrashAnnotation("sentry[user][username]", username.toStdString());
+    QString metaverseUsername = accountManager->getAccountInfo().getUsername();
+    QString domainUsername = domainAccountManager->getUsername();
+
+    setCrashAnnotation("sentry[user][username]", metaverseUsername.toStdString());
 
     QString currentPlaceName;
     if (isServerlessMode()) {
@@ -7091,8 +7113,22 @@ void Application::updateWindowTitle() const {
         }
     }
 
-    QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + currentPlaceName + connectionStatus + loginStatus + buildVersion;
+    QString metaverseDetails;
+    if (isMetaverseLoggedIn) {
+        metaverseDetails = "Metaverse: Logged in as " + metaverseUsername;
+    } else {
+        metaverseDetails = "Metaverse: Not Logged In";
+    }
+
+    QString domainDetails;
+    if (currentPlaceName == authedDomain && isDomainLoggedIn) {
+        domainDetails = "Domain: Logged in as " + domainUsername;
+    } else {
+        domainDetails = "Domain: Not Logged In";
+    }
+
+    QString title = QString() + currentPlaceName + connectionStatus + " (" + metaverseDetails + ") (" + domainDetails + ")" 
+        + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32
@@ -7621,7 +7657,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 
     QUrl scriptURL { scriptFilenameOrURL };
 
-    if (scriptURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
+    if (scriptURL.host().endsWith(NetworkingConstants::MARKETPLACE_CDN_HOSTNAME)) {
         int startIndex = shortName.lastIndexOf('/') + 1;
         int endIndex = shortName.lastIndexOf('?');
         shortName = shortName.mid(startIndex, endIndex - startIndex);
@@ -7652,7 +7688,7 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(url);
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(networkRequest);
     int requestNumber = ++_avatarAttachmentRequest;
     connect(reply, &QNetworkReply::finished, [this, reply, url, requestNumber]() {
@@ -7744,7 +7780,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
     const int MAX_CHARACTERS_PER_LINE = 90;
     if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
         QUrl originURL { url };
-        if (originURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
+        if (originURL.host().endsWith(NetworkingConstants::MARKETPLACE_CDN_HOSTNAME)) {
             // Create a confirmation dialog when this call is made
             static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
                 "If you want to save what you have now, create a backup before proceeding. For more information about backing up "
@@ -8737,7 +8773,7 @@ bool Application::isThrottleRendering() const {
 bool Application::hasFocus() const {
     bool result = (QApplication::activeWindow() != nullptr);
 
-    
+
 #if defined(Q_OS_WIN)
     // On Windows, QWidget::activateWindow() - as called in setFocus() - makes the application's taskbar icon flash but doesn't
     // take user focus away from their current window. So also check whether the application is the user's current foreground
