@@ -244,7 +244,7 @@ void Model::updateRenderItems() {
                 bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
                 transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, shapeState, meshState, useDualQuaternionSkinning,
-                                                                      invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
+                                                                      invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized, renderWithZones](ModelMeshPartPayload& data) {
                     if (useDualQuaternionSkinning) {
                         data.updateClusterBuffer(meshState.clusterDualQuaternions);
                     } else {
@@ -256,16 +256,18 @@ void Model::updateRenderItems() {
                     data.updateTransformAndBound(modelTransform.worldTransform(shapeState._rootFromJointTransform));
 
                     data.setCauterized(cauterized);
+                    data.setRenderWithZones(renderWithZones);
                     data.updateKey(renderItemKeyGlobalFlags);
                     data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
                 });
             } else {
-                transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, shapeState, invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags](ModelMeshPartPayload& data) {
+                transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, shapeState, invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, renderWithZones](ModelMeshPartPayload& data) {
                     
                     Transform renderTransform = modelTransform;
                     renderTransform = modelTransform.worldTransform(shapeState._rootFromJointTransform);
                     data.updateTransform(renderTransform);
 
+                    data.setRenderWithZones(renderWithZones);
                     data.updateKey(renderItemKeyGlobalFlags);
                     data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, false);
                 }); 

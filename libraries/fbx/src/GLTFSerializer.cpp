@@ -1185,6 +1185,11 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
             int indicesAccessorIdx = primitive.indices;
 
+            if (indicesAccessorIdx > _file.accessors.size()) {
+                qWarning(modelformat) << "Indices accessor index is out of bounds for model " << _url;
+                continue;
+            }
+
             GLTFAccessor& indicesAccessor = _file.accessors[indicesAccessorIdx];
 
             // Buffers
@@ -1221,6 +1226,12 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
             for(auto &key : keys) {
                 int accessorIdx = primitive.attributes.values[key];
+
+                if (accessorIdx > _file.accessors.size()) {
+                    qWarning(modelformat) << "Accessor index is out of bounds for model " << _url;
+                    continue;
+                }
+
                 GLTFAccessor& accessor = _file.accessors[accessorIdx];
                 const auto vertexAttribute = GLTFVertexAttribute::fromString(key);
                 switch (vertexAttribute) {
