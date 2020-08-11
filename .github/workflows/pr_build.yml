@@ -29,7 +29,7 @@ jobs:
   build:
     strategy:
         matrix:
-          os: [windows-latest, macOS-latest, ubuntu-18.04]
+          os: [ubuntu-18.04]
           build_type: [full]
           include:
             - os: ubuntu-18.04
@@ -52,6 +52,9 @@ jobs:
           echo ::set-env name=INSTALLER_EXT::*
           echo ::set-env name=CMAKE_BUILD_EXTRA::"-- -j3"
           echo ::set-env name=CMAKE_EXTRA::"-DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)"
+
+          # Android + Quest build variables
+          echo ::set-env name=HIFI_ANDROID_PRECOMPILED::"${{runner.workspace}}/dependencies"
         fi
         # Mac build variables
         if [ "${{ matrix.os }}" = "macOS-latest" ]; then
@@ -73,6 +76,10 @@ jobs:
         echo ::set-env name=ARTIFACT_PATTERN::Vircadia-Alpha-PR${{ github.event.number }}-*.$INSTALLER_EXT
         # Build type variables
         echo ::set-env name=INSTALLER::Vircadia-Alpha-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+
+        if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
+          mkdir $HIFI_ANDROID_PRECOMPILED
+        fi
     - name: Clear Working Directory
       if: startsWith(matrix.os, 'windows')
       shell: bash
@@ -144,6 +151,18 @@ jobs:
           done
         }
         retry cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA
+    - name: Build for Android + Quest
+      if: matrix.os == 'ubuntu-18.04'
+      shell: bash
+      working-directory: ${{runner.workspace}}/project-athena
+      run: |
+        echo "Pre-cache the vcpkg managed dependencies"
+        $PYTHON_EXEC prebuild.py --build-root ${{runner.workspace}}/build --android interface
+        cd android
+        # Pre-cache the gradle dependencies
+        ./gradlew -m tasks -PHIFI_ANDROID_PRECOMPILED=$HIFI_ANDROID_PRECOMPILED
+        # Build!
+        ./build_android.sh
     - name: Output system stats
       if: ${{ always() }}
       working-directory: ${{runner.workspace}}/build
