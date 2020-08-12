@@ -196,7 +196,7 @@
 
                     <v-list-item
                         v-for="(slide, i) in slides[slideChannel]"
-                        :key="slide"
+                        :key="i"
                     >
                         <v-list-item-avatar size="64">
                             <v-img :src="slide"></v-img>
@@ -233,7 +233,7 @@
                     <v-toolbar-title>Change Presentation Channel</v-toolbar-title>
                     <v-spacer></v-spacer>
                     <v-btn class="mx-2" color="red darken-1" @click="changePresentationChannelDialogShow = false">Close</v-btn>
-                    <v-btn class="mx-2" color="green darken-1" @click="changePresentationChannelDialogShow = false; sendChannelUpdate()">Update</v-btn>
+                    <v-btn class="mx-2" color="green darken-1" @click="changePresentationChannelDialogShow = false; changePresentationChannel()">Update</v-btn>
                 </v-toolbar>
 
                 <v-text-field
@@ -581,7 +581,7 @@ export default {
         // 
         // 
         // },
-        sendChannelUpdate: function () {
+        changePresentationChannel: function () {
             this.presentationChannel = this.changePresentationChannelDialogText;
             this.changePresentationChannelDialogText = '';
         },
@@ -590,6 +590,8 @@ export default {
         },
         updateSlideState: function (data) {
             // This function receives the message from sendSlideChange
+            // console.log("OKAY: " + this.slides[data.slideChannel]);
+            // console.log("WELL: " + this.slides[data.slideChannel][data.currentSlide]);
             if (this.slides[data.slideChannel] && this.slides[data.slideChannel][data.currentSlide]) {
                 this.slideChannel = data.slideChannel;
                 this.currentSlide = data.currentSlide;
@@ -608,7 +610,7 @@ export default {
             if (!slidesToSync) {
                 slidesToSync = this.slides;
             }
-            
+            // console.log("TRIGGERING SYNC: " + JSON.stringify(slidesToSync));
             this.sendAppMessage("web-to-script-sync-state", { 
                 "slides": slidesToSync, 
                 "presentationChannel": this.presentationChannel,

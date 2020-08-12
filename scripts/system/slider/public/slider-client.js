@@ -15,6 +15,16 @@
 
     // VARIABLES
     var presentationChannel = "default-presentation-channel";
+    var lastMessageReceivedData = null;
+    var readyToSendAgain = true;
+    
+    // We use a timeout because it's possible the server hasn't fully saved our data to userData or ATP.
+    var PROCESSING_MSG_DEBOUNCE_TIME = 200; // 200ms
+    // Upon receiving a message, we will wait before allowing any updates 
+    // to be sent as it's possible our app will try to send a repeat of the 
+    // same message that was sent to all clients prior. 
+    // This will result in a loop if we do not prevent it.
+    var SENDING_MESSAGE_DEBOUNCE_TIME = 800; // 800ms
 
     // APP EVENT AND MESSAGING ROUTING
     
@@ -59,14 +69,24 @@
 
     function sendMessage(dataToSend) {
         dataToSend.data.senderEntityID = _this.entityID;
+        dataToSend.data.senderUUID = MyAvatar.sessionUUID;
         // console.log("Sending message from client:" + JSON.stringify(dataToSend));
         // console.log("On channel:" + presentationChannel);
-        Messages.sendMessage(presentationChannel, JSON.stringify(dataToSend));
+        // console.log("lastMessageReceivedData: "+ JSON.stringify(lastMessageReceivedData));
+        // if (dataToSend.command === "display-slide" && lastMessageReceivedData) {
+        //     if (dataToSend.data.slide !== lastMessageReceivedData.slide 
+        //         || dataToSend.data.currentSlide !== lastMessageReceivedData.currentSlide
+        //         || dataToSend.data.slideChannel !== lastMessageReceivedData.slideChannel) {
+        
+        if (debounceSend()) {
+            // We're trying to prevent any possible crazy loops.
+            Messages.sendMessage(presentationChannel, JSON.stringify(dataToSend));
+        }
     }
     
     // FUNCTIONS
     
-    function initializeSliderClientApp () {
+    function updateFromStorage () {
         var retrievedUserData = Entities.getEntityProperties(_this.entityID).userData;
         if (retrievedUserData != "") {
             retrievedUserData = JSON.parse(retrievedUserData);
@@ -83,7 +103,7 @@
                 },
                 function (error, result) {
                     if (error) {
-                        print("ERROR: Slide data not downloaded, bootstrapping for ATP use: "+ error);
+                        // print("ERROR: Slide data not downloaded, bootstrapping for ATP use: "+ error);
 
                         sendToWeb("script-to-web-initialize", { userData: retrievedUserData });
                     } else {
@@ -92,7 +112,8 @@
                             // result = JSON.parse(result);
                         }
                         
-                        // print("Retrieved Slide Data: " + result.response);
+                        print("Retrieved DATA from from ATP.");
+                        // print("Retrieved DATA FROM ATP: " + JSON.stringify(result.response));
                         
                         if (result.presentationChannel) {
                             // console.log("Triggering an update for presentation channel to:" + retrievedUserData.presentationChannel);
@@ -110,10 +131,29 @@
                 // console.log("Triggering an update for presentation channel to:" + retrievedUserData.presentationChannel);
                 updatePresentationChannel(retrievedUserData.presentationChannel)
             }
-            
+            print("Retrieved DATA from userData.");
+            // print("Retrieved DATA FROM USERDATA: " + retrievedUserData);
             sendToWeb("script-to-web-initialize", { userData: retrievedUserData });
         }
     }
+    
+    function initializeSliderClientApp () {
+        updateFromStorage();
+    }
+    
+    function debounceSend() {
+        if(readyToSendAgain) {
+            // console.log("Ready.");
+            readyToSendAgain = false;
+            Script.setTimeout(function() {
+                readyToSendAgain = true;
+            }, SENDING_MESSAGE_DEBOUNCE_TIME);
+            return true;
+        } else {
+            // console.log("Not ready.");
+            return false;
+        }
+    };
     
     function onMessageReceived(channel, message, sender, localOnly) {
         if (channel === presentationChannel) {
@@ -121,7 +161,12 @@
             if (messageJSON.command === "display-slide" ) { // We are receiving a slide.
                 if (messageJSON.data.senderEntityID === _this.entityID && MyAvatar.sessionUUID != sender) {
                     // We got a message that this entity changed a slide, so let's update all instances of this entity for everyone.
-                    sendToWeb('script-to-web-update-slide-state', messageJSON.data);
+                    lastMessageReceivedData = messageJSON.data;
+                    updateFromStorage();
+                    Script.setTimeout(function () {
+                        debounceSend();
+                        sendToWeb('script-to-web-update-slide-state', messageJSON.data);
+                    }, PROCESSING_MSG_DEBOUNCE_TIME);
                 }
                 // console.log("FULL MESSAGE RECEIVED: " + JSON.stringify(messageJSON.data));
                 // console.log("Who are they?" + sender);
@@ -142,6 +187,7 @@
     }
     
     function saveState (data) {
+        // console.log("SAVING STATE: " + JSON.stringify(data));
         if (data.atp && data.atp.use === true) {
             // If ATP is activated, save there...
             // console.log("SAVING TO ATP!");
@@ -155,7 +201,7 @@
                     if (error) {
                         print("ERROR: Slider data not uploaded or mapping not set: " + error);
                     } else {
-                        print("Successfully saved: " + result.url);  // atp:/assetsExamples/helloWorld.txt
+                        // print("Successfully saved: " + result.url); 
                     }
                 }
             );
