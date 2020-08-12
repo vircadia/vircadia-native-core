@@ -528,7 +528,6 @@ SelectionManager = (function() {
             } else {
                 delete properties.position;
             }
-            properties.name = getDuplicateAppendedName(properties.name);
             copiedProperties.push(properties);
         });
 
