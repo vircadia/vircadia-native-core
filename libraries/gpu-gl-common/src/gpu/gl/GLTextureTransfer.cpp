@@ -191,7 +191,7 @@ void GLTextureTransferEngineDefault::updateMemoryPressure() {
     if (0 == allowedMemoryAllocation) {
         // Automatic allocation
 
-        if ( GLBackend::availableMemoryKnown() ) {
+        if (GLBackend::availableMemoryKnown()) {
             // If we know how much is free, then we use that
             useAvailableGlMemory = true;
         } else {
@@ -199,7 +199,7 @@ void GLTextureTransferEngineDefault::updateMemoryPressure() {
             // and hope it works.
             allowedMemoryAllocation = GLBackend::getTotalMemory() * MAX_AUTO_FRACTION_OF_TOTAL_MEMORY;
 
-            if ( 0 == allowedMemoryAllocation ) {
+            if (0 == allowedMemoryAllocation) {
                 // Last resort, if we failed to detect
                 allowedMemoryAllocation = DEFAULT_ALLOWED_TEXTURE_MEMORY;
             }
@@ -238,14 +238,14 @@ void GLTextureTransferEngineDefault::updateMemoryPressure() {
     size_t unallocated = idealMemoryAllocation - totalVariableMemoryAllocation;
     float pressure = 0;
 
-    if ( useAvailableGlMemory ) {
-        float total_mem = GLBackend::getTotalMemory();
-        float avail_mem = GLBackend::getAvailableMemory() - AUTO_RESERVE_TEXTURE_MEMORY;
-        if ( avail_mem < 0 ) {
-            avail_mem = 0;
+    if (useAvailableGlMemory) {
+        float totalMem = GLBackend::getTotalMemory();
+        float availMem = GLBackend::getAvailableMemory() - AUTO_RESERVE_TEXTURE_MEMORY;
+        if (availMem < 0) {
+            availMem = 0;
         }
 
-        pressure = (total_mem - avail_mem) / total_mem;
+        pressure = (totalMem - availMem) / totalMem;
     } else {
         pressure = (float)totalVariableMemoryAllocation / (float)allowedMemoryAllocation;
     }

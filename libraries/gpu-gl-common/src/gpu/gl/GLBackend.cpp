@@ -160,7 +160,6 @@ void GLBackend::init() {
             qCDebug(gpugllogging) << "GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX: " << GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX;
             qCDebug(gpugllogging) << "GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX: " << GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX;
             qCDebug(gpugllogging) << "GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX: " << GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
-            qCDebug(gpugllogging) << "sz: " << sizeof(_totalMemory);
 
             _totalMemory = GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX * BYTES_PER_KIB;
             _dedicatedMemory = GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX * BYTES_PER_KIB;
@@ -237,10 +236,14 @@ size_t GLBackend::getAvailableMemory() {
 
 bool GLBackend::availableMemoryKnown() {
     switch( _videoCard ) {
-        case NVIDIA: return true;
-        case ATI: return true;
-        case MESA: return false;
-        case Unknown: return false;
+        case NVIDIA:
+            return true;
+        case ATI:
+            return true;
+        case MESA:
+            return false;
+        case Unknown:
+            return false;
     }
 
     return false;
