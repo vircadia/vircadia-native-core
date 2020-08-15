@@ -30,16 +30,19 @@ jobs:
     strategy:
         matrix:
           include:
-            - os: ubuntu-18.04
+            - name: ubuntu-18.04, full
+              os: ubuntu-18.04
               build_type: full
               apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
 
-            - os: ubuntu-18.04
+            - name: android
+              os: ubuntu-18.04
               build_type: full
               apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
               android: true
 
         fail-fast: false
+    name: build (${{matrix.name}})
     runs-on: ${{matrix.os}}
     if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
     steps:
@@ -48,9 +51,9 @@ jobs:
       id: buildenv1
       run: |
         echo ::set-env name=GIT_COMMIT_SHORT::`echo $GIT_COMMIT | cut -c1-7`
+        echo ::set-env name=JOB_NAME::"build (${{matrix.name}})"
         if [[ "${{ matrix.android }}" = "true" ]]; then
           # Android + Quest build variables
-          echo ::set-env name=JOB_NAME::"build (android)"
           HIFI_ANDROID_PRECOMPILED="${{runner.workspace}}/dependencies"
           echo ::set-env name=HIFI_ANDROID_PRECOMPILED::"$HIFI_ANDROID_PRECOMPILED"
           echo ::set-env name=ARTIFACT_PATTERN::*.apk
@@ -113,7 +116,6 @@ jobs:
       shell: bash
       run: cmake -E make_directory "${{runner.workspace}}/build"
     - name: Configure CMake
-      if: ${{ !matrix.android }}
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release $CMAKE_EXTRA
