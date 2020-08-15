@@ -197,7 +197,7 @@ jobs:
         GITHUB_CONTEXT: ${{ toJson(github) }}
       run: |
         if [[ "${{ matrix.android }}" = "true" ]]; then
-          cd ${{runner.workspace}}/android
+          cd $GITHUB_WORKSPACE/android
         else
           cd ${{runner.workspace}}/build
         fi
