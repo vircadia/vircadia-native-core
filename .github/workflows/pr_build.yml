@@ -193,7 +193,12 @@ jobs:
       run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
     - name: Upload Artifact
       shell: bash
-      working-directory: ${{runner.workspace}}/build
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
-      run: $PYTHON_EXEC "$GITHUB_WORKSPACE/tools/ci-scripts/upload_to_publish_server.py"
+      run: |
+        if [[ "${{ matrix.android }}" = "true" ]]; then
+          cd ${{runner.workspace}}/android
+        else
+          cd ${{runner.workspace}}/build
+        fi
+        $PYTHON_EXEC "$GITHUB_WORKSPACE/tools/ci-scripts/upload_to_publish_server.py"
