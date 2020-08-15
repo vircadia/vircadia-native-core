@@ -14,6 +14,8 @@ Item {
     property alias webViewCoreProfile: webViewCore.profile
     property string webViewCoreUserAgent
 
+    property string webBackgroundColor: "#FFFFFFFF"
+
     property string userScriptUrl: ""
     property string urlTag: "noDownload=false";
 

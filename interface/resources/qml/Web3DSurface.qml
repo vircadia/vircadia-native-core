@@ -18,22 +18,31 @@ Item {
     anchors.fill: parent
     property string url: ""
     property string scriptUrl: null
+    property string webBackgroundColor: "#FFFFFFFF"
 
     onUrlChanged: {
-        load(root.url, root.scriptUrl);
+        load(root.url, root.scriptUrl, root.webBackgroundColor);
     }
 
     onScriptUrlChanged: {
         if (root.item) {
             root.item.scriptUrl = root.scriptUrl;
         } else {
-            load(root.url, root.scriptUrl);
+            load(root.url, root.scriptUrl, root.webBackgroundColor);
+        }
+    }
+
+    onWebBackgroundColorChanged: {
+        if (root.item) {
+            root.item.webBackgroundColor = root.webBackgroundColor;
+        } else {
+            load(root.url, root.scriptUrl, root.webBackgroundColor);
         }
     }
 
     property var item: null
 
-    function load(url, scriptUrl) {
+    function load(url, scriptUrl, webBackgroundColor) {
         // Ensure we reset any existing item to "about:blank" to ensure web audio stops: DEV-2375
         if (root.item != null) {
             root.item.url = "about:blank"
@@ -44,12 +53,12 @@ Item {
             root.item = newItem
             root.item.url = url
             root.item.scriptUrl = scriptUrl
-            root.item.transparentBackground = true
+            root.item.transparentBackground = webBackgroundColor.endsWith("FF") ? true : false
         })
     }
 
     Component.onCompleted: {
-        load(root.url, root.scriptUrl);
+        load(root.url, root.scriptUrl, root.webBackgroundColor);
     }
 
     signal sendToScript(var message);

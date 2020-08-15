@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -601,6 +602,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MAX_FPS, maxFPS);
     CHECK_PROPERTY_CHANGE(PROP_INPUT_MODE, inputMode);
     CHECK_PROPERTY_CHANGE(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, showKeyboardFocusHighlight);
+    CHECK_PROPERTY_CHANGE(PROP_WEB_BACKGROUND_COLOR, webBackgroundColor);
 
     // Polyline
     CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
@@ -1819,6 +1821,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAX_FPS, maxFPS);
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_INPUT_MODE, inputMode, getInputModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, showKeyboardFocusHighlight);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_WEB_BACKGROUND_COLOR, webBackgroundColor);
     }
 
     // PolyVoxel only
@@ -2200,6 +2203,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(maxFPS, uint8_t, setMaxFPS);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(inputMode, InputMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(showKeyboardFocusHighlight, bool, setShowKeyboardFocusHighlight);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(webBackgroundColor, QString, setWebBackgroundColor);
 
     // Polyline
     COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
@@ -2491,6 +2495,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(maxFPS);
     COPY_PROPERTY_IF_CHANGED(inputMode);
     COPY_PROPERTY_IF_CHANGED(showKeyboardFocusHighlight);
+    COPY_PROPERTY_IF_CHANGED(webBackgroundColor);
 
     // Polyline
     COPY_PROPERTY_IF_CHANGED(linePoints);
@@ -2890,6 +2895,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_MAX_FPS, MaxFPS, maxFPS, uint8_t);
         ADD_PROPERTY_TO_MAP(PROP_INPUT_MODE, InputMode, inputMode, WebInputMode);
         ADD_PROPERTY_TO_MAP(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, ShowKeyboardFocusHighlight, showKeyboardFocusHighlight, bool);
+        ADD_PROPERTY_TO_MAP(PROP_WEB_BACKGROUND_COLOR, WebBackgroundColor, webBackgroundColor, QString);
 
         // Polyline
         ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<vec3>);
@@ -3320,6 +3326,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_MAX_FPS, properties.getMaxFPS());
                 APPEND_ENTITY_PROPERTY(PROP_INPUT_MODE, (uint32_t)properties.getInputMode());
                 APPEND_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, properties.getShowKeyboardFocusHighlight());
+                APPEND_ENTITY_PROPERTY(PROP_WEB_BACKGROUND_COLOR, properties.getWebBackgroundColor());
             }
 
             if (properties.getType() == EntityTypes::Line) {
@@ -3795,6 +3802,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_FPS, uint8_t, setMaxFPS);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INPUT_MODE, WebInputMode, setInputMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, bool, setShowKeyboardFocusHighlight);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_WEB_BACKGROUND_COLOR, QString, setWebBackgroundColor);
     }
 
     if (properties.getType() == EntityTypes::Line) {
@@ -4182,6 +4190,7 @@ void EntityItemProperties::markAllChanged() {
     _maxFPSChanged = true;
     _inputModeChanged = true;
     _showKeyboardFocusHighlightChanged = true;
+    _webBackgroundColor = true;
 
     // Polyline
     _linePointsChanged = true;
@@ -4871,6 +4880,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (showKeyboardFocusHighlightChanged()) {
         out += "showKeyboardFocusHighlight";
+    }
+    if (webBackgroundColorChanged()) {
+        out += "webBackgroundColor";
     }
 
     // Shape

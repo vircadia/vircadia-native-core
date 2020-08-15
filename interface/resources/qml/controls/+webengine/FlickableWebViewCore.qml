@@ -15,6 +15,7 @@ Item {
     property alias webViewCore: webViewCore
     property alias webViewCoreProfile: webViewCore.profile
     property string webViewCoreUserAgent
+    property string webBackgroundColor: "#FFFFFFFF" // Fully opaque white.
 
     property string userScriptUrl: ""
     property string urlTag: "noDownload=false";
@@ -98,7 +99,10 @@ Item {
 
         width: parent.width
         height: parent.height
-        backgroundColor: "transparent"
+        //backgroundColor: "transparent"
+        //backgroundColor: "#FFFF00CC"
+        backgroundColor: flick.webBackgroundColor
+        //backgroundColor: Qt.rgba(0.502, 0.502, 0.502, 0.502)
 
         profile: HFWebEngineProfile;
         settings.pluginsEnabled: true
