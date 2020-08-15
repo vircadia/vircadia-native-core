@@ -1686,7 +1686,9 @@ HFMModel::Pointer GLTFSerializer::read(const hifi::ByteArray& data, const hifi::
         HFMModel& hfmModel = *hfmModelPtr;
         buildGeometry(hfmModel, mapping, _url);
 
-        //hfmDebugDump(data);
+        //hfmDebugDump(hfmModel);
+        //glTFDebugDump();
+
         return hfmModelPtr;
     } else {
         qCDebug(modelformat) << "Error parsing GLTF file.";
@@ -2037,6 +2039,8 @@ void GLTFSerializer::retriangulate(const QVector<int>& inIndices, const QVector<
 }
 
 void GLTFSerializer::glTFDebugDump() {
+    qCDebug(modelformat) << "---------------- GLTF Model ----------------";
+
     qCDebug(modelformat) << "---------------- Nodes ----------------";
     for (GLTFNode node : _file.nodes) {
         if (node.defined["mesh"]) {
@@ -2070,6 +2074,8 @@ void GLTFSerializer::glTFDebugDump() {
 
 void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
     qCDebug(modelformat) << "---------------- hfmModel ----------------";
+    qCDebug(modelformat) << "  originalURL =" << hfmModel.originalURL;
+
     qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
     qCDebug(modelformat) << "  offset =" << hfmModel.offset;
 
@@ -2207,9 +2213,6 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
         qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.geometricScaling;
         qCDebug(modelformat) << "\n";
     }
-
-    qCDebug(modelformat) << "---------------- GLTF Model ----------------";
-    glTFDebugDump();
 
     qCDebug(modelformat) << "\n";
 }
