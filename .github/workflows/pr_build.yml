@@ -55,7 +55,7 @@ jobs:
           echo ::set-env name=HIFI_ANDROID_PRECOMPILED::"$HIFI_ANDROID_PRECOMPILED"
           echo ::set-env name=ARTIFACT_PATTERN::*.apk
           mkdir $HIFI_ANDROID_PRECOMPILED
-        else; then
+        else
           echo ::set-env name=JOB_NAME::"build (${{matrix.os}}, ${{matrix.build_type}})"
         fi
 
