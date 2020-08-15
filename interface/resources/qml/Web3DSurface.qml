@@ -53,7 +53,7 @@ Item {
             root.item = newItem
             root.item.url = url
             root.item.scriptUrl = scriptUrl
-            root.item.transparentBackground = webBackgroundColor.endsWith("FF") ? true : false
+            root.item.transparentBackground = webBackgroundColor.endsWith("FF") ? false : true
         })
     }
 
