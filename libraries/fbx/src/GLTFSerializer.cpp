@@ -21,6 +21,9 @@
 #include <QtCore/qpair.h>
 #include <QtCore/qlist.h>
 
+// FIXME: Delete
+#include <QProcessEnvironment>
+
 
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
@@ -1553,32 +1556,48 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             break;
                         }
                         QList<QVariant> mappings = blendshapeMappings.values(blendshapeName);
-                        foreach (const QVariant& mapping, mappings) {
-                            QVariantList blendshapeMapping = mapping.toList();
-                            blendshapeIndices.insert(blendshapeMapping.at(0).toByteArray(), WeightedIndex(i, blendshapeMapping.at(1).toFloat()));
+                        if (mappings.isEmpty()) {
+                            // Add mappings for blendshape targets in the glTF gile.
+                            if (_file.meshes[node.mesh].extras.targetNames.contains(blendshapeName)) {
+                                blendshapeIndices.insert(blendshapeName, WeightedIndex(i, 1.0f));
+                            }
+                        } else {
+                            // Add mappings from FST.
+                            foreach(const QVariant & mapping, mappings) {
+                                QVariantList blendshapeMapping = mapping.toList();
+                                blendshapeIndices.insert(blendshapeMapping.at(0).toByteArray(),
+                                    WeightedIndex(i, blendshapeMapping.at(1).toFloat()));
+                            }
                         }
                     }
 
                     // glTF morph targets may or may not have names. if they are labeled, add them based on
                     // the corresponding names from the FST. otherwise, just add them in the order they are given
-                    mesh.blendshapes.resize(blendshapeMappings.size());
+                    mesh.blendshapes.resize((int)Blendshapes::BlendshapeCount);
                     auto values = blendshapeIndices.values();
                     auto keys = blendshapeIndices.keys();
                     auto names = _file.meshes[node.mesh].extras.targetNames;
                     QVector<double> weights = _file.meshes[node.mesh].weights;
 
                     for (int weightedIndex = 0; weightedIndex < values.size(); ++weightedIndex) {
-                        float weight = 0.1f;
+                        float weight = 1.0f;
+
+                        // FIXME: Original glTF code for avatars set weight = 0.1f but this isn't correct for entities.
+                        // For development testing, the default weight to use can be set by setting the value of an environment
+                        // variable,  "DEFAULT_GLTF_WEIGHT".
+                        weight = QProcessEnvironment::systemEnvironment().value("DEFAULT_GLTF_WEIGHT", "1.0").toFloat();
+
                         int indexFromMapping = weightedIndex;
                         int targetIndex = weightedIndex;
                         hfmModel.blendshapeChannelNames.push_back("target_" + QString::number(weightedIndex));
 
-                        if (!names.isEmpty()) {
+                        if (!names.isEmpty() && names.contains(keys[weightedIndex])) {
                             targetIndex = names.indexOf(keys[weightedIndex]);
                             indexFromMapping = values[weightedIndex].first;
                             weight = weight * values[weightedIndex].second;
                             hfmModel.blendshapeChannelNames[weightedIndex] = keys[weightedIndex];
                         }
+
                         HFMBlendshape& blendshape = mesh.blendshapes[indexFromMapping];
                         blendshape.indices = part.triangleIndices;
                         auto target = primitive.targets[targetIndex];
