@@ -10,7 +10,6 @@ Controls.WebView {
     anchors.fill: parent
     focus: true
     profile: HFWebEngineProfile;
-    // backgroundColor: "transparent"
 
     property string userScriptUrl: ""
 

@@ -8,7 +8,6 @@ WebView {
     id: webview
     url: "https://vircadia.com/"
     profile: FileTypeProfile;
-    // backgroundColor: "transparent"
     
     property var parentRoot: null
 
