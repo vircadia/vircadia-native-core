@@ -29,12 +29,16 @@ jobs:
   build:
     strategy:
         matrix:
-          os: [ubuntu-18.04]
-          build_type: [full]
           include:
             - os: ubuntu-18.04
               build_type: full
               apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+
+            - os: ubuntu-18.04
+              build_type: full
+              apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+              android: true
+
         fail-fast: false
     runs-on: ${{matrix.os}}
     if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
@@ -44,7 +48,16 @@ jobs:
       id: buildenv1
       run: |
         echo ::set-env name=GIT_COMMIT_SHORT::`echo $GIT_COMMIT | cut -c1-7`
-        echo ::set-env name=JOB_NAME::"build (${{matrix.os}}, ${{matrix.build_type}})"
+        if [[ "${{ matrix.android }}" = "true" ]]; then
+          # Android + Quest build variables
+          echo ::set-env name=JOB_NAME::"build (android)"
+          HIFI_ANDROID_PRECOMPILED="${{runner.workspace}}/dependencies"
+          echo ::set-env name=HIFI_ANDROID_PRECOMPILED::"$HIFI_ANDROID_PRECOMPILED"
+          echo ::set-env name=ARTIFACT_PATTERN::*.apk
+          mkdir $HIFI_ANDROID_PRECOMPILED
+        else; then
+          echo ::set-env name=JOB_NAME::"build (${{matrix.os}}, ${{matrix.build_type}})"
+        fi
 
         # Linux build variables
         if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
@@ -52,9 +65,6 @@ jobs:
           echo ::set-env name=INSTALLER_EXT::*
           echo ::set-env name=CMAKE_BUILD_EXTRA::"-- -j3"
           echo ::set-env name=CMAKE_EXTRA::"-DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)"
-
-          # Android + Quest build variables
-          echo ::set-env name=HIFI_ANDROID_PRECOMPILED::"${{runner.workspace}}/dependencies"
         fi
         # Mac build variables
         if [ "${{ matrix.os }}" = "macOS-latest" ]; then
@@ -73,12 +83,10 @@ jobs:
       shell: bash
       run: |
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
-        echo ::set-env name=ARTIFACT_PATTERN::Vircadia-Alpha-PR${{ github.event.number }}-*.$INSTALLER_EXT
-        # Build type variables
-        echo ::set-env name=INSTALLER::Vircadia-Alpha-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
-
-        if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
-          mkdir $HIFI_ANDROID_PRECOMPILED
+        if [[ "${{ matrix.android }}" = "" ]]; then
+          echo ::set-env name=ARTIFACT_PATTERN::Vircadia-Alpha-PR${{ github.event.number }}-*.$INSTALLER_EXT
+          # Build type variables
+          echo ::set-env name=INSTALLER::Vircadia-Alpha-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
         fi
     - name: Clear Working Directory
       if: startsWith(matrix.os, 'windows')
@@ -105,26 +113,32 @@ jobs:
       shell: bash
       run: cmake -E make_directory "${{runner.workspace}}/build"
     - name: Configure CMake
+      if: ${{ !matrix.android }}
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release $CMAKE_EXTRA
     - name: Build Application
+      if: ${{ !matrix.android }}
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target $APP_NAME $CMAKE_BUILD_EXTRA
     - name: Build Domain Server
+      if: ${{ !matrix.android }}
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target domain-server $CMAKE_BUILD_EXTRA
     - name: Build Assignment Client
+      if: ${{ !matrix.android }}
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target assignment-client $CMAKE_BUILD_EXTRA
     - name: Build Console
+      if: ${{ !matrix.android }}
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target packaged-server-console $CMAKE_BUILD_EXTRA
     - name: Build Installer
+      if: ${{ !matrix.android }}
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: |
@@ -152,7 +166,7 @@ jobs:
         }
         retry cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA
     - name: Build for Android + Quest
-      if: matrix.os == 'ubuntu-18.04'
+      if: ${{ matrix.android }}
       shell: bash
       working-directory: ${{runner.workspace}}/project-athena
       run: |
