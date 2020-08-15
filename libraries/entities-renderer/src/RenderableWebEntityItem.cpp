@@ -207,7 +207,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                 {
                     auto scriptURL = entity->getScriptURL();
                     if (_scriptURL != scriptURL) {
-                        _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
+                        _webSurface->getRootItem()->setProperty("scriptURL", scriptURL);
                         _scriptURL = scriptURL;
                     }
                 }
