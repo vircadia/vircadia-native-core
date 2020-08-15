@@ -170,6 +170,8 @@ public:
     static QVector<int> getIntVector(const FBXNode& node);
     static QVector<float> getFloatVector(const FBXNode& node);
     static QVector<double> getDoubleVector(const FBXNode& node);
+
+    void hfmDebugDump(const HFMModel& hfmModel);
 };
 
 #endif // hifi_FBXSerializer_h
