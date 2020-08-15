@@ -540,8 +540,7 @@ bool GLTFSerializer::addMesh(const QJsonObject& object) {
                 }
 
                 QJsonArray jsTargets;
-                if (getObjectArrayVal(jsPrimitive, "targets", jsTargets, primitive.defined))
-                {
+                if (getObjectArrayVal(jsPrimitive, "targets", jsTargets, primitive.defined)) {
                     foreach(const QJsonValue & tar, jsTargets) {
                         if (tar.isObject()) {
                             QJsonObject jsTarget = tar.toObject();
@@ -555,7 +554,7 @@ bool GLTFSerializer::addMesh(const QJsonObject& object) {
                             primitive.targets.push_back(target);
                         }
                     }
-                }                
+                }
                 mesh.primitives.push_back(primitive);
             }
         }
@@ -830,6 +829,8 @@ void GLTFSerializer::generateTargetData(int index, float weight, QVector<glm::ve
 }
 
 bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& mapping, const hifi::URL& url) {
+    hfmModel.originalURL = url.toString();
+
     int numNodes = _file.nodes.size();
 
     //Build dependencies
@@ -1539,7 +1540,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                 // populate the texture coordinates if they don't exist
                 if (mesh.texCoords.size() == 0 && !hfmModel.hasSkeletonJoints) {
-                    for (int i = 0; i < part.triangleIndices.size(); ++i) { mesh.texCoords.push_back(glm::vec2(0.0, 1.0)); }
+                    for (int i = 0; i < part.triangleIndices.size(); ++i) { 
+                        mesh.texCoords.push_back(glm::vec2(0.0, 1.0));
+                    }
                 }
 
                 // Build morph targets (blend shapes)
