@@ -4,6 +4,7 @@
 //
 //  Created by Vlad Stelmahovsky on 15/5/2018.
 //  Copyright 2018 High Fidelity, Inc.
+//  Copyright 2020 Vircadia Contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -16,10 +17,10 @@
 #include <QObject>
 
 /**jsdoc
- * The <code>HifiAbout</code> API provides information about the version of Interface that is currently running. It also
- * has the functionality to open a web page in an Interface browser window.
+ * The <code>About</code> API provides information about the version of Interface that is currently running. It also has the
+ * functionality to open a web page in an Interface browser window.
  *
- * @namespace HifiAbout
+ * @namespace About
  *
  * @hifi-interface
  * @hifi-client-entity
@@ -30,9 +31,28 @@
  * @property {string} qtVersion - The Qt version used in Interface that is currently running. <em>Read-only.</em>
  *
  * @example <caption>Report build information for the version of Interface currently running.</caption>
- * print("HiFi build date: " + HifiAbout.buildDate);  // Returns the build date of the version of Interface currently running on your machine.
- * print("HiFi version: " + HifiAbout.buildVersion);  // Returns the build version of Interface currently running on your machine.
- * print("Qt version: " + HifiAbout.qtVersion);  // Returns the Qt version details of the version of Interface currently running on your machine.
+ * print("Interface build date: " + About.buildDate);
+ * print("Interface version: " + About.buildVersion);
+ * print("Qt version: " + About.qtVersion);
+ */
+
+ /**jsdoc
+ * The <code>HifiAbout</code> API provides information about the version of Interface that is currently running. It also
+ * has the functionality to open a web page in an Interface browser window.
+ *
+ * @namespace HifiAbout
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-avatar
+ *
+ * @deprecated This API is deprecated and will be removed. Use the {@link About} API instead.
+ *
+ * @property {string} buildDate - The build date of Interface that is currently running. <em>Read-only.</em>
+ * @property {string} buildVersion - The build version of Interface that is currently running. <em>Read-only.</em>
+ * @property {string} qtVersion - The Qt version used in Interface that is currently running. <em>Read-only.</em>
+ *
+ * @borrows About.openUrl as openUrl
  */
 
 class AboutUtil : public QObject {
@@ -53,7 +73,7 @@ public slots:
 
     /**jsdoc
      * Display a web page in an Interface browser window.
-     * @function HifiAbout.openUrl
+     * @function About.openUrl
      * @param {string} url - The URL of the web page you want to view in Interface.
      */
     void openUrl(const QString &url) const;

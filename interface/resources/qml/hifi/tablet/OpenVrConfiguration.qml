@@ -894,7 +894,7 @@ Flickable {
                     hoverEnabled: true
                     onEntered: privacyPolicyUnderline.visible = true;
                     onExited: privacyPolicyUnderline.visible = false;
-                    onClicked: HiFiAbout.openUrl("https://vircadia.com/privacy-policy");
+                    onClicked: About.openUrl("https://vircadia.com/privacy-policy");
                 }
             }
 
