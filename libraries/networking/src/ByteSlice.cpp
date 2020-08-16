@@ -13,19 +13,28 @@
 
 quint8 ByteSlice::_fallback{ 0 };
 
-ByteSlice::Bytestring::Bytestring(const quint8* source, size_t length) {
+ByteSlice::ByteString::ByteString(const quint8* source, size_t length) {
     quint8* myContent = new quint8[length];
-    if (source != nullptr) {
-        memcpy(myContent, source, length);
-    } else {
-        memset(myContent, 0, length);
-    }
+    memcpy(myContent, source, length);
     _content = myContent;
     _fullLength = length;
 }
 
-ByteSlice::Bytestring::~Bytestring() {
+ByteSlice::ByteString::ByteString(size_t length) {
+    quint8* myContent = new quint8[length];
+    memset(myContent, 0, length);
+    _content = myContent;
+    _fullLength = length;
+}
+
+ByteSlice::ByteString::~ByteString() {
     delete[] _content;
+}
+
+void ByteSlice::clear() {
+    _offset = 0;
+    _length = 0;
+    _content.reset();
 }
 
 quint8 ByteSlice::pop_front() {
@@ -36,12 +45,12 @@ quint8 ByteSlice::pop_front() {
     return _content->_content[_offset++];
 }
 
-ByteSlice ByteSlice::substring(size_t offset, size_t length /* = static_cast<size_t>(-1) */) const {
+ByteSlice ByteSlice::substring(size_t offset, size_t length) const {
     if (offset >= _length) {
         return ByteSlice();
     }
     size_t maxLen = _length - offset;
-    if (length == static_cast<size_t>(-1)) {
+    if (length == NPOS) {
         return ByteSlice(_content, _offset + offset, maxLen);
     } else {
         return ByteSlice(_content, _offset + offset, std::min(maxLen, length));
@@ -52,7 +61,7 @@ ByteSlice ByteSlice::substring(size_t offset, size_t length /* = static_cast<siz
 void* ByteSlice::create(size_t length) {
     _offset = 0;
     _length = length;
-    _content = BytestringPointer::create(nullptr, length);
+    _content = ByteStringPointer::create(length);
     return const_cast<quint8*>(_content->_content);
 }
 
@@ -69,7 +78,7 @@ ByteSlice ByteSlice::concat(const ByteSlice& rhs) const {
 
     // next check to see if we're "lucky" and we already have the data within ourselves
     size_t rhsLength = rhs.length();
-    if (_offset + _length + rhsLength >= _content->_fullLength && memcmp(&_content->_content[_offset+_length], rhs.constData(), rhsLength) == 0) {
+    if (_offset + _length + rhsLength <= _content->_fullLength && memcmp(&_content->_content[_offset+_length], rhs.constData(), rhsLength) == 0) {
         // "the answer was within you the whole time"
         return ByteSlice(_content, _offset, _length + rhsLength);
     }
