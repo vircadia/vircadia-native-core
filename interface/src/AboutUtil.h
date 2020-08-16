@@ -26,11 +26,14 @@
  * @hifi-client-entity
  * @hifi-avatar
  *
+ * @property {string} platform - The name of the Interface platform running, e,g., <code>"Vircadia"</code> for the Vircadia.
+ *     <em>Read-only.</em>
  * @property {string} buildDate - The build date of Interface that is currently running. <em>Read-only.</em>
  * @property {string} buildVersion - The build version of Interface that is currently running. <em>Read-only.</em>
  * @property {string} qtVersion - The Qt version used in Interface that is currently running. <em>Read-only.</em>
  *
- * @example <caption>Report build information for the version of Interface currently running.</caption>
+ * @example <caption>Report information on the version of Interface currently running.</caption>
+ * print("Interface platform: " + About.platform);
  * print("Interface build date: " + About.buildDate);
  * print("Interface version: " + About.buildVersion);
  * print("Qt version: " + About.qtVersion);
@@ -48,6 +51,8 @@
  *
  * @deprecated This API is deprecated and will be removed. Use the {@link About} API instead.
  *
+ * @property {string} platform - The name of the Interface platform running, e,g., <code>"Vircadia"</code> for the Vircadia.
+ *     <em>Read-only.</em>
  * @property {string} buildDate - The build date of Interface that is currently running. <em>Read-only.</em>
  * @property {string} buildVersion - The build version of Interface that is currently running. <em>Read-only.</em>
  * @property {string} qtVersion - The Qt version used in Interface that is currently running. <em>Read-only.</em>
@@ -58,6 +63,7 @@
 class AboutUtil : public QObject {
     Q_OBJECT
 
+    Q_PROPERTY(QString platform READ getPlatformName CONSTANT)
     Q_PROPERTY(QString buildDate READ getBuildDate CONSTANT)
     Q_PROPERTY(QString buildVersion READ getBuildVersion CONSTANT)
     Q_PROPERTY(QString qtVersion READ getQtVersion CONSTANT)
@@ -65,6 +71,7 @@ public:
     static AboutUtil* getInstance();
     ~AboutUtil() {}
 
+    QString getPlatformName() const { return "Vircadia"; }
     QString getBuildDate() const;
     QString getBuildVersion() const;
     QString getQtVersion() const;
