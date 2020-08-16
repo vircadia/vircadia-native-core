@@ -31,6 +31,7 @@ public:
     inline ByteSlice(const QByteArray& data) : _offset(0), _length(data.length()), _content(ByteStringPointer::create(reinterpret_cast<const quint8*>(data.constData()), data.length())) {}
     inline ByteSlice(const std::string& data) : _offset(0), _length(data.length()), _content(ByteStringPointer::create(reinterpret_cast<const quint8*>(data.c_str()), data.length())) {}
     inline ByteSlice(const ByteSlice& data) : _offset(data._offset), _length(data._length), _content(data._content) {}
+    inline ByteSlice(ByteSlice&& data) noexcept : _offset(data._offset), _length(data._length) { _content.swap(data._content); }
     void* create(size_t length);  // create a new buffer and return a pointer to it
 
     inline size_t length() const { return _length; }
