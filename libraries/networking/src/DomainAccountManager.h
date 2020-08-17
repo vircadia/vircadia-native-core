@@ -23,6 +23,7 @@ class DomainAccountManager : public QObject, public Dependency {
 public:
     DomainAccountManager();
 
+    void setDomainURL(const QUrl& domainURL);
     void setAuthURL(const QUrl& authURL);
     void setClientID(const QString& clientID) { _clientID = clientID; }
 
@@ -31,6 +32,7 @@ public:
     QString getRefreshToken() { return _refresh_token; }
     QString getAuthedDomain() { return _domain_name; }
 
+    bool hasLogIn();
     bool isLoggedIn();
 
     Q_INVOKABLE bool checkAndSignalForAccessToken();
@@ -55,12 +57,23 @@ private:
     void setTokensFromJSON(const QJsonObject&, const QUrl& url);
     void sendInterfaceAccessTokenToServer();
 
+    QUrl _domainURL;
     QUrl _authURL;
     QString _clientID;
-    QString _username;      // ####### TODO: Store elsewhere?
+
+    QString _username;
     QString _access_token;  // ####... ""
     QString _refresh_token; // ####... ""
     QString _domain_name;   // ####... ""
+
+    // ####### TODO: Handle more than one domain.
+    QUrl _previousDomainURL;
+    QUrl _previousAuthURL;
+    QString _previousClientID;
+    QString _previousUsername;
+    QString _previousAccessToken;
+    QString _previousRefreshToken;
+    QString _previousDomainName;
 };
 
 #endif  // hifi_DomainAccountManager_h

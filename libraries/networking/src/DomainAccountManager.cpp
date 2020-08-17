@@ -39,29 +39,54 @@ Setting::Handle<int> domainAccessTokenExpiresIn {"private/domainAccessTokenExpir
 Setting::Handle<QString> domainAccessTokenType {"private/domainAccessTokenType", "" };
 */
 
-DomainAccountManager::DomainAccountManager() : 
-    _authURL(),
-    _username(),
-    _access_token(),
-    _refresh_token(),
-    _domain_name()
-{
+DomainAccountManager::DomainAccountManager() {
     connect(this, &DomainAccountManager::loginComplete, this, &DomainAccountManager::sendInterfaceAccessTokenToServer);
 }
 
-void DomainAccountManager::setAuthURL(const QUrl& authURL) {
-    if (_authURL != authURL) {
-        _authURL = authURL;
+void DomainAccountManager::setDomainURL(const QUrl& domainURL) {
 
-        qCDebug(networking) << "AccountManager URL for authenticated requests has been changed to" << qPrintable(_authURL.toString());
-
-        _access_token = "";
-        _refresh_token = "";
-
-        // ####### TODO: Restore and refresh OAuth2 tokens if have them for this domain.
-
-        // ####### TODO: Handle "keep me logged in".
+    if (domainURL == _domainURL) {
+        return;
     }
+
+    _domainURL = domainURL;
+    qCDebug(networking) << "DomainAccountManager domain URL has been changed to" << qPrintable(_domainURL.toString());
+
+    // Restore OAuth2 authorization if have it for this domain.
+    if (_domainURL == _previousDomainURL) {
+        _authURL = _previousAuthURL;
+        _clientID = _previousClientID;
+        _username = _previousUsername;
+        _access_token = _previousAccessToken;
+        _refresh_token = _previousRefreshToken;
+        _domain_name = _previousDomainName;
+        // ####### TODO: Refresh OAuth2 access token if necessary.
+    } else {
+        _authURL.clear();
+        _clientID.clear();
+        _username.clear();
+        _access_token.clear();
+        _refresh_token.clear();
+        _domain_name.clear();
+    }
+
+}
+
+void DomainAccountManager::setAuthURL(const QUrl& authURL) {
+    if (_authURL == authURL) {
+        return;
+    }
+
+    _authURL = authURL;
+    qCDebug(networking) << "DomainAccountManager URL for authenticated requests has been changed to" 
+        << qPrintable(_authURL.toString());
+
+    _access_token = "";
+    _refresh_token = "";
+}
+
+bool DomainAccountManager::hasLogIn() {
+    return !_authURL.isEmpty();
 }
 
 bool DomainAccountManager::isLoggedIn() { 
@@ -115,6 +140,18 @@ void DomainAccountManager::requestAccessTokenFinished() {
             QUrl rootURL = requestReply->url();
             rootURL.setPath("");
             setTokensFromJSON(rootObject, rootURL);
+
+            // Remember domain login for the current Interface session.
+            _previousDomainURL = _domainURL;
+            _previousAuthURL = _authURL;
+            _previousClientID = _clientID;
+            _previousUsername = _username;
+            _previousAccessToken = _access_token;
+            _previousRefreshToken = _refresh_token;
+            _previousDomainName = _domain_name;
+
+            // ####### TODO: Handle "keep me logged in".
+
             emit loginComplete();
         } else {
             // Failure.
