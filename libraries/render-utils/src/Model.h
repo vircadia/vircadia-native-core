@@ -118,7 +118,7 @@ public:
     bool isCauterized() const { return _cauterized; }
     void setCauterized(bool value, const render::ScenePointer& scene);
 
-    void setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePointer& scene = nullptr);
+    void setPrimitiveMode(PrimitiveMode primitiveMode);
     PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
 
     void setCullWithParent(bool value);

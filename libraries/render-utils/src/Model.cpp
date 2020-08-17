@@ -958,10 +958,10 @@ void Model::setCauterized(bool cauterized, const render::ScenePointer& scene) {
     }
 }
 
-void Model::setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePointer& scene) {
+void Model::setPrimitiveMode(PrimitiveMode primitiveMode) {
     if (_primitiveMode != primitiveMode) {
         _primitiveMode = primitiveMode;
-        updateRenderItemsKey(scene);
+        updateRenderItemsKey(nullptr);
     }
 }
 

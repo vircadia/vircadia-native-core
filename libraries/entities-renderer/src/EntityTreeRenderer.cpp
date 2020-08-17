@@ -496,7 +496,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             }
 
             // compute average per-renderable update cost
-           _prevNumEntityUpdates = sortedRenderables.size() - _renderablesToUpdate.size();
+            _prevNumEntityUpdates = sortedRenderables.size() - _renderablesToUpdate.size();
             size_t numUpdated = _prevNumEntityUpdates + 1; // add one to avoid divide by zero
             float cost = (float)(usecTimestampNow() - updateStart) / (float)(numUpdated);
             const float BLEND = 0.1f;
