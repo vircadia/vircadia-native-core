@@ -44,7 +44,8 @@ var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
 var ENTIRE_DOMAIN_SCAN_RADIUS = 27713;
 
-var DEFAULT_IMAGE = "file:///~/default/default_image.jpg";
+var DEFAULT_IMAGE = "http://eu-central-1.linodeobjects.com/vircadia-assets/interface/default/default_image.jpg";
+var DEFAULT_PARTICLE = "http://eu-central-1.linodeobjects.com/vircadia-assets/interface/default/default_particle.png";
 
 var createToolsWindow = new CreateWindow(
     Script.resolvePath("qml/EditTools.qml"),
@@ -436,7 +437,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
     ParticleEffect: {
         lifespan: 1.5,
         maxParticles: 10,
-        textures: "file:///~/default/default_particle.png",
+        textures: DEFAULT_PARTICLE,
         emitRate: 5.5,
         emitSpeed: 0,
         speedSpread: 0,
