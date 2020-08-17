@@ -17,13 +17,14 @@
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
 #include <shared/LocalFileAccessGate.h>
+#include <NetworkingConstants.h>
 
 #include "EntitiesLogging.h"
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 
-const QString WebEntityItem::DEFAULT_SOURCE_URL = "https://www.vircadia.com";
+const QString WebEntityItem::DEFAULT_SOURCE_URL = NetworkingConstants::WEB_ENTITY_DEFAULT_SOURCE_URL;
 const uint8_t WebEntityItem::DEFAULT_MAX_FPS = 10;
 const QString WebEntityItem::DEFAULT_WEB_BACKGROUND_COLOR = "#FFFFFFFF";
 

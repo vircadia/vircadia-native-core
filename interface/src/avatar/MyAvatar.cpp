@@ -50,6 +50,7 @@
 #include <RecordingScriptingInterface.h>
 #include <RenderableModelEntityItem.h>
 #include <VariantMapToScriptValue.h>
+#include <NetworkingConstants.h>
 
 #include "MyHead.h"
 #include "MySkeletonModel.h"
@@ -82,7 +83,7 @@ const int SCRIPTED_MOTOR_AVATAR_FRAME = 1;
 const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
 const int SCRIPTED_MOTOR_SIMPLE_MODE = 0;
 const int SCRIPTED_MOTOR_DYNAMIC_MODE = 1;
-const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/Body_Hits_Impact.wav";
+const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = NetworkingConstants::DEFAULT_AVATAR_COLLISION_SOUND_URL;
 
 const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
