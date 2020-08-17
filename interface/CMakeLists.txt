@@ -351,9 +351,6 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${PROJECT_SOURCE_DIR}/resources/fonts"
       "${RESOURCES_DEV_DIR}/fonts"
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory
-      "${PROJECT_SOURCE_DIR}/resources/default"
-      "${RESOURCES_DEV_DIR}/default"
     #copy serverless for android
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${PROJECT_SOURCE_DIR}/resources/serverless"
@@ -384,9 +381,6 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${PROJECT_SOURCE_DIR}/resources/fonts"
       "${RESOURCES_DEV_DIR}/fonts"
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory
-      "${PROJECT_SOURCE_DIR}/resources/default"
-      "${RESOURCES_DEV_DIR}/default"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/scripts"
       "${INTERFACE_EXEC_DIR}/scripts"
