@@ -2890,7 +2890,7 @@ function createTextureProperty(property, elProperty) {
 
     let imageLoad = function(url) {
         elDiv.style.display = null;
-        if (url.slice(0, 5).toLowerCase() === "atp:/" || url.slice(0, 6).toLowerCase() === "file:/") {
+        if (url.slice(0, 5).toLowerCase() === "atp:/" || url.slice(0, 9).toLowerCase() === "file:///~") {
             elImage.src = "";
             elImage.style.display = "none";
             elDiv.classList.remove("with-texture");
