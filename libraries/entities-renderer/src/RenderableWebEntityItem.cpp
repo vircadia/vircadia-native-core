@@ -36,7 +36,6 @@ using namespace render::entities;
 
 const QString WebEntityRenderer::QML = "Web3DSurface.qml";
 const char* WebEntityRenderer::URL_PROPERTY = "url";
-const char* WebEntityRenderer::MAX_FPS_PROPERTY = "maxFPS";
 const char* WebEntityRenderer::SCRIPT_URL_PROPERTY = "scriptURL";
 const char* WebEntityRenderer::GLOBAL_POSITION_PROPERTY = "globalPosition";
 const char* WebEntityRenderer::USE_BACKGROUND_PROPERTY = "useBackground";
@@ -179,10 +178,6 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         _alpha = entity->getAlpha();
         _pulseProperties = entity->getPulseProperties();
         _billboardMode = entity->getBillboardMode();
-        // _maxFPS = entity->getMaxFPS();
-        // _scriptURL = entity->getScriptURL();
-        // _contextPosition = entity->getWorldPosition();
-        // _useBackground = entity->getUseBackground();
 
         if (_contentType == ContentType::NoContent) {
             _tryingToBuildURL = newSourceURL;
@@ -202,15 +197,15 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
 
         if (_webSurface) {
             if (_webSurface->getRootItem()) {
-                if (_contentType == ContentType::HtmlContent && _sourceURL != newSourceURL) {
+                if (_contentType == ContentType::HtmlContent && _sourceURL != newSourceURL) {            
                     if (localSafeContext) {
                         ::hifi::scripting::setLocalAccessSafeThread(true);
                     }
                     _webSurface->getRootItem()->setProperty(URL_PROPERTY, newSourceURL);
-                    _webSurface->getRootItem()->setProperty(MAX_FPS_PROPERTY, _maxFPS);
                     _webSurface->getRootItem()->setProperty(SCRIPT_URL_PROPERTY, _scriptURL);
                     _webSurface->getRootItem()->setProperty(USE_BACKGROUND_PROPERTY, _useBackground);
                     _webSurface->getSurfaceContext()->setContextProperty(GLOBAL_POSITION_PROPERTY, vec3toVariant(_contextPosition));
+                    _webSurface->setMaxFps((QUrl(newSourceURL).host().endsWith("youtube.com", Qt::CaseInsensitive)) ? YOUTUBE_MAX_FPS : _maxFPS);
                     ::hifi::scripting::setLocalAccessSafeThread(false);
                     _sourceURL = newSourceURL;
                 } else if (_contentType != ContentType::HtmlContent) {

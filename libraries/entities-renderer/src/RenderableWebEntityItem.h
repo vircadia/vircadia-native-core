@@ -33,7 +33,6 @@ public:
 
     static const QString QML;
     static const char* URL_PROPERTY;
-    static const char* MAX_FPS_PROPERTY;
     static const char* SCRIPT_URL_PROPERTY;
     static const char* GLOBAL_POSITION_PROPERTY;
     static const char* USE_BACKGROUND_PROPERTY;
