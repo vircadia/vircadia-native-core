@@ -175,6 +175,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         _alpha = entity->getAlpha();
         _pulseProperties = entity->getPulseProperties();
         _billboardMode = entity->getBillboardMode();
+        _useBackground = entity->getUseBackground();
 
         if (_contentType == ContentType::NoContent) {
             _tryingToBuildURL = newSourceURL;
@@ -300,14 +301,14 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     glm::vec4 color;
     Transform transform;
     bool forward;
-    bool isTransparent;
+    bool isTransparentWeb;
     withReadLock([&] {
         float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         color = glm::vec4(toGlm(_color), _alpha * fadeRatio);
         color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
         transform = _renderTransform;
         forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == render::Args::FORWARD;
-        isTransparent = isTransparent();
+        isTransparentWeb = isTransparent();
     });
 
     if (color.a == 0.0f) {
@@ -321,7 +322,7 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
 
     // Turn off jitter for these entities
     batch.pushProjectionJitter();
-    DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, isTransparent, forward);
+    DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, isTransparentWeb, forward);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, color, _geometryId);
     batch.popProjectionJitter();
     batch.setResourceTexture(0, nullptr);
