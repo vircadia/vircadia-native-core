@@ -27,10 +27,10 @@ public:
     void setAuthURL(const QUrl& authURL);
     void setClientID(const QString& clientID) { _clientID = clientID; }
 
-    QString getUsername() { return _username; }
-    QString getAccessToken() { return _access_token; }
-    QString getRefreshToken() { return _refresh_token; }
-    QString getAuthedDomain() { return _domain_name; }
+    const QString& getUsername() { return _username; }
+    const QString& getAccessToken() { return _accessToken; }
+    const QString& getRefreshToken() { return _refreshToken; }
+    const QString& getAuthedDomainName() { return _authedDomainName; }
 
     bool hasLogIn();
     bool isLoggedIn();
@@ -39,7 +39,6 @@ public:
 
 public slots:
     void requestAccessToken(const QString& username, const QString& password);
-    
     void requestAccessTokenFinished();
 
 signals:
@@ -62,9 +61,9 @@ private:
     QString _clientID;
 
     QString _username;
-    QString _access_token;  // ####... ""
-    QString _refresh_token; // ####... ""
-    QString _domain_name;   // ####... ""
+    QString _accessToken;
+    QString _refreshToken;
+    QString _authedDomainName;
 
     // ####### TODO: Handle more than one domain.
     QUrl _previousDomainURL;
@@ -73,7 +72,7 @@ private:
     QString _previousUsername;
     QString _previousAccessToken;
     QString _previousRefreshToken;
-    QString _previousDomainName;
+    QString _previousAuthedDomainName;
 };
 
 #endif  // hifi_DomainAccountManager_h

@@ -7086,7 +7086,7 @@ void Application::updateWindowTitle() const {
     bool isMetaverseLoggedIn = accountManager->isLoggedIn();
     bool hasDomainLogIn = domainAccountManager->hasLogIn();
     bool isDomainLoggedIn = domainAccountManager->isLoggedIn();
-    QString authedDomain = domainAccountManager->getAuthedDomain();
+    QString authedDomainName = domainAccountManager->getAuthedDomainName();
 
     QString buildVersion = " - Vircadia - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
@@ -7123,7 +7123,7 @@ void Application::updateWindowTitle() const {
 
     QString domainDetails;
     if (hasDomainLogIn) {
-        if (currentPlaceName == authedDomain && isDomainLoggedIn) {
+        if (currentPlaceName == authedDomainName && isDomainLoggedIn) {
             domainDetails = " (Domain: Logged in as " + domainUsername + ")";
         } else {
             domainDetails = " (Domain: Not Logged In)";
