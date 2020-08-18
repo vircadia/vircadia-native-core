@@ -16,7 +16,7 @@ Item {
     property alias webViewCoreProfile: webViewCore.profile
     property string webViewCoreUserAgent
 
-    property bool useBackground: true
+    property bool useBackground: webViewCore.useBackground
     property string userScriptUrl: ""
     property string urlTag: "noDownload=false";
 
