@@ -366,7 +366,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_MAX_FPS, MaxFPS, maxFPS, uint8_t, WebEntityItem::DEFAULT_MAX_FPS);
     DEFINE_PROPERTY_REF_ENUM(PROP_INPUT_MODE, InputMode, inputMode, WebInputMode, WebInputMode::TOUCH);
     DEFINE_PROPERTY_REF(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, ShowKeyboardFocusHighlight, showKeyboardFocusHighlight, bool, true);
-    DEFINE_PROPERTY_REF(PROP_WEB_BACKGROUND_COLOR, WebBackgroundColor, webBackgroundColor, QString, WebEntityItem::DEFAULT_WEB_BACKGROUND_COLOR);
+    DEFINE_PROPERTY_REF(PROP_WEB_USE_BACKGROUND, UseBackground, useBackground, bool, true);
 
     // Polyline
     DEFINE_PROPERTY_REF(PROP_LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);

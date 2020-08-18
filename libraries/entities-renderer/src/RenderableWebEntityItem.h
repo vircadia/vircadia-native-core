@@ -94,7 +94,7 @@ private:
     uint16_t _dpi;
     QString _scriptURL;
     uint8_t _maxFPS;
-    QString _webBackgroundColor;
+    bool _useBackground;
     WebInputMode _inputMode;
 
     glm::vec3 _contextPosition;

@@ -101,7 +101,7 @@ WebEntityRenderer::~WebEntityRenderer() {
 
 bool WebEntityRenderer::isTransparent() const {
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-    return fadeRatio < OPAQUE_ALPHA_THRESHOLD || _alpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
+    return fadeRatio < OPAQUE_ALPHA_THRESHOLD || _alpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE || !_useBackground;
 }
 
 bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
@@ -228,10 +228,10 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                 }
 
                 { 
-                    auto webBackgroundColor = entity->getWebBackgroundColor();
-                    if (_webBackgroundColor != webBackgroundColor) {
-                        _webSurface->getRootItem()->setProperty("webBackgroundColor", webBackgroundColor);
-                        _webBackgroundColor = webBackgroundColor;
+                    auto useBackground = entity->getUseBackground();
+                    if (_useBackground != useBackground) {
+                        _webSurface->getRootItem()->setProperty("useBackground", useBackground);
+                        _useBackground = useBackground;
                     }
                 }
 
@@ -300,12 +300,14 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     glm::vec4 color;
     Transform transform;
     bool forward;
+    bool isTransparent;
     withReadLock([&] {
         float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         color = glm::vec4(toGlm(_color), _alpha * fadeRatio);
         color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
         transform = _renderTransform;
         forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == render::Args::FORWARD;
+        isTransparent = isTransparent();
     });
 
     if (color.a == 0.0f) {
@@ -319,7 +321,7 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
 
     // Turn off jitter for these entities
     batch.pushProjectionJitter();
-    DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, color.a < OPAQUE_ALPHA_THRESHOLD, forward);
+    DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, isTransparent, forward);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, color, _geometryId);
     batch.popProjectionJitter();
     batch.setResourceTexture(0, nullptr);

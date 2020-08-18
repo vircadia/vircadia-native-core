@@ -81,15 +81,14 @@ public:
     void setMaxFPS(uint8_t value);
     uint8_t getMaxFPS() const;
 
-    static const QString DEFAULT_WEB_BACKGROUND_COLOR;
-    void setWebBackgroundColor(const QString& value);
-    QString getWebBackgroundColor() const;
-
     void setInputMode(const WebInputMode& value);
     WebInputMode getInputMode() const;
 
     bool getShowKeyboardFocusHighlight() const;
     void setShowKeyboardFocusHighlight(bool value);
+    
+    bool getUseBackground() const;
+    void setUseBackground(bool value);
 
     PulsePropertyGroup getPulseProperties() const;
 
@@ -103,9 +102,9 @@ protected:
     uint16_t _dpi;
     QString _scriptURL;
     uint8_t _maxFPS;
-    QString _webBackgroundColor;
     WebInputMode _inputMode;
     bool _showKeyboardFocusHighlight;
+    bool _useBackground;
     bool _localSafeContext { false };
 };
 

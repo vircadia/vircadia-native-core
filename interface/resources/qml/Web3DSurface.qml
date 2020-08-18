@@ -18,31 +18,31 @@ Item {
     anchors.fill: parent
     property string url: ""
     property string scriptUrl: null
-    property string webBackgroundColor: "#FFFFFFFF"
+    property bool useBackground: true
 
     onUrlChanged: {
-        load(root.url, root.scriptUrl, root.webBackgroundColor);
+        load(root.url, root.scriptUrl, root.useBackground);
     }
 
     onScriptUrlChanged: {
         if (root.item) {
             root.item.scriptUrl = root.scriptUrl;
         } else {
-            load(root.url, root.scriptUrl, root.webBackgroundColor);
+            load(root.url, root.scriptUrl, root.useBackground);
         }
     }
 
-    onWebBackgroundColorChanged: {
+    onUseBackgroundChanged: {
         if (root.item) {
-            root.item.webBackgroundColor = root.webBackgroundColor;
+            root.item.useBackground = root.useBackground;
         } else {
-            load(root.url, root.scriptUrl, root.webBackgroundColor);
+            load(root.url, root.scriptUrl, root.useBackground);
         }
     }
 
     property var item: null
 
-    function load(url, scriptUrl, webBackgroundColor) {
+    function load(url, scriptUrl, useBackground) {
         // Ensure we reset any existing item to "about:blank" to ensure web audio stops: DEV-2375
         if (root.item != null) {
             root.item.url = "about:blank"
@@ -53,12 +53,12 @@ Item {
             root.item = newItem
             root.item.url = url
             root.item.scriptUrl = scriptUrl
-            root.item.transparentBackground = webBackgroundColor.startsWith("#FF") ? false : true
+            root.item.useBackground = useBackground
         })
     }
 
     Component.onCompleted: {
-        load(root.url, root.scriptUrl, root.webBackgroundColor);
+        load(root.url, root.scriptUrl, root.useBackground);
     }
 
     signal sendToScript(var message);
