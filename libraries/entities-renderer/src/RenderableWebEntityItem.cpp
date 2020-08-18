@@ -36,6 +36,10 @@ using namespace render::entities;
 
 const QString WebEntityRenderer::QML = "Web3DSurface.qml";
 const char* WebEntityRenderer::URL_PROPERTY = "url";
+const char* WebEntityRenderer::MAX_FPS_PROPERTY = "maxFPS";
+const char* WebEntityRenderer::SCRIPT_URL_PROPERTY = "scriptURL";
+const char* WebEntityRenderer::GLOBAL_POSITION_PROPERTY = "globalPosition";
+const char* WebEntityRenderer::USE_BACKGROUND_PROPERTY = "useBackground";
 
 std::function<void(QString, bool, QSharedPointer<OffscreenQmlSurface>&, bool&)> WebEntityRenderer::_acquireWebSurfaceOperator = nullptr;
 std::function<void(QSharedPointer<OffscreenQmlSurface>&, bool&, std::vector<QMetaObject::Connection>&)> WebEntityRenderer::_releaseWebSurfaceOperator = nullptr;
@@ -175,7 +179,10 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         _alpha = entity->getAlpha();
         _pulseProperties = entity->getPulseProperties();
         _billboardMode = entity->getBillboardMode();
-        _useBackground = entity->getUseBackground();
+        // _maxFPS = entity->getMaxFPS();
+        // _scriptURL = entity->getScriptURL();
+        // _contextPosition = entity->getWorldPosition();
+        // _useBackground = entity->getUseBackground();
 
         if (_contentType == ContentType::NoContent) {
             _tryingToBuildURL = newSourceURL;
@@ -200,6 +207,10 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                         ::hifi::scripting::setLocalAccessSafeThread(true);
                     }
                     _webSurface->getRootItem()->setProperty(URL_PROPERTY, newSourceURL);
+                    _webSurface->getRootItem()->setProperty(MAX_FPS_PROPERTY, _maxFPS);
+                    _webSurface->getRootItem()->setProperty(SCRIPT_URL_PROPERTY, _scriptURL);
+                    _webSurface->getRootItem()->setProperty(USE_BACKGROUND_PROPERTY, _useBackground);
+                    _webSurface->getSurfaceContext()->setContextProperty(GLOBAL_POSITION_PROPERTY, vec3toVariant(_contextPosition));
                     ::hifi::scripting::setLocalAccessSafeThread(false);
                     _sourceURL = newSourceURL;
                 } else if (_contentType != ContentType::HtmlContent) {
@@ -209,7 +220,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                 {
                     auto scriptURL = entity->getScriptURL();
                     if (_scriptURL != scriptURL) {
-                        _webSurface->getRootItem()->setProperty("scriptURL", scriptURL);
+                        _webSurface->getRootItem()->setProperty(SCRIPT_URL_PROPERTY, scriptURL);
                         _scriptURL = scriptURL;
                     }
                 }
@@ -231,7 +242,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                 { 
                     auto useBackground = entity->getUseBackground();
                     if (_useBackground != useBackground) {
-                        _webSurface->getRootItem()->setProperty("useBackground", useBackground);
+                        _webSurface->getRootItem()->setProperty(USE_BACKGROUND_PROPERTY, useBackground);
                         _useBackground = useBackground;
                     }
                 }
@@ -239,7 +250,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                 {
                     auto contextPosition = entity->getWorldPosition();
                     if (_contextPosition != contextPosition) {
-                        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(contextPosition));
+                        _webSurface->getSurfaceContext()->setContextProperty(GLOBAL_POSITION_PROPERTY, vec3toVariant(contextPosition));
                         _contextPosition = contextPosition;
                     }
                 }

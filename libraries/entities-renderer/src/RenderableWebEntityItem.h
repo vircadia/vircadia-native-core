@@ -33,6 +33,10 @@ public:
 
     static const QString QML;
     static const char* URL_PROPERTY;
+    static const char* MAX_FPS_PROPERTY;
+    static const char* SCRIPT_URL_PROPERTY;
+    static const char* GLOBAL_POSITION_PROPERTY;
+    static const char* USE_BACKGROUND_PROPERTY;
 
     static void setAcquireWebSurfaceOperator(std::function<void(const QString&, bool, QSharedPointer<OffscreenQmlSurface>&, bool&)> acquireWebSurfaceOperator) { _acquireWebSurfaceOperator = acquireWebSurfaceOperator; }
     static void acquireWebSurface(const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
