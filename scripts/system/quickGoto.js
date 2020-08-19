@@ -30,7 +30,8 @@
         });
     }
 
-    addGotoButton("dev-mobile");
-    addGotoButton("quest-dev");
+    addGotoButton("172.104.248.237");
+    addGotoButton("167.172.61.134");
+    addGotoButton("file:///~/serverless/tutorial.json");
 
 }()); // END LOCAL_SCOPE

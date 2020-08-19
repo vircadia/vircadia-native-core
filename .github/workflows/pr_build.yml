@@ -115,7 +115,6 @@ jobs:
       shell: bash
       run: cmake -E make_directory "${{runner.workspace}}/build"
     - name: Configure CMake
-      if: matrix.build_type != 'android'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release $CMAKE_EXTRA
