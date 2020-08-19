@@ -42,13 +42,14 @@
         ui = new AppUi({
             buttonName: "EXPLORE",
             home: Script.resolvePath("explore.html"),
-            graphicsDirectory: scriptDir
+            graphicsDirectory: scriptDir,
+            sortOrder: 8
         });
     }
 
     function onWebEventReceived(event) {
         messageData = JSON.parse(event);
-        if (messageData.action == "requestAddressList") {
+        if (messageData.action === "requestAddressList") {
             goToAddresses = Settings.getValue("goToDecentral", "");
             for (var i = 0; i < goToAddresses.length; i++) {
 
@@ -73,21 +74,35 @@
             permission = Entities.canRez()
 
             var readyEvent = {
-                "action": "addressList",
+                "action": "addressListv2",
                 "myAddress": children,
-                "permission": permission
+                "permission": permission,
+                "isHomeSet": LocationBookmarks.getHomeLocationAddress().length > 0
             };
 
             tablet.emitScriptEvent(JSON.stringify(readyEvent));
 
-        } else if (messageData.action == "goToUrl") {
+        } else if (messageData.action === "goToUrl") {
             Window.location = messageData.visit;
-        } else if (messageData.action == "addLocation") {
+        } else if (messageData.action === "navigateBack") {
+            location.goBack();
+        } else if (messageData.action === "navigateHome") {
+            if (LocationBookmarks.getHomeLocationAddress()) {
+                location.handleLookupString(LocationBookmarks.getHomeLocationAddress());
+            } else {
+                location.goToLocalSandbox();
+            }
+        } else if (messageData.action === "navigateForward") {
+            location.goForward();
+        } else if (messageData.action === "addLocation") {
 
             var locationBoxUserData = {
                 owner: messageData.owner,
                 domainName: messageData.domainName,
                 port: messageData.Port,
+                ipAddress: null,
+                avatarCountRadius: null,
+                customPath: null,
                 grabbableKey: {
                     grabbable: false
                 }
@@ -105,7 +120,7 @@
                 collisionless: true,
                 grabbable: false
             });
-        } else if (messageData.action == "retrievePortInformation") {
+        } else if (messageData.action === "retrievePortInformation") {
             var readyEvent = {
                 "action": "retrievePortInformationResponse",
                 "goToAddresses": goToAddresses
