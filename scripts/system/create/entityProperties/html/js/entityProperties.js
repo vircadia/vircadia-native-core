@@ -763,6 +763,11 @@ const GROUPS = [
                 max: 1,
             },
             {
+                label: "Use Background",
+                type: "bool",
+                propertyID: "useBackground",
+            },
+            {
                 label: "Max FPS",
                 type: "number-draggable",
                 step: 1,
