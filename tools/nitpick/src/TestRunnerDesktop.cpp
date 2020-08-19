@@ -3,6 +3,7 @@
 //
 //  Created by Nissim Hadar on 1 Sept 2018.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -46,7 +47,7 @@ TestRunnerDesktop::TestRunnerDesktop(
 
     _installerThread = new QThread();
     _installerWorker = new InstallerWorker();
-        
+
     _installerWorker->moveToThread(_installerThread);
     _installerThread->start();
     connect(this, SIGNAL(startInstaller()), _installerWorker, SLOT(runCommand()));
@@ -77,9 +78,9 @@ void TestRunnerDesktop::setWorkingFolderAndEnableControls() {
     setWorkingFolder(_workingFolderLabel);
 
 #ifdef Q_OS_WIN
-    _installationFolder = _workingFolder + "/High Fidelity";
+    _installationFolder = _workingFolder + "/Vircadia";
 #elif defined Q_OS_MAC
-    _installationFolder = _workingFolder + "/High_Fidelity";
+    _installationFolder = _workingFolder + "/Vircadia";
 #endif
 
     nitpick->enableRunTabControls();
@@ -87,11 +88,11 @@ void TestRunnerDesktop::setWorkingFolderAndEnableControls() {
     _timer = new QTimer(this);
     connect(_timer, SIGNAL(timeout()), this, SLOT(checkTime()));
     _timer->start(30 * 1000);  //time specified in ms
-    
+
 #ifdef Q_OS_MAC
     // Create MAC shell scripts
     QFile script;
-    
+
     // This script waits for a process to start
     script.setFileName(_workingFolder + "/waitForStart.sh");
     if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -99,7 +100,7 @@ void TestRunnerDesktop::setWorkingFolderAndEnableControls() {
                               "Could not open 'waitForStart.sh'");
         exit(-1);
     }
-    
+
     script.write("#!/bin/sh\n\n");
     script.write("PROCESS=\"$1\"\n");
     script.write("until (pgrep -x $PROCESS >nul)\n");
@@ -118,7 +119,7 @@ void TestRunnerDesktop::setWorkingFolderAndEnableControls() {
                               "Could not open 'waitForFinish.sh'");
         exit(-1);
     }
-    
+
     script.write("#!/bin/sh\n\n");
     script.write("PROCESS=\"$1\"\n");
     script.write("while (pgrep -x $PROCESS >nul)\n");
@@ -129,7 +130,7 @@ void TestRunnerDesktop::setWorkingFolderAndEnableControls() {
     script.write("echo \"$1\" \"finished\"\n");
     script.close();
     script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
-    
+
     // Create an AppleScript to resize Interface.  This is needed so that snapshots taken
     // with the primary camera will be the correct size.
     // This will be run from a normal shell script
@@ -139,7 +140,7 @@ void TestRunnerDesktop::setWorkingFolderAndEnableControls() {
                               "Could not open 'setInterfaceSizeAndPosition.scpt'");
         exit(-1);
     }
-    
+
     script.write("set width to 960\n");
     script.write("set height to 540\n");
     script.write("set x to 100\n");
@@ -155,7 +156,7 @@ void TestRunnerDesktop::setWorkingFolderAndEnableControls() {
                               "Could not open 'setInterfaceSizeAndPosition.sh'");
         exit(-1);
     }
-    
+
     script.write("#!/bin/sh\n\n");
     script.write("echo resizing interface\n");
     script.write(("osascript " + _workingFolder + "/setInterfaceSizeAndPosition.scpt\n").toStdString().c_str());
@@ -193,7 +194,7 @@ void TestRunnerDesktop::downloadComplete() {
         // Download of Build XML has completed
         buildXMLDownloaded = true;
 
-        // Download the High Fidelity installer
+        // Download the Vircadia installer
         QStringList urls;
         QStringList filenames;
         if (_runLatest->isChecked()) {
@@ -251,23 +252,23 @@ void TestRunnerDesktop::runInstaller() {
                               "Could not open 'install_app.sh'");
         exit(-1);
     }
-    
+
     if (!QDir().exists(_installationFolder)) {
         QDir().mkdir(_installationFolder);
     }
-    
-    // This script installs High Fidelity.  It is run as "yes | install_app.sh... so "yes" is killed at the end
+
+    // This script installs Vircadia.  It is run as "yes | install_app.sh... so "yes" is killed at the end
     script.write("#!/bin/sh\n\n");
     script.write("VOLUME=`hdiutil attach \"$1\" | grep Volumes | awk '{print $3}'`\n");
-    
-    QString folderName {"High Fidelity"};
+
+    QString folderName {"Vircadia"};
     if (!_runLatest->isChecked()) {
         folderName += QString(" - ") + getPRNumberFromURL(_url->text());
     }
 
     script.write((QString("cp -Rf \"$VOLUME/") + folderName + "/interface.app\" \"" + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
     script.write((QString("cp -Rf \"$VOLUME/") + folderName + "/Sandbox.app\" \""   + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
-    
+
     script.write("hdiutil detach \"$VOLUME\"\n");
     script.write("killall yes\n");
     script.close();
@@ -303,10 +304,10 @@ void TestRunnerDesktop::verifyInstallationSucceeded() {
     if (!interfaceExe.exists() || !assignmentClientExe.exists() || !domainServerExe.exists()) {
         if (_runLatest->isChecked()) {
             // On Windows, the reason is probably that UAC has blocked the installation.  This is treated as a critical error
-            QMessageBox::critical(0, "Installation of High Fidelity has failed", "Please verify that UAC has been disabled");
+            QMessageBox::critical(0, "Installation of Vircadia has failed", "Please verify that UAC has been disabled");
             exit(-1);
         } else {
-            QMessageBox::critical(0, "Installation of High Fidelity not found", "Please verify that working folder contains a proper installation");
+            QMessageBox::critical(0, "Installation of vircadia not found", "Please verify that working folder contains a proper installation");
         }
     }
 #endif
@@ -320,10 +321,10 @@ void TestRunnerDesktop::saveExistingHighFidelityAppDataFolder() {
     dataDirectory = QDir::homePath() + "/Library/Application Support";
 #endif
     if (_runLatest->isChecked()) {
-        _appDataFolder = dataDirectory + "/High Fidelity";
+        _appDataFolder = dataDirectory + "/Vircadia";
     } else {
         // We are running a PR build
-        _appDataFolder = dataDirectory + "/High Fidelity - " + getPRNumberFromURL(_url->text());
+        _appDataFolder = dataDirectory + "/Vircadia - " + getPRNumberFromURL(_url->text());
     }
 
     _savedAppDataFolder = dataDirectory + "/" + UNIQUE_FOLDER_NAME;
@@ -419,13 +420,13 @@ void TestRunnerDesktop::killProcesses() {
     }
 #elif defined Q_OS_MAC
     QString commandLine;
-    
+
     commandLine = QString("killall interface") + "; " + _workingFolder +"/waitForFinish.sh interface";
     system(commandLine.toStdString().c_str());
-    
+
     commandLine = QString("killall Sandbox") + "; " + _workingFolder +"/waitForFinish.sh Sandbox";
     system(commandLine.toStdString().c_str());
-    
+
     commandLine = QString("killall Console") + "; " + _workingFolder +"/waitForFinish.sh Console";
     system(commandLine.toStdString().c_str());
 #endif
@@ -433,7 +434,7 @@ void TestRunnerDesktop::killProcesses() {
 
 void TestRunnerDesktop::startLocalServerProcesses() {
     QString commandLine;
-    
+
 #ifdef Q_OS_WIN
     commandLine =
         "start \"domain-server.exe\" \"" + QDir::toNativeSeparators(_installationFolder) + "\\domain-server.exe\"";
@@ -501,9 +502,9 @@ void TestRunnerDesktop::runInterfaceWithTestScript() {
                               "Could not open 'runInterfaceTests.sh'");
         exit(-1);
     }
-    
+
     script.write("#!/bin/sh\n\n");
-    
+
     // First, run script to delete any entities in test area
     commandLine =
     "open -W \"" +_installationFolder + "/interface.app\" --args" +
@@ -511,9 +512,9 @@ void TestRunnerDesktop::runInterfaceWithTestScript() {
     " --no-updater" +
     " --no-login-suggestion"
     " --testScript " + deleteScript + " quitWhenFinished\n";
-    
+
     script.write(commandLine.toStdString().c_str());
-    
+
     // On The Mac, we need to resize Interface.  The Interface window opens a few seconds after the process
     // has started.
     // Before starting interface, start a process that will resize interface 10s after it opens
@@ -539,7 +540,7 @@ void TestRunnerDesktop::runInterfaceWithTestScript() {
 
     emit startInterface();
 #endif
-    
+
     // Helpful for debugging
     appendLog(commandLine);
 }
@@ -555,7 +556,7 @@ void TestRunnerDesktop::interfaceExecutionComplete() {
 
     evaluateResults();
 
-    // The High Fidelity AppData folder will be restored after evaluation has completed
+    // The Vircadia AppData folder will be restored after evaluation has completed
 }
 
 void TestRunnerDesktop::evaluateResults() {

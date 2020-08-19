@@ -51,7 +51,7 @@ void AutoUpdater::getLatestVersionData() {
     QNetworkRequest latestVersionRequest(buildsURL);
 
     latestVersionRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(latestVersionRequest);
     connect(reply, &QNetworkReply::finished, this, &AutoUpdater::parseLatestVersionData);
 }

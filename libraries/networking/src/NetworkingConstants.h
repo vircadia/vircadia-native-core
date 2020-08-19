@@ -30,6 +30,14 @@ namespace NetworkingConstants {
 
     // Web Engine requests to this parent domain have an account authorization header added
     const QString AUTH_HOSTNAME_BASE = "highfidelity.com";
+    const QStringList IS_AUTHABLE_HOSTNAME = { "highfidelity.com", "highfidelity.io" };
+    
+    // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
+    const QByteArray VIRCADIA_USER_AGENT = "Mozilla/5.0 (VircadiaInterface)";
+    
+    const QString WEB_ENGINE_USER_AGENT = "Chrome/48.0 (VircadiaInterface)";
+    const QString METAVERSE_USER_AGENT = "Chrome/48.0 (VircadiaInterface)";
+    const QString MOBILE_USER_AGENT = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36";
 
     const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
     const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");

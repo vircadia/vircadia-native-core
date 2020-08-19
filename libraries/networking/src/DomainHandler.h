@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/18/2014.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -131,6 +132,7 @@ public:
 
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
+
     bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
     bool getInterstitialModeEnabled() const;
     void setInterstitialModeEnabled(bool enableInterstitialMode);
@@ -179,14 +181,14 @@ public:
      *       <td>The communications protocols of the domain and your Interface are not the same.</td>
      *     </tr>
      *     <tr>
-     *       <td><strong>LoginError</strong></td>
+     *       <td><strong>LoginErrorMetaverse</strong></td>
      *       <td><code>2</code></td>
-     *       <td>You could not be logged into the domain.</td>
+     *       <td>You could not be logged into the domain per your metaverse login.</td>
      *     </tr>
      *     <tr>
-     *       <td><strong>NotAuthorized</strong></td>
+     *       <td><strong>NotAuthorizedMetaverse</strong></td>
      *       <td><code>3</code></td>
-     *       <td>You are not authorized to connect to the domain.</td>
+     *       <td>You are not authorized to connect to the domain per your metaverse login.</td>
      *     </tr>
      *     <tr>
      *       <td><strong>TooManyUsers</strong></td>
@@ -198,6 +200,16 @@ public:
      *       <td><code>5</code></td>
      *       <td>Connecting to the domain timed out.</td>
      *     </tr>
+     *     <tr>
+     *       <td><strong>LoginErrorDomain</strong></td>
+     *       <td><code>2</code></td>
+     *       <td>You could not be logged into the domain per your domain login.</td>
+     *     </tr>
+     *     <tr>
+     *       <td><strong>NotAuthorizedDomain</strong></td>
+     *       <td><code>6</code></td>
+     *       <td>You are not authorized to connect to the domain per your domain login.</td>
+     *     </tr>
      *   </tbody>
      * </table>
      * @typedef {number} Window.ConnectionRefusedReason
@@ -205,10 +217,12 @@ public:
     enum class ConnectionRefusedReason : uint8_t {
         Unknown,
         ProtocolMismatch,
-        LoginError,
-        NotAuthorized,
+        LoginErrorMetaverse,
+        NotAuthorizedMetaverse,
         TooManyUsers,
-        TimedOut
+        TimedOut,
+        LoginErrorDomain,
+        NotAuthorizedDomain
     };
 
 public slots:
@@ -254,7 +268,8 @@ signals:
     void limitOfSilentDomainCheckInsReached();
 
 private:
-    bool reasonSuggestsLogin(ConnectionRefusedReason reasonCode);
+    bool reasonSuggestsMetaverseLogin(ConnectionRefusedReason reasonCode);
+    bool reasonSuggestsDomainLogin(ConnectionRefusedReason reasonCode);
     void sendDisconnectPacket();
     void hardReset(QString reason);
 
@@ -285,6 +300,7 @@ private:
 
     QSet<QString> _domainConnectionRefusals;
     bool _hasCheckedForAccessToken { false };
+    bool _hasCheckedForDomainAccessToken { false };
     int _connectionDenialsSinceKeypairRegen { 0 };
     int _checkInPacketsSinceLastReply { 0 };
 

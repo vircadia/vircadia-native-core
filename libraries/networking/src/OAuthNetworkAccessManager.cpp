@@ -39,7 +39,7 @@ QNetworkReply* OAuthNetworkAccessManager::createRequest(QNetworkAccessManager::O
         && req.url().host() == MetaverseAPI::getCurrentMetaverseServerURL().host()) {
         QNetworkRequest authenticatedRequest(req);
         authenticatedRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-        authenticatedRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        authenticatedRequest.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
         authenticatedRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER,
                                           accountManager->getAccountInfo().getAccessToken().authorizationHeaderValue());
         
