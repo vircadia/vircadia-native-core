@@ -34,11 +34,12 @@ public:
     static const QString DESCRIPTORS;
     class Descriptors {
     public:
+        static const QString NAME;
         static const QString DESCRIPTION;
         static const QString CAPACITY;
         static const QString RESTRICTION;
         static const QString MATURITY;
-        static const QString HOSTS;
+        static const QString MANAGERS;
         static const QString TAGS;
     };
 

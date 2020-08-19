@@ -34,18 +34,21 @@ const QString DomainMetadata::Users::HOSTNAMES = "user_hostnames";
 // }
 
 const QString DomainMetadata::DESCRIPTORS = "descriptors";
+const QString DomainMetadata::Descriptors::NAME = "world_name";
 const QString DomainMetadata::Descriptors::DESCRIPTION = "description";
 const QString DomainMetadata::Descriptors::CAPACITY = "capacity"; // parsed from security
 const QString DomainMetadata::Descriptors::RESTRICTION = "restriction"; // parsed from ACL
 const QString DomainMetadata::Descriptors::MATURITY = "maturity";
-const QString DomainMetadata::Descriptors::HOSTS = "hosts";
+const QString DomainMetadata::Descriptors::MANAGERS = "managers";
 const QString DomainMetadata::Descriptors::TAGS = "tags";
 // descriptors metadata will appear as (JSON):
-// { "description": String, // capped description
+// { 
+//   "name": String, // capped name
+//   "description": String, // capped description
 //   "capacity": Number,
 //   "restriction": String, // enum of either open, hifi, or acl
 //   "maturity": String, // enum corresponding to ESRB ratings
-//   "hosts": [ String ], // capped list of usernames
+//   "managers": [ String ], // capped list of usernames
 //   "tags": [ String ], // capped list of tags
 // }
 
@@ -82,12 +85,27 @@ void DomainMetadata::descriptorsChanged() {
     static const QString DESCRIPTORS_GROUP_KEYPATH = "descriptors";
     auto descriptorsMap = static_cast<DomainServer*>(parent())->_settingsManager.valueForKeyPath(DESCRIPTORS).toMap();
 
-    // copy simple descriptors (description/maturity)
-    state[Descriptors::DESCRIPTION] = descriptorsMap[Descriptors::DESCRIPTION];
-    state[Descriptors::MATURITY] = descriptorsMap[Descriptors::MATURITY];
+    // copy simple descriptors (name/description/maturity)
+    if (!descriptorsMap[Descriptors::NAME].isNull()) {
+        state[Descriptors::NAME] = descriptorsMap[Descriptors::NAME];
+    } else {
+        state[Descriptors::NAME] = "";
+    }
 
-    // copy array descriptors (hosts/tags)
-    state[Descriptors::HOSTS] = descriptorsMap[Descriptors::HOSTS].toList();
+    if (!descriptorsMap[Descriptors::DESCRIPTION].isNull()) {
+        state[Descriptors::DESCRIPTION] = descriptorsMap[Descriptors::DESCRIPTION];
+    } else {
+        state[Descriptors::DESCRIPTION] = "";
+    }
+    
+    if (!descriptorsMap[Descriptors::MATURITY].isNull()) {
+        state[Descriptors::MATURITY] = descriptorsMap[Descriptors::MATURITY];
+    } else {
+        state[Descriptors::MATURITY] = "";
+    }
+
+    // copy array descriptors (managers/tags)
+    state[Descriptors::MANAGERS] = descriptorsMap[Descriptors::MANAGERS].toList();
     state[Descriptors::TAGS] = descriptorsMap[Descriptors::TAGS].toList();
 
     // parse capacity
@@ -211,19 +229,20 @@ void DomainMetadata::sendDescriptors() {
 }
 
 bool DomainMetadata::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
-    QJsonArray metadataArray;
-    metadataArray << get(DESCRIPTORS);
-    metadataArray << get(USERS);
-    QString domainMetadataJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(metadataArray).toJson(QJsonDocument::Compact)));
+    QString domainMetadataJSON = QString("{\"domain\":%1, \"users\":%2}")
+                                     .arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)))
+                                     .arg(QString(QJsonDocument(get(USERS)).toJson(QJsonDocument::Compact)));
     const QString URI_METADATA = "/metadata";
     const QString EXPORTER_MIME_TYPE = "application/json";
-
-    qCDebug(domain_metadata_exporter) << "Request on URL " << url;
 
     if (url.path() == URI_METADATA) {
         connection->respond(HTTPConnection::StatusCode200, domainMetadataJSON.toUtf8(), qPrintable(EXPORTER_MIME_TYPE));
         return true;
     }
+
+#if DEV_BUILD || PR_BUILD
+    qCDebug(domain_metadata_exporter) << "Metadata request on URL " << url;
+#endif
 
     return false;
 }

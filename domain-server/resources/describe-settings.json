@@ -163,6 +163,12 @@
       "help": "This data will be queryable from your server. It may be collected by High Fidelity and used to share your domain with others.",
       "settings": [
         {
+          "name": "world_name",
+          "label": "Name",
+          "advanced": true,
+          "help": "The name of your domain (256 character limit)."
+        },
+        {
           "name": "description",
           "label": "Description",
           "advanced": true,
@@ -199,16 +205,16 @@
           ]
         },
         {
-          "name": "hosts",
-          "label": "Hosts",
+          "name": "managers",
+          "label": "Server Managers / Administrators",
           "advanced": true,
           "type": "table",
           "can_add_new_rows": true,
-          "help": "Usernames of hosts who can reliably show your domain to new visitors.",
+          "help": "Usernames of managers that administrate the domain.",
           "numbered": false,
           "columns": [
             {
-              "name": "host",
+              "name": "manager",
               "label": "Username",
               "can_set": true
             }
