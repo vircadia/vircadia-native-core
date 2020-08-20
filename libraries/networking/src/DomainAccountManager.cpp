@@ -29,77 +29,56 @@
 
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
-// ####### TODO: Enable and use these?
-// ####### TODO: Add storing domain URL and check against it when retrieving values?
-// ####### TODO: Add storing _authURL and check against it when retrieving values?
-/*
-Setting::Handle<QString> domainAccessToken {"private/domainAccessToken", "" };
-Setting::Handle<QString> domainAccessRefreshToken {"private/domainAccessToken", "" };
-Setting::Handle<int> domainAccessTokenExpiresIn {"private/domainAccessTokenExpiresIn", -1 };
-Setting::Handle<QString> domainAccessTokenType {"private/domainAccessTokenType", "" };
-*/
-
 DomainAccountManager::DomainAccountManager() {
     connect(this, &DomainAccountManager::loginComplete, this, &DomainAccountManager::sendInterfaceAccessTokenToServer);
 }
 
 void DomainAccountManager::setDomainURL(const QUrl& domainURL) {
+    qDebug() << "####### DomainAccountManager::setDomainURL()" << domainURL;
 
-    if (domainURL == _domainURL) {
+    if (domainURL == _currentAuth.domainURL) {
+        qDebug() << "####... Early return";
         return;
     }
 
-    _domainURL = domainURL;
-    qCDebug(networking) << "DomainAccountManager domain URL has been changed to" << qPrintable(_domainURL.toString());
+    qCDebug(networking) << "DomainAccountManager domain URL has been changed to" << qPrintable(domainURL.toString());
 
     // Restore OAuth2 authorization if have it for this domain.
-    if (_domainURL == _previousDomainURL) {
-        _authURL = _previousAuthURL;
-        _clientID = _previousClientID;
-        _username = _previousUsername;
-        _accessToken = _previousAccessToken;
-        _refreshToken = _previousRefreshToken;
-        _authedDomainName = _previousAuthedDomainName;
-
-        // ####### TODO: Refresh OAuth2 access token if necessary.
-
+    if (_knownAuths.contains(domainURL)) {
+        _currentAuth = _knownAuths.value(domainURL);
     } else {
-        _authURL.clear();
-        _clientID.clear();
-        _username.clear();
-        _accessToken.clear();
-        _refreshToken.clear();
-        _authedDomainName.clear();
+        _currentAuth = DomainAccountDetails();
+        _currentAuth.domainURL = domainURL;
     }
 
 }
 
 void DomainAccountManager::setAuthURL(const QUrl& authURL) {
-    if (_authURL == authURL) {
+    if (authURL == _currentAuth.authURL) {
         return;
     }
 
-    _authURL = authURL;
+    _currentAuth.authURL = authURL;
     qCDebug(networking) << "DomainAccountManager URL for authenticated requests has been changed to" 
-        << qPrintable(_authURL.toString());
+        << qPrintable(_currentAuth.authURL.toString());
 
-    _accessToken = "";
-    _refreshToken = "";
+    _currentAuth.accessToken = "";
+    _currentAuth.refreshToken = "";
 }
 
 bool DomainAccountManager::hasLogIn() {
-    return !_authURL.isEmpty();
+    return !_currentAuth.authURL.isEmpty();
 }
 
 bool DomainAccountManager::isLoggedIn() { 
-    return !_authURL.isEmpty() && hasValidAccessToken();
+    return !_currentAuth.authURL.isEmpty() && hasValidAccessToken();
 }
 
 void DomainAccountManager::requestAccessToken(const QString& username, const QString& password) {
 
-    _username = username;
-    _accessToken = "";
-    _refreshToken = "";
+    _currentAuth.username = username;
+    _currentAuth.accessToken = "";
+    _currentAuth.refreshToken = "";
 
     QNetworkRequest request;
 
@@ -113,9 +92,9 @@ void DomainAccountManager::requestAccessToken(const QString& username, const QSt
     formData.append("grant_type=password&");
     formData.append("username=" + QUrl::toPercentEncoding(username) + "&");
     formData.append("password=" + QUrl::toPercentEncoding(password) + "&");
-    formData.append("client_id=" + _clientID);
+    formData.append("client_id=" + _currentAuth.clientID);
 
-    request.setUrl(_authURL);
+    request.setUrl(_currentAuth.authURL);
 
     request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
 
@@ -138,19 +117,13 @@ void DomainAccountManager::requestAccessTokenFinished() {
         if (rootObject.contains("access_token")) {
             // Success.
             auto nodeList = DependencyManager::get<NodeList>();
-            _authedDomainName = nodeList->getDomainHandler().getHostname();
+            _currentAuth.authedDomainName = nodeList->getDomainHandler().getHostname();
             QUrl rootURL = requestReply->url();
             rootURL.setPath("");
             setTokensFromJSON(rootObject, rootURL);
 
             // Remember domain login for the current Interface session.
-            _previousDomainURL = _domainURL;
-            _previousAuthURL = _authURL;
-            _previousClientID = _clientID;
-            _previousUsername = _username;
-            _previousAccessToken = _accessToken;
-            _previousRefreshToken = _refreshToken;
-            _previousAuthedDomainName = _authedDomainName;
+            _knownAuths.insert(_currentAuth.domainURL, _currentAuth);
 
             // ####### TODO: Handle "keep me logged in".
 
@@ -176,22 +149,19 @@ void DomainAccountManager::sendInterfaceAccessTokenToServer() {
 bool DomainAccountManager::accessTokenIsExpired() {
     // ####### TODO: accessTokenIsExpired()
     return true;
-    /*
-    return domainAccessTokenExpiresIn.get() != -1 && domainAccessTokenExpiresIn.get() <= QDateTime::currentMSecsSinceEpoch(); 
-    */
 }
 
 
 bool DomainAccountManager::hasValidAccessToken() {
     // ###### TODO: wire this up to actually retrieve a token (based on session or storage) and confirm that it is in fact valid and relevant to the current domain.
     // QString currentDomainAccessToken = domainAccessToken.get();
-    QString currentDomainAccessToken = _accessToken;
+    QString currentDomainAccessToken = _currentAuth.accessToken;
 
     // if (currentDomainAccessToken.isEmpty() || accessTokenIsExpired()) {
     if (currentDomainAccessToken.isEmpty()) {
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
             qCDebug(networking) << "An access token is required for requests to"
-                                << qPrintable(_authURL.toString());
+                                << qPrintable(_currentAuth.authURL.toString());
         }
 
         return false;
@@ -207,17 +177,8 @@ bool DomainAccountManager::hasValidAccessToken() {
 }
 
 void DomainAccountManager::setTokensFromJSON(const QJsonObject& jsonObject, const QUrl& url) {
-    _accessToken = jsonObject["access_token"].toString();
-    _refreshToken = jsonObject["refresh_token"].toString();
-
-    // ####### TODO: Enable and use these?
-    // ####### TODO: Protect these per AccountManager?
-    // ######: TODO: clientID needed?
-    // qCDebug(networking) << "Storing a domain account with access-token for" << qPrintable(url.toString());
-    // domainAccessToken.set(jsonObject["access_token"].toString());
-    // domainAccessRefreshToken.set(jsonObject["refresh_token"].toString());
-    // domainAccessTokenExpiresIn.set(QDateTime::currentMSecsSinceEpoch() + (jsonObject["expires_in"].toDouble() * 1000));
-    // domainAccessTokenType.set(jsonObject["token_type"].toString());
+    _currentAuth.accessToken = jsonObject["access_token"].toString();
+    _currentAuth.refreshToken = jsonObject["refresh_token"].toString();
 }
 
 bool DomainAccountManager::checkAndSignalForAccessToken() {
@@ -232,7 +193,7 @@ bool DomainAccountManager::checkAndSignalForAccessToken() {
         // Emit a signal so somebody can call back to us and request an access token given a user name and password.
 
         // Dialog can be hidden immediately after showing if we've just teleported to the domain, unless the signal is delayed.
-        auto domain = _authURL.host();
+        auto domain = _currentAuth.authURL.host();
         QTimer::singleShot(500, this, [this, domain] {
             emit this->authRequired(domain); 
         });

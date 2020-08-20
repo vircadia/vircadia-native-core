@@ -18,6 +18,17 @@
 #include <DependencyManager.h>
 
 
+struct DomainAccountDetails {
+    QUrl domainURL;
+    QUrl authURL;
+    QString clientID;
+    QString username;
+    QString accessToken;
+    QString refreshToken;
+    QString authedDomainName;
+};
+
+
 class DomainAccountManager : public QObject, public Dependency {
     Q_OBJECT
 public:
@@ -25,12 +36,12 @@ public:
 
     void setDomainURL(const QUrl& domainURL);
     void setAuthURL(const QUrl& authURL);
-    void setClientID(const QString& clientID) { _clientID = clientID; }
+    void setClientID(const QString& clientID) { _currentAuth.clientID = clientID; }
 
-    const QString& getUsername() { return _username; }
-    const QString& getAccessToken() { return _accessToken; }
-    const QString& getRefreshToken() { return _refreshToken; }
-    const QString& getAuthedDomainName() { return _authedDomainName; }
+    const QString& getUsername() { return _currentAuth.username; }
+    const QString& getAccessToken() { return _currentAuth.accessToken; }
+    const QString& getRefreshToken() { return _currentAuth.refreshToken; }
+    const QString& getAuthedDomainName() { return _currentAuth.authedDomainName; }
 
     bool hasLogIn();
     bool isLoggedIn();
@@ -56,23 +67,8 @@ private:
     void setTokensFromJSON(const QJsonObject&, const QUrl& url);
     void sendInterfaceAccessTokenToServer();
 
-    QUrl _domainURL;
-    QUrl _authURL;
-    QString _clientID;
-
-    QString _username;
-    QString _accessToken;
-    QString _refreshToken;
-    QString _authedDomainName;
-
-    // ####### TODO: Handle more than one domain.
-    QUrl _previousDomainURL;
-    QUrl _previousAuthURL;
-    QString _previousClientID;
-    QString _previousUsername;
-    QString _previousAccessToken;
-    QString _previousRefreshToken;
-    QString _previousAuthedDomainName;
+    DomainAccountDetails _currentAuth;
+    QHash<QUrl, DomainAccountDetails> _knownAuths;  // <domainURL, DomainAccountDetails>
 };
 
 #endif  // hifi_DomainAccountManager_h
