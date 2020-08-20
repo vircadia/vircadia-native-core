@@ -529,6 +529,12 @@ bool DomainHandler::reasonSuggestsDomainLogin(ConnectionRefusedReason reasonCode
 }
 
 void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
+
+    // Ignore any residual packets from previous domain.
+    if (message->getSenderSockAddr().getAddress().toString() != _domainURL.host()) {
+        return;
+    }
+
     // we're hearing from this domain-server, don't need to refresh API info
     _apiRefreshTimer.stop();
 
