@@ -38,7 +38,7 @@ public:
         MODE_COUNT
     };
 
-    float scale{ 1.0f };
+    float scale{ 0.75f };
     bool stop{ false };
     bool freeze{ false };
     int mode { TAA };
@@ -119,7 +119,7 @@ public:
     bool debugFXAA() const { return (debugFXAAX == 0.0f ? true : false); }
 
     float blend { 0.2f };
-    float sharpen { 0.0f };
+    float sharpen { 0.1f };
 
     bool constrainColor { true };
     float covarianceGamma { 1.15f };
