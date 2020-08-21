@@ -124,7 +124,6 @@ void DomainMetadata::descriptorsChanged() {
     }
 
     // copy array descriptors
-    state[Descriptors::THUMBNAIL] = descriptorsMap[Descriptors::THUMBNAIL].toList();
     state[Descriptors::IMAGES] = descriptorsMap[Descriptors::IMAGES].toList();
     state[Descriptors::MANAGERS] = descriptorsMap[Descriptors::MANAGERS].toList();
     state[Descriptors::TAGS] = descriptorsMap[Descriptors::TAGS].toList();
