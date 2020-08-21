@@ -175,6 +175,28 @@
           "help": "A description of your domain (256 character limit)."
         },
         {
+          "name": "thumbnail",
+          "label": "World Thumbnail",
+          "advanced": true,
+          "help": "A link to the thumbnail that is publicly accessible from the internet."
+        },
+        {
+          "name": "images",
+          "label": "World Images",
+          "advanced": true,
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "URLs to images that visually describe your world to potential visitors.",
+          "numbered": false,
+          "columns": [
+            {
+              "name": "image",
+              "label": "Image URL",
+              "can_set": true
+            }
+          ]
+        },
+        {
           "name": "maturity",
           "label": "Maturity",
           "advanced": true,
@@ -205,8 +227,14 @@
           ]
         },
         {
+          "name": "contact_info",
+          "label": "World Administrative Contact",
+          "advanced": true,
+          "help": "Contact information to reach server administrators for assistance (256 character limit)."
+        },
+        {
           "name": "managers",
-          "label": "Server Managers / Administrators",
+          "label": "World Managers / Administrators",
           "advanced": true,
           "type": "table",
           "can_add_new_rows": true,

@@ -36,18 +36,25 @@ const QString DomainMetadata::Users::HOSTNAMES = "user_hostnames";
 const QString DomainMetadata::DESCRIPTORS = "descriptors";
 const QString DomainMetadata::Descriptors::NAME = "world_name";
 const QString DomainMetadata::Descriptors::DESCRIPTION = "description";
+const QString DomainMetadata::Descriptors::THUMBNAIL = "thumbnail";
+const QString DomainMetadata::Descriptors::IMAGES = "images";
 const QString DomainMetadata::Descriptors::CAPACITY = "capacity"; // parsed from security
 const QString DomainMetadata::Descriptors::RESTRICTION = "restriction"; // parsed from ACL
 const QString DomainMetadata::Descriptors::MATURITY = "maturity";
+const QString DomainMetadata::Descriptors::CONTACT = "contact_info";
 const QString DomainMetadata::Descriptors::MANAGERS = "managers";
 const QString DomainMetadata::Descriptors::TAGS = "tags";
+
 // descriptors metadata will appear as (JSON):
 // { 
-//   "name": String, // capped name
+//   "world_name": String, // capped name
 //   "description": String, // capped description
+//   "thumbnail": String, // capped thumbnail URL
+//   "images": [ String ], // capped list of image URLs
 //   "capacity": Number,
 //   "restriction": String, // enum of either open, hifi, or acl
 //   "maturity": String, // enum corresponding to ESRB ratings
+//   "contact_info": [ String ], // capped list of usernames
 //   "managers": [ String ], // capped list of usernames
 //   "tags": [ String ], // capped list of tags
 // }
@@ -85,7 +92,7 @@ void DomainMetadata::descriptorsChanged() {
     static const QString DESCRIPTORS_GROUP_KEYPATH = "descriptors";
     auto descriptorsMap = static_cast<DomainServer*>(parent())->_settingsManager.valueForKeyPath(DESCRIPTORS).toMap();
 
-    // copy simple descriptors (name/description/maturity)
+    // copy simple descriptors
     if (!descriptorsMap[Descriptors::NAME].isNull()) {
         state[Descriptors::NAME] = descriptorsMap[Descriptors::NAME];
     } else {
@@ -98,13 +105,27 @@ void DomainMetadata::descriptorsChanged() {
         state[Descriptors::DESCRIPTION] = "";
     }
     
+    if (!descriptorsMap[Descriptors::THUMBNAIL].isNull()) {
+        state[Descriptors::THUMBNAIL] = descriptorsMap[Descriptors::THUMBNAIL];
+    } else {
+        state[Descriptors::THUMBNAIL] = "";
+    }
+    
     if (!descriptorsMap[Descriptors::MATURITY].isNull()) {
         state[Descriptors::MATURITY] = descriptorsMap[Descriptors::MATURITY];
     } else {
         state[Descriptors::MATURITY] = "";
     }
+    
+    if (!descriptorsMap[Descriptors::CONTACT].isNull()) {
+        state[Descriptors::CONTACT] = descriptorsMap[Descriptors::CONTACT];
+    } else {
+        state[Descriptors::CONTACT] = "";
+    }
 
-    // copy array descriptors (managers/tags)
+    // copy array descriptors
+    state[Descriptors::THUMBNAIL] = descriptorsMap[Descriptors::THUMBNAIL].toList();
+    state[Descriptors::IMAGES] = descriptorsMap[Descriptors::IMAGES].toList();
     state[Descriptors::MANAGERS] = descriptorsMap[Descriptors::MANAGERS].toList();
     state[Descriptors::TAGS] = descriptorsMap[Descriptors::TAGS].toList();
 

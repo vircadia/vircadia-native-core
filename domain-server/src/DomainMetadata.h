@@ -36,9 +36,12 @@ public:
     public:
         static const QString NAME;
         static const QString DESCRIPTION;
+        static const QString THUMBNAIL;
+        static const QString IMAGES;
         static const QString CAPACITY;
         static const QString RESTRICTION;
         static const QString MATURITY;
+        static const QString CONTACT;
         static const QString MANAGERS;
         static const QString TAGS;
     };
