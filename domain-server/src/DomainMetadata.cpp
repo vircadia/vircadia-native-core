@@ -230,7 +230,7 @@ void DomainMetadata::maybeUpdateUsers() {
 }
 
 void DomainMetadata::sendDescriptors() {
-    QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)));
+    QString domainUpdateJSON = QString("{\"domain\":{\"meta\":%1}").arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)));
     const QUuid& domainID = DependencyManager::get<LimitedNodeList>()->getSessionUUID();
     if (!domainID.isNull()) {
         static const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
@@ -249,7 +249,7 @@ void DomainMetadata::sendDescriptors() {
 }
 
 bool DomainMetadata::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
-    QString domainMetadataJSON = QString("{\"domain\":%1, \"users\":%2}")
+    QString domainMetadataJSON = QString("{\"domain\":{\"meta\":%1}, \"users\":%2}")
                                      .arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)))
                                      .arg(QString(QJsonDocument(get(USERS)).toJson(QJsonDocument::Compact)));
     const QString URI_METADATA = "/metadata";
