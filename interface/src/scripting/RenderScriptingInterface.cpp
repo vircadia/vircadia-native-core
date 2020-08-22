@@ -137,16 +137,16 @@ void RenderScriptingInterface::forceAntialiasingEnabled(bool enabled) {
         _antialiasingEnabled = (enabled);
         _antialiasingEnabledSetting.set(enabled);
 
-        auto mainViewJitterCamConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<JitterSample>("RenderMainView.JitterCam");
+        auto mainViewAntialiasingSetupConfig  = qApp->getRenderEngine()->getConfiguration()->getConfig<AntialiasingSetup>("RenderMainView.AntialiasingSetup");
         auto mainViewAntialiasingConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<Antialiasing>("RenderMainView.Antialiasing");
-        if (mainViewJitterCamConfig && mainViewAntialiasingConfig) {
+        if (mainViewAntialiasingSetupConfig  && mainViewAntialiasingConfig) {
             Menu::getInstance()->setIsOptionChecked(MenuOption::AntiAliasing, enabled);
             if (enabled) {
-                mainViewJitterCamConfig->play();
+                mainViewAntialiasingSetupConfig ->play();
                 mainViewAntialiasingConfig->setDebugFXAA(false);
             }
             else {
-                mainViewJitterCamConfig->none();
+                mainViewAntialiasingSetupConfig ->none();
                 mainViewAntialiasingConfig->setDebugFXAA(true);
             }
         }

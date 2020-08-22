@@ -175,7 +175,8 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) {
 }
 
 void MeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
-    batch.setModelTransform(_drawTransform);
+    batch.setModelTransform(_drawTransform, _previousModelTransform);
+    _previousModelTransform = _drawTransform;
 }
 
 bool MeshPartPayload::passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const {
@@ -497,7 +498,8 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMo
     if (_clusterBuffer) {
         batch.setUniformBuffer(graphics::slot::buffer::Skinning, _clusterBuffer);
     }
-    batch.setModelTransform(_transform);
+    batch.setModelTransform(_transform, _previousModelTransform);
+    _previousModelTransform = _transform;
 }
 
 void ModelMeshPartPayload::render(RenderArgs* args) {

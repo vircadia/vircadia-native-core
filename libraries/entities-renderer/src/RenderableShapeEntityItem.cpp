@@ -237,7 +237,10 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         geometryShape = geometryCache->getShapeForEntityShape(_shape);
         primitiveMode = _primitiveMode;
         renderLayer = _renderLayer;
-        batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
+
+        batch.setModelTransform(_renderTransform, _prevRenderTransform); // use a transform with scale, rotation, registration point and translation
+        _prevRenderTransform = _renderTransform;
+
         materials = _materials["0"];
         pipelineType = getPipelineType(materials);
         auto& schema = materials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();

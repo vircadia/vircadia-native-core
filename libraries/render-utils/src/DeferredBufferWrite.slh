@@ -12,12 +12,13 @@
 <@def DEFERRED_BUFFER_WRITE_SLH@>
 
 <@include DeferredBuffer.slh@>
+<@include DeferredBufferWrite_shared.slh@>
 
-
-layout(location=0) out vec4 _fragColor0; // albedo / metallic
-layout(location=1) out vec4 _fragColor1; // Normal
-layout(location=2) out vec4 _fragColor2; // scattering / emissive / occlusion
-layout(location=3) out vec4 _fragColor3; // emissive
+layout(location = DEFERRED_COLOR_SLOT) out vec4 _fragColor0;    // albedo / metallic
+layout(location = DEFERRED_NORMAL_SLOT) out vec4 _fragColor1;   // Normal
+layout(location = DEFERRED_SPECULAR_SLOT) out vec4 _fragColor2; // scattering / emissive / occlusion
+layout(location = DEFERRED_VELOCITY_SLOT) out vec4 _velocity;   // velocity
+layout(location = DEFERRED_LIGHTING_SLOT) out vec4 _lighting;   // emissive
 
 // the alpha threshold
 const float alphaThreshold = 0.5;
@@ -25,10 +26,11 @@ float evalOpaqueFinalAlpha(float alpha, float mapAlpha) {
     return mix(alpha, 1.0 - alpha, step(mapAlpha, alphaThreshold));
 }
 
+<@include VelocityWrite.slh@>
 <@include DefaultMaterials.slh@>
 <@include LightingModel.slh@>
 
-void packDeferredFragment(vec3 normal, float alpha, vec3 albedo, float roughness, float metallic, vec3 emissive, float occlusion, float scattering) {
+void packDeferredFragment(vec4 prevPositionCS, vec3 normal, float alpha, vec3 albedo, float roughness, float metallic, vec3 emissive, float occlusion, float scattering) {
     if (alpha < 1.0) {
         discard;
     }
@@ -37,10 +39,11 @@ void packDeferredFragment(vec3 normal, float alpha, vec3 albedo, float roughness
     _fragColor0 = vec4(albedo, mix(packShadedMetallic(metallic), packScatteringMetallic(metallic), check));
     _fragColor1 = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
     _fragColor2 = vec4(mix(emissive, vec3(scattering), check), occlusion);
-    _fragColor3 = vec4(isEmissiveEnabled() * emissive, 1.0);
+    _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
+    _lighting = vec4(isEmissiveEnabled() * emissive, 1.0);
 }
 
-void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 albedo, float roughness, float metallic, vec3 lightmap) {
+void packDeferredFragmentLightmap(vec4 prevPositionCS, vec3 normal, float alpha, vec3 albedo, float roughness, float metallic, vec3 lightmap) {
     if (alpha < 1.0) {
         discard;
     }
@@ -48,10 +51,11 @@ void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 albedo, float r
     _fragColor0 = vec4(albedo, packLightmappedMetallic(metallic));
     _fragColor1 = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
     _fragColor2 = vec4(isLightmapEnabled() * lightmap, 1.0);
-    _fragColor3 = vec4(isLightmapEnabled() * lightmap * albedo, 1.0);
+    _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
+    _lighting = vec4(isLightmapEnabled() * lightmap * albedo, 1.0);
 }
 
-void packDeferredFragmentUnlit(vec3 normal, float alpha, vec3 color) {
+void packDeferredFragmentUnlit(vec4 prevPositionCS, vec3 normal, float alpha, vec3 color) {
     // to reduce texel flickering for floating point error we discard when alpha is "almost one"
     if (alpha < 0.999999) {
         discard;
@@ -59,7 +63,8 @@ void packDeferredFragmentUnlit(vec3 normal, float alpha, vec3 color) {
     _fragColor0 = vec4(color, packUnlit());
     _fragColor1 = vec4(packNormal(normal), 1.0);
     _fragColor2 = vec4(vec3(0.0), 1.0);
-    _fragColor3 = vec4(color, 1.0);
+    _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
+    _lighting = vec4(color, 1.0);
 }
 
 void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 albedo, float roughness) {
@@ -69,7 +74,19 @@ void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 albedo, floa
     _fragColor0 = vec4(albedo.rgb, alpha);
     _fragColor1 = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
     _fragColor2 = vec4(vec3(0.0), 1.0);
-    _fragColor3 = vec4(0.0);
+    _velocity = vec4(0.0);
+    _lighting = vec4(0.0);
+}
+
+void packDeferredFragmentTranslucentUnlit(vec4 prevPositionCS, vec3 normal, float alpha, vec3 color) {
+    if (alpha <= 0.0) {
+        discard;
+    }
+    _fragColor0 = vec4(color, alpha);
+    _fragColor1 = vec4(packNormal(normal), 1.0);
+    _fragColor2 = vec4(vec3(0.0), 1.0);
+    _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
+    _lighting = vec4(color, 1.0);
 }
 
 <@endif@>

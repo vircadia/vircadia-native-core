@@ -151,6 +151,7 @@ protected:
     // Only touched on the rendering thread
     bool _renderUpdateQueued{ false };
     Transform _renderTransform;
+    Transform _prevRenderTransform; // each subclass is responsible for updating this after they render because they all handle transforms differently
 
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;
     std::mutex _materialsLock;

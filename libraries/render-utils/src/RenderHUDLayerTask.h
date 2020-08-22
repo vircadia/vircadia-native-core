@@ -11,6 +11,7 @@
 
 #include "LightingModel.h"
 #include "HazeStage.h"
+#include "DeferredFrameTransform.h"
 
 class CompositeHUD {
 public:
@@ -19,16 +20,21 @@ public:
     //using Inputs = gpu::FramebufferPointer;
     using JobModel = render::Job::ModelI<CompositeHUD, gpu::FramebufferPointer>;
 
+    CompositeHUD(uint transformSlot) : _transformSlot(transformSlot) {}
+
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& inputs);
+
+private:
+    uint _transformSlot;
 };
 
 class RenderHUDLayerTask {
 public:
     // Framebuffer where to draw, lighting model, opaque items, transparent items
-    using Input = render::VaryingSet5<gpu::FramebufferPointer, LightingModelPointer, render::ItemBounds, render::ItemBounds, HazeStage::FramePointer>;
+    using Input = render::VaryingSet6<gpu::FramebufferPointer, LightingModelPointer, render::ItemBounds, render::ItemBounds, HazeStage::FramePointer, DeferredFrameTransformPointer>;
     using JobModel = render::Task::ModelI<RenderHUDLayerTask, Input>;
 
-    void build(JobModel& task, const render::Varying& input, render::Varying& output);
+    void build(JobModel& task, const render::Varying& input, render::Varying& output, render::ShapePlumberPointer shapePlumber, uint transformSlot);
 };
 
 #endif // hifi_RenderHUDLayerTask_h

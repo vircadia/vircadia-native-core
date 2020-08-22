@@ -161,7 +161,8 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     }
 
     modelTransform.setRotation(EntityItem::getBillboardRotation(modelTransform.getTranslation(), modelTransform.getRotation(), billboardMode, args->getViewFrustum().getPosition()));
-    batch.setModelTransform(modelTransform);
+    batch.setModelTransform(modelTransform, _prevRenderTransform);
+    _prevRenderTransform = modelTransform;
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     // FIXME: we want to use instanced rendering here, but if textAlpha < 1 and backgroundAlpha < 1, the transparency sorting will be wrong
@@ -366,7 +367,8 @@ void entities::TextPayload::render(RenderArgs* args) {
     float scale = lineHeight / textRenderer->getFontSize();
     modelTransform.postTranslate(glm::vec3(-0.5, 0.5, 1.0f + EPSILON / dimensions.z));
     modelTransform.setScale(scale);
-    batch.setModelTransform(modelTransform);
+    batch.setModelTransform(modelTransform, _prevRenderTransform);
+    _prevRenderTransform = modelTransform;
 
     glm::vec2 bounds = glm::vec2(dimensions.x - (leftMargin + rightMargin), dimensions.y - (topMargin + bottomMargin));
     textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, bounds / scale, scale,

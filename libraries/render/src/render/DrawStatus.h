@@ -41,7 +41,7 @@ namespace render {
     class DrawStatus {
     public:
         using Config = DrawStatusConfig;
-        using Input = VaryingSet2<ItemBounds, glm::vec2>;
+        using Input = ItemBounds;
         using JobModel = Job::ModelI<DrawStatus, Input, Config>;
 
         DrawStatus() {}

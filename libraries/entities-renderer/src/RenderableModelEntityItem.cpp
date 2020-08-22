@@ -1540,7 +1540,9 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
     // If the model doesn't have visual geometry, render our bounding box as green wireframe
     static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
     gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(getModelTransform()); // we want to include the scale as well
+    Transform transform = getModelTransform();
+    batch.setModelTransform(transform, _prevRenderTransform); // we want to include the scale as well
+    _prevRenderTransform = transform;
     auto geometryCache = DependencyManager::get<GeometryCache>();
     geometryCache->renderWireCubeInstance(args, batch, greenColor, geometryCache->getShapePipelinePointer(false, false, args->_renderMethod == Args::RenderMethod::FORWARD));
 

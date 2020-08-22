@@ -60,6 +60,7 @@ public:
             render::ItemKey _key;
 
             glm::vec3 _origin { 0.0f };
+            Transform _prevTransform;
             bool _isVisibleInSecondaryCamera { DEFAULT_PARABOLA_ISVISIBLEINSECONDARYCAMERA };
             bool _drawInFront { DEFAULT_PARABOLA_DRAWINFRONT };
             bool _visible { false };

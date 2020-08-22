@@ -306,13 +306,14 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     batch.setResourceTexture(0, _texture);
 
     transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
-    batch.setModelTransform(transform);
+    batch.setModelTransform(transform, _prevRenderTransform);
+    _prevRenderTransform = transform;
 
     // Turn off jitter for these entities
-    batch.pushProjectionJitter();
+    batch.pushProjectionJitterEnabled(false);
     DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, color.a < OPAQUE_ALPHA_THRESHOLD, forward);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, color, _geometryId);
-    batch.popProjectionJitter();
+    batch.popProjectionJitterEnabled();
     batch.setResourceTexture(0, nullptr);
 }
 

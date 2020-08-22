@@ -15,11 +15,23 @@
 #include "gpu/Resource.h"
 #include "gpu/Framebuffer.h"
 
+ #include "render/Engine.h" 
 
 // DeferredFramebuffer is  a helper class gathering in one place the GBuffer (Framebuffer) and lighting framebuffer
 class DeferredFramebuffer {
 public:
+    enum Type {
+        FULL = 0,
+        COLOR_DEPTH,
+        LIGHTING,
+        LIGHTING_VELOCITY,
+
+        MAX_TYPE
+    };
+
     DeferredFramebuffer();
+
+    gpu::FramebufferPointer getFramebuffer(Type type);
 
     gpu::FramebufferPointer getDeferredFramebuffer();
     gpu::FramebufferPointer getDeferredFramebufferDepthColor();
@@ -27,8 +39,10 @@ public:
     gpu::TexturePointer getDeferredColorTexture();
     gpu::TexturePointer getDeferredNormalTexture();
     gpu::TexturePointer getDeferredSpecularTexture();
+    gpu::TexturePointer getDeferredVelocityTexture();
 
     gpu::FramebufferPointer getLightingFramebuffer();
+    gpu::FramebufferPointer getLightingWithVelocityFramebuffer();
     gpu::TexturePointer getLightingTexture();
 
     // Update the depth buffer which will drive the allocation of all the other resources according to its size.
@@ -47,13 +61,27 @@ protected:
     gpu::TexturePointer _deferredColorTexture;
     gpu::TexturePointer _deferredNormalTexture;
     gpu::TexturePointer _deferredSpecularTexture;
+    gpu::TexturePointer _deferredVelocityTexture;
 
     gpu::TexturePointer _lightingTexture;
     gpu::FramebufferPointer _lightingFramebuffer;
+    gpu::FramebufferPointer _lightingWithVelocityFramebuffer;
 
     glm::ivec2 _frameSize;
 };
 
 using DeferredFramebufferPointer = std::shared_ptr<DeferredFramebuffer>;
+
+class SetDeferredFramebuffer {
+public:
+    using JobModel = render::Job::ModelI<SetDeferredFramebuffer, DeferredFramebufferPointer>;
+
+    SetDeferredFramebuffer(DeferredFramebuffer::Type type) : _type(type) {}
+
+    void run(const render::RenderContextPointer& renderContext, const DeferredFramebufferPointer& framebuffer);
+
+protected:
+    DeferredFramebuffer::Type _type{ DeferredFramebuffer::FULL };
+};
 
 #endif // hifi_DeferredFramebuffer_h

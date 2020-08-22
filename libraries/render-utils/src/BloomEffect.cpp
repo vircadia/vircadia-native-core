@@ -16,12 +16,15 @@
 
 #include <render/BlurTask.h>
 #include "render-utils/ShaderConstants.h"
+#include "StencilMaskPass.h"
 
 #define BLOOM_BLUR_LEVEL_COUNT  3
 
 BloomThreshold::BloomThreshold(unsigned int downsamplingFactor) {
     assert(downsamplingFactor > 0);
-    _parameters.edit()._sampleCount = downsamplingFactor;
+    auto& params = _parameters.edit();
+    params._sampleCount = downsamplingFactor;
+    params._offset = (1.0f - downsamplingFactor) * 0.5f;
 }
 
 void BloomThreshold::configure(const Config& config) {}
@@ -50,11 +53,6 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
     auto inputBuffer = inputFrameBuffer->getRenderBuffer(0);
     auto bufferSize = gpu::Vec2u(inputBuffer->getDimensions());
-    const auto downSamplingFactor = _parameters.get()._sampleCount;
-
-    // Downsample resolution
-    bufferSize.x /= downSamplingFactor;
-    bufferSize.y /= downSamplingFactor;
 
     if (!_outputBuffer || _outputBuffer->getSize() != bufferSize) {
         auto colorTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(inputBuffer->getTexelFormat(), bufferSize.x, bufferSize.y,
@@ -62,6 +60,7 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
         _outputBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("BloomThreshold"));
         _outputBuffer->setRenderBuffer(0, colorTexture);
+        _outputBuffer->setStencilBuffer(inputFrameBuffer->getDepthStencilBuffer(), inputFrameBuffer->getDepthStencilBufferFormat());
 
         _parameters.edit()._deltaUV = { 1.0f / bufferSize.x, 1.0f / bufferSize.y };
     }
@@ -78,6 +77,9 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
     gpu::doInBatch("BloomThreshold::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
+
+        // We need to clear in case there are zones of the buffer that are stencil tagged as "No Bloom"
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, gpu::Vec4(0.0f));
 
         batch.setViewportTransform(viewport);
         batch.setProjectionTransform(glm::mat4());
