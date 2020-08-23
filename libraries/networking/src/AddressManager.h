@@ -22,7 +22,7 @@
 
 #include "AccountManager.h"
 
-extern const QString DEFAULT_HIFI_ADDRESS;
+extern const QString DEFAULT_VIRCADIA_ADDRESS;
 extern const QString REDIRECT_HIFI_ADDRESS;
 extern const QString DEFAULT_HOME_ADDRESS;
 
@@ -300,7 +300,7 @@ public slots:
      * @param {location.LookupTrigger} trigger=StartupFromSettings - The reason for the function call. Helps ensure that user's
      *     location history is correctly maintained.
      */
-    void goToEntry(LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(DEFAULT_HIFI_ADDRESS, trigger); }
+    void goToEntry(LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(DEFAULT_VIRCADIA_ADDRESS, trigger); }
 
     /**jsdoc
      * Takes you to the specified user's location.
