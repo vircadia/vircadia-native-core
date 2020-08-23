@@ -31,11 +31,16 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-const QString DEFAULT_VIRCADIA_ADDRESS = NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS;
-const QString DEFAULT_HOME_ADDRESS = NetworkingConstants::DEFAULT_HOME_ADDRESS;
 const QString REDIRECT_HIFI_ADDRESS = NetworkingConstants::REDIRECT_HIFI_ADDRESS;
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
+
+const QString DEFAULT_VIRCADIA_ADDRESS = (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty())
+                                       ? BuildInfo::INITIAL_STARTUP_LOCATION
+                                       : NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS;
+const QString DEFAULT_HOME_ADDRESS = (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty()) 
+                                       ? BuildInfo::INITIAL_STARTUP_LOCATION
+                                       : NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS;
 
 Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address", DEFAULT_VIRCADIA_ADDRESS);
 
