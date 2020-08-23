@@ -34,10 +34,7 @@ DomainAccountManager::DomainAccountManager() {
 }
 
 void DomainAccountManager::setDomainURL(const QUrl& domainURL) {
-    qDebug() << "####### DomainAccountManager::setDomainURL()" << domainURL;
-
     if (domainURL == _currentAuth.domainURL) {
-        qDebug() << "####... Early return";
         return;
     }
 

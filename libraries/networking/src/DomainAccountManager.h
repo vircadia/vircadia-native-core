@@ -60,8 +60,6 @@ signals:
     void logoutComplete();
     void newTokens();
 
-private slots:
-
 private:
     bool hasValidAccessToken();
     bool accessTokenIsExpired();
