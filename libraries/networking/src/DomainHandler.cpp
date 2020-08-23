@@ -531,7 +531,7 @@ bool DomainHandler::reasonSuggestsDomainLogin(ConnectionRefusedReason reasonCode
 void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
 
     // Ignore any residual packets from previous domain.
-    if (message->getSenderSockAddr().getAddress().toString() != _domainURL.host()) {
+    if (!message->getSenderSockAddr().getAddress().isEqual(_sockAddr.getAddress())) {
         return;
     }
 
