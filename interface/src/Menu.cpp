@@ -23,7 +23,6 @@
 
 #include <AddressManager.h>
 #include <AudioClient.h>
-#include <BuildInfo.h>
 #include <CrashHelpers.h>
 #include <DependencyManager.h>
 #include <ui/TabletScriptingInterface.h>
@@ -235,17 +234,10 @@ Menu::Menu() {
     MenuWrapper* startupLocationMenu = navigateMenu->addMenu(MenuOption::StartUpLocation);
     QActionGroup* startupLocationGroup = new QActionGroup(startupLocationMenu);
     startupLocationGroup->setExclusive(true);
-    if (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty()) {
-        startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0,
-            true));
-        startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0,
-            false));
-    } else {
-        startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0,
-            false));
-        startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0,
-            true));
-    }
+    startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0,
+        false));
+    startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0,
+        true));
 
     // Settings menu ----------------------------------
     MenuWrapper* settingsMenu = addMenu("Settings");
