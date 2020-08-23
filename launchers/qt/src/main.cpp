@@ -31,7 +31,7 @@ bool hasSuffix(const std::string& path, const std::string& suffix) {
 
 int main(int argc, char *argv[]) {
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    QCoreApplication::setOrganizationName("High Fidelity");
+    QCoreApplication::setOrganizationName("Vircadia");
     QCoreApplication::setApplicationName("HQ Launcher");
 
     Q_INIT_RESOURCE(resources);

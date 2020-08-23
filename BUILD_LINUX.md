@@ -1,6 +1,6 @@
 # Build Linux
 
-*Last Updated on January 20, 2020*
+*Last Updated on April 11, 2020*
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Linux specific instructions are found in this file.
 
@@ -88,6 +88,16 @@ Then checkout the main branch with:
 ```bash
 git checkout kasen/core
 ```
+
+### Using a custom Qt build
+
+Qt binaries are only provided for Ubuntu. In order to build on other distributions, a Qt5 install needs to be provided as follows:
+
+* Set `VIRCADIA_USE_PREBUILT_QT=1`
+* Set `VIRCADIA_USE_QT_VERSION` to the Qt version (defaults to `5.12.3`)
+* Set `HIFI_QT_BASE=/path/to/qt`
+
+Qt must be installed in `$HIFI_QT_BASE/$VIRCADIA_USE_QT_VERSION/qt5-install`.
 
 ### Compiling
 

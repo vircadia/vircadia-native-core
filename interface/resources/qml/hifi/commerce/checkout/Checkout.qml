@@ -778,7 +778,7 @@ Rectangle {
                     lightboxPopup.bodyText = "Rezzing this content set will replace the existing environment and all of the items in this domain. " +
                         "If you want to save the state of the content in this domain, create a backup before proceeding.<br><br>" +
                         "For more information about backing up and restoring content, " +
-                        "<a href='https://docs.projectathena.dev/host/maintain-domain/backup-domain.html'>" +
+                        "<a href='https://docs.vircadia.dev/host/maintain-domain/backup-domain.html'>" +
                         "click here to open info on your desktop browser.";
                     lightboxPopup.button1text = "CANCEL";
                     lightboxPopup.button1method = function() {

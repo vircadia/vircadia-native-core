@@ -196,6 +196,8 @@ private:
 #if (PR_BUILD || DEV_BUILD)
     bool _shouldSendNewerVersion { false };
 #endif
+
+    bool _hasDomainAccountManager { false };
 };
 
 #endif // hifi_NodeList_h

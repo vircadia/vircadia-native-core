@@ -19,8 +19,6 @@
 #include <GeometryCache.h>
 #include "Menu.h"
 
-
-
 class WorldBoxRenderData {
 public:
     typedef render::Payload<WorldBoxRenderData> Payload;
@@ -28,8 +26,6 @@ public:
 
     int _val = 0;
     static render::ItemID _item; // unique WorldBoxRenderData
-
-
 
     static void renderWorldBox(RenderArgs* args, gpu::Batch& batch);
 };

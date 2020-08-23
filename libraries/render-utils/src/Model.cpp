@@ -226,6 +226,7 @@ void Model::updateRenderItems() {
         modelTransform.setScale(glm::vec3(1.0f));
 
         PrimitiveMode primitiveMode = self->getPrimitiveMode();
+        auto renderWithZones = self->getRenderWithZones();
         auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
         bool cauterized = self->isCauterized();
 
@@ -241,7 +242,8 @@ void Model::updateRenderItems() {
             bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
             transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
-                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
+                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags,
+                                                                  cauterized, renderWithZones](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
                     data.computeAdjustedLocalBound(meshState.clusterDualQuaternions);
@@ -268,6 +270,7 @@ void Model::updateRenderItems() {
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
                 data.setCauterized(cauterized);
+                data.setRenderWithZones(renderWithZones);
                 data.updateKey(renderItemKeyGlobalFlags);
                 data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
             });
@@ -280,11 +283,6 @@ void Model::updateRenderItems() {
 void Model::setRenderItemsNeedUpdate() {
     _renderItemsNeedUpdate = true;
     emit requestRenderUpdate();
-}
-
-void Model::setPrimitiveMode(PrimitiveMode primitiveMode) {
-    _primitiveMode = primitiveMode;
-    setRenderItemsNeedUpdate();
 }
 
 void Model::reset() {
@@ -880,8 +878,8 @@ void Model::updateRenderItemsKey(const render::ScenePointer& scene) {
     }
     auto renderItemsKey = _renderItemKeyGlobalFlags;
     render::Transaction transaction;
-    foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-        transaction.updateItem<ModelMeshPartPayload>(item, [renderItemsKey](ModelMeshPartPayload& data) {
+    for (auto itemID: _modelMeshRenderItemIDs) {
+        transaction.updateItem<ModelMeshPartPayload>(itemID, [renderItemsKey](ModelMeshPartPayload& data) {
             data.updateKey(renderItemsKey);
         });
     }
@@ -960,19 +958,33 @@ void Model::setCauterized(bool cauterized, const render::ScenePointer& scene) {
     }
 }
 
+void Model::setPrimitiveMode(PrimitiveMode primitiveMode) {
+    if (_primitiveMode != primitiveMode) {
+        _primitiveMode = primitiveMode;
+        setRenderItemsNeedUpdate();
+    }
+}
+
 void Model::setCullWithParent(bool cullWithParent) {
     if (_cullWithParent != cullWithParent) {
         _cullWithParent = cullWithParent;
 
         render::Transaction transaction;
         auto renderItemsKey = _renderItemKeyGlobalFlags;
-        for(auto item : _modelMeshRenderItemIDs) {
+        for (auto item : _modelMeshRenderItemIDs) {
             transaction.updateItem<ModelMeshPartPayload>(item, [cullWithParent, renderItemsKey](ModelMeshPartPayload& data) {
                 data.setCullWithParent(cullWithParent);
                 data.updateKey(renderItemsKey);
             });
         }
         AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+    }
+}
+
+void Model::setRenderWithZones(const QVector<QUuid>& renderWithZones) {
+    if (_renderWithZones != renderWithZones) {
+        _renderWithZones = renderWithZones;
+        setRenderItemsNeedUpdate();
     }
 }
 
@@ -984,7 +996,9 @@ bool Model::addToScene(const render::ScenePointer& scene,
                        render::Transaction& transaction,
                        render::Item::Status::Getters& statusGetters,
                        BlendShapeOperator modelBlendshapeOperator) {
+
     if (!_addedToScene && isLoaded()) {
+        updateGeometry();
         updateClusterMatrices();
         if (_modelMeshRenderItems.empty()) {
             createRenderItemSet();
@@ -1427,9 +1441,13 @@ void Model::updateClusterMatrices() {
         }
     }
 
+    updateBlendshapes();
+}
+
+void Model::updateBlendshapes() {
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (modelBlender->shouldComputeBlendshapes() && hfmModel.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (modelBlender->shouldComputeBlendshapes() && getHFMModel().hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }

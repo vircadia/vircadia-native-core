@@ -24,7 +24,7 @@
 #include "ModelPropertiesDialog.h"
 #include "InterfaceLogging.h"
 
-static const int MAX_TEXTURE_SIZE = 1024;
+static const int MAX_TEXTURE_SIZE = 8192;
 
 void copyDirectoryContent(QDir& from, QDir& to) {
     for (auto entry : from.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot |

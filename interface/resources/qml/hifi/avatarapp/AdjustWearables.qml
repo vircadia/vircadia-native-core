@@ -245,9 +245,7 @@ Rectangle {
                     linkColor: hifi.colors.blueHighlight
                     Layout.alignment: Qt.AlignVCenter
                     onLinkActivated: {
-                        popup.showGetWearables(function() {
-                            emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland/11.5848,-8.10862,-2.80195'})
-                        }, function(link) {
+                        popup.showGetWearables(null, function(link) {
                             emitSendToScript({'method' : 'navigate', 'url' : link})
                         });
                     }
@@ -405,7 +403,6 @@ Rectangle {
 
             Vector3 {
                 id: positionVector
-                backgroundColor: "lightgray"
                 enabled: getCurrentWearable() !== null
 
                 function set(localPosition) {
@@ -465,7 +462,6 @@ Rectangle {
 
             Vector3 {
                 id: rotationVector
-                backgroundColor: "lightgray"
                 enabled: getCurrentWearable() !== null
 
                 function set(localRotationAngles) {
@@ -552,7 +548,7 @@ Rectangle {
                     realFrom: 0.1
                     realTo: 3.0
                     realValue: 1.0
-                    backgroundColor: "lightgray"
+                    backgroundColor: activeFocus ? "white" : "lightgray"
                     width: positionVector.spinboxWidth
                     colorScheme: hifi.colorSchemes.light
 

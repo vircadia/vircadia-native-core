@@ -128,7 +128,7 @@ ShadowRectangle {
         }
     }
 
-    // FIXME: Link to a Project Athena version of the video.
+    // FIXME: Link to a Vircadias version of the video.
     /*
     RalewayButton {
         id: video

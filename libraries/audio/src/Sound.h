@@ -130,6 +130,7 @@ typedef QSharedPointer<Sound> SharedSoundPointer;
  * </ul>
  *
  * @class SoundObject
+ * @hideconstructor
  * 
  * @hifi-interface
  * @hifi-client-entity

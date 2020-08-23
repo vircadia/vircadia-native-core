@@ -135,6 +135,7 @@ public:
         AudioSoloRequest,
         BulkAvatarTraitsAck,
         StopInjector,
+        AvatarZonePresence,
         NUM_PACKET_TYPE
     };
 
@@ -185,7 +186,8 @@ public:
             << PacketTypeEnum::Value::OctreeFileReplacement << PacketTypeEnum::Value::ReplicatedMicrophoneAudioNoEcho
             << PacketTypeEnum::Value::ReplicatedMicrophoneAudioWithEcho << PacketTypeEnum::Value::ReplicatedInjectAudio
             << PacketTypeEnum::Value::ReplicatedSilentAudioFrame << PacketTypeEnum::Value::ReplicatedAvatarIdentity
-            << PacketTypeEnum::Value::ReplicatedKillAvatar << PacketTypeEnum::Value::ReplicatedBulkAvatarData;
+            << PacketTypeEnum::Value::ReplicatedKillAvatar << PacketTypeEnum::Value::ReplicatedBulkAvatarData
+            << PacketTypeEnum::Value::AvatarZonePresence;
         return NON_SOURCED_PACKETS;
     }
 
@@ -210,10 +212,11 @@ using PacketType = PacketTypeEnum::Value;
 
 const int NUM_BYTES_MD5_HASH = 16;
 
-typedef char PacketVersion;
+// NOTE: There is a max limit of 255, hopefully we have a better way to manage this by then.
+typedef uint8_t PacketVersion;
 
 PacketVersion versionForPacketType(PacketType packetType);
-QByteArray protocolVersionsSignature(); /// returns a unqiue signature for all the current protocols
+QByteArray protocolVersionsSignature(); /// returns a unique signature for all the current protocols
 QString protocolVersionsSignatureBase64();
 
 #if (PR_BUILD || DEV_BUILD)
@@ -224,7 +227,7 @@ uint qHash(const PacketType& key, uint seed);
 QDebug operator<<(QDebug debug, const PacketType& type);
 
 // Due to the different legacy behaviour, we need special processing for domains that were created before
-// the zone inheritance modes were added.  These have version numbers up to 80
+// the zone inheritance modes were added. These have version numbers up to 80.
 enum class EntityVersion : PacketVersion {
     StrokeColorProperty = 0,
     HasDynamicOwnershipTests,
@@ -275,6 +278,9 @@ enum class EntityVersion : PacketVersion {
     ShadowBiasAndDistance,
     TextEntityFonts,
     ScriptServerKinematicMotion,
+    ScreenshareZone,
+    ZoneOcclusion,
+    ModelBlendshapes,
 
     // Add new versions above here
     NUM_PACKET_TYPE,
