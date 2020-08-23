@@ -53,6 +53,7 @@ public slots:
     void requestAccessTokenFinished();
 
 signals:
+    void hasLogInChanged(bool hasLogIn);
     void authRequired(const QString& domain);
     void loginComplete();
     void loginFailed();

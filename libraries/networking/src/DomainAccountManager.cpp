@@ -51,6 +51,7 @@ void DomainAccountManager::setDomainURL(const QUrl& domainURL) {
         _currentAuth.domainURL = domainURL;
     }
 
+    emit hasLogInChanged(hasLogIn());
 }
 
 void DomainAccountManager::setAuthURL(const QUrl& authURL) {
@@ -64,6 +65,8 @@ void DomainAccountManager::setAuthURL(const QUrl& authURL) {
 
     _currentAuth.accessToken = "";
     _currentAuth.refreshToken = "";
+
+    emit hasLogInChanged(hasLogIn());
 }
 
 bool DomainAccountManager::hasLogIn() {
