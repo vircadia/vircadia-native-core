@@ -1385,8 +1385,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} showKeyboardFocusHighlight=true - <code>true</code> if the entity is highlighted when it has keyboard
  *     focus, <code>false</code> if it isn't.
  * @property {boolean} useBackground=true - <code>true</code> if the web entity should have a background,
- *     <code>false</code> if the web entity's background should be transparent. The webpage must have CSS properties for
- *     <code>background-color: "transparent"</code> set appropriately for this property to have an effect.
+ *     <code>false</code> if the web entity's background should be transparent. The webpage must have CSS properties for transparency
+ *     on the <code>background-color</code> set for this property to have an effect.
  * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
  * var METERS_TO_INCHES = 39.3701;
  * var entity = Entities.addEntity({
