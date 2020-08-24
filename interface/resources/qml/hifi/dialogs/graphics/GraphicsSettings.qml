@@ -21,6 +21,9 @@ import PerformanceEnums 1.0
 Item {
     HifiStylesUit.HifiConstants { id: hifi; }
 
+    readonly property real defaultMaxVisibilityDistance: 400.0
+    readonly property real unitElementMaxExtent: Math.sqrt(3.0) * 0.5
+
     id: root;
     anchors.fill: parent
 
@@ -357,6 +360,94 @@ Item {
                         }
                     }
                 }
+
+                Column {
+                    //anchors.margins: 10
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    Layout.topMargin: 16
+                    spacing: 20
+
+                    HifiStylesUit.RalewayRegular {
+                        text: "LOD SETTINGS"
+                        Layout.maximumWidth: parent.width
+                        height: 30
+                        size: 16
+                        color: "#FFFFFF"
+                    }
+
+                    HifiStylesUit.RalewayRegular {
+                        size: 16
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        text: qsTr("You can see...")
+                        color: "#FFFFFF"
+                    }
+                    HifiStylesUit.RalewayRegular {
+                        id: whatYouCanSeeLabel
+                        color: "red"
+                        size: 16
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                    }
+                    Row {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        spacing: 10
+
+                        HifiStylesUit.RalewayRegular {
+                            size: 16
+                            text: qsTr("Manually Adjust Level of Detail:")
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: "#FFFFFF"
+                        }
+
+                        HifiControlsUit.CheckBox {
+                            id: adjustCheckbox
+                            boxSize: 16
+                            anchors.verticalCenter: parent.verticalCenter
+                            onCheckedChanged: LODManager.setAutomaticLODAdjust(!adjustCheckbox.checked);
+                            colorScheme: hifi.colorSchemes.dark
+                        }
+                    }
+
+                    HifiStylesUit.RalewayRegular {
+                        size: 16
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        text: qsTr("Level of Detail:")
+                        color: "#FFFFFF"
+                    }
+                    HifiControlsUit.Slider {
+                        id: slider
+                        enabled: adjustCheckbox.checked
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        minimumValue: 5
+                        maximumValue: 2000
+                        value: defaultMaxVisibilityDistance
+                        tickmarksEnabled: false
+                        colorScheme: hifi.colorSchemes.dark
+                        onValueChanged: {
+                            LODManager.lodAngleDeg = visibilityDistanceToLODAngleDeg(slider.value);
+                            whatYouCanSeeLabel.text = LODManager.getLODFeedbackText()
+                        }
+                    }
+
+                    HifiControlsUit.Button {
+                        id: uploadButton
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        text: qsTr("Reset")
+                        color: hifi.buttons.blue
+                        height: 30
+                        onClicked: {
+                            slider.value = defaultMaxVisibilityDistance
+                            adjustCheckbox.checked = false
+                            LODManager.setAutomaticLODAdjust(adjustCheckbox.checked);
+                        }
+                    }
+                }
             }
         }
     }
@@ -365,5 +456,11 @@ Item {
         worldDetailDropdown.refreshWorldDetailDropdown();
         renderingEffectsDropdown.refreshRenderingEffectsDropdownDisplay();
         refreshRateDropdown.refreshRefreshRateDropdownDisplay();
+    }
+
+    function visibilityDistanceToLODAngleDeg(visibilityDistance) {
+        var lodHalfAngle = Math.atan(unitElementMaxExtent / visibilityDistance);
+        var lodAngle = lodHalfAngle * 2.0;
+        return lodAngle * 180.0 / Math.PI;
     }
 }
