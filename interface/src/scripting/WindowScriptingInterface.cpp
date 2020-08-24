@@ -29,6 +29,7 @@
 #include "Menu.h"
 #include "OffscreenUi.h"
 #include "commerce/QmlCommerce.h"
+#include "NetworkingConstants.h"
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 static const QString LAST_BROWSE_LOCATION_SETTING = "LastBrowseLocation";
@@ -409,6 +410,10 @@ void WindowScriptingInterface::showAssetServer(const QString& upload) {
 
 QString WindowScriptingInterface::checkVersion() {
     return QCoreApplication::applicationVersion();
+}
+
+QString WindowScriptingInterface::getUserAgent() {
+    return NetworkingConstants::VIRCADIA_USER_AGENT;
 }
 
 QString WindowScriptingInterface::protocolSignature() {

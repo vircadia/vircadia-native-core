@@ -3,7 +3,7 @@
   "settings": [
     {
       "name": "metaverse",
-      "label": "Metaverse / Networking",
+      "label": "Networking / Metaverse",
       "settings": [
         {
           "name": "access_token",
@@ -54,6 +54,39 @@
           "default": true,
           "type": "checkbox",
           "advanced":  true
+        }
+      ]
+    },
+    {
+      "name": "authentication",
+      "label": "Networking / WordPress OAuth2",
+      "settings": [
+        {
+            "name": "enable_oauth2",
+            "label": "Enable OAuth2 Authentication",
+            "help": "Allow a WordPress-based (miniOrange) OAuth2 service to assign users to groups based on their role with the service.",
+            "default": false,
+            "type": "checkbox",
+            "advanced": true
+        },
+        {
+            "name": "oauth2_url_path",
+            "label": "Authentication URL",
+            "help": "The URL that the Interface will use to login via OAuth2.",
+            "advanced": true
+        },
+        {
+            "name": "wordpress_url_base",
+            "label": "WordPress API URL Base",
+            "help": "The URL base that the domain server will use to make WordPress API calls. Typically \"https://oursite.com/wp-json/\". However, if using non-pretty permalinks or otherwise get a 404 error then try \"https://oursite.com/?rest_route=/\".",
+            "advanced": true
+        },
+        {
+            "name": "plugin_client_id",
+            "label": "WordPress Plugin Client ID",
+            "help": "This is the client ID from the WordPress plugin configuration.",
+            "advanced": true,
+            "backup": false
         }
       ]
     },
@@ -381,6 +414,7 @@
           "name": "group_permissions",
           "type": "table",
           "caption": "Permissions for Users in Groups",
+          "help": "For groups that are provided from WordPress you need to denote them by putting an \"@\" symbol in front of each item, e.g., \"@silver\".",
           "categorize_by_key": "permissions_id",
           "can_add_new_categories": true,
           "can_add_new_rows": false,
@@ -509,6 +543,7 @@
           "name": "group_forbiddens",
           "type": "table",
           "caption": "Permissions Denied to Users in Groups",
+          "help": "For groups that are provided from WordPress you need to denote them by putting an \"@\" symbol in front of each item, e.g., \"@silver\".",
           "categorize_by_key": "permissions_id",
           "can_add_new_categories": true,
           "can_add_new_rows": false,
