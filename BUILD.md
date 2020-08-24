@@ -1,6 +1,6 @@
 # General Build Information
 
-*Last Updated on August 23, 2020*
+*Last Updated on August 24, 2020*
 
 ### OS Specific Build Guides
 
@@ -82,6 +82,10 @@ Where /path/to/directory is the path to a directory where you wish the build fil
     
     // The Interface will have a custom default home and startup location.
     INITIAL_STARTUP_LOCATION=Location/IP/URL
+    
+    // Code-signing environment variables must be set at runtime AND globally when the signing takes place.
+    HF_PFX_FILE=Path to certificate
+    HF_PFX_PASSPHRASE=Passphrase for certificate
     
     // TODO: What do these do?
     PRODUCTION_BUILD=0|1
