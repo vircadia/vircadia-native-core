@@ -16,11 +16,10 @@
     "use strict";
     this.entityID = null;
     var _this = this;
-    var timer;
     
     var POSITION = Vec3.ZERO; // 0, 0, 0
     var RANGE = 1000; // 1000 meters
-    var UPDATE_INTERVAL = 1000; // 1 second
+    var UPDATE_TIMEOUT = 5000; // 5 seconds
     
     function getAvatarCount() {
         return AvatarList.getAvatarsInRange(POSITION, RANGE);
@@ -34,18 +33,22 @@
         });
     }
     
+    function beginTimeout() {
+        Script.setTimeout(function () {
+            updateAvatarCount();
+            beginTimeout();
+        }, UPDATE_TIMEOUT);
+    }
+    
     // Standard preload and unload, initialize the entity script here.
 
     this.preload = function (ourID) {
         this.entityID = ourID;
-        
-        timer = Script.setInterval(function () {
-            updateAvatarCount();
-        }, UPDATE_INTERVAL);
+        beginTimeout();
     };
 
     this.unload = function(entityID) {
-        Script.clearInterval(timer);
+        
     };
 
 });
