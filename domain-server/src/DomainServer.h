@@ -140,6 +140,7 @@ private slots:
     void updateDownstreamNodes();
     void updateUpstreamNodes();
     void initializeExporter();
+    void initializeMetadataExporter();
 
     void tokenGrantFinished();
     void profileRequestFinished();
@@ -240,6 +241,8 @@ private:
 
     HTTPManager _httpManager;
     HTTPManager* _httpExporterManager { nullptr };
+    HTTPManager* _httpMetadataExporterManager { nullptr };
+    
     std::unique_ptr<HTTPSManager> _httpsManager;
 
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;
