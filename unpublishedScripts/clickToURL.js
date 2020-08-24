@@ -1,5 +1,5 @@
 /*
-    clickToOpen.js
+    clickToURL.js
 
     Created by Kalila L. on 3 Aug 2020
     Copyright 2020 Vircadia and contributors.
@@ -20,7 +20,7 @@
     }
     
     function onMousePressOnEntity(pressedEntityID, event) {
-        if (_this.entityID == pressedEntityID) {
+        if (_this.entityID === pressedEntityID) {
             overlayWebWindow = new OverlayWebWindow({
                 title: "Vircadia Browser",
                 source: getURLfromEntityDescription(),
