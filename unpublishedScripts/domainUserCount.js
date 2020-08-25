@@ -16,6 +16,7 @@
     "use strict";
     this.entityID = null;
     var _this = this;
+    var timer;
     
     var POSITION = Vec3.ZERO; // 0, 0, 0
     var RANGE = 1000; // 1000 meters
@@ -34,7 +35,7 @@
     }
     
     function beginTimeout() {
-        Script.setTimeout(function () {
+        timer = Script.setTimeout(function () {
             updateAvatarCount();
             beginTimeout();
         }, UPDATE_TIMEOUT);
@@ -48,7 +49,7 @@
     };
 
     this.unload = function(entityID) {
-        
+        Script.clearTimeout(timer);
     };
 
 });
