@@ -1,6 +1,6 @@
 # General Build Information
 
-*Last Updated on June 27, 2020*
+*Last Updated on August 25, 2020*
 
 ### OS Specific Build Guides
 
@@ -80,12 +80,16 @@ Where /path/to/directory is the path to a directory where you wish the build fil
     // The type of release.
     RELEASE_TYPE=PRODUCTION|PR|DEV
     
-    // TODO: What do these do?
+    // Set one of these if you require only one to be packaged
+    CLIENT_ONLY=1
+    SERVER_ONLY=1
+    
+    // Determine the build type
     PRODUCTION_BUILD=0|1
     PR_BUILD=0|1
     STABLE_BUILD=0|1
     
-    // TODO: What do these do?
+    // Determine if to utilize testing or stable Metaverse URLs
     USE_STABLE_GLOBAL_SERVICES=1
     BUILD_GLOBAL_SERVICES=STABLE
     
