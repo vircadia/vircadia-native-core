@@ -75,7 +75,7 @@
                 <?js doc.modules.forEach(function(module) { ?>
                     <?js= self.partial('methodList.tmpl', module) ?>
                 <?js }) ?>
-            <?js } else if (doc.kind === 'class' || (doc.kind === 'namespace' && doc.signature)) { ?>
+            <?js } else if ((doc.kind === 'class' && !doc.hideconstructor) || (doc.kind === 'namespace' && doc.signature)) { ?>
                 <h3>Description</h3>
                 <div><?js= doc.description ?></div>
                 <?js= self.partial('details.tmpl', doc) ?>

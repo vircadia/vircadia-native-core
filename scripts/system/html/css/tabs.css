@@ -1,0 +1,77 @@
+/*
+//  tabs.css
+//
+//  Created by Alezia Kurdis on 27 Feb 2020
+//  Copyright 2020 Vircadia contributors.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+*/
+
+div.tabsContainer {
+    float: left;
+    width: 32px;
+    padding: 0px;
+}
+
+.tabsContainer button {
+    padding: 4px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.4s;
+    font-size: 14px;
+    background-color: #404040;
+    border-color: #404040;
+    border-width: 1px 0px 1px 1px;
+    border-radius: 5px 0px 0px 5px;
+    outline: none;
+}
+
+.tabsContainer button:hover {
+    background-color: #575757;
+}
+
+.tabsContainer button.active {
+    background-color: #2E2E2E;
+}
+
+div.labelTabHeader {
+    font-size: 20px;
+    font-weight: 700;
+    height: 40px;
+    color: #ffffff;
+}
+
+div.tab-section-header {
+    width: 100%;
+    padding: 5px;
+}
+
+table.tabsTableFrame {
+    width: 100%;
+    min-height: 352px;
+    display: block;
+}
+
+tr.tabsTrFrame {
+    width: 100%;
+}
+
+td.tabsFrame {
+    width: 32px;
+    vertical-align: top;
+    background-color: #575757;
+    padding: 0px;
+    border: 0px;
+}
+
+td.tabsPropertiesFrame {
+    width: 100%;
+    vertical-align: top;
+    border: 0px;
+}
+
+div.tabsPropertiesPage {
+    min-height: 352px;
+    display: block;
+}

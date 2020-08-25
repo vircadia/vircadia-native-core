@@ -3,6 +3,7 @@
 //
 //  Created by Ryan Huffman on 13 Nov 2014
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -1794,3 +1795,28 @@ input[type=number].hide-spinner::-webkit-inner-spin-button {
 div.jsoneditor-menu a.jsoneditor-poweredBy {
     display: none;
 }
+td.zoneItem {
+    width: 100%;
+}
+
+select.zoneSelect {
+    clear: both;
+    cursor: pointer;
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    width: 90%;
+    height: 28px;
+    padding: 0 28px 0 12px;
+    color: #afafaf;
+    background: #575757;
+    position: relative;
+    display: inline;
+    border: 0px;
+    align-items: center;
+    outline: none;
+}
+
+div.multiZoneSelToolbar {
+    padding: 0px;
+}
+

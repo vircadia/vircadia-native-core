@@ -1,0 +1,52 @@
+<!-- 
+screenshareApp.html
+
+Created by Milad Nazeri, Rebecca Stankus, and Zach Fox 2019/11/13
+Copyright 2019 High Fidelity, Inc.
+
+Distributed under the Apache License, Version 2.0.
+See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html 
+-->
+
+<html>
+    <head>
+        <link href="styles.css" rel="stylesheet">
+    </head>
+    <body id="main">
+        <div id="title" class="text_title">
+            <h1>Share your screen</h1>
+            <h3 id="subtitle">Please select the content you'd like to share.</h3>
+        </div>
+        <button id="screenshare" onclick="stopSharing()" style="display: none;">Stop Screenshare</button>
+        <div id="select_screen">
+            <div class="scrollbar" id="style-1">
+                <div class="force-overflow">
+                    <div id="selects">
+                    </div>
+                </div>
+            </div>
+        </div> 
+        <div id="confirmation_screen" style="display: none;">
+            <div id="share_pick">
+            </div> <!-- share_pick --> 
+            <div id="confirmation_text" style="color: white;">
+                <p>
+                    Are you sure you'd like to share <span id="content_name">Content Name</span>?
+                </p>
+                <p>
+                    Others will be able to see everything contained within this view.
+                </p>
+            </div>
+            <div id="button_selection">
+                <div id="yes" class="button_confirmation grey_background" onclick="screenConfirmed(true)">
+                    YES, SHARE THIS CONTENT
+                </div>
+                <div id="no" class="button_confirmation" onclick="screenConfirmed(false)">
+                    No, don't share this content
+                </div>
+            </div>
+        </div> <!-- confirmation screen -->
+        <script src="screenshareApp.js"></script>
+        <script src="https://static.opentok.com/v2/js/opentok.min.js"></script>
+    </body>
+</html>

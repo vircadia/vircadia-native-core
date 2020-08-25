@@ -176,7 +176,7 @@ private:
     QString _displayName;
     QString _applicationErrorMessage;
     QString _currentClientVersion;
-    QString _buildTag { QString::null };
+    QString _buildTag;
     QString _contentCacheURL;
     QString _loginTokenResponse;
     QFile _clientZipFile;

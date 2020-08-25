@@ -48,19 +48,13 @@ macro(setup_qt)
     # if we are in a development build and QT_CMAKE_PREFIX_PATH is specified
     # then use it,
     # otherwise, use the vcpkg'ed version
-    if(NOT DEFINED VCPKG_QT_CMAKE_PREFIX_PATH)
-        message(FATAL_ERROR "VCPKG_QT_CMAKE_PREFIX_PATH should have been set by hifi_vcpkg.py")
+    if(NOT DEFINED QT_CMAKE_PREFIX_PATH)
+        message(FATAL_ERROR "QT_CMAKE_PREFIX_PATH should have been set by hifi_qt.py")
     endif()
-    if (NOT DEV_BUILD)
-        message("override QT_CMAKE_PREFIX_PATH with VCPKG_QT_CMAKE_PREFIX_PATH")
-        set(QT_CMAKE_PREFIX_PATH ${VCPKG_QT_CMAKE_PREFIX_PATH})
-    else()
-        # DEV_BUILD
-        if (DEFINED ENV{QT_CMAKE_PREFIX_PATH})
-            set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
-        else()
-            set(QT_CMAKE_PREFIX_PATH ${VCPKG_QT_CMAKE_PREFIX_PATH})
-        endif()
+    if (DEV_BUILD)
+      if (DEFINED ENV{QT_CMAKE_PREFIX_PATH})
+        set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+      endif()
     endif()
 
     message("QT_CMAKE_PREFIX_PATH = " ${QT_CMAKE_PREFIX_PATH})

@@ -3,10 +3,10 @@
 //
 //  Created by David Rowe on 3 Jun 2015
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
+//
 //  Distributed under the Apache License, Version 2.0.
-//
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
 
 import Hifi 1.0
 import QtQuick 2.4
@@ -85,7 +85,9 @@ FocusScope {
         Image {
             id: banner
             anchors.centerIn: parent
-            source: "../images/project-athena-banner-color2.svg"
+            sourceSize.width: 500
+            sourceSize.height: 91
+            source: "../images/vircadia-banner.svg"
             horizontalAlignment: Image.AlignHCenter
         }
     }

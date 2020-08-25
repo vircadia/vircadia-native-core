@@ -62,7 +62,7 @@ void XMLHttpRequestClass::abort() {
 }
 
 void XMLHttpRequestClass::setRequestHeader(const QString& name, const QString& value) {
-    _request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    _request.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
     _request.setRawHeader(QByteArray(name.toLatin1()), QByteArray(value.toLatin1()));
 }
 
@@ -109,6 +109,10 @@ QScriptValue XMLHttpRequestClass::getResponseHeader(const QString& name) const {
     return QScriptValue::NullValue;
 }
 
+/**jsdoc
+ * Called when the request's ready state changes.
+ * @callback XMLHttpRequest~onReadyStateChangeCallback
+ */
 void XMLHttpRequestClass::setReadyState(ReadyState readyState) {
     if (readyState != _readyState) {
         _readyState = readyState;
@@ -184,6 +188,10 @@ void XMLHttpRequestClass::doSend() {
     }
 }
 
+/**jsdoc
+ * Called when the request times out.
+ * @callback XMLHttpRequest~onTimeoutCallback 
+ */
 void XMLHttpRequestClass::requestTimeout() {
     if (_onTimeout.isFunction()) {
         _onTimeout.call(QScriptValue::NullValue);

@@ -223,9 +223,7 @@ public:
     bool getPreferStylusOverLaser() { return _preferStylusOverLaserSetting.get(); }
     void setPreferStylusOverLaser(bool value);
 
-    // FIXME: Remove setting completely or make available through JavaScript API?
-    //bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
-    bool getPreferAvatarFingerOverStylus() { return false; }
+    bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
     void setPreferAvatarFingerOverStylus(bool value);
 
     bool getMiniTabletEnabled() { return _miniTabletEnabledSetting.get(); }
@@ -377,7 +375,7 @@ signals:
     void awayStateWhenFocusLostInVRChanged(bool enabled);
 
 public slots:
-    QVector<EntityItemID> pasteEntities(float x, float y, float z);
+    QVector<EntityItemID> pasteEntities(const QString& entityHostType, float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<QUuid>& entityIDs, const glm::vec3* givenOffset = nullptr);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& url, const bool isObservable = true, const qint64 callerId = -1);
@@ -427,6 +425,7 @@ public slots:
 #endif
 
     static void showHelp();
+    static void gotoTutorial();
 
     void cycleCamera();
     void cameraModeChanged();
@@ -734,6 +733,7 @@ private:
     GraphicsEngine _graphicsEngine;
     void updateRenderArgs(float deltaTime);
 
+    bool _disableLoginScreen { true };
 
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;

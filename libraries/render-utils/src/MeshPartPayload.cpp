@@ -55,6 +55,13 @@ template <> const ShapeKey shapeGetShapeKey(const MeshPartPayload::Pointer& payl
 template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args) {
     return payload->render(args);
 }
+
+template <> bool payloadPassesZoneOcclusionTest(const MeshPartPayload::Pointer& payload, const std::unordered_set<QUuid>& containingZones) {
+    if (payload) {
+        return payload->passesZoneOcclusionTest(containingZones);
+    }
+    return false;
+}
 }
 
 MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material, const uint64_t& created) :
@@ -167,10 +174,23 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) {
     batch.setInputStream(0, _drawMesh->getVertexStream());
 }
 
- void MeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
+void MeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
     batch.setModelTransform(_drawTransform);
 }
 
+bool MeshPartPayload::passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const {
+    if (!_renderWithZones.isEmpty()) {
+        if (!containingZones.empty()) {
+            for (auto renderWithZone : _renderWithZones) {
+                if (containingZones.find(renderWithZone) != containingZones.end()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    return true;
+}
 
 void MeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("MeshPartPayload::render");
@@ -242,6 +262,12 @@ template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, Ren
     return payload->render(args);
 }
 
+template <> bool payloadPassesZoneOcclusionTest(const ModelMeshPartPayload::Pointer& payload, const std::unordered_set<QUuid>& containingZones) {
+    if (payload) {
+        return payload->passesZoneOcclusionTest(containingZones);
+    }
+    return false;
+}
 }
 
 ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex,
@@ -450,6 +476,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, PrimitiveMode pr
         }
     }
 
+    _prevUseDualQuaternionSkinning = useDualQuaternionSkinning;
     _shapeKey = builder.build();
 }
 
@@ -559,6 +586,14 @@ void ModelMeshPartPayload::setBlendshapeBuffer(const std::unordered_map<int, gpu
         auto blendshapeBuffer = blendshapeBuffers.find(_meshIndex);
         if (blendshapeBuffer != blendshapeBuffers.end()) {
             _meshBlendshapeBuffer = blendshapeBuffer->second;
+            if (_isSkinned || (_isBlendShaped && _meshBlendshapeBuffer)) {
+                ShapeKey::Builder builder(_shapeKey);
+                builder.withDeformed();
+                if (_prevUseDualQuaternionSkinning) {
+                    builder.withDualQuatSkinned();
+                }
+                _shapeKey = builder.build();
+            }
         }
     }
 }

@@ -3,7 +3,10 @@
         "tooltip": "The shape of this entity's geometry."
     },
     "color": {
-        "tooltip": "The RGB value of this entity."
+        "tooltip": "The color of this entity."
+    },
+    "shapeAlpha": {
+        "tooltip": "The opacity of the entity between 0.0 fully transparent and 1.0 completely opaque."
     },
     "text": {
         "tooltip": "The text to display on the entity."
@@ -12,16 +15,28 @@
         "tooltip": "The color of the text."
     },
     "textAlpha": {
-        "tooltip": "The alpha of the text."
+        "tooltip": "The opacity of the text between 0.0 fully transparent and 1.0 completely opaque."
     },
     "backgroundColor": {
         "tooltip": "The color of the background."
     },
     "backgroundAlpha": {
-        "tooltip": "The alpha of the background."
+        "tooltip": "The opacity of the background between 0.0 fully transparent and 1.0 completely opaque."
     },
     "lineHeight": {
         "tooltip": "The height of each line of text. This determines the size of the text."
+    },
+    "font": {
+        "tooltip": "The font to render the text. Supported values: \"Courier\", \"Inconsolata\", \"Roboto\", \"Timeless\", or a URL to a .sdff file."
+    },
+    "textEffect": {
+        "tooltip": "The effect that is applied to the text."
+    },
+    "textEffectColor": {
+        "tooltip": "The color of the text effect."
+    },
+    "textEffectThickness": {
+        "tooltip": "The magnitude of the text effect."
     },
     "textBillboardMode": {
         "tooltip": "If enabled, determines how the entity will face the camera.",
@@ -147,6 +162,9 @@
     "avatarPriority": {
         "tooltip": "Alter Avatars' update priorities."
     },
+    "screenshare": {
+        "tooltip": "Enable screen-sharing within this zone"
+    },
     "modelURL": {
         "tooltip": "A mesh model from an FBX or OBJ file."
     },
@@ -196,6 +214,9 @@
         "tooltip": "The tint to be applied to the image.",
         "jsPropertyName": "color"
     },
+    "imageAlpha": {
+        "tooltip": "The opacity of the image between 0.0 fully transparent and 1.0 completely opaque."
+    },    
     "emissive": {
         "tooltip": "If enabled, the image will display at full brightness."
     },
@@ -215,6 +236,16 @@
     "dpi": {
         "tooltip": "The resolution to display the page at, in pixels per inch. Use this to resize your web source in the frame."
     },
+    "webBillboardMode": {
+        "tooltip": "If enabled, determines how the entity will face the camera.",
+        "jsPropertyName": "billboardMode"
+    },
+    "inputMode": {
+        "tooltip": "The user input mode to use."
+    },
+    "showKeyboardFocusHighlight": {
+        "tooltip": "If enabled, highlights when it has keyboard focus."
+    },    
     "isEmitting": {
         "tooltip": "If enabled, then particles are emitted."
     },
@@ -291,20 +322,20 @@
         "tooltip": "The spread in color that each particle is given, resulting in a variety of colors."
     },
     "particleAlphaTriple": {
-        "tooltip": "The alpha of each particle.",
+        "tooltip": "The opacity of each particle between 0.0 fully transparent and 1.0 completely opaque.",
         "jsPropertyName": "alpha"
     },
     "alpha": {
-        "tooltip": "The alpha of each particle."
+        "tooltip": "The opacity of each particle between 0.0 fully transparent and 1.0 completely opaque."
     },
     "alphaStart": {
-        "tooltip": "The start alpha of each particle."
+        "tooltip": "The initial opacity level of each particle between 0.0 fully transparent and 1.0 completely opaque."
     },
     "alphaFinish": {
-        "tooltip": "The finish alpha of each particle."
+        "tooltip": "The final opacity level of each particle between 0.0 fully transparent and 1.0 completely opaque."
     },
     "alphaSpread": {
-        "tooltip": "The spread in alpha that each particle is given, resulting in a variety of alphas."
+        "tooltip": "The spread in opacity that each particle is given, resulting in a variety of opacity levels."
     },
     "emitAcceleration": {
         "tooltip": "The acceleration that is applied to each particle during its lifetime."
@@ -558,14 +589,14 @@
     "gravity": {
         "tooltip": "The acceleration due to gravity that the entity should move with, in world space."
     },
-    "acceleration": {
-        "tooltip": "A acceleration that the entity should move with, in world space."
-    },
     "renderLayer": {
         "tooltip": "The layer on which this entity is rendered."
     },
     "primitiveMode": {
         "tooltip": "The mode in which to draw an entity, either \"Solid\" or \"Wireframe\"."
+    },
+    "renderWithZones": {
+        "tooltip": "If set, this entity will only render when your avatar is inside of a zone in this list."
     },
     "groupCulled": {
         "tooltip": "If false, individual pieces of the entity may be culled by the render engine. If true, either the entire entity will be culled, or it won't at all."
@@ -574,7 +605,7 @@
         "tooltip": "The tint of the web entity."
     },
     "webAlpha": {
-        "tooltip": "The alpha of the web entity."
+        "tooltip": "The opacity of the web entity between 0.0 fully transparent and 1.0 completely opaque."
     },
     "maxFPS": {
         "tooltip": "The FPS at which to render the web entity. Higher values will have a performance impact."

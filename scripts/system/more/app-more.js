@@ -4,9 +4,9 @@
 //  VERSION 1.0
 //
 //  Created by Keb Helion, February 2020.
-//  Copyright 2020 Project Athena and contributors.
+//  Copyright 2020 Vircadia contributors.
 //
-//  This script adds a "More Apps" selector to "Project Athena" to allow the user to add optional functionalities to the tablet.
+//  This script adds a "More Apps" selector to Vircadia to allow the user to add optional functionalities to the tablet.
 //  This application has been designed to work directly from the Github repository.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -14,8 +14,9 @@
 //    
 (function() {
     var ROOT = Script.resolvePath('').split("app-more.js")[0];
+    var DEV_PARAMETER = Script.resolvePath('').split("?")[1];
     var APP_NAME = "MORE...";
-    var APP_URL = ROOT + "more.html";
+    var APP_URL = (ROOT + "more.html" + (DEV_PARAMETER === "dev" ? "?dev" : "")).replace(/%5C/g, "/");
     var APP_ICON_INACTIVE = ROOT + "appicon_i.png";
     var APP_ICON_ACTIVE = ROOT + "appicon_a.png";
     var appStatus = false;
@@ -30,7 +31,7 @@
         text: APP_NAME,
         icon: APP_ICON_INACTIVE,
         activeIcon: APP_ICON_ACTIVE
-    });   
+    });
     
     function clicked() {
         if (appStatus) {
@@ -55,7 +56,7 @@
         var runningScriptJson;
         for (var j = 0; j < currentlyRunningScripts.length; j++) {
             runningScriptJson = currentlyRunningScripts[j].url;
-            if (runningScriptJson.indexOf("https://kasenvr.github.io/community-apps/applications") !== -1) {
+            if (runningScriptJson.indexOf("https://cdn.vircadia.com/community-apps/applications") !== -1) {
                 newMessage += "_" + runningScriptJson;
             }
         }
@@ -68,7 +69,7 @@
 
             if (instruction.action === "installScript") {
                 if (lastProcessing.action !== instruction.action || lastProcessing.script !== instruction.script) {
-                    ScriptDiscoveryService.loadOneScript(instruction.script);
+                    ScriptDiscoveryService.loadScript(instruction.script, true, false, false, true, false); // Force reload the script, do not use cache.
                     lastProcessing.action = instruction.action;
                     lastProcessing.script = instruction.script;
                     Script.setTimeout(function() {

@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 1/18/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -109,11 +110,34 @@ void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
     }
 }
 
+void DialogsManager::setMetaverseLoginState() {
+    // We're only turning off the domain login trigger but the actual domain auth URL is still saved.
+    // So we can continue the domain login if desired.
+    _isDomainLogin = false;
+}
+
+void DialogsManager::setDomainLoginState() {
+    _isDomainLogin = true;
+}
+
+void DialogsManager::setDomainLogin(bool isDomainLogin, const QString& domain) {
+    _isDomainLogin = isDomainLogin;
+    if (!domain.isEmpty()) {
+        _domainLoginDomain = domain;
+    }
+}
+
 void DialogsManager::toggleLoginDialog() {
+    setDomainLogin(false);
     LoginDialog::toggleAction();
 }
 
 void DialogsManager::showLoginDialog() {
+
+    // ####### TODO: May be called from script via DialogsManagerScriptingInterface. Need to handle the case that it's already
+    //               displayed and may be the domain login version.
+
+    setDomainLogin(false);
     LoginDialog::showWithSelection();
 }
 
@@ -121,9 +145,21 @@ void DialogsManager::hideLoginDialog() {
     LoginDialog::hide();
 }
 
+
+void DialogsManager::showDomainLoginDialog(const QString& domain) {
+    setDomainLogin(true, domain);
+    LoginDialog::showWithSelection();
+}
+
+// #######: TODO: Domain version of toggleLoginDialog()?
+
+// #######: TODO: Domain version of hideLoginDialog()?
+
+
 void DialogsManager::showUpdateDialog() {
     UpdateDialog::show();
 }
+
 
 void DialogsManager::octreeStatsDetails() {
     if (!_octreeStatsDialog) {

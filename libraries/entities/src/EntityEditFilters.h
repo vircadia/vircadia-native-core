@@ -55,7 +55,7 @@ public:
     void removeFilter(EntityItemID entityID);
 
     bool filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, 
-                EntityTree::FilterType filterType, EntityItemID& entityID, EntityItemPointer& existingEntity);
+                EntityTree::FilterType filterType, EntityItemID& entityID, const EntityItemPointer& existingEntity);
 
 signals:
     void filterAdded(EntityItemID id, bool success);

@@ -21,7 +21,7 @@ Contributing
   
   ```
   git remote add upstream https://github.com/kasenvr/project-athena
-  git pull upstream kasen/core
+  git pull upstream master
   ```
   
   Resolve any conflicts that arise with this step.
@@ -29,7 +29,7 @@ Contributing
 7. Push to your fork
   
   ```
-  git push origin kasen/core
+  git push origin new_branch_name
   ```
 8. Submit a pull request
 

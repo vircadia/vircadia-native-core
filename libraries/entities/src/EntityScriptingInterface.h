@@ -1871,7 +1871,8 @@ public slots:
      * @function Entities.getMeshes
      * @param {Uuid} entityID - The ID of the <code>Model</code> or <code>PolyVox</code> entity to get the meshes of.
      * @param {Entities~getMeshesCallback} callback - The function to call upon completion.
-     * @deprecated This function is deprecated and will be removed. Use the {@link Graphics} API instead.
+     * @deprecated This function is deprecated and will be removed. It no longer works for Model entities. Use the 
+     *     {@link Graphics} API instead.
      */
      /**jsdoc
       * Called when a {@link Entities.getMeshes} call is complete.
@@ -1880,7 +1881,8 @@ public slots:
       *     <code>Model</code> or <code>PolyVox</code> entity; otherwise <code>undefined</code>. 
       * @param {boolean} success - <code>true</code> if the {@link Entities.getMeshes} call was successful, <code>false</code> 
       *     otherwise. The call may be unsuccessful if the requested entity could not be found.
-      * @deprecated This function is deprecated and will be removed. Use the {@link Graphics} API instead.
+      * @deprecated This function is deprecated and will be removed. It no longer works for Model entities. Use the 
+      *     {@link Graphics} API instead. 
       */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE void getMeshes(const QUuid& entityID, QScriptValue callback);
@@ -2397,7 +2399,9 @@ signals:
 
 
     /**jsdoc
-     * Triggered when an avatar enters an entity, but only if the entity has an entity method exposed for this event.
+     * Triggered when an avatar enters an entity.
+     * Note: At the initial loading of the script, if the avatar is already present inside the entity, it might be too late 
+     * to catch this event when the script runs, so it won't trigger. The {@link Entities.preload|preload} signal can be used to handle those cases.
      * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.enterEntity
      * @param {Uuid} entityID - The ID of the entity that the avatar entered.
@@ -2406,7 +2410,7 @@ signals:
     void enterEntity(const EntityItemID& entityItemID);
 
     /**jsdoc
-     * Triggered when an avatar leaves an entity, but only if the entity has an entity method exposed for this event.
+     * Triggered when an avatar leaves an entity.
      * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.leaveEntity
      * @param {Uuid} entityID - The ID of the entity that the avatar left.

@@ -1,0 +1,26 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/main.qml</file>
+        <file>qml/TreeDelegate.qml</file>
+        <file>qml/fields/BooleanField.qml</file>
+        <file>qml/fields/IdField.qml</file>
+        <file>qml/fields/JSONField.qml</file>
+        <file>qml/fields/NumberArrayField.qml</file>
+        <file>qml/fields/NumberField.qml</file>
+        <file>qml/fields/StringField.qml</file>
+        <file>qml/fields/TypeField.qml</file>
+        <file>qml/nodes/BlendDirectional.qml</file>
+        <file>qml/nodes/BlendLinear.qml</file>
+        <file>qml/nodes/BlendLinearMove.qml</file>
+        <file>qml/nodes/ClipData.qml</file>
+        <file>qml/nodes/DefaultPose.qml</file>
+        <file>qml/nodes/InverseKinematics.qml</file>
+        <file>qml/nodes/Manipulator.qml</file>
+        <file>qml/nodes/Overlay.qml</file>
+        <file>qml/nodes/PoleVector.qml</file>
+        <file>qml/nodes/RandomStateMachine.qml</file>
+        <file>qml/nodes/StateMachine.qml</file>
+        <file>qml/nodes/SplineIK.qml</file>
+        <file>qml/nodes/TwoBoneIK.qml</file>
+    </qresource>
+</RCC>

@@ -21,6 +21,7 @@
 #include <AnimationCache.h>
 #include <Model.h>
 #include <model-networking/ModelCache.h>
+#include <MetaModelPayload.h>
 
 #include "RenderableEntityItem.h"
 
@@ -131,7 +132,7 @@ private:
 
 namespace render { namespace entities { 
 
-class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem> {
+class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem>, public MetaModelPayload {
     using Parent = TypedEntityRenderer<RenderableModelEntityItem>;
     friend class EntityRenderer;
     Q_OBJECT
@@ -155,6 +156,8 @@ protected:
     void setKey(bool didVisualGeometryRequestSucceed);
     virtual ItemKey getKey() override;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
+    virtual void handleBlendedVertices(int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
+                                       const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs) override;
 
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual bool needsRenderUpdate() const override;
@@ -165,6 +168,7 @@ protected:
     void setRenderLayer(RenderLayer value) override;
     void setPrimitiveMode(PrimitiveMode value) override;
     void setCullWithParent(bool value) override;
+    void setRenderWithZones(const QVector<QUuid>& renderWithZones) override;
 
 private:
     void animate(const TypedEntityPointer& entity);
@@ -198,6 +202,10 @@ private:
     bool _prevModelLoaded { false };
 
     void processMaterials();
+
+    static void metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
+                                       const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs);
+
 };
 
 } } // namespace 

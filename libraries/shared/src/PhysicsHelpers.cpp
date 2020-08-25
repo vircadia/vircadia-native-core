@@ -10,10 +10,12 @@
 //
 
 #include "PhysicsHelpers.h"
-#include "NumericalConstants.h"
+
 #include <QUuid>
 
+#include "NumericalConstants.h"
 #include "PhysicsCollisionGroups.h"
+#include "SharedUtil.h"
 
 // This chunk of code was copied from Bullet-2.82, so we include the Bullet license here:
 /*
@@ -91,7 +93,7 @@ int32_t Physics::getDefaultCollisionMask(int32_t group) {
 QUuid _sessionID;
 
 void Physics::setSessionUUID(const QUuid& sessionID) {
-    _sessionID = sessionID;
+    _sessionID = sessionID.isNull() ? AVATAR_SELF_ID : sessionID;
 }
 
 const QUuid& Physics::getSessionUUID() {

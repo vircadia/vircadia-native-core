@@ -3,6 +3,7 @@
 //
 //  Created by Wayne Chen on 10/18/18
 //  Copyright 2018 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -31,6 +32,9 @@ Item {
     property bool linkSteam: linkSteam
     property bool linkOculus: linkOculus
     property bool createOculus: createOculus
+    property bool isLoggingInToDomain: isLoggingInToDomain
+    property string domainLoginDomain: domainLoginDomain
+    property string displayName: ""
 
     readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
 
@@ -105,6 +109,9 @@ Item {
             loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Oculus";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
+        } else if (loggingInBody.isLoggingInToDomain) {
+            loggingInText.text = "Logging in to " + domainLoginDomain;
+            loggingInText.anchors.centerIn = loggingInHeader;
         } else {
             loggingInText.text = "Logging in";
             loggingInText.anchors.centerIn = loggingInHeader;
@@ -161,6 +168,7 @@ Item {
             }
 
         }
+        MyAvatar.displayName = displayName;
         successTimer.start();
     }
 

@@ -14,8 +14,10 @@
 #include "Application.h"
 #include "ui/DialogsManager.h"
 
+#include <AccountManager.h>
 #include <DependencyManager.h>
 #include <DomainHandler.h>
+#include <DomainAccountManager.h>
 #include <AddressManager.h>
 #include <NodeList.h>
 
@@ -34,6 +36,10 @@ void ConnectionMonitor::init() {
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ConnectionMonitor::stopTimer);
     connect(&domainHandler, &DomainHandler::redirectToErrorDomainURL, this, &ConnectionMonitor::stopTimer);
     connect(this, &ConnectionMonitor::setRedirectErrorState, &domainHandler, &DomainHandler::setRedirectErrorState);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    connect(accountManager.data(), &AccountManager::loginComplete, this, &ConnectionMonitor::startTimer);
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
+    connect(domainAccountManager.data(), &DomainAccountManager::loginComplete, this, &ConnectionMonitor::startTimer);
 
     _timer.setSingleShot(true);
     if (!domainHandler.isConnected()) {

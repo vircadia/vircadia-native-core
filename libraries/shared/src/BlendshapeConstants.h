@@ -12,8 +12,14 @@
 #ifndef hifi_BlendshapeConstants_h
 #define hifi_BlendshapeConstants_h
 
+#include <QMap>
+#include <QString>
+
+#include <glm/glm.hpp>
+
 /// The names of the blendshapes expected by Faceshift, terminated with an empty string.
 extern const char* FACESHIFT_BLENDSHAPES[];
+extern const QMap<QString, int> BLENDSHAPE_LOOKUP_MAP;
 
 enum class Blendshapes : int {
     EyeBlink_L = 0,
@@ -115,5 +121,16 @@ enum class LegacyBlendshpaes : int {
 // * LipsUpperOpen (not in ARKit)
 // * LipsLowerOpen (not in ARKit)
 
+struct BlendshapeOffsetPacked {
+    glm::uvec4 packedPosNorTan;
+};
+
+struct BlendshapeOffsetUnpacked {
+    glm::vec3 positionOffset;
+    glm::vec3 normalOffset;
+    glm::vec3 tangentOffset;
+};
+
+using BlendshapeOffset = BlendshapeOffsetPacked;
 
 #endif // hifi_BlendshapeConstants_h

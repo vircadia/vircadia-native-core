@@ -7,7 +7,7 @@
 
 /* global Script, MyAvatar, Controller, Uuid, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule,
    makeRunningValues, Vec3, makeDispatcherModuleParameters, Overlays, HMD, Settings, getEnabledModuleByName, Pointers,
-   Picks, PickType
+   Picks, PickType, Keyboard
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -52,22 +52,21 @@ Script.include("/~/system/libraries/controllers.js");
         this.disable = false;
 
         this.otherModuleNeedsToRun = function(controllerData) {
-            var grabOverlayModuleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
-            var grabOverlayModule = getEnabledModuleByName(grabOverlayModuleName);
-            var grabEntityModuleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabEntity" : "LeftNearParentingGrabEntity";
+            var grabEntityModuleName = this.hand === RIGHT_HAND ? "RightNearGrabEntity" : "LeftNearGrabEntity";
             var grabEntityModule = getEnabledModuleByName(grabEntityModuleName);
-            var grabOverlayModuleReady = grabOverlayModule ? grabOverlayModule.isReady(controllerData) : makeRunningValues(false, [], []);
             var grabEntityModuleReady = grabEntityModule ? grabEntityModule.isReady(controllerData) : makeRunningValues(false, [], []);
-            var farGrabModuleName = this.hand === RIGHT_HAND ? "RightFarActionGrabEntity" : "LeftFarActionGrabEntity";
+
+            var farGrabModuleName = this.hand === RIGHT_HAND ? "RightFarGrabEntity" : "LeftFarGrabEntity";
             var farGrabModule = getEnabledModuleByName(farGrabModuleName);
             var farGrabModuleReady = farGrabModule ? farGrabModule.isReady(controllerData) : makeRunningValues(false, [], []);
+
             var nearTabletHighlightModuleName =
                 this.hand === RIGHT_HAND ? "RightNearTabletHighlight" : "LeftNearTabletHighlight";
             var nearTabletHighlightModule = getEnabledModuleByName(nearTabletHighlightModuleName);
-            var nearTabletHighlightModuleReady = nearTabletHighlightModule
-                ? nearTabletHighlightModule.isReady(controllerData) : makeRunningValues(false, [], []);
-            return grabOverlayModuleReady.active || farGrabModuleReady.active || grabEntityModuleReady.active
-                || nearTabletHighlightModuleReady.active;
+            var nearTabletHighlightModuleReady = nearTabletHighlightModule ?
+                nearTabletHighlightModule.isReady(controllerData) : makeRunningValues(false, [], []);
+
+            return farGrabModuleReady.active || grabEntityModuleReady.active;
         };
 
         this.overlayLaserActive = function(controllerData) {
@@ -121,14 +120,15 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             // Add the mini tablet.
-            if (HMD.miniTabletScreenID && Overlays.getProperty(HMD.miniTabletScreenID, "visible")) {
+            if (HMD.miniTabletScreenID && Overlays.getProperty(HMD.miniTabletScreenID, "visible") &&
+                this.hand != HMD.miniTabletHand) {
                 stylusTarget = getOverlayDistance(controllerPosition, HMD.miniTabletScreenID);
                 if (stylusTarget) {
                     stylusTargets.push(stylusTarget);
                 }
             }
 
-            const WEB_DISPLAY_STYLUS_DISTANCE = (Keyboard.raised && Keyboard.preferMalletsOverLasers) ? 0.2 : 0.5;
+            var WEB_DISPLAY_STYLUS_DISTANCE = (Keyboard.raised && Keyboard.preferMalletsOverLasers) ? 0.2 : 0.5;
             var nearStylusTarget = isNearStylusTarget(stylusTargets, WEB_DISPLAY_STYLUS_DISTANCE * sensorScaleFactor);
 
             if (nearStylusTarget.length !== 0) {

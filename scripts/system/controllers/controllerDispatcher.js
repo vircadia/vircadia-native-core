@@ -35,7 +35,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     var DEBUG = false;
     var SHOW_GRAB_SPHERE = false;
 
-
     if (typeof Test !== "undefined") {
         PROFILE = true;
     }
@@ -54,6 +53,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.pointerManager = new PointerManager();
         this.grabSphereOverlays = [null, null];
         this.targetIDs = {};
+        this.debugPanelID = null;
+        this.debugLines = [];
 
         // a module can occupy one or more "activity" slots while it's running.  If all the required slots for a module are
         // not set to false (not in use), a module cannot start.  When a module is using a slot, that module's name
@@ -97,11 +98,15 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.runningPluginNames = {};
+
         this.leftTriggerValue = 0;
         this.leftTriggerClicked = 0;
+        this.leftTrackerClicked = false; // is leftTriggerClicked == 1 because a hand tracker set it?
+        this.leftSecondaryValue = 0;
+
         this.rightTriggerValue = 0;
         this.rightTriggerClicked = 0;
-        this.leftSecondaryValue = 0;
+        this.rightTrackerClicked = false; // is rightTriggerClicked == 1 because a hand tracker set it?
         this.rightSecondaryValue = 0;
 
         this.leftTriggerPress = function (value) {
@@ -162,6 +167,38 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
         };
 
+        this.checkForHandTrackingClick = function() {
+
+            var pinchOnBelowDistance = 0.016;
+            var pinchOffAboveDistance = 0.035;
+
+            var leftIndexPose = Controller.getPoseValue(Controller.Standard.LeftHandIndex4);
+            var leftThumbPose = Controller.getPoseValue(Controller.Standard.LeftHandThumb4);
+            var leftThumbToIndexDistance = Vec3.distance(leftIndexPose.translation, leftThumbPose.translation);
+            if (leftIndexPose.valid && leftThumbPose.valid && leftThumbToIndexDistance < pinchOnBelowDistance) {
+                _this.leftTriggerClicked = 1;
+                _this.leftTriggerValue = 1;
+                _this.leftTrackerClicked = true;
+            } else if (_this.leftTrackerClicked && leftThumbToIndexDistance > pinchOffAboveDistance) {
+                _this.leftTriggerClicked = 0;
+                _this.leftTriggerValue = 0;
+                _this.leftTrackerClicked = false;
+            }
+
+            var rightIndexPose = Controller.getPoseValue(Controller.Standard.RightHandIndex4);
+            var rightThumbPose = Controller.getPoseValue(Controller.Standard.RightHandThumb4);
+            var rightThumbToIndexDistance = Vec3.distance(rightIndexPose.translation, rightThumbPose.translation);
+            if (rightIndexPose.valid && rightThumbPose.valid && rightThumbToIndexDistance < pinchOnBelowDistance) {
+                _this.rightTriggerClicked = 1;
+                _this.rightTriggerValue = 1;
+                _this.rightTrackerClicked = true;
+            } else if (_this.rightTrackerClicked && rightThumbToIndexDistance > pinchOffAboveDistance) {
+                _this.rightTriggerClicked = 0;
+                _this.rightTriggerValue = 0;
+                _this.rightTrackerClicked = false;
+            }
+        };
+
         this.update = function () {
             try {
                 _this.updateInternal();
@@ -169,6 +206,18 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 print(e);
             }
             Script.setTimeout(_this.update, BASIC_TIMER_INTERVAL_MS);
+        };
+
+        this.addDebugLine = function(line) {
+            if (this.debugLines.length > 8) {
+                this.debugLines.shift();
+            }
+            this.debugLines.push(line);
+            var debugPanelText = "";
+            this.debugLines.forEach(function(debugLine) {
+                debugPanelText += debugLine + "\n";
+            });
+            Entities.editEntity(this.debugPanelID, { text: debugPanelText });
         };
 
         this.updateInternal = function () {
@@ -274,6 +323,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                     }
 
                     var nearbyEntityIDs = Entities.findEntities(controllerPosition, findRadius);
+
                     for (var j = 0; j < nearbyEntityIDs.length; j++) {
                         var entityID = nearbyEntityIDs[j];
                         var props = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
@@ -369,6 +419,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 }
             }
 
+            // check for hand-tracking "click"
+            _this.checkForHandTrackingClick();
+
             // bundle up all the data about the current situation
             var controllerData = {
                 triggerValues: [_this.leftTriggerValue, _this.rightTriggerValue],
@@ -406,7 +459,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         _this.markSlots(candidatePlugin, orderedPluginName);
                         _this.pointerManager.makePointerVisible(candidatePlugin.parameters.handLaser);
                         if (DEBUG) {
-                            print("controllerDispatcher running " + orderedPluginName);
+                            _this.addDebugLine("running " + orderedPluginName);
                         }
                     }
                     if (PROFILE) {
@@ -438,8 +491,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
                         if (DEBUG) {
                             if (JSON.stringify(_this.targetIDs[runningPluginName]) != JSON.stringify(runningness.targets)) {
-                                print("controllerDispatcher targetIDs[" + runningPluginName + "] = " +
-                                      JSON.stringify(runningness.targets));
+                                _this.addDebugLine("targetIDs[" + runningPluginName + "] = " +
+                                                  JSON.stringify(runningness.targets));
                             }
                         }
 
@@ -450,12 +503,12 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                             delete _this.runningPluginNames[runningPluginName];
                             delete _this.targetIDs[runningPluginName];
                             if (DEBUG) {
-                                print("controllerDispatcher deleted targetIDs[" + runningPluginName + "]");
+                                _this.addDebugLine("deleted targetIDs[" + runningPluginName + "]");
                             }
                             _this.markSlots(plugin, false);
                             _this.pointerManager.makePointerInvisible(plugin.parameters.handLaser);
                             if (DEBUG) {
-                                print("controllerDispatcher stopping " + runningPluginName);
+                                _this.addDebugLine("stopping " + runningPluginName);
                             }
                         }
                         _this.pointerManager.lockPointerEnd(plugin.parameters.handLaser, runningness.laserLockInfo);
@@ -599,7 +652,33 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             Overlays.mousePressOnOverlay.disconnect(mousePress);
             Entities.mousePressOnEntity.disconnect(mousePress);
             Messages.messageReceived.disconnect(controllerDispatcher.handleMessage);
+            if (_this.debugPanelID) {
+                Entities.deleteEntity(_this.debugPanelID);
+                _this.debugPanelID = null;
+            }
         };
+
+        if (DEBUG) {
+            this.debugPanelID = Entities.addEntity({
+                name: "controllerDispatcher debug panel",
+                type: "Text",
+                dimensions: { x: 1.0, y: 0.3, z: 0.01 },
+                parentID: MyAvatar.sessionUUID,
+                // parentJointIndex: MyAvatar.getJointIndex("_CAMERA_MATRIX"),
+                parentJointIndex: -1,
+                localPosition: { x: -0.25, y: 0.8, z: -1.2 },
+                textColor: { red: 255, green: 255, blue: 255},
+                backgroundColor: { red: 0, green: 0, blue: 0},
+                text: "",
+                lineHeight: 0.03,
+                leftMargin: 0.015,
+                topMargin: 0.01,
+                backgroundAlpha: 0.7,
+                textAlpha: 1.0,
+                unlit: true,
+                ignorePickIntersection: true
+            }, "local");
+        }
     }
 
     function mouseReleaseOnOverlay(overlayID, event) {
@@ -629,6 +708,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
     Messages.messageReceived.connect(controllerDispatcher.handleMessage);
 
-    Script.scriptEnding.connect(controllerDispatcher.cleanup);
+    Script.scriptEnding.connect(function () {
+        controllerDispatcher.cleanup();
+    });
     Script.setTimeout(controllerDispatcher.update, BASIC_TIMER_INTERVAL_MS);
 }());

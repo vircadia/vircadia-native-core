@@ -1,6 +1,6 @@
 # Build Windows
 
-*Last Updated on January 13, 2020*
+*Last Updated on May 17, 2020*
 
 This is a stand-alone guide for creating your first Vircadia build for Windows 64-bit.  
 
@@ -47,7 +47,7 @@ Download and install the latest version of CMake 3.15.
 Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.15 Version page](https://cmake.org/files/v3.15/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
 
 ### Step 4. Create VCPKG environment variable
-In the next step, you will use CMake to build Project Athena. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
+In the next step, you will use CMake to build Vircadia. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
 
 To create this variable:
 * Naviagte to 'Edit the System Environment Variables' Through the start menu.
@@ -68,7 +68,7 @@ To create this variable:
 ### Step 5. Running CMake to Generate Build Files
 
 Run Command Prompt from Start and run the following commands:  
-`cd "%HIFI_DIR%"`  
+`cd "%VIRCADIA_DIR%"`  
 `mkdir build`  
 `cd build`  
 
@@ -78,11 +78,11 @@ Run `cmake .. -G "Visual Studio 15 Win64"`.
 #### If you're using Visual Studio 2019,
 Run `cmake .. -G "Visual Studio 16 2019" -A x64`.
 
-Where `%HIFI_DIR%` is the directory for the highfidelity repository.
+Where `%VIRCADIA_DIR%` is the directory for the Vircadia repository.
 
 ### Step 6. Making a Build
 
-Open `%HIFI_DIR%\build\athena.sln` using Visual Studio.
+Open `%VIRCADIA_DIR%\build\vircadia.sln` using Visual Studio.
 
 Change the Solution Configuration (menu ribbon under the menu bar, next to the green play button) from "Debug" to "Release" for best performance.
 
@@ -98,22 +98,22 @@ Restart Visual Studio again.
 
 In Visual Studio, right+click "interface" under the Apps folder in Solution Explorer and select "Set as Startup Project". Run from the menu bar `Debug > Start Debugging`.
 
-Now, you should have a full build of Project Athena and be able to run the Interface using Visual Studio. Please check our [Docs](https://wiki.highfidelity.com/wiki/Main_Page) for more information regarding the programming workflow.
+Now, you should have a full build of Vircadia and be able to run the Interface using Visual Studio.
 
-Note: You can also run Interface by launching it from command line or File Explorer from `%HIFI_DIR%\build\interface\Release\interface.exe`
+Note: You can also run Interface by launching it from command line or File Explorer from `%VIRCADIA_DIR%\build\interface\Release\interface.exe`
 
 ## Troubleshooting
 
 For any problems after Step #6, first try this:  
-* Delete your locally cloned copy of the highfidelity repository  
+* Delete your locally cloned copy of the Vircadia repository  
 * Restart your computer  
 * Redownload the [repository](https://github.com/kasenvr/project-athena)  
 * Restart directions from Step #6  
 
 #### CMake gives you the same error message repeatedly after the build fails
 
-Remove `CMakeCache.txt` found in the `%HIFI_DIR%\build` directory.
+Remove `CMakeCache.txt` found in the `%VIRCADIA_DIR%\build` directory.
 
 #### CMake can't find OpenSSL
 
-Remove `CMakeCache.txt` found in the `%HIFI_DIR%\build` directory.  Verify that your HIFI_VCPKG_BASE environment variable is set and pointing to the correct location.  Verify that the file `${HIFI_VCPKG_BASE}/installed/x64-windows/include/openssl/ssl.h` exists.
+Remove `CMakeCache.txt` found in the `%VIRCADIA_DIR%\build` directory.  Verify that your HIFI_VCPKG_BASE environment variable is set and pointing to the correct location. Verify that the file `${HIFI_VCPKG_BASE}/installed/x64-windows/include/openssl/ssl.h` exists.

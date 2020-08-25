@@ -1,0 +1,20 @@
+[Unit]
+Description=Assignment client service for Vircadia server
+After=network.target
+PartOf=vircadia-server@%i.target
+
+[Service]
+Restart=always
+
+WorkingDirectory=/opt/vircadia
+EnvironmentFile=/etc/opt/vircadia/%i.conf
+Environment="LD_LIBRARY_PATH=/opt/vircadia/lib" "HOME=/var/lib/vircadia/%i"
+PrivateTmp=true
+User=vircadia
+Group=vircadia
+#LimitCORE=infinity
+#ExecStart=/opt/vircadia/assignment-client -n 6
+ExecStart=/opt/vircadia/assignment-client --min 6 --max 20 --server-port $HIFI_DOMAIN_SERVER_PORT
+
+[Install]
+WantedBy=multi-user.target
