@@ -199,9 +199,6 @@
 
     !system "$%TEMP%\tempinstaller.exe" = 2
 
-    ; NOTE: We're not code signing right now, so we're going to disable that.
-    ; TODO: Get a code signing certificate so we can re-enable code signing.
-
     ; The Inner invocation has written an uninstaller binary for us.
     ; We need to sign it if it's a production or PR build.
     !if @PRODUCTION_BUILD@ == 1
