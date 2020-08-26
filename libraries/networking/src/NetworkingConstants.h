@@ -30,7 +30,7 @@ namespace NetworkingConstants {
 
     // Web Engine requests to this parent domain have an account authorization header added
     const QString AUTH_HOSTNAME_BASE = "bluestuff.org";
-    const QStringList IS_AUTHABLE_HOSTNAME = { "bludstuff.org" };
+    const QStringList IS_AUTHABLE_HOSTNAME = { "bluestuff.org" };
     
     // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
     const QByteArray VIRCADIA_USER_AGENT = "Mozilla/5.0 (VircadiaInterface)";
