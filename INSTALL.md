@@ -9,7 +9,7 @@ This variable is set by the `project(hifi)` command in `CMakeLists.txt` to `C:/P
 
 ### Packaging
 
-To produce an installer, run the `package` target.
+To produce an installer, run the `package` target. However you will want to follow the steps specific to your platform below.
 
 #### Windows
 
@@ -62,7 +62,6 @@ To produce an executable installer on Windows, the following are required:
 1.  Perform a clean cmake from a new terminal.
 1.  Open the `vircadia.sln` solution with elevated (administrator) permissions on Visual Studio and select the **Release** configuration.
 1.  Build the solution.
-1.  Build CMakeTargets->INSTALL
 1.  Build `packaged-server-console-npm-install` (found under **hidden/Server Console**)
 1.  Build `packaged-server-console` (found under **Server Console**)  
     This will add 2 folders to `build\server-console\` -  

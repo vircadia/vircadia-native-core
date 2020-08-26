@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 1/18/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -40,6 +41,10 @@ public:
     QPointer<TestingDialog> getTestingDialog() const { return _testingDialog; }
     void emitAddressBarShown(bool visible) { emit addressBarShown(visible); }
     void setAddressBarVisible(bool addressBarVisible);
+    void setMetaverseLoginState();
+    void setDomainLoginState();
+    bool getIsDomainLogin() { return _isDomainLogin; }
+    QString getDomainLoginDomain() { return _domainLoginDomain; }
 
 public slots:
     void showAddressBar();
@@ -49,6 +54,7 @@ public slots:
     void toggleLoginDialog();
     void showLoginDialog();
     void hideLoginDialog();
+    void showDomainLoginDialog(const QString& domain = "");
     void octreeStatsDetails();
     void lodTools();
     void hmdTools(bool showTools);
@@ -82,6 +88,10 @@ private:
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
     bool _dialogCreatedWhileShown { false };
     bool _addressBarVisible { false };
+
+    void setDomainLogin(bool isDomainLogin, const QString& domain = "");
+    bool _isDomainLogin { false };
+    QString _domainLoginDomain;
 };
 
 #endif // hifi_DialogsManager_h

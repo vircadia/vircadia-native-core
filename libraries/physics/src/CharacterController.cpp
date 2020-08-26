@@ -543,12 +543,8 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const 
         _minStepHeight = DEFAULT_MIN_STEP_HEIGHT_FACTOR * (_halfHeight + _radius);
         _maxStepHeight = DEFAULT_MAX_STEP_HEIGHT_FACTOR * (_halfHeight + _radius);
 
-        if (_physicsEngine) {
-            // must REMOVE from world prior to shape update
-            _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION | PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION;
-        }
-        _pendingFlags |= PENDING_FLAG_UPDATE_SHAPE;
-        _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION | PENDING_FLAG_ADD_DETAILED_TO_SIMULATION;
+        _pendingFlags |= PENDING_FLAG_UPDATE_SHAPE | PENDING_FLAG_REMOVE_FROM_SIMULATION | PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION |
+            PENDING_FLAG_ADD_TO_SIMULATION | PENDING_FLAG_ADD_DETAILED_TO_SIMULATION;
     }
 
     // it's ok to change offset immediately -- there are no thread safety issues here

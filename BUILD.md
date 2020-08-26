@@ -1,13 +1,13 @@
 # General Build Information
 
-*Last Updated on May 17, 2020*
+*Last Updated on June 27, 2020*
 
 ### OS Specific Build Guides
 
 * [Build Windows](BUILD_WIN.md) - complete instructions for Windows.
 * [Build Linux](BUILD_LINUX.md) - additional instructions for Linux.
 * [Build OSX](BUILD_OSX.md) - additional instructions for OS X.
-* [Build Android](BUILD_ANDROID.md) - additional instructions for Android
+* [Build Android](BUILD_ANDROID.md) - additional instructions for Android.
 
 ### Dependencies
 - [git](https://git-scm.com/downloads): >= 1.6  
@@ -21,8 +21,8 @@
 These dependencies need not be installed manually. They are automatically downloaded on the platforms where they are required.
 - [Bullet Physics Engine](https://github.com/bulletphysics/bullet3/releases):  2.83  
 - [glm](https://glm.g-truc.net/0.9.8/index.html):  0.9.8  
-- [Oculus SDK](https://developer.oculus.com/downloads/):   1.11 (Win32) / 0.5 (Mac)  
-- [OpenVR](https://github.com/ValveSoftware/openvr):   1.11.11 (Win32 only)  
+- [Oculus SDK](https://developer.oculus.com/downloads/):   1.11 (Windows) / 0.5 (Mac)  
+- [OpenVR](https://github.com/ValveSoftware/openvr):   1.11.11 (Windows, Linux)  
 - [Polyvox](http://www.volumesoffun.com/):   0.2.1  
 - [QuaZip](https://sourceforge.net/projects/quazip/files/quazip/):   0.7.3  
 - [SDL2](https://www.libsdl.org/download-2.0.php):   2.0.3  
@@ -78,11 +78,11 @@ Where /path/to/directory is the path to a directory where you wish the build fil
     BUILD_NUMBER
 
     // The type of release.
-    RELEASE_TYPE=PRODUCTION|PR
-    RELEASE_BUILD=PRODUCTION|PR
+    RELEASE_TYPE=PRODUCTION|PR|DEV
     
     // TODO: What do these do?
     PRODUCTION_BUILD=0|1
+    PR_BUILD=0|1
     STABLE_BUILD=0|1
     
     // TODO: What do these do?

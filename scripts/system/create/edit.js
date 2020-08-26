@@ -44,7 +44,8 @@ var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
 var ENTIRE_DOMAIN_SCAN_RADIUS = 27713;
 
-var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
+var DEFAULT_IMAGE = "http://eu-central-1.linodeobjects.com/vircadia-assets/interface/default/default_image.jpg";
+var DEFAULT_PARTICLE = "http://eu-central-1.linodeobjects.com/vircadia-assets/interface/default/default_particle.png";
 
 var createToolsWindow = new CreateWindow(
     Script.resolvePath("qml/EditTools.qml"),
@@ -436,7 +437,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
     ParticleEffect: {
         lifespan: 1.5,
         maxParticles: 10,
-        textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png",
+        textures: DEFAULT_PARTICLE,
         emitRate: 5.5,
         emitSpeed: 0,
         speedSpread: 0,
@@ -603,20 +604,28 @@ var toolBar = (function () {
                 Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
             }
             // Make sure the model entity is loaded before we try to figure out
-            // its dimensions.
-            var MAX_LOADED_CHECKS = 10;
+            // its dimensions. We need to give ample time to load the entity.
+            var MAX_LOADED_CHECKS = 100; // 100 * 100ms = 10 seconds.
             var LOADED_CHECK_INTERVAL = 100;
             var isLoadedCheckCount = 0;
             var entityIsLoadedCheck = function() {
                 isLoadedCheckCount++;
                 if (isLoadedCheckCount === MAX_LOADED_CHECKS || Entities.isLoaded(entityID)) {
                     var naturalDimensions = Entities.getEntityProperties(entityID, "naturalDimensions").naturalDimensions;
-
+                    
+                    if (isLoadedCheckCount === MAX_LOADED_CHECKS) {
+                        console.log("Model entity failed to load in time: " + (MAX_LOADED_CHECKS * LOADED_CHECK_INTERVAL) + " ... setting dimensions to: " + JSON.stringify(naturalDimensions))
+                    }
+                    
                     Entities.editEntity(entityID, {
                         visible: true,
                         dimensions: naturalDimensions
                     })
                     dimensionsCheckCallback();
+                    // We want to update the selection manager again since the script has moved on without us.
+                    selectionManager.clearSelections(this);
+                    entityListTool.sendUpdate();
+                    selectionManager.setSelections([entityID], this);
                     return;
                 }
                 Script.setTimeout(entityIsLoadedCheck, LOADED_CHECK_INTERVAL);

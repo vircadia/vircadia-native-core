@@ -26,8 +26,8 @@ if (osType == "Darwin") {
     options["app-bundle-id"] = "com.highfidelity.hifi-screenshare";
 } else if (osType == "Windows_NT") {
     options["version-string"] = {
-        CompanyName: "High Fidelity, Inc.",
-        FileDescription: "High Fidelity Screenshare",
+        CompanyName: "Vircadia",
+        FileDescription: "Vircadia Screenshare",
         ProductName: NAME,
         OriginalFilename: NAME + ".exe"
     }
@@ -47,4 +47,3 @@ packager(options)
         console.error("There was an error writing the packaged console: " + error.message);
         process.exit(1);
     });
-    

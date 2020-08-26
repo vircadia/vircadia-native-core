@@ -41,7 +41,7 @@ using namespace gpu;
 
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
 static const glm::uvec2 MAX_TEXTURE_SIZE_GLES(2048);
-static const glm::uvec2 MAX_TEXTURE_SIZE_GL(4096);
+static const glm::uvec2 MAX_TEXTURE_SIZE_GL(8192);
 bool DEV_DECIMATE_TEXTURES = false;
 std::atomic<size_t> DECIMATED_TEXTURE_COUNT{ 0 };
 std::atomic<size_t> RECTIFIED_TEXTURE_COUNT{ 0 };

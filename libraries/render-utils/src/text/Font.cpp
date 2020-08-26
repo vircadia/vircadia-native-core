@@ -15,6 +15,7 @@
 #include "../StencilMaskPass.h"
 
 #include "NetworkAccessManager.h"
+#include "NetworkingConstants.h"
 
 static std::mutex fontMutex;
 
@@ -97,7 +98,7 @@ Font::Pointer Font::load(const QString& family) {
 
             QNetworkRequest networkRequest;
             networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-            networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+            networkRequest.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
             networkRequest.setUrl(family);
 
             auto networkReply = networkAccessManager.get(networkRequest);
