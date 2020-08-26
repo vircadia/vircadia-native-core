@@ -1,6 +1,6 @@
 # General Build Information
 
-*Last Updated on August 25, 2020*
+*Last Updated on August 26, 2020*
 
 ### OS Specific Build Guides
 
@@ -80,10 +80,6 @@ Where /path/to/directory is the path to a directory where you wish the build fil
     // The type of release.
     RELEASE_TYPE=PRODUCTION|PR|DEV
     
-    // Set one of these if you require only one to be packaged
-    CLIENT_ONLY=1
-    SERVER_ONLY=1
-    
     // Determine the build type
     PRODUCTION_BUILD=0|1
     PR_BUILD=0|1
@@ -145,6 +141,8 @@ The following build options can be used when running CMake
 * BUILD_SERVER
 * BUILD_TESTS
 * BUILD_TOOLS
+* CLIENT_ONLY // Will package only the Interface
+* SERVER_ONLY // Will package only the Server
 
 #### Developer Build Options
 
