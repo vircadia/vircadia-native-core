@@ -1,6 +1,6 @@
 # Build OSX
 
-*Last Updated on July 13, 2020*
+*Last Updated on August 26, 2020*
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only macOS specific instructions are found in this document.
 
@@ -17,7 +17,7 @@ Execute the `Update Shell Profile.command` script that is provided with the inst
 
 ### OSX SDK
 
-You will need version `10.12` of the OSX SDK for building. You can get that from [here](https://github.com/phracker/MacOSX-SDKs). You must copy it in to your Xcode SDK directory, e.g.
+You will need version `10.12` of the OSX SDK for building, otherwise you may have crashing or other unintended issues due to the deprecation of OpenGL on OSX. You can get that SDK from [here](https://github.com/phracker/MacOSX-SDKs). You must copy it in to your Xcode SDK directory, e.g.
 
     cp -rp ~/Downloads/MacOSX10.12.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
 
@@ -34,7 +34,7 @@ You can ask CMake to generate Xcode project files instead of Unix Makefiles usin
     
     sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
     
-    sudo cmake ../ -DCMAKE_OSX_SYSROOT="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOSX_SDK=10.12  ..
+    cmake ../ -DCMAKE_OSX_SYSROOT="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOSX_SDK=10.12  ..
 
 If `cmake` complains about Python 3 being missing, you may need to update your CMake binary with command `brew upgrade cmake`, or by downloading and running the latest CMake installer, depending on how you originally instaled CMake 
 
