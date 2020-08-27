@@ -178,7 +178,8 @@ public:
 
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
-    void setEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine);
+    void setPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine);
+    void setNonPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine);
 
     void resetActivityTracking();
     ActivityTracking getActivityTracking() const { return _activityTracking; }
@@ -2497,9 +2498,12 @@ signals:
     void webEventReceived(const EntityItemID& entityItemID, const QVariant& message);
 
 protected:
-    void withEntitiesScriptEngine(std::function<void(QSharedPointer<EntitiesScriptEngineProvider>)> function) {
-        std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
-        function(_entitiesScriptEngine);
+    void withEntitiesScriptEngine(std::function<void(QSharedPointer<EntitiesScriptEngineProvider>)> function, const EntityItemID& id) {
+        auto entity = getEntityTree()->findEntityByEntityItemID(id);
+        if (entity) {
+            std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+            function((entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine);
+        }
     };
 
 private slots:
@@ -2529,7 +2533,8 @@ private:
     EntityTreePointer _entityTree;
 
     std::recursive_mutex _entitiesScriptEngineLock;
-    QSharedPointer<EntitiesScriptEngineProvider> _entitiesScriptEngine;
+    QSharedPointer<EntitiesScriptEngineProvider> _persistentEntitiesScriptEngine;
+    QSharedPointer<EntitiesScriptEngineProvider> _nonPersistentEntitiesScriptEngine;
 
     bool _bidOnSimulationOwnership { false };
 
