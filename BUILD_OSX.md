@@ -47,3 +47,9 @@ If the build completes successfully, you will have built targets for all compone
 If you build with make rather than Xcode, you can append `-j4` for assigning more threads. The number indicates the number of threads, e.g. 4.
 
 To package the installation, you can simply run `make package` afterwards.
+
+### FAQ
+
+1. **Problem:** Running the scheme `interface.app` from Xcode causes a crash for Interface related to `libgl`
+    1. **Cause:** The target `gl` generates a binary called `libgl`. A macOS `libGL.framework` item gets loaded instead by Xcode. 
+    1. **Solution:** In the Xcode target settings for `libgl`, set the version to 1.0.0
