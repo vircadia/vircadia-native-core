@@ -1196,7 +1196,7 @@ Node::LocalID DomainGatekeeper::findOrCreateLocalID(const QUuid& uuid) {
         return existingLocalIDIt->second;
     }
 
-    assert(_localIDs.size() < std::numeric_limits<LocalIDs::value_type>::max() - 2);
+    assert(_localIDs.size() < (size_t)(std::numeric_limits<LocalIDs::value_type>::max() - 2));
 
     Node::LocalID newLocalID;
     do {
