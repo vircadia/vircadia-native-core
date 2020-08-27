@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/14/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -1836,7 +1837,7 @@ QScriptValue ScriptEngine::instantiateModule(const QScriptValue& module, const Q
 }
 
 // CommonJS/Node.js like require/module support
-QScriptValue ScriptEngine::require(const QString& moduleId) {
+QScriptValue ScriptEngine::require(const QString& moduleId, bool forceRedownload) {
     qCDebug(scriptengine_module) << "ScriptEngine::require(" << moduleId.left(MAX_DEBUG_VALUE_LENGTH) << ")";
     if (!IS_THREADSAFE_INVOCATION(thread(), __FUNCTION__)) {
         return unboundNullValue();
@@ -1875,7 +1876,7 @@ QScriptValue ScriptEngine::require(const QString& moduleId) {
     //   `delete Script.require.cache[Script.require.resolve(moduleId)];`
 
     // cacheMeta is just used right now to tell deleted keys apart from undefined ones
-    bool invalidateCache = module.isUndefined() && cacheMeta.property(moduleId).isValid();
+    bool invalidateCache = (module.isUndefined() && cacheMeta.property(moduleId).isValid()) || forceRedownload;
 
     // reset the cacheMeta record so invalidation won't apply next time, even if the module fails to load
     cacheMeta.setProperty(modulePath, QScriptValue());
