@@ -1550,7 +1550,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     QMultiHash<QString, WeightedIndex> blendshapeIndices;
 
                     for (int i = 0;; ++i) {
-                        hifi::ByteArray blendshapeName = FACESHIFT_BLENDSHAPES[i];
+                        hifi::ByteArray blendshapeName = BLENDSHAPE_NAMES[i];
                         if (blendshapeName.isEmpty()) {
                             break;
                         }
