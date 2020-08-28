@@ -511,7 +511,6 @@ public:
     Bytes _data;
     static size_t _dataMax;
 
-    // SSBO class... layout MUST match the layout in Transform.slh
 #include "TransformObject_shared.slh"
 
     using TransformObjects = std::vector<TransformObject>;

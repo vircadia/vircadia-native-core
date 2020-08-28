@@ -112,7 +112,8 @@ int getStereoSideFromFragCoord() {
 }
 
 int getStereoSideFromUV(float uPos) {
-    return int(uPos >= 0.5 && isStereo());}
+    return int(uPos >= 0.5 && isStereo());
+}
 
 vec2 getStereoSideSize(int resolutionLevel) {
     return vec2(getStereoSideWidth(resolutionLevel), getStereoSideHeight(resolutionLevel));

@@ -150,10 +150,6 @@ TransformObject getTransformObject() {
 <$declareStandardObjectTransform()$>
 <@endfunc@>
 
-<@func transformCameraViewport(cameraTransform, viewport)@>
-     <$viewport$> = <$cameraTransform$>._viewport;
-<@endfunc@>
-
 <@func transformStereoClipSpace(clipPos)@>
     {
 #ifdef GPU_TRANSFORM_IS_STEREO
@@ -182,16 +178,6 @@ TransformObject getTransformObject() {
         _mv[3].xyz -= <$cameraTransform$>._viewInverse[3].xyz;
         highp vec4 _eyeWApos = (_mv * <$modelPos$>);
         <$eyeWorldAlignedPos$> = _eyeWApos;
-    }
-<@endfunc@>
-
-<@func transformModelToPrevEyeWorldAlignedPos(cameraTransform, objectTransform, modelPos, prevEyeWorldAlignedPos)@>
-    <!// Bring the model pos in the world aligned space centered on the eye axis !>
-    { // transformModelToPrevEyeWorldAlignedPos
-        highp mat4 _mv = <$objectTransform$>._previousModel;
-        _mv[3].xyz -= <$cameraTransform$>._previousViewInverse[3].xyz;
-        highp vec4 _prevEyeWApos = (_mv * <$modelPos$>);
-        <$prevEyeWorldAlignedPos$> = _prevEyeWApos;
     }
 <@endfunc@>
 
@@ -240,21 +226,6 @@ TransformObject getTransformObject() {
         <$transformModelToEyeAndPrevEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos, prevEyeWAPos)$>
         <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
         <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
-        <$transformStereoClipSpace($clipPos$)$>
-
-        <$prevClipPos$> = <$cameraTransform$>._previousProjectionViewUntranslated * prevEyeWAPos;        
-        // Prev clip pos is in mono clip space
-    }
-<@endfunc@>
-
-<@func transformModelToEyeMonoClipPosAndPrevClipPos(cameraTransform, objectTransform, modelPos, eyePos, clipPos, monoClipPos, prevClipPos)@>
-    { // transformModelToEyeMonoClipPosAndPrevClipPos
-        vec4 eyeWAPos;
-        vec4 prevEyeWAPos;
-        <$transformModelToEyeAndPrevEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos, prevEyeWAPos)$>
-        <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
-        <$monoClipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
-        <$clipPos$> = <$monoClipPos$>;
         <$transformStereoClipSpace($clipPos$)$>
 
         <$prevClipPos$> = <$cameraTransform$>._previousProjectionViewUntranslated * prevEyeWAPos;        
@@ -373,20 +344,6 @@ TransformObject getTransformObject() {
 <@func transformEyeToWorldDir(cameraTransform, eyeDir, worldDir)@>
     { // transformEyeToWorldDir
         <$worldDir$> = vec3(<$cameraTransform$>._viewInverse * vec4(<$eyeDir$>.xyz, 0.0));
-    }
-<@endfunc@>
-
-<@func transformEyeToPrevWorldDir(cameraTransform, eyeDir, prevWorldDir)@>
-    { // transformEyeToPrevWorldDir
-        <$prevWorldDir$> = vec3(<$cameraTransform$>._previousViewInverse * vec4(<$eyeDir$>.xyz, 0.0));
-    }
-<@endfunc@>
-
-<@func transformEyeToWorldDirAndPrevClipPos(cameraTransform, eyeDir, worldDir, prevClipPos)@>
-    { // transformEyeToWorldDirAndPrevClipPos
-        vec4 worldVec = <$cameraTransform$>._viewInverse * vec4(<$eyeDir$>.xyz, 0.0);
-        <$worldDir$> = worldVec.xyz;
-        <$prevClipPos$> = <$cameraTransform$>._previousProjectionViewUntranslated * worldVec;
     }
 <@endfunc@>
 

@@ -25,7 +25,7 @@ LAYOUT(binding=GRAPHICS_BUFFER_SKYBOX_PARAMS) uniform skyboxBuffer {
 };
 
 <@func declarePackDeferredFragmentSky()@>
-// This code is duplicated from render-utils/VelocityWrite.slh because graphics can't include render-utils, but ideally this would only be in one place
+// This code belongs in render-utils/VelocityWrite.slh but because graphics can't include render-utils, we have to have it here
 
 vec2 getEyeTexcoordPos() {
     // No need to add 0.5 as, by default, frag coords are pixel centered at (0.5, 0.5)
