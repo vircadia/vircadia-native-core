@@ -346,7 +346,7 @@ void EntityTreeRenderer::reloadEntityScripts() {
         const auto& renderer = entry.second;
         const auto& entity = renderer->getEntity();
         if (!entity->getScript().isEmpty()) {
-            auto scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+            auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
             scriptEngine->loadEntityScript(entity->getEntityItemID(), resolveScriptURL(entity->getScript()), true);
         }
     }
@@ -692,7 +692,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
                 foreach(const EntityItemID& entityID, _currentEntitiesInside) {
                     if (!entitiesContainingAvatar.contains(entityID)) {
                         emit leaveEntity(entityID);
-                        auto& entity = getTree()->findEntityByEntityItemID(entityID);
+                        auto entity = getTree()->findEntityByEntityItemID(entityID);
                         auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
                         scriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
                     }
@@ -702,7 +702,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
                 foreach(const EntityItemID& entityID, entitiesContainingAvatar) {
                     if (!_currentEntitiesInside.contains(entityID)) {
                         emit enterEntity(entityID);
-                        auto& entity = getTree()->findEntityByEntityItemID(entityID);
+                        auto entity = getTree()->findEntityByEntityItemID(entityID);
                         auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
                         scriptEngine->callEntityScriptMethod(entityID, "enterEntity");
                     }
