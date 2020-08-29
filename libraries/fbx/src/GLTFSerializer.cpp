@@ -1610,12 +1610,14 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 }               
             }
 
-            // Add epsilon to mesh extents to compensate for planar meshes
-            mesh.meshExtents.minimum -= glm::vec3(EPSILON, EPSILON, EPSILON);
-            mesh.meshExtents.maximum += glm::vec3(EPSILON, EPSILON, EPSILON);
-            hfmModel.meshExtents.minimum -= glm::vec3(EPSILON, EPSILON, EPSILON);
-            hfmModel.meshExtents.maximum += glm::vec3(EPSILON, EPSILON, EPSILON);
-           
+            // Mesh extents must be at least minimum entity size, in particular for blendshapes to work on planar meshes.
+            const float ENTITY_ITEM_MIN_DIMENSION = 0.001f;
+            auto delta = glm::max(glm::vec3(ENTITY_ITEM_MIN_DIMENSION) - mesh.meshExtents.size(), glm::vec3(0.0f)) / 2.0f;
+            mesh.meshExtents.minimum -= delta;
+            mesh.meshExtents.maximum += delta;
+            hfmModel.meshExtents.minimum -= delta;
+            hfmModel.meshExtents.maximum += delta;
+
             mesh.meshIndex = hfmModel.meshes.size();
         }
         ++nodecount;
