@@ -1567,7 +1567,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     auto keys = blendshapeIndices.keys();
                     auto values = blendshapeIndices.values();
                     auto names = _file.meshes[node.mesh].extras.targetNames;
-                    QVector<double> weights = _file.meshes[node.mesh].weights;
 
                     for (int weightedIndex = 0; weightedIndex < keys.size(); ++weightedIndex) {
                         float weight = 1.0f;
@@ -1586,13 +1585,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                         QVector<glm::vec3> normals;
                         QVector<glm::vec3> vertices;
-
-                        if (weights.size() == primitive.targets.size()) {
-                            int targetWeight = weights[targetIndex];
-                            if (targetWeight != 0) {
-                                weight = weight * targetWeight;
-                            }
-                        }
 
                         if (target.values.contains((QString) "NORMAL")) {
                             generateTargetData(target.values.value((QString) "NORMAL"), weight, normals);
