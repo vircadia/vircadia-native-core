@@ -1593,8 +1593,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             generateTargetData(target.values.value((QString) "POSITION"), weight, vertices);
                         }
 
+                        auto blendshapeIndicesCount = blendshape.indices.count();
                         for (int i = 0; i < vertices.size(); i++) {
-                            blendshape.indices.push_back(i);
+                            blendshape.indices.push_back(blendshapeIndicesCount + i);
                             blendshape.vertices.push_back(vertices.value(i));
                             blendshape.normals.push_back(normals.value(i));
                         }
