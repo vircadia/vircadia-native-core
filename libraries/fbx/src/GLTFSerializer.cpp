@@ -1563,26 +1563,25 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                     // glTF morph targets may or may not have names. if they are labeled, add them based on
                     // the corresponding names from the FST. otherwise, just add them in the order they are given
-                    mesh.blendshapes.resize(blendshapeMappings.size());
-                    auto values = blendshapeIndices.values();
+                    mesh.blendshapes.resize((int)Blendshapes::BlendshapeCount);
                     auto keys = blendshapeIndices.keys();
+                    auto values = blendshapeIndices.values();
                     auto names = _file.meshes[node.mesh].extras.targetNames;
                     QVector<double> weights = _file.meshes[node.mesh].weights;
 
-                    for (int weightedIndex = 0; weightedIndex < values.size(); ++weightedIndex) {
-                        float weight = 0.1f;
+                    for (int weightedIndex = 0; weightedIndex < keys.size(); ++weightedIndex) {
+                        float weight = 1.0f;
                         int indexFromMapping = weightedIndex;
                         int targetIndex = weightedIndex;
                         hfmModel.blendshapeChannelNames.push_back("target_" + QString::number(weightedIndex));
 
-                        if (!names.isEmpty()) {
+                        if (!names.isEmpty() && names.contains(keys[weightedIndex])) {
                             targetIndex = names.indexOf(keys[weightedIndex]);
                             indexFromMapping = values[weightedIndex].first;
-                            weight = weight * values[weightedIndex].second;
+                            weight = values[weightedIndex].second;
                             hfmModel.blendshapeChannelNames[weightedIndex] = keys[weightedIndex];
                         }
                         HFMBlendshape& blendshape = mesh.blendshapes[indexFromMapping];
-                        blendshape.indices = part.triangleIndices;
                         auto target = primitive.targets[targetIndex];
 
                         QVector<glm::vec3> normals;
@@ -1601,18 +1600,13 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         if (target.values.contains((QString) "POSITION")) {
                             generateTargetData(target.values.value((QString) "POSITION"), weight, vertices);
                         }
-                        bool isNewBlendshape = blendshape.vertices.size() < vertices.size();
-                        int count = 0;
-                        for (int i : blendshape.indices) {
-                            if (isNewBlendshape) {
-                                blendshape.vertices.push_back(vertices[i]);
-                                blendshape.normals.push_back(normals[i]);
-                            } else {
-                                blendshape.vertices[count] = blendshape.vertices[count] + vertices[i];
-                                blendshape.normals[count] = blendshape.normals[count] + normals[i];
-                                ++count;
-                            }
+
+                        for (int i = 0; i < vertices.size(); i++) {
+                            blendshape.indices.push_back(i);
+                            blendshape.vertices.push_back(vertices.value(i));
+                            blendshape.normals.push_back(normals.value(i));
                         }
+
                     }
                 }
 
