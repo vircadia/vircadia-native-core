@@ -50,7 +50,6 @@
 #include <gl/Context.h>
 #include <shared/ReadWriteLockable.h>
 
-#include "SecurityImageProvider.h"
 #include "shared/FileUtils.h"
 #include "types/FileTypeProfile.h"
 #include "types/HFWebEngineProfile.h"
@@ -253,9 +252,6 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
         qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
     });
 
-    // Register the pixmap Security Image Provider
-    engine->addImageProvider(SecurityImageProvider::PROVIDER_NAME, new SecurityImageProvider());
-
     engine->setNetworkAccessManagerFactory(new QmlNetworkAccessManagerFactory);
     auto importList = engine->importPathList();
     importList.insert(importList.begin(), PathUtils::resourcesPath() + "qml/");
@@ -381,7 +377,6 @@ void OffscreenQmlSurface::onRootCreated() {
         tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", this);
         QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
         getSurfaceContext()->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
-        getSurfaceContext()->engine()->addImageProvider(SecurityImageProvider::PROVIDER_NAME, new SecurityImageProvider());
     }
     QMetaObject::invokeMethod(this, "forceQmlAudioOutputDeviceUpdate", Qt::QueuedConnection);
 }

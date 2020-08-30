@@ -27,7 +27,6 @@ FST::FST(QString fstPath, QMultiHash<QString, QVariant> data) : _fstPath(std::mo
     };
     setValueFromFSTData(NAME_FIELD, _name);
     setValueFromFSTData(FILENAME_FIELD, _modelPath);
-    setValueFromFSTData(MARKETPLACE_ID_FIELD, _marketplaceID);
 
     if (data.contains(SCRIPT_FIELD)) {
         QVariantList scripts = data.values(SCRIPT_FIELD);
@@ -163,7 +162,6 @@ QMultiHash<QString, QVariant> FST::getMapping() const {
     mapping.unite(_other);
     mapping.insert(NAME_FIELD, _name);
     mapping.insert(FILENAME_FIELD, _modelPath);
-    mapping.insert(MARKETPLACE_ID_FIELD, _marketplaceID);
     for (const auto& scriptPath : _scriptPaths) {
         mapping.insert(SCRIPT_FIELD, scriptPath);
     }
@@ -177,9 +175,4 @@ bool FST::write() {
     }
     fst.write(FSTReader::writeMapping(getMapping()));
     return true;
-}
-
-void FST::setMarketplaceID(QUuid marketplaceID) {
-    _marketplaceID = marketplaceID;
-    emit marketplaceIDChanged();
 }
