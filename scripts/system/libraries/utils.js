@@ -535,21 +535,17 @@ semanticVersionCompare = function(versionA, versionB) {
                 var splitA = versionAParts[i].split('-')[0];
                 var splitB = versionBParts[i].split('-')[0];
                 
-                if (splitA == splitB) {
-                    continue;
+                if (splitA < splitB) {
+                    return -1;
                 } else if (splitA > splitB) {
                     return 1;
-                } else {
-                    return -1;
                 }
             }
         } else { // Else, they're both numbers so compare the strings as if they were.
-            if (versionAParts[i] == versionBParts[i]) {
-                continue;
+            if (versionAParts[i] < versionBParts[i]) {
+                return -1;
             } else if (versionAParts[i] > versionBParts[i]) {
                 return 1;
-            } else {
-                return -1;
             }
         }
     }
