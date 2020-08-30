@@ -40,7 +40,7 @@ void main(void) {
 
 <@if not HIFI_USE_FORWARD@>
     <@if HIFI_USE_TRANSLUCENT@>
-        packDeferredFragmentTranslucent(evalFrontOrBackFaceNormal(_normalWS), texel.a, texel.rgb, DEFAULT_ROUGHNESS);
+        packDeferredFragmentTranslucentUnlit(_prevPositionCS, evalFrontOrBackFaceNormal(_normalWS), texel.a, texel.rgb);
     <@else@>
         packDeferredFragmentUnlit(_prevPositionCS, evalFrontOrBackFaceNormal(_normalWS), texel.a, texel.rgb);
     <@endif@>

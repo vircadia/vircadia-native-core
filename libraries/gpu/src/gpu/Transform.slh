@@ -361,6 +361,14 @@ TransformObject getTransformObject() {
     }
 <@endfunc@>
 
+<@func transformEyeToPrevClipPos(cameraTransform, eyePos, prevClipPos)@>
+    { // transformEyeToClipPos
+        vec4 worldPos = <$cameraTransform$>._viewInverse * vec4(<$eyePos$>.xyz, 1.0);
+        <$prevClipPos$> = <$cameraTransform$>._previousProjectionViewUntranslated * worldPos;
+        // Prev clip pos is in mono clip space
+    }
+<@endfunc@>
+
 <@func transformPrevEyeToPrevClipPos(cameraTransform, prevEyePos, prevClipPos)@>
     { // transformPrevEyeToPrevClipPos
         <$prevClipPos$> = <$cameraTransform$>._previousViewInverse * vec4(<$prevEyePos$>.xyz, 1.0) - vec4(<$cameraTransform$>._previousViewInverse[3].xyz, 0.0);

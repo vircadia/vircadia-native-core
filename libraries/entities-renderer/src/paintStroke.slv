@@ -53,10 +53,9 @@ void main(void) {
 
         vec3 binormalEye = normalize(cross(normalEye, tangentEye));
         posEye.xyz += _distanceFromCenter * vertex.binormalAndHalfWidth.w * binormalEye;
-<@if HIFI_USE_FORWARD@>
         <$transformEyeToClipPos(cam, posEye, gl_Position)$>
-<@else@>
-        <$transformEyeToClipPosAndPrevClipPos(cam, posEye, gl_Position, _prevPositionCS)$>
+<@if not HIFI_USE_FORWARD@>
+        <$transformEyeToPrevClipPos(cam, posEye, _prevPositionCS)$>
         <$transformEyeToWorldDir(cam, normalEye, _normalWS)$>
 <@endif@>
     } else {
