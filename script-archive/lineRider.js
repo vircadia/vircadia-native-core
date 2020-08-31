@@ -11,7 +11,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 LineRider = function() {
-  HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+  var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
   var screenSize = Controller.getViewportDimensions();
 
   var BUTTON_SIZE = 32;
@@ -34,7 +35,7 @@ LineRider = function() {
     y: screenSize.y - (BUTTON_SIZE + PADDING),
     width: BUTTON_SIZE,
     height: BUTTON_SIZE,
-    imageURL: HIFI_PUBLIC_BUCKET + "images/coaster.png?v2",
+    imageURL: VIRCADIA_PUBLIC_CDN + "images/coaster.png?v2",
     color: this.buttonOffColor,
     alpha: 1
   });

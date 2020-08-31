@@ -9,9 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* globals HIFI_PUBLIC_BUCKET:true, Tool, ToolBar */
+/* globals VIRCADIA_PUBLIC_CDN:true, Tool, ToolBar */
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
 Script.include("/~/system/libraries/toolBars.js");
 
 var recordingFile = "recording.hfr";
@@ -25,7 +26,7 @@ function setDefaultPlayerOptions() {
 }
 
 var windowDimensions = Controller.getViewportDimensions();
-var TOOL_ICON_URL = HIFI_PUBLIC_BUCKET + "images/tools/";
+var TOOL_ICON_URL = VIRCADIA_PUBLIC_CDN + "images/tools/";
 var ALPHA_ON = 1.0;
 var ALPHA_OFF = 0.7;
 var COLOR_ON = { red: 128, green: 0, blue: 0 };

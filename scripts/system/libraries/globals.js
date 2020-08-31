@@ -8,6 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
 
 isInterstitialOverlaysVisible = false;

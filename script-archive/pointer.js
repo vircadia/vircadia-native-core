@@ -29,7 +29,8 @@ var buttonOnColor = {
   blue: 100
 };
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
 
 var userCanPoint = false;
 Script.include(["libraries/toolBars.js"]);
@@ -39,7 +40,7 @@ var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.pointer.toolba
 var pointerButton = toolBar.addOverlay("image", {
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
-  imageURL: HIFI_PUBLIC_BUCKET + "images/laser.png",
+  imageURL: VIRCADIA_PUBLIC_CDN + "images/laser.png",
   color: buttonOffColor,
   alpha: 1
 });

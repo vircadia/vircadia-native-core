@@ -11,7 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
 
 // The "Swatches" example of this script will create 9 different image overlays, that use the color feature to
 // display different colors as color swatches. The overlays can be clicked on, to change the "selectedSwatch" variable
@@ -52,7 +53,7 @@ for (s = 0; s < numberOfSwatches; s++) {
                     width: 31,
                     height: 54,
                     subImage: { x: imageFromX, y: imageFromY, width: 30, height: 54 },
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/testing-swatches.svg",
+                    imageURL: VIRCADIA_PUBLIC_CDN + "images/testing-swatches.svg",
                     color: swatchColors[s],
                     alpha: 1
                 });
@@ -80,7 +81,7 @@ var toolA = Overlays.addOverlay("image", {
                     width: 62,
                     height: 40,
                     subImage: { x: 0, y: 0, width: 62, height: 40 },
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/hifi-interface-tools.svg",
+                    imageURL: VIRCADIA_PUBLIC_CDN + "images/hifi-interface-tools.svg",
                     color: { red: 255, green: 255, blue: 255},
                     visible: false
                 });
@@ -90,7 +91,7 @@ var toolA = Overlays.addOverlay("image", {
 var slider = Overlays.addOverlay("image", {
                     // alternate form of expressing bounds
                     bounds: { x: 100, y: 300, width: 158, height: 35},
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/slider.png",
+                    imageURL: VIRCADIA_PUBLIC_CDN + "images/slider.png",
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
@@ -104,7 +105,7 @@ var thumb = Overlays.addOverlay("image", {
                     y: 309,
                     width: 18,
                     height: 17,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/thumb.png",
+                    imageURL: VIRCADIA_PUBLIC_CDN + "images/thumb.png",
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
@@ -200,8 +201,8 @@ print("Cube overlay color =\n"
 // This model overlay example causes intermittent crashes in NetworkGeometry::setTextureWithNameToURL()
 //var modelOverlayProperties = {
 //    textures: {
-//        filename1: HIFI_PUBLIC_BUCKET + "images/testing-swatches.svg",
-//        filename2: HIFI_PUBLIC_BUCKET + "images/hifi-interface-tools.svg"
+//        filename1: VIRCADIA_PUBLIC_CDN + "images/testing-swatches.svg",
+//        filename2: VIRCADIA_PUBLIC_CDN + "images/hifi-interface-tools.svg"
 //    }
 //}
 //var modelOverlay = Overlays.addOverlay("model", modelOverlayProperties);

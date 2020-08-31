@@ -13,8 +13,9 @@
 
 (function () {
     var ball = null;
-    var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-    var collisionSoundURL = HIFI_PUBLIC_BUCKET + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav";
+    var var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+    var collisionSoundURL = VIRCADIA_PUBLIC_CDN + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav";
     var triggerState = false;
     var BALL_GRAVITY = -9.8;
     var BALL_START_VELOCITY = 0.1;

@@ -20,8 +20,9 @@
 //
 
 //For procedural walk animation
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-Script.include(HIFI_PUBLIC_BUCKET + "scripts/acScripts/proceduralAnimationAPI.js");
+var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+Script.include(VIRCADIA_PUBLIC_CDN + "scripts/acScripts/proceduralAnimationAPI.js");
 
 var procAnimAPI = new ProcAnimAPI();
 
@@ -121,9 +122,9 @@ var newBodyFilePrefix = "bot" + botNumber;
 
 // set the face model fst using the bot number
 // there is no need to change the body model - we're using the default
-Avatar.faceModelURL = HIFI_PUBLIC_BUCKET + "meshes/" + newFaceFilePrefix + ".fst";
-Avatar.skeletonModelURL = HIFI_PUBLIC_BUCKET + "meshes/" + newBodyFilePrefix + "_a.fst";
-Avatar.billboardURL = HIFI_PUBLIC_BUCKET + "meshes/billboards/bot" + botNumber + ".png";
+Avatar.faceModelURL = VIRCADIA_PUBLIC_CDN + "meshes/" + newFaceFilePrefix + ".fst";
+Avatar.skeletonModelURL = VIRCADIA_PUBLIC_CDN + "meshes/" + newBodyFilePrefix + "_a.fst";
+Avatar.billboardURL = VIRCADIA_PUBLIC_CDN + "meshes/billboards/bot" + botNumber + ".png";
 
 Agent.isAvatar = true;
 Agent.isListeningToAudioStream = true;
@@ -146,9 +147,9 @@ function loadSounds() {
     var footstep_filenames = ["FootstepW2Left-12db.wav", "FootstepW2Right-12db.wav", "FootstepW3Left-12db.wav", "FootstepW3Right-12db.wav", 
                         "FootstepW5Left-12db.wav", "FootstepW5Right-12db.wav"];
 
-    var SOUND_BASE_URL = HIFI_PUBLIC_BUCKET + "sounds/Cocktail+Party+Snippets/Raws/";
+    var SOUND_BASE_URL = VIRCADIA_PUBLIC_CDN + "sounds/Cocktail+Party+Snippets/Raws/";
 
-    var FOOTSTEP_BASE_URL = HIFI_PUBLIC_BUCKET + "sounds/Footsteps/";
+    var FOOTSTEP_BASE_URL = VIRCADIA_PUBLIC_CDN + "sounds/Footsteps/";
 
     for (var i = 0; i < sound_filenames.length; i++) {
         sounds.push(SoundCache.getSound(SOUND_BASE_URL + sound_filenames[i]));

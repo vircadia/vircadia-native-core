@@ -11,9 +11,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
 
-var sound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/220Sine.wav");
+var sound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/220Sine.wav");
 
 var soundPlaying = false;
 

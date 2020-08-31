@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
 
-var grenadeURL = HIFI_PUBLIC_BUCKET + "models/props/grenade/grenade.fbx";
-var fuseSoundURL = HIFI_PUBLIC_BUCKET + "sounds/burningFuse.wav";
-var boomSoundURL = HIFI_PUBLIC_BUCKET + "sounds/explosion.wav";
+var grenadeURL = VIRCADIA_PUBLIC_CDN + "models/props/grenade/grenade.fbx";
+var fuseSoundURL = VIRCADIA_PUBLIC_CDN + "sounds/burningFuse.wav";
+var boomSoundURL = VIRCADIA_PUBLIC_CDN + "sounds/explosion.wav";
 
 var AudioRotationOffset = Quat.fromPitchYawRollDegrees(0, -90, 0);
 var audioOptions = {

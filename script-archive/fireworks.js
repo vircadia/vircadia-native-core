@@ -1,5 +1,6 @@
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-var fireSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guns/GUN-SHOT2.raw");
+var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var fireSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Guns/GUN-SHOT2.raw");
 var audioOptions = {
   volume: 0.9,
   position: Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()))

@@ -9,6 +9,16 @@
 // Interface Metadata Source
 var interfaceMetadataSource = "https://cdn.vircadia.com/dist/launcher/vircadiaMeta.json";
 
+// Base CDN URLs
+var contentCDN = "https://content.highfidelity.com/"; // "https://content.vircadia.com/";
+var publicBucketCDN = "http://s3.amazonaws.com/hifi-public/";
+var euCDN = "eu-c-1/";
+var usCDN = "us-c-1/";
+
 module.exports = {
-    interfaceMetadataSource: interfaceMetadataSource
+    interfaceMetadataSource: interfaceMetadataSource.
+    contentCDN: contentCDN,
+    publicBucketCDN: publicBucketCDN,
+    euCDN: euCDN,
+    usCDN: usCDN
 }
