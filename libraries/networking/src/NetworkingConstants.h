@@ -43,6 +43,8 @@ namespace NetworkingConstants {
     const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
     const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");
 
+    const QString CONTENT_CDN_URL = "https://content.highfidelity.com/";
+    const QString PUBLIC_BUCKET_CDN_URL = "https://hifi-public.s3.amazonaws.com/";
 
 #if USE_STABLE_GLOBAL_SERVICES
     const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
