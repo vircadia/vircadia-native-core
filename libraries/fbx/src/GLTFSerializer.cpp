@@ -1544,25 +1544,33 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 // Build morph targets (blend shapes)
                 if (!primitive.targets.isEmpty()) {
 
-                    // Build list of blendshapes from FST
+                    // Build list of blendshapes from FST and model.
                     typedef QPair<int, float> WeightedIndex;
                     hifi::VariantHash blendshapeMappings = mapping.value("bs").toHash();
                     QMultiHash<QString, WeightedIndex> blendshapeIndices;
 
                     for (int i = 0;; ++i) {
-                        hifi::ByteArray blendshapeName = BLENDSHAPE_NAMES[i];
+                        auto blendshapeName = QString(BLENDSHAPE_NAMES[i]);
                         if (blendshapeName.isEmpty()) {
                             break;
                         }
-                        QList<QVariant> mappings = blendshapeMappings.values(blendshapeName);
-                        foreach (const QVariant& mapping, mappings) {
-                            QVariantList blendshapeMapping = mapping.toList();
-                            blendshapeIndices.insert(blendshapeMapping.at(0).toByteArray(), WeightedIndex(i, blendshapeMapping.at(1).toFloat()));
+                        auto mappings = blendshapeMappings.values(blendshapeName);
+                        if (mappings.count() > 0) {
+                            // Use blendshape from mapping.
+                            foreach(const QVariant& mapping, mappings) {
+                                auto blendshapeMapping = mapping.toList();
+                                blendshapeIndices.insert(blendshapeMapping.at(0).toString(), 
+                                    WeightedIndex(i, blendshapeMapping.at(1).toFloat()));
+                            }
+                        } else {
+                            // Use blendshape from model.
+                            if (_file.meshes[node.mesh].extras.targetNames.contains(blendshapeName)) {
+                                blendshapeIndices.insert(blendshapeName, WeightedIndex(i, 1.0f));
+                            }
                         }
                     }
 
-                    // glTF morph targets may or may not have names. if they are labeled, add them based on
-                    // the corresponding names from the FST. otherwise, just add them in the order they are given
+                    // Create blendshapes.
                     mesh.blendshapes.resize((int)Blendshapes::BlendshapeCount);
                     auto keys = blendshapeIndices.keys();
                     auto values = blendshapeIndices.values();
