@@ -1571,7 +1571,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
 
                     // Create blendshapes.
-                    mesh.blendshapes.resize((int)Blendshapes::BlendshapeCount);
+                    if (!blendshapeIndices.isEmpty()) {
+                        mesh.blendshapes.resize((int)Blendshapes::BlendshapeCount);
+                    }
                     auto keys = blendshapeIndices.keys();
                     auto values = blendshapeIndices.values();
                     auto names = _file.meshes[node.mesh].extras.targetNames;
