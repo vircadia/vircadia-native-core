@@ -15,7 +15,7 @@
 
 // Declare HiFi public bucket.
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 // Declare variables and set up new WebWindow.
 var stream;

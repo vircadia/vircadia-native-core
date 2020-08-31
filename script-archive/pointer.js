@@ -30,7 +30,7 @@ var buttonOnColor = {
 };
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 var userCanPoint = false;
 Script.include(["libraries/toolBars.js"]);

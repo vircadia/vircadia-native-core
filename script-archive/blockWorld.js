@@ -20,7 +20,7 @@ var blocks = [];
 var blockSpawner;
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 
 var floorPos = Vec3.sum(MyAvatar.position, {

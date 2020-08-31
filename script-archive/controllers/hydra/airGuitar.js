@@ -11,7 +11,7 @@
 //
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 function length(v) {
     return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);

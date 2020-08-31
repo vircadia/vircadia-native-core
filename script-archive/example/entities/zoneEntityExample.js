@@ -12,7 +12,7 @@
 //
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 var count = 0;
 var stopAfter = 1000;

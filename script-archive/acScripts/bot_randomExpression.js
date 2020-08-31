@@ -13,7 +13,7 @@
 //
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-VIRCADIA_PUBLIC_CDN = networkingConstants.contentCDN;
+VIRCADIA_PUBLIC_CDN = networkingConstants.CONTENT_CDN_URL;
 
 function getRandomFloat(min, max) {
     return Math.random() * (max - min) + min;

@@ -10,7 +10,7 @@
 //
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 var modelURL = VIRCADIA_PUBLIC_CDN + "models/entities/radio/Speakers.fbx";
 var soundURL = VIRCADIA_PUBLIC_CDN + "sounds/family.stereo.raw";

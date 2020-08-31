@@ -9,7 +9,7 @@
 
 var Camera, Vec3, Quat, Entities, Script; // Globals defined by HiFi, var'ed here to keep jslint happy.
 var var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 var SOUND_BUCKET = "http://public.highfidelity.io/sounds/Collisions-hitsandslaps/";
 var MAX_ANGULAR_SPEED = Math.PI;
 var N_EACH_OBJECTS = 3;

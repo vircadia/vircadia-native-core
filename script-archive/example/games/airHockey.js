@@ -61,7 +61,7 @@ var paddleModel = "https://hifi-public.s3.amazonaws.com/ozan/props/airHockeyTabl
 var paddleCollisionModel = "http://headache.hungry.com/~seth/hifi/paddle-hull.obj"
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 var screenSize = Controller.getViewportDimensions();
 var BUTTON_SIZE = 32;
 var PADDING = 3;

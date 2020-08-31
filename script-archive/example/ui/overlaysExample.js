@@ -12,7 +12,7 @@
 //
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 // The "Swatches" example of this script will create 9 different image overlays, that use the color feature to
 // display different colors as color swatches. The overlays can be clicked on, to change the "selectedSwatch" variable

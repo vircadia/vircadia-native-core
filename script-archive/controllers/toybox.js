@@ -12,7 +12,7 @@
 Script.include("http://s3.amazonaws.com/hifi-public/scripts/libraries/toolBars.js");
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 
 

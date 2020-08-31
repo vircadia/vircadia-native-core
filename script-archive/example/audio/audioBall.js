@@ -14,7 +14,7 @@
 //
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 var sound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Animals/mexicanWhipoorwill.raw");
 var CHANCE_OF_PLAYING_SOUND = 0.01;

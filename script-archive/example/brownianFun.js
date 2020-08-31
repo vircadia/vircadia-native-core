@@ -1,5 +1,5 @@
 var var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 var SOUND_PATH = VIRCADIA_PUBLIC_CDN + "sounds/Collisions-hitsandslaps/";
 var soundURLS = ["67LCollision01.wav", "67LCollision02.wav", "airhockey_hit1.wav"];
 var FLOOR_SIZE = 10;

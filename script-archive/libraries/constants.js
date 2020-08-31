@@ -7,7 +7,7 @@
 //
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 STICK_URL = VIRCADIA_PUBLIC_CDN + "models/props/geo_stick.fbx";
 
 ZERO_VECTOR = { x: 0, y: 0, z: 0 };

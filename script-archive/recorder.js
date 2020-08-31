@@ -12,7 +12,7 @@
 /* globals VIRCADIA_PUBLIC_CDN:true, Tool, ToolBar */
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 Script.include("/~/system/libraries/toolBars.js");
 
 var recordingFile = "recording.hfr";

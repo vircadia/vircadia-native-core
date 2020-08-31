@@ -11,7 +11,7 @@
 //
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 var tableParts = []; 
 var balls = [];
@@ -38,7 +38,7 @@ var hitSound = VIRCADIA_PUBLIC_CDN + "sounds/Collisions-ballhitsandcatches/billi
 SoundCache.getSound(hitSound);
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 var screenSize = Controller.getViewportDimensions();
 var reticle = Overlays.addOverlay("image", {
     x: screenSize.x / 2 - 16,

@@ -11,7 +11,7 @@
 //
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 hitSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav");
 var rightHandAnimation = VIRCADIA_PUBLIC_CDN + "animations/RightHandAnimPhilip.fbx";

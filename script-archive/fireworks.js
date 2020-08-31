@@ -1,5 +1,5 @@
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 var fireSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Guns/GUN-SHOT2.raw");
 var audioOptions = {
   volume: 0.9,

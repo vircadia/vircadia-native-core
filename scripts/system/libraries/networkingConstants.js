@@ -7,18 +7,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 // Interface Metadata Source
-var interfaceMetadataSource = "https://cdn.vircadia.com/dist/launcher/vircadiaMeta.json";
+var INTERFACE_METADATA_SOURCE = "https://cdn.vircadia.com/dist/launcher/vircadiaMeta.json";
 
 // Base CDN URLs
-var contentCDN = "https://content.highfidelity.com/"; // "https://content.vircadia.com/";
-var publicBucketCDN = "http://s3.amazonaws.com/hifi-public/";
+var CONTENT_CDN_URL = "https://content.highfidelity.com/"; // "https://content.vircadia.com/";
+var PUBLIC_BUCKET_CDN_URL = "http://s3.amazonaws.com/hifi-public/";
 var euCDN = "eu-c-1/";
 var usCDN = "us-c-1/";
 
 module.exports = {
-    interfaceMetadataSource: interfaceMetadataSource.
-    contentCDN: contentCDN,
-    publicBucketCDN: publicBucketCDN,
+    INTERFACE_METADATA_SOURCE: INTERFACE_METADATA_SOURCE.
+    CONTENT_CDN_URL: CONTENT_CDN_URL,
+    PUBLIC_BUCKET_CDN_URL: PUBLIC_BUCKET_CDN_URL,
     euCDN: euCDN,
     usCDN: usCDN
 }

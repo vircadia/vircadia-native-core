@@ -10,7 +10,7 @@
 //
 
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 // Set the following variables to the right value
 var NUM_AC = 3; // This is the number of AC. Their ID need to be unique and between 0 (included) and NUM_AC (excluded)

@@ -21,7 +21,7 @@
 
 //For procedural walk animation
 var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.publicBucketCDN;
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 Script.include(VIRCADIA_PUBLIC_CDN + "scripts/acScripts/proceduralAnimationAPI.js");
 
 var procAnimAPI = new ProcAnimAPI();
