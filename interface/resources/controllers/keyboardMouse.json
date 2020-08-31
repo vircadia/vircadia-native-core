@@ -213,12 +213,30 @@
             ]
         },
 
+        { "from": { "makeAxis" : ["Keyboard.MouseMoveLeft", "Keyboard.MouseMoveRight"] },
+          "to": "Actions.DeltaYaw",
+          "when": "Application.CaptureMouse",
+          "filters":
+            [
+                { "type": "scale", "scale": 0.2 }
+            ]
+        },
+
         { "from": { "makeAxis" : ["Keyboard.MouseMoveUp", "Keyboard.MouseMoveDown"] },
           "when": ["!Application.CameraSelfie", "!Application.CameraLookAt", "Keyboard.RightMouseButton"],
           "to": "Actions.DeltaPitch",
           "filters":
             [
                 { "type": "scale", "scale": 0.6 }
+            ]
+        },
+
+        { "from": { "makeAxis" : ["Keyboard.MouseMoveUp", "Keyboard.MouseMoveDown"] },
+          "to": "Actions.DeltaPitch",
+          "when": "Application.CaptureMouse",
+          "filters":
+            [
+                { "type": "scale", "scale": 0.2 }
             ]
         },
 

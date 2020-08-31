@@ -430,6 +430,7 @@ public slots:
     void cycleCamera();
     void cameraModeChanged();
     void cameraMenuChanged();
+    void captureMouseChanged();
     void toggleOverlays();
     void setOverlaysVisible(bool visible);
     Q_INVOKABLE void centerUI();

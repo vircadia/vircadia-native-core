@@ -43,6 +43,7 @@ class Camera : public QObject {
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(QString mode READ getModeString WRITE setModeString NOTIFY modeUpdated)
     Q_PROPERTY(QVariantMap frustum READ getViewFrustum CONSTANT)
+    Q_PROPERTY(bool captureMouse READ getCaptureMouse WRITE setCaptureMouse NOTIFY captureMouseUpdated)
 
 public:
     Camera();
@@ -109,6 +110,20 @@ public slots:
      * @param {Quat} orientation - The orientation to set the camera to.
      */
     void setOrientation(const glm::quat& orientation);
+
+    /**jsdoc
+     * Gets the current mouse capture state.
+     * @function Camera.getMouseCapture
+     * @returns {boolean} The current mouse capture state.
+     */
+    bool getCaptureMouse() const { return _captureMouse; }
+
+    /**jsdoc
+     * Sets mouse capture state.
+     * @function Camera.setCaptureMouse
+     * @param {boolean} captureMouse - Whether or not to capture the mouse.
+     */
+    void setCaptureMouse(bool captureMouse) { _captureMouse = captureMouse; }
 
     /**jsdoc
      * Computes a {@link PickRay} based on the current camera configuration and the specified <code>x, y</code> position on the 
@@ -181,6 +196,20 @@ signals:
      */
     void modeUpdated(const QString& newMode);
 
+    /**jsdoc
+     * Triggered when the camera mouse capture state changes.
+     * @function Camera.captureMouseUpdated
+     * @param {boolean} newCaptureMouse - The new mouse capture state.
+     * @returns {Signal}
+     * @example <caption>Report mouse capture state changes.</caption>
+     * function onCaptureMouseUpdated(newCaptureMouse) {
+     *     print("The mouse capture has changed to " + newCaptureMouse);
+     * }
+     *
+     * Camera.captureMouseUpdated.connect(onCaptureMouseUpdated);
+     */
+    void captureMouseUpdated(bool newCaptureMouse);
+
 private:
     void recompose();
     void decompose();
@@ -194,6 +223,8 @@ private:
     glm::quat _orientation;
     bool _isKeepLookingAt{ false };
     glm::vec3 _lookingAt;
+
+    bool _captureMouse { false };
 };
 
 #endif // hifi_Camera_h

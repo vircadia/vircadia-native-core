@@ -680,6 +680,7 @@ private:
  *     <tr><td><code>CameraIndependent</code></td><td>number</td><td>number</td><td>The camera is in independent mode.</td></tr>
  *     <tr><td><code>CameraEntity</code></td><td>number</td><td>number</td><td>The camera is in entity mode.</td></tr>
  *     <tr><td><code>InHMD</code></td><td>number</td><td>number</td><td>The user is in HMD mode.</td></tr>
+ *     <tr><td><code>CaptureMouse</code></td><td>number</td><td>number</td><td>The mouse is captured.</td></tr>
  *     <tr><td><code>AdvancedMovement</code></td><td>number</td><td>number</td><td>Advanced movement (walking) controls are
  *       enabled.</td></tr>
  *     <tr><td><code>StrafeEnabled</code></td><td>number</td><td>number</td><td>Strafing is enabled</td></tr>
@@ -715,6 +716,7 @@ static const QString STATE_PLATFORM_ANDROID = "PlatformAndroid";
 static const QString STATE_LEFT_HAND_DOMINANT = "LeftHandDominant";
 static const QString STATE_RIGHT_HAND_DOMINANT = "RightHandDominant";
 static const QString STATE_STRAFE_ENABLED = "StrafeEnabled";
+static const QString STATE_CAMERA_CAPTURE_MOUSE = "CaptureMouse";
 
 // Statically provided display and input plugins
 extern DisplayPluginList getDisplayPlugins();
@@ -918,7 +920,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<MessagesClient>();
     controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
                     STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_FIRST_PERSON_LOOK_AT, STATE_CAMERA_THIRD_PERSON,
-                    STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT, STATE_CAMERA_LOOK_AT, STATE_CAMERA_SELFIE,
+                    STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT, STATE_CAMERA_LOOK_AT, STATE_CAMERA_SELFIE, STATE_CAMERA_CAPTURE_MOUSE,
                     STATE_SNAP_TURN, STATE_ADVANCED_MOVEMENT_CONTROLS, STATE_GROUNDED, STATE_NAV_FOCUSED,
                     STATE_PLATFORM_WINDOWS, STATE_PLATFORM_MAC, STATE_PLATFORM_ANDROID, STATE_LEFT_HAND_DOMINANT, STATE_RIGHT_HAND_DOMINANT, STATE_STRAFE_ENABLED } });
     DependencyManager::set<UserInputMapper>();
@@ -1891,6 +1893,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _applicationStateDevice->setInputVariant(STATE_CAMERA_INDEPENDENT, []() -> float {
         return qApp->getCamera().getMode() == CAMERA_MODE_INDEPENDENT ? 1 : 0;
     });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_CAPTURE_MOUSE, []() -> float {
+        return qApp->getCamera().getCaptureMouse() ? 1 : 0;
+    });
     _applicationStateDevice->setInputVariant(STATE_SNAP_TURN, []() -> float {
         return qApp->getMyAvatar()->getSnapTurn() ? 1 : 0;
     });
@@ -2406,6 +2411,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateSystemTabletMode();
 
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
+    connect(&_myCamera, &Camera::captureMouseUpdated, this, &Application::captureMouseChanged);
 
     DependencyManager::get<PickManager>()->setShouldPickHUDOperator([]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
     DependencyManager::get<PickManager>()->setCalculatePos2DFromHUDOperator([this](const glm::vec3& intersection) {
@@ -5908,6 +5914,18 @@ void Application::cameraModeChanged() {
             return;
     }
     cameraMenuChanged();
+}
+
+void Application::captureMouseChanged() {
+    if (_myCamera.getCaptureMouse()) {
+        // we want to grab the mouse here so that no other widgets get events, and also hide the mouse, but these don't work:
+        //_glWidget->grabMouse();
+        //QCursor::setShape(Qt::CursorShape::BlankCursor);
+    } else {
+        // we want to release the mouse here so that other widgets get events, and also show the mouse, but these don't work:
+        //_glWidget->releaseMouse();
+        //QCursor::setShape(Qt::CursorShape::ArrowCursor);
+    }
 }
 
 void Application::changeViewAsNeeded(float boomLength) {
