@@ -247,6 +247,8 @@ bool OctreeEntitiesFileParser::readEntitiesArray(QVariantList& entitiesArray) {
                 // model
                 "modelURL",
                 "animation.url",
+                // FIXME: Handle models' "textures" and "originalTextures" properties which include URLs. Note that Particles
+                // also has a "textures" property.
                 // image
                 "imageURL",
                 // web
