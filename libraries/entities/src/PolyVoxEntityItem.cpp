@@ -106,8 +106,9 @@ EntityItemProperties PolyVoxEntityItem::getProperties(const EntityPropertyFlags&
     return properties;
 }
 
-bool PolyVoxEntityItem::setProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
+bool PolyVoxEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = false;
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelVolumeSize, setVoxelVolumeSize);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelData, setVoxelData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelSurfaceStyle, setVoxelSurfaceStyle);
@@ -121,16 +122,6 @@ bool PolyVoxEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(yPNeighborID, setYPNeighborID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(zPNeighborID, setZPNeighborID);
 
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "PolyVoxEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties._lastEdited);
-    }
     return somethingChanged;
 }
 

@@ -458,6 +458,8 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(localLeaves, (int)OctreeElement::getLeafNodeCount());
         // LOD Details
         STAT_UPDATE(lodStatus, "You can see " + DependencyManager::get<LODManager>()->getLODFeedbackText());
+        STAT_UPDATE(numEntityUpdates, DependencyManager::get<EntityTreeRenderer>()->getPrevNumEntityUpdates());
+        STAT_UPDATE(numNeededEntityUpdates, DependencyManager::get<EntityTreeRenderer>()->getPrevTotalNeededEntityUpdates());
     }
 
 
