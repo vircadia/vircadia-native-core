@@ -1,6 +1,6 @@
 # General Build Information
 
-*Last Updated on August 24, 2020*
+*Last Updated on August 26, 2020*
 
 ### OS Specific Build Guides
 
@@ -87,12 +87,12 @@ Where /path/to/directory is the path to a directory where you wish the build fil
     HF_PFX_FILE=Path to certificate
     HF_PFX_PASSPHRASE=Passphrase for certificate
     
-    // TODO: What do these do?
+    // Determine the build type
     PRODUCTION_BUILD=0|1
     PR_BUILD=0|1
     STABLE_BUILD=0|1
     
-    // TODO: What do these do?
+    // Determine if to utilize testing or stable Metaverse URLs
     USE_STABLE_GLOBAL_SERVICES=1
     BUILD_GLOBAL_SERVICES=STABLE
     
@@ -148,6 +148,8 @@ The following build options can be used when running CMake
 * BUILD_SERVER
 * BUILD_TESTS
 * BUILD_TOOLS
+* CLIENT_ONLY // Will package only the Interface
+* SERVER_ONLY // Will package only the Server
 
 #### Developer Build Options
 
