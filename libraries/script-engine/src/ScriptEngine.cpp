@@ -40,6 +40,7 @@
 
 #include <shared/LocalFileAccessGate.h>
 #include <shared/QtHelpers.h>
+#include <shared/AbstractLoggerInterface.h>
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
 #include <AvatarData.h>
@@ -77,7 +78,6 @@
 #include "ScriptEngines.h"
 #include "StackTestScriptingInterface.h"
 #include "ModelScriptingInterface.h"
-
 
 #include <Profile.h>
 
@@ -127,38 +127,45 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
 
     // This message was sent by one of our script engines, let's try to see if we can find the source.
     // Note that the first entry in the backtrace should be "print" and is somewhat useless to us
-    QScriptContext* userContext = context;
-    while (userContext != nullptr && QScriptContextInfo(userContext).functionType() == QScriptContextInfo::NativeFunction) {
-        userContext = userContext->parentContext();
-    }
-    QString location;
-    if (userContext != nullptr) {
-        QScriptContextInfo contextInfo(userContext);
-        QString fileName = contextInfo.fileName();
-        int lineNumber = contextInfo.lineNumber();
-        QString functionName = contextInfo.functionName();
-
-        location = functionName;
-        if (lineNumber != -1) {
-            location = QString("%1:%2").arg(location).arg(lineNumber);
+    AbstractLoggerInterface* loggerInterface = AbstractLoggerInterface::get();
+    if (loggerInterface->showSourceDebugging()) {
+        QScriptContext* userContext = context;
+        while (userContext != nullptr && QScriptContextInfo(userContext).functionType() == QScriptContextInfo::NativeFunction) {
+            userContext = userContext->parentContext();
         }
-        if (!fileName.isEmpty()) {
-            if (location.isEmpty()) {
-                location = fileName;
-            } else {
-                location = QString("%1 at %2").arg(location).arg(fileName);
+        QString location;
+        if (userContext != nullptr) {
+            QScriptContextInfo contextInfo(userContext);
+            QString fileName = contextInfo.fileName();
+            int lineNumber = contextInfo.lineNumber();
+            QString functionName = contextInfo.functionName();
+    
+            location = functionName;
+            if (lineNumber != -1) {
+                location = QString("%1:%2").arg(location).arg(lineNumber);
+            }
+            if (!fileName.isEmpty()) {
+                if (location.isEmpty()) {
+                    location = fileName;
+                } else {
+                    location = QString("%1 at %2").arg(location).arg(fileName);
+                }
             }
         }
+        if (location.isEmpty()) {
+            location = scriptEngine->getFilename();
+        }
+    
+        // give the script engine a chance to notify the system about this message
+        scriptEngine->print(message);
+    
+        // send the message to debug log
+        qCDebug(scriptengine_script, "[%s] %s", qUtf8Printable(location), qUtf8Printable(message));
+    } else {
+        scriptEngine->print(message);
+        // prefix the script engine name to help disambiguate messages in the main debug log
+        qCDebug(scriptengine_script, "[%s] %s", qUtf8Printable(scriptEngine->getFilename()), qUtf8Printable(message));
     }
-    if (location.isEmpty()) {
-        location = scriptEngine->getFilename();
-    }
-
-    // give the script engine a chance to notify the system about this message
-    scriptEngine->print(message);
-
-    // send the message to debug log
-    qCDebug(scriptengine_script, "[%s] %s", qUtf8Printable(location), qUtf8Printable(message));
 
     return QScriptValue();
 }
