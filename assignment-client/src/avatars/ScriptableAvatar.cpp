@@ -23,6 +23,7 @@
 #include <AvatarLogging.h>
 #include <EntityItem.h>
 #include <EntityItemProperties.h>
+#include <NetworkingConstants.h>
 
 
 ScriptableAvatar::ScriptableAvatar() {
@@ -144,10 +145,10 @@ void ScriptableAvatar::update(float deltatime) {
             }
             _animationDetails.currentFrame = currentFrame;
 
-            const std::vector<HFMJoint>& modelJoints = _bind->getHFMModel().joints;
+            const QVector<HFMJoint>& modelJoints = _bind->getHFMModel().joints;
             QStringList animationJointNames = _animation->getJointNames();
 
-            const auto nJoints = (int)modelJoints.size();
+            const int nJoints = modelJoints.size();
             if (_jointData.size() != nJoints) {
                 _jointData.resize(nJoints);
             }
@@ -221,7 +222,7 @@ void ScriptableAvatar::updateJointMappings() {
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest networkRequest = QNetworkRequest(_skeletonModelURL);
         networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
         DependencyManager::get<ResourceRequestObserver>()->update(
             _skeletonModelURL, -1, "AvatarData::updateJointMappings");
         QNetworkReply* networkReply = networkAccessManager.get(networkRequest);

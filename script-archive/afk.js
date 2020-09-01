@@ -6,7 +6,7 @@
 // Copyright 2015 High Fidelity, Inc.
 // kevintown.net
 //
-// JavaScript for the High Fidelity interface that creates an away from keyboard functionality by providing a UI and keyPressEvent which will mute toggle the connected microphone, face tracking dde and set the avatar to a hand raise pose.
+// JavaScript for the Vircadia interface that creates an away from keyboard functionality by providing a UI and keyPressEvent which will mute toggle the connected microphone, face tracking dde and set the avatar to a hand raise pose.
 //
 // Distributed under the Apache License, Version 2.0.
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

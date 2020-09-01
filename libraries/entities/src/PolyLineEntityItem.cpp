@@ -53,9 +53,8 @@ EntityItemProperties PolyLineEntityItem::getProperties(const EntityPropertyFlags
     return properties;
 }
 
-bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
+bool PolyLineEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
@@ -68,17 +67,6 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glow, setGlow);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(faceCamera, setFaceCamera);
 
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "PolyLineEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties._lastEdited);
-        somethingChangedNotification();
-    }
     return somethingChanged;
 }
 

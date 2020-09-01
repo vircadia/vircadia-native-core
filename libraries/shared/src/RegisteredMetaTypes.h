@@ -247,6 +247,8 @@ QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array);
 QScriptValue qVectorIntToScriptValue(QScriptEngine* engine, const QVector<uint32_t>& vector);
 void qVectorIntFromScriptValue(const QScriptValue& array, QVector<uint32_t>& vector);
 
+QScriptValue qVectorQUuidToScriptValue(QScriptEngine* engine, const QVector<QUuid>& vector);
+void qVectorQUuidFromScriptValue(const QScriptValue& array, QVector<QUuid>& vector);
 QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array);
 
 QScriptValue aaCubeToScriptValue(QScriptEngine* engine, const AACube& aaCube);

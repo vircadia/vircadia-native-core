@@ -27,8 +27,54 @@ namespace buffer_helpers {
     extern const std::array<const char*, 4> XYZW;
     extern const std::array<const char*, 4> ZERO123;
 
-    template <typename T> QVariant glmVecToVariant(const T& v, bool asArray = false);
-    template <typename T> const T glmVecFromVariant(const QVariant& v);
+    template <typename T>
+    QVariant glmVecToVariant(const T& v, bool asArray = false) {
+        static const auto len = T().length();
+        if (asArray) {
+            QVariantList list;
+            for (int i = 0; i < len; i++) {
+                list << v[i];
+            }
+            return list;
+        } else {
+            QVariantMap obj;
+            for (int i = 0; i < len; i++) {
+                obj[XYZW[i]] = v[i];
+            }
+            return obj;
+        }
+    }
+
+    template <typename T>
+    const T glmVecFromVariant(const QVariant& v) {
+        auto isMap = v.type() == (QVariant::Type)QMetaType::QVariantMap;
+        static const auto len = T().length();
+        const auto& components = isMap ? XYZW : ZERO123;
+        T result;
+        QVariantMap map;
+        QVariantList list;
+        if (isMap) {
+            map = v.toMap();
+        } else {
+            list = v.toList();
+        }
+        for (int i = 0; i < len; i++) {
+            float value;
+            if (isMap) {
+                value = map.value(components[i]).toFloat();
+            } else {
+                value = list.value(i).toFloat();
+            }
+#ifdef DEBUG_BUFFERVIEW_HELPERS
+            if (value != value) { // NAN
+                qWarning().nospace() << "vec" << len << "." << components[i] << " NAN received from script.... " << v.toString();
+            }
+#endif
+            result[i] = value;
+        }
+        return result;
+    }
+
 
     glm::uint32 forEachVariant(const gpu::BufferView& view, std::function<bool(glm::uint32 index, const QVariant& value)> func, const char* hint = "");
     template <typename T> glm::uint32 forEach(const gpu::BufferView& view, std::function<bool(glm::uint32 index, const T& value)> func);
@@ -36,7 +82,7 @@ namespace buffer_helpers {
     template <typename T> gpu::BufferView newFromVector(const QVector<T>& elements, const gpu::Element& elementType);
     template <typename T> gpu::BufferView newFromVariantList(const QVariantList& list, const gpu::Element& elementType);
 
-    template <typename T> QVector<T> variantToVector(const QVariant& list);
+    template <typename T> QVector<T> variantToVector(const QVariant& value);
     template <typename T> QVector<T> bufferToVector(const gpu::BufferView& view, const char *hint = "");
 
     // note: these do value conversions from the underlying buffer type into the template type

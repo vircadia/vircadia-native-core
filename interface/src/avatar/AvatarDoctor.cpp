@@ -55,7 +55,7 @@ static QStringList HAND_MAPPING_SUFFIXES = {
     "HandThumb1",
 };
 
-const QUrl PACKAGE_AVATAR_DOCS_BASE_URL = QUrl("https://docs.projectathena.dev/create/avatars/package-avatar.html");
+const QUrl PACKAGE_AVATAR_DOCS_BASE_URL = QUrl("https://docs.vircadia.dev/create/avatars/package-avatar.html");
 
 AvatarDoctor::AvatarDoctor(const QUrl& avatarFSTFileUrl) :
     _avatarFSTFileUrl(avatarFSTFileUrl) {
@@ -79,7 +79,7 @@ void AvatarDoctor::startDiagnosing() {
     _missingTextureCount = 0;
     _unsupportedTextureCount = 0;
 
-    const auto resource = DependencyManager::get<ModelCache>()->getModelResource(_avatarFSTFileUrl);
+    const auto resource = DependencyManager::get<ModelCache>()->getGeometryResource(_avatarFSTFileUrl);
     resource->refresh();
 
     const auto resourceLoaded = [this, resource](bool success) {
@@ -99,12 +99,12 @@ void AvatarDoctor::startDiagnosing() {
         }
 
         // RIG
-        if (avatarModel.joints.empty()) {
+        if (avatarModel.joints.isEmpty()) {
             addError("Avatar has no rig.", "no-rig");
         } else {
             auto jointNames = avatarModel.getJointNames();
 
-            if (avatarModel.joints.size() > NETWORKED_JOINTS_LIMIT) {
+            if (avatarModel.joints.length() > NETWORKED_JOINTS_LIMIT) {
                 addError(tr( "Avatar has over %n bones.", "", NETWORKED_JOINTS_LIMIT), "maximum-bone-limit");
             }
             // Avatar does not have Hips bone mapped	
@@ -297,7 +297,7 @@ void AvatarDoctor::startDiagnosing() {
         if (resource->isLoaded()) {
             resourceLoaded(!resource->isFailed());
         } else {
-            connect(resource.data(), &ModelResource::finished, this, resourceLoaded);
+            connect(resource.data(), &GeometryResource::finished, this, resourceLoaded);
         }
     } else {
         addError("Model file cannot be opened", "missing-file");

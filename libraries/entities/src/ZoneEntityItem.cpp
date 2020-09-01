@@ -76,27 +76,8 @@ EntityItemProperties ZoneEntityItem::getProperties(const EntityPropertyFlags& de
     return properties;
 }
 
-bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
-
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "ZoneEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties._lastEdited);
-        somethingChangedNotification();
-    }
-
-    return somethingChanged;
-}
-
 bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = EntityItem::setSubClassProperties(properties); // set the properties in our base class
+    bool somethingChanged = false;
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
@@ -122,7 +103,7 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(avatarPriority, setAvatarPriority);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(screenshare, setScreenshare);
 
-    somethingChanged = somethingChanged || _keyLightPropertiesChanged || _ambientLightPropertiesChanged ||
+    somethingChanged |= _keyLightPropertiesChanged || _ambientLightPropertiesChanged ||
         _skyboxPropertiesChanged || _hazePropertiesChanged || _bloomPropertiesChanged;
 
     return somethingChanged;
@@ -351,7 +332,7 @@ bool ZoneEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, c
 }
 
 bool ZoneEntityItem::contains(const glm::vec3& point) const {
-    ModelResource::Pointer resource = _shapeResource;
+    GeometryResource::Pointer resource = _shapeResource;
     if (_shapeType == SHAPE_TYPE_COMPOUND && resource) {
         if (resource->isLoaded()) {
             const HFMModel& hfmModel = resource->getHFMModel();
@@ -468,7 +449,7 @@ void ZoneEntityItem::fetchCollisionGeometryResource() {
     if (hullURL.isEmpty()) {
         _shapeResource.reset();
     } else {
-        _shapeResource = DependencyManager::get<ModelCache>()->getCollisionModelResource(hullURL);
+        _shapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
     }
 }
 

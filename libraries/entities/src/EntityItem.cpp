@@ -106,6 +106,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_RENDER_LAYER;
     requestedProperties += PROP_PRIMITIVE_MODE;
     requestedProperties += PROP_IGNORE_PICK_INTERSECTION;
+    requestedProperties += PROP_RENDER_WITH_ZONES;
     requestedProperties += _grabProperties.getEntityProperties(params);
 
     // Physics
@@ -301,6 +302,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)getRenderLayer());
         APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)getPrimitiveMode());
         APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, getIgnorePickIntersection());
+        APPEND_ENTITY_PROPERTY(PROP_RENDER_WITH_ZONES, getRenderWithZones());
         withReadLock([&] {
             _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
                 propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -872,6 +874,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
     READ_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
     READ_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
+    READ_ENTITY_PROPERTY(PROP_RENDER_WITH_ZONES, QVector<QUuid>, setRenderWithZones);
     withWriteLock([&] {
         int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData,
@@ -998,6 +1001,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         element->getTree()->trackIncomingEntityLastEdited(lastEditedFromBufferAdjusted, bytesRead);
     }
 
+    if (somethingChanged) {
+        somethingChangedNotification();
+    }
 
     return bytesRead;
 }
@@ -1351,6 +1357,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(renderLayer, getRenderLayer);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(primitiveMode, getPrimitiveMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignorePickIntersection, getIgnorePickIntersection);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(renderWithZones, getRenderWithZones);
     withReadLock([&] {
         _grabProperties.getProperties(properties);
     });
@@ -1500,6 +1507,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(renderLayer, setRenderLayer);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(primitiveMode, setPrimitiveMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignorePickIntersection, setIgnorePickIntersection);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(renderWithZones, setRenderWithZones);
     withWriteLock([&] {
         bool grabPropertiesChanged = _grabProperties.setProperties(properties);
         somethingChanged |= grabPropertiesChanged;
@@ -1564,13 +1572,14 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
             qCDebug(entities) << "EntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         #endif
-        setLastEdited(now);
+        setLastEdited(properties._lastEdited);
         if (getDirtyFlags() & (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES)) {
             // anything that sets the transform or velocity must update _lastSimulated which is used
             // for kinematic extrapolation (e.g. we want to extrapolate forward from this moment
             // when position and/or velocity was changed).
             _lastSimulated = now;
         }
+        somethingChangedNotification();
     }
 
     // timestamps
@@ -3569,4 +3578,19 @@ void EntityItem::disableGrab(GrabPointer grab) {
             action->deactivate();
         }
     }
+}
+
+void EntityItem::setRenderWithZones(const QVector<QUuid>& renderWithZones) {
+    withWriteLock([&] {
+        if (_renderWithZones != renderWithZones) {
+            _needsZoneOcclusionUpdate = true;
+            _renderWithZones = renderWithZones;
+        }
+    });
+}
+
+QVector<QUuid> EntityItem::getRenderWithZones() const {
+    return resultWithReadLock<QVector<QUuid>>([&] {
+        return _renderWithZones;
+    });
 }

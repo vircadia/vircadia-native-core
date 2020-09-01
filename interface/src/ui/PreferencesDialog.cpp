@@ -223,13 +223,11 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
 
-    /*
-    // FIXME: Remove setting completely or make available through JavaScript API?
     {
         auto getter = []()->bool { return qApp->getPreferAvatarFingerOverStylus(); };
         auto setter = [](bool value) { qApp->setPreferAvatarFingerOverStylus(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Avatar Finger Over Stylus", getter, setter));
-        }*/
+    }
 
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
@@ -254,7 +252,15 @@ void setupPreferences() {
         auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::DisableActivityLogger, !value); };
         preferences->addPreference(new CheckPreference("Privacy", "Send data - High Fidelity uses information provided by your "
                                 "client to improve the product through the logging of errors, tracking of usage patterns, "
-                                "installation and system details, and crash events. By allowing High Fidelity to collect "
+                                "installation and system details. By allowing High Fidelity to collect this information "
+                                "you are helping to improve the product. ", getter, setter));
+    }
+
+    {
+        auto getter = []()->bool { return !Menu::getInstance()->isOptionChecked(MenuOption::DisableCrashLogger); };
+        auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::DisableCrashLogger, !value); };
+        preferences->addPreference(new CheckPreference("Privacy", "Send crashes - Vircadia uses information provided by your "
+                                "client to improve the product through crash reports. By allowing Vircadia to collect "
                                 "this information you are helping to improve the product. ", getter, setter));
     }
 

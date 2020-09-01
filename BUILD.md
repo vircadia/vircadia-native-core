@@ -1,13 +1,13 @@
 # General Build Information
 
-*Last Updated on December 21, 2019*
+*Last Updated on August 26, 2020*
 
 ### OS Specific Build Guides
 
 * [Build Windows](BUILD_WIN.md) - complete instructions for Windows.
 * [Build Linux](BUILD_LINUX.md) - additional instructions for Linux.
 * [Build OSX](BUILD_OSX.md) - additional instructions for OS X.
-* [Build Android](BUILD_ANDROID.md) - additional instructions for Android
+* [Build Android](BUILD_ANDROID.md) - additional instructions for Android.
 
 ### Dependencies
 - [git](https://git-scm.com/downloads): >= 1.6  
@@ -21,8 +21,8 @@
 These dependencies need not be installed manually. They are automatically downloaded on the platforms where they are required.
 - [Bullet Physics Engine](https://github.com/bulletphysics/bullet3/releases):  2.83  
 - [glm](https://glm.g-truc.net/0.9.8/index.html):  0.9.8  
-- [Oculus SDK](https://developer.oculus.com/downloads/):   1.11 (Win32) / 0.5 (Mac)  
-- [OpenVR](https://github.com/ValveSoftware/openvr):   1.0.6 (Win32 only)  
+- [Oculus SDK](https://developer.oculus.com/downloads/):   1.11 (Windows) / 0.5 (Mac)  
+- [OpenVR](https://github.com/ValveSoftware/openvr):   1.11.11 (Windows, Linux)  
 - [Polyvox](http://www.volumesoffun.com/):   0.2.1  
 - [QuaZip](https://sourceforge.net/projects/quazip/files/quazip/):   0.7.3  
 - [SDL2](https://www.libsdl.org/download-2.0.php):   2.0.3  
@@ -38,7 +38,7 @@ These are not placed in your normal build tree when doing an out of source build
 
 #### CMake
 
-Athena uses CMake to generate build files and project files for your platform.
+Vircadia uses CMake to generate build files and project files for your platform.
 
 #### Qt
 CMake will download Qt 5.12.3 using vcpkg.  
@@ -51,9 +51,9 @@ This can either be entered directly into your shell session before you build or 
     export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.12.3/lib/cmake
     export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
 
-#### Vcpkg
+#### VCPKG
 
-Athena uses vcpkg to download and build dependencies.
+Vircadia uses vcpkg to download and build dependencies.
 You do not need to install vcpkg.
 
 Building the dependencies can be lengthy and the resulting files will be stored in your OS temp directory.
@@ -63,7 +63,33 @@ export HIFI_VCPKG_BASE=/path/to/directory
 
 Where /path/to/directory is the path to a directory where you wish the build files to get stored.
 
-#### Generating build files
+#### Generating Build Files
+
+##### Possible Environment Variables
+
+    // The URL to post the dump to.
+    CMAKE_BACKTRACE_URL
+    // The identifying tag of the release.
+    CMAKE_BACKTRACE_TOKEN
+    
+    // The release version.
+    RELEASE_NUMBER
+    // The build commit.
+    BUILD_NUMBER
+
+    // The type of release.
+    RELEASE_TYPE=PRODUCTION|PR|DEV
+    
+    // Determine the build type
+    PRODUCTION_BUILD=0|1
+    PR_BUILD=0|1
+    STABLE_BUILD=0|1
+    
+    // Determine if to utilize testing or stable Metaverse URLs
+    USE_STABLE_GLOBAL_SERVICES=1
+    BUILD_GLOBAL_SERVICES=STABLE
+    
+##### Generate Files
 
 Create a build directory in the root of your checkout and then run the CMake build from there. This will keep the rest of the directory clean.
 
@@ -71,7 +97,19 @@ Create a build directory in the root of your checkout and then run the CMake bui
     cd build
     cmake ..
 
-If cmake gives you the same error message repeatedly after the build fails, try removing `CMakeCache.txt`.
+If CMake gives you the same error message repeatedly after the build fails, try removing `CMakeCache.txt`.
+
+##### Generating a release/debug only vcpkg build
+
+In order to generate a release or debug only vcpkg package, you could use the use the `VCPKG_BUILD_TYPE` define in your cmake generate command. Building a release only vcpkg can drastically decrease the total build time.
+
+For release only vcpkg:
+
+`cmake .. -DVCPKG_BUILD_TYPE=release`
+
+For debug only vcpkg:
+
+`cmake .. -DVCPKG_BUILD_TYPE=debug`
 
 #### Variables
 
@@ -85,13 +123,13 @@ For example, to pass the QT_CMAKE_PREFIX_PATH variable (if not using the vcpkg'e
 
 The following applies for dependencies we do not grab via CMake ExternalProject (OpenSSL is an example), or for dependencies you have opted not to grab as a CMake ExternalProject (via -DUSE_LOCAL_$NAME=0). The list of dependencies we grab by default as external projects can be found in [the CMake External Project Dependencies section](#cmake-external-project-dependencies).
 
-You can point our [Cmake find modules](cmake/modules/) to the correct version of dependencies by setting one of the three following variables to the location of the correct version of the dependency.
+You can point our [CMake find modules](cmake/modules/) to the correct version of dependencies by setting one of the three following variables to the location of the correct version of the dependency.
 
 In the examples below the variable $NAME would be replaced by the name of the dependency in uppercase, and $name would be replaced by the name of the dependency in lowercase (ex: OPENSSL_ROOT_DIR, openssl).
 
 * $NAME_ROOT_DIR - pass this variable to Cmake with the -DNAME_ROOT_DIR= flag when running Cmake to generate build files
 * $NAME_ROOT_DIR - set this variable in your ENV
-* HIFI_LIB_DIR - set this variable in your ENV to your High Fidelity lib folder, should contain a folder '$name'
+* HIFI_LIB_DIR - set this variable in your ENV to your Vircadia lib folder, should contain a folder '$name'
 
 ### Optional Components
 
@@ -103,6 +141,8 @@ The following build options can be used when running CMake
 * BUILD_SERVER
 * BUILD_TESTS
 * BUILD_TOOLS
+* CLIENT_ONLY // Will package only the Interface
+* SERVER_ONLY // Will package only the Server
 
 #### Developer Build Options
 

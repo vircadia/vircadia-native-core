@@ -16,6 +16,7 @@
 #include <ApplicationVersion.h>
 #include <BuildInfo.h>
 #include <NetworkAccessManager.h>
+#include <NetworkingConstants.h>
 #include <SharedUtil.h>
 
 AutoUpdater::AutoUpdater() :
@@ -36,24 +37,21 @@ void AutoUpdater::checkForUpdate() {
     this->getLatestVersionData();
 }
 
-const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
-const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");
-
 void AutoUpdater::getLatestVersionData() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QUrl buildsURL;
 
     if (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable) {
-        buildsURL = BUILDS_XML_URL;
+        buildsURL = NetworkingConstants::BUILDS_XML_URL;
     } else if (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Master) {
-        buildsURL = MASTER_BUILDS_XML_URL;
+        buildsURL = NetworkingConstants::MASTER_BUILDS_XML_URL;
     }
     
     QNetworkRequest latestVersionRequest(buildsURL);
 
     latestVersionRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(latestVersionRequest);
     connect(reply, &QNetworkReply::finished, this, &AutoUpdater::parseLatestVersionData);
 }

@@ -89,8 +89,8 @@ private:
         glm::mat4 transform;
     } _triangleInfo;
 
-    static CpuParticle createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
-                                      const ShapeType& shapeType, const ModelResource::Pointer& geometryResource,
+    static CpuParticle createParticle(const Transform& baseTransform, const particle::Properties& particleProperties,
+                                      const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource,
                                       const TriangleInfo& triangleInfo);
     void stepSimulation();
 
@@ -109,7 +109,7 @@ private:
     QString _compoundShapeURL;
 
     void fetchGeometryResource();
-    ModelResource::Pointer _geometryResource;
+    GeometryResource::Pointer _geometryResource;
 
     NetworkTexturePointer _networkTexture;
     bool _textureLoaded { false };

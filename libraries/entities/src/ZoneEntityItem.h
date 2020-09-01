@@ -33,7 +33,6 @@ public:
 
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
-    virtual bool setProperties(const EntityItemProperties& properties) override;
     virtual bool setSubClassProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -173,7 +172,7 @@ protected:
     static bool _zonesArePickable;
 
     void fetchCollisionGeometryResource();
-    ModelResource::Pointer _shapeResource;
+    GeometryResource::Pointer _shapeResource;
 
 };
 

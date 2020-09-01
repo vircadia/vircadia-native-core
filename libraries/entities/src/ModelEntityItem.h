@@ -17,6 +17,7 @@
 #include <ThreadSafeValueCache.h>
 #include "AnimationPropertyGroup.h"
 
+#include "BlendshapeConstants.h"
 
 class ModelEntityItem : public EntityItem {
 public:
@@ -28,7 +29,7 @@ public:
 
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
-    virtual bool setProperties(const EntityItemProperties& properties) override;
+    virtual bool setSubClassProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
@@ -133,6 +134,11 @@ public:
     glm::vec3 getModelScale() const;
     void setModelScale(const glm::vec3& modelScale);
 
+    QString getBlendshapeCoefficients() const;
+    void setBlendshapeCoefficients(const QString& blendshapeCoefficients);
+    bool blendshapesChanged() const { return _blendshapesChanged; }
+    QVector<float> getBlendshapeCoefficientVector();
+
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
     bool applyNewAnimationProperties(AnimationPropertyGroup newProperties);
@@ -166,6 +172,7 @@ protected:
     QString _modelURL;
     bool _relayParentJoints;
     bool _groupCulled { false };
+    QVariantMap _blendshapeCoefficientsMap;
 
     ThreadSafeValueCache<QString> _compoundShapeURL;
 
@@ -178,6 +185,9 @@ protected:
 private:
     uint64_t _lastAnimated{ 0 };
     float _currentFrame{ -1.0f };
+
+    QVector<float> _blendshapeCoefficientsVector;
+    bool _blendshapesChanged { false };
 };
 
 #endif // hifi_ModelEntityItem_h

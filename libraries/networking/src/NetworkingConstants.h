@@ -26,7 +26,37 @@ namespace NetworkingConstants {
     // at https://staging.highfidelity.com/user/tokens/new?for_domain_server=true
 
     const QUrl METAVERSE_SERVER_URL_STABLE { "https://metaverse.highfidelity.com" };
-    const QUrl METAVERSE_SERVER_URL_STAGING { "https://staging.projectathena.io" };
+    const QUrl METAVERSE_SERVER_URL_STAGING { "https://staging-metaverse.vircadia.com" };
+
+    // Web Engine requests to this parent domain have an account authorization header added
+    const QString AUTH_HOSTNAME_BASE = "highfidelity.com";
+    const QStringList IS_AUTHABLE_HOSTNAME = { "highfidelity.com", "highfidelity.io" };
+    
+    // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
+    const QByteArray VIRCADIA_USER_AGENT = "Mozilla/5.0 (VircadiaInterface)";
+    
+    const QString WEB_ENGINE_USER_AGENT = "Chrome/48.0 (VircadiaInterface)";
+    const QString METAVERSE_USER_AGENT = "Chrome/48.0 (VircadiaInterface)";
+    const QString MOBILE_USER_AGENT = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36";
+
+    const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
+    const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");
+
+
+#if USE_STABLE_GLOBAL_SERVICES
+    const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
+#else
+    const QString ICE_SERVER_DEFAULT_HOSTNAME = "dev-ice.highfidelity.com";
+#endif
+
+    const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
+
+    const QUrl HELP_DOCS_URL { "https://docs.vircadia.dev" };
+    const QUrl HELP_FORUM_URL { "https://forums.vircadia.dev" };
+    const QUrl HELP_SCRIPTING_REFERENCE_URL{ "https://apidocs.vircadia.dev/" };
+    const QUrl HELP_RELEASE_NOTES_URL{ "https://docs.vircadia.dev/release-notes.html" };
+    const QUrl HELP_BUG_REPORT_URL{ "https://github.com/kasenvr/project-athena/issues" };
+
 }
 
 const QString HIFI_URL_SCHEME_ABOUT = "about";

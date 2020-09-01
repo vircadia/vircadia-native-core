@@ -63,9 +63,8 @@ EntityItemProperties WebEntityItem::getProperties(const EntityPropertyFlags& des
     return properties;
 }
 
-bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
+bool WebEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
@@ -82,18 +81,6 @@ bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(maxFPS, setMaxFPS);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(inputMode, setInputMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(showKeyboardFocusHighlight, setShowKeyboardFocusHighlight);
-
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "WebEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties._lastEdited);
-        somethingChangedNotification();
-    }
 
     return somethingChanged;
 }

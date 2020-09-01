@@ -67,8 +67,12 @@ if (HIFI_ANDROID)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 else()
+    set(VCPKG_BUILD_TYPE_PARAM "")
+    if (VCPKG_BUILD_TYPE)
+      set(VCPKG_BUILD_TYPE_PARAM --vcpkg-build-type ${VCPKG_BUILD_TYPE})
+    endif()
     execute_process(
-        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --release-type ${RELEASE_TYPE} --build-root ${CMAKE_BINARY_DIR}
+        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --release-type ${RELEASE_TYPE} --build-root ${CMAKE_BINARY_DIR} ${VCPKG_BUILD_TYPE_PARAM}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
     # squelch the Policy CMP0074 warning without requiring an update to cmake 3.12.
@@ -93,7 +97,7 @@ endif()
 
 option(VCPKG_APPLOCAL_DEPS OFF)
 
-project(athena)
+project(vircadia)
 include("cmake/init.cmake")
 include("cmake/compiler.cmake")
 option(VCPKG_APPLOCAL_DEPS OFF)
@@ -116,7 +120,7 @@ else()
 endif()
 
 # Use default time server if none defined in environment
-set_from_env(TIMESERVER_URL TIMESERVER_URL "http://sha256timestamp.ws.symantec.com/sha256/timestamp")
+set_from_env(TIMESERVER_URL TIMESERVER_URL "http://timestamp.comodoca.com?td=sha256")
 
 set(HIFI_USE_OPTIMIZED_IK_OPTION OFF)
 set(BUILD_CLIENT_OPTION ON)
@@ -266,7 +270,6 @@ find_package( Threads )
 add_definitions(-DGLM_FORCE_RADIANS)
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 add_definitions(-DGLM_FORCE_CTOR_INIT)
-add_definitions(-DGLM_LANG_STL11_FORCED) # Workaround for GLM not detecting support for C++11 templates on Android
 
 if (WIN32)
     # Deal with fakakta Visual Studo 2017 bug

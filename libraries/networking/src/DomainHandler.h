@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/18/2014.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -33,7 +34,7 @@
 #include "NetworkingConstants.h"
 #include "MetaverseAPI.h"
 
-const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 
+const unsigned short DEFAULT_DOMAIN_SERVER_PORT =
     QProcessEnvironment::systemEnvironment()
     .contains("HIFI_DOMAIN_SERVER_PORT")
         ? QProcessEnvironment::systemEnvironment()
@@ -41,7 +42,7 @@ const unsigned short DEFAULT_DOMAIN_SERVER_PORT =
             .toUShort()
         : 40102;
 
-const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 
+const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT =
     QProcessEnvironment::systemEnvironment()
     .contains("HIFI_DOMAIN_SERVER_DTLS_PORT")
         ? QProcessEnvironment::systemEnvironment()
@@ -49,7 +50,7 @@ const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT =
             .toUShort()
         : 40103;
 
-const quint16 DOMAIN_SERVER_HTTP_PORT = 
+const quint16 DOMAIN_SERVER_HTTP_PORT =
     QProcessEnvironment::systemEnvironment()
     .contains("HIFI_DOMAIN_SERVER_HTTP_PORT")
         ? QProcessEnvironment::systemEnvironment()
@@ -57,13 +58,29 @@ const quint16 DOMAIN_SERVER_HTTP_PORT =
             .toUInt()
         : 40100;
 
-const quint16 DOMAIN_SERVER_HTTPS_PORT = 
+const quint16 DOMAIN_SERVER_HTTPS_PORT =
     QProcessEnvironment::systemEnvironment()
     .contains("HIFI_DOMAIN_SERVER_HTTPS_PORT")
         ? QProcessEnvironment::systemEnvironment()
             .value("HIFI_DOMAIN_SERVER_HTTPS_PORT")
             .toUInt()
         : 40101;
+
+const quint16 DOMAIN_SERVER_EXPORTER_PORT =
+    QProcessEnvironment::systemEnvironment()
+    .contains("VIRCADIA_DOMAIN_SERVER_EXPORTER_PORT")
+        ? QProcessEnvironment::systemEnvironment()
+            .value("VIRCADIA_DOMAIN_SERVER_EXPORTER_PORT")
+            .toUInt()
+        : 9703;
+        
+const quint16 DOMAIN_SERVER_METADATA_EXPORTER_PORT =
+    QProcessEnvironment::systemEnvironment()
+    .contains("DOMAIN_SERVER_METADATA_EXPORTER_PORT")
+        ? QProcessEnvironment::systemEnvironment()
+            .value("DOMAIN_SERVER_METADATA_EXPORTER_PORT")
+            .toUInt()
+        : 9704;
 
 const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 
@@ -115,6 +132,7 @@ public:
 
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
+
     bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
     bool getInterstitialModeEnabled() const;
     void setInterstitialModeEnabled(bool enableInterstitialMode);
@@ -163,14 +181,14 @@ public:
      *       <td>The communications protocols of the domain and your Interface are not the same.</td>
      *     </tr>
      *     <tr>
-     *       <td><strong>LoginError</strong></td>
+     *       <td><strong>LoginErrorMetaverse</strong></td>
      *       <td><code>2</code></td>
-     *       <td>You could not be logged into the domain.</td>
+     *       <td>You could not be logged into the domain per your metaverse login.</td>
      *     </tr>
      *     <tr>
-     *       <td><strong>NotAuthorized</strong></td>
+     *       <td><strong>NotAuthorizedMetaverse</strong></td>
      *       <td><code>3</code></td>
-     *       <td>You are not authorized to connect to the domain.</td>
+     *       <td>You are not authorized to connect to the domain per your metaverse login.</td>
      *     </tr>
      *     <tr>
      *       <td><strong>TooManyUsers</strong></td>
@@ -182,6 +200,16 @@ public:
      *       <td><code>5</code></td>
      *       <td>Connecting to the domain timed out.</td>
      *     </tr>
+     *     <tr>
+     *       <td><strong>LoginErrorDomain</strong></td>
+     *       <td><code>2</code></td>
+     *       <td>You could not be logged into the domain per your domain login.</td>
+     *     </tr>
+     *     <tr>
+     *       <td><strong>NotAuthorizedDomain</strong></td>
+     *       <td><code>6</code></td>
+     *       <td>You are not authorized to connect to the domain per your domain login.</td>
+     *     </tr>
      *   </tbody>
      * </table>
      * @typedef {number} Window.ConnectionRefusedReason
@@ -189,10 +217,12 @@ public:
     enum class ConnectionRefusedReason : uint8_t {
         Unknown,
         ProtocolMismatch,
-        LoginError,
-        NotAuthorized,
+        LoginErrorMetaverse,
+        NotAuthorizedMetaverse,
         TooManyUsers,
-        TimedOut
+        TimedOut,
+        LoginErrorDomain,
+        NotAuthorizedDomain
     };
 
 public slots:
@@ -238,7 +268,8 @@ signals:
     void limitOfSilentDomainCheckInsReached();
 
 private:
-    bool reasonSuggestsLogin(ConnectionRefusedReason reasonCode);
+    bool reasonSuggestsMetaverseLogin(ConnectionRefusedReason reasonCode);
+    bool reasonSuggestsDomainLogin(ConnectionRefusedReason reasonCode);
     void sendDisconnectPacket();
     void hardReset(QString reason);
 
@@ -269,6 +300,7 @@ private:
 
     QSet<QString> _domainConnectionRefusals;
     bool _hasCheckedForAccessToken { false };
+    bool _hasCheckedForDomainAccessToken { false };
     int _connectionDenialsSinceKeypairRegen { 0 };
     int _checkInPacketsSinceLastReply { 0 };
 

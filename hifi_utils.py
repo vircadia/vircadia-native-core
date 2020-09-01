@@ -121,3 +121,7 @@ def downloadAndExtract(url, destPath, hash=None, hasher=hashlib.sha512(), isZip=
         with tarfile.open(tempFileName, 'r:*') as tgz:
             tgz.extractall(destPath)
     os.remove(tempFileName)
+
+def readEnviromentVariableFromFile(buildRootDir, var):
+    with open(os.path.join(buildRootDir, '_env', var + ".txt")) as fp:
+        return fp.read()

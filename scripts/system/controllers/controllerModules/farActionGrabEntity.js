@@ -14,7 +14,7 @@
    TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
    getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD,
    Picks, makeLaserLockInfo, makeLaserParams, AddressManager, getEntityParents, Selection, DISPATCHER_HOVERING_LIST,
-   worldPositionToRegistrationFrameMatrix, DISPATCHER_PROPERTIES, Uuid, Picks
+   worldPositionToRegistrationFrameMatrix, DISPATCHER_PROPERTIES, Uuid, Picks, handsAreTracked, Messages
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -374,6 +374,9 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.isReady = function (controllerData) {
             if (HMD.active) {
+                if (handsAreTracked()) {
+                    return makeRunningValues(false, [], []);
+                }
                 if (this.notPointingAtEntity(controllerData)) {
                     return makeRunningValues(false, [], []);
                 }

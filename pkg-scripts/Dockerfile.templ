@@ -19,25 +19,25 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
 	apt-get install -y tzdata supervisor ${DEPENDS} && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/* && \
-	mkdir -p /var/lib/athena
-RUN groupadd -r athena ; \
-	useradd -Nr athena -d /var/lib/athena ; \
-	usermod -aG athena athena ; \
-	chown athena.athena /var/lib/athena ; \
+	mkdir -p /var/lib/vircadia
+RUN groupadd -r vircadia ; \
+	useradd -Nr vircadia -d /var/lib/vircadia ; \
+	usermod -aG vircadia vircadia ; \
+	chown vircadia.vircadia /var/lib/vircadia ; \
 	exit 0
 
-VOLUME /var/lib/athena
+VOLUME /var/lib/vircadia
 
 RUN mkdir -p /var/run ; chmod 777 /var/run
-COPY athena.conf /etc/supervisor/conf.d/athena.conf
+COPY vircadia.conf /etc/supervisor/conf.d/vircadia.conf
 
 COPY entrypoint.sh /
-COPY opt /opt/athena
-COPY lib /opt/athena/lib
+COPY opt /opt/vircadia
+COPY lib /opt/vircadia/lib
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/athena.conf"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/vircadia.conf"]
 LABEL \
-	net.projectathena.gitsrc="${GITSRC}" \
-	net.projectathena.gitdate="${GITDATE}" \
-	net.projectathena.gitcommit="${GITCOMMIT}"
+	net.vircadia.gitsrc="${GITSRC}" \
+	net.vircadia.gitdate="${GITDATE}" \
+	net.vircadia.gitcommit="${GITCOMMIT}"

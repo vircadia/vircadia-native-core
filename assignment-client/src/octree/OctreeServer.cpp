@@ -89,6 +89,7 @@ int OctreeServer::_shortProcessWait = 0;
 int OctreeServer::_noProcessWait = 0;
 
 static const QString PERSIST_FILE_DOWNLOAD_PATH = "/models.json.gz";
+static const double NANOSECONDS_PER_SECOND = 1000000.0;;
 
 
 void OctreeServer::resetSendingStats() {
@@ -1197,7 +1198,7 @@ void OctreeServer::domainSettingsRequestComplete() {
     } else {
         beginRunning();
     }
-} 
+}
 
 void OctreeServer::beginRunning() {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -1344,6 +1345,10 @@ QString OctreeServer::getUptime() {
     return formattedUptime;
 }
 
+double OctreeServer::getUptimeSeconds() {
+    return (usecTimestampNow() - _startedUSecs) / NANOSECONDS_PER_SECOND;
+}
+
 QString OctreeServer::getFileLoadTime() {
     QString result;
     if (isInitialLoadComplete()) {
@@ -1386,6 +1391,10 @@ QString OctreeServer::getFileLoadTime() {
     return result;
 }
 
+double OctreeServer::getFileLoadTimeSeconds() {
+    return getLoadElapsedTime() / NANOSECONDS_PER_SECOND;
+}
+
 QString OctreeServer::getConfiguration() {
     QString result;
     for (int i = 1; i < _argc; i++) {
@@ -1421,6 +1430,8 @@ void OctreeServer::sendStatsPacket() {
     statsArray1["4. persistFileLoadTime"] = getFileLoadTime();
     statsArray1["5. clients"] = getCurrentClientCount();
     statsArray1["6. threads"] = threadsStats;
+    statsArray1["uptime_seconds"] = getUptimeSeconds();
+    statsArray1["persistFileLoadTime_seconds"] = getFileLoadTimeSeconds();
 
     // Octree Stats
     QJsonObject octreeStats;

@@ -19,6 +19,8 @@
 <@include paintStroke.slh@>
 <$declarePolyLineBuffers()$>
 
+<@include CullFace.slh@>
+
 LAYOUT(binding=0) uniform sampler2D _texture;
 
 <@if not HIFI_USE_FORWARD@>
@@ -35,9 +37,9 @@ void main(void) {
 
 <@if not HIFI_USE_FORWARD@>
     <@if HIFI_USE_TRANSLUCENT@>
-        packDeferredFragmentTranslucent((2.0 * float(gl_FrontFacing) - 1.0) * _normalWS, texel.a, texel.rgb, DEFAULT_ROUGHNESS);
+        packDeferredFragmentTranslucent(evalFrontOrBackFaceNormal(_normalWS), texel.a, texel.rgb, DEFAULT_ROUGHNESS);
     <@else@>
-        packDeferredFragmentUnlit((2.0 * float(gl_FrontFacing) - 1.0) * _normalWS, texel.a, texel.rgb);
+        packDeferredFragmentUnlit(evalFrontOrBackFaceNormal(_normalWS), texel.a, texel.rgb);
     <@endif@>
 <@else@>
     _fragColor0 = texel;

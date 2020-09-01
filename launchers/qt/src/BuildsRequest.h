@@ -4,10 +4,10 @@
 #include <QNetworkAccessManager>
 
 struct Build {
-    QString tag{ QString::null };
+    QString tag;
     int latestVersion{ 0 };
     int buildNumber{ 0 };
-    QString installerZipURL{ QString::null };
+    QString installerZipURL;
 };
 
 struct Builds {

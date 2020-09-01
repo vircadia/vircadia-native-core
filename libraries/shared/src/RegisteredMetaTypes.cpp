@@ -36,6 +36,7 @@ int qVectorVec3MetaTypeId = qRegisterMetaType<QVector<glm::vec3>>();
 int qVectorQuatMetaTypeId = qRegisterMetaType<QVector<glm::quat>>();
 int qVectorBoolMetaTypeId = qRegisterMetaType<QVector<bool>>();
 int qVectorGLMUint32MetaTypeId = qRegisterMetaType<QVector<unsigned int>>("QVector<glm::uint32>");
+int qVectorQUuidMetaTypeId = qRegisterMetaType<QVector<QUuid>>();
 int quatMetaTypeId = qRegisterMetaType<glm::quat>();
 int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
 int collisionMetaTypeId = qRegisterMetaType<Collision>();
@@ -58,6 +59,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, qVectorBoolToScriptValue, qVectorBoolFromScriptValue);
     qScriptRegisterMetaType(engine, qVectorFloatToScriptValue, qVectorFloatFromScriptValue);
     qScriptRegisterMetaType(engine, qVectorIntToScriptValue, qVectorIntFromScriptValue);
+    qScriptRegisterMetaType(engine, qVectorQUuidToScriptValue, qVectorQUuidFromScriptValue);
 
     qScriptRegisterMetaType(engine, qSizeFToScriptValue, qSizeFFromScriptValue);
     qScriptRegisterMetaType(engine, qRectToScriptValue, qRectFromScriptValue);
@@ -872,6 +874,22 @@ QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array) {
     }
     
     return newVector;
+}
+
+QScriptValue qVectorQUuidToScriptValue(QScriptEngine* engine, const QVector<QUuid>& vector) {
+    QScriptValue array = engine->newArray();
+    for (int i = 0; i < vector.size(); i++) {
+        array.setProperty(i, quuidToScriptValue(engine, vector.at(i)));
+    }
+    return array;
+}
+
+void qVectorQUuidFromScriptValue(const QScriptValue& array, QVector<QUuid>& vector) {
+    int length = array.property("length").toInteger();
+
+    for (int i = 0; i < length; i++) {
+        vector << array.property(i).toVariant().toUuid();
+    }
 }
 
 QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array) {

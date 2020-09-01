@@ -34,7 +34,7 @@ class HTTPManager : public QTcpServer, public HTTPRequestHandler {
 public:
     /// Initializes the manager.
     HTTPManager(const QHostAddress& listenAddress, quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler = nullptr);
-    
+
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
 
 private slots:

@@ -248,7 +248,7 @@ void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
         for (const auto& entry :  _entitiesInScene) {
             const auto& renderer = entry.second;
             const EntityItemPointer& entityItem = renderer->getEntity();
-            if (!(entityItem->isLocalEntity() || entityItem->isMyAvatarEntity())) {
+            if (entityItem && !(entityItem->isLocalEntity() || entityItem->isMyAvatarEntity())) {
                 fadeOutRenderable(renderer);
             } else {
                 savedEntities[entry.first] = entry.second;
@@ -496,7 +496,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             }
 
             // compute average per-renderable update cost
-           _prevNumEntityUpdates = sortedRenderables.size() - _renderablesToUpdate.size();
+            _prevNumEntityUpdates = sortedRenderables.size() - _renderablesToUpdate.size();
             size_t numUpdated = _prevNumEntityUpdates + 1; // add one to avoid divide by zero
             float cost = (float)(usecTimestampNow() - updateStart) / (float)(numUpdated);
             const float BLEND = 0.1f;
@@ -685,7 +685,7 @@ void EntityTreeRenderer::leaveDomainAndNonOwnedEntities() {
         QSet<EntityItemID> currentEntitiesInsideToSave;
         foreach (const EntityItemID& entityID, _currentEntitiesInside) {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
-            if (!(entityItem->isLocalEntity() || entityItem->isMyAvatarEntity())) {
+            if (entityItem && !(entityItem->isLocalEntity() || entityItem->isMyAvatarEntity())) {
                 emit leaveEntity(entityID);
                 if (_entitiesScriptEngine) {
                     _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");

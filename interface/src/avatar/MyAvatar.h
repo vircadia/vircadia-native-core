@@ -722,7 +722,7 @@ public:
      * @function MyAvatar.restoreHandAnimation
      * @param isLeft {boolean} Set to true if using the left hand
      * @example <caption> Override left hand animation for three seconds. </caption>
-     * var ANIM_URL = "https://apidocs.projectathena.dev/models/ClapHands_Standing.fbx";
+     * var ANIM_URL = "https://apidocs.vircadia.dev/models/ClapHands_Standing.fbx";
      * MyAvatar.overrideHandAnimation(isLeft, ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreHandAnimation();
@@ -762,7 +762,7 @@ public:
      * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target
      * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different,
      * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
-     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
+     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
      * @function MyAvatar.overrideRoleAnimation
      * @param {string} role - The animation role to override
      * @param {string} url - The URL to the animation file. Animation files need to be in glTF or FBX format, but only need to 
@@ -780,7 +780,7 @@ public:
      * hanging at its sides when it is not moving, the avatar will stand and clap its hands. Note that just as it did before, as soon as the avatar
      * starts to move, the animation will smoothly blend into the walk animation used by the "walkFwd" animation role.</caption>
      * // An animation of the avatar clapping its hands while standing. Restore default after 30s.
-     * var ANIM_URL = "https://apidocs.projectathena.dev/models/ClapHands_Standing.fbx";
+     * var ANIM_URL = "https://apidocs.vircadia.dev/models/ClapHands_Standing.fbx";
      * MyAvatar.overrideRoleAnimation("idleStand", ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreRoleAnimation();
@@ -1920,7 +1920,7 @@ public:
 
     /**jsdoc
      * Enables and disables flow simulation of physics on the avatar's hair, clothes, and body parts. See 
-     * {@link https://docs.projectathena.dev/create/avatars/add-flow.html|Add Flow to Your Avatar} for more 
+     * {@link https://docs.vircadia.dev/create/avatars/add-flow.html|Add Flow to Your Avatar} for more 
      * information.
      * @function MyAvatar.useFlow
      * @param {boolean} isActive - <code>true</code> if flow simulation is enabled on the joint, <code>false</code> if it isn't.
@@ -2285,7 +2285,7 @@ public slots:
 
     /**jsdoc
      * Gets the URL of the override animation graph.
-     * <p>See {@link https://docs.projectathena.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
+     * <p>See {@link https://docs.vircadia.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
      * information on animation graphs.</p>
      * @function MyAvatar.getAnimGraphOverrideUrl
      * @returns {string} The URL of the override animation graph JSON file. <code>""</code> if there is no override animation 
@@ -2295,7 +2295,7 @@ public slots:
 
     /**jsdoc
      * Sets the animation graph to use in preference to the default animation graph.
-     * <p>See {@link https://docs.projectathena.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
+     * <p>See {@link https://docs.vircadia.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
      * information on animation graphs.</p>
      * @function MyAvatar.setAnimGraphOverrideUrl
      * @param {string} url - The URL of the animation graph JSON file to use. Set to <code>""</code> to clear an override.
@@ -2304,7 +2304,7 @@ public slots:
 
     /**jsdoc
      * Gets the URL of animation graph (i.e., the avatar animation JSON) that's currently being used for avatar animations.
-     * <p>See {@link https://docs.projectathena.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for 
+     * <p>See {@link https://docs.vircadia.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for 
      * information on animation graphs.</p>
      * @function MyAvatar.getAnimGraphUrl
      * @returns {string} The URL of the current animation graph JSON file.
@@ -2315,7 +2315,7 @@ public slots:
 
     /**jsdoc
      * Sets the current animation graph  (i.e., the avatar animation JSON) to use for avatar animations and makes it the default.
-     * <p>See {@link https://docs.projectathena.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
+     * <p>See {@link https://docs.vircadia.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
      * information on animation graphs.</p>
      * @function MyAvatar.setAnimGraphUrl
      * @param {string} url - The URL of the animation graph JSON file to use.
@@ -2702,7 +2702,7 @@ private:
 
     bool _enableFlying { false };
     bool _flyingPrefDesktop { true };
-    bool _flyingPrefHMD { false };
+    bool _flyingPrefHMD { true };
     bool _wasPushing { false };
     bool _isPushing { false };
     bool _isBeingPushed { false };

@@ -123,10 +123,11 @@ function orientationOf(vector) {
 }
 
 function handleRadialMode(dx, dy) {
+    var MIN_INSPECT_RADIUS = 0.1;
     azimuth += dx / AZIMUTH_RATE;
     radius += radius * dy * RADIUS_RATE;
-    if (radius < 1) {
-        radius = 1;
+    if (radius < MIN_INSPECT_RADIUS) {
+        radius = MIN_INSPECT_RADIUS;
     }
 
     vector = {

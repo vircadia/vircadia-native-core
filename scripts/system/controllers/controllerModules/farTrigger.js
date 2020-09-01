@@ -8,7 +8,7 @@
 
 /* global Script, RIGHT_HAND, LEFT_HAND, MyAvatar,
    makeRunningValues, Entities, enableDispatcherModule, disableDispatcherModule, makeDispatcherModuleParameters,
-   getGrabbableData, makeLaserParams, DISPATCHER_PROPERTIES
+   getGrabbableData, makeLaserParams, DISPATCHER_PROPERTIES, RayPick, handsAreTracked
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -63,6 +63,9 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.isReady = function (controllerData) {
             this.targetEntityID = null;
+            if (handsAreTracked()) {
+                return makeRunningValues(false, [], []);
+            }
             if (controllerData.triggerClicks[this.hand] === 0) {
                 return makeRunningValues(false, [], []);
             }

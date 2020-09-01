@@ -45,24 +45,12 @@ EntityItemProperties LineEntityItem::getProperties(const EntityPropertyFlags& de
     return properties;
 }
 
-bool LineEntityItem::setProperties(const EntityItemProperties& properties) {
+bool LineEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(linePoints, setLinePoints);
 
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "LineEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties._lastEdited);
-        somethingChangedNotification();
-    }
     return somethingChanged;
 }
 
