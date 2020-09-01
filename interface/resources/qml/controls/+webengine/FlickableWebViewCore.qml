@@ -137,7 +137,7 @@ Item {
             if (webViewCoreUserAgent !== undefined) {
                 webViewCore.profile.httpUserAgent = webViewCoreUserAgent
             } else {
-                webViewCore.profile.httpUserAgent += " (HighFidelityInterface)";
+                webViewCore.profile.httpUserAgent += " (VircadiaInterface)";
             }
             // Ensure the JS from the web-engine makes it to our logging
             webViewCore.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {

@@ -6,6 +6,7 @@
 //  examples
 //
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -22,6 +23,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/snapshot.js",
     "system/pal.js", // "system/mod.js", // older UX, if you prefer
     "system/avatarapp.js",
+    "system/graphicsSettings.js",
     "system/makeUserConnection.js",
     "system/marketplaces/marketplaces.js",
     "system/notifications.js",
@@ -34,16 +36,15 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/miniTablet.js",
     "system/audioMuteOverlay.js",
     "system/inspect.js",
-    "system/keyboardShortcuts/keyboardShortcuts.js",
-    "system/hand-track-walk.js"
+    "system/keyboardShortcuts/keyboardShortcuts.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
-    "communityModules/notificationCore/notificationCore.js",
+    "communityScripts/notificationCore/notificationCore.js",
     "simplifiedUI/ui/simplifiedNametag/simplifiedNametag.js",
     {"stable": "system/more/app-more.js", "beta": "https://cdn.vircadia.com/community-apps/more/app-more.js"},
     {"stable": "communityScripts/explore/explore.js", "beta": "https://metaverse.vircadia.com/interim/d-goto/app/explore.js"},
-    {"stable": "communityModules/chat/FloofChat.js", "beta": "https://content.fluffy.ws/scripts/chat/FloofChat.js"}
+    {"stable": "communityScripts/chat/FloofChat.js", "beta": "https://content.fluffy.ws/scripts/chat/FloofChat.js"}
     //"system/chat.js"
 ];
 

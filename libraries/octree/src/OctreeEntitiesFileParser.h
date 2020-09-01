@@ -16,12 +16,14 @@
 
 #include <QByteArray>
 #include <QVariant>
+#include <QUrl>
 
 class OctreeEntitiesFileParser {
 public:
     void setEntitiesString(const QByteArray& entitiesContents);
     bool parseEntities(QVariantMap& parsedEntities);
     std::string getErrorString() const;
+    QUrl relativeURL;
 
 private:
     int nextToken();

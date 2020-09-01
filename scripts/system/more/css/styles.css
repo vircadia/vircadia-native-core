@@ -42,6 +42,10 @@ p a {
     color: SteelBlue;
 }
 
+.appdesc a {
+    color: LightBlue;
+}
+
 font.appname {
     font-family: 'Merriweather', sans-serif;
     font-size: 18px;

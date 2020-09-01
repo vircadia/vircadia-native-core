@@ -41,10 +41,9 @@ void GridEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     });
 
     void* key = (void*)this;
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity]() {
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
         withWriteLock([&] {
             _dimensions = entity->getScaledDimensions();
-            updateModelTransformAndBound();
             _renderTransform = getModelTransform();
         });
     });

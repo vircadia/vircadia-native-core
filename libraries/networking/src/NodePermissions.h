@@ -4,6 +4,7 @@
 //
 //  Created by Seth Alves on 2016-6-1.
 //  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -50,6 +51,9 @@ public:
     // the _id member isn't authenticated/verified and _username is.
     void setVerifiedUserName(QString userName) { _verifiedUserName = userName.toLower(); }
     const QString& getVerifiedUserName() const { return _verifiedUserName; }
+
+    void setVerifiedDomainUserName(QString userName) { _verifiedDomainUserName = userName.toLower(); }
+    const QString& getVerifiedDomainUserName() const { return _verifiedDomainUserName; }
 
     void setGroupID(QUuid groupID) { _groupID = groupID; if (!groupID.isNull()) { _groupIDSet = true; }}
     QUuid getGroupID() const { return _groupID; }
@@ -99,6 +103,7 @@ protected:
     QString _id;
     QUuid _rankID { QUuid() }; // 0 unless this is for a group
     QString _verifiedUserName;
+    QString _verifiedDomainUserName;
 
     bool _groupIDSet { false };
     QUuid _groupID;

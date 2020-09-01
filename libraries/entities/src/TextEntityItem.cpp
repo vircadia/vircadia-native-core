@@ -73,9 +73,8 @@ EntityItemProperties TextEntityItem::getProperties(const EntityPropertyFlags& de
     return properties;
 }
 
-bool TextEntityItem::setProperties(const EntityItemProperties& properties) {
+bool TextEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     withWriteLock([&] {
         bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
@@ -99,17 +98,6 @@ bool TextEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textEffect, setTextEffect);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textEffectColor, setTextEffectColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textEffectThickness, setTextEffectThickness);
-
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "TextEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties._lastEdited);
-    }
     
     return somethingChanged;
 }
