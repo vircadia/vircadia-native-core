@@ -1352,10 +1352,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
 
     auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
-    connect(domainAccountManager.data(), &DomainAccountManager::authRequired, dialogsManager.data(), 
-        &DialogsManager::showDomainLoginDialog);
-    connect(domainAccountManager.data(), &DomainAccountManager::loginComplete, this, 
-        &Application::updateWindowTitle);
+    connect(domainAccountManager.data(), &DomainAccountManager::authRequired,
+        dialogsManager.data(), &DialogsManager::showDomainLoginDialog);
+    connect(domainAccountManager.data(), &DomainAccountManager::authRequired, this, &Application::updateWindowTitle);
+    connect(domainAccountManager.data(), &DomainAccountManager::loginComplete, this, &Application::updateWindowTitle);
     // ####### TODO: Connect any other signals from domainAccountManager.
 
     // use our MyAvatar position and quat for address manager path
@@ -7086,8 +7086,9 @@ void Application::updateWindowTitle() const {
     auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
     bool isMetaverseLoggedIn = accountManager->isLoggedIn();
+    bool hasDomainLogIn = domainAccountManager->hasLogIn();
     bool isDomainLoggedIn = domainAccountManager->isLoggedIn();
-    QString authedDomain = domainAccountManager->getAuthedDomain();
+    QString authedDomainName = domainAccountManager->getAuthedDomainName();
 
     QString buildVersion = " - Vircadia - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
@@ -7117,20 +7118,23 @@ void Application::updateWindowTitle() const {
 
     QString metaverseDetails;
     if (isMetaverseLoggedIn) {
-        metaverseDetails = "Metaverse: Logged in as " + metaverseUsername;
+        metaverseDetails = " (Metaverse: Logged in as " + metaverseUsername + ")";
     } else {
-        metaverseDetails = "Metaverse: Not Logged In";
+        metaverseDetails = " (Metaverse: Not Logged In)";
     }
 
     QString domainDetails;
-    if (currentPlaceName == authedDomain && isDomainLoggedIn) {
-        domainDetails = "Domain: Logged in as " + domainUsername;
+    if (hasDomainLogIn) {
+        if (currentPlaceName == authedDomainName && isDomainLoggedIn) {
+            domainDetails = " (Domain: Logged in as " + domainUsername + ")";
+        } else {
+            domainDetails = " (Domain: Not Logged In)";
+        }
     } else {
-        domainDetails = "Domain: Not Logged In";
+        domainDetails = "";
     }
 
-    QString title = QString() + currentPlaceName + connectionStatus + " (" + metaverseDetails + ") (" + domainDetails + ")" 
-        + buildVersion;
+    QString title = currentPlaceName + connectionStatus + metaverseDetails + domainDetails + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32

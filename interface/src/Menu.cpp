@@ -43,6 +43,7 @@
 #include "avatar/AvatarManager.h"
 #include "avatar/AvatarPackager.h"
 #include "AvatarBookmarks.h"
+#include "DomainAccountManager.h"
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -73,6 +74,7 @@ const char* EXCLUSION_GROUP_KEY = "exclusionGroup";
 Menu::Menu() {
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     auto accountManager = DependencyManager::get<AccountManager>();
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
 
     // File/Application menu ----------------------------------
     MenuWrapper* fileMenu = addMenu("File");
@@ -89,10 +91,14 @@ Menu::Menu() {
     }
 
     auto domainLogin = addActionToQMenuAndActionHash(fileMenu, "Domain: Log In");
+    domainLogin->setVisible(false);
     connect(domainLogin, &QAction::triggered, [] {
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         dialogsManager->setDomainLoginState();
         dialogsManager->showDomainLoginDialog();
+    });
+    connect(domainAccountManager.data(), &DomainAccountManager::hasLogInChanged, [domainLogin](bool hasLogIn) {
+        domainLogin->setVisible(hasLogIn);
     });
 
     // File > Quit
