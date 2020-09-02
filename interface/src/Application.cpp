@@ -5921,6 +5921,22 @@ void Application::cameraModeChanged() {
     cameraMenuChanged();
 }
 
+bool Application::shouldCaptureMouse() const {
+    if (!_captureMouse) {
+        return false;
+    }
+
+    if (!_glWidget->isActiveWindow()) {
+        return false;
+    }
+
+    if (ui::Menu::isSomeSubmenuShown()) {
+        return false;
+    }
+
+    return true;
+}
+
 void Application::captureMouseChanged(bool captureMouse) {
     _captureMouse = captureMouse;
     if (_captureMouse) {
@@ -6281,7 +6297,7 @@ void Application::update(float deltaTime) {
         PROFILE_ASYNC_END(app, "Scene Loading", "");
     }
 
-     if (_captureMouse) {
+     if (shouldCaptureMouse()) {
         QPoint point = _glWidget->mapToGlobal(_glWidget->geometry().center());
         if (QCursor::pos() != point) {
             _mouseCaptureTarget = point;

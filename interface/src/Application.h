@@ -603,6 +603,7 @@ private:
 
     void maybeToggleMenuVisible(QMouseEvent* event) const;
     void toggleTabletUI(bool shouldOpen = false) const;
+    bool shouldCaptureMouse() const;
 
     void userKickConfirmation(const QUuid& nodeID);
 
