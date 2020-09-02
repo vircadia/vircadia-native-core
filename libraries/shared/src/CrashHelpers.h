@@ -25,6 +25,7 @@ void nullDeref();
 void doAbort();
 void outOfBoundsVectorCrash();
 void newFault();
+void throwException();
 
 }
 

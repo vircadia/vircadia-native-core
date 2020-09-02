@@ -716,7 +716,7 @@ Menu::Menu() {
     // Developer > Crash >>>
     bool result = false;
     const QString HIFI_SHOW_DEVELOPER_CRASH_MENU("HIFI_SHOW_DEVELOPER_CRASH_MENU");
-    result = QProcessEnvironment::systemEnvironment().contains(HIFI_SHOW_DEVELOPER_CRASH_MENU);
+    result = true;//QProcessEnvironment::systemEnvironment().contains(HIFI_SHOW_DEVELOPER_CRASH_MENU);
     if (result) {
         MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
 
@@ -755,6 +755,11 @@ Menu::Menu() {
         connect(action, &QAction::triggered, qApp, []() { crash::newFault(); });
         action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNewFaultThreaded);
         connect(action, &QAction::triggered, qApp, []() { std::thread(crash::newFault).join(); });
+
+        action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashThrownException);
+        connect(action, &QAction::triggered, qApp, []() { crash::throwException(); });
+        action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashThrownExceptionThreaded);
+        connect(action, &QAction::triggered, qApp, []() { std::thread(crash::throwException).join(); });
 
         addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashOnShutdown, 0, qApp, SLOT(crashOnShutdown()));
     }

@@ -19,7 +19,7 @@
 #else
 #include <assert.h>
 #endif
-
+#include <stdexcept>
 
 namespace crash {
 
@@ -86,7 +86,11 @@ void newFault() {
         const size_t GIGABYTE = 1024 * 1024 * 1024;
         new char[GIGABYTE];
     }
-
 }
-    
+
+void throwException() {
+    qCDebug(shared) << "About to throw an exception";
+    throw std::runtime_error("unexpected exception");
+}
+
 }
