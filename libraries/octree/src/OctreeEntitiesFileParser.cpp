@@ -240,13 +240,15 @@ bool OctreeEntitiesFileParser::readEntitiesArray(QVariantList& entitiesArray) {
         QJsonObject entityObject = entity.object();
 
         // resolve urls starting with ./ or ../ 
-        if (relativeURL.isEmpty() == false) {
+        if (!_relativeURL.isEmpty()) {
             bool isDirty = false;
-            
+
             const QStringList urlKeys { 
                 // model
                 "modelURL",
                 "animation.url",
+                // FIXME: Handle models' "textures" and "originalTextures" properties which include URLs. Note that Particles
+                // also has a "textures" property.
                 // image
                 "imageURL",
                 // web
@@ -280,9 +282,9 @@ bool OctreeEntitiesFileParser::readEntitiesArray(QVariantList& entitiesArray) {
 
                         if (childObject.contains(childKey) && childObject[childKey].isString()) {
                             const QString url = childObject[childKey].toString();
-    
+
                             if (url.startsWith("./") || url.startsWith("../")) {
-                                childObject[childKey] = relativeURL.resolved(url).toString();
+                                childObject[childKey] = _relativeURL.resolved(url).toString();
                                 entityObject[entityKey] = childObject;
                                 isDirty = true;
                             }
@@ -293,7 +295,7 @@ bool OctreeEntitiesFileParser::readEntitiesArray(QVariantList& entitiesArray) {
                         const QString url = entityObject[key].toString();
 
                         if (url.startsWith("./") || url.startsWith("../")) {
-                            entityObject[key] = relativeURL.resolved(url).toString();
+                            entityObject[key] = _relativeURL.resolved(url).toString();
                             isDirty = true;
                         }
                     }
