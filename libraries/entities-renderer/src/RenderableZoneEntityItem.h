@@ -39,7 +39,6 @@ protected:
     virtual void doRender(RenderArgs* args) override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
-    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
 private:
     void updateKeyZoneItemFromEntity(const TypedEntityPointer& entity);
