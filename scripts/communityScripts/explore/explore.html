@@ -548,6 +548,10 @@
                     }
                     if (messageData.action == "retrievePortInformationResponse") {
                         addLocationData = messageData.goToAddresses;
+                        for (let i = 0; i < addLocationData.length; i++) {	
+                            var metaverseProvider = addLocationData[i].split("/")[2].split(":")[0];	
+                            addLocationData[i] = "https://" + metaverseProvider + "/interim/d-goto/app/decentralizedGoToServerScript.js";	
+                        }
                         addLocationComponent.updateData(addLocationData);
                     }
                 });
