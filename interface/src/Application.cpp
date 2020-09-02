@@ -4699,6 +4699,11 @@ void Application::maybeToggleMenuVisible(QMouseEvent* event) const {
 void Application::mouseMoveEvent(QMouseEvent* event) {
     PROFILE_RANGE(app_input_mouse, __FUNCTION__);
 
+    if (_ignoreMouseMove) {
+        _ignoreMouseMove = false;
+        return;
+    }
+
     maybeToggleMenuVisible(event);
 
     auto& compositor = getApplicationCompositor();
@@ -4744,7 +4749,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     }
 
     if (_keyboardMouseDevice->isActive()) {
-        _keyboardMouseDevice->mouseMoveEvent(event);
+        _keyboardMouseDevice->mouseMoveEvent(event, _captureMouse, _mouseCaptureTarget);
     }
 }
 
@@ -5916,15 +5921,13 @@ void Application::cameraModeChanged() {
     cameraMenuChanged();
 }
 
-void Application::captureMouseChanged() {
-    if (_myCamera.getCaptureMouse()) {
-        // we want to grab the mouse here so that no other widgets get events, and also hide the mouse, but these don't work:
-        //_glWidget->grabMouse();
-        //QCursor::setShape(Qt::CursorShape::BlankCursor);
+void Application::captureMouseChanged(bool captureMouse) {
+    _captureMouse = captureMouse;
+    if (_captureMouse) {
+        _glWidget->setCursor(QCursor(Qt::BlankCursor));
     } else {
-        // we want to release the mouse here so that other widgets get events, and also show the mouse, but these don't work:
-        //_glWidget->releaseMouse();
-        //QCursor::setShape(Qt::CursorShape::ArrowCursor);
+        _mouseCaptureTarget = QPointF(NAN, NAN);
+        _glWidget->unsetCursor();
     }
 }
 
@@ -6276,6 +6279,15 @@ void Application::update(float deltaTime) {
     } else if (domainLoadingInProgress) {
         domainLoadingInProgress = false;
         PROFILE_ASYNC_END(app, "Scene Loading", "");
+    }
+
+     if (_captureMouse) {
+        QPoint point = _glWidget->mapToGlobal(_glWidget->geometry().center());
+        if (QCursor::pos() != point) {
+            _mouseCaptureTarget = point;
+            _ignoreMouseMove = true;
+            QCursor::setPos(point);
+        }
     }
 
     auto myAvatar = getMyAvatar();

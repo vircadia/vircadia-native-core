@@ -36,13 +36,12 @@ void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputC
         _inputDevice->_axisStateMap[MOUSE_AXIS_X].value = _lastCursor.x();
         _inputDevice->_axisStateMap[MOUSE_AXIS_Y].value = _lastCursor.y();
 
-        QPoint currentMove = _lastCursor - _previousCursor;
-        updateDeltaAxisValue(MOUSE_AXIS_X_POS, currentMove.x() > 0 ? currentMove.x() : 0.0f);
-        updateDeltaAxisValue(MOUSE_AXIS_X_NEG, currentMove.x() < 0 ? -currentMove.x() : 0.0f);
+        updateDeltaAxisValue(MOUSE_AXIS_X_POS, _accumulatedMove.x() > 0 ? _accumulatedMove.x() : 0.0f);
+        updateDeltaAxisValue(MOUSE_AXIS_X_NEG, _accumulatedMove.x() < 0 ? -_accumulatedMove.x() : 0.0f);
         // Y mouse is inverted positive is pointing up the screen
-        updateDeltaAxisValue(MOUSE_AXIS_Y_POS, currentMove.y() < 0 ? -currentMove.y() : 0.0f);
-        updateDeltaAxisValue(MOUSE_AXIS_Y_NEG, currentMove.y() > 0 ? currentMove.y() : 0.0f);
-        _previousCursor = _lastCursor;
+        updateDeltaAxisValue(MOUSE_AXIS_Y_POS, _accumulatedMove.y() < 0 ? -_accumulatedMove.y() : 0.0f);
+        updateDeltaAxisValue(MOUSE_AXIS_Y_NEG, _accumulatedMove.y() > 0 ? _accumulatedMove.y() : 0.0f);
+        _accumulatedMove = QPoint(0.0f, 0.0f);
     });
 
     // For touch event, we need to check that the last event is not too long ago
@@ -113,8 +112,15 @@ void KeyboardMouseDevice::eraseMouseClicked() {
     _inputDevice->_buttonPressedMap.erase(_inputDevice->makeInput(Qt::RightButton, true).getChannel());
 }
 
-void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event) {
+void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event, bool capture, QPointF captureTarget) {
     QPoint currentPos = event->pos();
+
+    if (!capture) {
+        _accumulatedMove += currentPos - _lastCursor;
+    } else if (!isNaN(captureTarget.x())) {
+        QPointF change = event->globalPos() - captureTarget;
+        _accumulatedMove += QPoint(change.x(), change.y());
+    }
 
     // FIXME - this has the characteristic that it will show large jumps when you move the cursor
     // outside of the application window, because we don't get MouseEvents when the cursor is outside

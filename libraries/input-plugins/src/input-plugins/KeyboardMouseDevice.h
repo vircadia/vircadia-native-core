@@ -79,7 +79,7 @@ public:
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
 
-    void mouseMoveEvent(QMouseEvent* event);
+    void mouseMoveEvent(QMouseEvent* event, bool capture, QPointF captureTarget);
     void mousePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
     void eraseMouseClicked();
@@ -123,7 +123,7 @@ public:
 
 protected:
     QPoint _lastCursor;
-    QPoint _previousCursor;
+    QPoint _accumulatedMove;
     QPoint _mousePressPos;
     quint64 _mousePressTime;
     qreal _lastTotalScaleFactor;

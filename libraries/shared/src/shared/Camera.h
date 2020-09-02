@@ -123,7 +123,7 @@ public slots:
      * @function Camera.setCaptureMouse
      * @param {boolean} captureMouse - Whether or not to capture the mouse.
      */
-    void setCaptureMouse(bool captureMouse) { _captureMouse = captureMouse; }
+    void setCaptureMouse(bool captureMouse) { _captureMouse = captureMouse; emit captureMouseUpdated(captureMouse); }
 
     /**jsdoc
      * Computes a {@link PickRay} based on the current camera configuration and the specified <code>x, y</code> position on the 

@@ -213,7 +213,6 @@ void CompositorHelper::setAllowMouseCapture(bool capture) {
         _allowMouseCapture = capture;
         emit allowMouseCaptureChanged();
     }
-    _allowMouseCapture = capture;
 }
 
 void CompositorHelper::handleLeaveEvent() {
