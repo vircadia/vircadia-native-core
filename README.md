@@ -30,7 +30,7 @@ Vircadia is a 3D social software project seeking to incrementally bring about a 
 
 ### How to generate an Installer
 
-[For Windows](https://github.com/kasenvr/project-athena/blob/master/INSTALL.md)
+[For Windows](https://github.com/kasenvr/project-athena/blob/master/INSTALLER.md)
 
 [For Linux - AppImage - Vircadia Builder](https://github.com/kasenvr/vircadia-builder/blob/master/README.md#building-appimages)
 
