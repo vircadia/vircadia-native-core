@@ -253,6 +253,7 @@
 #include <DesktopPreviewProvider.h>
 
 #include "AboutUtil.h"
+#include "ExternalResource.h"
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
@@ -3294,6 +3295,7 @@ void Application::initializeUi() {
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
     qmlRegisterType<WebBrowserSuggestionsEngine>("HifiWeb", 1, 0, "WebBrowserSuggestionsEngine");
+ //   qmlRegisterType<ExternalResource>("ExternalResource", 1, 0, "ExternalResource");
 
     {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
@@ -7534,6 +7536,15 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptEngine
     scriptEngine->registerGlobalObject("About", AboutUtil::getInstance());
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());  // Deprecated.
     scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
+
+    // This is obviously wrong -- FIXME!
+    scriptEngine->registerValue("Bucket.Public", static_cast<int>(ExternalResource::Bucket::Public));
+    scriptEngine->registerValue("Bucket.Content", static_cast<int>(ExternalResource::Bucket::Content));
+    scriptEngine->registerValue("Bucket.MPAssets", static_cast<int>(ExternalResource::Bucket::MPAssets));
+    scriptEngine->registerValue("Bucket.Assets", static_cast<int>(ExternalResource::Bucket::Assets));
+
+
+    scriptEngine->registerGlobalObject("ExternalResource", ExternalResource::getInstance());
 
     registerInteractiveWindowMetaType(scriptEngine.data());
 

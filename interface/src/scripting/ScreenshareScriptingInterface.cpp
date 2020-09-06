@@ -23,6 +23,7 @@
 
 #include "EntityScriptingInterface.h"
 #include "ScreenshareScriptingInterface.h"
+#include "ExternalResource.h"
 
 static const int SCREENSHARE_INFO_REQUEST_RETRY_TIMEOUT_MS = 300;
 ScreenshareScriptingInterface::ScreenshareScriptingInterface() {
@@ -128,8 +129,8 @@ static const uint8_t LOCAL_SCREENSHARE_WEB_ENTITY_FPS = 30;
 // The `z` value here is dynamic.
 static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_LOCAL_POSITION(0.0128f, -0.0918f, 0.0f);
 static const glm::vec3 LOCAL_SCREENSHARE_WEB_ENTITY_DIMENSIONS(3.6790f, 2.0990f, 0.0100f);
-static const QString LOCAL_SCREENSHARE_WEB_ENTITY_URL =
-    "https://content.highfidelity.com/Experiences/Releases/usefulUtilities/smartBoard/screenshareViewer/screenshareClient.html";
+static const QString LOCAL_SCREENSHARE_WEB_ENTITY_URL = ExternalResource::getInstance()->getUrl(ExternalResource::Bucket::Content, 
+    "Experiences/Releases/usefulUtilities/smartBoard/screenshareViewer/screenshareClient.html");
 static const QString LOCAL_SCREENSHARE_WEB_ENTITY_HOST_TYPE = "local";
 void ScreenshareScriptingInterface::startScreenshare(const QUuid& screenshareZoneID,
                                                      const QUuid& smartboardEntityID,
