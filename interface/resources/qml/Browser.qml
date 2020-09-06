@@ -145,7 +145,7 @@ ScrollingWindow {
                 width: parent.height
                 height: parent.height
                 Image {
-                    source: webview.icon
+                    source: webview.loading ? "" : webview.icon
                     x: (parent.height - height) / 2
                     y: (parent.width - width) / 2
                     width: 28
