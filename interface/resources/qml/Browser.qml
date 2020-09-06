@@ -49,6 +49,12 @@ ScrollingWindow {
         desktop.setAutoAdd(auto);
     }
 
+    function openExternalBrowser() {
+        Qt.openUrlExternally(addressBar.text);
+        root.shown = false;
+        root.windowClosed();
+    }
+
     Item {
         id:item
         width: pane.contentWidth
@@ -115,6 +121,25 @@ ScrollingWindow {
             anchors.left: buttons.right
             anchors.leftMargin: 8
     
+            HiFiGlyphs {
+                id: externalBrowser
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 4
+                enabled: !HMD.active && url !== ""
+                font.family: "FontAwesome"
+                text: "\uf24d"
+                rotation: -90
+                color: enabled ? (externalBrowserMouseArea.containsMouse ? hifi.colors.blueHighlight : hifi.colors.faintGray) : hifi.colors.lightGray
+                size: 32
+                MouseArea {
+                    id: externalBrowserMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: openExternalBrowser();
+                }
+            }
+
             Item {
                 id: barIcon
                 width: parent.height
@@ -132,7 +157,7 @@ ScrollingWindow {
 
             TextField {
                 id: addressBar
-                anchors.right: parent.right
+                anchors.right: externalBrowser.left
                 anchors.rightMargin: 8
                 anchors.left: barIcon.right
                 anchors.leftMargin: 0
