@@ -62,37 +62,43 @@ ScrollingWindow {
             anchors.left: parent.left
             anchors.leftMargin: 8
             HiFiGlyphs {
-                id: back;
+                id: back
                 enabled: webview.canGoBack
                 text: hifi.glyphs.backward
-                color: enabled ? hifi.colors.faintGray : hifi.colors.lightGray
+                color: enabled ? (backMouseArea.containsMouse ? hifi.colors.blueHighlight : hifi.colors.faintGray) : hifi.colors.lightGray
                 size: 48
                 MouseArea {
+                    id: backMouseArea
                     anchors.fill: parent
+                    hoverEnabled: true
                     onClicked: webview.goBack();
                 }
             }
 
             HiFiGlyphs {
-                id: forward;
+                id: forward
                 enabled: webview.canGoForward
                 text: hifi.glyphs.forward
-                color: enabled ? hifi.colors.faintGray : hifi.colors.lightGray
+                color: enabled ? (forwardMouseArea.containsMouse ? hifi.colors.blueHighlight : hifi.colors.faintGray) : hifi.colors.lightGray
                 size: 48
                 MouseArea {
+                    id: forwardMouseArea
                     anchors.fill: parent
+                    hoverEnabled: true
                     onClicked: webview.goForward();
                 }
             }
 
             HiFiGlyphs {
-                id: reload;
+                id: reload
                 enabled: url !== ""
                 text: webview.loading ? hifi.glyphs.close : hifi.glyphs.reload
-                color: enabled ? hifi.colors.faintGray : hifi.colors.lightGray
+                color: enabled ? (reloadMouseArea.containsMouse ? hifi.colors.blueHighlight : hifi.colors.faintGray) : hifi.colors.lightGray
                 size: 48
                 MouseArea {
+                    id: reloadMouseArea
                     anchors.fill: parent
+                    hoverEnabled: true
                     onClicked: webview.loading ? webview.stop() : webview.reload();
                 }
             }
