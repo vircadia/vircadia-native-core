@@ -63,29 +63,38 @@ ScrollingWindow {
             anchors.leftMargin: 8
             HiFiGlyphs {
                 id: back;
-                enabled: webview.canGoBack;
+                enabled: webview.canGoBack
                 text: hifi.glyphs.backward
-                color: enabled ? hifi.colors.text : hifi.colors.disabledText
+                color: enabled ? hifi.colors.faintGray : hifi.colors.lightGray
                 size: 48
-                MouseArea { anchors.fill: parent;  onClicked: webview.goBack() }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: webview.goBack();
+                }
             }
 
             HiFiGlyphs {
                 id: forward;
-                enabled: webview.canGoForward;
+                enabled: webview.canGoForward
                 text: hifi.glyphs.forward
-                color: enabled ? hifi.colors.text : hifi.colors.disabledText
+                color: enabled ? hifi.colors.faintGray : hifi.colors.lightGray
                 size: 48
-                MouseArea { anchors.fill: parent;  onClicked: webview.goForward() }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: webview.goForward();
+                }
             }
 
             HiFiGlyphs {
                 id: reload;
-                enabled: webview.canGoForward;
+                enabled: url !== ""
                 text: webview.loading ? hifi.glyphs.close : hifi.glyphs.reload
-                color: enabled ? hifi.colors.text : hifi.colors.disabledText
+                color: enabled ? hifi.colors.faintGray : hifi.colors.lightGray
                 size: 48
-                MouseArea { anchors.fill: parent;  onClicked: webview.goForward() }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: webview.loading ? webview.stop() : webview.reload();
+                }
             }
 
         }
@@ -105,11 +114,12 @@ ScrollingWindow {
                 width: parent.height
                 height: parent.height
                 Image {
-                    source: webview.icon;
+                    source: webview.icon
                     x: (parent.height - height) / 2
                     y: (parent.width - width) / 2
-                    sourceSize: Qt.size(width, height);
-                    verticalAlignment: Image.AlignVCenter;
+                    width: 28
+                    height: 28
+                    verticalAlignment: Image.AlignVCenter
                     horizontalAlignment: Image.AlignHCenter
                 }
             }
