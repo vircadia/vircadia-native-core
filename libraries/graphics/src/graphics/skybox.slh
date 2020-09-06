@@ -3,7 +3,7 @@
 //  libraries/graphics/src
 //
 //  Created by HifiExperiments on 8/5/2020.
-//  Copyright 2020 Vircadia
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -43,6 +43,7 @@ vec2 packVelocity(vec4 prevPositionCS) {
     return deltaUV;
 }
 
+// Must match layout in DeferredBufferWrite.slh, but only velocity and lighting are used
 //layout(location = 0) out vec4 _fragColor0; // albedo / metallic
 //layout(location = 1) out vec4 _fragColor1; // normal
 //layout(location = 2) out vec4 _fragColor2; // scattering / emissive / occlusion

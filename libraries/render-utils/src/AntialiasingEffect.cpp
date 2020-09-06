@@ -118,6 +118,11 @@ int AntialiasingSetupConfig::play() {
     return _state;
 }
 
+void AntialiasingSetupConfig::setAAMode(int mode) {
+    this->mode = glm::clamp(mode, 0, (int)AntialiasingSetupConfig::MODE_COUNT);
+    emit dirty();
+}
+
 AntialiasingSetup::AntialiasingSetup() {
     _sampleSequence.reserve(TAA_JITTER_SEQUENCE_LENGTH + 1);
     // Fill in with jitter samples

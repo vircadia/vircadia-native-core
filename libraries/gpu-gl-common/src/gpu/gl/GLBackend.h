@@ -414,7 +414,7 @@ protected:
 
         struct SaveTransform {
             ViewProjectionState _state;
-            size_t _cameraOffset{ INVALID_OFFSET };
+            size_t _cameraOffset { INVALID_OFFSET };
         };
 
         TransformCamera _camera;

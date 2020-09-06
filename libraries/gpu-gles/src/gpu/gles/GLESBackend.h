@@ -76,8 +76,6 @@ public:
         void allocateStorage() const;
         void syncSampler() const override;
         const Size _size { 0 };
-
-
     };
 
     class GLESAttachmentTexture : public GLESFixedAllocationTexture {

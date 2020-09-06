@@ -50,7 +50,7 @@ float getProjScale(int resolutionLevel) {
 }
 
 mat4 getProjectionMono() {
-     return frameTransform.infos.projectionMono;
+    return frameTransform.infos.projectionMono;
 }
 
 // positive near distance of the projection

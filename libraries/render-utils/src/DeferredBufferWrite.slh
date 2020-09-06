@@ -14,6 +14,7 @@
 <@include DeferredBuffer.slh@>
 <@include DeferredBufferWrite_shared.slh@>
 
+// Must match layout in skybox.slh
 layout(location = DEFERRED_COLOR_SLOT) out vec4 _fragColor0;    // albedo / metallic
 layout(location = DEFERRED_NORMAL_SLOT) out vec4 _fragColor1;   // Normal
 layout(location = DEFERRED_SPECULAR_SLOT) out vec4 _fragColor2; // scattering / emissive / occlusion

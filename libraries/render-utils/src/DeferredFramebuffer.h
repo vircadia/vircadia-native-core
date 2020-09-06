@@ -81,7 +81,7 @@ public:
     void run(const render::RenderContextPointer& renderContext, const DeferredFramebufferPointer& framebuffer);
 
 protected:
-    DeferredFramebuffer::Type _type{ DeferredFramebuffer::FULL };
+    DeferredFramebuffer::Type _type { DeferredFramebuffer::FULL };
 };
 
 #endif // hifi_DeferredFramebuffer_h

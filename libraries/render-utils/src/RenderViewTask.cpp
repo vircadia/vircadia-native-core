@@ -37,7 +37,7 @@ void DeferredForwardSwitchJob::build(JobModel& task, const render::Varying& inpu
     task.addBranch<RenderForwardTask>("RenderForwardTask", 1, input, transformOffset);
 }
 
-void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask, uint8_t transformOffset) {
+void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask, TransformOffset transformOffset) {
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, tagBits, tagMask);
 
     // Issue the lighting model, aka the big global settings for the view 

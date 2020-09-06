@@ -125,7 +125,7 @@ protected:
     HighlightSharedParametersPointer _sharedParameters;
     gpu::BufferPointer _boundsBuffer;
     gpu::StructBuffer<glm::vec2> _outlineWidth;
-    uint _transformSlot;
+    uint _transformSlot { 0 };
 
     static gpu::PipelinePointer _stencilMaskPipeline;
     static gpu::PipelinePointer _stencilMaskFillPipeline;
@@ -186,7 +186,7 @@ private:
     gpu::PipelinePointer _depthPipeline;
     int _geometryDepthId { 0 };
     bool _isDisplayEnabled { false };
-    uint _transformSlot;
+    uint _transformSlot { 0 };
 
     const gpu::PipelinePointer& getDepthPipeline();
     void initializePipelines();
@@ -209,5 +209,3 @@ private:
 };
 
 #endif // hifi_render_utils_HighlightEffect_h
-
-

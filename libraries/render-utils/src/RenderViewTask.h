@@ -49,8 +49,13 @@ public:
 
     RenderViewTask() {}
 
+    enum class TransformOffset: uint8_t {
+        MAIN_VIEW = 0,
+        SECONDARY_VIEW = 1
+    };
+
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor,
-        uint8_t tagBits = 0x00, uint8_t tagMask = 0x00, uint8_t transformOffset = 0);
+        uint8_t tagBits = 0x00, uint8_t tagMask = 0x00, TransformOffset transformOffset = TransformOffset::MAIN_VIEW);
 
 };
 

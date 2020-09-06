@@ -47,7 +47,7 @@ public:
 
 class Backend {
 public:
-    virtual ~Backend(){};
+    virtual ~Backend() {}
 
     virtual void shutdown() {}
     virtual const std::string& getVersion() const = 0;

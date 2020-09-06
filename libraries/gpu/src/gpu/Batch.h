@@ -154,20 +154,20 @@ public:
     // multi command desctription for multiDrawIndexedIndirect
     class DrawIndirectCommand {
     public:
-        uint  _count{ 0 };
-        uint  _instanceCount{ 0 };
-        uint  _firstIndex{ 0 };
-        uint  _baseInstance{ 0 };
+        uint  _count { 0 };
+        uint  _instanceCount { 0 };
+        uint  _firstIndex { 0 };
+        uint  _baseInstance { 0 };
     };
 
     // multi command desctription for multiDrawIndexedIndirect
     class DrawIndexedIndirectCommand {
     public:
-        uint  _count{ 0 };
-        uint  _instanceCount{ 0 };
-        uint  _firstIndex{ 0 };
-        uint  _baseVertex{ 0 };
-        uint  _baseInstance{ 0 };
+        uint  _count { 0 };
+        uint  _instanceCount { 0 };
+        uint  _firstIndex { 0 };
+        uint  _baseVertex { 0 };
+        uint  _baseInstance { 0 };
     };
 
     // Transform Stage
@@ -538,10 +538,10 @@ public:
 
     bool _isJitterOnProjectionEnabled { false };
 
-    uint16_t _drawcallUniform{ 0 };
-    uint16_t _drawcallUniformReset{ 0 };
+    uint16_t _drawcallUniform { 0 };
+    uint16_t _drawcallUniformReset { 0 };
 
-    bool _enableStereo{ true };
+    bool _enableStereo { true };
     bool _enableSkybox { false };
 
 protected:

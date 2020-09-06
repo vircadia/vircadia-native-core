@@ -38,9 +38,9 @@ public:
         MODE_COUNT
     };
 
-    float scale{ 0.75f };
-    bool stop{ false };
-    bool freeze{ false };
+    float scale { 0.75f };
+    bool stop { false };
+    bool freeze { false };
     int mode { TAA };
 
     void setIndex(int current);
@@ -57,15 +57,15 @@ public slots:
     int getIndex() const { return _index; }
     int getState() const { return _state; }
 
-    void setAAMode(int mode) { this->mode = std::min((int)AntialiasingSetupConfig::MODE_COUNT, std::max(0, mode)); emit dirty(); }
+    void setAAMode(int mode);
     int getAAMode() const { return mode; }
 
 signals:
     void dirty();
 
 private:
-    int _state{ 0 };
-    int _index{ 0 };
+    int _state { 0 };
+    int _index { 0 };
 
 };
 
@@ -126,15 +126,15 @@ public:
     bool feedbackColor { false };
     bool bicubicHistoryFetch { true };
 
-    float debugX{ 0.0f };
-    float debugFXAAX{ 1.0f };
-    float debugShowVelocityThreshold{ 1.0f };
-    glm::vec2 debugCursorTexcoord{ 0.5f, 0.5f };
-    float debugOrbZoom{ 2.0f };
+    float debugX { 0.0f };
+    float debugFXAAX { 1.0f };
+    float debugShowVelocityThreshold { 1.0f };
+    glm::vec2 debugCursorTexcoord { 0.5f, 0.5f };
+    float debugOrbZoom { 2.0f };
 
     bool debug { false };
     bool showCursorPixel { false };
-    bool showClosestFragment{ false };
+    bool showClosestFragment { false };
 
 signals:
     void dirty();
@@ -149,9 +149,9 @@ struct TAAParams {
     float covarianceGamma { 0.9f };
     float debugShowVelocityThreshold { 1.0f };
 
-    glm::ivec4 flags{ 0 };
-    glm::vec4 pixelInfo{ 0.5f, 0.5f, 2.0f, 0.0f };
-    glm::vec4 regionInfo{ 0.0f, 0.0f, 1.0f, 0.0f };
+    glm::ivec4 flags { 0 };
+    glm::vec4 pixelInfo { 0.5f, 0.5f, 2.0f, 0.0f };
+    glm::vec4 regionInfo { 0.0f, 0.0f, 1.0f, 0.0f };
 
     void setConstrainColor(bool enabled) { SET_BIT(flags.y, 1, enabled); }
     bool isConstrainColor() const { return (bool)GET_BIT(flags.y, 1); }
