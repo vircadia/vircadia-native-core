@@ -165,22 +165,32 @@ ScrollingWindow {
                 focus: true
                 colorScheme: hifi.colorSchemes.dark
                 placeholderText: "Enter URL"
+                inputMethodHints: Qt.ImhUrlCharactersOnly
                 Component.onCompleted: ScriptDiscoveryService.scriptsModelFilter.filterRegExp = new RegExp("^.*$", "i")
                 Keys.onPressed: {
                     switch(event.key) {
                         case Qt.Key_Enter:
                         case Qt.Key_Return:
                             event.accepted = true
-                            if (text.indexOf("http") != 0) {
+                            if (text.indexOf("http") !== 0) {
                                 text = "http://" + text;
                             }
+
+                            // Setting webiew.url directly doesn't add the URL to the navigation history.
+                            //webview.url = text;
+                            // The following works around this bug.
+                            text = encodeURI(text);
+                            text = text.replace(/;/g, "%3b");  // Prevent script injection.
+                            text = text.replace(/'/g, "%25");  // ""
+                            webview.runJavaScript("window.location='" + text + "'");
+
                             root.hidePermissionsBar();
                             root.keyboardRaised = false;
-                            webview.url = text;
                             break;
                     }
                 }
             }
+
         }
 
         Rectangle {
@@ -257,7 +267,7 @@ ScrollingWindow {
     Keys.onPressed: {
         switch(event.key) {
             case Qt.Key_L:
-                if (event.modifiers == Qt.ControlModifier) {
+                if (event.modifiers === Qt.ControlModifier) {
                     event.accepted = true
                     addressBar.selectAll()
                     addressBar.forceActiveFocus()
@@ -265,4 +275,5 @@ ScrollingWindow {
                 break;
         }
     }
+
 } // dialog
