@@ -827,6 +827,19 @@ void ScriptEngine::init() {
     }));
 }
 
+void ScriptEngine::registerEnum(const QString& enumName, QMetaEnum newEnum) {
+    if (!newEnum.isValid()) {
+        qCCritical(scriptengine) << "registerEnum called on invalid enum with name " << enumName;
+        return;
+    }
+
+    for(int i=0;i<newEnum.keyCount();i++) {
+        const char *keyName = newEnum.key(i);
+        QString fullName = enumName + "." + keyName;
+        registerValue(fullName, newEnum.keyToValue(keyName));
+    }
+}
+
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING

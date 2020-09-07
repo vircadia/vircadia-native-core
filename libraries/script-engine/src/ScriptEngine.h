@@ -20,6 +20,7 @@
 #include <QtCore/QSet>
 #include <QtCore/QWaitCondition>
 #include <QtCore/QStringList>
+#include <QMetaEnum>
 
 #include <QtScript/QScriptEngine>
 
@@ -229,6 +230,15 @@ public:
     /// register a function as a method on a previously registered global object
     Q_INVOKABLE void registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature fun,
                                       int numArguments = -1);
+
+    /**jsdoc
+     * @function Script.registerEnum
+     * @param {string} enumName - Name.
+     * @param {object} newEnum - Enumeration to be added
+     * @deprecated This function is deprecated and will be removed.
+     */
+    /// registers a global enum
+    Q_INVOKABLE void registerEnum(const QString& enumName, QMetaEnum newEnum);
 
     /**jsdoc
      * @function Script.registerValue
