@@ -851,11 +851,10 @@ private:
     QNetworkReply* request(hifi::URL& url, bool isTest);
     bool doesResourceExist(const QString& url);
 
-
     void setHFMMaterial(HFMMaterial& hfmMat, const GLTFMaterial& material);
     HFMTexture getHFMTexture(const GLTFTexture& texture);
+
     void glTFDebugDump();
-    void hfmDebugDump(const HFMModel& hfmModel);
 };
 
 #endif // hifi_GLTFSerializer_h
