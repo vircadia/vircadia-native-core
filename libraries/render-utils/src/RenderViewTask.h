@@ -49,7 +49,7 @@ public:
 
     RenderViewTask() {}
 
-    enum class TransformOffset: uint8_t {
+    enum TransformOffset: uint8_t {
         MAIN_VIEW = 0,
         SECONDARY_VIEW = 1
     };
