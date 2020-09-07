@@ -235,6 +235,8 @@ public:
      * @function Script.registerEnum
      * @param {string} enumName - Name.
      * @param {object} newEnum - Enumeration to be added
+     * @warning This function must be called after a registerGlobalObject that creates the namespace this enum is located in,
+     * or the globalObject won't function. Eg, if you have a Foo object and a Foo.FooType enum, Foo must be registered first.
      * @deprecated This function is deprecated and will be removed.
      */
     /// registers a global enum

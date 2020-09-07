@@ -21,7 +21,6 @@ ExternalResource::ExternalResource(QObject *parent) : QObject(parent) {
 
 }
 
-
 ExternalResource * ExternalResource::getInstance() {
     static ExternalResource instance;
     return &instance;

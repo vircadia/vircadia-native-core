@@ -16,7 +16,6 @@
 #include <QUrl>
 #include <QMap>
 
-
 /**
  * Flexible management for external resources
  *
@@ -38,7 +37,6 @@ class ExternalResource : public QObject {
 
     static ExternalResource *getInstance();
     ~ExternalResource() {};
-
 
     /**
      * Bucket from which to retrieve the resource

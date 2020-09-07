@@ -7537,8 +7537,9 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptEngine
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());  // Deprecated.
     scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
-    scriptEngine->registerEnum("Bucket", QMetaEnum::fromType<ExternalResource::Bucket>());
+    
     scriptEngine->registerGlobalObject("ExternalResource", ExternalResource::getInstance());
+    scriptEngine->registerEnum("ExternalResource.Bucket", QMetaEnum::fromType<ExternalResource::Bucket>());
 
     registerInteractiveWindowMetaType(scriptEngine.data());
 
