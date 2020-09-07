@@ -40,6 +40,20 @@ public:
     inline const quint8* constData() const { return _content.isNull() ? nullptr : _content->_content + _offset; }
     inline const quint8& operator[](size_t idx) const { return (_content.isNull() || idx > _length) ? _fallback : _content->_content[idx + _offset]; }
 
+    inline ByteSlice& operator=(const ByteSlice& rhs) {
+        _content = rhs._content;
+        _offset = rhs._offset;
+        _length = rhs._length;
+        return *this;
+    }
+
+    inline ByteSlice& operator=(ByteSlice&& rhs) {
+        _content.swap(rhs._content);
+        _offset = rhs._offset;
+        _length = rhs._length;
+        return *this;
+    }
+
     quint8 pop_front();
     ByteSlice substring(size_t offset, size_t length = NPOS) const;
     ByteSlice concat(const ByteSlice& rhs) const;
