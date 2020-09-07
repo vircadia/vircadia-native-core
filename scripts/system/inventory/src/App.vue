@@ -251,8 +251,11 @@
         </v-dialog>
 
         <v-dialog
-          v-model="editDialogStore.show"
-          max-width="380"
+            v-model="editDialogStore.show"
+            max-width="380"
+            fullscreen
+            hide-overlay
+            transition="dialog-bottom-transition"
         >
             <v-card>
                 <v-card-title class="headline">Edit Item</v-card-title>
@@ -346,6 +349,9 @@
         <v-dialog
             v-model="editFolderDialogStore.show"
             max-width="380"
+            fullscreen
+            hide-overlay
+            transition="dialog-bottom-transition"
         >
           <v-card>
               <v-card-title class="headline">Edit Folder</v-card-title>
@@ -405,6 +411,9 @@
         <v-dialog
           v-model="createFolderDialogStore.show"
           max-width="380"
+          fullscreen
+          hide-overlay
+          transition="dialog-bottom-transition"
         >
           <v-card>
               <v-card-title class="headline">Create Folder</v-card-title>
@@ -457,6 +466,9 @@
         <v-dialog
           v-model="addDialogStore.show"
           max-width="380"
+          fullscreen
+          hide-overlay
+          transition="dialog-bottom-transition"
         >
           <v-card>
               <v-card-title class="headline">Add Item</v-card-title>
@@ -551,110 +563,116 @@
         </v-dialog>
 
         <v-dialog
-          v-model="receiveDialogStore.show"
-          max-width="380"
-          persistent
+            v-model="receiveDialogStore.show"
+            max-width="380"
+            persistent
+            fullscreen
+            hide-overlay
+            transition="dialog-bottom-transition"
         >
-          <v-card>
-              <v-card-title class="headline">Receiving Item</v-card-title>
+            <v-card>
+                <v-card-title class="headline">Receiving Item</v-card-title>
 
-              <v-card-text>
-                  <b>{{$store.state.receiveDialog.data.userDisplayName}} sent you an item.</b> <br />
-                  <i class="caption">User UUID: {{$store.state.receiveDialog.data.userUUID}}</i>
-              </v-card-text>
-              
-              <v-form
-                  ref="receiveForm"
-                  v-model="receiveDialogStore.valid"
-                  :lazy-validation="false"
-              >
-              
-                  <v-text-field
-                      class="px-2"
-                      label="Type"
-                      :rules="[v => !!v || 'Type is required.']"
-                      v-model="receiveDialogStore.data.type"
-                      required
-                  ></v-text-field>
-                  
-                  <v-text-field
-                      class="px-2"
-                      label="Name"
-                      :rules="[v => !!v || 'Name is required.']"
-                      v-model="receiveDialogStore.data.name"
-                      required
-                  ></v-text-field>
-                  
-                  <v-card-text>
-                      Select a folder (optional).
-                  </v-card-text>
-                  
-                  <v-select
-                      class="my-2"
-                      :items="folderList"
-                      v-model="receiveDialogStore.data.folder"
-                      label="Folder"
-                      outlined
-                      item-text="name"
-                      item-value="uuid"
-                  ></v-select>
+                <v-card-text>
+                    <b>{{$store.state.receiveDialog.data.userDisplayName}} sent you an item.</b> <br />
+                    <i class="caption">User UUID: {{$store.state.receiveDialog.data.userUUID}}</i>
+                </v-card-text>
 
-                  <v-text-field
-                      class="px-2"
-                      label="URL"
-                      :rules="[v => !!v || 'URL is required.']"
-                      v-model="receiveDialogStore.data.url"
-                      required
-                  ></v-text-field>
-                  
-                  <v-combobox
-                      class="px-2"
-                      label="Tags"
-                      v-model="receiveDialogStore.data.tags"
-                      multiple
-                      :chips="true"
-                      :deletable-chips="true"
-                      :disable-lookup="true"
-                      :items="possibleTags"
-                  ></v-combobox>
-                  
-                  <v-textarea
-                      class="px-2"
-                      label="Metadata"
-                      v-model="receiveDialogStore.data.metadata"
-                  ></v-textarea>
+                <v-form
+                    ref="receiveForm"
+                    v-model="receiveDialogStore.valid"
+                    :lazy-validation="false"
+                >
 
-                  <v-card-actions>
+                <v-text-field
+                    class="px-2"
+                    label="Type"
+                    :rules="[v => !!v || 'Type is required.']"
+                    v-model="receiveDialogStore.data.type"
+                    required
+                ></v-text-field>
 
-                      <v-btn
-                          color="red"
-                          class="px-3"
-                          @click="receiveDialogStore.show = false"
-                      >
-                          Reject
-                      </v-btn>
-                      
-                      <v-spacer></v-spacer>
-                      
-                      <v-btn
-                          color="blue"
-                          class="px-3"
-                          :disabled="!$store.state.receiveDialog.valid"
-                          @click="receiveDialogStore.show = false; confirmItemReceipt();"
-                      >
-                          Accept
-                      </v-btn>
-                      
-                  </v-card-actions>
-                  
-              </v-form>
-          </v-card>
+                <v-text-field
+                    class="px-2"
+                    label="Name"
+                    :rules="[v => !!v || 'Name is required.']"
+                    v-model="receiveDialogStore.data.name"
+                    required
+                ></v-text-field>
+
+                <v-card-text>
+                    Select a folder (optional).
+                </v-card-text>
+
+                <v-select
+                    class="my-2"
+                    :items="folderList"
+                    v-model="receiveDialogStore.data.folder"
+                    label="Folder"
+                    outlined
+                    item-text="name"
+                    item-value="uuid"
+                ></v-select>
+
+                <v-text-field
+                    class="px-2"
+                    label="URL"
+                    :rules="[v => !!v || 'URL is required.']"
+                    v-model="receiveDialogStore.data.url"
+                    required
+                ></v-text-field>
+
+                <v-combobox
+                    class="px-2"
+                    label="Tags"
+                    v-model="receiveDialogStore.data.tags"
+                    multiple
+                    :chips="true"
+                    :deletable-chips="true"
+                    :disable-lookup="true"
+                    :items="possibleTags"
+                ></v-combobox>
+
+                <v-textarea
+                    class="px-2"
+                    label="Metadata"
+                    v-model="receiveDialogStore.data.metadata"
+                ></v-textarea>
+
+                <v-card-actions>
+
+                <v-btn
+                    color="red"
+                    class="px-3"
+                    @click="receiveDialogStore.show = false"
+                >
+                    Reject
+                </v-btn>
+
+                <v-spacer></v-spacer>
+
+                <v-btn
+                    color="blue"
+                    class="px-3"
+                    :disabled="!$store.state.receiveDialog.valid"
+                    @click="receiveDialogStore.show = false; confirmItemReceipt();"
+                >
+                    Accept
+                </v-btn>
+
+                </v-card-actions>
+
+                </v-form>
+            </v-card>
         </v-dialog>
 
         <v-dialog
           v-model="shareDialogStore.show"
           max-width="380"
           persistent
+          fullscreen
+          hide-overlay
+          transition="dialog-bottom-transition"
         >
           <v-card>
               <v-card-title class="headline">Share Item</v-card-title>
