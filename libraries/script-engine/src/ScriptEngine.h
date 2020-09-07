@@ -422,7 +422,7 @@ public:
      * @function Script.require
      * @param {string} module - The module to use. May be a JavaScript file, a JSON file, or the name of a system module such 
      *     as <code>"appUi"</code> (i.e., the "appUi.js" system module JavaScript file).
-     * @param {bool} [forceRedownload=false] - Invalidate the cache for this module and redownload it if necessary.
+     * @param {boolean} [forceRedownload=false] - Invalidate the cache for this module and redownload it if necessary.
      * @returns {object|array} The value assigned to <code>module.exports</code> in the JavaScript file, or the value defined 
      *     in the JSON file.
      */

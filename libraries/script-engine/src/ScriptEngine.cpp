@@ -1876,7 +1876,7 @@ QScriptValue ScriptEngine::require(const QString& moduleId, bool forceRedownload
     //   `delete Script.require.cache[Script.require.resolve(moduleId)];`
 
     // cacheMeta is just used right now to tell deleted keys apart from undefined ones
-    bool invalidateCache = (module.isUndefined() && cacheMeta.property(moduleId).isValid()) || forceRedownload;
+    bool invalidateCache = forceRedownload || (module.isUndefined() && cacheMeta.property(moduleId).isValid());
 
     // reset the cacheMeta record so invalidation won't apply next time, even if the module fails to load
     cacheMeta.setProperty(modulePath, QScriptValue());
