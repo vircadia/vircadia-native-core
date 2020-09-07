@@ -37,7 +37,7 @@ public:
     inline size_t length() const { return _length; }
     inline bool empty() const { return !_length; }
     void clear();
-    inline const quint8* constData() const { return _content.isNull() ? NULL : _content->_content + _offset; }
+    inline const quint8* constData() const { return _content.isNull() ? nullptr : _content->_content + _offset; }
     inline const quint8& operator[](size_t idx) const { return (_content.isNull() || idx > _length) ? _fallback : _content->_content[idx + _offset]; }
 
     quint8 pop_front();
