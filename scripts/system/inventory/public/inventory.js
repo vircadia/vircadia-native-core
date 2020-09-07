@@ -23,12 +23,16 @@ Tablet Vec3 Window */
 
     var inventorySettingsString = "inventoryApp.settings";
     var inventorySettings;
+    
+    var INVENTORY_MESSAGES_CHANNEL = "com.vircadia.inventory";
 
     var RECEIVING_ITEM_QUEUE_LIMIT = 5;
     var receivingItemQueue = [];
 
     var NEARBY_USERS_SEARCH_RADIUS = 25;
-
+    
+    var isInventoryOpen = false;
+    var appendItemWaiting = null;
 
     // APP EVENT AND MESSAGING ROUTING
 
@@ -84,10 +88,8 @@ Tablet Vec3 Window */
         tablet.emitScriptEvent(JSON.stringify(dataToSend));
     }
 
-    var inventoryMessagesChannel = "com.vircadia.inventory";
-
     function onMessageReceived(channel, message, sender, localOnly) {
-        if (channel === inventoryMessagesChannel) {
+        if (channel === INVENTORY_MESSAGES_CHANNEL) {
             var messageJSON = JSON.parse(message);
             // Window.alert("Passed 0 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);
             if (messageJSON.command === "share-item" 
@@ -95,7 +97,7 @@ Tablet Vec3 Window */
                 // Window.alert("Passed 1 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);
                 pushReceivedItemToQueue(sender, messageJSON.type, messageJSON.name, messageJSON.url, messageJSON.tags, messageJSON.metadata);
             }
-            
+            // Window.alert("Passed 0 " + sender + " vs " + MyAvatar.sessionUUID);
             if (messageJSON.command === "append-item" 
                 && sender === MyAvatar.sessionUUID) { // We are appending an item from another of our own apps.
                 appendReceivedItemToInventory(messageJSON.type, messageJSON.name, messageJSON.url, messageJSON.tags, messageJSON.metadata);
@@ -109,7 +111,7 @@ Tablet Vec3 Window */
     }
 
     function sendMessage(dataToSend) {
-        Messages.sendMessage(inventoryMessagesChannel, JSON.stringify(dataToSend));
+        Messages.sendMessage(INVENTORY_MESSAGES_CHANNEL, JSON.stringify(dataToSend));
     }
 
     // END APP EVENT AND MESSAGING ROUTING
@@ -141,7 +143,7 @@ Tablet Vec3 Window */
     // END SEND AND RECEIVE SETTINGS STATE
     
     // This function bypasses the receiving item queue and goes straight into the inventory as is.
-    function appendReceivedItemToInventory(type, name, url, tags, metadata) {
+    function appendReceivedItemToInventory (type, name, url, tags, metadata) {
         var itemData = {
             "type": type,
             "name": name,
@@ -149,7 +151,16 @@ Tablet Vec3 Window */
             "tags": tags,
             "metadata": metadata
         }
-        sendToWeb("script-to-web-append-item", itemData);
+        
+        if (isInventoryOpen) {
+            sendToWeb("script-to-web-append-item", itemData);
+        } else {
+            appendItemWaiting = itemData;
+        }
+    }
+    
+    function appendItemWaiitngToInventory () {
+        sendToWeb("script-to-web-append-item", appendItemWaiting);
     }
 
     function saveInventory() {
@@ -182,7 +193,7 @@ Tablet Vec3 Window */
                 "type": type,
                 "name": name,
                 "url": url,
-                "tags": tags
+                "tags": tags,
                 "metadata": metadata
             }
         };
@@ -283,12 +294,18 @@ Tablet Vec3 Window */
         sendSettings();
         sendInventory();
         sendReceivingItemQueue();
+        if (appendItemWaiting !== null) {
+            sendToWeb("script-to-web-append-item", appendItemWaiting);
+            appendItemWaiting = null;
+        }
     }
 
     function onOpened() {
+        isInventoryOpen = true;
     }
 
     function onClosed() {
+        isInventoryOpen = false;
     }
 
     function startup() {
@@ -297,7 +314,7 @@ Tablet Vec3 Window */
         loadSettings();
         
         Messages.messageReceived.connect(onMessageReceived);
-        Messages.subscribe(inventoryMessagesChannel);
+        Messages.subscribe(INVENTORY_MESSAGES_CHANNEL);
         
         ui = new AppUi({
             buttonName: "INVENTORY",
@@ -312,7 +329,7 @@ Tablet Vec3 Window */
 
     Script.scriptEnding.connect(function () {
         Messages.messageReceived.disconnect(onMessageReceived);
-        Messages.unsubscribe(inventoryMessagesChannel);
+        Messages.unsubscribe(INVENTORY_MESSAGES_CHANNEL);
     });
 
 }()); // END LOCAL_SCOPE
