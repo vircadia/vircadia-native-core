@@ -5922,19 +5922,7 @@ void Application::cameraModeChanged() {
 }
 
 bool Application::shouldCaptureMouse() const {
-    if (!_captureMouse) {
-        return false;
-    }
-
-    if (!_glWidget->isActiveWindow()) {
-        return false;
-    }
-
-    if (ui::Menu::isSomeSubmenuShown()) {
-        return false;
-    }
-
-    return true;
+    return _captureMouse && _glWidget->isActiveWindow() && !ui::Menu::isSomeSubmenuShown();
 }
 
 void Application::captureMouseChanged(bool captureMouse) {

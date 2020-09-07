@@ -3,6 +3,7 @@
 //  interface/src
 //
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -119,9 +120,9 @@ public slots:
     bool getCaptureMouse() const { return _captureMouse; }
 
     /**jsdoc
-     * Sets mouse capture state.
+     * Sets the mouse capture state.
      * @function Camera.setCaptureMouse
-     * @param {boolean} captureMouse - Whether or not to capture the mouse.
+     * @param {boolean} captureMouse - <code>true</code> to capture the mouse, <code>false</code> to release the mouse.
      */
     void setCaptureMouse(bool captureMouse) { _captureMouse = captureMouse; emit captureMouseUpdated(captureMouse); }
 
