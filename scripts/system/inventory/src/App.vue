@@ -254,15 +254,15 @@
           v-model="editDialogStore.show"
           max-width="380"
         >
-          <v-card>
-              <v-card-title class="headline">Edit Item</v-card-title>
-              
-              <v-form
-                  ref="editForm"
-                  v-model="editDialogStore.valid"
-                  :lazy-validation="false"
-              >
-                    
+            <v-card>
+                <v-card-title class="headline">Edit Item</v-card-title>
+
+                <v-form
+                    ref="editForm"
+                    v-model="editDialogStore.valid"
+                    :lazy-validation="false"
+                >
+
                     <v-select
                         :items="$store.state.supportedItemTypes"
                         class="my-2"
@@ -297,38 +297,55 @@
                         :rules="[v => !!v || 'URL is required.']"
                         required
                     ></v-text-field>
+                    
+                    <v-combobox
+                        class="px-2"
+                        label="Tags"
+                        v-model="editDialogStore.data.tags"
+                        multiple
+                        :chips="true"
+                        :deletable-chips="true"
+                        :disable-lookup="true"
+                        :items="possibleTags"
+                    ></v-combobox>
+                    
+                    <v-textarea
+                        class="px-2"
+                        label="Metadata"
+                        v-model="editDialogStore.data.metadata"
+                    ></v-textarea>
 
-                  <v-card-actions>
+                    <v-card-actions>
 
-                      <v-btn
-                          color="red"
-                          class="px-3"
-                          @click="editDialogStore.show = false"
-                      >
-                          Cancel
-                      </v-btn>
-                      
-                      <v-spacer></v-spacer>
-                      
-                      <v-btn
-                          color="blue"
-                          class="px-3"       
-                          :disabled="!$store.state.editDialog.valid"             
-                          @click="editDialogStore.show = false; editItem($store.state.editDialog.uuid);"
-                      >
-                          Done
-                      </v-btn>
-                  
-                  </v-card-actions>
-                  
-              </v-form>
+                        <v-btn
+                            color="red"
+                            class="px-3"
+                            @click="editDialogStore.show = false"
+                        >
+                            Cancel
+                        </v-btn>
 
-          </v-card>
+                        <v-spacer></v-spacer>
+
+                        <v-btn
+                            color="blue"
+                            class="px-3"       
+                            :disabled="!$store.state.editDialog.valid"             
+                            @click="editDialogStore.show = false; editItem($store.state.editDialog.uuid);"
+                        >
+                            Done
+                        </v-btn>
+
+                    </v-card-actions>
+
+                </v-form>
+
+            </v-card>
         </v-dialog>
         
         <v-dialog
-          v-model="editFolderDialogStore.show"
-          max-width="380"
+            v-model="editFolderDialogStore.show"
+            max-width="380"
         >
           <v-card>
               <v-card-title class="headline">Edit Folder</v-card-title>
@@ -488,6 +505,23 @@
                       :rules="[v => !!v || 'URL is required.']"
                       required
                   ></v-text-field>
+                  
+                  <v-combobox
+                      class="px-2"
+                      label="Tags"
+                      v-model="addDialogStore.data.tags"
+                      multiple
+                      :chips="true"
+                      :deletable-chips="true"
+                      :disable-lookup="true"
+                      :items="possibleTags"
+                  ></v-combobox>
+                  
+                  <v-textarea
+                      class="px-2"
+                      label="Metadata"
+                      v-model="addDialogStore.data.metadata"
+                  ></v-textarea>
 
                   <v-card-actions>
 
@@ -505,7 +539,7 @@
                           color="blue"
                           class="px-3"
                           :disabled="!$store.state.addDialog.valid"
-                          @click="addDialogStore.show = false; addItem($store.state.addDialog.data.name, $store.state.addDialog.data.folder, $store.state.addDialog.data.url)"
+                          @click="addDialogStore.show = false; addItem()"
                       >
                           Add
                       </v-btn>
@@ -572,6 +606,23 @@
                       v-model="receiveDialogStore.data.url"
                       required
                   ></v-text-field>
+                  
+                  <v-combobox
+                      class="px-2"
+                      label="Tags"
+                      v-model="receiveDialogStore.data.tags"
+                      multiple
+                      :chips="true"
+                      :deletable-chips="true"
+                      :disable-lookup="true"
+                      :items="possibleTags"
+                  ></v-combobox>
+                  
+                  <v-textarea
+                      class="px-2"
+                      label="Metadata"
+                      v-model="receiveDialogStore.data.metadata"
+                  ></v-textarea>
 
                   <v-card-actions>
 
@@ -721,6 +772,10 @@ if (!browserDevelopment()) {
                     // alert("RECEIVING SETTINGS:" + JSON.stringify(receivedCommand.data));
                     vue_this.receiveSettings(receivedCommand.data);
                     break;
+                case 'script-to-web-append-item':
+                    // alert("RECEIVING ITEM APPEND:" + JSON.stringify(receivedCommand.data));
+                    vue_this.receiveAppendItem(receivedCommand.data);
+                    break;
             }
         }
     });
@@ -741,6 +796,7 @@ export default {
         itemiterator
     },
     data: () => ({
+        possibleTags: [],
         receivingItemsDialog: {
             show: false,
             data: {
@@ -826,7 +882,7 @@ export default {
             var uuid = s.join("");
             return uuid;
         },
-        pushToItems: function(type, name, folder, url, uuid) {
+        pushToItems: function(type, name, folder, url, tags, metadata, uuid) {
             var uuidToUse;
 
             if (uuid != null) {
@@ -840,6 +896,8 @@ export default {
                 "name": name,
                 "folder": folder,
                 "url": url,
+                "tags": tags,
+                "metadata": metadata,
                 "uuid": uuidToUse
             });
             
@@ -879,7 +937,7 @@ export default {
             
             return detectedItemType;
         },
-        checkItemType: function(itemType) {
+        checkItemType: function (itemType) {
             var detectedItemType = null;
             itemType = itemType.toUpperCase();
             
@@ -896,49 +954,7 @@ export default {
             
             return detectedItemType;
         },
-        createFolder: function(name) {
-            this.$store.commit('pushToItems', {
-                "name": name,
-                "folder": "No Folder",
-                "items": [],
-                "uuid": this.createUUID()
-            });
-            
-            this.createFolderDialogStore.data.name = null;
-        },
-        editFolder: function(uuid) {
-            var findFolder = this.searchForItem(uuid);
-            
-            if (findFolder) {
-                findFolder.returnedItem.name = this.$store.state.editFolderDialog.data.name;
-                
-                if (this.$store.state.editFolderDialog.data.folder !== null && this.$store.state.editFolderDialog.data.folder !== "No Change") {
-                    if (findFolder.returnedItem.folder !== this.$store.state.editFolderDialog.data.folder && this.$store.state.editFolderDialog.data.folder !== "No Folder") {
-                        this.moveFolder(uuid, this.$store.state.editFolderDialog.data.folder);
-                    } else if (this.$store.state.editFolderDialog.data.folder === "No Folder") {
-                        this.moveFolder(uuid, "top");
-                    }
-                }
-            }
-        },
-        addItem: function(name, folder, url) {
-            var detectedFileType = this.detectFileType(url);
-            var itemType;
-                        
-            if (detectedFileType == null || detectedFileType[0] == null) {
-                itemType = "unknown";
-            } else {
-                itemType = this.checkFileType(detectedFileType[0]);
-            }
-
-            this.pushToItems(itemType, name, folder, url, null);
-            
-            this.addDialogStore.data.name = null;
-            this.addDialogStore.data.folder = null;
-            this.addDialogStore.data.url = null;
-        
-        },
-        detectFileType: function(url) {    
+        detectFileType: function (url) {    
             // Attempt the pure regex route...
             var extensionRegex = /\.[0-9a-z]+$/i; // to detect the file type based on extension in the URL.
             var detectedFileType = url.match(extensionRegex);
@@ -957,20 +973,70 @@ export default {
             
             return detectedFileType;
         },
-        removeItem: function(uuid) {
+        createFolder: function (name) {
+            this.$store.commit('pushToItems', {
+                "name": name,
+                "folder": "No Folder",
+                "items": [],
+                "uuid": this.createUUID()
+            });
+            
+            this.createFolderDialogStore.data.name = null;
+        },
+        editFolder: function (uuid) {
+            var findFolder = this.searchForItem(uuid);
+            
+            if (findFolder) {
+                findFolder.returnedItem.name = this.$store.state.editFolderDialog.data.name;
+                
+                if (this.$store.state.editFolderDialog.data.folder !== null && this.$store.state.editFolderDialog.data.folder !== "No Change") {
+                    if (findFolder.returnedItem.folder !== this.$store.state.editFolderDialog.data.folder && this.$store.state.editFolderDialog.data.folder !== "No Folder") {
+                        this.moveFolder(uuid, this.$store.state.editFolderDialog.data.folder);
+                    } else if (this.$store.state.editFolderDialog.data.folder === "No Folder") {
+                        this.moveFolder(uuid, "top");
+                    }
+                }
+            }
+        },
+        addItem: function () {
+            var name = this.$store.state.addDialog.data.name;
+            var folder = this.$store.state.addDialog.data.folder;
+            var url = this.$store.state.addDialog.data.url;
+            var tags = this.$store.state.addDialog.data.tags;
+            var metadata = this.$store.state.addDialog.data.metadata;
+            
+            var detectedFileType = this.detectFileType(url);
+            var itemType;
+                        
+            if (detectedFileType == null || detectedFileType[0] == null) {
+                itemType = "unknown";
+            } else {
+                itemType = this.checkFileType(detectedFileType[0]);
+            }
+
+            this.pushToItems(itemType, name, folder, url, tags, metadata, null);
+            
+            this.addDialogStore.data.name = null;
+            this.addDialogStore.data.folder = null;
+            this.addDialogStore.data.url = null;
+        
+        },
+        removeItem: function (uuid) {
             var findItem = this.searchForItem(uuid);
             findItem.parentArray.splice(findItem.iteration, 1);
         },
-        removeFolder: function(uuid) {
+        removeFolder: function (uuid) {
             var findFolder = this.searchForItem(uuid);
             findFolder.parentArray.splice(findFolder.iteration, 1);
         },
-        editItem: function(uuid) {    
+        editItem: function (uuid) {    
             var findItem = this.searchForItem(uuid);
             findItem.returnedItem.type = this.checkItemType(this.$store.state.editDialog.data.type);
             findItem.returnedItem.name = this.$store.state.editDialog.data.name;
             findItem.returnedItem.folder = this.$store.state.editDialog.data.folder;
             findItem.returnedItem.url = this.$store.state.editDialog.data.url;
+            findItem.returnedItem.tags = this.$store.state.editDialog.data.tags;
+            findItem.returnedItem.metadata = this.$store.state.editDialog.data.metadata;
             
             var folderName;
             
@@ -989,7 +1055,7 @@ export default {
             }
 
         },
-        acceptReceivingItem: function(data) {
+        acceptReceivingItem: function (data) {
             this.removeReceivingItem(data.data.uuid);
             
             this.receiveDialogStore.data.userUUID = data.senderUUID;
@@ -1001,9 +1067,8 @@ export default {
             this.getFolderList("add");
                             
             this.receiveDialogStore.show = true;
-    
         },
-        removeReceivingItem: function(uuid) {
+        removeReceivingItem: function (uuid) {
             for (var i = 0; i < this.receivingItemsDialog.data.receivingItemQueue.length; i++) {
                 if (this.receivingItemsDialog.data.receivingItemQueue[i].data.uuid === uuid) {
                     this.receivingItemsDialog.data.receivingItemQueue.splice(i, 1);
@@ -1014,18 +1079,25 @@ export default {
                 }
             }
         },
-        receiveReceivingItemQueue: function(data) {
+        receiveReceivingItemQueue: function (data) {
             this.receivingItemsDialog.data.receivingItemQueue = data;
         },
-        shareItem: function(uuid) {        
+        receiveAppendItem: function (data) {
+            this.pushToItems(data.type, data.name, "No Folder", data.url, data.tags, data.metadata, null);
+        },
+        shareItem: function (uuid) {        
             var findItem = this.searchForItem(uuid);
-            var typeToShare = findItem.returnedItem.type;
             var nameToShare = findItem.returnedItem.name;
+            var typeToShare = findItem.returnedItem.type;
+            var tagsToShare = findItem.returnedItem.tags;
+            var metadataToShare = findItem.returnedItem.metadata;
             
             // alert("type" + typeToShare + "name" + nameToShare);
             this.sendAppMessage("share-item", {
                 "type": typeToShare,
                 "name": nameToShare,
+                "tags": tagsToShare,
+                "metadata": metadataToShare,
                 "url": this.$store.state.shareDialog.data.url,
                 "recipient": this.$store.state.shareDialog.data.recipient,
             });
@@ -1036,6 +1108,8 @@ export default {
                 this.$store.state.receiveDialog.data.name,
                 this.$store.state.receiveDialog.data.folder,
                 this.$store.state.receiveDialog.data.url,
+                this.$store.state.receiveDialog.data.tags,
+                this.$store.state.receiveDialog.data.metadata,
                 null
             );
         },

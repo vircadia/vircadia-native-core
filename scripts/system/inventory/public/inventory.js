@@ -93,8 +93,13 @@ Tablet Vec3 Window */
             if (messageJSON.command === "share-item" 
                 && messageJSON.recipient === MyAvatar.sessionUUID) { // We are receiving an item.
                 // Window.alert("Passed 1 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);
-                pushReceivedItemToQueue(sender, messageJSON.type, messageJSON.name, messageJSON.url);
-            } 
+                pushReceivedItemToQueue(sender, messageJSON.type, messageJSON.name, messageJSON.url, messageJSON.tags, messageJSON.metadata);
+            }
+            
+            if (messageJSON.command === "append-item" 
+                && sender === MyAvatar.sessionUUID) { // We are appending an item from another of our own apps.
+                appendReceivedItemToInventory(messageJSON.type, messageJSON.name, messageJSON.url, messageJSON.tags, messageJSON.metadata);
+            }
         }
         // print("Message received:");
         // print("- channel: " + channel);
@@ -134,6 +139,18 @@ Tablet Vec3 Window */
     }
 
     // END SEND AND RECEIVE SETTINGS STATE
+    
+    // This function bypasses the receiving item queue and goes straight into the inventory as is.
+    function appendReceivedItemToInventory(type, name, url, tags, metadata) {
+        var itemData = {
+            "type": type,
+            "name": name,
+            "url": url,
+            "tags": tags,
+            "metadata": metadata
+        }
+        sendToWeb("script-to-web-append-item", itemData);
+    }
 
     function saveInventory() {
         Settings.setValue(inventoryDataSettingString, inventoryData);
@@ -151,7 +168,7 @@ Tablet Vec3 Window */
         inventorySettings = Settings.getValue(inventorySettingsString);
     }
 
-    function pushReceivedItemToQueue(senderUUID, type, name, url) {
+    function pushReceivedItemToQueue(senderUUID, type, name, url, tags, metadata) {
         console.info("Receiving an item:", name, "from:", senderUUID);
         var getAvatarData = AvatarList.getAvatar(senderUUID);
         var senderName = getAvatarData.sessionDisplayName;
@@ -164,7 +181,9 @@ Tablet Vec3 Window */
             "data": {
                 "type": type,
                 "name": name,
-                "url": url
+                "url": url,
+                "tags": tags
+                "metadata": metadata
             }
         };
         

@@ -104,9 +104,11 @@ export const store = new Vuex.Store({
             },
             {
                 "type": "model",
-                "name": "3D MODEL",
+                "name": "3D MODEL, TAGS, METADATA",
                 "url": "https://googlee.com/vr.fbx",
                 "folder": "No Folder",
+                "tags": ["test tag", "lol"],
+                "metadata": "THIS IS METADATA?",
                 "uuid": "54254354980-7667jt353",
             },
             {
@@ -183,6 +185,8 @@ export const store = new Vuex.Store({
                 "name": null,
                 "folder": null,
                 "url": null,
+                "tags": null,
+                "metadata": null
             },
         },
         editDialog: {
@@ -193,7 +197,9 @@ export const store = new Vuex.Store({
                 "type": null,
                 "name": null,
                 "url": null,
-                "folder": null,
+                "tags": null,
+                "metadata": null,
+                "folder": null
             },
         },
         editFolderDialog: {
@@ -202,7 +208,7 @@ export const store = new Vuex.Store({
             uuid: null, //
             data: {
                 "name": null,
-                "folder": null,
+                "folder": null
             },
         },
         receiveDialog: {
@@ -215,6 +221,8 @@ export const store = new Vuex.Store({
                 "folder": null,
                 "type": null,
                 "url": null,
+                "tags": null,
+                "metadata": null
             },
         },
         shareDialog: {

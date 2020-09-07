@@ -70,14 +70,7 @@
                               </v-list-item-action>
                           </v-list-item>
                           <v-list-item
-                              @click="
-                                  editDialogStore.show = true; 
-                                  editDialogStore.uuid = item.uuid;
-                                  editDialogStore.data.type = item.type.toUpperCase();
-                                  editDialogStore.data.folder = null;
-                                  editDialogStore.data.name = item.name;
-                                  editDialogStore.data.url = item.url;
-                              "
+                              @click="showEditDialog(item)"
                           >
                               <v-list-item-title>Edit</v-list-item-title>
                               <v-list-item-action>
@@ -297,6 +290,16 @@ export default {
         }
     },
     methods: {
+        showEditDialog: function(item) {
+            this.editDialogStore.show = true; 
+            this.editDialogStore.uuid = item.uuid;
+            this.editDialogStore.data.type = item.type.toUpperCase();
+            this.editDialogStore.data.folder = null;
+            this.editDialogStore.data.name = item.name;
+            this.editDialogStore.data.url = item.url;
+            this.editDialogStore.data.tags = item.tags;
+            this.editDialogStore.data.metadata = item.metadata;
+        },
         sendEvent: function(command, data) {
             EventBus.$emit(command, data);
         },
