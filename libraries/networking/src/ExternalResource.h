@@ -18,7 +18,6 @@
 
 #include <mutex>
 
-
 /**
  * Flexible management for external resources
  *
@@ -36,10 +35,9 @@
 class ExternalResource : public QObject {
     Q_OBJECT
 
-    public:
-
-    static ExternalResource *getInstance();
-    ~ExternalResource() {};
+public:
+    static ExternalResource* getInstance();
+    ~ExternalResource(){};
 
     /**
      * Bucket from which to retrieve the resource
@@ -49,7 +47,8 @@ class ExternalResource : public QObject {
      * will be done to the Assets bucket instead. This should ease the transition and ensure a clean
      * separation.
      */
-    enum class Bucket {
+    enum class Bucket
+    {
         /** Assets that used to be in the hifi-public S3 bucket */
         Public,
 
@@ -79,7 +78,6 @@ class ExternalResource : public QObject {
      */
     QUrl getQUrl(Bucket bucket, const QUrl& relative_path);
 
-
     /**
      * Returns the location of a resource as a QUrl
      *
@@ -92,9 +90,7 @@ class ExternalResource : public QObject {
      * @param relative_path The path of the resource within the bucket
      * @returns The resulting URL as a QUrl
      */
-    QUrl getQUrl(Bucket bucket, QString path) {
-        return getQUrl(bucket, QUrl(path));
-    }
+    QUrl getQUrl(Bucket bucket, QString path) { return getQUrl(bucket, QUrl(path)); }
 
     /**
      * Returns the location of a resource as a QString
@@ -108,7 +104,7 @@ class ExternalResource : public QObject {
      * @param relative_path The path of the resource within the bucket
      * @returns The resulting URL as a QString
      */
-    QString getUrl(Bucket bucket, const QUrl &relative_path) {
+    QString getUrl(Bucket bucket, const QUrl& relative_path) {
         return ExternalResource::getQUrl(bucket, relative_path).toString();
     };
 
@@ -124,24 +120,24 @@ class ExternalResource : public QObject {
      * @param relative_path The path of the resource within the bucket
      * @returns The resulting URL as a QString
      */
-    Q_INVOKABLE QString getUrl(Bucket bucket, const QString &relative_path) {
+    Q_INVOKABLE QString getUrl(Bucket bucket, const QString& relative_path) {
         return ExternalResource::getQUrl(bucket, QUrl(relative_path)).toString();
     };
 
     Q_INVOKABLE QString getBase(Bucket bucket);
 
-    Q_INVOKABLE void setBase(Bucket bucket, const QString &url);
+    Q_INVOKABLE void setBase(Bucket bucket, const QString& url);
 
-    private:
+private:
     ExternalResource(QObject* parent = nullptr);
 
     std::mutex _bucketMutex;
 
-    QMap<Bucket, QUrl> _bucketBases {
-        { Bucket::Public, QUrl("https://public.vircadia.com")},
-        { Bucket::Content, QUrl("https://content.vircadia.com")},
-        { Bucket::Assets, QUrl("https://assets.vircadia.com")},
-        { Bucket::MPAssets, QUrl("https://mpassets.vircadia.com")},
+    QMap<Bucket, QUrl> _bucketBases{
+        { Bucket::Public, QUrl("https://public.vircadia.com") },
+        { Bucket::Content, QUrl("https://content.vircadia.com") },
+        { Bucket::Assets, QUrl("https://assets.vircadia.com") },
+        { Bucket::MPAssets, QUrl("https://mpassets.vircadia.com") },
     };
 };
 
