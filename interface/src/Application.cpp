@@ -3517,6 +3517,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("About", AboutUtil::getInstance());
     surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());  // Deprecated
     surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
+    surfaceContext->setContextProperty("ExternalResource", ExternalResource::getInstance());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -3631,6 +3632,8 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
         surfaceContext->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
         surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
         surfaceContext->setContextProperty("PlatformInfo", PlatformInfoScriptingInterface::getInstance());
+        surfaceContext->setContextProperty("ExternalResource", ExternalResource::getInstance());
+
         // This `module` context property is blank for the QML scripting interface so that we don't get log errors when importing
         // certain JS files from both scripts (in the JS context) and QML (in the QML context).
         surfaceContext->setContextProperty("module", "");
@@ -7539,7 +7542,7 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptEngine
 
     
     scriptEngine->registerGlobalObject("ExternalResource", ExternalResource::getInstance());
-    scriptEngine->registerEnum("ExternalResource.Bucket", QMetaEnum::fromType<ExternalResource::Bucket>());
+    scriptEngine->registerEnum("ExternalResource", QMetaEnum::fromType<ExternalResource::Bucket>());
 
     registerInteractiveWindowMetaType(scriptEngine.data());
 

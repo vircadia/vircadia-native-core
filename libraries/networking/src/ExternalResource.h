@@ -74,7 +74,7 @@ class ExternalResource : public QObject {
      * @param relative_path The path of the resource within the bucket
      * @returns The resulting URL as a QUrl
      */
-    Q_INVOKABLE QUrl getQUrl(Bucket bucket, const QUrl& relative_path);
+    QUrl getQUrl(Bucket bucket, const QUrl& relative_path);
 
 
     /**
@@ -89,7 +89,7 @@ class ExternalResource : public QObject {
      * @param relative_path The path of the resource within the bucket
      * @returns The resulting URL as a QUrl
      */
-    Q_INVOKABLE QUrl getQUrl(Bucket bucket, QString path) {
+    QUrl getQUrl(Bucket bucket, QString path) {
         return getQUrl(bucket, QUrl(path));
     }
 
@@ -105,7 +105,7 @@ class ExternalResource : public QObject {
      * @param relative_path The path of the resource within the bucket
      * @returns The resulting URL as a QString
      */
-    Q_INVOKABLE QString getUrl(Bucket bucket, const QUrl &relative_path) {
+    QString getUrl(Bucket bucket, const QUrl &relative_path) {
         return ExternalResource::getQUrl(bucket, relative_path).toString();
     };
 
