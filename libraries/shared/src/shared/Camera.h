@@ -120,7 +120,9 @@ public slots:
     bool getCaptureMouse() const { return _captureMouse; }
 
     /**jsdoc
-     * Sets the mouse capture state.
+     * Sets the mouse capture state.  When <code>true</code>, the mouse will be invisible and cannot leave the bounds of
+     * Interface, as long as Interface is the active window and no menu item is selected.  When <code>false</code>, the mouse
+     * will behave normally.
      * @function Camera.setCaptureMouse
      * @param {boolean} captureMouse - <code>true</code> to capture the mouse, <code>false</code> to release the mouse.
      */
