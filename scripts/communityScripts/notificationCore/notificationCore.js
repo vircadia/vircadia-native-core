@@ -1,3 +1,17 @@
+//
+//  notificationCore.js
+//
+//  Created by Fluffy Jenkins January 2020.
+//  Copyright 2020 Fluffy Jenkins
+//  Copyright 2020 Vircadia contributors.
+//
+//  For any future coders, please keep me in the loop when making changes.
+//  Please tag me in any Pull Requests.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 "use strict";
 var notificationList = [];
 
@@ -6,6 +20,7 @@ var sizeData = {30: {widthMul: 1.8, heightMul: 2.05, split: 35, size: 30}};
 var DEFAULT_SIZE = 30;
 var DEFAULT_OFFSET = 10;
 var FLOOF_NOTIFICATION_CHANNEL = "Floof-Notif";
+var MAIN_CHAT_APP_CHANNEL = "Chat";
 
 var offset = DEFAULT_OFFSET;
 
@@ -160,5 +175,20 @@ function notif(text, colour) {
 
     notificationList.push(noti);
 }
+
+Controller.mousePressEvent.connect(function (event) {
+    // Overlays.getOverlayAtPoint applies only to 2D overlays.
+    var overlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+    if (overlay) {
+        for (var i = 0; i < notificationList.length; i++) {
+            if (overlay === notificationList[i].id) {
+                Overlays.deleteOverlay(notificationList[i].id)
+                Messages.sendMessage(MAIN_CHAT_APP_CHANNEL, JSON.stringify({
+                    type: "ShowChatWindow",
+                }));
+            }
+        }
+    }
+});
 
 Script.scriptEnding.connect(cleanUp);

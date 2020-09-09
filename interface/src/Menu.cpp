@@ -9,6 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// For happ(ier) development of QML, use these two things:
+// This forces QML files to be pulled from the source as you edit it: set environment variable HIFI_USE_SOURCE_TREE_RESOURCES=1
+// Use this to live reload: DependencyManager::get<OffscreenUi>()->clearCache();
+
 #include "Menu.h"
 #include <QDesktopServices>
 #include <QFileDialog>
@@ -39,6 +43,7 @@
 #include "avatar/AvatarManager.h"
 #include "avatar/AvatarPackager.h"
 #include "AvatarBookmarks.h"
+#include "DomainAccountManager.h"
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -69,6 +74,7 @@ const char* EXCLUSION_GROUP_KEY = "exclusionGroup";
 Menu::Menu() {
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     auto accountManager = DependencyManager::get<AccountManager>();
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
 
     // File/Application menu ----------------------------------
     MenuWrapper* fileMenu = addMenu("File");
@@ -83,6 +89,17 @@ Menu::Menu() {
         connect(accountManager.data(), &AccountManager::logoutComplete,
                 dialogsManager.data(), &DialogsManager::toggleLoginDialog);
     }
+
+    auto domainLogin = addActionToQMenuAndActionHash(fileMenu, "Domain: Log In");
+    domainLogin->setVisible(false);
+    connect(domainLogin, &QAction::triggered, [] {
+        auto dialogsManager = DependencyManager::get<DialogsManager>();
+        dialogsManager->setDomainLoginState();
+        dialogsManager->showDomainLoginDialog();
+    });
+    connect(domainAccountManager.data(), &DomainAccountManager::hasLogInChanged, [domainLogin](bool hasLogIn) {
+        domainLogin->setVisible(hasLogIn);
+    });
 
     // File > Quit
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Quit, Qt::CTRL | Qt::Key_Q, qApp, SLOT(quit()), QAction::QuitRole);
@@ -705,7 +722,7 @@ Menu::Menu() {
     // Developer > Crash >>>
     bool result = false;
     const QString HIFI_SHOW_DEVELOPER_CRASH_MENU("HIFI_SHOW_DEVELOPER_CRASH_MENU");
-    result = QProcessEnvironment::systemEnvironment().contains(HIFI_SHOW_DEVELOPER_CRASH_MENU);
+    result = true;//QProcessEnvironment::systemEnvironment().contains(HIFI_SHOW_DEVELOPER_CRASH_MENU);
     if (result) {
         MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
 
@@ -744,6 +761,11 @@ Menu::Menu() {
         connect(action, &QAction::triggered, qApp, []() { crash::newFault(); });
         action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNewFaultThreaded);
         connect(action, &QAction::triggered, qApp, []() { std::thread(crash::newFault).join(); });
+
+        action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashThrownException);
+        connect(action, &QAction::triggered, qApp, []() { crash::throwException(); });
+        action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashThrownExceptionThreaded);
+        connect(action, &QAction::triggered, qApp, []() { std::thread(crash::throwException).join(); });
 
         addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashOnShutdown, 0, qApp, SLOT(crashOnShutdown()));
     }

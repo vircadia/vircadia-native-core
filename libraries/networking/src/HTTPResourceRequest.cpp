@@ -21,6 +21,7 @@
 
 #include "NetworkAccessManager.h"
 #include "NetworkLogging.h"
+#include "NetworkingConstants.h"
 
 HTTPResourceRequest::~HTTPResourceRequest() {
     if (_reply) {
@@ -54,7 +55,7 @@ void HTTPResourceRequest::doSend() {
 
     QNetworkRequest networkRequest(_url);
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
 
     if (_cacheEnabled) {
         networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);

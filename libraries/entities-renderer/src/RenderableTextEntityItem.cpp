@@ -103,10 +103,9 @@ bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
 
 void TextEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     void* key = (void*)this;
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] () {
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
         withWriteLock([&] {
             _dimensions = entity->getScaledDimensions();
-            updateModelTransformAndBound();
             _renderTransform = getModelTransform();
             _renderTransform.postScale(_dimensions);
         });

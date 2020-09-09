@@ -65,6 +65,16 @@ ParticleEffectEntityRenderer::ParticleEffectEntityRenderer(const EntityItemPoint
     });
 }
 
+bool ParticleEffectEntityRenderer::needsRenderUpdate() const {
+    if (resultWithReadLock<bool>([&] {
+        return !_textureLoaded;
+    })) {
+        return true;
+    }
+
+    return Parent::needsRenderUpdate();
+}
+
 void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     auto newParticleProperties = entity->getParticleProperties();
     if (!newParticleProperties.valid()) {
@@ -103,6 +113,7 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
         }
 
         withWriteLock([&] {
+            _textureLoaded = true;
             entity->setVisuallyReady(true);
         });
     } else {
@@ -112,20 +123,29 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
         if (textureNeedsUpdate) {
             withWriteLock([&] {
                 _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_particleProperties.textures);
+                _textureLoaded = false;
+                entity->setVisuallyReady(false);
             });
         }
 
-        if (_networkTexture) {
+        if (!_textureLoaded) {
+            emit requestRenderUpdate();
+        }
+
+        bool textureLoaded = resultWithReadLock<bool>([&] {
+            return _networkTexture && (_networkTexture->isLoaded() || _networkTexture->isFailed());
+        });
+        if (textureLoaded) {
             withWriteLock([&] {
-                entity->setVisuallyReady(_networkTexture->isFailed() || _networkTexture->isLoaded());
+                entity->setVisuallyReady(true);
+                _textureLoaded = true;
             });
         }
     }
 
     void* key = (void*)this;
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] () {
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] {
         withWriteLock([&] {
-            updateModelTransformAndBound();
             _renderTransform = getModelTransform();
         });
     });

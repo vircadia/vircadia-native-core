@@ -149,8 +149,6 @@ protected:
     QVector<QUuid> _renderWithZones;
     bool _cauterized { false };
     bool _moving { false };
-    // Only touched on the rendering thread
-    bool _renderUpdateQueued{ false };
     Transform _renderTransform;
     Transform _prevRenderTransform; // each subclass is responsible for updating this after they render because they all handle transforms differently
 
@@ -193,10 +191,7 @@ protected:
     using Parent::needsRenderUpdateFromEntity;
     // Returns true if the item in question needs to have updateInScene called because of changes in the entity
     virtual bool needsRenderUpdateFromEntity(const EntityItemPointer& entity) const override final {
-        if (Parent::needsRenderUpdateFromEntity(entity)) {
-            return true;
-        }
-        return needsRenderUpdateFromTypedEntity(_typedEntity);
+        return Parent::needsRenderUpdateFromEntity(entity) || needsRenderUpdateFromTypedEntity(_typedEntity);
     }
 
     virtual void doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) override final {

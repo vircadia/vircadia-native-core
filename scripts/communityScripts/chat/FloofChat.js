@@ -6,6 +6,7 @@
 //
 //  Created by Fluffy Jenkins January 2020.
 //  Copyright 2020 Fluffy Jenkins
+//  Copyright 2020 Vircadia contributors.
 //
 //  For any future coders, please keep me in the loop when making changes.
 //  Please tag me in any Pull Requests.
@@ -22,6 +23,7 @@ var CONTROL_KEY = 67108864;
 var SHIFT_KEY = 33554432;
 var FLOOF_CHAT_CHANNEL = "Chat";
 var FLOOF_NOTIFICATION_CHANNEL = "Floof-Notif";
+var SYSTEM_NOTIFICATION_CHANNEL = "System-Notifications";
 
 var MAIN_CHAT_WINDOW_HEIGHT = 450;
 var MAIN_CHAT_WINDOW_WIDTH = 750;
@@ -78,6 +80,7 @@ init();
 
 function init() {
     Messages.subscribe(FLOOF_CHAT_CHANNEL);
+    Messages.subscribe(SYSTEM_NOTIFICATION_CHANNEL);
     historyLog = [];
     try {
         historyLog = JSON.parse(Settings.getValue(settingsRoot + "/HistoryLog", "[]"));
@@ -98,6 +101,8 @@ function init() {
     chatBar.sendToQml(JSON.stringify({visible: false, history: chatBarHistory}));
     Controller.keyPressEvent.connect(keyPressEvent);
     Messages.messageReceived.connect(messageReceived);
+    AvatarManager.avatarAddedEvent.connect(avatarJoinsDomain);
+    AvatarManager.avatarRemovedEvent.connect(avatarLeavesDomain);
 
     connectWebSocket();
 }
@@ -432,8 +437,8 @@ function replaceFormatting(text) {
     }
 }
 
-function messageReceived(channel, message) {
-    if (channel === "Chat") {
+function messageReceived(channel, message, sender) {
+    if (channel === FLOOF_CHAT_CHANNEL) {
         var cmd = {FAILED: true};
         try {
             cmd = JSON.parse(message);
@@ -510,13 +515,37 @@ function messageReceived(channel, message) {
                     }));
                 }
             }
+            if (cmd.type === "ShowChatWindow") {
+                toggleMainChatWindow();
+            }
+        }
+    }
+    
+    if (channel === SYSTEM_NOTIFICATION_CHANNEL && sender == MyAvatar.sessionUUID) {
+        var cmd = {FAILED: true};
+        try {
+            cmd = JSON.parse(message);
+        } catch (e) {
+            //
+        }
+        if (!cmd.FAILED) {
+            if (cmd.type === "Update-Notification") {
+                addToLog(cmd.message, cmd.category, cmd.colour, cmd.channel);
+                
+                Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
+                    sender: "(" + cmd.category + ")",
+                    text: replaceFormatting(cmd.message),
+                    colour: {text: cmd.colour}
+                }));
+            }
         }
     }
 }
 
 function time() {
     var d = new Date();
-    var month = (d.getMonth()).toString();
+    // Months are returned in range 0-11 instead of 1-12, so we have to add 1.
+    var month = (d.getMonth() + 1).toString(); 
     var day = (d.getDate()).toString();
     var h = (d.getHours()).toString();
     var m = (d.getMinutes()).toString();
@@ -562,7 +591,9 @@ function fromQml(message) {
                     cmd = processChat(cmd);
                     if (cmd.message === "") return;
                     Messages.sendMessage(FLOOF_CHAT_CHANNEL, JSON.stringify({
-                        type: "TransmitChatMessage", channel: "Domain", colour: chatColour("Domain"),
+                        type: "TransmitChatMessage", 
+                        channel: "Domain", 
+                        colour: chatColour("Domain"),
                         message: cmd.message,
                         displayName: cmd.avatarName
                     }));
@@ -618,6 +649,46 @@ function setVisible(_visible) {
     visible = _visible;
 }
 
+function avatarJoinsDomain(sessionID) {
+    Script.setTimeout(function () {
+        var messageText = AvatarManager.getPalData([sessionID]).data[0].sessionDisplayName + " has joined."
+        var messageColor = { red: 122, green: 122, blue: 122 };
+        
+        addToLog(messageText, "Notice", messageColor, "Domain");
+        
+        if (!mutedAudio["Domain"]) {
+            playNotificationSound();
+        }
+        
+        if (!muted["Domain"]) {
+            Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
+                sender: "(D)",
+                text:  messageText,
+                colour: { text: messageColor }
+            }));
+        }
+    }, 500); // Wait 500ms for the avatar to load to properly get info about them.
+}
+
+function avatarLeavesDomain(sessionID) {
+    var messageText = AvatarManager.getPalData([sessionID]).data[0].sessionDisplayName + " has left."
+    var messageColor = { red: 122, green: 122, blue: 122 };
+    
+    addToLog(messageText, "Notice", messageColor, "Domain");
+    
+    if (!mutedAudio["Domain"]) {
+        playNotificationSound();
+    }
+    
+    if (!muted["Domain"]) {
+        Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
+            sender: "(D)",
+            text:  messageText,
+            colour: { text: messageColor }
+        }));
+    }
+}
+
 function keyPressEvent(event) {
     if (event.key === H_KEY && !event.isAutoRepeat && event.isControl) {
         toggleMainChatWindow()
@@ -636,11 +707,25 @@ function shutdown() {
     } catch (e) {
         // empty
     }
+    
+    try {
+        AvatarManager.avatarAddedEvent.disconnect(avatarJoinsDomain);
+    } catch (e) {
+        // empty
+    }
+    
+    try {
+        AvatarManager.avatarRemovedEvent.disconnect(avatarLeavesDomain);
+    } catch (e) {
+        // empty
+    }
+    
     try {
         Controller.keyPressEvent.disconnect(keyPressEvent);
     } catch (e) {
         // empty
     }
+    
     chatBar.close();
     chatHistory.close();
 }

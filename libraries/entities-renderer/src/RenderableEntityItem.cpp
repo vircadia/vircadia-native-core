@@ -220,13 +220,6 @@ void EntityRenderer::render(RenderArgs* args) {
         return;
     }
 
-    if (!_renderUpdateQueued && needsRenderUpdate()) {
-        // FIXME find a way to spread out the calls to needsRenderUpdate so that only a given subset of the 
-        // items checks every frame, like 1/N of the tree ever N frames
-        _renderUpdateQueued = true;
-        emit requestRenderUpdate();
-    }
-
     if (_visible && (args->_renderMode != RenderArgs::RenderMode::DEFAULT_RENDER_MODE || !_cauterized)) {
         doRender(args);
     }
@@ -345,11 +338,6 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
     }
     _updateTime = usecTimestampNow();
 
-    // FIXME is this excessive?
-    if (!needsRenderUpdate()) {
-        return;
-    }
-
     doRenderUpdateSynchronous(scene, transaction, _entity);
     transaction.updateItem<PayloadProxyInterface>(_renderItemID, [this](PayloadProxyInterface& self) {
         if (!isValidRenderItem()) {
@@ -357,7 +345,6 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
         }
         // Happens on the render thread.  Classes should use
         doRenderUpdateAsynchronous(_entity);
-        _renderUpdateQueued = false;
     });
 }
 
@@ -458,7 +445,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
 }
 
 void EntityRenderer::onAddToScene(const EntityItemPointer& entity) {
-    QObject::connect(this, &EntityRenderer::requestRenderUpdate, this, [this] { 
+    QObject::connect(this, &EntityRenderer::requestRenderUpdate, this, [this] {
         auto renderer = DependencyManager::get<EntityTreeRenderer>();
         if (renderer) {
             renderer->onEntityChanged(_entity->getID());
@@ -467,7 +454,10 @@ void EntityRenderer::onAddToScene(const EntityItemPointer& entity) {
     _changeHandlerId = entity->registerChangeHandler([](const EntityItemID& changedEntity) {
         auto renderer = DependencyManager::get<EntityTreeRenderer>();
         if (renderer) {
-            renderer->onEntityChanged(changedEntity);
+            auto renderable = renderer->renderableForEntityId(changedEntity);
+            if (renderable && renderable->needsRenderUpdate()) {
+                renderer->onEntityChanged(changedEntity);
+            }
         }
     });
 }

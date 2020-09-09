@@ -4,6 +4,7 @@
 //
 //  Created by Bradley Austin Davis on 2015/04/14
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -71,6 +72,7 @@ protected slots:
     Q_INVOKABLE QString oculusUserID() const;
 
     Q_INVOKABLE void login(const QString& username, const QString& password) const;
+    Q_INVOKABLE void loginDomain(const QString& username, const QString& password) const;
     Q_INVOKABLE void loginThroughSteam();
     Q_INVOKABLE void linkSteam();
     Q_INVOKABLE void createAccountFromSteam(QString username = QString());
@@ -81,6 +83,10 @@ protected slots:
     Q_INVOKABLE void signup(const QString& email, const QString& username, const QString& password);
 
     Q_INVOKABLE bool getLoginDialogPoppedUp() const;
+
+    Q_INVOKABLE bool getDomainLoginRequested() const;
+    Q_INVOKABLE QString getDomainLoginDomain() const;
+
 };
 
 #endif // hifi_LoginDialog_h

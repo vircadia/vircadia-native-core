@@ -81,9 +81,6 @@ const int BYTES_PER_FLAGS = 1;
 typedef unsigned char colorPart;
 typedef unsigned char nodeColor[BYTES_PER_COLOR + BYTES_PER_FLAGS];
 
-// Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
-const QByteArray HIGH_FIDELITY_USER_AGENT = "Mozilla/5.0 (HighFidelityInterface)";
-
 // Equivalent to time_t but in usecs instead of secs
 quint64 usecTimestampNow(bool wantDebug = false);
 void usecTimestampNowForceClockSkew(qint64 clockSkew);

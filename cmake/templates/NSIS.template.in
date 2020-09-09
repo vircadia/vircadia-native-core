@@ -199,18 +199,15 @@
 
     !system "$%TEMP%\tempinstaller.exe" = 2
 
-    ; NOTE: We're not code signing right now, so we're going to disable that.
-    ; TODO: Get a code signing certificate so we can re-enable code signing.
-
     ; The Inner invocation has written an uninstaller binary for us.
     ; We need to sign it if it's a production or PR build.
-    ; !if @PRODUCTION_BUILD@ == 1
-    ;   !if @BYPASS_SIGNING@ == 1
-    ;     !warning "BYPASS_SIGNING set - installer will not be signed"
-    ;   !else
-    ;     !system '"@SIGNTOOL_EXECUTABLE@" sign /fd sha256 /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://sha256timestamp.ws.symantec.com/sha256/timestamp /td SHA256 $%TEMP%\@UNINSTALLER_NAME@' = 0
-    ;   !endif
-    ; !endif
+    !if @PRODUCTION_BUILD@ == 1
+      !if @BYPASS_SIGNING@ == 1
+        !warning "BYPASS_SIGNING set - installer will not be signed"
+      !else
+        !system '"@SIGNTOOL_EXECUTABLE@" sign /fd sha256 /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://timestamp.comodoca.com?td=sha256 /td SHA256 $%TEMP%\@UNINSTALLER_NAME@' = 0
+      !endif
+    !endif
 
     ; Good.  Now we can carry on writing the real installer.
 
@@ -871,7 +868,7 @@ Function PostInstallOptionsPage
   Pop $LaunchConsoleNowCheckbox
 
   ; set the checkbox state depending on what is present in the registry
-  !insertmacro SetInstallOption $LaunchConsoleNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+  !insertmacro SetInstallOption $LaunchConsoleNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_UNCHECKED}
   ${StrContains} $substringResult "/forceNoLaunchServer" $CMDLINE
   ${IfNot} $substringResult == ""
       ${NSD_SetState} $LaunchConsoleNowCheckbox ${BST_UNCHECKED}
@@ -887,7 +884,7 @@ Function PostInstallOptionsPage
   IntOp $CurrentOffset $CurrentOffset + 15
 
   ; set the checkbox state depending on what is present in the registry
-  !insertmacro SetInstallOption $ConsoleStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
+  !insertmacro SetInstallOption $ConsoleStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_UNCHECKED}
 
   ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Perform a clean install (Delete older settings and content)"
   Pop $CleanInstallCheckbox
@@ -940,8 +937,8 @@ Function ReadInstallTypes
     StrCpy $Express "1"
 
     StrCpy $DesktopClientState ${BST_CHECKED}
-    StrCpy $ConsoleStartupState ${BST_CHECKED}
-    StrCpy $LaunchConsoleNowState ${BST_CHECKED}
+    StrCpy $ConsoleStartupState ${BST_UNCHECKED}
+    StrCpy $LaunchConsoleNowState ${BST_UNCHECKED}
     StrCpy $LaunchClientNowState ${BST_CHECKED}
     StrCpy $CleanInstallState ${BST_UNCHECKED}
     StrCpy $DesktopConsoleState ${BST_UNCHECKED}
