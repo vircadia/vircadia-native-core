@@ -81,4 +81,7 @@ void setCrashAnnotation(std::string name, std::string value) {
     flushAnnotations();
 }
 
+void startCrashHookMonitor(QCoreApplication* app) {
+}
+
 #endif

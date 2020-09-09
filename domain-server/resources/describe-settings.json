@@ -54,6 +54,22 @@
           "default": true,
           "type": "checkbox",
           "advanced":  true
+        },
+        {
+          "name": "enable_metadata_exporter",
+          "label": "Enable Metadata HTTP Availability",
+          "help": "Allows your domain's metadata to be accessible on the public internet via direct HTTP connection to the domain server.",
+          "default": true,
+          "type": "checkbox",
+          "advanced":  true
+        },
+        {
+          "name": "metadata_exporter_port",
+          "label": "Metadata Exporter HTTP Port",
+          "help": "This is the port where the Metaverse exporter accepts connections. It listens both on IPv4 and IPv6 and can be accessed remotely, so you should make sure to restrict access with a firewall as needed.",
+          "default": "9704",
+          "type": "int",
+          "advanced": true
         }
       ]
     },
@@ -98,7 +114,7 @@
         {
           "name": "enable_prometheus_exporter",
           "label": "Enable Prometheus Exporter",
-          "help": "Enable a Prometheus exporter to make it possible to gather the stats that are available at <a href='/'>Nodes</a> tab with a <a href='https://prometheus.io/'>Prometheus</a> server. This makes it possible to keep track of long-term domain statistics for graphing, troubleshooting, and performance monitoring.",
+          "help": "Enable a Prometheus exporter to make it possible to gather stats about the mixers that are available in the <a href='/'>Nodes</a> tab with a <a href='https://prometheus.io/'>Prometheus</a> server. This makes it possible to keep track of long-term domain statistics for graphing, troubleshooting, and performance monitoring.",
           "default": false,
           "type": "checkbox",
           "advanced": true
@@ -147,10 +163,38 @@
       "help": "This data will be queryable from your server. It may be collected by High Fidelity and used to share your domain with others.",
       "settings": [
         {
+          "name": "world_name",
+          "label": "Name",
+          "advanced": true,
+          "help": "The name of your domain (256 character limit)."
+        },
+        {
           "name": "description",
           "label": "Description",
           "advanced": true,
           "help": "A description of your domain (256 character limit)."
+        },
+        {
+          "name": "thumbnail",
+          "label": "World Thumbnail",
+          "advanced": true,
+          "help": "A link to the thumbnail that is publicly accessible from the internet."
+        },
+        {
+          "name": "images",
+          "label": "World Images",
+          "advanced": true,
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "URLs to images that visually describe your world to potential visitors.",
+          "numbered": false,
+          "columns": [
+            {
+              "name": "image",
+              "label": "Image URL",
+              "can_set": true
+            }
+          ]
         },
         {
           "name": "maturity",
@@ -183,16 +227,22 @@
           ]
         },
         {
-          "name": "hosts",
-          "label": "Hosts",
+          "name": "contact_info",
+          "label": "World Administrative Contact",
+          "advanced": true,
+          "help": "Contact information to reach server administrators for assistance (256 character limit)."
+        },
+        {
+          "name": "managers",
+          "label": "World Managers / Administrators",
           "advanced": true,
           "type": "table",
           "can_add_new_rows": true,
-          "help": "Usernames of hosts who can reliably show your domain to new visitors.",
+          "help": "Usernames of managers that administrate the domain.",
           "numbered": false,
           "columns": [
             {
-              "name": "host",
+              "name": "manager",
               "label": "Username",
               "can_set": true
             }
@@ -242,6 +292,14 @@
           "type": "password",
           "help": "Must match the password entered above for change to be saved.",
           "value-hidden": true
+        },
+        {
+          "name": "approved_safe_urls",
+          "label": "Approved Script and QML URLs",
+          "help": "These URLs will be sent to the Interface as safe URLs to allow through the whitelist if the Interface has this security option enabled.",
+          "placeholder": "0",
+          "default": "1",
+          "advanced": false
         },
         {
           "name": "maximum_user_capacity",

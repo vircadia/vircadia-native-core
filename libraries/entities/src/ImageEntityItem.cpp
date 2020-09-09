@@ -45,8 +45,8 @@ EntityItemProperties ImageEntityItem::getProperties(const EntityPropertyFlags& d
     return properties;
 }
 
-bool ImageEntityItem::setProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
+bool ImageEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = false;
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
@@ -62,16 +62,6 @@ bool ImageEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(keepAspectRatio, setKeepAspectRatio);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(subImage, setSubImage);
 
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "ImageEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties.getLastEdited());
-    }
     return somethingChanged;
 }
 

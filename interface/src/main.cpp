@@ -381,6 +381,7 @@ int main(int argc, const char* argv[]) {
 #if defined(Q_OS_LINUX)
         app.setWindowIcon(QIcon(PathUtils::resourcesPath() + "images/vircadia-logo.svg"));
 #endif
+        startCrashHookMonitor(&app);
 
         QTimer exitTimer;
         if (traceDuration > 0.0f) {

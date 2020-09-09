@@ -237,7 +237,77 @@ bool OctreeEntitiesFileParser::readEntitiesArray(QVariantList& entitiesArray) {
             return false;
         }
 
-        entitiesArray.append(entity.object());
+        QJsonObject entityObject = entity.object();
+
+        // resolve urls starting with ./ or ../ 
+        if (!_relativeURL.isEmpty()) {
+            bool isDirty = false;
+
+            const QStringList urlKeys { 
+                // model
+                "modelURL",
+                "animation.url",
+                // FIXME: Handle models' "textures" and "originalTextures" properties which include URLs. Note that Particles
+                // also has a "textures" property.
+                // image
+                "imageURL",
+                // web
+                "sourceUrl",
+                "scriptURL",
+                // zone
+                "ambientLight.ambientURL",
+                "skybox.url",
+                // particles
+                "textures",
+                // materials
+                "materialURL",
+                // ...shared
+                "href",
+                "script",
+                "serverScripts",
+                "collisionSoundURL",
+                "compoundShapeURL",
+                // TODO: deal with materialData and userData
+            };
+
+            for (const QString& key : urlKeys) {
+                if (key.contains('.')) {
+                    // url is inside another object
+                    const QStringList keyPair = key.split('.');
+                    const QString entityKey = keyPair[0];
+                    const QString childKey = keyPair[1];
+
+                    if (entityObject.contains(entityKey) && entityObject[entityKey].isObject()) {
+                        QJsonObject childObject = entityObject[entityKey].toObject();
+
+                        if (childObject.contains(childKey) && childObject[childKey].isString()) {
+                            const QString url = childObject[childKey].toString();
+
+                            if (url.startsWith("./") || url.startsWith("../")) {
+                                childObject[childKey] = _relativeURL.resolved(url).toString();
+                                entityObject[entityKey] = childObject;
+                                isDirty = true;
+                            }
+                        }
+                    }
+                } else {
+                    if (entityObject.contains(key) && entityObject[key].isString()) {
+                        const QString url = entityObject[key].toString();
+
+                        if (url.startsWith("./") || url.startsWith("../")) {
+                            entityObject[key] = _relativeURL.resolved(url).toString();
+                            isDirty = true;
+                        }
+                    }
+                }
+            }
+
+            if (isDirty) {
+                entity.setObject(entityObject);
+            }
+        }
+
+        entitiesArray.append(entityObject);
         _position = matchingBrace;
         char c = nextToken();
         if (c == ']') {
