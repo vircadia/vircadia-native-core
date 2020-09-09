@@ -103,6 +103,15 @@ export const store = new Vuex.Store({
                 "uuid": "5420798-087-54354353",
             },
             {
+                "type": "other",
+                "name": "OTHER TYPE w/ meta",
+                "url": "https://googlee.com/vr.fbx",
+                "folder": "No Folder",
+                "tags": ["test tag", "lol"],
+                "metadata": "THIS IS METADATA?",
+                "uuid": "5425435498dsaas0-7667jt353",
+            },
+            {
                 "type": "model",
                 "name": "3D MODEL, TAGS, METADATA",
                 "url": "https://googlee.com/vr.fbx",
@@ -121,7 +130,7 @@ export const store = new Vuex.Store({
         ],
         settings: {
             "displayDensity": {
-                "size": 1,
+                "size": 0,
                 "labels": [
                     "List",
                     "Compact",

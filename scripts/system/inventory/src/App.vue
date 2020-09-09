@@ -987,7 +987,7 @@ export default {
         sortBy: "alphabetical",
         settings: {
             "displayDensity": {
-                "size": 1,
+                "size": 0,
                 "labels": [
                     "List",
                     "Compact",
