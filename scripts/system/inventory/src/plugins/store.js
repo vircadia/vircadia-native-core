@@ -150,7 +150,7 @@ export const store = new Vuex.Store({
                 "icon": "mdi-inbox-multiple",
                 "color": "#37474F", // blue-grey darken-3
             },
-            "UNKNOWN": {
+            "OTHER": {
                 "icon": "mdi-help",
                 "color": "grey",
             }
@@ -161,7 +161,7 @@ export const store = new Vuex.Store({
             "AVATAR",
             "PLACE",
             "JSON",
-            "UNKNOWN",
+            "OTHER",
         ],
         removeDialog: {
             show: false,
@@ -233,6 +233,22 @@ export const store = new Vuex.Store({
                 "url": null, // The item you want to share.
                 "recipient": null,
             }
+        },
+        // --- CUSTOM DATA ---
+        bizCardDialog: {
+            show: false,
+            valid: false,
+            data: {
+                "name": null,
+                "folder": null,
+                "fullName": null,
+                "title": null,
+                "company": null,
+                "email": null,
+                "phoneNumber": null,
+                "website": null,
+                "details": null
+            },
         },
     },
     mutations: {

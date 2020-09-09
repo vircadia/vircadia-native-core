@@ -279,9 +279,9 @@ Tablet Vec3 Window */
             }
         }
         
-        if (item.type === "UNKNOWN") {
+        if (item.type === "OTHER") {
             // We don't know how to handle this yet.
-            Window.alert("Unknown item type, unable to use.");
+            Window.alert("Item is not a known type, we are unable to use it.");
         }
     }
 

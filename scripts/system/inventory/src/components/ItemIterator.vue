@@ -310,7 +310,7 @@ export default {
             if (this.$store.state.iconType[itemType]) {
                 returnedItemIcon = this.$store.state.iconType[itemType].icon;
             } else {
-                returnedItemIcon = this.$store.state.iconType.UNKNOWN.icon;
+                returnedItemIcon = this.$store.state.iconType.OTHER.icon;
             }
             
             return returnedItemIcon;
@@ -322,7 +322,7 @@ export default {
             if (this.$store.state.iconType[itemType]) {
                 returnedItemIconColor = this.$store.state.iconType[itemType].color;
             } else {
-                returnedItemIconColor = this.$store.state.iconType.UNKNOWN.color;
+                returnedItemIconColor = this.$store.state.iconType.OTHER.color;
             }
             
             return returnedItemIconColor;

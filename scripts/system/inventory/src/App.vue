@@ -104,6 +104,14 @@
                         </v-list-item-icon>
                         <v-list-item-title>Add Item</v-list-item-title>
                     </v-list-item>
+                    
+                    <!-- This is an example on how to make a custom add function. -->
+                    <v-list-item @click="bizCardDialogStore.show = true; getFolderList('add');">
+                        <v-list-item-icon>
+                            <v-icon>mdi-plus</v-icon>
+                        </v-list-item-icon>
+                        <v-list-item-title>Create Business Card</v-list-item-title>
+                    </v-list-item>
 
                     <v-list-item @click="createFolderDialogStore.show = true">
                         <v-list-item-icon>
@@ -464,102 +472,215 @@
         </v-dialog>
 
         <v-dialog
-          v-model="addDialogStore.show"
-          max-width="380"
-          fullscreen
-          hide-overlay
-          transition="dialog-bottom-transition"
+            v-model="addDialogStore.show"
+            max-width="380"
+            fullscreen
+            hide-overlay
+            transition="dialog-bottom-transition"
         >
-          <v-card>
-              <v-card-title class="headline">Add Item</v-card-title>
-             
-              
-              <v-form
-                  ref="addForm"
-                  v-model="addDialogStore.valid"
-                  :lazy-validation="false"
-              >
-              
-                  <v-card-text>
-                      Enter the name of the item.
-                  </v-card-text>
+            <v-card>
+                <v-card-title class="headline">Add Item</v-card-title>
 
-                  <v-text-field
-                      class="px-2"
-                      label="Name"
-                      v-model="addDialogStore.data.name"
-                      :rules="[v => !!v || 'Name is required.']"
-                      required
-                  ></v-text-field>
-                  
-                  <v-card-text>
-                      Select a folder (optional).
-                  </v-card-text>
-                  
-                  <v-select
-                      class="my-2"
-                      :items="folderList"
-                      v-model="addDialogStore.data.folder"
-                      label="Folder"
-                      outlined
-                      item-text="name"
-                      item-value="uuid"
-                  ></v-select>
 
-                  <v-card-text>
-                      Enter the URL of the item.
-                  </v-card-text>
+                <v-form
+                    ref="addForm"
+                    v-model="addDialogStore.valid"
+                    :lazy-validation="false"
+                >
 
-                  <v-text-field
-                      class="px-2"
-                      label="URL"
-                      v-model="addDialogStore.data.url"
-                      :rules="[v => !!v || 'URL is required.']"
-                      required
-                  ></v-text-field>
-                  
-                  <v-combobox
-                      class="px-2"
-                      label="Tags"
-                      v-model="addDialogStore.data.tags"
-                      multiple
-                      :chips="true"
-                      :deletable-chips="true"
-                      :disable-lookup="true"
-                      :items="possibleTags"
-                  ></v-combobox>
-                  
-                  <v-textarea
-                      class="px-2"
-                      label="Metadata"
-                      v-model="addDialogStore.data.metadata"
-                  ></v-textarea>
+                    <v-card-text>
+                        Enter the name of the item.
+                    </v-card-text>
 
-                  <v-card-actions>
+                    <v-text-field
+                        class="px-2"
+                        label="Name"
+                        v-model="addDialogStore.data.name"
+                        :rules="[v => !!v || 'Name is required.']"
+                        required
+                    ></v-text-field>
 
-                      <v-btn
-                          color="red"
-                          class="px-3"
-                          @click="addDialogStore.show = false"
-                      >
-                          Cancel
-                      </v-btn>
-                      
-                      <v-spacer></v-spacer>
-                      
-                      <v-btn
-                          color="blue"
-                          class="px-3"
-                          :disabled="!$store.state.addDialog.valid"
-                          @click="addDialogStore.show = false; addItem()"
-                      >
-                          Add
-                      </v-btn>
-                      
-                  </v-card-actions>
-              
-              </v-form>
-          </v-card>
+                    <v-card-text>
+                        Select a folder (optional).
+                    </v-card-text>
+
+                    <v-select
+                        class="my-2"
+                        :items="folderList"
+                        v-model="addDialogStore.data.folder"
+                        label="Folder"
+                        outlined
+                        item-text="name"
+                        item-value="uuid"
+                    ></v-select>
+
+                    <v-card-text>
+                        Enter the URL of the item.
+                    </v-card-text>
+
+                    <v-text-field
+                        class="px-2"
+                        label="URL"
+                        v-model="addDialogStore.data.url"
+                        :rules="[v => !!v || 'URL is required.']"
+                        required
+                    ></v-text-field>
+
+                    <v-combobox
+                        class="px-2"
+                        label="Tags"
+                        v-model="addDialogStore.data.tags"
+                        multiple
+                        :chips="true"
+                        :deletable-chips="true"
+                        :disable-lookup="true"
+                        :items="possibleTags"
+                    ></v-combobox>
+
+                    <v-textarea
+                        class="px-2"
+                        label="Metadata"
+                        v-model="addDialogStore.data.metadata"
+                    ></v-textarea>
+
+                    <v-card-actions>
+
+                        <v-btn
+                            color="red"
+                            class="px-3"
+                            @click="addDialogStore.show = false"
+                        >
+                            Cancel
+                        </v-btn>
+
+                        <v-spacer></v-spacer>
+
+                        <v-btn
+                            color="blue"
+                            class="px-3"
+                            :disabled="!$store.state.addDialog.valid"
+                            @click="addDialogStore.show = false; addItem()"
+                        >
+                            Add
+                        </v-btn>
+
+                    </v-card-actions>
+
+                </v-form>
+            </v-card>
+        </v-dialog>
+        
+        <!-- CUSTOM DIALOG -->
+        <v-dialog
+            v-model="bizCardDialogStore.show"
+            max-width="380"
+            fullscreen
+            hide-overlay
+            transition="dialog-bottom-transition"
+        >
+            <v-card>
+                <v-card-title class="headline">Create Business Card</v-card-title>
+
+                <v-form
+                    ref="bizCardForm"
+                    v-model="bizCardDialogStore.valid"
+                    :lazy-validation="false"
+                >
+
+                    <v-card-text>
+                        Name your business card.
+                    </v-card-text>
+
+                    <v-text-field
+                        class="px-2"
+                        label="Name of Business Card"
+                        v-model="bizCardDialogStore.data.name"
+                        :rules="[v => !!v || 'Name is required.']"
+                        required
+                    ></v-text-field>
+
+                    <v-text-field
+                        label="Full Name"
+                        outlined
+                        v-model="bizCardDialogStore.data.fullName"
+                    ></v-text-field>
+
+                    <v-text-field
+                        label="Title"
+                        outlined
+                        v-model="bizCardDialogStore.data.title"
+                    ></v-text-field>
+                    
+                    <v-text-field
+                        label="Company"
+                        outlined
+                        v-model="bizCardDialogStore.data.company"
+                    ></v-text-field>
+
+                    <v-text-field
+                        label="E-mail"
+                        outlined
+                        v-model="bizCardDialogStore.data.email"
+                    ></v-text-field>
+
+                    <v-text-field
+                        label="Phone Number"
+                        outlined
+                        v-model="bizCardDialogStore.data.phoneNumber"
+                    ></v-text-field>
+
+                    <v-text-field
+                        label="Website"
+                        outlined
+                        v-model="bizCardDialogStore.data.website"
+                    ></v-text-field>
+
+                    <v-textarea
+                        label="Details"
+                        outlined
+                        v-model="bizCardDialogStore.data.details"
+                    ></v-textarea>
+
+                    <!-- FIXME: Is this going to be hard to integrate since it's add specific or..? -->
+                    <v-card-text>
+                        Select a folder (optional).
+                    </v-card-text>
+
+                    <v-select
+                        class="my-2"
+                        :items="folderList"
+                        v-model="bizCardDialogStore.data.folder"
+                        label="Folder"
+                        outlined
+                        item-text="name"
+                        item-value="uuid"
+                    ></v-select>
+
+                    <v-card-actions>
+
+                        <v-btn
+                            color="red"
+                            class="px-3"
+                            @click="bizCardDialogStore.show = false"
+                        >
+                            Cancel
+                        </v-btn>
+
+                        <v-spacer></v-spacer>
+
+                        <v-btn
+                            color="blue"
+                            class="px-3"
+                            :disabled="!$store.state.bizCardDialog.valid"
+                            @click="bizCardDialogStore.show = false; addBusinessCard()"
+                        >
+                            Create
+                        </v-btn>
+
+                    </v-card-actions>
+
+                </v-form>
+            </v-card>
         </v-dialog>
 
         <v-dialog
@@ -874,7 +995,7 @@ export default {
                 ]
             }
         },
-        appVersion: "2.0.2",
+        appVersion: "3.0.0",
         darkTheme: true,
         drawer: false,
         disabledProp: true
@@ -950,7 +1071,7 @@ export default {
                     detectedItemType = "JSON";
                     break;
                 default:
-                    detectedItemType = "UNKNOWN";
+                    detectedItemType = "OTHER";
             }
             
             return detectedItemType;
@@ -967,7 +1088,7 @@ export default {
             
             if (detectedItemType === null) {
                 // This is not a known item type...
-                detectedItemType = "UNKNOWN";
+                detectedItemType = "OTHER";
             }
             
             return detectedItemType;
@@ -976,11 +1097,18 @@ export default {
             // Attempt the pure regex route...
             var extensionRegex = /\.[0-9a-z]+$/i; // to detect the file type based on extension in the URL.
             var detectedFileType = url.match(extensionRegex);
-            
+
             // If that fails, let's try the traditional URL route.
             if (detectedFileType == null || detectedFileType[0] == null) {
                 var urlExtensionRegex = /\.[0-9a-z]+$/i;
-                let urlToParse = new URL(url);
+                var urlToParse;
+                
+                // Attempt to construct a URL from the supposed URL.
+                try {
+                    urlToParse = new URL(url);
+                } catch (e) {
+                    return null;
+                }
 
                 // Attempt the URL converted regex route...
                 detectedFileType = urlToParse.pathname.match(urlExtensionRegex);
@@ -1027,7 +1155,7 @@ export default {
             var itemType;
                         
             if (detectedFileType == null || detectedFileType[0] == null) {
-                itemType = "unknown";
+                itemType = "other";
             } else {
                 itemType = this.checkFileType(detectedFileType[0]);
             }
@@ -1348,13 +1476,43 @@ export default {
                 // alert(JSON.stringify(JSONtoSend));
             }
         },
+        // --- CUSTOM METHODS ---
+        addBusinessCard: function () {
+            var name = this.$store.state.bizCardDialog.data.name;
+            var folder = this.$store.state.bizCardDialog.data.folder;
+            var url = "#";
+            var tags = ["business-card"];
+            var metadata = JSON.stringify({
+                "fullName": this.$store.state.bizCardDialog.data.fullName,
+                "title": this.$store.state.bizCardDialog.data.title,
+                "company": this.$store.state.bizCardDialog.data.company,
+                "email": this.$store.state.bizCardDialog.data.email,
+                "phoneNumber": this.$store.state.bizCardDialog.data.phoneNumber,
+                "website": this.$store.state.bizCardDialog.data.website,
+                "details": this.$store.state.bizCardDialog.data.details
+            });
+
+            var itemType = "other";
+
+            this.pushToItems(itemType, name, folder, url, tags, metadata, null);
+            
+            this.bizCardDialogStore.data.name = null;
+            this.bizCardDialogStore.data.folder = null;
+            this.bizCardDialogStore.data.fullName = null;
+            this.bizCardDialogStore.data.title = null;
+            this.bizCardDialogStore.data.company = null;
+            this.bizCardDialogStore.data.email = null;
+            this.bizCardDialogStore.data.phoneNumber = null;
+            this.bizCardDialogStore.data.website = null;
+            this.bizCardDialogStore.data.details = null;
+        },
     },
     computed: {
         itemsStore: {
             get() {
                 return this.$store.state.items;
             },
-            set(value) {
+            set (value) {
                 this.$store.commit('mutate', {
                     property: 'items', 
                     with: value
@@ -1365,7 +1523,7 @@ export default {
             get() {
                 return this.$store.state.addDialog;
             },
-            set(value) {
+            set (value) {
                 this.$store.commit('mutate', {
                     property: 'addDialog', 
                     with: value
@@ -1376,7 +1534,7 @@ export default {
             get() {
                 return this.$store.state.editDialog;
             },
-            set(value) {
+            set (value) {
                 this.$store.commit('mutate', {
                     property: 'editDialog', 
                     with: value
@@ -1390,7 +1548,7 @@ export default {
             get() {
                 return this.$store.state.editFolderDialog;
             },
-            set(value) {
+            set (value) {
                 this.$store.commit('mutate', {
                     property: 'editFolderDialog', 
                     with: value
@@ -1404,7 +1562,7 @@ export default {
             get() {
                 return this.$store.state.createFolderDialog;
             },
-            set(value) {
+            set (value) {
                 this.$store.commit('mutate', {
                     property: 'createFolderDialog', 
                     with: value
@@ -1415,7 +1573,7 @@ export default {
             get() {
                 return this.$store.state.receiveDialog;
             },
-            set(value) {
+            set (value) {
                 this.$store.commit('mutate', {
                     property: 'receiveDialog', 
                     with: value
@@ -1426,10 +1584,10 @@ export default {
             return this.$store.state.shareDialog.show;
         },
         shareDialogStore: {
-            get() {
+            get () {
                 return this.$store.state.shareDialog;
             },
-            set(value) {
+            set (value) {
                 this.$store.commit('mutate', {
                     property: 'shareDialog', 
                     with: value
@@ -1437,10 +1595,10 @@ export default {
             }
         },
         removeFolderDialogStore: {
-            get() {
+            get () {
                 return this.$store.state.removeFolderDialog;
             },
-            set(value) {
+            set (value) {
                 this.$store.commit('mutate', {
                     property: 'removeFolderDialog', 
                     with: value
@@ -1448,10 +1606,10 @@ export default {
             }
         },
         removeDialogStore: {
-            get() {
+            get () {
                 return this.$store.state.removeDialog;
             },
-            set(value) {
+            set (value) {
                 this.$store.commit('mutate', {
                     property: 'removeDialog', 
                     with: value
@@ -1459,13 +1617,25 @@ export default {
             }
         },
         receivingItemQueue: {
-            get() {
+            get () {
                 return this.receivingItemsDialog.data.receivingItemQueue;
             }
         },
         receivingItemQueueLength: {
-            get() {
+            get () {
                 return this.receivingItemsDialog.data.receivingItemQueue.length;
+            }
+        },
+        // --- CUSTOM DATA ---
+        bizCardDialogStore: {
+            get () {
+                return this.$store.state.bizCardDialog;
+            },
+            set (value) {
+                this.$store.commit('mutate', {
+                    property: 'bizCardDialog', 
+                    with: value
+                });
             }
         },
     },
