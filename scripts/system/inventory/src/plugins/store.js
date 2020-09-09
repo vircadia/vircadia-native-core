@@ -103,7 +103,7 @@ export const store = new Vuex.Store({
                 "uuid": "5420798-087-54354353",
             },
             {
-                "type": "other",
+                "type": "OTHER",
                 "name": "OTHER TYPE w/ meta",
                 "url": "https://googlee.com/vr.fbx",
                 "folder": "No Folder",

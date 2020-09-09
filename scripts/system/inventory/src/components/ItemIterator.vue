@@ -62,7 +62,7 @@
 
                       <v-list color="grey darken-3">
                           <v-list-item
-                              v-show="item.type != 'other'"
+                              v-if="item.type != 'OTHER'"
                               @click="sendEvent('use-item', { 'type': item.type, 'url': item.url })"
                           >
                               <v-list-item-title>Use</v-list-item-title>

@@ -282,15 +282,7 @@
                         label="Item Type"
                         outlined
                     ></v-select>
-
-                    <v-text-field
-                        class="px-2"
-                        label="Name"
-                        v-model="editDialogStore.data.name"
-                        :rules="[v => !!v || 'Name is required.']"
-                        required
-                    ></v-text-field>
-
+                    
                     <v-select
                         :items="folderList"
                         item-text="name"
@@ -300,6 +292,14 @@
                         label="Folder"
                         outlined
                     ></v-select>
+
+                    <v-text-field
+                        class="px-2"
+                        label="Name"
+                        v-model="editDialogStore.data.name"
+                        :rules="[v => !!v || 'Name is required.']"
+                        required
+                    ></v-text-field>
 
                     <v-text-field
                         class="px-2"
@@ -1155,7 +1155,7 @@ export default {
             var itemType;
                         
             if (detectedFileType == null || detectedFileType[0] == null) {
-                itemType = "other";
+                itemType = "OTHER";
             } else {
                 itemType = this.checkFileType(detectedFileType[0]);
             }
@@ -1209,6 +1209,8 @@ export default {
             this.receiveDialogStore.data.type = data.data.type;
             this.receiveDialogStore.data.name = data.data.name;
             this.receiveDialogStore.data.url = data.data.url;
+            this.receiveDialogStore.data.tags = data.data.tags;
+            this.receiveDialogStore.data.metadata = data.data.metadata;
             
             this.getFolderList("add");
                             
@@ -1492,7 +1494,7 @@ export default {
                 "details": this.$store.state.bizCardDialog.data.details
             });
 
-            var itemType = "other";
+            var itemType = "OTHER";
 
             this.pushToItems(itemType, name, folder, url, tags, metadata, null);
             
