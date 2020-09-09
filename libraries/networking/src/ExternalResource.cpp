@@ -44,6 +44,7 @@ QUrl ExternalResource::getQUrl(Bucket bucket, const QUrl &relative_path) {
         return relative_path;
     }
 
+    std::lock_guard<std::mutex> guard(_bucketMutex);
     QUrl base = _bucketBases[bucket];
     QUrl merged = base.resolved(relative_path);
 
@@ -53,3 +54,27 @@ QUrl ExternalResource::getQUrl(Bucket bucket, const QUrl &relative_path) {
     return merged;
 }
 
+
+QString ExternalResource::getBase(Bucket bucket) {
+    std::lock_guard<std::mutex> guard(_bucketMutex);
+    return _bucketBases.value(bucket).toString();
+};
+
+void ExternalResource::setBase(Bucket bucket, const QString &url) {
+    QUrl new_url(url);
+
+    if (!new_url.isValid() || new_url.isRelative()) {
+        qCCritical(external_resource) << "Attempted to set bucket " << bucket << " to invalid URL " << url;
+        return;
+    }
+
+    if (!_bucketBases.contains(bucket)) {
+        qCritical(external_resource) << "Invalid bucket " << bucket;
+        return;
+    }
+
+    qCDebug(external_resource) << "Setting base URL for " << bucket << " to " << new_url;
+
+    std::lock_guard<std::mutex> guard(_bucketMutex);
+    _bucketBases[bucket] = new_url;
+}

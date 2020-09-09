@@ -5544,6 +5544,21 @@ void Application::loadSettings() {
     }
 
     getMyAvatar()->loadData();
+
+
+    auto bucketEnum = QMetaEnum::fromType<ExternalResource::Bucket>();
+    auto er = ExternalResource::getInstance();
+
+    for(int i=0;i<bucketEnum.keyCount();i++) {
+        const char *keyName = bucketEnum.key(i);
+        QString setting("ExternalResource/");
+        setting += keyName;
+        auto bucket = static_cast<ExternalResource::Bucket>(bucketEnum.keyToValue(keyName));
+        Setting::Handle<QString> url(setting, er->getBase(bucket));
+        er->setBase( bucket, url.get() );
+    }
+
+
     _settingsLoaded = true;
 }
 
@@ -5560,6 +5575,18 @@ void Application::saveSettings() const {
     Menu::getInstance()->saveSettings();
     getMyAvatar()->saveData();
     PluginManager::getInstance()->saveSettings();
+
+    auto bucketEnum = QMetaEnum::fromType<ExternalResource::Bucket>();
+    auto er = ExternalResource::getInstance();
+
+    for(int i=0;i<bucketEnum.keyCount();i++) {
+        const char *keyName = bucketEnum.key(i);
+        QString setting("ExternalResource/");
+        setting += keyName;
+        auto bucket = static_cast<ExternalResource::Bucket>(bucketEnum.keyToValue(keyName));
+        Setting::Handle<QString> url(setting, er->getBase(bucket));
+        url.set(er->getBase(bucket));
+    }    
 }
 
 bool Application::importEntities(const QString& urlOrFilename, const bool isObservable, const qint64 callerId) {

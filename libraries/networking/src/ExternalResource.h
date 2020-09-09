@@ -16,6 +16,9 @@
 #include <QUrl>
 #include <QMap>
 
+#include <mutex>
+
+
 /**
  * Flexible management for external resources
  *
@@ -125,8 +128,14 @@ class ExternalResource : public QObject {
         return ExternalResource::getQUrl(bucket, QUrl(relative_path)).toString();
     };
 
+    Q_INVOKABLE QString getBase(Bucket bucket);
+
+    Q_INVOKABLE void setBase(Bucket bucket, const QString &url);
+
     private:
     ExternalResource(QObject* parent = nullptr);
+
+    std::mutex _bucketMutex;
 
     QMap<Bucket, QUrl> _bucketBases {
         { Bucket::Public, QUrl("https://public.vircadia.com")},
