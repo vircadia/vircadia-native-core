@@ -17,8 +17,8 @@
 
 #include <glm/glm.hpp>
 
-/// The names of the blendshapes expected by Faceshift, terminated with an empty string.
-extern const char* FACESHIFT_BLENDSHAPES[];
+/// The names of the supported blendshapes, terminated with an empty string.
+extern const char* BLENDSHAPE_NAMES[];
 extern const QMap<QString, int> BLENDSHAPE_LOOKUP_MAP;
 
 enum class Blendshapes : int {
@@ -96,6 +96,8 @@ enum class LegacyBlendshpaes : int {
     Sneer, // split in ARKit
     LegacyBlendshapeCount
 };
+
+// Original blendshapes were per Faceshift.
 
 // NEW in ARKit
 // * MouthClose

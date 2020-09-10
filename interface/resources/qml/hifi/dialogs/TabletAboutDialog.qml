@@ -3,6 +3,7 @@
 //
 //  Created by David Rowe on 18 Apr 2017
 //  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -33,12 +34,12 @@ Rectangle {
             anchors.left: parent.left
             anchors.leftMargin: 70
             RalewayRegular {
-                text: "Build " + HiFiAbout.buildVersion
+                text: "Build " + About.buildVersion
                 size: 16
                 color: "white"
             }
             RalewayRegular {
-                text: "Released " + HiFiAbout.buildDate
+                text: "Released " + About.buildDate
                 size: 16
                 color: "white"
             }
@@ -56,7 +57,7 @@ Rectangle {
             text: "<a href=\"https://github.com/kasenvr/project-athena\">Vircadia Github</a>."
             size: 20
             onLinkActivated: {
-                HiFiAbout.openUrl("https:/github.com/kasenvr/project-athena");
+                About.openUrl("https:/github.com/kasenvr/project-athena");
             }
 
         }
@@ -70,13 +71,13 @@ Rectangle {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        HiFiAbout.openUrl("https://www.qt.io/");
+                        About.openUrl("https://www.qt.io/");
                     }
                 }
             }
             RalewayRegular {
                 color: "white"
-                text: "Built using Qt " + HiFiAbout.qtVersion
+                text: "Built using Qt " + About.qtVersion
                 size: 12
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -102,7 +103,7 @@ Rectangle {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        HiFiAbout.openUrl("http://opus-codec.org/");
+                        About.openUrl("http://opus-codec.org/");
                     }
                 }
             }
@@ -131,7 +132,7 @@ Rectangle {
             text: "Distributed under the <a href=\"http://www.apache.org/licenses/LICENSE-2.0.html\">Apache License, Version 2.0.</a>."
             size: 14
             onLinkActivated: {
-                HiFiAbout.openUrl("http://www.apache.org/licenses/LICENSE-2.0.html");
+                About.openUrl("http://www.apache.org/licenses/LICENSE-2.0.html");
             }
         }
     }
