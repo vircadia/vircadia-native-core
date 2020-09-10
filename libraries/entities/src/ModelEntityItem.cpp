@@ -746,6 +746,10 @@ QString ModelEntityItem::getBlendshapeCoefficients() const {
 }
 
 void ModelEntityItem::setBlendshapeCoefficients(const QString& blendshapeCoefficients) {
+    if (blendshapeCoefficients.isEmpty()) {
+        return;
+    }
+
     QJsonParseError error;
     QJsonDocument newCoefficientsJSON = QJsonDocument::fromJson(blendshapeCoefficients.toUtf8(), &error);
     if (error.error != QJsonParseError::NoError) {
