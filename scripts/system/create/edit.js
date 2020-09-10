@@ -736,6 +736,9 @@ var toolBar = (function () {
     function handleNewMaterialDialogResult(result) {
         if (result) {
             var materialURL = result.textInput;
+            if (materialURL === "") {
+                materialURL = "materialData";
+            }
             //var materialMappingMode;
             //switch (result.comboBox) {
             //    case MATERIAL_MODE_PROJECTED:
