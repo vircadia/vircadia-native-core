@@ -64,7 +64,7 @@ ScrollingWindow {
             id: buttons
             spacing: 4
             anchors.top: parent.top
-            anchors.topMargin: 8
+            anchors.topMargin: 4
             anchors.left: parent.left
             anchors.leftMargin: 8
             HiFiGlyphs {
@@ -115,7 +115,7 @@ ScrollingWindow {
             id: border
             height: 48
             anchors.top: parent.top
-            anchors.topMargin: 8
+            anchors.topMargin: 4
             anchors.right: parent.right
             anchors.rightMargin: 8
             anchors.left: buttons.right
@@ -158,7 +158,7 @@ ScrollingWindow {
             TextField {
                 id: addressBar
                 anchors.right: externalBrowser.left
-                anchors.rightMargin: 8
+                anchors.rightMargin: 32
                 anchors.left: barIcon.right
                 anchors.leftMargin: 0
                 anchors.verticalCenter: parent.verticalCenter
@@ -255,7 +255,7 @@ ScrollingWindow {
             parentRoot: root
 
             anchors.top: buttons.bottom
-            anchors.topMargin: 8
+            anchors.topMargin: 4
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
