@@ -402,7 +402,7 @@
         "tooltip": "Affects the size of the spotlight beam; the higher the value, the larger the beam."
     },
     "materialURL": {
-        "tooltip": "The URL to an external JSON file or \"materialData\", \"materialData?<material name> to use Material Data."
+        "tooltip": "The URL to an external JSON file or \"materialData\". Append \"?<material name>\" to select a single material if multiple are defined."
     },
     "materialData": {
         "tooltip": "Can be used instead of a JSON file when material set to materialData."
