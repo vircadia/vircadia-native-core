@@ -83,7 +83,7 @@ Where /path/to/directory is the path to a directory where you wish the build fil
     // The Interface will have a custom default home and startup location.
     INITIAL_STARTUP_LOCATION=Location/IP/URL
     
-    // Code-signing environment variables must be set at runtime AND globally when the signing takes place.
+    // Code-signing environment variables must be set during runtime of CMake AND globally when the signing takes place.
     HF_PFX_FILE=Path to certificate
     HF_PFX_PASSPHRASE=Passphrase for certificate
     
