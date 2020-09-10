@@ -2443,8 +2443,8 @@ var PropertiesTool = function (opts) {
                         Entities.editEntity(entityID, properties);
                     });
 
-                    if (properties.name !== undefined || properties.modelURL !== undefined || properties.materialURL !== undefined ||
-                        properties.visible !== undefined || properties.locked !== undefined) {
+                    if (properties.name !== undefined || properties.modelURL !== undefined || properties.imageURL !== undefined ||
+                        properties.materialURL !== undefined || properties.visible !== undefined || properties.locked !== undefined) {
 
                         sendListUpdate = true;
                     }
