@@ -18,12 +18,14 @@ Tablet Vec3 Window */
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
     // VARIABLES
+    var APP_NAME = "INVENTORY";
+
     var inventoryDataSettingString = "inventoryApp.data";
     var inventoryData;
 
     var inventorySettingsString = "inventoryApp.settings";
     var inventorySettings;
-    
+
     var INVENTORY_MESSAGES_CHANNEL = "com.vircadia.inventory";
 
     var RECEIVING_ITEM_QUEUE_LIMIT = 5;
@@ -317,7 +319,7 @@ Tablet Vec3 Window */
         Messages.subscribe(INVENTORY_MESSAGES_CHANNEL);
         
         ui = new AppUi({
-            buttonName: "INVENTORY",
+            buttonName: APP_NAME,
             home: Script.resolvePath("index.html"),
             graphicsDirectory: Script.resolvePath("./"), // Where your button icons are located
             onOpened: onOpened,

@@ -1455,26 +1455,6 @@ export default {
                 // eslint-disable-next-line
                 EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
             } else {
-                // this.receivingItemsDialog.data.receivingItemQueue = [
-                //     {
-                //         "sender": "WHOISTHIS1",
-                //         "data": {
-                //             "type": "script",
-                //             "name": "This Is A Real Script",
-                //             "url": "https://urmum.com/lol.js",
-                //             "uuid": "This Is A Real Script",
-                //         }
-                //     },
-                //     {
-                //         "sender": "TESTPERSON2",
-                //         "data": {
-                //             "type": "script",
-                //             "name": "REALLYLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
-                //             "url": "https://urmum.com/looool.js",
-                //             "uuid": "REALLYLONNGGGGGGGG",
-                //         }
-                //     }
-                // ];
                 // alert(JSON.stringify(JSONtoSend));
             }
         },
