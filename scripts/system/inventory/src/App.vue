@@ -417,58 +417,58 @@
         </v-dialog>
 
         <v-dialog
-          v-model="createFolderDialogStore.show"
-          max-width="380"
-          fullscreen
-          hide-overlay
-          transition="dialog-bottom-transition"
+            v-model="createFolderDialogStore.show"
+            max-width="380"
+            fullscreen
+            hide-overlay
+            transition="dialog-bottom-transition"
         >
-          <v-card>
-              <v-card-title class="headline">Create Folder</v-card-title>
-              
-              <v-card-text>
-                  Enter the name of the folder.
-              </v-card-text>
-              
-              <v-form
-                  ref="createFolderForm"
-                  v-model="createFolderDialogStore.valid"
-                  :lazy-validation="false"
-              >
+            <v-card>
+                <v-card-title class="headline">Create Folder</v-card-title>
 
-                  <v-text-field
-                      class="px-2"
-                      label="Name"
-                      v-model="createFolderDialogStore.data.name"
-                      :rules="[v => !!v || 'Name is required.']"
-                      required
-                  ></v-text-field>
+                <v-card-text>
+                Enter the name of the folder.
+                </v-card-text>
 
-                  <v-card-actions>
+                <v-form
+                    ref="createFolderForm"
+                    v-model="createFolderDialogStore.valid"
+                    :lazy-validation="false"
+                >
 
-                      <v-btn
-                          color="red"
-                          class="px-3"
-                          @click="createFolderDialogStore.show = false"
-                      >
-                          Cancel
-                      </v-btn>
-                      
-                      <v-spacer></v-spacer>
-                      
-                      <v-btn
-                          color="blue"
-                          class="px-3"
-                          :disabled="!$store.state.createFolderDialog.valid"
-                          @click="createFolderDialogStore.show = false; createFolder($store.state.createFolderDialog.data.name)"
-                      >
-                          Create
-                      </v-btn>
-                      
-                  </v-card-actions>
-              
-              </v-form>
-          </v-card>
+                    <v-text-field
+                        class="px-2"
+                        label="Name"
+                        v-model="createFolderDialogStore.data.name"
+                        :rules="[v => !!v || 'Name is required.']"
+                        required
+                    ></v-text-field>
+
+                    <v-card-actions>
+
+                        <v-btn
+                            color="red"
+                            class="px-3"
+                            @click="createFolderDialogStore.show = false"
+                        >
+                            Cancel
+                        </v-btn>
+
+                        <v-spacer></v-spacer>
+
+                        <v-btn
+                            color="blue"
+                            class="px-3"
+                            :disabled="!$store.state.createFolderDialog.valid"
+                            @click="createFolderDialogStore.show = false; createFolder($store.state.createFolderDialog.data.name)"
+                        >
+                            Create
+                        </v-btn>
+
+                    </v-card-actions>
+
+                </v-form>
+            </v-card>
         </v-dialog>
 
         <v-dialog
@@ -705,172 +705,159 @@
                     :lazy-validation="false"
                 >
 
-                <v-text-field
-                    class="px-2"
-                    label="Type"
-                    :rules="[v => !!v || 'Type is required.']"
-                    v-model="receiveDialogStore.data.type"
-                    required
-                ></v-text-field>
+                    <v-text-field
+                        class="px-2"
+                        label="Type"
+                        :rules="[v => !!v || 'Type is required.']"
+                        v-model="receiveDialogStore.data.type"
+                        required
+                    ></v-text-field>
 
-                <v-text-field
-                    class="px-2"
-                    label="Name"
-                    :rules="[v => !!v || 'Name is required.']"
-                    v-model="receiveDialogStore.data.name"
-                    required
-                ></v-text-field>
+                    <v-text-field
+                        class="px-2"
+                        label="Name"
+                        :rules="[v => !!v || 'Name is required.']"
+                        v-model="receiveDialogStore.data.name"
+                        required
+                    ></v-text-field>
 
-                <v-card-text>
-                    Select a folder (optional).
-                </v-card-text>
+                    <v-card-text>
+                        Select a folder (optional).
+                    </v-card-text>
 
-                <v-select
-                    class="my-2"
-                    :items="folderList"
-                    v-model="receiveDialogStore.data.folder"
-                    label="Folder"
-                    outlined
-                    item-text="name"
-                    item-value="uuid"
-                ></v-select>
+                    <v-select
+                        class="my-2"
+                        :items="folderList"
+                        v-model="receiveDialogStore.data.folder"
+                        label="Folder"
+                        outlined
+                        item-text="name"
+                        item-value="uuid"
+                    ></v-select>
 
-                <v-text-field
-                    class="px-2"
-                    label="URL"
-                    :rules="[v => !!v || 'URL is required.']"
-                    v-model="receiveDialogStore.data.url"
-                    required
-                ></v-text-field>
+                    <v-text-field
+                        class="px-2"
+                        label="URL"
+                        :rules="[v => !!v || 'URL is required.']"
+                        v-model="receiveDialogStore.data.url"
+                        required
+                    ></v-text-field>
 
-                <v-combobox
-                    class="px-2"
-                    label="Tags"
-                    v-model="receiveDialogStore.data.tags"
-                    multiple
-                    :chips="true"
-                    :deletable-chips="true"
-                    :disable-lookup="true"
-                    :items="possibleTags"
-                ></v-combobox>
+                    <v-combobox
+                        class="px-2"
+                        label="Tags"
+                        v-model="receiveDialogStore.data.tags"
+                        multiple
+                        :chips="true"
+                        :deletable-chips="true"
+                        :disable-lookup="true"
+                        :items="possibleTags"
+                    ></v-combobox>
 
-                <v-textarea
-                    class="px-2"
-                    label="Metadata"
-                    v-model="receiveDialogStore.data.metadata"
-                ></v-textarea>
+                    <v-textarea
+                        class="px-2"
+                        label="Metadata"
+                        v-model="receiveDialogStore.data.metadata"
+                    ></v-textarea>
 
-                <v-card-actions>
+                    <v-card-actions>
 
-                <v-btn
-                    color="red"
-                    class="px-3"
-                    @click="receiveDialogStore.show = false"
-                >
-                    Reject
-                </v-btn>
+                        <v-btn
+                            color="red"
+                            class="px-3"
+                            @click="receiveDialogStore.show = false"
+                        >
+                            Reject
+                        </v-btn>
 
-                <v-spacer></v-spacer>
+                        <v-spacer></v-spacer>
 
-                <v-btn
-                    color="blue"
-                    class="px-3"
-                    :disabled="!$store.state.receiveDialog.valid"
-                    @click="receiveDialogStore.show = false; confirmItemReceipt();"
-                >
-                    Accept
-                </v-btn>
+                        <v-btn
+                            color="blue"
+                            class="px-3"
+                            :disabled="!$store.state.receiveDialog.valid"
+                            @click="receiveDialogStore.show = false; confirmItemReceipt();"
+                        >
+                            Accept
+                        </v-btn>
 
-                </v-card-actions>
+                    </v-card-actions>
 
                 </v-form>
             </v-card>
         </v-dialog>
 
         <v-dialog
-          v-model="shareDialogStore.show"
-          max-width="380"
-          persistent
-          fullscreen
-          hide-overlay
-          transition="dialog-bottom-transition"
+            v-model="shareDialogStore.show"
+            max-width="380"
+            persistent
+            fullscreen
+            hide-overlay
+            transition="dialog-bottom-transition"
         >
-          <v-card>
-              <v-card-title class="headline">Share Item</v-card-title>
+            <v-card>
+                <v-card-title class="headline">Share Item</v-card-title>
 
-              <v-card-text>
-                  Select a user to send this item to.
-              </v-card-text>
-              
-              <v-form
-                  ref="shareForm"
-                  v-model="shareDialogStore.valid"
-                  :lazy-validation="false"
-                  class="px-2"
-              >
-              
-                  <!-- <v-list>
-                      <v-list-item-group v-model="shareDialogStore.data.recipient" color="primary">
-                          <v-list-item
-                              v-for="user in nearbyUsers"
-                              v-bind:key="user.uuid"
-                          >
-                              <v-list-item-content>
-                                  <v-list-item-title v-text="user.name"></v-list-item-title>
-                              </v-list-item-content>
-                          </v-list-item>
-                      </v-list-item-group>
-                  </v-list> -->
-                  
-                <v-select
-                    v-model="shareDialogStore.data.recipient"
-                    :items="nearbyUsers"
-                    item-value="uuid"
-                    :rules="[v => !!v || 'A recipient is required']"
-                    label="Nearby Users"
-                    required
+                <v-card-text>
+                    Select a user to send this item to.
+                </v-card-text>
+
+                <v-form
+                    ref="shareForm"
+                    v-model="shareDialogStore.valid"
+                    :lazy-validation="false"
+                    class="px-2"
                 >
-                    <template v-slot:item="data">
-                        <i style="color: grey; margin-right: 5px;">{{data.item.distance.toFixed(1)}}m</i> {{data.item.name}}
-                    </template>
-                    <template v-slot:selection="data">
-                        <i style="color: grey; margin-right: 5px;">{{data.item.distance.toFixed(1)}}m</i> {{data.item.name}}
-                    </template>
-                </v-select>
 
-                  <v-text-field
-                      class="px-2"
-                      label="URL"
-                      :rules="[v => !!v || 'URL is required.']"
-                      v-model="shareDialogStore.data.url"
-                      required
-                  ></v-text-field>
+                    <v-select
+                        v-model="shareDialogStore.data.recipient"
+                        :items="nearbyUsers"
+                        item-value="uuid"
+                        :rules="[v => !!v || 'A recipient is required']"
+                        label="Nearby Users"
+                        required
+                    >
+                        <template v-slot:item="data">
+                            <i style="color: grey; margin-right: 5px;">{{data.item.distance.toFixed(1)}}m</i> {{data.item.name}}
+                        </template>
+                        <template v-slot:selection="data">
+                            <i style="color: grey; margin-right: 5px;">{{data.item.distance.toFixed(1)}}m</i> {{data.item.name}}
+                        </template>
+                    </v-select>
 
-                  <v-card-actions>
+                    <v-text-field
+                        class="px-2"
+                        label="URL"
+                        :rules="[v => !!v || 'URL is required.']"
+                        v-model="shareDialogStore.data.url"
+                        required
+                    ></v-text-field>
 
-                      <v-btn
-                          color="red"
-                          class="px-3"
-                          @click="shareDialogStore.show = false"
-                      >
-                          Cancel
-                      </v-btn>
-                      
-                      <v-spacer></v-spacer>
-                      
-                      <v-btn
-                          color="blue"
-                          class="px-3"
-                          :disabled="!$store.state.shareDialog.valid"
-                          @click="shareDialogStore.show = false; shareItem($store.state.shareDialog.data.uuid);"
-                      >
-                          Send
-                      </v-btn>
-                      
-                  </v-card-actions>
-                  
-              </v-form>
-          </v-card>
+                    <v-card-actions>
+
+                        <v-btn
+                            color="red"
+                            class="px-3"
+                            @click="shareDialogStore.show = false"
+                        >
+                            Cancel
+                        </v-btn>
+
+                        <v-spacer></v-spacer>
+
+                        <v-btn
+                            color="blue"
+                            class="px-3"
+                            :disabled="!$store.state.shareDialog.valid"
+                            @click="shareDialogStore.show = false; shareItem($store.state.shareDialog.data.uuid);"
+                        >
+                            Send
+                        </v-btn>
+
+                    </v-card-actions>
+
+                </v-form>
+            </v-card>
         </v-dialog>
     </v-app>
 </template>
