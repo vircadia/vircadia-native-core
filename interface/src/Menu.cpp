@@ -238,11 +238,11 @@ Menu::Menu() {
 
     // Navigate > Start-up Location
     MenuWrapper* startupLocationMenu = navigateMenu->addMenu(MenuOption::StartUpLocation);
-    QActionGroup* startupLocatiopnGroup = new QActionGroup(startupLocationMenu);
-    startupLocatiopnGroup->setExclusive(true);
-    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0,
+    QActionGroup* startupLocationGroup = new QActionGroup(startupLocationMenu);
+    startupLocationGroup->setExclusive(true);
+    startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0,
         false));
-    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0,
+    startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0,
         true));
 
     // Settings menu ----------------------------------

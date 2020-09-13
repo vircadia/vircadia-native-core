@@ -202,10 +202,10 @@ private:
     bool _prevModelLoaded { false };
 
     void processMaterials();
+    bool _allProceduralMaterialsLoaded { false };
 
     static void metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
                                        const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs);
-
 };
 
 } } // namespace 

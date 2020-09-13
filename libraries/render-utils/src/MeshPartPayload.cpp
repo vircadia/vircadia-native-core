@@ -520,8 +520,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
         batch.setDrawcallUniform(drawcallInfo);
     }
 
-    if (!_drawMaterials.empty() && _drawMaterials.top().material && _drawMaterials.top().material->isProcedural() &&
-            _drawMaterials.top().material->isReady()) {
+    if (_shapeKey.hasOwnPipeline()) {
         if (!(enableMaterialProceduralShaders)) {
             return;
         }
