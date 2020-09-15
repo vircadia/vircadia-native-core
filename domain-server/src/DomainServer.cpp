@@ -118,7 +118,7 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
     root.insert(requestSubobjectKey, subobject);
     QJsonDocument doc { root };
 
-    QUrl url{ MetaverseAPI::getCurrentMetaverseServerURL().toString() + metaversePath };
+    QUrl url { MetaverseAPI::getCurrentMetaverseServerURL().toString() + metaversePath };
 
     QNetworkRequest req(url);
     req.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
@@ -1979,6 +1979,8 @@ const QString URI_OAUTH = "/oauth";
 bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
     const QString JSON_MIME_TYPE = "application/json";
 
+    const QString URI_DOMAIN_METAVERSE_INFO = "/domain/metaverse_info";
+    const QString URI_ID = "/id";
     const QString URI_ASSIGNMENT = "/assignment";
     const QString URI_NODES = "/nodes";
     const QString URI_SETTINGS = "/settings";
@@ -2055,12 +2057,25 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     }
 
     // check if this is a request for our domain ID
-    const QString URI_ID = "/id";
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
         && url.path() == URI_ID) {
         QUuid domainID = nodeList->getSessionUUID();
 
         connection->respond(HTTPConnection::StatusCode200, uuidStringWithoutCurlyBraces(domainID).toLocal8Bit());
+        return true;
+    }
+    
+    // check if this is a request for our selected metaverse server info
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation
+        && url.path() == URI_DOMAIN_METAVERSE_INFO) {
+        const QString MIME_TYPE = "application/json";
+        
+        QString metaverseURL{ MetaverseAPI::getCurrentMetaverseServerURL().toString() };
+        QJsonObject jsonObject{ { "metaverse_url", metaverseURL } };
+        QString domainMetaverseInfoJSON =
+            QString("{\"metaverse\":%1}").arg(QString(QJsonDocument(jsonObject).toJson(QJsonDocument::Compact)));
+
+        connection->respond(HTTPConnection::StatusCode200, domainMetaverseInfoJSON.toUtf8(), qPrintable(MIME_TYPE));
         return true;
     }
 
