@@ -5,7 +5,7 @@ var Metaverse = {
 var currentStepNumber;
 
 $(document).ready(function(){
-  Strings.ADD_PLACE_NOT_CONNECTED_MESSAGE = "You must have an access token to query your High Fidelity places.<br><br>" +
+  Strings.ADD_PLACE_NOT_CONNECTED_MESSAGE = "You must have an access token to query your Metaverse places.<br><br>" +
     "Please go back and connect your account.";
 
   $('#connect-account-btn').attr('href', URLs.METAVERSE_URL + "/user/tokens/new?for_domain_server=true");
@@ -15,9 +15,9 @@ $(document).ready(function(){
   $('.perms-link').on('click', function() {
     var modal_body = '<div>';
     modal_body += '<b>None</b> - No one will have permissions. Only you and the users your have given administrator privileges to will have permissions.</br></br>';
-    modal_body += '<b>Friends</b> - Users who are your Friends in High Fidelity.</br></br>';
-    modal_body += '<b>Users logged into High Fidelity</b> - Users who are currently logged into High Fidelity.</br></br>';
-    modal_body += '<b>Everyone</b> - Anyone who uses High Fidelity.';
+    modal_body += '<b>Friends</b> - Users who are your Friends in the Metaverse.</br></br>';
+    modal_body += '<b>Users logged into the Metaverse</b> - Users who are currently logged into the Metaverse.</br></br>';
+    modal_body += '<b>Everyone</b> - Anyone who uses the Metaverse.';
     modal_body += '</div>';
 
     dialog = bootbox.dialog({
@@ -142,7 +142,7 @@ function setupWizardSteps() {
     });
 
     $('#permissions-description').html('You <span id="username-display"></span>have been assigned administrator privileges to this domain.');
-    $('#admin-description').html('Add more High Fidelity usernames');
+    $('#admin-description').html('Add more Metaverse usernames');
   } else {
     $('.cloud-only').remove();
     $('#save-permissions').text("Finish");
