@@ -7110,9 +7110,9 @@ void Application::updateWindowTitle() const {
     QString currentPlaceName;
     if (isServerlessMode()) {
         if (isInErrorState) {
-            currentPlaceName = "serverless: " + nodeList->getDomainHandler().getErrorDomainURL().toString();
+            currentPlaceName = "Serverless: " + nodeList->getDomainHandler().getErrorDomainURL().toString();
         } else {
-            currentPlaceName = "serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
+            currentPlaceName = "Serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
         }
     } else {
         currentPlaceName = DependencyManager::get<AddressManager>()->getDomainURL().host();
