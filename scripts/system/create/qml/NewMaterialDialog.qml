@@ -54,7 +54,7 @@ Rectangle {
 
         Text {
             id: text1
-            text: qsTr("Material URL")
+            text: qsTr("Material URL (Optional)")
             color: "#ffffff"
             font.pixelSize: 12
         }
