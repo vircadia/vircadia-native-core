@@ -230,212 +230,212 @@ function getDomainFromAPI(callback) {
 
 function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAdded) {
   if (accessToken) {
-      getMetaverseUrl(function(metaverse_url) {
+    getMetaverseUrl(function(metaverse_url) {
 
-        var loadingDialog = showLoadingDialog(Strings.ADD_PLACE_LOADING_DIALOG);
+      var loadingDialog = showLoadingDialog(Strings.ADD_PLACE_LOADING_DIALOG);
 
-        function loadPlaces() {
-          $.ajax("/api/places", {
-            dataType: 'json',
-            jsonp: false,
-            success: function(data) {
-              if (data.status == 'success') {
-                var modal_buttons = {
-                  cancel: {
-                    label: Strings.ADD_PLACE_CANCEL_BUTTON,
-                    className: 'add-place-cancel-button btn-default'
+      function loadPlaces() {
+        $.ajax("/api/places", {
+          dataType: 'json',
+          jsonp: false,
+          success: function(data) {
+            if (data.status == 'success') {
+              var modal_buttons = {
+                cancel: {
+                  label: Strings.ADD_PLACE_CANCEL_BUTTON,
+                  className: 'add-place-cancel-button btn-default'
+                }
+              };
+
+              var dialog;
+              var modal_body;
+              if (data.data.places.length) {
+                var places_by_id = {};
+
+                modal_body = $('<div>');
+
+                modal_body.append($("<p>Choose a place name that you own or <a href='" + metaverse_url + "/user/places' target='_blank'>register a new place name</a></p>"));
+
+                var currentDomainIDType = getCurrentDomainIDType();
+                if (currentDomainIDType === DOMAIN_ID_TYPE_TEMP) {
+                  var warning = "<div class='domain-loading-error alert alert-warning'>";
+                  warning += "If you choose a place name it will replace your current temporary place name.";
+                  warning += "</div>";
+                  modal_body.append(warning);
+                }
+
+                // setup a select box for the returned places
+                modal_body.append($("<label for='place-name-select'>Places</label>"));
+                place_select = $("<select id='place-name-select' class='form-control'></select>");
+                _.each(data.data.places, function(place) {
+                  places_by_id[place.id] = place;
+                  place_select.append("<option value='" + place.id + "'>" + place.name + "</option>");
+                })
+                modal_body.append(place_select);
+                modal_body.append($("<p id='place-name-warning' class='warning-text' style='display: none'>This place name already points to a place or path. Saving this would overwrite the previous settings associated with it.</p>"));
+
+                if (forcePathTo === undefined || forcePathTo === null) {
+                  var path = "<div class='form-group'>";
+                  path += "<label for='place-path-input' class='control-label'>Path or Viewpoint</label>";
+                  path += "<input type='text' id='place-path-input' class='form-control' value='/'>";
+                  path += "</div>";
+                  modal_body.append($(path));
+                }
+
+                var place_select = modal_body.find("#place-name-select")
+                place_select.change(function(ev) {
+                  var warning = modal_body.find("#place-name-warning");
+                  var place = places_by_id[$(this).val()];
+                  if (place === undefined || place.pointee === null) {
+                    warning.hide();
+                  } else {
+                    warning.show();
                   }
-                };
+                });
+                place_select.trigger('change');
 
-                var dialog;
-                var modal_body;
-                if (data.data.places.length) {
-                  var places_by_id = {};
+                modal_buttons["success"] = {
+                  label: Strings.ADD_PLACE_CONFIRM_BUTTON,
+                  className: 'add-place-confirm-button btn btn-primary',
+                  callback: function() {
+                    var placeID = $('#place-name-select').val();
+                    // set the place ID on the form
+                    $(Settings.place_ID_SELECTOR).val(placeID).change();
 
-                  modal_body = $('<div>');
-
-                  modal_body.append($("<p>Choose a place name that you own or <a href='" + metaverse_url + "/user/places' target='_blank'>register a new place name</a></p>"));
-
-                  var currentDomainIDType = getCurrentDomainIDType();
-                  if (currentDomainIDType === DOMAIN_ID_TYPE_TEMP) {
-                    var warning = "<div class='domain-loading-error alert alert-warning'>";
-                    warning += "If you choose a place name it will replace your current temporary place name.";
-                    warning += "</div>";
-                    modal_body.append(warning);
-                  }
-
-                  // setup a select box for the returned places
-                  modal_body.append($("<label for='place-name-select'>Places</label>"));
-                  place_select = $("<select id='place-name-select' class='form-control'></select>");
-                  _.each(data.data.places, function(place) {
-                    places_by_id[place.id] = place;
-                    place_select.append("<option value='" + place.id + "'>" + place.name + "</option>");
-                  })
-                  modal_body.append(place_select);
-                  modal_body.append($("<p id='place-name-warning' class='warning-text' style='display: none'>This place name already points to a place or path. Saving this would overwrite the previous settings associated with it.</p>"));
-
-                  if (forcePathTo === undefined || forcePathTo === null) {
-                    var path = "<div class='form-group'>";
-                    path += "<label for='place-path-input' class='control-label'>Path or Viewpoint</label>";
-                    path += "<input type='text' id='place-path-input' class='form-control' value='/'>";
-                    path += "</div>";
-                    modal_body.append($(path));
-                  }
-
-                  var place_select = modal_body.find("#place-name-select")
-                  place_select.change(function(ev) {
-                    var warning = modal_body.find("#place-name-warning");
-                    var place = places_by_id[$(this).val()];
-                    if (place === undefined || place.pointee === null) {
-                      warning.hide();
+                    if (forcePathTo === undefined || forcePathTo === null) {
+                      var placePath = $('#place-path-input').val();
                     } else {
-                      warning.show();
+                      var placePath = forcePathTo;
                     }
-                  });
-                  place_select.trigger('change');
 
-                  modal_buttons["success"] = {
-                    label: Strings.ADD_PLACE_CONFIRM_BUTTON,
-                    className: 'add-place-confirm-button btn btn-primary',
-                    callback: function() {
-                      var placeID = $('#place-name-select').val();
-                      // set the place ID on the form
-                      $(Settings.place_ID_SELECTOR).val(placeID).change();
+                    $('.add-place-confirm-button').attr('disabled', 'disabled');
+                    $('.add-place-confirm-button').html(Strings.ADD_PLACE_CONFIRM_BUTTON_PENDING);
+                    $('.add-place-cancel-button').attr('disabled', 'disabled');
 
-                      if (forcePathTo === undefined || forcePathTo === null) {
-                        var placePath = $('#place-path-input').val();
-                      } else {
-                        var placePath = forcePathTo;
-                      }
-
-                      $('.add-place-confirm-button').attr('disabled', 'disabled');
-                      $('.add-place-confirm-button').html(Strings.ADD_PLACE_CONFIRM_BUTTON_PENDING);
-                      $('.add-place-cancel-button').attr('disabled', 'disabled');
-
-                      function finalizeSaveDomainID(domainID) {
-                        var jsonSettings = {
-                          metaverse: {
-                            id: domainID
-                          }
+                    function finalizeSaveDomainID(domainID) {
+                      var jsonSettings = {
+                        metaverse: {
+                          id: domainID
                         }
-                        var dialog = showLoadingDialog("Waiting for Domain Server to restart...");
-                        $.ajax('/settings.json', {
-                          data: JSON.stringify(jsonSettings),
-                          contentType: 'application/json',
-                          type: 'POST'
-                        }).done(function(data) {
-                          if (data.status == "success") {
-                            waitForDomainServerRestart(function() {
-                              dialog.modal('hide');
-                              if (onSuccessfullyAdded) {
-                                onSuccessfullyAdded(places_by_id[placeID].name, domainID);
-                              }
-                            });
-                          } else {
-                            bootbox.alert("Failed to add place");
-                          }
-                        }).fail(function() {
+                      }
+                      var dialog = showLoadingDialog("Waiting for Domain Server to restart...");
+                      $.ajax('/settings.json', {
+                        data: JSON.stringify(jsonSettings),
+                        contentType: 'application/json',
+                        type: 'POST'
+                      }).done(function(data) {
+                        if (data.status == "success") {
+                          waitForDomainServerRestart(function() {
+                            dialog.modal('hide');
+                            if (onSuccessfullyAdded) {
+                              onSuccessfullyAdded(places_by_id[placeID].name, domainID);
+                            }
+                          });
+                        } else {
                           bootbox.alert("Failed to add place");
+                        }
+                      }).fail(function() {
+                        bootbox.alert("Failed to add place");
+                      });
+                    }
+
+                    // If domainID is not specified, the current domain id will be used.
+                    function finishSettingUpPlace(domainID) {
+                      sendUpdatePlaceRequest(
+                        placeID,
+                        placePath,
+                        domainID,
+                        false,
+                        function(data) {
+                          dialog.modal('hide')
+                          if (domainID) {
+                            $(Settings.DOMAIN_ID_SELECTOR).val(domainID).change();
+                            finalizeSaveDomainID(domainID);
+                          } else {
+                            if (onSuccessfullyAdded) {
+                              onSuccessfullyAdded(places_by_id[placeID].name);
+                            }
+                          }
+                        },
+                        function(data) {
+                          $('.add-place-confirm-button').removeAttr('disabled');
+                          $('.add-place-confirm-button').html(Strings.ADD_PLACE_CONFIRM_BUTTON);
+                          $('.add-place-cancel-button').removeAttr('disabled');
+                          bootbox.alert(Strings.ADD_PLACE_UNKNOWN_ERROR);
+                        }
+                      );
+                    }
+
+                    function maybeCreateNewDomainID() {
+                      console.log("Maybe creating domain id", currentDomainIDType)
+                      if (currentDomainIDType === DOMAIN_ID_TYPE_FULL) {
+                        finishSettingUpPlace();
+                      } else {
+                        sendCreateDomainRequest(function(domainID) {
+                          console.log("Created domain", domainID);
+                          finishSettingUpPlace(domainID);
+                        }, function() {
+                          $('.add-place-confirm-button').removeAttr('disabled');
+                          $('.add-place-confirm-button').html(Strings.ADD_PLACE_CONFIRM_BUTTON);
+                          $('.add-place-cancel-button').removeAttr('disabled');
+                          bootbox.alert(Strings.ADD_PLACE_UNKNOWN_ERROR);
                         });
                       }
-
-                      // If domainID is not specified, the current domain id will be used.
-                      function finishSettingUpPlace(domainID) {
-                        sendUpdatePlaceRequest(
-                          placeID,
-                          placePath,
-                          domainID,
-                          false,
-                          function(data) {
-                            dialog.modal('hide')
-                            if (domainID) {
-                              $(Settings.DOMAIN_ID_SELECTOR).val(domainID).change();
-                              finalizeSaveDomainID(domainID);
-                            } else {
-                              if (onSuccessfullyAdded) {
-                                onSuccessfullyAdded(places_by_id[placeID].name);
-                              }
-                            }
-                          },
-                          function(data) {
-                            $('.add-place-confirm-button').removeAttr('disabled');
-                            $('.add-place-confirm-button').html(Strings.ADD_PLACE_CONFIRM_BUTTON);
-                            $('.add-place-cancel-button').removeAttr('disabled');
-                            bootbox.alert(Strings.ADD_PLACE_UNKNOWN_ERROR);
-                          }
-                        );
-                      }
-
-                      function maybeCreateNewDomainID() {
-                        console.log("Maybe creating domain id", currentDomainIDType)
-                        if (currentDomainIDType === DOMAIN_ID_TYPE_FULL) {
-                          finishSettingUpPlace();
-                        } else {
-                          sendCreateDomainRequest(function(domainID) {
-                            console.log("Created domain", domainID);
-                            finishSettingUpPlace(domainID);
-                          }, function() {
-                            $('.add-place-confirm-button').removeAttr('disabled');
-                            $('.add-place-confirm-button').html(Strings.ADD_PLACE_CONFIRM_BUTTON);
-                            $('.add-place-cancel-button').removeAttr('disabled');
-                            bootbox.alert(Strings.ADD_PLACE_UNKNOWN_ERROR);
-                          });
-                        }
-                      }
-
-                      maybeCreateNewDomainID();
-
-                      return false;
                     }
+
+                    maybeCreateNewDomainID();
+
+                    return false;
                   }
-                } else {
-                  modal_buttons["success"] = {
-                    label: Strings.ADD_PLACE_NO_PLACES_BUTTON,
-                    callback: function() {
-                      window.open(metaverse_url + "/user/places", '_blank');
-                    }
-                  }
-                  modal_body = Strings.ADD_PLACE_NO_PLACES_MESSAGE;
                 }
-                dialog = bootbox.dialog({
-                  title: Strings.ADD_PLACE_TITLE,
-                  message: modal_body,
-                  closeButton: false,
-                  buttons: modal_buttons,
-                  onEscape: true
-                });
               } else {
-                bootbox.alert(Strings.ADD_PLACE_UNABLE_TO_LOAD_ERROR);
-              }
-            },
-            error: function() {
-              bootbox.alert(Strings.ADD_PLACE_UNABLE_TO_LOAD_ERROR);
-            },
-            complete: function() {
-              loadingDialog.modal('hide');
-            }
-          });
-        }
-
-        var domainType = getCurrentDomainIDType();
-        if (domainType !== DOMAIN_ID_TYPE_UNKNOWN) {
-          loadPlaces();
-        } else {
-          getDomainFromAPI(function(data) {
-            if (data.status === 'success') {
-              var domainType = getCurrentDomainIDType();
-              loadPlaces();
-            } else {
-              loadingDialog.modal('hide');
-              bootbox.confirm("We were not able to load your domain information from the Metaverse. Would you like to retry?", function(response) {
-                if (response) {
-                  chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAdded);
+                modal_buttons["success"] = {
+                  label: Strings.ADD_PLACE_NO_PLACES_BUTTON,
+                  callback: function() {
+                    window.open(metaverse_url + "/user/places", '_blank');
+                  }
                 }
+                modal_body = Strings.ADD_PLACE_NO_PLACES_MESSAGE;
+              }
+              dialog = bootbox.dialog({
+                title: Strings.ADD_PLACE_TITLE,
+                message: modal_body,
+                closeButton: false,
+                buttons: modal_buttons,
+                onEscape: true
               });
+            } else {
+              bootbox.alert(Strings.ADD_PLACE_UNABLE_TO_LOAD_ERROR);
             }
-          })
-        }
-      });
+          },
+          error: function() {
+            bootbox.alert(Strings.ADD_PLACE_UNABLE_TO_LOAD_ERROR);
+          },
+          complete: function() {
+            loadingDialog.modal('hide');
+          }
+        });
+      }
+
+      var domainType = getCurrentDomainIDType();
+      if (domainType !== DOMAIN_ID_TYPE_UNKNOWN) {
+        loadPlaces();
+      } else {
+        getDomainFromAPI(function(data) {
+          if (data.status === 'success') {
+            var domainType = getCurrentDomainIDType();
+            loadPlaces();
+          } else {
+            loadingDialog.modal('hide');
+            bootbox.confirm("We were not able to load your domain information from the Metaverse. Would you like to retry?", function(response) {
+              if (response) {
+                chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAdded);
+              }
+            });
+          }
+        })
+      }
+    });
   } else {
     bootbox.alert({
       title: Strings.ADD_PLACE_NOT_CONNECTED_TITLE,
