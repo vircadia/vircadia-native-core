@@ -6,9 +6,8 @@ import boto3
 import glob
 from github import Github
 
-
 def main():
-    bucket_name = os.environ['BUCKET_NAME']
+    bucket_name = os.environ['UPLOAD_BUCKET']
     upload_prefix = os.environ['UPLOAD_PREFIX']
     release_number = os.environ['RELEASE_NUMBER']
     full_prefix = upload_prefix + '/' + release_number[0:-2] + '/' + release_number
