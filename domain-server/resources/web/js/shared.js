@@ -49,11 +49,11 @@ $.extend(Settings, {
 });
 
 var URLs = {
-    // STABLE METAVERSE_URL: https://metaverse.highfidelity.com
-    // STAGING METAVERSE_URL: https://staging.highfidelity.com
-    DEFAULT_METAVERSE_URL: "https://metaverse.vircadia.com/live",
-    CDN_URL: 'https://content.vircadia.com/eu-c-1',
-    PLACE_URL: 'https://hifi.place',
+  // STABLE METAVERSE_URL: https://metaverse.highfidelity.com
+  // STAGING METAVERSE_URL: https://staging.highfidelity.com
+  DEFAULT_METAVERSE_URL: "https://metaverse.vircadia.com/live",
+  CDN_URL: 'https://content.vircadia.com/eu-c-1',
+  PLACE_URL: 'https://hifi.place'
 };
 
 var Strings = {
@@ -510,4 +510,3 @@ function getMetaverseUrl(callback) {
         }
     });
 }
-
