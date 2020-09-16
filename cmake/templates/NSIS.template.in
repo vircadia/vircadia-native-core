@@ -202,9 +202,9 @@
     ; The Inner invocation has written an uninstaller binary for us.
     ; We need to sign it if it's a production or PR build.
     !if @PRODUCTION_BUILD@ == 1
-      !if @BYPASS_SIGNING@ == 1
+      !if @BYPASS_SIGNING@ == TRUE
         !warning "BYPASS_SIGNING set - installer will not be signed"
-      !else
+      !else 
         !system '"@SIGNTOOL_EXECUTABLE@" sign /fd sha256 /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://timestamp.comodoca.com?td=sha256 /td SHA256 $%TEMP%\@UNINSTALLER_NAME@' = 0
       !endif
     !endif
