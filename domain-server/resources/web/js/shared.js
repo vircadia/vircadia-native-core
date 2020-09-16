@@ -502,11 +502,11 @@ function prepareAccessTokenPrompt(callback) {
 
 function getMetaverseUrl(callback) {
     $.ajax('/api/metaverse_info', {
-        success: function(data) {
-            callback(data.metaverse_url);
-        },
-        error: function() {
-            callback(URLs.DEFAULT_METAVERSE_URL);
-        }
+      success: function(data) {
+        callback(data.metaverse_url);
+      },
+      error: function() {
+        callback(URLs.DEFAULT_METAVERSE_URL);
+      }
     });
 }
