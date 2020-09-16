@@ -237,6 +237,8 @@ QNetworkRequest AccountManager::createRequest(QString path, AccountManagerAuth::
     }
     
     // qCDebug(networking) << "Creating request path" << requestURL;
+    // qCDebug(networking) << "requestURL.isValid()" << requestURL.isValid();
+    // qCDebug(networking) << "requestURL.errorString()" << requestURL.errorString();
 
     if (queryStringLocation >= 0) {
         QUrlQuery query(path.mid(queryStringLocation+1));
@@ -1008,8 +1010,8 @@ void AccountManager::uploadPublicKey() {
     qCDebug(networking) << "Attempting upload of public key";
 
     // upload the public key so data-web has an up-to-date key
-    const QString USER_PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
-    const QString DOMAIN_PUBLIC_KEY_UPDATE_PATH = "api/v1/domains/%1/public_key";
+    const QString USER_PUBLIC_KEY_UPDATE_PATH = "/api/v1/user/public_key";
+    const QString DOMAIN_PUBLIC_KEY_UPDATE_PATH = "/api/v1/domains/%1/public_key";
 
     QString uploadPath;
     const auto& domainID = _accountInfo.getDomainID();

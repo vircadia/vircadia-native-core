@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 9/26/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -1434,7 +1435,7 @@ void DomainServer::sendPendingTransactionsToServer() {
         transactionCallbackParams.jsonCallbackMethod = "transactionJSONCallback";
 
         while (i != _pendingAssignmentCredits.end()) {
-            accountManager->sendRequest("api/v1/transactions",
+            accountManager->sendRequest("/api/v1/transactions",
                                        AccountManagerAuth::Required,
                                        QNetworkAccessManager::PostOperation,
                                        transactionCallbackParams, i.value()->postJson().toJson());
@@ -3725,7 +3726,7 @@ void DomainServer::screensharePresence(QString roomname, QUuid avatarID, int exp
     callbackData.insert("roomname", roomname);
     callbackData.insert("avatarID", avatarID.toString());
     callbackParams.callbackData = callbackData;
-    const QString PATH = "api/v1/domains/%1/screenshare";
+    const QString PATH = "/api/v1/domains/%1/screenshare";
     QString domain_id = uuidStringWithoutCurlyBraces(getID());
     QJsonObject json, screenshare;
     screenshare["username"] = verifiedUsername;
