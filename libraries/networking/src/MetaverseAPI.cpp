@@ -39,11 +39,7 @@ namespace MetaverseAPI {
     QString getCurrentMetaverseServerURLPath(bool appendForwardSlash){ 
         QString path = getCurrentMetaverseServerURL().path();
 
-        if (path.isEmpty()) {
-            return path;
-        }
-
-        if (appendForwardSlash) {
+        if (!path.isEmpty() && appendForwardSlash) {
             path.append("/");
         }
 

@@ -695,7 +695,7 @@ void AccountManager::setAccessTokens(const QString& response) {
         } else {
             // clear the path from the response URL so we have the right root URL for this access token
             QUrl rootURL = rootObject.contains("url") ? rootObject["url"].toString() : _authURL;
-            rootURL.setPath(getMetaverseServerURLPath() + "");
+            rootURL.setPath(getMetaverseServerURLPath());
 
             qCDebug(networking) << "Storing an account with access-token for" << qPrintable(rootURL.toString());
 
@@ -730,7 +730,7 @@ void AccountManager::requestAccessTokenFinished() {
         } else {
             // clear the path from the response URL so we have the right root URL for this access token
             QUrl rootURL = requestReply->url();
-            rootURL.setPath(getMetaverseServerURLPath() + "");
+            rootURL.setPath(getMetaverseServerURLPath());
 
             qCDebug(networking) << "Storing an account with access-token for" << qPrintable(rootURL.toString());
 
@@ -766,7 +766,7 @@ void AccountManager::refreshAccessTokenFinished() {
         } else {
             // clear the path from the response URL so we have the right root URL for this access token
             QUrl rootURL = requestReply->url();
-            rootURL.setPath(getMetaverseServerURLPath() + "");
+            rootURL.setPath(getMetaverseServerURLPath());
 
             qCDebug(networking) << "Storing an account with a refreshed access-token for" << qPrintable(rootURL.toString());
 
