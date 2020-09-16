@@ -1156,7 +1156,7 @@ QUrl DomainServer::oauthAuthorizationURL(const QUuid& stateUUID) {
     QUrl authorizationURL = _oauthProviderURL;
 
     const QString OAUTH_AUTHORIZATION_PATH = "/oauth/authorize";
-    authorizationURL.setPath(OAUTH_AUTHORIZATION_PATH);
+    authorizationURL.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + OAUTH_AUTHORIZATION_PATH);
 
     QUrlQuery authorizationQuery;
 
@@ -1620,7 +1620,7 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
     callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
     callbackParameters.jsonCallbackMethod = "handleSuccessfulICEServerAddressUpdate";
 
-    qCDebug(domain_server_ice) << "Updating ice-server address in High Fidelity Metaverse API to"
+    qCDebug(domain_server_ice) << "Updating ice-server address in Metaverse API to"
         << (_iceServerSocket.isNull() ? "" : _iceServerSocket.getAddress().toString());
 
     static const QString DOMAIN_ICE_ADDRESS_UPDATE = "/api/v1/domains/%1/ice_server_address";
@@ -1979,7 +1979,6 @@ const QString URI_OAUTH = "/oauth";
 bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
     const QString JSON_MIME_TYPE = "application/json";
 
-    const QString URI_DOMAIN_METAVERSE_INFO = "/domain/metaverse_info";
     const QString URI_ID = "/id";
     const QString URI_ASSIGNMENT = "/assignment";
     const QString URI_NODES = "/nodes";
@@ -2062,20 +2061,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         QUuid domainID = nodeList->getSessionUUID();
 
         connection->respond(HTTPConnection::StatusCode200, uuidStringWithoutCurlyBraces(domainID).toLocal8Bit());
-        return true;
-    }
-    
-    // check if this is a request for our selected metaverse server info
-    if (connection->requestOperation() == QNetworkAccessManager::GetOperation
-        && url.path() == URI_DOMAIN_METAVERSE_INFO) {
-        const QString MIME_TYPE = "application/json";
-        
-        QString metaverseURL{ MetaverseAPI::getCurrentMetaverseServerURL().toString() };
-        QJsonObject jsonObject{ { "metaverse_url", metaverseURL } };
-        QString domainMetaverseInfoJSON =
-            QString("{\"metaverse\":%1}").arg(QString(QJsonDocument(jsonObject).toJson(QJsonDocument::Compact)));
-
-        connection->respond(HTTPConnection::StatusCode200, domainMetaverseInfoJSON.toUtf8(), qPrintable(MIME_TYPE));
         return true;
     }
 
@@ -2577,7 +2562,7 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
 
             const QString OAUTH_TOKEN_REQUEST_PATH = "/oauth/token";
             QUrl tokenRequestUrl = _oauthProviderURL;
-            tokenRequestUrl.setPath(OAUTH_TOKEN_REQUEST_PATH);
+            tokenRequestUrl.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + OAUTH_TOKEN_REQUEST_PATH);
 
             const QString OAUTH_GRANT_TYPE_POST_STRING = "grant_type=authorization_code";
             QString tokenPostBody = OAUTH_GRANT_TYPE_POST_STRING;
@@ -2891,7 +2876,7 @@ QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenR
 
     // fire off a request to get this user's identity so we can see if we will let them in
     QUrl profileURL = _oauthProviderURL;
-    profileURL.setPath("/api/v1/user/profile");
+    profileURL.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + "/api/v1/user/profile");
     profileURL.setQuery(QString("%1=%2").arg(OAUTH_JSON_ACCESS_TOKEN_KEY, accessToken));
 
     qDebug() << "Sending profile request to: " << profileURL;

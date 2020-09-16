@@ -1492,7 +1492,7 @@ void EntityTree::startDynamicDomainVerificationOnServer(float minimumAgeToRemove
         networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
         QUrl requestURL = MetaverseAPI::getCurrentMetaverseServerURL();
-        requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
+        requestURL.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + "/api/v1/commerce/proof_of_purchase_status/location");
         QJsonObject request;
         request["certificate_id"] = certificateID;
         networkRequest.setUrl(requestURL);
@@ -1724,7 +1724,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QUrl requestURL = MetaverseAPI::getCurrentMetaverseServerURL();
-    requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
+    requestURL.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + "/api/v1/commerce/proof_of_purchase_status/transfer");
     QJsonObject request;
     request["certificate_id"] = certID;
     networkRequest.setUrl(requestURL);

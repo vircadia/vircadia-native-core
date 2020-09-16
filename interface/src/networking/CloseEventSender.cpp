@@ -30,7 +30,7 @@ QNetworkRequest createNetworkRequest() {
     QNetworkRequest request;
 
     QUrl requestURL = MetaverseAPI::getCurrentMetaverseServerURL();
-    requestURL.setPath(USER_ACTIVITY_URL);
+    requestURL.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + USER_ACTIVITY_URL);
 
     request.setUrl(requestURL);
 

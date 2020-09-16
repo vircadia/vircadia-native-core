@@ -52,7 +52,7 @@ var URLs = {
     // STABLE METAVERSE_URL: https://metaverse.highfidelity.com
     // STAGING METAVERSE_URL: https://staging.highfidelity.com
     DEFAULT_METAVERSE_URL: "https://metaverse.vircadia.com/live",
-    CDN_URL: 'https://cdn.highfidelity.com',
+    CDN_URL: 'https://content.vircadia.com/eu-c-1',
     PLACE_URL: 'https://hifi.place',
 };
 
@@ -501,9 +501,9 @@ function prepareAccessTokenPrompt(callback) {
 }
 
 function getMetaverseUrl(callback) {
-    $.ajax('/domain/metaverse_info', {
+    $.ajax('/api/metaverse_info', {
         success: function(data) {
-            callback(data.metaverse.metaverse_url);
+            callback(data.metaverse_url);
         },
         error: function() {
             callback(URLs.DEFAULT_METAVERSE_URL);
