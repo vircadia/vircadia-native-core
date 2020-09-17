@@ -1,0 +1,33 @@
+<html>
+
+<head>
+    <title>App</title>
+</head>
+
+<body onload="sendWebEvent()">
+    <p id="appHtml"></p>
+</body>
+<script id="appScript"></script>
+</script>
+<script>
+
+    EventBridge.scriptEventReceived.connect(function (message) {
+        var messageData = JSON.parse(message);
+        if (messageData.component == "htmlBody") {
+            var appHtml = document.getElementById("appHtml").innerHTML;
+            if (appHtml == "") {
+                document.getElementById("appHtml").innerHTML = messageData.html;
+            } else {
+                appHtml = appHtml + messageData.html;
+                document.getElementById("appHtml").innerHTML = appHtml;
+            }
+        } else if (messageData.component == "script") {
+            document.getElementById("appScript").innerHTML = messageData.script;
+        } else if (messageData.component == "backgroundColor") {
+            document.body.style.backgroundColor = messageData.backgroundColor;
+        }
+    });
+
+</script>
+
+</html>
