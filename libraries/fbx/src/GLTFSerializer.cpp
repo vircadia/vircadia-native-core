@@ -1019,7 +1019,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
             hfmModel.meshes.append(HFMMesh());
             HFMMesh& mesh = hfmModel.meshes[hfmModel.meshes.size() - 1];
-            if (!hfmModel.hasSkeletonJoints) { 
+            mesh.modelTransform = globalTransforms[nodeIndex];
+
+            if (!hfmModel.hasSkeletonJoints) {
                 HFMCluster cluster;
                 cluster.jointIndex = nodecount;
                 cluster.inverseBindMatrix = glm::mat4();
