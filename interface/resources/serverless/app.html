@@ -4,12 +4,19 @@
     <title>App</title>
 </head>
 
-<body onload="sendWebEvent()">
+<body onload="hasLoaded()">
     <p id="appHtml"></p>
 </body>
 <script id="appScript"></script>
 </script>
 <script>
+
+    function hasLoaded() {
+        var messageHasLoaded = {
+            appMessage: "loaded"
+        }
+        EventBridge.emitWebEvent(JSON.stringify(messageHasLoaded));
+    }
 
     EventBridge.scriptEventReceived.connect(function (message) {
         var messageData = JSON.parse(message);
