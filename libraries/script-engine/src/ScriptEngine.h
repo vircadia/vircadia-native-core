@@ -4,7 +4,6 @@
 //
 //  Created by Brad Hefta-Gaub on 12/14/13.
 //  Copyright 2013 High Fidelity, Inc.
-//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -422,11 +421,10 @@ public:
      * @function Script.require
      * @param {string} module - The module to use. May be a JavaScript file, a JSON file, or the name of a system module such 
      *     as <code>"appUi"</code> (i.e., the "appUi.js" system module JavaScript file).
-     * @param {boolean} [forceRedownload=false] - Invalidate the cache for this module and redownload it if necessary.
      * @returns {object|array} The value assigned to <code>module.exports</code> in the JavaScript file, or the value defined 
      *     in the JSON file.
      */
-    Q_INVOKABLE QScriptValue require(const QString& moduleId, bool forceRedownload = false);
+    Q_INVOKABLE QScriptValue require(const QString& moduleId);
 
     /**jsdoc
      * @function Script.resetModuleCache
