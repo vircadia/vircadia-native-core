@@ -20,12 +20,13 @@ namespace NetworkingConstants {
     // If you want to use STAGING instead of STABLE,
     // links from the Domain Server web interface (like the connect account token generation)
     // will still point at stable unless you ALSO change the Domain Server Metaverse Server URL inside of:
-    // <hifi repo>\domain-server\resources\web\js\shared.js
+    // <vircadia repo>\domain-server\resources\web\js\shared.js
 
     // You can avoid changing that and still effectively use a connected domain on staging
     // if you manually generate a personal access token for the domains scope
     // at https://staging.highfidelity.com/user/tokens/new?for_domain_server=true
 
+    // For now we only have one Metaverse server.
     const QUrl METAVERSE_SERVER_URL_STABLE { "https://metaverse.vircadia.com/live" };
     const QUrl METAVERSE_SERVER_URL_STAGING { "https://metaverse.vircadia.com/live" };
 
@@ -43,7 +44,7 @@ namespace NetworkingConstants {
     const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
     const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");
 
-
+    // For now we only have one ice server.
 #if USE_STABLE_GLOBAL_SERVICES
     const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.vircadia.com";
 #else
