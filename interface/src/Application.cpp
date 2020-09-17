@@ -7123,7 +7123,7 @@ void Application::updateWindowTitle() const {
 
     QString metaverseDetails;
     if (isMetaverseLoggedIn) {
-        metaverseDetails = " (Metaverse: Connected to " + MetaverseAPI::getCurrentMetaverseServerURL() + " as " + metaverseUsername + ")";
+        metaverseDetails = " (Metaverse: Connected to " + MetaverseAPI::getCurrentMetaverseServerURL().toString() + " as " + metaverseUsername + ")";
     } else {
         metaverseDetails = " (Metaverse: Not Logged In)";
     }
