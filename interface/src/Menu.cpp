@@ -365,6 +365,10 @@ Menu::Menu() {
     // Developer > Scripting > Verbose Logging
     addCheckableActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::VerboseLogging, 0, false,
                                            qApp, SLOT(updateVerboseLogging()));
+                                           
+   // Developer > Scripting > Enable Cachebusting of Script.require
+   addCheckableActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::CachebustRequire, 0, false,
+                                          qApp, SLOT(setCachebustRequire()));
 
     // Developer > Scripting > Enable Speech Control API
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)

@@ -54,6 +54,7 @@ namespace MenuOption {
     const QString BookmarkAvatarEntities = "Bookmark Avatar Entities";
     const QString BookmarkLocation = "Bookmark Location";
     const QString CalibrateCamera = "Calibrate Camera";
+    const QString CachebustRequire = "Enable Cachebusting of Script.require";
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
     const QString ClearDiskCaches = "Clear Disk Caches (requires restart)";

@@ -354,6 +354,7 @@ static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 static const QString ACTIVE_DISPLAY_PLUGIN_SETTING_NAME = "activeDisplayPlugin";
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 static const QString KEEP_ME_LOGGED_IN_SETTING_NAME = "keepMeLoggedIn";
+static const QString CACHEBUST_SCRIPT_REQUIRE_SETTING_NAME = "cachebustScriptRequire";
 
 static const float FOCUS_HIGHLIGHT_EXPANSION_FACTOR = 1.05f;
 
@@ -1958,6 +1959,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     loadSettings();
 
     updateVerboseLogging();
+    
+    setCachebustRequire();
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -2589,6 +2592,16 @@ void Application::updateVerboseLogging() {
         "hifi.audio-stream.info=false";
     rules = rules.arg(enable ? "true" : "false");
     QLoggingCategory::setFilterRules(rules);
+}
+
+void Application::setCachebustRequire() {
+    auto menu = Menu::getInstance();
+    if (!menu) {
+        return;
+    }
+    bool enable = menu->isOptionChecked(MenuOption::CachebustRequire);
+    
+    Setting::Handle<bool>{ CACHEBUST_SCRIPT_REQUIRE_SETTING_NAME, false }.set(enable);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
