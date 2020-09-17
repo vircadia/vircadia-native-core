@@ -5545,19 +5545,17 @@ void Application::loadSettings() {
 
     getMyAvatar()->loadData();
 
-
     auto bucketEnum = QMetaEnum::fromType<ExternalResource::Bucket>();
-    auto er = ExternalResource::getInstance();
+    auto externalResource = ExternalResource::getInstance();
 
-    for(int i=0;i<bucketEnum.keyCount();i++) {
-        const char *keyName = bucketEnum.key(i);
+    for (int i = 0; i < bucketEnum.keyCount(); i++) {
+        const char* keyName = bucketEnum.key(i);
         QString setting("ExternalResource/");
         setting += keyName;
         auto bucket = static_cast<ExternalResource::Bucket>(bucketEnum.keyToValue(keyName));
-        Setting::Handle<QString> url(setting, er->getBase(bucket));
-        er->setBase( bucket, url.get() );
+        Setting::Handle<QString> url(setting, externalResource->getBase(bucket));
+        externalResource->setBase(bucket, url.get());
     }
-
 
     _settingsLoaded = true;
 }
@@ -5577,16 +5575,16 @@ void Application::saveSettings() const {
     PluginManager::getInstance()->saveSettings();
 
     auto bucketEnum = QMetaEnum::fromType<ExternalResource::Bucket>();
-    auto er = ExternalResource::getInstance();
+    auto externalResource = ExternalResource::getInstance();
 
-    for(int i=0;i<bucketEnum.keyCount();i++) {
-        const char *keyName = bucketEnum.key(i);
+    for (int i = 0; i < bucketEnum.keyCount(); i++) {
+        const char* keyName = bucketEnum.key(i);
         QString setting("ExternalResource/");
         setting += keyName;
         auto bucket = static_cast<ExternalResource::Bucket>(bucketEnum.keyToValue(keyName));
-        Setting::Handle<QString> url(setting, er->getBase(bucket));
-        url.set(er->getBase(bucket));
-    }    
+        Setting::Handle<QString> url(setting, externalResource->getBase(bucket));
+        url.set(externalResource->getBase(bucket));
+    }
 }
 
 bool Application::importEntities(const QString& urlOrFilename, const bool isObservable, const qint64 callerId) {
@@ -7568,8 +7566,8 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptEngine
     scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
     
-    scriptEngine->registerGlobalObject("ExternalResource", ExternalResource::getInstance());
-    scriptEngine->registerEnum("ExternalResource", QMetaEnum::fromType<ExternalResource::Bucket>());
+    //scriptEngine->registerGlobalObject("ExternalResource", ExternalResource::getInstance());
+   // scriptEngine->registerEnum("Script.ExternalPaths", QMetaEnum::fromType<ExternalResource::Bucket>());
 
     registerInteractiveWindowMetaType(scriptEngine.data());
 

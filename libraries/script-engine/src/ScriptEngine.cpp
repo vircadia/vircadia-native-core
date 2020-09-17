@@ -769,6 +769,7 @@ void ScriptEngine::init() {
         require.setProperty("resolve", resolve, READONLY_PROP_FLAGS);
         resetModuleCache();
     }
+    registerEnum("Script.ExternalPaths", QMetaEnum::fromType<ExternalResource::Bucket>());
 
     registerGlobalObject("Audio", DependencyManager::get<AudioScriptingInterface>().data());
 
@@ -2868,4 +2869,8 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
             callWithEnvironment(entityID, details.definingSandboxURL, entityScript.property(methodName), entityScript, args);
         }
     }
+}
+
+QString ScriptEngine::getExternalPath(ExternalResource::Bucket bucket, const QString &relative_path) {
+    return ExternalResource::getInstance()->getUrl(bucket, relative_path);
 }

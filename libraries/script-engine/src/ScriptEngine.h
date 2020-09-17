@@ -20,6 +20,7 @@
 #include <QtCore/QSet>
 #include <QtCore/QWaitCondition>
 #include <QtCore/QStringList>
+#include <QMap>
 #include <QMetaEnum>
 
 #include <QtScript/QScriptEngine>
@@ -38,6 +39,7 @@
 #include "AssetScriptingInterface.h"
 #include "AudioScriptingInterface.h"
 #include "BaseScriptEngine.h"
+#include "ExternalResource.h"
 #include "Quat.h"
 #include "Mat4.h"
 #include "ScriptCache.h"
@@ -681,6 +683,8 @@ public:
     bool hasEntityScriptDetails(const EntityItemID& entityID) const;
 
     void setScriptEngines(QSharedPointer<ScriptEngines>& scriptEngines) { _scriptEngines = scriptEngines; }
+
+    Q_INVOKABLE QString getExternalPath(ExternalResource::Bucket bucket, const QString &relative_path);
 
 public slots:
 

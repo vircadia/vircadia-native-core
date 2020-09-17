@@ -30,7 +30,8 @@
  * This class makes it possible to deal with this in a more flexible manner: rather than hardcoding URLs
  * all over the codebase, now it's possible to easily change where all those things are downloaded from.
  *
- *
+ * The term 'bucket' refers to the buckets used on Amazon S3, but there's no requirement for S3 or anything
+ * similar to be used. The term should just be taken as referring to the name of a data set.
  */
 class ExternalResource : public QObject {
     Q_OBJECT
@@ -50,13 +51,13 @@ public:
     enum class Bucket
     {
         /** Assets that used to be in the hifi-public S3 bucket */
-        Public,
+        HF_Public,
 
         /** Assets that used to be in the hifi-content S3 bucket */
-        Content,
+        HF_Content,
 
         /** Assets that used to be in the mpassets S3 bucket (hifi marketplace) */
-        MPAssets,
+        HF_Marketplace,
 
         /** Vircadia assets */
         Assets
@@ -124,9 +125,24 @@ public:
         return ExternalResource::getQUrl(bucket, QUrl(relative_path)).toString();
     };
 
-    Q_INVOKABLE QString getBase(Bucket bucket);
+    /**
+     * Returns the base path for a bucket
+     * 
+     * @param bucket Bucket whose path to return
+     */
+    QString getBase(Bucket bucket);
 
-    Q_INVOKABLE void setBase(Bucket bucket, const QString& url);
+    /**
+     * Sets the base path for a bucket
+     *
+     * The \p url parameter will be validated, and the action will not be performed
+     * if the URL isn't a valid one, or if the bucket wasn't valid.
+     *
+     * @param bucket Bucket whose path to set
+     * @param url Base URL for the bucket.
+     * @returns Whether the base was set.
+     */
+    bool setBase(Bucket bucket, const QString& url);
 
 private:
     ExternalResource(QObject* parent = nullptr);
@@ -134,10 +150,10 @@ private:
     std::mutex _bucketMutex;
 
     QMap<Bucket, QUrl> _bucketBases{
-        { Bucket::Public, QUrl("https://public.vircadia.com") },
-        { Bucket::Content, QUrl("https://content.vircadia.com") },
+        { Bucket::HF_Public, QUrl("https://public.vircadia.com") },
+        { Bucket::HF_Content, QUrl("https://content.vircadia.com") },
         { Bucket::Assets, QUrl("https://assets.vircadia.com") },
-        { Bucket::MPAssets, QUrl("https://mpassets.vircadia.com") },
+        { Bucket::HF_Marketplace, QUrl("https://mpassets.vircadia.com") },
     };
 };
 
