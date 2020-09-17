@@ -168,12 +168,11 @@ function setupWizardSteps() {
 }
 
 function updatePlaceNameLink(address) {
-  // UNCOMMENT THIS ONCE WE HAVE A REPLACEMENT FOR OUR OWN PLACE_URL WITH FUNCTIONALITY
-  // if (address) {
-  //   var url = URLs.PLACE_URL + '/' + address;
-  //   $('#place-name-link').html('Your domain is reachable at: <a target="_blank" href="' + url + '">' + address + '</a>');
-  //   $('#share-field a').attr('href', url).text(url);
-  // }
+  if (address) {
+    var url = URLs.PLACE_URL + '/' + address;
+    $('#place-name-link').html('Your domain is reachable at: <a target="_blank" href="' + url + '">' + address + '</a>');
+    $('#share-field a').attr('href', url).text(url);
+  }
 }
 
 function updatePlaceNameDisplay() {
