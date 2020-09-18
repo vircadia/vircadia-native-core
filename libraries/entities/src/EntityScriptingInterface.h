@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/6/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -110,9 +111,11 @@ public:
  * displayed and so knows about. For assignment client scripts, the entities available are those that are "seen" by the 
  * {@link EntityViewer}. For entity server scripts, all entities are available.</p>
  *
- * <h3>Entity Types</h3>
+ * <h3>Entity Types & Properties</h3>
  *
  * <p>For a list of the entity types that you can use, see {@link Entities.EntityType|Entity Types}.</p>
+ * 
+ * <p>While each entity type has properties that are specific to it, there are properties that are universal to all entity types, see {@link Entities.EntityProperties|Entity Properties}.</p>
  *
  * <h3>Entity Methods</h3>
  *
