@@ -108,6 +108,8 @@ int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature
 
 int scriptEnginePointerMetaID = qRegisterMetaType<ScriptEnginePointer>();
 
+Q_DECLARE_METATYPE(ExternalResource::Bucket);
+
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
     QString message = "";
     for (int i = 0; i < context->argumentCount(); i++) {
@@ -663,6 +665,17 @@ void avatarDataFromScriptValue(const QScriptValue& object, ScriptAvatarData*& ou
     out = nullptr;
 }
 
+QScriptValue externalResourceBucketToScriptValue(QScriptEngine* engine, ExternalResource::Bucket const& in) {
+    //return engine->newQObject(in, QScriptEngine::ScriptOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
+    return QScriptValue((int)in);
+}
+
+void externalResourceBucketFromScriptValue(const QScriptValue& object, ExternalResource::Bucket& out) {
+    // This is not implemented because there are no slots/properties that take an AvatarSharedPointer from a script
+    assert(false);
+    out = ExternalResource::Bucket::Assets;
+}
+
 void ScriptEngine::resetModuleCache(bool deleteScriptCache) {
     if (QThread::currentThread() != thread()) {
         executeOnScriptThread([=]() { resetModuleCache(deleteScriptCache); });
@@ -769,6 +782,8 @@ void ScriptEngine::init() {
         require.setProperty("resolve", resolve, READONLY_PROP_FLAGS);
         resetModuleCache();
     }
+
+    qScriptRegisterMetaType(this, externalResourceBucketToScriptValue, externalResourceBucketFromScriptValue);
     registerEnum("Script.ExternalPaths", QMetaEnum::fromType<ExternalResource::Bucket>());
 
     registerGlobalObject("Audio", DependencyManager::get<AudioScriptingInterface>().data());
@@ -2871,6 +2886,6 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     }
 }
 
-QString ScriptEngine::getExternalPath(ExternalResource::Bucket bucket, const QString &relative_path) {
-    return ExternalResource::getInstance()->getUrl(bucket, relative_path);
+QString ScriptEngine::getExternalPath(ExternalResource::Bucket bucket, const QString& relativePath) {
+    return ExternalResource::getInstance()->getUrl(bucket, relativePath);
 }

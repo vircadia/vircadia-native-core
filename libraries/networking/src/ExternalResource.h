@@ -48,8 +48,7 @@ public:
      * will be done to the Assets bucket instead. This should ease the transition and ensure a clean
      * separation.
      */
-    enum class Bucket
-    {
+    enum class Bucket {
         /** Assets that used to be in the hifi-public S3 bucket */
         HF_Public,
 
@@ -62,7 +61,6 @@ public:
         /** Vircadia assets */
         Assets
     };
-
     Q_ENUM(Bucket)
 
     /**

@@ -684,7 +684,7 @@ public:
 
     void setScriptEngines(QSharedPointer<ScriptEngines>& scriptEngines) { _scriptEngines = scriptEngines; }
 
-    Q_INVOKABLE QString getExternalPath(ExternalResource::Bucket bucket, const QString &relative_path);
+    Q_INVOKABLE QString getExternalPath(ExternalResource::Bucket bucket, const QString& relativePath);
 
 public slots:
 
