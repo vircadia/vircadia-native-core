@@ -849,8 +849,8 @@ void ScriptEngine::registerEnum(const QString& enumName, QMetaEnum newEnum) {
         return;
     }
 
-    for(int i=0;i<newEnum.keyCount();i++) {
-        const char *keyName = newEnum.key(i);
+    for (int i = 0; i < newEnum.keyCount(); i++) {
+        const char* keyName = newEnum.key(i);
         QString fullName = enumName + "." + keyName;
         registerValue(fullName, newEnum.keyToValue(keyName));
     }
