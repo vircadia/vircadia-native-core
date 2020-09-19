@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 9/26/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -118,7 +119,7 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
     root.insert(requestSubobjectKey, subobject);
     QJsonDocument doc { root };
 
-    QUrl url{ MetaverseAPI::getCurrentMetaverseServerURL().toString() + metaversePath };
+    QUrl url { MetaverseAPI::getCurrentMetaverseServerURL().toString() + metaversePath };
 
     QNetworkRequest req(url);
     req.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
@@ -1156,7 +1157,7 @@ QUrl DomainServer::oauthAuthorizationURL(const QUuid& stateUUID) {
     QUrl authorizationURL = _oauthProviderURL;
 
     const QString OAUTH_AUTHORIZATION_PATH = "/oauth/authorize";
-    authorizationURL.setPath(OAUTH_AUTHORIZATION_PATH);
+    authorizationURL.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + OAUTH_AUTHORIZATION_PATH);
 
     QUrlQuery authorizationQuery;
 
@@ -1434,7 +1435,7 @@ void DomainServer::sendPendingTransactionsToServer() {
         transactionCallbackParams.jsonCallbackMethod = "transactionJSONCallback";
 
         while (i != _pendingAssignmentCredits.end()) {
-            accountManager->sendRequest("api/v1/transactions",
+            accountManager->sendRequest("/api/v1/transactions",
                                        AccountManagerAuth::Required,
                                        QNetworkAccessManager::PostOperation,
                                        transactionCallbackParams, i.value()->postJson().toJson());
@@ -1620,7 +1621,7 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
     callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
     callbackParameters.jsonCallbackMethod = "handleSuccessfulICEServerAddressUpdate";
 
-    qCDebug(domain_server_ice) << "Updating ice-server address in High Fidelity Metaverse API to"
+    qCDebug(domain_server_ice) << "Updating ice-server address in Metaverse API to"
         << (_iceServerSocket.isNull() ? "" : _iceServerSocket.getAddress().toString());
 
     static const QString DOMAIN_ICE_ADDRESS_UPDATE = "/api/v1/domains/%1/ice_server_address";
@@ -1979,6 +1980,7 @@ const QString URI_OAUTH = "/oauth";
 bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
     const QString JSON_MIME_TYPE = "application/json";
 
+    const QString URI_ID = "/id";
     const QString URI_ASSIGNMENT = "/assignment";
     const QString URI_NODES = "/nodes";
     const QString URI_SETTINGS = "/settings";
@@ -2055,7 +2057,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     }
 
     // check if this is a request for our domain ID
-    const QString URI_ID = "/id";
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
         && url.path() == URI_ID) {
         QUuid domainID = nodeList->getSessionUUID();
@@ -2562,7 +2563,7 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
 
             const QString OAUTH_TOKEN_REQUEST_PATH = "/oauth/token";
             QUrl tokenRequestUrl = _oauthProviderURL;
-            tokenRequestUrl.setPath(OAUTH_TOKEN_REQUEST_PATH);
+            tokenRequestUrl.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + OAUTH_TOKEN_REQUEST_PATH);
 
             const QString OAUTH_GRANT_TYPE_POST_STRING = "grant_type=authorization_code";
             QString tokenPostBody = OAUTH_GRANT_TYPE_POST_STRING;
@@ -2876,7 +2877,7 @@ QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenR
 
     // fire off a request to get this user's identity so we can see if we will let them in
     QUrl profileURL = _oauthProviderURL;
-    profileURL.setPath("/api/v1/user/profile");
+    profileURL.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + "/api/v1/user/profile");
     profileURL.setQuery(QString("%1=%2").arg(OAUTH_JSON_ACCESS_TOKEN_KEY, accessToken));
 
     qDebug() << "Sending profile request to: " << profileURL;
@@ -3725,7 +3726,7 @@ void DomainServer::screensharePresence(QString roomname, QUuid avatarID, int exp
     callbackData.insert("roomname", roomname);
     callbackData.insert("avatarID", avatarID.toString());
     callbackParams.callbackData = callbackData;
-    const QString PATH = "api/v1/domains/%1/screenshare";
+    const QString PATH = "/api/v1/domains/%1/screenshare";
     QString domain_id = uuidStringWithoutCurlyBraces(getID());
     QJsonObject json, screenshare;
     screenshare["username"] = verifiedUsername;

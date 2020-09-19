@@ -169,7 +169,7 @@ public class UserStoryDomainProvider implements DomainProvider {
     }
 
     public interface UserStoryDomainProviderService {
-        @GET("api/v1/user_stories")
+        @GET("/api/v1/user_stories")
         Call<UserStories> getUserStories(@Query("include_actions") String includeActions,
                                          @Query("restriction") String restriction,
                                          @Query("require_online") boolean requireOnline,
