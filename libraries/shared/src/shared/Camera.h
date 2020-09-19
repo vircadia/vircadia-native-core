@@ -45,6 +45,7 @@ class Camera : public QObject {
     Q_PROPERTY(QString mode READ getModeString WRITE setModeString NOTIFY modeUpdated)
     Q_PROPERTY(QVariantMap frustum READ getViewFrustum CONSTANT)
     Q_PROPERTY(bool captureMouse READ getCaptureMouse WRITE setCaptureMouse NOTIFY captureMouseUpdated)
+    Q_PROPERTY(float sensitivity READ getSensitivity WRITE setSensitivity)
 
 public:
     Camera();
@@ -127,6 +128,20 @@ public slots:
      * @param {boolean} captureMouse - <code>true</code> to capture the mouse, <code>false</code> to release the mouse.
      */
     void setCaptureMouse(bool captureMouse) { _captureMouse = captureMouse; emit captureMouseUpdated(captureMouse); }
+
+    /**jsdoc
+     * Gets the current camera sensitivity.
+     * @function Camera.getSensitivity
+     * @returns {boolean} The current camera sensitivity.
+     */
+    float getSensitivity() const { return _sensitivity; }
+
+    /**jsdoc
+     * Sets the camera sensitivity.  Higher values mean that the camera will be more sensitive to mouse movements.
+     * @function Camera.setSensitivity
+     * @param {boolean} sensitivity - The desired camera sensitivity.
+     */
+    void setSensitivity(float sensitivity) { _sensitivity = glm::max(0.0f, sensitivity); }
 
     /**jsdoc
      * Computes a {@link PickRay} based on the current camera configuration and the specified <code>x, y</code> position on the 
@@ -228,6 +243,7 @@ private:
     glm::vec3 _lookingAt;
 
     bool _captureMouse { false };
+    float _sensitivity { 1.0f };
 };
 
 #endif // hifi_Camera_h
