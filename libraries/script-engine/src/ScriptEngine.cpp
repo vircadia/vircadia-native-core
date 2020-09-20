@@ -666,14 +666,11 @@ void avatarDataFromScriptValue(const QScriptValue& object, ScriptAvatarData*& ou
 }
 
 QScriptValue externalResourceBucketToScriptValue(QScriptEngine* engine, ExternalResource::Bucket const& in) {
-    //return engine->newQObject(in, QScriptEngine::ScriptOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
     return QScriptValue((int)in);
 }
 
 void externalResourceBucketFromScriptValue(const QScriptValue& object, ExternalResource::Bucket& out) {
-    // This is not implemented because there are no slots/properties that take an AvatarSharedPointer from a script
-    assert(false);
-    out = ExternalResource::Bucket::Assets;
+    out = static_cast<ExternalResource::Bucket>(object.toInt32());
 }
 
 void ScriptEngine::resetModuleCache(bool deleteScriptCache) {
