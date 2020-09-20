@@ -211,8 +211,15 @@ void IceServer::requestDomainPublicKey(const QUuid& domainID) {
     auto& networkAccessManager = NetworkAccessManager::getInstance();
 
     QUrl publicKeyURL{ MetaverseAPI::getCurrentMetaverseServerURL() };
+    // qDebug() << "publicKeyURL" << publicKeyURL;
+    // qDebug() << "MetaverseAPI::getCurrentMetaverseServerURLPath()" << MetaverseAPI::getCurrentMetaverseServerURLPath();
     QString publicKeyPath = QString("/api/v1/domains/%1/public_key").arg(uuidStringWithoutCurlyBraces(domainID));
-    publicKeyURL.setPath(publicKeyPath);
+    publicKeyURL.setPath("/" + MetaverseAPI::getCurrentMetaverseServerURLPath() + publicKeyPath);
+    // qDebug() << "publicKeyPath" << publicKeyPath;
+    // qDebug() << "publicKeyURL.setPath" << "/" + MetaverseAPI::getCurrentMetaverseServerURLPath() + publicKeyPath;
+    // qDebug() << "publicKeyURL" << publicKeyURL;
+    // qDebug() << "publicKeyURL.isValid()" << publicKeyURL.isValid();
+    // qDebug() << "publicKeyURL.errorString()" << publicKeyURL.errorString();
 
     QNetworkRequest publicKeyRequest { publicKeyURL };
     publicKeyRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);

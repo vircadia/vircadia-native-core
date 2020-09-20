@@ -20,14 +20,15 @@ namespace NetworkingConstants {
     // If you want to use STAGING instead of STABLE,
     // links from the Domain Server web interface (like the connect account token generation)
     // will still point at stable unless you ALSO change the Domain Server Metaverse Server URL inside of:
-    // <hifi repo>\domain-server\resources\web\js\shared.js
+    // <vircadia repo>\domain-server\resources\web\js\shared.js
 
     // You can avoid changing that and still effectively use a connected domain on staging
     // if you manually generate a personal access token for the domains scope
     // at https://staging.highfidelity.com/user/tokens/new?for_domain_server=true
 
-    const QUrl METAVERSE_SERVER_URL_STABLE { "https://metaverse.highfidelity.com" };
-    const QUrl METAVERSE_SERVER_URL_STAGING { "https://staging-metaverse.vircadia.com" };
+    // For now we only have one Metaverse server.
+    const QUrl METAVERSE_SERVER_URL_STABLE { "https://metaverse.vircadia.com/live" };
+    const QUrl METAVERSE_SERVER_URL_STAGING { "https://metaverse.vircadia.com/live" };
 
     // Web Engine requests to this parent domain have an account authorization header added
     const QString AUTH_HOSTNAME_BASE = "highfidelity.com";
@@ -65,7 +66,10 @@ namespace NetworkingConstants {
     const QUrl HELP_SCRIPTING_REFERENCE_URL{ "https://apidocs.vircadia.dev/" };
     const QUrl HELP_RELEASE_NOTES_URL{ "https://docs.vircadia.dev/release-notes.html" };
     const QUrl HELP_BUG_REPORT_URL{ "https://github.com/kasenvr/project-athena/issues" };
-
+    
+    const QString DEFAULT_VIRCADIA_ADDRESS = "file:///~/serverless/tutorial.json";
+    const QString DEFAULT_HOME_ADDRESS = "file:///~/serverless/tutorial.json";
+    const QString REDIRECT_HIFI_ADDRESS = "file:///~/serverless/redirect.json";
 }
 
 const QString HIFI_URL_SCHEME_ABOUT = "about";

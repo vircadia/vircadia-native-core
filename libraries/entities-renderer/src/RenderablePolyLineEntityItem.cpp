@@ -204,9 +204,8 @@ void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
     bool geometryChanged = uvModeStretchChanged || pointsChanged || widthsChanged || normalsChanged || colorsChanged || textureChanged || faceCameraChanged;
 
     void* key = (void*)this;
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, geometryChanged] () {
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, geometryChanged] {
         withWriteLock([&] {
-            updateModelTransformAndBound();
             _renderTransform = getModelTransform();
 
             if (geometryChanged) {

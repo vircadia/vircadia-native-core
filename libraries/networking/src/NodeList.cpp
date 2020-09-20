@@ -476,33 +476,28 @@ void NodeList::sendDomainServerCheckIn() {
         packetStream << _ownerType.load() << publicSockAddr << localSockAddr << _nodeTypesOfInterest.toList();
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
-        // ####### TODO: Also send if need to send new domainLogin data?
         if (!domainIsConnected) {
+
+            // Metaverse account.
             DataServerAccountInfo& accountInfo = accountManager->getAccountInfo();
             packetStream << accountInfo.getUsername();
-
             // if this is a connect request, and we can present a username signature, send it along
             if (requiresUsernameSignature && accountManager->getAccountInfo().hasPrivateKey()) {
                 const QByteArray& usernameSignature = accountManager->getAccountInfo().getUsernameSignature(connectionToken);
                 packetStream << usernameSignature;
             } else {
-                // ####### TODO: Only append if are going to send domain username?
                 packetStream << QString("");  // Placeholder in case have domain username.
             }
-        } else {
-            // ####### TODO: Only append if are going to send domainUsername?
-            packetStream << QString("") << QString("");  // Placeholders in case have domain username.
-        }
 
-        // Send domain domain login data from Interface to domain server.
-        if (_hasDomainAccountManager) {
-            auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
-            if (!domainAccountManager->getUsername().isEmpty()) {
-                packetStream << domainAccountManager->getUsername();
-                if (!domainAccountManager->getAccessToken().isEmpty()) {
+            // Domain account.
+            if (_hasDomainAccountManager) {
+                auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
+                if (!domainAccountManager->getUsername().isEmpty() && !domainAccountManager->getAccessToken().isEmpty()) {
+                    packetStream << domainAccountManager->getUsername();
                     packetStream << (domainAccountManager->getAccessToken() + ":" + domainAccountManager->getRefreshToken());
                 }
             }
+
         }
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);

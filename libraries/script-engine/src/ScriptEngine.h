@@ -20,6 +20,8 @@
 #include <QtCore/QSet>
 #include <QtCore/QWaitCondition>
 #include <QtCore/QStringList>
+#include <QMap>
+#include <QMetaEnum>
 
 #include <QtScript/QScriptEngine>
 
@@ -37,6 +39,7 @@
 #include "AssetScriptingInterface.h"
 #include "AudioScriptingInterface.h"
 #include "BaseScriptEngine.h"
+#include "ExternalResource.h"
 #include "Quat.h"
 #include "Mat4.h"
 #include "ScriptCache.h"
@@ -229,6 +232,17 @@ public:
     /// register a function as a method on a previously registered global object
     Q_INVOKABLE void registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature fun,
                                       int numArguments = -1);
+
+    /**jsdoc
+     * @function Script.registerEnum
+     * @param {string} enumName - Name.
+     * @param {object} newEnum - Enumeration to be added
+     * @warning This function must be called after a registerGlobalObject that creates the namespace this enum is located in,
+     * or the globalObject won't function. Eg, if you have a Foo object and a Foo.FooType enum, Foo must be registered first.
+     * @deprecated This function is deprecated and will be removed.
+     */
+    /// registers a global enum
+    Q_INVOKABLE void registerEnum(const QString& enumName, QMetaEnum newEnum);
 
     /**jsdoc
      * @function Script.registerValue
@@ -669,6 +683,8 @@ public:
     bool hasEntityScriptDetails(const EntityItemID& entityID) const;
 
     void setScriptEngines(QSharedPointer<ScriptEngines>& scriptEngines) { _scriptEngines = scriptEngines; }
+
+    Q_INVOKABLE QString getExternalPath(ExternalResource::Bucket bucket, const QString& relativePath);
 
 public slots:
 

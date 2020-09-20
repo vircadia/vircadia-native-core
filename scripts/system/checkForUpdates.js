@@ -11,7 +11,7 @@ var networkingConstants = Script.require("./libraries/networkingConstants.js");
 
 // We'll want a way to specify this later, auto detection can also be a thing, but strictly optional.
 var currentBuildType = "latest";
-var currentVersion = "2020.2.3-Asteria"; // HifiAbout.buildVersion; 
+var currentVersion = About.buildVersion; 
 
 // Notification Variables
 var NOTIFICATION_CHANNEL = "System-Notifications";

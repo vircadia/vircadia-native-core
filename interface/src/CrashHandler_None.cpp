@@ -25,4 +25,7 @@ bool startCrashHandler(std::string appPath) {
 void setCrashAnnotation(std::string name, std::string value) {
 }
 
+void startCrashHookMonitor(QCoreApplication* app) {
+}
+
 #endif

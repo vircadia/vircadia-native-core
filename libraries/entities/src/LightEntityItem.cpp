@@ -55,21 +55,6 @@ void LightEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     }
 }
 
-void LightEntityItem::locationChanged(bool tellPhysics, bool tellChildren) {
-    EntityItem::locationChanged(tellPhysics, tellChildren);
-    withWriteLock([&] {
-        _needsRenderUpdate = true;
-    });
-}
-
-void LightEntityItem::dimensionsChanged() {
-    EntityItem::dimensionsChanged();
-    withWriteLock([&] {
-        _needsRenderUpdate = true;
-    });
-}
-
-
 EntityItemProperties LightEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
@@ -134,23 +119,8 @@ void LightEntityItem::setCutoff(float value) {
     }
 }
 
-bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "LightEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties.getLastEdited());
-    }
-    return somethingChanged;
-}
-
 bool LightEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = EntityItem::setSubClassProperties(properties); // set the properties in our base class
+    bool somethingChanged = false;
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isSpotlight, setIsSpotlight);
@@ -161,7 +131,6 @@ bool LightEntityItem::setSubClassProperties(const EntityItemProperties& properti
 
     return somethingChanged;
 }
-
 
 int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,

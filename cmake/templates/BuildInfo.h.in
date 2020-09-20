@@ -22,11 +22,12 @@ namespace BuildInfo {
     const QString DOMAIN_SERVER_NAME = "domain-server";
     const QString AC_CLIENT_SERVER_NAME = "ac-client";
     const QString MODIFIED_ORGANIZATION = "@BUILD_ORGANIZATION@";
-    const QString ORGANIZATION_DOMAIN = "highfidelity.io";
+    const QString ORGANIZATION_DOMAIN = "vircadia.com";
     const QString VERSION = "@BUILD_VERSION@";
     const QString BUILD_NUMBER = "@BUILD_NUMBER@";
     const QString BUILD_GLOBAL_SERVICES = "@BUILD_GLOBAL_SERVICES@";
     const QString BUILD_TIME = "@BUILD_TIME@";
+    const QString INITIAL_STARTUP_LOCATION = "@INITIAL_STARTUP_LOCATION@";
 
     enum BuildType {
         Dev,
