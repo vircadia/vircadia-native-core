@@ -44,11 +44,20 @@ QUrl ExternalResource::getQUrl(Bucket bucket, const QUrl& relative_path) {
         return relative_path;
     }
 
-    std::lock_guard<std::mutex> guard(_bucketMutex);
-    QUrl base = _bucketBases[bucket];
-    QUrl merged = base.resolved(relative_path);
+    QUrl base;
+    {
+        std::lock_guard<std::mutex> guard(_bucketMutex);
+        base = _bucketBases[bucket];
+    }
 
-    qCDebug(external_resource) << "External resource resolved to " << merged;
+    QUrl merged = base.resolved(relative_path).adjusted(QUrl::NormalizePathSegments);
+
+    if ( merged.isValid() ) {
+        qCDebug(external_resource) << "External resource resolved to " << merged;
+    } else {
+        qCCritical(external_resource) << "External resource resolved to invalid URL " << merged << "; Error " << merged.errorString()
+                                      << "; base = " << base << "; relative_path = " << relative_path;
+    }
 
     return merged;
 }
