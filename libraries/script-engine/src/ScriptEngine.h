@@ -118,7 +118,7 @@ public:
  *       <li><code>"agent"</code>: An assignment client script.</li>
  *     </ul>
  *     <em>Read-only.</em>
- * @property {string} type - The type of engine that is currently in use:
+ * @property {string} type - The type of script engine that is running the script:
  *     <ul>
  *       <li><code>"client"</code>: The engine is an interface.</li>
  *       <li><code>"entity_client"</code>: The engine is an entity simulated in an interface.</li>
@@ -127,7 +127,7 @@ public:
  *       <li><code>"avatar"</code>: The engine is an avatar.</li>
  *     </ul>
  *     <em>Read-only.</em>
- * @property {string} filename - The filename of the script's file.
+ * @property {string} filename - The filename of the script file.
  *     <em>Read-only.</em>
  */
 class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
