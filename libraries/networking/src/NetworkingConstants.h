@@ -47,9 +47,15 @@ namespace NetworkingConstants {
     const QString PUBLIC_BUCKET_CDN_URL = "https://hifi-public.s3.amazonaws.com/";
 
 #if USE_STABLE_GLOBAL_SERVICES
-    const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
+    const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.vircadia.com";
+
+    const QString STUN_SERVER_DEFAULT_HOSTNAME = "stun1.l.google.com";
+    const unsigned short STUN_SERVER_DEFAULT_PORT = 19302;
 #else
-    const QString ICE_SERVER_DEFAULT_HOSTNAME = "dev-ice.highfidelity.com";
+    const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.vircadia.com";
+
+    const QString STUN_SERVER_DEFAULT_HOSTNAME = "stun2.l.google.com";
+    const unsigned short STUN_SERVER_DEFAULT_PORT = 19302;
 #endif
 
     const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
