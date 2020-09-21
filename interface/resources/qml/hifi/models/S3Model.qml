@@ -25,7 +25,7 @@ XmlListModel {
     readonly property string realPrefix: prefix.match('.*/$') ? prefix : (prefix + "/")
     readonly property string nameRegex: realPrefix + (filter ? (".*" + filter) :  "") + ".*\." + extension
     readonly property string nameQuery: "Key/substring-before(substring-after(string(), '" + prefix + "'), '." + extension + "')"
-    readonly property string baseUrl: "http://s3.amazonaws.com/hifi-public"
+    readonly property string baseUrl: ExternalResource.HF_Public
 
     // FIXME need to urlencode prefix?
     source: baseUrl + "?prefix=" + realPrefix

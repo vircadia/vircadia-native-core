@@ -11,6 +11,7 @@
 
 #include <QNetworkDiskCache>
 
+#include <ExternalResource.h>
 #include <ResourceCache.h>
 #include <LimitedNodeList.h>
 #include <NodeList.h>
@@ -50,7 +51,7 @@ static QSharedPointer<Resource> resource;
 
 void ResourceTests::downloadFirst() {
     // download the Mery fst file
-    QUrl meryUrl = QUrl("http://hifi-public.s3.amazonaws.com/marketplace/contents/e21c0b95-e502-4d15-8c41-ea2fc40f1125/3585ddf674869a67d31d5964f7b52de1.fst");
+    QUrl meryUrl = QUrl(ExternalResource::getInstance()->getUrl(ExternalResource::Bucket::HF_Public, "/marketplace/contents/e21c0b95-e502-4d15-8c41-ea2fc40f1125/3585ddf674869a67d31d5964f7b52de1.fst"));
     resource = QSharedPointer<Resource>::create(meryUrl);
     resource->setSelf(resource);
 
@@ -73,7 +74,7 @@ void ResourceTests::downloadFirst() {
 
 void ResourceTests::downloadAgain() {
     // download the Mery fst file
-    QUrl meryUrl = QUrl("http://hifi-public.s3.amazonaws.com/marketplace/contents/e21c0b95-e502-4d15-8c41-ea2fc40f1125/3585ddf674869a67d31d5964f7b52de1.fst");
+    QUrl meryUrl = QUrl(ExternalResource::getInstance()->getUrl(ExternalResource::Bucket::HF_Public, "/marketplace/contents/e21c0b95-e502-4d15-8c41-ea2fc40f1125/3585ddf674869a67d31d5964f7b52de1.fst"));
     resource = QSharedPointer<Resource>::create(meryUrl);
     resource->setSelf(resource);
 

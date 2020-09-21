@@ -456,7 +456,7 @@ Rectangle {
                 id: avatarCollisionSoundUrlInputText
                 font.pixelSize: 17
                 Layout.fillWidth: true
-                placeholderText: 'https://hifi-public.s3.amazonaws.com/sounds/Collisions-'
+                placeholderText: ExternalResource.getUrl(ExternalResource.HF_Public, '/sounds/Collisions-')
 
                 onFocusChanged: {
                     keyboardRaised = (avatarAnimationUrlInputText.focus || avatarCollisionSoundUrlInputText.focus);
