@@ -10,8 +10,8 @@
 var INTERFACE_METADATA_SOURCE = "https://cdn.vircadia.com/dist/launcher/vircadiaMeta.json";
 
 // Base CDN URLs
-var CONTENT_CDN_URL = "https://content.highfidelity.com/"; // "https://content.vircadia.com/";
-var PUBLIC_BUCKET_CDN_URL = "http://s3.amazonaws.com/hifi-public/";
+var CONTENT_CDN_URL = ExternalResource.HF_Content; // "https://cdn-1.vircadia.com/" + usCDN;
+var PUBLIC_BUCKET_CDN_URL = ExternalResource.HF_Public;
 var euCDN = "eu-c-1/";
 var usCDN = "us-c-1/";
 

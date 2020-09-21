@@ -13,9 +13,9 @@
 
     var _this;
 
-    var CARD_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/assets/deckOfCards/playing_card.fbx';
-    var CARD_BACK_IMAGE_URL = "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/assets/deckOfCards/images/back.jpg";
-    var CARD_IMAGE_BASE_URL = "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/assets/deckOfCards/images/playingcard_old-";
+    var CARD_MODEL_URL = ExternalResource.getUrl(ExternalResource.HF_Content, "/thoys/production/gameTable/assets/deckOfCards/playing_card.fbx");
+    var CARD_BACK_IMAGE_URL = ExternalResource.getUrl(ExternalResource.HF_Content, "/thoys/production/gameTable/assets/deckOfCards/images/back.jpg");
+    var CARD_IMAGE_BASE_URL = ExternalResource.getUrl(ExternalResource.HF_Content, "/thoys/production/gameTable/assets/deckOfCards/images/playingcard_old-");
 
     function PlayingCard() {
         _this = this;

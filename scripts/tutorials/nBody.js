@@ -18,8 +18,8 @@ var bodies = [];
 var n = 3;  
 var radius = 0.1;
 var G = 0.25;
-var EARTH = "https://s3-us-west-1.amazonaws.com/hifi-content/seth/production/NBody/earth.fbx";
-var MOON = "https://s3-us-west-1.amazonaws.com/hifi-content/seth/production/NBody/moon.fbx";
+var EARTH = ExternalResource.getUrl(ExternalResource.HF_Content, "/seth/production/NBody/earth.fbx");
+var MOON = ExternalResource.getUrl(ExternalResource.HF_Content, "/seth/production/NBody/moon.fbx");
 
 var COLOR1 = { red: 51, green: 51, blue: 255 };
 var COLOR2 = { red: 51, green: 51, blue: 255 };

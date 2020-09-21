@@ -12,7 +12,7 @@
 
 (function() {
     var THROW_FACTOR = 3;
-    var DART_SOUND_URL = Script.resolvePath('https://hifi-content.s3.amazonaws.com/wadewatts/dart.wav?v=' + Date.now());
+    var DART_SOUND_URL = Script.resolvePath(ExternalResource.getUrl(ExternalResource.HF_Content, '/wadewatts/dart.wav?v=') + "?" + Date.now());
 
     var Dart = function() {};
 
