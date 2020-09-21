@@ -9,12 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
-
-var grenadeURL = VIRCADIA_PUBLIC_CDN + "models/props/grenade/grenade.fbx";
-var fuseSoundURL = VIRCADIA_PUBLIC_CDN + "sounds/burningFuse.wav";
-var boomSoundURL = VIRCADIA_PUBLIC_CDN + "sounds/explosion.wav";
+var grenadeURL = ExternalResource.getUrl(ExternalResource.Assets, "models/props/grenade/grenade.fbx");
+var fuseSoundURL = ExternalResource.getUrl(ExternalResource.Assets, "sounds/burningFuse.wav");
+var boomSoundURL = ExternalResource.getUrl(ExternalResource.Assets, "sounds/explosion.wav");
 
 var AudioRotationOffset = Quat.fromPitchYawRollDegrees(0, -90, 0);
 var audioOptions = {

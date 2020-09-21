@@ -9,9 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
-
 // Set the following variables to the right value
 var NUM_AC = 3; // This is the number of AC. Their ID need to be unique and between 0 (included) and NUM_AC (excluded)
 var NAMES = new Array("Craig", "Clement", "Jeff"); // ACs names ordered by IDs (Default name is "ACx", x = ID + 1))
@@ -36,7 +33,7 @@ var LOAD = 6;
 
 
 var windowDimensions = Controller.getViewportDimensions();
-var TOOL_ICON_URL = VIRCADIA_PUBLIC_CDN + "images/tools/";
+var TOOL_ICON_URL = ExternalResource.getUrl(ExternalResource.Assets, "images/tools/");
 var ALPHA_ON = 1.0;
 var ALPHA_OFF = 0.7;
 var COLOR_TOOL_BAR = { red: 0, green: 0, blue: 0 };

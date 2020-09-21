@@ -9,10 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
-
-var soundClip = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Cocktail%20Party%20Snippets/Walken1.wav");
+var soundClip = SoundCache.getSound(ExternalResource.getUrl(ExternalResource.Assets, "sounds/Cocktail%20Party%20Snippets/Walken1.wav"));
 
 function playSound() {
     Audio.playSound(soundClip, {

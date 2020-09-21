@@ -29,9 +29,6 @@ var buttonOnColor = {
   blue: 100
 };
 
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
-
 var userCanPoint = false;
 Script.include(["libraries/toolBars.js"]);
 var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.pointer.toolbar", function (screenSize) {
@@ -40,12 +37,10 @@ var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.pointer.toolba
 var pointerButton = toolBar.addOverlay("image", {
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
-  imageURL: VIRCADIA_PUBLIC_CDN + "images/laser.png",
+  imageURL: ExternalResource.getUrl(ExternalResource.Assets, "images/laser.png"),
   color: buttonOffColor,
   alpha: 1
 });
-
-
 
 
 function nearLinePoint(targetPosition) {

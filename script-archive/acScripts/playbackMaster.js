@@ -10,16 +10,13 @@
 //
 Script.include("./AgentPoolController.js");
 
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
-
 var masterController = new MasterController();
 
 var input_text = null;
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
 //Script.include("../libraries/toolBars.js");
-Script.include(VIRCADIA_PUBLIC_CDN + "scripts/libraries/toolBars.js");
+Script.include(ExternalResource.getUrl(ExternalResource.Assets, "scripts/libraries/toolBars.js"));
 // We want small icons
 Tool.IMAGE_HEIGHT /= 2;
 Tool.IMAGE_WIDTH /= 2;
@@ -30,7 +27,7 @@ var STOP = 3;
 var LOAD = 6;
 
 var windowDimensions = Controller.getViewportDimensions();
-var TOOL_ICON_URL = VIRCADIA_PUBLIC_CDN + "images/tools/";
+var TOOL_ICON_URL = ExternalResource.getUrl(ExternalResource.Assets, "images/tools/");
 var ALPHA_ON = 1.0;
 var ALPHA_OFF = 0.7;
 var COLOR_TOOL_BAR = { red: 0, green: 0, blue: 0 };

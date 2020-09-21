@@ -13,9 +13,7 @@
 
 (function () {
     var ball = null;
-    var var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
-    var collisionSoundURL = VIRCADIA_PUBLIC_CDN + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav";
+    var collisionSoundURL = ExternalResource.getUrl(ExternalResource.Assets, "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav");
     var triggerState = false;
     var BALL_GRAVITY = -9.8;
     var BALL_START_VELOCITY = 0.1;

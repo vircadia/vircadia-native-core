@@ -6,9 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
-STICK_URL = VIRCADIA_PUBLIC_CDN + "models/props/geo_stick.fbx";
+STICK_URL = ExternalResource.getUrl(ExternalResource.Assets, "models/props/geo_stick.fbx");
 
 ZERO_VECTOR = { x: 0, y: 0, z: 0 };
 

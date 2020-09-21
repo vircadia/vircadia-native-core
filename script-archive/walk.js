@@ -14,8 +14,7 @@
 //
 
 // animations, reach poses, reach pose parameters, transitions, transition parameters, sounds, image/s and reference files
-const VIRCADIA_PUBLIC_CDN = "https://hifi-public.s3.amazonaws.com/";
-var pathToAssets = VIRCADIA_PUBLIC_CDN + "procedural-animator/assets/";
+var pathToAssets = ExternalResource.getUrl(ExternalResource.Assets, "procedural-animator/assets/");
 
 Script.include([
     "./libraries/walkConstants.js",

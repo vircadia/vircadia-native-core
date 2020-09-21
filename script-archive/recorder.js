@@ -9,10 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* globals VIRCADIA_PUBLIC_CDN:true, Tool, ToolBar */
+/* globals Tool, ToolBar */
 
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 Script.include("/~/system/libraries/toolBars.js");
 
 var recordingFile = "recording.hfr";
@@ -26,7 +24,7 @@ function setDefaultPlayerOptions() {
 }
 
 var windowDimensions = Controller.getViewportDimensions();
-var TOOL_ICON_URL = VIRCADIA_PUBLIC_CDN + "images/tools/";
+var TOOL_ICON_URL = ExternalResource.getUrl(ExternalResource.Assets, + "images/tools/");
 var ALPHA_ON = 1.0;
 var ALPHA_OFF = 0.7;
 var COLOR_ON = { red: 128, green: 0, blue: 0 };

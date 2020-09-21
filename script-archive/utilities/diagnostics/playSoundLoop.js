@@ -11,14 +11,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 //  A few sample files you may want to try: 
 
-var sound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Guitars/Guitar+-+Nylon+A.raw");
-//var sound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/220Sine.wav");
-//var sound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Cocktail+Party+Snippets/Bandcamp.wav");
+var sound = SoundCache.getSound(ExternalResource.getUrl(ExternalResource.Assets, "sounds/Guitars/Guitar+-+Nylon+A.raw"));
+//var sound = SoundCache.getSound(ExternalResource.getUrl(ExternalResource.Assets, "sounds/220Sine.wav"));
+//var sound = SoundCache.getSound(ExternalResource.getUrl(ExternalResource.Assets, "sounds/Cocktail+Party+Snippets/Bandcamp.wav"));
 
 var soundPlaying = false;
 var options = {

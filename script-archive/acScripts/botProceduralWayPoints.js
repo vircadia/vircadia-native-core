@@ -20,9 +20,7 @@
 //
 
 //For procedural walk animation
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
-Script.include(VIRCADIA_PUBLIC_CDN + "scripts/acScripts/proceduralAnimationAPI.js");
+Script.include(ExternalResource.getUrl(ExternalResource.Assets, "scripts/acScripts/proceduralAnimationAPI.js");
 
 var procAnimAPI = new ProcAnimAPI();
 
@@ -122,9 +120,9 @@ var newBodyFilePrefix = "bot" + botNumber;
 
 // set the face model fst using the bot number
 // there is no need to change the body model - we're using the default
-Avatar.faceModelURL = VIRCADIA_PUBLIC_CDN + "meshes/" + newFaceFilePrefix + ".fst";
-Avatar.skeletonModelURL = VIRCADIA_PUBLIC_CDN + "meshes/" + newBodyFilePrefix + "_a.fst";
-Avatar.billboardURL = VIRCADIA_PUBLIC_CDN + "meshes/billboards/bot" + botNumber + ".png";
+Avatar.faceModelURL = ExternalResource.getUrl(ExternalResource.Assets, "meshes/" + newFaceFilePrefix + ".fst");
+Avatar.skeletonModelURL = ExternalResource.getUrl(ExternalResource.Assets, "meshes/" + newBodyFilePrefix + "_a.fst");
+Avatar.billboardURL = ExternalResource.getUrl(ExternalResource.Assets, "meshes/billboards/bot" + botNumber + ".png");
 
 Agent.isAvatar = true;
 Agent.isListeningToAudioStream = true;
@@ -147,9 +145,9 @@ function loadSounds() {
     var footstep_filenames = ["FootstepW2Left-12db.wav", "FootstepW2Right-12db.wav", "FootstepW3Left-12db.wav", "FootstepW3Right-12db.wav", 
                         "FootstepW5Left-12db.wav", "FootstepW5Right-12db.wav"];
 
-    var SOUND_BASE_URL = VIRCADIA_PUBLIC_CDN + "sounds/Cocktail+Party+Snippets/Raws/";
+    var SOUND_BASE_URL = ExternalResource.getUrl(ExternalResource.Assets, "sounds/Cocktail+Party+Snippets/Raws/");
 
-    var FOOTSTEP_BASE_URL = VIRCADIA_PUBLIC_CDN + "sounds/Footsteps/";
+    var FOOTSTEP_BASE_URL = ExternalResource.getUrl(ExternalResource.Assets, "sounds/Footsteps/");
 
     for (var i = 0; i < sound_filenames.length; i++) {
         sounds.push(SoundCache.getSound(SOUND_BASE_URL + sound_filenames[i]));
