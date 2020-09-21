@@ -9,8 +9,7 @@
 //
 
 var var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
-var toolIconUrl = VIRCADIA_PUBLIC_CDN + "images/tools/";
+var toolIconUrl = ExternalResource.getUrl(ExternalResource.Assets, "images/tools/");
 
 progressDialog = (function () {
     var that = {},
