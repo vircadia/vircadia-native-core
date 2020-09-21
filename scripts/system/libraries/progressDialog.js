@@ -9,7 +9,7 @@
 //
 
 var var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var toolIconUrl = ExternalResource.getUrl(ExternalResource.Assets, "images/tools/");
+var toolIconUrl = ExternalResource.getUrl(ExternalResource.HF_Public, "images/tools/");
 
 progressDialog = (function () {
     var that = {},
