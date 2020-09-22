@@ -39,6 +39,16 @@ bool GizmoEntityRenderer::isTransparent() const {
     return Parent::isTransparent() || ringTransparent;
 }
 
+void GizmoEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+    void* key = (void*)this;
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
+        withWriteLock([&] {
+            _renderTransform = getModelTransform();
+            _renderTransform.postScale(entity->getScaledDimensions());
+        });
+    });
+}
+
 void GizmoEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     bool dirty = false;
     RingGizmoPropertyGroup ringProperties = entity->getRingProperties();
@@ -186,15 +196,6 @@ void GizmoEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
             }
         }
     }
-
-    void* key = (void*)this;
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity]() {
-        withWriteLock([&] {
-            updateModelTransformAndBound();
-            _renderTransform = getModelTransform();
-            _renderTransform.postScale(entity->getScaledDimensions());
-        });
-    });
 }
 
 Item::Bound GizmoEntityRenderer::getBound() {

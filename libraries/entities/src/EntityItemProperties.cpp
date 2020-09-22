@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -1040,7 +1041,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} groupCulled=false - <code>true</code> if the mesh parts of the model are LOD culled as a group,
  *     <code>false</code> if separate mesh parts are LOD culled individually.
  *
- * @example <caption>Rez a Vive tracker puck.</caption>
+ * @example <caption>Rez a cowboy hat.</caption>
  * var entity = Entities.addEntity({
  *     type: "Model",
  *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -2 })),

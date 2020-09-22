@@ -148,7 +148,7 @@ Windows.ScrollingWindow {
     }
 
     function canAddToWorld(path) {
-        var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i, /\.jpg\b/i, /\.png\b/i, /\.gltf\b/i];
+        var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i, /\.jpg\b/i, /\.png\b/i, /\.gltf\b/i, /\.glb\b/i];
 
         if (selectedItemCount > 1) {
             return false;

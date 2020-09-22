@@ -18,36 +18,47 @@
 #include <DependencyManager.h>
 
 
+struct DomainAccountDetails {
+    QUrl domainURL;
+    QUrl authURL;
+    QString clientID;
+    QString username;
+    QString accessToken;
+    QString refreshToken;
+    QString authedDomainName;
+};
+
+
 class DomainAccountManager : public QObject, public Dependency {
     Q_OBJECT
 public:
     DomainAccountManager();
 
+    void setDomainURL(const QUrl& domainURL);
     void setAuthURL(const QUrl& authURL);
-    void setClientID(const QString& clientID) { _clientID = clientID; }
+    void setClientID(const QString& clientID) { _currentAuth.clientID = clientID; }
 
-    QString getUsername() { return _username; }
-    QString getAccessToken() { return _access_token; }
-    QString getRefreshToken() { return _refresh_token; }
-    QString getAuthedDomain() { return _domain_name; }
+    const QString& getUsername() { return _currentAuth.username; }
+    const QString& getAccessToken() { return _currentAuth.accessToken; }
+    const QString& getRefreshToken() { return _currentAuth.refreshToken; }
+    const QString& getAuthedDomainName() { return _currentAuth.authedDomainName; }
 
+    bool hasLogIn();
     bool isLoggedIn();
 
     Q_INVOKABLE bool checkAndSignalForAccessToken();
 
 public slots:
     void requestAccessToken(const QString& username, const QString& password);
-    
     void requestAccessTokenFinished();
 
 signals:
+    void hasLogInChanged(bool hasLogIn);
     void authRequired(const QString& domain);
     void loginComplete();
     void loginFailed();
     void logoutComplete();
     void newTokens();
-
-private slots:
 
 private:
     bool hasValidAccessToken();
@@ -55,12 +66,8 @@ private:
     void setTokensFromJSON(const QJsonObject&, const QUrl& url);
     void sendInterfaceAccessTokenToServer();
 
-    QUrl _authURL;
-    QString _clientID;
-    QString _username;      // ####### TODO: Store elsewhere?
-    QString _access_token;  // ####... ""
-    QString _refresh_token; // ####... ""
-    QString _domain_name;   // ####... ""
+    DomainAccountDetails _currentAuth;
+    QHash<QUrl, DomainAccountDetails> _knownAuths;  // <domainURL, DomainAccountDetails>
 };
 
 #endif  // hifi_DomainAccountManager_h

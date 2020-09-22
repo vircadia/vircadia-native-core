@@ -241,6 +241,8 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
             }
         }
 
+        DependencyManager::get<DomainAccountManager>()->setDomainURL(_domainURL);
+
         emit domainURLChanged(_domainURL);
 
         if (_sockAddr.getPort() != domainPort) {
@@ -527,6 +529,12 @@ bool DomainHandler::reasonSuggestsDomainLogin(ConnectionRefusedReason reasonCode
 }
 
 void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
+
+    // Ignore any residual packets from previous domain.
+    if (!message->getSenderSockAddr().getAddress().isEqual(_sockAddr.getAddress())) {
+        return;
+    }
+
     // we're hearing from this domain-server, don't need to refresh API info
     _apiRefreshTimer.stop();
 
@@ -584,18 +592,28 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
             accountManager->generateNewUserKeypair();
             _connectionDenialsSinceKeypairRegen = 0;
         }
+
+        // Server with domain login will prompt for domain login, not metaverse, so reset domain values if asked for metaverse.
+        auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
+        domainAccountManager->setAuthURL(QUrl());
+        domainAccountManager->setClientID(QString());
+
     } else if (reasonSuggestsDomainLogin(reasonCode)) {
         qCWarning(networking) << "Make sure you are logged in to the domain.";
 
-        auto accountManager = DependencyManager::get<DomainAccountManager>();
+        auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
         if (!extraInfo.isEmpty()) {
             auto extraInfoComponents = extraInfo.split("|");
-            accountManager->setAuthURL(extraInfoComponents.value(0));
-            accountManager->setClientID(extraInfoComponents.value(1));
+            domainAccountManager->setAuthURL(extraInfoComponents.value(0));
+            domainAccountManager->setClientID(extraInfoComponents.value(1));
+        } else {
+            // Shouldn't occur, but just in case.
+            domainAccountManager->setAuthURL(QUrl());
+            domainAccountManager->setClientID(QString());
         }
 
         if (!_hasCheckedForDomainAccessToken) {
-            accountManager->checkAndSignalForAccessToken();
+            domainAccountManager->checkAndSignalForAccessToken();
             _hasCheckedForDomainAccessToken = true;
         }
 

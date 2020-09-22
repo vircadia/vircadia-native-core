@@ -386,6 +386,10 @@ Item {
                         visible: root.expanded
                         text: "LOD: " + root.lodStatus;
                     }
+                    StatText {
+                        visible: root.expanded
+                        text: "Entity Updates: " + root.numEntityUpdates + " / " + root.numNeededEntityUpdates;
+                    }
                 }
             }
         }
