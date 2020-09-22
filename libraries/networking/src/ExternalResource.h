@@ -151,13 +151,13 @@ private:
 
     std::mutex _bucketMutex;
 
-    QMap<Bucket, QUrl> _bucketBases{
-        { Bucket::HF_Public, NetworkingConstants::HF_PUBLIC_CDN_URL },
-        { Bucket::HF_Content, NetworkingConstants::HF_CONTENT_CDN_URL },
-        { Bucket::HF_Marketplace, NetworkingConstants::HF_MPASSETS_CDN_URL },
-        { Bucket::Assets, NetworkingConstants::VIRCADIA_CONTENT_CDN_URL },
-        { Bucket::Public, NetworkingConstants::VIRCADIA_CONTENT_CDN_URL },
-        { Bucket::Content, NetworkingConstants::VIRCADIA_CONTENT_CDN_URL }
+    QMap<Bucket, QUrl> _bucketBases {
+        { Bucket::HF_Public, QUrl(NetworkingConstants::HF_PUBLIC_CDN_URL) },
+        { Bucket::HF_Content, QUrl(NetworkingConstants::HF_CONTENT_CDN_URL) },
+        { Bucket::HF_Marketplace, QUrl(NetworkingConstants::HF_MPASSETS_CDN_URL) },
+        { Bucket::Assets, QUrl(NetworkingConstants::VIRCADIA_CONTENT_CDN_URL) },
+        { Bucket::Public, QUrl(NetworkingConstants::VIRCADIA_CONTENT_CDN_URL) },
+        { Bucket::Content, QUrl(NetworkingConstants::VIRCADIA_CONTENT_CDN_URL) }
     };
 };
 
