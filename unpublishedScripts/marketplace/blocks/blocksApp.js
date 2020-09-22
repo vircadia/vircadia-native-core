@@ -15,9 +15,9 @@
 (function () {
 	var APP_NAME = "BLOCKS";
 	var APP_URL = "https://poly.google.com/";
-	var APP_OUTDATED_URL = ExternalResource.getUrl(ExternalResource.HF_Content, "/elisalj/blocks/updateToBlocks.html");
-	var APP_ICON = ExternalResource.getUrl(ExternalResource.HF_Content, "/elisalj/blocks/blocks-i.svg");
-	var APP_ICON_ACTIVE = ExternalResource.getUrl(ExternalResource.HF_Content, "/elisalj/blocks/blocks-a.svg");
+	var APP_OUTDATED_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/elisalj/blocks/updateToBlocks.html");
+	var APP_ICON = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/elisalj/blocks/blocks-i.svg");
+	var APP_ICON_ACTIVE = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/elisalj/blocks/blocks-a.svg");
 
     try {
         print("Current Interface version: " + Window.checkVersion());

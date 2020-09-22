@@ -164,8 +164,8 @@ var beacon = {
 };
 
 // TODO: play sounds again when we aren't leaking AudioInjector threads
-// var grabSound = SoundCache.getSound(ExternalResource.getUrl(ExternalResource.HF_Public, "/eric/sounds/CloseClamp.wav"));
-// var releaseSound = SoundCache.getSound(ExternalResource.getUrl(ExternalResource.HF_Public, "/eric/sounds/ReleaseClamp.wav"));
+// var grabSound = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.HF_Public, "/eric/sounds/CloseClamp.wav"));
+// var releaseSound = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.HF_Public, "/eric/sounds/ReleaseClamp.wav"));
 // var VOLUME = 0.0;
 
 

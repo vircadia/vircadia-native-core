@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var soundClip = SoundCache.getSound(ExternalResource.getUrl(ExternalResource.Assets, "sounds/Cocktail%20Party%20Snippets/Walken1.wav"));
+var soundClip = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.Assets, "sounds/Cocktail%20Party%20Snippets/Walken1.wav"));
 
 function playSound() {
     Audio.playSound(soundClip, {

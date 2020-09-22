@@ -37,7 +37,7 @@ var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.pointer.toolba
 var pointerButton = toolBar.addOverlay("image", {
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
-  imageURL: ExternalResource.getUrl(ExternalResource.Assets, "images/laser.png"),
+  imageURL: Script.getExternalPath(Script.ExternalPaths.Assets, "images/laser.png"),
   color: buttonOffColor,
   alpha: 1
 });

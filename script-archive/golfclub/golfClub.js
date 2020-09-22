@@ -13,7 +13,7 @@
 
 (function () {
     var ball = null;
-    var collisionSoundURL = ExternalResource.getUrl(ExternalResource.Assets, "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav");
+    var collisionSoundURL = Script.getExternalPath(Script.ExternalPaths.Assets, "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav");
     var triggerState = false;
     var BALL_GRAVITY = -9.8;
     var BALL_START_VELOCITY = 0.1;

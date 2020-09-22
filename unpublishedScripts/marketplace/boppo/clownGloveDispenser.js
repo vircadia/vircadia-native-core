@@ -35,7 +35,7 @@
                 y: -9.8,
                 z: 0
             },
-            modelURL: ExternalResource.getUrl(ExternalResource.HF_Content, "/caitlyn/production/elBoppo/LFT_glove_VR3.fbx"),
+            modelURL: Script.getExternalPath(Script.ExternalPaths.HF_Content, "/caitlyn/production/elBoppo/LFT_glove_VR3.fbx"),
             name: "Boxing Glove - Left",
             registrationPoint: {
                 x: 0.5,
@@ -76,7 +76,7 @@
                 y: -9.8,
                 z: 0
             },
-            modelURL: ExternalResource.getUrl(ExternalResource.HF_Content, "/caitlyn/production/elBoppo/RT_glove_VR2.fbx"),
+            modelURL: Script.getExternalPath(Script.ExternalPaths.HF_Content, "/caitlyn/production/elBoppo/RT_glove_VR2.fbx"),
             name: "Boxing Glove - Right",
             registrationPoint: {
                 x: 0.5,

@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 var Camera, Vec3, Quat, Entities, Script; // Globals defined by HiFi, var'ed here to keep jslint happy.
-var var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+var 
 var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 var SOUND_BUCKET = "http://public.highfidelity.io/sounds/Collisions-hitsandslaps/";
 var MAX_ANGULAR_SPEED = Math.PI;

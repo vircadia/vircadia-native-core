@@ -18,8 +18,8 @@ var bodies = [];
 var n = 3;  
 var radius = 0.1;
 var G = 0.25;
-var EARTH = ExternalResource.getUrl(ExternalResource.HF_Content, "/seth/production/NBody/earth.fbx");
-var MOON = ExternalResource.getUrl(ExternalResource.HF_Content, "/seth/production/NBody/moon.fbx");
+var EARTH = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/seth/production/NBody/earth.fbx");
+var MOON = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/seth/production/NBody/moon.fbx");
 
 var COLOR1 = { red: 51, green: 51, blue: 255 };
 var COLOR2 = { red: 51, green: 51, blue: 255 };

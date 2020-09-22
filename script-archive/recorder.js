@@ -24,7 +24,7 @@ function setDefaultPlayerOptions() {
 }
 
 var windowDimensions = Controller.getViewportDimensions();
-var TOOL_ICON_URL = ExternalResource.getUrl(ExternalResource.Assets, + "images/tools/");
+var TOOL_ICON_URL = Script.getExternalPath(Script.ExternalPaths.Assets, + "images/tools/");
 var ALPHA_ON = 1.0;
 var ALPHA_OFF = 0.7;
 var COLOR_ON = { red: 128, green: 0, blue: 0 };

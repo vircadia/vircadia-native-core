@@ -17,13 +17,13 @@
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var tabletButton = tablet.addButton({
     text: "SOUNDS",
-    icon: ExternalResource.getUrl(ExternalResource.HF_Public, "/tony/icons/trombone-i.png"),
-    activeIcon: ExternalResource.getUrl(ExternalResource.HF_Public, "/tony/icons/trombone-a.png")
+    icon: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/trombone-i.png"),
+    activeIcon: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/trombone-a.png")
 });
 
-var WEB_BRIDGE_TEST_HTML = ExternalResource.getUrl(ExternalResource.HF_Public, "/tony/webBridgeTest.html?2");
-var TROMBONE_URL = ExternalResource.getUrl(ExternalResource.HF_Public, "/tony/audio/sad-trombone.wav");
-var SCREAM_URL = ExternalResource.getUrl(ExternalResource.HF_Public, "/tony/audio/wilhelm-scream.wav");
+var WEB_BRIDGE_TEST_HTML = Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/webBridgeTest.html?2");
+var TROMBONE_URL = Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/audio/sad-trombone.wav");
+var SCREAM_URL = Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/audio/wilhelm-scream.wav");
 
 tabletButton.clicked.connect(function () {
     if (shown) {

@@ -33,7 +33,7 @@ LineRider = function() {
     y: screenSize.y - (BUTTON_SIZE + PADDING),
     width: BUTTON_SIZE,
     height: BUTTON_SIZE,
-    imageURL: ExternalResource.getUrl(ExternalResource.Assets, "images/coaster.png?v2"),
+    imageURL: Script.getExternalPath(Script.ExternalPaths.Assets, "images/coaster.png?v2"),
     color: this.buttonOffColor,
     alpha: 1
   });

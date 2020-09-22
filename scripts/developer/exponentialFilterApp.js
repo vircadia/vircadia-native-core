@@ -89,13 +89,13 @@ var mappingJson = {
 //
 
 var TABLET_BUTTON_NAME = "EXPFILT";
-var HTML_URL = ExternalResource.getUrl(ExternalResource.HF_Public, "/tony/html/exponentialFilterApp.html?7");
+var HTML_URL = Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/html/exponentialFilterApp.html?7");
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var tabletButton = tablet.addButton({
     text: TABLET_BUTTON_NAME,
-    icon: ExternalResource.getUrl(ExternalResource.HF_Public, "/tony/icons/tpose-i.svg"),
-    activeIcon: ExternalResource.getUrl(ExternalResource.HF_Public, "/tony/icons/tpose-a.svg")
+    icon: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/tpose-i.svg"),
+    activeIcon: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/tpose-a.svg")
 });
 
 tabletButton.clicked.connect(function () {

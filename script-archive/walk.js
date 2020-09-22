@@ -14,7 +14,7 @@
 //
 
 // animations, reach poses, reach pose parameters, transitions, transition parameters, sounds, image/s and reference files
-var pathToAssets = ExternalResource.getUrl(ExternalResource.Assets, "procedural-animator/assets/");
+var pathToAssets = Script.getExternalPath(Script.ExternalPaths.Assets, "procedural-animator/assets/");
 
 Script.include([
     "./libraries/walkConstants.js",

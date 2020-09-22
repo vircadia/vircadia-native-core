@@ -14,9 +14,9 @@
 
 //  A few sample files you may want to try: 
 
-var sound = SoundCache.getSound(ExternalResource.getUrl(ExternalResource.Assets, "sounds/Guitars/Guitar+-+Nylon+A.raw"));
-//var sound = SoundCache.getSound(ExternalResource.getUrl(ExternalResource.Assets, "sounds/220Sine.wav"));
-//var sound = SoundCache.getSound(ExternalResource.getUrl(ExternalResource.Assets, "sounds/Cocktail+Party+Snippets/Bandcamp.wav"));
+var sound = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.Assets, "sounds/Guitars/Guitar+-+Nylon+A.raw"));
+//var sound = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.Assets, "sounds/220Sine.wav"));
+//var sound = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.Assets, "sounds/Cocktail+Party+Snippets/Bandcamp.wav"));
 
 var soundPlaying = false;
 var options = {

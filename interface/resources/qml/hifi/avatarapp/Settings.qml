@@ -456,7 +456,7 @@ Rectangle {
                 id: avatarCollisionSoundUrlInputText
                 font.pixelSize: 17
                 Layout.fillWidth: true
-                placeholderText: ExternalResource.getUrl(ExternalResource.HF_Public, '/sounds/Collisions-')
+                placeholderText: "https://cdn-1.vircadia.com/eu-c-1/vircadia-public/sounds/Collisions-"
 
                 onFocusChanged: {
                     keyboardRaised = (avatarAnimationUrlInputText.focus || avatarCollisionSoundUrlInputText.focus);

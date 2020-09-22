@@ -8,8 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var toolIconUrl = ExternalResource.getUrl(ExternalResource.HF_Public, "images/tools/");
+var toolIconUrl = Script.getExternalPath(Script.ExternalPaths.HF_Public, "images/tools/");
 
 progressDialog = (function () {
     var that = {},

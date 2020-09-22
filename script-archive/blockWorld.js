@@ -19,7 +19,7 @@ var floorTiles = [];
 var blocks = [];
 var blockSpawner;
 
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+
 var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 

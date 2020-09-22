@@ -12,13 +12,13 @@
 /// http://creativecommons.org/licenses/
 ///
 
-var lib = Script.require(ExternalResource.getUrl(ExternalResource.HF_Content, "/elisalj/emoji_scripts/emojiLib.js") + "?" + Date.now());
+var lib = Script.require(Script.getExternalPath(Script.ExternalPaths.HF_Content, "/elisalj/emoji_scripts/emojiLib.js") + "?" + Date.now());
 
 (function() {
 
     var APP_NAME = "EMOJIS";
-    var APP_URL = ExternalResource.getUrl(ExternalResource.HF_Content, "/elisalj/emoji_scripts/emojiTabletUI.html") + "?" + Date.now();
-    var APP_ICON = ExternalResource.getUrl(ExternalResource.HF_Content, "/elisalj/emoji_scripts/icons/emoji-i.svg");
+    var APP_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/elisalj/emoji_scripts/emojiTabletUI.html") + "?" + Date.now();
+    var APP_ICON = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/elisalj/emoji_scripts/icons/emoji-i.svg");
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
     var button = tablet.addButton({

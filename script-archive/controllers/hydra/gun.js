@@ -22,7 +22,7 @@ Script.include("../../libraries/utils.js");
 Script.include("../../libraries/constants.js");
 Script.include("../../libraries/toolBars.js");
 
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+
 var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 var LASER_WIDTH = 2;

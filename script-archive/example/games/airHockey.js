@@ -60,7 +60,7 @@ var puckCollisionModel = "http://headache.hungry.com/~seth/hifi/airHockeyPuck-hu
 var paddleModel = "https://hifi-public.s3.amazonaws.com/ozan/props/airHockeyTable/airHockeyPaddle.obj"
 var paddleCollisionModel = "http://headache.hungry.com/~seth/hifi/paddle-hull.obj"
 
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+
 var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 var screenSize = Controller.getViewportDimensions();
 var BUTTON_SIZE = 32;

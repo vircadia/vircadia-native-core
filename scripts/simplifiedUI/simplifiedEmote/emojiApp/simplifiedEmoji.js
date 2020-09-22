@@ -22,8 +22,7 @@ var EasingFunctions = Script.require("./resources/modules/easing.js");
 var emojiList = Script.require("./resources/modules/emojiList.js");
 var customEmojiList = Script.require("./resources/modules/customEmojiList.js");
 // The contents of this remote folder must always contain all possible emojis for users of `simplifiedEmoji.js`
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var imageURLBase = networkingConstants.CONTENT_CDN_URL + "MarketplaceItems/avimoji/appResources/appData/resources/images/emojis/png512/";
+var imageURLBase = Script.getExternalPath(Script.ExternalPaths.HF_Content, "MarketplaceItems/avimoji/appResources/appData/resources/images/emojis/png512/");
 // Uncomment below for local testing
 //imageURLBase = Script.resolvePath("./resources/images/emojis/512px/");
 

@@ -15,7 +15,6 @@
 /*jslint vars: true*/
 var Overlays, Entities, Controller, Script, MyAvatar, Vec3; // Referenced globals provided by High Fidelity.
 
-var var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
 var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 var rezButton = Overlays.addOverlay("image", {

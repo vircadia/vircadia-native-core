@@ -40,7 +40,7 @@
         var BoppoClownEntity = function () {
             _this = this;
             PUNCH_SOUNDS.forEach(function(punch) {
-                _punchSounds.push(SoundCache.getSound(ExternalResource.getUrl(ExternalResource.HF_Content, '/caitlyn/production/elBoppo/sfx/' + punch)));
+                _punchSounds.push(SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.HF_Content, '/caitlyn/production/elBoppo/sfx/' + punch)));
             });
         };
 

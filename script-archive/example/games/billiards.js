@@ -10,7 +10,7 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+
 var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 var tableParts = []; 
@@ -37,7 +37,7 @@ var startStroke = 0;
 var hitSound = VIRCADIA_PUBLIC_CDN + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav";
 SoundCache.getSound(hitSound);
 
-var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
+
 var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 var screenSize = Controller.getViewportDimensions();
 var reticle = Overlays.addOverlay("image", {

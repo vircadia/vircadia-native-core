@@ -28,9 +28,8 @@
         lightTimer = 0,
         lightTimeoutID = undefined,
         audioInjector = null;
-
-    var var networkingConstants = Script.require("/~/system/libraries/networkingConstants.js");
-var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
+ 
+    var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
     var cannonSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "philip/cannonShot.wav");
     var explosionSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "philip/explosion.wav");
 

@@ -42,9 +42,9 @@ newBodyFilePrefix = "bot" + botNumber;
 
 // set the face model fst using the bot number
 // there is no need to change the body model - we're using the default
-Avatar.faceModelURL = ExternalResource.getUrl(ExternalResource.Assets, "meshes/" + newFaceFilePrefix + ".fst");
-Avatar.skeletonModelURL = ExternalResource.getUrl(ExternalResource.Assets, "meshes/" + newBodyFilePrefix + ".fst");
-Avatar.billboardURL = ExternalResource.getUrl(ExternalResource.Assets, "meshes/billboards/bot" + botNumber + ".png");
+Avatar.faceModelURL = Script.getExternalPath(Script.ExternalPaths.Assets, "meshes/" + newFaceFilePrefix + ".fst");
+Avatar.skeletonModelURL = Script.getExternalPath(Script.ExternalPaths.Assets, "meshes/" + newBodyFilePrefix + ".fst");
+Avatar.billboardURL = Script.getExternalPath(Script.ExternalPaths.Assets, "meshes/billboards/bot" + botNumber + ".png");
 
 Agent.isAvatar = true;
 Agent.isListeningToAudioStream = true;
