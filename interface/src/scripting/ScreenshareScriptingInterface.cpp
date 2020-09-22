@@ -108,7 +108,7 @@ void ScreenshareScriptingInterface::requestScreenshareInfo() {
     // See `DomainServer::screensharePresence()` for more info about that.
 
     QString currentDomainID = uuidStringWithoutCurlyBraces(addressManager->getDomainID());
-    QString requestURLPath = "api/v1/domains/%1/screenshare";
+    QString requestURLPath = "/api/v1/domains/%1/screenshare";
     JSONCallbackParameters callbackParams;
     callbackParams.callbackReceiver = this;
     callbackParams.jsonCallbackMethod = "handleSuccessfulScreenshareInfoGet";

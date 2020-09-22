@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2014-06-24.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -108,7 +109,7 @@ public:
     QStringList getDomainServerGroupNames();
     QStringList getDomainServerBlacklistGroupNames();
 
-    // these are used to locally cache the result of calling "api/v1/groups/.../is_member/..." on metaverse's api
+    // these are used to locally cache the result of calling "/api/v1/groups/.../is_member/..." on metaverse's api
     void clearGroupMemberships(const QString& name) { _groupMembership[name.toLower()].clear(); }
     void recordGroupMembership(const QString& name, const QUuid groupID, QUuid rankID);
     QUuid isGroupMember(const QString& name, const QUuid& groupID); // returns rank or -1 if not a member
