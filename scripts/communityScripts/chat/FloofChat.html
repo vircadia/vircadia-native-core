@@ -198,7 +198,8 @@
                     case ext == "webm":
                         var replaceWith = "<br/>";
                         replaceWith += "<video controls class=\"z-depth-2 responsive\"><source src='" + this;
-                        replaceWith += "' type='video/" + ext + "'></video><br/>";
+                        replaceWith += "' type='video/" + ext + "'></video>";
+                        replaceWith += "<br/>";
                         replaceWith += "<a onclick=\"gotoClipboard('" + this + "');return false;\" href=\"" + this + "\">" + this + "</a>";
                         replaceWith += "<a onclick=\"gotoExternalURL('" + this + "');return false;\"href=\"" + this + "\">&#x1F4F2;</a>";
 
@@ -208,17 +209,14 @@
                     case protocol === "hifi":
                         elContent = elContent.replace(this, "<br/><a href=\"javascript:gotoHiFi('" + this + "');\">" + this + "</a>");
                         break;
-					          case !!this.match(/(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([^& \n<]+)(?:[^ \n<]+)?/g):
+					case !!this.match(/(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([^& \n<]+)(?:[^ \n<]+)?/g):
                         var youtubeMatch = this.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
                         if (youtubeMatch && youtubeMatch[2].length == 11) {
                             var replaceWith = "<br/>";
-                            replaceWith += "<video controls class=\"z-depth-2 responsive\"><source src='" + this;
-                            replaceWith += "<iframe class=\"z-depth-2\" width='420' height='236' src='https://www.youtube.com/embed/" + youtubeMatch[2];
-                            replaceWith += "' frameborder='0'></iframe><br/><a href=\"javascript:gotoURL('" + this ;
-                            replaceWith += "');\">" + this;
-                            replaceWith += "</a><a onclick=\"gotoExternalURL('" + this;
-                            replaceWith += "');return false;\"href=\"" + this;
-                            replaceWith += "\">&#x1F4F2;</a>";
+                            replaceWith += "<iframe class=\"z-depth-2\" width='420' height='236' src='https://www.youtube.com/embed/" + youtubeMatch[2] + "' frameborder='0'></iframe>";
+                            replaceWith += "<br/>";
+                            replaceWith += "<a onclick=\"gotoExternalURL('" + this + "');return false;\" href=\"" + this + "\">" + this + "</a>";
+                            replaceWith += "<a onclick=\"gotoExternalURL('" + this + "');return false;\" href=\"" + this + "\">&#x1F4F2;</a>";
 
                             elContent = replaceWith;
                             break;
