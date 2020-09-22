@@ -646,6 +646,7 @@ SelectionDisplay = (function() {
     const COLOR_BLUE = { red: 0, green: 52, blue: 255 };
     const COLOR_RED = { red: 255, green: 0, blue: 0 };
     const COLOR_HOVER = { red: 255, green: 220, blue: 82 };
+    const COLOR_DUPLICATOR = { red: 162, green: 0, blue: 255 };
     const COLOR_ROTATE_CURRENT_RING = { red: 255, green: 99, blue: 9 };
     const COLOR_BOUNDING_EDGE = { red: 128, green: 128, blue: 128 };
     const COLOR_SCALE_CUBE = { red: 160, green: 160, blue: 160 };
@@ -681,7 +682,7 @@ SelectionDisplay = (function() {
     
     const BOUNDING_EDGE_OFFSET = 0.5;
 
-    const DUPLICATOR_OFFSET = { x: 0.9, y: -0.9, z: 0.9 };    
+    const DUPLICATOR_OFFSET = { x: 0.6, y: 0, z: 0.6 };    
     
     const CTRL_KEY_CODE = 16777249;
 
@@ -748,6 +749,8 @@ SelectionDisplay = (function() {
 
     that.replaceCollisionsAfterStretch = false;
 
+    var toolEntitiesMaterialData = "{\n  \"materialVersion\": 1,\n  \"materials\": [\n    {\n      \"name\": \"0\",\n      \"albedo\": \"fallthrough\",\n      \"unlit\": true,\n      \"model\": \"hifi_pbr\"\n    }\n  ]\n}";
+
     var handlePropertiesTranslateArrowCones = {
         type: "Shape",
         alpha: 1,
@@ -779,6 +782,67 @@ SelectionDisplay = (function() {
     Entities.editEntity(handleTranslateZCone, { color: COLOR_BLUE });
     Entities.editEntity(handleTranslateZCylinder, { color: COLOR_BLUE });
 
+    var materialHandleTranslateXCone = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleTranslateXCone,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+    var materialHandleTranslateYCone = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleTranslateYCone,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+    var materialHandleTranslateZCone = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleTranslateZCone,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+    var materialHandleTranslateXCylinder = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleTranslateXCylinder,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+    var materialHandleTranslateYCylinder = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleTranslateYCylinder,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+    var materialHandleTranslateZCylinder = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleTranslateZCylinder,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+
     var handlePropertiesRotateRings = {
         type: "Gizmo",
         gizmoType: "ring",
@@ -798,36 +862,69 @@ SelectionDisplay = (function() {
         ignorePickIntersection: true,
         renderLayer: "front"
     };
-    var handleRotateGreenRing = Entities.addEntity(handlePropertiesRotateRings, "local");
-    Entities.editEntity(handleRotateGreenRing, {
-        ring: {
-            innerStartColor: COLOR_GREEN,
-            innerEndColor: COLOR_GREEN,
-            outerStartColor: COLOR_GREEN,
-            outerEndColor: COLOR_GREEN,        
-            majorTickMarksColor: COLOR_GREEN
-        }
-    });
-    var handleRotateBlueRing = Entities.addEntity(handlePropertiesRotateRings, "local");
-    Entities.editEntity(handleRotateBlueRing, { 
-        ring: {
-            innerStartColor: COLOR_BLUE,
-            innerEndColor: COLOR_BLUE,
-            outerStartColor: COLOR_BLUE,
-            outerEndColor: COLOR_BLUE,           
-            majorTickMarksColor: COLOR_BLUE
-        }
-    });
-    var handleRotateRedRing = Entities.addEntity(handlePropertiesRotateRings, "local");
-    Entities.editEntity(handleRotateRedRing, { 
+
+    var handleRotatePitchXRedRing = Entities.addEntity(handlePropertiesRotateRings, "local");
+    Entities.editEntity(handleRotatePitchXRedRing, {
         ring: {
             innerStartColor: COLOR_RED,
             innerEndColor: COLOR_RED,
             outerStartColor: COLOR_RED,
-            outerEndColor: COLOR_RED,      
+            outerEndColor: COLOR_RED,        
             majorTickMarksColor: COLOR_RED
         }
     });
+    var materialHandleRotatePitchXRedRing = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleRotatePitchXRedRing,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+    
+    var handleRotateYawYGreenRing = Entities.addEntity(handlePropertiesRotateRings, "local");
+    Entities.editEntity(handleRotateYawYGreenRing, { 
+        ring: {
+            innerStartColor: COLOR_GREEN,
+            innerEndColor: COLOR_GREEN,
+            outerStartColor: COLOR_GREEN,
+            outerEndColor: COLOR_GREEN,           
+            majorTickMarksColor: COLOR_GREEN
+        }
+    });
+    var materialHandleRotateYawYGreenRing = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleRotateYawYGreenRing,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+    
+    var handleRotateRollZBlueRing = Entities.addEntity(handlePropertiesRotateRings, "local");
+    Entities.editEntity(handleRotateRollZBlueRing, { 
+        ring: {
+            innerStartColor: COLOR_BLUE,
+            innerEndColor: COLOR_BLUE,
+            outerStartColor: COLOR_BLUE,
+            outerEndColor: COLOR_BLUE,      
+            majorTickMarksColor: COLOR_BLUE
+        }
+    });
+    var materialHandleRotateRollZBlueRing = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleRotateRollZBlueRing,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");    
 
     var handleRotateCurrentRing = Entities.addEntity({
         type: "Gizmo",
@@ -850,6 +947,16 @@ SelectionDisplay = (function() {
         ignorePickIntersection: true,
         renderLayer: "front"
     }, "local");
+    var materialHandleRotateCurrentRing = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleRotateCurrentRing,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
 
     var rotationDegreesDisplay = Entities.addEntity({
         type: "Text",
@@ -867,7 +974,8 @@ SelectionDisplay = (function() {
         topMargin: 0,
         rightMargin: 0,
         bottomMargin: 0,
-        leftMargin: 0
+        leftMargin: 0,
+        unlit: true
     }, "local");
 
     var handlePropertiesStretchCubes = {
@@ -886,6 +994,37 @@ SelectionDisplay = (function() {
     var handleStretchZCube = Entities.addEntity(handlePropertiesStretchCubes, "local");
     Entities.editEntity(handleStretchZCube, { color: COLOR_BLUE });
 
+    var materialHandleStretchXCube = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleStretchXCube,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+    var materialHandleStretchYCube = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleStretchYCube,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+    var materialHandleStretchZCube = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleStretchZCube,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");    
+
     var handlePropertiesStretchPanel = {
         type: "Shape",
         shape: "Cube",
@@ -902,6 +1041,37 @@ SelectionDisplay = (function() {
     var handleStretchZPanel = Entities.addEntity(handlePropertiesStretchPanel, "local");
     Entities.editEntity(handleStretchZPanel, { color: COLOR_BLUE });
 
+    var materialHandleStretchXPanel = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleStretchXPanel,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+    var materialHandleStretchYPanel = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleStretchYPanel,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+    var materialHandleStretchZPanel = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleStretchZPanel,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");    
+
     var handleScaleCube = Entities.addEntity({
         type: "Shape",
         shape: "Cube",
@@ -912,7 +1082,17 @@ SelectionDisplay = (function() {
         ignorePickIntersection: true,
         renderLayer: "front"        
     }, "local");
-
+    var materialHandleScaleCube = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleScaleCube,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+    
     var handleBoundingBox = Entities.addEntity({
         type: "Shape",
         shape: "Cube",
@@ -923,17 +1103,37 @@ SelectionDisplay = (function() {
         ignorePickIntersection: true,
         renderLayer: "front"
     }, "local");
-
+    var materialHandleBoundingBox = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleBoundingBox,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
+    }, "local");
+    
     var handleDuplicator = Entities.addEntity({
         type: "Shape",
-        shape: "Cube",
+        shape: "Shere",
         primitiveMode: "solid",         
         alpha: 1,
         dimensions: 0.05,
-        color: COLOR_GREEN,
+        color: COLOR_DUPLICATOR,
         visible: false,
         ignorePickIntersection: true,
         renderLayer: "front"
+    }, "local");
+    var materialHandleDuplicator = Entities.addEntity({
+        "type": "Material",
+        "parentID": handleDuplicator,
+        "name": "tool-material",
+        "parentMaterialName": "0",
+        "materialURL": "materialData",
+        "priority": 1,
+        "materialMappingMode": "projected",
+        "materialData": toolEntitiesMaterialData
     }, "local");
 
     // setting to 0 alpha for now to keep this hidden vs using visible false 
@@ -1003,9 +1203,9 @@ SelectionDisplay = (function() {
         handleTranslateYCylinder,
         handleTranslateZCone,
         handleTranslateZCylinder,
-        handleRotateGreenRing,
-        handleRotateBlueRing,
-        handleRotateRedRing,
+        handleRotatePitchXRedRing,
+        handleRotateYawYGreenRing,
+        handleRotateRollZBlueRing,
         handleRotateCurrentRing,
         rotationDegreesDisplay,
         handleStretchXCube,
@@ -1035,9 +1235,9 @@ SelectionDisplay = (function() {
     toolEntityNames[handleTranslateZCone] = "handleTranslateZCone";
     toolEntityNames[handleTranslateZCylinder] = "handleTranslateZCylinder";
 
-    toolEntityNames[handleRotateGreenRing] = "handleRotateGreenRing";
-    toolEntityNames[handleRotateBlueRing] = "handleRotateBlueRing";
-    toolEntityNames[handleRotateRedRing] = "handleRotateRedRing";
+    toolEntityNames[handleRotatePitchXRedRing] = "handleRotatePitchXRedRing";
+    toolEntityNames[handleRotateYawYGreenRing] = "handleRotateYawYGreenRing";
+    toolEntityNames[handleRotateRollZBlueRing] = "handleRotateRollZBlueRing";
     toolEntityNames[handleRotateCurrentRing] = "handleRotateCurrentRing";
     toolEntityNames[rotationDegreesDisplay] = "rotationDegreesDisplay";
 
@@ -1267,8 +1467,8 @@ SelectionDisplay = (function() {
 
     that.resetPreviousHandleColor = function() {
         if (previousHandle !== null) {
-            if (previousHandle === handleRotateRedRing || previousHandle === handleRotateBlueRing
-            || previousHandle === handleRotateGreenRing) {
+            if (previousHandle === handleRotateRollZBlueRing || previousHandle === handleRotateYawYGreenRing
+            || previousHandle === handleRotatePitchXRedRing) {
                 Entities.editEntity(previousHandle, {
                     ring: { 
                         innerStartColor: previousHandleColor,
@@ -1323,10 +1523,10 @@ SelectionDisplay = (function() {
                     highlightNeeded = true;
                     pickedColor = COLOR_RED;
                     break;                
-                case handleRotateGreenRing:
+                case handleRotatePitchXRedRing:
                     isGizmoRing = true;
                     highlightNeeded = true;
-                    pickedColor = COLOR_GREEN;
+                    pickedColor = COLOR_RED;
                     break;
                 case handleStretchXCube:
                     pickedColor = COLOR_RED;
@@ -1340,10 +1540,10 @@ SelectionDisplay = (function() {
                     highlightNeeded = true;
                     pickedColor = COLOR_GREEN;
                     break;                
-                case handleRotateBlueRing:
+                case handleRotateYawYGreenRing:
                     isGizmoRing = true;
                     highlightNeeded = true;
-                    pickedColor = COLOR_BLUE;
+                    pickedColor = COLOR_GREEN;
                     break;                
                 case handleStretchYCube:
                     pickedColor = COLOR_GREEN;
@@ -1357,10 +1557,10 @@ SelectionDisplay = (function() {
                     highlightNeeded = true;
                     pickedColor = COLOR_BLUE;
                     break;                
-                case handleRotateRedRing:
+                case handleRotateRollZBlueRing:
                     isGizmoRing = true;
                     highlightNeeded = true;
-                    pickedColor = COLOR_RED;
+                    pickedColor = COLOR_BLUE;
                     break;                
                 case handleStretchZCube:
                     pickedColor = COLOR_BLUE;
@@ -1370,6 +1570,10 @@ SelectionDisplay = (function() {
                     pickedColor = COLOR_SCALE_CUBE;
                     highlightNeeded = true;
                     break;
+                case handleDuplicator:
+                    pickedColor = COLOR_DUPLICATOR;
+                    highlightNeeded = true;
+                    break;                    
                 default:
                     that.resetPreviousHandleColor();
                     break;
@@ -1573,6 +1777,26 @@ SelectionDisplay = (function() {
         for (var i = 0; i < allToolEntities.length; i++) {
             Entities.deleteEntity(allToolEntities[i]);
         }
+        Entities.deleteEntity(materialHandleTranslateXCone);
+        Entities.deleteEntity(materialHandleTranslateYCone);
+        Entities.deleteEntity(materialHandleTranslateZCone);
+        Entities.deleteEntity(materialHandleTranslateXCylinder);
+        Entities.deleteEntity(materialHandleTranslateYCylinder);
+        Entities.deleteEntity(materialHandleTranslateZCylinder);
+        Entities.deleteEntity(materialHandleStretchXCube);
+        Entities.deleteEntity(materialHandleStretchYCube);
+        Entities.deleteEntity(materialHandleStretchZCube);
+        Entities.deleteEntity(materialHandleStretchXPanel);
+        Entities.deleteEntity(materialHandleStretchYPanel);
+        Entities.deleteEntity(materialHandleStretchZPanel);
+        Entities.deleteEntity(materialHandleScaleCube);
+        Entities.deleteEntity(materialHandleBoundingBox);
+        Entities.deleteEntity(materialHandleDuplicator);
+        Entities.deleteEntity(materialHandleRotatePitchXRedRing);
+        Entities.deleteEntity(materialHandleRotateYawYGreenRing);
+        Entities.deleteEntity(materialHandleRotateRollZBlueRing);
+        Entities.deleteEntity(materialHandleRotateCurrentRing);
+
         that.clearDebugPickPlane();
     };
 
@@ -1759,8 +1983,18 @@ SelectionDisplay = (function() {
             // rotateDimension is used as the base dimension for all toolEntities
             var rotateDimension = Math.max(maxHandleDimension, toCameraDistance * ROTATE_RING_CAMERA_DISTANCE_MULTIPLE);
             var rotateDimensions = { x: rotateDimension, y: rotateDimension, z: rotateDimension };
-            if (!isActiveTool(handleRotateGreenRing)) {
-                Entities.editEntity(handleRotateGreenRing, { 
+            if (!isActiveTool(handleRotatePitchXRedRing)) {
+                Entities.editEntity(handleRotatePitchXRedRing, { 
+                    position: position, 
+                    rotation: rotationX,
+                    dimensions: rotateDimensions,
+                    ring: {
+                        majorTickMarksAngle: ROTATE_DEFAULT_TICK_MARKS_ANGLE
+                    }
+                });
+            }
+            if (!isActiveTool(handleRotateYawYGreenRing)) {
+                Entities.editEntity(handleRotateYawYGreenRing, { 
                     position: position, 
                     rotation: rotationY,
                     dimensions: rotateDimensions,
@@ -1769,20 +2003,10 @@ SelectionDisplay = (function() {
                     }
                 });
             }
-            if (!isActiveTool(handleRotateBlueRing)) {
-                Entities.editEntity(handleRotateBlueRing, { 
+            if (!isActiveTool(handleRotateRollZBlueRing)) {
+                Entities.editEntity(handleRotateRollZBlueRing, { 
                     position: position, 
                     rotation: rotationZ,
-                    dimensions: rotateDimensions,
-                    ring: {
-                        majorTickMarksAngle: ROTATE_DEFAULT_TICK_MARKS_ANGLE
-                    }
-                });
-            }
-            if (!isActiveTool(handleRotateRedRing)) {
-                Entities.editEntity(handleRotateRedRing, { 
-                    position: position, 
-                    rotation: rotationX,
                     dimensions: rotateDimensions,
                     ring: {
                         majorTickMarksAngle: ROTATE_DEFAULT_TICK_MARKS_ANGLE
@@ -1958,9 +2182,9 @@ SelectionDisplay = (function() {
             });
 
             // UPDATE SELECTION BOX (CURRENTLY INVISIBLE WITH 0 ALPHA FOR TRANSLATE XZ TOOL)
-            var inModeRotate = isActiveTool(handleRotateGreenRing) || 
-                               isActiveTool(handleRotateBlueRing) || 
-                               isActiveTool(handleRotateRedRing);
+            var inModeRotate = isActiveTool(handleRotatePitchXRedRing) || 
+                               isActiveTool(handleRotateYawYGreenRing) || 
+                               isActiveTool(handleRotateRollZBlueRing);
             selectionBoxGeometry.visible = !inModeRotate && !isCameraInsideBox;
             selectionBoxGeometry.ignorePickIntersection = !selectionBoxGeometry.visible;
             Entities.editEntity(selectionBox, selectionBoxGeometry);
@@ -1981,12 +2205,13 @@ SelectionDisplay = (function() {
                 });
             }
 
-            // UPDATE DUPLICATOR (CURRENTLY HIDDEN FOR NOW)
+            // UPDATE DUPLICATOR (CURRENTLY VISIBLE ONLY IN HMD)
             var handleDuplicatorOffset = { 
-                x: DUPLICATOR_OFFSET.x * dimensions.x, 
-                y: DUPLICATOR_OFFSET.y * dimensions.y, 
-                z: DUPLICATOR_OFFSET.z * dimensions.z 
+                x: DUPLICATOR_OFFSET.x * rotateDimension, 
+                y: DUPLICATOR_OFFSET.y * rotateDimension, 
+                z: DUPLICATOR_OFFSET.z * rotateDimension 
             };
+
             var handleDuplicatorPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, handleDuplicatorOffset));
             Entities.editEntity(handleDuplicator, {
                 position: handleDuplicatorPos,
@@ -2001,9 +2226,9 @@ SelectionDisplay = (function() {
                                                        isActiveTool(handleTranslateYCylinder));
         that.setHandleTranslateZVisible(!activeTool || isActiveTool(handleTranslateZCone) || 
                                                        isActiveTool(handleTranslateZCylinder));
-        that.setHandleRotatePitchVisible(!activeTool || isActiveTool(handleRotateGreenRing));
-        that.setHandleRotateYawVisible(!activeTool || isActiveTool(handleRotateBlueRing));
-        that.setHandleRotateRollVisible(!activeTool || isActiveTool(handleRotateRedRing));
+        that.setHandleRotatePitchVisible(!activeTool || isActiveTool(handleRotatePitchXRedRing));
+        that.setHandleRotateYawVisible(!activeTool || isActiveTool(handleRotateYawYGreenRing));
+        that.setHandleRotateRollVisible(!activeTool || isActiveTool(handleRotateRollZBlueRing));
 
         var showScaleStretch = !activeTool && SelectionManager.selections.length === 1 && spaceMode === SPACE_LOCAL;
         that.setHandleStretchXVisible(showScaleStretch || isActiveTool(handleStretchXCube));
@@ -2014,13 +2239,16 @@ SelectionDisplay = (function() {
         var showOutlineForZone = (SelectionManager.selections.length === 1 && 
                                     typeof SelectionManager.savedProperties[SelectionManager.selections[0]] !== "undefined" &&
                                     SelectionManager.savedProperties[SelectionManager.selections[0]].type === "Zone");
-        that.setHandleBoundingBoxVisible(showOutlineForZone || (!isActiveTool(handleRotateGreenRing) &&
-                                                              !isActiveTool(handleRotateBlueRing) &&
-                                                              !isActiveTool(handleRotateRedRing)));
+        that.setHandleBoundingBoxVisible(showOutlineForZone || (!isActiveTool(handleRotatePitchXRedRing) &&
+                                                              !isActiveTool(handleRotateYawYGreenRing) &&
+                                                              !isActiveTool(handleRotateRollZBlueRing)));
 
-        // keep duplicator always hidden for now since you can hold Alt to duplicate while
-        // translating an entity - we may bring duplicator back for HMD only later
-        // that.setHandleDuplicatorVisible(!activeTool || isActiveTool(handleDuplicator));
+        // ## Duplicator handle for HMD only. ##
+        //Functionality Deactivated. This is a bit too sensible. We will explore other solutions. 
+        //(uncomment to re-activate)
+        /*if (HMD.active) {
+            that.setHandleDuplicatorVisible(!activeTool || isActiveTool(handleDuplicator));
+        }*/
 
         if (wantDebug) {
             print("====== Update Handles <=======");
@@ -2031,12 +2259,12 @@ SelectionDisplay = (function() {
     // FUNCTION: UPDATE ACTIVE ROTATE RING
     that.updateActiveRotateRing = function() {
         var activeRotateRing = null;
-        if (isActiveTool(handleRotateGreenRing)) {
-            activeRotateRing = handleRotateGreenRing;
-        } else if (isActiveTool(handleRotateBlueRing)) {
-            activeRotateRing = handleRotateBlueRing;
-        } else if (isActiveTool(handleRotateRedRing)) {
-            activeRotateRing = handleRotateRedRing;
+        if (isActiveTool(handleRotatePitchXRedRing)) {
+            activeRotateRing = handleRotatePitchXRedRing;
+        } else if (isActiveTool(handleRotateYawYGreenRing)) {
+            activeRotateRing = handleRotateYawYGreenRing;
+        } else if (isActiveTool(handleRotateRollZBlueRing)) {
+            activeRotateRing = handleRotateRollZBlueRing;
         }
         if (activeRotateRing !== null) {
             var tickMarksAngle = ctrlPressed ? ROTATE_CTRL_SNAP_ANGLE : ROTATE_DEFAULT_TICK_MARKS_ANGLE;
@@ -2081,15 +2309,15 @@ SelectionDisplay = (function() {
     };
 
     that.setHandleRotatePitchVisible = function(isVisible) {
-        Entities.editEntity(handleRotateGreenRing, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleRotatePitchXRedRing, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleRotateYawVisible = function(isVisible) {
-        Entities.editEntity(handleRotateBlueRing, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleRotateYawYGreenRing, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleRotateRollVisible = function(isVisible) {
-        Entities.editEntity(handleRotateRedRing, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleRotateRollZBlueRing, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     // FUNCTION: SET HANDLE STRETCH VISIBLE
@@ -2907,17 +3135,17 @@ SelectionDisplay = (function() {
                 }
                 
                 if (direction === ROTATE_DIRECTION.PITCH) {
-                    rotationNormal = { x: 0, y: 1, z: 0 };
-                    worldRotation = worldRotationY;
-                    selectedHandle = handleRotateGreenRing;
-                } else if (direction === ROTATE_DIRECTION.YAW) {
-                    rotationNormal = { x: 0, y: 0, z: 1 };
-                    worldRotation = worldRotationZ;
-                    selectedHandle = handleRotateBlueRing;
-                } else if (direction === ROTATE_DIRECTION.ROLL) {
                     rotationNormal = { x: 1, y: 0, z: 0 };
                     worldRotation = worldRotationX;
-                    selectedHandle = handleRotateRedRing;
+                    selectedHandle = handleRotatePitchXRedRing;
+                } else if (direction === ROTATE_DIRECTION.YAW) {
+                    rotationNormal = { x: 0, y: 1, z: 0 };
+                    worldRotation = worldRotationY;
+                    selectedHandle = handleRotateYawYGreenRing;
+                } else if (direction === ROTATE_DIRECTION.ROLL) {
+                    rotationNormal = { x: 0, y: 0, z: 1 };
+                    worldRotation = worldRotationZ;
+                    selectedHandle = handleRotateRollZBlueRing;
                 }
                 
                 initialRotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
@@ -3074,9 +3302,9 @@ SelectionDisplay = (function() {
     addHandleTranslateTool(handleTranslateZCone, "TRANSLATE_Z", TRANSLATE_DIRECTION.Z);
     addHandleTranslateTool(handleTranslateZCylinder, "TRANSLATE_Z", TRANSLATE_DIRECTION.Z);
 
-    addHandleRotateTool(handleRotateGreenRing, "ROTATE_PITCH", ROTATE_DIRECTION.PITCH);
-    addHandleRotateTool(handleRotateBlueRing, "ROTATE_YAW", ROTATE_DIRECTION.YAW);
-    addHandleRotateTool(handleRotateRedRing, "ROTATE_ROLL", ROTATE_DIRECTION.ROLL);
+    addHandleRotateTool(handleRotatePitchXRedRing, "ROTATE_PITCH", ROTATE_DIRECTION.PITCH);
+    addHandleRotateTool(handleRotateYawYGreenRing, "ROTATE_YAW", ROTATE_DIRECTION.YAW);
+    addHandleRotateTool(handleRotateRollZBlueRing, "ROTATE_ROLL", ROTATE_DIRECTION.ROLL);
 
     addHandleStretchTool(handleStretchXCube, "STRETCH_X", STRETCH_DIRECTION.X);
     addHandleStretchTool(handleStretchYCube, "STRETCH_Y", STRETCH_DIRECTION.Y);
