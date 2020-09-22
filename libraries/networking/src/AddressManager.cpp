@@ -27,16 +27,22 @@
 
 #include "NodeList.h"
 #include "NetworkLogging.h"
+#include "NetworkingConstants.h"
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-const QString DEFAULT_HIFI_ADDRESS = "file:///~/serverless/tutorial.json";
-const QString DEFAULT_HOME_ADDRESS = "file:///~/serverless/tutorial.json";
-const QString REDIRECT_HIFI_ADDRESS = "file:///~/serverless/redirect.json";
+const QString REDIRECT_HIFI_ADDRESS = NetworkingConstants::REDIRECT_HIFI_ADDRESS;
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 
-Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address", DEFAULT_HIFI_ADDRESS);
+const QString DEFAULT_VIRCADIA_ADDRESS = (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty())
+                                       ? BuildInfo::INITIAL_STARTUP_LOCATION
+                                       : NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS;
+const QString DEFAULT_HOME_ADDRESS = (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty()) 
+                                       ? BuildInfo::INITIAL_STARTUP_LOCATION
+                                       : NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS;
+
+Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address", DEFAULT_VIRCADIA_ADDRESS);
 
 bool AddressManager::isConnected() {
     return DependencyManager::get<NodeList>()->getDomainHandler().isConnected();
