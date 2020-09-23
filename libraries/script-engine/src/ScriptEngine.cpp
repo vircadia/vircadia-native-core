@@ -2883,6 +2883,6 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     }
 }
 
-QString ScriptEngine::getExternalPath(ExternalResource::Bucket bucket, const QString& relativePath) {
-    return ExternalResource::getInstance()->getUrl(bucket, relativePath);
+QString ScriptEngine::getExternalPath(ExternalResource::Bucket bucket, const QString& path) {
+    return ExternalResource::getInstance()->getUrl(bucket, path);
 }
