@@ -10,7 +10,7 @@
 var INTERFACE_METADATA_SOURCE = "https://cdn.vircadia.com/dist/launcher/vircadiaMeta.json";
 
 // Base CDN URLs
-var CONTENT_CDN_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/"); // "https://cdn-1.vircadia.com/" + usCDN;
+var CONTENT_CDN_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/");
 var PUBLIC_BUCKET_CDN_URL = Script.getExternalPath(Script.ExternalPaths.HF_Public, "/");
 
 module.exports = {
