@@ -61,9 +61,7 @@ public:
         HF_Marketplace,
 
         /** Vircadia assets */
-        Assets,
-        Public,
-        Content
+        Assets
     };
     Q_ENUM(Bucket)
 
@@ -155,9 +153,7 @@ private:
         { Bucket::HF_Public, QUrl(NetworkingConstants::HF_PUBLIC_CDN_URL) },
         { Bucket::HF_Content, QUrl(NetworkingConstants::HF_CONTENT_CDN_URL) },
         { Bucket::HF_Marketplace, QUrl(NetworkingConstants::HF_MPASSETS_CDN_URL) },
-        { Bucket::Assets, QUrl(NetworkingConstants::VIRCADIA_CONTENT_CDN_URL) },
-        { Bucket::Public, QUrl(NetworkingConstants::VIRCADIA_CONTENT_CDN_URL) },
-        { Bucket::Content, QUrl(NetworkingConstants::VIRCADIA_CONTENT_CDN_URL) }
+        { Bucket::Assets, QUrl(NetworkingConstants::VIRCADIA_CONTENT_CDN_URL) }
     };
 };
 
