@@ -3295,7 +3295,6 @@ void Application::initializeUi() {
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
     qmlRegisterType<WebBrowserSuggestionsEngine>("HifiWeb", 1, 0, "WebBrowserSuggestionsEngine");
- //   qmlRegisterType<ExternalResource>("ExternalResource", 1, 0, "ExternalResource");
 
     {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
@@ -5574,6 +5573,9 @@ void Application::saveSettings() const {
     getMyAvatar()->saveData();
     PluginManager::getInstance()->saveSettings();
 
+    // Don't save external resource paths until such time as there's UI to select or set alternatives. Otherwise new default
+    // values won't be used unless Interface.json entries are manually remove or Interface.json is deleted.
+    /*
     auto bucketEnum = QMetaEnum::fromType<ExternalResource::Bucket>();
     auto externalResource = ExternalResource::getInstance();
 
@@ -5585,6 +5587,7 @@ void Application::saveSettings() const {
         Setting::Handle<QString> url(setting, externalResource->getBase(bucket));
         url.set(externalResource->getBase(bucket));
     }
+    */
 }
 
 bool Application::importEntities(const QString& urlOrFilename, const bool isObservable, const qint64 callerId) {
@@ -7564,10 +7567,6 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptEngine
     scriptEngine->registerGlobalObject("About", AboutUtil::getInstance());
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());  // Deprecated.
     scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
-
-    
-    //scriptEngine->registerGlobalObject("ExternalResource", ExternalResource::getInstance());
-   // scriptEngine->registerEnum("Script.ExternalPaths", QMetaEnum::fromType<ExternalResource::Bucket>());
 
     registerInteractiveWindowMetaType(scriptEngine.data());
 

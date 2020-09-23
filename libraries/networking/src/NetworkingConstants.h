@@ -45,11 +45,11 @@ namespace NetworkingConstants {
     const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");
 
     // CDN URLs
-    const QString HF_CONTENT_CDN_URL = "https://cdn-1.vircadia.com/eu-c-1/vircadia-content";
-    const QString HF_MPASSETS_CDN_URL = "https://cdn-1.vircadia.com/eu-c-1/vircadia-mpassets";
-    const QString HF_PUBLIC_CDN_URL = "https://cdn-1.vircadia.com/eu-c-1/vircadia-public";
+    const QString HF_CONTENT_CDN_URL = "https://cdn-1.vircadia.com/eu-c-1/vircadia-content/";
+    const QString HF_MPASSETS_CDN_URL = "https://cdn-1.vircadia.com/eu-c-1/vircadia-mpassets/";
+    const QString HF_PUBLIC_CDN_URL = "https://cdn-1.vircadia.com/eu-c-1/vircadia-public/";
     const QString HF_MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
-    const QString VIRCADIA_CONTENT_CDN_URL = "https://cdn-1.vircadia.com/us-e-1";
+    const QString VIRCADIA_CONTENT_CDN_URL = "https://cdn-1.vircadia.com/us-e-1/";
 
 #if USE_STABLE_GLOBAL_SERVICES
     const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.vircadia.com";
