@@ -64,7 +64,7 @@
                         When you add a location, you are actually creating a location beacon wherever you are currently standing. By default this will show up as a red cube.
                         If you need to amend the details of your listing at a later date, simply open the Create app in your domain, find the entity with name like "Explore Marker (Your domain name)"
                         and modify it's userData values.
-                        You can also hide the marker easily by setting the entities Alpha to 0.00
+                        You can also hide the marker easily by toggling the entity's visibility. It will still function when hidden.
                     </v-card-text>
                 </v-card>
             </v-dialog>
@@ -122,18 +122,25 @@
                                        sm="6"
                                        md="4"
                                        lg="3">
-                                    <v-card hover @click.native="openLocation(item['Visit'])">
-                                        <!--<v-card-title class="headline">{{ item["Domain Name"] }}</v-card-title>-->
-                                        <div class="d-flex flex-no-wrap justify-space-between">
-                                            <div>
-                                                <v-card-title class="text-h6 d-block text-truncate pa-2" v-text="item['Domain Name']" style="max-width: 400px;"></v-card-title>
-                                                <v-card-subtitle class="pa-2 d-block text-truncate" style="max-width: 400px;" v-text="item.Owner"></v-card-subtitle>
+                                   <v-hover
+                                       v-slot:default="{ hover }"
+                                   >
+                                        <v-card 
+                                            @click.native="openLocation(item['Visit'])"
+                                            :color="hover ? 'grey darken-3' : 'grey darken-4'"
+                                        >
+                                            <!--<v-card-title class="headline">{{ item["Domain Name"] }}</v-card-title>-->
+                                            <div class="d-flex flex-no-wrap justify-space-between">
+                                                <div>
+                                                    <v-card-title class="text-h6 d-block text-truncate pa-2" v-text="item['Domain Name']" style="max-width: 400px;"></v-card-title>
+                                                    <v-card-subtitle class="pa-2 d-block text-truncate" style="max-width: 400px;" v-text="item.Owner"></v-card-subtitle>
+                                                </div>
+                                                <div style="text-align: right;">
+                                                    <v-card-title align-right class="align-right" v-text="item['People']"></v-card-title>
+                                                </div>
                                             </div>
-                                            <div style="text-align: right;">
-                                                <v-card-title class="" v-text="item['People']"></v-card-title>
-                                            </div>
-                                        </div>
-                                    </v-card>
+                                        </v-card>
+                                    </hover>
                                 </v-col>
                             </v-row>
                         </template>
