@@ -49,13 +49,32 @@ QUrl ExternalResource::getQUrl(Bucket bucket, const QUrl& path) {
         base = _bucketBases[bucket];
     }
 
-    QUrl merged = base.resolved(path).adjusted(QUrl::NormalizePathSegments);
+    QUrl filteredPath = path;
+    QString pathQString = filteredPath.path();
+
+    // De-duplicate URL separators, since S3 doesn't actually have subdirectories, and treats a '/' as a part
+    // of the filename. This means that "/dir/file.txt" and "/dir//file.txt" are not equivalent on S3.
+    while(pathQString.contains("//")) {
+        pathQString = pathQString.replace("//", "/");
+    }
+
+    // If a path starts with a / it would have the effect of overriding any path specified in the bucket.
+    // We remove it, ensuring that getQUrl(Bucket.Assets, "/file.txt") and getQUrl(Bucket.Assets, "file.txt")
+    // are equivalent.
+    if (pathQString.startsWith("/")) {
+        pathQString.remove(0,1);
+    }
+
+    filteredPath.setPath(pathQString);
+
+    QUrl merged = base.resolved(filteredPath).adjusted(QUrl::NormalizePathSegments);
 
     if ( merged.isValid() ) {
         qCDebug(external_resource) << "External resource resolved to " << merged;
     } else {
         qCCritical(external_resource) << "External resource resolved to invalid URL " << merged << "; Error " 
-                                      << merged.errorString() << "; base = " << base << "; path = " << path;
+                                      << merged.errorString() << "; base = " << base << "; path = " << path
+                                      << "; filtered path = " << filteredPath;
     }
 
     return merged;

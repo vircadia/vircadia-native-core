@@ -693,8 +693,7 @@ public:
      * @param {string} path - The path within the external resource bucket where the asset is located. 
      *     <p>Normally, this should start with a path or filename to be appended to the bucket URL.
      *     Alternatively, it can be a relative path starting with <code>./</code> or <code>../</code>, to navigate within the 
-     *     resource bucket's URL. Or it can be an absolute path starting with <code>/</code>, in which case the bucket's path
-     *     is discarded when calculating the asset's URL.</p>
+     *     resource bucket's URL.</p>
      * @Returns {string} The URL of an external asset.
      * @example <caption>Report the URL of a default particle.</caption>
      * print(Script.getExternalPath(Script.ExternalPaths.Assets, "Bazaar/Assets/Textures/Defaults/Interface/default_particle.png"));
