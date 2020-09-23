@@ -121,6 +121,7 @@ public:
  *       <li><code>"agent"</code>: An assignment client script.</li>
  *     </ul>
  *     <em>Read-only.</em>
+ * @property {Script.ResourceBuckets} ExternalPaths - External resource buckets.
  */
 class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
     Q_OBJECT
@@ -235,12 +236,12 @@ public:
 
     /**jsdoc
      * @function Script.registerEnum
-     * @param {string} enumName - Name.
-     * @param {object} newEnum - Enumeration to be added
-     * @warning This function must be called after a registerGlobalObject that creates the namespace this enum is located in,
-     * or the globalObject won't function. Eg, if you have a Foo object and a Foo.FooType enum, Foo must be registered first.
+     * @param {string} name - Name.
+     * @param {object} enum - Enum.
      * @deprecated This function is deprecated and will be removed.
      */
+    // WARNING: This function must be called after a registerGlobalObject that creates the namespace this enum is located in, or\
+    // the globalObject won't function. E.g., if you have a Foo object and a Foo.FooType enum, Foo must be registered first.
     /// registers a global enum
     Q_INVOKABLE void registerEnum(const QString& enumName, QMetaEnum newEnum);
 
@@ -684,6 +685,16 @@ public:
 
     void setScriptEngines(QSharedPointer<ScriptEngines>& scriptEngines) { _scriptEngines = scriptEngines; }
 
+    /**jsdoc
+     * Gets the URL for an asset in an external resource bucket. (The location where the bucket is hosted may change over time
+     * but this method will return the asset's current URL.)
+     * @function Script.getExternalPath
+     * @param {Script.ResourceBucket} bucket - The external resource bucket that the asset is in.
+     * @param {string} relativePath - The path within the external resource bucket where the asset is located.
+     * @Returns {string} The URL of an external asset.
+     * @example <caption>Report the root directory where the Vircadia assets are located.</caption>
+     * print("Script.getExternalPath(Script.ExternalPaths.Assets, ""));
+     */
     Q_INVOKABLE QString getExternalPath(ExternalResource::Bucket bucket, const QString& relativePath);
 
 public slots:
