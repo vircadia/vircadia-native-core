@@ -115,7 +115,7 @@ public:
  *
  * <p>For a list of the entity types that you can use, see {@link Entities.EntityType|Entity Types}.</p>
  * 
- * <p>While each entity type has properties that are specific to it, there are properties that are universal to all entity types, see {@link Entities.EntityProperties|Entity Properties}.</p>
+ * <p>For the properties of the different entity types, see {@link Entities.EntityProperties|Entity Properties}. Some properties are universal to all entity types, and some are specific to particular entity types.</p>
  *
  * <h3>Entity Methods</h3>
  *
