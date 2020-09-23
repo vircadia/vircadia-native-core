@@ -21,7 +21,7 @@
         <div id="add-location-template">
             <v-dialog v-model="dialog" fullscreen hide-overlay transition="dialog-bottom-transition">
                 <template v-slot:activator="{ on, attrs }">
-                    <v-btn v-show="permission" value="animations" v-bind="attrs" v-on="on" fab small>
+                    <v-btn color="grey darken-3" class="ml-5" v-show="permission" value="animations" v-bind="attrs" v-on="on" fab small>
                         <v-icon color="purple">mdi-map-plus</v-icon>
                     </v-btn>
                 </template>
@@ -62,8 +62,8 @@
                     </v-card-text>
                     <v-card-text>
                         When you add a location, you are actually creating a location beacon wherever you are currently standing. By default this will show up as a red cube.
-                        If you need to amend the details of your listing at a later date, simply open the Create app in your domain, find the entity with name like "Explore Marker (Your domain name)"
-                        and modify it's userData values.
+                        If you need to amend the details of your listing at a later date, simply open the Create app in your domain, find the entity with the name "Explore Marker (Your domain name)"
+                        and modify its userData values.
                         You can also hide the marker easily by toggling the entity's visibility. It will still function when hidden.
                     </v-card-text>
                 </v-card>
@@ -76,7 +76,7 @@
                     <v-data-iterator :items="items"
                                      :items-per-page.sync="itemsPerPage"
                                      :page.sync="page"
-                                     :search="search"
+                                     :search="visit"
                                      :sort-by="sortBy"
                                      :sort-desc="sortDesc"
                                      :loading="loading"
@@ -84,33 +84,17 @@
                                      hide-default-footer>
                         <template v-slot:header>
                             <v-row dense>
-                                <v-col cols="7"
-                                       sm="6"
-                                       md="5"
-                                       lg="3">
-                                    <v-text-field v-model="visit" clearable
-                                                  flat
-                                                  solo-inverted
-                                                  hide-details
-                                                  label="Visit"
-                                                  class="pb-3"
-                                                  append-icon="mdi-location-enter"
-                                                  @click:append="visitIconCallback">
+                                <v-text-field v-model="visit" clearable
+                                              flat
+                                              solo-inverted
+                                              hide-details
+                                              label="Visit"
+                                              class="pb-3"
+                                              append-icon="mdi-location-enter"
+                                              v-on:keyup.enter="visitIconCallback"
+                                              @click:append="visitIconCallback">
 
-                                    </v-text-field>
-                                </v-col>
-                                <v-col cols="5"
-                                       sm="6"
-                                       md="4"
-                                       lg="3">
-                                    <v-text-field v-model="search"
-                                                  clearable
-                                                  flat
-                                                  solo-inverted
-                                                  hide-details
-                                                  label="Search"
-                                                  class="pb-3"></v-text-field>
-                                </v-col>
+                                </v-text-field>
                             </v-row>
                         </template>
 
@@ -240,18 +224,33 @@
     <div id="app">
         <v-app>
             <div>
-                <v-app-bar dark dense>
+                <v-app-bar dense>
                     <v-toolbar-title>Explore</v-toolbar-title>
                     <v-spacer></v-spacer>
-                    <v-btn v-show="isHomeSet" value="animations" fab small @click="navigateHome()">
-                        <v-icon color="purple">mdi-home</v-icon>
-                    </v-btn>
-                    <v-btn value="animations" fab small @click="navigateBack()">
-                        <v-icon color="purple">mdi-arrow-left-bold</v-icon>
-                    </v-btn>
-                    <v-btn value="animations" fab small @click="navigateForward()">
-                        <v-icon color="purple">mdi-arrow-right-bold</v-icon>
-                    </v-btn>
+                    <v-tooltip bottom>
+                        <template v-slot:activator="{ on, attrs }">
+                            <v-btn v-bind="attrs" v-on="on" color="grey darken-3" class="mx-1" v-show="isHomeSet" value="animations" fab small @click="navigateHome()">
+                                <v-icon color="purple">mdi-home</v-icon>
+                            </v-btn>
+                        </template>
+                        <span>Go Home</span>
+                    </v-tooltip>
+                    <v-tooltip bottom>
+                        <template v-slot:activator="{ on, attrs }">
+                            <v-btn v-bind="attrs" v-on="on" color="grey darken-3" class="mx-1" value="animations" fab small @click="navigateBack()">
+                                <v-icon color="purple">mdi-arrow-left-bold</v-icon>
+                            </v-btn>
+                        </template>
+                        <span>Go Back</span>
+                    </v-tooltip>
+                    <v-tooltip bottom>
+                        <template v-slot:activator="{ on, attrs }">
+                            <v-btn v-bind="attrs" v-on="on" color="grey darken-3" class="mx-1" value="animations" fab small @click="navigateForward()">
+                                <v-icon color="purple">mdi-arrow-right-bold</v-icon>
+                            </v-btn>
+                        </template>
+                        <span>Go Forward</span>
+                    </v-tooltip>
                     <!--<v-btn value="animations" fab small>
         <v-icon color="purple">mdi-map-marker-plus</v-icon>
     </v-btn>-->
@@ -341,7 +340,6 @@
             data() {
                 return {
                     loading: true,
-                    search: '',
                     visit: '',
                     filter: {},
                     sortDesc: true,
