@@ -240,7 +240,7 @@ public:
      * @param {object} enum - Enum.
      * @deprecated This function is deprecated and will be removed.
      */
-    // WARNING: This function must be called after a registerGlobalObject that creates the namespace this enum is located in, or\
+    // WARNING: This function must be called after a registerGlobalObject that creates the namespace this enum is located in, or
     // the globalObject won't function. E.g., if you have a Foo object and a Foo.FooType enum, Foo must be registered first.
     /// registers a global enum
     Q_INVOKABLE void registerEnum(const QString& enumName, QMetaEnum newEnum);
