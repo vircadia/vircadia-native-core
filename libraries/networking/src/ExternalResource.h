@@ -4,7 +4,7 @@
 //  Created by Dale Glass on 6 Sep 2020
 //  Copyright 2020 Vircadia contributors.
 //
-//  Flexible management for external resources (eg, on S3)
+//  Flexible management for external resources (e.g., on S3).
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -25,11 +25,11 @@
  *
  * With the death of the original High Fidelity and the transition of the project to a community-managed
  * one, it became necessary to deal with that the various assets that used to be located under the
- * highfidelity.com domain will disappear, and there won't be a fixed place for them afterwards. Data
+ * highfidelity.com domain, and there won't be a fixed place for them afterwards. Data
  * hosted by community members may not remain forever, reorganization may be necessary, people may want
- * to run mirrors, and some might want to run without external internet access at all.
+ * to run mirrors, and some might want to run without external Internet access at all.
  *
- * This class makes it possible to deal with this in a more flexible manner: rather than hardcoding URLs
+ * This class makes it possible to deal with this in a more flexible manner: rather than hard-coding URLs
  * all over the codebase, now it's possible to easily change where all those things are downloaded from.
  *
  * The term 'bucket' refers to the buckets used on Amazon S3, but there's no requirement for S3 or anything
@@ -94,52 +94,10 @@ public:
      * @param relative_path The path of the resource within the bucket
      * @returns The resulting URL as a QUrl
      */
-    QUrl getQUrl(Bucket bucket, const QUrl& relative_path);
+    QUrl getQUrl(Bucket bucket, const QUrl& path);
 
-    /**
-     * Returns the location of a resource as a QUrl
-     *
-     * Returns the location of the resource \p relative_path in bucket \p bucket
-     *
-     * @note The resulting path will be sanitized by condensing multiple instances of '/' to one.
-     * This is done for easier usage with Amazon S3 and compatible systems.
-     *
-     * @param bucket The bucket in which the resource is found
-     * @param relative_path The path of the resource within the bucket
-     * @returns The resulting URL as a QUrl
-     */
-    QUrl getQUrl(Bucket bucket, QString path) { return getQUrl(bucket, QUrl(path)); }
-
-    /**
-     * Returns the location of a resource as a QString
-     *
-     * Returns the location of the resource \p relative_path in bucket \p bucket
-     *
-     * @note The resulting path will be sanitized by condensing multiple instances of '/' to one.
-     * This is done for easier usage with Amazon S3 and compatible systems.
-     *
-     * @param bucket The bucket in which the resource is found
-     * @param relative_path The path of the resource within the bucket
-     * @returns The resulting URL as a QString
-     */
-    QString getUrl(Bucket bucket, const QUrl& relative_path) {
-        return ExternalResource::getQUrl(bucket, relative_path).toString();
-    };
-
-    /**
-     * Returns the location of a resource as a QString
-     *
-     * Returns the location of the resource \p relative_path in bucket \p bucket
-     *
-     * @note The resulting path will be sanitized by condensing multiple instances of '/' to one.
-     * This is done for easier usage with Amazon S3 and compatible systems.
-     *
-     * @param bucket The bucket in which the resource is found
-     * @param relative_path The path of the resource within the bucket
-     * @returns The resulting URL as a QString
-     */
-    Q_INVOKABLE QString getUrl(Bucket bucket, const QString& relative_path) {
-        return ExternalResource::getQUrl(bucket, QUrl(relative_path)).toString();
+    QString getUrl(Bucket bucket, const QString& path) {
+       return ExternalResource::getQUrl(bucket, QUrl(path)).toString();
     };
 
     /**

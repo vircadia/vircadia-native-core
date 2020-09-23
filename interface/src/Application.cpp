@@ -3295,7 +3295,6 @@ void Application::initializeUi() {
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
     qmlRegisterType<WebBrowserSuggestionsEngine>("HifiWeb", 1, 0, "WebBrowserSuggestionsEngine");
- //   qmlRegisterType<ExternalResource>("ExternalResource", 1, 0, "ExternalResource");
 
     {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
@@ -7568,10 +7567,6 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptEngine
     scriptEngine->registerGlobalObject("About", AboutUtil::getInstance());
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());  // Deprecated.
     scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
-
-    
-    //scriptEngine->registerGlobalObject("ExternalResource", ExternalResource::getInstance());
-   // scriptEngine->registerEnum("Script.ExternalPaths", QMetaEnum::fromType<ExternalResource::Bucket>());
 
     registerInteractiveWindowMetaType(scriptEngine.data());
 
