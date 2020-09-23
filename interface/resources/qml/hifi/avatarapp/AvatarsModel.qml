@@ -50,9 +50,9 @@ ListModel {
 
     function makeAvatarObject(avatar, avatarName) {
         var avatarThumbnailUrl;
-        
+
         if (!avatar.avatarIcon) {
-            makeThumbnailUrl(avatar.avatarUrl);
+            avatarThumbnailUrl = makeThumbnailUrl(avatar.avatarUrl);
         } else {
             avatarThumbnailUrl = avatar.avatarIcon;
         }
