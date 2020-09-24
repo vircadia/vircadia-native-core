@@ -650,7 +650,6 @@ SelectionDisplay = (function() {
     const COLOR_ROTATE_CURRENT_RING = { red: 255, green: 99, blue: 9 };
     const COLOR_BOUNDING_EDGE = { red: 128, green: 128, blue: 128 };
     const COLOR_SCALE_CUBE = { red: 160, green: 160, blue: 160 };
-    //const COLOR_SCALE_CUBE_SELECTED = { red: 18, green: 18, blue: 18 };
     const COLOR_DEBUG_PICK_PLANE = { red: 255, green: 255, blue: 255 };
     const COLOR_DEBUG_PICK_PLANE_HIT = { red: 255, green: 165, blue: 0 };
 
@@ -747,9 +746,9 @@ SelectionDisplay = (function() {
 
     var ctrlPressed = false;
 
-    that.replaceCollisionsAfterStretch = false;
+    var toolEntityMaterial = [];
 
-    var toolEntitiesMaterialData = "{\n  \"materialVersion\": 1,\n  \"materials\": [\n    {\n      \"name\": \"0\",\n      \"albedo\": \"fallthrough\",\n      \"unlit\": true,\n      \"model\": \"hifi_pbr\"\n    }\n  ]\n}";
+    that.replaceCollisionsAfterStretch = false;
 
     var handlePropertiesTranslateArrowCones = {
         type: "Shape",
@@ -782,66 +781,12 @@ SelectionDisplay = (function() {
     Entities.editEntity(handleTranslateZCone, { color: COLOR_BLUE });
     Entities.editEntity(handleTranslateZCylinder, { color: COLOR_BLUE });
 
-    var materialHandleTranslateXCone = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleTranslateXCone,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
-    var materialHandleTranslateYCone = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleTranslateYCone,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
-    var materialHandleTranslateZCone = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleTranslateZCone,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
-    var materialHandleTranslateXCylinder = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleTranslateXCylinder,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
-    var materialHandleTranslateYCylinder = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleTranslateYCylinder,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
-    var materialHandleTranslateZCylinder = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleTranslateZCylinder,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleTranslateXCone));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleTranslateYCone));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleTranslateZCone));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleTranslateXCylinder));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleTranslateYCylinder));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleTranslateZCylinder));
 
     var handlePropertiesRotateRings = {
         type: "Gizmo",
@@ -873,16 +818,7 @@ SelectionDisplay = (function() {
             majorTickMarksColor: COLOR_RED
         }
     });
-    var materialHandleRotatePitchXRedRing = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleRotatePitchXRedRing,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleRotatePitchXRedRing));
     
     var handleRotateYawYGreenRing = Entities.addEntity(handlePropertiesRotateRings, "local");
     Entities.editEntity(handleRotateYawYGreenRing, { 
@@ -894,16 +830,7 @@ SelectionDisplay = (function() {
             majorTickMarksColor: COLOR_GREEN
         }
     });
-    var materialHandleRotateYawYGreenRing = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleRotateYawYGreenRing,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleRotateYawYGreenRing));
     
     var handleRotateRollZBlueRing = Entities.addEntity(handlePropertiesRotateRings, "local");
     Entities.editEntity(handleRotateRollZBlueRing, { 
@@ -915,17 +842,8 @@ SelectionDisplay = (function() {
             majorTickMarksColor: COLOR_BLUE
         }
     });
-    var materialHandleRotateRollZBlueRing = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleRotateRollZBlueRing,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");    
-
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleRotateRollZBlueRing));
+   
     var handleRotateCurrentRing = Entities.addEntity({
         type: "Gizmo",
         gizmoType: "ring",
@@ -947,16 +865,7 @@ SelectionDisplay = (function() {
         ignorePickIntersection: true,
         renderLayer: "front"
     }, "local");
-    var materialHandleRotateCurrentRing = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleRotateCurrentRing,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleRotateCurrentRing));
 
     var rotationDegreesDisplay = Entities.addEntity({
         type: "Text",
@@ -994,36 +903,9 @@ SelectionDisplay = (function() {
     var handleStretchZCube = Entities.addEntity(handlePropertiesStretchCubes, "local");
     Entities.editEntity(handleStretchZCube, { color: COLOR_BLUE });
 
-    var materialHandleStretchXCube = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleStretchXCube,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
-    var materialHandleStretchYCube = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleStretchYCube,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
-    var materialHandleStretchZCube = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleStretchZCube,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");    
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleStretchXCube));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleStretchYCube));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleStretchZCube));
 
     var handlePropertiesStretchPanel = {
         type: "Shape",
@@ -1041,36 +923,9 @@ SelectionDisplay = (function() {
     var handleStretchZPanel = Entities.addEntity(handlePropertiesStretchPanel, "local");
     Entities.editEntity(handleStretchZPanel, { color: COLOR_BLUE });
 
-    var materialHandleStretchXPanel = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleStretchXPanel,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
-    var materialHandleStretchYPanel = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleStretchYPanel,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
-    var materialHandleStretchZPanel = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleStretchZPanel,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");    
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleStretchXPanel));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleStretchYPanel));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleStretchZPanel));
 
     var handleScaleCube = Entities.addEntity({
         type: "Shape",
@@ -1082,16 +937,7 @@ SelectionDisplay = (function() {
         ignorePickIntersection: true,
         renderLayer: "front"        
     }, "local");
-    var materialHandleScaleCube = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleScaleCube,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleScaleCube));
     
     var handleBoundingBox = Entities.addEntity({
         type: "Shape",
@@ -1103,16 +949,7 @@ SelectionDisplay = (function() {
         ignorePickIntersection: true,
         renderLayer: "front"
     }, "local");
-    var materialHandleBoundingBox = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleBoundingBox,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleBoundingBox));
     
     var handleDuplicator = Entities.addEntity({
         type: "Shape",
@@ -1125,16 +962,7 @@ SelectionDisplay = (function() {
         ignorePickIntersection: true,
         renderLayer: "front"
     }, "local");
-    var materialHandleDuplicator = Entities.addEntity({
-        "type": "Material",
-        "parentID": handleDuplicator,
-        "name": "tool-material",
-        "parentMaterialName": "0",
-        "materialURL": "materialData",
-        "priority": 1,
-        "materialMappingMode": "projected",
-        "materialData": toolEntitiesMaterialData
-    }, "local");
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleDuplicator));
 
     // setting to 0 alpha for now to keep this hidden vs using visible false 
     // because its used as the translate xz tool handle toolEntity
@@ -1777,26 +1605,11 @@ SelectionDisplay = (function() {
         for (var i = 0; i < allToolEntities.length; i++) {
             Entities.deleteEntity(allToolEntities[i]);
         }
-        Entities.deleteEntity(materialHandleTranslateXCone);
-        Entities.deleteEntity(materialHandleTranslateYCone);
-        Entities.deleteEntity(materialHandleTranslateZCone);
-        Entities.deleteEntity(materialHandleTranslateXCylinder);
-        Entities.deleteEntity(materialHandleTranslateYCylinder);
-        Entities.deleteEntity(materialHandleTranslateZCylinder);
-        Entities.deleteEntity(materialHandleStretchXCube);
-        Entities.deleteEntity(materialHandleStretchYCube);
-        Entities.deleteEntity(materialHandleStretchZCube);
-        Entities.deleteEntity(materialHandleStretchXPanel);
-        Entities.deleteEntity(materialHandleStretchYPanel);
-        Entities.deleteEntity(materialHandleStretchZPanel);
-        Entities.deleteEntity(materialHandleScaleCube);
-        Entities.deleteEntity(materialHandleBoundingBox);
-        Entities.deleteEntity(materialHandleDuplicator);
-        Entities.deleteEntity(materialHandleRotatePitchXRedRing);
-        Entities.deleteEntity(materialHandleRotateYawYGreenRing);
-        Entities.deleteEntity(materialHandleRotateRollZBlueRing);
-        Entities.deleteEntity(materialHandleRotateCurrentRing);
-
+        
+        for (i = 0; i < toolEntityMaterial.length; i++) {
+            Entities.deleteEntity(toolEntityMaterial[i]);
+        }
+        
         that.clearDebugPickPlane();
     };
 
@@ -2400,6 +2213,22 @@ SelectionDisplay = (function() {
         }
         debugPickPlaneHits = [];
     };
+    
+    function addUnlitMaterialOnToolEntity(toolEntityParentID) {
+        var toolEntitiesMaterialData = "{\n  \"materialVersion\": 1,\n  \"materials\": [\n    {\n      \"name\": \"0\",\n      \"defaultFallthrough\": true,\n      \"unlit\": true,\n      \"model\": \"hifi_pbr\"\n    }\n  ]\n}";
+        var materialEntityID = Entities.addEntity({
+            "type": "Material",
+            "parentID": toolEntityParentID,
+            "name": "tool-material",
+            "parentMaterialName": "0",
+            "materialURL": "materialData",
+            "priority": 1,
+            "materialMappingMode": "uv",
+            "ignorePickIntersection": true,
+            "materialData": toolEntitiesMaterialData
+        }, "local");
+        return materialEntityID;
+    }
     
     // TOOL DEFINITION: HANDLE TRANSLATE XZ TOOL
     function addHandleTranslateXZTool(toolEntity, mode, doDuplicate) {
