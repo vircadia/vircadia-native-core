@@ -23,58 +23,64 @@ ExternalResource* ExternalResource::getInstance() {
     return &instance;
 }
 
-QUrl ExternalResource::getQUrl(Bucket bucket, const QUrl& path) {
+QUrl ExternalResource::getQUrl(Bucket bucket, QString path) {
     qCDebug(external_resource) << "Requested URL for bucket " << bucket << ", path " << path;
 
-    if (!_bucketBases.contains(bucket)) {
-        qCCritical(external_resource) << "External resource " << path << " was requested from unrecognized bucket " << bucket;
+    // Whitespace could interfere with the next step
+    path = path.trimmed();
+
+    // Remove all initial slashes. This is because if QUrl is fed //foo/bar,
+    // it will treat //foo as a domain name. This also ensures the URL is always treated as
+    // relative to any path specified in the bucket.
+    while (path.startsWith('/')) {
+        path = path.remove(0, 1);
+    }
+
+    // De-duplicate URL separators, since S3 doesn't actually have subdirectories, and treats a '/' as a part
+    // of the filename. This means that "/dir/file.txt" and "/dir//file.txt" are not equivalent on S3.
+    //
+    // We feed it through a QUrl to ensure we're only working on the path component.
+    QUrl pathQUrl(path);
+
+    QString tempPath = pathQUrl.path();
+    while (tempPath.contains("//")) {
+        tempPath = tempPath.replace("//", "/");
+    }
+    pathQUrl.setPath(tempPath);
+
+    if (!pathQUrl.isValid()) {
+        qCCritical(external_resource) << "External resource " << pathQUrl << " was requested from bucket " << bucket
+                                      << " with an invalid path. Error: " << pathQUrl.errorString();
         return QUrl();
     }
 
-    if (!path.isValid()) {
-        qCCritical(external_resource) << "External resource " << path << " was requested from bucket " << bucket
-                                      << " with an invalid path. Error: " << path.errorString();
-        return QUrl();
-    }
-
-    if (!path.isRelative()) {
-        qCWarning(external_resource) << "External resource " << path << " was requested from bucket " << bucket
+    if (!pathQUrl.isRelative()) {
+        qCWarning(external_resource) << "External resource " << pathQUrl << " was requested from bucket " << bucket
                                      << " without using a relative path, returning as-is.";
-        return path;
+        return pathQUrl;
     }
 
     QUrl base;
     {
         std::lock_guard<std::mutex> guard(_bucketMutex);
+
+        if (!_bucketBases.contains(bucket)) {
+            qCCritical(external_resource) << "External resource " << path << " was requested from unrecognized bucket "
+                                          << bucket;
+            return QUrl();
+        }
+
         base = _bucketBases[bucket];
     }
 
-    QUrl filteredPath = path;
-    QString pathQString = filteredPath.path();
+    QUrl merged = base.resolved(pathQUrl).adjusted(QUrl::NormalizePathSegments);
 
-    // De-duplicate URL separators, since S3 doesn't actually have subdirectories, and treats a '/' as a part
-    // of the filename. This means that "/dir/file.txt" and "/dir//file.txt" are not equivalent on S3.
-    while(pathQString.contains("//")) {
-        pathQString = pathQString.replace("//", "/");
-    }
-
-    // If a path starts with a / it would have the effect of overriding any path specified in the bucket.
-    // We remove it, ensuring that getQUrl(Bucket.Assets, "/file.txt") and getQUrl(Bucket.Assets, "file.txt")
-    // are equivalent.
-    if (pathQString.startsWith("/")) {
-        pathQString.remove(0,1);
-    }
-
-    filteredPath.setPath(pathQString);
-
-    QUrl merged = base.resolved(filteredPath).adjusted(QUrl::NormalizePathSegments);
-
-    if ( merged.isValid() ) {
+    if (merged.isValid()) {
         qCDebug(external_resource) << "External resource resolved to " << merged;
     } else {
-        qCCritical(external_resource) << "External resource resolved to invalid URL " << merged << "; Error " 
+        qCCritical(external_resource) << "External resource resolved to invalid URL " << merged << "; Error "
                                       << merged.errorString() << "; base = " << base << "; path = " << path
-                                      << "; filtered path = " << filteredPath;
+                                      << "; filtered path = " << pathQUrl;
     }
 
     return merged;

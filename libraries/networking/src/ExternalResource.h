@@ -85,19 +85,24 @@ public:
     /**
      * Returns the location of a resource as a QUrl
      *
-     * Returns the location of the resource \p relative_path in bucket \p bucket
+     * Returns the location of the resource \p path in bucket \p bucket
      *
      * @note The resulting path will be sanitized by condensing multiple instances of '/' to one.
      * This is done for easier usage with Amazon S3 and compatible systems.
+     *
+     * @par It will also convert all paths into relative ones respect to the bucket.
+     *
+     * @warning This function should only be given paths with a domain name. If given a complete path,
+     * it will emit a warning into the log and return the unmodified path it was given.
      *
      * @param bucket The bucket in which the resource is found
      * @param relative_path The path of the resource within the bucket
      * @returns The resulting URL as a QUrl
      */
-    QUrl getQUrl(Bucket bucket, const QUrl& path);
+    QUrl getQUrl(Bucket bucket, QString path);
 
-    QString getUrl(Bucket bucket, const QString& path) {
-       return ExternalResource::getQUrl(bucket, QUrl(path)).toString();
+    QString getUrl(Bucket bucket, QString path) {
+       return ExternalResource::getQUrl(bucket, path).toString();
     };
 
     /**
