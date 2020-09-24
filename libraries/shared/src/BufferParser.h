@@ -99,7 +99,7 @@ template<>
 inline void BufferParser::readValue(QVector<glm::vec3>& result) {
     uint16_t length; readValue(length);
     result.resize(length);
-    for(int i=0;i<length;i++) {
+    for (int i=0; i<length; i++) {
         memcpy(glm::value_ptr(result[i]), _data + _offset + (sizeof(glm::vec3)*i), sizeof(glm::vec3) * length);
     }
 
