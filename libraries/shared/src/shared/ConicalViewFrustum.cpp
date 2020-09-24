@@ -14,6 +14,7 @@
 
 #include "../NumericalConstants.h"
 #include "../ViewFrustum.h"
+#include <glm/gtc/type_ptr.hpp>
 
 void ConicalViewFrustum::set(const ViewFrustum& viewFrustum) {
     // The ConicalViewFrustum has two parts: a central sphere (same as ViewFrustum) and a circular cone that bounds the frustum part.
@@ -131,9 +132,9 @@ int ConicalViewFrustum::serialize(unsigned char* destinationBuffer) const {
 int ConicalViewFrustum::deserialize(const unsigned char* sourceBuffer) {
     const unsigned char* startPosition = sourceBuffer;
 
-    memcpy(&_position, sourceBuffer, sizeof(_position));
+    memcpy(glm::value_ptr(_position), sourceBuffer, sizeof(_position));
     sourceBuffer += sizeof(_position);
-    memcpy(&_direction, sourceBuffer, sizeof(_direction));
+    memcpy(glm::value_ptr(_direction), sourceBuffer, sizeof(_direction));
     sourceBuffer += sizeof(_direction);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &_angle);
     sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer, _farClip);
