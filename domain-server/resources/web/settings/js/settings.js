@@ -1076,7 +1076,7 @@ $(document).ready(function(){
             var domain = data.data.domain;
 
             // we should have a new domain ID - set it on the domain ID value
-            $(Settings.DOMAIN_ID_SELECTOR).val(domain.domainId).change();
+            $(Settings.DOMAIN_ID_SELECTOR).val(domain.id).change();
 
             // we also need to make sure auto networking is set to full
             $('[data-hidden-input="metaverse.automatic_networking"]').val("full").change();
