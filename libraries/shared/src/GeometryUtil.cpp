@@ -620,7 +620,7 @@ void PolygonClip::clipToScreen(const glm::vec2* inputVertexArray, int inLength, 
     glm::vec2* tempVertexArrayB = new glm::vec2[maxLength];
 
     // set up our temporary arrays
-    for(int i=0;i<inLength;i++) {
+    for (int i=0; i<inLength; i++) {
         tempVertexArrayA[i] = inputVertexArray[i];
     }
 
