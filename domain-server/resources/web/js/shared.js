@@ -228,7 +228,7 @@ function getDomainFromAPI(callback) {
   return pendingDomainRequest;
 }
 
-function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAdded) {
+function chooseFromMetaversePlaces(accessToken, forcePathTo, onSuccessfullyAdded) {
   if (accessToken) {
     getMetaverseUrl(function(metaverse_url) {
 
@@ -429,7 +429,7 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
             loadingDialog.modal('hide');
             bootbox.confirm("We were not able to load your domain information from the Metaverse. Would you like to retry?", function(response) {
               if (response) {
-                chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAdded);
+                chooseFromMetaversePlaces(accessToken, forcePathTo, onSuccessfullyAdded);
               }
             });
           }
