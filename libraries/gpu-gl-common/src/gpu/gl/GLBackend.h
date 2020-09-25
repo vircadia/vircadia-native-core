@@ -378,10 +378,10 @@ protected:
             TransformCamera _cams[2];
 
             Cameras(){};
-            Cameras(const TransformCamera& cam) { memcpy(_cams, &cam, sizeof(TransformCamera)); };
+            Cameras(const TransformCamera& cam) { _cams[0] = cam; };
             Cameras(const TransformCamera& camL, const TransformCamera& camR) {
-                memcpy(_cams, &camL, sizeof(TransformCamera));
-                memcpy(_cams + 1, &camR, sizeof(TransformCamera));
+                _cams[0] = camL;
+                _cams[1] = camR;
             };
         };
 

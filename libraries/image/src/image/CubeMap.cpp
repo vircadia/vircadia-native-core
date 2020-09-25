@@ -99,10 +99,10 @@ public:
         const size_t offsetHL = hiCoords.x + loCoords.y * _lineStride;
         const size_t offsetLH = loCoords.x + hiCoords.y * _lineStride;
         const size_t offsetHH = hiCoords.x + hiCoords.y * _lineStride;
-        assert(offsetLL >= 0 && offsetLL < _lineStride * (_dims.y + 2 * EDGE_WIDTH));
-        assert(offsetHL >= 0 && offsetHL < _lineStride * (_dims.y + 2 * EDGE_WIDTH));
-        assert(offsetLH >= 0 && offsetLH < _lineStride * (_dims.y + 2 * EDGE_WIDTH));
-        assert(offsetHH >= 0 && offsetHH < _lineStride * (_dims.y + 2 * EDGE_WIDTH));
+        assert(offsetLL < _lineStride * (_dims.y + 2 * EDGE_WIDTH));
+        assert(offsetHL < _lineStride * (_dims.y + 2 * EDGE_WIDTH));
+        assert(offsetLH < _lineStride * (_dims.y + 2 * EDGE_WIDTH));
+        assert(offsetHH < _lineStride * (_dims.y + 2 * EDGE_WIDTH));
         glm::vec4 colorLL = pixels[offsetLL];
         glm::vec4 colorHL = pixels[offsetHL];
         glm::vec4 colorLH = pixels[offsetLH];
