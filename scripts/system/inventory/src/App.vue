@@ -106,7 +106,7 @@
                     </v-list-item>
                     
                     <!-- This is an example on how to make a custom add function. -->
-                    <v-list-item @click="bizCardDialogStore.show = true; getFolderList('add');">
+                    <v-list-item v-show="false" @click="bizCardDialogStore.show = true; getFolderList('add');">
                         <v-list-item-icon>
                             <v-icon>mdi-plus</v-icon>
                         </v-list-item-icon>
