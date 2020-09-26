@@ -602,6 +602,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MAX_FPS, maxFPS);
     CHECK_PROPERTY_CHANGE(PROP_INPUT_MODE, inputMode);
     CHECK_PROPERTY_CHANGE(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, showKeyboardFocusHighlight);
+    CHECK_PROPERTY_CHANGE(PROP_WEB_USE_BACKGROUND, useBackground);
 
     // Polyline
     CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
@@ -1383,6 +1384,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {WebInputMode} inputMode="touch" - The user input mode to use.
  * @property {boolean} showKeyboardFocusHighlight=true - <code>true</code> if the entity is highlighted when it has keyboard
  *     focus, <code>false</code> if it isn't.
+ * @property {boolean} useBackground=true - <code>true</code> if the web entity should have a background,
+ *     <code>false</code> if the web entity's background should be transparent. The webpage must have CSS properties for transparency set
+ *     on the <code>background-color</code> for this property to have an effect.
  * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
  * var METERS_TO_INCHES = 39.3701;
  * var entity = Entities.addEntity({
@@ -1820,6 +1824,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAX_FPS, maxFPS);
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_INPUT_MODE, inputMode, getInputModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, showKeyboardFocusHighlight);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_WEB_USE_BACKGROUND, useBackground);
     }
 
     // PolyVoxel only
@@ -2201,6 +2206,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(maxFPS, uint8_t, setMaxFPS);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(inputMode, InputMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(showKeyboardFocusHighlight, bool, setShowKeyboardFocusHighlight);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(useBackground, bool, setUseBackground);
 
     // Polyline
     COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
@@ -2492,6 +2498,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(maxFPS);
     COPY_PROPERTY_IF_CHANGED(inputMode);
     COPY_PROPERTY_IF_CHANGED(showKeyboardFocusHighlight);
+    COPY_PROPERTY_IF_CHANGED(useBackground);
 
     // Polyline
     COPY_PROPERTY_IF_CHANGED(linePoints);
@@ -2891,6 +2898,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_MAX_FPS, MaxFPS, maxFPS, uint8_t);
         ADD_PROPERTY_TO_MAP(PROP_INPUT_MODE, InputMode, inputMode, WebInputMode);
         ADD_PROPERTY_TO_MAP(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, ShowKeyboardFocusHighlight, showKeyboardFocusHighlight, bool);
+        ADD_PROPERTY_TO_MAP(PROP_WEB_USE_BACKGROUND, useBackground, useBackground, bool);
 
         // Polyline
         ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<vec3>);
@@ -3321,6 +3329,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_MAX_FPS, properties.getMaxFPS());
                 APPEND_ENTITY_PROPERTY(PROP_INPUT_MODE, (uint32_t)properties.getInputMode());
                 APPEND_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, properties.getShowKeyboardFocusHighlight());
+                APPEND_ENTITY_PROPERTY(PROP_WEB_USE_BACKGROUND, properties.getUseBackground());
             }
 
             if (properties.getType() == EntityTypes::Line) {
@@ -3796,6 +3805,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_FPS, uint8_t, setMaxFPS);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INPUT_MODE, WebInputMode, setInputMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, bool, setShowKeyboardFocusHighlight);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_WEB_USE_BACKGROUND, bool, setUseBackground);
     }
 
     if (properties.getType() == EntityTypes::Line) {
@@ -4183,6 +4193,7 @@ void EntityItemProperties::markAllChanged() {
     _maxFPSChanged = true;
     _inputModeChanged = true;
     _showKeyboardFocusHighlightChanged = true;
+    _useBackgroundChanged = true;
 
     // Polyline
     _linePointsChanged = true;
@@ -4872,6 +4883,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (showKeyboardFocusHighlightChanged()) {
         out += "showKeyboardFocusHighlight";
+    }
+    if (useBackgroundChanged()) {
+        out += "useBackground";
     }
 
     // Shape
