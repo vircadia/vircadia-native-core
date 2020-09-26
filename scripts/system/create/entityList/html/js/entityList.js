@@ -2,6 +2,7 @@
 //
 //  Created by Ryan Huffman on 19 Nov 2014
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -198,6 +199,12 @@ let elEntityTable,
     elRefresh,
     elToggleLocked,
     elToggleVisible,
+    elHmdCopy,
+    elHmdCut,
+    elHmdPaste,
+    elHmdDuplicate,   
+    elUndo,
+    elRedo,
     elDelete,
     elFilterTypeMultiselectBox,
     elFilterTypeText,
@@ -233,7 +240,7 @@ const PROFILE = !ENABLE_PROFILING ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Web " + profileIndent + "(" + name + ") End " + delta + "ms");
 };
 
-function loaded() {
+function loaded() {    
     openEventBridge(function() {
         elEntityTable = document.getElementById("entity-table");
         elEntityTableHeader = document.getElementById("entity-table-header");
@@ -242,6 +249,12 @@ function loaded() {
         elRefresh = document.getElementById("refresh");
         elToggleLocked = document.getElementById("locked");
         elToggleVisible = document.getElementById("visible");
+        elHmdCopy = document.getElementById("hmdcopy");
+        elHmdCut = document.getElementById("hmdcut");
+        elHmdPaste = document.getElementById("hmdpaste");
+        elHmdDuplicate = document.getElementById("hmdduplicate");        
+        elUndo = document.getElementById("undo");
+        elRedo = document.getElementById("redo");
         elDelete = document.getElementById("delete");
         elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
         elFilterTypeText = document.getElementById("filter-type-text");
@@ -270,6 +283,24 @@ function loaded() {
         elExport.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
         };
+        elHmdCopy.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'copy' }));
+        };
+        elHmdCut.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'cut' }));
+        };
+        elHmdPaste.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'paste' }));
+        };
+        elHmdDuplicate.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'duplicate' }));
+        };        
+        elUndo.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'undo' }));
+        };
+        elRedo.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'redo' }));
+        };        
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
         };
@@ -1364,10 +1395,12 @@ function loaded() {
                 }
             }));
         }, false);
-        
+
         if (window.EventBridge !== undefined) {
             EventBridge.scriptEventReceived.connect(function(data) {
+                
                 data = JSON.parse(data);
+                
                 if (data.type === "clearEntityList") {
                     clearEntities();
                 } else if (data.type === "selectionUpdate") {
@@ -1395,6 +1428,18 @@ function loaded() {
                     removeEntities(data.ids);
                 } else if (data.type === "setSpaceMode") {
                     setSpaceMode(data.spaceMode);
+                } else if (data.type === "confirmHMDstate") {
+                    if (data.isHmd) {
+                        document.getElementById("hmdcopy").style.display = "inline";
+                        document.getElementById("hmdcut").style.display = "inline";
+                        document.getElementById("hmdpaste").style.display = "inline";
+                        document.getElementById("hmdduplicate").style.display = "inline";
+                    } else {
+                        document.getElementById("hmdcopy").style.display = "none";
+                        document.getElementById("hmdcut").style.display = "none";
+                        document.getElementById("hmdpaste").style.display = "none";
+                        document.getElementById("hmdduplicate").style.display = "none";                        
+                    }
                 }
             });
         }
