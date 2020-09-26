@@ -10,11 +10,12 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
-hitSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav");
-var rightHandAnimation = HIFI_PUBLIC_BUCKET + "animations/RightHandAnimPhilip.fbx";
-var leftHandAnimation = HIFI_PUBLIC_BUCKET + "animations/LeftHandAnimPhilip.fbx";
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
+
+hitSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav");
+var rightHandAnimation = VIRCADIA_PUBLIC_CDN + "animations/RightHandAnimPhilip.fbx";
+var leftHandAnimation = VIRCADIA_PUBLIC_CDN + "animations/LeftHandAnimPhilip.fbx";
 
 var BALL_SIZE = 0.08;
 var PADDLE_SIZE = 0.20;
@@ -43,7 +44,7 @@ var offButton = Overlays.addOverlay("image", {
                     y: 96,
                     width: 32,
                     height: 32,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/close.png",
+                    imageURL: VIRCADIA_PUBLIC_CDN + "images/close.png",
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });

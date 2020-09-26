@@ -32,8 +32,8 @@
 
 const char* MODEL_TYPE_NAMES[] = { "entities", "heads", "skeletons", "skeletons", "attachments" };
 
-static const QString S3_URL = "http://s3.amazonaws.com/hifi-public";
-static const QString PUBLIC_URL = "http://public.highfidelity.io";
+static const QString S3_URL = NetworkingConstants::HF_PUBLIC_CDN_URL;
+static const QString PUBLIC_URL = "http://public.highfidelity.io"; // Needs to change to Vircadia...?
 static const QString MODELS_LOCATION = "models/";
 
 static const QString PREFIX_PARAMETER_NAME = "prefix";

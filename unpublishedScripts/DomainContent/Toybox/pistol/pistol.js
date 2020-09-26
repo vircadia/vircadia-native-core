@@ -266,7 +266,7 @@
                 "alphaStart": 0,
                 "alphaFinish": 0,
                 "additiveBlending": 0,
-                "textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png"
+                "textures": Script.getExternalPath(Script.ExternalPaths.HF_Public, "/alan/Particles/Particle-Sprite-Smoke-1.png")
             });
             Script.setTimeout(function() {
                 Entities.editEntity(smoke, {

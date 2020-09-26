@@ -20,8 +20,8 @@
     var TRANSITION_TIME_SECONDS = 0.25;
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    var icon = "https://hifi-content.s3.amazonaws.com/elisalj/emoji_scripts/icons/emoji-i.svg";
-    var activeIcon = "https://hifi-content.s3.amazonaws.com/elisalj/emoji_scripts/icons/emoji-a.svg";
+    var icon = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/elisalj/emoji_scripts/icons/emoji-i.svg");
+    var activeIcon = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/elisalj/emoji_scripts/icons/emoji-a.svg");
     var isActive = true;
 
     var controllerMappingName;

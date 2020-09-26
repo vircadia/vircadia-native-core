@@ -108,6 +108,8 @@ int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature
 
 int scriptEnginePointerMetaID = qRegisterMetaType<ScriptEnginePointer>();
 
+Q_DECLARE_METATYPE(ExternalResource::Bucket);
+
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
     QString message = "";
     for (int i = 0; i < context->argumentCount(); i++) {
@@ -663,6 +665,14 @@ void avatarDataFromScriptValue(const QScriptValue& object, ScriptAvatarData*& ou
     out = nullptr;
 }
 
+QScriptValue externalResourceBucketToScriptValue(QScriptEngine* engine, ExternalResource::Bucket const& in) {
+    return QScriptValue((int)in);
+}
+
+void externalResourceBucketFromScriptValue(const QScriptValue& object, ExternalResource::Bucket& out) {
+    out = static_cast<ExternalResource::Bucket>(object.toInt32());
+}
+
 void ScriptEngine::resetModuleCache(bool deleteScriptCache) {
     if (QThread::currentThread() != thread()) {
         executeOnScriptThread([=]() { resetModuleCache(deleteScriptCache); });
@@ -770,6 +780,9 @@ void ScriptEngine::init() {
         resetModuleCache();
     }
 
+    qScriptRegisterMetaType(this, externalResourceBucketToScriptValue, externalResourceBucketFromScriptValue);
+    registerEnum("Script.ExternalPaths", QMetaEnum::fromType<ExternalResource::Bucket>());
+
     registerGlobalObject("Audio", DependencyManager::get<AudioScriptingInterface>().data());
 
     registerGlobalObject("Midi", DependencyManager::get<Midi>().data());
@@ -825,6 +838,19 @@ void ScriptEngine::init() {
     globalObject().setProperty("Kute", newFunction([](QScriptContext* context, QScriptEngine* engine) -> QScriptValue {
       return context->argument(0).toString().toLower() == "kalila" ? true : false;
     }));
+}
+
+void ScriptEngine::registerEnum(const QString& enumName, QMetaEnum newEnum) {
+    if (!newEnum.isValid()) {
+        qCCritical(scriptengine) << "registerEnum called on invalid enum with name " << enumName;
+        return;
+    }
+
+    for (int i = 0; i < newEnum.keyCount(); i++) {
+        const char* keyName = newEnum.key(i);
+        QString fullName = enumName + "." + keyName;
+        registerValue(fullName, newEnum.keyToValue(keyName));
+    }
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
@@ -2855,4 +2881,8 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
             callWithEnvironment(entityID, details.definingSandboxURL, entityScript.property(methodName), entityScript, args);
         }
     }
+}
+
+QString ScriptEngine::getExternalPath(ExternalResource::Bucket bucket, const QString& path) {
+    return ExternalResource::getInstance()->getUrl(bucket, path);
 }

@@ -387,7 +387,7 @@ $(document).ready(function(){
 
     $.post("/api/domains", domainJSON, function(data){
       // we successfully created a domain ID, set it on that field
-      var domainID = data.domain.id;
+      var domainID = data.domain.domainId;
       console.log("Setting domain id to ", data, domainID);
       $(Settings.DOMAIN_ID_SELECTOR).val(domainID).change();
 
@@ -853,7 +853,7 @@ $(document).ready(function(){
         }
         // Update label
         if (showOrHideLabel()) {
-          var label = data.domain.label;
+          var label = data.domain.name;
           label = label === null ? '' : label;
           $('#network-label').val(label);
         }
@@ -959,7 +959,7 @@ $(document).ready(function(){
       var addRow = $("<tr> <td></td> <td></td> <td class='buttons'><a href='#' class='place-add glyphicon glyphicon-plus'></a></td> </tr>");
       addRow.find(".place-add").click(function(ev) {
         ev.preventDefault();
-        chooseFromHighFidelityPlaces(Settings.initialValues.metaverse.access_token, null, function(placeName, newDomainID) {
+        chooseFromMetaversePlaces(Settings.initialValues.metaverse.access_token, null, function(placeName, newDomainID) {
           if (newDomainID) {
             Settings.data.values.metaverse.id = newDomainID;
             var domainIDEl = $("[data-keypath='metaverse.id']");
@@ -1002,13 +1002,13 @@ $(document).ready(function(){
             _.each(data.data.domains, function(domain){
               var domainString = "";
 
-              if (domain.label) {
-                domainString += '"' + domain.label+ '" - ';
+              if (domain.name) {
+                domainString += '"' + domain.name+ '" - ';
               }
 
-              domainString += domain.id;
+              domainString += domain.domainId;
 
-              domain_select.append("<option value='" + domain.id + "'>" + domainString + "</option>");
+              domain_select.append("<option value='" + domain.domainId + "'>" + domainString + "</option>");
             })
             modal_body += "<label for='domain-name-select'>Domains</label>" + domain_select[0].outerHTML
             modal_buttons["success"] = {
