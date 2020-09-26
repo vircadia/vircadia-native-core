@@ -14,7 +14,7 @@
 (function() { // BEGIN LOCAL_SCOPE
 
 var TABLET_BUTTON_NAME = "AUDIO";
-var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
+var HOME_BUTTON_TEXTURE = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png");
 var AUDIO_QML_SOURCE = "hifi/audio/Audio.qml";
 
 var MUTE_ICONS = {

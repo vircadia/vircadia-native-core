@@ -23,12 +23,14 @@
 #include <test-utils/QTestExtensions.h>
 #include <test-utils/Utils.h>
 
+#include <ExternalResource.h>
+
 QTEST_MAIN(TextureTest)
 
 #define LOAD_TEXTURE_COUNT 100
 #define FAIL_AFTER_SECONDS 30
 
-static const QString TEST_DATA("https://hifi-public.s3.amazonaws.com/austin/test_data/test_ktx.zip");
+static const QString TEST_DATA(ExternalResource::getInstance()->getUrl(ExternalResource::Bucket::HF_Public, "/austin/test_data/test_ktx.zip"));
 static const QString TEST_DIR_NAME("{630b8f02-52af-4cdf-a896-24e472b94b28}");
 static const QString KTX_TEST_DIR_ENV("HIFI_KTX_TEST_DIR");
 

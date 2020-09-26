@@ -1138,7 +1138,13 @@ const GROUPS = [
             },
             {
                 label: "Color Spread",
-                type: "color",
+                type: "vec3rgb",
+                vec3Type: "vec3rgb",
+                min: 0,
+                max: 255,
+                step: 1,       
+                decimals: 0,
+                subLabels: [ "r", "g", "b" ],
                 propertyID: "colorSpread",
             },
             {
@@ -1656,16 +1662,6 @@ const GROUPS = [
                 decimals: 4,
                 unit: "m/s<sup>2</sup>",
                 propertyID: "gravity",
-            },
-            {
-                label: "Acceleration",
-                type: "vec3",
-                vec3Type: "xyz",
-                subLabels: [ "x", "y", "z" ],
-                step: 0.1,
-                decimals: 4,
-                unit: "m/s<sup>2</sup>",
-                propertyID: "acceleration",
             }
         ]
     },
@@ -1796,6 +1792,8 @@ function getPropertyInputElement(propertyID) {
             return { x: property.elNumberX.elInput, y: property.elNumberY.elInput, z: property.elNumberZ.elInput };
         case 'color':
             return { red: property.elNumberR.elInput, green: property.elNumberG.elInput, blue: property.elNumberB.elInput };
+        case 'vec3rgb':
+            return { red: property.elNumberR.elInput, green: property.elNumberG.elInput, blue: property.elNumberB.elInput };            
         case 'icon':
             return property.elLabel;
         case 'dynamic-multiselect':
@@ -1894,6 +1892,12 @@ function resetProperties() {
                 property.elNumberB.setValue("", false);
                 break;
             }
+            case 'vec3rgb': {
+                property.elNumberR.setValue("", false);
+                property.elNumberG.setValue("", false);
+                property.elNumberB.setValue("", false);
+                break;
+            }            
             case 'dropdown': {
                 property.elInput.classList.remove('multi-diff');
                 property.elInput.value = "";
@@ -2000,7 +2004,7 @@ function isCurrentlyDraggingProperty(propertyName) {
     return properties[propertyName] && properties[propertyName].dragging === true;
 }
 
-const SUPPORTED_FALLBACK_TYPES = ['number', 'number-draggable', 'rect', 'vec3', 'vec2', 'color'];
+const SUPPORTED_FALLBACK_TYPES = ['number', 'number-draggable', 'rect', 'vec3', 'vec2', 'color', 'vec3rgb'];
 
 function getMultiplePropertyValue(originalPropertyName) {
     // if this is a compound property name (i.e. animation.running)
@@ -2054,6 +2058,9 @@ function getMultiplePropertyValue(originalPropertyName) {
                     isPropertyNotNumber = isNaN(propertyValue.x) || propertyValue.x === null;
                     break;
                 case 'color':
+                    isPropertyNotNumber = isNaN(propertyValue.red) || propertyValue.red === null;
+                    break;
+                case 'vec3rgb':
                     isPropertyNotNumber = isNaN(propertyValue.red) || propertyValue.red === null;
                     break;
             }
@@ -2667,6 +2674,33 @@ function createVec3Property(property, elProperty) {
     return elResult;
 }
 
+function createVec3rgbProperty(property, elProperty) {
+    let propertyData = property.data;
+
+    elProperty.className = propertyData.vec3Type + " fstuple";
+
+    let elNumberR = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.X_NUMBER]);
+    let elNumberG = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER]);
+    let elNumberB = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.Z_NUMBER]);
+    elProperty.appendChild(elNumberR.elDiv);
+    elProperty.appendChild(elNumberG.elDiv);
+    elProperty.appendChild(elNumberB.elDiv);
+
+    elNumberR.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'red'));
+    elNumberG.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'green'));
+    elNumberB.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'blue'));
+
+    elNumberR.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'red'));
+    elNumberG.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'green'));
+    elNumberB.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'blue'));
+
+    let elResult = [];
+    elResult[VECTOR_ELEMENTS.X_NUMBER] = elNumberR;
+    elResult[VECTOR_ELEMENTS.Y_NUMBER] = elNumberG;
+    elResult[VECTOR_ELEMENTS.Z_NUMBER] = elNumberB;
+    return elResult;
+}
+
 function createVec2Property(property, elProperty) {
     let propertyData = property.data;
     
@@ -2861,7 +2895,7 @@ function createTextureProperty(property, elProperty) {
 
     let imageLoad = function(url) {
         elDiv.style.display = null;
-        if (url.slice(0, 5).toLowerCase() === "atp:/") {
+        if (url.slice(0, 5).toLowerCase() === "atp:/" || url.slice(0, 9).toLowerCase() === "file:///~") {
             elImage.src = "";
             elImage.style.display = "none";
             elDiv.classList.remove("with-texture");
@@ -3053,6 +3087,13 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
             property.elNumberB = elColor[COLOR_ELEMENTS.BLUE_NUMBER]; 
             break;
         }
+        case 'vec3rgb': {
+            let elVec3 = createVec3rgbProperty(property, elProperty);  
+            property.elNumberR = elVec3[VECTOR_ELEMENTS.X_NUMBER];
+            property.elNumberG = elVec3[VECTOR_ELEMENTS.Y_NUMBER];
+            property.elNumberB = elVec3[VECTOR_ELEMENTS.Z_NUMBER];
+            break;
+        }        
         case 'dropdown': {
             property.elInput = createDropdownProperty(property, propertyID, elProperty);
             break;
@@ -4101,6 +4142,13 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                     property.elNumberB.setValue(displayColor.blue);
                     break;
                 }
+                case 'vec3rgb': {
+                    let detailedNumberDiff = getDetailedNumberMPVDiff(propertyMultiValue, propertyData);
+                    property.elNumberR.setValue(detailedNumberDiff.averagePerPropertyComponent.red, detailedNumberDiff.propertyComponentDiff.red);
+                    property.elNumberG.setValue(detailedNumberDiff.averagePerPropertyComponent.green, detailedNumberDiff.propertyComponentDiff.green);
+                    property.elNumberB.setValue(detailedNumberDiff.averagePerPropertyComponent.blue, detailedNumberDiff.propertyComponentDiff.blue);
+                    break;
+                }         
                 case 'dropdown': {
                     property.elInput.classList.toggle('multi-diff', isMultiDiffValue);
                     property.elInput.value = isMultiDiffValue ? "" : propertyValue;
@@ -4355,7 +4403,8 @@ function loaded() {
                         properties[propertyID] = property;
                     }
                     if (propertyData.type === 'number' || propertyData.type === 'number-draggable' || 
-                        propertyData.type === 'vec2' || propertyData.type === 'vec3' || propertyData.type === 'rect') {
+                        propertyData.type === 'vec2' || propertyData.type === 'vec3' ||
+                        propertyData.type === 'rect' || propertyData.type === 'vec3rgb') {
                         propertyRangeRequests.push(propertyID);
                     }
 
@@ -4440,6 +4489,9 @@ function loaded() {
                                 case 'vec2':
                                     updateVectorMinMax(properties[property]);
                                     break;
+                                case 'vec3rgb':
+                                    updateVectorMinMax(properties[property]);
+                                    break;                                    
                                 case 'rect':
                                     updateRectMinMax(properties[property]);
                                     break;

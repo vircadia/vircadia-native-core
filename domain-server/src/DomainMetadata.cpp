@@ -4,19 +4,24 @@
 //
 //  Created by Zach Pomerantz on 5/25/2016.
 //  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 #include "DomainMetadata.h"
+#include "HTTPConnection.h"
 
 #include <AccountManager.h>
 #include <DependencyManager.h>
 #include <HifiConfigVariantMap.h>
 #include <LimitedNodeList.h>
+#include <QLoggingCategory>
 
 #include "DomainServer.h"
 #include "DomainServerNodeData.h"
+
+Q_LOGGING_CATEGORY(domain_metadata_exporter, "hifi.domain_server.metadata_exporter")
 
 const QString DomainMetadata::USERS = "users";
 const QString DomainMetadata::Users::NUM_TOTAL = "num_users";
@@ -29,18 +34,28 @@ const QString DomainMetadata::Users::HOSTNAMES = "user_hostnames";
 // }
 
 const QString DomainMetadata::DESCRIPTORS = "descriptors";
+const QString DomainMetadata::Descriptors::NAME = "world_name";
 const QString DomainMetadata::Descriptors::DESCRIPTION = "description";
+const QString DomainMetadata::Descriptors::THUMBNAIL = "thumbnail";
+const QString DomainMetadata::Descriptors::IMAGES = "images";
 const QString DomainMetadata::Descriptors::CAPACITY = "capacity"; // parsed from security
 const QString DomainMetadata::Descriptors::RESTRICTION = "restriction"; // parsed from ACL
 const QString DomainMetadata::Descriptors::MATURITY = "maturity";
-const QString DomainMetadata::Descriptors::HOSTS = "hosts";
+const QString DomainMetadata::Descriptors::CONTACT = "contact_info";
+const QString DomainMetadata::Descriptors::MANAGERS = "managers";
 const QString DomainMetadata::Descriptors::TAGS = "tags";
+
 // descriptors metadata will appear as (JSON):
-// { "description": String, // capped description
+// { 
+//   "world_name": String, // capped name
+//   "description": String, // capped description
+//   "thumbnail": String, // capped thumbnail URL
+//   "images": [ String ], // capped list of image URLs
 //   "capacity": Number,
 //   "restriction": String, // enum of either open, hifi, or acl
 //   "maturity": String, // enum corresponding to ESRB ratings
-//   "hosts": [ String ], // capped list of usernames
+//   "contact_info": [ String ], // capped list of usernames
+//   "managers": [ String ], // capped list of usernames
 //   "tags": [ String ], // capped list of tags
 // }
 
@@ -53,17 +68,6 @@ DomainMetadata::DomainMetadata(QObject* domainServer) : QObject(domainServer) {
     // set up the structure necessary for casting during parsing
     _metadata[USERS] = QVariantMap {};
     _metadata[DESCRIPTORS] = QVariantMap {};
-
-    assert(dynamic_cast<DomainServer*>(domainServer));
-    DomainServer* server = static_cast<DomainServer*>(domainServer);
-
-    // update the metadata when a user (dis)connects
-    connect(server, &DomainServer::userConnected, this, &DomainMetadata::usersChanged);
-    connect(server, &DomainServer::userDisconnected, this, &DomainMetadata::usersChanged);
-
-    // update the metadata when security changes
-    connect(&server->_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
-        this, static_cast<void(DomainMetadata::*)()>(&DomainMetadata::securityChanged));
 
     // initialize the descriptors
     securityChanged(false);
@@ -88,12 +92,40 @@ void DomainMetadata::descriptorsChanged() {
     static const QString DESCRIPTORS_GROUP_KEYPATH = "descriptors";
     auto descriptorsMap = static_cast<DomainServer*>(parent())->_settingsManager.valueForKeyPath(DESCRIPTORS).toMap();
 
-    // copy simple descriptors (description/maturity)
-    state[Descriptors::DESCRIPTION] = descriptorsMap[Descriptors::DESCRIPTION];
-    state[Descriptors::MATURITY] = descriptorsMap[Descriptors::MATURITY];
+    // copy simple descriptors
+    if (!descriptorsMap[Descriptors::NAME].isNull()) {
+        state[Descriptors::NAME] = descriptorsMap[Descriptors::NAME];
+    } else {
+        state[Descriptors::NAME] = "";
+    }
 
-    // copy array descriptors (hosts/tags)
-    state[Descriptors::HOSTS] = descriptorsMap[Descriptors::HOSTS].toList();
+    if (!descriptorsMap[Descriptors::DESCRIPTION].isNull()) {
+        state[Descriptors::DESCRIPTION] = descriptorsMap[Descriptors::DESCRIPTION];
+    } else {
+        state[Descriptors::DESCRIPTION] = "";
+    }
+    
+    if (!descriptorsMap[Descriptors::THUMBNAIL].isNull()) {
+        state[Descriptors::THUMBNAIL] = descriptorsMap[Descriptors::THUMBNAIL];
+    } else {
+        state[Descriptors::THUMBNAIL] = "";
+    }
+    
+    if (!descriptorsMap[Descriptors::MATURITY].isNull()) {
+        state[Descriptors::MATURITY] = descriptorsMap[Descriptors::MATURITY];
+    } else {
+        state[Descriptors::MATURITY] = "";
+    }
+    
+    if (!descriptorsMap[Descriptors::CONTACT].isNull()) {
+        state[Descriptors::CONTACT] = descriptorsMap[Descriptors::CONTACT];
+    } else {
+        state[Descriptors::CONTACT] = "";
+    }
+
+    // copy array descriptors
+    state[Descriptors::IMAGES] = descriptorsMap[Descriptors::IMAGES].toList();
+    state[Descriptors::MANAGERS] = descriptorsMap[Descriptors::MANAGERS].toList();
     state[Descriptors::TAGS] = descriptorsMap[Descriptors::TAGS].toList();
 
     // parse capacity
@@ -198,7 +230,7 @@ void DomainMetadata::maybeUpdateUsers() {
 }
 
 void DomainMetadata::sendDescriptors() {
-    QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)));
+    QString domainUpdateJSON = QString("{\"domain\":{\"meta\":%1}}").arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)));
     const QUuid& domainID = DependencyManager::get<LimitedNodeList>()->getSessionUUID();
     if (!domainID.isNull()) {
         static const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
@@ -214,4 +246,23 @@ void DomainMetadata::sendDescriptors() {
         qDebug() << "Domain metadata update:" << domainUpdateJSON;
 #endif
     }
+}
+
+bool DomainMetadata::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
+    QString domainMetadataJSON = QString("{\"domain\":{\"meta\":%1}, \"users\":%2}")
+                                     .arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)))
+                                     .arg(QString(QJsonDocument(get(USERS)).toJson(QJsonDocument::Compact)));
+    const QString URI_METADATA = "/metadata";
+    const QString EXPORTER_MIME_TYPE = "application/json";
+
+    if (url.path() == URI_METADATA) {
+        connection->respond(HTTPConnection::StatusCode200, domainMetadataJSON.toUtf8(), qPrintable(EXPORTER_MIME_TYPE));
+        return true;
+    }
+
+#if DEV_BUILD || PR_BUILD
+    qCDebug(domain_metadata_exporter) << "Metadata request on URL " << url;
+#endif
+
+    return false;
 }

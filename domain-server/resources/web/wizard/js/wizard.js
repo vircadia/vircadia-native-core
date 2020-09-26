@@ -2,121 +2,127 @@ var Metaverse = {
   accessToken: null
 }
 
+var CURRENT_METAVERSE_URL;
+
 var currentStepNumber;
 
 $(document).ready(function(){
-  Strings.ADD_PLACE_NOT_CONNECTED_MESSAGE = "You must have an access token to query your High Fidelity places.<br><br>" +
-    "Please go back and connect your account.";
+  getMetaverseUrl(function(metaverse_url) {
+    CURRENT_METAVERSE_URL = metaverse_url;
 
-  $('#connect-account-btn').attr('href', URLs.METAVERSE_URL + "/user/tokens/new?for_domain_server=true");
+    Strings.ADD_PLACE_NOT_CONNECTED_MESSAGE = "You must have an access token to query your Metaverse places.<br><br>" +
+      "Please go back and connect your account.";
 
-  $('[data-toggle="tooltip"]').tooltip();
+    $('#connect-account-btn').attr('href', CURRENT_METAVERSE_URL + "/user/tokens/new?for_domain_server=true");
 
-  $('.perms-link').on('click', function() {
-    var modal_body = '<div>';
-    modal_body += '<b>None</b> - No one will have permissions. Only you and the users your have given administrator privileges to will have permissions.</br></br>';
-    modal_body += '<b>Friends</b> - Users who are your Friends in High Fidelity.</br></br>';
-    modal_body += '<b>Users logged into High Fidelity</b> - Users who are currently logged into High Fidelity.</br></br>';
-    modal_body += '<b>Everyone</b> - Anyone who uses High Fidelity.';
-    modal_body += '</div>';
+    $('[data-toggle="tooltip"]').tooltip();
 
-    dialog = bootbox.dialog({
-      title: "User definition",
-      message: modal_body,
-      closeButton: true
-    });
-    return false;
-  });
+    $('.perms-link').on('click', function() {
+      var modal_body = '<div>';
+      modal_body += '<b>None</b> - No one will have permissions. Only you and the users your have given administrator privileges to will have permissions.</br></br>';
+      modal_body += '<b>Friends</b> - Users who are your Friends in the Metaverse.</br></br>';
+      modal_body += '<b>Users logged into the Metaverse</b> - Users who are currently logged into the Metaverse.</br></br>';
+      modal_body += '<b>Everyone</b> - Anyone who uses the Metaverse.';
+      modal_body += '</div>';
 
-  $('body').on('click', '.next-button', function() {
-    goToNextStep();
-  });
-
-  $('body').on('click', '.back-button', function() {
-    goToPreviousStep();
-  });
-
-  $('body').on('click', '#skip-wizard-button', function() {
-    skipWizard();
-  })
-
-  $('body').on('click', '#connect-account-btn', function() {
-    $(this).blur();
-    prepareAccessTokenPrompt(function(accessToken) {
-      Metaverse.accessToken = accessToken;
-      saveAccessToken();
-    });
-  });
-
-  $('body').on('click', '#save-permissions', function() {
-    savePermissions();
-  });
-
-  function triggerSaveUsernamePassword(event) {
-      if (event.keyCode === 13) {
-          $("#save-username-password").click();
-      }
-  }
-  $("#http_username").keyup(triggerSaveUsernamePassword);
-  $("#http_password").keyup(triggerSaveUsernamePassword);
-  $("#verify_http_password").keyup(triggerSaveUsernamePassword);
-  $('body').on('click', '#save-username-password', function() {
-    saveUsernamePassword();
-  });
-
-  $('body').on('click', '#change-place-name', function() {
-    chooseFromHighFidelityPlaces(Settings.data.values.metaverse.access_token, "/0,-10,0", function(placeName) {
-      updatePlaceNameLink(placeName);
-    });
-  });
-
-  $('body').on('click', '#visit-domain', function() {
-    $('#share-link')[0].click();
-  });
-
-  $('input[type=radio][name=connect-radio]').change(function() {
-    var inputs = $('input[type=radio][name=rez-radio]');
-    var disabled = [];
-
-    switch (this.value) {
-      case 'none':
-        disabled = inputs.splice(1);
-        break;
-      case 'friends':
-        disabled = inputs.splice(2);
-        break;
-      case 'logged-in':
-        disabled = inputs.splice(3);
-        break;
-      case 'everyone':
-        disabled = inputs.splice(4);
-        break;
-    }
-
-    $.each(inputs, function() {
-      $(this).prop('disabled', false);
-    });
-    $.each(disabled, function() {
-      if ($(this).prop('checked')) {
-        $(inputs.last()).prop('checked', true);
-      }
-      $(this).prop('disabled', true);
-    });
-  });
-
-  reloadSettings(function(success) {
-    if (success) {
-      getDomainFromAPI();
-      setupWizardSteps();
-      updatePlaceNameDisplay();
-      updateUsernameDisplay();
-    } else {
-      swal({
-        title: '',
-        type: 'error',
-        text: "There was a problem loading the domain settings.\nPlease refresh the page to try again.",
+      dialog = bootbox.dialog({
+        title: "User definition",
+        message: modal_body,
+        closeButton: true
       });
+      return false;
+    });
+
+    $('body').on('click', '.next-button', function() {
+      goToNextStep();
+    });
+
+    $('body').on('click', '.back-button', function() {
+      goToPreviousStep();
+    });
+
+    $('body').on('click', '#skip-wizard-button', function() {
+      skipWizard();
+    })
+
+    $('body').on('click', '#connect-account-btn', function() {
+      $(this).blur();
+      prepareAccessTokenPrompt(function(accessToken) {
+        Metaverse.accessToken = accessToken;
+        saveAccessToken();
+      });
+    });
+
+    $('body').on('click', '#save-permissions', function() {
+      savePermissions();
+    });
+
+    function triggerSaveUsernamePassword(event) {
+        if (event.keyCode === 13) {
+            $("#save-username-password").click();
+        }
     }
+    $("#http_username").keyup(triggerSaveUsernamePassword);
+    $("#http_password").keyup(triggerSaveUsernamePassword);
+    $("#verify_http_password").keyup(triggerSaveUsernamePassword);
+    $('body').on('click', '#save-username-password', function() {
+      saveUsernamePassword();
+    });
+
+    $('body').on('click', '#change-place-name', function() {
+      chooseFromMetaversePlaces(Settings.data.values.metaverse.access_token, "/0,-10,0", function(placeName) {
+        updatePlaceNameLink(placeName);
+      });
+    });
+
+    $('body').on('click', '#visit-domain', function() {
+      $('#share-link')[0].click();
+    });
+
+    $('input[type=radio][name=connect-radio]').change(function() {
+      var inputs = $('input[type=radio][name=rez-radio]');
+      var disabled = [];
+
+      switch (this.value) {
+        case 'none':
+          disabled = inputs.splice(1);
+          break;
+        case 'friends':
+          disabled = inputs.splice(2);
+          break;
+        case 'logged-in':
+          disabled = inputs.splice(3);
+          break;
+        case 'everyone':
+          disabled = inputs.splice(4);
+          break;
+      }
+
+      $.each(inputs, function() {
+        $(this).prop('disabled', false);
+      });
+      $.each(disabled, function() {
+        if ($(this).prop('checked')) {
+          $(inputs.last()).prop('checked', true);
+        }
+        $(this).prop('disabled', true);
+      });
+    });
+
+    reloadSettings(function(success) {
+      if (success) {
+        getDomainFromAPI();
+        setupWizardSteps();
+        updatePlaceNameDisplay();
+        updateUsernameDisplay();
+      } else {
+        swal({
+          title: '',
+          type: 'error',
+          text: "There was a problem loading the domain settings.\nPlease refresh the page to try again.",
+        });
+      }
+    });
   });
 });
 
@@ -142,7 +148,7 @@ function setupWizardSteps() {
     });
 
     $('#permissions-description').html('You <span id="username-display"></span>have been assigned administrator privileges to this domain.');
-    $('#admin-description').html('Add more High Fidelity usernames');
+    $('#admin-description').html('Add more Metaverse usernames');
   } else {
     $('.cloud-only').remove();
     $('#save-permissions').text("Finish");
@@ -171,7 +177,7 @@ function updatePlaceNameLink(address) {
 
 function updatePlaceNameDisplay() {
   if (Settings.data.values.metaverse.id) {
-    $.getJSON(URLs.METAVERSE_URL + '/api/v1/domains/' + Settings.data.values.metaverse.id, function(data) {
+    $.getJSON(CURRENT_METAVERSE_URL + '/api/v1/domains/' + Settings.data.values.metaverse.id, function(data) {
 
       if (data.status === 'success') {
         if (data.domain.default_place_name) {

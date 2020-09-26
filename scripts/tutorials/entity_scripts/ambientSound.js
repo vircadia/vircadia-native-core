@@ -24,7 +24,7 @@
 (function(){
     //  This sample clip and range will be used if you don't add userData to the entity (see above)
     var DEFAULT_RANGE = 100;
-    var DEFAULT_URL = "http://hifi-content.s3.amazonaws.com/ken/samples/forest_ambiX.wav";
+    var DEFAULT_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/ken/samples/forest_ambiX.wav");
     var DEFAULT_VOLUME = 1.0;
 
     var DEFAULT_USERDATA = {

@@ -7,7 +7,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-var SOUND_DATA = { url: "http://hifi-content.s3.amazonaws.com/howard/sounds/piano1.wav" };
+var SOUND_DATA = { url: Script.getExternalPath(Script.ExternalPaths.HF_Content, "/howard/sounds/piano1.wav") };
 
 // getSound function from crowd-agent.js
 function getSound(data, callback) { // callback(sound) when downloaded (which may be immediate).

@@ -252,11 +252,10 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
             }
 
             void* key = (void*)this;
-            AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity]() {
+            AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
                 withWriteLock([&] {
                     glm::vec2 windowSize = getWindowSize(entity);
                     _webSurface->resize(QSize(windowSize.x, windowSize.y));
-                    updateModelTransformAndBound();
                     _renderTransform = getModelTransform();
                     _renderTransform.setScale(1.0f);
                     _renderTransform.postScale(entity->getScaledDimensions());

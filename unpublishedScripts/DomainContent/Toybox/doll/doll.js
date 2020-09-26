@@ -67,7 +67,7 @@
                     animation: {
                         // Providing actual model fbx for animation used to work, now contorts doll into a weird ball
                         // See bug:  https://app.asana.com/0/26225263936266/70097355490098
-                        // url: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
+                        // url: Script.getExternalPath(Script.ExternalPaths.HF_Public, '/models/Bboys/bboy2/bboy2.fbx"),
                         running: false,
                     }
                 });

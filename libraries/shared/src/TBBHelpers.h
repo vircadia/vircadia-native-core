@@ -15,12 +15,15 @@
 #pragma warning( disable : 4334 )
 #endif
 
+#if !defined(Q_MOC_RUN)
+// Work around https://bugreports.qt.io/browse/QTBUG-80990
 #include <tbb/concurrent_queue.h>
 #include <tbb/concurrent_unordered_map.h>
 #include <tbb/concurrent_unordered_set.h>
 #include <tbb/concurrent_vector.h>
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range2d.h>
+#endif
 
 #ifdef _WIN32
 #pragma warning( pop )

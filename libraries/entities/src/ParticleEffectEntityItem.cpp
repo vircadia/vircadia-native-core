@@ -696,8 +696,8 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(const EntityPropert
     return properties;
 }
 
-bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
+bool ParticleEffectEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = false;
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
@@ -750,16 +750,6 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(spinFinish, setSpinFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotateWithEntity, setRotateWithEntity);
 
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "ParticleEffectEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties.getLastEdited());
-    }
     return somethingChanged;
 }
 

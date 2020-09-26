@@ -13,8 +13,10 @@
 #define hifi_CrashHandler_h
 
 #include <string>
+class QCoreApplication;
 
 bool startCrashHandler(std::string appPath);
 void setCrashAnnotation(std::string name, std::string value);
+void startCrashHookMonitor(QCoreApplication* app);
 
 #endif // hifi_CrashHandler_h

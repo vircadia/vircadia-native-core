@@ -1042,7 +1042,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} groupCulled=false - <code>true</code> if the mesh parts of the model are LOD culled as a group,
  *     <code>false</code> if separate mesh parts are LOD culled individually.
  *
- * @example <caption>Rez a Vive tracker puck.</caption>
+ * @example <caption>Rez a cowboy hat.</caption>
  * var entity = Entities.addEntity({
  *     type: "Model",
  *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -2 })),
@@ -1162,7 +1162,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     speedSpread: 0.01,
  *     emitAcceleration: { x: 0, y: 0.02, z: 0 },
  *     polarFinish: Math.PI,
- *     textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png",
+ *     textures: "https://content.vircadia.com/eu-c-1/vircadia-assets/interface/default/default_particle.png",
  *     particleRadius: 0.1,
  *     color: { red: 0, green: 255, blue: 0 },
  *     alphaFinish: 0,

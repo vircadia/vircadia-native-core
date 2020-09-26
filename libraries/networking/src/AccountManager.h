@@ -101,6 +101,9 @@ public:
     const QString& getTemporaryDomainKey(const QUuid& domainID) { return _accountInfo.getTemporaryDomainKey(domainID); }
 
     QUrl getMetaverseServerURL() { return MetaverseAPI::getCurrentMetaverseServerURL(); }
+    QString getMetaverseServerURLPath(bool appendForwardSlash = false) {
+        return MetaverseAPI::getCurrentMetaverseServerURLPath(appendForwardSlash);
+    }
 
     void removeAccountFromFile();
 

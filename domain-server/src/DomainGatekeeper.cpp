@@ -821,7 +821,7 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username, bool isOpti
     callbackParams.errorCallbackMethod = "publicKeyJSONErrorCallback";
 
 
-    const QString USER_PUBLIC_KEY_PATH = "api/v1/users/%1/public_key";
+    const QString USER_PUBLIC_KEY_PATH = "/api/v1/users/%1/public_key";
 
     qDebug().nospace() << "Requesting " << (isOptimistic ? "optimistic " : " ") << "public key for user " << username;
 
@@ -1048,7 +1048,7 @@ void DomainGatekeeper::getGroupMemberships(const QString& username) {
     callbackParams.jsonCallbackMethod = "getIsGroupMemberJSONCallback";
     callbackParams.errorCallbackMethod = "getIsGroupMemberErrorCallback";
 
-    const QString GET_IS_GROUP_MEMBER_PATH = "api/v1/groups/members/%2";
+    const QString GET_IS_GROUP_MEMBER_PATH = "/api/v1/groups/members/%2";
     DependencyManager::get<AccountManager>()->sendRequest(GET_IS_GROUP_MEMBER_PATH.arg(username),
                                                           AccountManagerAuth::Required,
                                                           QNetworkAccessManager::PostOperation, callbackParams,
@@ -1114,7 +1114,7 @@ void DomainGatekeeper::getDomainOwnerFriendsList() {
     callbackParams.jsonCallbackMethod = "getDomainOwnerFriendsListJSONCallback";
     callbackParams.errorCallbackMethod = "getDomainOwnerFriendsListErrorCallback";
 
-    const QString GET_FRIENDS_LIST_PATH = "api/v1/user/friends";
+    const QString GET_FRIENDS_LIST_PATH = "/api/v1/user/friends";
     if (DependencyManager::get<AccountManager>()->hasValidAccessToken()) {
         DependencyManager::get<AccountManager>()->sendRequest(GET_FRIENDS_LIST_PATH, AccountManagerAuth::Required,
                                                               QNetworkAccessManager::GetOperation, callbackParams, QByteArray(),
@@ -1196,7 +1196,7 @@ Node::LocalID DomainGatekeeper::findOrCreateLocalID(const QUuid& uuid) {
         return existingLocalIDIt->second;
     }
 
-    assert(_localIDs.size() < std::numeric_limits<LocalIDs::value_type>::max() - 2);
+    assert(_localIDs.size() < (size_t)(std::numeric_limits<LocalIDs::value_type>::max() - 2));
 
     Node::LocalID newLocalID;
     do {
