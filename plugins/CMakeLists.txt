@@ -47,8 +47,6 @@ endif()
 # server-side plugins
 set(DIR "pcmCodec")
 add_subdirectory(${DIR})
-set(DIR "hifiCodec")
-add_subdirectory(${DIR})
 set(DIR "opusCodec")
 add_subdirectory(${DIR})
 
