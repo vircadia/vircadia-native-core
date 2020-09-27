@@ -164,7 +164,10 @@ EntityListTool = function(shouldUseEditTabletApp) {
     }
 
     that.sendUpdate = function() {
-
+        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        if (HMD.active){
+            tablet.setLandscape(true);
+        }
         emitJSONScriptEvent({
             "type": "confirmHMDstate",
             "isHmd": HMD.active
