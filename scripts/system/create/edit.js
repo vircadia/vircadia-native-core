@@ -2339,6 +2339,10 @@ var PropertiesTool = function (opts) {
     };
 
     function updateSelections(selectionUpdated, caller) {
+        if (HMD.active){
+            webView.setLandscape(true);
+        }
+        
         if (blockPropertyUpdates) {
             return;
         }
