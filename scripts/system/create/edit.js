@@ -824,7 +824,7 @@ var toolBar = (function () {
 
         HMD.displayModeChanged.connect(function() {
             if (isActive) {
-                tablet.gotoHomeScreen();
+                tablet.gotoHomeScreen();    
             }
             that.setActive(false);
         });
@@ -2339,8 +2339,12 @@ var PropertiesTool = function (opts) {
     };
 
     function updateSelections(selectionUpdated, caller) {
-        if (HMD.active){
+        if (HMD.active && visible){
             webView.setLandscape(true);
+        } else {
+            if (!visible) {
+                webView.setLandscape(false);
+            }
         }
         
         if (blockPropertyUpdates) {
