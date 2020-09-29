@@ -165,6 +165,7 @@ let selectedEntities = [];
 
 let entityList = null; // The ListView
 
+let hmdMultiSelectMode = false; 
 /**
  * @type EntityListContextMenu
  */
@@ -199,6 +200,7 @@ let elEntityTable,
     elRefresh,
     elToggleLocked,
     elToggleVisible,
+    elHmdMultiSelect,    
     elHmdCopy,
     elHmdCut,
     elHmdPaste,
@@ -249,6 +251,7 @@ function loaded() {
         elRefresh = document.getElementById("refresh");
         elToggleLocked = document.getElementById("locked");
         elToggleVisible = document.getElementById("visible");
+        elHmdMultiSelect = document.getElementById("hmdmultiselect");
         elHmdCopy = document.getElementById("hmdcopy");
         elHmdCut = document.getElementById("hmdcut");
         elHmdPaste = document.getElementById("hmdpaste");
@@ -282,6 +285,15 @@ function loaded() {
         };
         elExport.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
+        };
+        elHmdMultiSelect.onclick = function() {
+            if (hmdMultiSelectMode) {
+                elHmdMultiSelect.className = "vglyph";
+                hmdMultiSelectMode = false;
+            } else {
+                elHmdMultiSelect.className = "white vglyph";
+                hmdMultiSelectMode = true;
+            }
         };
         elHmdCopy.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'copy' }));
@@ -569,7 +581,7 @@ function loaded() {
             let selection = [entityID];
             let controlKey = window.navigator.platform.startsWith("Mac") ? clickEvent.metaKey : clickEvent.ctrlKey;
 
-            if (controlKey) {
+            if (controlKey || hmdMultiSelectMode) {
                 let selectedIndex = selectedEntities.indexOf(entityID);
                 if (selectedIndex >= 0) {
                     selection = [];
@@ -1430,11 +1442,13 @@ function loaded() {
                     setSpaceMode(data.spaceMode);
                 } else if (data.type === "confirmHMDstate") {
                     if (data.isHmd) {
+                        document.getElementById("hmdmultiselect").style.display = "inline";
                         document.getElementById("hmdcopy").style.display = "inline";
                         document.getElementById("hmdcut").style.display = "inline";
                         document.getElementById("hmdpaste").style.display = "inline";
                         document.getElementById("hmdduplicate").style.display = "inline";
                     } else {
+                        document.getElementById("hmdmultiselect").style.display = "none";
                         document.getElementById("hmdcopy").style.display = "none";
                         document.getElementById("hmdcut").style.display = "none";
                         document.getElementById("hmdpaste").style.display = "none";
