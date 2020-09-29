@@ -22,7 +22,7 @@ import retrofit2.http.Query;
 
 public class UserStoryDomainProvider implements DomainProvider {
 
-    public static final String BASE_URL = "https://metaverse.highfidelity.com/";
+    public static final String BASE_URL = "https://metaverse.vircadia.com/live/";
 
     private static final String INCLUDE_ACTIONS_FOR_PLACES = "concurrency";
     private static final String INCLUDE_ACTIONS_FOR_FULL_SEARCH = "concurrency,announcements,snapshot";
