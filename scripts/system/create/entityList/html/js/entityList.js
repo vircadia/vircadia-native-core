@@ -207,6 +207,8 @@ let elEntityTable,
     elHmdDuplicate,   
     elUndo,
     elRedo,
+    elParent,
+    elUnparent,    
     elDelete,
     elFilterTypeMultiselectBox,
     elFilterTypeText,
@@ -258,6 +260,8 @@ function loaded() {
         elHmdDuplicate = document.getElementById("hmdduplicate");        
         elUndo = document.getElementById("undo");
         elRedo = document.getElementById("redo");
+        elParent = document.getElementById("parent");
+        elUnparent = document.getElementById("unparent");
         elDelete = document.getElementById("delete");
         elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
         elFilterTypeText = document.getElementById("filter-type-text");
@@ -294,6 +298,7 @@ function loaded() {
                 elHmdMultiSelect.className = "white vglyph";
                 hmdMultiSelectMode = true;
             }
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'hmdMultiSelectMode', value: hmdMultiSelectMode }));
         };
         elHmdCopy.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'copy' }));
@@ -307,12 +312,18 @@ function loaded() {
         elHmdDuplicate.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'duplicate' }));
         };        
+        elParent.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+        };
+        elUnparent.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
+        };
         elUndo.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'undo' }));
         };
         elRedo.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'redo' }));
-        };        
+        };         
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
         };
