@@ -15,6 +15,7 @@
 
 var PROFILING_ENABLED = false;
 var profileIndent = '';
+
 const PROFILE_NOOP = function(_name, fn, args) {
     fn.apply(this, args);
 };
@@ -316,6 +317,12 @@ EntityListTool = function(shouldUseEditTabletApp) {
             undoHistory.undo();
         } else if (data.type === 'redo') {
             undoHistory.redo();
+        } else if (data.type === 'parent') {
+            parentSelectedEntities();
+        } else if (data.type === 'unparent') {
+            unparentSelectedEntities();
+        } else if (data.type === 'hmdMultiSelectMode') {
+            hmdMultiSelectMode = data.value;
         }
     };
 
