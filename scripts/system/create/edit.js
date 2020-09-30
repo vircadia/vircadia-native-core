@@ -104,6 +104,8 @@ var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleE
     }
 });
 
+var hmdMultiSelectMode = false;
+
 var cameraManager = new CameraManager();
 
 var grid = new Grid();
@@ -1131,7 +1133,11 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
             var entity = entityIconOverlayManager.findEntity(data.overlayID);
 
             if (entity !== null) {
-                selectionManager.setSelections([entity], this);
+                if (hmdMultiSelectMode) {
+                    selectionManager.addEntity(entity, true, this);
+                } else {
+                    selectionManager.setSelections([entity], this);
+                }
             }
         }
     }
