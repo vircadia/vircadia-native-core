@@ -104,7 +104,11 @@ SelectionManager = (function() {
                 if (wantDebug) {
                     print("setting selection to " + messageParsed.entityID);
                 }
-                that.setSelections([messageParsed.entityID], that);
+                if (hmdMultiSelectMode) {
+                    that.addEntity(messageParsed.entityID, true, that);
+                } else {
+                    that.setSelections([messageParsed.entityID], that);
+                }
             }
         } else if (messageParsed.method === "clearSelection") {
             if (!SelectionDisplay.triggered() || SelectionDisplay.triggeredHand === messageParsed.hand) {
