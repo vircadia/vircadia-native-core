@@ -82,13 +82,13 @@ var mappingJson = {
 //
 
 var TABLET_BUTTON_NAME = "ACCFILT";
-var HTML_URL = "https://s3.amazonaws.com/hifi-public/tony/html/accelerationFilterApp.html?2";
+var HTML_URL = Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/html/accelerationFilterApp.html?2");
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var tabletButton = tablet.addButton({
     text: TABLET_BUTTON_NAME,
-    icon: "https://s3.amazonaws.com/hifi-public/tony/icons/tpose-i.svg",
-    activeIcon: "https://s3.amazonaws.com/hifi-public/tony/icons/tpose-a.svg"
+    icon: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/tpose-i.svg"),
+    activeIcon: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/tpose-a.svg")
 });
 
 tabletButton.clicked.connect(function () {

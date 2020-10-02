@@ -8,7 +8,6 @@ WebView {
     id: webview
     url: "https://vircadia.com/"
     profile: FileTypeProfile;
-
     property var parentRoot: null
 
     // Create a global EventBridge object for raiseAndLowerKeyboard.

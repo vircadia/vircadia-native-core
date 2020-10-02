@@ -72,7 +72,7 @@ function Instructions(imageURL, originalWidth, originalHeight) {
     this.rescale();
 };
 
-var theInstruction = new Instructions(HIFI_PUBLIC_BUCKET + "images/tutorial-goTo.svg", 457, 284.1);
+var theInstruction = new Instructions(VIRCADIA_PUBLIC_CDN + "images/tutorial-goTo.svg", 457, 284.1);
 
 var firstControllerPlugged = false;
 
@@ -86,7 +86,7 @@ var locationURL = "";
 var randomSounds = new SoundArray({}, true);
 var numberOfSounds = 7;
 for (var i = 1; i <= numberOfSounds; i++) {
-    randomSounds.addSound(HIFI_PUBLIC_BUCKET + "sounds/UI/virtualKeyboard-press" + i + ".raw");
+    randomSounds.addSound(VIRCADIA_PUBLIC_CDN + "sounds/UI/virtualKeyboard-press" + i + ".raw");
 }
 
 function appendChar(char) {

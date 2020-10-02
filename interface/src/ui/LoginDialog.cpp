@@ -172,7 +172,7 @@ void LoginDialog::linkOculus() {
             callbackParams.callbackReceiver = this;
             callbackParams.jsonCallbackMethod = "linkCompleted";
             callbackParams.errorCallbackMethod = "linkFailed";
-            const QString LINK_OCULUS_PATH = "api/v1/user/oculus/link";
+            const QString LINK_OCULUS_PATH = "/api/v1/user/oculus/link";
 
             QJsonObject payload;
             payload["oculus_nonce"] = nonce;
@@ -200,7 +200,7 @@ void LoginDialog::createAccountFromOculus(QString email, QString username, QStri
             callbackParams.jsonCallbackMethod = "createCompleted";
             callbackParams.errorCallbackMethod = "createFailed";
 
-            const QString CREATE_ACCOUNT_FROM_OCULUS_PATH = "api/v1/user/oculus/create";
+            const QString CREATE_ACCOUNT_FROM_OCULUS_PATH = "/api/v1/user/oculus/create";
 
             QJsonObject payload;
             payload["oculus_nonce"] = nonce;
@@ -251,7 +251,7 @@ void LoginDialog::linkSteam() {
             callbackParams.jsonCallbackMethod = "linkCompleted";
             callbackParams.errorCallbackMethod = "linkFailed";
 
-            const QString LINK_STEAM_PATH = "api/v1/user/steam/link";
+            const QString LINK_STEAM_PATH = "/api/v1/user/steam/link";
 
             QJsonObject payload;
             payload["steam_auth_ticket"] = QJsonValue::fromVariant(QVariant(ticket));
@@ -278,7 +278,7 @@ void LoginDialog::createAccountFromSteam(QString username) {
             callbackParams.jsonCallbackMethod = "createCompleted";
             callbackParams.errorCallbackMethod = "createFailed";
 
-            const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/steam/create";
+            const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "/api/v1/user/steam/create";
 
             QJsonObject payload;
             payload["steam_auth_ticket"] = QJsonValue::fromVariant(QVariant(ticket));

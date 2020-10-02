@@ -271,7 +271,7 @@ function onMessage(message) {
 }
 
 var POLAROID_PRINT_SOUND = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/sound-print-photo.wav");
-var POLAROID_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
+var POLAROID_MODEL_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/alan/dev/Test/snapshot.fbx");
 var POLAROID_RATE_LIMIT_MS = 1000;
 var polaroidPrintingIsRateLimited = false;
 

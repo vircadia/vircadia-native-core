@@ -340,6 +340,8 @@ public:
     QMap<int, glm::quat> jointRotationOffsets;
     std::vector<ShapeVertices> shapeVertices;
     FlowData flowData;
+
+    void debugDump();
 };
 
 };
