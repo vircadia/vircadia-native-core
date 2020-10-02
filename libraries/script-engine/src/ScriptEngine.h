@@ -121,6 +121,17 @@ public:
  *       <li><code>"agent"</code>: An assignment client script.</li>
  *     </ul>
  *     <em>Read-only.</em>
+ * @property {string} type - The type of script that is running:
+ *     <ul>
+ *       <li><code>"client"</code>: An Interface script.</li>
+ *       <li><code>"entity_client"</code>: A client entity script.</li>
+ *       <li><code>"avatar"</code>: An avatar script.</li>
+ *       <li><code>"entity_server"</code>: A server entity script.</li>
+ *       <li><code>"agent"</code>: An assignment client script.</li>
+ *     </ul>
+ *     <em>Read-only.</em>
+ * @property {string} filename - The filename of the script file.
+ *     <em>Read-only.</em>
  * @property {Script.ResourceBuckets} ExternalPaths - External resource buckets.
  */
 class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
