@@ -153,13 +153,13 @@ void packBlendshapeOffsets_AVX2(float (*unpacked)[9], uint32_t (*packed)[4], int
         __m256 s7 = _mm256_setzero_ps();
 
         switch (rem) {
-            case 7: s6 = _mm256_loadu_ps(unpacked[i+6]);
-            case 6: s5 = _mm256_loadu_ps(unpacked[i+5]);
-            case 5: s4 = _mm256_loadu_ps(unpacked[i+4]);
-            case 4: s3 = _mm256_loadu_ps(unpacked[i+3]);
-            case 3: s2 = _mm256_loadu_ps(unpacked[i+2]);
-            case 2: s1 = _mm256_loadu_ps(unpacked[i+1]);
-            case 1: s0 = _mm256_loadu_ps(unpacked[i+0]);
+            case 7: s6 = _mm256_loadu_ps(unpacked[i+6]); /* fall-thru */
+            case 6: s5 = _mm256_loadu_ps(unpacked[i+5]); /* fall-thru */
+            case 5: s4 = _mm256_loadu_ps(unpacked[i+4]); /* fall-thru */
+            case 4: s3 = _mm256_loadu_ps(unpacked[i+3]); /* fall-thru */
+            case 3: s2 = _mm256_loadu_ps(unpacked[i+2]); /* fall-thru */
+            case 2: s1 = _mm256_loadu_ps(unpacked[i+1]); /* fall-thru */
+            case 1: s0 = _mm256_loadu_ps(unpacked[i+0]); /* fall-thru */
         }
         
         __m256 t0 = _mm256_unpacklo_ps(s0, s1);
@@ -269,13 +269,13 @@ void packBlendshapeOffsets_AVX2(float (*unpacked)[9], uint32_t (*packed)[4], int
 
         // store pack x 8
         switch (rem) {
-            case 7: _mm_storeu_si128((__m128i*)packed[i+6], _mm256_extractf128_si256(v2, 1));
-            case 6: _mm_storeu_si128((__m128i*)packed[i+5], _mm256_extractf128_si256(v1, 1));
-            case 5: _mm_storeu_si128((__m128i*)packed[i+4], _mm256_extractf128_si256(v0, 1));
-            case 4: _mm_storeu_si128((__m128i*)packed[i+3], _mm256_castsi256_si128(v3));
-            case 3: _mm_storeu_si128((__m128i*)packed[i+2], _mm256_castsi256_si128(v2));
-            case 2: _mm_storeu_si128((__m128i*)packed[i+1], _mm256_castsi256_si128(v1));
-            case 1: _mm_storeu_si128((__m128i*)packed[i+0], _mm256_castsi256_si128(v0));
+            case 7: _mm_storeu_si128((__m128i*)packed[i+6], _mm256_extractf128_si256(v2, 1)); /* fall-thru */
+            case 6: _mm_storeu_si128((__m128i*)packed[i+5], _mm256_extractf128_si256(v1, 1)); /* fall-thru */
+            case 5: _mm_storeu_si128((__m128i*)packed[i+4], _mm256_extractf128_si256(v0, 1)); /* fall-thru */
+            case 4: _mm_storeu_si128((__m128i*)packed[i+3], _mm256_castsi256_si128(v3)); /* fall-thru */
+            case 3: _mm_storeu_si128((__m128i*)packed[i+2], _mm256_castsi256_si128(v2)); /* fall-thru */
+            case 2: _mm_storeu_si128((__m128i*)packed[i+1], _mm256_castsi256_si128(v1)); /* fall-thru */
+            case 1: _mm_storeu_si128((__m128i*)packed[i+0], _mm256_castsi256_si128(v0)); /* fall-thru */
         }
     }
 

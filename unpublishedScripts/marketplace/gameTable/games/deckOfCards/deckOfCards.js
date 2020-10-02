@@ -13,8 +13,8 @@
     var _this;
     var MAPPING_NAME = "hifi-gametable-cards-dev-" + Math.random();
     var PLAYING_CARD_SCRIPT_URL = Script.resolvePath('playingCard.js');
-    var PLAYING_CARD_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/assets/deckOfCards/playing_card.fbx';
-    var PLAYING_CARD_BACK_IMAGE_URL = "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/assets/deckOfCards/back.jpg";
+    var PLAYING_CARD_MODEL_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/thoys/production/gameTable/assets/deckOfCards/playing_card.fbx");
+    var PLAYING_CARD_BACK_IMAGE_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/thoys/production/gameTable/assets/deckOfCards/back.jpg");
     var PLAYING_CARD_DIMENSIONS = {
         x: 0.2621,
         y: 0.1,

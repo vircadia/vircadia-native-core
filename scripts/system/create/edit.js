@@ -44,8 +44,8 @@ var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
 var ENTIRE_DOMAIN_SCAN_RADIUS = 27713;
 
-var DEFAULT_IMAGE = "http://eu-central-1.linodeobjects.com/vircadia-assets/interface/default/default_image.jpg";
-var DEFAULT_PARTICLE = "http://eu-central-1.linodeobjects.com/vircadia-assets/interface/default/default_particle.png";
+var DEFAULT_IMAGE = Script.getExternalPath(Script.ExternalPaths.Assets, "Bazaar/Assets/Textures/Defaults/Interface/default_image.jpg");
+var DEFAULT_PARTICLE = Script.getExternalPath(Script.ExternalPaths.Assets, "Bazaar/Assets/Textures/Defaults/Interface/default_particle.png");
 
 var createToolsWindow = new CreateWindow(
     Script.resolvePath("qml/EditTools.qml"),

@@ -140,7 +140,7 @@
             "id": "{349e0687-52d4-4e0d-a03c-88f5bf427ce8}",
             "ignoreForCollisions": 1,
             "lastEditedBy": "{42574037-43c0-4446-8d75-56a232fa2da5}",
-            "modelURL": "http://hifi-content.s3.amazonaws.com/caitlyn/production/lazybonesToybox/cameras/35mm%20camera.fbx?232222",
+            "modelURL": "https://cdn-1.vircadia.com/eu-c-1/vircadia-content/caitlyn/production/lazybonesToybox/cameras/35mm%20camera.fbx?232222",
             "name": "35 MM SLR by Lazybones",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "parentID": "{8da928c7-a1d0-4a2e-b256-047498ddcfe7}",
@@ -183,7 +183,7 @@
             "id": "{16f2cec8-2ba0-4567-ac3c-89b2779b1351}",
             "ignoreForCollisions": 1,
             "lastEditedBy": "{42574037-43c0-4446-8d75-56a232fa2da5}",
-            "modelURL": "http://hifi-content.s3.amazonaws.com/caitlyn/production/lazybonesToybox/cameras/35mm%20camera.fbx?232222",
+            "modelURL": "https://cdn-1.vircadia.com/eu-c-1/vircadia-content/caitlyn/production/lazybonesToybox/cameras/35mm%20camera.fbx?232222",
             "name": "35 MM SLR by Lazybones",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "parentID": "{8da928c7-a1d0-4a2e-b256-047498ddcfe7}",
@@ -226,7 +226,7 @@
             "id": "{f81a5b69-6d64-4a79-8233-a4cc182bf9f8}",
             "ignoreForCollisions": 1,
             "lastEditedBy": "{42574037-43c0-4446-8d75-56a232fa2da5}",
-            "modelURL": "http://hifi-content.s3.amazonaws.com/caitlyn/production/lazybonesToybox/cameras/35mm%20camera.fbx?232222",
+            "modelURL": "https://cdn-1.vircadia.com/eu-c-1/vircadia-content/caitlyn/production/lazybonesToybox/cameras/35mm%20camera.fbx?232222",
             "name": "35 MM SLR by Lazybones",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "parentID": "{8da928c7-a1d0-4a2e-b256-047498ddcfe7}",
@@ -262,7 +262,7 @@
             },
             "id": "{5d8e6ca9-eec6-4cd9-9931-343c8e122f5d}",
             "lastEditedBy": "{42574037-43c0-4446-8d75-56a232fa2da5}",
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Test-Object-7-metal.fbx",
+            "modelURL": "https://cdn-1.vircadia.com/eu-c-1/vircadia-content/alan/dev/Test-Object-7-metal.fbx",
             "name": "Photo Booth Model",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "parentID": "{8da928c7-a1d0-4a2e-b256-047498ddcfe7}",
@@ -362,7 +362,7 @@
             },
             "shapeType": "box",
             "skybox": {
-                "url": "http://hifi-content.s3.amazonaws.com/alan/dev/Skybox-Sun-high.png"
+                "url": "https://cdn-1.vircadia.com/eu-c-1/vircadia-content/alan/dev/Skybox-Sun-high.png"
             },
             "type": "Zone"
         },
@@ -376,7 +376,7 @@
             },
             "id": "{8da928c7-a1d0-4a2e-b256-047498ddcfe7}",
             "lastEditedBy": "{42574037-43c0-4446-8d75-56a232fa2da5}",
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/PhotoStage-v1.fbx",
+            "modelURL": "https://cdn-1.vircadia.com/eu-c-1/vircadia-content/alan/dev/PhotoStage-v1.fbx",
             "name": "Photo Booth Stage",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "queryAACube": {

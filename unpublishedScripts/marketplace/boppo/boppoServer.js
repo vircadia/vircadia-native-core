@@ -9,7 +9,6 @@
 //
 
 (function() {
-    var SFX_PREFIX = 'https://hifi-content.s3-us-west-1.amazonaws.com/caitlyn/production/elBoppo/sfx/';
     var CLOWN_LAUGHS = [
         'clown_laugh_1.wav',
         'clown_laugh_2.wav',
@@ -168,12 +167,12 @@
             _boppoClownID = null;
             _coolDown = false;
             CLOWN_LAUGHS.forEach(function(clownLaugh) {
-                _clownLaughs.push(SoundCache.getSound(SFX_PREFIX + clownLaugh));
+                _clownLaughs.push(SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.HF_Content, + clownLaugh)));
             });
-            _tickTockSound = SoundCache.getSound(SFX_PREFIX + TICK_TOCK_SOUND);
-            _boxingBellRingStart = SoundCache.getSound(SFX_PREFIX + BOXING_RING_BELL_START);
-            _boxingBellRingEnd = SoundCache.getSound(SFX_PREFIX + BOXING_RING_BELL_END);
-            _music = SoundCache.getSound(SFX_PREFIX + BOPPO_MUSIC);
+            _tickTockSound = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.HF_Content, TICK_TOCK_SOUND));
+            _boxingBellRingStart = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.HF_Content, BOXING_RING_BELL_START));
+            _boxingBellRingEnd = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.HF_Content, BOXING_RING_BELL_END));
+            _music = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.HF_Content, BOPPO_MUSIC));
             _boppoEntities = {};
         };
 
@@ -200,9 +199,9 @@
                 var boppoBaseProperties = Entities.getEntityProperties(_entityID, ['position', 'rotation']);
                 _boppoClownID = Entities.addEntity({
                     angularDamping: 0.0,
-                    collisionSoundURL: 'https://hifi-content.s3.amazonaws.com/caitlyn/production/elBoppo/51460__andre-rocha-nascimento__basket-ball-01-bounce.wav',
+                    collisionSoundURL: Script.getExternalPath(Script.ExternalPaths.HF_Content, 'caitlyn/production/elBoppo/51460__andre-rocha-nascimento__basket-ball-01-bounce.wav'),
                     collisionsWillMove: true,
-                    compoundShapeURL: 'https://hifi-content.s3.amazonaws.com/caitlyn/production/elBoppo/bopo_phys.obj',
+                    compoundShapeURL: Script.getExternalPath(Script.ExternalPaths.HF_Content, 'caitlyn/production/elBoppo/bopo_phys.obj'),
                     damping: 1.0,
                     density: 10000,
                     dimensions: {
@@ -217,7 +216,7 @@
                         y: -25,
                         z: 0
                     },
-                    modelURL: 'https://hifi-content.s3.amazonaws.com/caitlyn/production/elBoppo/elBoppo3_VR.fbx',
+                    modelURL: Script.getExternalPath(Script.ExternalPaths.HF_Content, 'caitlyn/production/elBoppo/elBoppo3_VR.fbx'),
                     name: 'El Boppo the Punching Bag Clown',
                     registrationPoint: {
                         x: 0.5,

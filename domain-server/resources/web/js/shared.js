@@ -52,7 +52,7 @@ var URLs = {
   // STABLE METAVERSE_URL: https://metaverse.highfidelity.com
   // STAGING METAVERSE_URL: https://staging.highfidelity.com
   DEFAULT_METAVERSE_URL: "https://metaverse.vircadia.com/live",
-  CDN_URL: 'https://content.vircadia.com/eu-c-1',
+  CDN_URL: 'https://cdn-1.vircadia.com/eu-c-1',
   PLACE_URL: 'https://xr.place'
 };
 
@@ -228,7 +228,7 @@ function getDomainFromAPI(callback) {
   return pendingDomainRequest;
 }
 
-function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAdded) {
+function chooseFromMetaversePlaces(accessToken, forcePathTo, onSuccessfullyAdded) {
   if (accessToken) {
     getMetaverseUrl(function(metaverse_url) {
 
@@ -429,7 +429,7 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
             loadingDialog.modal('hide');
             bootbox.confirm("We were not able to load your domain information from the Metaverse. Would you like to retry?", function(response) {
               if (response) {
-                chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAdded);
+                chooseFromMetaversePlaces(accessToken, forcePathTo, onSuccessfullyAdded);
               }
             });
           }

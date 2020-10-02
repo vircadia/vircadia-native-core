@@ -56,7 +56,7 @@ const menuNotificationIcon = path.join(__dirname, '../resources/tray-menu-notifi
 const DELETE_LOG_FILES_OLDER_THAN_X_SECONDS = 60 * 60 * 24 * 7; // 7 Days
 const LOG_FILE_REGEX = /(domain-server|ac-monitor|ac)-.*-std(out|err).txt/;
 
-const HOME_CONTENT_URL = "https://vircadia-content-public.s3.amazonaws.com/DomainContent/Sandbox/Basic_sandbox_no_external_links.tar.gz";
+const HOME_CONTENT_URL = "http://cdn-1.vircadia.com/us-e-1/DomainContent/Sandbox/Rearranged_Basic_Sandbox.tar.gz";
 
 const buildInfo = GetBuildInfo();
 
