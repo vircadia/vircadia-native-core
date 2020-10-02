@@ -56,7 +56,7 @@ function getFrame(callback) {
 
 function prefetch(callback) {
     // A folder full of individual frames.
-    var MOVIE_URL = "http://hifi-content.s3.amazonaws.com/james/vidtest/";
+    var MOVIE_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/james/vidtest/");
 
     var frames = [];
 

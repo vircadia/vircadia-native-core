@@ -455,7 +455,7 @@ public slots:
      * @example <caption>Create an image overlay and report whether its image is loaded after 1s.</caption>
      * var overlay = Overlays.addOverlay("image", {
      *     bounds: { x: 100, y: 100, width: 200, height: 200 },
-     *     imageURL: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png"
+     *     imageURL: "https://content.vircadia.com/eu-c-1/vircadia-assets/interface/default/default_particle.png"
      * });
      * Script.setTimeout(function () {
      *     var isLoaded = Overlays.isLoaded(overlay);

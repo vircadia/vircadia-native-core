@@ -157,7 +157,7 @@ void Head::simulate(float deltaTime) {
         updateEyeLookAt();
     }
 
-    // use data to update fake Faceshift blendshape coefficients
+    // Use data to update fake blendshape coefficients.
     if (getProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation) &&
         !getSuppressProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation)) {
 

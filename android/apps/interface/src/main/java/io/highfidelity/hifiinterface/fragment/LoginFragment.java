@@ -41,7 +41,7 @@ public class LoginFragment extends Fragment
 
     private final String OAUTH_CLIENT_ID = BuildConfig.OAUTH_CLIENT_ID;
     private final String OAUTH_REDIRECT_URI = BuildConfig.OAUTH_REDIRECT_URI;
-    private final String OAUTH_AUTHORIZE_BASE_URL = "https://highfidelity.com/oauth/authorize";
+    private final String OAUTH_AUTHORIZE_BASE_URL = "https://metaverse.vircadia.com/live/oauth/authorize";
     private static final int OAUTH_AUTHORIZE_REQUEST = 1;
 
     private EditText mUsername;
@@ -222,7 +222,7 @@ public class LoginFragment extends Fragment
     }
 
     private void onForgotPasswordClicked() {
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://highfidelity.com/users/password/new"));
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://metaverse.vircadia.com/live/users/password/new"));
         startActivity(intent);
     }
 

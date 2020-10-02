@@ -15,7 +15,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 // maybe we should make these constants...
 var LEFT_PALM = 0;
@@ -40,7 +41,7 @@ var rightHandEntity = false;
 
 var newSound = SoundCache.getSound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
 var catchSound = SoundCache.getSound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw");
-var throwSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Switches%20and%20sliders/slider%20-%20whoosh1.raw");
+var throwSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Switches%20and%20sliders/slider%20-%20whoosh1.raw");
 var targetRadius = 0.25;
 
 

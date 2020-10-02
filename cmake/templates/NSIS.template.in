@@ -636,6 +636,7 @@ Var Express
 
   ; figure out where to download installer slideshow images from
   StrCpy $0 "http://cdn.highfidelity.com/installer/slideshow"
+  ; Is this in use anymore?
 
   ${If} $CampaignName == ""
     StrCpy $0 "$0/default"
