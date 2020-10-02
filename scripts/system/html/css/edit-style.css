@@ -1688,17 +1688,17 @@ input.rename-entity {
     margin-left: 4px;
     margin-right: 10px;
 }
-.fstuple label.red, .fstuple label.x, .fstuple label.w {
+.fstuple label.red, .fstuple label.r, .fstuple label.x, .fstuple label.w {
     color: #C62147;
 }
-.fstuple label.green, .fstuple label.y, .fstuple label.h {
+.fstuple label.green, .fstuple label.g, .fstuple label.y, .fstuple label.h {
     color: #359D85;
 }
-.fstuple label.blue, .fstuple label.z {
+.fstuple label.blue, .fstuple label.b, .fstuple label.z {
     color: #0093C5;
 }
 
-.xyz.fstuple, .pyr.fstuple {
+.xyz.fstuple, .pyr.fstuple, .vec3rgb.fstuple {
     position: relative;
     left: -12px;
     min-width: 50px;

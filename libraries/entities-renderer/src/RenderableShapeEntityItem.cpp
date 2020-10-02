@@ -33,7 +33,7 @@ bool ShapeEntityRenderer::needsRenderUpdate() const {
     if (resultWithReadLock<bool>([&] {
         auto mat = _materials.find("0");
         if (mat != _materials.end() && mat->second.top().material && mat->second.top().material->isProcedural() &&
-            mat->second.top().material->isEnabled()) {
+            mat->second.top().material->isReady()) {
             auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(mat->second.top().material);
             if (procedural->isFading()) {
                 return true;
@@ -71,27 +71,25 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     });
 
     void* key = (void*)this;
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] () {
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
         withWriteLock([&] {
-            auto entity = getEntity();
             _position = entity->getWorldPosition();
             _dimensions = entity->getUnscaledDimensions(); // get unscaled to avoid scaling twice
             _orientation = entity->getWorldOrientation();
-            updateModelTransformAndBound();
             _renderTransform = getModelTransform(); // contains parent scale, if this entity scales with its parent
             if (_shape == entity::Sphere) {
                 _renderTransform.postScale(SPHERE_ENTITY_SCALE);
             }
 
             _renderTransform.postScale(_dimensions);
-        });;
+        });
     });
 }
 
 void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     withReadLock([&] {
         auto mat = _materials.find("0");
-        if (mat != _materials.end() && mat->second.top().material && mat->second.top().material->isProcedural() && mat->second.top().material->isEnabled()) {
+        if (mat != _materials.end() && mat->second.top().material && mat->second.top().material->isProcedural() && mat->second.top().material->isReady()) {
             auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(mat->second.top().material);
             if (procedural->isFading()) {
                 procedural->setIsFading(Interpolate::calculateFadeRatio(procedural->getFadeStartTime()) < 1.0f);
@@ -122,10 +120,15 @@ void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
             materialChanged = true;
         }
 
-        if (materialChanged) {
-            auto materials = _materials.find("0");
-            if (materials != _materials.end()) {
+        auto materials = _materials.find("0");
+        if (materials != _materials.end()) {
+            if (materialChanged) {
                 materials->second.setNeedsUpdate(true);
+            }
+
+            if (materials->second.shouldUpdate()) {
+                RenderPipelines::updateMultiMaterial(materials->second);
+                emit requestRenderUpdate();
             }
         }
     });
@@ -138,7 +141,7 @@ bool ShapeEntityRenderer::isTransparent() const {
 
     auto mat = _materials.find("0");
     if (mat != _materials.end() && mat->second.top().material) {
-        if (mat->second.top().material->isProcedural() && mat->second.top().material->isEnabled()) {
+        if (mat->second.top().material->isProcedural() && mat->second.top().material->isReady()) {
             auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(mat->second.top().material);
             if (procedural->isFading()) {
                 return true;

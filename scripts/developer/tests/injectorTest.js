@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var soundURL = "http://hifi-public.s3.amazonaws.com/birarda/medium-crowd.wav";
+var soundURL = Script.getExternalPath(Script.ExternalPaths.HF_Public, "/birarda/medium-crowd.wav");
 var audioOptions = {
     position: { x: 0.0, y: 0.0, z: 0.0 },
     volume: 0.5

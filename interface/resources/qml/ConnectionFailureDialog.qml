@@ -7,7 +7,7 @@ MessageDialog {
     objectName: "ConnectionFailureDialog"
 
     title: "No Connection"
-    text: "Unable to connect to this domain. Click the 'GO TO' button on the toolbar to visit another domain."
+    text: "Unable to connect to this domain. Click the 'EXPLORE' button on the toolbar to visit another domain."
     buttons: OriginalDialogs.StandardButton.Ok
     icon: OriginalDialogs.StandardIcon.Warning
     defaultButton: OriginalDialogs.StandardButton.NoButton;

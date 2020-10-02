@@ -4,6 +4,7 @@
 //
 //  Created by Bradley Austin Davis on 2015/04/14
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -24,7 +25,9 @@
 #include <UserActivityLogger.h>
 
 #include "AccountManager.h"
+#include "DomainAccountManager.h"
 #include "DependencyManager.h"
+#include "DialogsManager.h"
 #include "Menu.h"
 
 #include "Application.h"
@@ -38,11 +41,16 @@ const QUrl LOGIN_DIALOG = PathUtils::qmlUrl("OverlayLoginDialog.qml");
 
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     auto accountManager = DependencyManager::get<AccountManager>();
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
     // the login hasn't been dismissed yet if the user isn't logged in and is encouraged to login.
 #if !defined(Q_OS_ANDROID)
     connect(accountManager.data(), &AccountManager::loginComplete,
         this, &LoginDialog::handleLoginCompleted);
     connect(accountManager.data(), &AccountManager::loginFailed,
+            this, &LoginDialog::handleLoginFailed);
+    connect(domainAccountManager.data(), &DomainAccountManager::loginComplete,
+        this, &LoginDialog::handleLoginCompleted);
+    connect(domainAccountManager.data(), &DomainAccountManager::loginFailed,
             this, &LoginDialog::handleLoginFailed);
     connect(qApp, &Application::loginDialogFocusEnabled, this, &LoginDialog::focusEnabled);
     connect(qApp, &Application::loginDialogFocusDisabled, this, &LoginDialog::focusDisabled);
@@ -91,14 +99,16 @@ void LoginDialog::toggleAction() {
 
     if (accountManager->isLoggedIn()) {
         // change the menu item to logout
-        loginAction->setText("Logout " + accountManager->getAccountInfo().getUsername());
+        loginAction->setText("Metaverse: Logout " + accountManager->getAccountInfo().getUsername());
         connection = connect(loginAction, &QAction::triggered, accountManager.data(), &AccountManager::logout);
     } else {
         // change the menu item to login
-        loginAction->setText("Log In / Sign Up");
+        loginAction->setText("Metaverse: Log In / Sign Up");
         connection = connect(loginAction, &QAction::triggered, [] {
             // if not in login state, show.
             if (!qApp->getLoginDialogPoppedUp()) {
+                auto dialogsManager = DependencyManager::get<DialogsManager>();
+                dialogsManager->setMetaverseLoginState();
                 LoginDialog::showWithSelection();
             }
         });
@@ -131,8 +141,13 @@ void LoginDialog::dismissLoginDialog() {
 }
 
 void LoginDialog::login(const QString& username, const QString& password) const {
-    qDebug() << "Attempting to login " << username;
+    qDebug() << "Attempting to login" << username;
     DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
+}
+
+void LoginDialog::loginDomain(const QString& username, const QString& password) const {
+    qDebug() << "Attempting to login" << username << "into a domain";
+    DependencyManager::get<DomainAccountManager>()->requestAccessToken(username, password);
 }
 
 void LoginDialog::loginThroughOculus() {
@@ -157,7 +172,7 @@ void LoginDialog::linkOculus() {
             callbackParams.callbackReceiver = this;
             callbackParams.jsonCallbackMethod = "linkCompleted";
             callbackParams.errorCallbackMethod = "linkFailed";
-            const QString LINK_OCULUS_PATH = "api/v1/user/oculus/link";
+            const QString LINK_OCULUS_PATH = "/api/v1/user/oculus/link";
 
             QJsonObject payload;
             payload["oculus_nonce"] = nonce;
@@ -185,7 +200,7 @@ void LoginDialog::createAccountFromOculus(QString email, QString username, QStri
             callbackParams.jsonCallbackMethod = "createCompleted";
             callbackParams.errorCallbackMethod = "createFailed";
 
-            const QString CREATE_ACCOUNT_FROM_OCULUS_PATH = "api/v1/user/oculus/create";
+            const QString CREATE_ACCOUNT_FROM_OCULUS_PATH = "/api/v1/user/oculus/create";
 
             QJsonObject payload;
             payload["oculus_nonce"] = nonce;
@@ -236,7 +251,7 @@ void LoginDialog::linkSteam() {
             callbackParams.jsonCallbackMethod = "linkCompleted";
             callbackParams.errorCallbackMethod = "linkFailed";
 
-            const QString LINK_STEAM_PATH = "api/v1/user/steam/link";
+            const QString LINK_STEAM_PATH = "/api/v1/user/steam/link";
 
             QJsonObject payload;
             payload["steam_auth_ticket"] = QJsonValue::fromVariant(QVariant(ticket));
@@ -263,7 +278,7 @@ void LoginDialog::createAccountFromSteam(QString username) {
             callbackParams.jsonCallbackMethod = "createCompleted";
             callbackParams.errorCallbackMethod = "createFailed";
 
-            const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/steam/create";
+            const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "/api/v1/user/steam/create";
 
             QJsonObject payload;
             payload["steam_auth_ticket"] = QJsonValue::fromVariant(QVariant(ticket));
@@ -409,4 +424,12 @@ void LoginDialog::signupFailed(QNetworkReply* reply) {
         static const QString DEFAULT_SIGN_UP_FAILURE_MESSAGE = "There was an unknown error while creating your account. Please try again later.";
         emit handleSignupFailed(DEFAULT_SIGN_UP_FAILURE_MESSAGE);
     }
+}
+
+bool LoginDialog::getDomainLoginRequested() const {
+    return DependencyManager::get<DialogsManager>()->getIsDomainLogin();
+}
+
+QString LoginDialog::getDomainLoginDomain() const {
+    return DependencyManager::get<DialogsManager>()->getDomainLoginDomain();
 }

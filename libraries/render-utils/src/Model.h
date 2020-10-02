@@ -118,9 +118,13 @@ public:
     bool isCauterized() const { return _cauterized; }
     void setCauterized(bool value, const render::ScenePointer& scene);
 
+    void setPrimitiveMode(PrimitiveMode primitiveMode);
+    PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
+
     void setCullWithParent(bool value);
 
     void setRenderWithZones(const QVector<QUuid>& renderWithZones);
+    const QVector<QUuid>& getRenderWithZones() const { return _renderWithZones; }
 
     // Access the current RenderItemKey Global Flags used by the model and applied to the render items  representing the parts of the model.
     const render::ItemKey getRenderItemKeyGlobalFlags() const;
@@ -158,9 +162,6 @@ public:
 
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isHFMModelLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
-
-    void setPrimitiveMode(PrimitiveMode primitiveMode);
-    PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
 
     void reset();
 
@@ -499,6 +500,7 @@ protected:
     render::ItemKey _renderItemKeyGlobalFlags;
     bool _cauterized { false };
     bool _cullWithParent { false };
+    QVector<QUuid> _renderWithZones;
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 

@@ -1338,7 +1338,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             _model->setCullWithParent(_cullWithParent);
             _model->setRenderWithZones(_renderWithZones);
             emit requestRenderUpdate();
-            if(didVisualGeometryRequestSucceed) {
+            if (didVisualGeometryRequestSucceed) {
                 emit DependencyManager::get<scriptable::ModelProviderFactory>()->
                     modelAddedToScene(entity->getEntityItemID(), NestableType::Entity, _model);
             }
@@ -1459,6 +1459,31 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         model->updateRenderItems();
     } else if (!_texturesLoaded) {
         emit requestRenderUpdate();
+    }
+
+    if (!_allProceduralMaterialsLoaded) {
+        std::lock_guard<std::mutex> lock(_materialsLock);
+        bool allProceduralMaterialsLoaded = true;
+        for (auto& shapeMaterialPair : _materials) {
+            auto material = shapeMaterialPair.second;
+            while (!material.empty()) {
+                auto mat = material.top();
+                if (mat.material && mat.material->isProcedural() && !mat.material->isReady()) {
+                    allProceduralMaterialsLoaded = false;
+                    break;
+                }
+                material.pop();
+            }
+            if (!allProceduralMaterialsLoaded) {
+                break;
+            }
+        }
+        if (!allProceduralMaterialsLoaded) {
+            emit requestRenderUpdate();
+        } else {
+            _allProceduralMaterialsLoaded = true;
+            model->setRenderItemsNeedUpdate();
+        }
     }
 
     // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
@@ -1586,6 +1611,10 @@ void ModelEntityRenderer::addMaterial(graphics::MaterialLayer material, const st
     Parent::addMaterial(material, parentMaterialName);
     if (_model && _model->fetchRenderItemIDs().size() > 0) {
         _model->addMaterial(material, parentMaterialName);
+    }
+    if (material.material && material.material->isProcedural()) {
+        _allProceduralMaterialsLoaded = false;
+        emit requestRenderUpdate();
     }
 }
 

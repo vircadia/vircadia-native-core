@@ -271,7 +271,7 @@ function onMessage(message) {
 }
 
 var POLAROID_PRINT_SOUND = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/sound-print-photo.wav");
-var POLAROID_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
+var POLAROID_MODEL_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/alan/dev/Test/snapshot.fbx");
 var POLAROID_RATE_LIMIT_MS = 1000;
 var polaroidPrintingIsRateLimited = false;
 
@@ -474,9 +474,10 @@ function takeSnapshot() {
             volume: 1.0
         });
         HMD.closeTablet();
+        var DOUBLE_RENDER_TIME_TO_MS = 2000; // If rendering is bogged down, allow double the render time to close the tablet.
         Script.setTimeout(function () {
             Window.takeSnapshot(false, includeAnimated, 1.91);
-        }, SNAPSHOT_DELAY);
+        }, Math.max(SNAPSHOT_DELAY, DOUBLE_RENDER_TIME_TO_MS / Rates.render ));
     }, FINISH_SOUND_DELAY);
     UserActivityLogger.logAction("snaphshot_taken", { location: location.href });
 }

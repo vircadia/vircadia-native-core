@@ -11,7 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 var count = 0;
 var stopAfter = 1000;
@@ -26,7 +27,7 @@ var modelPropertiesA = {
                 y: 3.34,
                 z: 0.54
                 },
-    modelURL: HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
+    modelURL: VIRCADIA_PUBLIC_CDN + "meshes/Feisar_Ship.FBX",
     lifetime: 20
 };
 

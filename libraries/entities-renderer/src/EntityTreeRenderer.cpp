@@ -425,6 +425,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
     }
 
     float expectedUpdateCost = _avgRenderableUpdateCost * _renderablesToUpdate.size();
+    _prevTotalNeededEntityUpdates = _renderablesToUpdate.size();
     if (expectedUpdateCost < MAX_UPDATE_RENDERABLES_TIME_BUDGET) {
         // we expect to update all renderables within available time budget
         PROFILE_RANGE_EX(simulation_physics, "UpdateRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
@@ -433,7 +434,8 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             assert(renderable); // only valid renderables are added to _renderablesToUpdate
             renderable->updateInScene(scene, transaction);
         }
-        size_t numRenderables = _renderablesToUpdate.size() + 1; // add one to avoid divide by zero
+        _prevNumEntityUpdates = _renderablesToUpdate.size();
+        size_t numRenderables = _prevNumEntityUpdates + 1; // add one to avoid divide by zero
         _renderablesToUpdate.clear();
 
         // compute average per-renderable update cost
@@ -494,7 +496,8 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             }
 
             // compute average per-renderable update cost
-            size_t numUpdated = sortedRenderables.size() - _renderablesToUpdate.size() + 1; // add one to avoid divide by zero
+            _prevNumEntityUpdates = sortedRenderables.size() - _renderablesToUpdate.size();
+            size_t numUpdated = _prevNumEntityUpdates + 1; // add one to avoid divide by zero
             float cost = (float)(usecTimestampNow() - updateStart) / (float)(numUpdated);
             const float BLEND = 0.1f;
             _avgRenderableUpdateCost = (1.0f - BLEND) * _avgRenderableUpdateCost + BLEND * cost;

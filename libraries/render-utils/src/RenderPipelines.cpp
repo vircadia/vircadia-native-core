@@ -691,6 +691,7 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                 break;
             case graphics::Material::CULL_FACE_MODE:
                 multiMaterial.setCullFaceMode(graphics::Material::DEFAULT_CULL_FACE_MODE);
+                break;
             case graphics::MaterialKey::ALBEDO_MAP_BIT:
                 if (schemaKey.isAlbedoMap()) {
                     drawMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, textureCache->getWhiteTexture());

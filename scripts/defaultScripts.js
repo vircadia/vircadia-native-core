@@ -6,6 +6,7 @@
 //  examples
 //
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -22,10 +23,9 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/snapshot.js",
     "system/pal.js", // "system/mod.js", // older UX, if you prefer
     "system/avatarapp.js",
+    "system/graphicsSettings.js",
     "system/makeUserConnection.js",
-    "system/marketplaces/marketplaces.js",
     "system/notifications.js",
-    "system/commerce/wallet.js",
     "system/create/edit.js",
     "system/dialTone.js",
     "system/firstPersonHMD.js",
@@ -34,7 +34,8 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/miniTablet.js",
     "system/audioMuteOverlay.js",
     "system/inspect.js",
-    "system/keyboardShortcuts/keyboardShortcuts.js"
+    "system/keyboardShortcuts/keyboardShortcuts.js",
+    "system/checkForUpdates.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",

@@ -149,8 +149,6 @@ protected:
     QVector<QUuid> _renderWithZones;
     bool _cauterized { false };
     bool _moving { false };
-    // Only touched on the rendering thread
-    bool _renderUpdateQueued{ false };
     Transform _renderTransform;
     Transform _prevRenderTransform; // each subclass is responsible for updating this after they render because they all handle transforms differently
 
@@ -158,7 +156,6 @@ protected:
     std::mutex _materialsLock;
 
     quint64 _created;
-    QUuid _entityID;
 
     // The base class relies on comparing the model transform to the entity transform in order 
     // to trigger an update, so the member must not be visible to derived classes as a modifiable
@@ -168,6 +165,8 @@ protected:
     // i.e. to see if the rendering code needs to update because of a change in state of the 
     // entity.  This forces all the rendering code itself to be independent of the entity
     const EntityItemPointer _entity;
+
+    QUuid _entityID;
 };
 
 template <typename T>
@@ -193,10 +192,7 @@ protected:
     using Parent::needsRenderUpdateFromEntity;
     // Returns true if the item in question needs to have updateInScene called because of changes in the entity
     virtual bool needsRenderUpdateFromEntity(const EntityItemPointer& entity) const override final {
-        if (Parent::needsRenderUpdateFromEntity(entity)) {
-            return true;
-        }
-        return needsRenderUpdateFromTypedEntity(_typedEntity);
+        return Parent::needsRenderUpdateFromEntity(entity) || needsRenderUpdateFromTypedEntity(_typedEntity);
     }
 
     virtual void doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) override final {

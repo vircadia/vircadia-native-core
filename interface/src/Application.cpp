@@ -4,6 +4,7 @@
 //
 //  Created by Andrzej Kapolka on 5/10/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -65,6 +66,7 @@
 #include <Trace.h>
 #include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
+#include <DomainAccountManager.h>
 #include <AddressManager.h>
 #include <AnimDebugDraw.h>
 #include <BuildInfo.h>
@@ -251,6 +253,7 @@
 #include <DesktopPreviewProvider.h>
 
 #include "AboutUtil.h"
+#include "ExternalResource.h"
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
@@ -852,6 +855,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 #else
     DependencyManager::set<AccountManager>(true, std::bind(&Application::getUserAgent, qApp));
 #endif
+    DependencyManager::set<DomainAccountManager>();
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT, defaultScriptsOverrideOption);
     DependencyManager::set<Preferences>();
@@ -1348,6 +1352,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
 
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
+    connect(domainAccountManager.data(), &DomainAccountManager::authRequired,
+        dialogsManager.data(), &DialogsManager::showDomainLoginDialog);
+    connect(domainAccountManager.data(), &DomainAccountManager::authRequired, this, &Application::updateWindowTitle);
+    connect(domainAccountManager.data(), &DomainAccountManager::loginComplete, this, &Application::updateWindowTitle);
+    // ####### TODO: Connect any other signals from domainAccountManager.
+
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter([] {
         auto avatarManager = DependencyManager::get<AvatarManager>();
@@ -1571,7 +1582,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // Do not show login dialog if requested not to on the command line
         QString hifiNoLoginCommandLineKey = QString("--").append(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
         int index = arguments().indexOf(hifiNoLoginCommandLineKey);
-        if (index != -1) {
+        if (index != -1 || _disableLoginScreen) {
             resumeAfterLoginDialogActionTaken();
             return;
         }
@@ -2614,7 +2625,7 @@ QString Application::getUserAgent() {
         return userAgent;
     }
 
-    QString userAgent = "Mozilla/5.0 (HighFidelityInterface/" + BuildInfo::VERSION + "; "
+    QString userAgent = NetworkingConstants::VIRCADIA_USER_AGENT + "/" + BuildInfo::VERSION + "; "
         + QSysInfo::productType() + " " + QSysInfo::productVersion() + ")";
 
     auto formatPluginName = [](QString name) -> QString { return name.trimmed().replace(" ", "-");  };
@@ -2801,6 +2812,7 @@ void Application::cleanupBeforeQuit() {
     if (!keepMeLoggedIn) {
         DependencyManager::get<AccountManager>()->removeAccountFromFile();
     }
+    // ####### TODO
 
     _displayPlugin.reset();
     PluginManager::getInstance()->shutdown();
@@ -3150,6 +3162,7 @@ extern void setupPreferences();
 static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, int index, bool active = false);
 #endif
 
+// ####### TODO
 void Application::showLoginScreen() {
 #if !defined(DISABLE_QML)
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -3500,8 +3513,10 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
-    surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
+    surfaceContext->setContextProperty("About", AboutUtil::getInstance());
+    surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());  // Deprecated
     surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
+    surfaceContext->setContextProperty("ExternalResource", ExternalResource::getInstance());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -3611,10 +3626,13 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
         surfaceContext->setContextProperty("Pointers", DependencyManager::get<PointerScriptingInterface>().data());
         surfaceContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
         surfaceContext->setContextProperty("Reticle", qApp->getApplicationCompositor().getReticleInterface());
-        surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
+        surfaceContext->setContextProperty("About", AboutUtil::getInstance());
+        surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());  // Deprecated.
         surfaceContext->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
         surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
         surfaceContext->setContextProperty("PlatformInfo", PlatformInfoScriptingInterface::getInstance());
+        surfaceContext->setContextProperty("ExternalResource", ExternalResource::getInstance());
+
         // This `module` context property is blank for the QML scripting interface so that we don't get log errors when importing
         // certain JS files from both scripts (in the JS context) and QML (in the QML context).
         surfaceContext->setContextProperty("module", "");
@@ -3939,12 +3957,15 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMDAndHandControllers;
 
-    // when --url in command line, teleport to location
-    const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
-    int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
     QString addressLookupString;
-    if (urlIndex != -1) {
-        QUrl url(arguments().value(urlIndex + 1));
+
+    // when --url in command line, teleport to location
+    QCommandLineParser parser;
+    QCommandLineOption urlOption("url", "", "value");
+    parser.addOption(urlOption);
+    parser.parse(arguments());
+    if (parser.isSet(urlOption)) {
+        QUrl url = QUrl(parser.value(urlOption));
         if (url.scheme() == URL_SCHEME_HIFIAPP) {
             Setting::Handle<QVariant>("startUpApp").set(url.path());
         } else {
@@ -3959,6 +3980,11 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // If this is a first run we short-circuit the address passed in
     if (_firstRun.get()) {
+        if (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty()) {
+            DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS);
+            Menu::getInstance()->triggerOption(MenuOption::HomeLocation);
+        }
+        
         if (!_overrideEntry) {
             DependencyManager::get<AddressManager>()->goToEntry();
             sentTo = SENT_TO_ENTRY;
@@ -5517,6 +5543,19 @@ void Application::loadSettings() {
     }
 
     getMyAvatar()->loadData();
+
+    auto bucketEnum = QMetaEnum::fromType<ExternalResource::Bucket>();
+    auto externalResource = ExternalResource::getInstance();
+
+    for (int i = 0; i < bucketEnum.keyCount(); i++) {
+        const char* keyName = bucketEnum.key(i);
+        QString setting("ExternalResource/");
+        setting += keyName;
+        auto bucket = static_cast<ExternalResource::Bucket>(bucketEnum.keyToValue(keyName));
+        Setting::Handle<QString> url(setting, externalResource->getBase(bucket));
+        externalResource->setBase(bucket, url.get());
+    }
+
     _settingsLoaded = true;
 }
 
@@ -5533,6 +5572,22 @@ void Application::saveSettings() const {
     Menu::getInstance()->saveSettings();
     getMyAvatar()->saveData();
     PluginManager::getInstance()->saveSettings();
+
+    // Don't save external resource paths until such time as there's UI to select or set alternatives. Otherwise new default
+    // values won't be used unless Interface.json entries are manually remove or Interface.json is deleted.
+    /*
+    auto bucketEnum = QMetaEnum::fromType<ExternalResource::Bucket>();
+    auto externalResource = ExternalResource::getInstance();
+
+    for (int i = 0; i < bucketEnum.keyCount(); i++) {
+        const char* keyName = bucketEnum.key(i);
+        QString setting("ExternalResource/");
+        setting += keyName;
+        auto bucket = static_cast<ExternalResource::Bucket>(bucketEnum.keyToValue(keyName));
+        Setting::Handle<QString> url(setting, externalResource->getBase(bucket));
+        url.set(externalResource->getBase(bucket));
+    }
+    */
 }
 
 bool Application::importEntities(const QString& urlOrFilename, const bool isObservable, const qint64 callerId) {
@@ -7066,26 +7121,31 @@ void Application::updateWindowTitle() const {
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto accountManager = DependencyManager::get<AccountManager>();
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
+    bool isMetaverseLoggedIn = accountManager->isLoggedIn();
+    bool hasDomainLogIn = domainAccountManager->hasLogIn();
+    bool isDomainLoggedIn = domainAccountManager->isLoggedIn();
+    QString authedDomainName = domainAccountManager->getAuthedDomainName();
 
     QString buildVersion = " - Vircadia - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
 
-    QString loginStatus = accountManager->isLoggedIn() ? "" : " (NOT LOGGED IN)";
-
     QString connectionStatus = isInErrorState ? " (ERROR CONNECTING)" :
         nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
-    QString username = accountManager->getAccountInfo().getUsername();
 
-    setCrashAnnotation("sentry[user][username]", username.toStdString());
+    QString metaverseUsername = accountManager->getAccountInfo().getUsername();
+    QString domainUsername = domainAccountManager->getUsername();
+
+    setCrashAnnotation("sentry[user][username]", metaverseUsername.toStdString());
 
     QString currentPlaceName;
     if (isServerlessMode()) {
         if (isInErrorState) {
-            currentPlaceName = "serverless: " + nodeList->getDomainHandler().getErrorDomainURL().toString();
+            currentPlaceName = "Serverless: " + nodeList->getDomainHandler().getErrorDomainURL().toString();
         } else {
-            currentPlaceName = "serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
+            currentPlaceName = "Serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
         }
     } else {
         currentPlaceName = DependencyManager::get<AddressManager>()->getDomainURL().host();
@@ -7094,8 +7154,25 @@ void Application::updateWindowTitle() const {
         }
     }
 
-    QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + currentPlaceName + connectionStatus + loginStatus + buildVersion;
+    QString metaverseDetails;
+    if (isMetaverseLoggedIn) {
+        metaverseDetails = " (Metaverse: Connected to " + MetaverseAPI::getCurrentMetaverseServerURL().toString() + " as " + metaverseUsername + ")";
+    } else {
+        metaverseDetails = " (Metaverse: Not Logged In)";
+    }
+
+    QString domainDetails;
+    if (hasDomainLogIn) {
+        if (currentPlaceName == authedDomainName && isDomainLoggedIn) {
+            domainDetails = " (Domain: Logged in as " + domainUsername + ")";
+        } else {
+            domainDetails = " (Domain: Not Logged In)";
+        }
+    } else {
+        domainDetails = "";
+    }
+
+    QString title = currentPlaceName + connectionStatus + metaverseDetails + domainDetails + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32
@@ -7487,7 +7564,8 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptEngine
     scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     scriptEngine->registerGlobalObject("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
-    scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());
+    scriptEngine->registerGlobalObject("About", AboutUtil::getInstance());
+    scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());  // Deprecated.
     scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
     registerInteractiveWindowMetaType(scriptEngine.data());
@@ -7624,7 +7702,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 
     QUrl scriptURL { scriptFilenameOrURL };
 
-    if (scriptURL.host().endsWith(NetworkingConstants::MARKETPLACE_CDN_HOSTNAME)) {
+    if (scriptURL.host().endsWith(NetworkingConstants::HF_MARKETPLACE_CDN_HOSTNAME)) {
         int startIndex = shortName.lastIndexOf('/') + 1;
         int endIndex = shortName.lastIndexOf('?');
         shortName = shortName.mid(startIndex, endIndex - startIndex);
@@ -7655,7 +7733,7 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(url);
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(networkRequest);
     int requestNumber = ++_avatarAttachmentRequest;
     connect(reply, &QNetworkReply::finished, [this, reply, url, requestNumber]() {
@@ -7747,7 +7825,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
     const int MAX_CHARACTERS_PER_LINE = 90;
     if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
         QUrl originURL { url };
-        if (originURL.host().endsWith(NetworkingConstants::MARKETPLACE_CDN_HOSTNAME)) {
+        if (originURL.host().endsWith(NetworkingConstants::HF_MARKETPLACE_CDN_HOSTNAME)) {
             // Create a confirmation dialog when this call is made
             static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
                 "If you want to save what you have now, create a backup before proceeding. For more information about backing up "

@@ -116,10 +116,10 @@ void OtherAvatar::updateSpaceProxy(workload::Transaction& transaction) const {
 
 int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     int32_t bytesRead = Avatar::parseDataFromBuffer(buffer);
-    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
+    for (auto& detailedMotionState : _detailedMotionStates) {
         // NOTE: we activate _detailedMotionStates is because they are KINEMATIC
         // and Bullet will automagically call DetailedMotionState::getWorldTransform() when active.
-        _detailedMotionStates[i]->forceActive();
+        detailedMotionState->forceActive();
     }
     if (_moving && _motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
@@ -168,6 +168,7 @@ const btCollisionShape* OtherAvatar::createCollisionShape(int32_t jointIndex, bo
         }
         // Note: MultiSphereLow case really means: "skip fingers and use spheres for hands,
         // else fall through to MultiSphereHigh case"
+        /* fall-thru */
     case BodyLOD::MultiSphereHigh:
         computeDetailedShapeInfo(shapeInfo, jointIndex);
         break;

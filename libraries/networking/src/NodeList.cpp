@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/15/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -33,6 +34,7 @@
 #include "AddressManager.h"
 #include "Assignment.h"
 #include "AudioHelpers.h"
+#include "DomainAccountManager.h"
 #include "HifiSockAddr.h"
 #include "FingerprintUtils.h"
 
@@ -102,6 +104,13 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
 
     // clear our NodeList when logout is requested
     connect(accountManager.data(), &AccountManager::logoutComplete , this, [this]{ reset("Logged out"); });
+
+    // Only used in Interface.
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
+    if (domainAccountManager) {
+        _hasDomainAccountManager = true;
+        connect(domainAccountManager.data(), &DomainAccountManager::newTokens, this, &NodeList::sendDomainServerCheckIn);
+    }
 
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
@@ -379,6 +388,7 @@ void NodeList::sendDomainServerCheckIn() {
         if (domainPacketType == PacketType::DomainConnectRequest) {
 
 #if (PR_BUILD || DEV_BUILD)
+            // #######
             if (_shouldSendNewerVersion) {
                 domainPacket->setVersion(versionForPacketType(domainPacketType) + 1);
             }
@@ -467,14 +477,27 @@ void NodeList::sendDomainServerCheckIn() {
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
         if (!domainIsConnected) {
+
+            // Metaverse account.
             DataServerAccountInfo& accountInfo = accountManager->getAccountInfo();
             packetStream << accountInfo.getUsername();
-
             // if this is a connect request, and we can present a username signature, send it along
             if (requiresUsernameSignature && accountManager->getAccountInfo().hasPrivateKey()) {
                 const QByteArray& usernameSignature = accountManager->getAccountInfo().getUsernameSignature(connectionToken);
                 packetStream << usernameSignature;
+            } else {
+                packetStream << QString("");  // Placeholder in case have domain username.
             }
+
+            // Domain account.
+            if (_hasDomainAccountManager) {
+                auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
+                if (!domainAccountManager->getUsername().isEmpty() && !domainAccountManager->getAccessToken().isEmpty()) {
+                    packetStream << domainAccountManager->getUsername();
+                    packetStream << (domainAccountManager->getAccessToken() + ":" + domainAccountManager->getRefreshToken());
+                }
+            }
+
         }
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);

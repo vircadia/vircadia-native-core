@@ -44,7 +44,8 @@ var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
 var ENTIRE_DOMAIN_SCAN_RADIUS = 27713;
 
-var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
+var DEFAULT_IMAGE = Script.getExternalPath(Script.ExternalPaths.Assets, "Bazaar/Assets/Textures/Defaults/Interface/default_image.jpg");
+var DEFAULT_PARTICLE = Script.getExternalPath(Script.ExternalPaths.Assets, "Bazaar/Assets/Textures/Defaults/Interface/default_particle.png");
 
 var createToolsWindow = new CreateWindow(
     Script.resolvePath("qml/EditTools.qml"),
@@ -436,7 +437,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
     ParticleEffect: {
         lifespan: 1.5,
         maxParticles: 10,
-        textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png",
+        textures: DEFAULT_PARTICLE,
         emitRate: 5.5,
         emitSpeed: 0,
         speedSpread: 0,
@@ -735,6 +736,9 @@ var toolBar = (function () {
     function handleNewMaterialDialogResult(result) {
         if (result) {
             var materialURL = result.textInput;
+            if (materialURL === "") {
+                materialURL = "materialData";
+            }
             //var materialMappingMode;
             //switch (result.comboBox) {
             //    case MATERIAL_MODE_PROJECTED:
@@ -2442,8 +2446,8 @@ var PropertiesTool = function (opts) {
                         Entities.editEntity(entityID, properties);
                     });
 
-                    if (properties.name !== undefined || properties.modelURL !== undefined || properties.materialURL !== undefined ||
-                        properties.visible !== undefined || properties.locked !== undefined) {
+                    if (properties.name !== undefined || properties.modelURL !== undefined || properties.imageURL !== undefined ||
+                        properties.materialURL !== undefined || properties.visible !== undefined || properties.locked !== undefined) {
 
                         sendListUpdate = true;
                     }

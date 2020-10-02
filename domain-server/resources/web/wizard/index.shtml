@@ -3,12 +3,12 @@
   <h4 class="step-title"></h4>
   <dl class="row">
     <dd class="col-md-12">
-      <span class='step-description'>By connecting your High Fidelity Account you will be granting access to your account information.</span>
+      <span class='step-description'>By connecting your Metaverse Account you will be granting access to your account information.</span>
     </dd>
   </dl>
   <dl class="row">
     <dd class="col-md-12">
-      <a id="connect-account-btn" role="button" class="btn btn-primary btn-md btn-block" target="_blank">Connect your High Fidelity account</a>
+      <a id="connect-account-btn" role="button" class="btn btn-primary btn-md btn-block" target="_blank">Connect your Metaverse account</a>
     </dd>
   </dl>
 
@@ -25,7 +25,7 @@
     <div class="col-md-12">
       <span class='step-description'>
         <a target='_blank' href='https://docs.vircadia.dev/create-and-explore/start-working-in-your-sandbox/place-names'>Place names</a> are similar to web addresses. Users who want to visit your domain can
-        enter its Place Name in High Fidelity's Interface. You can choose a Place Name for your domain.</br>
+        enter its Place Name in Vircadia's Interface. You can choose a Place Name for your domain.</br>
         Your domain may also be reachable by <b>IP address</b>.
       </span>
     </div>
@@ -56,11 +56,11 @@
 <div class="wizard-step col-md-9 col-centered" style="display: none;">
   <h4 class="step-title"></h4>
   <div class="row">
-    <p id="permissions-description" class="col-md-12 step-info"><b>Localhost</b> has been granted administrator privileges to this domain. (Localhost is any</br>user on the same machine as the High Fidelity Server)</p>
+    <p id="permissions-description" class="col-md-12 step-info"><b>Localhost</b> has been granted administrator privileges to this domain. (Localhost is any</br>user on the same machine as the Vircadia Server)</p>
   </div>
   <div id="admin-row" class="row">
     <p class="col-md-6">
-      <span class="step-info"><span id="admin-description"><b>Add your High Fidelity username</b> and any other usernames</span> to grant <span class='wizard-link' data-toggle="tooltip" title="Users who will have all the permissions for this domain.">administrator privileges</span></span>
+      <span class="step-info"><span id="admin-description"><b>Add your Metaverse username</b> and any other usernames</span> to grant <span class='wizard-link' data-toggle="tooltip" title="Users who will have all the permissions for this domain.">administrator privileges</span></span>
     </p>
     <div class="col-md-6">
       <input id="admin-usernames" type="text" class="form-control">
@@ -95,7 +95,7 @@
     </p>
     <p class="col-md-5">
       <label>
-        <input id="connect-logged-in" name="connect-radio" type="radio" value="logged-in"> Users logged into High Fidelity
+        <input id="connect-logged-in" name="connect-radio" type="radio" value="logged-in"> Users logged into the Metaverse
       </label>
     </p>
     <p class="col-md-2">
@@ -126,7 +126,7 @@
     </p>
     <p class="col-md-5">
       <label>
-        <input id="rez-logged-in" name="rez-radio" type="radio" value="logged-in" disabled> Users logged into High Fidelity
+        <input id="rez-logged-in" name="rez-radio" type="radio" value="logged-in" disabled> Users logged into the Metaverse
       </label>
     </p>
     <p class="col-md-2">
@@ -164,14 +164,14 @@
     <dt class="col-md-4 step-info">Username</dt>
     <dd class="col-md-8">
       <input id="http_username" type="text" class="form-control">
-      <span class='help-block'>This does not have to be your High Fidelity username</span>
+      <span class='help-block'>This does not have to be your Metaverse username</span>
     </dd>
   </dl>
   <dl class="row">
     <dt class="col-md-4 step-info">Enter password</dt>
     <dd class="col-md-8">
       <input id="http_password" type="password" class="form-control">
-      <span class='help-block'>This should not be the same as your High Fidelity password</span>
+      <span class='help-block'>This should not be the same as your Metaverse password</span>
     </dd>
   </dl>
   <dl id="verify-password-row" class="row">
@@ -262,4 +262,5 @@
 <script src='/js/bootbox.min.js'></script>
 <script src='/js/sha256.js'></script>
 <script src='js/wizard.js'></script>
+<script src='../js/shared.js'></script>
 <!--#include virtual="page-end.html"-->

@@ -17,14 +17,14 @@ Script.include("/~/system/libraries/Xform.js");
 (function() { // BEGIN LOCAL_SCOPE
 
 var TABLET_BUTTON_NAME = "PUCKATTACH";
-var TABLET_APP_URL = "https://s3.amazonaws.com/hifi-public/tony/html/filtered-puck-attach.html?2";
+var TABLET_APP_URL = Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/html/filtered-puck-attach.html?2");
 var NUM_TRACKED_OBJECTS = 16;
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var tabletButton = tablet.addButton({
     text: TABLET_BUTTON_NAME,
-    icon: "https://s3.amazonaws.com/hifi-public/tony/icons/puck-i.svg",
-    activeIcon: "https://s3.amazonaws.com/hifi-public/tony/icons/puck-a.svg"
+    icon: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/puck-i.svg"),
+    activeIcon: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/puck-a.svg")
 });
 
 var shown = false;
@@ -87,7 +87,7 @@ function entityExists(entityID) {
     return Object.keys(Entities.getEntityProperties(entityID)).length > 0;
 }
 
-var VIVE_PUCK_MODEL = "https://s3.amazonaws.com/hifi-public/tony/vive_tracker_puck_y180z180.obj";
+var VIVE_PUCK_MODEL = Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/vive_tracker_puck_y180z180.obj");
 var VIVE_PUCK_DIMENSIONS = { x: 0.0945, y: 0.0921, z: 0.0423 }; // 1/1000th scale of model
 var VIVE_PUCK_SEARCH_DISTANCE = 1.5; // metres
 var VIVE_PUCK_SPAWN_DISTANCE = 0.5; // metres

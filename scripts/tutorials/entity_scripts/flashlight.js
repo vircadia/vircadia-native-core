@@ -8,7 +8,7 @@
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  This is a toy script that can be added to the Flashlight model entity:
-//  "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx"
+//  Script.getExternalPath(Script.ExternalPaths.HF_Public, "/models/props/flashlight.fbx")
 //  that creates a spotlight attached with the flashlight model while the entity is grabbed
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -17,8 +17,8 @@
 
 (function() {
 
-    var ON_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_on.wav';
-    var OFF_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_off.wav';
+    var ON_SOUND_URL = Script.getExternalPath(Script.ExternalPaths.HF_Public, '/sounds/Switches%20and%20sliders/flashlight_on.wav');
+    var OFF_SOUND_URL = Script.getExternalPath(Script.ExternalPaths.HF_Public, '/sounds/Switches%20and%20sliders/flashlight_off.wav');
 
     //we are creating lights that we don't want to get stranded so lets make sure that we can get rid of them
     //if you're going to be using this in a dungeon or something and holding it for a long time, increase this lifetime value.
