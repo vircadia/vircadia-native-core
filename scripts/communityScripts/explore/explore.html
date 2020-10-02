@@ -1,212 +1,568 @@
-<!--
-//  explore.html
-//
-//  Created by Darlingnotin in 2019.
-//  Copyright 2019 Darlingnotin
-//
-//  Distributed under the ISC license.
-//  See the accompanying file LICENSE or https://opensource.org/licenses/ISC
--->
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>Explore</title>
-    <link href="bootstrap.min.css" rel="stylesheet">
+    <link href="../libraries/materialdesignicons/css/materialdesignicons.min.css" rel="stylesheet" />
+    <link href="../libraries/vuetify/vuetify-v2.3.9.min.css" rel="stylesheet" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
     <style>
-        .myButton {
-            box-shadow: 3px 4px 0px 0px #899599;
-            background: linear-gradient(to bottom, #ededed 5%, #bab1ba 100%);
-            background-color: #ededed;
-            border-radius: 15px;
-            border: 1px solid #d6bcd6;
-            display: inline-block;
-            cursor: pointer;
-            color: #3a8a9e;
-            font-family: Arial;
-            font-size: 17px;
-            padding: 2px 19px;
-            text-decoration: none;
-            text-shadow: 0px 1px 0px #e1e2ed;
+        html {
+            overflow: hidden;
+            background: black;
         }
 
-        .myButton:hover {
-            background: linear-gradient(to bottom, #bab1ba 5%, #ededed 100%);
-            background-color: #bab1ba;
-        }
-
-        .myButton:active {
-            position: relative;
-            top: 1px;
-        }
-
-        table {
-            font-family: arial, sans-serif;
-            border-collapse: collapse;
-            width: 100%;
-        }
-
-        td,
-        th {
-            border: 1px solid #dddddd;
-            text-align: left;
-            padding: 8px;
-        }
-
-        tr:nth-child(even) {
-            background-color: #EFEFEF;
-        }
-
-        input[type=text],
-        select {
-            width: 100%;
-            padding: 12px 20px;
-            margin: 8px 0;
-            display: inline-block;
-            border: 1px solid #dddddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+        #component-templates {
+            display: none;
         }
     </style>
+    <!--<script src="js/TestEventBridge.js"></script>-->
 </head>
+<body>
+    <div id="component-templates">
+        <div id="add-location-template">
+            <v-dialog v-model="dialog" fullscreen hide-overlay transition="dialog-bottom-transition">
+                <template v-slot:activator="{ on, attrs }">
+                    <v-btn color="grey darken-3" class="ml-5" v-show="permission" value="animations" v-bind="attrs" v-on="on" fab small>
+                        <v-icon color="purple">mdi-map-plus</v-icon>
+                    </v-btn>
+                </template>
+                <v-card>
+                    <v-toolbar dark color="purple">
+                        <v-btn icon dark @click="closeDialog();">
+                            <v-icon>mdi-close</v-icon>
+                        </v-btn>
+                        <v-toolbar-title>Add Location</v-toolbar-title>
+                        <v-spacer></v-spacer>
+                        <v-toolbar-items>
+                            <v-btn dark text @click="addLocation()">Save</v-btn>
+                        </v-toolbar-items>
+                    </v-toolbar>
+                    <v-card-text>
+                        <v-container>
+                            <v-form ref="form"
+                                    v-model="valid"
+                                    lazy-validation>
+                                <v-row>
+                                    <v-col cols="12" sm="6" md="4">
+                                        <v-text-field v-model="domainName" :rules="domainNameRules" label="Domain Display Name *" required hint="This is the name that shows on the listing" persistent-hint></v-text-field>
+                                    </v-col>
+                                    <v-col cols="12" sm="6" md="4">
+                                        <v-text-field v-model="owner" :rules="ownerRules" label="Owner *" hint="Owner name to show in listing" required persistent-hint></v-text-field>
+                                    </v-col>
+                                    <v-col cols="12">
+                                        <v-text-field v-model="port" :rules="portRules" label="Port *" hint="Domain server port number (default 40102)" required persistent-hint></v-text-field>
+                                    </v-col>
+                                    <v-col cols="12">
+                                        <v-select v-model="locationProvider" :rules="locationProviderRules" :items="locationProviders"
+                                                  label="Location Provider *" required persistent-hint hint="The location provider to use when adding domain."></v-select>
+                                    </v-col>
+                                </v-row>
+                            </v-form>
+                        </v-container>
+                        <small>*indicates required field</small>
+                    </v-card-text>
+                    <v-card-text>
+                        When you add a location, you are actually creating a location beacon wherever you are currently standing. By default this will show up as a red cube.
+                        If you need to amend the details of your listing at a later date, simply open the Create app in your domain, find the entity with the name "Explore Marker (Your domain name)"
+                        and modify its userData values.
+                        You can also hide the marker easily by toggling the entity's visibility. It will still function when hidden.
+                    </v-card-text>
+                </v-card>
+            </v-dialog>
+        </div>
+        <div id="add-bookmark-template"></div>
+        <div id="explore-template">
+            <div>
+                <v-container fluid class="pa-0">
+                    <v-data-iterator :items="items"
+                                     :items-per-page.sync="itemsPerPage"
+                                     :page.sync="page"
+                                     :search="visit"
+                                     :sort-by="sortBy"
+                                     :sort-desc="sortDesc"
+                                     :loading="loading"
+                                     @page-count="pageCount = $event"
+                                     hide-default-footer>
+                        <template v-slot:header>
+                            <v-row dense>
+                                <v-text-field v-model="visit" clearable
+                                              flat
+                                              solo-inverted
+                                              hide-details
+                                              label="Visit"
+                                              class="pb-3"
+                                              append-icon="mdi-location-enter"
+                                              v-on:keyup.enter="visitIconCallback"
+                                              @click:append="visitIconCallback">
 
-<body onload="retrieveAddressList()">
+                                </v-text-field>
+                            </v-row>
+                        </template>
 
-    <h3>Explore</h3>
-    <button class="myButton" onclick="navigateBack()">< Back</button>
-    <button class="myButton" onclick="navigateHome()">Home</button>
-    <button class="myButton" onclick="navigateForward()">Forward ></button>
+                        <template v-slot:default="props">
+                            <v-row dense>
+                                <v-col v-for="item in props.items"
+                                       :key="item.name"
+                                       cols="12"
+                                       sm="6"
+                                       md="4"
+                                       lg="3">
+                                   <v-hover
+                                       v-slot:default="{ hover }"
+                                   >
+                                        <v-card 
+                                            @click.native="openLocation(item['Visit'])"
+                                            :color="hover ? 'grey darken-3' : 'grey darken-4'"
+                                        >
+                                            <!--<v-card-title class="headline">{{ item["Domain Name"] }}</v-card-title>-->
+                                            <div class="d-flex flex-no-wrap justify-space-between">
+                                                <div>
+                                                    <v-card-title class="text-h6 d-block text-truncate pa-2" v-text="item['Domain Name']" style="max-width: 400px;"></v-card-title>
+                                                    <v-card-subtitle class="pa-2 d-block text-truncate" style="max-width: 400px;" v-text="item.Owner"></v-card-subtitle>
+                                                </div>
+                                                <div style="text-align: right;">
+                                                    <v-card-title align-right class="align-right" v-text="item['People']"></v-card-title>
+                                                </div>
+                                            </div>
+                                        </v-card>
+                                    </hover>
+                                </v-col>
+                            </v-row>
+                        </template>
 
-    <input type="text" id="domainAddressInput" placeholder="Type domain address here">
+                        <template v-slot:footer>
+                            <v-footer absolute dense class="font-weight-medium " color="black">
+                                <v-col class="text-center pa-0"
+                                       cols="12">
+                                    <v-pagination v-model="page"
+                                                  color="purple"
+                                                  :total-visible="8"
+                                                  :length="pageCount"
+                                                  prev-icon="mdi-menu-left"
+                                                  next-icon="mdi-menu-right"></v-pagination>
+                                </v-col>
 
-    <button class="myButton" onclick="myDomainAddressInputGoTo()">Visit</button>
-    
-    <p id="showData"></p>
+                            </v-footer>
+                        </template>
+                    </v-data-iterator>
+                </v-container>
+            </div>
+        </div>
+        <div id="bookmarks-template">
+            <div>
+                <v-container fluid class="pa-0">
+                    <v-data-iterator :items="items"
+                                     :items-per-page.sync="itemsPerPage"
+                                     :page.sync="page"
+                                     :search="search"
+                                     :sort-by="sortBy"
+                                     :sort-desc="sortDesc"
+                                     :loading="loading"
+                                     @page-count="pageCount = $event"
+                                     hide-default-footer>
+                        <template v-slot:header>
+                            <v-row dense>
+                                <v-col cols="12"
+                                       sm="6"
+                                       md="4"
+                                       lg="3">
+                                    <v-text-field v-model="search"
+                                                  clearable
+                                                  flat
+                                                  solo-inverted
+                                                  hide-details
+                                                  label="Search"
+                                                  class="pb-3"></v-text-field>
+                                </v-col>
+                            </v-row>
+                        </template>
 
-    <p id="addLocation"></p>
+                        <template v-slot:default="props">
+                            <v-row dense>
+                                <v-col v-for="item in props.items"
+                                       :key="item.name"
+                                       cols="12"
+                                       sm="6"
+                                       md="4"
+                                       lg="3">
+                                    <v-card hover @click.native="openLocation(item['location'])">
+                                        <div class="d-flex flex-no-wrap justify-space-between">
+                                            <div>
+                                                <v-card-title class="text-h6 d-block text-truncate pa-2" v-text="item['name']" style="max-width: 400px;"></v-card-title>
+                                            </div>
+                                        </div>
+                                    </v-card>
+                                </v-col>
+                            </v-row>
+                        </template>
+
+                        <template v-slot:footer>
+                            <v-footer absolute dense class="font-weight-medium " color="black">
+                                <v-col class="text-center pa-0"
+                                       cols="12">
+                                    <v-pagination v-model="page"
+                                                  color="purple"
+                                                  :total-visible="8"
+                                                  :length="pageCount"
+                                                  prev-icon="mdi-menu-left"
+                                                  next-icon="mdi-menu-right"></v-pagination>
+                                </v-col>
+
+                            </v-footer>
+                        </template>
+                    </v-data-iterator>
+                </v-container>
+            </div>
+        </div>
+        <div id="events-template">
+            <div>events from template</div>
+        </div>
+        <div id="settings-template">
+            <div>settings from template</div>
+        </div>
+    </div>
+
+    <div id="app">
+        <v-app>
+            <div>
+                <v-app-bar dense>
+                    <v-toolbar-title>Explore</v-toolbar-title>
+                    <v-spacer></v-spacer>
+                    <v-tooltip bottom>
+                        <template v-slot:activator="{ on, attrs }">
+                            <v-btn v-bind="attrs" v-on="on" color="grey darken-3" class="mx-1" v-show="isHomeSet" value="animations" fab small @click="navigateHome()">
+                                <v-icon color="purple">mdi-home</v-icon>
+                            </v-btn>
+                        </template>
+                        <span>Go Home</span>
+                    </v-tooltip>
+                    <v-tooltip bottom>
+                        <template v-slot:activator="{ on, attrs }">
+                            <v-btn v-bind="attrs" v-on="on" color="grey darken-3" class="mx-1" value="animations" fab small @click="navigateBack()">
+                                <v-icon color="purple">mdi-arrow-left-bold</v-icon>
+                            </v-btn>
+                        </template>
+                        <span>Go Back</span>
+                    </v-tooltip>
+                    <v-tooltip bottom>
+                        <template v-slot:activator="{ on, attrs }">
+                            <v-btn v-bind="attrs" v-on="on" color="grey darken-3" class="mx-1" value="animations" fab small @click="navigateForward()">
+                                <v-icon color="purple">mdi-arrow-right-bold</v-icon>
+                            </v-btn>
+                        </template>
+                        <span>Go Forward</span>
+                    </v-tooltip>
+                    <!--<v-btn value="animations" fab small>
+        <v-icon color="purple">mdi-map-marker-plus</v-icon>
+    </v-btn>-->
+                    <add-location ref="addLocation" :permission="permission"></add-location>
+                </v-app-bar>
+            </div>
+            <v-main>
+                <v-container>
+                    <router-view></router-view>
+                </v-container>
+            </v-main>
+            <v-bottom-navigation grow color="purple lighten-1" shift v-model="activeItem">
+                <v-btn value="explore" :to="{ path: '/'}">
+                    <span>Explore</span>
+                    <v-icon>mdi-map-search-outline</v-icon>
+                </v-btn>
+                <!--<v-btn value="bookmarks" :to="{ path: '/bookmarks'}">
+                    <span>Bookmarks</span>
+                    <v-icon>mdi-map-marker</v-icon>
+                </v-btn>-->
+                <!--<v-btn value="events" :to="{ path: '/events'}" >
+                    <span>Events</span>
+                    <v-icon>mdi-calendar-month</v-icon>
+                </v-btn>-->
+                <!--<v-btn value="settings" :to="{ path: '/settings'}">
+                    <span>Settings</span>
+                    <v-icon>mdi-cog</v-icon>
+                </v-btn>-->
+            </v-bottom-navigation>
+        </v-app>
+    </div>
+
+    <script src="../libraries/vue/vue.min.js"></script>
+    <script src="../libraries/vue-router/vue-router.js"></script>
+    <script src="../libraries/vuetify/vuetify-v2.3.9.js"></script>
 
     <script>
+        var exploreComponent = null;
+        var locationData = null;
+        function getAddressListData(component) {
+            exploreComponent = component;
 
-        function myDomainAddressInputGoTo() {
-            var vircadiaUrl = document.getElementById("domainAddressInput").value;
-            if (vircadiaUrl !== "") {
-                var readyEvent = {
-                    "action": "goToUrl",
-                    "visit": vircadiaUrl,
-                };
-                EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+            if (locationData != null) {
+                exploreComponent.updateData(locationData);
+                return;
             }
-        }
-        
-        function navigateBack() {
-            var readyEvent = {
-                "action": "navigateBack"
-            }
-            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
-        }
-        
-        function navigateHome() {
-            var readyEvent = {
-                "action": "navigateHome"
-            }
-            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
-        }
-        
-        function navigateForward() {
-            var readyEvent = {
-                "action": "navigateForward"
-            }
-            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
-        }
 
-        function navigateTo(url) {
-            var readyEvent = {
-                "action": "goToUrl",
-                "visit": url,
-            };
-            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
-        }
-
-        function retrieveAddressList() {
             var readyEvent = {
                 "action": "requestAddressList",
             };
             EventBridge.emitWebEvent(JSON.stringify(readyEvent));
         }
 
-        EventBridge.scriptEventReceived.connect(function (message) {
-            var messageData = JSON.parse(message);
-            if (messageData.action == "addressList") {
-                myAddress = messageData.myAddress;
-                createTableFromJSON();
-                if (messageData.permission) {
-                    document.getElementById("addLocation").innerHTML = "<button class=\"myButton\" onclick=\"window.location.href = 'addLocation.html';\">Add Location To Explore</button>";
+        var bookmarksComponent = null;
+        var bookmarksData = null;
+        function getBookmarkListData(component) {
+            bookmarksComponent = component;
+
+            if (bookmarksData != null) {
+                bookmarksComponent.updateData(bookmarksData);
+                return;
+            }
+
+            var readyEvent = {
+                "action": "requestBookmarksList",
+            };
+            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+        }
+
+        var addLocationComponent = null;
+        var addLocationData = null;
+        function getAddLocationData(component) {
+            addLocationComponent = component;
+
+            if (addLocationData != null) {
+                addLocationComponent.updateData(addLocationData);
+                return;
+            }
+
+            var readyEvent = {
+                "action": "retrievePortInformation",
+            };
+            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+        }
+
+        const Explore = {
+            data() {
+                return {
+                    loading: true,
+                    visit: '',
+                    filter: {},
+                    sortDesc: true,
+                    page: 1,
+                    pageCount: 0,
+                    itemsPerPage: 6,
+                    sortBy: 'People',
+                    items: [], 
                 }
+            },
+            template: document.getElementById("explore-template").innerHTML,
+            created() {
+                this.fetchData();
+            },
+            methods: {
+                openLocation(url) {
+                    var readyEvent = {
+                        "action": "goToUrl",
+                        "visit": url,
+                    };
+                    EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+                },
+                visitIconCallback() {
+                    if (this.visit !== "") {
+                        this.openLocation(this.visit);
+                    }
+                },
+                fetchData() {
+                    this.error = this.post = null;
+                    this.loading = true;
+                    getAddressListData(this);
+                },
+                updateData(data) {
+                    this.items = data;
+                    this.loading = false;
+                }
+            }
+        };
+
+        const Bookmarks =
+        {
+            data() {
+                return {
+                    loading: true,
+                    search: '',
+                    visit: '',
+                    filter: {},
+                    sortDesc: true,
+                    page: 1,
+                    pageCount: 0,
+                    itemsPerPage: 6,
+                    sortBy: 'name',
+                    items: [], //testLocationData,
+                }
+            },
+            template: document.getElementById("bookmarks-template").innerHTML,
+            created() {
+                this.fetchData();
+            },
+            methods: {
+                openLocation(url) {
+                    var readyEvent = {
+                        "action": "goToUrl",
+                        "visit": url,
+                    };
+                    EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+                },
+                fetchData() {
+                    this.error = this.post = null;
+                    this.loading = true;
+                    getBookmarkListData(this);
+                },
+                updateData(data) {
+                    this.items = data;
+                    this.loading = false;
+                }
+            }
+        };
+        const Events = { template: document.getElementById("events-template").innerHTML };
+        const Settings = { template: document.getElementById("settings-template").innerHTML }
+        const AddLocation = {
+            data() {
+                return {
+                    valid: true,
+                    //permission: false,
+                    dialog: false,
+                    domainName: "",
+                    domainNameRules: [
+                        v => !!v || 'Domain Display Name is required',
+                    ],
+                    owner: "",
+                    ownerRules: [
+                        v => !!v || 'Owner is required',
+                    ],
+                    port: "40102",
+                    portRules: [
+                        v => !!v || 'Port is required',
+                        v => /^[0-9]{1,5}$/.test(v) || 'Must be a valid port number'
+                    ],
+                    locationProvider: "",
+                    locationProviderRules: [
+                        v => !!v || 'Location Provider is required',
+                    ],
+                    locationProviders: []
+                }
+            },
+            watch: {
+                dialog: function (val) {
+                    if (val) {
+                        this.opening();
+                    }
+                },
+            },
+            props: {
+                permission: false
+            },
+            template: document.getElementById("add-location-template").innerHTML,
+            methods: {
+                opening() {
+                    getAddLocationData(this);
+                },
+                updateData(data) {
+                    this.locationProviders = data;
+                    this.locationProvider = data[0];
+                },
+                addLocation() {
+                    if (this.$refs.form.validate()) {
+                        var readyEvent = {
+                            "action": "addLocation",
+                            "domainName": this.domainName,
+                            "owner": this.owner,
+                            "Port": this.port,
+                            "script": this.locationProvider
+                        };
+                        EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+
+                        this.closeDialog();
+                    }
+                },
+                closeDialog() {
+                    this.domainName = "";
+                    this.owner = "";
+                    this.port = "40102";
+                    this.locationProvider = "Current";
+                    this.dialog = false;
+                    this.$refs.form.resetValidation();
+                }
+            }
+        }
+
+        const routes = [
+            { path: '/', component: Explore },
+            { path: '/bookmarks', component: Bookmarks },
+            { path: '/events', component: Events },
+            { path: '/settings', component: Settings }
+        ];
+
+        const router = new VueRouter({ routes });
+
+        const vm = new Vue({
+            router,
+            el: '#app',
+            data: {
+                activeItem: string = 'explore',
+                permission: false,
+                isHomeSet: false,
+            },
+            vuetify: new Vuetify({
+                theme: {
+                    dark: true,
+                },
+            }),
+            components: {
+                'add-location': AddLocation
+            },
+            methods: {
+                navigateHome() {
+                    var readyEvent = {
+                        "action": "navigateHome"
+                    }
+                    EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+                },
+                navigateBack() {
+                    var readyEvent = {
+                        "action": "navigateBack"
+                    }
+                    EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+                },
+                navigateForward() {
+                    var readyEvent = {
+                        "action": "navigateForward"
+                    }
+                    EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+                }
+            },
+            created: function () {
+
+                const self = this;
+
+                EventBridge.scriptEventReceived.connect(function (message) {
+                    var messageData = JSON.parse(message);
+                    if (messageData.action == "addressListv2") {
+                        self.permission = messageData.permission;
+                        locationData = messageData.myAddress;
+                        exploreComponent.updateData(locationData);
+                        self.isHomeSet = messageData.isHomeSet;
+                    }
+                    if (messageData.action == "bookmarksList") {
+                        bookmarksData = messageData.bookmarks;
+                        bookmarksComponent.updateData(bookmarksData);
+                    }
+                    if (messageData.action == "retrievePortInformationResponse") {
+                        addLocationData = messageData.goToAddresses;
+                        for (let i = 0; i < addLocationData.length; i++) {	
+                            var metaverseProvider = addLocationData[i].split("/")[2].split(":")[0];	
+                            addLocationData[i] = "https://" + metaverseProvider + "/interim/d-goto/app/decentralizedGoToServerScript.js";	
+                        }
+                        addLocationComponent.updateData(addLocationData);
+                    }
+                });
             }
         });
 
-        var myAddress = [{}];
-
-        function createTableFromJSON() {
-
-            var col = [];
-            for (var i = 0; i < myAddress.length; i++) {
-                for (var key in myAddress[i]) {
-                    if (col.indexOf(key) === -1) {
-                        col.push(key);
-                    }
-                }
-            }
-
-            var table = document.createElement("table");
-            table.setAttribute('id', 'domains');
-            table.setAttribute('class', 'table table-striped sampleTable domains');
-
-            var thead = table.createTHead();
-
-            //var tr = table.insertRow(-1);
-
-            for (var i = 0; i < col.length; i++) {
-                var th = document.createElement("th");
-                if (col[i] === 'People') th.setAttribute('data-sortas', 'numeric');
-                th.innerHTML = col[i];
-                thead.appendChild(th);
-            }
-
-            var tbdy = document.createElement('tbody');
-            for (var i = 0; i < myAddress.length; i++) {
-
-                tr = table.insertRow(-1);
-
-                for (var j = 0; j < col.length; j++) {
-                    var tabCell = tr.insertCell(-1);
-                    if (j == 2) {
-                        var url = "<input id=\"Button\" class=\"myButton\" type=\"button\" onclick=\"navigateTo('" + myAddress[i][col[j]] + "')\" value=\"Visit\" />";
-                        tabCell.innerHTML = url;
-                    } else {
-                        tabCell.innerHTML = myAddress[i][col[j]];
-                    }
-                }
-            }
-
-            var divContainer = document.getElementById("showData");
-            divContainer.innerHTML = "";
-            divContainer.appendChild(table);
-            $("#domains").fancyTable({
-                sortColumn: 3, // column number for initial sorting
-                sortOrder: 'desc', // 'desc', 'descending', 'asc', 'ascending', -1 (descending) and 1 (ascending)
-                sortable: true,
-                pagination: true, // default: false
-                perPage: 7,
-                searchable: true,
-                globalSearch: true,
-                globalSearchExcludeColumns: [3] // exclude column 2 & 5
-            });
-        }
     </script>
-    <script src="jquery.min.js"></script>
-    <script src="bootstrap.min.js"></script>
-    <script src="fancyTable.js"></script>
 </body>
-
 </html>

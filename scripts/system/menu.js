@@ -13,7 +13,7 @@
 
 /* global Script, HMD, Tablet, Entities */
 
-var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
+var HOME_BUTTON_TEXTURE = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png");
 // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
 
 (function() {

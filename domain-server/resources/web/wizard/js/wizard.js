@@ -74,7 +74,7 @@ $(document).ready(function(){
     });
 
     $('body').on('click', '#change-place-name', function() {
-      chooseFromHighFidelityPlaces(Settings.data.values.metaverse.access_token, "/0,-10,0", function(placeName) {
+      chooseFromMetaversePlaces(Settings.data.values.metaverse.access_token, "/0,-10,0", function(placeName) {
         updatePlaceNameLink(placeName);
       });
     });

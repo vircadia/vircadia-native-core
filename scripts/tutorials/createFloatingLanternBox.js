@@ -13,8 +13,8 @@
 // Distributed under the Apache License, Version 2.0.
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-var COMPOUND_SHAPE_URL = "http://hifi-content.s3.amazonaws.com/Examples%20Content/production/maracas/woodenCrate_phys.obj";
-var MODEL_URL = "http://hifi-content.s3.amazonaws.com/Examples%20Content/production/maracas/woodenCrate_VR.fbx";
+var COMPOUND_SHAPE_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/Examples%20Content/production/maracas/woodenCrate_phys.obj");
+var MODEL_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/Examples%20Content/production/maracas/woodenCrate_VR.fbx");
 var SCRIPT_URL = Script.resolvePath("./entity_scripts/floatingLanternBox.js?v=" + Date.now());
 var START_POSITION = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), 2));
 START_POSITION.y -= .6;

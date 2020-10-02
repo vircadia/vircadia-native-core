@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 3/17/14.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -32,8 +33,8 @@
 
 const char* MODEL_TYPE_NAMES[] = { "entities", "heads", "skeletons", "skeletons", "attachments" };
 
-static const QString S3_URL = "http://s3.amazonaws.com/hifi-public";
-static const QString PUBLIC_URL = "http://public.highfidelity.io";
+static const QString S3_URL = NetworkingConstants::HF_PUBLIC_CDN_URL;
+static const QString PUBLIC_URL = "http://public.vircadia.com"; // Changed to Vircadia but not entirely sure what to do with this yet.
 static const QString MODELS_LOCATION = "models/";
 
 static const QString PREFIX_PARAMETER_NAME = "prefix";

@@ -10,7 +10,7 @@
 //
 
 (function () {
-    var NOMNOM_SOUND = SoundCache.getSound('http://hifi-content.s3.amazonaws.com/DomainContent/production/audio/vegcrunch.wav');
+    var NOMNOM_SOUND = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.HF_Content, "/DomainContent/production/audio/vegcrunch.wav"));
 
     var _entityID;
 

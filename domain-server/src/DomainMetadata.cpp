@@ -230,7 +230,7 @@ void DomainMetadata::maybeUpdateUsers() {
 }
 
 void DomainMetadata::sendDescriptors() {
-    QString domainUpdateJSON = QString("{\"domain\":{\"meta\":%1}").arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)));
+    QString domainUpdateJSON = QString("{\"domain\":{\"meta\":%1}}").arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)));
     const QUuid& domainID = DependencyManager::get<LimitedNodeList>()->getSessionUUID();
     if (!domainID.isNull()) {
         static const QString DOMAIN_UPDATE = "/api/v1/domains/%1";

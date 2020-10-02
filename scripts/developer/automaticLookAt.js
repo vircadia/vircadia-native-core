@@ -39,8 +39,8 @@
     var LookAtDebugger = function() {
         var self = this;
         var IMAGE_DIMENSIONS = {x: 0.2, y: 0.2, z:0.2};
-        var TARGET_ICON_PATH = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/LookAtApp/eyeFocus.png";
-        var INFINITY_ICON_PATH = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/LookAtApp/noFocus.png";
+        var TARGET_ICON_PATH = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/luis/test_scripts/LookAtApp/eyeFocus.png");
+        var INFINITY_ICON_PATH = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/luis/test_scripts/LookAtApp/noFocus.png");
         this.items = {};
         this.active = false;
         

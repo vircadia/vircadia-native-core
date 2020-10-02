@@ -10,7 +10,7 @@ import zipfile
 
 print = functools.partial(print, flush=True)
 
-ANDROID_PACKAGE_URL = 'https://content.vircadia.com/eu-c-1/vircadia-public/dependencies/android/'
+ANDROID_PACKAGE_URL = 'https://cdn-1.vircadia.com/eu-c-1/vircadia-public/dependencies/android/'
 
 ANDROID_PACKAGES = {
     'qt' : {
@@ -68,7 +68,7 @@ ANDROID_PACKAGES = {
         'includeLibs': ['libtbb.so', 'libtbbmalloc.so'],
     },
     'hifiAC': {
-        'baseUrl': 'https://content.vircadia.com/eu-c-1/vircadia-public/dependencies/',
+        'baseUrl': 'https://cdn-1.vircadia.com/eu-c-1/vircadia-public/dependencies/',
         'file': 'codecSDK-android_armv8-2.0.zip',
         'checksum': '1cbef929675818fc64c4101b72f84a6a'
     },

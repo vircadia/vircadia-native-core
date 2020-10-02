@@ -27,7 +27,7 @@ var PX_RGBA_URL = Script.resolvePath('px_rgba.fs');
 var PX_TEX_URL = Script.resolvePath('px_tex.fs');
 var PX_TEX_RGBA_URL = Script.resolvePath('px_tex_rgba.fs');
 
-var TEX_URL = 'https://hifi-public.s3.amazonaws.com/alan/Playa/Skies/Test-Sky_out.png';
+var TEX_URL = Script.getExternalPath(Script.ExternalPaths.HF_Public, "/alan/Playa/Skies/Test-Sky_out.png");
 var NO_TEX = '';
 
 var COLOR = { red: 255, green: 0, blue: 255 };

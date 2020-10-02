@@ -30,7 +30,7 @@ cd qt-build
 ```
 
 Download ssl-static.zip and unzip to ssl-static folder next to qt5 folder
-`https://hifi-content.s3.amazonaws.com/dante/ssl-static-windows.zip`
+`https://cdn-1.vircadia.com/eu-c-1/vircadia-public/dante/ssl-static-windows.zip`
 remove config.opt in the build folder
 copy over the config file from qt-builder
 ```
@@ -71,7 +71,7 @@ cd qt-build
 ```
 
 Download ssl-static.zip and unzip to ssl-static folder next to qt5 folder
-`https://hifi-content.s3.amazonaws.com/dante/openssl-static-osx.zip`
+`https://cdn-1.vircadia.com/eu-c-1/vircadia-public/dante/openssl-static-osx.zip`
 copy over the config file from qt-builder
 ```
 cp path-to-your-hifi-directory/tools/qt-builder/qt-lite-osx-config ./config.opt

@@ -24,7 +24,7 @@ void GLBackend::do_setViewTransform(const Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset) {
-    memcpy(&_transform._projection, batch.readData(batch._params[paramOffset]._uint), sizeof(Mat4));
+    memcpy(glm::value_ptr(_transform._projection), batch.readData(batch._params[paramOffset]._uint), sizeof(Mat4));
     _transform._invalidProj = true;
 }
 
@@ -35,7 +35,7 @@ void GLBackend::do_setProjectionJitter(const Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) {
-    memcpy(&_transform._viewport, batch.readData(batch._params[paramOffset]._uint), sizeof(Vec4i));
+    memcpy(glm::value_ptr(_transform._viewport), batch.readData(batch._params[paramOffset]._uint), sizeof(Vec4i));
 
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
     {

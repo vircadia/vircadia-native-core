@@ -10,15 +10,13 @@
 //
 Script.include("./AgentPoolController.js");
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-
 var masterController = new MasterController();
 
 var input_text = null;
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
 //Script.include("../libraries/toolBars.js");
-Script.include(HIFI_PUBLIC_BUCKET + "scripts/libraries/toolBars.js");
+Script.include(Script.getExternalPath(Script.ExternalPaths.Assets, "scripts/libraries/toolBars.js"));
 // We want small icons
 Tool.IMAGE_HEIGHT /= 2;
 Tool.IMAGE_WIDTH /= 2;
@@ -29,7 +27,7 @@ var STOP = 3;
 var LOAD = 6;
 
 var windowDimensions = Controller.getViewportDimensions();
-var TOOL_ICON_URL = HIFI_PUBLIC_BUCKET + "images/tools/";
+var TOOL_ICON_URL = Script.getExternalPath(Script.ExternalPaths.Assets, "images/tools/");
 var ALPHA_ON = 1.0;
 var ALPHA_OFF = 0.7;
 var COLOR_TOOL_BAR = { red: 0, green: 0, blue: 0 };

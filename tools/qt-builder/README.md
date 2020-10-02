@@ -156,7 +156,7 @@ The *.prl* files have an absolute path that needs to be removed (see http://www.
 1.   Copy *qt.conf* to *qt5-install\bin*  
 #### Uploading
 Create a tar file called qt5-install-5.12.3-windows.tar.gz from the qt5-install folder.
-Upload qt5-install-5.12.3-windows.tar.gz to our Amazon S3 hifi-public bucket, under the dependencies/vckpg directory.
+Upload qt5-install-5.12.3-windows.tar.gz to our Amazon S3 vircadia-public bucket, under the dependencies/vckpg directory.
 Update hifi_vcpkg.py to use this new URL. Additionally, you should make a small change to any file in the hifi/cmake/ports directory to force the re-download of the qt-install.tar.gz during the build process for hifi.
 #### Preparing Symbols
 Run `python3 prepare-windows-symbols-for-backtrace.py qt5-install` to scan the qt5-install directory for any dlls and pdbs.  After running this command the backtrace directory will be created.  Zip this directory up, but make sure that all dlls and pdbs are in the root of the zip file, not under a sub-directory.  This file can then be uploaded to backtrace here: https://highfidelity.sp.backtrace.io/p/Interface/settings/symbol/upload
@@ -243,7 +243,7 @@ git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch
 1.   Copy *qt.conf* to *qt5-install\bin*
 #### Uploading
 `tar -zcvf qt5-install-5.13.2-macos.tar.gz qt5-install`  
-Upload qt5-install-5.13.2-macos.tar.gz to our Amazon S3 hifi-public bucket, under the dependencies/vckpg directory
+Upload qt5-install-5.13.2-macos.tar.gz to our Amazon S3 vircadia-public bucket, under the dependencies/vckpg directory
 #### Creating symbols
 Run `python3 prepare-mac-symbols-for-backtrace.py qt5-install` to scan the qt5-build directory for any dylibs and execute dsymutil to create dSYM bundles.  After running this command the backtrace directory will be created.  Zip this directory up, but make sure that all dylibs and dSYM fiels are in the root of the zip file, not under a sub-directory.  This file can then be uploaded to backtrace here: https://highfidelity.sp.backtrace.io/p/Interface/settings/symbol/upload
 ## Problems
