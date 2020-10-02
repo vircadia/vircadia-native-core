@@ -1586,12 +1586,16 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         int targetIndex = weightedIndex;
                         hfmModel.blendshapeChannelNames.push_back("target_" + QString::number(weightedIndex));
 
-                        if (!names.isEmpty() && names.contains(keys[weightedIndex])) {
+                        if (!names.isEmpty()) {
                             targetIndex = names.indexOf(keys[weightedIndex]);
+                            if (targetIndex == -1) {
+                                continue;  // Ignore blendshape targets not present in glTF file.
+                            }
                             indexFromMapping = values[weightedIndex].first;
                             weight = values[weightedIndex].second;
                             hfmModel.blendshapeChannelNames[weightedIndex] = keys[weightedIndex];
                         }
+
                         HFMBlendshape& blendshape = mesh.blendshapes[indexFromMapping];
                         auto target = primitive.targets[targetIndex];
 
