@@ -618,7 +618,7 @@ public slots:
     /**jsdoc
      * Opens an Interface web browser window.
      * @function Window.openWebBrowser
-     * @param {string} url="" - The URL of the web page to display.
+     * @param {string} [url=""] - The URL of the web page to display.
      */
     void openWebBrowser(const QString& url = "");
 
