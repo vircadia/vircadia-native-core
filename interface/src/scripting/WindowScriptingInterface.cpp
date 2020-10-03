@@ -650,7 +650,7 @@ void WindowScriptingInterface::openWebBrowser(const QString& url) {
         QMetaObject::invokeMethod(this, "openWebBrowser", Q_ARG(const QString&, url));
         return;
     }
-    
+
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
         if (!url.isEmpty()) {
