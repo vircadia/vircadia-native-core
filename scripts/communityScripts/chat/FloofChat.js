@@ -322,7 +322,7 @@ function onWebEventReceived(event) {
             gotoConfirm(event.url);
         }
         if (event.cmd === "URL") {
-            About.openUrl(event.url);
+            Window.openWebBrowser(event.url);
         }
         if (event.cmd === "EXTERNALURL") {
             Window.openUrl(event.url);
