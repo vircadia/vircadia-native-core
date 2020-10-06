@@ -79,7 +79,7 @@ public:
 public slots:
 
     /**jsdoc
-     * Display a web page in an Interface browser window.
+     * Display a web page in an Interface browser window or the tablet.
      * @function About.openUrl
      * @param {string} url - The URL of the web page you want to view in Interface.
      */
