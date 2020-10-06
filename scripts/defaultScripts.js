@@ -35,7 +35,8 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/audioMuteOverlay.js",
     "system/inspect.js",
     "system/keyboardShortcuts/keyboardShortcuts.js",
-    "system/checkForUpdates.js"
+    "system/checkForUpdates.js",
+    "system/onFirstRun.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
