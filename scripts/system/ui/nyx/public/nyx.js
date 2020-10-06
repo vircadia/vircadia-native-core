@@ -10,34 +10,45 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-function menuOverlay (entityID, properties) {
+function menuOverlay (entityID, menuItems) {
     var menu_this = this;
-    var menuEntity;
+    var menuWebEntity;
 
-    // function onMenuEventReceived(event) {
-    //     var eventJSON = JSON.parse(event);
-    // 
-    //     if (eventJSON.command === "ready") {
-    //         initializeInventoryApp();
-    //     }
-    // }
+    function sendToWeb(command, data) {
+        var dataToSend = {
+            "command": command,
+            "data": data
+        };
+        Entities.emitScriptEvent(menuWebEntity, dataToSend);
+    }
     
-    // var menuObject = Entities.getEntityObject(onMenuEventReceived);
+    function onMenuEventReceived(sendingEntityID, event) {
+        var eventJSON = JSON.parse(event);
+        if (sendingEntityID === menuWebEntity) {
+            if (eventJSON.command === "ready") {
+                var dataToSend = {
+                    menuItems: menuItems
+                };
+                sendToWeb('script-to-web-initialize', dataToSend);
+            }
+        }
+    }
+
+    Entities.webEventReceived.connect(onMenuEventReceived);
 
     function onMousePressOnEntity (pressedEntityID, event) {
-        console.log("SOMETHING WAS PRESSED!");
-        console.log("ENTITY PRESSED!" + pressedEntityID);
         if (entityID === pressedEntityID && event.isPrimaryButton) {
             toggleMenu();
         }
     }
-    
+
+    Entities.mousePressOnEntity.connect(onMousePressOnEntity);
+
     function toggleMenu() {
-        console.log("TOGGLING!!!" + menuEntity);
-        if (!menuEntity) {
-            menuEntity = Entities.addEntity({
+        if (!menuWebEntity) {
+            menuWebEntity = Entities.addEntity({
                 type: "Web",
-                sourceUrl: "https://vircadia.com/",
+                sourceUrl: Script.resolvePath("./index.html"),
                 position: Entities.getEntityProperties(entityID, ["position"]).position,
                 billboardMode: 'full',
                 dimensions: {
@@ -48,20 +59,19 @@ function menuOverlay (entityID, properties) {
                 dpi: 15
             });
         } else {
-            Entities.deleteEntity(menuEntity);
-            menuEntity = null;
+            Entities.deleteEntity(menuWebEntity);
+            menuWebEntity = null;
         }
     }
-    
-    Entities.mousePressOnEntity.connect(onMousePressOnEntity);
-    
+
     menu_this.onScriptEnding = function onScriptEnding () {
+        Entities.webEventReceived.disconnect(onMenuEventReceived);
         Entities.mousePressOnEntity.disconnect(onMousePressOnEntity);
-        Entities.deleteEntity(menuEntity);
+        Entities.deleteEntity(menuWebEntity);
     }
 }
 
-var newMenu = new menuOverlay('{a3afc217-d299-41ea-bfc6-66eaa9bd0409}', {});
+var newMenu = new menuOverlay('{a3afc217-d299-41ea-bfc6-66eaa9bd0409}', ['This', 'Is', 'Nice']);
 
 // module.exports = {
 //     menuOverlay: menuOverlay

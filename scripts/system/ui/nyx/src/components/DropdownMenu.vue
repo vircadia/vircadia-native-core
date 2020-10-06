@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 -->
 <template>
-    <v-list dense>
+    <!-- <v-list dense>
         <v-list-item-group
             v-model="item"
             color="primary"
@@ -22,7 +22,15 @@
                 </v-list-item-content>
             </v-list-item>
         </v-list-item-group>
-    </v-list>
+    </v-list> -->
+    <div>
+        <div
+            v-for="(item, i) in items"
+            :key="i"
+        >
+            <a @click="menuItemTriggered(item)">{{item}}</a>
+        </div>
+    </div>
 </template>
 
 <script>
@@ -30,7 +38,9 @@
 export default {
     name: 'DropdownMenu',
     methods: {
-        
+        menuItemTriggered: function (item) {
+            alert(item);
+        }
     },
     data: () => ({
         items: [
