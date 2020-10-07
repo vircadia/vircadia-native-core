@@ -16,7 +16,7 @@ var FRAME_RATE = 30;  // 30  default
 
 function getFrame(callback) {
     // A model exported from blender with a texture named 'Picture' on one face.  
-    var FRAME_URL = "http://hifi-production.s3.amazonaws.com/tutorials/pictureFrame/finalFrame.fbx";
+    var FRAME_URL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/pictureFrame/finalFrame.fbx";
 
     var model = ModelCache.prefetch(FRAME_URL);
     if (model.state === Resource.State.FINISHED) {
