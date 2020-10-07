@@ -319,7 +319,7 @@ SelectionManager = (function() {
             that.addChildrenEntities(originalEntityID, entitiesToDuplicate, entityHostTypes[i].entityHostType);
         }
         
-        var hasItFailed = false;
+        var duplicateInterrupted = false;
         // duplicate entities from above and store their original to new entity mappings and children needing re-parenting
         for (var i = 0; i < entitiesToDuplicate.length; i++) {
             var originalEntityID = entitiesToDuplicate[i];
@@ -367,7 +367,7 @@ SelectionManager = (function() {
                 }
                 originalEntityToNewEntityID[originalEntityID] = newEntityID;
             } else {
-                hasItFailed = true;
+                duplicateInterrupted = true;
             }
         }
         
@@ -386,10 +386,10 @@ SelectionManager = (function() {
             }
         });
         
-        if (!hasItFailed) {
-            audioFeedback.confirmation();
-        } else {
+        if (duplicateInterrupted) {
             audioFeedback.rejection();
+        } else {
+            audioFeedback.confirmation();
         }
         return duplicatedEntityIDs;
     };
