@@ -2354,7 +2354,7 @@ var PropertiesTool = function (opts) {
     };
 
     function updateSelections(selectionUpdated, caller) {
-        if (HMD.active && visible){
+        if (HMD.active && visible) {
             webView.setLandscape(true);
         } else {
             if (!visible) {
