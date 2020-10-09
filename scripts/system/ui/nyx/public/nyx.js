@@ -15,6 +15,7 @@
 var entityWebMenu;
 var entityWebMenuActive = false;
 var registeredEntityMenus = {};
+var lastTriggeredEntityInfo = {};
 var MENU_WEB_ENTITY_SCALE = {
     x: 1,
     y: 1.5,
@@ -52,16 +53,16 @@ function deregisterWithEntityMenu(messageData) {
 
 function toggleEntityMenu(pressedEntityID) {
     if (!entityWebMenuActive) {
-        var clickedEntityProperties = Entities.getEntityProperties(pressedEntityID);
+        var triggeredEntityProperties = Entities.getEntityProperties(pressedEntityID);
         
-        var entityInfo = {
+        lastTriggeredEntityInfo = {
             id: pressedEntityID,
-            name: clickedEntityProperties.name,
-            lastEditedBy: clickedEntityProperties.lastEditedBy,
-            lastEditedByName: AvatarManager.getPalData([clickedEntityProperties.lastEditedBy]).data[0].sessionDisplayName
+            name: triggeredEntityProperties.name,
+            lastEditedBy: triggeredEntityProperties.lastEditedBy,
+            lastEditedByName: AvatarManager.getPalData([triggeredEntityProperties.lastEditedBy]).data[0].sessionDisplayName
         };
 
-        sendToWeb(entityWebMenu, 'script-to-web-clicked-entity-info', entityInfo);
+        sendToWeb(entityWebMenu, 'script-to-web-triggered-entity-info', lastTriggeredEntityInfo);
 
         Entities.editEntity(entityWebMenu, {
             position: Entities.getEntityProperties(pressedEntityID, ['position']).position,
@@ -113,15 +114,16 @@ function onWebEventReceived(sendingEntityID, event) {
 
         if (eventJSON.command === "ready") {
             var dataToSend = {
-                registeredEntityMenus: registeredEntityMenus
+                registeredEntityMenus: registeredEntityMenus,
+                lastTriggeredEntityInfo: lastTriggeredEntityInfo
             };
 
             sendToWeb(entityWebMenu, 'script-to-web-registered-entity-menus', dataToSend);
         }
         
-        if (eventJSON.command === "menu-item-clicked") {
+        if (eventJSON.command === "menu-item-triggered") {
             var dataToSend = {
-                entityID: eventJSON.data.clickedEntityID,
+                entityID: eventJSON.data.triggeredEntityID,
                 itemPressed: eventJSON.data.itemPressed
             };
 
