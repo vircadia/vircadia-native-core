@@ -10,69 +10,180 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-function menuOverlay (entityID, menuItems) {
-    var menu_this = this;
-    var menuWebEntity;
+// BEGIN ENTITY MENU OVERLAY
 
-    function sendToWeb(command, data) {
-        var dataToSend = {
-            "command": command,
-            "data": data
-        };
-        Entities.emitScriptEvent(menuWebEntity, dataToSend);
-    }
+var entityWebMenu;
+var entityWebMenuActive = false;
+var registeredEntityMenus = {};
+var MENU_WEB_ENTITY_SCALE = {
+    x: 1,
+    y: 1.5,
+    z: 0.01
+};
+var BOOTSTRAP_MENU_WEB_ENTITY_SCALE = {
+    x: 0.01,
+    y: 0.01,
+    z: 0.01
+};
+var BOOTSTRAP_MENU_WEB_ENTITY_POSITION = Vec3.ZERO;
+var BOOTSTRAP_MENU_WEB_ENTITY_SOURCE = Script.resolvePath("./index.html");
+var BOOTSTRAP_MENU_WEB_ENTITY_DPI = 7;
+var NYX_UI_CHANNEL = "nyx-ui";
+
+function registerWithEntityMenu(messageData) {
+    registeredEntityMenus[messageData.entityID] = messageData.menuItems;
+
+    var dataToSend = {
+        registeredEntityMenus: registeredEntityMenus
+    };
+
+    sendToWeb(entityWebMenu, 'script-to-web-registered-entity-menus', dataToSend);
+}
+
+function deregisterWithEntityMenu(messageData) {
+    delete registeredEntityMenus[messageData.entityID];
     
-    function onMenuEventReceived(sendingEntityID, event) {
-        var eventJSON = JSON.parse(event);
-        if (sendingEntityID === menuWebEntity) {
-            if (eventJSON.command === "ready") {
-                var dataToSend = {
-                    menuItems: menuItems
-                };
-                sendToWeb('script-to-web-initialize', dataToSend);
-            }
-        }
-    }
+    var dataToSend = {
+        registeredEntityMenus: registeredEntityMenus
+    };
 
-    Entities.webEventReceived.connect(onMenuEventReceived);
+    sendToWeb(entityWebMenu, 'script-to-web-registered-entity-menus', dataToSend);
+}
 
-    function onMousePressOnEntity (pressedEntityID, event) {
-        if (entityID === pressedEntityID && event.isPrimaryButton) {
-            toggleMenu();
-        }
-    }
+function toggleEntityMenu(pressedEntityID) {
+    if (!entityWebMenuActive) {
+        var clickedEntityProperties = Entities.getEntityProperties(pressedEntityID);
+        
+        var entityInfo = {
+            id: pressedEntityID,
+            name: clickedEntityProperties.name,
+            lastEditedBy: clickedEntityProperties.lastEditedBy,
+            lastEditedByName: AvatarManager.getPalData([clickedEntityProperties.lastEditedBy]).data[0].sessionDisplayName
+        };
 
-    Entities.mousePressOnEntity.connect(onMousePressOnEntity);
+        sendToWeb(entityWebMenu, 'script-to-web-clicked-entity-info', entityInfo);
 
-    function toggleMenu() {
-        if (!menuWebEntity) {
-            menuWebEntity = Entities.addEntity({
-                type: "Web",
-                sourceUrl: Script.resolvePath("./index.html"),
-                position: Entities.getEntityProperties(entityID, ["position"]).position,
-                billboardMode: 'full',
-                dimensions: {
-                    x: 3,
-                    y: 3 * 1080 / 1920,
-                    z: 0.01
-                },
-                dpi: 15
-            });
-        } else {
-            Entities.deleteEntity(menuWebEntity);
-            menuWebEntity = null;
-        }
-    }
-
-    menu_this.onScriptEnding = function onScriptEnding () {
-        Entities.webEventReceived.disconnect(onMenuEventReceived);
-        Entities.mousePressOnEntity.disconnect(onMousePressOnEntity);
-        Entities.deleteEntity(menuWebEntity);
+        Entities.editEntity(entityWebMenu, {
+            position: Entities.getEntityProperties(pressedEntityID, ['position']).position,
+            dimensions: MENU_WEB_ENTITY_SCALE,
+            visible: true
+        });
+        
+        entityWebMenuActive = true;
+    } else if (entityWebMenuActive && pressedEntityID !== entityWebMenu) {
+        Entities.editEntity(entityWebMenu, {
+            position: BOOTSTRAP_MENU_WEB_ENTITY_POSITION,
+            dimensions: BOOTSTRAP_MENU_WEB_ENTITY_SCALE
+        });
+        
+        entityWebMenuActive = false;
     }
 }
 
-var newMenu = new menuOverlay('{a3afc217-d299-41ea-bfc6-66eaa9bd0409}', ['This', 'Is', 'Nice']);
+function bootstrapEntityMenu() {
+    entityWebMenu = Entities.addEntity({
+        type: "Web",
+        billboardMode: 'full',
+        renderLayer: 'front',
+        visible: false,
+        grab: {
+            'grabbable': false
+        },
+        sourceUrl: BOOTSTRAP_MENU_WEB_ENTITY_SOURCE,
+        position: BOOTSTRAP_MENU_WEB_ENTITY_POSITION,
+        dimensions: BOOTSTRAP_MENU_WEB_ENTITY_SCALE,
+        dpi: BOOTSTRAP_MENU_WEB_ENTITY_DPI
+    }, 'local');
+}
 
-// module.exports = {
-//     menuOverlay: menuOverlay
-// };
+// END ENTITY MENU OVERLAY
+
+function sendToWeb(sendToEntity, command, data) {
+    var dataToSend = {
+        "command": command,
+        "data": data
+    };
+
+    Entities.emitScriptEvent(sendToEntity, JSON.stringify(dataToSend));
+}
+
+function onWebEventReceived(sendingEntityID, event) {
+    if (sendingEntityID === entityWebMenu) {
+        var eventJSON = JSON.parse(event);
+
+        if (eventJSON.command === "ready") {
+            var dataToSend = {
+                registeredEntityMenus: registeredEntityMenus
+            };
+
+            sendToWeb(entityWebMenu, 'script-to-web-registered-entity-menus', dataToSend);
+        }
+        
+        if (eventJSON.command === "menu-item-clicked") {
+            var dataToSend = {
+                entityID: eventJSON.data.clickedEntityID,
+                itemPressed: eventJSON.data.itemPressed
+            };
+
+            Messages.sendLocalMessage(NYX_UI_CHANNEL, JSON.stringify(dataToSend));
+        }
+        
+    }
+}
+
+function onMessageReceived(channel, message, senderID, localOnly) {
+    print("NYX UI Message received:");
+    print("- channel: " + channel);
+    print("- message: " + message);
+    print("- sender: " + senderID);
+    print("- localOnly: " + localOnly);
+
+    if (channel === NYX_UI_CHANNEL && MyAvatar.sessionUUID === senderID) {
+        messageData = JSON.parse(message);
+        
+        if (messageData.command === 'register-with-entity-menu') {
+            registerWithEntityMenu(messageData);
+        }
+        
+        if (messageData.command === 'deregister-with-entity-menu') {
+            deregisterWithEntityMenu(messageData);
+        }
+    }
+}
+
+function onMousePressOnEntity (pressedEntityID, event) {
+    if (event.isPrimaryButton) {
+        toggleEntityMenu(pressedEntityID);
+    }
+}
+
+// BOOTSTRAPPING
+
+function startup() {
+    Messages.messageReceived.connect(onMessageReceived);
+    Entities.mousePressOnEntity.connect(onMousePressOnEntity);
+    Entities.webEventReceived.connect(onWebEventReceived);
+    
+    bootstrapEntityMenu();
+}
+
+startup();
+
+Script.scriptEnding.connect(function () {
+    Messages.messageReceived.disconnect(onMessageReceived);
+    Entities.mousePressOnEntity.disconnect(onMousePressOnEntity);
+    Entities.webEventReceived.disconnect(onWebEventReceived);
+
+    Entities.deleteEntity(entityWebMenu);
+    entityWebMenu = null;
+});
+
+// BOOTSTRAPPING TESTING CODE
+
+var messageToSend = {
+    'command': 'register-with-entity-menu',
+    'entityID': '{768542d0-e962-49e3-94fb-85651d56f5ae}',
+    'menuItems': ['This', 'Is', 'Nice']
+};
+
+Messages.sendLocalMessage(NYX_UI_CHANNEL, JSON.stringify(messageToSend));
