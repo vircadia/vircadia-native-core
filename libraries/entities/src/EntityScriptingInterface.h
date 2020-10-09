@@ -725,8 +725,8 @@ public slots:
 
     /**jsdoc
      * Finds all domain and avatar entities whose axis-aligned boxes intersect a search axis-aligned box.
-     * <p><strong>Note:</strong> Entity Server Scripts will only find entities that have a server script
-     * running on them. You can apply a dummy script to entities that you would like found in a search.</p>
+     * <p><strong>Note:</strong> Server entity scripts only find entities that have a server entity script
+     * running in them or a parent entity. You can apply a dummy script to entities that you want found in a search.</p>
      * @function Entities.findEntitiesInBox
      * @param {Vec3} corner - The corner of the search AA box with minimum co-ordinate values.
      * @param {Vec3} dimensions - The dimensions of the search AA box.
@@ -738,8 +738,8 @@ public slots:
 
     /**jsdoc
      * Finds all domain and avatar entities whose axis-aligned boxes intersect a search frustum.
-     * <p><strong>Note:</strong> Entity Server Scripts will only find entities that have a server script
-     * running on them. You can apply a dummy script to entities that you would like found in a search.</p>
+     * <p><strong>Note:</strong> Server entity scripts only find entities that have a server entity script
+     * running in them or a parent entity. You can apply a dummy script to entities that you want found in a search.</p>
      * @function Entities.findEntitiesInFrustum
      * @param {ViewFrustum} frustum - The frustum to search in. The <code>position</code>, <code>orientation</code>, 
      *     <code>projection</code>, and <code>centerRadius</code> properties must be specified. The <code>fieldOfView</code> 
@@ -755,8 +755,8 @@ public slots:
 
     /**jsdoc
      * Finds all domain and avatar entities of a particular type that intersect a sphere.
-     * <p><strong>Note:</strong> Entity Server Scripts will only find entities that have a server script
-     * running on them. You can apply a dummy script to entities that you would like found in a search.</p>
+     * <p><strong>Note:</strong> Server entity scripts only find entities that have a server entity script
+     * running in them or a parent entity. You can apply a dummy script to entities that you want found in a search.</p>
      * @function Entities.findEntitiesByType
      * @param {Entities.EntityType} entityType - The type of entity to search for.
      * @param {Vec3} center - The point about which to search.
@@ -772,8 +772,8 @@ public slots:
 
     /**jsdoc
      * Finds all domain and avatar entities with a particular name that intersect a sphere.
-     * <p><strong>Note:</strong> Entity Server Scripts will only find entities that have a server script
-     * running on them. You can apply a dummy script to entities that you would like found in a search.</p>
+     * <p><strong>Note:</strong> Server entity scripts only find entities that have a server entity script
+     * running in them or a parent entity. You can apply a dummy script to entities that you want found in a search.</p>
      * @function Entities.findEntitiesByName
      * @param {string} entityName - The name of the entity to search for.
      * @param {Vec3} center - The point about which to search.
