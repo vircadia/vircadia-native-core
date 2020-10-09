@@ -44,7 +44,7 @@ class Camera : public QObject {
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(QString mode READ getModeString WRITE setModeString NOTIFY modeUpdated)
     Q_PROPERTY(QVariantMap frustum READ getViewFrustum CONSTANT)
-    Q_PROPERTY(bool captureMouse READ getCaptureMouse WRITE setCaptureMouse NOTIFY captureMouseUpdated)
+    Q_PROPERTY(bool captureMouse READ getCaptureMouse WRITE setCaptureMouse NOTIFY captureMouseChanged)
     Q_PROPERTY(float sensitivity READ getSensitivity WRITE setSensitivity)
 
 public:
@@ -115,31 +115,32 @@ public slots:
 
     /**jsdoc
      * Gets the current mouse capture state.
-     * @function Camera.getMouseCapture
-     * @returns {boolean} The current mouse capture state.
+     * @function Camera.getCaptureMouse
+     * @returns {boolean} <code>true</code> if the mouse is captured (is invisible and cannot leave the bounds of Interface,
+     * if Interface is the active window and no menu item is selected), <code>false</code> if the mouse is behaving normally.
      */
     bool getCaptureMouse() const { return _captureMouse; }
 
     /**jsdoc
-     * Sets the mouse capture state.  When <code>true</code>, the mouse will be invisible and cannot leave the bounds of
+     * Sets the mouse capture state.  When <code>true</code>, the mouse is invisible and cannot leave the bounds of
      * Interface, as long as Interface is the active window and no menu item is selected.  When <code>false</code>, the mouse
-     * will behave normally.
+     * behaves normally.
      * @function Camera.setCaptureMouse
      * @param {boolean} captureMouse - <code>true</code> to capture the mouse, <code>false</code> to release the mouse.
      */
-    void setCaptureMouse(bool captureMouse) { _captureMouse = captureMouse; emit captureMouseUpdated(captureMouse); }
+    void setCaptureMouse(bool captureMouse) { _captureMouse = captureMouse; emit captureMouseChanged(captureMouse); }
 
     /**jsdoc
      * Gets the current camera sensitivity.
      * @function Camera.getSensitivity
-     * @returns {boolean} The current camera sensitivity.
+     * @returns {number} The current camera sensitivity.  Must be positive.
      */
     float getSensitivity() const { return _sensitivity; }
 
     /**jsdoc
      * Sets the camera sensitivity.  Higher values mean that the camera will be more sensitive to mouse movements.
      * @function Camera.setSensitivity
-     * @param {boolean} sensitivity - The desired camera sensitivity.
+     * @param {number} sensitivity - The desired camera sensitivity.  Must be positive.
      */
     void setSensitivity(float sensitivity) { _sensitivity = glm::max(0.0f, sensitivity); }
 
@@ -216,17 +217,17 @@ signals:
 
     /**jsdoc
      * Triggered when the camera mouse capture state changes.
-     * @function Camera.captureMouseUpdated
+     * @function Camera.captureMouseChanged
      * @param {boolean} newCaptureMouse - The new mouse capture state.
      * @returns {Signal}
      * @example <caption>Report mouse capture state changes.</caption>
-     * function onCaptureMouseUpdated(newCaptureMouse) {
+     * function onCaptureMouseChanged(newCaptureMouse) {
      *     print("The mouse capture has changed to " + newCaptureMouse);
      * }
      *
-     * Camera.captureMouseUpdated.connect(onCaptureMouseUpdated);
+     * Camera.captureMouseChanged.connect(onCaptureMouseChanged);
      */
-    void captureMouseUpdated(bool newCaptureMouse);
+    void captureMouseChanged(bool newCaptureMouse);
 
 private:
     void recompose();

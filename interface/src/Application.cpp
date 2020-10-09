@@ -2413,7 +2413,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateSystemTabletMode();
 
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
-    connect(&_myCamera, &Camera::captureMouseUpdated, this, &Application::captureMouseChanged);
+    connect(&_myCamera, &Camera::captureMouseChanged, this, &Application::captureMouseChanged);
 
     DependencyManager::get<PickManager>()->setShouldPickHUDOperator([]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
     DependencyManager::get<PickManager>()->setCalculatePos2DFromHUDOperator([this](const glm::vec3& intersection) {
