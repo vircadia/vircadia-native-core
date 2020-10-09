@@ -23,12 +23,12 @@
                             <v-list-item-subtitle>{{ triggeredEntity.lastEditedByName }}</v-list-item-subtitle>
                         </v-list-item-content>
                     </v-list-item>
-
+                    <v-divider></v-divider>
                     <v-card-actions v-show="registeredEntityMenus[triggeredEntity.id]">
                         <v-list>
                             <v-subheader>ACTIONS</v-subheader>
                             <v-list-item-group
-                                color="primary"
+                                color="#385F73"
                             >
                                 <v-list-item
                                     v-for="(item, i) in registeredEntityMenus[triggeredEntity.id]"
