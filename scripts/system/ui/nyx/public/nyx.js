@@ -21,6 +21,7 @@ var MENU_WEB_ENTITY_SCALE = {
     y: 1.5,
     z: 0.01
 };
+var MENU_WEB_ENTITY_ROTATION_UPDATE_INTERVAL = 500; // 500 ms
 var BOOTSTRAP_MENU_WEB_ENTITY_SCALE = {
     x: 0.01,
     y: 0.01,
@@ -54,12 +55,20 @@ function deregisterWithEntityMenu(messageData) {
 function toggleEntityMenu(pressedEntityID) {
     if (!entityWebMenuActive) {
         var triggeredEntityProperties = Entities.getEntityProperties(pressedEntityID);
-        
+        var lastEditedByName;
+
+        if (AvatarManager.getPalData([triggeredEntityProperties.lastEditedBy]).data[0]) {
+            lastEditedByName = AvatarManager.getPalData([triggeredEntityProperties.lastEditedBy]).data[0].sessionDisplayName
+        } else {
+            lastEditedByName = triggeredEntityProperties.lastEditedBy;
+        }
+
         lastTriggeredEntityInfo = {
             id: pressedEntityID,
             name: triggeredEntityProperties.name,
+            type: triggeredEntityProperties.type,
             lastEditedBy: triggeredEntityProperties.lastEditedBy,
-            lastEditedByName: AvatarManager.getPalData([triggeredEntityProperties.lastEditedBy]).data[0].sessionDisplayName
+            lastEditedByName: lastEditedByName
         };
 
         sendToWeb(entityWebMenu, 'script-to-web-triggered-entity-info', lastTriggeredEntityInfo);
@@ -67,10 +76,13 @@ function toggleEntityMenu(pressedEntityID) {
         Entities.editEntity(entityWebMenu, {
             position: Entities.getEntityProperties(pressedEntityID, ['position']).position,
             dimensions: MENU_WEB_ENTITY_SCALE,
+            rotation: Camera.orientation,
             visible: true
         });
         
         entityWebMenuActive = true;
+
+        updateEntityMenuRotation();
     } else if (entityWebMenuActive && pressedEntityID !== entityWebMenu) {
         Entities.editEntity(entityWebMenu, {
             position: BOOTSTRAP_MENU_WEB_ENTITY_POSITION,
@@ -78,6 +90,18 @@ function toggleEntityMenu(pressedEntityID) {
         });
         
         entityWebMenuActive = false;
+    }
+}
+
+function updateEntityMenuRotation() {
+    if (entityWebMenuActive) {
+        Script.setTimeout(function() {
+            Entities.editEntity(entityWebMenu, {
+                rotation: Camera.orientation
+            });
+            
+            updateEntityMenuRotation();
+        }, MENU_WEB_ENTITY_ROTATION_UPDATE_INTERVAL);
     }
 }
 
@@ -90,6 +114,8 @@ function bootstrapEntityMenu() {
         grab: {
             'grabbable': false
         },
+        rotation: Camera.orientation,
+        maxFPS: 30,
         sourceUrl: BOOTSTRAP_MENU_WEB_ENTITY_SOURCE,
         position: BOOTSTRAP_MENU_WEB_ENTITY_POSITION,
         dimensions: BOOTSTRAP_MENU_WEB_ENTITY_SCALE,
@@ -124,21 +150,25 @@ function onWebEventReceived(sendingEntityID, event) {
         if (eventJSON.command === "menu-item-triggered") {
             var dataToSend = {
                 entityID: eventJSON.data.triggeredEntityID,
-                itemPressed: eventJSON.data.itemPressed
+                menuItem: eventJSON.data.menuItem
             };
 
             Messages.sendLocalMessage(NYX_UI_CHANNEL, JSON.stringify(dataToSend));
+            
+            if (entityWebMenuActive) {
+                toggleEntityMenu(); // Close the menu if a menu item was pressed.
+            }
         }
         
     }
 }
 
 function onMessageReceived(channel, message, senderID, localOnly) {
-    print("NYX UI Message received:");
-    print("- channel: " + channel);
-    print("- message: " + message);
-    print("- sender: " + senderID);
-    print("- localOnly: " + localOnly);
+    // print("NYX UI Message received:");
+    // print("- channel: " + channel);
+    // print("- message: " + message);
+    // print("- sender: " + senderID);
+    // print("- localOnly: " + localOnly);
 
     if (channel === NYX_UI_CHANNEL && MyAvatar.sessionUUID === senderID) {
         messageData = JSON.parse(message);
@@ -182,10 +212,10 @@ Script.scriptEnding.connect(function () {
 
 // BOOTSTRAPPING TESTING CODE
 
-var messageToSend = {
-    'command': 'register-with-entity-menu',
-    'entityID': '{768542d0-e962-49e3-94fb-85651d56f5ae}',
-    'menuItems': ['This', 'Is', 'Nice']
-};
-
-Messages.sendLocalMessage(NYX_UI_CHANNEL, JSON.stringify(messageToSend));
+// var messageToSend = {
+//     'command': 'register-with-entity-menu',
+//     'entityID': '{768542d0-e962-49e3-94fb-85651d56f5ae}',
+//     'menuItems': ['This', 'Is', 'Nice']
+// };
+// 
+// Messages.sendLocalMessage(NYX_UI_CHANNEL, JSON.stringify(messageToSend));
