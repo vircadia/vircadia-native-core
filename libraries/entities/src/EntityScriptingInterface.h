@@ -709,8 +709,8 @@ public slots:
 
     /**jsdoc
      * Finds all domain and avatar entities that intersect a sphere.
-     * <p><strong>Note:</strong> Entity Server Scripts will only find entities that have a server script
-     * running on them. You can apply a dummy script to entities that you would like found in a search.</p>
+     * <p><strong>Note:</strong> Server entity scripts only find entities that have a server entity script
+     * running in them or a parent entity. You can apply a dummy script to entities that you want found in a search.</p>
      * @function Entities.findEntities
      * @param {Vec3} center - The point about which to search.
      * @param {number} radius - The radius within which to search.
