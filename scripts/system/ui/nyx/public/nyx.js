@@ -10,6 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("/~/system/libraries/utils.js");
+
 // BEGIN ENTITY MENU OVERLAY
 
 var entityWebMenu;
@@ -68,7 +70,11 @@ function toggleEntityMenu(pressedEntityID) {
             name: triggeredEntityProperties.name,
             type: triggeredEntityProperties.type,
             lastEditedBy: triggeredEntityProperties.lastEditedBy,
-            lastEditedByName: lastEditedByName
+            lastEditedByName: lastEditedByName,
+            entityHostType: triggeredEntityProperties.entityHostType,
+            description: triggeredEntityProperties.description,
+            position: triggeredEntityProperties.position,
+            rotation: triggeredEntityProperties.rotation
         };
 
         sendToWeb(entityWebMenu, 'script-to-web-triggered-entity-info', lastTriggeredEntityInfo);
@@ -109,7 +115,7 @@ function bootstrapEntityMenu() {
     entityWebMenu = Entities.addEntity({
         type: "Web",
         billboardMode: 'full',
-        renderLayer: 'front',
+        renderLayer: 'hud',
         visible: false,
         grab: {
             'grabbable': false
@@ -160,6 +166,12 @@ function onWebEventReceived(sendingEntityID, event) {
             }
         }
         
+        if (eventJSON.command === "close-entity-menu") {
+            if (entityWebMenuActive) {
+                toggleEntityMenu(); // Close the menu if it is active.
+            }
+        }
+
     }
 }
 
@@ -184,7 +196,7 @@ function onMessageReceived(channel, message, senderID, localOnly) {
 }
 
 function onMousePressOnEntity (pressedEntityID, event) {
-    if (event.isPrimaryButton) {
+    if (event.isPrimaryHeld && event.isSecondaryHeld && !isInEditMode()) {
         toggleEntityMenu(pressedEntityID);
     }
 }
