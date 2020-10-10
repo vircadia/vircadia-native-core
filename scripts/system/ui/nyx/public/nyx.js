@@ -12,8 +12,11 @@
 
 Script.include("/~/system/libraries/utils.js");
 
+var SETTING_NYX_PREFIX = "nyx/";
+
 // BEGIN ENTITY MENU OVERLAY
 
+var enableEntityWebMenu = true;
 var entityWebMenu;
 var entityWebMenuActive = false;
 var registeredEntityMenus = {};
@@ -55,7 +58,7 @@ function deregisterWithEntityMenu(messageData) {
 }
 
 function toggleEntityMenu(pressedEntityID) {
-    if (!entityWebMenuActive) {
+    if (!entityWebMenuActive && enableEntityWebMenu === true) {
         var triggeredEntityProperties = Entities.getEntityProperties(pressedEntityID);
         var lastEditedByName;
 
@@ -201,13 +204,47 @@ function onMousePressOnEntity (pressedEntityID, event) {
     }
 }
 
+// Nyx Menu
+
+var NYX_MAIN_MENU = "Settings > Nyx";
+var NYX_ENTITY_MENU_ENABLED = "Enable Entity Menu";
+
+function handleMenuEvent(menuItem) {
+    if (menuItem === NYX_ENTITY_MENU_ENABLED) {
+        enableEntityWebMenu = Menu.isOptionChecked(NYX_ENTITY_MENU_ENABLED);
+    }
+}
+
+function bootstrapNyxMenu() {
+    if (!Menu.menuExists(NYX_MAIN_MENU)) {
+        Menu.addMenu(NYX_MAIN_MENU);
+        Menu.addMenuItem({
+            menuName: NYX_MAIN_MENU,
+            menuItemName: NYX_ENTITY_MENU_ENABLED,
+            isCheckable: true,
+            isChecked: Settings.getValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, true)
+        });
+    }
+}
+
+function unloadNyxMenu() {
+    Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, Menu.isOptionChecked(NYX_ENTITY_MENU_ENABLED));
+    
+    Menu.removeMenuItem(NYX_MAIN_MENU, NYX_ENTITY_MENU_ENABLED);
+    Menu.removeMenu(NYX_MAIN_MENU);
+}
+
+// Nyx Menu
+
 // BOOTSTRAPPING
 
 function startup() {
     Messages.messageReceived.connect(onMessageReceived);
     Entities.mousePressOnEntity.connect(onMousePressOnEntity);
     Entities.webEventReceived.connect(onWebEventReceived);
+    Menu.menuItemEvent.connect(handleMenuEvent);
     
+    bootstrapNyxMenu();
     bootstrapEntityMenu();
 }
 
@@ -217,6 +254,9 @@ Script.scriptEnding.connect(function () {
     Messages.messageReceived.disconnect(onMessageReceived);
     Entities.mousePressOnEntity.disconnect(onMousePressOnEntity);
     Entities.webEventReceived.disconnect(onWebEventReceived);
+    Menu.menuItemEvent.disconnect(handleMenuEvent);
+
+    unloadNyxMenu();
 
     Entities.deleteEntity(entityWebMenu);
     entityWebMenu = null;
