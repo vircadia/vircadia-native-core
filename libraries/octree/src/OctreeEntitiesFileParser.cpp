@@ -4,6 +4,7 @@
 //
 //  Created by Simon Walton on Oct 15, 2018.
 //  Copyright 2018 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -247,8 +248,7 @@ bool OctreeEntitiesFileParser::readEntitiesArray(QVariantList& entitiesArray) {
                 // model
                 "modelURL",
                 "animation.url",
-                // FIXME: Handle models' "textures" and "originalTextures" properties which include URLs. Note that Particles
-                // also has a "textures" property.
+                "textures",
                 // image
                 "imageURL",
                 // web
@@ -258,7 +258,7 @@ bool OctreeEntitiesFileParser::readEntitiesArray(QVariantList& entitiesArray) {
                 "ambientLight.ambientURL",
                 "skybox.url",
                 // particles
-                "textures",
+                //"textures",  Already specified for model entity type.
                 // materials
                 "materialURL",
                 // ...shared
@@ -292,11 +292,30 @@ bool OctreeEntitiesFileParser::readEntitiesArray(QVariantList& entitiesArray) {
                     }
                 } else {
                     if (entityObject.contains(key) && entityObject[key].isString()) {
-                        const QString url = entityObject[key].toString();
+                        const QString value = entityObject[key].toString();
 
-                        if (url.startsWith("./") || url.startsWith("../")) {
-                            entityObject[key] = _relativeURL.resolved(url).toString();
+                        if (value.startsWith("./") || value.startsWith("../")) {
+                            // URL value.
+                            entityObject[key] = _relativeURL.resolved(value).toString();
                             isDirty = true;
+                        } else if (value.startsWith("{")) {
+                            // Object with URL values.
+                            auto document = QJsonDocument::fromJson(value.toUtf8());
+                            if (!document.isNull()) {
+                                auto object = document.object();
+                                bool isObjectUpdated = false;
+                                for (const QString& key : object.keys()) {
+                                    auto value = object[key].toString();
+                                    if (value.startsWith("./") || value.startsWith("../")) {
+                                        object[key] = _relativeURL.resolved(value).toString();
+                                        isObjectUpdated = true;
+                                    }
+                                }
+                                if (isObjectUpdated) {
+                                    entityObject[key] = QString(QJsonDocument(object).toJson());
+                                    isDirty = true;
+                                }
+                            }
                         }
                     }
                 }

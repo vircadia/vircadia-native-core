@@ -358,7 +358,7 @@ public:
      * // Replace AnimationCache with MaterialCache, ModelCache, SoundCache, or TextureCache as appropriate.
      * // TextureCache has its own version of this function.
      * 
-     * var resourceURL = "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/animations/sitting_idle.fbx";
+     * var resourceURL = "https://cdn-1.vircadia.com/eu-c-1/vircadia-public/clement/production/animations/sitting_idle.fbx";
      * var resourceObject = AnimationCache.prefetch(resourceURL);
      * 
      * function checkIfResourceLoaded(state) {

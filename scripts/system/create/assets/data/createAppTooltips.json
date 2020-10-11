@@ -402,7 +402,7 @@
         "tooltip": "Affects the size of the spotlight beam; the higher the value, the larger the beam."
     },
     "materialURL": {
-        "tooltip": "The URL to an external JSON file or \"materialData\", \"materialData?<material name> to use Material Data."
+        "tooltip": "The URL to an external JSON file or \"materialData\". Append \"?<material name>\" to select a single material if multiple are defined."
     },
     "materialData": {
         "tooltip": "Can be used instead of a JSON file when material set to materialData."
@@ -607,6 +607,9 @@
     "webAlpha": {
         "tooltip": "The opacity of the web entity between 0.0 fully transparent and 1.0 completely opaque."
     },
+    "useBackground": {
+        "tooltip": "If disabled, this web entity will support a transparent background for the webpage and its elements if the CSS property of 'background-color' on the 'body' is set with transparency."
+    },    
     "maxFPS": {
         "tooltip": "The FPS at which to render the web entity. Higher values will have a performance impact."
     },

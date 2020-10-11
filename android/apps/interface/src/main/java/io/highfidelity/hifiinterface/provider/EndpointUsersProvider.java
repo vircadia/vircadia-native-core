@@ -28,7 +28,7 @@ import retrofit2.http.Query;
 
 public class EndpointUsersProvider implements UsersProvider {
 
-    public static final String BASE_URL = "https://metaverse.highfidelity.com/";
+    public static final String BASE_URL = "https://metaverse.vircadia.com/live/";
     private final Retrofit mRetrofit;
     private final EndpointUsersProviderService mEndpointUsersProviderService;
 
@@ -154,18 +154,18 @@ public class EndpointUsersProvider implements UsersProvider {
     }
 
     public interface EndpointUsersProviderService {
-        @GET("api/v1/users")
+        @GET("/api/v1/users")
         Call<UsersResponse> getUsers(@Query("filter") String filter,
                                            @Query("per_page") int perPage,
                                            @Query("online") Boolean online);
 
-        @DELETE("api/v1/user/connections/{connectionUserName}")
+        @DELETE("/api/v1/user/connections/{connectionUserName}")
         Call<UsersResponse> removeConnection(@Path("connectionUserName") String connectionUserName);
 
-        @DELETE("api/v1/user/friends/{friendUserName}")
+        @DELETE("/api/v1/user/friends/{friendUserName}")
         Call<UsersResponse> removeFriend(@Path("friendUserName") String friendUserName);
 
-        @POST("api/v1/user/friends")
+        @POST("/api/v1/user/friends")
         Call<UsersResponse> addFriend(@Body BodyAddFriend friendUserName);
 
         /* response

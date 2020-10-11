@@ -22,8 +22,8 @@ KBD_UPPERCASE_HOVER   = 2;
 KBD_LOWERCASE_HOVER   = 3;
 KBD_BACKGROUND        = 4;
 
-KEYBOARD_URL = HIFI_PUBLIC_BUCKET + "images/keyboard.svg";
-CURSOR_URL = HIFI_PUBLIC_BUCKET + "images/cursor.svg";
+KEYBOARD_URL = Script.getExternalPath(Script.ExternalPaths.Assets, "images/keyboard.svg");
+CURSOR_URL = Script.getExternalPath(Script.ExternalPaths.Assets, "images/cursor.svg");
 
 RETURN_CHARCODE = 0x01000004;
 ENTER_CHARCODE = 0x01000005;

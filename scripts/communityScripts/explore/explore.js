@@ -74,9 +74,10 @@
             permission = Entities.canRez()
 
             var readyEvent = {
-                "action": "addressList",
+                "action": "addressListv2",
                 "myAddress": children,
-                "permission": permission
+                "permission": permission,
+                "isHomeSet": LocationBookmarks.getHomeLocationAddress().length > 0
             };
 
             tablet.emitScriptEvent(JSON.stringify(readyEvent));

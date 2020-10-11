@@ -331,8 +331,7 @@ void GLBackend::do_setStateBlendFactor(const Batch& batch, size_t paramOffset) {
 
 void GLBackend::do_setStateScissorRect(const Batch& batch, size_t paramOffset) {
     Vec4i rect;
-    memcpy(&rect, batch.readData(batch._params[paramOffset]._uint), sizeof(Vec4i));
-
+    memcpy(glm::value_ptr(rect), batch.readData(batch._params[paramOffset]._uint), sizeof(Vec4i));
     if (_stereo.isStereo()) {
         rect.z /= 2;
         if (_stereo._pass) {

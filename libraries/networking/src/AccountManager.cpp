@@ -221,17 +221,24 @@ QNetworkRequest AccountManager::createRequest(QString path, AccountManagerAuth::
                                 uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
 
     QUrl requestURL = _authURL;
-
     if (requestURL.isEmpty()) {  // Assignment client doesn't set _authURL.
         requestURL = getMetaverseServerURL();
     }
 
+    // qCDebug(networking) << "Received path" << path;
+    // qCDebug(networking) << "path.left(path.indexOf(\" ? \"))" << path.left(path.indexOf("?"));
+    // qCDebug(networking) << "getMetaverseServerURLPath(true)" << getMetaverseServerURLPath(true);
+
     int queryStringLocation = path.indexOf("?");
     if (path.startsWith("/")) {
-        requestURL.setPath(path.left(queryStringLocation));
+        requestURL.setPath(getMetaverseServerURLPath(false) + path.left(queryStringLocation));
     } else {
-        requestURL.setPath("/" + path.left(queryStringLocation));
+        requestURL.setPath(getMetaverseServerURLPath(true) + path.left(queryStringLocation));
     }
+    
+    // qCDebug(networking) << "Creating request path" << requestURL;
+    // qCDebug(networking) << "requestURL.isValid()" << requestURL.isValid();
+    // qCDebug(networking) << "requestURL.errorString()" << requestURL.errorString();
 
     if (queryStringLocation >= 0) {
         QUrlQuery query(path.mid(queryStringLocation+1));
@@ -556,7 +563,7 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
 
     QUrl grantURL = _authURL;
-    grantURL.setPath("/oauth/token");
+    grantURL.setPath(getMetaverseServerURLPath() + "/oauth/token");
 
     QByteArray postData;
     postData.append("grant_type=password&");
@@ -579,7 +586,7 @@ void AccountManager::requestAccessTokenWithAuthCode(const QString& authCode, con
     request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
 
     QUrl grantURL = _authURL;
-    grantURL.setPath("/oauth/token");
+    grantURL.setPath(getMetaverseServerURLPath() + "/oauth/token");
 
     QByteArray postData;
     postData.append("grant_type=authorization_code&");
@@ -602,7 +609,7 @@ void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
     request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
 
     QUrl grantURL = _authURL;
-    grantURL.setPath("/oauth/token");
+    grantURL.setPath(getMetaverseServerURLPath() + "/oauth/token");
 
     QByteArray postData;
     postData.append("grant_type=password&");
@@ -624,7 +631,7 @@ void AccountManager::requestAccessTokenWithOculus(const QString& nonce, const QS
     request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
 
     QUrl grantURL = _authURL;
-    grantURL.setPath("/oauth/token");
+    grantURL.setPath(getMetaverseServerURLPath() + "/oauth/token");
 
     QByteArray postData;
     postData.append("grant_type=password&");
@@ -655,7 +662,7 @@ void AccountManager::refreshAccessToken() {
         request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
 
         QUrl grantURL = _authURL;
-        grantURL.setPath("/oauth/token");
+        grantURL.setPath(getMetaverseServerURLPath() + "/oauth/token");
 
         QByteArray postData;
         postData.append("grant_type=refresh_token&");
@@ -688,7 +695,7 @@ void AccountManager::setAccessTokens(const QString& response) {
         } else {
             // clear the path from the response URL so we have the right root URL for this access token
             QUrl rootURL = rootObject.contains("url") ? rootObject["url"].toString() : _authURL;
-            rootURL.setPath("");
+            rootURL.setPath(getMetaverseServerURLPath());
 
             qCDebug(networking) << "Storing an account with access-token for" << qPrintable(rootURL.toString());
 
@@ -723,7 +730,7 @@ void AccountManager::requestAccessTokenFinished() {
         } else {
             // clear the path from the response URL so we have the right root URL for this access token
             QUrl rootURL = requestReply->url();
-            rootURL.setPath("");
+            rootURL.setPath(getMetaverseServerURLPath());
 
             qCDebug(networking) << "Storing an account with access-token for" << qPrintable(rootURL.toString());
 
@@ -759,7 +766,7 @@ void AccountManager::refreshAccessTokenFinished() {
         } else {
             // clear the path from the response URL so we have the right root URL for this access token
             QUrl rootURL = requestReply->url();
-            rootURL.setPath("");
+            rootURL.setPath(getMetaverseServerURLPath());
 
             qCDebug(networking) << "Storing an account with a refreshed access-token for" << qPrintable(rootURL.toString());
 
@@ -784,7 +791,7 @@ void AccountManager::requestProfile() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QUrl profileURL = _authURL;
-    profileURL.setPath("/api/v1/user/profile");
+    profileURL.setPath(getMetaverseServerURLPath() + "/api/v1/user/profile");
 
     QNetworkRequest profileRequest(profileURL);
     profileRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
@@ -834,7 +841,7 @@ void AccountManager::requestAccountSettings() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QUrl lockerURL = _authURL;
-    lockerURL.setPath("/api/v1/user/locker");
+    lockerURL.setPath(getMetaverseServerURLPath() + "/api/v1/user/locker");
 
     QNetworkRequest lockerRequest(lockerURL);
     lockerRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
@@ -905,7 +912,7 @@ void AccountManager::postAccountSettings() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QUrl lockerURL = _authURL;
-    lockerURL.setPath("/api/v1/user/locker");
+    lockerURL.setPath(getMetaverseServerURLPath() + "/api/v1/user/locker");
 
     QNetworkRequest lockerRequest(lockerURL);
     lockerRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
@@ -1003,8 +1010,8 @@ void AccountManager::uploadPublicKey() {
     qCDebug(networking) << "Attempting upload of public key";
 
     // upload the public key so data-web has an up-to-date key
-    const QString USER_PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
-    const QString DOMAIN_PUBLIC_KEY_UPDATE_PATH = "api/v1/domains/%1/public_key";
+    const QString USER_PUBLIC_KEY_UPDATE_PATH = "/api/v1/user/public_key";
+    const QString DOMAIN_PUBLIC_KEY_UPDATE_PATH = "/api/v1/domains/%1/public_key";
 
     QString uploadPath;
     const auto& domainID = _accountInfo.getDomainID();

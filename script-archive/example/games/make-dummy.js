@@ -15,14 +15,14 @@
 /*jslint vars: true*/
 var Overlays, Entities, Controller, Script, MyAvatar, Vec3; // Referenced globals provided by High Fidelity.
 
-var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 var rezButton = Overlays.addOverlay("image", {
     x: 100,
     y: 350,
     width: 32,
     height: 32,
-    imageURL: HIFI_PUBLIC_BUCKET + "images/close.png",
+    imageURL: VIRCADIA_PUBLIC_CDN + "images/close.png",
     color: {
         red: 255,
         green: 255,

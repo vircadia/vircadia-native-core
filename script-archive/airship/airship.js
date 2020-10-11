@@ -28,10 +28,10 @@
         lightTimer = 0,
         lightTimeoutID = undefined,
         audioInjector = null;
-
-    var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-    var cannonSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "philip/cannonShot.wav");
-    var explosionSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "philip/explosion.wav");
+ 
+    var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
+    var cannonSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "philip/cannonShot.wav");
+    var explosionSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "philip/explosion.wav");
 
     var NO_SHOOT_COLOR = { red: 100, green: 100, blue: 100 };
 

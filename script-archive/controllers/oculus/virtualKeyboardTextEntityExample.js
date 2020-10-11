@@ -38,7 +38,7 @@ var textSizeMeasureOverlay = Overlays.addOverlay("text3d", {visible: false});
 var randomSounds = new SoundArray({}, true);
 var numberOfSounds = 7;
 for (var i = 1; i <= numberOfSounds; i++) {
-    randomSounds.addSound(HIFI_PUBLIC_BUCKET + "sounds/UI/virtualKeyboard-press" + i + ".raw");
+    randomSounds.addSound(VIRCADIA_PUBLIC_CDN + "sounds/UI/virtualKeyboard-press" + i + ".raw");
 }
 
 function appendChar(char) {

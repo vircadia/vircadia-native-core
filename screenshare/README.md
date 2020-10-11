@@ -1,5 +1,5 @@
 # Screen Sharing within High Fidelity
-This Screen Share app, built using Electron, allows for easy desktop screen sharing when used in conjuction with various scripts in the `hifi-content` repository.
+This Screen Share app, built using Electron, allows for easy desktop screen sharing when used in conjuction with various scripts in the `vircadia-content` repository.
 
 # Screen Sharing Source Files
 ## `packager.js`

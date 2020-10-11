@@ -8,7 +8,7 @@
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  This is a toy script that can be added to the Flashlight model entity:
-//  "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx"
+//  Script.getExternalPath(Script.ExternalPaths.HF_Public, "/models/props/flashlight.fbx")
 //  that creates a spotlight attached with the flashlight model while the entity is grabbed
 //
 //  Distributed under the Apache License, Version 2.0.
