@@ -6,7 +6,7 @@
 //  Created by Kalila L. on Oct 5 2020.
 //  Copyright 2020 Vircadia contributors.
 //
-//  This script triggers on first run to perform first party 
+//  This script triggers on first run to perform bootstrapping actions.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
