@@ -6,6 +6,6 @@ if (UNIX)
 endif(UNIX)
 GroupSources("src")
 
-set(OpenGL_GL_PREFERENCE "GLVND")
+set(OpenGL_GL_PREFERENCE "LEGACY")
 target_opengl()
 
