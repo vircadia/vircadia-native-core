@@ -32,6 +32,26 @@ LogHandler& LogHandler::getInstance() {
     return staticInstance;
 }
 
+LogHandler::LogHandler() {
+    QString log_options = qgetenv("VIRCADIA_LOG_OPTIONS").toLower();
+
+    if (log_options.contains("color")) {
+        _useColor = 1;
+    }
+
+    if (log_options.contains("process_id")) {
+        _shouldOutputProcessID = true;
+    }
+
+    if (log_options.contains("thread_id")) {
+        _shouldOutputThreadID = true;
+    }
+
+    if (log_options.contains("milliseconds")) {
+        _shouldDisplayMilliseconds = true;
+    }
+}
+
 const char* stringForLogType(LogMsgType msgType) {
     switch (msgType) {
         case LogInfo:
@@ -49,6 +69,29 @@ const char* stringForLogType(LogMsgType msgType) {
         default:
             return "UNKNOWN";
     }
+}
+
+const char* colorForLogType(LogMsgType msgType) {
+    switch (msgType) {
+        case LogInfo:
+            return "\u001b[37;1m";  // Bold white
+        case LogDebug:
+            return "";
+        case LogWarning:
+            return "\u001b[35;1m";  // Bright magenta
+        case LogCritical:
+            return "\u001b[31;1m";  // Bright red
+        case LogFatal:
+            return "\u001b[31;1m";  // Bright red
+        case LogSuppressed:
+            return "";
+        default:
+            return "";
+    }
+}
+
+const char* colorReset() {
+    return "\u001b[0m";
 }
 
 // the following will produce 11/18 13:55:36
@@ -133,7 +176,15 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
 
     QString logMessage = QString("%1 %2\n").arg(prefixString, message.split('\n').join('\n' + prefixString + " "));
 
-    fprintf(stdout, "%s", qPrintable(logMessage));
+    const char* color = "";
+    const char* resetColor = "";
+
+    if (_useColor) {
+        color = colorForLogType(type);
+        resetColor = colorReset();
+    }
+
+    fprintf(stdout, "%s%s%s", color, qPrintable(logMessage), resetColor);
 #ifdef Q_OS_WIN
     // On windows, this will output log lines into the Visual Studio "output" tab
     OutputDebugStringA(qPrintable(logMessage));
