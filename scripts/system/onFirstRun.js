@@ -14,9 +14,9 @@
 
 (function() { // BEGIN LOCAL_SCOPE
     var SETTING_TO_CHECK = 'firstRun';
-    var DEFAULT_NAME = 'anonymous';
+    var DEFAULT_NAME = '';
 
-    if (Settings.getValue('firstRun', false)) {
+    if ((Settings.getValue('firstRun', false) && MyAvatar.displayName === '') || MyAvatar.displayName === '') {
         var selectedDisplayName = Window.prompt('Enter a display name.', MyAvatar.displayName);
 
         if (selectedDisplayName === '') {
