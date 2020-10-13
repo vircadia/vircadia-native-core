@@ -24,7 +24,7 @@
         var selectedDisplayName = Window.prompt('Enter a display name.', MyAvatar.displayName);
 
         if (selectedDisplayName === '') {
-            MyAvatar.displayName = DEFAULT_NAME;
+            MyAvatar.displayName = DEFAULT_DISPLAY_NAME;
         } else {
             MyAvatar.displayName = selectedDisplayName;
         }
