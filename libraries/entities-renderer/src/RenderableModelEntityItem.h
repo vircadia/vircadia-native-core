@@ -128,6 +128,7 @@ private:
     bool _originalTexturesRead { false };
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
+    bool _needsToRescaleModel { false };
 };
 
 namespace render { namespace entities { 

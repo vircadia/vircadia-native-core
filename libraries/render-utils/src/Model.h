@@ -186,7 +186,6 @@ public:
     bool isActive() const { return isLoaded(); }
 
     bool didVisualGeometryRequestFail() const { return _visualGeometryRequestFailed; }
-    bool didCollisionGeometryRequestFail() const { return _collisionGeometryRequestFailed; }
 
     glm::mat4 getWorldToHFMMatrix() const;
 
@@ -477,7 +476,6 @@ protected:
     uint32_t _deleteGeometryCounter { 0 };
 
     bool _visualGeometryRequestFailed { false };
-    bool _collisionGeometryRequestFailed { false };
 
     bool _renderItemsNeedUpdate { false };
 

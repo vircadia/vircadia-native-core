@@ -183,12 +183,10 @@ void RenderableModelEntityItem::updateModelBounds() {
     bool overridingModelTransform = model->isOverridingModelTransformAndOffset();
     glm::vec3 scaledDimensions = getScaledDimensions();
     glm::vec3 registrationPoint = getRegistrationPoint();
-    QString modelURL = getModelURL();
     if (!overridingModelTransform &&
         (model->getScaleToFitDimensions() != scaledDimensions ||
          model->getRegistrationPoint() != registrationPoint ||
-         model->getURL() != modelURL ||
-         !model->getIsScaledToFit())) {
+         !model->getIsScaledToFit() || _needsToRescaleModel)) {
         // The machinery for updateModelBounds will give existing models the opportunity to fix their
         // translation/rotation/scale/registration.  The first two are straightforward, but the latter two
         // have guards to make sure they don't happen after they've already been set.  Here we reset those guards.
@@ -201,6 +199,7 @@ void RenderableModelEntityItem::updateModelBounds() {
         model->setSnapModelToRegistrationPoint(true, registrationPoint);
         updateRenderItems = true;
         model->scaleToFit();
+        _needsToRescaleModel = false;
     }
 
     bool success;
@@ -718,7 +717,7 @@ void RenderableModelEntityItem::setJointMap(std::vector<int> jointMap) {
 int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
     int result = -1;
     int mapSize = (int) _jointMap.size();
-    if (modelJointIndex >=0 && modelJointIndex < mapSize) {
+    if (modelJointIndex >= 0 && modelJointIndex < mapSize) {
         result = _jointMap[modelJointIndex];
     }
 
@@ -737,18 +736,20 @@ bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
 }
 
 bool RenderableModelEntityItem::shouldBePhysical() const {
-    auto model = getModel();
-    // If we have a model, make sure it hasn't failed to download.
-    // If it has, we'll report back that we shouldn't be physical so that physics aren't held waiting for us to be ready.
+    bool physicalModelLoaded = false;
     ShapeType shapeType = getShapeType();
-    if (model) {
-        if ((shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) && model->didCollisionGeometryRequestFail()) {
-            return false;
-        } else if (shapeType != SHAPE_TYPE_NONE && model->didVisualGeometryRequestFail()) {
-            return false;
-        }
+    if (shapeType >= SHAPE_TYPE_SIMPLE_HULL && shapeType <= SHAPE_TYPE_STATIC_MESH) {
+        auto model = getModel();
+        // If we have a model, make sure it hasn't failed to download.
+        // If it has, we'll report back that we shouldn't be physical so that physics aren't held waiting for us to be ready.
+        physicalModelLoaded = model && !model->didVisualGeometryRequestFail();
+    } else if (shapeType == SHAPE_TYPE_COMPOUND) {
+        physicalModelLoaded = _collisionGeometryResource && !_collisionGeometryResource->isFailed();
+    } else if (shapeType != SHAPE_TYPE_NONE) {
+        physicalModelLoaded = true;
     }
-    return !isDead() && shapeType != SHAPE_TYPE_NONE && !isLocalEntity() && QUrl(_modelURL).isValid();
+
+    return physicalModelLoaded && !isDead() && !isLocalEntity() && QUrl(_modelURL).isValid();
 }
 
 int RenderableModelEntityItem::getJointParent(int index) const {
@@ -1247,6 +1248,8 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
                 _model->setPrimitiveMode(_primitiveMode, scene);
                 _model->setCullWithParent(_cullWithParent, scene);
                 _model->setRenderWithZones(_renderWithZones, scene);
+                entity->locationChanged();
+                entity->dimensionsChanged();
             });
             if (didVisualGeometryRequestSucceed) {
                 emit DependencyManager::get<scriptable::ModelProviderFactory>()->
@@ -1255,6 +1258,7 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
             _didLastVisualGeometryRequestSucceed = didVisualGeometryRequestSucceed;
             entity->_originalTexturesRead = false;
             entity->_needsJointSimulation = true;
+            entity->_needsToRescaleModel = true;
             emit requestRenderUpdate();
         });
         model->setLoadingPriority(EntityTreeRenderer::getEntityLoadingPriority(*entity));
@@ -1288,7 +1292,6 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
 
         QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
             Qt::QueuedConnection, Q_ARG(QUuid, entity->getEntityItemID()), Q_ARG(EntityItemProperties, properties));
-        entity->_dimensionsInitialized = true;
     }
 
     if (!entity->_originalTexturesRead) {
@@ -1340,9 +1343,10 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         }
     }
 
+    bool needsUpdate = false;
     if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
         _texturesLoaded = true;
-        model->updateRenderItems();
+        needsUpdate = true;
     } else if (!_texturesLoaded) {
         emit requestRenderUpdate();
     }
@@ -1368,13 +1372,13 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
             emit requestRenderUpdate();
         } else {
             _allProceduralMaterialsLoaded = true;
-            model->setRenderItemsNeedUpdate();
+            needsUpdate = true;
         }
     }
 
     // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
     // we will watch for that and ask the model to update it's render items
-    if (model->getRenderItemsNeedUpdate()) {
+    if (needsUpdate || model->getRenderItemsNeedUpdate()) {
         model->updateRenderItems();
     }
 
