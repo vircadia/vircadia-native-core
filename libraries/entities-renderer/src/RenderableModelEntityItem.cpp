@@ -1185,25 +1185,6 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity, const ModelP
     entity->copyAnimationJointDataToModel();
 }
 
-bool ModelEntityRenderer::needsRenderUpdate() const {
-    //ModelPointer model = resultWithReadLock<ModelPointer>([&] {
-    //    return _model;
-    //});
-
-    //if (model) {
-    //    // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
-    //    // we will watch for that and ask the model to update it's render items
-    //    if (model->needsReload()) {
-    //        return true;
-    //    }
-
-    //    if (model->needsFixupInScene()) {
-    //        return true;
-    //    }
-    //}
-    return Parent::needsRenderUpdate();
-}
-
 bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (entity->blendshapesChanged()) {
         return true;
@@ -1212,24 +1193,6 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
     // Check to see if we need to update the model bounds
     if (entity->needsUpdateModelBounds()) {
         return true;
-    }
-
-    ModelPointer model = resultWithReadLock<ModelPointer>([&] {
-        return _model;
-    });
-
-    if (model && model->isLoaded()) {
-        // Check to see if we need to update the model bounds
-        auto transform = entity->getTransform();
-        if (model->getTranslation() != transform.getTranslation() ||
-            model->getRotation() != transform.getRotation()) {
-            return true;
-        }
-
-        if (model->getScaleToFitDimensions() != entity->getScaledDimensions() ||
-            model->getRegistrationPoint() != entity->getRegistrationPoint()) {
-            return true;
-        }
     }
 
     return Parent::needsRenderUpdateFromTypedEntity(entity);
@@ -1290,7 +1253,6 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
                     modelAddedToScene(entity->getEntityItemID(), NestableType::Entity, model);
             }
             _didLastVisualGeometryRequestSucceed = didVisualGeometryRequestSucceed;
-            entity->_dimensionsInitialized = false;
             entity->_originalTexturesRead = false;
             entity->_needsJointSimulation = true;
             emit requestRenderUpdate();
@@ -1440,11 +1402,13 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         ModelPointer model = resultWithReadLock<ModelPointer>([&] {
             return _model;
         });
-        if (!_jointMappingCompleted) {
-            mapJoints(entity, model);
-        }
-        if (entity->readyToAnimate() && model && model->isLoaded()) {
-            animate(entity, model);
+        if (model && model->isLoaded()) {
+            if (!_jointMappingCompleted) {
+                mapJoints(entity, model);
+            }
+            if (entity->readyToAnimate()) {
+                animate(entity, model);
+            }
         }
         emit requestRenderUpdate();
     }

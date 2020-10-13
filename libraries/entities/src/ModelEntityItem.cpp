@@ -325,6 +325,7 @@ void ModelEntityItem::setCompoundShapeURL(const QString& url) {
     withWriteLock([&] {
         if (_compoundShapeURL.get() != url) {
             _compoundShapeURL.set(url);
+            _needsRenderUpdate = true;
             _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
         }
     });
