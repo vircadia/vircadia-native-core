@@ -179,7 +179,7 @@ function promptToCreateDomainID() {
               "label": label
             }
         
-            $.post("/api/domains", domainJSON, function(data){
+            $.post("/api/domains", domainJSON, function(data) {
               // we successfully created a domain ID, set it on that field
               var domainID = data.domain.domainId;
               console.log("Setting domain ID to ", data, domainID);

@@ -501,7 +501,8 @@ function prepareAccessTokenPrompt(callback) {
 }
 
 function createDomainIDPrompt(callback) {
-    swal({
+  swal(
+    {
       title: 'Finish Registering Domain',
       type: 'input',
       text: 'Enter a label for this machine.</br></br>This will help you identify which domain ID belongs to which machine.</br></br>This is a required step for registration.</br></br>',
@@ -509,14 +510,14 @@ function createDomainIDPrompt(callback) {
       confirmButtonText: "Create",
       closeOnConfirm: false,
       html: true
-    }, function(inputValue){
+    }, function(inputValue) {
       if (inputValue === false) {
       return false;
     }
 
     if (inputValue === "") {
-      swal.showInputError("Please enter a valid label for your machine.")
-      return false
+      swal.showInputError("Please enter a valid label for your machine.");
+      return false;
     }
 
     if (callback) {
