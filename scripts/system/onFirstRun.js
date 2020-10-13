@@ -14,9 +14,13 @@
 
 (function() { // BEGIN LOCAL_SCOPE
     var SETTING_TO_CHECK = 'firstRun';
-    var DEFAULT_NAME = '';
+    var DEFAULT_DISPLAY_NAME = '';
 
-    if ((Settings.getValue('firstRun', false) && MyAvatar.displayName === '') || MyAvatar.displayName === '') {
+    if (!Settings.getValue('firstRun', false)) {
+        return;
+    }
+    
+    if (MyAvatar.displayName === '') {
         var selectedDisplayName = Window.prompt('Enter a display name.', MyAvatar.displayName);
 
         if (selectedDisplayName === '') {
