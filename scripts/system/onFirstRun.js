@@ -16,7 +16,7 @@
     var SETTING_TO_CHECK = 'firstRun';
     var DEFAULT_DISPLAY_NAME = '';
 
-    if (!Settings.getValue('firstRun', false)) {
+    if (!Settings.getValue(SETTING_TO_CHECK, false)) {
         return;
     }
     
