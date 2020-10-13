@@ -27,6 +27,7 @@ Item {
     width: parent.width
 
     property string title: "Controls"
+    property var openVRDevices: ["HTC Vive", "Valve Index", "Valve HMD", "Valve"]
 
     HifiConstants { id: hifi }
 
@@ -244,7 +245,7 @@ Item {
                     source: InputConfiguration.configurationLayout(box.textAt(box.currentIndex));
                     onLoaded: {
                         if (loader.item.hasOwnProperty("pluginName")) {
-                            if (box.textAt(box.currentIndex) === "HTC Vive" || box.textAt(box.currentIndex) === "Valve Index" || box.textAt(box.currentIndex) === "Valve HMD" || box.textAt(box.currentIndex) === "Valve") {
+                            if (openVRDevices.indexOf(box.textAt(box.currentIndex)) !== -1) {
                                 loader.item.pluginName = "OpenVR";
                             } else {
                                 loader.item.pluginName = box.textAt(box.currentIndex);
@@ -298,7 +299,7 @@ Item {
                 loader.source = "";
                 var selectedDevice = box.textAt(box.currentIndex);
                 var source = "";
-                if (selectedDevice == "HTC Vive" || selectedDevice == "Valve Index" || selectedDevice == "Valve HMD" || selectedDevice == "Valve") {
+                if (openVRDevices.indexOf(selectedDevice) !== -1) {
                     source = InputConfiguration.configurationLayout("OpenVR");
                 } else {
                     source = InputConfiguration.configurationLayout(selectedDevice);
