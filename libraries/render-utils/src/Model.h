@@ -116,14 +116,14 @@ public:
     void setHifiRenderLayer(render::hifi::Layer layer, const render::ScenePointer& scene = nullptr);
 
     bool isCauterized() const { return _cauterized; }
-    void setCauterized(bool value, const render::ScenePointer& scene);
+    void setCauterized(bool value, const render::ScenePointer& scene = nullptr);
 
-    void setPrimitiveMode(PrimitiveMode primitiveMode);
+    void setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePointer& scene = nullptr);
     PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
 
-    void setCullWithParent(bool value);
+    void setCullWithParent(bool value, const render::ScenePointer& scene = nullptr);
 
-    void setRenderWithZones(const QVector<QUuid>& renderWithZones);
+    void setRenderWithZones(const QVector<QUuid>& renderWithZones, const render::ScenePointer& scene = nullptr);
     const QVector<QUuid>& getRenderWithZones() const { return _renderWithZones; }
 
     // Access the current RenderItemKey Global Flags used by the model and applied to the render items  representing the parts of the model.

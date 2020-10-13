@@ -330,13 +330,6 @@ void ModelEntityItem::setCompoundShapeURL(const QString& url) {
     });
 }
 
-void ModelEntityItem::setAnimationURL(const QString& url) {
-    _flags |= Simulation::DIRTY_UPDATEABLE;
-    withWriteLock([&] {
-        _animationProperties.setURL(url);
-    });
-}
-
 void ModelEntityItem::setAnimationSettings(const QString& value) {
     // NOTE: this method only called for old bitstream format
 
@@ -396,20 +389,6 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
 
     withWriteLock([&] {
         applyNewAnimationProperties(animationProperties);
-    });
-}
-
-void ModelEntityItem::setAnimationIsPlaying(bool value) {
-    _flags |= Simulation::DIRTY_UPDATEABLE;
-    withWriteLock([&] {
-        _animationProperties.setRunning(value);
-    });
-}
-
-void ModelEntityItem::setAnimationFPS(float value) {
-    _flags |= Simulation::DIRTY_UPDATEABLE;
-    withWriteLock([&] {
-        _animationProperties.setFPS(value);
     });
 }
 
@@ -629,58 +608,15 @@ void ModelEntityItem::setAnimationCurrentFrame(float value) {
     });
 }
 
-void ModelEntityItem::setAnimationAllowTranslation(bool value) {
-    withWriteLock([&] {
-        _animationProperties.setAllowTranslation(value);
-    });
-}
-
 bool ModelEntityItem::getAnimationAllowTranslation() const {
     return resultWithReadLock<bool>([&] {
         return _animationProperties.getAllowTranslation();
     });
 }
 
-void ModelEntityItem::setAnimationLoop(bool loop) { 
-    withWriteLock([&] {
-        _animationProperties.setLoop(loop);
-    });
-}
-
-bool ModelEntityItem::getAnimationLoop() const {
-    return resultWithReadLock<bool>([&] {
-        return _animationProperties.getLoop();
-    });
-}
-
-
-void ModelEntityItem::setAnimationHold(bool hold) { 
-    withWriteLock([&] {
-        _animationProperties.setHold(hold);
-    });
-}
-
-bool ModelEntityItem::getAnimationHold() const { 
-    return resultWithReadLock<bool>([&] {
-        return _animationProperties.getHold();
-    });
-}
-
-bool ModelEntityItem::getAnimationIsPlaying() const { 
-    return resultWithReadLock<bool>([&] {
-        return _animationProperties.getRunning();
-    });
-}
-
 float ModelEntityItem::getAnimationCurrentFrame() const { 
     return resultWithReadLock<float>([&] {
         return _animationProperties.getCurrentFrame();
-    });
-}
-
-float ModelEntityItem::getAnimationFPS() const {
-    return resultWithReadLock<float>([&] {
-        return _animationProperties.getFPS();
     });
 }
 
@@ -722,6 +658,7 @@ bool ModelEntityItem::applyNewAnimationProperties(AnimationPropertyGroup newProp
     bool somethingChanged = newProperties != _animationProperties;
     if (somethingChanged) {
         _animationProperties = newProperties;
+        _needsRenderUpdate = true;
         _flags |= Simulation::DIRTY_UPDATEABLE;
     }
     return somethingChanged;

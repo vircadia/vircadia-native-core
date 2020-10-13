@@ -78,7 +78,14 @@ void LightEntityItem::setFalloffRadius(float value) {
 }
 
 void LightEntityItem::setIsSpotlight(bool value) {
-    if (value == getIsSpotlight()) {
+    bool needsRenderUpdate;
+    withWriteLock([&] {
+        needsRenderUpdate = value != _isSpotlight;
+        _needsRenderUpdate |= needsRenderUpdate;
+        _isSpotlight = value;
+    });
+
+    if (!needsRenderUpdate) {
         return;
     }
 
@@ -92,25 +99,25 @@ void LightEntityItem::setIsSpotlight(bool value) {
         newDimensions = glm::vec3(glm::compMax(dimensions));
     }
 
-    withWriteLock([&] {
-        _needsRenderUpdate = true;
-        _isSpotlight = value;
-    });
     setScaledDimensions(newDimensions);
 }
 
 void LightEntityItem::setCutoff(float value) {
     value = glm::clamp(value, MIN_CUTOFF, MAX_CUTOFF);
-    if (value == getCutoff()) {
+    bool needsRenderUpdate;
+    bool spotlight;
+    withWriteLock([&] {
+        needsRenderUpdate = value != _cutoff;
+        _needsRenderUpdate |= needsRenderUpdate;
+        _cutoff = value;
+        spotlight = _isSpotlight;
+    });
+
+    if (!needsRenderUpdate) {
         return;
     }
 
-    withWriteLock([&] {
-        _needsRenderUpdate = true;
-        _cutoff = value;
-    });
-
-    if (getIsSpotlight()) {
+    if (spotlight) {
         // If we are a spotlight, adjusting the cutoff will affect the area we encapsulate,
         // so update the dimensions to reflect this.
         const float length = getScaledDimensions().z;

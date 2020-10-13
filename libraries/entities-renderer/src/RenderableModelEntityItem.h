@@ -153,25 +153,24 @@ protected:
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;
     virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
 
-    void setKey(bool didVisualGeometryRequestSucceed);
+    void setKey(bool didVisualGeometryRequestSucceed, const ModelPointer& model);
     virtual ItemKey getKey() override;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
     virtual void handleBlendedVertices(int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
                                        const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs) override;
 
-    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual bool needsRenderUpdate() const override;
-    virtual void doRender(RenderArgs* args) override;
+    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
+    virtual void doRender(RenderArgs* args) override;
 
     void setIsVisibleInSecondaryCamera(bool value) override;
     void setRenderLayer(RenderLayer value) override;
-    void setPrimitiveMode(PrimitiveMode value) override;
     void setCullWithParent(bool value) override;
-    void setRenderWithZones(const QVector<QUuid>& renderWithZones) override;
 
 private:
-    void animate(const TypedEntityPointer& entity);
+    void animate(const TypedEntityPointer& entity, const ModelPointer& model);
     void mapJoints(const TypedEntityPointer& entity, const ModelPointer& model);
 
     // Transparency is handled in ModelMeshPartPayload
@@ -192,14 +191,12 @@ private:
     bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
     AnimationPointer _animation;
-    bool _animating { false };
     QString _animationURL;
     uint64_t _lastAnimated { 0 };
 
     render::ItemKey _itemKey { render::ItemKey::Builder().withTypeMeta() };
 
     bool _didLastVisualGeometryRequestSucceed { true };
-    bool _prevModelLoaded { false };
 
     void processMaterials();
     bool _allProceduralMaterialsLoaded { false };

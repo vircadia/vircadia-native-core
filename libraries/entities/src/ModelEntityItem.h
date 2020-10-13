@@ -85,35 +85,18 @@ public:
 
     // Animation related items...
     AnimationPropertyGroup getAnimationProperties() const;
-
-    // TODO: audit and remove unused Animation accessors
     bool hasAnimation() const;
     QString getAnimationURL() const;
-    virtual void setAnimationURL(const QString& url);
-
     void setAnimationCurrentFrame(float value);
-    void setAnimationIsPlaying(bool value);
-    void setAnimationFPS(float value); 
-
-    void setAnimationAllowTranslation(bool value);
+    float getAnimationCurrentFrame() const;
     bool getAnimationAllowTranslation() const;
-
-    void setAnimationLoop(bool loop);
-    bool getAnimationLoop() const;
-
-    void setAnimationHold(bool hold);
-    bool getAnimationHold() const;
+    bool isAnimatingSomething() const;
 
     void setRelayParentJoints(bool relayJoints);
     bool getRelayParentJoints() const;
 
     void setGroupCulled(bool value);
     bool getGroupCulled() const;
-
-    bool getAnimationIsPlaying() const;
-    float getAnimationCurrentFrame() const;
-    float getAnimationFPS() const;
-    bool isAnimatingSomething() const;
 
     static const QString DEFAULT_TEXTURES;
     const QString getTextures() const;

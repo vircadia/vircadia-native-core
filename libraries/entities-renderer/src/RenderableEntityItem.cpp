@@ -431,13 +431,13 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         _visible = entity->getVisible();
         setIsVisibleInSecondaryCamera(entity->isVisibleInSecondaryCamera());
         setRenderLayer(entity->getRenderLayer());
-        setPrimitiveMode(entity->getPrimitiveMode());
+        _primitiveMode = entity->getPrimitiveMode();
         _canCastShadow = entity->getCanCastShadow();
         setCullWithParent(entity->getCullWithParent());
         _cauterized = entity->getCauterized();
         if (entity->needsZoneOcclusionUpdate()) {
             entity->resetNeedsZoneOcclusionUpdate();
-            setRenderWithZones(entity->getRenderWithZones());
+            _renderWithZones = entity->getRenderWithZones();
         }
         entity->setNeedsRenderUpdate(false);
     });

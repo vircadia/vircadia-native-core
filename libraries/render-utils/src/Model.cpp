@@ -958,16 +958,20 @@ void Model::setCauterized(bool cauterized, const render::ScenePointer& scene) {
     }
 }
 
-void Model::setPrimitiveMode(PrimitiveMode primitiveMode) {
+void Model::setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePointer& scene) {
     if (_primitiveMode != primitiveMode) {
         _primitiveMode = primitiveMode;
-        updateRenderItemsKey(nullptr);
+        updateRenderItemsKey(scene);
     }
 }
 
-void Model::setCullWithParent(bool cullWithParent) {
+void Model::setCullWithParent(bool cullWithParent, const render::ScenePointer& scene) {
     if (_cullWithParent != cullWithParent) {
         _cullWithParent = cullWithParent;
+        if (!scene) {
+            _needsFixupInScene = true;
+            return;
+        }
 
         render::Transaction transaction;
         auto renderItemsKey = _renderItemKeyGlobalFlags;
@@ -977,14 +981,27 @@ void Model::setCullWithParent(bool cullWithParent) {
                 data.updateKey(renderItemsKey);
             });
         }
-        AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+        scene->enqueueTransaction(transaction);
     }
 }
 
-void Model::setRenderWithZones(const QVector<QUuid>& renderWithZones) {
+void Model::setRenderWithZones(const QVector<QUuid>& renderWithZones, const render::ScenePointer& scene) {
     if (_renderWithZones != renderWithZones) {
         _renderWithZones = renderWithZones;
-        setRenderItemsNeedUpdate();
+
+        if (!scene) {
+            _needsFixupInScene = true;
+            return;
+        }
+
+        render::Transaction transaction;
+        auto renderItemsKey = _renderItemKeyGlobalFlags;
+        for (auto item : _modelMeshRenderItemIDs) {
+            transaction.updateItem<ModelMeshPartPayload>(item, [renderWithZones, renderItemsKey](ModelMeshPartPayload& data) {
+                data.setRenderWithZones(renderWithZones);
+            });
+        }
+        scene->enqueueTransaction(transaction);
     }
 }
 
