@@ -501,17 +501,16 @@ function prepareAccessTokenPrompt(callback) {
 }
 
 function createDomainIDPrompt(callback) {
-  swal(
-    {
-      title: 'Finish Registering Domain',
-      type: 'input',
-      text: 'Enter a label for this machine.</br></br>This will help you identify which domain ID belongs to which machine.</br></br>This is a required step for registration.</br></br>',
-      showCancelButton: true,
-      confirmButtonText: "Create",
-      closeOnConfirm: false,
-      html: true
-    }, function(inputValue) {
-      if (inputValue === false) {
+  swal({
+    title: 'Finish Registering Domain',
+    type: 'input',
+    text: 'Enter a label for this machine.</br></br>This will help you identify which domain ID belongs to which machine.</br></br>This is a required step for registration.</br></br>',
+    showCancelButton: true,
+    confirmButtonText: "Create",
+    closeOnConfirm: false,
+    html: true
+  }, function(inputValue) {
+    if (inputValue === false) {
       return false;
     }
 
