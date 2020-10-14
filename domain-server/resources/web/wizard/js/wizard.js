@@ -173,13 +173,13 @@ function setupWizardSteps() {
 }
 
 function promptToCreateDomainID() {
-  setTimeout(function() {
-    createDomainIDPrompt(function(label) {
+  setTimeout(function () {
+    createDomainIDPrompt(function (label) {
       var domainJSON = {
         "label": label
-      }
+      };
 
-      $.post("/api/domains", domainJSON, function(data) {
+      $.post("/api/domains", domainJSON, function (data) {
         // we successfully created a domain ID, set it on that field
         var domainID = data.domain.domainId;
         console.log("Setting domain ID to ", data, domainID);
@@ -188,11 +188,11 @@ function promptToCreateDomainID() {
           "metaverse": {
             "id": domainID
           }
-        }
+        };
 
         // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
         postSettings(formJSON, goToNextStep);
-      }, 'json').fail(function() {
+      }, 'json').fail(function () {
         console.log("Failed to create domain ID...");
         goToNextStep();
       });

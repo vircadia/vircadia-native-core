@@ -509,7 +509,7 @@ function createDomainIDPrompt(callback) {
     confirmButtonText: "Create",
     closeOnConfirm: false,
     html: true
-  }, function(inputValue) {
+  }, function (inputValue) {
     if (inputValue === false) {
       return false;
     }
