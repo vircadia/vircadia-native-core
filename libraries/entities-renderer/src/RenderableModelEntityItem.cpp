@@ -51,12 +51,6 @@ ModelPointer ModelEntityWrapper::getModel() const {
     });
 }
 
-bool ModelEntityWrapper::isModelLoaded() const {
-    return resultWithReadLock<bool>([&] {
-        return _model && _model->isLoaded();
-    });
-}
-
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity(new RenderableModelEntityItem(entityID, properties.getDimensionsInitialized()),
                              [](EntityItem* ptr) { ptr->deleteLater(); });
@@ -261,7 +255,7 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
                          OctreeElementPointer& element, float& distance, BoxFace& face,
                          glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) const {
     auto model = getModel();
-    if (!model || !isModelLoaded()) {
+    if (!model || !model->isLoaded()) {
         return false;
     }
 
@@ -273,7 +267,7 @@ bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3
                         const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance, BoxFace& face,
                         glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) const {
     auto model = getModel();
-    if (!model || !isModelLoaded()) {
+    if (!model || !model->isLoaded()) {
         return false;
     }
 
@@ -309,7 +303,8 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
     auto currentCompoundShapeURL = getCompoundShapeURL();
     ModelEntityItem::setCompoundShapeURL(url);
     if (getCompoundShapeURL() != currentCompoundShapeURL || !getModel()) {
-        if (getShapeType() == SHAPE_TYPE_COMPOUND) {
+        auto shapeType = getShapeType();
+        if (shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
             fetchCollisionGeometryResource();
         }
     }
@@ -350,7 +345,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
         // the model is still being downloaded.
         return false;
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
-        return isModelLoaded();
+        return model && model->isLoaded();
     }
     return true;
 }
@@ -1110,7 +1105,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity, const ModelP
 
     QVector<EntityJointData> jointsData;
 
-    const QVector<HFMAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
+    const QVector<HFMAnimationFrame>& frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
     int frameCount = frames.size();
     if (frameCount <= 0) {
         return;
@@ -1203,8 +1198,9 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
 
     _hasModel = entity->hasModel();
-    if (_parsedModelURL != entity->getModelURL()) {
-        _parsedModelURL = QUrl(entity->getModelURL());
+    QUrl modelURL = QUrl(entity->getModelURL());
+    if (_parsedModelURL != modelURL) {
+        _parsedModelURL = modelURL;
     }
 
     ModelPointer model = resultWithReadLock<ModelPointer>([&] {
@@ -1248,6 +1244,7 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
                 _model->setPrimitiveMode(_primitiveMode, scene);
                 _model->setCullWithParent(_cullWithParent, scene);
                 _model->setRenderWithZones(_renderWithZones, scene);
+                entity->markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
                 entity->locationChanged();
                 entity->dimensionsChanged();
             });
@@ -1259,6 +1256,7 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
             entity->_originalTexturesRead = false;
             entity->_needsJointSimulation = true;
             entity->_needsToRescaleModel = true;
+            entity->updateModelBounds();
             emit requestRenderUpdate();
         });
         model->setLoadingPriority(EntityTreeRenderer::getEntityLoadingPriority(*entity));

@@ -290,7 +290,6 @@ void ModelEntityItem::setModelURL(const QString& url) {
     withWriteLock([&] {
         if (_modelURL != url) {
             _modelURL = url;
-            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
             _needsRenderUpdate = true;
         }
     });
