@@ -1214,7 +1214,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     ],
  *     strokeWidths: [ 0.1, 0.1, 0.1 ],
  *     color: { red: 255, green: 0, blue: 0 },  // Use just the red channel from the image.
- *     textures: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flowArts/trails.png",
+ *     textures: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flowArts/trails.png",
  *     isUVModeStretch: true,
  *     lifetime: 300  // Delete after 5 minutes.
  * });

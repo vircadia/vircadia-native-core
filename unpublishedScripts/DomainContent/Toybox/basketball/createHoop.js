@@ -8,8 +8,8 @@
 //
 
 
-var hoopURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball_hoop.fbx";
-var hoopCollisionHullURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball_hoop_collision_hull.obj";
+var hoopURL ="https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/basketball/basketball_hoop.fbx";
+var hoopCollisionHullURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/basketball/basketball_hoop_collision_hull.obj";
 
 var hoopStartPosition =
     Vec3.sum(MyAvatar.position,
