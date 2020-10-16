@@ -17,6 +17,10 @@
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
+#ifdef Q_OS_UNIX
+#include <stdio.h>
+#include <unistd.h>
+#endif
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
@@ -33,22 +37,36 @@ LogHandler& LogHandler::getInstance() {
 }
 
 LogHandler::LogHandler() {
-    QString log_options = qgetenv("VIRCADIA_LOG_OPTIONS").toLower();
+    QString logOptions = qgetenv("VIRCADIA_LOG_OPTIONS").toLower();
 
-    if (log_options.contains("color")) {
-        _useColor = 1;
+#ifdef Q_OS_UNIX
+    // Enable color by default if we're on Unix, and output is a tty (so we're not being piped into something)
+    //
+    // On Windows the situation is more complex, and color is supported or not depending on version and
+    // registry settings, so for now it's off by default and it's up to the user to do what's required.
+    if (isatty(fileno(stdout))) {
+        _useColor = true;
     }
+#endif
 
-    if (log_options.contains("process_id")) {
-        _shouldOutputProcessID = true;
-    }
+    auto optionList = logOptions.split(",");
 
-    if (log_options.contains("thread_id")) {
-        _shouldOutputThreadID = true;
-    }
+    for(auto option : optionList) {
+        option = option.trimmed();
 
-    if (log_options.contains("milliseconds")) {
-        _shouldDisplayMilliseconds = true;
+        if (option == "color") {
+            _useColor = true;
+        } else if (option == "nocolor") {
+            _useColor = false;
+        } else if (option == "process_id") {
+            _shouldOutputProcessID = true;
+        } else if (option == "thread_id") {
+            _shouldOutputThreadID = true;
+        } else if (option == "milliseconds") {
+            _shouldDisplayMilliseconds = true;
+        } else if (option != "") {
+            fprintf(stdout, "Unrecognized option in VIRCADIA_LOG_OPTIONS: '%s'\n", option.toUtf8().constData());
+        }
     }
 }
 
