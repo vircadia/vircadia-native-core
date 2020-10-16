@@ -34,7 +34,8 @@ Script.include([
     "../libraries/entityIconOverlayManager.js",
     "../libraries/gridTool.js",
     "entityList/entityList.js",
-    "entitySelectionTool/entitySelectionTool.js"
+    "entitySelectionTool/entitySelectionTool.js",
+    "audioFeedback/audioFeedback.js"
 ]);
 
 var CreateWindow = Script.require('./modules/createWindow.js');
@@ -103,6 +104,8 @@ var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleE
         };
     }
 });
+
+var hmdMultiSelectMode = false;
 
 var cameraManager = new CameraManager();
 
@@ -824,7 +827,7 @@ var toolBar = (function () {
 
         HMD.displayModeChanged.connect(function() {
             if (isActive) {
-                tablet.gotoHomeScreen();
+                tablet.gotoHomeScreen();    
             }
             that.setActive(false);
         });
@@ -1131,7 +1134,11 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
             var entity = entityIconOverlayManager.findEntity(data.overlayID);
 
             if (entity !== null) {
-                selectionManager.setSelections([entity], this);
+                if (hmdMultiSelectMode) {
+                    selectionManager.addEntity(entity, true, this);
+                } else {
+                    selectionManager.setSelections([entity], this);
+                }
             }
         }
     }
@@ -1694,6 +1701,7 @@ function unparentSelectedEntities() {
         var parentCheck = false;
 
         if (selectedEntities.length < 1) {
+            audioFeedback.rejection();
             Window.notifyEditError("You must have an entity selected in order to unparent it.");
             return;
         }
@@ -1706,12 +1714,14 @@ function unparentSelectedEntities() {
             return true;
         });
         if (parentCheck) {
+            audioFeedback.confirmation();
             if (selectedEntities.length > 1) {
                 Window.notify("Entities unparented");
             } else {
                 Window.notify("Entity unparented");
             }
         } else {
+            audioFeedback.rejection();
             if (selectedEntities.length > 1) {
                 Window.notify("Selected Entities have no parents");
             } else {
@@ -1719,6 +1729,7 @@ function unparentSelectedEntities() {
             }
         }
     } else {
+        audioFeedback.rejection();
         Window.notifyEditError("You have nothing selected to unparent");
     }
 }
@@ -1726,6 +1737,7 @@ function parentSelectedEntities() {
     if (SelectionManager.hasSelection()) {
         var selectedEntities = selectionManager.selections;
         if (selectedEntities.length <= 1) {
+            audioFeedback.rejection();
             Window.notifyEditError("You must have multiple entities selected in order to parent them");
             return;
         }
@@ -1742,11 +1754,14 @@ function parentSelectedEntities() {
         });
 
         if (parentCheck) {
+            audioFeedback.confirmation();
             Window.notify("Entities parented");
         } else {
+            audioFeedback.rejection();
             Window.notify("Entities are already parented to last");
         }
     } else {
+        audioFeedback.rejection();
         Window.notifyEditError("You have nothing selected to parent");
     }
 }
@@ -2339,6 +2354,15 @@ var PropertiesTool = function (opts) {
     };
 
     function updateSelections(selectionUpdated, caller) {
+        if (HMD.active && visible) {
+            webView.setLandscape(true);
+        } else {
+            if (!visible) {
+                hmdMultiSelectMode = false;
+                webView.setLandscape(false);
+            }
+        }
+        
         if (blockPropertyUpdates) {
             return;
         }

@@ -103,7 +103,11 @@ SelectionManager = (function() {
                 if (wantDebug) {
                     print("setting selection to " + messageParsed.entityID);
                 }
-                that.setSelections([messageParsed.entityID], that);
+                if (hmdMultiSelectMode) {
+                    that.addEntity(messageParsed.entityID, true, that);
+                } else {
+                    that.setSelections([messageParsed.entityID], that);
+                }
             }
         } else if (messageParsed.method === "clearSelection") {
             if (!SelectionDisplay.triggered() || SelectionDisplay.triggeredHand === messageParsed.hand) {
@@ -314,6 +318,7 @@ SelectionManager = (function() {
             that.addChildrenEntities(originalEntityID, entitiesToDuplicate, entityHostTypes[i].entityHostType);
         }
         
+        var duplicateInterrupted = false;
         // duplicate entities from above and store their original to new entity mappings and children needing re-parenting
         for (var i = 0; i < entitiesToDuplicate.length; i++) {
             var originalEntityID = entitiesToDuplicate[i];
@@ -360,6 +365,8 @@ SelectionManager = (function() {
                     duplicatedChildrenWithOldParents[newEntityID] = properties.parentID;
                 }
                 originalEntityToNewEntityID[originalEntityID] = newEntityID;
+            } else {
+                duplicateInterrupted = true;
             }
         }
         
@@ -378,6 +385,11 @@ SelectionManager = (function() {
             }
         });
         
+        if (duplicateInterrupted) {
+            audioFeedback.rejection();
+        } else {
+            audioFeedback.confirmation();
+        }
         return duplicatedEntityIDs;
     };
 

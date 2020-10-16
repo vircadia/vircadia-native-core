@@ -2,6 +2,7 @@
 //
 //  Created by Ryan Huffman on 19 Nov 2014
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -164,6 +165,7 @@ let selectedEntities = [];
 
 let entityList = null; // The ListView
 
+let hmdMultiSelectMode = false; 
 /**
  * @type EntityListContextMenu
  */
@@ -198,6 +200,15 @@ let elEntityTable,
     elRefresh,
     elToggleLocked,
     elToggleVisible,
+    elHmdMultiSelect,    
+    elHmdCopy,
+    elHmdCut,
+    elHmdPaste,
+    elHmdDuplicate,   
+    elUndo,
+    elRedo,
+    elParent,
+    elUnparent,    
     elDelete,
     elFilterTypeMultiselectBox,
     elFilterTypeText,
@@ -233,7 +244,7 @@ const PROFILE = !ENABLE_PROFILING ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Web " + profileIndent + "(" + name + ") End " + delta + "ms");
 };
 
-function loaded() {
+function loaded() {    
     openEventBridge(function() {
         elEntityTable = document.getElementById("entity-table");
         elEntityTableHeader = document.getElementById("entity-table-header");
@@ -242,6 +253,15 @@ function loaded() {
         elRefresh = document.getElementById("refresh");
         elToggleLocked = document.getElementById("locked");
         elToggleVisible = document.getElementById("visible");
+        elHmdMultiSelect = document.getElementById("hmdmultiselect");
+        elHmdCopy = document.getElementById("hmdcopy");
+        elHmdCut = document.getElementById("hmdcut");
+        elHmdPaste = document.getElementById("hmdpaste");
+        elHmdDuplicate = document.getElementById("hmdduplicate");        
+        elUndo = document.getElementById("undo");
+        elRedo = document.getElementById("redo");
+        elParent = document.getElementById("parent");
+        elUnparent = document.getElementById("unparent");
         elDelete = document.getElementById("delete");
         elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
         elFilterTypeText = document.getElementById("filter-type-text");
@@ -270,6 +290,40 @@ function loaded() {
         elExport.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
         };
+        elHmdMultiSelect.onclick = function() {
+            if (hmdMultiSelectMode) {
+                elHmdMultiSelect.className = "vglyph";
+                hmdMultiSelectMode = false;
+            } else {
+                elHmdMultiSelect.className = "white vglyph";
+                hmdMultiSelectMode = true;
+            }
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'hmdMultiSelectMode', value: hmdMultiSelectMode }));
+        };
+        elHmdCopy.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'copy' }));
+        };
+        elHmdCut.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'cut' }));
+        };
+        elHmdPaste.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'paste' }));
+        };
+        elHmdDuplicate.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'duplicate' }));
+        };        
+        elParent.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+        };
+        elUnparent.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
+        };
+        elUndo.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'undo' }));
+        };
+        elRedo.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'redo' }));
+        };         
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
         };
@@ -538,7 +592,7 @@ function loaded() {
             let selection = [entityID];
             let controlKey = window.navigator.platform.startsWith("Mac") ? clickEvent.metaKey : clickEvent.ctrlKey;
 
-            if (controlKey) {
+            if (controlKey || hmdMultiSelectMode) {
                 let selectedIndex = selectedEntities.indexOf(entityID);
                 if (selectedIndex >= 0) {
                     selection = [];
@@ -1364,10 +1418,12 @@ function loaded() {
                 }
             }));
         }, false);
-        
+
         if (window.EventBridge !== undefined) {
             EventBridge.scriptEventReceived.connect(function(data) {
+                
                 data = JSON.parse(data);
+                
                 if (data.type === "clearEntityList") {
                     clearEntities();
                 } else if (data.type === "selectionUpdate") {
@@ -1395,6 +1451,20 @@ function loaded() {
                     removeEntities(data.ids);
                 } else if (data.type === "setSpaceMode") {
                     setSpaceMode(data.spaceMode);
+                } else if (data.type === "confirmHMDstate") {
+                    if (data.isHmd) {
+                        document.getElementById("hmdmultiselect").style.display = "inline";
+                        document.getElementById("hmdcopy").style.display = "inline";
+                        document.getElementById("hmdcut").style.display = "inline";
+                        document.getElementById("hmdpaste").style.display = "inline";
+                        document.getElementById("hmdduplicate").style.display = "inline";
+                    } else {
+                        document.getElementById("hmdmultiselect").style.display = "none";
+                        document.getElementById("hmdcopy").style.display = "none";
+                        document.getElementById("hmdcut").style.display = "none";
+                        document.getElementById("hmdpaste").style.display = "none";
+                        document.getElementById("hmdduplicate").style.display = "none";                        
+                    }
                 }
             });
         }

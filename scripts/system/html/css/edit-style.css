@@ -65,6 +65,14 @@
          url(../fonts/hifi-glyphs.ttf);
 }
 
+@font-face {
+    font-family: Vircadia-Glyphs;
+    src: url(../../../../resources/fonts/vircadia_glyphs.ttf),
+         url(../../../../fonts/vircadia_glyphs.ttf),
+         url(../../../../interface/resources/fonts/vircadia_glyphs.ttf),
+         url(../fonts/vircadia_glyphs.ttf);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -407,6 +415,14 @@ input[type=button].glyph, button.hifi-edit-button.glyph {
     padding: 0;
 }
 
+input[type=button].vglyph, button.hifi-edit-button.vglyph {
+    font-family: Vircadia-Glyphs;
+    font-size: 20px;
+    text-transform: none;
+    min-width: 32px;
+    padding: 0;
+}
+
 input[type=button].red, button.hifi-edit-button.red {
     color: #fff;
     background-color: #94132e;
@@ -416,6 +432,16 @@ input[type=button].blue, button.hifi-edit-button.blue {
     color: #fff;
     background-color: #1080b8;
     background: linear-gradient(#00b4ef 20%, #1080b8 100%);
+}
+input[type=button].orange, button.hifi-edit-button.orange {
+    color: #fff;
+    background-color: #8f5100;
+    background: linear-gradient(#d97b00 20%, #8f5100 100%);
+}
+input[type=button].green, button.hifi-edit-button.green {
+    color: #fff;
+    background-color: #078a00;
+    background: linear-gradient(#00cc07 20%, #078a00 100%);
 }
 input[type=button].white, button.hifi-edit-button.white {
     color: #121212;
@@ -435,6 +461,14 @@ input[type=button].blue:enabled:hover, button.hifi-edit-button.blue:enabled:hove
     background: linear-gradient(#00b4ef, #00b4ef);
     border: none;
 }
+input[type=button].orange:enabled:hover, button.hifi-edit-button.orange:enabled:hover {
+    background: linear-gradient(#d97b00, #d97b00);
+    border: none;
+}
+input[type=button].green:enabled:hover, button.hifi-edit-button.green:enabled:hover {
+    background: linear-gradient(#00cc07, #00cc07);
+    border: none;
+}
 input[type=button].white:enabled:hover, button.hifi-edit-button.white:enabled:hover {
     background: linear-gradient(#fff, #fff);
     border: none;
@@ -448,6 +482,12 @@ input[type=button].red:active, button.hifi-edit-button.red:active {
 }
 input[type=button].blue:active, button.hifi-edit-button.blue:active {
     background: linear-gradient(#1080b8, #1080b8);
+}
+input[type=button].orange:active, button.hifi-edit-button.orange:active {
+    background: linear-gradient(#8f5100, #8f5100);
+}
+input[type=button].green:active, button.hifi-edit-button.green:active {
+    background: linear-gradient(#078a00, #078a00);
 }
 input[type=button].white:active, button.hifi-edit-button.white:active {
     background: linear-gradient(#afafaf, #afafaf);
