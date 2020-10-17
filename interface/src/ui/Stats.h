@@ -274,7 +274,7 @@ private: \
  *     of 2 if smaller than 128 pixels, or a multiple of 128 if greater than 128 pixels.
  *     <em>Read-only.</em>
  * @property {number} decimatedTextureCount - The number of textures that have been reduced in size because they were over the 
- *     maximum allowed dimensions of 4096 pixels on desktop or 2048 pixels on mobile.
+ *     maximum allowed dimensions of 8192 pixels on desktop or 2048 pixels on mobile.
  *     <em>Read-only.</em>
  * @property {number} gpuBuffers - The number of OpenGL buffer objects managed by the GPU back-end.
  *     <em>Read-only.</em>
