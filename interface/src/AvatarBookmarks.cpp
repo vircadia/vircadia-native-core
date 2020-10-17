@@ -4,6 +4,7 @@
 //
 //  Created by Triplelexx on 23/03/17.
 //  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -282,12 +283,14 @@ QVariantMap AvatarBookmarks::getAvatarDataToBookmark() {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     const QString& avatarUrl = myAvatar->getSkeletonModelURL().toString();
+    const QString& avatarIcon = QString("");
     const QVariant& avatarScale = myAvatar->getAvatarScale();
 
     // If Avatar attachments ever change, this is where to update them, when saving remember to also append to AVATAR_BOOKMARK_VERSION
     QVariantMap bookmark;
     bookmark.insert(ENTRY_VERSION, AVATAR_BOOKMARK_VERSION);
     bookmark.insert(ENTRY_AVATAR_URL, avatarUrl);
+    bookmark.insert(ENTRY_AVATAR_ICON, avatarIcon);
     bookmark.insert(ENTRY_AVATAR_SCALE, avatarScale);
 
     QVariantList wearableEntities;

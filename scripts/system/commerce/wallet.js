@@ -338,7 +338,7 @@ var SEND_MONEY_PARTICLE_PROPERTIES = {
     radiusSpread: 0,
     radiusStart: 0.2,
     speedSpread: 0,
-    textures: "http://hifi-content.s3.amazonaws.com/alan/dev/Particles/Bokeh-Particle-HFC.png",
+    textures: Script.getExternalPath(Script.ExternalPaths.HF_Content, "/alan/dev/Particles/Bokeh-Particle-HFC.png"),
     type: 'ParticleEffect'
 };
 

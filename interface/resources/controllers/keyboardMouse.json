@@ -3,9 +3,9 @@
     "channels": [
         { "from": "Keyboard.A", "when": ["Keyboard.RightMouseButton", "!Keyboard.Control"], "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.D", "when": ["Keyboard.RightMouseButton", "!Keyboard.Control"], "to": "Actions.LATERAL_RIGHT" },
-        { "from": "Keyboard.E", "when": ["!Application.CameraSelfie", "!Keyboard.Control"], "to": "Actions.LATERAL_RIGHT" },
-        { "from": "Keyboard.Q", "when": ["!Application.CameraSelfie", "!Keyboard.Control"], "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.Q", "when": ["!Application.CameraSelfie", "!Keyboard.Control", "!Application.CaptureMouse"], "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.Q", "when": ["Application.CameraSelfie", "!Keyboard.Control"], "to": "Actions.LATERAL_RIGHT" },
+        { "from": "Keyboard.E", "when": ["!Application.CameraSelfie", "!Keyboard.Control", "!Application.CaptureMouse"], "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.E", "when": ["Application.CameraSelfie", "!Keyboard.Control"], "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.T", "when": "!Keyboard.Control", "to": "Actions.TogglePushToTalk" },
 
@@ -72,46 +72,20 @@
         { "from": { "makeAxis" : [
                 ["Keyboard.Left"],
                 ["Keyboard.Right"]
-             ]
+            ]
           },
-          "when": ["Application.CameraFirstPerson", "!Keyboard.Shift"],
+          "when": ["!Application.CameraFSM", "!Application.CameraIndependent", "!Application.CameraEntity", "!Application.CaptureMouse", "!Keyboard.Shift"],
           "to": "Actions.Yaw"
         },
 
-        { "from": { "makeAxis" : [
-                ["Keyboard.Left"],
-                ["Keyboard.Right"]
-             ]
-          },
-          "when": ["Application.CameraFirstPersonLookat", "!Keyboard.Shift"],
-          "to": "Actions.Yaw"
+        { "from": "Keyboard.Left",
+          "when": ["!Application.CameraFSM", "!Application.CameraIndependent", "!Application.CameraEntity", "Application.CaptureMouse", "!Keyboard.Shift"],
+          "to": "Actions.LATERAL_LEFT"
         },
 
-        { "from": { "makeAxis" : [
-                ["Keyboard.Left"],
-                ["Keyboard.Right"]
-             ]
-          },
-          "when": ["Application.CameraThirdPerson", "!Keyboard.Shift"],
-          "to": "Actions.Yaw"
-        },
-        
-        { "from": { "makeAxis" : [
-                ["Keyboard.Left"],
-                ["Keyboard.Right"]
-             ]
-          },
-          "when": ["Application.CameraLookAt", "!Keyboard.Shift"],
-          "to": "Actions.Yaw"
-        },
-
-        { "from": { "makeAxis" : [
-                ["Keyboard.Left"],
-                ["Keyboard.Right"]
-             ]
-          },
-          "when": ["Application.CameraSelfie", "!Keyboard.Shift"],
-          "to": "Actions.Yaw"
+        { "from": "Keyboard.Right",
+          "when": ["!Application.CameraFSM", "!Application.CameraIndependent", "!Application.CameraEntity", "Application.CaptureMouse", "!Keyboard.Shift"],
+          "to": "Actions.LATERAL_RIGHT"
         },
 
         { "from": { "makeAxis" : [
@@ -119,53 +93,18 @@
                 ["Keyboard.D"]
             ]
           },
-          "when": ["Application.CameraFirstPerson", "!Keyboard.Control"],
+          "when": ["!Application.CameraFSM", "!Application.CameraIndependent", "!Application.CameraEntity", "!Application.CaptureMouse", "!Keyboard.Control"],
           "to": "Actions.Yaw"
         },
 
-        { "from": { "makeAxis" : [
-                ["Keyboard.A"],
-                ["Keyboard.D"]
-            ]
-          },
-          "when": ["Application.CameraFirstPersonLookat", "!Keyboard.Control"],
-          "to": "Actions.Yaw"
+        { "from": "Keyboard.A",
+          "when": ["!Application.CameraFSM", "!Application.CameraIndependent", "!Application.CameraEntity", "Application.CaptureMouse", "!Keyboard.Control"],
+          "to": "Actions.LATERAL_LEFT"
         },
 
-        { "from": { "makeAxis" : [
-                ["Keyboard.A"],
-                ["Keyboard.D"]
-            ]
-          },
-          "when": ["Application.CameraThirdPerson", "!Keyboard.Control"],
-          "to": "Actions.Yaw"
-        },
-        
-        { "from": { "makeAxis" : [
-                ["Keyboard.A"],
-                ["Keyboard.D"]
-             ]
-          },
-          "when": ["Application.CameraLookAt", "!Keyboard.Control"],
-          "to": "Actions.Yaw"
-        },
-
-        { "from": { "makeAxis" : [
-                ["Keyboard.A"],
-                ["Keyboard.D"]
-             ]
-          },
-          "when": ["Application.CameraSelfie", "!Keyboard.Control"],
-          "to": "Actions.Yaw"
-        },
-        
-        { "from": { "makeAxis" : [
-                ["Keyboard.TouchpadLeft"],
-                ["Keyboard.TouchpadRight"]
-            ]
-          },
-          "when": "Application.CameraFirstPerson",
-          "to": "Actions.Yaw"
+        { "from": "Keyboard.D",
+          "when": ["!Application.CameraFSM", "!Application.CameraIndependent", "!Application.CameraEntity", "Application.CaptureMouse", "!Keyboard.Control"],
+          "to": "Actions.LATERAL_RIGHT"
         },
 
         { "from": { "makeAxis" : [
@@ -173,39 +112,12 @@
                 ["Keyboard.TouchpadRight"]
             ]
           },
-          "when": "Application.CameraFirstPersonLookat",
-          "to": "Actions.Yaw"
-        },
-        
-        { "from": { "makeAxis" : [
-                ["Keyboard.TouchpadLeft"],
-                ["Keyboard.TouchpadRight"]
-            ]
-          },
-          "when": "Application.CameraThirdPerson",
-          "to": "Actions.Yaw"
-        },
-        
-        { "from": { "makeAxis" : [
-                ["Keyboard.TouchpadLeft"],
-                ["Keyboard.TouchpadRight"]
-            ]
-          },
-          "when": "Application.CameraLookAt",
-          "to": "Actions.Yaw"
-        },
-        
-        { "from": { "makeAxis" : [
-                ["Keyboard.TouchpadLeft"],
-                ["Keyboard.TouchpadRight"]
-            ]
-          },
-          "when": "Application.CameraSelfie",
+          "when": ["!Application.CameraFSM", "!Application.CameraIndependent", "!Application.CameraEntity"],
           "to": "Actions.Yaw"
         },
 
         { "from": { "makeAxis" : ["Keyboard.MouseMoveLeft", "Keyboard.MouseMoveRight"] },
-          "when": "Keyboard.RightMouseButton",
+          "when": ["Keyboard.RightMouseButton", "!Application.CaptureMouse"],
           "to": "Actions.DeltaYaw",
           "filters":
             [
@@ -213,12 +125,30 @@
             ]
         },
 
+        { "from": { "makeAxis" : ["Keyboard.MouseMoveLeft", "Keyboard.MouseMoveRight"] },
+          "to": "Actions.DeltaYaw",
+          "when": "Application.CaptureMouse",
+          "filters":
+            [
+                { "type": "scale", "scale": 0.2 }
+            ]
+        },
+
         { "from": { "makeAxis" : ["Keyboard.MouseMoveUp", "Keyboard.MouseMoveDown"] },
-          "when": ["!Application.CameraSelfie", "!Application.CameraLookAt", "Keyboard.RightMouseButton"],
+          "when": ["!Application.CameraSelfie", "!Application.CameraLookAt", "!Application.CaptureMouse", "Keyboard.RightMouseButton"],
           "to": "Actions.DeltaPitch",
           "filters":
             [
                 { "type": "scale", "scale": 0.6 }
+            ]
+        },
+
+        { "from": { "makeAxis" : ["Keyboard.MouseMoveUp", "Keyboard.MouseMoveDown"] },
+          "to": "Actions.DeltaPitch",
+          "when": "Application.CaptureMouse",
+          "filters":
+            [
+                { "type": "scale", "scale": 0.2 }
             ]
         },
 

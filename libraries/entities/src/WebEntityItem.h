@@ -1,6 +1,7 @@
 //
 //  Created by Bradley Austin Davis on 2015/05/12
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -85,6 +86,9 @@ public:
 
     bool getShowKeyboardFocusHighlight() const;
     void setShowKeyboardFocusHighlight(bool value);
+    
+    bool getUseBackground() const;
+    void setUseBackground(bool value);
 
     PulsePropertyGroup getPulseProperties() const;
 
@@ -100,6 +104,7 @@ protected:
     uint8_t _maxFPS;
     WebInputMode _inputMode;
     bool _showKeyboardFocusHighlight;
+    bool _useBackground;
     bool _localSafeContext { false };
 };
 

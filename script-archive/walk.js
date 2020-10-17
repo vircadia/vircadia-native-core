@@ -14,8 +14,7 @@
 //
 
 // animations, reach poses, reach pose parameters, transitions, transition parameters, sounds, image/s and reference files
-const HIFI_PUBLIC_BUCKET = "https://hifi-public.s3.amazonaws.com/";
-var pathToAssets = HIFI_PUBLIC_BUCKET + "procedural-animator/assets/";
+var pathToAssets = Script.getExternalPath(Script.ExternalPaths.Assets, "procedural-animator/assets/");
 
 Script.include([
     "./libraries/walkConstants.js",

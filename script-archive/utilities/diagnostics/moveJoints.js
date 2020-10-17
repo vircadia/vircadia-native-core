@@ -9,9 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("../../libraries/globals.js");
-
-var testAnimation = HIFI_PUBLIC_BUCKET + "ozan/animations/forStephen/sniperJump.fbx";
+var testAnimation = Script.getExternalPath(Script.ExternalPaths.Assets, "ozan/animations/forStephen/sniperJump.fbx");
 
 var FRAME_RATE = 24.0; // frames per second
 var isAnimating = false;

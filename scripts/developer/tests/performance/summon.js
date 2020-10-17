@@ -31,11 +31,11 @@ debug('startup seeking:', MINIMUM_AVATARS, 'listening:', N_LISTENING, 'chatterin
 var SPREAD_TIME_MS = 500;
 
 var DENSITY = 0.3; // square meters per person. Some say 10 sq ft is arm's length (0.9m^2), 4.5 is crowd (0.4m^2), 2.5 is mosh pit (0.2m^2).
-var SOUND_DATA = {url: "http://hifi-content.s3.amazonaws.com/howard/sounds/piano1.wav"};
+var SOUND_DATA = {url: Script.getExternalPath(Script.ExternalPaths.HF_Content, "/howard/sounds/piano1.wav")};
 var NEXT_SOUND_SPREAD = 500; // millisecond range of how long to wait after one sound finishes, before playing the next
 var ANIMATION_DATA = {
-    "url": "http://hifi-content.s3.amazonaws.com/howard/resources/avatar/animations/idle.fbx",
-    // "url": "http://hifi-content.s3.amazonaws.com/howard/resources/avatar/animations/walk_fwd.fbx", // alternative example
+    "url": Script.getExternalPath(Script.ExternalPaths.HF_Content, "/howard/resources/avatar/animations/idle.fbx"),
+    // "url": Script.getExternalPath(Script.ExternalPaths.HF_Content, "/howard/resources/avatar/animations/walk_fwd.fbx"), // alternative example
     "startFrame": 0.0,
     "endFrame": 300.0,
     "timeScale": 1.0,
@@ -100,7 +100,7 @@ function messageHandler(channel, messageString, senderID) {
                     orientation: Quat.fromPitchYawRollDegrees(0, Quat.safeEulerAngles(MyAvatar.orientation).y + (turnSpread * (Math.random() - 0.5)), 0),
                     soundData: chatter && SOUND_DATA,
                     listen: listen,
-                    skeletonModelURL: "http://hifi-content.s3.amazonaws.com/howard/resources/meshes/defaultAvatar_full.fst",
+                    skeletonModelURL: Script.getExternalPath(Script.ExternalPaths.HF_Content, "/howard/resources/meshes/defaultAvatar_full.fst"),
                     animationData: ANIMATION_DATA
                 });
             }
@@ -148,7 +148,7 @@ Script.setTimeout(function () {
     var total = AvatarList.getAvatarIdentifiers().length;
     if (0 === summonedAgents.length) {
         Window.alert("No agents reported.\n\Please run " + MINIMUM_AVATARS + " instances of\n\
-http://hifi-content.s3.amazonaws.com/howard/scripts/tests/performance/crowd-agent.js?v=someDate\n\
+https://cdn-1.vircadia.com/eu-c-1/howard/scripts/tests/performance/crowd-agent.js?v=someDate\n\
 on your domain server.");
     } else if (total < MINIMUM_AVATARS) {
         Window.alert("Only " + summonedAgents.length + " agents reported. Now missing " + (MINIMUM_AVATARS - total) + " avatars, total.");

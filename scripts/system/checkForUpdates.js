@@ -21,7 +21,7 @@ var notificationText = "An update is available: ";
 var notificationColor = { red: 137, green: 63, blue: 255 };
 
 function retrieveMetadata() {
-    var requireMetadata = Script.require(networkingConstants.interfaceMetadataSource + '?' + Date.now());
+    var requireMetadata = Script.require(networkingConstants.INTERFACE_METADATA_SOURCE + '?' + Date.now());
     
     if (requireMetadata) {
         return requireMetadata;
