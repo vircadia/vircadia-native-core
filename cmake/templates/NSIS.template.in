@@ -837,16 +837,24 @@ Function PostInstallOptionsPage
     !insertmacro SetInstallOption $DesktopClientCheckbox @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ ${BST_CHECKED}
   ${EndIf}
 
+  ; FIXME: Re-enable or permanently remove system tray "Console" for Interface-only installs.
+  ;${If} @SERVER_COMPONENT_CONDITIONAL@
+  ;  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @SANDBOX_HF_SHORTCUT_NAME@"
+  ;${Else}
+  ;  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @CONSOLE_HF_SHORTCUT_NAME@"
+  ;${EndIf}
+  ;Pop $DesktopConsoleCheckbox
+  ;IntOp $CurrentOffset $CurrentOffset + 15  
+  ;
+  ;; set the checkbox state depending on what is present in the registry
+  ;!insertmacro SetInstallOption $DesktopConsoleCheckbox @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
   ${If} @SERVER_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @SANDBOX_HF_SHORTCUT_NAME@"
-  ${Else}
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @CONSOLE_HF_SHORTCUT_NAME@"
+    Pop $DesktopConsoleCheckbox
+    IntOp $CurrentOffset $CurrentOffset + 15  
+    ; set the checkbox state depending on what is present in the registry
+    !insertmacro SetInstallOption $DesktopConsoleCheckbox @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
   ${EndIf}
-  
-  Pop $DesktopConsoleCheckbox
-  IntOp $CurrentOffset $CurrentOffset + 15  
-  ; set the checkbox state depending on what is present in the registry
-  !insertmacro SetInstallOption $DesktopConsoleCheckbox @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
 
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @INTERFACE_HF_SHORTCUT_NAME@ after install"
@@ -861,31 +869,54 @@ Function PostInstallOptionsPage
     ${EndIf}
   ${EndIf}
 
+  ; FIXME: Re-enable or permanently remove system tray "Console" for Interface-only installs.
+  ;${If} @SERVER_COMPONENT_CONDITIONAL@
+  ;  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @SANDBOX_HF_SHORTCUT_NAME@ after install"
+  ;${Else}
+  ;  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ after install"
+  ;${EndIf}
+  ;Pop $LaunchConsoleNowCheckbox
+  ;
+  ;; set the checkbox state depending on what is present in the registry
+  ;!insertmacro SetInstallOption $LaunchConsoleNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_UNCHECKED}
+  ;${StrContains} $substringResult "/forceNoLaunchServer" $CMDLINE
+  ;${IfNot} $substringResult == ""
+  ;  ${NSD_SetState} $LaunchConsoleNowCheckbox ${BST_UNCHECKED}
+  ;${EndIf}
+  ;IntOp $CurrentOffset $CurrentOffset + 15
   ${If} @SERVER_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @SANDBOX_HF_SHORTCUT_NAME@ after install"
-  ${Else}
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ after install"
-  ${EndIf}
-  Pop $LaunchConsoleNowCheckbox
-
-  ; set the checkbox state depending on what is present in the registry
-  !insertmacro SetInstallOption $LaunchConsoleNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_UNCHECKED}
-  ${StrContains} $substringResult "/forceNoLaunchServer" $CMDLINE
-  ${IfNot} $substringResult == ""
+    Pop $LaunchConsoleNowCheckbox
+    
+    ; set the checkbox state depending on what is present in the registry
+    !insertmacro SetInstallOption $LaunchConsoleNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_UNCHECKED}
+    ${StrContains} $substringResult "/forceNoLaunchServer" $CMDLINE
+    ${IfNot} $substringResult == ""
       ${NSD_SetState} $LaunchConsoleNowCheckbox ${BST_UNCHECKED}
+    ${EndIf}
+    IntOp $CurrentOffset $CurrentOffset + 15
   ${EndIf}
-  IntOp $CurrentOffset $CurrentOffset + 30
-
-  ${If} @SERVER_COMPONENT_CONDITIONAL@  
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @SANDBOX_HF_SHORTCUT_NAME@ on startup"
-  ${Else}
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ on startup"
-  ${EndIf}
-  Pop $ConsoleStartupCheckbox
   IntOp $CurrentOffset $CurrentOffset + 15
 
-  ; set the checkbox state depending on what is present in the registry
-  !insertmacro SetInstallOption $ConsoleStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_UNCHECKED}
+  ; FIXME: Re-enable or permanently remove system tray "Console" for Interface-only installs.
+  ;${If} @SERVER_COMPONENT_CONDITIONAL@
+  ;  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @SANDBOX_HF_SHORTCUT_NAME@ on startup"
+  ;${Else}
+  ;  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ on startup"
+  ;${EndIf}
+  ;Pop $ConsoleStartupCheckbox
+  ;IntOp $CurrentOffset $CurrentOffset + 15
+  ;
+  ;; set the checkbox state depending on what is present in the registry
+  ;!insertmacro SetInstallOption $ConsoleStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_UNCHECKED}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @SANDBOX_HF_SHORTCUT_NAME@ on startup"
+    Pop $ConsoleStartupCheckbox
+    IntOp $CurrentOffset $CurrentOffset + 15
+    
+    ; set the checkbox state depending on what is present in the registry
+    !insertmacro SetInstallOption $ConsoleStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_UNCHECKED}
+  ${EndIf}
 
   ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Perform a clean install (Delete older settings and content)"
   Pop $CleanInstallCheckbox
@@ -957,13 +988,29 @@ FunctionEnd
 
 Function ReadPostInstallOptions
 
-  ; check if the user asked for a desktop shortcut to console
-  ${NSD_GetState} $DesktopConsoleCheckbox $DesktopConsoleState
-  ${LogText} "Option: Start Desktop Console: $DesktopConsoleState"
+  ; FIXME: Re-enable or permanently remove system tray "Console" for Interface-only installs.
+  ;; check if the user asked for a desktop shortcut to console
+  ;${NSD_GetState} $DesktopConsoleCheckbox $DesktopConsoleState
+  ;${LogText} "Option: Start Desktop Console: $DesktopConsoleState"
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
+    ; check if the user asked for a desktop shortcut to console
+    ${NSD_GetState} $DesktopConsoleCheckbox $DesktopConsoleState
+    ${LogText} "Option: Start Desktop Console: $DesktopConsoleState"
+  ${Else}
+    StrCpy $DesktopConsoleState ${BST_UNCHECKED}
+  ${EndIf}
   
-  ; check if the user asked to have console launched every startup
-  ${NSD_GetState} $ConsoleStartupCheckbox $ConsoleStartupState
-  ${LogText} "Option: Start Desktop Console On Startup: $ConsoleStartupState"
+  ; FIXME: Re-enable or permanently remove system tray "Console" for Interface-only installs.
+  ;; check if the user asked to have console launched every startup
+  ;${NSD_GetState} $ConsoleStartupCheckbox $ConsoleStartupState
+  ;${LogText} "Option: Start Desktop Console On Startup: $ConsoleStartupState"
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
+    ; check if the user asked to have console launched every startup
+    ${NSD_GetState} $ConsoleStartupCheckbox $ConsoleStartupState
+    ${LogText} "Option: Start Desktop Console On Startup: $ConsoleStartupState"
+  ${Else}
+    StrCpy $ConsoleStartupState ${BST_UNCHECKED}
+  ${EndIf}
 
   ${If} @SERVER_COMPONENT_CONDITIONAL@
     ${LogText} "Option: Install Server"
