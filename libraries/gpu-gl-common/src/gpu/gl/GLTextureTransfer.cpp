@@ -239,13 +239,16 @@ void GLTextureTransferEngineDefault::updateMemoryPressure() {
     float pressure = 0;
 
     if (useAvailableGlMemory) {
-        float totalMem = GLBackend::getTotalMemory();
-        float availMem = GLBackend::getAvailableMemory() - AUTO_RESERVE_TEXTURE_MEMORY;
-        if (availMem < 0) {
+        size_t totalMem = GLBackend::getTotalMemory();
+        size_t availMem = GLBackend::getAvailableMemory();
+
+        if (availMem >= AUTO_RESERVE_TEXTURE_MEMORY) {
+            availMem -= AUTO_RESERVE_TEXTURE_MEMORY;
+        } else {
             availMem = 0;
         }
 
-        pressure = (totalMem - availMem) / totalMem;
+        pressure = ((float)totalMem - (float)availMem) / (float)totalMem;
     } else {
         pressure = (float)totalVariableMemoryAllocation / (float)allowedMemoryAllocation;
     }
