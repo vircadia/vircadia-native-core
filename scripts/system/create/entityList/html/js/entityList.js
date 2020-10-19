@@ -218,6 +218,7 @@ let elEntityTable,
     elSelectNone,
     elSelectAllInBox,
     elSelectAllTouchingBox,
+    elTeleportToEntity,
     elFilterTypeMultiselectBox,
     elFilterTypeText,
     elFilterTypeOptions,
@@ -278,7 +279,8 @@ function loaded() {
         elSelectInverse = document.getElementById("selectinverse");
         elSelectNone = document.getElementById("selectnone");
         elSelectAllInBox = document.getElementById("selectallinbox");
-        elSelectAllTouchingBox = document.getElementById("selectalltouchingbox");        
+        elSelectAllTouchingBox = document.getElementById("selectalltouchingbox");
+        elTeleportToEntity = document.getElementById("teleport-to-entity");
         elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
         elFilterTypeText = document.getElementById("filter-type-text");
         elFilterTypeOptions = document.getElementById("filter-type-options");
@@ -428,6 +430,10 @@ function loaded() {
         };
         elSelectAllTouchingBox.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'selectAllTouchingBox' }));
+            closeAllEntityListMenu();
+        };
+        elTeleportToEntity.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "teleportToEntity" }));
             closeAllEntityListMenu();
         };
         elToggleSpaceMode.onclick = function() {
