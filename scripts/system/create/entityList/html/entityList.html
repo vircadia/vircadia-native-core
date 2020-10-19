@@ -32,19 +32,8 @@
             </div>
             <button id="toggle-space-mode" class="hifi-edit-button space-mode-local">Local</button>
             <input type="button" class="vglyph" id="hmdmultiselect" value="I" style="display: none;" />
-            <input type="button" class="blue vglyph" id="hmdcut" value="D" style="display: none;" />
-            <input type="button" class="blue vglyph" id="hmdcopy" value="B" style="display: none;" />
-            <input type="button" class="blue vglyph" id="hmdpaste" value="E" style="display: none;" />
-            <input type="button" class="green vglyph" id="hmdduplicate" value="A" style="display: none;" />
-            <div>
-                <input type="button" class="vglyph" id="parent" value="K" />
-                <input type="button" class="vglyph" id="unparent" value="L" />
-            </div>            
-            <div>
-                <input type="button" class="orange vglyph" id="undo" value="F" />
-                <input type="button" class="orange vglyph" id="redo" value="G" />
-            </div>
-            <input type="button" class="red glyph" id="delete" value="{" />
+            <input type="button" class="normal" id="selection" value="Selection" />
+            <input type="button" class="normal" id="actions" value="Actions" />
         </div>
         <div id="entity-list">
             <div id="filter-area">
@@ -102,5 +91,97 @@
                 </div>
             </div>
         </div>
+        <div class="entity-list-menu" id="actions-menu" >
+            <button class="menu-button" id="undo" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Undo</div>
+                    <div class = "menu-item-shortcut">Ctrl-Z</div>
+                </div>
+            </button>
+            <button class="menu-button" id="redo" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Redo</div>
+                    <div class = "menu-item-shortcut">Ctrl-Y</div>
+                </div>
+            </button>
+            <div class="menu-separator"></div>
+            <button class="menu-button" id="hmdcut" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Cut</div>
+                    <div class = "menu-item-shortcut">Ctrl-X</div>
+                </div>
+            </button>
+            <button class="menu-button" id="hmdcopy" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Copy</div>
+                    <div class = "menu-item-shortcut">Ctrl-C</div>
+                </div>
+            </button>
+            <button class="menu-button" id="hmdpaste" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Paste</div>
+                    <div class = "menu-item-shortcut">Ctrl-V</div>
+                </div>
+            </button>
+            <button class="menu-button" id="hmdduplicate" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Duplicate</div>
+                    <div class = "menu-item-shortcut">Ctrl-D</div>
+                </div>
+            </button>            
+            <button class="menu-button" id="delete" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Delete</div>
+                    <div class = "menu-item-shortcut">Del</div>
+                </div>
+            </button>
+            <div class="menu-separator"></div>
+            <button class="menu-button" id="parent" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Parent Entity to Last Selected</div>
+                    <div class = "menu-item-shortcut">Ctrl-P</div>
+                </div>
+            </button>
+            <button class="menu-button" id="unparent" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Unparent Entity</div>
+                    <div class = "menu-item-shortcut">Ctrl-Shift-P</div>
+                </div>
+            </button>
+        </div>
+        <div class="entity-list-menu" id="selection-menu" >
+            <button class="menu-button" id="selectall" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Select All</div>
+                    <div class = "menu-item-shortcut">Ctrl-A</div>
+                </div>
+            </button>
+            <button class="menu-button" id="selectnone" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Select None</div>
+                    <div class = "menu-item-shortcut"></div>
+                </div>
+            </button>            
+            <button class="menu-button" id="selectinverse" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Inverse Selection</div>
+                    <div class = "menu-item-shortcut"></div>
+                </div>
+            </button>
+            <div class="menu-separator"></div>
+             <button class="menu-button" id="selectallinbox" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Select All Entities In Box</div>
+                    <div class = "menu-item-shortcut"></div>
+                </div>
+            </button>
+            <button class="menu-button" id="selectalltouchingbox" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Select All Entities Touching Box</div>
+                    <div class = "menu-item-shortcut"></div>
+                </div>
+            </button>            
+        </div>
+        <div id="menuBackgroundOverlay" ></div>
     </body>
 </html>
