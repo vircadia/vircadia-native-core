@@ -636,6 +636,16 @@ SelectionManager = (function() {
         }
     };
 
+    that.teleportToEntity = function() {
+        if (SelectionManager.hasSelection()) {
+            var distanceFromTarget = 3 + Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y), SelectionManager.worldDimensions.z);
+            var teleportTargetPosition = Vec3.sum(SelectionManager.worldPosition, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: distanceFromTarget }));
+            MyAvatar.goToLocation(teleportTargetPosition, false);
+        } else {
+            audioFeedback.rejection();
+        }
+    };    
+
     return that;
 })();
 
