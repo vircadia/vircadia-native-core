@@ -415,6 +415,14 @@ input[type=button].glyph, button.hifi-edit-button.glyph {
     padding: 0;
 }
 
+input[type=button].normal, button.hifi-edit-button.normal {
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    text-transform: none;
+    //min-width: 65px;
+    padding: 0;
+}
+
 input[type=button].vglyph, button.hifi-edit-button.vglyph {
     font-family: Vircadia-Glyphs;
     font-size: 20px;
@@ -1267,11 +1275,11 @@ div#grid-section, body#entity-list-body {
     border-bottom-left-radius: 0;
 }
 
-#delete {
+/*#delete {
     float: right;
     margin-right: 0;
     background-color: #ff0000;
-}
+}*/
 
 #entity-list {
     position: relative; /* New positioning context. */
@@ -1860,3 +1868,71 @@ div.multiZoneSelToolbar {
     padding: 0px;
 }
 
+#menuBackgroundOverlay{
+    background-color:transparent;
+    position:fixed;
+    width: 100%;
+    height: 100%;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    display:block;
+}
+
+div.entity-list-menu {
+    position: fixed;
+    display: none;
+    width: 70%;
+    height: 30px;
+    top: 42px;
+    left: 150px;
+    right: 0;
+    bottom: 0;
+    border-style: solid;
+    border-color: #505050;
+    border-width: 1px;
+    background-color: #c0c0c0;
+    z-index: 2;
+    cursor: pointer;
+}
+
+div.menu-separator{
+    width: 90%;
+    height: 2px;
+    background-color: #505050;
+    }
+
+button.menu-button {
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    width: 100%;
+    height: auto;
+    border-radius: 0;
+    padding: 6px;
+    text-align: left;
+    background-color: #c0c0c0;
+    border: none;
+}
+
+button.menu-button:hover {
+    background-color: #00B4EF;
+    border: none;
+}
+
+button.menu-button:active {
+    background-color: #00B4EF;
+    border: none;    
+}
+
+div.menu-item {
+    width: 100%;
+}
+
+div.menu-item-caption {
+    float: left;
+}
+
+div.menu-item-shortcut {
+    float: right;
+}
