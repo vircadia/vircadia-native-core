@@ -200,7 +200,10 @@ let elEntityTable,
     elRefresh,
     elToggleLocked,
     elToggleVisible,
-    elHmdMultiSelect,    
+    elActionsMenu,
+    elSelectionMenu,
+    elMenuBackgroundOverlay,
+    elHmdMultiSelect, 
     elHmdCopy,
     elHmdCut,
     elHmdPaste,
@@ -210,6 +213,11 @@ let elEntityTable,
     elParent,
     elUnparent,    
     elDelete,
+    elSelectAll,
+    elSelectInverse,
+    elSelectNone,
+    elSelectAllInBox,
+    elSelectAllTouchingBox,
     elFilterTypeMultiselectBox,
     elFilterTypeText,
     elFilterTypeOptions,
@@ -252,8 +260,11 @@ function loaded() {
         elEntityTableScroll = document.getElementById("entity-table-scroll");
         elRefresh = document.getElementById("refresh");
         elToggleLocked = document.getElementById("locked");
-        elToggleVisible = document.getElementById("visible");
+        elToggleVisible = document.getElementById("visible");         
         elHmdMultiSelect = document.getElementById("hmdmultiselect");
+        elActionsMenu = document.getElementById("actions");
+        elSelectionMenu = document.getElementById("selection");
+        elMenuBackgroundOverlay = document.getElementById("menuBackgroundOverlay");
         elHmdCopy = document.getElementById("hmdcopy");
         elHmdCut = document.getElementById("hmdcut");
         elHmdPaste = document.getElementById("hmdpaste");
@@ -263,6 +274,11 @@ function loaded() {
         elParent = document.getElementById("parent");
         elUnparent = document.getElementById("unparent");
         elDelete = document.getElementById("delete");
+        elSelectAll = document.getElementById("selectall");
+        elSelectInverse = document.getElementById("selectinverse");
+        elSelectNone = document.getElementById("selectnone");
+        elSelectAllInBox = document.getElementById("selectallinbox");
+        elSelectAllTouchingBox = document.getElementById("selectalltouchingbox");        
         elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
         elFilterTypeText = document.getElementById("filter-type-text");
         elFilterTypeOptions = document.getElementById("filter-type-options");
@@ -300,32 +316,119 @@ function loaded() {
             }
             EventBridge.emitWebEvent(JSON.stringify({ type: 'hmdMultiSelectMode', value: hmdMultiSelectMode }));
         };
+        elActionsMenu.onclick = function() {
+            
+            document.getElementById("menuBackgroundOverlay").style.display = "block";
+            document.getElementById("actions-menu").style.display = "block";
+        };
+        elSelectionMenu.onclick = function() {
+            document.getElementById("menuBackgroundOverlay").style.display = "block";
+            document.getElementById("selection-menu").style.display = "block";            
+        };
+        elMenuBackgroundOverlay.onclick = function() {
+            closeAllEntityListMenu();
+        };        
         elHmdCopy.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'copy' }));
+            closeAllEntityListMenu();
         };
         elHmdCut.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'cut' }));
+            closeAllEntityListMenu();
         };
         elHmdPaste.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'paste' }));
+            closeAllEntityListMenu();
         };
         elHmdDuplicate.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'duplicate' }));
+            closeAllEntityListMenu();
         };        
         elParent.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+            closeAllEntityListMenu();
         };
         elUnparent.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
+            closeAllEntityListMenu();
         };
         elUndo.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'undo' }));
+            closeAllEntityListMenu();
         };
         elRedo.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'redo' }));
+            closeAllEntityListMenu();
         };         
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
+            closeAllEntityListMenu();
+        };
+        elSelectAll.onclick = function() {
+
+            let visibleEntityIDs = visibleEntities.map(visibleEntity => visibleEntity.id);
+            let selectionIncludesAllVisibleEntityIDs = visibleEntityIDs.every(visibleEntityID => {
+                return selectedEntities.includes(visibleEntityID);
+            });
+
+            let selection = [];
+
+            if (!selectionIncludesAllVisibleEntityIDs) {
+                selection = visibleEntityIDs;
+            }
+
+            updateSelectedEntities(selection, false);
+
+            EventBridge.emitWebEvent(JSON.stringify({
+                "type": "selectionUpdate",
+                "focus": false,
+                "entityIds": selection
+            }));
+
+            closeAllEntityListMenu();
+        };
+        elSelectInverse.onclick = function() {
+            let visibleEntityIDs = visibleEntities.map(visibleEntity => visibleEntity.id);
+            let selectionIncludesAllVisibleEntityIDs = visibleEntityIDs.every(visibleEntityID => {
+                return selectedEntities.includes(visibleEntityID);
+            });
+
+            let selection = [];
+
+            if (!selectionIncludesAllVisibleEntityIDs) {
+                visibleEntityIDs.forEach(function(id) {
+                    if (!selectedEntities.includes(id)) {
+                        selection.push(id);
+                    }
+                });
+            }
+
+            updateSelectedEntities(selection, false);
+
+            EventBridge.emitWebEvent(JSON.stringify({
+                "type": "selectionUpdate",
+                "focus": false,
+                "entityIds": selection
+            }));
+            
+            closeAllEntityListMenu();
+        };
+        elSelectNone.onclick = function() {
+            updateSelectedEntities([], false);
+            EventBridge.emitWebEvent(JSON.stringify({
+                "type": "selectionUpdate",
+                "focus": false,
+                "entityIds": []
+            }));            
+            closeAllEntityListMenu();
+        };
+        elSelectAllInBox.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectAllInBox' }));
+            closeAllEntityListMenu();
+        };
+        elSelectAllTouchingBox.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectAllTouchingBox' }));
+            closeAllEntityListMenu();
         };
         elToggleSpaceMode.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleSpaceMode' }));
@@ -871,7 +974,7 @@ function loaded() {
         
         function updateSelectedEntities(selectedIDs, autoScroll) {
             let notFound = false;
-            
+
             // reset all currently selected entities and their rows first
             selectedEntities.forEach(function(id) {
                 let entity = entitiesByID[id];
@@ -882,7 +985,7 @@ function loaded() {
                     }
                 }
             });
-            
+
             // then reset selected entities list with newly selected entities and set them selected
             selectedEntities = [];
             selectedIDs.forEach(function(id) {
@@ -1454,16 +1557,8 @@ function loaded() {
                 } else if (data.type === "confirmHMDstate") {
                     if (data.isHmd) {
                         document.getElementById("hmdmultiselect").style.display = "inline";
-                        document.getElementById("hmdcopy").style.display = "inline";
-                        document.getElementById("hmdcut").style.display = "inline";
-                        document.getElementById("hmdpaste").style.display = "inline";
-                        document.getElementById("hmdduplicate").style.display = "inline";
                     } else {
-                        document.getElementById("hmdmultiselect").style.display = "none";
-                        document.getElementById("hmdcopy").style.display = "none";
-                        document.getElementById("hmdcut").style.display = "none";
-                        document.getElementById("hmdpaste").style.display = "none";
-                        document.getElementById("hmdduplicate").style.display = "none";                        
+                        document.getElementById("hmdmultiselect").style.display = "none";                      
                     }
                 }
             });
@@ -1489,4 +1584,11 @@ function loaded() {
     $(window).blur(function() {
         entityListContextMenu.close();
     });
+    
+    function closeAllEntityListMenu() {
+            document.getElementById("menuBackgroundOverlay").style.display = "none";
+            document.getElementById("selection-menu").style.display = "none";
+            document.getElementById("actions-menu").style.display = "none";        
+    }
+
 }
