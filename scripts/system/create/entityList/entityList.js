@@ -323,6 +323,10 @@ EntityListTool = function(shouldUseEditTabletApp) {
             unparentSelectedEntities();
         } else if (data.type === 'hmdMultiSelectMode') {
             hmdMultiSelectMode = data.value;
+        } else if (data.type === 'selectAllInBox') {
+            selectAllEntitiesInCurrentSelectionBox(false);
+        } else if (data.type === 'selectAllTouchingBox') {
+            selectAllEntitiesInCurrentSelectionBox(true);
         }
     };
 
