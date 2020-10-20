@@ -213,6 +213,7 @@ let elEntityTable,
     elParent,
     elUnparent,    
     elDelete,
+    elMoveEntitySelectionToAvatar,
     elSelectAll,
     elSelectInverse,
     elSelectNone,
@@ -275,6 +276,7 @@ function loaded() {
         elParent = document.getElementById("parent");
         elUnparent = document.getElementById("unparent");
         elDelete = document.getElementById("delete");
+        elMoveEntitySelectionToAvatar = document.getElementById("moveEntitySelectionToAvatar"); 
         elSelectAll = document.getElementById("selectall");
         elSelectInverse = document.getElementById("selectinverse");
         elSelectNone = document.getElementById("selectnone");
@@ -364,6 +366,10 @@ function loaded() {
         };         
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
+            closeAllEntityListMenu();
+        };
+        elMoveEntitySelectionToAvatar.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'moveEntitySelectionToAvatar' }));
             closeAllEntityListMenu();
         };
         elSelectAll.onclick = function() {
