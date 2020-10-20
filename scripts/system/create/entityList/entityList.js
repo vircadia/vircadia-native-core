@@ -329,6 +329,8 @@ EntityListTool = function(shouldUseEditTabletApp) {
             selectAllEntitiesInCurrentSelectionBox(true);
         } else if (data.type === 'teleportToEntity') {
             SelectionManager.teleportToEntity();
+        } else if (data.type === 'moveEntitySelectionToAvatar') {
+            SelectionManager.moveEntitiesSelectionToAvatar();
         }
     };
 
