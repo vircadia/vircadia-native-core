@@ -637,14 +637,41 @@ SelectionManager = (function() {
     };
 
     that.teleportToEntity = function() {
-        if (SelectionManager.hasSelection()) {
-            var distanceFromTarget = 3 + Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y), SelectionManager.worldDimensions.z);
-            var teleportTargetPosition = Vec3.sum(SelectionManager.worldPosition, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: distanceFromTarget }));
+        if (that.hasSelection()) {
+            var distanceFromTarget = 3 + Math.max(Math.max(that.worldDimensions.x, that.worldDimensions.y), that.worldDimensions.z);
+            var teleportTargetPosition = Vec3.sum(that.worldPosition, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: distanceFromTarget }));
             MyAvatar.goToLocation(teleportTargetPosition, false);
         } else {
             audioFeedback.rejection();
         }
     };    
+
+    that.moveEntitiesSelectionToAvatar = function() {
+        if (that.hasSelection()) {
+            that.saveProperties();
+            var distanceFromTarget = 3 + Math.max(Math.max(that.worldDimensions.x, that.worldDimensions.y), that.worldDimensions.z);
+            var targetPosition = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -distanceFromTarget }));
+            // editing a parent will cause all the children to automatically follow along, so don't
+            // edit any entity who has an ancestor in that.selections
+            var toMove = that.selections.filter(function (selection) {
+                if (that.selections.indexOf(that.savedProperties[selection].parentID) >= 0) {
+                    return false; // a parent is also being moved, so don't issue an edit for this entity
+                } else {
+                    return true;
+                }
+            });
+            for (var i = 0; i < toMove.length; i++) {
+                var id = toMove[i];
+                var properties = that.savedProperties[id];
+                var relativePosition = Vec3.subtract(properties.position, that.worldPosition);
+                var newPosition = Vec3.sum(relativePosition, targetPosition);
+                Entities.editEntity(id, { "position": newPosition });
+            }
+            that._update(false, this);
+        } else {
+            audioFeedback.rejection();
+        }
+    };
 
     return that;
 })();
