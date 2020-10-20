@@ -961,7 +961,29 @@ void Model::setCauterized(bool cauterized, const render::ScenePointer& scene) {
 void Model::setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePointer& scene) {
     if (_primitiveMode != primitiveMode) {
         _primitiveMode = primitiveMode;
-        updateRenderItemsKey(scene);
+        if (!scene) {
+            _needsFixupInScene = true;
+            return;
+        }
+
+        bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
+        std::unordered_map<int, bool> shouldInvalidatePayloadShapeKeyMap;
+
+        for (auto& shape : _modelMeshRenderItemShapes) {
+            shouldInvalidatePayloadShapeKeyMap[shape.meshIndex] = shouldInvalidatePayloadShapeKey(shape.meshIndex);
+        }
+
+        render::Transaction transaction;
+
+        for (int i = 0; i < (int) _modelMeshRenderItemIDs.size(); i++) {
+            auto itemID = _modelMeshRenderItemIDs[i];
+            auto meshIndex = _modelMeshRenderItemShapes[i].meshIndex;
+            bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning] (ModelMeshPartPayload& data) {
+                data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
+            });
+        }
+        scene->enqueueTransaction(transaction);
     }
 }
 

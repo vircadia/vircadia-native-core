@@ -331,7 +331,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
                 const_cast<RenderableModelEntityItem*>(this)->fetchCollisionGeometryResource();
             }
 
-            if (_collisionGeometryResource && _collisionGeometryResource->isLoaded()) {
+            if (_collisionGeometryResource && _collisionGeometryResource->isLoaded() && _collisionGeometryResource->isHFMModelLoaded()) {
                 // we have both URLs AND both geometries AND they are both fully loaded.
                 if (_needsInitialSimulation) {
                     // the _model's offset will be wrong until _needsInitialSimulation is false
@@ -362,7 +362,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     }
 
     if (type == SHAPE_TYPE_COMPOUND) {
-        if (!_collisionGeometryResource || !_collisionGeometryResource->isLoaded()) {
+        if (!_collisionGeometryResource || !_collisionGeometryResource->isLoaded() || !_collisionGeometryResource->isHFMModelLoaded()) {
             return;
         }
 
@@ -493,6 +493,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
 
         std::vector<std::shared_ptr<const graphics::Mesh>> meshes;
         if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
+            if (!_collisionGeometryResource || !_collisionGeometryResource->isLoaded() || !_collisionGeometryResource->isHFMModelLoaded()) {
+                return;
+            }
             auto& hfmMeshes = _collisionGeometryResource->getHFMModel().meshes;
             meshes.reserve(hfmMeshes.size());
             for (auto& hfmMesh : hfmMeshes) {
@@ -721,7 +724,7 @@ int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
 
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     auto model = getModel();
-    if (EntityItem::contains(point) && model && _collisionGeometryResource && _collisionGeometryResource->isLoaded()) {
+    if (model && _collisionGeometryResource && _collisionGeometryResource->isLoaded() && _collisionGeometryResource->isHFMModelLoaded() && EntityItem::contains(point)) {
         glm::mat4 worldToHFMMatrix = model->getWorldToHFMMatrix();
         glm::vec3 hfmPoint = worldToHFMMatrix * glm::vec4(point, 1.0f);
         return _collisionGeometryResource->getHFMModel().convexHullContains(hfmPoint);
@@ -738,6 +741,9 @@ bool RenderableModelEntityItem::shouldBePhysical() const {
         // If we have a model, make sure it hasn't failed to download.
         // If it has, we'll report back that we shouldn't be physical so that physics aren't held waiting for us to be ready.
         physicalModelLoaded = model && !model->didVisualGeometryRequestFail();
+        if (shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
+            physicalModelLoaded &= _collisionGeometryResource && !_collisionGeometryResource->isFailed();
+        }
     } else if (shapeType == SHAPE_TYPE_COMPOUND) {
         physicalModelLoaded = _collisionGeometryResource && !_collisionGeometryResource->isFailed();
     } else if (shapeType != SHAPE_TYPE_NONE) {
@@ -1053,6 +1059,10 @@ ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Pare
 
 void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed, const ModelPointer& model) {
     auto builder = ItemKey::Builder().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
+    if (!_visible) {
+        builder.withInvisible();
+    }
 
     if (!_cullWithParent && model && model->isGroupCulled()) {
         builder.withMetaCullGroup();
