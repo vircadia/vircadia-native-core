@@ -203,6 +203,17 @@ EntityListTool = function(shouldUseEditTabletApp) {
                         } else if (properties.type === "Image") {
                             url = properties.imageURL;
                         }
+                        
+                        var parentStatus = getParentState(ids[i]);
+                        var parentState = "";
+                        if (parentStatus === "PARENT") {
+                            parentState = "N";
+                        } else if (parentStatus === "CHILDREN") {
+                            parentState = "O";
+                        } else if (parentStatus === "PARENT_CHILDREN") {
+                            parentState = "M";
+                        }
+
                         entities.push({
                             id: ids[i],
                             name: properties.name,
@@ -222,7 +233,8 @@ EntityListTool = function(shouldUseEditTabletApp) {
                             isBaked: entityIsBaked(properties),
                             drawCalls: (properties.renderInfo !== undefined ?
                                 valueIfDefined(properties.renderInfo.drawCalls) : ""),
-                            hasScript: properties.script !== ""
+                            hasScript: properties.script !== "",
+                            parentState: parentState
                         });
                     }
                 }
