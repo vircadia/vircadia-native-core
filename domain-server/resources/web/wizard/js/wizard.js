@@ -179,7 +179,7 @@ function promptToCreateDomainID() {
         "label": label
       };
 
-      $.post("/api/domainsss", domainJSON, function (data) {
+      $.post("/api/domains", domainJSON, function (data) {
         if (data.status === "failure") {
           swal.showInputError("Error: " + data.error);
           return;
