@@ -199,7 +199,7 @@ function promptToCreateDomainID() {
 
         // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
         postSettings(formJSON, goToNextStep);
-    }, 'json').fail(function (data) {
+      }, 'json').fail(function (data) {
         if (data && data.status === "failure") {
           swal.showInputError("Error: " + data.error);
         } else {
