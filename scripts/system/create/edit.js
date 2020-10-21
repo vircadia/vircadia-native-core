@@ -1720,6 +1720,9 @@ function unparentSelectedEntities() {
             } else {
                 Window.notify("Entity unparented");
             }
+            //Refresh
+            entityListTool.sendUpdate();
+            selectionManager._update(false, this);
         } else {
             audioFeedback.rejection();
             if (selectedEntities.length > 1) {
@@ -1756,6 +1759,9 @@ function parentSelectedEntities() {
         if (parentCheck) {
             audioFeedback.confirmation();
             Window.notify("Entities parented");
+            //Refresh
+            entityListTool.sendUpdate();
+            selectionManager._update(false, this);
         } else {
             audioFeedback.rejection();
             Window.notify("Entities are already parented to last");
@@ -2961,6 +2967,24 @@ function zoneSortOrder(a, b) {
         return -1;
     }
     return 0;
+}
+
+function getParentState(id) {
+    var state = "NONE";
+    var properties = Entities.getEntityProperties(id, ["parentID"]);
+    var children = Entities.getChildrenIDs(id);
+    if (properties.parentID !== Uuid.NULL) {
+        if (children.length > 0) {
+            state = "PARENT_CHILDREN";
+        } else {
+            state = "CHILDREN";
+        }
+    } else {
+        if (children.length > 0) {
+            state = "PARENT";
+        }
+    }
+    return state;
 }
 
 }()); // END LOCAL_SCOPE
