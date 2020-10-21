@@ -522,8 +522,6 @@ function createDomainIDPrompt(callback) {
     if (callback) {
       callback(inputValue);
     }
-
-    swal.close();
   });
 }
 

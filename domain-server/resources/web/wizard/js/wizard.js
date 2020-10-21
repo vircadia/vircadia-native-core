@@ -179,7 +179,14 @@ function promptToCreateDomainID() {
         "label": label
       };
 
-      $.post("/api/domains", domainJSON, function (data) {
+      $.post("/api/domainsss", domainJSON, function (data) {
+        if (data.status === "failure") {
+          swal.showInputError("Error: " + data.error);
+          return;
+        }
+        
+        swal.close();
+
         // we successfully created a domain ID, set it on that field
         var domainID = data.domain.domainId;
         console.log("Setting domain ID to ", data, domainID);
@@ -192,9 +199,13 @@ function promptToCreateDomainID() {
 
         // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
         postSettings(formJSON, goToNextStep);
-      }, 'json').fail(function () {
+    }, 'json').fail(function (data) {
+        if (data && data.status === "failure") {
+          swal.showInputError("Error: " + data.error);
+        } else {
+          swal.showInputError("Error: Failed to post to metaverse.");
+        }
         console.log("Failed to create domain ID...");
-        goToNextStep();
       });
     });
   }, 500); // Apparently swal needs time before opening another prompt.
