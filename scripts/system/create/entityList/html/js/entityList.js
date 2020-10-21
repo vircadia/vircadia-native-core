@@ -134,6 +134,14 @@ const COLUMNS = {
         initialWidth: 0.06,
         defaultSortOrder: DESCENDING_SORT,
     },
+    parentState: {
+        columnHeader: "M",
+        vglyph: true,
+        dropdownLabel: "Hierarchy",
+        propertyID: "parentState",
+        initialWidth: 0.04,
+        defaultSortOrder: DESCENDING_SORT,
+    },    
 };
 
 const FILTER_TYPES = [
@@ -499,9 +507,12 @@ function loaded() {
             elTh.setAttribute("id", thID);
             elTh.setAttribute("columnIndex", columnIndex);
             elTh.setAttribute("columnID", columnID);
-            if (columnData.glyph) {
+            if (columnData.glyph || columnData.vglyph) {
                 let elGlyph = document.createElement("span");
                 elGlyph.className = "glyph";
+                if (columnData.vglyph) {
+                    elGlyph.className = "vglyph";
+                }
                 elGlyph.innerHTML = columnData.columnHeader;
                 elTh.appendChild(elGlyph);
             } else {
@@ -801,10 +812,11 @@ function loaded() {
                         isBaked: entity.isBaked,
                         drawCalls: displayIfNonZero(entity.drawCalls),
                         hasScript: entity.hasScript,
+                        parentState: entity.parentState,
                         elRow: null, // if this entity has a visible row element assigned to it
                         selected: false // if this entity is selected for edit regardless of having a visible row
                     };
-                    
+
                     entities.push(entityData);
                     entitiesByID[entityData.id] = entityData;
                 });
@@ -1060,6 +1072,8 @@ function loaded() {
                 let elCell = elRow.childNodes[i];
                 if (column.data.glyph) {
                     elCell.innerHTML = itemData[column.data.propertyID] ? column.data.columnHeader : null;
+                } else if (column.data.vglyph) {
+                    elCell.innerHTML = itemData[column.data.propertyID];
                 } else {
                     let value = itemData[column.data.propertyID];
                     if (column.data.format) {
@@ -1147,6 +1161,9 @@ function loaded() {
             let column = columnsByID[columnID];
             let visible = column.elTh.style.visibility !== "hidden";
             let className = column.data.glyph ? "glyph" : "";
+            if (column.data.vglyph) {
+                className = "vglyph";
+            }
             className += visible ? "" : " hidden";
             return className;
         }
