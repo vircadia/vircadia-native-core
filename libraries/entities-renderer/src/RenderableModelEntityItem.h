@@ -76,6 +76,7 @@ public:
 
     virtual void setShapeType(ShapeType type) override;
     virtual void setCompoundShapeURL(const QString& url) override;
+    virtual void setModelURL(const QString& url) override;
 
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;

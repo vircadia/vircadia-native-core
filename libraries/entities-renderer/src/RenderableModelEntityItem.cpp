@@ -302,10 +302,23 @@ void RenderableModelEntityItem::setShapeType(ShapeType type) {
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
     auto currentCompoundShapeURL = getCompoundShapeURL();
     ModelEntityItem::setCompoundShapeURL(url);
-    if (getCompoundShapeURL() != currentCompoundShapeURL || !getModel()) {
+    if (getCompoundShapeURL() != currentCompoundShapeURL) {
         auto shapeType = getShapeType();
         if (shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
             fetchCollisionGeometryResource();
+            markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+        }
+    }
+}
+
+void RenderableModelEntityItem::setModelURL(const QString& url) {
+    auto currentModelURL = getModelURL();
+    ModelEntityItem::setModelURL(url);
+    if (getModelURL() != currentModelURL) {
+        auto shapeType = getShapeType();
+        if (shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
+            fetchCollisionGeometryResource();
+            markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
         }
     }
 }

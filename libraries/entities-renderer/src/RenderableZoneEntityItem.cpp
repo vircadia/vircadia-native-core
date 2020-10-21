@@ -199,7 +199,11 @@ void ZoneEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
     auto visible = entity->getVisible();
     if (transformChanged || visible != _lastVisible) {
         _lastVisible = visible;
-        DependencyManager::get<EntityTreeRenderer>()->updateZone(entity->getID());
+        void* key = (void*)this;
+        EntityItemID id = entity->getID();
+        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [id] {
+            DependencyManager::get<EntityTreeRenderer>()->updateZone(id);
+        });
     }
 
     auto proceduralUserData = entity->getUserData();
