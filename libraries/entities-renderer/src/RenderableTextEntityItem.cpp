@@ -92,14 +92,6 @@ uint32_t TextEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
     return parentSubs;
 }
 
-bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    if (_dimensions != entity->getScaledDimensions()) {
-        return true;
-    }
-
-    return false;
-}
-
 void TextEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     void* key = (void*)this;
     AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
@@ -112,26 +104,24 @@ void TextEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
 }
 
 void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    withWriteLock([&] {
-        _pulseProperties = entity->getPulseProperties();
-        _text = entity->getText();
-        _lineHeight = entity->getLineHeight();
-        _textColor = toGlm(entity->getTextColor());
-        _textAlpha = entity->getTextAlpha();
-        _backgroundColor = toGlm(entity->getBackgroundColor());
-        _backgroundAlpha = entity->getBackgroundAlpha();
-        _billboardMode = entity->getBillboardMode();
-        _leftMargin = entity->getLeftMargin();
-        _rightMargin = entity->getRightMargin();
-        _topMargin = entity->getTopMargin();
-        _bottomMargin = entity->getBottomMargin();
-        _unlit = entity->getUnlit();
-        _font = entity->getFont();
-        _effect = entity->getTextEffect();
-        _effectColor = toGlm(entity->getTextEffectColor());
-        _effectThickness = entity->getTextEffectThickness();
-        updateTextRenderItem();
-    });
+    _pulseProperties = entity->getPulseProperties();
+    _text = entity->getText();
+    _lineHeight = entity->getLineHeight();
+    _textColor = toGlm(entity->getTextColor());
+    _textAlpha = entity->getTextAlpha();
+    _backgroundColor = toGlm(entity->getBackgroundColor());
+    _backgroundAlpha = entity->getBackgroundAlpha();
+    _billboardMode = entity->getBillboardMode();
+    _leftMargin = entity->getLeftMargin();
+    _rightMargin = entity->getRightMargin();
+    _topMargin = entity->getTopMargin();
+    _bottomMargin = entity->getBottomMargin();
+    _unlit = entity->getUnlit();
+    _font = entity->getFont();
+    _effect = entity->getTextEffect();
+    _effectColor = toGlm(entity->getTextEffectColor());
+    _effectThickness = entity->getTextEffectThickness();
+    updateTextRenderItem();
 }
 
 void TextEntityRenderer::doRender(RenderArgs* args) {
@@ -141,25 +131,23 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
 
     glm::vec4 backgroundColor;
     Transform modelTransform;
-    BillboardMode billboardMode;
     PrimitiveMode primitiveMode;
     RenderLayer renderLayer;
     withReadLock([&] {
         modelTransform = _renderTransform;
-        billboardMode = _billboardMode;
         primitiveMode = _primitiveMode;
         renderLayer = _renderLayer;
 
         float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         backgroundColor = glm::vec4(_backgroundColor, fadeRatio * _backgroundAlpha);
-        backgroundColor = EntityRenderer::calculatePulseColor(backgroundColor, _pulseProperties, _created);
     });
+    backgroundColor = EntityRenderer::calculatePulseColor(backgroundColor, _pulseProperties, _created);
 
     if (backgroundColor.a <= 0.0f) {
         return;
     }
 
-    modelTransform.setRotation(EntityItem::getBillboardRotation(modelTransform.getTranslation(), modelTransform.getRotation(), billboardMode, args->getViewFrustum().getPosition()));
+    modelTransform.setRotation(EntityItem::getBillboardRotation(modelTransform.getTranslation(), modelTransform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
     batch.setModelTransform(modelTransform);
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -323,38 +311,21 @@ void entities::TextPayload::render(RenderArgs* args) {
     glm::vec3 dimensions;
     BillboardMode billboardMode;
 
-    QString text;
     glm::vec4 textColor;
-    QString font;
-    TextEffect effect;
-    glm::vec3 effectColor;
-    float effectThickness;
-    float lineHeight, leftMargin, rightMargin, topMargin, bottomMargin;
     bool forward;
     textRenderable->withReadLock([&] {
         modelTransform = textRenderable->_renderTransform;
         dimensions = textRenderable->_dimensions;
         billboardMode = textRenderable->_billboardMode;
 
-        text = textRenderable->_text;
-        font = textRenderable->_font;
-        effect = textRenderable->_effect;
-        effectThickness = textRenderable->_effectThickness;
-
-        lineHeight = textRenderable->_lineHeight;
-        leftMargin = textRenderable->_leftMargin;
-        rightMargin = textRenderable->_rightMargin;
-        topMargin = textRenderable->_topMargin;
-        bottomMargin = textRenderable->_bottomMargin;
-
         float fadeRatio = textRenderable->_isFading ? Interpolate::calculateFadeRatio(textRenderable->_fadeStartTime) : 1.0f;
         textColor = glm::vec4(textRenderable->_textColor, fadeRatio * textRenderable->_textAlpha);
-        textColor = EntityRenderer::calculatePulseColor(textColor, textRenderable->_pulseProperties, textRenderable->_created);
-
-        effectColor = EntityRenderer::calculatePulseColor(textRenderable->_effectColor, textRenderable->_pulseProperties, textRenderable->_created);
 
         forward = textRenderable->_renderLayer != RenderLayer::WORLD || args->_renderMethod == render::Args::FORWARD;
     });
+
+    textColor = EntityRenderer::calculatePulseColor(textColor, textRenderable->_pulseProperties, textRenderable->_created);
+    glm::vec3 effectColor = EntityRenderer::calculatePulseColor(textRenderable->_effectColor, textRenderable->_pulseProperties, textRenderable->_created);
 
     if (textColor.a <= 0.0f) {
         return;
@@ -362,14 +333,14 @@ void entities::TextPayload::render(RenderArgs* args) {
 
     modelTransform.setRotation(EntityItem::getBillboardRotation(modelTransform.getTranslation(), modelTransform.getRotation(), billboardMode, args->getViewFrustum().getPosition()));
 
-    float scale = lineHeight / textRenderer->getFontSize();
+    float scale = textRenderable->_lineHeight / textRenderer->getFontSize();
     modelTransform.postTranslate(glm::vec3(-0.5, 0.5, 1.0f + EPSILON / dimensions.z));
     modelTransform.setScale(scale);
     batch.setModelTransform(modelTransform);
 
-    glm::vec2 bounds = glm::vec2(dimensions.x - (leftMargin + rightMargin), dimensions.y - (topMargin + bottomMargin));
-    textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, bounds / scale, scale,
-                       text, font, textColor, effectColor, effectThickness, effect,
+    glm::vec2 bounds = glm::vec2(dimensions.x - (textRenderable->_leftMargin + textRenderable->_rightMargin), dimensions.y - (textRenderable->_topMargin + textRenderable->_bottomMargin));
+    textRenderer->draw(batch, textRenderable->_leftMargin / scale, -textRenderable->_topMargin / scale, bounds / scale, scale,
+                       textRenderable->_text, textRenderable->_font, textColor, effectColor, textRenderable->_effectThickness, textRenderable->_effect,
                        textRenderable->_unlit, forward);
 }
 

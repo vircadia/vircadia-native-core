@@ -16,15 +16,6 @@
 using namespace render;
 using namespace render::entities;
 
-bool MaterialEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    if (resultWithReadLock<bool>([&] {
-        return entity->getParentID() != _parentID;
-    })) {
-        return true;
-    }
-    return false;
-}
-
 void MaterialEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     void* key = (void*)this;
     AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
@@ -255,11 +246,7 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
     gpu::Batch& batch = *args->_batch;
 
     // Don't render if our parent is set or our material is null
-    QUuid parentID;
-    withReadLock([&] {
-        parentID = _parentID;
-    });
-    if (!parentID.isNull()) {
+    if (!_parentID.isNull()) {
         return;
     }
 

@@ -104,6 +104,8 @@ public:
     uint32_t getScreenshare() const { return _screenshare; }
     void setScreenshare(uint32_t value) { _screenshare = value; }
 
+    void setUserData(const QString& value) override;
+
     bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
     bool ambientLightPropertiesChanged() const { return _ambientLightPropertiesChanged; }
     bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }

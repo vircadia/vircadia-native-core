@@ -444,6 +444,13 @@ uint32_t ZoneEntityItem::getSkyboxMode() const {
     return _skyboxMode;
 }
 
+void ZoneEntityItem::setUserData(const QString& value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _userData != value;
+        _userData = value;
+    });
+}
+
 void ZoneEntityItem::fetchCollisionGeometryResource() {
     QUrl hullURL(getCompoundShapeURL());
     if (hullURL.isEmpty()) {
