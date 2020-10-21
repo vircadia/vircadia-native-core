@@ -33,7 +33,7 @@ private:
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
 
-    glm::u8vec3 _color { NAN };
+    glm::u8vec3 _color;
     float _alpha { NAN };
     PulsePropertyGroup _pulseProperties;
 
