@@ -1456,6 +1456,11 @@ input[type=button]#export {
     font-size: 15px;
 }
 
+#entity-table-scroll .vglyph {
+    font-family: Vircadia-Glyphs;
+    font-size: 15px;
+}
+
 #entity-table {
     margin-top: -28px;
     margin-bottom: -18px;
@@ -1468,7 +1473,7 @@ input[type=button]#export {
     background: none;
 }
 
-#entity-table .glyph {
+#entity-table .glyph .vglyph {
     margin: 0 -2px 0 -2px;
     vertical-align: middle;
 }
@@ -1501,11 +1506,11 @@ input[type=button]#export {
     outline: none;
 }
 
-#entity-table th .glyph {
+#entity-table th .glyph .vglyph {
     position: relative;
     left: 4px;
 }
-#entity-table th .glyph + .sort-order {
+#entity-table th .glyph .vglyph + .sort-order {
     position: relative;
     left: 4px;
 }
@@ -1532,7 +1537,7 @@ input[type=button]#export {
 #entity-table td {
     box-sizing: border-box;
 }
-#entity-table td.glyph {
+#entity-table td .glyph .vglyph {
     text-align: center;
     padding: 0;
 }
@@ -1877,7 +1882,7 @@ div.multiZoneSelToolbar {
     left:0;
     right:0;
     bottom:0;
-    display:block;
+    display:none;
 }
 
 div.entity-list-menu {
