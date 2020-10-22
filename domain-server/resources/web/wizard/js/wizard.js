@@ -50,6 +50,7 @@ $(document).ready(function(){
       prepareAccessTokenPrompt(function(accessToken) {
         Metaverse.accessToken = accessToken;
         saveAccessToken();
+        promptToCreateDomainID();
       });
     });
   
@@ -169,6 +170,45 @@ function setupWizardSteps() {
 
   var currentStep = steps[currentStepNumber];
   $(currentStep).show();
+}
+
+function promptToCreateDomainID() {
+  setTimeout(function () {
+    createDomainIDPrompt(function (label) {
+      var domainJSON = {
+        "label": label
+      };
+
+      $.post("/api/domains", domainJSON, function (data) {
+        if (data.status === "failure") {
+          swal.showInputError("Error: " + data.error);
+          return;
+        }
+        
+        swal.close();
+
+        // we successfully created a domain ID, set it on that field
+        var domainID = data.domain.domainId;
+        console.log("Setting domain ID to ", data, domainID);
+
+        var formJSON = {
+          "metaverse": {
+            "id": domainID
+          }
+        };
+
+        // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
+        postSettings(formJSON, goToNextStep);
+      }, 'json').fail(function (data) {
+        if (data && data.status === "failure") {
+          swal.showInputError("Error: " + data.error);
+        } else {
+          swal.showInputError("Error: Failed to post to metaverse.");
+        }
+        console.log("Failed to create domain ID...");
+      });
+    });
+  }, 500); // Apparently swal needs time before opening another prompt.
 }
 
 function updatePlaceNameLink(address) {
@@ -341,7 +381,7 @@ function saveAccessToken() {
   $(this).blur();
 
   // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
-  postSettings(formJSON, goToNextStep);
+  postSettings(formJSON);
 }
 
 function getSettingDescriptionForKey(groupKey, settingKey) {

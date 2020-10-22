@@ -40,6 +40,8 @@ $(document).ready(function(){
 
       // call our method to setup the place names table
       setupPlacesTable();
+      // hide the places table for now because we do not want that interacted with from the domain-server
+      $('#' + Settings.PLACES_TABLE_ID).hide();
 
       setupDomainNetworkingSettings();
       // setupDomainLabelSetting();
@@ -711,8 +713,8 @@ $(document).ready(function(){
       name: 'places',
       label: 'Places',
       html_id: Settings.PLACES_TABLE_ID,
-      help: "The following places currently point to this domain.</br>To point places to this domain, "
-        + " go to the <a href='" + METAVERSE_URL + "/user/places'>My Places</a> "
+      help: "To point places to this domain, "
+        + " go to the <a href='" + METAVERSE_URL + "/user/places'>Places</a> "
         + "page in your Metaverse account.",
       read_only: true,
       can_add_new_rows: false,
@@ -745,9 +747,10 @@ $(document).ready(function(){
     var errorEl = createDomainLoadingError("There was an error retrieving your places.");
     $("#" + Settings.PLACES_TABLE_ID).after(errorEl);
 
-    var temporaryPlaceButton = dynamicButton(Settings.GET_TEMPORARY_NAME_BTN_ID, 'Get a temporary place name');
-    temporaryPlaceButton.hide();
-    $('#' + Settings.PLACES_TABLE_ID).after(temporaryPlaceButton);
+    // DISABLE TEMP PLACE NAME BUTTON...
+    // var temporaryPlaceButton = dynamicButton(Settings.GET_TEMPORARY_NAME_BTN_ID, 'Get a temporary place name');
+    // temporaryPlaceButton.hide();
+    // $('#' + Settings.PLACES_TABLE_ID).after(temporaryPlaceButton);
     if (accessTokenIsSet()) {
       appendAddButtonToPlacesTable();
     }
