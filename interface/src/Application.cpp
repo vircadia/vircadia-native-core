@@ -7164,7 +7164,7 @@ void Application::updateWindowTitle() const {
     bool isDomainLoggedIn = domainAccountManager->isLoggedIn();
     QString authedDomainName = domainAccountManager->getAuthedDomainName();
 
-    QString buildVersion = " - Vircadia - "
+    QString buildVersion = " - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
 

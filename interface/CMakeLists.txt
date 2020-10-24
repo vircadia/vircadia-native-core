@@ -165,8 +165,6 @@ elseif (WIN32)
 
   # add an executable that also has the icon itself and the configured rc file as resources
   add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT} ${CONFIGURE_VERSION_INFO_RC_OUTPUT})
-  ##^^^^^ creates native Win32 app w/o cmd console vvvvvv forces cmd console for logging
-  # add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT} ${CONFIGURE_VERSION_INFO_RC_OUTPUT})
 
   if (NOT DEV_BUILD)
     add_custom_command(
@@ -188,10 +186,6 @@ endif ()
 if (BUILD_TOOLS AND NPM_EXECUTABLE)
   # require JSDoc to be build before interface is deployed
   add_dependencies(resources jsdoc)
-endif()
-
-if (WIN32 OR APPLE)
-    add_dependencies(${TARGET_NAME} resources screenshare)
 endif()
 
 

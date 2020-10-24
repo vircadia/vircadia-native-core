@@ -9,7 +9,7 @@
 # add the plugin directories
 file(GLOB PLUGIN_SUBDIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/*")
 list(REMOVE_ITEM PLUGIN_SUBDIRS "CMakeFiles")
-set(CMAKE_BUILD_TYPE "Release")
+
 # client-side plugins
 if (NOT SERVER_ONLY AND NOT ANDROID)
   set(DIR "oculus")
@@ -25,7 +25,7 @@ if (NOT SERVER_ONLY AND NOT ANDROID)
     set(DIR "hifiSixense")
     add_subdirectory(${DIR})
   endif()
-
+  
   set(DIR "hifiSpacemouse")
   add_subdirectory(${DIR})
   set(DIR "hifiNeuron")
