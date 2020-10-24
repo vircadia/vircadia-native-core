@@ -33,7 +33,7 @@ bool OverlayConductor::headNotCenteredInOverlay() const {
     glm::vec3 uiForward = uiTransform.getRotation() * glm::vec3(0.0f, 0.0f, -1.0f);
 
     const float MAX_COMPOSITOR_DISTANCE = 0.33f;
-    const float MAX_COMPOSITOR_ANGLE = 180.0f;    // rotation check is effectively disabled
+    const float MAX_COMPOSITOR_ANGLE = 90.0f;
     if (glm::distance(uiPos, hmdPos) > MAX_COMPOSITOR_DISTANCE ||
         glm::dot(uiForward, hmdForward) < cosf(glm::radians(MAX_COMPOSITOR_ANGLE))) {
         return true;
