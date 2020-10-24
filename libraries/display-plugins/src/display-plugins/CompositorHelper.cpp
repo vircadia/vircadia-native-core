@@ -384,9 +384,9 @@ bool CompositorHelper::calculateRayUICollisionPoint(const glm::vec3& position, c
     glm::vec3 localPosition = transformPoint(worldToUi, position);
     glm::vec3 localDirection = glm::normalize(transformVectorFast(worldToUi, direction));
 
-    const float UI_RADIUS = 1.0f;
+    const float UNIT_RADIUS = 1.0f;
     float intersectionDistance;
-    if (raySphereIntersect(localDirection, localPosition, UI_RADIUS, &intersectionDistance)) {
+    if (raySphereIntersect(localDirection, localPosition, UNIT_RADIUS, &intersectionDistance)) {
         result = transformPoint(uiToWorld, localPosition + localDirection * intersectionDistance);
 #ifdef WANT_DEBUG
         DebugDraw::getInstance().drawRay(position, result, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
@@ -407,9 +407,8 @@ bool CompositorHelper::calculateParabolaUICollisionPoint(const glm::vec3& origin
     glm::vec3 localVelocity = glm::normalize(transformVectorFast(worldToUi, velocity));
     glm::vec3 localAcceleration = glm::normalize(transformVectorFast(worldToUi, acceleration));
 
-    const float UI_RADIUS = 1.0f;
     float intersectionDistance;
-    if (findParabolaSphereIntersection(localOrigin, localVelocity, localAcceleration, glm::vec3(0.0f), UI_RADIUS, intersectionDistance)) {
+    if (findParabolaSphereIntersection(localOrigin, localVelocity, localAcceleration, glm::vec3(0.0f), HUD_RADIUS, intersectionDistance)) {
         result = origin + velocity * intersectionDistance + 0.5f * acceleration * intersectionDistance * intersectionDistance;
         parabolicDistance = intersectionDistance;
         return true;

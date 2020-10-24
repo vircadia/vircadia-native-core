@@ -70,6 +70,8 @@ bool OverlayConductor::updateAvatarIsAtRest() {
 void OverlayConductor::centerUI() {
     // place the overlay at the current hmd position in sensor space
     auto camMat = cancelOutRollAndPitch(qApp->getHMDSensorPose());
+    // Set its radius.
+    camMat = glm::scale(camMat, glm::vec3(HUD_RADIUS));
     qApp->getApplicationCompositor().setModelTransform(Transform(camMat));
 }
 

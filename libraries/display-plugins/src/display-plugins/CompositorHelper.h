@@ -28,6 +28,7 @@
 class ReticleInterface;
 
 const float DEFAULT_RETICLE_DEPTH = 1.0f; // FIXME - probably should be based on UI radius
+const float HUD_RADIUS = 1.5f;
 
 const float MAGNIFY_WIDTH = 220.0f;
 const float MAGNIFY_HEIGHT = 100.0f;
