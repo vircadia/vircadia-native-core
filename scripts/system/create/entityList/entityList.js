@@ -207,11 +207,11 @@ EntityListTool = function(shouldUseEditTabletApp) {
                         var parentStatus = getParentState(ids[i]);
                         var parentState = "";
                         if (parentStatus === "PARENT") {
-                            parentState = "N";
+                            parentState = "A";
                         } else if (parentStatus === "CHILDREN") {
-                            parentState = "O";
+                            parentState = "C";
                         } else if (parentStatus === "PARENT_CHILDREN") {
-                            parentState = "M";
+                            parentState = "B";
                         }
 
                         entities.push({
@@ -339,6 +339,16 @@ EntityListTool = function(shouldUseEditTabletApp) {
             selectAllEntitiesInCurrentSelectionBox(false);
         } else if (data.type === 'selectAllTouchingBox') {
             selectAllEntitiesInCurrentSelectionBox(true);
+        } else if (data.type === 'selectParent') {
+            SelectionManager.selectParent();
+        } else if (data.type === 'selectTopParent') {
+            SelectionManager.selectTopParent();
+        } else if (data.type === 'addChildrenToSelection') {
+            SelectionManager.addChildrenToSelection();
+        } else if (data.type === 'selectFamily') {
+            SelectionManager.selectFamily();
+        } else if (data.type === 'selectTopFamily') {
+            SelectionManager.selectTopFamily();
         } else if (data.type === 'teleportToEntity') {
             SelectionManager.teleportToEntity();
         } else if (data.type === 'moveEntitySelectionToAvatar') {
