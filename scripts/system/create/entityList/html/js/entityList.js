@@ -47,6 +47,14 @@ const COLUMNS = {
         alwaysShown: true,
         defaultSortOrder: ASCENDING_SORT,
     },
+    parentState: {
+        columnHeader: "A",
+        vglyph: true,
+        dropdownLabel: "Hierarchy",
+        propertyID: "parentState",
+        initialWidth: 0.08,
+        defaultSortOrder: DESCENDING_SORT,
+    },     
     name: {
         columnHeader: "Name",
         propertyID: "name",
@@ -133,15 +141,7 @@ const COLUMNS = {
         propertyID: "hasScript",
         initialWidth: 0.06,
         defaultSortOrder: DESCENDING_SORT,
-    },
-    parentState: {
-        columnHeader: "M",
-        vglyph: true,
-        dropdownLabel: "Hierarchy",
-        propertyID: "parentState",
-        initialWidth: 0.04,
-        defaultSortOrder: DESCENDING_SORT,
-    },    
+    },   
 };
 
 const FILTER_TYPES = [
@@ -227,6 +227,11 @@ let elEntityTable,
     elSelectNone,
     elSelectAllInBox,
     elSelectAllTouchingBox,
+    elSelectParent,
+    elSelectTopParent,
+    elAddChildrenToSelection,
+    elSelectFamily,
+    elSelectTopFamily,
     elTeleportToEntity,
     elFilterTypeMultiselectBox,
     elFilterTypeText,
@@ -290,6 +295,11 @@ function loaded() {
         elSelectNone = document.getElementById("selectnone");
         elSelectAllInBox = document.getElementById("selectallinbox");
         elSelectAllTouchingBox = document.getElementById("selectalltouchingbox");
+        elSelectParent = document.getElementById("selectparent");
+        elSelectTopParent = document.getElementById("selecttopparent");
+        elAddChildrenToSelection = document.getElementById("addchildrentoselection");
+        elSelectFamily = document.getElementById("selectfamily");
+        elSelectTopFamily = document.getElementById("selecttopfamily");
         elTeleportToEntity = document.getElementById("teleport-to-entity");
         elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
         elFilterTypeText = document.getElementById("filter-type-text");
@@ -329,17 +339,16 @@ function loaded() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'hmdMultiSelectMode', value: hmdMultiSelectMode }));
         };
         elActionsMenu.onclick = function() {
-            
             document.getElementById("menuBackgroundOverlay").style.display = "block";
             document.getElementById("actions-menu").style.display = "block";
         };
         elSelectionMenu.onclick = function() {
             document.getElementById("menuBackgroundOverlay").style.display = "block";
-            document.getElementById("selection-menu").style.display = "block";            
+            document.getElementById("selection-menu").style.display = "block";
         };
         elMenuBackgroundOverlay.onclick = function() {
             closeAllEntityListMenu();
-        };        
+        };
         elHmdCopy.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'copy' }));
             closeAllEntityListMenu();
@@ -355,7 +364,7 @@ function loaded() {
         elHmdDuplicate.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'duplicate' }));
             closeAllEntityListMenu();
-        };        
+        };
         elParent.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
             closeAllEntityListMenu();
@@ -444,6 +453,26 @@ function loaded() {
         };
         elSelectAllTouchingBox.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'selectAllTouchingBox' }));
+            closeAllEntityListMenu();
+        };
+        elSelectParent.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectParent' }));
+            closeAllEntityListMenu();
+        };
+        elSelectTopParent.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectTopParent' }));
+            closeAllEntityListMenu();
+        };
+        elAddChildrenToSelection.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'addChildrenToSelection' }));
+            closeAllEntityListMenu();
+        };
+        elSelectFamily.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectFamily' }));
+            closeAllEntityListMenu();
+        };
+        elSelectTopFamily.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectTopFamily' }));
             closeAllEntityListMenu();
         };
         elTeleportToEntity.onclick = function () {
@@ -1536,6 +1565,32 @@ function loaded() {
                 return;
             }
 
+            if (controlKey && keyCodeString === "I") {
+                let visibleEntityIDs = visibleEntities.map(visibleEntity => visibleEntity.id);
+                let selectionIncludesAllVisibleEntityIDs = visibleEntityIDs.every(visibleEntityID => {
+                    return selectedEntities.includes(visibleEntityID);
+                });
+
+                let selection = [];
+
+                if (!selectionIncludesAllVisibleEntityIDs) {
+                    visibleEntityIDs.forEach(function(id) {
+                        if (!selectedEntities.includes(id)) {
+                            selection.push(id);
+                        }
+                    });
+                }
+
+                updateSelectedEntities(selection);
+
+                EventBridge.emitWebEvent(JSON.stringify({
+                    "type": "selectionUpdate",
+                    "focus": false,
+                    "entityIds": selection
+                }));
+                
+                return;
+            }
 
             EventBridge.emitWebEvent(JSON.stringify({
                 type: 'keyUpEvent',
@@ -1615,9 +1670,9 @@ function loaded() {
     });
     
     function closeAllEntityListMenu() {
-            document.getElementById("menuBackgroundOverlay").style.display = "none";
-            document.getElementById("selection-menu").style.display = "none";
-            document.getElementById("actions-menu").style.display = "none";        
+        document.getElementById("menuBackgroundOverlay").style.display = "none";
+        document.getElementById("selection-menu").style.display = "none";
+        document.getElementById("actions-menu").style.display = "none";
     }
 
 }
