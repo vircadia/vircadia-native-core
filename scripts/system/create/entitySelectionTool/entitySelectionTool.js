@@ -712,7 +712,7 @@ SelectionManager = (function() {
     function getTopParent(id) {
         var topParentId = Uuid.NULL;
         var properties = Entities.getEntityProperties(id, ['parentID']);
-        if(properties.parentID === Uuid.NULL) {
+        if (properties.parentID === Uuid.NULL) {
             topParentId = id;
         } else {
             topParentId = getTopParent(properties.parentID);
@@ -723,22 +723,22 @@ SelectionManager = (function() {
     that.addChildrenToSelection = function() {
         if (that.hasSelection()) {
             for (var i = 0; i < that.selections.length; i++) {
-                var childrenIds = Entities.getChildrenIDs(that.selections[i]);
+                var childrenIDs = Entities.getChildrenIDs(that.selections[i]);
                 var collectNewChildren; 
                 var j;
                 var k = 0;
                 do {
-                    collectNewChildren = Entities.getChildrenIDs(childrenIds[k]);
+                    collectNewChildren = Entities.getChildrenIDs(childrenIDs[k]);
                     if (collectNewChildren.length > 0) {
                         for (j = 0; j < collectNewChildren.length; j++) {
-                            childrenIds.push(collectNewChildren[j]);
+                            childrenIDs.push(collectNewChildren[j]);
                         }
                     }
                     k++;
-                } while (k < childrenIds.length);
-                if (childrenIds.length > 0) {
-                    for (j = 0; j < childrenIds.length; j++) { 
-                        that.selections.push(childrenIds[j]);
+                } while (k < childrenIDs.length);
+                if (childrenIDs.length > 0) {
+                    for (j = 0; j < childrenIDs.length; j++) { 
+                        that.selections.push(childrenIDs[j]);
                     }
                 }
             }
