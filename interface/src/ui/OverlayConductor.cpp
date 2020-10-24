@@ -85,7 +85,6 @@ void OverlayConductor::update(float dt) {
     if (!desktop) {
         return;
     }
-    bool currentVisible = !desktop->property("pinned").toBool();
 
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     // centerUI when hmd mode is first enabled and mounted
@@ -98,24 +97,24 @@ void OverlayConductor::update(float dt) {
         _hmdMode = false;
     }
 
-    bool shouldRecenter = false;
-
-    if (_suppressedByHead) {
-        if (updateAvatarIsAtRest()) {
-            _suppressedByHead = false;
-            shouldRecenter = true;
-        }
-    } else {
-        if (_hmdMode && headNotCenteredInOverlay()) {
-            _suppressedByHead = true;
-        }
+    bool initiateRecenter = false;
+    if (_hmdMode && headNotCenteredInOverlay()) {
+        initiateRecenter = true;
     }
 
+    bool shouldRecenter = false;
+    if (initiateRecenter || _suppressedByHead) {
+        _suppressedByHead = !updateAvatarIsAtRest();
+        shouldRecenter = !_suppressedByHead;
+    }
+
+    bool currentVisible = !desktop->property("pinned").toBool();
     bool targetVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && !_suppressedByHead;
     if (targetVisible != currentVisible) {
         offscreenUi->setPinned(!targetVisible);
     }
-    if (shouldRecenter && !_suppressedByHead) {
+
+    if (shouldRecenter) {
         centerUI();
     }
 #endif
