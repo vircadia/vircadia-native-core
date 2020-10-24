@@ -23,7 +23,7 @@ OverlayConductor::OverlayConductor() {
 OverlayConductor::~OverlayConductor() {
 }
 
-bool OverlayConductor::headOutsideOverlay() const {
+bool OverlayConductor::headNotCenteredInOverlay() const {
     glm::mat4 hmdMat = qApp->getHMDSensorPose();
     glm::vec3 hmdPos = extractTranslation(hmdMat);
     glm::vec3 hmdForward = transformVectorFast(hmdMat, glm::vec3(0.0f, 0.0f, -1.0f));
@@ -32,7 +32,7 @@ bool OverlayConductor::headOutsideOverlay() const {
     glm::vec3 uiPos = uiTransform.getTranslation();
     glm::vec3 uiForward = uiTransform.getRotation() * glm::vec3(0.0f, 0.0f, -1.0f);
 
-    const float MAX_COMPOSITOR_DISTANCE = 0.99f;  // If you're 1m from center of ui sphere, you're at the surface.
+    const float MAX_COMPOSITOR_DISTANCE = 0.33f;
     const float MAX_COMPOSITOR_ANGLE = 180.0f;    // rotation check is effectively disabled
     if (glm::distance(uiPos, hmdPos) > MAX_COMPOSITOR_DISTANCE ||
         glm::dot(uiForward, hmdForward) < cosf(glm::radians(MAX_COMPOSITOR_ANGLE))) {
@@ -106,7 +106,7 @@ void OverlayConductor::update(float dt) {
             shouldRecenter = true;
         }
     } else {
-        if (_hmdMode && headOutsideOverlay()) {
+        if (_hmdMode && headNotCenteredInOverlay()) {
             _suppressedByHead = true;
         }
     }
