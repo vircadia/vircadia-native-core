@@ -307,7 +307,7 @@ QString ScriptEngine::getContext() const {
     return "unknown";
 }
 
-bool ScriptEngine::isDebugMode() const { 
+bool ScriptEngine::isDebugMode() const {
 #if defined(DEBUG)
     return true;
 #else
@@ -875,6 +875,11 @@ void ScriptEngine::init() {
 #if DEV_BUILD || PR_BUILD
     registerGlobalObject("StackTest", new StackTestScriptingInterface(this));
 #endif
+
+    globalObject().setProperty("KALILA", "isWaifu");
+    globalObject().setProperty("Kute", newFunction([](QScriptContext* context, QScriptEngine* engine) -> QScriptValue {
+      return context->argument(0).toString().toLower() == "kalila" ? true : false;
+    }));
 }
 
 void ScriptEngine::registerEnum(const QString& enumName, QMetaEnum newEnum) {
@@ -2439,6 +2444,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     BaseScriptEngine sandbox;
     sandbox.setProcessEventsInterval(SANDBOX_TIMEOUT);
     QScriptValue testConstructor, exception;
+    if (atoi(getenv("UNSAFE_ENTITY_SCRIPTS") ? getenv("UNSAFE_ENTITY_SCRIPTS") : "0"))
     {
         QTimer timeout;
         timeout.setSingleShot(true);
@@ -2460,14 +2466,94 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         } else if (testConstructor.isError()) {
             exception = testConstructor;
         }
+    } else {
+        // ENTITY SCRIPT WHITELIST STARTS HERE
+        auto nodeList = DependencyManager::get<NodeList>();
+        bool passList = false;  // assume unsafe
+        QString whitelistPrefix = "[WHITELIST ENTITY SCRIPTS]";
+        QList<QString> safeURLPrefixes = { "file:///", "atp:", "cache:" };
+        safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
+
+        // Entity Script Whitelist toggle check.
+        Setting::Handle<bool> whitelistEnabled {"private/whitelistEnabled", false };
+                
+        if (!whitelistEnabled.get()) {
+            passList = true;
+        }
+        
+        // Pull SAFEURLS from the Interface.JSON settings.
+        QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
+        QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), QString::SkipEmptyParts);
+        safeURLPrefixes += settingsSafeURLS;
+        // END Pull SAFEURLS from the Interface.JSON settings.
+        
+        // Get current domain whitelist bypass, in case an entire domain is whitelisted.
+        QString currentDomain = DependencyManager::get<AddressManager>()->getDomainURL().host();
+        
+        QString domainSafeIP = nodeList->getDomainHandler().getHostname();
+        QString domainSafeURL = URL_SCHEME_HIFI + "://" + currentDomain;
+        for (const auto& str : safeURLPrefixes) {
+            if (domainSafeURL.startsWith(str) || domainSafeIP.startsWith(str)) {
+                qCDebug(scriptengine) << whitelistPrefix << "Whitelist Bypassed, entire domain is whitelisted. Current Domain Host: " 
+                    << nodeList->getDomainHandler().getHostname()
+                    << "Current Domain: " << currentDomain;
+                passList = true;
+            }
+        }
+        // END bypass whitelist based on current domain.
+
+        // Start processing scripts through the whitelist.
+        if (ScriptEngine::getContext() == "entity_server") { // If running on the server, do not engage whitelist.
+            passList = true;
+        } else if (!passList) { // If waved through, do not engage whitelist.
+            for (const auto& str : safeURLPrefixes) {
+                qCDebug(scriptengine) << whitelistPrefix << "Script URL: " << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
+                    << scriptOrURL.startsWith(str);
+                if (!str.isEmpty() && scriptOrURL.startsWith(str)) {
+                    passList = true;
+                    qCDebug(scriptengine) << whitelistPrefix << "Script approved.";
+                    break; // Bail early since we found a match.
+                }
+            }
+        }
+        // END processing of scripts through the whitelist.
+
+        if (!passList) { // If the entity failed to pass for any reason, it's blocked and an error is thrown.
+            qCDebug(scriptengine) << whitelistPrefix << "(disabled entity script)" << entityID.toString() << scriptOrURL;
+            exception = makeError("UNSAFE_ENTITY_SCRIPTS == 0");
+        } else {
+            QTimer timeout;
+            timeout.setSingleShot(true);
+            timeout.start(SANDBOX_TIMEOUT);
+            connect(&timeout, &QTimer::timeout, [=, &sandbox] {
+                qCDebug(scriptengine) << "ScriptEngine::entityScriptContentAvailable timeout";
+
+                // Guard against infinite loops and non-performant code
+                sandbox.raiseException(
+                    sandbox.makeError(QString("Timed out (entity constructors are limited to %1ms)").arg(SANDBOX_TIMEOUT)));
+            });
+
+            testConstructor = sandbox.evaluate(program);
+
+            if (sandbox.hasUncaughtException()) {
+                exception = sandbox.cloneUncaughtException(QString("(preflight %1)").arg(entityID.toString()));
+                sandbox.clearExceptions();
+            } else if (testConstructor.isError()) {
+                exception = testConstructor;
+            }
+        }
+      // ENTITY SCRIPT WHITELIST ENDS HERE, uncomment below for original full disabling.
+
+      // qDebug() << "(disabled entity script)" << entityID.toString() << scriptOrURL;
+      // exception = makeError("UNSAFE_ENTITY_SCRIPTS == 0");
     }
 
     if (exception.isError()) {
-        // create a local copy using makeError to decouple from the sandbox engine
-        exception = makeError(exception);
-        setError(formatException(exception, _enableExtendedJSExceptions.get()), EntityScriptStatus::ERROR_RUNNING_SCRIPT);
-        emit unhandledException(exception);
-        return;
+      // create a local copy using makeError to decouple from the sandbox engine
+      exception = makeError(exception);
+      setError(formatException(exception, _enableExtendedJSExceptions.get()), EntityScriptStatus::ERROR_RUNNING_SCRIPT);
+      emit unhandledException(exception);
+      return;
     }
 
     // CONSTRUCTOR VIABILITY
@@ -2839,3 +2925,6 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     }
 }
 
+QString ScriptEngine::getExternalPath(ExternalResource::Bucket bucket, const QString& path) {
+    return ExternalResource::getInstance()->getUrl(bucket, path);
+}
