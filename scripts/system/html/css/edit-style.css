@@ -419,7 +419,6 @@ input[type=button].normal, button.hifi-edit-button.normal {
     font-family: FiraSans-SemiBold;
     font-size: 15px;
     text-transform: none;
-    //min-width: 65px;
     padding: 0;
 }
 
@@ -1244,7 +1243,6 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     background: #2e2e2e url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACKSURBVChTjdAxDsMgDAXQT4UYuQIzCwsSKxsSJ4YDoByDY7AwUOG2aZMQqX+xhd9gzIwxA3/k8a7LCCFgraX+Fk4UY4RSCoyxNfwgzjlyzhhjXOEvSimhtUbvB3hGUkp472m2wxUKIaD3TnOCd6jWim3bvlBrfdjJOUeolEJoZj/4PMH83bl/BXgCWSs2Z09IjgoAAAAASUVORK5CYII=) no-repeat bottom right;
 }
 
-
 div#grid-section, body#entity-list-body {
     padding-bottom: 0;
     margin: 16px;
@@ -1274,12 +1272,6 @@ div#grid-section, body#entity-list-body {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
 }
-
-/*#delete {
-    float: right;
-    margin-right: 0;
-    background-color: #ff0000;
-}*/
 
 #entity-list {
     position: relative; /* New positioning context. */
