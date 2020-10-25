@@ -141,7 +141,21 @@ const COLUMNS = {
         propertyID: "hasScript",
         initialWidth: 0.06,
         defaultSortOrder: DESCENDING_SORT,
-    },   
+    },
+    created: {
+        columnHeader: "Created (UTC)",
+        dropdownLabel: "Creation Date",
+        propertyID: "created",
+        initialWidth: 0.38,
+        defaultSortOrder: DESCENDING_SORT,
+    },
+    lastEdited: {
+        columnHeader: "Modified (UTC)",
+        dropdownLabel: "Modification Date",
+        propertyID: "lastEdited",
+        initialWidth: 0.38,
+        defaultSortOrder: DESCENDING_SORT,
+    },    
 };
 
 const FILTER_TYPES = [
@@ -842,6 +856,8 @@ function loaded() {
                         drawCalls: displayIfNonZero(entity.drawCalls),
                         hasScript: entity.hasScript,
                         parentState: entity.parentState,
+                        created: entity.created,
+                        lastEdited: entity.lastEdited,
                         elRow: null, // if this entity has a visible row element assigned to it
                         selected: false // if this entity is selected for edit regardless of having a visible row
                     };
