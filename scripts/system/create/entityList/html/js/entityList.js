@@ -1542,7 +1542,7 @@ function loaded() {
                     break;
             }
 
-            if (controlKey && keyCodeString === "A") {
+            if (controlKey && !shiftKey && !altKey && keyCodeString === "A") {
                 let visibleEntityIDs = visibleEntities.map(visibleEntity => visibleEntity.id);
                 let selectionIncludesAllVisibleEntityIDs = visibleEntityIDs.every(visibleEntityID => {
                     return selectedEntities.includes(visibleEntityID);
@@ -1565,7 +1565,7 @@ function loaded() {
                 return;
             }
 
-            if (controlKey && keyCodeString === "I") {
+            if (controlKey && !shiftKey && !altKey && keyCodeString === "I") {
                 let visibleEntityIDs = visibleEntities.map(visibleEntity => visibleEntity.id);
                 let selectionIncludesAllVisibleEntityIDs = visibleEntityIDs.every(visibleEntityID => {
                     return selectedEntities.includes(visibleEntityID);
