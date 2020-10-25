@@ -1355,10 +1355,13 @@ Section "-Core installation"
   ${Else}
     ; handling for interface only console shortcut
     Delete "$SMPROGRAMS\$STARTMENU_FOLDER\@SANDBOX_HF_SHORTCUT_NAME@.lnk"
-    CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
-      "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
-    ; Set appUserModelId
-    ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" "@APP_USER_MODEL_ID@"
+
+    ; FIXME: Re-enable or permanently remove system tray "Console" for Interface-only installs.
+    ;CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
+    ;  "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
+    ;; Set appUserModelId
+    ;ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" "@APP_USER_MODEL_ID@"
+
   ${EndIf}
 
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\@UNINSTALLER_NAME@"
