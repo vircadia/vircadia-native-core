@@ -190,7 +190,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
             PROFILE("getMultipleProperties", function () {
                 var multipleProperties = Entities.getMultipleEntityProperties(ids, ['position', 'name', 'type', 'locked',
                     'visible', 'renderInfo', 'modelURL', 'materialURL', 'imageURL', 'script', 'certificateID',
-                    'skybox.url', 'ambientLight.url']);
+                    'skybox.url', 'ambientLight.url', 'created', 'lastEdited']);
                 for (var i = 0; i < multipleProperties.length; i++) {
                     var properties = multipleProperties[i];
 
@@ -234,7 +234,9 @@ EntityListTool = function(shouldUseEditTabletApp) {
                             drawCalls: (properties.renderInfo !== undefined ?
                                 valueIfDefined(properties.renderInfo.drawCalls) : ""),
                             hasScript: properties.script !== "",
-                            parentState: parentState
+                            parentState: parentState,
+                            created: formatToStringDateTime(properties.created),
+                            lastEdited: formatToStringDateTime(properties.lastEdited),
                         });
                     }
                 }
@@ -253,6 +255,20 @@ EntityListTool = function(shouldUseEditTabletApp) {
             });
         });
     };
+
+    function formatToStringDateTime(timestamp) {
+        var d = new Date(Math.floor(timestamp/1000));
+        var dateTime = d.getUTCFullYear() + "-" + zeroPad((d.getUTCMonth() + 1), 2) + "-" + zeroPad(d.getUTCDate(), 2);
+        dateTime = dateTime + " " + zeroPad(d.getUTCHours(),2) + ":" + zeroPad(d.getUTCMinutes(), 2) + ":" + zeroPad(d.getUTCSeconds(), 2); 
+        dateTime = dateTime + "." + zeroPad(d.getUTCMilliseconds(), 3);
+        return dateTime;
+    }
+
+    function zeroPad(num, size) {
+        num = num.toString();
+        while (num.length < size) num = "0" + num;
+        return num;
+    }
 
     function onFileSaveChanged(filename) {
         Window.saveFileChanged.disconnect(onFileSaveChanged);
