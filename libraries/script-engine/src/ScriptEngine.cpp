@@ -130,7 +130,7 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
     // This message was sent by one of our script engines, let's try to see if we can find the source.
     // Note that the first entry in the backtrace should be "print" and is somewhat useless to us
     AbstractLoggerInterface* loggerInterface = AbstractLoggerInterface::get();
-    if (loggerInterface->showSourceDebugging()) {
+    if (loggerInterface && loggerInterface->showSourceDebugging()) {
         QScriptContext* userContext = context;
         while (userContext && QScriptContextInfo(userContext).functionType() == QScriptContextInfo::NativeFunction) {
             userContext = userContext->parentContext();
