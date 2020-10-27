@@ -204,7 +204,7 @@
   </div>
   <br />
   <div id="automatic-threading-options-row" class="row">
-    <p class="col-md-2">
+    <p class="col-md-12">
       <label>
         <input id="enable-automatic-threading" name="threading-checkbox" type="checkbox" value="true"> Enable Automatic Threading
       </label>
