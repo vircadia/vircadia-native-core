@@ -3,4 +3,5 @@ setup_hifi_library(Multimedia Network Qml Quick WebChannel WebSockets ${PLATFORM
 link_hifi_libraries(shared networking gl)
 
 # Required for some low level GL interaction in the OffscreenQMLSurface
+set(OpenGL_GL_PREFERENCE "GLVND")
 target_opengl()

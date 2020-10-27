@@ -4,6 +4,7 @@
 #
 #  Created by Leonardo Murillo on 07/14/2015.
 #  Copyright 2015 High Fidelity, Inc.
+#  Copyright 2020 Vircadia contributors.
 #
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -175,7 +176,7 @@ macro(SET_PACKAGING_PARAMETERS)
       set(INTERFACE_SHORTCUT_NAME "Vircadia")
       set(CONSOLE_SHORTCUT_NAME "Console")
       set(SANDBOX_SHORTCUT_NAME "Sandbox")
-      set(APP_USER_MODEL_ID "com.highfidelity.console")
+      set(APP_USER_MODEL_ID "com.vircadia.console")
     else ()
       set(INTERFACE_SHORTCUT_NAME "Vircadia - ${BUILD_VERSION_NO_SHA}")
       set(CONSOLE_SHORTCUT_NAME "Console - ${BUILD_VERSION_NO_SHA}")

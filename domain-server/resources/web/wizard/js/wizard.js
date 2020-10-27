@@ -52,10 +52,14 @@ $(document).ready(function(){
         saveAccessToken();
       });
     });
-
-    $('body').on('click', '#save-permissions', function() {
-      savePermissions();
-    });
+  
+  $('body').on('click', '#save-permissions', function() {
+    savePermissions();
+  });
+  
+  $('body').on('click', '#save-threading-settings', function() {
+    saveThreadingSettings();
+  });
 
     function triggerSaveUsernamePassword(event) {
         if (event.keyCode === 13) {
@@ -151,7 +155,7 @@ function setupWizardSteps() {
     $('#admin-description').html('Add more Metaverse usernames');
   } else {
     $('.cloud-only').remove();
-    $('#save-permissions').text("Finish");
+    $('#save-threading-settings').text("Finish");
 
     steps = $('.wizard-step');
     $(steps).each(function(i) {
@@ -259,10 +263,6 @@ function goToNextStep() {
 
   var currentStep = $('body').find('.wizard-step:visible');
   var nextStep = currentStep.next('.wizard-step');
-
-  var formJSON = {
-    "wizard": {}
-  }
 
   if (nextStep.length > 0) {
     currentStep.hide();
@@ -521,7 +521,29 @@ function saveUsernamePassword() {
   $(this).blur();
 
   // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
-  postSettings(formJSON, function() {
-    location.reload();
-  });
+  postSettings(formJSON, goToNextStep);
+}
+
+function saveThreadingSettings() {
+    var enable_automatic_threading = $("#enable-automatic-threading").prop("checked");
+    
+    currentStepNumber += 1;
+  
+    var formJSON = {
+      "audio_threading": {
+        "auto_threads": enable_automatic_threading
+      },
+      "avatar_mixer": {
+        "auto_threads": enable_automatic_threading
+      },
+      "wizard": {
+        "steps_completed": currentStepNumber.toString()
+      }
+    }
+  
+    // remove focus from the button
+    $(this).blur();
+  
+    // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
+    postSettings(formJSON, goToNextStep);
 }
