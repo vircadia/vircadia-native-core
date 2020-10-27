@@ -223,7 +223,7 @@ void GLTextureTransferEngineDefault::updateMemoryPressure() {
         idealMemoryAllocation += texture->evalTotalSize();
         // Track how much we're actually using
         totalVariableMemoryAllocation += gltexture->size();
-        if (vartexture->canDemote()) {
+        if (!gltexture->_gpuObject.getImportant() && vartexture->canDemote()) {
             canDemote |= true;
         }
         if (vartexture->canPromote()) {
@@ -503,7 +503,7 @@ void GLTextureTransferEngineDefault::processDemotes(size_t reliefRequired, const
     for (const auto& texture : strongTextures) {
         GLTexture* gltexture = Backend::getGPUObject<GLTexture>(*texture);
         GLVariableAllocationSupport* vargltexture = dynamic_cast<GLVariableAllocationSupport*>(gltexture);
-        if (vargltexture->canDemote()) {
+        if (!gltexture->_gpuObject.getImportant() && vargltexture->canDemote()) {
             demoteQueue.push({ texture, (float)gltexture->size() });
         }
     }
