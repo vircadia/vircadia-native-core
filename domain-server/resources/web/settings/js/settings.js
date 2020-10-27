@@ -356,7 +356,7 @@ $(document).ready(function(){
     });
   }
 
-  function showDomainCreationAlert(justConnected) {
+  function showDomainCreationAlert (justConnected) {
     swal({
       title: 'Create new domain ID',
       type: 'input',
@@ -365,7 +365,7 @@ $(document).ready(function(){
       confirmButtonText: "Create",
       closeOnConfirm: false,
       html: true
-    }, function(inputValue){
+    }, function (inputValue) {
       if (inputValue === false) {
         swal.close();
 
@@ -375,19 +375,24 @@ $(document).ready(function(){
         }
       } else {
         // we're going to change the alert to a new one with a spinner while we create this domain
-        showSpinnerAlert('Creating domain ID');
+        // showSpinnerAlert('Creating domain ID');
         createNewDomainID(inputValue, justConnected);
       }
     });
   }
 
-  function createNewDomainID(label, justConnected) {
+  function createNewDomainID (label, justConnected) {
     // get the JSON object ready that we'll use to create a new domain
     var domainJSON = {
       "label": label
     }
 
-    $.post("/api/domains", domainJSON, function(data){
+    $.post("/api/domains", domainJSON, function(data) {
+      if (data.status === "failure") {
+        failedToCreateDomainID(data, justConnected);
+        return;
+      }
+
       // we successfully created a domain ID, set it on that field
       var domainID = data.domain.domainId;
       console.log("Setting domain id to ", data, domainID);
@@ -408,40 +413,50 @@ $(document).ready(function(){
         text: successText,
         html: true,
         confirmButtonText: 'Save'
-      }, function(){
+      }, function() {
         saveSettings();
       });
-    }, 'json').fail(function(){
+    }, 'json').fail(function(data) {
+      failedToCreateDomainID(data, justConnected);
+    });
+  }
+  
+  function failedToCreateDomainID (data, justConnected) {
+    var errorText = "There was a problem creating your new domain ID. Do you want to try again or";
 
-      var errorText = "There was a problem creating your new domain ID. Do you want to try again or";
+    if (data && data.status === "failure") {
+      errorText = "Error: " + data.error + "</br>Do you want to try again or";
+      console.log("Error: " + data.error);
+    } else {
+      console.log("Error: Failed to post to metaverse.");
+    }
 
-      if (justConnected) {
-        errorText += " just save your new access token?</br></br>You can always create a new domain ID later.";
+    if (justConnected) {
+      errorText += " just save your new access token?</br></br>You can always create a new domain ID later.";
+    } else {
+      errorText += " cancel?"
+    }
+
+    // we failed to create the new domain ID, show a sweet-alert that lets them try again or cancel
+    swal({
+      title: '',
+      type: 'error',
+      text: errorText,
+      html: true,
+      confirmButtonText: 'Try again',
+      showCancelButton: true,
+      closeOnConfirm: false
+    }, function (isConfirm) {
+      if (isConfirm) {
+        // they want to try creating a domain ID again
+        showDomainCreationAlert(justConnected);
       } else {
-        errorText += " cancel?"
-      }
-
-      // we failed to create the new domain ID, show a sweet-alert that lets them try again or cancel
-      swal({
-        title: '',
-        type: 'error',
-        text: errorText,
-        html: true,
-        confirmButtonText: 'Try again',
-        showCancelButton: true,
-        closeOnConfirm: false
-      }, function(isConfirm){
-        if (isConfirm) {
-          // they want to try creating a domain ID again
-          showDomainCreationAlert(justConnected);
-        } else {
-          // they want to cancel
-          if (justConnected) {
-            // since they just connected we need to save the access token here
-            saveSettings();
-          }
+        // they want to cancel
+        if (justConnected) {
+          // since they just connected we need to save the access token here
+          saveSettings();
         }
-      });
+      }
     });
   }
 
