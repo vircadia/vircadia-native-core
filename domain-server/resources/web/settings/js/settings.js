@@ -356,7 +356,7 @@ $(document).ready(function(){
     });
   }
 
-  function showDomainCreationAlert (justConnected) {
+  function showDomainCreationAlert(justConnected) {
     swal({
       title: 'Create new domain ID',
       type: 'input',
@@ -381,7 +381,7 @@ $(document).ready(function(){
     });
   }
 
-  function createNewDomainID (label, justConnected) {
+  function createNewDomainID(label, justConnected) {
     // get the JSON object ready that we'll use to create a new domain
     var domainJSON = {
       "label": label
@@ -413,15 +413,15 @@ $(document).ready(function(){
         text: successText,
         html: true,
         confirmButtonText: 'Save'
-      }, function() {
+      }, function () {
         saveSettings();
       });
-    }, 'json').fail(function(data) {
+    }, 'json').fail(function (data) {
       failedToCreateDomainID(data, justConnected);
     });
   }
   
-  function failedToCreateDomainID (data, justConnected) {
+  function failedToCreateDomainID(data, justConnected) {
     var errorText = "There was a problem creating your new domain ID. Do you want to try again or";
 
     if (data && data.status === "failure") {
