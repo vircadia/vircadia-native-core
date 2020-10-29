@@ -51,7 +51,7 @@ LogHandler::LogHandler() {
 
     auto optionList = logOptions.split(",");
 
-    for(auto option : optionList) {
+    for (auto option : optionList) {
         option = option.trimmed();
 
         if (option == "color") {
