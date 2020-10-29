@@ -73,8 +73,9 @@ public:
     //    (as such this plugin class and its methods remain forward-compatible with other engines like QML's QJSEngine)
 
 public slots:
-    // returns a pretty-printed representation for logging eg: print(JSAPIExample)
-    inline QString toString() const { return QString("[%1 version=%2]").arg(objectName()).arg(_version); }
+    // pretty-printed representation for logging eg: print(JSAPIExample)
+    // (note: Qt script engines automatically look for a ".toString" method on native classes when coercing values to strings)
+    QString toString() const { return QString("[%1 version=%2]").arg(objectName()).arg(_version); }
 
     /**jsdoc
      * Returns current microseconds (usecs) since Epoch. note: 1000usecs == 1ms
@@ -100,12 +101,16 @@ public slots:
         }
         return out;
     }
+
     /**jsdoc
      * Example of returning a JS Array result
      * @example <caption>emulate Object.values(keyValues)</caption>
      * print(JSON.stringify(JSAPIExample.values({ "a": 1, "b": 2 }))); // [1,2]
      */
-    QVariant values(const QVariantMap& keyValues) const { return keyValues.values(); }
+    QVariant values(const QVariantMap& keyValues) const {
+        QVariantList values = keyValues.values();
+        return values;
+    }
 
     /**jsdoc
      * Another example of returning JS Array data
@@ -129,10 +134,14 @@ public slots:
      * var u = JSAPIExample.qUncompressString(z); // u will be a String value
      * print(JSON.stringify({ input: data, compressed: z.byteLength, output: u, uncompressed: u.length }));
      */
-    QVariant qCompressString(const QString& data, int compress_level = -1) const {
-        return qCompress(data.toUtf8(), compress_level);
+    QVariant qCompressString(const QString& jsString, int compress_level = -1) const {
+        QByteArray arrayBuffer = qCompress(jsString.toUtf8(), compress_level);
+        return arrayBuffer;
     }
-    QString qUncompressString(const QByteArray& data) const { return QString::fromUtf8(qUncompress(data)); }
+    QVariant qUncompressString(const QByteArray& arrayBuffer) const {
+        QString jsString = QString::fromUtf8(qUncompress(arrayBuffer));
+        return jsString;
+    }
 
     /**
       * Example of exposing a custom "managed" C++ QObject to JS
@@ -149,12 +158,13 @@ public slots:
       */
     QScriptValue getScopedSettings(const QString& scope) {
         auto engine = QScriptable::engine();
-        if (!engine) return QScriptValue::NullValue;
+        if (!engine)
+            return QScriptValue::NullValue;
         QString error;
         auto cppValue = createScopedSettings(scope, engine, error);
         if (!cppValue) {
-          raiseScriptingError(context(), "error creating scoped settings instance: " + error);
-          return QScriptValue::NullValue;
+            raiseScriptingError(context(), "error creating scoped settings instance: " + error);
+            return QScriptValue::NullValue;
         }
         return engine->newQObject(cppValue, QScriptEngine::ScriptOwnership, QScriptEngine::ExcludeDeleteLater);
     }
@@ -163,7 +173,6 @@ private:
     const QString _version{ JSAPI_SEMANTIC_VERSION };
 };
 
-// Example of how to create a QObject class that can have multiple instances created from the JS side
 // JSSettingsHelper emulates a subset of QSetting APIs:
 //   fileName() -- full path to the scoped settings .json file
 //   allKeys() -- all previously stored keys available in the scoped settings file
@@ -204,6 +213,7 @@ protected:
     }
 };
 
+// verifies the requested scope is sensible and creates/returns a scoped JSSettingsHelper instance
 QObject* createScopedSettings(const QString& scope, QObject* parent, QString& error) {
     const QRegExp VALID_SETTINGS_SCOPE{ "[-_A-Za-z0-9]{1,64}" };
     if (!VALID_SETTINGS_SCOPE.exactMatch(scope)) {
