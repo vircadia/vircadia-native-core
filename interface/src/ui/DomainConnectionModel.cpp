@@ -9,7 +9,8 @@
 //
 
 #include "DomainConnectionModel.h"
-#include <QLoggingCategory>
+#include <QtCore/QLoggingCategory>
+#include <QtCore/QMetaMethod>
 
 #include <NodeList.h>
 #include <NumericalConstants.h>

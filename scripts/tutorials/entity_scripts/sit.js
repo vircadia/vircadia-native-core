@@ -18,7 +18,7 @@
     }
 
     var SETTING_KEY = "com.highfidelity.avatar.isSitting";
-    var ANIMATION_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/animations/sitting_idle.fbx";
+    var ANIMATION_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/clement/production/animations/sitting_idle.fbx");
     var ANIMATION_FPS = 30;
     var ANIMATION_FIRST_FRAME = 1;
     var ANIMATION_LAST_FRAME = 10;

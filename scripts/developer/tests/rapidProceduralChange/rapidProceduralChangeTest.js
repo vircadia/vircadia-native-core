@@ -25,8 +25,8 @@ centerUp.y += 0.5;
 var centerDown = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getForward(orientation)));
 centerDown.y -= 0.5;
 
-var ENTITY_SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/uniformTest.fs";
-var SKYBOX_SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/timerTest.fs";
+var ENTITY_SHADER_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/eric/shaders/uniformTest.fs");
+var SKYBOX_SHADER_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/eric/shaders/timerTest.fs");
 
 var entityData = {
     ProceduralEntity: {

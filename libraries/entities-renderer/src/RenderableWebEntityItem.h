@@ -1,6 +1,7 @@
 //
 //  Created by Bradley Austin Davis on 2015/05/12
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -32,6 +33,9 @@ public:
 
     static const QString QML;
     static const char* URL_PROPERTY;
+    static const char* SCRIPT_URL_PROPERTY;
+    static const char* GLOBAL_POSITION_PROPERTY;
+    static const char* USE_BACKGROUND_PROPERTY;
 
     static void setAcquireWebSurfaceOperator(std::function<void(const QString&, bool, QSharedPointer<OffscreenQmlSurface>&, bool&)> acquireWebSurfaceOperator) { _acquireWebSurfaceOperator = acquireWebSurfaceOperator; }
     static void acquireWebSurface(const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
@@ -93,6 +97,7 @@ private:
     uint16_t _dpi;
     QString _scriptURL;
     uint8_t _maxFPS;
+    bool _useBackground;
     WebInputMode _inputMode;
 
     glm::vec3 _contextPosition;

@@ -13,7 +13,7 @@ exports.handlers = {
                 return console.log(err);
             }
 
-            console.log("The Hifi JSDoc JSON was saved!");
+            console.log("The Vircadia JSDoc JSON was saved!");
         });
     }
 };

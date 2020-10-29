@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2015-03-31.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -19,18 +20,19 @@ namespace NetworkingConstants {
     // If you want to use STAGING instead of STABLE,
     // links from the Domain Server web interface (like the connect account token generation)
     // will still point at stable unless you ALSO change the Domain Server Metaverse Server URL inside of:
-    // <hifi repo>\domain-server\resources\web\js\shared.js
+    // <vircadia repo>\domain-server\resources\web\js\shared.js
 
     // You can avoid changing that and still effectively use a connected domain on staging
     // if you manually generate a personal access token for the domains scope
     // at https://staging.highfidelity.com/user/tokens/new?for_domain_server=true
 
-    const QUrl METAVERSE_SERVER_URL_STABLE { "https://metaverse.highfidelity.com" };
-    const QUrl METAVERSE_SERVER_URL_STAGING { "https://staging-metaverse.vircadia.com" };
+    // For now we only have one Metaverse server.
+    const QUrl METAVERSE_SERVER_URL_STABLE { "https://metaverse.vircadia.com/live" };
+    const QUrl METAVERSE_SERVER_URL_STAGING { "https://metaverse.vircadia.com/live" };
 
     // Web Engine requests to this parent domain have an account authorization header added
-    const QString AUTH_HOSTNAME_BASE = "highfidelity.com";
-    const QStringList IS_AUTHABLE_HOSTNAME = { "highfidelity.com", "highfidelity.io" };
+    const QString AUTH_HOSTNAME_BASE = "vircadia.com";
+    const QStringList IS_AUTHABLE_HOSTNAME = { "vircadia.com", "vircadia.io" };
     
     // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
     const QByteArray VIRCADIA_USER_AGENT = "Mozilla/5.0 (VircadiaInterface)";
@@ -41,15 +43,30 @@ namespace NetworkingConstants {
 
     const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
     const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");
+    
+    // WebEntity Defaults
+    const QString WEB_ENTITY_DEFAULT_SOURCE_URL = "https://vircadia.com/";
+    
+    const QString DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/Body_Hits_Impact.wav";
 
+    // CDN URLs
+    const QString HF_CONTENT_CDN_URL = "https://cdn-1.vircadia.com/eu-c-1/vircadia-content/";
+    const QString HF_MPASSETS_CDN_URL = "https://cdn-1.vircadia.com/eu-c-1/vircadia-mpassets/";
+    const QString HF_PUBLIC_CDN_URL = "https://cdn-1.vircadia.com/eu-c-1/vircadia-public/";
+    const QString HF_MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
+    const QString VIRCADIA_CONTENT_CDN_URL = "https://cdn-1.vircadia.com/us-e-1/";
 
 #if USE_STABLE_GLOBAL_SERVICES
-    const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
-#else
-    const QString ICE_SERVER_DEFAULT_HOSTNAME = "dev-ice.highfidelity.com";
-#endif
+    const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.vircadia.com";
 
-    const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
+    const QString STUN_SERVER_DEFAULT_HOSTNAME = "stun1.l.google.com";
+    const unsigned short STUN_SERVER_DEFAULT_PORT = 19302;
+#else
+    const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.vircadia.com";
+
+    const QString STUN_SERVER_DEFAULT_HOSTNAME = "stun2.l.google.com";
+    const unsigned short STUN_SERVER_DEFAULT_PORT = 19302;
+#endif
 
     const QUrl HELP_DOCS_URL { "https://docs.vircadia.dev" };
     const QUrl HELP_FORUM_URL { "https://forums.vircadia.dev" };
