@@ -22,7 +22,7 @@
 #include <QtScript/QScriptable>
 
 #include <SettingHelpers.h>  // for ::settingsFilename()
-#include <SharedUtil.h>      // for usecTimestampNow()
+#include <SharedUtil.h>      // for ::usecTimestampNow()
 #include <shared/ScriptInitializerMixin.h>
 
 // NOTE: replace this with your own namespace when starting a new plugin (to avoid .so/.dll symbol clashes)
@@ -150,9 +150,9 @@ public slots:
       * @example <caption>access persistent settings stored in separate .json files</caption>
       * var settings = JSAPIExample.getScopedSettings("example");
       * print("example settings stored in:", settings.fileName());
-      * print("(before) example::timestamp", settings.value("timestamp"));
+      * print("(before) example::timestamp", settings.getValue("timestamp"));
       * settings.setValue("timestamp", Date.now());
-      * print("(after) example::timestamp", settings.value("timestamp"));
+      * print("(after) example::timestamp", settings.getValue("timestamp"));
       * print("all example::* keys", settings.allKeys());
       * settings = null; // optional best pratice; allows the object to be reclaimed ASAP by the JS garbage collector
       */
@@ -173,44 +173,24 @@ private:
     const QString _version{ JSAPI_SEMANTIC_VERSION };
 };
 
-// JSSettingsHelper emulates a subset of QSetting APIs:
-//   fileName() -- full path to the scoped settings .json file
-//   allKeys() -- all previously stored keys available in the scoped settings file
-//   value(key, defaultValue) -- retrieve a stored value
-//   setValue(key, newValue) -- set/update a stored value
+// JSSettingsHelper wraps a scoped (prefixed/separate) QSettings and exposes a subset of QSetting APIs as slots
 class JSSettingsHelper : public QObject {
     Q_OBJECT
+public:
+    JSSettingsHelper(const QString& scope, QObject* parent = nullptr);
+    ~JSSettingsHelper();
+    operator bool() const;
+public slots:
+    QString fileName() const;
+    QString toString() const;
+    QVariant getValue(const QString& key, const QVariant& defaultValue = QVariant());
+    bool setValue(const QString& key, const QVariant& value);
+    QStringList allKeys() const;
+protected:
     QString _scope;
     QString _fileName;
     QSharedPointer<QSettings> _settings;
-
-public:
-    operator bool() const { return (bool)_settings; }
-    JSSettingsHelper(const QString& scope, QObject* parent = nullptr) :
-        QObject(parent), _scope(scope), _fileName(getLocalSettingsPath(scope)),
-        _settings(_fileName.isEmpty() ? nullptr : new QSettings(_fileName, JSON_FORMAT)) {}
-    ~JSSettingsHelper() { qCDebug(logger) << "~JSSettingsHelper" << _scope << _fileName << this; }
-public slots:
-    QString fileName() const { return _settings ? _settings->fileName() : ""; }
-    QString toString() const { return QString("[JSSettingsHelper scope=%1 valid=%2]").arg(_scope).arg((bool)_settings); }
-    QVariant value(const QString& key, const QVariant& defaultValue = QVariant()) {
-        return _settings ? _settings->value(key, defaultValue) : defaultValue;
-    }
-    bool setValue(const QString& key, const QVariant& value) {
-        if (_settings) {
-            _settings->setValue(key, value);
-            return true;
-        }
-        return false;
-    }
-    QStringList allKeys() const { return _settings ? _settings->allKeys() : QStringList{}; }
-
-protected:
-    QString getLocalSettingsPath(const QString& scope) const {
-        // generate a prefixed filename (relative to the main application's Interface.json file)
-        const QString fileName = QString("jsapi_%1.json").arg(scope);
-        return QFileInfo(::settingsFilename()).dir().filePath(fileName);
-    }
+    QString getLocalSettingsPath(const QString& scope) const;
 };
 
 // verifies the requested scope is sensible and creates/returns a scoped JSSettingsHelper instance
@@ -222,6 +202,48 @@ QObject* createScopedSettings(const QString& scope, QObject* parent, QString& er
     }
     return new JSSettingsHelper(scope, parent);
 }
+
+// --------------------------------------------------
+// ----- inline JSSettingsHelper implementation -----
+JSSettingsHelper::operator bool() const {
+    return (bool)_settings;
+}
+JSSettingsHelper::JSSettingsHelper(const QString& scope, QObject* parent) :
+    QObject(parent), _scope(scope), _fileName(getLocalSettingsPath(scope)),
+    _settings(_fileName.isEmpty() ? nullptr : new QSettings(_fileName, JSON_FORMAT)) {
+}
+JSSettingsHelper::~JSSettingsHelper() {
+    qCDebug(logger) << "~JSSettingsHelper" << _scope << _fileName << this;
+}
+QString JSSettingsHelper::fileName() const {
+    return _settings ? _settings->fileName() : "";
+}
+QString JSSettingsHelper::toString() const {
+    return QString("[JSSettingsHelper scope=%1 valid=%2]").arg(_scope).arg((bool)_settings);
+}
+QVariant JSSettingsHelper::getValue(const QString& key, const QVariant& defaultValue) {
+    return _settings ? _settings->value(key, defaultValue) : defaultValue;
+}
+bool JSSettingsHelper::setValue(const QString& key, const QVariant& value) {
+    if (_settings) {
+        if (value.isValid()) {
+          _settings->setValue(key, value);
+        } else {
+          _settings->remove(key);
+        }
+        return true;
+    }
+    return false;
+}
+QStringList JSSettingsHelper::allKeys() const {
+    return _settings ? _settings->allKeys() : QStringList{};
+}
+QString JSSettingsHelper::getLocalSettingsPath(const QString& scope) const {
+    // generate a prefixed filename (relative to the main application's Interface.json file)
+    const QString fileName = QString("jsapi_%1.json").arg(scope);
+    return QFileInfo(::settingsFilename()).dir().filePath(fileName);
+}
+// ----- /inline JSSettingsHelper implementation -----
 
 }  // namespace REPLACE_ME_WITH_UNIQUE_NAME
 
