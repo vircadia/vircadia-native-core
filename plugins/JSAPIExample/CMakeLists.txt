@@ -1,3 +1,3 @@
-set(TARGET_NAME KasenAPIExample)
+set(TARGET_NAME JSAPIExample)
 setup_hifi_client_server_plugin(scripting)
-link_hifi_libraries(shared plugins avatars networking graphics gpu)
+link_hifi_libraries(shared plugins)
