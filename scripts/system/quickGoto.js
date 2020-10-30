@@ -30,8 +30,8 @@
         });
     }
 
-    addGotoButton("172.104.248.237");
-    addGotoButton("167.172.61.134");
+    addGotoButton("hub.daleglass.net");
+    addGotoButton("lq-hub.vircadia.com");
     addGotoButton("file:///~/serverless/tutorial.json");
 
 }()); // END LOCAL_SCOPE
