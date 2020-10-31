@@ -14,27 +14,30 @@ Script.include("/~/system/libraries/utils.js");
 
 var SETTING_NYX_PREFIX = "nyx/";
 
-// BEGIN ENTITY MENU OVERLAY
+///////////////// BEGIN ENTITY MENU OVERLAY
 
 var enableEntityWebMenu = true;
-var entityWebMenu;
-var entityWebMenuActive = false;
+var entityWebMenuOverlay;
+var entityWebMenuOverlayActive = false;
 var registeredEntityMenus = {};
 var lastTriggeredEntityInfo = {};
-var MENU_WEB_ENTITY_SCALE = {
+var lastTriggeredPointerLocation = {};
+var MENU_WEB_OVERLAY_SCALE = {
+    x: 400,
+    y: 500
+};
+var BOOTSTRAP_MENU_WEB_OVERLAY_TITLE = "Nyx UI";
+var BOOTSTRAP_MENU_WEB_OVERLAY_SCALE = {
     x: 1,
-    y: 1.5,
-    z: 0.01
+    y: 1
 };
-var MENU_WEB_ENTITY_ROTATION_UPDATE_INTERVAL = 500; // 500 ms
-var BOOTSTRAP_MENU_WEB_ENTITY_SCALE = {
-    x: 0.01,
-    y: 0.01,
-    z: 0.01
+var BOOTSTRAP_MENU_WEB_OVERLAY_POSITION = {
+    x: 1,
+    y: 1
 };
-var BOOTSTRAP_MENU_WEB_ENTITY_POSITION = Vec3.ZERO;
-var BOOTSTRAP_MENU_WEB_ENTITY_SOURCE = Script.resolvePath("./index.html");
-var BOOTSTRAP_MENU_WEB_ENTITY_DPI = 7;
+var BOOTSTRAP_MENU_WEB_OVERLAY_SOURCE = Script.resolvePath("./index.html");
+var BOOTSTRAP_MENU_WEB_OVERLAY_DPI = 7;
+
 var NYX_UI_CHANNEL = "nyx-ui";
 
 function registerWithEntityMenu(messageData) {
@@ -44,7 +47,7 @@ function registerWithEntityMenu(messageData) {
         registeredEntityMenus: registeredEntityMenus
     };
 
-    sendToWeb(entityWebMenu, 'script-to-web-registered-entity-menus', dataToSend);
+    sendToWeb('script-to-web-registered-entity-menus', dataToSend);
 }
 
 function deregisterWithEntityMenu(messageData) {
@@ -54,11 +57,11 @@ function deregisterWithEntityMenu(messageData) {
         registeredEntityMenus: registeredEntityMenus
     };
 
-    sendToWeb(entityWebMenu, 'script-to-web-registered-entity-menus', dataToSend);
+    sendToWeb('script-to-web-registered-entity-menus', dataToSend);
 }
 
 function toggleEntityMenu(pressedEntityID) {
-    if (!entityWebMenuActive && enableEntityWebMenu === true) {
+    if (!entityWebMenuOverlayActive && enableEntityWebMenu === true) {
         var triggeredEntityProperties = Entities.getEntityProperties(pressedEntityID);
         var lastEditedByName;
 
@@ -80,101 +83,86 @@ function toggleEntityMenu(pressedEntityID) {
             rotation: triggeredEntityProperties.rotation
         };
 
-        sendToWeb(entityWebMenu, 'script-to-web-triggered-entity-info', lastTriggeredEntityInfo);
-
-        Entities.editEntity(entityWebMenu, {
-            position: Entities.getEntityProperties(pressedEntityID, ['position']).position,
-            dimensions: MENU_WEB_ENTITY_SCALE,
-            rotation: Camera.orientation,
-            visible: true
-        });
+        sendToWeb('script-to-web-triggered-entity-info', lastTriggeredEntityInfo);
         
-        entityWebMenuActive = true;
-
-        updateEntityMenuRotation();
-    } else if (entityWebMenuActive && pressedEntityID !== entityWebMenu) {
-        Entities.editEntity(entityWebMenu, {
-            position: BOOTSTRAP_MENU_WEB_ENTITY_POSITION,
-            dimensions: BOOTSTRAP_MENU_WEB_ENTITY_SCALE
-        });
+        var newOverlayPosition = {
+            x: (lastTriggeredPointerLocation.x - (MENU_WEB_OVERLAY_SCALE.x / 2)),
+            y: (lastTriggeredPointerLocation.y - (MENU_WEB_OVERLAY_SCALE.y / 2))
+        }
         
-        entityWebMenuActive = false;
+        console.log("Position: " + JSON.stringify(newOverlayPosition));
+        
+        entityWebMenuOverlay.setPosition(newOverlayPosition);
+        entityWebMenuOverlay.setSize(MENU_WEB_OVERLAY_SCALE);
+        entityWebMenuOverlay.setVisible(true);
+
+        entityWebMenuOverlayActive = true;
+    } else if (entityWebMenuOverlayActive && pressedEntityID !== entityWebMenuOverlay) {
+        entityWebMenuOverlay.setVisible(false);
+
+        entityWebMenuOverlayActive = false;
     }
 }
 
-function updateEntityMenuRotation() {
-    if (entityWebMenuActive) {
-        Script.setTimeout(function() {
-            Entities.editEntity(entityWebMenu, {
-                rotation: Camera.orientation
-            });
-            
-            updateEntityMenuRotation();
-        }, MENU_WEB_ENTITY_ROTATION_UPDATE_INTERVAL);
-    }
-}
+///////////////// ENTITY MENU OVERLAY ---> IN-WORLD ENTITY MENU
 
 function bootstrapEntityMenu() {
-    entityWebMenu = Entities.addEntity({
-        type: "Web",
-        billboardMode: 'full',
-        renderLayer: 'hud',
-        visible: false,
-        grab: {
-            'grabbable': false
-        },
-        rotation: Camera.orientation,
-        maxFPS: 30,
-        sourceUrl: BOOTSTRAP_MENU_WEB_ENTITY_SOURCE,
-        position: BOOTSTRAP_MENU_WEB_ENTITY_POSITION,
-        dimensions: BOOTSTRAP_MENU_WEB_ENTITY_SCALE,
-        dpi: BOOTSTRAP_MENU_WEB_ENTITY_DPI
-    }, 'local');
+    entityWebMenuOverlay = new OverlayWebWindow({
+        title: BOOTSTRAP_MENU_WEB_OVERLAY_TITLE,
+        source: BOOTSTRAP_MENU_WEB_OVERLAY_SOURCE,
+        width: BOOTSTRAP_MENU_WEB_OVERLAY_SCALE.x,
+        height: BOOTSTRAP_MENU_WEB_OVERLAY_SCALE.y
+    });
+    
+    entityWebMenuOverlay.setVisible(false);
+    
+    entityWebMenuOverlay.webEventReceived.connect(onOverlayWebEventReceived);
 }
 
-// END ENTITY MENU OVERLAY
+///////////////// ENTITY MENU OVERLAY ---> END IN-WORLD ENTITY MENU
 
-function sendToWeb(sendToEntity, command, data) {
+///////////////// END ENTITY MENU OVERLAY
+
+///////////////// NYX MESSAGE HANDLING
+
+function sendToWeb(command, data) {
     var dataToSend = {
         "command": command,
         "data": data
     };
 
-    Entities.emitScriptEvent(sendToEntity, JSON.stringify(dataToSend));
+    entityWebMenuOverlay.emitScriptEvent(JSON.stringify(dataToSend));
 }
 
-function onWebEventReceived(sendingEntityID, event) {
-    if (sendingEntityID === entityWebMenu) {
-        var eventJSON = JSON.parse(event);
+function onOverlayWebEventReceived(event) {
+    var eventJSON = JSON.parse(event);
 
-        if (eventJSON.command === "ready") {
-            var dataToSend = {
-                registeredEntityMenus: registeredEntityMenus,
-                lastTriggeredEntityInfo: lastTriggeredEntityInfo
-            };
+    if (eventJSON.command === "ready") {
+        var dataToSend = {
+            registeredEntityMenus: registeredEntityMenus,
+            lastTriggeredEntityInfo: lastTriggeredEntityInfo
+        };
 
-            sendToWeb(entityWebMenu, 'script-to-web-registered-entity-menus', dataToSend);
-        }
+        sendToWeb('script-to-web-registered-entity-menus', dataToSend);
+    }
+    
+    if (eventJSON.command === "menu-item-triggered") {
+        var dataToSend = {
+            entityID: eventJSON.data.triggeredEntityID,
+            menuItem: eventJSON.data.menuItem
+        };
+
+        Messages.sendLocalMessage(NYX_UI_CHANNEL, JSON.stringify(dataToSend));
         
-        if (eventJSON.command === "menu-item-triggered") {
-            var dataToSend = {
-                entityID: eventJSON.data.triggeredEntityID,
-                menuItem: eventJSON.data.menuItem
-            };
-
-            Messages.sendLocalMessage(NYX_UI_CHANNEL, JSON.stringify(dataToSend));
-            
-            if (entityWebMenuActive) {
-                toggleEntityMenu(); // Close the menu if a menu item was pressed.
-            }
+        if (entityWebMenuOverlayActive) {
+            toggleEntityMenu(); // Close the menu if a menu item was pressed.
         }
-        
-        if (eventJSON.command === "close-entity-menu") {
-            if (entityWebMenuActive) {
-                toggleEntityMenu(); // Close the menu if it is active.
-            }
+    }
+    
+    if (eventJSON.command === "close-entity-menu") {
+        if (entityWebMenuOverlayActive) {
+            toggleEntityMenu(); // Close the menu if it is active.
         }
-
     }
 }
 
@@ -204,7 +192,16 @@ function onMousePressOnEntity (pressedEntityID, event) {
     }
 }
 
-// Nyx Menu
+function onMousePressEvent (event) {
+    lastTriggeredPointerLocation = {
+        x: event.x,
+        y: event.y
+    }
+}
+
+///////////////// END NYX MESSAGE HANDLING
+
+///////////////// BEGIN NYX MENU HANDLING
 
 var NYX_MAIN_MENU = "Settings > Nyx";
 var NYX_ENTITY_MENU_ENABLED = "Enable Entity Menu";
@@ -234,15 +231,15 @@ function unloadNyxMenu() {
     Menu.removeMenu(NYX_MAIN_MENU);
 }
 
-// Nyx Menu
+///////////////// END NYX MENU HANDLING
 
-// BOOTSTRAPPING
+///////////////// BOOTSTRAPPING
 
 function startup() {
     Messages.messageReceived.connect(onMessageReceived);
     Entities.mousePressOnEntity.connect(onMousePressOnEntity);
-    Entities.webEventReceived.connect(onWebEventReceived);
     Menu.menuItemEvent.connect(handleMenuEvent);
+    Controller.mousePressEvent.connect(onMousePressEvent);
     
     bootstrapNyxMenu();
     bootstrapEntityMenu();
@@ -253,16 +250,17 @@ startup();
 Script.scriptEnding.connect(function () {
     Messages.messageReceived.disconnect(onMessageReceived);
     Entities.mousePressOnEntity.disconnect(onMousePressOnEntity);
-    Entities.webEventReceived.disconnect(onWebEventReceived);
     Menu.menuItemEvent.disconnect(handleMenuEvent);
+    Controller.mousePressEvent.connect(onMousePressEvent);
+    
+    entityWebMenuOverlay.webEventReceived.disconnect(onOverlayWebEventReceived);
 
     unloadNyxMenu();
 
-    Entities.deleteEntity(entityWebMenu);
-    entityWebMenu = null;
+    entityWebMenuOverlay = null;
 });
 
-// BOOTSTRAPPING TESTING CODE
+///////////////// BOOTSTRAPPING TESTING CODE
 
 // var messageToSend = {
 //     'command': 'register-with-entity-menu',
