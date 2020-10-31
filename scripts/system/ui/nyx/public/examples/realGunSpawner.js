@@ -1,4 +1,5 @@
 (function () {
+    var NyxAlpha1 = Script.require('../nyx-helpers.js?12dsadsdsadsas3');
 
     var _entityID;
     var gunID;
@@ -32,46 +33,27 @@
             userData: "{ \"grabbableKey\": { \"grabbable\": false, \"triggerable\": false}}" 
         },"avatar");
 
-        var messageToSend = {
-            'command': 'register-with-entity-menu',
-            'entityID': gunID,
-            'menuItems': ['Unequip']
-        };
-        
-        Messages.sendLocalMessage('nyx-ui', JSON.stringify(messageToSend));
+        NyxAlpha1.registerWithEntityMenu(gunID, ['Unequip']);
     }
 
-    function onMessageReceived(channel, message, senderID, localOnly) {
-        if (channel === 'nyx-ui' && MyAvatar.sessionUUID === senderID) {
-            messageData = JSON.parse(message);
-
-            if (messageData.menuItem === 'Equip' && messageData.entityID === _entityID) {
-                equipGun();
-            }
-            
-            if (messageData.menuItem === 'Unequip' && messageData.entityID === gunID) {
-                Entities.deleteEntity(gunID);
-            }
+    function onMenuTriggered(entityID, command, menuItem) {
+        if (menuItem === 'Equip' && entityID === _entityID) {
+            equipGun();
+        }
+        
+        if (menuItem === 'Unequip' && entityID === gunID) {
+            Entities.deleteEntity(gunID);
         }
     }
 
     this.preload = function (entityID) {
         _entityID = entityID;
-        Messages.subscribe('nyx-ui');
-        Messages.messageReceived.connect(onMessageReceived);
-        
-        var messageToSend = {
-            'command': 'register-with-entity-menu',
-            'entityID': entityID,
-            'menuItems': ['Equip']
-        };
-        
-        Messages.sendLocalMessage('nyx-ui', JSON.stringify(messageToSend));
+        NyxAlpha1.registerWithEntityMenu(entityID, ['Equip']);
+        NyxAlpha1.entityMenuPressed.connect(onMenuTriggered);
     };
 
     this.unload = function () {
-        Messages.unsubscribe('nyx-ui');
-        Messages.messageReceived.disconnect(onMessageReceived);
+        NyxAlpha1.entityMenuPressed.disconnect(onMenuTriggered);
     };
 
 });
