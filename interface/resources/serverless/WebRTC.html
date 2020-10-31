@@ -122,7 +122,7 @@
                     // via: https://github.com/muaz-khan/WebRTC-Experiment/tree/master/socketio-over-nodejs
                     openSocket: function(config) {
                         var SIGNALING_SERVER = 'http://174.58.126.242:9559/';
-                        config.channel = config.channel || location.href.replace(/\/|:|#|%|\.|\[|\]/g, '');
+                        //config.channel = config.channel || location.href.replace(/\/|:|#|%|\.|\[|\]/g, '');
                         console.log("channel: " + config.channel);
                         var sender = Math.round(Math.random() * 999999999) + 999999999;
 
@@ -259,7 +259,7 @@
                         }
 
                         if(navigator.mediaDevices.getDisplayMedia) {
-                            var constraints = {video: {mediaSource: "screen", width: 320, height: 200}};
+                            var constraints = {video: {mediaSource: "screen", width: 960, height: 720}};
                             navigator.mediaDevices.getUserMedia(constraints).then(stream => {
                                 onGettingSteam(stream);
                             }, getDisplayMediaError).catch(getDisplayMediaError);
