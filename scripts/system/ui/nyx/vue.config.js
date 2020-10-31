@@ -1,5 +1,6 @@
 module.exports = {
-  "transpileDependencies": [
-    "vuetify"
-  ]
+    "transpileDependencies": [
+        "vuetify"
+    ],
+    publicPath: '/assets/public/script/nyx-ui/'
 }

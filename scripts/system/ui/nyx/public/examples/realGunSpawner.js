@@ -1,5 +1,5 @@
 (function () {
-    var NyxAlpha1 = Script.require('../nyx-helpers.js?12dsadsdsadsas3');
+    var NyxAlpha1 = Script.require('../nyx-helpers.js?12dsadsdsadddsas3');
 
     var _entityID;
     var gunID;
@@ -36,7 +36,7 @@
         NyxAlpha1.registerWithEntityMenu(gunID, ['Unequip']);
     }
 
-    function onMenuTriggered(entityID, command, menuItem) {
+    function onEntityMenuTriggered(entityID, command, menuItem) {
         if (menuItem === 'Equip' && entityID === _entityID) {
             equipGun();
         }
@@ -49,11 +49,12 @@
     this.preload = function (entityID) {
         _entityID = entityID;
         NyxAlpha1.registerWithEntityMenu(entityID, ['Equip']);
-        NyxAlpha1.entityMenuPressed.connect(onMenuTriggered);
+        NyxAlpha1.entityMenuPressed.connect(onEntityMenuTriggered);
     };
 
     this.unload = function () {
-        NyxAlpha1.entityMenuPressed.disconnect(onMenuTriggered);
+        NyxAlpha1.entityMenuPressed.disconnect(onEntityMenuTriggered);
+        NyxAlpha1.destroy();
     };
 
 });
