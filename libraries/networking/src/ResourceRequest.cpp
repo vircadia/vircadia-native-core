@@ -19,8 +19,8 @@
 #include <QtCore/QThread>
 
 QString ResourceRequest::toHttpDateString(uint64_t msecsSinceEpoch) {
-    return QLocale::c()
-        .toString(QDateTime::fromMSecsSinceEpoch(msecsSinceEpoch), QLatin1String("ddd, dd MMM yyyy hh:mm:ss 'GMT'"))
+    return QDateTime::fromMSecsSinceEpoch(msecsSinceEpoch)
+        .toString("ddd, dd MMM yyyy hh:mm:ss 'GMT'")
         .toLatin1();
 }
 
