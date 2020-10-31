@@ -28,7 +28,8 @@ MessagesClient::MessagesClient() {
     });
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::MessagesData, this, "handleMessagesPacket");
+    packetReceiver.registerListener(PacketType::MessagesData,  
+        PacketReceiver::makeSourcedListenerReference<MessagesClient>(this, &MessagesClient::handleMessagesPacket));
     connect(nodeList.data(), &LimitedNodeList::nodeActivated, this, &MessagesClient::handleNodeActivated);
 }
 

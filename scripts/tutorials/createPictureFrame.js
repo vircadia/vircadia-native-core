@@ -17,7 +17,7 @@ var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
 }), Vec3.multiply(1, Quat.getForward(Camera.getOrientation())));
 
 // this is just a model exported from blender with a texture named 'Picture' on one face.  also made it emissive so it doesn't require lighting.
-var MODEL_URL = "http://hifi-production.s3.amazonaws.com/tutorials/pictureFrame/finalFrame.fbx";
+var MODEL_URL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/pictureFrame/finalFrame.fbx";
 
 //this is where we are going to get our image from.  the stuff at the end is our API key.
 var NASA_API_ENDPOINT = "https://api.nasa.gov/planetary/apod?api_key=XNmgPJvVK8hGroZHB19PaQtlqKZk4q8GorWViuND";
@@ -59,7 +59,7 @@ function makePictureFrame() {
     }
     var pictureFrame = Entities.addEntity(pictureFrameProperties);
 
-    var OUTER_FRAME_MODEL_URL = "http://hifi-production.s3.amazonaws.com/tutorials/pictureFrame/outer_frame.fbx";
+    var OUTER_FRAME_MODEL_URL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/pictureFrame/outer_frame.fbx";
     var outerFrameProps = {
         name: "Tutorial Outer Frame",
         type: "Model",

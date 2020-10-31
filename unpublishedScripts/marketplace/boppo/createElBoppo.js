@@ -10,12 +10,11 @@
 
 /* globals SCRIPT_IMPORT_PROPERTIES */
 
-var MODELS_PATH = 'https://hifi-content.s3.amazonaws.com/DomainContent/Welcome%20Area/production/models/boxingRing/';
 var WANT_CLEANUP_ON_SCRIPT_ENDING = false;
 
 var getScriptPath = function(localPath) {
     if (this.isCleanupAndSpawnScript) {
-        return 'https://hifi-content.s3.amazonaws.com/DomainContent/Welcome%20Area/Scripts/boppo/' + localPath;
+        return Script.getExternalPath(Script.ExternalPaths.HF_Content, 'DomainContent/Welcome%20Area/Scripts/boppo/' + localPath);
     }
     return Script.resolvePath(localPath);
 };
@@ -34,7 +33,7 @@ var boxingRing = Entities.addEntity({
         y: 4.0418000221252441,
         z: 3.0490000247955322
     },
-    modelURL: MODELS_PATH + 'assembled/boppoBoxingRingAssembly.fbx',
+    modelURL: Script.getExternalPath(Script.ExternalPaths.HF_Content, 'DomainContent/Welcome%20Area/production/models/boxingRing/assembled/boppoBoxingRingAssembly.fbx'),
     name: 'Boxing Ring Assembly',
     rotation: {
         w: 0.9996337890625,
@@ -62,7 +61,7 @@ var boppoEntities = [
             y: 0.25536194443702698,
             z: 0.059455446898937225
         },
-        modelURL: MODELS_PATH + 'boxingGameSign/boppoSignFrame.fbx',
+        modelURL: Script.getExternalPath(Script.ExternalPaths.HF_Content, 'DomainContent/Welcome%20Area/production/models/boxingGameSign/boppoSignFrame.fbx'),
         parentID: boxingRing,
         localPosition: {
             x: -1.0251024961471558,
@@ -150,7 +149,7 @@ var boppoEntities = [
             y: 0.1884911060333252,
             z: 0.059455446898937225
         },
-        modelURL: MODELS_PATH + 'boxingGameSign/boppoSignFrame.fbx',
+        modelURL: Script.getExternalPath(Script.ExternalPaths.HF_Content, 'DomainContent/Welcome%20Area/production/models/boxingGameSign/boppoSignFrame.fbx'),
         parentID: boxingRing,
         localPosition: {
             x: -0.78200173377990723,

@@ -3,6 +3,7 @@
 //  interface/src
 //
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -43,6 +44,8 @@ class Camera : public QObject {
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(QString mode READ getModeString WRITE setModeString NOTIFY modeUpdated)
     Q_PROPERTY(QVariantMap frustum READ getViewFrustum CONSTANT)
+    Q_PROPERTY(bool captureMouse READ getCaptureMouse WRITE setCaptureMouse NOTIFY captureMouseChanged)
+    Q_PROPERTY(float sensitivity READ getSensitivity WRITE setSensitivity)
 
 public:
     Camera();
@@ -109,6 +112,37 @@ public slots:
      * @param {Quat} orientation - The orientation to set the camera to.
      */
     void setOrientation(const glm::quat& orientation);
+
+    /**jsdoc
+     * Gets the current mouse capture state.
+     * @function Camera.getCaptureMouse
+     * @returns {boolean} <code>true</code> if the mouse is captured (is invisible and cannot leave the bounds of Interface,
+     * if Interface is the active window and no menu item is selected), <code>false</code> if the mouse is behaving normally.
+     */
+    bool getCaptureMouse() const { return _captureMouse; }
+
+    /**jsdoc
+     * Sets the mouse capture state.  When <code>true</code>, the mouse is invisible and cannot leave the bounds of
+     * Interface, as long as Interface is the active window and no menu item is selected.  When <code>false</code>, the mouse
+     * behaves normally.
+     * @function Camera.setCaptureMouse
+     * @param {boolean} captureMouse - <code>true</code> to capture the mouse, <code>false</code> to release the mouse.
+     */
+    void setCaptureMouse(bool captureMouse) { _captureMouse = captureMouse; emit captureMouseChanged(captureMouse); }
+
+    /**jsdoc
+     * Gets the current camera sensitivity.
+     * @function Camera.getSensitivity
+     * @returns {number} The current camera sensitivity.  Must be positive.
+     */
+    float getSensitivity() const { return _sensitivity; }
+
+    /**jsdoc
+     * Sets the camera sensitivity.  Higher values mean that the camera will be more sensitive to mouse movements.
+     * @function Camera.setSensitivity
+     * @param {number} sensitivity - The desired camera sensitivity.  Must be positive.
+     */
+    void setSensitivity(float sensitivity) { _sensitivity = glm::max(0.0f, sensitivity); }
 
     /**jsdoc
      * Computes a {@link PickRay} based on the current camera configuration and the specified <code>x, y</code> position on the 
@@ -181,6 +215,20 @@ signals:
      */
     void modeUpdated(const QString& newMode);
 
+    /**jsdoc
+     * Triggered when the camera mouse capture state changes.
+     * @function Camera.captureMouseChanged
+     * @param {boolean} newCaptureMouse - The new mouse capture state.
+     * @returns {Signal}
+     * @example <caption>Report mouse capture state changes.</caption>
+     * function onCaptureMouseChanged(newCaptureMouse) {
+     *     print("The mouse capture has changed to " + newCaptureMouse);
+     * }
+     *
+     * Camera.captureMouseChanged.connect(onCaptureMouseChanged);
+     */
+    void captureMouseChanged(bool newCaptureMouse);
+
 private:
     void recompose();
     void decompose();
@@ -194,6 +242,9 @@ private:
     glm::quat _orientation;
     bool _isKeepLookingAt{ false };
     glm::vec3 _lookingAt;
+
+    bool _captureMouse { false };
+    float _sensitivity { 1.0f };
 };
 
 #endif // hifi_Camera_h

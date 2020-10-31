@@ -16,7 +16,7 @@
 
     Script.include("../libraries/utils.js");
 
-    var BUBBLE_MODEL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bubblewand/bubble.fbx";
+    var BUBBLE_MODEL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/bubblewand/bubble.fbx";
 
     var BUBBLE_INITIAL_DIMENSIONS = {
         x: 0.01,

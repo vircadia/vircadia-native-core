@@ -18,6 +18,7 @@
 #include "GLMHelpers.h"
 #include "ByteCountCoding.h"
 #include "PropertyFlags.h"
+#include <glm/gtc/type_ptr.hpp>
 
 class BufferParser {
 public:
@@ -98,7 +99,10 @@ template<>
 inline void BufferParser::readValue(QVector<glm::vec3>& result) {
     uint16_t length; readValue(length);
     result.resize(length);
-    memcpy(result.data(), _data + _offset, sizeof(glm::vec3) * length);
+    for (int i=0; i<length; i++) {
+        memcpy(glm::value_ptr(result[i]), _data + _offset + (sizeof(glm::vec3)*i), sizeof(glm::vec3) * length);
+    }
+
     _offset += sizeof(glm::vec3) * length;
 }
 

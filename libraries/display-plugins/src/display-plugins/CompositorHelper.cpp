@@ -1,6 +1,7 @@
 //
 //  Created by Benjamin Arnold on 5/27/14.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -213,7 +214,6 @@ void CompositorHelper::setAllowMouseCapture(bool capture) {
         _allowMouseCapture = capture;
         emit allowMouseCaptureChanged();
     }
-    _allowMouseCapture = capture;
 }
 
 void CompositorHelper::handleLeaveEvent() {

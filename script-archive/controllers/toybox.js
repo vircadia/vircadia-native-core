@@ -11,7 +11,8 @@
 //
 Script.include("http://s3.amazonaws.com/hifi-public/scripts/libraries/toolBars.js");
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 
 
@@ -139,7 +140,7 @@ function createTable() {
                             dimensions: TABLE_DIMENSIONS,
                             rotation: MyAvatar.orientation,
                             // color: { red: 102, green: 51, blue: 0 },
-                            modelURL: HIFI_PUBLIC_BUCKET + 'eric/models/woodFloor.fbx',
+                            modelURL: VIRCADIA_PUBLIC_CDN + 'eric/models/woodFloor.fbx',
                             collisionSoundURL: "http://public.highfidelity.io/sounds/dice/diceCollide.wav"
                         });
 

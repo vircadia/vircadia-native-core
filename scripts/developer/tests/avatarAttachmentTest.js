@@ -76,20 +76,20 @@ var buttonPositionX = windowDimensions.x - BUTTON_PADDING - BUTTON_WIDTH;
 var buttonPositionY = (windowDimensions.y - BUTTON_HEIGHT) / 2 - (BUTTON_HEIGHT + BUTTON_PADDING);
 
 var hatButton = new ToggleButtonBuddy(buttonPositionX, buttonPositionY, BUTTON_WIDTH, BUTTON_HEIGHT, {
-    up: "https://s3.amazonaws.com/hifi-public/tony/icons/hat-up.svg",
-    down: "https://s3.amazonaws.com/hifi-public/tony/icons/hat-down.svg"
+    up: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/hat-up.svg"),
+    down: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/hat-down.svg")
 });
 
 buttonPositionY += BUTTON_HEIGHT + BUTTON_PADDING;
 var coatButton = new ToggleButtonBuddy(buttonPositionX, buttonPositionY, BUTTON_WIDTH, BUTTON_HEIGHT, {
-    up: "https://s3.amazonaws.com/hifi-public/tony/icons/coat-up.svg",
-    down: "https://s3.amazonaws.com/hifi-public/tony/icons/coat-down.svg"
+    up: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/coat-up.svg"),
+    down: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/coat-down.svg")
 });
 
 buttonPositionY += BUTTON_HEIGHT + BUTTON_PADDING;
 var coatButton2 = new ToggleButtonBuddy(buttonPositionX, buttonPositionY, BUTTON_WIDTH, BUTTON_HEIGHT, {
-    up: "https://s3.amazonaws.com/hifi-public/tony/icons/coat-up.svg",
-    down: "https://s3.amazonaws.com/hifi-public/tony/icons/coat-down.svg"
+    up: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/coat-up.svg"),
+    down: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/icons/coat-down.svg")
 });
 
 var AVATAR_ATTACHMENT = 0;
@@ -97,7 +97,7 @@ var AVATAR_SOFT_ATTACHMENT = 1;
 var ENTITY_ATTACHMENT = 2;
 
 var HAT_ATTACHMENT = {
-    modelURL: "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx",
+    modelURL: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/tony/cowboy-hat.fbx"),
     jointName: "Head",
     translation: {"x": 0, "y": 0.25, "z": 0.03},
     rotation: {"x": 0, "y": 0, "z": 0, "w": 1},
@@ -106,7 +106,7 @@ var HAT_ATTACHMENT = {
 };
 
 var COAT_ATTACHMENT = {
-    modelURL: "https://hifi-content.s3.amazonaws.com/ozan/dev/clothes/coat/coat_rig.fbx",
+    modelURL: Script.getExternalPath(Script.ExternalPaths.HF_Content, "/ozan/dev/clothes/coat/coat_rig.fbx"),
     jointName: "Hips",
     translation: {"x": 0, "y": 0, "z": 0},
     rotation: {"x": 0, "y": 0, "z": 0, "w": 1},
@@ -115,7 +115,7 @@ var COAT_ATTACHMENT = {
 };
 
 var COAT_ENTITY_ATTACHMENT = {
-    modelURL: "https://hifi-content.s3.amazonaws.com/ozan/dev/clothes/coat/coat_rig.fbx",
+    modelURL: Script.getExternalPath(Script.ExternalPaths.HF_Content, "/ozan/dev/clothes/coat/coat_rig.fbx"),
     jointName: "Hips",
     translation: {"x": 0, "y": 0, "z": 0},
     rotation: {"x": 0, "y": 0, "z": 0, "w": 1},

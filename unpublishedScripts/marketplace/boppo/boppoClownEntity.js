@@ -11,7 +11,6 @@
 /* globals LookAtTarget */
 
 (function() {
-    var SFX_PREFIX = 'https://hifi-content.s3-us-west-1.amazonaws.com/caitlyn/production/elBoppo/sfx/';
     var CHANNEL_PREFIX = 'io.highfidelity.boppo_server_';
     var PUNCH_SOUNDS = [
         'punch_1.wav',
@@ -41,7 +40,7 @@
         var BoppoClownEntity = function () {
             _this = this;
             PUNCH_SOUNDS.forEach(function(punch) {
-                _punchSounds.push(SoundCache.getSound(SFX_PREFIX + punch));
+                _punchSounds.push(SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.HF_Content, '/caitlyn/production/elBoppo/sfx/' + punch)));
             });
         };
 

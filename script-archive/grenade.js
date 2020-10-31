@@ -9,11 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-
-var grenadeURL = HIFI_PUBLIC_BUCKET + "models/props/grenade/grenade.fbx";
-var fuseSoundURL = HIFI_PUBLIC_BUCKET + "sounds/burningFuse.wav";
-var boomSoundURL = HIFI_PUBLIC_BUCKET + "sounds/explosion.wav";
+var grenadeURL = Script.getExternalPath(Script.ExternalPaths.Assets, "models/props/grenade/grenade.fbx");
+var fuseSoundURL = Script.getExternalPath(Script.ExternalPaths.Assets, "sounds/burningFuse.wav");
+var boomSoundURL = Script.getExternalPath(Script.ExternalPaths.Assets, "sounds/explosion.wav");
 
 var AudioRotationOffset = Quat.fromPitchYawRollDegrees(0, -90, 0);
 var audioOptions = {

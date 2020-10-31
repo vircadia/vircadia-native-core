@@ -52,6 +52,7 @@ namespace gl {
     void initModuleGl();
     int getSwapInterval();
     void setSwapInterval(int swapInterval);
+    bool queryCurrentRendererIntegerMESA(int attr, unsigned int *value);
 }
 
 #endif // hifi_gpu_GPUConfig_h

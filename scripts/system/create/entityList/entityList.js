@@ -3,6 +3,7 @@
 //  entityList.js
 //
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,6 +15,7 @@
 
 var PROFILING_ENABLED = false;
 var profileIndent = '';
+
 const PROFILE_NOOP = function(_name, fn, args) {
     fn.apply(this, args);
 };
@@ -73,7 +75,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
     that.setVisible = function(newVisible) {
         visible = newVisible;
         webView.setVisible(shouldUseEditTabletApp() && visible);
-        entityListWindow.setVisible(!shouldUseEditTabletApp() && visible);
+        entityListWindow.setVisible(!shouldUseEditTabletApp() && visible);        
     };
 
     that.isVisible = function() {
@@ -163,6 +165,15 @@ EntityListTool = function(shouldUseEditTabletApp) {
     }
 
     that.sendUpdate = function() {
+        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        if (HMD.active) {
+            tablet.setLandscape(true);
+        }
+        emitJSONScriptEvent({
+            "type": "confirmHMDstate",
+            "isHmd": HMD.active
+        });
+        
         PROFILE('Script-sendUpdate', function() {
             var entities = [];
 
@@ -302,6 +313,16 @@ EntityListTool = function(shouldUseEditTabletApp) {
             SelectionDisplay.toggleSpaceMode();
         } else if (data.type === 'keyUpEvent') {
             keyUpEventFromUIWindow(data.keyUpEvent);
+        } else if (data.type === 'undo') {
+            undoHistory.undo();
+        } else if (data.type === 'redo') {
+            undoHistory.redo();
+        } else if (data.type === 'parent') {
+            parentSelectedEntities();
+        } else if (data.type === 'unparent') {
+            unparentSelectedEntities();
+        } else if (data.type === 'hmdMultiSelectMode') {
+            hmdMultiSelectMode = data.value;
         }
     };
 

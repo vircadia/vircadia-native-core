@@ -169,7 +169,7 @@ protected:
      *     audio file.
      * @returns {AudioInjector} The audio injector that plays the audio file.
      * @example <caption>Play a sound.</caption>
-     * var sound = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/ken/samples/forest_ambiX.wav");
+     * var sound = SoundCache.getSound("https://cdn-1.vircadia.com/us-c-1/ken/samples/forest_ambiX.wav");
      * 
      * function playSound() {
      *     var injectorOptions = {

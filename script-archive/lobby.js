@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-
 var panelWall = false;
 var orbShell = false;
 var descriptionText = false;
@@ -45,16 +43,16 @@ var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
 
 var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 
-var LOBBY_PANEL_WALL_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/PanelWallForInterface.fbx";
-var LOBBY_BLANK_PANEL_TEXTURE_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Texture.jpg";
-var LOBBY_SHELL_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyShellForInterface.fbx";
+var LOBBY_PANEL_WALL_URL = Script.getExternalPath(Script.ExternalPaths.Assets, "models/sets/Lobby/PanelWallForInterface.fbx");
+var LOBBY_BLANK_PANEL_TEXTURE_URL = Script.getExternalPath(Script.ExternalPaths.Assets, "models/sets/Lobby/Texture.jpg");
+var LOBBY_SHELL_URL = Script.getExternalPath(Script.ExternalPaths.Assets, "models/sets/Lobby/LobbyShellForInterface.fbx");
 
-var droneSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.stereo.raw")
+var droneSound = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.Assets, "sounds/Lobby/drone.stereo.raw"));
 var currentDrone = null;
 
-var latinSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.stereo.raw")
+var latinSound = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.Assets, "sounds/Lobby/latin.stereo.raw"));
 var latinInjector = null;
-var elevatorSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/elevator.stereo.raw")
+var elevatorSound = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.Assets, "sounds/Lobby/elevator.stereo.raw"));
 var elevatorInjector = null;
 var currentMuzakInjector = null;
 var currentSound = null;

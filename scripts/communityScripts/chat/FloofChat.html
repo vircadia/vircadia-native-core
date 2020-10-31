@@ -160,7 +160,7 @@
 
             return elContent;
         }
-
+        
         // For any URLs present, unless they are already identified within
         // an `a` element, linkify them.
         function _linkifyUrls(matches, $el) {
@@ -181,47 +181,53 @@
                     case ext == "JPG":
                     case ext == "GIF":
                     case ext == "JPEG":
-                        elContent = elContent.replace(this, "<br/><img src='" + this 
-                            + "'class=\"responsive z-depth-2\"><br/><a href=\"javascript:gotoClipboard('" + this + "');\" target='_blank'>" + this 
-                            + "</a><a onclick=\"gotoExternalURL('" + this 
-                            + "');return false;\"href=\"" + this 
-                            + "\">&#x1F4F2;</a>");
+                        var replaceWith = "<br/>";
+                        replaceWith += "<img src='" + this + "'class=\"responsive z-depth-2\"><br/>";
+                        replaceWith += "<a onclick=\"gotoClipboard('" + this + "');return false;\" href=\"" + this + "\" target=\"_blank\">" + this + "</a>";
+                        replaceWith += "<a onclick=\"gotoExternalURL('" + this + "');return false;\"href=\"" + this + "\">&#x1F4F2;</a>";
+
+                        elContent = elContent.replace(this, replaceWith);
                         break;
                     case ext == "iframe":
-                        elContent = elContent.replace(this, "<br/><iframe class=\"z-depth-2\" src='" + this 
-                            + "'width=\"440\" height=\"248\" frameborder=\"0\"></iframe>");
+                        var replaceWith = "<br/>";
+                        replaceWith += "<iframe class=\"z-depth-2\" src='" + this;
+                        replaceWith += "'width=\"440\" height=\"248\" frameborder=\"0\"></iframe>";
+
+                        elContent = elContent.replace(this, replaceWith);
                         break;
                     case ext == "webm":
-                        elContent = elContent.replace(this, "<br/><video controls class=\"z-depth-2 responsive\"><source src='" + this 
-                            + "' type='video/" + ext + "'></video><br/><a href=\"javascript:gotoClipboard('" + this 
-                            + "');\">" + this 
-                            + "</a><a onclick=\"gotoExternalURL('" + this 
-                            + "');return false;\"href=\"" + this 
-                            + "\">&#x1F4F2;</a>");
+                        var replaceWith = "<br/>";
+                        replaceWith += "<video controls class=\"z-depth-2 responsive\"><source src='" + this;
+                        replaceWith += "' type='video/" + ext + "'></video>";
+                        replaceWith += "<br/>";
+                        replaceWith += "<a onclick=\"gotoClipboard('" + this + "');return false;\" href=\"" + this + "\">" + this + "</a>";
+                        replaceWith += "<a onclick=\"gotoExternalURL('" + this + "');return false;\"href=\"" + this + "\">&#x1F4F2;</a>";
+
+                        elContent = elContent.replace(this, replaceWith);
                         break;
                     case protocol === "HIFI":
                     case protocol === "hifi":
                         elContent = elContent.replace(this, "<br/><a href=\"javascript:gotoHiFi('" + this + "');\">" + this + "</a>");
                         break;
-					          case !!this.match(/(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([^& \n<]+)(?:[^ \n<]+)?/g):
+					case !!this.match(/(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([^& \n<]+)(?:[^ \n<]+)?/g):
                         var youtubeMatch = this.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
                         if (youtubeMatch && youtubeMatch[2].length == 11) {
-                            elContent = "<br/><iframe class=\"z-depth-2\" width='420' height='236' src='https://www.youtube.com/embed/" + youtubeMatch[2] 
-                                + "' frameborder='0'></iframe><br/><a href=\"javascript:gotoURL('" + this 
-                                + "');\">" + this 
-                                + "</a><a onclick=\"gotoExternalURL('" + this 
-                                + "');return false;\"href=\"" + this 
-                                + "\">&#x1F4F2;</a>";
+                            var replaceWith = "<br/>";
+                            replaceWith += "<iframe class=\"z-depth-2\" width='420' height='236' src='https://www.youtube.com/embed/" + youtubeMatch[2] + "' frameborder='0'></iframe>";
+                            replaceWith += "<br/>";
+                            replaceWith += "<a onclick=\"gotoExternalURL('" + this + "');return false;\" href=\"" + this + "\">" + this + "</a>";
+                            replaceWith += "<a onclick=\"gotoExternalURL('" + this + "');return false;\" href=\"" + this + "\">&#x1F4F2;</a>";
+
+                            elContent = replaceWith;
                             break;
                         }
                     // else fall through to default
                     default:
-                        elContent = elContent.replace(this, "<br/><a onclick=\"gotoURL('" + this 
-                            + "');return false;\" href=\"" + this 
-                            + "\">" + this 
-                            + "</a><a onclick=\"gotoExternalURL('" + this 
-                            + "');return false;\"href=\"" + this 
-                            + "\">&#x1F4F2;</a>");
+                        var replaceWith = "<br/>";
+                        replaceWith += "<a onclick=\"gotoURL('" + this + "');return false;\" href=\"" + this + "\">" + this + "</a>";
+                        replaceWith += "<a onclick=\"gotoExternalURL('" + this + "');return false;\"href=\"" + this + "\">&#x1F4F2;</a>";
+
+                        elContent = elContent.replace(this, replaceWith);
                         break;
                         
                 }

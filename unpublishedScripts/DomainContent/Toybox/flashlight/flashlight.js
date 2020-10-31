@@ -8,7 +8,7 @@
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  This is a toy script that can be added to the Flashlight model entity:
-//  "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx"
+//  Script.getExternalPath(Script.ExternalPaths.HF_Public, "/models/props/flashlight.fbx")
 //  that creates a spotlight attached with the flashlight model while the entity is grabbed
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -19,8 +19,8 @@
 
     Script.include("../libraries/utils.js");
 
-    var ON_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flashlight/flashlight_on.wav';
-    var OFF_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flashlight/flashlight_off.wav';
+    var ON_SOUND_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flashlight/flashlight_on.wav';
+    var OFF_SOUND_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flashlight/flashlight_off.wav';
 
     //we are creating lights that we don't want to get stranded so lets make sure that we can get rid of them
     var startTime = Date.now();

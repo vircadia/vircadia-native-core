@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 9/26/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -118,7 +119,7 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
     root.insert(requestSubobjectKey, subobject);
     QJsonDocument doc { root };
 
-    QUrl url{ MetaverseAPI::getCurrentMetaverseServerURL().toString() + metaversePath };
+    QUrl url { MetaverseAPI::getCurrentMetaverseServerURL().toString() + metaversePath };
 
     QNetworkRequest req(url);
     req.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
@@ -339,7 +340,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
 void DomainServer::parseCommandLine(int argc, char* argv[]) {
     QCommandLineParser parser;
-    parser.setApplicationDescription("High Fidelity Domain Server");
+    parser.setApplicationDescription("Vircadia Domain Server");
     const QCommandLineOption versionOption = parser.addVersionOption();
     const QCommandLineOption helpOption = parser.addHelpOption();
 
@@ -777,32 +778,51 @@ void DomainServer::setupNodeListAndAssignments() {
 
     // register as the packet receiver for the types we want
     PacketReceiver& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::RequestAssignment, this, "processRequestAssignmentPacket");
-    packetReceiver.registerListener(PacketType::DomainListRequest, this, "processListRequestPacket");
-    packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
-    packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
-    packetReceiver.registerListener(PacketType::DomainDisconnectRequest, this, "processNodeDisconnectRequestPacket");
-    packetReceiver.registerListener(PacketType::AvatarZonePresence, this, "processAvatarZonePresencePacket");
+    packetReceiver.registerListener(PacketType::RequestAssignment,
+        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, &DomainServer::processRequestAssignmentPacket));
+    packetReceiver.registerListener(PacketType::DomainListRequest,
+        PacketReceiver::makeSourcedListenerReference<DomainServer>(this, &DomainServer::processListRequestPacket));
+    packetReceiver.registerListener(PacketType::DomainServerPathQuery,
+        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, &DomainServer::processPathQueryPacket));
+    packetReceiver.registerListener(PacketType::NodeJsonStats,
+        PacketReceiver::makeSourcedListenerReference<DomainServer>(this, &DomainServer::processNodeJSONStatsPacket));
+    packetReceiver.registerListener(PacketType::DomainDisconnectRequest,
+        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, &DomainServer::processNodeDisconnectRequestPacket));
+    packetReceiver.registerListener(PacketType::AvatarZonePresence,
+        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, &DomainServer::processAvatarZonePresencePacket));
 
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
-    packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
-    packetReceiver.registerListener(PacketType::NodeKickRequest, &_settingsManager, "processNodeKickRequestPacket");
-    packetReceiver.registerListener(PacketType::UsernameFromIDRequest, &_settingsManager, "processUsernameFromIDRequestPacket");
+    packetReceiver.registerListener(PacketType::DomainSettingsRequest,
+        PacketReceiver::makeUnsourcedListenerReference<DomainServerSettingsManager>(&_settingsManager, &DomainServerSettingsManager::processSettingsRequestPacket));
+    packetReceiver.registerListener(PacketType::NodeKickRequest,
+        PacketReceiver::makeSourcedListenerReference<DomainServerSettingsManager>(&_settingsManager, &DomainServerSettingsManager::processNodeKickRequestPacket));
+    packetReceiver.registerListener(PacketType::UsernameFromIDRequest,
+        PacketReceiver::makeSourcedListenerReference<DomainServerSettingsManager>(&_settingsManager, &DomainServerSettingsManager::processUsernameFromIDRequestPacket));
 
     // register the gatekeeper for the packets it needs to receive
-    packetReceiver.registerListener(PacketType::DomainConnectRequest, &_gatekeeper, "processConnectRequestPacket");
-    packetReceiver.registerListener(PacketType::ICEPing, &_gatekeeper, "processICEPingPacket");
-    packetReceiver.registerListener(PacketType::ICEPingReply, &_gatekeeper, "processICEPingReplyPacket");
-    packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_gatekeeper, "processICEPeerInformationPacket");
+    packetReceiver.registerListener(PacketType::DomainConnectRequest,
+        PacketReceiver::makeUnsourcedListenerReference<DomainGatekeeper>(&_gatekeeper, &DomainGatekeeper::processConnectRequestPacket));
+    packetReceiver.registerListener(PacketType::ICEPing,
+        PacketReceiver::makeUnsourcedListenerReference<DomainGatekeeper>(&_gatekeeper, &DomainGatekeeper::processICEPingPacket));
+    packetReceiver.registerListener(PacketType::ICEPingReply,
+        PacketReceiver::makeUnsourcedListenerReference<DomainGatekeeper>(&_gatekeeper, &DomainGatekeeper::processICEPingReplyPacket));
+    packetReceiver.registerListener(PacketType::ICEServerPeerInformation,
+        PacketReceiver::makeUnsourcedListenerReference<DomainGatekeeper>(&_gatekeeper, &DomainGatekeeper::processICEPeerInformationPacket));
 
-    packetReceiver.registerListener(PacketType::ICEServerHeartbeatDenied, this, "processICEServerHeartbeatDenialPacket");
-    packetReceiver.registerListener(PacketType::ICEServerHeartbeatACK, this, "processICEServerHeartbeatACK");
+    packetReceiver.registerListener(PacketType::ICEServerHeartbeatDenied,
+        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, &DomainServer::processICEServerHeartbeatDenialPacket));
+    packetReceiver.registerListener(PacketType::ICEServerHeartbeatACK,
+        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, &DomainServer::processICEServerHeartbeatACK));
 
-    packetReceiver.registerListener(PacketType::OctreeDataFileRequest, this, "processOctreeDataRequestMessage");
-    packetReceiver.registerListener(PacketType::OctreeDataPersist, this, "processOctreeDataPersistMessage");
+    packetReceiver.registerListener(PacketType::OctreeDataFileRequest,
+        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, &DomainServer::processOctreeDataRequestMessage));
+    packetReceiver.registerListener(PacketType::OctreeDataPersist,
+        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, &DomainServer::processOctreeDataPersistMessage));
 
-    packetReceiver.registerListener(PacketType::OctreeFileReplacement, this, "handleOctreeFileReplacementRequest");
-    packetReceiver.registerListener(PacketType::DomainContentReplacementFromUrl, this, "handleDomainContentReplacementFromURLRequest");
+    packetReceiver.registerListener(PacketType::OctreeFileReplacement,
+        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, &DomainServer::handleOctreeFileReplacementRequest));
+    packetReceiver.registerListener(PacketType::DomainContentReplacementFromUrl,
+        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, &DomainServer::handleDomainContentReplacementFromURLRequest));
 
     // set a custom packetVersionMatch as the verify packet operator for the udt::Socket
     nodeList->setPacketFilterOperator(&DomainServer::isPacketVerified);
@@ -1156,7 +1176,7 @@ QUrl DomainServer::oauthAuthorizationURL(const QUuid& stateUUID) {
     QUrl authorizationURL = _oauthProviderURL;
 
     const QString OAUTH_AUTHORIZATION_PATH = "/oauth/authorize";
-    authorizationURL.setPath(OAUTH_AUTHORIZATION_PATH);
+    authorizationURL.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + OAUTH_AUTHORIZATION_PATH);
 
     QUrlQuery authorizationQuery;
 
@@ -1434,7 +1454,7 @@ void DomainServer::sendPendingTransactionsToServer() {
         transactionCallbackParams.jsonCallbackMethod = "transactionJSONCallback";
 
         while (i != _pendingAssignmentCredits.end()) {
-            accountManager->sendRequest("api/v1/transactions",
+            accountManager->sendRequest("/api/v1/transactions",
                                        AccountManagerAuth::Required,
                                        QNetworkAccessManager::PostOperation,
                                        transactionCallbackParams, i.value()->postJson().toJson());
@@ -1620,7 +1640,7 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
     callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
     callbackParameters.jsonCallbackMethod = "handleSuccessfulICEServerAddressUpdate";
 
-    qCDebug(domain_server_ice) << "Updating ice-server address in High Fidelity Metaverse API to"
+    qCDebug(domain_server_ice) << "Updating ice-server address in Metaverse API to"
         << (_iceServerSocket.isNull() ? "" : _iceServerSocket.getAddress().toString());
 
     static const QString DOMAIN_ICE_ADDRESS_UPDATE = "/api/v1/domains/%1/ice_server_address";
@@ -1979,6 +1999,7 @@ const QString URI_OAUTH = "/oauth";
 bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
     const QString JSON_MIME_TYPE = "application/json";
 
+    const QString URI_ID = "/id";
     const QString URI_ASSIGNMENT = "/assignment";
     const QString URI_NODES = "/nodes";
     const QString URI_SETTINGS = "/settings";
@@ -2055,7 +2076,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     }
 
     // check if this is a request for our domain ID
-    const QString URI_ID = "/id";
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
         && url.path() == URI_ID) {
         QUuid domainID = nodeList->getSessionUUID();
@@ -2562,7 +2582,7 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
 
             const QString OAUTH_TOKEN_REQUEST_PATH = "/oauth/token";
             QUrl tokenRequestUrl = _oauthProviderURL;
-            tokenRequestUrl.setPath(OAUTH_TOKEN_REQUEST_PATH);
+            tokenRequestUrl.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + OAUTH_TOKEN_REQUEST_PATH);
 
             const QString OAUTH_GRANT_TYPE_POST_STRING = "grant_type=authorization_code";
             QString tokenPostBody = OAUTH_GRANT_TYPE_POST_STRING;
@@ -2876,7 +2896,7 @@ QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenR
 
     // fire off a request to get this user's identity so we can see if we will let them in
     QUrl profileURL = _oauthProviderURL;
-    profileURL.setPath("/api/v1/user/profile");
+    profileURL.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + "/api/v1/user/profile");
     profileURL.setQuery(QString("%1=%2").arg(OAUTH_JSON_ACCESS_TOKEN_KEY, accessToken));
 
     qDebug() << "Sending profile request to: " << profileURL;
@@ -3725,7 +3745,7 @@ void DomainServer::screensharePresence(QString roomname, QUuid avatarID, int exp
     callbackData.insert("roomname", roomname);
     callbackData.insert("avatarID", avatarID.toString());
     callbackParams.callbackData = callbackData;
-    const QString PATH = "api/v1/domains/%1/screenshare";
+    const QString PATH = "/api/v1/domains/%1/screenshare";
     QString domain_id = uuidStringWithoutCurlyBraces(getID());
     QJsonObject json, screenshare;
     screenshare["username"] = verifiedUsername;

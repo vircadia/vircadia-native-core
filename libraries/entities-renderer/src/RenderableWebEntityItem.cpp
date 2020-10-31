@@ -1,6 +1,7 @@
 //
 //  Created by Bradley Austin Davis on 2015/05/12
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -35,6 +36,9 @@ using namespace render::entities;
 
 const QString WebEntityRenderer::QML = "Web3DSurface.qml";
 const char* WebEntityRenderer::URL_PROPERTY = "url";
+const char* WebEntityRenderer::SCRIPT_URL_PROPERTY = "scriptURL";
+const char* WebEntityRenderer::GLOBAL_POSITION_PROPERTY = "globalPosition";
+const char* WebEntityRenderer::USE_BACKGROUND_PROPERTY = "useBackground";
 
 std::function<void(QString, bool, QSharedPointer<OffscreenQmlSurface>&, bool&)> WebEntityRenderer::_acquireWebSurfaceOperator = nullptr;
 std::function<void(QSharedPointer<OffscreenQmlSurface>&, bool&, std::vector<QMetaObject::Connection>&)> WebEntityRenderer::_releaseWebSurfaceOperator = nullptr;
@@ -100,7 +104,7 @@ WebEntityRenderer::~WebEntityRenderer() {
 
 bool WebEntityRenderer::isTransparent() const {
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-    return fadeRatio < OPAQUE_ALPHA_THRESHOLD || _alpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
+    return fadeRatio < OPAQUE_ALPHA_THRESHOLD || _alpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE || !_useBackground;
 }
 
 bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
@@ -193,11 +197,15 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
 
         if (_webSurface) {
             if (_webSurface->getRootItem()) {
-                if (_contentType == ContentType::HtmlContent && _sourceURL != newSourceURL) {
+                if (_contentType == ContentType::HtmlContent && _sourceURL != newSourceURL) {            
                     if (localSafeContext) {
                         ::hifi::scripting::setLocalAccessSafeThread(true);
                     }
                     _webSurface->getRootItem()->setProperty(URL_PROPERTY, newSourceURL);
+                    _webSurface->getRootItem()->setProperty(SCRIPT_URL_PROPERTY, _scriptURL);
+                    _webSurface->getRootItem()->setProperty(USE_BACKGROUND_PROPERTY, _useBackground);
+                    _webSurface->getSurfaceContext()->setContextProperty(GLOBAL_POSITION_PROPERTY, vec3toVariant(_contextPosition));
+                    _webSurface->setMaxFps((QUrl(newSourceURL).host().endsWith("youtube.com", Qt::CaseInsensitive)) ? YOUTUBE_MAX_FPS : _maxFPS);
                     ::hifi::scripting::setLocalAccessSafeThread(false);
                     _sourceURL = newSourceURL;
                 } else if (_contentType != ContentType::HtmlContent) {
@@ -207,7 +215,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                 {
                     auto scriptURL = entity->getScriptURL();
                     if (_scriptURL != scriptURL) {
-                        _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
+                        _webSurface->getRootItem()->setProperty(SCRIPT_URL_PROPERTY, scriptURL);
                         _scriptURL = scriptURL;
                     }
                 }
@@ -226,10 +234,18 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                     }
                 }
 
+                { 
+                    auto useBackground = entity->getUseBackground();
+                    if (_useBackground != useBackground) {
+                        _webSurface->getRootItem()->setProperty(USE_BACKGROUND_PROPERTY, useBackground);
+                        _useBackground = useBackground;
+                    }
+                }
+
                 {
                     auto contextPosition = entity->getWorldPosition();
                     if (_contextPosition != contextPosition) {
-                        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(contextPosition));
+                        _webSurface->getSurfaceContext()->setContextProperty(GLOBAL_POSITION_PROPERTY, vec3toVariant(contextPosition));
                         _contextPosition = contextPosition;
                     }
                 }
@@ -290,12 +306,14 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     glm::vec4 color;
     Transform transform;
     bool forward;
+    bool transparent;
     withReadLock([&] {
         float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         color = glm::vec4(toGlm(_color), _alpha * fadeRatio);
         color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
         transform = _renderTransform;
         forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == render::Args::FORWARD;
+        transparent = isTransparent();
     });
 
     if (color.a == 0.0f) {
@@ -309,7 +327,7 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
 
     // Turn off jitter for these entities
     batch.pushProjectionJitter();
-    DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, color.a < OPAQUE_ALPHA_THRESHOLD, forward);
+    DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, transparent, forward);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, color, _geometryId);
     batch.popProjectionJitter();
     batch.setResourceTexture(0, nullptr);

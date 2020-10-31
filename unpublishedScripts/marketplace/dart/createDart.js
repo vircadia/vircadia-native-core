@@ -10,7 +10,7 @@
 // Distributed under the Apache License, Version 2.0.
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-var MODEL_URL = "https://hifi-content.s3.amazonaws.com/wadewatts/dart.fbx";
+var MODEL_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/wadewatts/dart.fbx");
 var SCRIPT_URL = Script.resolvePath("./dart.js?v=" + Date.now());
 var START_POSITION = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), 0.75));
 var START_ROTATION = MyAvatar.orientation

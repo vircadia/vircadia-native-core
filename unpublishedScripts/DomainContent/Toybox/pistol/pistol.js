@@ -27,8 +27,8 @@
         this.forceMultiplier = 1;
         this.laserLength = 100;
 
-        this.fireSound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/pistol/GUN-SHOT2.raw");
-        this.ricochetSound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/pistol/Ricochet.L.wav");
+        this.fireSound = SoundCache.getSound("https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/pistol/GUN-SHOT2.raw");
+        this.ricochetSound = SoundCache.getSound("https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/pistol/Ricochet.L.wav");
         this.playRichochetSoundChance = 0.1;
         this.fireVolume = 0.2;
         this.bulletForce = 10;
@@ -216,7 +216,7 @@
                 "alphaStart": 0,
                 "alphaFinish": 0,
                 "additiveBlending": true,
-                "textures": "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/pistol/star.png"
+                "textures": "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/pistol/star.png"
             });
 
             Script.setTimeout(function() {
@@ -266,7 +266,7 @@
                 "alphaStart": 0,
                 "alphaFinish": 0,
                 "additiveBlending": 0,
-                "textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png"
+                "textures": Script.getExternalPath(Script.ExternalPaths.HF_Public, "/alan/Particles/Particle-Sprite-Smoke-1.png")
             });
             Script.setTimeout(function() {
                 Entities.editEntity(smoke, {
