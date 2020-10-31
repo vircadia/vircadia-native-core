@@ -18,11 +18,11 @@ var NYX_UI_CHANNEL = "nyx-ui";
 Messages.messageReceived.connect(onMessageReceived);
 
 function onMessageReceived(channel, message, senderID, localOnly) {
-    print("NYX UI Message received:");
-    print("- channel: " + channel);
-    print("- message: " + message);
-    print("- sender: " + senderID);
-    print("- localOnly: " + localOnly);
+    // print("NYX UI Message received:");
+    // print("- channel: " + channel);
+    // print("- message: " + message);
+    // print("- sender: " + senderID);
+    // print("- localOnly: " + localOnly);
 
     if (channel === NYX_UI_CHANNEL && MyAvatar.sessionUUID === senderID) {
         messageData = JSON.parse(message);
