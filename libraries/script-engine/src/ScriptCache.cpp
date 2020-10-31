@@ -87,8 +87,8 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
     if (_scriptCache.contains(url) && !forceDownload) {
         auto entry = _scriptCache[url];
         if (url.isLocalFile() || url.scheme().isEmpty()) {
-            auto mtime = QFileInfo(url.toLocalFile()).lastModified();
-            QString localTime = ResourceRequest::toHttpDateString(mtime.toMSecsSinceEpoch());
+            auto modifiedTime = QFileInfo(url.toLocalFile()).lastModified();
+            QString localTime = ResourceRequest::toHttpDateString(modifiedTime.toMSecsSinceEpoch());
             QString cachedTime = entry["last-modified"].toString();
             if (cachedTime != localTime) {
                 forceDownload = true;
@@ -97,10 +97,10 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
             }
         }
         if (!forceDownload) {
-          lock.unlock();
-          qCDebug(scriptengine) << "Found script in cache:" << url.fileName();
-          contentAvailable(url.toString(), entry["data"].toString(), true, true, STATUS_CACHED);
-          return;
+            lock.unlock();
+            qCDebug(scriptengine) << "Found script in cache:" << url.fileName();
+            contentAvailable(url.toString(), entry["data"].toString(), true, true, STATUS_CACHED);
+            return;
         }
     }
     {
@@ -155,8 +155,8 @@ void ScriptCache::scriptContentAvailable(int maxRetries) {
                 _activeScriptRequests.remove(url);
 
                 _scriptCache[url] = {
-                  { "data", scriptContent = req->getData() },
-                  { "last-modified", req->property("last-modified") },
+                    { "data", scriptContent = req->getData() },
+                    { "last-modified", req->property("last-modified") },
                 };
             } else {
                 auto result = req->getResult();
