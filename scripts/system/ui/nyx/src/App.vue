@@ -74,16 +74,18 @@
                                     <v-list-item-group
                                         color="#385F73"
                                     >
-                                        <v-list-item
-                                            v-for="(item, i) in registeredEntityMenus[triggeredEntity.id]"
-                                            :key="i"
-                                            @click="triggeredMenuItem(item)"
-                                            width="100%"
-                                        >
-                                            <v-list-item-content>
-                                                <v-list-item-title v-text="item"></v-list-item-title>
-                                            </v-list-item-content>
-                                        </v-list-item>
+                                        <div v-if="registeredEntityMenus[triggeredEntity.id].buttons">
+                                            <v-list-item
+                                                v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].buttons"
+                                                :key="i"
+                                                @click="triggeredMenuItem(item.name)"
+                                                width="100%"
+                                            >
+                                                <v-list-item-content>
+                                                    <v-list-item-title v-text="item.name"></v-list-item-title>
+                                                </v-list-item-content>
+                                            </v-list-item>
+                                        </div>
                                     </v-list-item-group>
                                 </v-list>
                                 <div v-show="!registeredEntityMenus[triggeredEntity.id]">
@@ -199,7 +201,13 @@ export default {
         tabs: 0,
         // Entity Context Menu
         registeredEntityMenus: {
-            "{768542d0-e962-49e3-94fb-85651d56f5ae}": ['Item', 'Test']
+            "{768542d0-e962-49e3-94fb-85651d56f5ae}": {
+                buttons: [
+                    {
+                        name: 'Equip'
+                    }
+                ]
+            }
         },
         triggeredEntity: {
             id: '{768542d0-e962-49e3-94fb-85651d56f5ae}',
@@ -222,10 +230,12 @@ export default {
             },
         }
     }),
+    computed: {
+    }, 
     methods: {
         updateRegisteredEntityMenus: function (data) {
             // The data should already be parsed.
-            // console.log("DATA RECEIVED ON INIT:" + JSON.stringify(data));
+            // console.log("DATA RECEIVED ON UPDATE REGISTERED ENTITY MENU ITEMS:" + JSON.stringify(data));
             this.registeredEntityMenus = data.registeredEntityMenus;
             this.triggeredEntity = data.lastTriggeredEntityInfo;
         },

@@ -48,7 +48,7 @@ function onLoad() {
 onLoad();
 
 function onDestroy() {
-    Messages.messageReceived.disconnect(onMessageReceived);
+    // Perform clean-up here...
 }
 
 function onMessageReceived(channel, message, senderID, localOnly) {

@@ -1,5 +1,5 @@
 (function () {
-    var NyxAlpha1 = Script.require('../nyx-helpers.js?12dsadsdsadddsas3');
+    var NyxAlpha1 = Script.require('../nyx-helpers.js?12dsadsddsadssadddsaddseras3');
 
     var _entityID;
     var gunID;
@@ -33,22 +33,34 @@
             userData: "{ \"grabbableKey\": { \"grabbable\": false, \"triggerable\": false}}" 
         },"avatar");
 
-        NyxAlpha1.registerWithEntityMenu(gunID, ['Unequip']);
+        NyxAlpha1.registerWithEntityMenu(gunID, {
+            buttons: [
+                {
+                    name: 'Unequip'
+                }
+            ]
+        });
     }
 
-    function onEntityMenuTriggered(entityID, command, menuItem) {
-        if (menuItem === 'Equip' && entityID === _entityID) {
+    function onEntityMenuTriggered(triggeredEntityID, command, menuItem) {
+        if (menuItem === 'Equip' && triggeredEntityID === _entityID) {
             equipGun();
         }
         
-        if (menuItem === 'Unequip' && entityID === gunID) {
+        if (menuItem === 'Unequip' && triggeredEntityID === gunID) {
             Entities.deleteEntity(gunID);
         }
     }
 
     this.preload = function (entityID) {
         _entityID = entityID;
-        NyxAlpha1.registerWithEntityMenu(entityID, ['Equip']);
+        NyxAlpha1.registerWithEntityMenu(entityID, {
+            buttons: [
+                {
+                    name: 'Equip'
+                }
+            ]
+        });
         NyxAlpha1.entityMenuPressed.connect(onEntityMenuTriggered);
     };
 
