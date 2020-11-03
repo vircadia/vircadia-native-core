@@ -74,7 +74,7 @@
                                     <v-list-item-group
                                         color="#385F73"
                                     >
-                                        <div v-if="registeredEntityMenus[triggeredEntity.id].buttons">
+                                        <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].buttons">
                                             <v-list-item
                                                 v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].buttons"
                                                 :key="i"

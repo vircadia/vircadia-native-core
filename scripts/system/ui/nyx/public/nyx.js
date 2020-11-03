@@ -202,7 +202,7 @@ var NYX_ENTITY_MENU_ENABLED = "Enable Entity Menu";
 function handleMenuEvent(menuItem) {
     if (menuItem === NYX_ENTITY_MENU_ENABLED) {
         enableEntityWebMenu = Menu.isOptionChecked(NYX_ENTITY_MENU_ENABLED);
-        Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, Menu.isOptionChecked(NYX_ENTITY_MENU_ENABLED));
+        Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, enableEntityWebMenu);
     }
 }
 
@@ -216,12 +216,12 @@ function bootstrapNyxMenu() {
             isChecked: Settings.getValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, true)
         });
     }
-    
+
     enableEntityWebMenu = Settings.getValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, true);
 }
 
 function unloadNyxMenu() {
-    Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, Menu.isOptionChecked(NYX_ENTITY_MENU_ENABLED));
+    Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, enableEntityWebMenu);
     
     Menu.removeMenuItem(NYX_MAIN_MENU, NYX_ENTITY_MENU_ENABLED);
     Menu.removeMenu(NYX_MAIN_MENU);
