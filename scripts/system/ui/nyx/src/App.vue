@@ -13,7 +13,16 @@
                         dark
                         flat
                     >
-                        <v-toolbar-title>{{ triggeredEntity.name }}</v-toolbar-title>
+                        <v-toolbar-title 
+                            v-show="triggeredEntity.name"
+                        >
+                            {{ triggeredEntity.name }}
+                        </v-toolbar-title>
+                        <v-toolbar-title 
+                            v-show="!triggeredEntity.name"
+                        >
+                            Unnamed
+                        </v-toolbar-title>
 
                         <v-spacer></v-spacer>
 
@@ -58,25 +67,25 @@
                                 height="100%"
                                 width="100%"
                             >
-                                <v-card-actions v-show="registeredEntityMenus[triggeredEntity.id]">
-                                    <v-list>
-                                        <v-subheader>ACTIONS</v-subheader>
-                                        <v-list-item-group
-                                            color="#385F73"
+                                <v-list
+                                    v-show="registeredEntityMenus[triggeredEntity.id]"
+                                >
+                                    <v-subheader>ACTIONS</v-subheader>
+                                    <v-list-item-group
+                                        color="#385F73"
+                                    >
+                                        <v-list-item
+                                            v-for="(item, i) in registeredEntityMenus[triggeredEntity.id]"
+                                            :key="i"
+                                            @click="triggeredMenuItem(item)"
+                                            width="100%"
                                         >
-                                            <v-list-item
-                                                v-for="(item, i) in registeredEntityMenus[triggeredEntity.id]"
-                                                :key="i"
-                                                @click="triggeredMenuItem(item)"
-                                                width="100%"
-                                            >
-                                                <v-list-item-content>
-                                                    <v-list-item-title v-text="item"></v-list-item-title>
-                                                </v-list-item-content>
-                                            </v-list-item>
-                                        </v-list-item-group>
-                                    </v-list>
-                                </v-card-actions>
+                                            <v-list-item-content>
+                                                <v-list-item-title v-text="item"></v-list-item-title>
+                                            </v-list-item-content>
+                                        </v-list-item>
+                                    </v-list-item-group>
+                                </v-list>
                                 <div v-show="!registeredEntityMenus[triggeredEntity.id]">
                                     <v-list-item-subtitle>No Actions Available</v-list-item-subtitle>
                                 </div>

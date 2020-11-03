@@ -35,7 +35,7 @@ var BOOTSTRAP_MENU_WEB_OVERLAY_POSITION = {
     x: 1,
     y: 1
 };
-var BOOTSTRAP_MENU_WEB_OVERLAY_SOURCE = Script.resolvePath("./index.html");
+var BOOTSTRAP_MENU_WEB_OVERLAY_SOURCE;
 var BOOTSTRAP_MENU_WEB_OVERLAY_DPI = 7;
 
 function registerWithEntityMenu(messageData) {
@@ -202,6 +202,7 @@ var NYX_ENTITY_MENU_ENABLED = "Enable Entity Menu";
 function handleMenuEvent(menuItem) {
     if (menuItem === NYX_ENTITY_MENU_ENABLED) {
         enableEntityWebMenu = Menu.isOptionChecked(NYX_ENTITY_MENU_ENABLED);
+        Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, Menu.isOptionChecked(NYX_ENTITY_MENU_ENABLED));
     }
 }
 
@@ -215,6 +216,8 @@ function bootstrapNyxMenu() {
             isChecked: Settings.getValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, true)
         });
     }
+    
+    enableEntityWebMenu = Settings.getValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, true);
 }
 
 function unloadNyxMenu() {
@@ -234,6 +237,7 @@ function startup() {
     Menu.menuItemEvent.connect(handleMenuEvent);
     Controller.mousePressEvent.connect(onMousePressEvent);
     
+    BOOTSTRAP_MENU_WEB_OVERLAY_SOURCE = Script.resolvePath("./index.html");
     bootstrapNyxMenu();
     bootstrapEntityMenu();
 }
