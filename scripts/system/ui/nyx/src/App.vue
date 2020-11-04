@@ -29,6 +29,15 @@
                         <v-btn
                             small
                             fab
+                            color="primary"
+                            @click="tabs = 2"
+                            class="mr-3"
+                        >
+                            <v-icon>mdi-cog</v-icon>
+                        </v-btn>
+                        <v-btn
+                            small
+                            fab
                             color="red"
                             @click="closeEntityMenu();"
                         >
@@ -50,6 +59,12 @@
                                     class="primary--text"
                                 >
                                     <v-icon>mdi-cube</v-icon>
+                                </v-tab>
+                                <v-tab
+                                    class="primary--text"
+                                    style="display: none;"
+                                >
+                                    <v-icon>mdi-cog</v-icon>
                                 </v-tab>
                             </v-tabs>
                         </template>
@@ -159,6 +174,83 @@
                                 </v-list-item>
                             </v-card>
                         </v-tab-item>
+                        <v-tab-item>
+                            <!-- This needs to move to its own component. -->
+                            <v-card
+                                class="mx-auto"
+                                height="100%"
+                                width="100%"
+                            >
+                                <v-card-text>
+                                    <v-card-title>
+                                        Trigger Entity Menu
+                                    </v-card-title>
+                                    <v-divider></v-divider>
+                                    <v-row>
+                                        <v-card-title>
+                                            <v-checkbox
+                                                v-model="settings.entityMenu.useMouseTriggers"
+                                                hide-details
+                                                class="shrink mr-2 mt-0"
+                                            ></v-checkbox>
+                                            Mouse / Controller
+                                        </v-card-title>
+                                    </v-row>
+                                    <v-row>
+                                        <v-combobox
+                                            v-model="settings.entityMenu.selectedMouseTriggers"
+                                            :items="settings.entityMenu.possibleMouseTriggers"
+                                            :disabled="!settings.entityMenu.useMouseTriggers"
+                                            label="Triggered by"
+                                            multiple
+                                            outlined
+                                            dense
+                                        ></v-combobox>
+                                    </v-row>
+                                    <v-row>
+                                        <v-combobox
+                                            v-model="settings.entityMenu.selectedMouseModifiers"
+                                            :items="settings.entityMenu.possibleMouseModifiers"
+                                            :disabled="!settings.entityMenu.useMouseTriggers"
+                                            label="Modifiers"
+                                            multiple
+                                            outlined
+                                            dense
+                                        ></v-combobox>
+                                    </v-row>
+                                    <v-row>
+                                        <v-card-title>
+                                            <v-checkbox
+                                                v-model="settings.entityMenu.useKeyTriggers"
+                                                hide-details
+                                                class="shrink mr-2 mt-0"
+                                            ></v-checkbox>
+                                            Keyboard
+                                        </v-card-title>
+                                    </v-row>
+                                    <v-row>
+                                        <v-text-field
+                                            v-model="settings.entityMenu.selectedKeyTrigger"
+                                            :disabled="!settings.entityMenu.useKeyTriggers"
+                                            label="Triggered by key"
+                                            outlined
+                                            dense
+                                        ></v-text-field>
+                                    </v-row>
+                                    <v-row>
+                                        <v-combobox
+                                            v-model="settings.entityMenu.selectedKeyModifiers"
+                                            :items="settings.entityMenu.possibleKeyModifiers"
+                                            :disabled="!settings.entityMenu.useKeyTrigger"
+                                            label="Modifiers"
+                                            multiple
+                                            outlined
+                                            dense
+                                        ></v-combobox>
+                                    </v-row>
+                                </v-card-text>
+                            </v-card>
+                        </v-tab-item>
                     </v-tabs-items>
                 </v-card>
             </v-container>
@@ -190,6 +282,10 @@ if (!browserDevelopment()) {
         if (receivedCommand.command === 'script-to-web-triggered-entity-info') {
             vue_this.updateTriggeredEntityInfo(receivedCommand.data);
         }
+        
+        if (receivedCommand.command === 'script-to-web-update-settings') {
+            vue_this.updateSettings(receivedCommand.data);
+        }
     });
 }
 
@@ -198,6 +294,34 @@ export default {
     components: {
     },
     data: () => ({
+        // Settings
+        settings: {
+            entityMenu: {
+                useMouseTriggers: true,
+                selectedMouseTriggers: [],
+                possibleMouseTriggers: [
+                    'LEFT',
+                    'MIDDLE',
+                    'RIGHT'
+                ],
+                possibleMouseModifiers: [
+                    'Shift',
+                    'Meta',
+                    'Control',
+                    'Alt'
+                ],
+                useKeyTrigger: false,
+                selectedKeyTrigger: "",
+                possibleKeyModifiers: [
+                    'Shift',
+                    'Meta',
+                    'Control',
+                    'Alt',
+                    'Keypad'
+                ]
+            }
+        },
+        // General
         tabs: 0,
         // Entity Context Menu
         registeredEntityMenus: {
@@ -244,6 +368,9 @@ export default {
             // console.log("DATA RECEIVED ON TRIGGERED ENTITY:" + JSON.stringify(data));
             this.triggeredEntity = data;
         },
+        updateSettings: function (data) {
+            this.settings = data;
+        },
         triggeredMenuItem: function (menuItem) {
             var dataToSend = {
                 'triggeredEntityID': this.triggeredEntity.id,
@@ -266,6 +393,18 @@ export default {
                 EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
             } else {
                 // alert(JSON.stringify(JSONtoSend));
+            }
+        }
+    },
+    watch: {
+        settings: {
+            deep: true,
+            handler()
+                var dataToSend = {
+                    settings: this.settings
+                }
+
+                this.sendFrameworkMessage('web-to-script-settings-changed', dataToSend);
             }
         }
     },
