@@ -61,7 +61,6 @@ public:
     virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
     virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
-    void doInitialModelSimulation();
     void updateModelBounds();
 
     virtual bool supportsDetailedIntersection() const override;
@@ -76,7 +75,6 @@ public:
 
     virtual void setShapeType(ShapeType type) override;
     virtual void setCompoundShapeURL(const QString& url) override;
-    virtual void setModelURL(const QString& url) override;
 
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;
@@ -184,8 +182,6 @@ private:
 #ifdef MODEL_ENTITY_USE_FADE_EFFECT
     bool _hasTransitioned{ false };
 #endif
-
-    const void* _collisionMeshKey { nullptr };
 
     QUrl _parsedModelURL;
     bool _jointMappingCompleted { false };

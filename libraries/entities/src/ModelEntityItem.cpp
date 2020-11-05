@@ -273,7 +273,7 @@ ShapeType ModelEntityItem::getShapeType() const {
 }
 
 ShapeType ModelEntityItem::computeTrueShapeType() const {
-    ShapeType type = _shapeType;
+    ShapeType type = resultWithReadLock<ShapeType>([&] { return _shapeType; });
     if (type == SHAPE_TYPE_STATIC_MESH && _dynamic) {
         // dynamic is incompatible with STATIC_MESH
         // shouldn't fall in here but just in case --> fall back to COMPOUND
@@ -563,10 +563,6 @@ bool ModelEntityItem::getGroupCulled() const {
 
 QString ModelEntityItem::getCompoundShapeURL() const {
     return _compoundShapeURL.get();
-}
-
-QString ModelEntityItem::getCollisionShapeURL() const {
-    return getShapeType() == SHAPE_TYPE_COMPOUND ? getCompoundShapeURL() : getModelURL();
 }
 
 void ModelEntityItem::setColor(const glm::u8vec3& value) {
