@@ -10,11 +10,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("/~/system/libraries/utils.js");
-var NyxSit = Script.require("./modules/sit.js");
+Script.include('/~/system/libraries/utils.js');
+var NyxSit = Script.require('./modules/sit.js');
 
-var SETTING_NYX_PREFIX = "nyx/";
-var NYX_UI_CHANNEL = "nyx-ui";
+var SETTING_NYX_PREFIX = 'nyx/';
+var NYX_UI_CHANNEL = 'nyx-ui';
 
 var nyxSettings = null;
 
@@ -28,7 +28,7 @@ var MENU_WEB_OVERLAY_SCALE = {
     x: 400,
     y: 500
 };
-var BOOTSTRAP_MENU_WEB_OVERLAY_TITLE = "Nyx UI";
+var BOOTSTRAP_MENU_WEB_OVERLAY_TITLE = 'Nyx UI';
 var BOOTSTRAP_MENU_WEB_OVERLAY_SCALE = {
     x: 1,
     y: 1
@@ -119,12 +119,12 @@ function bootstrapEntityMenu() {
 
 ///////////////// NYX MESSAGE HANDLING
 
-var NYX_ENTITY_MENU_SETTINGS = "entity-menu-settings";
+var NYX_ENTITY_MENU_SETTINGS = 'entity-menu-settings';
 
 function sendToWeb(command, data) {
     var dataToSend = {
-        "command": command,
-        "data": data
+        'command': command,
+        'data': data
     };
 
     entityWebMenuOverlay.emitScriptEvent(JSON.stringify(dataToSend));
@@ -133,7 +133,7 @@ function sendToWeb(command, data) {
 function onOverlayWebEventReceived(event) {
     var eventJSON = JSON.parse(event);
 
-    if (eventJSON.command === "ready") {
+    if (eventJSON.command === 'ready') {
         var dataToSend = {
             registeredEntityMenus: registeredEntityMenus,
             lastTriggeredEntityInfo: lastTriggeredEntityInfo
@@ -148,7 +148,7 @@ function onOverlayWebEventReceived(event) {
         sendToWeb('script-to-web-update-settings', settingsToSend);
     }
     
-    if (eventJSON.command === "menu-item-triggered") {
+    if (eventJSON.command === 'menu-item-triggered') {
         var dataToSend = {
             command: eventJSON.command,
             entityID: eventJSON.data.triggeredEntityID,
@@ -162,28 +162,28 @@ function onOverlayWebEventReceived(event) {
         }
     }
     
-    if (eventJSON.command === "sit-on-entity-triggered") {
+    if (eventJSON.command === 'sit-on-entity-triggered') {
         NyxSit.toggleSit();
     }
     
-    if (eventJSON.command === "close-entity-menu") {
+    if (eventJSON.command === 'close-entity-menu') {
         if (entityWebMenuOverlay.isVisible()) {
             toggleEntityMenu(); // Close the menu if it is active.
         }
     }
     
-    if (eventJSON.command === "web-to-script-settings-changed") {
+    if (eventJSON.command === 'web-to-script-settings-changed') {
         nyxSettings = eventJSON.data.settings;
         Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_SETTINGS, eventJSON.data.settings);
     }
 }
 
 function onMessageReceived(channel, message, senderID, localOnly) {
-    // print("NYX UI Message received:");
-    // print("- channel: " + channel);
-    // print("- message: " + message);
-    // print("- sender: " + senderID);
-    // print("- localOnly: " + localOnly);
+    // print('NYX UI Message received:');
+    // print('- channel: ' + channel);
+    // print('- message: ' + message);
+    // print('- sender: ' + senderID);
+    // print('- localOnly: ' + localOnly);
 
     if (channel === NYX_UI_CHANNEL && MyAvatar.sessionUUID === senderID) {
         messageData = JSON.parse(message);
@@ -247,9 +247,9 @@ function onMousePressEvent (event) {
 
 ///////////////// BEGIN NYX MENU HANDLING
 
-var NYX_MAIN_MENU = "Settings > Nyx";
-var NYX_ENTITY_MENU_ENABLED = "Enable Entity Menu";
-var NYX_ENTITY_MENU_RESET = "Reset Entity Menu";
+var NYX_MAIN_MENU = 'Settings > Nyx';
+var NYX_ENTITY_MENU_ENABLED = 'Enable Entity Menu';
+var NYX_ENTITY_MENU_RESET = 'Reset Entity Menu';
 
 function handleMenuEvent(menuItem) {
     if (menuItem === NYX_ENTITY_MENU_ENABLED) {
@@ -258,7 +258,7 @@ function handleMenuEvent(menuItem) {
     }
     
     if (menuItem === NYX_ENTITY_MENU_RESET) {
-        Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_SETTINGS, "");
+        Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_SETTINGS, '');
     }
 }
 
@@ -299,7 +299,7 @@ function startup() {
     Menu.menuItemEvent.connect(handleMenuEvent);
     Controller.mousePressEvent.connect(onMousePressEvent);
     
-    BOOTSTRAP_MENU_WEB_OVERLAY_SOURCE = Script.resolvePath("./index.html");
+    BOOTSTRAP_MENU_WEB_OVERLAY_SOURCE = Script.resolvePath('./index.html');
     bootstrapNyxMenu();
     bootstrapEntityMenu();
 }
