@@ -24,12 +24,6 @@ var entityWebMenuOverlay;
 var registeredEntityMenus = {};
 var lastTriggeredEntityInfo = {};
 var lastTriggeredPointerLocation = {};
-var PICK_FILTERS = Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS | Picks.PICK_AVATARS | Picks.PICK_INCLUDE_NONCOLLIDABLE;
-var HAND_JOINT = '_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND'.replace('RIGHT', MyAvatar.getDominantHand().toUpperCase());
-var JOINT_NAME = HMD.active ? HAND_JOINT : 'Mouse';
-var mainPick;
-var lastTriggeredPick;
-var isAvatarSitting = false;
 var MENU_WEB_OVERLAY_SCALE = {
     x: 400,
     y: 500
@@ -169,14 +163,7 @@ function onOverlayWebEventReceived(event) {
     }
     
     if (eventJSON.command === "sit-on-entity-triggered") {
-        if (!isAvatarSitting) {
-            var position = lastTriggeredPick.intersection;
-            MyAvatar.beginSit(position, MyAvatar.orientation);
-            isAvatarSitting = true;
-        } else {
-            MyAvatar.endSit(MyAvatar.position, MyAvatar.orientation);
-            isAvatarSitting = false;
-        }
+        NyxSit.toggleSit();
     }
     
     if (eventJSON.command === "close-entity-menu") {
@@ -251,7 +238,7 @@ function onMousePressEvent (event) {
         y: event.y
     };
 
-    lastTriggeredPick = Picks.getPrevPickResult(mainPick);
+    NyxSit.capturePickPosition();
 }
 
 ///////////////// END NYX MESSAGE HANDLING
@@ -298,11 +285,6 @@ function startup() {
     Entities.mousePressOnEntity.connect(onMousePressOnEntity);
     Menu.menuItemEvent.connect(handleMenuEvent);
     Controller.mousePressEvent.connect(onMousePressEvent);
-    mainPick = Picks.createPick(PickType.Ray, {
-        joint: JOINT_NAME,
-        filter: PICK_FILTERS,
-        enabled: true
-    });
     
     BOOTSTRAP_MENU_WEB_OVERLAY_SOURCE = Script.resolvePath("./index.html");
     bootstrapNyxMenu();
@@ -316,7 +298,6 @@ Script.scriptEnding.connect(function () {
     Entities.mousePressOnEntity.disconnect(onMousePressOnEntity);
     Menu.menuItemEvent.disconnect(handleMenuEvent);
     Controller.mousePressEvent.connect(onMousePressEvent);
-    Picks.removePick(mainPick);
     
     entityWebMenuOverlay.webEventReceived.disconnect(onOverlayWebEventReceived);
 
