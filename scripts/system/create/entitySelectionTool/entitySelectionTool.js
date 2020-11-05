@@ -668,6 +668,7 @@ SelectionManager = (function() {
                 var newPosition = Vec3.sum(relativePosition, targetPosition);
                 Entities.editEntity(id, { "position": newPosition });
             }
+            pushCommandForSelections();
             that._update(false, this);
         } else {
             audioFeedback.rejection();
