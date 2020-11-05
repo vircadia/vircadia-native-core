@@ -1493,7 +1493,6 @@ void Model::updateBlendshapes() {
 }
 
 void Model::deleteGeometry() {
-    _deleteGeometryCounter++;
     _meshStates.clear();
     _rig.destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();

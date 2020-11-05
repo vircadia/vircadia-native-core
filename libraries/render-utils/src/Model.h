@@ -337,7 +337,6 @@ public:
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
 
-    uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
     const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItemsMap; }
     BlendShapeOperator getModelBlendshapeOperator() const { return _modelBlendshapeOperator; }
 
@@ -472,8 +471,6 @@ protected:
 
     friend class ModelMeshPartPayload;
     Rig _rig;
-
-    uint32_t _deleteGeometryCounter { 0 };
 
     bool _visualGeometryRequestFailed { false };
 
