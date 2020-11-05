@@ -60,7 +60,7 @@ private:
     Mutex _containerLock;
     QMap<QUrl, ScriptRequest> _activeScriptRequests;
     
-    QHash<QUrl, QString> _scriptCache;
+    QHash<QUrl, QVariantMap> _scriptCache;
     QMultiMap<QUrl, ScriptUser*> _scriptUsers;
 };
 
