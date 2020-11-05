@@ -469,11 +469,13 @@ void EntityRenderer::onRemoveFromScene(const EntityItemPointer& entity) {
 void EntityRenderer::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
     std::lock_guard<std::mutex> lock(_materialsLock);
     _materials[parentMaterialName].push(material);
+    emit requestRenderUpdate();
 }
 
 void EntityRenderer::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
     std::lock_guard<std::mutex> lock(_materialsLock);
     _materials[parentMaterialName].remove(material);
+    emit requestRenderUpdate();
 }
 
 glm::vec4 EntityRenderer::calculatePulseColor(const glm::vec4& color, const PulsePropertyGroup& pulseProperties, quint64 start) {
