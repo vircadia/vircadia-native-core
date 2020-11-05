@@ -30,8 +30,18 @@
                             small
                             fab
                             color="primary"
+                            @click="triggerSitOnEntity();"
+                            class="mr-3"
+                        >
+                            <v-icon>mdi-sofa-single</v-icon>
+                        </v-btn>
+                        <v-btn
+                            small
+                            fab
+                            color="primary"
                             @click="tabs = 2"
                             class="mr-3"
+                            disabled
                         >
                             <v-icon>mdi-cog</v-icon>
                         </v-btn>
@@ -218,36 +228,6 @@
                                             dense
                                         ></v-combobox>
                                     </v-row>
-                                    <v-row>
-                                        <v-card-title>
-                                            <v-checkbox
-                                                v-model="settings.entityMenu.useKeyTriggers"
-                                                hide-details
-                                                class="shrink mr-2 mt-0"
-                                            ></v-checkbox>
-                                            Keyboard
-                                        </v-card-title>
-                                    </v-row>
-                                    <v-row>
-                                        <v-text-field
-                                            v-model="settings.entityMenu.selectedKeyTrigger"
-                                            :disabled="!settings.entityMenu.useKeyTriggers"
-                                            label="Triggered by key"
-                                            outlined
-                                            dense
-                                        ></v-text-field>
-                                    </v-row>
-                                    <v-row>
-                                        <v-combobox
-                                            v-model="settings.entityMenu.selectedKeyModifiers"
-                                            :items="settings.entityMenu.possibleKeyModifiers"
-                                            :disabled="!settings.entityMenu.useKeyTrigger"
-                                            label="Modifiers"
-                                            multiple
-                                            outlined
-                                            dense
-                                        ></v-combobox>
-                                    </v-row>
                                 </v-card-text>
                             </v-card>
                         </v-tab-item>
@@ -284,6 +264,10 @@ if (!browserDevelopment()) {
         }
         
         if (receivedCommand.command === 'script-to-web-update-settings') {
+            if (receivedCommand.data.settings === null) {
+                return;
+            }
+
             vue_this.updateSettings(receivedCommand.data);
         }
     });
@@ -300,24 +284,15 @@ export default {
                 useMouseTriggers: true,
                 selectedMouseTriggers: [],
                 possibleMouseTriggers: [
-                    'LEFT',
-                    'MIDDLE',
-                    'RIGHT'
+                    'Primary',
+                    'Secondary',
+                    'Tertiary'
                 ],
                 possibleMouseModifiers: [
                     'Shift',
                     'Meta',
                     'Control',
                     'Alt'
-                ],
-                useKeyTrigger: false,
-                selectedKeyTrigger: "",
-                possibleKeyModifiers: [
-                    'Shift',
-                    'Meta',
-                    'Control',
-                    'Alt',
-                    'Keypad'
                 ]
             }
         },
@@ -369,7 +344,7 @@ export default {
             this.triggeredEntity = data;
         },
         updateSettings: function (data) {
-            this.settings = data;
+            this.settings = data.settings;
         },
         triggeredMenuItem: function (menuItem) {
             var dataToSend = {
@@ -379,7 +354,15 @@ export default {
 
             this.sendFrameworkMessage('menu-item-triggered', dataToSend);
         },
-        closeEntityMenu: function() {
+        triggerSitOnEntity: function () {
+            var dataToSend = {
+                'triggeredEntityID': this.triggeredEntity.id,
+                'sit': true
+            }
+
+            this.sendFrameworkMessage('sit-on-entity-triggered', dataToSend);
+        },
+        closeEntityMenu: function () {
             this.sendFrameworkMessage('close-entity-menu', '');
         },
         sendFrameworkMessage: function(command, data) {
@@ -399,7 +382,7 @@ export default {
     watch: {
         settings: {
             deep: true,
-            handler()
+            handler() {
                 var dataToSend = {
                     settings: this.settings
                 }

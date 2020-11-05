@@ -47,9 +47,9 @@ function onLoad() {
 
 onLoad();
 
-function onDestroy() {
-    // Perform clean-up here...
-}
+Script.scriptEnding.connect(function () {
+    Messages.messageReceived.disconnect(onMessageReceived);
+});
 
 function onMessageReceived(channel, message, senderID, localOnly) {
     // print("NYX UI Message received:");
@@ -73,5 +73,5 @@ module.exports = {
         connect: connectEntityMenu,
         disconnect: disconnectEntityMenu
     },
-    destroy: onDestroy
+    version: "0.0.1"
 }

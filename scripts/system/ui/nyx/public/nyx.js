@@ -11,17 +11,25 @@
 //
 
 Script.include("/~/system/libraries/utils.js");
+var NyxSit = Script.require("./modules/sit.js");
 
 var SETTING_NYX_PREFIX = "nyx/";
 var NYX_UI_CHANNEL = "nyx-ui";
 
 ///////////////// BEGIN ENTITY MENU OVERLAY
 
+var entityMenuSettings = null;
 var enableEntityWebMenu = true;
 var entityWebMenuOverlay;
 var registeredEntityMenus = {};
 var lastTriggeredEntityInfo = {};
 var lastTriggeredPointerLocation = {};
+var PICK_FILTERS = Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS | Picks.PICK_AVATARS | Picks.PICK_INCLUDE_NONCOLLIDABLE;
+var HAND_JOINT = '_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND'.replace('RIGHT', MyAvatar.getDominantHand().toUpperCase());
+var JOINT_NAME = HMD.active ? HAND_JOINT : 'Mouse';
+var mainPick;
+var lastTriggeredPick;
+var isAvatarSitting = false;
 var MENU_WEB_OVERLAY_SCALE = {
     x: 400,
     y: 500
@@ -117,6 +125,8 @@ function bootstrapEntityMenu() {
 
 ///////////////// NYX MESSAGE HANDLING
 
+var NYX_ENTITY_MENU_SETTINGS = "entity-menu-settings";
+
 function sendToWeb(command, data) {
     var dataToSend = {
         "command": command,
@@ -136,6 +146,12 @@ function onOverlayWebEventReceived(event) {
         };
 
         sendToWeb('script-to-web-registered-entity-menus', dataToSend);
+        
+        // var settingsToSend = {
+        //     settings: entityMenuSettings
+        // };
+        // 
+        // sendToWeb('script-to-web-update-settings', settingsToSend);
     }
     
     if (eventJSON.command === "menu-item-triggered") {
@@ -152,10 +168,26 @@ function onOverlayWebEventReceived(event) {
         }
     }
     
+    if (eventJSON.command === "sit-on-entity-triggered") {
+        if (!isAvatarSitting) {
+            var position = lastTriggeredPick.intersection;
+            MyAvatar.beginSit(position, MyAvatar.orientation);
+            isAvatarSitting = true;
+        } else {
+            MyAvatar.endSit(MyAvatar.position, MyAvatar.orientation);
+            isAvatarSitting = false;
+        }
+    }
+    
     if (eventJSON.command === "close-entity-menu") {
         if (entityWebMenuOverlay.isVisible()) {
             toggleEntityMenu(); // Close the menu if it is active.
         }
+    }
+    
+    if (eventJSON.command === "web-to-script-settings-changed") {
+        entityMenuSettings = eventJSON.data.settings;
+        Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_SETTINGS, eventJSON.data.settings);
     }
 }
 
@@ -179,6 +211,34 @@ function onMessageReceived(channel, message, senderID, localOnly) {
     }
 }
 
+// function processMouseEvent (event) {
+//     var acceptTrigger = true;
+// 
+//     if (!settings.entityMenu.selectedMouseTriggers) {
+//         return false;
+//     }
+// 
+//     var checksPrimary = false;
+//     var checksSecondary = false;
+//     var checksTertiary = false;
+//     var checksShiftModifier = false;
+//     var checksMetaModifier = false;
+//     var checksControlModifier = false;
+//     var checksAltModifier = false;
+// 
+//     for (var i = 0; i < settings.entityMenu.selectedMouseTriggers.length; i++) {
+//         var valueToCheck = 'is' + settings.entityMenu.selectedMouseTriggers[i] + 'Held';
+// 
+//         if (event.[valueToCheck] !== true) {
+//             return false;
+//         }
+// 
+//         if (settings.entityMenu.selectedMouseTriggers[i] === 'Primary') {
+// 
+//         }
+//     } 
+// }
+
 function onMousePressOnEntity (pressedEntityID, event) {
     if (event.isPrimaryHeld && event.isSecondaryHeld && !isInEditMode()) {
         toggleEntityMenu(pressedEntityID);
@@ -189,7 +249,9 @@ function onMousePressEvent (event) {
     lastTriggeredPointerLocation = {
         x: event.x,
         y: event.y
-    }
+    };
+
+    lastTriggeredPick = Picks.getPrevPickResult(mainPick);
 }
 
 ///////////////// END NYX MESSAGE HANDLING
@@ -236,6 +298,11 @@ function startup() {
     Entities.mousePressOnEntity.connect(onMousePressOnEntity);
     Menu.menuItemEvent.connect(handleMenuEvent);
     Controller.mousePressEvent.connect(onMousePressEvent);
+    mainPick = Picks.createPick(PickType.Ray, {
+        joint: JOINT_NAME,
+        filter: PICK_FILTERS,
+        enabled: true
+    });
     
     BOOTSTRAP_MENU_WEB_OVERLAY_SOURCE = Script.resolvePath("./index.html");
     bootstrapNyxMenu();
@@ -249,6 +316,7 @@ Script.scriptEnding.connect(function () {
     Entities.mousePressOnEntity.disconnect(onMousePressOnEntity);
     Menu.menuItemEvent.disconnect(handleMenuEvent);
     Controller.mousePressEvent.connect(onMousePressEvent);
+    Picks.removePick(mainPick);
     
     entityWebMenuOverlay.webEventReceived.disconnect(onOverlayWebEventReceived);
 
