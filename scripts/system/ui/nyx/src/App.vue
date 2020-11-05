@@ -263,10 +263,10 @@ if (!browserDevelopment()) {
         }
         
         if (receivedCommand.command === 'script-to-web-update-settings') {
-            if (receivedCommand.data.settings === null) {
+            if (receivedCommand.data.settings === null || receivedCommand.data.settings === '') {
                 return;
             }
-
+            console.log('receivedCommand.data: ' + JSON.stringify(receivedCommand.data));
             vue_this.updateSettings(receivedCommand.data);
         }
     });

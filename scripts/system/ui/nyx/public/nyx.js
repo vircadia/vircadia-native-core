@@ -23,7 +23,7 @@ var enableEntityWebMenu = true;
 var entityWebMenuOverlay;
 var registeredEntityMenus = {};
 var lastTriggeredEntityInfo = {};
-var lastTriggeredPointerLocation = {};
+var lastTriggeredPointerLocation = null;
 var MENU_WEB_OVERLAY_SCALE = {
     x: 400,
     y: 500
@@ -119,7 +119,7 @@ function bootstrapEntityMenu() {
 
 ///////////////// NYX MESSAGE HANDLING
 
-var NYX_ENTITY_MENU_SETTINGS = 'entity-menu-settings';
+var NYX_SETTINGS_SETTINGS = 'Nyx Settings'; // lol
 
 function sendToWeb(command, data) {
     var dataToSend = {
@@ -174,7 +174,7 @@ function onOverlayWebEventReceived(event) {
     
     if (eventJSON.command === 'web-to-script-settings-changed') {
         nyxSettings = eventJSON.data.settings;
-        Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_SETTINGS, eventJSON.data.settings);
+        Settings.setValue(SETTING_NYX_PREFIX + NYX_SETTINGS_SETTINGS, eventJSON.data.settings);
     }
 }
 
@@ -203,14 +203,6 @@ function processMouseEvent (event) {
         return false;
     }
 
-    var checksPrimary = false;
-    var checksSecondary = false;
-    var checksTertiary = false;
-    var checksShiftModifier = false;
-    var checksMetaModifier = false;
-    var checksControlModifier = false;
-    var checksAltModifier = false;
-
     for (var i = 0; i < nyxSettings.entityMenu.selectedMouseTriggers.length; i++) {
         var buttonToCheck = 'is' + nyxSettings.entityMenu.selectedMouseTriggers[i] + 'Held';
 
@@ -218,29 +210,26 @@ function processMouseEvent (event) {
             return false;
         }
     }
-    
+
     return true;
 }
 
 function onMousePressOnEntity (pressedEntityID, event) {
-    if (!nyxSettings || !nyxSettings.entityMenu.useMouseTriggers) {
-        if (event.isPrimaryHeld && event.isSecondaryHeld && !isInEditMode()) {
-            toggleEntityMenu(pressedEntityID);
-        }
-    } else {
-        if (processMouseEvent(event) === true) {
-            toggleEntityMenu(pressedEntityID);
-        }
-    }
-}
-
-function onMousePressEvent (event) {
+    var currentCursorPosition = Reticle.getPosition();
     lastTriggeredPointerLocation = {
-        x: event.x,
-        y: event.y
+        x: currentCursorPosition.x,
+        y: currentCursorPosition.y
     };
 
     NyxSit.capturePickPosition();
+    
+    if (!nyxSettings || !nyxSettings.entityMenu.useMouseTriggers || nyxSettings.entityMenu.selectedMouseTriggers.length === 0) {
+        if (event.isPrimaryHeld && event.isSecondaryHeld && !isInEditMode()) {
+            toggleEntityMenu(pressedEntityID);
+        }
+    } else if (processMouseEvent(event) === true) {
+        toggleEntityMenu(pressedEntityID);
+    }
 }
 
 ///////////////// END NYX MESSAGE HANDLING
@@ -258,7 +247,8 @@ function handleMenuEvent(menuItem) {
     }
     
     if (menuItem === NYX_ENTITY_MENU_RESET) {
-        Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_SETTINGS, '');
+        nyxSettings = null;
+        Settings.setValue(SETTING_NYX_PREFIX + NYX_SETTINGS_SETTINGS, '');
     }
 }
 
@@ -297,7 +287,8 @@ function startup() {
     Messages.messageReceived.connect(onMessageReceived);
     Entities.mousePressOnEntity.connect(onMousePressOnEntity);
     Menu.menuItemEvent.connect(handleMenuEvent);
-    Controller.mousePressEvent.connect(onMousePressEvent);
+    
+    nyxSettings = Settings.getValue(SETTING_NYX_PREFIX + NYX_SETTINGS_SETTINGS, '');
     
     BOOTSTRAP_MENU_WEB_OVERLAY_SOURCE = Script.resolvePath('./index.html');
     bootstrapNyxMenu();
@@ -310,7 +301,6 @@ Script.scriptEnding.connect(function () {
     Messages.messageReceived.disconnect(onMessageReceived);
     Entities.mousePressOnEntity.disconnect(onMousePressOnEntity);
     Menu.menuItemEvent.disconnect(handleMenuEvent);
-    Controller.mousePressEvent.connect(onMousePressEvent);
     
     entityWebMenuOverlay.webEventReceived.disconnect(onOverlayWebEventReceived);
 
