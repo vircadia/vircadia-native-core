@@ -41,7 +41,6 @@
                             color="primary"
                             @click="tabs = 2"
                             class="mr-3"
-                            disabled
                         >
                             <v-icon>mdi-cog</v-icon>
                         </v-btn>
@@ -221,7 +220,7 @@
                                         <v-combobox
                                             v-model="settings.entityMenu.selectedMouseModifiers"
                                             :items="settings.entityMenu.possibleMouseModifiers"
-                                            :disabled="!settings.entityMenu.useMouseTriggers"
+                                            :disabled="true || !settings.entityMenu.useMouseTriggers"
                                             label="Modifiers"
                                             multiple
                                             outlined

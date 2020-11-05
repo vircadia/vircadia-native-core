@@ -16,9 +16,9 @@ var NyxSit = Script.require("./modules/sit.js");
 var SETTING_NYX_PREFIX = "nyx/";
 var NYX_UI_CHANNEL = "nyx-ui";
 
-///////////////// BEGIN ENTITY MENU OVERLAY
+var nyxSettings = null;
 
-var entityMenuSettings = null;
+///////////////// BEGIN ENTITY MENU OVERLAY
 var enableEntityWebMenu = true;
 var entityWebMenuOverlay;
 var registeredEntityMenus = {};
@@ -141,11 +141,11 @@ function onOverlayWebEventReceived(event) {
 
         sendToWeb('script-to-web-registered-entity-menus', dataToSend);
         
-        // var settingsToSend = {
-        //     settings: entityMenuSettings
-        // };
-        // 
-        // sendToWeb('script-to-web-update-settings', settingsToSend);
+        var settingsToSend = {
+            settings: nyxSettings
+        };
+
+        sendToWeb('script-to-web-update-settings', settingsToSend);
     }
     
     if (eventJSON.command === "menu-item-triggered") {
@@ -173,7 +173,7 @@ function onOverlayWebEventReceived(event) {
     }
     
     if (eventJSON.command === "web-to-script-settings-changed") {
-        entityMenuSettings = eventJSON.data.settings;
+        nyxSettings = eventJSON.data.settings;
         Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_SETTINGS, eventJSON.data.settings);
     }
 }
@@ -198,37 +198,39 @@ function onMessageReceived(channel, message, senderID, localOnly) {
     }
 }
 
-// function processMouseEvent (event) {
-//     var acceptTrigger = true;
-// 
-//     if (!settings.entityMenu.selectedMouseTriggers) {
-//         return false;
-//     }
-// 
-//     var checksPrimary = false;
-//     var checksSecondary = false;
-//     var checksTertiary = false;
-//     var checksShiftModifier = false;
-//     var checksMetaModifier = false;
-//     var checksControlModifier = false;
-//     var checksAltModifier = false;
-// 
-//     for (var i = 0; i < settings.entityMenu.selectedMouseTriggers.length; i++) {
-//         var valueToCheck = 'is' + settings.entityMenu.selectedMouseTriggers[i] + 'Held';
-// 
-//         if (event.[valueToCheck] !== true) {
-//             return false;
-//         }
-// 
-//         if (settings.entityMenu.selectedMouseTriggers[i] === 'Primary') {
-// 
-//         }
-//     } 
-// }
+function processMouseEvent (event) {
+    if (!nyxSettings.entityMenu.selectedMouseTriggers) {
+        return false;
+    }
+
+    var checksPrimary = false;
+    var checksSecondary = false;
+    var checksTertiary = false;
+    var checksShiftModifier = false;
+    var checksMetaModifier = false;
+    var checksControlModifier = false;
+    var checksAltModifier = false;
+
+    for (var i = 0; i < nyxSettings.entityMenu.selectedMouseTriggers.length; i++) {
+        var buttonToCheck = 'is' + nyxSettings.entityMenu.selectedMouseTriggers[i] + 'Held';
+
+        if (event[buttonToCheck] !== true) {
+            return false;
+        }
+    }
+    
+    return true;
+}
 
 function onMousePressOnEntity (pressedEntityID, event) {
-    if (event.isPrimaryHeld && event.isSecondaryHeld && !isInEditMode()) {
-        toggleEntityMenu(pressedEntityID);
+    if (!nyxSettings || !nyxSettings.entityMenu.useMouseTriggers) {
+        if (event.isPrimaryHeld && event.isSecondaryHeld && !isInEditMode()) {
+            toggleEntityMenu(pressedEntityID);
+        }
+    } else {
+        if (processMouseEvent(event) === true) {
+            toggleEntityMenu(pressedEntityID);
+        }
     }
 }
 
@@ -247,11 +249,16 @@ function onMousePressEvent (event) {
 
 var NYX_MAIN_MENU = "Settings > Nyx";
 var NYX_ENTITY_MENU_ENABLED = "Enable Entity Menu";
+var NYX_ENTITY_MENU_RESET = "Reset Entity Menu";
 
 function handleMenuEvent(menuItem) {
     if (menuItem === NYX_ENTITY_MENU_ENABLED) {
         enableEntityWebMenu = Menu.isOptionChecked(NYX_ENTITY_MENU_ENABLED);
         Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, enableEntityWebMenu);
+    }
+    
+    if (menuItem === NYX_ENTITY_MENU_RESET) {
+        Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_SETTINGS, "");
     }
 }
 
@@ -264,6 +271,11 @@ function bootstrapNyxMenu() {
             isCheckable: true,
             isChecked: Settings.getValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, true)
         });
+        Menu.addMenuItem({
+            menuName: NYX_MAIN_MENU,
+            menuItemName: NYX_ENTITY_MENU_RESET,
+            isCheckable: false
+        });
     }
 
     enableEntityWebMenu = Settings.getValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, true);
@@ -273,6 +285,7 @@ function unloadNyxMenu() {
     Settings.setValue(SETTING_NYX_PREFIX + NYX_ENTITY_MENU_ENABLED, enableEntityWebMenu);
     
     Menu.removeMenuItem(NYX_MAIN_MENU, NYX_ENTITY_MENU_ENABLED);
+    Menu.removeMenuItem(NYX_MAIN_MENU, NYX_ENTITY_MENU_RESET);
     Menu.removeMenu(NYX_MAIN_MENU);
 }
 
