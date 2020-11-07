@@ -162,6 +162,19 @@ function onOverlayWebEventReceived(event) {
         }
     }
     
+    if (eventJSON.command === 'dynamic-menu-item-triggered') {
+        var dataToSend = {
+            command: eventJSON.command,
+            entityID: eventJSON.data.triggeredEntityID,
+            data: {
+                name: eventJSON.data.name,
+                colors: eventJSON.data.colors
+            }
+        };
+
+        Messages.sendLocalMessage(NYX_UI_CHANNEL, JSON.stringify(dataToSend));
+    }
+    
     if (eventJSON.command === 'sit-on-entity-triggered') {
         NyxSit.toggleSit();
     }
@@ -220,9 +233,11 @@ function onMousePressOnEntity (pressedEntityID, event) {
         x: currentCursorPosition.x,
         y: currentCursorPosition.y
     };
-
-    NyxSit.capturePickPosition();
     
+    if (!entityWebMenuOverlay.isVisible()) {
+        NyxSit.capturePickPosition();
+    }
+
     if (!nyxSettings || !nyxSettings.entityMenu.useMouseTriggers || nyxSettings.entityMenu.selectedMouseTriggers.length === 0) {
         if (event.isPrimaryHeld && event.isSecondaryHeld && !isInEditMode()) {
             toggleEntityMenu(pressedEntityID);

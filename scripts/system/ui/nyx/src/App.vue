@@ -10,7 +10,6 @@
                     width="100%"
                 >
                     <v-toolbar
-                        dark
                         flat
                     >
                         <v-toolbar-title 
@@ -107,6 +106,20 @@
                                             >
                                                 <v-list-item-content>
                                                     <v-list-item-title v-text="item.name"></v-list-item-title>
+                                                </v-list-item-content>
+                                            </v-list-item>
+                                        </div>
+                                        <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].colorPickers">
+                                            <v-list-item
+                                                v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].colorPickers"
+                                                :key="i"
+                                                width="100%"
+                                            >
+                                                <v-list-item-content>
+                                                    <v-color-picker
+                                                        @update:color="colorPickerUpdated(item.name, $event)"
+                                                        v-bind:ref="'colorPicker' + item.name"
+                                                    ></v-color-picker>
                                                 </v-list-item-content>
                                             </v-list-item>
                                         </div>
@@ -360,6 +373,15 @@ export default {
             }
 
             this.sendFrameworkMessage('sit-on-entity-triggered', dataToSend);
+        },
+        colorPickerUpdated: function (colorPicker, colorEvent) {
+            var dataToSend = {
+                'triggeredEntityID': this.triggeredEntity.id,
+                'name': colorPicker,
+                'colors': colorEvent
+            }
+
+            this.sendFrameworkMessage('dynamic-menu-item-triggered', dataToSend);
         },
         closeEntityMenu: function () {
             this.sendFrameworkMessage('close-entity-menu', '');

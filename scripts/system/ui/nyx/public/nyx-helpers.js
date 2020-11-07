@@ -39,6 +39,19 @@ function disconnectEntityMenu (callback) {
     }
 }
 
+// DYNAMIC ENTITY MENU TRIGGERED HELPER
+var dynamicEntityMenuCallBack = null;
+
+function connectDynamicEntityMenuItem (callback) {
+    dynamicEntityMenuCallBack = callback;
+}
+
+function disconnectDynamicEntityMenuItem (callback) {
+    if (dynamicEntityMenuCallBack === callback) {
+        dynamicEntityMenuCallBack = null;
+    }
+}
+
 // MAIN FUNCTIONALITY
 
 function onLoad() {
@@ -64,6 +77,10 @@ function onMessageReceived(channel, message, senderID, localOnly) {
         if (messageData.command === "menu-item-triggered") {
             entityMenuCallBack(messageData.entityID, messageData.command, messageData.menuItem);
         }
+        
+        if (messageData.command === "dynamic-menu-item-triggered") {
+            dynamicEntityMenuCallBack(messageData.entityID, messageData.command, messageData.data);
+        }
     }
 }
 
@@ -72,6 +89,10 @@ module.exports = {
     entityMenuPressed: {
         connect: connectEntityMenu,
         disconnect: disconnectEntityMenu
+    },
+    dynamicEntityMenuTriggered: {
+        connect: connectDynamicEntityMenuItem,
+        disconnect: disconnectDynamicEntityMenuItem
     },
     version: "0.0.1"
 }

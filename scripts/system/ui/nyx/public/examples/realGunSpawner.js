@@ -1,5 +1,5 @@
 (function () {
-    var NyxAlpha1 = Script.require('../nyx-helpers.js?12dsadsddsadssadddsaddseras3');
+    var NyxAlpha1 = Script.require('../nyx-helpers.js?12dsadsddsadssaddddsadassadasdsasaddseras3');
 
     var _entityID;
     var gunID;
@@ -51,6 +51,18 @@
             Entities.deleteEntity(gunID);
         }
     }
+    
+    function onDynamicEntityMenuTriggered(triggeredEntityID, command, data) {
+        if (data.name === 'Color Picker' && triggeredEntityID === _entityID) {
+            Entities.editEntity(_entityID, { 
+                color: { 
+                    red: data.colors.rgba.r,
+                    green: data.colors.rgba.g,
+                    blue: data.colors.rgba.b
+                }
+            });
+        }
+    }
 
     this.preload = function (entityID) {
         _entityID = entityID;
@@ -59,14 +71,20 @@
                 {
                     name: 'Equip'
                 }
+            ],
+            colorPickers: [
+                {
+                    name: 'Color Picker'
+                }
             ]
         });
         NyxAlpha1.entityMenuPressed.connect(onEntityMenuTriggered);
+        NyxAlpha1.dynamicEntityMenuTriggered.connect(onDynamicEntityMenuTriggered);
     };
 
     this.unload = function () {
         NyxAlpha1.entityMenuPressed.disconnect(onEntityMenuTriggered);
-        NyxAlpha1.destroy();
+        NyxAlpha1.dynamicEntityMenuTriggered.disconnect(onDynamicEntityMenuTriggered);
     };
 
 });
