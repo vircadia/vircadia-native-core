@@ -166,10 +166,7 @@ function onOverlayWebEventReceived(event) {
         var dataToSend = {
             command: eventJSON.command,
             entityID: eventJSON.data.triggeredEntityID,
-            data: {
-                name: eventJSON.data.name,
-                colors: eventJSON.data.colors
-            }
+            data: eventJSON.data.data
         };
 
         Messages.sendLocalMessage(NYX_UI_CHANNEL, JSON.stringify(dataToSend));

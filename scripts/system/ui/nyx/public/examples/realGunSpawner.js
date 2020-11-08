@@ -59,13 +59,23 @@
                     red: data.colors.rgba.r,
                     green: data.colors.rgba.g,
                     blue: data.colors.rgba.b
-                }
+                },
+                alpha: data.colors.rgba.a
+            });
+        }
+        
+        if (data.name === 'I Have A Slider' && triggeredEntityID === _entityID) {
+            Entities.editEntity(_entityID, { 
+                alpha: data.value
             });
         }
     }
 
     this.preload = function (entityID) {
         _entityID = entityID;
+
+        var initialProps = Entities.getEntityProperties(_entityID, ['color', 'alpha']);
+        
         NyxAlpha1.registerWithEntityMenu(entityID, {
             buttons: [
                 {
@@ -74,7 +84,23 @@
             ],
             colorPickers: [
                 {
-                    name: 'Color Picker'
+                    name: 'Color Picker',
+                    initialColor: {
+                        r: initialProps.color.r,
+                        g: initialProps.color.g,
+                        b: initialProps.color.b,
+                        a: '1'
+                    }
+                }
+            ],
+            sliders: [
+                {
+                    name: 'I Have A Slider',
+                    step: 0.1,
+                    color: 'yellow',
+                    initialValue: initialProps.alpha,
+                    minValue: 0,
+                    maxValue: 1
                 }
             ]
         });

@@ -94,7 +94,7 @@
                                     v-show="registeredEntityMenus[triggeredEntity.id]"
                                 >
                                     <v-subheader>ACTIONS</v-subheader>
-                                    <v-list-item-group
+                                    <v-list
                                         color="#385F73"
                                     >
                                         <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].buttons">
@@ -110,20 +110,37 @@
                                             </v-list-item>
                                         </div>
                                         <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].colorPickers">
-                                            <v-list-item
+                                            <div
                                                 v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].colorPickers"
                                                 :key="i"
                                                 width="100%"
                                             >
-                                                <v-list-item-content>
-                                                    <v-color-picker
-                                                        @update:color="colorPickerUpdated(item.name, $event)"
-                                                        v-bind:ref="'colorPicker' + item.name"
-                                                    ></v-color-picker>
-                                                </v-list-item-content>
-                                            </v-list-item>
+                                                <v-color-picker
+                                                    @update:color="colorPickerUpdated(item.name, $event)"
+                                                    :value="item.initialColor"
+                                                ></v-color-picker>
+                                            </div>
                                         </div>
-                                    </v-list-item-group>
+                                        <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].sliders">
+                                            <div
+                                                v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].sliders"
+                                                :key="i"
+                                                width="100%"
+                                            >
+                                                <v-list-item-content>
+                                                    <v-slider
+                                                        v-on:change="sliderUpdated(item.name, $event)"
+                                                        :label="item.name"
+                                                        :color="item.color"
+                                                        :value="item.initialValue"
+                                                        :min="item.minValue"
+                                                        :max="item.maxValue"
+                                                        :step="item.step"
+                                                    ></v-slider>
+                                                </v-list-item-content>
+                                            </div>
+                                        </div>
+                                    </v-list>
                                 </v-list>
                                 <div v-show="!registeredEntityMenus[triggeredEntity.id]">
                                     <v-list-item-subtitle>No Actions Available</v-list-item-subtitle>
@@ -377,8 +394,21 @@ export default {
         colorPickerUpdated: function (colorPicker, colorEvent) {
             var dataToSend = {
                 'triggeredEntityID': this.triggeredEntity.id,
-                'name': colorPicker,
-                'colors': colorEvent
+                data: {
+                    'name': colorPicker,
+                    'colors': colorEvent
+                }
+            }
+
+            this.sendFrameworkMessage('dynamic-menu-item-triggered', dataToSend);
+        },
+        sliderUpdated: function (slider, sliderEvent) {
+            var dataToSend = {
+                'triggeredEntityID': this.triggeredEntity.id,
+                data: {
+                    'name': slider,
+                    'value': sliderEvent
+                }
             }
 
             this.sendFrameworkMessage('dynamic-menu-item-triggered', dataToSend);
