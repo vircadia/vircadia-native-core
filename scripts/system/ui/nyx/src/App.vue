@@ -94,10 +94,9 @@
                                     v-show="registeredEntityMenus[triggeredEntity.id]"
                                 >
                                     <v-subheader>ACTIONS</v-subheader>
-                                    <v-list
-                                        color="#385F73"
-                                    >
+                                    <v-list>
                                         <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].buttons">
+                                            <v-divider></v-divider>
                                             <v-list-item
                                                 v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].buttons"
                                                 :key="i"
@@ -110,18 +109,22 @@
                                             </v-list-item>
                                         </div>
                                         <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].colorPickers">
+                                            <v-divider></v-divider>
                                             <div
                                                 v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].colorPickers"
                                                 :key="i"
                                                 width="100%"
                                             >
-                                                <v-color-picker
-                                                    @update:color="colorPickerUpdated(item.name, $event)"
-                                                    :value="item.initialColor"
-                                                ></v-color-picker>
+                                                <v-list-item-content>
+                                                    <v-color-picker
+                                                        @update:color="colorPickerUpdated(item.name, $event)"
+                                                        :value="item.initialColor"
+                                                    ></v-color-picker>
+                                                </v-list-item-content>
                                             </div>
                                         </div>
                                         <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].sliders">
+                                            <v-divider></v-divider>
                                             <div
                                                 v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].sliders"
                                                 :key="i"
@@ -137,6 +140,37 @@
                                                         :max="item.maxValue"
                                                         :step="item.step"
                                                     ></v-slider>
+                                                </v-list-item-content>
+                                            </div>
+                                        </div>
+                                        <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].textFields">
+                                            <v-divider></v-divider>
+                                            <div
+                                                v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].textFields"
+                                                :key="i"
+                                                width="100%"
+                                            >
+                                                <v-list-item-content>
+                                                    <v-text-field
+                                                        :label="item.name"
+                                                        :value="item.initialValue"
+                                                        :hint="item.hint"
+                                                        v-model="textFields[item.name]"
+                                                    >
+                                                        <v-tooltip slot="append" left>
+                                                            <template v-slot:activator="{ on, attrs }">
+                                                                <v-icon
+                                                                    @click="textFieldUpdated(item.name)" 
+                                                                    v-bind="attrs"
+                                                                    v-on="on"
+                                                                    color="green"
+                                                                >
+                                                                    mdi-check
+                                                                </v-icon>
+                                                            </template>
+                                                            <span>Apply</span>
+                                                        </v-tooltip>
+                                                    </v-text-field>
                                                 </v-list-item-content>
                                             </div>
                                         </div>
@@ -325,6 +359,8 @@ export default {
                 ]
             }
         },
+        // Dynamic Menu Item Data
+        textFields: {},
         // General
         tabs: 0,
         // Entity Context Menu
@@ -408,6 +444,17 @@ export default {
                 data: {
                     'name': slider,
                     'value': sliderEvent
+                }
+            }
+
+            this.sendFrameworkMessage('dynamic-menu-item-triggered', dataToSend);
+        },
+        textFieldUpdated: function (textField) {
+            var dataToSend = {
+                'triggeredEntityID': this.triggeredEntity.id,
+                data: {
+                    'name': textField,
+                    'value': this.textFields[textField]
                 }
             }
 
