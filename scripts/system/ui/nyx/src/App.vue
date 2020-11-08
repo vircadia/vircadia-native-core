@@ -1,3 +1,15 @@
+<!-- 
+//
+//  App.vue
+//
+//  Created by Kalila L. on Oct 6 2020.
+//  Copyright 2020 Vircadia contributors.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+// 
+-->
+
 <template>
     <v-app>
         <v-main>
@@ -108,21 +120,6 @@
                                                 </v-list-item-content>
                                             </v-list-item>
                                         </div>
-                                        <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].colorPickers">
-                                            <v-divider></v-divider>
-                                            <div
-                                                v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].colorPickers"
-                                                :key="i"
-                                                width="100%"
-                                            >
-                                                <v-list-item-content>
-                                                    <v-color-picker
-                                                        @update:color="colorPickerUpdated(item.name, $event)"
-                                                        :value="item.initialColor"
-                                                    ></v-color-picker>
-                                                </v-list-item-content>
-                                            </div>
-                                        </div>
                                         <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].sliders">
                                             <v-divider></v-divider>
                                             <div
@@ -171,6 +168,21 @@
                                                             <span>Apply</span>
                                                         </v-tooltip>
                                                     </v-text-field>
+                                                </v-list-item-content>
+                                            </div>
+                                        </div>
+                                        <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].colorPickers">
+                                            <v-divider></v-divider>
+                                            <div
+                                                v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].colorPickers"
+                                                :key="i"
+                                                width="100%"
+                                            >
+                                                <v-list-item-content>
+                                                    <v-color-picker
+                                                        @update:color="colorPickerUpdated(item.name, $event)"
+                                                        :value="item.initialColor"
+                                                    ></v-color-picker>
                                                 </v-list-item-content>
                                             </div>
                                         </div>
