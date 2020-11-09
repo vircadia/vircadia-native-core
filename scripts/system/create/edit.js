@@ -160,6 +160,7 @@ var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "showLightsAndParticlesInEditMode";
 var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
+var SETTING_EDITOR_COLUMNS_SETUP = "editorColumnsSetup";
 
 var SETTING_EDIT_PREFIX = "Edit/";
 
