@@ -333,6 +333,8 @@ Rectangle {
             anchors.left: parent.left;
             anchors.right: parent.right;
             height: childrenRect.height;
+            // FIXME: Reuse or remove wallet-related code.
+            visible: false;
 
             Rectangle {
                 id: walletHeaderContainer;

@@ -5,10 +5,12 @@
 //  Created by Kasen IO on 2019.07.14 | realities.dev | kasenvr@gmail.com
 //  Copyright 2019 Kasen IO
 //
+//  Authored by: Humbletim (humbletim@gmail.com)
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-// Example of prototyping new JS APIs by leveraging the existing plugin system.
+//  Example of prototyping new JS APIs by leveraging the existing plugin system.
 
 #include "ExampleScriptPlugin.h"
 

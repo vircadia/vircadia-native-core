@@ -25,9 +25,12 @@ MessagesMixer::MessagesMixer(ReceivedMessage& message) : ThreadedAssignment(mess
 {
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &MessagesMixer::nodeKilled);
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::MessagesData, this, "handleMessages");
-    packetReceiver.registerListener(PacketType::MessagesSubscribe, this, "handleMessagesSubscribe");
-    packetReceiver.registerListener(PacketType::MessagesUnsubscribe, this, "handleMessagesUnsubscribe");
+    packetReceiver.registerListener(PacketType::MessagesData,
+        PacketReceiver::makeSourcedListenerReference<MessagesMixer>(this, &MessagesMixer::handleMessages));
+    packetReceiver.registerListener(PacketType::MessagesSubscribe,
+        PacketReceiver::makeSourcedListenerReference<MessagesMixer>(this, &MessagesMixer::handleMessagesSubscribe));
+    packetReceiver.registerListener(PacketType::MessagesUnsubscribe,
+        PacketReceiver::makeSourcedListenerReference<MessagesMixer>(this, &MessagesMixer::handleMessagesUnsubscribe));
 }
 
 void MessagesMixer::nodeKilled(SharedNodePointer killedNode) {

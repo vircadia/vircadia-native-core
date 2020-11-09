@@ -112,11 +112,12 @@ Agent::Agent(ReceivedMessage& message) :
 
     packetReceiver.registerListenerForTypes(
         { PacketType::MixedAudio, PacketType::SilentAudioFrame },
-        this, "handleAudioPacket");
+        PacketReceiver::makeUnsourcedListenerReference<Agent>(this, &Agent::handleAudioPacket));
     packetReceiver.registerListenerForTypes(
         { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
-        this, "handleOctreePacket");
-    packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
+        PacketReceiver::makeSourcedListenerReference<Agent>(this, &Agent::handleOctreePacket));
+    packetReceiver.registerListener(PacketType::SelectedAudioFormat,
+        PacketReceiver::makeUnsourcedListenerReference<Agent>(this, &Agent::handleSelectedAudioFormat));
 
     // 100Hz timer for audio
     const int TARGET_INTERVAL_MSEC = 10; // 10ms

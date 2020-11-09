@@ -81,7 +81,8 @@ ContextOverlayInterface::ContextOverlayInterface() {
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::ChallengeOwnershipReply, this, "handleChallengeOwnershipReplyPacket");
+    packetReceiver.registerListener(PacketType::ChallengeOwnershipReply,
+        PacketReceiver::makeSourcedListenerReference<ContextOverlayInterface>(this, &ContextOverlayInterface::handleChallengeOwnershipReplyPacket));
     _challengeOwnershipTimeoutTimer.setSingleShot(true);
 }
 

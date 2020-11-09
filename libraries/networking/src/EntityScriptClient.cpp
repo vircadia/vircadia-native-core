@@ -34,7 +34,8 @@ EntityScriptClient::EntityScriptClient() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
 
-    packetReceiver.registerListener(PacketType::EntityScriptGetStatusReply, this, "handleGetScriptStatusReply");
+    packetReceiver.registerListener(PacketType::EntityScriptGetStatusReply, 
+        PacketReceiver::makeSourcedListenerReference<EntityScriptClient>(this, &EntityScriptClient::handleGetScriptStatusReply));
 
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &EntityScriptClient::handleNodeKilled);
     connect(nodeList.data(), &LimitedNodeList::clientConnectionToNodeReset,

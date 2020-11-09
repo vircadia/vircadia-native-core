@@ -43,10 +43,14 @@ AssetClient::AssetClient() {
     auto nodeList = DependencyManager::get<LimitedNodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
 
-    packetReceiver.registerListener(PacketType::AssetMappingOperationReply, this, "handleAssetMappingOperationReply");
-    packetReceiver.registerListener(PacketType::AssetGetInfoReply, this, "handleAssetGetInfoReply");
-    packetReceiver.registerListener(PacketType::AssetGetReply, this, "handleAssetGetReply", true);
-    packetReceiver.registerListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
+    packetReceiver.registerListener(PacketType::AssetMappingOperationReply,
+        PacketReceiver::makeSourcedListenerReference<AssetClient>(this, &AssetClient::handleAssetMappingOperationReply));
+    packetReceiver.registerListener(PacketType::AssetGetInfoReply,
+        PacketReceiver::makeSourcedListenerReference<AssetClient>(this, &AssetClient::handleAssetGetInfoReply));
+    packetReceiver.registerListener(PacketType::AssetGetReply,
+        PacketReceiver::makeSourcedListenerReference<AssetClient>(this, &AssetClient::handleAssetGetReply), true);
+    packetReceiver.registerListener(PacketType::AssetUploadReply,
+        PacketReceiver::makeSourcedListenerReference<AssetClient>(this, &AssetClient::handleAssetUploadReply));
 
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &AssetClient::handleNodeKilled);
     connect(nodeList.data(), &LimitedNodeList::clientConnectionToNodeReset,
