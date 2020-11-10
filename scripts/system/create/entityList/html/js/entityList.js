@@ -188,6 +188,8 @@ let selectedEntities = [];
 let entityList = null; // The ListView
 
 let hmdMultiSelectMode = false; 
+
+let lastSelectedEntity;
 /**
  * @type EntityListContextMenu
  */
@@ -1047,6 +1049,8 @@ function loaded() {
         function updateSelectedEntities(selectedIDs, autoScroll) {
             let notFound = false;
 
+            lastSelectedEntity = selectedIDs[selectedIDs.length - 1];
+
             // reset all currently selected entities and their rows first
             selectedEntities.forEach(function(id) {
                 let entity = entitiesByID[id];
@@ -1066,7 +1070,11 @@ function loaded() {
                 if (entity !== undefined) {
                     entity.selected = true;
                     if (entity.elRow) {
-                        entity.elRow.className = 'selected';
+                        if (id === lastSelectedEntity) {
+                            entity.elRow.className = 'last-selected';
+                        } else {
+                            entity.elRow.className = 'selected';
+                        }
                     }
                 } else {
                     notFound = true;
@@ -1135,7 +1143,11 @@ function loaded() {
 
             // if this entity was previously selected flag it's row as selected
             if (itemData.selected) {
-                elRow.className = 'selected';
+                if (itemData.id === lastSelectedEntity) {
+                    elRow.className = 'last-selected';
+                } else {
+                    elRow.className = 'selected';
+                }
             } else {
                 elRow.className = '';
             }
