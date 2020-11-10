@@ -22,7 +22,8 @@ Script.include("../../libraries/utils.js");
 Script.include("../../libraries/constants.js");
 Script.include("../../libraries/toolBars.js");
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 var LASER_WIDTH = 2;
 var POSE_CONTROLS = [ Controller.Standard.LeftHand, Controller.Standard.RightHand ];
@@ -30,7 +31,7 @@ var TRIGGER_CONTROLS = [ Controller.Standard.LT, Controller.Standard.RT ];
 var MIN_THROWER_DELAY = 1000;
 var MAX_THROWER_DELAY = 1000;
 var RELOAD_INTERVAL = 5;
-var GUN_MODEL = HIFI_PUBLIC_BUCKET + "cozza13/gun/m1911-handgun+1.fbx?v=4";
+var GUN_MODEL = VIRCADIA_PUBLIC_CDN + "cozza13/gun/m1911-handgun+1.fbx?v=4";
 var BULLET_VELOCITY = 10.0;
 var GUN_OFFSETS = [ {
     x: -0.04,
@@ -84,11 +85,11 @@ function getRandomFloat(min, max) {
 
 var showScore = false;
 // Load some sound to use for loading and firing
-var fireSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guns/GUN-SHOT2.raw");
-var loadSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guns/Gun_Reload_Weapon22.raw");
-var impactSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guns/BulletImpact2.raw");
-var targetHitSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/hit.raw");
-var targetLaunchSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/shoot.raw");
+var fireSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Guns/GUN-SHOT2.raw");
+var loadSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Guns/Gun_Reload_Weapon22.raw");
+var impactSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Guns/BulletImpact2.raw");
+var targetHitSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Space%20Invaders/hit.raw");
+var targetLaunchSound = SoundCache.getSound(VIRCADIA_PUBLIC_CDN + "sounds/Space%20Invaders/shoot.raw");
 
 var audioOptions = {
     volume: 0.9
@@ -118,7 +119,7 @@ var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.gun.toolbar", 
 var offButton = toolBar.addOverlay("image", {
     width: BUTTON_SIZE,
     height: BUTTON_SIZE,
-    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/close.svg",
+    imageURL: VIRCADIA_PUBLIC_CDN + "images/gun/close.svg",
     alpha: 1
 });
 
@@ -128,7 +129,7 @@ var platformButton = toolBar.addOverlay("image", {
     y: screenSize.y - (BUTTON_SIZE + PADDING),
     width: BUTTON_SIZE,
     height: BUTTON_SIZE,
-    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/platform-targets.svg",
+    imageURL: VIRCADIA_PUBLIC_CDN + "images/gun/platform-targets.svg",
     alpha: 1
 });
 
@@ -138,7 +139,7 @@ var gridButton = toolBar.addOverlay("image", {
     y: screenSize.y - (BUTTON_SIZE + PADDING),
     width: BUTTON_SIZE,
     height: BUTTON_SIZE,
-    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/floating-targets.svg",
+    imageURL: VIRCADIA_PUBLIC_CDN + "images/gun/floating-targets.svg",
     alpha: 1
 });
 

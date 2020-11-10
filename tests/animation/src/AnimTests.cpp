@@ -15,6 +15,7 @@
 #include <AnimVariant.h>
 #include <AnimExpression.h>
 #include <AnimUtil.h>
+#include <ExternalResource.h>
 #include <NodeList.h>
 #include <AddressManager.h>
 #include <AccountManager.h>
@@ -46,7 +47,7 @@ void AnimTests::cleanupTestCase() {
 
 void AnimTests::testClipInternalState() {
     QString id = "my anim clip";
-    QString url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
+    QString url = ExternalResource::getInstance()->getUrl(ExternalResource::Bucket::HF_Content, "/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx");
     float startFrame = 2.0f;
     float endFrame = 20.0f;
     float timeScale = 1.1f;
@@ -74,7 +75,7 @@ static float framesToSec(float secs) {
 void AnimTests::testClipEvaulate() {
     AnimContext context(false, false, false, glm::mat4(), glm::mat4(), 0);
     QString id = "myClipNode";
-    QString url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
+    QString url = ExternalResource::getInstance()->getUrl(ExternalResource::Bucket::HF_Content, "/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx");
     float startFrame = 2.0f;
     float endFrame = 22.0f;
     float timeScale = 1.0f;
@@ -111,7 +112,7 @@ void AnimTests::testClipEvaulate() {
 void AnimTests::testClipEvaulateWithVars() {
     AnimContext context(false, false, false, glm::mat4(), glm::mat4(), 0);
     QString id = "myClipNode";
-    QString url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
+    QString url = ExternalResource::getInstance()->getUrl(ExternalResource::Bucket::HF_Content, "/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
     float endFrame = 22.0f;
     float timeScale = 1.0f;

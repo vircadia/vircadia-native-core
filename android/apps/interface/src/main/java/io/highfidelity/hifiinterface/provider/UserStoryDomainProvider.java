@@ -22,7 +22,7 @@ import retrofit2.http.Query;
 
 public class UserStoryDomainProvider implements DomainProvider {
 
-    public static final String BASE_URL = "https://metaverse.highfidelity.com/";
+    public static final String BASE_URL = "https://metaverse.vircadia.com/live/";
 
     private static final String INCLUDE_ACTIONS_FOR_PLACES = "concurrency";
     private static final String INCLUDE_ACTIONS_FOR_FULL_SEARCH = "concurrency,announcements,snapshot";
@@ -169,7 +169,7 @@ public class UserStoryDomainProvider implements DomainProvider {
     }
 
     public interface UserStoryDomainProviderService {
-        @GET("api/v1/user_stories")
+        @GET("/api/v1/user_stories")
         Call<UserStories> getUserStories(@Query("include_actions") String includeActions,
                                          @Query("restriction") String restriction,
                                          @Query("require_online") boolean requireOnline,

@@ -18,7 +18,7 @@
     // this is the "constructor" for the entity as a JS object we don't do much here
     var Doll = function() {
         _this = this;
-        this.screamSounds = [SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/doll/KenDoll_1%2303.wav")];
+        this.screamSounds = [SoundCache.getSound("https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/doll/KenDoll_1%2303.wav")];
     };
 
     Doll.prototype = {
@@ -31,7 +31,7 @@
 
             Entities.editEntity(this.entityID, {
                 animation: {
-                    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/doll/zombie_scream.fbx",
+                    url: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/doll/zombie_scream.fbx",
                     running: true
                 }
             });
@@ -67,7 +67,7 @@
                     animation: {
                         // Providing actual model fbx for animation used to work, now contorts doll into a weird ball
                         // See bug:  https://app.asana.com/0/26225263936266/70097355490098
-                        // url: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
+                        // url: Script.getExternalPath(Script.ExternalPaths.HF_Public, '/models/Bboys/bboy2/bboy2.fbx"),
                         running: false,
                     }
                 });

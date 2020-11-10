@@ -571,6 +571,9 @@ public:
     void setExternalRecycler(const ExternalRecycler& recycler);
     ExternalRecycler getExternalRecycler() const;
 
+    bool getImportant() const { return _important; }
+    void setImportant(bool important) { _important = important; }
+
     const GPUObjectPointer gpuObject {};
 
     ExternalUpdates getUpdates() const;
@@ -632,6 +635,7 @@ protected:
     bool _autoGenerateMips = false;
     bool _isIrradianceValid = false;
     bool _defined = false;
+    bool _important = false;
    
     static TexturePointer create(TextureUsageType usageType, Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, uint16 numMips, const Sampler& sampler);
 

@@ -11,7 +11,11 @@
 #ifndef hifi_ContextAwareProfile_h
 #define hifi_ContextAwareProfile_h
 
-#include <QtCore/QtGlobal>
+#include <atomic>
+#include <QtCore/QHash>
+#include <QtCore/QReadWriteLock>
+#include <QtCore/QSet>
+#include <QtCore/QSharedPointer>
 
 #if !defined(Q_OS_ANDROID)
 #include <QtWebEngine/QQuickWebEngineProfile>
@@ -26,8 +30,6 @@ using ContextAwareProfileParent = QObject;
 using RequestInterceptorParent = QObject;
 #endif
 
-#include <NumericalConstants.h>
-
 class QQmlContext;
 
 class ContextAwareProfile : public ContextAwareProfileParent {
@@ -35,7 +37,7 @@ class ContextAwareProfile : public ContextAwareProfileParent {
 public:
     static void restrictContext(QQmlContext* context, bool restrict = true);
     bool isRestricted();
-    Q_INVOKABLE bool isRestrictedInternal();
+    Q_INVOKABLE bool isRestrictedGetProperty();
 protected:
 
     class RequestInterceptor : public RequestInterceptorParent {
@@ -47,10 +49,17 @@ protected:
     };
 
     ContextAwareProfile(QQmlContext* parent);
+    ~ContextAwareProfile();
+
+private:
+    typedef QSet<ContextAwareProfile*> ContextAwareProfileSet;
+    typedef QHash<QQmlContext*, ContextAwareProfileSet> ContextMap;
+
     QQmlContext* _context{ nullptr };
-    bool _cachedValue{ false };
-    quint64 _cacheExpiry{ 0 };
-    constexpr static quint64 MAX_CACHE_AGE = MSECS_PER_SECOND;
+    std::atomic<bool> _isRestricted{ false };
+
+    static QReadWriteLock _contextMapProtect;
+    static ContextMap _contextMap;
 };
 
 #endif // hifi_FileTypeProfile_h

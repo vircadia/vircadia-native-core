@@ -118,8 +118,10 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
         setUpStatusToMonitor();
     }
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::CreateAssignment, this, "handleCreateAssignmentPacket");
-    packetReceiver.registerListener(PacketType::StopNode, this, "handleStopNodePacket");
+    packetReceiver.registerListener(PacketType::CreateAssignment,
+        PacketReceiver::makeUnsourcedListenerReference<AssignmentClient>(this, &AssignmentClient::handleCreateAssignmentPacket));
+    packetReceiver.registerListener(PacketType::StopNode,
+        PacketReceiver::makeUnsourcedListenerReference<AssignmentClient>(this, &AssignmentClient::handleStopNodePacket));
 }
 
 void AssignmentClient::stopAssignmentClient() {

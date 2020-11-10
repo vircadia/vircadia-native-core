@@ -22,7 +22,7 @@ var EXPECTED_INTERSECTIONS = 1286 * OUTER_LOOPS;
 
 
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(Camera.getOrientation())));
-var model_url = "http://hifi-content.s3.amazonaws.com/caitlyn/production/Scansite/buddhaReduced.fbx";
+var model_url = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/caitlyn/production/Scansite/buddhaReduced.fbx");
 
 var rayPickOverlays = Array();
 

@@ -180,7 +180,7 @@ function updateWriting(deltaTime){
         writing = writing + "\n";
     }
     // add blinking cursor to window during typing
-    var    addCursor = writing + cursor;
+    var addCursor = writing + cursor;
     if (clickedText == true){    
         Overlays.editOverlay(inputWindow, { text: addCursor});
     }else{

@@ -238,6 +238,8 @@ target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries
 target_openssl()
 
 target_bullet()
+
+set(OpenGL_GL_PREFERENCE "LEGACY")
 target_opengl()
 add_crashpad()
 target_breakpad()

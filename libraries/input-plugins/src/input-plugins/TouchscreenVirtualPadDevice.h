@@ -15,7 +15,12 @@
 #include <controllers/InputDevice.h>
 #include "InputPlugin.h"
 #include <QtGui/qtouchdevice.h>
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
 #include <QtGui/QList>
+#else
+#include <QTouchEvent>
+#include <QtCore/QList>
+#endif
 #include "VirtualPadManager.h"
 
 class QTouchEvent;

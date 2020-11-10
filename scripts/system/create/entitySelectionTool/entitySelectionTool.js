@@ -1,6 +1,5 @@
 //
 //  entitySelectionTool.js
-//  examples
 //
 //  Created by Brad hefta-Gaub on 10/1/14.
 //    Modified by Daniela Fontes * @DanielaFifo and Tiago Andrade @TagoWill on 4/7/2017
@@ -20,13 +19,13 @@
 const SPACE_LOCAL = "local";
 const SPACE_WORLD = "world";
 const HIGHLIGHT_LIST_NAME = "editHandleHighlightList";
+const MIN_DISTANCE_TO_REZ_FROM_AVATAR = 3;
 
 Script.include([
     "../../libraries/controllers.js",
     "../../libraries/controllerDispatcherUtils.js",
     "../../libraries/utils.js"
 ]);
-
 
 function deepCopy(v) {
     return JSON.parse(JSON.stringify(v));
@@ -104,7 +103,11 @@ SelectionManager = (function() {
                 if (wantDebug) {
                     print("setting selection to " + messageParsed.entityID);
                 }
-                that.setSelections([messageParsed.entityID], that);
+                if (hmdMultiSelectMode) {
+                    that.addEntity(messageParsed.entityID, true, that);
+                } else {
+                    that.setSelections([messageParsed.entityID], that);
+                }
             }
         } else if (messageParsed.method === "clearSelection") {
             if (!SelectionDisplay.triggered() || SelectionDisplay.triggeredHand === messageParsed.hand) {
@@ -123,7 +126,7 @@ SelectionManager = (function() {
 
     subscribeToUpdateMessages();
 
-    // disabling this for now as it is causing rendering issues with the other handle overlays
+    // disabling this for now as it is causing rendering issues with the other handle toolEntities
     /*
     var COLOR_ORANGE_HIGHLIGHT = { red: 255, green: 99, blue: 9 };
     var editHandleOutlineStyle = {
@@ -315,6 +318,7 @@ SelectionManager = (function() {
             that.addChildrenEntities(originalEntityID, entitiesToDuplicate, entityHostTypes[i].entityHostType);
         }
         
+        var duplicateInterrupted = false;
         // duplicate entities from above and store their original to new entity mappings and children needing re-parenting
         for (var i = 0; i < entitiesToDuplicate.length; i++) {
             var originalEntityID = entitiesToDuplicate[i];
@@ -361,6 +365,8 @@ SelectionManager = (function() {
                     duplicatedChildrenWithOldParents[newEntityID] = properties.parentID;
                 }
                 originalEntityToNewEntityID[originalEntityID] = newEntityID;
+            } else {
+                duplicateInterrupted = true;
             }
         }
         
@@ -379,6 +385,11 @@ SelectionManager = (function() {
             }
         });
         
+        if (duplicateInterrupted) {
+            audioFeedback.rejection();
+        } else {
+            audioFeedback.confirmation();
+        }
         return duplicatedEntityIDs;
     };
 
@@ -625,6 +636,141 @@ SelectionManager = (function() {
         }
     };
 
+    that.teleportToEntity = function() {
+        if (that.hasSelection()) {
+            var distanceFromTarget = MIN_DISTANCE_TO_REZ_FROM_AVATAR + Math.max(Math.max(that.worldDimensions.x, that.worldDimensions.y), that.worldDimensions.z);
+            var teleportTargetPosition = Vec3.sum(that.worldPosition, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: distanceFromTarget }));
+            MyAvatar.goToLocation(teleportTargetPosition, false);
+        } else {
+            audioFeedback.rejection();
+            Window.notifyEditError("You have nothing selected.");
+        }
+    };    
+
+    that.moveEntitiesSelectionToAvatar = function() {
+        if (that.hasSelection() && that.hasUnlockedSelection()) {
+            that.saveProperties();
+            var distanceFromTarget = MIN_DISTANCE_TO_REZ_FROM_AVATAR + Math.max(Math.max(that.worldDimensions.x, that.worldDimensions.y), that.worldDimensions.z);
+            var targetPosition = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -distanceFromTarget }));
+            // editing a parent will cause all the children to automatically follow along, so don't
+            // edit any entity who has an ancestor in that.selections
+            var toMove = that.selections.filter(function (selection) {
+                if (that.selections.indexOf(that.savedProperties[selection].parentID) >= 0) {
+                    return false; // a parent is also being moved, so don't issue an edit for this entity
+                } else {
+                    return true;
+                }
+            });
+            for (var i = 0; i < toMove.length; i++) {
+                var id = toMove[i];
+                var properties = that.savedProperties[id];
+                var relativePosition = Vec3.subtract(properties.position, that.worldPosition);
+                var newPosition = Vec3.sum(relativePosition, targetPosition);
+                Entities.editEntity(id, { "position": newPosition });
+            }
+            that._update(false, this);
+        } else {
+            audioFeedback.rejection();
+            Window.notifyEditError("You have nothing selected or the selection has locked entities.");
+        }
+    };
+
+    that.selectParent = function() {
+        if (that.hasSelection()) {
+            var currentSelection = that.selections;
+            that.selections = [];
+            for (var i = 0; i < currentSelection.length; i++) {
+                var properties = Entities.getEntityProperties(currentSelection[i], ['parentID']);
+                if (properties.parentID !== Uuid.NULL) {
+                    that.selections.push(properties.parentID);
+                }
+            }
+            that._update(true, this);
+        } else {
+            audioFeedback.rejection();
+            Window.notifyEditError("You have nothing selected.");            
+        }
+    };
+
+    that.selectTopParent = function() {
+        if (that.hasSelection()) {
+            var currentSelection = that.selections;
+            that.selections = [];
+            for (var i = 0; i < currentSelection.length; i++) {
+                var topParentId = getTopParent(currentSelection[i]);
+                if (topParentId !== Uuid.NULL) {
+                    that.selections.push(topParentId);
+                }
+            }
+            that._update(true, this);
+        } else {
+            audioFeedback.rejection();
+            Window.notifyEditError("You have nothing selected.");            
+        }
+    };
+
+    function getTopParent(id) {
+        var topParentId = Uuid.NULL;
+        var properties = Entities.getEntityProperties(id, ['parentID']);
+        if (properties.parentID === Uuid.NULL) {
+            topParentId = id;
+        } else {
+            topParentId = getTopParent(properties.parentID);
+        }
+        return topParentId;
+    }
+
+    that.addChildrenToSelection = function() {
+        if (that.hasSelection()) {
+            for (var i = 0; i < that.selections.length; i++) {
+                var childrenIDs = Entities.getChildrenIDs(that.selections[i]);
+                var collectNewChildren; 
+                var j;
+                var k = 0;
+                do {
+                    collectNewChildren = Entities.getChildrenIDs(childrenIDs[k]);
+                    if (collectNewChildren.length > 0) {
+                        for (j = 0; j < collectNewChildren.length; j++) {
+                            childrenIDs.push(collectNewChildren[j]);
+                        }
+                    }
+                    k++;
+                } while (k < childrenIDs.length);
+                if (childrenIDs.length > 0) {
+                    for (j = 0; j < childrenIDs.length; j++) { 
+                        that.selections.push(childrenIDs[j]);
+                    }
+                }
+            }
+            that._update(true, this);
+        } else {
+            audioFeedback.rejection();
+            Window.notifyEditError("You have nothing selected.");            
+        }
+    };
+
+    that.hasUnlockedSelection = function() {
+        var selectionNotLocked = true;
+        for (var i = 0; i < that.selections.length; i++) {
+            var properties = Entities.getEntityProperties(that.selections[i], ['locked']);
+            if (properties.locked) {
+                selectionNotLocked = false;
+                break;
+            }
+        }
+        return selectionNotLocked;
+    };
+
+    that.selectFamily = function() {
+        that.selectParent();
+        that.addChildrenToSelection();
+    };
+
+    that.selectTopFamily = function() {
+        that.selectTopParent();
+        that.addChildrenToSelection();
+    };
+
     return that;
 })();
 
@@ -643,14 +789,16 @@ function normalizeDegrees(degrees) {
 SelectionDisplay = (function() {
     var that = {};
 
-    const COLOR_GREEN = { red: 31, green: 198, blue: 166 };
-    const COLOR_BLUE = { red: 0, green: 147, blue: 197 };
-    const COLOR_RED = { red: 226, green: 51, blue: 77 };
-    const COLOR_HOVER = { red: 227, green: 227, blue: 227 };
+    const COLOR_GREEN = { red: 0, green: 160, blue: 52 };
+    const COLOR_BLUE = { red: 0, green: 52, blue: 255 };
+    const COLOR_RED = { red: 255, green: 0, blue: 0 };
+    const COLOR_HOVER = { red: 255, green: 220, blue: 82 };
+    const COLOR_DUPLICATOR = { red: 162, green: 0, blue: 255 };
     const COLOR_ROTATE_CURRENT_RING = { red: 255, green: 99, blue: 9 };
-    const COLOR_BOUNDING_EDGE = { red: 87, green: 87, blue: 87 };
-    const COLOR_SCALE_CUBE = { red: 106, green: 106, blue: 106 };
-    const COLOR_SCALE_CUBE_SELECTED = { red: 18, green: 18, blue: 18 };
+    const COLOR_BOUNDING_EDGE = { red: 160, green: 160, blue: 160 };
+    const COLOR_BOUNDING_EDGE_PARENT = { red: 194, green: 123, blue: 0 };
+    const COLOR_BOUNDING_EDGE_CHILDREN = { red: 0, green: 168, blue: 214 };
+    const COLOR_SCALE_CUBE = { red: 192, green: 192, blue: 192 };
     const COLOR_DEBUG_PICK_PLANE = { red: 255, green: 255, blue: 255 };
     const COLOR_DEBUG_PICK_PLANE_HIT = { red: 255, green: 165, blue: 0 };
 
@@ -677,12 +825,12 @@ SelectionDisplay = (function() {
     const STRETCH_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.02;
     const STRETCH_PANEL_WIDTH = 0.01;
 
-    const SCALE_OVERLAY_CAMERA_DISTANCE_MULTIPLE = 0.02;
+    const SCALE_TOOL_CAMERA_DISTANCE_MULTIPLE = 0.02;
     const SCALE_DIMENSIONS_CAMERA_DISTANCE_MULTIPLE = 0.5;
     
     const BOUNDING_EDGE_OFFSET = 0.5;
 
-    const DUPLICATOR_OFFSET = { x: 0.9, y: -0.9, z: 0.9 };    
+    const DUPLICATOR_OFFSET = { x: 0.6, y: 0, z: 0.6 };    
     
     const CTRL_KEY_CODE = 16777249;
 
@@ -729,7 +877,7 @@ SelectionDisplay = (function() {
      */
     var desiredSpaceMode = SPACE_LOCAL;
 
-    var overlayNames = [];
+    var toolEntityNames = [];
     var lastControllerPoses = [
         getControllerWorldLocation(Controller.Standard.LeftHand, true),
         getControllerWorldLocation(Controller.Standard.RightHand, true)
@@ -747,218 +895,294 @@ SelectionDisplay = (function() {
 
     var ctrlPressed = false;
 
+    var toolEntityMaterial = [];
+
     that.replaceCollisionsAfterStretch = false;
 
     var handlePropertiesTranslateArrowCones = {
+        type: "Shape",
         alpha: 1,
         shape: "Cone",
-        solid: true,
+        primitiveMode: "solid",
         visible: false,
         ignorePickIntersection: true,
-        drawInFront: true
+        renderLayer: "front"
     };
     var handlePropertiesTranslateArrowCylinders = {
+        type: "Shape",
         alpha: 1,
         shape: "Cylinder",
-        solid: true,
+        primitiveMode: "solid",
         visible: false,
         ignorePickIntersection: true,
-        drawInFront: true
+        renderLayer: "front"
     };
-    var handleTranslateXCone = Overlays.addOverlay("shape", handlePropertiesTranslateArrowCones);
-    var handleTranslateXCylinder = Overlays.addOverlay("shape", handlePropertiesTranslateArrowCylinders);
-    Overlays.editOverlay(handleTranslateXCone, { color: COLOR_RED });
-    Overlays.editOverlay(handleTranslateXCylinder, { color: COLOR_RED });
-    var handleTranslateYCone = Overlays.addOverlay("shape", handlePropertiesTranslateArrowCones);
-    var handleTranslateYCylinder = Overlays.addOverlay("shape", handlePropertiesTranslateArrowCylinders);
-    Overlays.editOverlay(handleTranslateYCone, { color: COLOR_GREEN });
-    Overlays.editOverlay(handleTranslateYCylinder, { color: COLOR_GREEN });
-    var handleTranslateZCone = Overlays.addOverlay("shape", handlePropertiesTranslateArrowCones);
-    var handleTranslateZCylinder = Overlays.addOverlay("shape", handlePropertiesTranslateArrowCylinders);
-    Overlays.editOverlay(handleTranslateZCone, { color: COLOR_BLUE });
-    Overlays.editOverlay(handleTranslateZCylinder, { color: COLOR_BLUE });
+    var handleTranslateXCone = Entities.addEntity(handlePropertiesTranslateArrowCones, "local");
+    var handleTranslateXCylinder = Entities.addEntity(handlePropertiesTranslateArrowCylinders, "local");
+    Entities.editEntity(handleTranslateXCone, { color: COLOR_RED });
+    Entities.editEntity(handleTranslateXCylinder, { color: COLOR_RED });
+    var handleTranslateYCone = Entities.addEntity(handlePropertiesTranslateArrowCones, "local");
+    var handleTranslateYCylinder = Entities.addEntity(handlePropertiesTranslateArrowCylinders, "local");
+    Entities.editEntity(handleTranslateYCone, { color: COLOR_GREEN });
+    Entities.editEntity(handleTranslateYCylinder, { color: COLOR_GREEN });
+    var handleTranslateZCone = Entities.addEntity(handlePropertiesTranslateArrowCones, "local");
+    var handleTranslateZCylinder = Entities.addEntity(handlePropertiesTranslateArrowCylinders, "local");
+    Entities.editEntity(handleTranslateZCone, { color: COLOR_BLUE });
+    Entities.editEntity(handleTranslateZCylinder, { color: COLOR_BLUE });
+
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleTranslateXCone));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleTranslateYCone));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleTranslateZCone));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleTranslateXCylinder));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleTranslateYCylinder));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleTranslateZCylinder));
 
     var handlePropertiesRotateRings = {
-        alpha: 1,
-        solid: true,
-        startAt: 0,
-        endAt: 360,
-        innerRadius: ROTATE_RING_IDLE_INNER_RADIUS,
-        majorTickMarksAngle: ROTATE_DEFAULT_TICK_MARKS_ANGLE,
-        majorTickMarksLength: 0.1,
+        type: "Gizmo",
+        gizmoType: "ring",
+        ring: {
+            startAngle: 0,
+            endAngle: 360,
+            innerRadius: ROTATE_RING_IDLE_INNER_RADIUS,
+            majorTickMarksAngle: ROTATE_DEFAULT_TICK_MARKS_ANGLE,
+            majorTickMarksLength: 0.1,
+            innerStartAlpha: 1,
+            innerEndAlpha: 1,
+            outerStartAlpha: 1,
+            outerEndAlpha: 1
+            },
+        primitiveMode: "solid",
         visible: false,
         ignorePickIntersection: true,
-        drawInFront: true
+        renderLayer: "front"
     };
-    var handleRotatePitchRing = Overlays.addOverlay("circle3d", handlePropertiesRotateRings);
-    Overlays.editOverlay(handleRotatePitchRing, { 
-        color: COLOR_RED,
-        majorTickMarksColor: COLOR_RED
-    });
-    var handleRotateYawRing = Overlays.addOverlay("circle3d", handlePropertiesRotateRings);
-    Overlays.editOverlay(handleRotateYawRing, { 
-        color: COLOR_GREEN,
-        majorTickMarksColor: COLOR_GREEN
-    });
-    var handleRotateRollRing = Overlays.addOverlay("circle3d", handlePropertiesRotateRings);
-    Overlays.editOverlay(handleRotateRollRing, { 
-        color: COLOR_BLUE,
-        majorTickMarksColor: COLOR_BLUE
-    });
 
-    var handleRotateCurrentRing = Overlays.addOverlay("circle3d", {
-        alpha: 1,
-        color: COLOR_ROTATE_CURRENT_RING,
-        solid: true,
-        innerRadius: 0.9,
+    var handleRotatePitchXRedRing = Entities.addEntity(handlePropertiesRotateRings, "local");
+    Entities.editEntity(handleRotatePitchXRedRing, {
+        ring: {
+            innerStartColor: COLOR_RED,
+            innerEndColor: COLOR_RED,
+            outerStartColor: COLOR_RED,
+            outerEndColor: COLOR_RED,        
+            majorTickMarksColor: COLOR_RED
+        }
+    });
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleRotatePitchXRedRing));
+    
+    var handleRotateYawYGreenRing = Entities.addEntity(handlePropertiesRotateRings, "local");
+    Entities.editEntity(handleRotateYawYGreenRing, { 
+        ring: {
+            innerStartColor: COLOR_GREEN,
+            innerEndColor: COLOR_GREEN,
+            outerStartColor: COLOR_GREEN,
+            outerEndColor: COLOR_GREEN,           
+            majorTickMarksColor: COLOR_GREEN
+        }
+    });
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleRotateYawYGreenRing));
+    
+    var handleRotateRollZBlueRing = Entities.addEntity(handlePropertiesRotateRings, "local");
+    Entities.editEntity(handleRotateRollZBlueRing, { 
+        ring: {
+            innerStartColor: COLOR_BLUE,
+            innerEndColor: COLOR_BLUE,
+            outerStartColor: COLOR_BLUE,
+            outerEndColor: COLOR_BLUE,      
+            majorTickMarksColor: COLOR_BLUE
+        }
+    });
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleRotateRollZBlueRing));
+   
+    var handleRotateCurrentRing = Entities.addEntity({
+        type: "Gizmo",
+        gizmoType: "ring",
+        ring: {
+            innerRadius: 0.9,
+            majorTickMarksAngle: ROTATE_DEFAULT_TICK_MARKS_ANGLE,
+            majorTickMarksLength: 0.1,
+            innerStartAlpha: 1,
+            innerEndAlpha: 1,
+            outerStartAlpha: 1,
+            outerEndAlpha: 1,
+            innerStartColor: COLOR_ROTATE_CURRENT_RING,
+            innerEndColor: COLOR_ROTATE_CURRENT_RING,
+            outerStartColor: COLOR_ROTATE_CURRENT_RING,
+            outerEndColor: COLOR_ROTATE_CURRENT_RING,            
+            },
+        primitiveMode: "solid",
         visible: false,
         ignorePickIntersection: true,
-        drawInFront: true
-    });
+        renderLayer: "front"
+    }, "local");
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleRotateCurrentRing));
 
-    var rotationDegreesDisplay = Overlays.addOverlay("text3d", {
+    var rotationDegreesDisplay = Entities.addEntity({
+        type: "Text",
         text: "",
-        color: { red: 0, green: 0, blue: 0 },
+        textColor: { red: 0, green: 0, blue: 0 },
         backgroundColor: { red: 255, green: 255, blue: 255 },
-        alpha: 0.7,
+        textAlpha: 0.7,
         backgroundAlpha: 0.7,
         visible: false,
-        isFacingAvatar: true,
-        drawInFront: true,
+        billboardMode: "full",
+        renderLayer: "front",
         ignorePickIntersection: true,
-        dimensions: { x: 0, y: 0 },
+        dimensions: { x: 0, y: 0, z: 0.01 },
         lineHeight: 0.0,
         topMargin: 0,
         rightMargin: 0,
         bottomMargin: 0,
-        leftMargin: 0
-    });
+        leftMargin: 0,
+        unlit: true
+    }, "local");
 
     var handlePropertiesStretchCubes = {
-        solid: true,
+        type: "Shape",
+        shape: "Cube",
+        primitiveMode: "solid",
         visible: false,
         ignorePickIntersection: true,
-        drawInFront: true
+        renderLayer: "front"
     };
-    var handleStretchXCube = Overlays.addOverlay("cube", handlePropertiesStretchCubes);
-    Overlays.editOverlay(handleStretchXCube, { color: COLOR_RED });
-    var handleStretchYCube = Overlays.addOverlay("cube", handlePropertiesStretchCubes);
-    Overlays.editOverlay(handleStretchYCube, { color: COLOR_GREEN });
-    var handleStretchZCube = Overlays.addOverlay("cube", handlePropertiesStretchCubes);
-    Overlays.editOverlay(handleStretchZCube, { color: COLOR_BLUE });
+
+    var handleStretchXCube = Entities.addEntity(handlePropertiesStretchCubes, "local");
+    Entities.editEntity(handleStretchXCube, { color: COLOR_RED });
+    var handleStretchYCube = Entities.addEntity(handlePropertiesStretchCubes, "local");
+    Entities.editEntity(handleStretchYCube, { color: COLOR_GREEN });
+    var handleStretchZCube = Entities.addEntity(handlePropertiesStretchCubes, "local");
+    Entities.editEntity(handleStretchZCube, { color: COLOR_BLUE });
+
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleStretchXCube));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleStretchYCube));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleStretchZCube));
 
     var handlePropertiesStretchPanel = {
+        type: "Shape",
+        shape: "Cube",
+        primitiveMode: "solid",        
         alpha: 0.5,
-        solid: true,
         visible: false,
         ignorePickIntersection: true,
-        drawInFront: true
+        renderLayer: "front"
     };
-    var handleStretchXPanel = Overlays.addOverlay("cube", handlePropertiesStretchPanel);
-    Overlays.editOverlay(handleStretchXPanel, { color: COLOR_RED });
-    var handleStretchYPanel = Overlays.addOverlay("cube", handlePropertiesStretchPanel);
-    Overlays.editOverlay(handleStretchYPanel, { color: COLOR_GREEN });
-    var handleStretchZPanel = Overlays.addOverlay("cube", handlePropertiesStretchPanel);
-    Overlays.editOverlay(handleStretchZPanel, { color: COLOR_BLUE });
+    var handleStretchXPanel = Entities.addEntity(handlePropertiesStretchPanel, "local");
+    Entities.editEntity(handleStretchXPanel, { color: COLOR_RED });
+    var handleStretchYPanel = Entities.addEntity(handlePropertiesStretchPanel, "local");
+    Entities.editEntity(handleStretchYPanel, { color: COLOR_GREEN });
+    var handleStretchZPanel = Entities.addEntity(handlePropertiesStretchPanel, "local");
+    Entities.editEntity(handleStretchZPanel, { color: COLOR_BLUE });
 
-    var handleScaleCube = Overlays.addOverlay("cube", {
-        size: 0.025,
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleStretchXPanel));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleStretchYPanel));
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleStretchZPanel));
+
+    var handleScaleCube = Entities.addEntity({
+        type: "Shape",
+        shape: "Cube",
+        primitiveMode: "solid",         
+        dimensions: 0.025,
         color: COLOR_SCALE_CUBE,
-        solid: true,
         visible: false,
         ignorePickIntersection: true,
-        drawInFront: true,
-        borderSize: 1.4
-    });
-
-    var handleBoundingBox = Overlays.addOverlay("cube", {
+        renderLayer: "front"        
+    }, "local");
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleScaleCube));
+    
+    var handleBoundingBox = Entities.addEntity({
+        type: "Shape",
+        shape: "Cube",
+        primitiveMode: "lines", 
         alpha: 1,
         color: COLOR_BOUNDING_EDGE,
         visible: false,
         ignorePickIntersection: true,
-        drawInFront: true,
-        isSolid: false
-    });
-
-    var handleDuplicator = Overlays.addOverlay("cube", {
+        renderLayer: "front"
+    }, "local");
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleBoundingBox));
+    
+    var handleDuplicator = Entities.addEntity({
+        type: "Shape",
+        shape: "Shere",
+        primitiveMode: "solid",         
         alpha: 1,
-        size: 0.05,
-        color: COLOR_GREEN,
-        solid: true,
+        dimensions: 0.05,
+        color: COLOR_DUPLICATOR,
         visible: false,
         ignorePickIntersection: true,
-        drawInFront: true,
-        borderSize: 1.4
-    });
+        renderLayer: "front"
+    }, "local");
+    toolEntityMaterial.push(addUnlitMaterialOnToolEntity(handleDuplicator));
 
     // setting to 0 alpha for now to keep this hidden vs using visible false 
-    // because its used as the translate xz tool handle overlay
-    var selectionBox = Overlays.addOverlay("cube", {
-        size: 1,
+    // because its used as the translate xz tool handle toolEntity
+    var selectionBox = Entities.addEntity({
+        type: "Shape",
+        shape: "Cube",
+        primitiveMode: "lines",         
+        dimensions: 1,
         color: COLOR_RED,
         alpha: 0,
-        solid: false,
         visible: false,
-        ignorePickIntersection: true,
-        dashed: false
-    });
+        ignorePickIntersection: true
+    }, "local");
 
     // Handle for x-z translation of particle effect and light entities while inside the bounding box.
     // Limitation: If multiple entities are selected, only the first entity's icon translates the selection.
-    var iconSelectionBox = Overlays.addOverlay("cube", {
-        size: 0.3, // Match entity icon size.
+    var iconSelectionBox = Entities.addEntity({
+        type: "Shape",
+        shape: "Cube",
+        primitiveMode: "lines",         
+        dimensions: 0.3, // Match entity icon size.
         color: COLOR_RED,
         alpha: 0,
-        solid: false,
         visible: false,
-        ignorePickIntersection: true,
-        dashed: false
-    });
+        ignorePickIntersection: true
+    }, "local");
 
-    var xRailOverlay = Overlays.addOverlay("line3d", {
+    var xRailToolEntity = Entities.addEntity({
+        type: "PolyLine",
         visible: false,
-        start: Vec3.ZERO,
-        end: Vec3.ZERO,
+        linePoints: [ Vec3.ZERO, Vec3.ZERO ], 
         color: {
             red: 255,
             green: 0,
             blue: 0
         },
         ignorePickIntersection: true // always ignore this
-    });
-    var yRailOverlay = Overlays.addOverlay("line3d", {
+    }, "local");
+    var yRailToolEntity = Entities.addEntity({
+        type: "PolyLine",        
         visible: false,
-        start: Vec3.ZERO,
-        end: Vec3.ZERO,
+        linePoints: [ Vec3.ZERO, Vec3.ZERO ], 
         color: {
             red: 0,
             green: 255,
             blue: 0
         },
         ignorePickIntersection: true // always ignore this
-    });
-    var zRailOverlay = Overlays.addOverlay("line3d", {
+    }, "local");
+    var zRailToolEntity = Entities.addEntity({
+        type: "PolyLine",        
         visible: false,
-        start: Vec3.ZERO,
-        end: Vec3.ZERO,
+        linePoints: [ Vec3.ZERO, Vec3.ZERO ], 
         color: {
             red: 0,
             green: 0,
             blue: 255
         },
         ignorePickIntersection: true // always ignore this
-    });
+    }, "local");
 
-    var allOverlays = [
+    var allToolEntities = [
         handleTranslateXCone,
         handleTranslateXCylinder,
         handleTranslateYCone,
         handleTranslateYCylinder,
         handleTranslateZCone,
         handleTranslateZCylinder,
-        handleRotatePitchRing,
-        handleRotateYawRing,
-        handleRotateRollRing,
+        handleRotatePitchXRedRing,
+        handleRotateYawYGreenRing,
+        handleRotateRollZBlueRing,
         handleRotateCurrentRing,
         rotationDegreesDisplay,
         handleStretchXCube,
@@ -972,56 +1196,57 @@ SelectionDisplay = (function() {
         handleDuplicator,
         selectionBox,
         iconSelectionBox,
-        xRailOverlay,
-        yRailOverlay,
-        zRailOverlay
+        xRailToolEntity,
+        yRailToolEntity,
+        zRailToolEntity
     ];
 
-    const nonLayeredOverlays = [selectionBox, iconSelectionBox];
+    const nonLayeredToolEntities = [selectionBox, iconSelectionBox];
 
-    var maximumHandleInAllOverlays = handleDuplicator;
+    var maximumHandleInAllToolEntities = handleDuplicator;
 
-    overlayNames[handleTranslateXCone] = "handleTranslateXCone";
-    overlayNames[handleTranslateXCylinder] = "handleTranslateXCylinder";
-    overlayNames[handleTranslateYCone] = "handleTranslateYCone";
-    overlayNames[handleTranslateYCylinder] = "handleTranslateYCylinder";
-    overlayNames[handleTranslateZCone] = "handleTranslateZCone";
-    overlayNames[handleTranslateZCylinder] = "handleTranslateZCylinder";
+    toolEntityNames[handleTranslateXCone] = "handleTranslateXCone";
+    toolEntityNames[handleTranslateXCylinder] = "handleTranslateXCylinder";
+    toolEntityNames[handleTranslateYCone] = "handleTranslateYCone";
+    toolEntityNames[handleTranslateYCylinder] = "handleTranslateYCylinder";
+    toolEntityNames[handleTranslateZCone] = "handleTranslateZCone";
+    toolEntityNames[handleTranslateZCylinder] = "handleTranslateZCylinder";
 
-    overlayNames[handleRotatePitchRing] = "handleRotatePitchRing";
-    overlayNames[handleRotateYawRing] = "handleRotateYawRing";
-    overlayNames[handleRotateRollRing] = "handleRotateRollRing";
-    overlayNames[handleRotateCurrentRing] = "handleRotateCurrentRing";
-    overlayNames[rotationDegreesDisplay] = "rotationDegreesDisplay";
+    toolEntityNames[handleRotatePitchXRedRing] = "handleRotatePitchXRedRing";
+    toolEntityNames[handleRotateYawYGreenRing] = "handleRotateYawYGreenRing";
+    toolEntityNames[handleRotateRollZBlueRing] = "handleRotateRollZBlueRing";
+    toolEntityNames[handleRotateCurrentRing] = "handleRotateCurrentRing";
+    toolEntityNames[rotationDegreesDisplay] = "rotationDegreesDisplay";
 
-    overlayNames[handleStretchXCube] = "handleStretchXCube";
-    overlayNames[handleStretchYCube] = "handleStretchYCube";
-    overlayNames[handleStretchZCube] = "handleStretchZCube";
-    overlayNames[handleStretchXPanel] = "handleStretchXPanel";
-    overlayNames[handleStretchYPanel] = "handleStretchYPanel";
-    overlayNames[handleStretchZPanel] = "handleStretchZPanel";
+    toolEntityNames[handleStretchXCube] = "handleStretchXCube";
+    toolEntityNames[handleStretchYCube] = "handleStretchYCube";
+    toolEntityNames[handleStretchZCube] = "handleStretchZCube";
+    toolEntityNames[handleStretchXPanel] = "handleStretchXPanel";
+    toolEntityNames[handleStretchYPanel] = "handleStretchYPanel";
+    toolEntityNames[handleStretchZPanel] = "handleStretchZPanel";
 
-    overlayNames[handleScaleCube] = "handleScaleCube";
+    toolEntityNames[handleScaleCube] = "handleScaleCube";
 
-    overlayNames[handleBoundingBox] = "handleBoundingBox";
+    toolEntityNames[handleBoundingBox] = "handleBoundingBox";
 
-    overlayNames[handleDuplicator] = "handleDuplicator";
-    overlayNames[selectionBox] = "selectionBox";
-    overlayNames[iconSelectionBox] = "iconSelectionBox";
+    toolEntityNames[handleDuplicator] = "handleDuplicator";
+    toolEntityNames[selectionBox] = "selectionBox";
+    toolEntityNames[iconSelectionBox] = "iconSelectionBox";
 
     var activeTool = null;
     var handleTools = {};
     
     var debugPickPlaneEnabled = false;
-    var debugPickPlane = Overlays.addOverlay("shape", {
+    var debugPickPlane = Entities.addEntity({
+        type: "shape",
         shape: "Quad",
         alpha: 0.25,
         color: COLOR_DEBUG_PICK_PLANE,
-        solid: true,
+        primitiveMode: "solid",
         visible: false,
         ignorePickIntersection: true,
-        drawInFront: false
-    });
+        renderLayer: "front"
+    }, "local");
     var debugPickPlaneHits = [];
 
     // We get mouseMoveEvents from the handControllers, via handControllerPointer.
@@ -1084,7 +1309,7 @@ SelectionDisplay = (function() {
     Script.scriptEnding.connect(that.disableTriggerMapping);
 
     // FUNCTION DEF(s): Intersection Check Helpers
-    function testRayIntersect(queryRay, overlayIncludes, overlayExcludes) {
+    function testRayIntersect(queryRay, toolEntityIncludes, toolEntityExcludes) {
         var wantDebug = false;
         if ((queryRay === undefined) || (queryRay === null)) {
             if (wantDebug) {
@@ -1093,47 +1318,46 @@ SelectionDisplay = (function() {
             return null;
         }
 
-        // We want to first check the drawInFront overlays (i.e. the handles, but really everything except the selectionBoxes)
+        // We want to first check the drawInFront toolEntities (i.e. the handles, but really everything except the selectionBoxes)
         // so that you can click on them even when they're behind things
-        var overlayIncludesLayered = [];
-        var overlayIncludesNonLayered = [];
-        for (var i = 0; i < overlayIncludes.length; i++) {
-            var value = overlayIncludes[i];
+        var toolEntityIncludesLayered = [];
+        var toolEntityIncludesNonLayered = [];
+        for (var i = 0; i < toolEntityIncludes.length; i++) {
+            var value = toolEntityIncludes[i];
             var contains = false;
-            for (var j = 0; j < nonLayeredOverlays.length; j++) {
-                if (nonLayeredOverlays[j] === value) {
+            for (var j = 0; j < nonLayeredToolEntities.length; j++) {
+                if (nonLayeredToolEntities[j] === value) {
                     contains = true;
                     break;
                 }
             }
             if (contains) {
-                overlayIncludesNonLayered.push(value);
+                toolEntityIncludesNonLayered.push(value);
             } else {
-                overlayIncludesLayered.push(value);
+                toolEntityIncludesLayered.push(value);
             }
         }
 
-        var intersectObj = Overlays.findRayIntersection(queryRay, true, overlayIncludesLayered, overlayExcludes);
+        var intersectObj = Overlays.findRayIntersection(queryRay, true, toolEntityIncludesLayered, toolEntityExcludes);
 
-        if (!intersectObj.intersects && overlayIncludesNonLayered.length > 0) {
-            intersectObj = Overlays.findRayIntersection(queryRay, true, overlayIncludesNonLayered, overlayExcludes);
+        if (!intersectObj.intersects && toolEntityIncludesNonLayered.length > 0) {
+            intersectObj = Overlays.findRayIntersection(queryRay, true, toolEntityIncludesNonLayered, toolEntityExcludes);
         }
 
         if (wantDebug) {
-            if (!overlayIncludes) {
-                print("testRayIntersect - no overlayIncludes provided.");
+            if (!toolEntityIncludes) {
+                print("testRayIntersect - no toolEntityIncludes provided.");
             }
-            if (!overlayExcludes) {
-                print("testRayIntersect - no overlayExcludes provided.");
+            if (!toolEntityExcludes) {
+                print("testRayIntersect - no toolEntityExcludes provided.");
             }
             print("testRayIntersect - Hit: " + intersectObj.intersects);
-            print("    intersectObj.overlayID:" + intersectObj.overlayID + "[" + overlayNames[intersectObj.overlayID] + "]");
-            print("        OverlayName: " + overlayNames[intersectObj.overlayID]);
+            print("    intersectObj.overlayID:" + intersectObj.overlayID + "[" + toolEntityNames[intersectObj.overlayID] + "]");
+            print("        toolEntityName: " + toolEntityNames[intersectObj.overlayID]);
             print("    intersectObj.distance:" + intersectObj.distance);
             print("    intersectObj.face:" + intersectObj.face);
             Vec3.print("    intersectObj.intersection:", intersectObj.intersection);
         }
-
         return intersectObj;
     }
 
@@ -1144,10 +1368,10 @@ SelectionDisplay = (function() {
             && Math.abs(position.z) <= box.dimensions.z / 2;
     }
     
-    that.isEditHandle = function(overlayID) {
-        var overlayIndex = allOverlays.indexOf(overlayID);
-        var maxHandleIndex = allOverlays.indexOf(maximumHandleInAllOverlays);
-        return overlayIndex >= 0 && overlayIndex <= maxHandleIndex;
+    that.isEditHandle = function(entityID) {
+        var toolEntityIndex = allToolEntities.indexOf(entityID);
+        var maxHandleIndex = allToolEntities.indexOf(maximumHandleInAllToolEntities);
+        return toolEntityIndex >= 0 && toolEntityIndex <= maxHandleIndex;
     };
 
     // FUNCTION: MOUSE PRESS EVENT
@@ -1169,26 +1393,26 @@ SelectionDisplay = (function() {
 
         var pickRay = generalComputePickRay(event.x, event.y);
         // TODO_Case6491:  Move this out to setup just to make it once
-        var interactiveOverlays = getMainTabletIDs();
+        var interactiveToolEntities = getMainTabletIDs();
         for (var key in handleTools) {
             if (handleTools.hasOwnProperty(key)) {
-                interactiveOverlays.push(key);
+                interactiveToolEntities.push(key);
             }
         }
 
         // Start with unknown mode, in case no tool can handle this.
         activeTool = null;
 
-        var results = testRayIntersect(pickRay, interactiveOverlays);
+        var results = testRayIntersect(pickRay, interactiveToolEntities);
         if (results.intersects) {
-            var hitOverlayID = results.overlayID;
-            if ((HMD.tabletID && hitOverlayID === HMD.tabletID) || (HMD.tabletScreenID && hitOverlayID === HMD.tabletScreenID)
-                || (HMD.homeButtonID && hitOverlayID === HMD.homeButtonID)) {
+            var hitToolEntityID = results.overlayID;
+            if ((HMD.tabletID && hitToolEntityID === HMD.tabletID) || (HMD.tabletScreenID && hitToolEntityID === HMD.tabletScreenID)
+                || (HMD.homeButtonID && hitToolEntityID === HMD.homeButtonID)) {
                 // EARLY EXIT-(mouse clicks on the tablet should override the edit affordances)
                 return false;
             }
 
-            var hitTool = handleTools[ hitOverlayID ];
+            var hitTool = handleTools[ hitToolEntityID ];
             if (hitTool) {
                 activeTool = hitTool;
                 that.clearDebugPickPlane();
@@ -1204,7 +1428,7 @@ SelectionDisplay = (function() {
                     print("ERROR: entitySelectionTool.mousePressEvent - ActiveTool(" + activeTool.mode + ") missing onBegin");
                 }
             } else {
-                print("ERROR: entitySelectionTool.mousePressEvent - Hit unexpected object, check interactiveOverlays");
+                print("ERROR: entitySelectionTool.mousePressEvent - Hit unexpected object, check interactiveToolEntities");
             }// End_if (hitTool)
         }// End_If(results.intersects)
 
@@ -1220,27 +1444,39 @@ SelectionDisplay = (function() {
 
     that.resetPreviousHandleColor = function() {
         if (previousHandle !== null) {
-            Overlays.editOverlay(previousHandle, { color: previousHandleColor });
+            if (previousHandle === handleRotateRollZBlueRing || previousHandle === handleRotateYawYGreenRing
+            || previousHandle === handleRotatePitchXRedRing) {
+                Entities.editEntity(previousHandle, {
+                    ring: { 
+                        innerStartColor: previousHandleColor,
+                        innerEndColor: previousHandleColor,
+                        outerStartColor: previousHandleColor,
+                        outerEndColor: previousHandleColor            
+                    }
+                });                
+            } else {
+                Entities.editEntity(previousHandle, { color: previousHandleColor });
+            }
             previousHandle = null;
         }
         if (previousHandleHelper !== null) {
-            Overlays.editOverlay(previousHandleHelper, { color: previousHandleColor });
+            Entities.editEntity(previousHandleHelper, { color: previousHandleColor });
             previousHandleHelper = null;
         }
     };
 
-    that.getHandleHelper = function(overlay) {
-        if (overlay === handleTranslateXCone) {
+    that.getHandleHelper = function(toolEntity) {
+        if (toolEntity === handleTranslateXCone) {
             return handleTranslateXCylinder;
-        } else if (overlay === handleTranslateXCylinder) {
+        } else if (toolEntity === handleTranslateXCylinder) {
             return handleTranslateXCone;
-        } else if (overlay === handleTranslateYCone) {
+        } else if (toolEntity === handleTranslateYCone) {
             return handleTranslateYCylinder;
-        } else if (overlay === handleTranslateYCylinder) {
+        } else if (toolEntity === handleTranslateYCylinder) {
             return handleTranslateYCone;
-        } else if (overlay === handleTranslateZCone) {
+        } else if (toolEntity === handleTranslateZCone) {
             return handleTranslateZCylinder;
-        } else if (overlay === handleTranslateZCylinder) {
+        } else if (toolEntity === handleTranslateZCylinder) {
             return handleTranslateZCone;
         }
         return Uuid.NULL;
@@ -1249,29 +1485,60 @@ SelectionDisplay = (function() {
     that.updateHighlight = function(event) {
         // if no tool is active, then just look for handles to highlight...
         var pickRay = generalComputePickRay(event.x, event.y);        
-        var result = testRayIntersect(pickRay, allOverlays);
+        var result = testRayIntersect(pickRay, allToolEntities);
         var pickedColor;
         var highlightNeeded = false;
+        var isGizmoRing = false;
 
         if (result.intersects) {
             switch (result.overlayID) {
                 case handleTranslateXCone:
+                    highlightNeeded = true;
+                    pickedColor = COLOR_RED;
+                    break;
                 case handleTranslateXCylinder:
-                case handleRotatePitchRing:
+                    highlightNeeded = true;
+                    pickedColor = COLOR_RED;
+                    break;                
+                case handleRotatePitchXRedRing:
+                    isGizmoRing = true;
+                    highlightNeeded = true;
+                    pickedColor = COLOR_RED;
+                    break;
                 case handleStretchXCube:
                     pickedColor = COLOR_RED;
                     highlightNeeded = true;
                     break;
                 case handleTranslateYCone:
+                    highlightNeeded = true;
+                    pickedColor = COLOR_GREEN;
+                    break;                
                 case handleTranslateYCylinder:
-                case handleRotateYawRing:
+                    highlightNeeded = true;
+                    pickedColor = COLOR_GREEN;
+                    break;                
+                case handleRotateYawYGreenRing:
+                    isGizmoRing = true;
+                    highlightNeeded = true;
+                    pickedColor = COLOR_GREEN;
+                    break;                
                 case handleStretchYCube:
                     pickedColor = COLOR_GREEN;
                     highlightNeeded = true;
                     break;
                 case handleTranslateZCone:
+                    highlightNeeded = true;
+                    pickedColor = COLOR_BLUE;
+                    break;                
                 case handleTranslateZCylinder:
-                case handleRotateRollRing:
+                    highlightNeeded = true;
+                    pickedColor = COLOR_BLUE;
+                    break;                
+                case handleRotateRollZBlueRing:
+                    isGizmoRing = true;
+                    highlightNeeded = true;
+                    pickedColor = COLOR_BLUE;
+                    break;                
                 case handleStretchZCube:
                     pickedColor = COLOR_BLUE;
                     highlightNeeded = true;
@@ -1280,6 +1547,10 @@ SelectionDisplay = (function() {
                     pickedColor = COLOR_SCALE_CUBE;
                     highlightNeeded = true;
                     break;
+                case handleDuplicator:
+                    pickedColor = COLOR_DUPLICATOR;
+                    highlightNeeded = true;
+                    break;                    
                 default:
                     that.resetPreviousHandleColor();
                     break;
@@ -1287,11 +1558,22 @@ SelectionDisplay = (function() {
 
             if (highlightNeeded) {
                 that.resetPreviousHandleColor();
-                Overlays.editOverlay(result.overlayID, { color: COLOR_HOVER });
+                if (isGizmoRing === true) {
+                    Entities.editEntity(result.overlayID, {
+                        ring: { 
+                            innerStartColor: COLOR_HOVER,
+                            innerEndColor: COLOR_HOVER,
+                            outerStartColor: COLOR_HOVER,
+                            outerEndColor: COLOR_HOVER            
+                        }
+                    });
+                } else {
+                    Entities.editEntity(result.overlayID, { color: COLOR_HOVER });
+                }
                 previousHandle = result.overlayID;
                 previousHandleHelper = that.getHandleHelper(result.overlayID);
                 if (previousHandleHelper !== null) {
-                    Overlays.editOverlay(previousHandleHelper, { color: COLOR_HOVER });
+                    Entities.editEntity(previousHandleHelper, { color: COLOR_HOVER });
                 }
                 previousHandleColor = pickedColor;
             }
@@ -1469,9 +1751,14 @@ SelectionDisplay = (function() {
     }
 
     that.cleanup = function() {
-        for (var i = 0; i < allOverlays.length; i++) {
-            Overlays.deleteOverlay(allOverlays[i]);
+        for (var i = 0; i < allToolEntities.length; i++) {
+            Entities.deleteEntity(allToolEntities[i]);
         }
+        
+        for (i = 0; i < toolEntityMaterial.length; i++) {
+            Entities.deleteEntity(toolEntityMaterial[i]);
+        }
+        
         that.clearDebugPickPlane();
     };
 
@@ -1578,12 +1865,12 @@ SelectionDisplay = (function() {
         return spaceMode;
     };
 
-    function addHandleTool(overlay, tool) {
-        handleTools[overlay] = tool;
+    function addHandleTool(toolEntity, tool) {
+        handleTools[toolEntity] = tool;
         return tool;
     }
 
-    // @param: toolHandle:  The overlayID associated with the tool
+    // @param: toolHandle:  The entityID associated with the tool
     //         that correlates to the tool you wish to query.
     // @note: If toolHandle is null or undefined then activeTool
     //        will be checked against those values as opposed to
@@ -1618,7 +1905,7 @@ SelectionDisplay = (function() {
         }
         
         if (SelectionManager.selections.length === 0) {
-            that.setOverlaysVisible(false);
+            that.setToolEntitiesVisible(false);
             that.clearDebugPickPlane();
             return;
         }
@@ -1641,6 +1928,18 @@ SelectionDisplay = (function() {
             var rotationZ = Quat.multiply(rotation, localRotationZ);
             worldRotationZ = rotationZ;
             
+            var handleBoundingBoxColor = COLOR_BOUNDING_EDGE;
+            if (SelectionManager.selections.length === 1) {
+                var parentState = getParentState(SelectionManager.selections[0]);
+                if (parentState === "CHILDREN") {
+                    handleBoundingBoxColor = COLOR_BOUNDING_EDGE_CHILDREN;
+                } else {
+                    if (parentState === "PARENT" || parentState === "PARENT_CHILDREN") {
+                        handleBoundingBoxColor = COLOR_BOUNDING_EDGE_PARENT;
+                    }
+                }
+            }
+            
             var selectionBoxGeometry = {
                 position: position,
                 rotation: rotation,
@@ -1648,41 +1947,47 @@ SelectionDisplay = (function() {
             };
             var isCameraInsideBox = isPointInsideBox(Camera.position, selectionBoxGeometry);
             
-            // in HMD if outside the bounding box clamp the overlays to the bounding box for now so lasers can hit them
+            // in HMD if outside the bounding box clamp the toolEntities to the bounding box for now so lasers can hit them
             var maxHandleDimension = 0;
             if (HMD.active && !isCameraInsideBox) {
                 maxHandleDimension = Math.max(dimensions.x, dimensions.y, dimensions.z);
             }
 
             // UPDATE ROTATION RINGS
-            // rotateDimension is used as the base dimension for all overlays
+            // rotateDimension is used as the base dimension for all toolEntities
             var rotateDimension = Math.max(maxHandleDimension, toCameraDistance * ROTATE_RING_CAMERA_DISTANCE_MULTIPLE);
             var rotateDimensions = { x: rotateDimension, y: rotateDimension, z: rotateDimension };
-            if (!isActiveTool(handleRotatePitchRing)) {
-                Overlays.editOverlay(handleRotatePitchRing, { 
-                    position: position, 
-                    rotation: rotationY,
-                    dimensions: rotateDimensions,
-                    majorTickMarksAngle: ROTATE_DEFAULT_TICK_MARKS_ANGLE
-                });
-            }
-            if (!isActiveTool(handleRotateYawRing)) {
-                Overlays.editOverlay(handleRotateYawRing, { 
-                    position: position, 
-                    rotation: rotationZ,
-                    dimensions: rotateDimensions,
-                    majorTickMarksAngle: ROTATE_DEFAULT_TICK_MARKS_ANGLE
-                });
-            }
-            if (!isActiveTool(handleRotateRollRing)) {
-                Overlays.editOverlay(handleRotateRollRing, { 
+            if (!isActiveTool(handleRotatePitchXRedRing)) {
+                Entities.editEntity(handleRotatePitchXRedRing, { 
                     position: position, 
                     rotation: rotationX,
                     dimensions: rotateDimensions,
-                    majorTickMarksAngle: ROTATE_DEFAULT_TICK_MARKS_ANGLE
+                    ring: {
+                        majorTickMarksAngle: ROTATE_DEFAULT_TICK_MARKS_ANGLE
+                    }
                 });
             }
-            Overlays.editOverlay(handleRotateCurrentRing, { dimensions: rotateDimensions });
+            if (!isActiveTool(handleRotateYawYGreenRing)) {
+                Entities.editEntity(handleRotateYawYGreenRing, { 
+                    position: position, 
+                    rotation: rotationY,
+                    dimensions: rotateDimensions,
+                    ring: {
+                        majorTickMarksAngle: ROTATE_DEFAULT_TICK_MARKS_ANGLE
+                    }
+                });
+            }
+            if (!isActiveTool(handleRotateRollZBlueRing)) {
+                Entities.editEntity(handleRotateRollZBlueRing, { 
+                    position: position, 
+                    rotation: rotationZ,
+                    dimensions: rotateDimensions,
+                    ring: {
+                        majorTickMarksAngle: ROTATE_DEFAULT_TICK_MARKS_ANGLE
+                    }
+                });
+            }
+            Entities.editEntity(handleRotateCurrentRing, { dimensions: rotateDimensions });
             that.updateActiveRotateRing();
 
             // UPDATE TRANSLATION ARROWS
@@ -1700,42 +2005,42 @@ SelectionDisplay = (function() {
             var arrowConeOffset = arrowCylinderDimensions.y * TRANSLATE_ARROW_CONE_OFFSET_CYLINDER_DIMENSION_MULTIPLE;
             var cylinderXPosition = { x: arrowCylinderOffset, y: 0, z: 0 };
             cylinderXPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, cylinderXPosition));
-            Overlays.editOverlay(handleTranslateXCylinder, { 
+            Entities.editEntity(handleTranslateXCylinder, { 
                 position: cylinderXPosition, 
                 rotation: rotationX,
                 dimensions: arrowCylinderDimensions
             });
             var cylinderXOffset = Vec3.subtract(cylinderXPosition, position);
             var coneXPosition = Vec3.sum(cylinderXPosition, Vec3.multiply(Vec3.normalize(cylinderXOffset), arrowConeOffset));
-            Overlays.editOverlay(handleTranslateXCone, { 
+            Entities.editEntity(handleTranslateXCone, { 
                 position: coneXPosition, 
                 rotation: rotationX,
                 dimensions: arrowConeDimensions
             });
             var cylinderYPosition = { x: 0, y: arrowCylinderOffset, z: 0 };
             cylinderYPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, cylinderYPosition));
-            Overlays.editOverlay(handleTranslateYCylinder, { 
+            Entities.editEntity(handleTranslateYCylinder, { 
                 position: cylinderYPosition, 
                 rotation: rotationY,
                 dimensions: arrowCylinderDimensions
             });
             var cylinderYOffset = Vec3.subtract(cylinderYPosition, position);
             var coneYPosition = Vec3.sum(cylinderYPosition, Vec3.multiply(Vec3.normalize(cylinderYOffset), arrowConeOffset));
-            Overlays.editOverlay(handleTranslateYCone, { 
+            Entities.editEntity(handleTranslateYCone, { 
                 position: coneYPosition, 
                 rotation: rotationY,
                 dimensions: arrowConeDimensions
             });
             var cylinderZPosition = { x: 0, y: 0, z: arrowCylinderOffset };
             cylinderZPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, cylinderZPosition));
-            Overlays.editOverlay(handleTranslateZCylinder, { 
+            Entities.editEntity(handleTranslateZCylinder, { 
                 position: cylinderZPosition, 
                 rotation: rotationZ,
                 dimensions: arrowCylinderDimensions
             });
             var cylinderZOffset = Vec3.subtract(cylinderZPosition, position);
             var coneZPosition = Vec3.sum(cylinderZPosition, Vec3.multiply(Vec3.normalize(cylinderZOffset), arrowConeOffset));
-            Overlays.editOverlay(handleTranslateZCone, { 
+            Entities.editEntity(handleTranslateZCone, { 
                 position: coneZPosition, 
                 rotation: rotationZ,
                 dimensions: arrowConeDimensions
@@ -1743,19 +2048,20 @@ SelectionDisplay = (function() {
 
             // UPDATE SCALE CUBE
             var scaleCubeRotation = spaceMode === SPACE_LOCAL ? rotation : Quat.IDENTITY;            
-            var scaleCubeDimension = rotateDimension * SCALE_OVERLAY_CAMERA_DISTANCE_MULTIPLE / 
+            var scaleCubeDimension = rotateDimension * SCALE_TOOL_CAMERA_DISTANCE_MULTIPLE / 
                                                        ROTATE_RING_CAMERA_DISTANCE_MULTIPLE;
             var scaleCubeDimensions = { x: scaleCubeDimension, y: scaleCubeDimension, z: scaleCubeDimension };
-            Overlays.editOverlay(handleScaleCube, { 
+            Entities.editEntity(handleScaleCube, { 
                 position: position, 
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
 
             // UPDATE BOUNDING BOX
-            Overlays.editOverlay(handleBoundingBox, {
+            Entities.editEntity(handleBoundingBox, {
                 position: position,
                 rotation: rotation,
+                color: handleBoundingBoxColor,
                 dimensions: dimensions
             });
 
@@ -1782,7 +2088,7 @@ SelectionDisplay = (function() {
             stretchPanelXDimensions.y = Math.abs(stretchPanelXDimensions.z);
             stretchPanelXDimensions.z = tempY;
             var stretchPanelXPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x: dimensions.x / 2, y: 0, z: 0 }));
-            Overlays.editOverlay(handleStretchXPanel, { 
+            Entities.editEntity(handleStretchXPanel, { 
                 position: stretchPanelXPosition, 
                 rotation: rotationZ,
                 dimensions: stretchPanelXDimensions
@@ -1793,7 +2099,7 @@ SelectionDisplay = (function() {
             stretchPanelYDimensions.y = STRETCH_PANEL_WIDTH;
             stretchPanelYDimensions.z = tempX;
             var stretchPanelYPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x: 0, y: dimensions.y / 2, z: 0 }));
-            Overlays.editOverlay(handleStretchYPanel, { 
+            Entities.editEntity(handleStretchYPanel, { 
                 position: stretchPanelYPosition, 
                 rotation: rotationY,
                 dimensions: stretchPanelYDimensions
@@ -1804,7 +2110,7 @@ SelectionDisplay = (function() {
             stretchPanelZDimensions.y = tempX;
             stretchPanelZDimensions.z = STRETCH_PANEL_WIDTH;
             var stretchPanelZPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x: 0, y: 0, z: dimensions.z / 2 }));
-            Overlays.editOverlay(handleStretchZPanel, { 
+            Entities.editEntity(handleStretchZPanel, { 
                 position: stretchPanelZPosition, 
                 rotation: rotationX,
                 dimensions: stretchPanelZDimensions
@@ -1834,29 +2140,29 @@ SelectionDisplay = (function() {
                 stretchZPosition = { x: 0, y: 0, z: stretchCubeOffset };
                 stretchZPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, stretchZPosition));
             }
-            Overlays.editOverlay(handleStretchXCube, { 
+            Entities.editEntity(handleStretchXCube, { 
                 position: stretchXPosition, 
                 rotation: rotationX,
                 dimensions: stretchCubeDimensions 
             });
-            Overlays.editOverlay(handleStretchYCube, { 
+            Entities.editEntity(handleStretchYCube, { 
                 position: stretchYPosition, 
                 rotation: rotationY,
                 dimensions: stretchCubeDimensions 
             });
-            Overlays.editOverlay(handleStretchZCube, { 
+            Entities.editEntity(handleStretchZCube, { 
                 position: stretchZPosition,
                 rotation: rotationZ,
                 dimensions: stretchCubeDimensions 
             });
 
             // UPDATE SELECTION BOX (CURRENTLY INVISIBLE WITH 0 ALPHA FOR TRANSLATE XZ TOOL)
-            var inModeRotate = isActiveTool(handleRotatePitchRing) || 
-                               isActiveTool(handleRotateYawRing) || 
-                               isActiveTool(handleRotateRollRing);
+            var inModeRotate = isActiveTool(handleRotatePitchXRedRing) || 
+                               isActiveTool(handleRotateYawYGreenRing) || 
+                               isActiveTool(handleRotateRollZBlueRing);
             selectionBoxGeometry.visible = !inModeRotate && !isCameraInsideBox;
             selectionBoxGeometry.ignorePickIntersection = !selectionBoxGeometry.visible;
-            Overlays.editOverlay(selectionBox, selectionBoxGeometry);
+            Entities.editEntity(selectionBox, selectionBoxGeometry);
 
             // UPDATE ICON TRANSLATE HANDLE
             if (SelectionManager.entityType === "ParticleEffect" || SelectionManager.entityType === "Light") {
@@ -1866,22 +2172,23 @@ SelectionDisplay = (function() {
                 };
                 iconSelectionBoxGeometry.visible = !inModeRotate && isCameraInsideBox;
                 iconSelectionBoxGeometry.ignorePickIntersection = !iconSelectionBoxGeometry.visible;
-                Overlays.editOverlay(iconSelectionBox, iconSelectionBoxGeometry);
+                Entities.editEntity(iconSelectionBox, iconSelectionBoxGeometry);
             } else {
-                Overlays.editOverlay(iconSelectionBox, {
+                Entities.editEntity(iconSelectionBox, {
                     visible: false,
                     ignorePickIntersection: true
                 });
             }
 
-            // UPDATE DUPLICATOR (CURRENTLY HIDDEN FOR NOW)
+            // UPDATE DUPLICATOR (CURRENTLY VISIBLE ONLY IN HMD)
             var handleDuplicatorOffset = { 
-                x: DUPLICATOR_OFFSET.x * dimensions.x, 
-                y: DUPLICATOR_OFFSET.y * dimensions.y, 
-                z: DUPLICATOR_OFFSET.z * dimensions.z 
+                x: DUPLICATOR_OFFSET.x * rotateDimension, 
+                y: DUPLICATOR_OFFSET.y * rotateDimension, 
+                z: DUPLICATOR_OFFSET.z * rotateDimension 
             };
+
             var handleDuplicatorPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, handleDuplicatorOffset));
-            Overlays.editOverlay(handleDuplicator, {
+            Entities.editEntity(handleDuplicator, {
                 position: handleDuplicatorPos,
                 rotation: rotation,
                 dimensions: scaleCubeDimensions
@@ -1894,9 +2201,9 @@ SelectionDisplay = (function() {
                                                        isActiveTool(handleTranslateYCylinder));
         that.setHandleTranslateZVisible(!activeTool || isActiveTool(handleTranslateZCone) || 
                                                        isActiveTool(handleTranslateZCylinder));
-        that.setHandleRotatePitchVisible(!activeTool || isActiveTool(handleRotatePitchRing));
-        that.setHandleRotateYawVisible(!activeTool || isActiveTool(handleRotateYawRing));
-        that.setHandleRotateRollVisible(!activeTool || isActiveTool(handleRotateRollRing));
+        that.setHandleRotatePitchVisible(!activeTool || isActiveTool(handleRotatePitchXRedRing));
+        that.setHandleRotateYawVisible(!activeTool || isActiveTool(handleRotateYawYGreenRing));
+        that.setHandleRotateRollVisible(!activeTool || isActiveTool(handleRotateRollZBlueRing));
 
         var showScaleStretch = !activeTool && SelectionManager.selections.length === 1 && spaceMode === SPACE_LOCAL;
         that.setHandleStretchXVisible(showScaleStretch || isActiveTool(handleStretchXCube));
@@ -1907,13 +2214,16 @@ SelectionDisplay = (function() {
         var showOutlineForZone = (SelectionManager.selections.length === 1 && 
                                     typeof SelectionManager.savedProperties[SelectionManager.selections[0]] !== "undefined" &&
                                     SelectionManager.savedProperties[SelectionManager.selections[0]].type === "Zone");
-        that.setHandleBoundingBoxVisible(showOutlineForZone || (!isActiveTool(handleRotatePitchRing) &&
-                                                              !isActiveTool(handleRotateYawRing) &&
-                                                              !isActiveTool(handleRotateRollRing)));
+        that.setHandleBoundingBoxVisible(showOutlineForZone || (!isActiveTool(handleRotatePitchXRedRing) &&
+                                                              !isActiveTool(handleRotateYawYGreenRing) &&
+                                                              !isActiveTool(handleRotateRollZBlueRing)));
 
-        // keep duplicator always hidden for now since you can hold Alt to duplicate while
-        // translating an entity - we may bring duplicator back for HMD only later
-        // that.setHandleDuplicatorVisible(!activeTool || isActiveTool(handleDuplicator));
+        // ## Duplicator handle for HMD only. ##
+        //Functionality Deactivated. This is a bit too sensible. We will explore other solutions. 
+        //(uncomment to re-activate)
+        /*if (HMD.active) {
+            that.setHandleDuplicatorVisible(!activeTool || isActiveTool(handleDuplicator));
+        }*/
 
         if (wantDebug) {
             print("====== Update Handles <=======");
@@ -1924,23 +2234,23 @@ SelectionDisplay = (function() {
     // FUNCTION: UPDATE ACTIVE ROTATE RING
     that.updateActiveRotateRing = function() {
         var activeRotateRing = null;
-        if (isActiveTool(handleRotatePitchRing)) {
-            activeRotateRing = handleRotatePitchRing;
-        } else if (isActiveTool(handleRotateYawRing)) {
-            activeRotateRing = handleRotateYawRing;
-        } else if (isActiveTool(handleRotateRollRing)) {
-            activeRotateRing = handleRotateRollRing;
+        if (isActiveTool(handleRotatePitchXRedRing)) {
+            activeRotateRing = handleRotatePitchXRedRing;
+        } else if (isActiveTool(handleRotateYawYGreenRing)) {
+            activeRotateRing = handleRotateYawYGreenRing;
+        } else if (isActiveTool(handleRotateRollZBlueRing)) {
+            activeRotateRing = handleRotateRollZBlueRing;
         }
         if (activeRotateRing !== null) {
             var tickMarksAngle = ctrlPressed ? ROTATE_CTRL_SNAP_ANGLE : ROTATE_DEFAULT_TICK_MARKS_ANGLE;
-            Overlays.editOverlay(activeRotateRing, { majorTickMarksAngle: tickMarksAngle });
+            Entities.editEntity(activeRotateRing, { ring: { majorTickMarksAngle: tickMarksAngle } });
         }
     };
 
-    // FUNCTION: SET OVERLAYS VISIBLE
-    that.setOverlaysVisible = function(isVisible) {
-        for (var i = 0, length = allOverlays.length; i < length; i++) {
-            Overlays.editOverlay(allOverlays[i], { visible: isVisible, ignorePickIntersection: !isVisible });
+    // FUNCTION: SET TOOL ENTITYS VISIBLE
+    that.setToolEntitiesVisible = function(isVisible) {
+        for (var i = 0, length = allToolEntities.length; i < length; i++) {
+            Entities.editEntity(allToolEntities[i], { visible: isVisible, ignorePickIntersection: !isVisible });
         }
     };
 
@@ -1952,18 +2262,18 @@ SelectionDisplay = (function() {
     };
 
     that.setHandleTranslateXVisible = function(isVisible) {
-        Overlays.editOverlay(handleTranslateXCone, { visible: isVisible, ignorePickIntersection: !isVisible });
-        Overlays.editOverlay(handleTranslateXCylinder, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleTranslateXCone, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleTranslateXCylinder, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleTranslateYVisible = function(isVisible) {
-        Overlays.editOverlay(handleTranslateYCone, { visible: isVisible, ignorePickIntersection: !isVisible });
-        Overlays.editOverlay(handleTranslateYCylinder, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleTranslateYCone, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleTranslateYCylinder, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleTranslateZVisible = function(isVisible) {
-        Overlays.editOverlay(handleTranslateZCone, { visible: isVisible, ignorePickIntersection: !isVisible });
-        Overlays.editOverlay(handleTranslateZCylinder, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleTranslateZCone, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleTranslateZCylinder, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     // FUNCTION: SET HANDLE ROTATE VISIBLE
@@ -1974,15 +2284,15 @@ SelectionDisplay = (function() {
     };
 
     that.setHandleRotatePitchVisible = function(isVisible) {
-        Overlays.editOverlay(handleRotatePitchRing, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleRotatePitchXRedRing, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleRotateYawVisible = function(isVisible) {
-        Overlays.editOverlay(handleRotateYawRing, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleRotateYawYGreenRing, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleRotateRollVisible = function(isVisible) {
-        Overlays.editOverlay(handleRotateRollRing, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleRotateRollZBlueRing, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     // FUNCTION: SET HANDLE STRETCH VISIBLE
@@ -1993,15 +2303,15 @@ SelectionDisplay = (function() {
     };
 
     that.setHandleStretchXVisible = function(isVisible) {
-        Overlays.editOverlay(handleStretchXCube, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleStretchXCube, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleStretchYVisible = function(isVisible) {
-        Overlays.editOverlay(handleStretchYCube, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleStretchYCube, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleStretchZVisible = function(isVisible) {
-        Overlays.editOverlay(handleStretchZCube, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleStretchZCube, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
     
     // FUNCTION: SET HANDLE SCALE VISIBLE
@@ -2011,16 +2321,16 @@ SelectionDisplay = (function() {
     };
 
     that.setHandleScaleVisible = function(isVisible) {
-        Overlays.editOverlay(handleScaleCube, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleScaleCube, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleBoundingBoxVisible = function(isVisible) {
-        Overlays.editOverlay(handleBoundingBox, { visible: isVisible, ignorePickIntersection: true });
+        Entities.editEntity(handleBoundingBox, { visible: isVisible, ignorePickIntersection: true });
     };
 
     // FUNCTION: SET HANDLE DUPLICATOR VISIBLE
     that.setHandleDuplicatorVisible = function(isVisible) {
-        Overlays.editOverlay(handleDuplicator, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Entities.editEntity(handleDuplicator, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     // FUNCTION: DEBUG PICK PLANE
@@ -2029,44 +2339,61 @@ SelectionDisplay = (function() {
         var rotation = Quat.lookAtSimple(planePlusNormal, pickPlanePosition);
         var dimensionXZ = getDistanceToCamera(pickPlanePosition) * 1.25;   
         var dimensions = { x:dimensionXZ, y:dimensionXZ, z:STRETCH_PANEL_WIDTH };
-        Overlays.editOverlay(debugPickPlane, {
+        Entities.editEntity(debugPickPlane, {
             position: pickPlanePosition,
             rotation: rotation,
             dimensions: dimensions,
             visible: true
         });
     };
-    
+   
     that.showDebugPickPlaneHit = function(pickHitPosition) {
         var dimension = getDistanceToCamera(pickHitPosition) * DEBUG_PICK_PLANE_HIT_CAMERA_DISTANCE_MULTIPLE;
-        var pickPlaneHit = Overlays.addOverlay("shape", {
+        var pickPlaneHit = Entities.addEntity({
+            type: "Shape",
             alpha: 0.5,
             shape: "Sphere",
-            solid: true,
+            primitiveMode: "solid",
             visible: true,
             ignorePickIntersection: true,
-            drawInFront: false,
+            renderLayer: "front",
             color: COLOR_DEBUG_PICK_PLANE_HIT,
             position: pickHitPosition,
             dimensions: { x: dimension, y: dimension, z: dimension }
-        });
+        }, "local");
         debugPickPlaneHits.push(pickPlaneHit);
         if (debugPickPlaneHits.length > DEBUG_PICK_PLANE_HIT_LIMIT) {
             var removedPickPlaneHit = debugPickPlaneHits.shift();
-            Overlays.deleteOverlay(removedPickPlaneHit);
+            Entities.deleteEntity(removedPickPlaneHit);
         }
     };
     
     that.clearDebugPickPlane = function() {
-        Overlays.editOverlay(debugPickPlane, { visible: false });
+        Entities.editEntity(debugPickPlane, { visible: false });
         for (var i = 0; i < debugPickPlaneHits.length; i++) {
-            Overlays.deleteOverlay(debugPickPlaneHits[i]);
+            Entities.deleteEntity(debugPickPlaneHits[i]);
         }
         debugPickPlaneHits = [];
     };
     
+    function addUnlitMaterialOnToolEntity(toolEntityParentID) {
+        var toolEntitiesMaterialData = "{\n  \"materialVersion\": 1,\n  \"materials\": [\n    {\n      \"name\": \"0\",\n      \"defaultFallthrough\": true,\n      \"unlit\": true,\n      \"model\": \"hifi_pbr\"\n    }\n  ]\n}";
+        var materialEntityID = Entities.addEntity({
+            "type": "Material",
+            "parentID": toolEntityParentID,
+            "name": "tool-material",
+            "parentMaterialName": "0",
+            "materialURL": "materialData",
+            "priority": 1,
+            "materialMappingMode": "uv",
+            "ignorePickIntersection": true,
+            "materialData": toolEntitiesMaterialData
+        }, "local");
+        return materialEntityID;
+    }
+    
     // TOOL DEFINITION: HANDLE TRANSLATE XZ TOOL
-    function addHandleTranslateXZTool(overlay, mode, doDuplicate) {
+    function addHandleTranslateXZTool(toolEntity, mode, doDuplicate) {
         var initialPick = null;
         var isConstrained = false;
         var constrainMajorOnly = false;
@@ -2077,7 +2404,7 @@ SelectionDisplay = (function() {
         var greatestDimension = 0.0;
         var startingDistance = 0.0;
         var startingElevation = 0.0;
-        addHandleTool(overlay, {
+        addHandleTool(toolEntity, {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
                 var wantDebug = false;
@@ -2140,11 +2467,11 @@ SelectionDisplay = (function() {
             onEnd: function(event, reason) {
                 pushCommandForSelections(duplicatedEntityIDs);
                 if (isConstrained) {
-                    Overlays.editOverlay(xRailOverlay, {
+                    Entities.editEntity(xRailToolEntity, {
                         visible: false,
                         ignorePickIntersection: true
                     });
-                    Overlays.editOverlay(zRailOverlay, {
+                    Entities.editEntity(zRailToolEntity, {
                         visible: false,
                         ignorePickIntersection: true
                     });
@@ -2232,15 +2559,13 @@ SelectionDisplay = (function() {
                             y: 0,
                             z: RAIL_AXIS_LENGTH
                         });
-                        Overlays.editOverlay(xRailOverlay, {
-                            start: xStart,
-                            end: xEnd,
+                        Entities.editEntity(xRailToolEntity, {
+                            linePoints: [ xStart, xEnd ],
                             visible: true,
                             ignorePickIntersection: true
                         });
-                        Overlays.editOverlay(zRailOverlay, {
-                            start: zStart,
-                            end: zEnd,
+                        Entities.editEntity(zRailToolEntity, {
+                            linePoints: [ zStart, zEnd ],
                             visible: true,
                             ignorePickIntersection: true
                         });
@@ -2248,11 +2573,11 @@ SelectionDisplay = (function() {
                     }
                 } else {
                     if (isConstrained) {
-                        Overlays.editOverlay(xRailOverlay, {
+                        Entities.editEntity(xRailToolEntity, {
                             visible: false,
                             ignorePickIntersection: true
                         });
-                        Overlays.editOverlay(zRailOverlay, {
+                        Entities.editEntity(zRailToolEntity, {
                             visible: false,
                             ignorePickIntersection: true
                         });
@@ -2305,14 +2630,14 @@ SelectionDisplay = (function() {
     }
 
     // TOOL DEFINITION: HANDLE TRANSLATE TOOL    
-    function addHandleTranslateTool(overlay, mode, direction) {
+    function addHandleTranslateTool(toolEntity, mode, direction) {
         var pickPlanePosition = null;
         var pickPlaneNormal = null;
         var initialPick = null;
         var projectionVector = null;
         var previousPickRay = null;
         var rotation = null;
-        addHandleTool(overlay, {
+        addHandleTool(toolEntity, {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
                 // Duplicate entities if Ctrl is pressed on Windows or Alt is pressed on Mac.
@@ -2428,7 +2753,7 @@ SelectionDisplay = (function() {
     }
 
     // TOOL DEFINITION: HANDLE STRETCH TOOL   
-    function addHandleStretchTool(overlay, mode, directionEnum) {
+    function addHandleStretchTool(toolEntity, mode, directionEnum) {
         var initialPick = null;
         var initialPosition = null;
         var initialDimensions = null;
@@ -2444,7 +2769,7 @@ SelectionDisplay = (function() {
         var stretchPanel = null;
         var handleStretchCube = null;
         var deltaPivot = null;
-        addHandleTool(overlay, {
+        addHandleTool(toolEntity, {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {             
                 if (directionEnum === STRETCH_DIRECTION.X) {
@@ -2526,11 +2851,11 @@ SelectionDisplay = (function() {
                 }
 
                 if (stretchPanel !== null) {
-                    Overlays.editOverlay(stretchPanel, { visible: true, ignorePickIntersection: false });
+                    Entities.editEntity(stretchPanel, { visible: true, ignorePickIntersection: false });
                 }
-                var stretchCubePosition = Overlays.getProperty(handleStretchCube, "position");
-                var stretchPanelPosition = Overlays.getProperty(stretchPanel, "position");
-                activeStretchCubePanelOffset = Vec3.subtract(stretchPanelPosition, stretchCubePosition);
+                var stretchCubeProperties = Entities.getEntityProperties(handleStretchCube, ["position"]);
+                var stretchPanelProperties = Entities.getEntityProperties(stretchPanel, ["position"]);
+                activeStretchCubePanelOffset = Vec3.subtract(stretchPanelProperties.position, stretchCubeProperties.position);
                 
                 previousPickRay = pickRay;
 
@@ -2547,7 +2872,7 @@ SelectionDisplay = (function() {
                 }
                 
                 if (stretchPanel !== null) {
-                    Overlays.editOverlay(stretchPanel, { visible: false, ignorePickIntersection: true });
+                    Entities.editEntity(stretchPanel, { visible: false, ignorePickIntersection: true });
                 }
                 activeStretchCubePanelOffset = null;
                 
@@ -2615,14 +2940,14 @@ SelectionDisplay = (function() {
     }
 
     // TOOL DEFINITION: HANDLE SCALE TOOL   
-    function addHandleScaleTool(overlay, mode) {
+    function addHandleScaleTool(toolEntity, mode) {
         var initialPick = null;
         var initialPosition = null;
         var initialDimensions = null;
         var pickPlanePosition = null;
         var pickPlaneNormal = null;
         var previousPickRay = null;     
-        addHandleTool(overlay, {
+        addHandleTool(toolEntity, {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
                 initialPosition = SelectionManager.localPosition;
@@ -2725,10 +3050,10 @@ SelectionDisplay = (function() {
         });
     }
 
-    // FUNCTION: UPDATE ROTATION DEGREES OVERLAY
-    function updateRotationDegreesOverlay(angleFromZero, position) {
+    // FUNCTION: UPDATE ROTATION DEGREES TOOL ENTITY
+    function updateRotationDegreesToolEntity(angleFromZero, position) {
         var toCameraDistance = getDistanceToCamera(position);
-        var overlayProps = {
+        var toolEntityProps = {
             position: position,
             dimensions: {
                 x: toCameraDistance * ROTATE_DISPLAY_SIZE_X_MULTIPLIER,
@@ -2737,7 +3062,7 @@ SelectionDisplay = (function() {
             lineHeight: toCameraDistance * ROTATE_DISPLAY_LINE_HEIGHT_MULTIPLIER,
             text: normalizeDegrees(-angleFromZero) + "°"
         };
-        Overlays.editOverlay(rotationDegreesDisplay, overlayProps);
+        Entities.editEntity(rotationDegreesDisplay, toolEntityProps);
     }
 
     // FUNCTION DEF: updateSelectionsRotation
@@ -2784,7 +3109,7 @@ SelectionDisplay = (function() {
     }
 
     // TOOL DEFINITION: HANDLE ROTATION TOOL   
-    function addHandleRotateTool(overlay, mode, direction) {
+    function addHandleRotateTool(toolEntity, mode, direction) {
         var selectedHandle = null;
         var worldRotation = null;
         var initialRotation = null;
@@ -2792,7 +3117,7 @@ SelectionDisplay = (function() {
         var rotationNormal = null;
         var rotationZero = null;
         var rotationDegreesPosition = null;
-        addHandleTool(overlay, {
+        addHandleTool(toolEntity, {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
                 var wantDebug = false;
@@ -2802,16 +3127,16 @@ SelectionDisplay = (function() {
                 
                 if (direction === ROTATE_DIRECTION.PITCH) {
                     rotationNormal = { x: 1, y: 0, z: 0 };
-                    worldRotation = worldRotationY;
-                    selectedHandle = handleRotatePitchRing;
+                    worldRotation = worldRotationX;
+                    selectedHandle = handleRotatePitchXRedRing;
                 } else if (direction === ROTATE_DIRECTION.YAW) {
                     rotationNormal = { x: 0, y: 1, z: 0 };
-                    worldRotation = worldRotationZ;
-                    selectedHandle = handleRotateYawRing;
+                    worldRotation = worldRotationY;
+                    selectedHandle = handleRotateYawYGreenRing;
                 } else if (direction === ROTATE_DIRECTION.ROLL) {
                     rotationNormal = { x: 0, y: 0, z: 1 };
-                    worldRotation = worldRotationX;
-                    selectedHandle = handleRotateRollRing;
+                    worldRotation = worldRotationZ;
+                    selectedHandle = handleRotateRollZBlueRing;
                 }
                 
                 initialRotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
@@ -2829,24 +3154,28 @@ SelectionDisplay = (function() {
                 that.setHandleScaleVisible(false);
                 that.setHandleDuplicatorVisible(false);
 
-                Overlays.editOverlay(selectedHandle, { 
-                    hasTickMarks: true,
-                    solid: false,
-                    innerRadius: ROTATE_RING_SELECTED_INNER_RADIUS
+                Entities.editEntity(selectedHandle, {
+                    primitiveMode: "lines",
+                    ring: {
+                        hasTickMarks: true,
+                        innerRadius: ROTATE_RING_SELECTED_INNER_RADIUS
+                    }
                 });
 
-                Overlays.editOverlay(rotationDegreesDisplay, { visible: true });
-                Overlays.editOverlay(handleRotateCurrentRing, {
+                Entities.editEntity(rotationDegreesDisplay, { visible: true });
+                Entities.editEntity(handleRotateCurrentRing, {
                     position: rotationCenter,
                     rotation: worldRotation,
-                    startAt: 0,
-                    endAt: 0,
+                    ring: {
+                        startAngle: 0,
+                        endAngle: 0
+                    },
                     visible: true,
                     ignorePickIntersection: false
                 });
 
                 // editOverlays may not have committed rotation changes.
-                // Compute zero position based on where the overlay will be eventually.
+                // Compute zero position based on where the toolEntity will be eventually.
                 var initialPick = rayPlaneIntersection(pickRay, rotationCenter, rotationNormal);
                 // In case of a parallel ray, this will be null, which will cause early-out
                 // in the onMove helper.
@@ -2856,7 +3185,7 @@ SelectionDisplay = (function() {
                 var rotationCenterToZeroLength = Vec3.length(rotationCenterToZero);
                 rotationDegreesPosition = Vec3.sum(rotationCenter, Vec3.multiply(Vec3.normalize(rotationCenterToZero), 
                                                    rotationCenterToZeroLength * ROTATE_DISPLAY_DISTANCE_MULTIPLIER));
-                updateRotationDegreesOverlay(0, rotationDegreesPosition);
+                updateRotationDegreesToolEntity(0, rotationDegreesPosition);
                 
                 if (debugPickPlaneEnabled) {
                     that.showDebugPickPlane(rotationCenter, rotationNormal);
@@ -2872,13 +3201,15 @@ SelectionDisplay = (function() {
                 if (wantDebug) {
                     print("================== " + getMode() + "(addHandleRotateTool onEnd) -> =======================");
                 }
-                Overlays.editOverlay(rotationDegreesDisplay, { visible: false, ignorePickIntersection: true });
-                Overlays.editOverlay(selectedHandle, { 
-                    hasTickMarks: false,
-                    solid: true,
-                    innerRadius: ROTATE_RING_IDLE_INNER_RADIUS
+                Entities.editEntity(rotationDegreesDisplay, { visible: false, ignorePickIntersection: true });
+                Entities.editEntity(selectedHandle, {
+                    primitiveMode: "solid",
+                    ring: {                    
+                        hasTickMarks: false,
+                        innerRadius: ROTATE_RING_IDLE_INNER_RADIUS
+                    }
                 });
-                Overlays.editOverlay(handleRotateCurrentRing, { visible: false, ignorePickIntersection: true });
+                Entities.editEntity(handleRotateCurrentRing, { visible: false, ignorePickIntersection: true });
                 pushCommandForSelections();
                 if (wantDebug) {
                     print("================== " + getMode() + "(addHandleRotateTool onEnd) <- =======================");
@@ -2921,11 +3252,9 @@ SelectionDisplay = (function() {
                     angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
                     var rotationChange = Quat.angleAxis(angleFromZero, rotationNormal);
                     updateSelectionsRotation(rotationChange, rotationCenter);
-                    updateRotationDegreesOverlay(-angleFromZero, rotationDegreesPosition);
+                    updateRotationDegreesToolEntity(-angleFromZero, rotationDegreesPosition);
 
-                    if (direction === ROTATE_DIRECTION.YAW) {
-                        angleFromZero *= -1;
-                    }
+                    angleFromZero *= -1;
 
                     var startAtCurrent = 0;
                     var endAtCurrent = angleFromZero;
@@ -2934,9 +3263,11 @@ SelectionDisplay = (function() {
                         startAtCurrent = maxDegrees + angleFromZero;
                         endAtCurrent = maxDegrees;
                     }
-                    Overlays.editOverlay(handleRotateCurrentRing, {
-                        startAt: startAtCurrent,
-                        endAt: endAtCurrent
+                    Entities.editEntity(handleRotateCurrentRing, {
+                        ring: {
+                            startAngle: startAtCurrent,
+                            endAngle: endAtCurrent
+                        }
                     });
                     
                     if (debugPickPlaneEnabled) {
@@ -2962,9 +3293,9 @@ SelectionDisplay = (function() {
     addHandleTranslateTool(handleTranslateZCone, "TRANSLATE_Z", TRANSLATE_DIRECTION.Z);
     addHandleTranslateTool(handleTranslateZCylinder, "TRANSLATE_Z", TRANSLATE_DIRECTION.Z);
 
-    addHandleRotateTool(handleRotatePitchRing, "ROTATE_PITCH", ROTATE_DIRECTION.PITCH);
-    addHandleRotateTool(handleRotateYawRing, "ROTATE_YAW", ROTATE_DIRECTION.YAW);
-    addHandleRotateTool(handleRotateRollRing, "ROTATE_ROLL", ROTATE_DIRECTION.ROLL);
+    addHandleRotateTool(handleRotatePitchXRedRing, "ROTATE_PITCH", ROTATE_DIRECTION.PITCH);
+    addHandleRotateTool(handleRotateYawYGreenRing, "ROTATE_YAW", ROTATE_DIRECTION.YAW);
+    addHandleRotateTool(handleRotateRollZBlueRing, "ROTATE_ROLL", ROTATE_DIRECTION.ROLL);
 
     addHandleStretchTool(handleStretchXCube, "STRETCH_X", STRETCH_DIRECTION.X);
     addHandleStretchTool(handleStretchYCube, "STRETCH_Y", STRETCH_DIRECTION.Y);

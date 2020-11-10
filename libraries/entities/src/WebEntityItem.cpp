@@ -1,6 +1,7 @@
 //
 //  Created by Bradley Austin Davis on 2015/05/12
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -16,13 +17,14 @@
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
 #include <shared/LocalFileAccessGate.h>
+#include <NetworkingConstants.h>
 
 #include "EntitiesLogging.h"
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 
-const QString WebEntityItem::DEFAULT_SOURCE_URL = "http://www.google.com";
+const QString WebEntityItem::DEFAULT_SOURCE_URL = NetworkingConstants::WEB_ENTITY_DEFAULT_SOURCE_URL;
 const uint8_t WebEntityItem::DEFAULT_MAX_FPS = 10;
 
 EntityItemPointer WebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -60,6 +62,7 @@ EntityItemProperties WebEntityItem::getProperties(const EntityPropertyFlags& des
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(maxFPS, getMaxFPS);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(inputMode, getInputMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(showKeyboardFocusHighlight, getShowKeyboardFocusHighlight);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(useBackground, getUseBackground);
     return properties;
 }
 
@@ -81,6 +84,7 @@ bool WebEntityItem::setSubClassProperties(const EntityItemProperties& properties
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(maxFPS, setMaxFPS);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(inputMode, setInputMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(showKeyboardFocusHighlight, setShowKeyboardFocusHighlight);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(useBackground, setUseBackground);
 
     return somethingChanged;
 }
@@ -110,6 +114,7 @@ int WebEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
     READ_ENTITY_PROPERTY(PROP_MAX_FPS, uint8_t, setMaxFPS);
     READ_ENTITY_PROPERTY(PROP_INPUT_MODE, WebInputMode, setInputMode);
     READ_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, bool, setShowKeyboardFocusHighlight);
+    READ_ENTITY_PROPERTY(PROP_WEB_USE_BACKGROUND, bool, setUseBackground);
 
     return bytesRead;
 }
@@ -127,6 +132,7 @@ EntityPropertyFlags WebEntityItem::getEntityProperties(EncodeBitstreamParams& pa
     requestedProperties += PROP_MAX_FPS;
     requestedProperties += PROP_INPUT_MODE;
     requestedProperties += PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT;
+    requestedProperties += PROP_WEB_USE_BACKGROUND;
     return requestedProperties;
 }
 
@@ -153,6 +159,7 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
     APPEND_ENTITY_PROPERTY(PROP_MAX_FPS, getMaxFPS());
     APPEND_ENTITY_PROPERTY(PROP_INPUT_MODE, (uint32_t)getInputMode());
     APPEND_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, getShowKeyboardFocusHighlight());
+    APPEND_ENTITY_PROPERTY(PROP_WEB_USE_BACKGROUND, getUseBackground());
 }
 
 glm::vec3 WebEntityItem::getRaycastDimensions() const {
@@ -295,7 +302,7 @@ void WebEntityItem::setScriptURL(const QString& value) {
     auto newURL = QUrl::fromUserInput(value);
 
     if (!newURL.isValid()) {
-                qCDebug(entities) << "Not setting web entity script URL since" << value << "cannot be parsed to a valid URL.";
+        qCDebug(entities) << "Not setting web entity script URL since" << value << "cannot be parsed to a valid URL.";
         return;
     }
 
@@ -345,6 +352,17 @@ void WebEntityItem::setShowKeyboardFocusHighlight(bool value) {
 
 bool WebEntityItem::getShowKeyboardFocusHighlight() const {
     return _showKeyboardFocusHighlight;
+}
+
+void WebEntityItem::setUseBackground(bool value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _useBackground != value;
+        _useBackground = value;
+    });
+}
+
+bool WebEntityItem::getUseBackground() const {
+    return resultWithReadLock<bool>([&] { return _useBackground; });
 }
 
 PulsePropertyGroup WebEntityItem::getPulseProperties() const {

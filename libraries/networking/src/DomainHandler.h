@@ -76,9 +76,9 @@ const quint16 DOMAIN_SERVER_EXPORTER_PORT =
         
 const quint16 DOMAIN_SERVER_METADATA_EXPORTER_PORT =
     QProcessEnvironment::systemEnvironment()
-    .contains("DOMAIN_SERVER_METADATA_EXPORTER_PORT")
+    .contains("VIRCADIA_DOMAIN_SERVER_METADATA_EXPORTER_PORT")
         ? QProcessEnvironment::systemEnvironment()
-            .value("DOMAIN_SERVER_METADATA_EXPORTER_PORT")
+            .value("VIRCADIA_DOMAIN_SERVER_METADATA_EXPORTER_PORT")
             .toUInt()
         : 9704;
 

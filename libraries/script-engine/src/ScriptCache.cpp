@@ -85,11 +85,25 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
 
     Lock lock(_containerLock);
     if (_scriptCache.contains(url) && !forceDownload) {
-        auto scriptContent = _scriptCache[url];
-        lock.unlock();
-        qCDebug(scriptengine) << "Found script in cache:" << url.fileName();
-        contentAvailable(url.toString(), scriptContent, true, true, STATUS_CACHED);
-    } else {
+        auto entry = _scriptCache[url];
+        if (url.isLocalFile() || url.scheme().isEmpty()) {
+            auto modifiedTime = QFileInfo(url.toLocalFile()).lastModified();
+            QString localTime = ResourceRequest::toHttpDateString(modifiedTime.toMSecsSinceEpoch());
+            QString cachedTime = entry["last-modified"].toString();
+            if (cachedTime != localTime) {
+                forceDownload = true;
+                qCDebug(scriptengine) << "Found script in cache, but local file modified; reloading:" << url.fileName()
+                                      << "(memory:" << cachedTime << "disk:" << localTime << ")";
+            }
+        }
+        if (!forceDownload) {
+            lock.unlock();
+            qCDebug(scriptengine) << "Found script in cache:" << url.fileName();
+            contentAvailable(url.toString(), entry["data"].toString(), true, true, STATUS_CACHED);
+            return;
+        }
+    }
+    {
         auto& scriptRequest = _activeScriptRequests[url];
         bool alreadyWaiting = scriptRequest.scriptUsers.size() > 0;
         scriptRequest.scriptUsers.push_back(contentAvailable);
@@ -140,7 +154,10 @@ void ScriptCache::scriptContentAvailable(int maxRetries) {
 
                 _activeScriptRequests.remove(url);
 
-                _scriptCache[url] = scriptContent = req->getData();
+                _scriptCache[url] = {
+                    { "data", scriptContent = req->getData() },
+                    { "last-modified", req->property("last-modified") },
+                };
             } else {
                 auto result = req->getResult();
                 bool irrecoverable =
@@ -177,7 +194,7 @@ void ScriptCache::scriptContentAvailable(int maxRetries) {
                     allCallbacks = scriptRequest.scriptUsers;
 
                     if (_scriptCache.contains(url)) {
-                        scriptContent = _scriptCache[url];
+                        scriptContent = _scriptCache[url]["data"].toString();
                     }
                     _activeScriptRequests.remove(url);
                     qCWarning(scriptengine) << "Error loading script from URL (" << status <<")";

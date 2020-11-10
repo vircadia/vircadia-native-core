@@ -34,7 +34,8 @@ Script.include([
     "../libraries/entityIconOverlayManager.js",
     "../libraries/gridTool.js",
     "entityList/entityList.js",
-    "entitySelectionTool/entitySelectionTool.js"
+    "entitySelectionTool/entitySelectionTool.js",
+    "audioFeedback/audioFeedback.js"
 ]);
 
 var CreateWindow = Script.require('./modules/createWindow.js');
@@ -44,8 +45,8 @@ var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
 var ENTIRE_DOMAIN_SCAN_RADIUS = 27713;
 
-var DEFAULT_IMAGE = "http://eu-central-1.linodeobjects.com/vircadia-assets/interface/default/default_image.jpg";
-var DEFAULT_PARTICLE = "http://eu-central-1.linodeobjects.com/vircadia-assets/interface/default/default_particle.png";
+var DEFAULT_IMAGE = Script.getExternalPath(Script.ExternalPaths.Assets, "Bazaar/Assets/Textures/Defaults/Interface/default_image.jpg");
+var DEFAULT_PARTICLE = Script.getExternalPath(Script.ExternalPaths.Assets, "Bazaar/Assets/Textures/Defaults/Interface/default_particle.png");
 
 var createToolsWindow = new CreateWindow(
     Script.resolvePath("qml/EditTools.qml"),
@@ -103,6 +104,8 @@ var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleE
         };
     }
 });
+
+var hmdMultiSelectMode = false;
 
 var cameraManager = new CameraManager();
 
@@ -736,6 +739,9 @@ var toolBar = (function () {
     function handleNewMaterialDialogResult(result) {
         if (result) {
             var materialURL = result.textInput;
+            if (materialURL === "") {
+                materialURL = "materialData";
+            }
             //var materialMappingMode;
             //switch (result.comboBox) {
             //    case MATERIAL_MODE_PROJECTED:
@@ -821,7 +827,7 @@ var toolBar = (function () {
 
         HMD.displayModeChanged.connect(function() {
             if (isActive) {
-                tablet.gotoHomeScreen();
+                tablet.gotoHomeScreen();    
             }
             that.setActive(false);
         });
@@ -1128,7 +1134,11 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
             var entity = entityIconOverlayManager.findEntity(data.overlayID);
 
             if (entity !== null) {
-                selectionManager.setSelections([entity], this);
+                if (hmdMultiSelectMode) {
+                    selectionManager.addEntity(entity, true, this);
+                } else {
+                    selectionManager.setSelections([entity], this);
+                }
             }
         }
     }
@@ -1686,11 +1696,12 @@ function recursiveDelete(entities, childrenList, deletedIDs, entityHostType) {
 }
 
 function unparentSelectedEntities() {
-    if (SelectionManager.hasSelection()) {
+    if (SelectionManager.hasSelection() && SelectionManager.hasUnlockedSelection()) {
         var selectedEntities = selectionManager.selections;
         var parentCheck = false;
 
         if (selectedEntities.length < 1) {
+            audioFeedback.rejection();
             Window.notifyEditError("You must have an entity selected in order to unparent it.");
             return;
         }
@@ -1703,12 +1714,17 @@ function unparentSelectedEntities() {
             return true;
         });
         if (parentCheck) {
+            audioFeedback.confirmation();
             if (selectedEntities.length > 1) {
                 Window.notify("Entities unparented");
             } else {
                 Window.notify("Entity unparented");
             }
+            //Refresh
+            entityListTool.sendUpdate();
+            selectionManager._update(false, this);
         } else {
+            audioFeedback.rejection();
             if (selectedEntities.length > 1) {
                 Window.notify("Selected Entities have no parents");
             } else {
@@ -1716,13 +1732,15 @@ function unparentSelectedEntities() {
             }
         }
     } else {
-        Window.notifyEditError("You have nothing selected to unparent");
+        audioFeedback.rejection();
+        Window.notifyEditError("You have nothing selected or the selection has locked entities.");
     }
 }
 function parentSelectedEntities() {
-    if (SelectionManager.hasSelection()) {
+    if (SelectionManager.hasSelection() && SelectionManager.hasUnlockedSelection()) {
         var selectedEntities = selectionManager.selections;
         if (selectedEntities.length <= 1) {
+            audioFeedback.rejection();
             Window.notifyEditError("You must have multiple entities selected in order to parent them");
             return;
         }
@@ -1739,16 +1757,22 @@ function parentSelectedEntities() {
         });
 
         if (parentCheck) {
+            audioFeedback.confirmation();
             Window.notify("Entities parented");
+            //Refresh
+            entityListTool.sendUpdate();
+            selectionManager._update(false, this);
         } else {
+            audioFeedback.rejection();
             Window.notify("Entities are already parented to last");
         }
     } else {
-        Window.notifyEditError("You have nothing selected to parent");
+        audioFeedback.rejection();
+        Window.notifyEditError("You have nothing selected or the selection has locked entities.");
     }
 }
 function deleteSelectedEntities() {
-    if (SelectionManager.hasSelection()) {
+    if (SelectionManager.hasSelection() && SelectionManager.hasUnlockedSelection()) {
         var deletedIDs = [];
 
         SelectionManager.saveProperties();
@@ -1779,6 +1803,9 @@ function deleteSelectedEntities() {
             pushCommandForSelections([], savedProperties);
             entityListTool.deleteEntities(deletedIDs);
         }
+    } else {
+        audioFeedback.rejection();
+        Window.notifyEditError("You have nothing selected or the selection has locked entities.");        
     }
 }
 
@@ -2336,6 +2363,15 @@ var PropertiesTool = function (opts) {
     };
 
     function updateSelections(selectionUpdated, caller) {
+        if (HMD.active && visible) {
+            webView.setLandscape(true);
+        } else {
+            if (!visible) {
+                hmdMultiSelectMode = false;
+                webView.setLandscape(false);
+            }
+        }
+        
         if (blockPropertyUpdates) {
             return;
         }
@@ -2443,8 +2479,8 @@ var PropertiesTool = function (opts) {
                         Entities.editEntity(entityID, properties);
                     });
 
-                    if (properties.name !== undefined || properties.modelURL !== undefined || properties.materialURL !== undefined ||
-                        properties.visible !== undefined || properties.locked !== undefined) {
+                    if (properties.name !== undefined || properties.modelURL !== undefined || properties.imageURL !== undefined ||
+                        properties.materialURL !== undefined || properties.visible !== undefined || properties.locked !== undefined) {
 
                         sendListUpdate = true;
                     }
@@ -2934,6 +2970,24 @@ function zoneSortOrder(a, b) {
         return -1;
     }
     return 0;
+}
+
+function getParentState(id) {
+    var state = "NONE";
+    var properties = Entities.getEntityProperties(id, ["parentID"]);
+    var children = Entities.getChildrenIDs(id);
+    if (properties.parentID !== Uuid.NULL) {
+        if (children.length > 0) {
+            state = "PARENT_CHILDREN";
+        } else {
+            state = "CHILDREN";
+        }
+    } else {
+        if (children.length > 0) {
+            state = "PARENT";
+        }
+    }
+    return state;
 }
 
 }()); // END LOCAL_SCOPE

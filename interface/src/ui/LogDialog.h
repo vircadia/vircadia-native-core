@@ -33,6 +33,7 @@ public slots:
 
 private slots:
     void handleRevealButton();
+    void handleShowSourceDebuggingCheckbox(int);
     void handleExtraDebuggingCheckbox(int);
     void handleKeepWindowOnTop(int);
     void handleDebugPrintBox(int);
@@ -55,6 +56,7 @@ protected:
     
 
 private:
+    QCheckBox* _showSourceDebuggingBox;
     QCheckBox* _extraDebuggingBox;
     QCheckBox* _keepOnTopBox;
     QPushButton* _revealLogButton;
