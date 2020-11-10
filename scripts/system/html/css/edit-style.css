@@ -183,6 +183,15 @@ tr.selected + tr.selected {
     border-top: 1px solid #2e2e2e;
 }
 
+tr.last-selected {
+    color: #000000;
+    background-color: #0064ef;
+}
+
+tr.last-selected + tr.last-selected {
+    border-top: 1px solid #2e2e2e;
+}
+
 th {
     text-align: center;
     word-wrap: nowrap;
