@@ -44,7 +44,8 @@ ScreenshareScriptingInterface::ScreenshareScriptingInterface() {
     // This packet listener handles the packet containing information about the latest zone ID in which we are allowed to share.
     auto nodeList = DependencyManager::get<NodeList>();
     PacketReceiver& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::AvatarZonePresence, this, "processAvatarZonePresencePacketOnClient");
+    packetReceiver.registerListener(PacketType::AvatarZonePresence,
+        PacketReceiver::makeUnsourcedListenerReference<ScreenshareScriptingInterface>(this, &ScreenshareScriptingInterface::processAvatarZonePresencePacketOnClient));
 };
 
 ScreenshareScriptingInterface::~ScreenshareScriptingInterface() {

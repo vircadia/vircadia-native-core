@@ -25,7 +25,8 @@ OctreePacketProcessor::OctreePacketProcessor():
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     const PacketReceiver::PacketTypeList octreePackets =
         { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase, PacketType::EntityQueryInitialResultsComplete };
-    packetReceiver.registerDirectListenerForTypes(octreePackets, this, "handleOctreePacket");
+    packetReceiver.registerDirectListenerForTypes(octreePackets,
+        PacketReceiver::makeSourcedListenerReference<OctreePacketProcessor>(this, &OctreePacketProcessor::handleOctreePacket));
 }
 
 OctreePacketProcessor::~OctreePacketProcessor() { }

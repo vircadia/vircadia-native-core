@@ -431,6 +431,7 @@ public slots:
     void cycleCamera();
     void cameraModeChanged();
     void cameraMenuChanged();
+    void captureMouseChanged(bool captureMouse);
     void toggleOverlays();
     void setOverlaysVisible(bool visible);
     Q_INVOKABLE void centerUI();
@@ -603,6 +604,7 @@ private:
 
     void maybeToggleMenuVisible(QMouseEvent* event) const;
     void toggleTabletUI(bool shouldOpen = false) const;
+    bool shouldCaptureMouse() const;
 
     void userKickConfirmation(const QUuid& nodeID);
 
@@ -756,7 +758,9 @@ private:
 
     bool _settingsLoaded { false };
 
-    bool _fakedMouseEvent { false };
+    bool _captureMouse { false };
+    bool _ignoreMouseMove { false };
+    QPointF _mouseCaptureTarget { NAN, NAN };
 
     bool _isMissingSequenceNumbers { false };
 

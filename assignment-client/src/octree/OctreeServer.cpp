@@ -1122,8 +1122,10 @@ void OctreeServer::run() {
 
 void OctreeServer::domainSettingsRequestComplete() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
-    packetReceiver.registerListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
+    packetReceiver.registerListener(PacketType::OctreeDataNack,
+        PacketReceiver::makeSourcedListenerReference<OctreeServer>(this, &OctreeServer::handleOctreeDataNackPacket));
+    packetReceiver.registerListener(getMyQueryMessageType(),
+        PacketReceiver::makeSourcedListenerReference<OctreeServer>(this, &OctreeServer::handleOctreeQueryPacket));
 
     qDebug(octree_server) << "Received domain settings";
 

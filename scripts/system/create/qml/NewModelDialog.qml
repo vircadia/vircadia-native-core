@@ -55,7 +55,7 @@ Rectangle {
 
         Text {
             id: text1
-            text: qsTr("Model URL")
+            text: qsTr("Model URL <i>(.fbx, .fst, .glb, .gltf, .obj, .gz)</i>")
             color: "#ffffff"
             font.pixelSize: 12
         }

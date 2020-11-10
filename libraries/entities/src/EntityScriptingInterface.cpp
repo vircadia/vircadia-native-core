@@ -59,7 +59,8 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::canGetAndSetPrivateUserDataChanged, this, &EntityScriptingInterface::canGetAndSetPrivateUserDataChanged);
 
     auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::EntityScriptCallMethod, this, "handleEntityScriptCallMethodPacket");
+    packetReceiver.registerListener(PacketType::EntityScriptCallMethod,
+        PacketReceiver::makeSourcedListenerReference<EntityScriptingInterface>(this, &EntityScriptingInterface::handleEntityScriptCallMethodPacket));
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
