@@ -48,7 +48,7 @@ ext {
 
 def appDir = new File(projectDir, 'apps/interface')
 def jniFolder = new File(appDir, 'src/main/jniLibs/arm64-v8a')
-def baseUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/android/'
+def baseUrl = 'https://cdn-1.vircadia.com/eu-c-1/vircadia-public/dependencies/android/'
 def breakpadDumpSymsDir = new File("${appDir}/build/tmp/breakpadDumpSyms")
 
 task extractGvrBinaries() {

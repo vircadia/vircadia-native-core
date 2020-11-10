@@ -16,6 +16,7 @@ Item {
     property alias webViewCoreProfile: webViewCore.profile
     property string webViewCoreUserAgent
 
+    property bool useBackground: webViewCore.useBackground
     property string userScriptUrl: ""
     property string urlTag: "noDownload=false";
 
@@ -98,6 +99,7 @@ Item {
 
         width: parent.width
         height: parent.height
+        backgroundColor: (flick.useBackground) ? "white" : "transparent"
 
         profile: HFWebEngineProfile;
         settings.pluginsEnabled: true

@@ -4,6 +4,7 @@
 //
 //  Created by Zach Pomerantz on 5/25/2016.
 //  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,8 +16,9 @@
 
 #include <QVariantMap>
 #include <QJsonObject>
+#include "HTTPManager.h"
 
-class DomainMetadata : public QObject {
+class DomainMetadata : public QObject, public HTTPRequestHandler {
 Q_OBJECT
 
 public:
@@ -33,25 +35,29 @@ public:
     static const QString DESCRIPTORS;
     class Descriptors {
     public:
+        static const QString NAME;
         static const QString DESCRIPTION;
+        static const QString THUMBNAIL;
+        static const QString IMAGES;
         static const QString CAPACITY;
         static const QString RESTRICTION;
         static const QString MATURITY;
-        static const QString HOSTS;
+        static const QString CONTACT;
+        static const QString MANAGERS;
         static const QString TAGS;
     };
 
     DomainMetadata(QObject* domainServer);
-    DomainMetadata() = delete;
-
+    ~DomainMetadata() = default;
     // Get cached metadata
     QJsonObject get();
     QJsonObject get(const QString& group);
 
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
+
 public slots:
     void descriptorsChanged();
     void securityChanged(bool send);
-    void securityChanged() { securityChanged(true); }
     void usersChanged();
 
 protected:

@@ -6,7 +6,7 @@
 //
 
 
-var spriteURL = "https://hifi-production.s3.amazonaws.com/DomainContent/CellScience/Sprites/nucleosomes_sprite.fbx";
+var spriteURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/CellScience/Sprites/nucleosomes_sprite.fbx";
 var spriteDimensions = {
     x: 10,
     y: 10,

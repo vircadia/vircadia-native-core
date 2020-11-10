@@ -16,11 +16,11 @@ Script.include([
     "libraries/overlayManager.js",
 ]);
 
-var BG_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/card-bg.svg";
-var CLOSE_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/tools/close.svg";
-var MIC_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/tools/mic-toggle.svg";
-var FACE_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/tools/face-toggle.svg";
-var ADDRESS_BAR_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/tools/address-bar-toggle.svg";
+var BG_IMAGE_URL = VIRCADIA_PUBLIC_CDN + "images/card-bg.svg";
+var CLOSE_IMAGE_URL = VIRCADIA_PUBLIC_CDN + "images/tools/close.svg";
+var MIC_IMAGE_URL = VIRCADIA_PUBLIC_CDN + "images/tools/mic-toggle.svg";
+var FACE_IMAGE_URL = VIRCADIA_PUBLIC_CDN + "images/tools/face-toggle.svg";
+var ADDRESS_BAR_IMAGE_URL = VIRCADIA_PUBLIC_CDN + "images/tools/address-bar-toggle.svg";
 
 var panel = new OverlayPanel({
     anchorPositionBinding: { avatar: "MyAvatar" },

@@ -308,7 +308,8 @@ AssetServer::AssetServer(ReceivedMessage& message) :
 
     // Queue all requests until the Asset Server is fully setup
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListenerForTypes({ PacketType::AssetGet, PacketType::AssetGetInfo, PacketType::AssetUpload, PacketType::AssetMappingOperation }, this, "queueRequests");
+    packetReceiver.registerListenerForTypes({ PacketType::AssetGet, PacketType::AssetGetInfo, PacketType::AssetUpload, PacketType::AssetMappingOperation },
+        PacketReceiver::makeSourcedListenerReference<AssetServer>(this, &AssetServer::queueRequests));
 
 #ifdef Q_OS_WIN
     updateConsumedCores();
@@ -464,10 +465,14 @@ void AssetServer::completeSetup() {
     qCDebug(asset_server) << "Overriding temporary queuing packet handler.";
     // We're fully setup, override the request queueing handler and replay all requests
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
-    packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
-    packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
-    packetReceiver.registerListener(PacketType::AssetMappingOperation, this, "handleAssetMappingOperation");
+    packetReceiver.registerListener(PacketType::AssetGet,
+        PacketReceiver::makeSourcedListenerReference<AssetServer>(this, &AssetServer::handleAssetGet));
+    packetReceiver.registerListener(PacketType::AssetGetInfo,
+        PacketReceiver::makeSourcedListenerReference<AssetServer>(this, &AssetServer::handleAssetGetInfo));
+    packetReceiver.registerListener(PacketType::AssetUpload,
+        PacketReceiver::makeSourcedListenerReference<AssetServer>(this, &AssetServer::handleAssetUpload));
+    packetReceiver.registerListener(PacketType::AssetMappingOperation,
+        PacketReceiver::makeSourcedListenerReference<AssetServer>(this, &AssetServer::handleAssetMappingOperation));
 
     replayRequests();
 }

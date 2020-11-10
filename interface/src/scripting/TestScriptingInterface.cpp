@@ -20,6 +20,7 @@
 #include <Trace.h>
 
 #include "Application.h"
+#include "NetworkingConstants.h"
 
 Q_LOGGING_CATEGORY(trace_test, "trace.test")
 
@@ -66,8 +67,8 @@ bool TestScriptingInterface::loadTestScene(QString scene) {
         return result;
     }
 
-    static const QString TEST_ROOT = "https://raw.githubusercontent.com/highfidelity/hifi_tests/master/";
-    static const QString TEST_BINARY_ROOT = "https://hifi-public.s3.amazonaws.com/test_scene_data/";
+    static const QString TEST_ROOT = "https://raw.githubusercontent.com/hifi-archive/hifi_tests/master/";
+    static const QString TEST_BINARY_ROOT = NetworkingConstants::HF_CONTENT_CDN_URL + "test_scene_data/";
     static const QString TEST_SCRIPTS_ROOT = TEST_ROOT + "scripts/";
     static const QString TEST_SCENES_ROOT = TEST_ROOT + "scenes/";
     

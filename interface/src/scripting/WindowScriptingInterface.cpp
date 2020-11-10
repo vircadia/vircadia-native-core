@@ -645,12 +645,16 @@ void WindowScriptingInterface::setActiveDisplayPlugin(int index) {
     qApp->setActiveDisplayPlugin(name);
 }
 
-void WindowScriptingInterface::openWebBrowser() {
+void WindowScriptingInterface::openWebBrowser(const QString& url) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "openWebBrowser", Qt::QueuedConnection);
+        QMetaObject::invokeMethod(this, "openWebBrowser", Q_ARG(const QString&, url));
         return;
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->load("Browser.qml");
+    offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
+        if (!url.isEmpty()) {
+            newObject->setProperty("url", url);
+        }
+    });
 }

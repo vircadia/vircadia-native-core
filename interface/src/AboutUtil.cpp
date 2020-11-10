@@ -45,6 +45,16 @@ QString AboutUtil::getQtVersion() const {
 }
 
 void AboutUtil::openUrl(const QString& url) const {
+    auto abboutUtilInstance = AboutUtil::getInstance();
+    if (!abboutUtilInstance) {
+        return;
+    }
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(abboutUtilInstance, "openUrl", Q_ARG(const QString&, url));
+        return;
+    }
+
     auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();

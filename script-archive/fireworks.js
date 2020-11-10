@@ -1,5 +1,4 @@
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-var fireSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guns/GUN-SHOT2.raw");
+var fireSound = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.Assets, "sounds/Guns/GUN-SHOT2.raw"));
 var audioOptions = {
   volume: 0.9,
   position: Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()))
