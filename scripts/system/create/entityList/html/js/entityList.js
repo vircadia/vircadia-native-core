@@ -1735,6 +1735,7 @@ function loaded() {
     // close context menu when switching focus to another window
     $(window).blur(function() {
         entityListContextMenu.close();
+        closeAllEntityListMenu();
     });
     
     function closeAllEntityListMenu() {
