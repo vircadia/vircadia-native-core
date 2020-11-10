@@ -798,6 +798,7 @@ SelectionDisplay = (function() {
     const COLOR_ROTATE_CURRENT_RING = { red: 255, green: 99, blue: 9 };
     const COLOR_BOUNDING_EDGE = { red: 160, green: 160, blue: 160 };
     const COLOR_BOUNDING_EDGE_PARENT = { red: 194, green: 123, blue: 0 };
+    const COLOR_BOUNDING_EDGE_PARENT_AND_CHILDREN = { red: 179, green: 0, blue: 134 };
     const COLOR_BOUNDING_EDGE_CHILDREN = { red: 0, green: 168, blue: 214 };
     const COLOR_SCALE_CUBE = { red: 192, green: 192, blue: 192 };
     const COLOR_DEBUG_PICK_PLANE = { red: 255, green: 255, blue: 255 };
@@ -1934,10 +1935,10 @@ SelectionDisplay = (function() {
                 var parentState = getParentState(SelectionManager.selections[0]);
                 if (parentState === "CHILDREN") {
                     handleBoundingBoxColor = COLOR_BOUNDING_EDGE_CHILDREN;
-                } else {
-                    if (parentState === "PARENT" || parentState === "PARENT_CHILDREN") {
-                        handleBoundingBoxColor = COLOR_BOUNDING_EDGE_PARENT;
-                    }
+                } else if (parentState === "PARENT") {
+                    handleBoundingBoxColor = COLOR_BOUNDING_EDGE_PARENT;
+                } else if (parentState === "PARENT_CHILDREN") {
+                    handleBoundingBoxColor = COLOR_BOUNDING_EDGE_PARENT_AND_CHILDREN;
                 }
             }
             
