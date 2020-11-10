@@ -9,6 +9,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+//  Bugs: When copying an entity with this script on it, the old one loses its connection?
+//
 
 var SETTING_NYX_PREFIX = "nyx/";
 var NYX_UI_CHANNEL = "nyx-ui";

@@ -64,7 +64,7 @@
             });
         }
         
-        if (data.name === 'I Have A Slider' && triggeredEntityID === _entityID) {
+        if (data.name === 'Alpha' && triggeredEntityID === _entityID) {
             Entities.editEntity(_entityID, { 
                 alpha: data.value
             });
@@ -95,7 +95,7 @@
             ],
             sliders: [
                 {
-                    name: 'I Have A Slider',
+                    name: 'Alpha',
                     step: 0.1,
                     color: 'yellow',
                     initialValue: initialProps.alpha,
