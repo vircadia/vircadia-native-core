@@ -338,7 +338,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     bool intersectedSomething = false;
 
     // if we aren't active, we can't pick yet...
-    if (!isActive()) {
+    if (!isLoaded()) {
         return intersectedSomething;
     }
 
@@ -493,7 +493,7 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
     bool intersectedSomething = false;
 
     // if we aren't active, we can't pick yet...
-    if (!isActive()) {
+    if (!isLoaded()) {
         return intersectedSomething;
     }
 
@@ -1168,7 +1168,7 @@ void Model::renderDebugMeshBoxes(gpu::Batch& batch, bool forward) {
 }
 
 Extents Model::getBindExtents() const {
-    if (!isActive()) {
+    if (!isLoaded()) {
         return Extents();
     }
     const Extents& bindExtents = getHFMModel().bindExtents;
@@ -1182,7 +1182,7 @@ glm::vec3 Model::getNaturalDimensions() const {
 }
 
 Extents Model::getMeshExtents() const {
-    if (!isActive()) {
+    if (!isLoaded()) {
         return Extents();
     }
     const Extents& extents = getHFMModel().meshExtents;
@@ -1196,7 +1196,7 @@ Extents Model::getMeshExtents() const {
 }
 
 Extents Model::getUnscaledMeshExtents() const {
-    if (!isActive()) {
+    if (!isLoaded()) {
         return Extents();
     }
 
@@ -1228,7 +1228,7 @@ void Model::setJointTranslation(int index, bool valid, const glm::vec3& translat
 }
 
 int Model::getParentJointIndex(int jointIndex) const {
-    return (isActive() && jointIndex != -1) ? getHFMModel().joints.at(jointIndex).parentIndex : -1;
+    return (isLoaded() && jointIndex != -1) ? getHFMModel().joints.at(jointIndex).parentIndex : -1;
 }
 
 void Model::setTextures(const QVariantMap& textures) {
@@ -1329,7 +1329,7 @@ QStringList Model::getJointNames() const {
             Q_RETURN_ARG(QStringList, result));
         return result;
     }
-    return isActive() ? getHFMModel().getJointNames() : QStringList();
+    return isLoaded() ? getHFMModel().getJointNames() : QStringList();
 }
 
 void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions, bool forceRescale) {
@@ -1345,7 +1345,7 @@ void Model::setScaleToFit(bool scaleToFit, float largestDimension, bool forceRes
     // mesh, and so we can't do the needed calculations for scaling to fit to a single largest dimension. In this
     // case we will record that we do want to do this, but we will stick our desired single dimension into the
     // first element of the vec3 for the non-fixed aspect ration dimensions
-    if (!isActive()) {
+    if (!isLoaded()) {
         _scaleToFit = scaleToFit;
         if (scaleToFit) {
             _scaleToFitDimensions = glm::vec3(largestDimension, FAKE_DIMENSION_PLACEHOLDER, FAKE_DIMENSION_PLACEHOLDER);
@@ -1426,7 +1426,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
 
-    if (isActive() && fullUpdate) {
+    if (isLoaded() && fullUpdate) {
         onInvalidate();
 
         // check for scale to fit

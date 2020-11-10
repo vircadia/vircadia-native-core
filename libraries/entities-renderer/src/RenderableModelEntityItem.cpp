@@ -90,7 +90,7 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
         return false;
     }
 
-    if (!_dimensionsInitialized || !model->isActive()) {
+    if (!_dimensionsInitialized || !model->isLoaded()) {
         return false;
     }
 
@@ -699,10 +699,23 @@ int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
 
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     auto model = getModel();
-    if (model && _collisionGeometryResource && _collisionGeometryResource->isLoaded() && _collisionGeometryResource->isHFMModelLoaded() && EntityItem::contains(point)) {
-        glm::mat4 worldToHFMMatrix = model->getWorldToHFMMatrix();
-        glm::vec3 hfmPoint = worldToHFMMatrix * glm::vec4(point, 1.0f);
-        return _collisionGeometryResource->getHFMModel().convexHullContains(hfmPoint);
+    if (model && model->isLoaded()) {
+        auto shapeType = getShapeType();
+        if (shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
+            if (_collisionGeometryResource && _collisionGeometryResource->isLoaded() && _collisionGeometryResource->isHFMModelLoaded() && EntityItem::contains(point)) {
+                glm::mat4 worldToHFMMatrix = model->getWorldToHFMMatrix();
+                glm::vec3 hfmPoint = worldToHFMMatrix * glm::vec4(point, 1.0f);
+                return _collisionGeometryResource->getHFMModel().convexHullContains(hfmPoint);
+            }
+        } else if (shapeType >= SHAPE_TYPE_SIMPLE_HULL && shapeType <= SHAPE_TYPE_STATIC_MESH) {
+            if (EntityItem::contains(point)) {
+                glm::mat4 worldToHFMMatrix = model->getWorldToHFMMatrix();
+                glm::vec3 hfmPoint = worldToHFMMatrix * glm::vec4(point, 1.0f);
+                return model->getHFMModel().convexHullContains(hfmPoint);
+            }
+        } else {
+            return EntityItem::contains(point);
+        }
     }
 
     return false;
@@ -919,13 +932,13 @@ void RenderableModelEntityItem::locationChanged(bool tellPhysics, bool tellChild
 
 int RenderableModelEntityItem::getJointIndex(const QString& name) const {
     auto model = getModel();
-    return (model && model->isActive()) ? model->getRig().indexOfJoint(name) : -1;
+    return (model && model->isLoaded()) ? model->getRig().indexOfJoint(name) : -1;
 }
 
 QStringList RenderableModelEntityItem::getJointNames() const {
     QStringList result;
     auto model = getModel();
-    if (model && model->isActive()) {
+    if (model && model->isLoaded()) {
         const Rig& rig = model->getRig();
         int jointCount = rig.getJointStateCount();
         for (int jointIndex = 0; jointIndex < jointCount; jointIndex++) {
@@ -1012,7 +1025,7 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
     });
 
     if (changed) {
-        locationChanged(true, true);
+        locationChanged();
     }
 }
 
@@ -1215,6 +1228,7 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         model = std::make_shared<Model>(nullptr, entity.get(), _created);
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         connect(model.get(), &Model::setURLFinished, this, [&](bool didVisualGeometryRequestSucceed) {
+            _didLastVisualGeometryRequestSucceed = didVisualGeometryRequestSucceed;
             const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
             render::Transaction transaction;
             transaction.updateItem<PayloadProxyInterface>(_renderItemID, [&](PayloadProxyInterface& self) {
@@ -1235,7 +1249,6 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
                     emit DependencyManager::get<scriptable::ModelProviderFactory>()->
                         modelAddedToScene(entity->getEntityItemID(), NestableType::Entity, model);
                 }
-                _didLastVisualGeometryRequestSucceed = didVisualGeometryRequestSucceed;
                 entity->_originalTexturesRead = false;
                 entity->_needsJointSimulation = true;
                 entity->_needsToRescaleModel = true;

@@ -183,8 +183,6 @@ public:
     const HFMModel& getHFMModel() const { assert(isLoaded()); return _renderGeometry->getHFMModel(); }
     const MaterialMapping& getMaterialMapping() const { assert(isLoaded()); return _renderGeometry->getMaterialMapping(); }
 
-    bool isActive() const { return isLoaded(); }
-
     bool didVisualGeometryRequestFail() const { return _visualGeometryRequestFailed; }
 
     glm::mat4 getWorldToHFMMatrix() const;
