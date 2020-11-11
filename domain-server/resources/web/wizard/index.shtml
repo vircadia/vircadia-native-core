@@ -19,7 +19,7 @@
   </dl>
 </div>
 
-<div class="wizard-step col-md-8 col-centered" style="display: none;">
+<!-- <div class="wizard-step col-md-8 col-centered" style="display: none;">
   <h4 class="step-title"></h4>
   <div class="row">
     <div class="col-md-12">
@@ -51,7 +51,7 @@
       <button type="button" class="btn btn-md btn-block btn-primary next-button">Next</button>
     </dd>
   </dl>
-</div>
+</div> -->
 
 <div class="wizard-step col-md-9 col-centered" style="display: none;">
   <h4 class="step-title"></h4>
@@ -204,7 +204,7 @@
   </div>
   <br />
   <div id="automatic-threading-options-row" class="row">
-    <p class="col-md-2">
+    <p class="col-md-12">
       <label>
         <input id="enable-automatic-threading" name="threading-checkbox" type="checkbox" value="true"> Enable Automatic Threading
       </label>

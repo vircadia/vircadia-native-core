@@ -14,7 +14,8 @@
 EntityScriptServerLogClient::EntityScriptServerLogClient() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::EntityServerScriptLog, this, "handleEntityServerScriptLogPacket");
+    packetReceiver.registerListener(PacketType::EntityServerScriptLog,
+        PacketReceiver::makeSourcedListenerReference<EntityScriptServerLogClient>(this, &EntityScriptServerLogClient::handleEntityServerScriptLogPacket));
 
     QObject::connect(nodeList.data(), &NodeList::nodeActivated, this, &EntityScriptServerLogClient::nodeActivated);
     QObject::connect(nodeList.data(), &NodeList::nodeKilled, this, &EntityScriptServerLogClient::nodeKilled);

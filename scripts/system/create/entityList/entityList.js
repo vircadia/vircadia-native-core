@@ -190,7 +190,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
             PROFILE("getMultipleProperties", function () {
                 var multipleProperties = Entities.getMultipleEntityProperties(ids, ['position', 'name', 'type', 'locked',
                     'visible', 'renderInfo', 'modelURL', 'materialURL', 'imageURL', 'script', 'certificateID',
-                    'skybox.url', 'ambientLight.url']);
+                    'skybox.url', 'ambientLight.url', 'created', 'lastEdited']);
                 for (var i = 0; i < multipleProperties.length; i++) {
                     var properties = multipleProperties[i];
 
@@ -203,6 +203,17 @@ EntityListTool = function(shouldUseEditTabletApp) {
                         } else if (properties.type === "Image") {
                             url = properties.imageURL;
                         }
+                        
+                        var parentStatus = getParentState(ids[i]);
+                        var parentState = "";
+                        if (parentStatus === "PARENT") {
+                            parentState = "A";
+                        } else if (parentStatus === "CHILDREN") {
+                            parentState = "C";
+                        } else if (parentStatus === "PARENT_CHILDREN") {
+                            parentState = "B";
+                        }
+
                         entities.push({
                             id: ids[i],
                             name: properties.name,
@@ -222,7 +233,10 @@ EntityListTool = function(shouldUseEditTabletApp) {
                             isBaked: entityIsBaked(properties),
                             drawCalls: (properties.renderInfo !== undefined ?
                                 valueIfDefined(properties.renderInfo.drawCalls) : ""),
-                            hasScript: properties.script !== ""
+                            hasScript: properties.script !== "",
+                            parentState: parentState,
+                            created: formatToStringDateTime(properties.created),
+                            lastEdited: formatToStringDateTime(properties.lastEdited)
                         });
                     }
                 }
@@ -241,6 +255,22 @@ EntityListTool = function(shouldUseEditTabletApp) {
             });
         });
     };
+
+    function formatToStringDateTime(timestamp) {
+        var d = new Date(Math.floor(timestamp/1000));
+        var dateTime = d.getUTCFullYear() + "-" + zeroPad((d.getUTCMonth() + 1), 2) + "-" + zeroPad(d.getUTCDate(), 2);
+        dateTime = dateTime + " " + zeroPad(d.getUTCHours(), 2) + ":" + zeroPad(d.getUTCMinutes(), 2) + ":" + zeroPad(d.getUTCSeconds(), 2); 
+        dateTime = dateTime + "." + zeroPad(d.getUTCMilliseconds(), 3);
+        return dateTime;
+    }
+
+    function zeroPad(num, size) {
+        num = num.toString();
+        while (num.length < size) {
+            num = "0" + num;
+        }
+        return num;
+    }
 
     function onFileSaveChanged(filename) {
         Window.saveFileChanged.disconnect(onFileSaveChanged);
@@ -323,6 +353,24 @@ EntityListTool = function(shouldUseEditTabletApp) {
             unparentSelectedEntities();
         } else if (data.type === 'hmdMultiSelectMode') {
             hmdMultiSelectMode = data.value;
+        } else if (data.type === 'selectAllInBox') {
+            selectAllEntitiesInCurrentSelectionBox(false);
+        } else if (data.type === 'selectAllTouchingBox') {
+            selectAllEntitiesInCurrentSelectionBox(true);
+        } else if (data.type === 'selectParent') {
+            SelectionManager.selectParent();
+        } else if (data.type === 'selectTopParent') {
+            SelectionManager.selectTopParent();
+        } else if (data.type === 'addChildrenToSelection') {
+            SelectionManager.addChildrenToSelection();
+        } else if (data.type === 'selectFamily') {
+            SelectionManager.selectFamily();
+        } else if (data.type === 'selectTopFamily') {
+            SelectionManager.selectTopFamily();
+        } else if (data.type === 'teleportToEntity') {
+            SelectionManager.teleportToEntity();
+        } else if (data.type === 'moveEntitySelectionToAvatar') {
+            SelectionManager.moveEntitiesSelectionToAvatar();
         }
     };
 
