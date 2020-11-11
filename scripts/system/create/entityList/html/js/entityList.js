@@ -770,10 +770,10 @@ function loaded() {
                 let selectedIndex = selectedEntities.indexOf(entityID);
                 if (selectedIndex >= 0) {
                     selection = [];
-                    selection = selection.concat(selectedEntities);
+                    selection = selectedEntities.concat(selection);
                     selection.splice(selectedIndex, 1);
                 } else {
-                    selection = selection.concat(selectedEntities);
+                    selection = selectedEntities.concat(selection);
                 }
             } else if (clickEvent.shiftKey && selectedEntities.length > 0) {
                 let previousItemFound = -1;
