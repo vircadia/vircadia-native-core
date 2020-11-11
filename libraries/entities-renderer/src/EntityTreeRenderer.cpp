@@ -205,6 +205,12 @@ void EntityTreeRenderer::setupEntityScriptEngineSignals(const ScriptEnginePointe
 }
 
 void EntityTreeRenderer::resetPersistentEntitiesScriptEngine() {
+    if (_persistentEntitiesScriptEngine) {
+        _persistentEntitiesScriptEngine->unloadAllEntityScripts(true);
+        _persistentEntitiesScriptEngine->stop();
+        _persistentEntitiesScriptEngine->waitTillDoneRunning();
+        _persistentEntitiesScriptEngine->disconnectNonEssentialSignals();
+    }
     _persistentEntitiesScriptEngine = scriptEngineFactory(ScriptEngine::ENTITY_CLIENT_SCRIPT, NO_SCRIPT,
                                                 QString("about:Entities %1").arg(++_entitiesScriptEngineCount));
     DependencyManager::get<ScriptEngines>()->runScriptInitializers(_persistentEntitiesScriptEngine);
@@ -217,6 +223,12 @@ void EntityTreeRenderer::resetPersistentEntitiesScriptEngine() {
 }
 
 void EntityTreeRenderer::resetNonPersistentEntitiesScriptEngine() {
+    if (_nonPersistentEntitiesScriptEngine) {
+        _nonPersistentEntitiesScriptEngine->unloadAllEntityScripts(false);
+        _nonPersistentEntitiesScriptEngine->stop();
+        _nonPersistentEntitiesScriptEngine->waitTillDoneRunning();
+        _nonPersistentEntitiesScriptEngine->disconnectNonEssentialSignals();
+    }
     _nonPersistentEntitiesScriptEngine = scriptEngineFactory(ScriptEngine::ENTITY_CLIENT_SCRIPT, NO_SCRIPT,
                                                 QString("about:Entities %1").arg(++_entitiesScriptEngineCount));
     DependencyManager::get<ScriptEngines>()->runScriptInitializers(_nonPersistentEntitiesScriptEngine);
@@ -246,12 +258,6 @@ void EntityTreeRenderer::stopDomainAndNonOwnedEntities() {
 
 void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
     stopDomainAndNonOwnedEntities();
-
-    if (_nonPersistentEntitiesScriptEngine) {
-        // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
-        _nonPersistentEntitiesScriptEngine->unloadAllEntityScripts(true);
-        _nonPersistentEntitiesScriptEngine->stop();
-    }
 
     if (!_shuttingDown && _wantScripts) {
         resetNonPersistentEntitiesScriptEngine();
@@ -287,21 +293,21 @@ void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
 void EntityTreeRenderer::clear() {
     leaveAllEntities();
 
-    // unload and stop the engines
-    if (_nonPersistentEntitiesScriptEngine) {
-        // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
-        _nonPersistentEntitiesScriptEngine->unloadAllEntityScripts(true);
-        _nonPersistentEntitiesScriptEngine->stop();
-    }
-    if (_persistentEntitiesScriptEngine) {
-        // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
-        _persistentEntitiesScriptEngine->unloadAllEntityScripts(true);
-        _persistentEntitiesScriptEngine->stop();
-    }
-
     // reset the engine
     auto scene = _viewState->getMain3DScene();
     if (_shuttingDown) {
+        // unload and stop the engines
+        if (_nonPersistentEntitiesScriptEngine) {
+            // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
+            _nonPersistentEntitiesScriptEngine->unloadAllEntityScripts(true);
+            _nonPersistentEntitiesScriptEngine->stop();
+        }
+        if (_persistentEntitiesScriptEngine) {
+            // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
+            _persistentEntitiesScriptEngine->unloadAllEntityScripts(true);
+            _persistentEntitiesScriptEngine->stop();
+        }
+
         if (scene) {
             render::Transaction transaction;
             for (const auto& entry :  _entitiesInScene) {
@@ -345,7 +351,7 @@ void EntityTreeRenderer::reloadEntityScripts() {
     for (const auto& entry : _entitiesInScene) {
         const auto& renderer = entry.second;
         const auto& entity = renderer->getEntity();
-        if (!entity->getScript().isEmpty()) {
+        if (entity && !entity->getScript().isEmpty()) {
             auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
             scriptEngine->loadEntityScript(entity->getEntityItemID(), resolveScriptURL(entity->getScript()), true);
         }
@@ -696,8 +702,10 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
                     if (!entitiesContainingAvatar.contains(entityID)) {
                         emit leaveEntity(entityID);
                         auto entity = getTree()->findEntityByEntityItemID(entityID);
-                        auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
-                        scriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+                        if (entity) {
+                            auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+                            scriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+                        }
                     }
                 }
 
@@ -706,8 +714,10 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
                     if (!_currentEntitiesInside.contains(entityID)) {
                         emit enterEntity(entityID);
                         auto entity = getTree()->findEntityByEntityItemID(entityID);
-                        auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
-                        scriptEngine->callEntityScriptMethod(entityID, "enterEntity");
+                        if (entity) {
+                            auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+                            scriptEngine->callEntityScriptMethod(entityID, "enterEntity");
+                        }
                     }
                 }
                 _currentEntitiesInside = entitiesContainingAvatar;
