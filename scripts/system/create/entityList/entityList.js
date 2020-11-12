@@ -371,14 +371,16 @@ EntityListTool = function(shouldUseEditTabletApp) {
             SelectionManager.teleportToEntity();
         } else if (data.type === 'moveEntitySelectionToAvatar') {
             SelectionManager.moveEntitiesSelectionToAvatar();
-        } else if (data.type === 'loadColumnsConfigSetting') {
-            var columnsData = Settings.getValue(SETTING_EDIT_PREFIX + SETTING_EDITOR_COLUMNS_SETUP, "NO_DATA");
+        } else if (data.type === 'loadConfigSetting') {
+            var columnsData = Settings.getValue(SETTING_EDITOR_COLUMNS_SETUP, "NO_DATA");
+            var defaultRadius = Settings.getValue(SETTING_ENTITY_LIST_DEFAULT_RADIUS, 100);
             emitJSONScriptEvent({
-                "type": "loadedColumnsSetup",
-                "columnsData": columnsData
+                "type": "loadedConfigSetting",
+                "columnsData": columnsData,
+                "defaultRadius": defaultRadius
             });
         } else if (data.type === 'saveColumnsConfigSetting') {
-            Settings.setValue(SETTING_EDIT_PREFIX + SETTING_EDITOR_COLUMNS_SETUP, data.columnsData);
+            Settings.setValue(SETTING_EDITOR_COLUMNS_SETUP, data.columnsData);
         }
     };
 
