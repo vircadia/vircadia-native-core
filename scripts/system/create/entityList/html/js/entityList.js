@@ -1679,7 +1679,11 @@ function loaded() {
                     } else {
                         document.getElementById("hmdmultiselect").style.display = "none";                      
                     }
-                } else if (data.type === "loadedColumnsSetup") {
+                } else if (data.type === "loadedConfigSetting") {
+                    if (typeof(data.defaultRadius) === "number") {
+                        elFilterRadius.value = data.defaultRadius;
+                        onRadiusChange();
+                    }
                     if (data.columnsData !== "NO_DATA" && typeof(data.columnsData) === "object") {
                         var isValid = true;
                         var originalColumnIDs = [];
@@ -1731,7 +1735,7 @@ function loaded() {
         
         window.addEventListener("resize", updateColumnWidths);
         
-        EventBridge.emitWebEvent(JSON.stringify({ type: 'loadColumnsConfigSetting' }));
+        EventBridge.emitWebEvent(JSON.stringify({ type: 'loadConfigSetting' }));
     });
     
     augmentSpinButtons();
