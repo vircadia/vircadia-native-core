@@ -53,5 +53,5 @@ set(DIR "opusCodec")
 add_subdirectory(${DIR})
 
 # example plugins
-set(DIR "KasenAPIExample")
+set(DIR "JSAPIExample")
 add_subdirectory(${DIR})

@@ -1,0 +1,3 @@
+set(TARGET_NAME JSAPIExample)
+setup_hifi_client_server_plugin(scripting)
+link_hifi_libraries(shared plugins)
