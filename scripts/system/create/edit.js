@@ -155,12 +155,14 @@ var MENU_CREATE_ENTITIES_GRABBABLE = "Create Entities As Grabbable (except Zones
 var MENU_ALLOW_SELECTION_LARGE = "Allow Selecting of Large Models";
 var MENU_ALLOW_SELECTION_SMALL = "Allow Selecting of Small Models";
 var MENU_ALLOW_SELECTION_LIGHTS = "Allow Selecting of Lights";
+var MENU_ENTITY_LIST_DEFAULT_RADIUS = "Entity List Default Radius";
 
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "showLightsAndParticlesInEditMode";
 var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
 var SETTING_EDITOR_COLUMNS_SETUP = "editorColumnsSetup";
+var SETTING_ENTITY_LIST_DEFAULT_RADIUS = "entityListDefaultRadius";
 
 var SETTING_EDIT_PREFIX = "Edit/";
 
@@ -1509,6 +1511,11 @@ function setupModelMenus() {
         isCheckable: true,
         isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) !== "false"
     });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: MENU_ENTITY_LIST_DEFAULT_RADIUS,
+        afterItem: MENU_SHOW_ZONES_IN_EDIT_MODE
+    });
 
     Entities.setLightsArePickable(false);
 }
@@ -1542,6 +1549,7 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("Edit", MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE);
     Menu.removeMenuItem("Edit", MENU_SHOW_ZONES_IN_EDIT_MODE);
     Menu.removeMenuItem("Edit", MENU_CREATE_ENTITIES_GRABBABLE);
+    Menu.removeMenuItem("Edit", MENU_ENTITY_LIST_DEFAULT_RADIUS);
 }
 
 Script.scriptEnding.connect(function () {
@@ -1882,6 +1890,17 @@ function onPromptTextChanged(prompt) {
     }
 }
 
+function onPromptTextChangedDefaultRadiusUserPref(prompt) {
+    Window.promptTextChanged.disconnect(onPromptTextChangedDefaultRadiusUserPref);
+    if (prompt !== "") {
+        var radius = parseInt(prompt);
+        if (radius < 0 || isNaN(radius)){
+            radius = 100;
+        }
+        Settings.setValue(SETTING_ENTITY_LIST_DEFAULT_RADIUS, radius);
+    }
+}
+
 function handleMenuEvent(menuItem) {
     if (menuItem === "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
@@ -1912,7 +1931,7 @@ function handleMenuEvent(menuItem) {
             Window.browseAsync("Select Model to Import", "", "*.json");
         } else {
             Window.promptTextChanged.connect(onPromptTextChanged);
-            Window.promptAsync("URL of SVO to import", "");
+            Window.promptAsync("URL of a .json to import", "");         
         }
     } else if (menuItem === "Select All Entities In Box") {
         selectAllEntitiesInCurrentSelectionBox(false);
@@ -1924,6 +1943,9 @@ function handleMenuEvent(menuItem) {
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     } else if (menuItem === MENU_CREATE_ENTITIES_GRABBABLE) {
         Settings.setValue(SETTING_EDIT_PREFIX + menuItem, Menu.isOptionChecked(menuItem));
+    } else if (menuItem === MENU_ENTITY_LIST_DEFAULT_RADIUS) {
+        Window.promptTextChanged.connect(onPromptTextChangedDefaultRadiusUserPref);
+        Window.promptAsync("Entity List Default Radius (in meters)", "" + Settings.getValue(SETTING_ENTITY_LIST_DEFAULT_RADIUS, 100));         
     }
     tooltip.show(false);
 }
