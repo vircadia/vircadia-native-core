@@ -146,11 +146,11 @@ var DEFAULT_DIMENSIONS = {
 
 var DEFAULT_LIGHT_DIMENSIONS = Vec3.multiply(20, DEFAULT_DIMENSIONS);
 
+var SUBMENU_ENTITY_EDITOR_PREFERENCES = "Edit > Create Application - Preferences";
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Create Mode";
 var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Create Mode";
-
 var MENU_CREATE_ENTITIES_GRABBABLE = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
 var MENU_ALLOW_SELECTION_LARGE = "Allow Selecting of Large Models";
 var MENU_ALLOW_SELECTION_SMALL = "Allow Selecting of Small Models";
@@ -269,8 +269,6 @@ function adjustPositionPerBoundingBox(position, direction, registration, dimensi
     position = Vec3.sum(Vec3.multiply(distance, direction), position);
     return position;
 }
-
-var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
 
 // Handles any edit mode updates required when domains have switched
 function checkEditPermissionsAndUpdate() {
@@ -881,7 +879,12 @@ var toolBar = (function () {
 
         addButton("importEntitiesButton", function() {
             Window.browseChanged.connect(onFileOpenChanged);
-            Window.browseAsync("Select Model to Import", "", "*.json");
+            Window.browseAsync("Select .json to Import", "", "*.json");
+        });
+
+        addButton("importEntitiesFromUrlButton", function() {
+            Window.promptTextChanged.connect(onPromptTextChanged);
+            Window.promptAsync("URL of a .json to import", "");
         });
 
         addButton("openAssetBrowserButton", function() {
@@ -1381,11 +1384,9 @@ Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 // In order for editVoxels and editModels to play nice together, they each check to see if a "delete" menu item already
 // exists. If it doesn't they add it. If it does they don't. They also only delete the menu item if they were the one that
 // added it.
-var modelMenuAddedDelete = false;
 var originalLightsArePickable = Entities.getLightsArePickable();
 
 function setupModelMenus() {
-    // adj our menuitems
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Undo",
@@ -1399,120 +1400,66 @@ function setupModelMenus() {
         position: 1,
     });
 
-    Menu.addMenuItem({
-        menuName: "Edit",
-        menuItemName: "Entities",
-        isSeparator: true
-    });
-    if (!Menu.menuItemExists("Edit", "Delete")) {
-        Menu.addMenuItem({
-            menuName: "Edit",
-            menuItemName: "Delete",
-            shortcutKeyEvent: {
-                text: "delete"
-            },
-            afterItem: "Entities",
-        });
-        modelMenuAddedDelete = true;
-    }
+    Menu.addMenu(SUBMENU_ENTITY_EDITOR_PREFERENCES);
 
     Menu.addMenuItem({
-        menuName: "Edit",
-        menuItemName: "Parent Entity to Last",
-        afterItem: "Entities"
-    });
-
-    Menu.addMenuItem({
-        menuName: "Edit",
-        menuItemName: "Unparent Entity",
-        afterItem: "Parent Entity to Last"
-    });
-
-    Menu.addMenuItem({
-        menuName: GRABBABLE_ENTITIES_MENU_CATEGORY,
+        menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
         menuItemName: MENU_CREATE_ENTITIES_GRABBABLE,
-        afterItem: "Unparent Entity",
+        position: 0,
         isCheckable: true,
         isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, false)
     });
-
     Menu.addMenuItem({
-        menuName: "Edit",
+        menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
         menuItemName: MENU_ALLOW_SELECTION_LARGE,
         afterItem: MENU_CREATE_ENTITIES_GRABBABLE,
         isCheckable: true,
         isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE, true)
     });
     Menu.addMenuItem({
-        menuName: "Edit",
+        menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
         menuItemName: MENU_ALLOW_SELECTION_SMALL,
         afterItem: MENU_ALLOW_SELECTION_LARGE,
         isCheckable: true,
         isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL, true)
     });
     Menu.addMenuItem({
-        menuName: "Edit",
+        menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
         menuItemName: MENU_ALLOW_SELECTION_LIGHTS,
         afterItem: MENU_ALLOW_SELECTION_SMALL,
         isCheckable: true,
         isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LIGHTS, false)
     });
     Menu.addMenuItem({
-        menuName: "Edit",
-        menuItemName: "Select All Entities In Box",
-        afterItem: "Allow Selecting of Lights"
-    });
-    Menu.addMenuItem({
-        menuName: "Edit",
-        menuItemName: "Select All Entities Touching Box",
-        afterItem: "Select All Entities In Box"
-    });
-
-    Menu.addMenuItem({
-        menuName: "Edit",
-        menuItemName: "Export Entities",
-        afterItem: "Entities"
-    });
-    Menu.addMenuItem({
-        menuName: "Edit",
-        menuItemName: "Import Entities",
-        afterItem: "Export Entities"
-    });
-    Menu.addMenuItem({
-        menuName: "Edit",
-        menuItemName: "Import Entities from URL",
-        afterItem: "Import Entities"
-    });
-
-    Menu.addMenuItem({
-        menuName: "Edit",
+        menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
         menuItemName: MENU_AUTO_FOCUS_ON_SELECT,
+        afterItem: MENU_ALLOW_SELECTION_LIGHTS,
         isCheckable: true,
         isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) === "true"
     });
     Menu.addMenuItem({
-        menuName: "Edit",
+        menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
         menuItemName: MENU_EASE_ON_FOCUS,
         afterItem: MENU_AUTO_FOCUS_ON_SELECT,
         isCheckable: true,
         isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) === "true"
     });
     Menu.addMenuItem({
-        menuName: "Edit",
+        menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
         menuItemName: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
         afterItem: MENU_EASE_ON_FOCUS,
         isCheckable: true,
         isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) !== "false"
     });
     Menu.addMenuItem({
-        menuName: "Edit",
+        menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
         menuItemName: MENU_SHOW_ZONES_IN_EDIT_MODE,
         afterItem: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
         isCheckable: true,
         isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) !== "false"
     });
     Menu.addMenuItem({
-        menuName: "Edit",
+        menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
         menuItemName: MENU_ENTITY_LIST_DEFAULT_RADIUS,
         afterItem: MENU_SHOW_ZONES_IN_EDIT_MODE
     });
@@ -1526,30 +1473,16 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("Edit", "Undo");
     Menu.removeMenuItem("Edit", "Redo");
 
-    Menu.removeSeparator("Edit", "Entities");
-    if (modelMenuAddedDelete) {
-        // delete our menuitems
-        Menu.removeMenuItem("Edit", "Delete");
-    }
-
-    Menu.removeMenuItem("Edit", "Parent Entity to Last");
-    Menu.removeMenuItem("Edit", "Unparent Entity");
-    Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
-    Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
-    Menu.removeMenuItem("Edit", "Allow Selecting of Lights");
-    Menu.removeMenuItem("Edit", "Select All Entities In Box");
-    Menu.removeMenuItem("Edit", "Select All Entities Touching Box");
-
-    Menu.removeMenuItem("Edit", "Export Entities");
-    Menu.removeMenuItem("Edit", "Import Entities");
-    Menu.removeMenuItem("Edit", "Import Entities from URL");
-
-    Menu.removeMenuItem("Edit", MENU_AUTO_FOCUS_ON_SELECT);
-    Menu.removeMenuItem("Edit", MENU_EASE_ON_FOCUS);
-    Menu.removeMenuItem("Edit", MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE);
-    Menu.removeMenuItem("Edit", MENU_SHOW_ZONES_IN_EDIT_MODE);
-    Menu.removeMenuItem("Edit", MENU_CREATE_ENTITIES_GRABBABLE);
-    Menu.removeMenuItem("Edit", MENU_ENTITY_LIST_DEFAULT_RADIUS);
+    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_ALLOW_SELECTION_LARGE);
+    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_ALLOW_SELECTION_SMALL);
+    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_ALLOW_SELECTION_LIGHTS);
+    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_AUTO_FOCUS_ON_SELECT);
+    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_EASE_ON_FOCUS);
+    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE);
+    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_SHOW_ZONES_IN_EDIT_MODE);
+    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_CREATE_ENTITIES_GRABBABLE);
+    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_ENTITY_LIST_DEFAULT_RADIUS);
+    Menu.removeMenu(SUBMENU_ENTITY_EDITOR_PREFERENCES);   
 }
 
 Script.scriptEnding.connect(function () {
@@ -1902,41 +1835,18 @@ function onPromptTextChangedDefaultRadiusUserPref(prompt) {
 }
 
 function handleMenuEvent(menuItem) {
-    if (menuItem === "Allow Selecting of Small Models") {
-        allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
-    } else if (menuItem === "Allow Selecting of Large Models") {
-        allowLargeModels = Menu.isOptionChecked("Allow Selecting of Large Models");
-    } else if (menuItem === "Allow Selecting of Lights") {
-        Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
+    if (menuItem === MENU_ALLOW_SELECTION_SMALL) {
+        allowSmallModels = Menu.isOptionChecked(MENU_ALLOW_SELECTION_SMALL);
+    } else if (menuItem === MENU_ALLOW_SELECTION_LARGE) {
+        allowLargeModels = Menu.isOptionChecked(MENU_ALLOW_SELECTION_LARGE);
+    } else if (menuItem === MENU_ALLOW_SELECTION_LIGHTS) {
+        Entities.setLightsArePickable(Menu.isOptionChecked(MENU_ALLOW_SELECTION_LIGHTS));
     } else if (menuItem === "Delete") {
         deleteSelectedEntities();
     } else if (menuItem === "Undo") {
         undoHistory.undo();
     } else if (menuItem === "Redo") {
         undoHistory.redo();
-    } else if (menuItem === "Parent Entity to Last") {
-        parentSelectedEntities();
-    } else if (menuItem === "Unparent Entity") {
-        unparentSelectedEntities();
-    } else if (menuItem === "Export Entities") {
-        if (!selectionManager.hasSelection()) {
-            Window.notifyEditError("No entities have been selected.");
-        } else {
-            Window.saveFileChanged.connect(onFileSaveChanged);
-            Window.saveAsync("Select Where to Save", "", "*.json");
-        }
-    } else if (menuItem === "Import Entities" || menuItem === "Import Entities from URL") {
-        if (menuItem === "Import Entities") {
-            Window.browseChanged.connect(onFileOpenChanged);
-            Window.browseAsync("Select Model to Import", "", "*.json");
-        } else {
-            Window.promptTextChanged.connect(onPromptTextChanged);
-            Window.promptAsync("URL of a .json to import", "");         
-        }
-    } else if (menuItem === "Select All Entities In Box") {
-        selectAllEntitiesInCurrentSelectionBox(false);
-    } else if (menuItem === "Select All Entities Touching Box") {
-        selectAllEntitiesInCurrentSelectionBox(true);
     } else if (menuItem === MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) {
         entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
