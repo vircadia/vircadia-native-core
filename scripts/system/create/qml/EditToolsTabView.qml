@@ -207,11 +207,11 @@ TabBar {
 
                     HifiControls.Button {
                         id: importButton
-                        text: "Import Entities (.json)"
+                        text: "Import Entities (.json) from a File"
                         color: hifi.buttons.black
                         colorScheme: hifi.colorSchemes.dark
-                        anchors.right: parent.right
-                        anchors.rightMargin: 55
+                        anchors.right: parent.horizontalCenter
+                        anchors.rightMargin: 10                        
                         anchors.left: parent.left
                         anchors.leftMargin: 55
                         anchors.top: assetServerButton.bottom
@@ -223,6 +223,25 @@ TabBar {
                             });
                         }
                     }
+
+                    HifiControls.Button {
+                        id: importButtonFromUrl
+                        text: "Import Entities (.json) from a URL"
+                        color: hifi.buttons.black
+                        colorScheme: hifi.colorSchemes.dark
+                        anchors.right: parent.right
+                        anchors.rightMargin: 55
+                        anchors.left: parent.horizontalCenter
+                        anchors.leftMargin: 10
+                        anchors.top: assetServerButton.bottom
+                        anchors.topMargin: 20
+                        onClicked: {
+                            editRoot.sendToScript({
+                                method: "newEntityButtonClicked",
+                                params: { buttonName: "importEntitiesFromUrlButton" }
+                            });
+                        }
+                    }                   
                 }
             } // Flickable
         }
