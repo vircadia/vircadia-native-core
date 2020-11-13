@@ -16,12 +16,21 @@
 
 <template>
     <v-app>
+        
+        <!-- ### DIALOGS ### -->
+
         <v-app-bar
             app
+            v-if="settings.currentView === 'Inventory'"
         >
-            <v-app-bar-nav-icon @click="drawer = true"></v-app-bar-nav-icon>
 
-            <v-toolbar-title>Inventory</v-toolbar-title>
+            <v-app-bar-nav-icon 
+                @click="drawer = !drawer"
+            ></v-app-bar-nav-icon>
+
+            <v-toolbar-title>
+                Inventory
+            </v-toolbar-title>
             
             <v-spacer></v-spacer>
             
@@ -79,6 +88,7 @@
         </v-app-bar>
 
         <v-navigation-drawer
+            v-if="settings.currentView === 'Inventory'"
             v-model="drawer"
             fixed
             temporary
@@ -87,58 +97,75 @@
                 nav
                 class="pt-5"
             >
-                <v-list-item-group>
 
-                    <v-slider
-                        v-model="settings.displayDensity.size"
-                        :tick-labels="settings.displayDensity.labels"
-                        :max="2"
-                        step="1"
-                        ticks="always"
-                        tick-size="3"
-                    ></v-slider>
+                <v-slider
+                    v-model="settings.displayDensity.size"
+                    :tick-labels="settings.displayDensity.labels"
+                    :max="2"
+                    step="1"
+                    ticks="always"
+                    tick-size="3"
+                    class="mb-4"
+                ></v-slider>
 
-                    <v-list-item @click="addDialogStore.show = true; getFolderList('add');">
-                        <v-list-item-icon>
-                            <v-icon>mdi-plus</v-icon>
-                        </v-list-item-icon>
-                        <v-list-item-title>Add Item</v-list-item-title>
-                    </v-list-item>
-                    
-                    <!-- This is an example on how to make a custom add function. -->
-                    <v-list-item v-show="false" @click="bizCardDialogStore.show = true; getFolderList('add');">
-                        <v-list-item-icon>
-                            <v-icon>mdi-plus</v-icon>
-                        </v-list-item-icon>
-                        <v-list-item-title>Create Business Card</v-list-item-title>
-                    </v-list-item>
+                <v-list-item @click="addDialogStore.show = true; getFolderList('add');">
+                    <v-list-item-icon>
+                        <v-icon>mdi-plus</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-title>Add Item</v-list-item-title>
+                </v-list-item>
+                
+                <!-- This is an example on how to make a custom add function. -->
+                <v-list-item v-show="false" @click="bizCardDialogStore.show = true; getFolderList('add');">
+                    <v-list-item-icon>
+                        <v-icon>mdi-plus</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-title>Create Business Card</v-list-item-title>
+                </v-list-item>
 
-                    <v-list-item @click="createFolderDialogStore.show = true">
-                        <v-list-item-icon>
-                            <v-icon>mdi-folder-plus</v-icon>
-                        </v-list-item-icon>
-                        <v-list-item-title>Create Folder</v-list-item-title>
-                    </v-list-item>
-                                    
-                    <p class="app-version">Version {{appVersion}}</p>
+                <v-list-item @click="createFolderDialogStore.show = true">
+                    <v-list-item-icon>
+                        <v-icon>mdi-folder-plus</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-title>Create Folder</v-list-item-title>
+                </v-list-item>
+                                
+                <p class="app-version">Version {{appVersion}}</p>
 
-                </v-list-item-group>
             </v-list>
+
         </v-navigation-drawer>
 
-        <v-content>
+        <v-content
+            v-show="settings.currentView === 'Inventory'"
+        >
             <v-container fluid>
                 <v-col
                     cols="12"
                     sm="6"
                     md="4"
                     lg="3"
-                    class="py-1 column-item"
                 >
-                    <itemiterator :itemsForIterator="this.$store.state.items"></itemiterator>
+                    <ItemIterator :itemsForIterator="this.$store.state.items"></ItemIterator>
                 </v-col>
             </v-container>
         </v-content>
+        <v-content
+            v-show="settings.currentView === 'Bazaar'"
+        >
+            <v-container fluid>
+                <v-col
+                    cols="12"
+                    sm="6"
+                    md="4"
+                    lg="3"
+                >
+                    <Bazaar></Bazaar>
+                </v-col>
+            </v-container>
+        </v-content>
+        
+        <!-- ### DIALOGS ### -->
 
         <v-dialog
             v-model="receivingItemsDialog.show"
@@ -914,12 +941,14 @@ EventBus.$on('use-item', data => {
     vue_this.useItem(data.type, data.url);
 });
 
-import itemiterator from './components/ItemIterator'
+import ItemIterator from './components/ItemIterator'
+import Bazaar from './components/Bazaar'
 
 export default {
     name: 'App',
     components: {
-        itemiterator
+        ItemIterator,
+        Bazaar
     },
     data: () => ({
         possibleTags: [],
@@ -973,6 +1002,7 @@ export default {
         ],
         sortBy: "alphabetical",
         settings: {
+            currentView: 'Inventory',
             "displayDensity": {
                 "size": 0,
                 "labels": [
@@ -980,7 +1010,7 @@ export default {
                     "Compact",
                     "Large",
                 ]
-            }
+            },
         },
         appVersion: "3.0.0",
         darkTheme: true,
