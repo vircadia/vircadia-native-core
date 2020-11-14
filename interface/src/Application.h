@@ -376,6 +376,7 @@ signals:
 
 public slots:
     QVector<EntityItemID> pasteEntities(const QString& entityHostType, float x, float y, float z);
+    bool exportData(const QString& filename, const QString& dataString);
     bool exportEntities(const QString& filename, const QVector<QUuid>& entityIDs, const glm::vec3* givenOffset = nullptr);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& url, const bool isObservable = true, const qint64 callerId = -1);

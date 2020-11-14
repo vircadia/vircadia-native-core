@@ -5358,6 +5358,34 @@ ivec2 Application::getMouse() const {
     return getApplicationCompositor().getReticlePosition();
 }
 
+bool Application::exportData(const QString& filename,
+                             const QString& dataString) {
+    
+     qCDebug(interfaceapp, "Saving data to file %s...", filename);
+ 
+     QSaveFile persistFile(filename);
+     bool success = false;
+     if (persistFile.open(QIODevice::WriteOnly)) {
+         if (persistFile.write(dataString.toUtf8()) != -1) {
+             success = persistFile.commit();
+             if (!success) {
+                 qCritical() << "Failed to commit to text save file:" << persistFile.errorString();
+             }
+         } else {
+             qCritical("Failed to write to text file.");
+         }
+     } else {
+         qCritical("Failed to open text file for writing.");
+     }
+     
+     if (success) {
+         // restore the main window's active state
+         _window->activateWindow();
+     }
+                                 
+     return success;
+}
+
 bool Application::exportEntities(const QString& filename,
                                  const QVector<QUuid>& entityIDs,
                                  const glm::vec3* givenOffset) {
