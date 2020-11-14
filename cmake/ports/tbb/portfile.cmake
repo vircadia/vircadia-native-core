@@ -3,7 +3,7 @@ include(vcpkg_common_functions)
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO oneapi-src/oneTBB
-    REF 4bdba61bafc6ba2d636f31564f1de5702d365cf7
+    REF eca91f16d7490a8abfdee652dadf457ec820cc37
     SHA512 f2a8d7e0476f846039390f4a79af3fe13770e23b01bf4741e738136f7ddb401357a0e50f35212e8d0fa5fc4cf1563418337309227d7243fc3676edd406ae652d
     HEAD_REF tbb_2019
     PATCHES fix-static-build.patch
