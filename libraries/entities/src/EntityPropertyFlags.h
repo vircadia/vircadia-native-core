@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -317,6 +318,7 @@ enum EntityPropertyList {
     PROP_MAX_FPS = PROP_DERIVED_3,
     PROP_INPUT_MODE = PROP_DERIVED_4,
     PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT = PROP_DERIVED_5,
+    PROP_WEB_USE_BACKGROUND = PROP_DERIVED_6,
 
     // Polyline
     PROP_LINE_POINTS = PROP_DERIVED_0,

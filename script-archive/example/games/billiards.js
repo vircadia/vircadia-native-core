@@ -10,7 +10,8 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 
 var tableParts = []; 
 var balls = [];
@@ -33,17 +34,18 @@ var cuePosition;
 var startStroke = 0;
 
 // Sounds to use 
-var hitSound = HIFI_PUBLIC_BUCKET + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav";
+var hitSound = VIRCADIA_PUBLIC_CDN + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav";
 SoundCache.getSound(hitSound);
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
 var screenSize = Controller.getViewportDimensions();
 var reticle = Overlays.addOverlay("image", {
     x: screenSize.x / 2 - 16,
     y: screenSize.y / 2 - 16,
     width: 32,
     height: 32,
-    imageURL: HIFI_PUBLIC_BUCKET + "images/billiardsReticle.png",
+    imageURL: VIRCADIA_PUBLIC_CDN + "images/billiardsReticle.png",
     color: { red: 255, green: 255, blue: 255},
     alpha: 1
 });

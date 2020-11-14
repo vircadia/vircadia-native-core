@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/15/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -37,6 +38,7 @@
 #include <SharedUtil.h>
 
 #include "DomainHandler.h"
+#include "NetworkingConstants.h"
 #include "Node.h"
 #include "NLPacket.h"
 #include "NLPacketList.h"
@@ -55,8 +57,8 @@ static const size_t DEFAULT_MAX_CONNECTION_RATE { std::numeric_limits<size_t>::m
 
 const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
-const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";
-const unsigned short STUN_SERVER_PORT = 3478;
+const char STUN_SERVER_HOSTNAME[] = "stun1.l.google.com";
+const unsigned short STUN_SERVER_PORT = NetworkingConstants::STUN_SERVER_DEFAULT_PORT;
 
 const QString DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY = "domain-server.local-port";
 const QString DOMAIN_SERVER_LOCAL_HTTP_PORT_SMEM_KEY = "domain-server.local-http-port";

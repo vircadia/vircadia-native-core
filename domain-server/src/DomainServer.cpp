@@ -340,7 +340,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
 void DomainServer::parseCommandLine(int argc, char* argv[]) {
     QCommandLineParser parser;
-    parser.setApplicationDescription("High Fidelity Domain Server");
+    parser.setApplicationDescription("Vircadia Domain Server");
     const QCommandLineOption versionOption = parser.addVersionOption();
     const QCommandLineOption helpOption = parser.addHelpOption();
 

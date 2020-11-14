@@ -35,8 +35,8 @@
     var CONNECTING_TIME = 100; // ms One interval.
     var PARTICLE_RADIUS = 0.15; // m
     var PARTICLE_ANGLE_INCREMENT = 360 / 45; // 1hz
-    var HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/4beat_sweep.wav";
-    var SUCCESSFUL_HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/3rdbeat_success_bell.wav";
+    var HANDSHAKE_SOUND_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/davidkelly/production/audio/4beat_sweep.wav");
+    var SUCCESSFUL_HANDSHAKE_SOUND_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/davidkelly/production/audio/3rdbeat_success_bell.wav");
     var PREFERRER_HAND_JOINT_POSTFIX_ORDER = ['Middle1', 'Index1', ''];
     var HAPTIC_DATA = {
         initial: { duration: 20, strength: 0.6 }, // duration is in ms
@@ -60,7 +60,7 @@
         "radiusStart": 0.0025,
         "emitSpeed": 0.02,
         "speedSpread": 0.015,
-        "textures": "http://hifi-content.s3.amazonaws.com/alan/dev/Particles/Bokeh-Particle.png",
+        "textures": Script.getExternalPath(Script.ExternalPaths.HF_Content, "/alan/dev/Particles/Bokeh-Particle.png"),
         "color": {"red": 255, "green": 255, "blue": 255},
         "colorFinish": {"red": 0, "green": 164, "blue": 255},
         "colorStart": {"red": 255, "green": 255, "blue": 255},
@@ -92,7 +92,7 @@
         "radiusStart": 0.04,
         "speedSpread": 0.00,
         "radiusSpread": 0.0,
-        "textures": "http://hifi-content.s3.amazonaws.com/alan/dev/Particles/Bokeh-Particle.png",
+        "textures": Script.getExternalPath(Script.ExternalPaths.HF_Content, "/alan/dev/Particles/Bokeh-Particle.png"),
         "color": {"red": 200, "green": 170, "blue": 255},
         "colorFinish": {"red": 0, "green": 134, "blue": 255},
         "colorStart": {"red": 185, "green": 222, "blue": 255},

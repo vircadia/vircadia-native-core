@@ -55,18 +55,18 @@ TabBar {
                         font.pixelSize: 14
                         font.bold: true
                         anchors.top: parent.top
-                        anchors.topMargin: 28
+                        anchors.topMargin: 30
                         anchors.left: parent.left
-                        anchors.leftMargin: 28
+                        anchors.leftMargin: 30
                     }
 
                     Flow {
                         id: createEntitiesFlow
-                        spacing: 35
+                        spacing: 20
                         anchors.right: parent.right
-                        anchors.rightMargin: 55
+                        anchors.rightMargin: 30
                         anchors.left: parent.left
-                        anchors.leftMargin: 55
+                        anchors.leftMargin: 30
                         anchors.top: parent.top
                         anchors.topMargin: 70
 
@@ -186,9 +186,9 @@ TabBar {
                         color: hifi.buttons.black
                         colorScheme: hifi.colorSchemes.dark
                         anchors.right: parent.right
-                        anchors.rightMargin: 55
+                        anchors.rightMargin: 30
                         anchors.left: parent.left
-                        anchors.leftMargin: 55
+                        anchors.leftMargin: 30
                         anchors.top: createEntitiesFlow.bottom
                         anchors.topMargin: 35
                         onClicked: {
@@ -205,9 +205,9 @@ TabBar {
                         color: hifi.buttons.black
                         colorScheme: hifi.colorSchemes.dark
                         anchors.right: parent.right
-                        anchors.rightMargin: 55
+                        anchors.rightMargin: 30
                         anchors.left: parent.left
-                        anchors.leftMargin: 55
+                        anchors.leftMargin: 30
                         anchors.top: assetServerButton.bottom
                         anchors.topMargin: 20
                         onClicked: {

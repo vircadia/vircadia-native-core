@@ -1888,7 +1888,7 @@
           "name": "provider",
           "label": "Provider",
           "help": "OAuth provider URL.",
-          "default": "https://metaverse.highfidelity.com",
+          "default": "https://metaverse.vircadia.com/live",
           "advanced":  true,
           "backup": false
         },

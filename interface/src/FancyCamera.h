@@ -36,6 +36,10 @@ class FancyCamera : public Camera {
      * @property {ViewFrustum} frustum - The camera frustum.
      * @property {Uuid} cameraEntity - The ID of the entity that is used for the camera position and orientation when the 
      *     camera is in entity mode.
+     * @property {boolean} captureMouse - The mouse capture state.  When <code>true</code>, the mouse is invisible and cannot leave the bounds of
+     * Interface, as long as Interface is the active window and no menu item is selected.  When <code>false</code>, the mouse
+     * behaves normally.
+     * @property {number} sensitivity - The current camera sensitivity.  Must be positive.
      */
     Q_PROPERTY(QUuid cameraEntity READ getCameraEntity WRITE setCameraEntity)
 

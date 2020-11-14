@@ -607,6 +607,9 @@
     "webAlpha": {
         "tooltip": "The opacity of the web entity between 0.0 fully transparent and 1.0 completely opaque."
     },
+    "useBackground": {
+        "tooltip": "If disabled, this web entity will support a transparent background for the webpage and its elements if the CSS property of 'background-color' on the 'body' is set with transparency."
+    },    
     "maxFPS": {
         "tooltip": "The FPS at which to render the web entity. Higher values will have a performance impact."
     },

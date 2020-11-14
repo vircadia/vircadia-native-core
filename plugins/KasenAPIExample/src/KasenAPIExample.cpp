@@ -105,7 +105,7 @@ private:
     static QVariantMap zipNonZeroValues(const QStringList& keys, const QVector<float>& values) {
         QVariantMap out;
         for (int i=1; i < values.size(); i++) {
-            if (fabs(values[i]) > 1.0e-6) {
+            if (fabs(values[i]) > 1.0e-6f) {
                 out[keys.value(i)] = values[i];
             }
         }

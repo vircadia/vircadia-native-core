@@ -12,8 +12,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-
 function getRandomFloat(min, max) {
     return Math.random() * (max - min) + min;
 }
@@ -44,9 +42,9 @@ newBodyFilePrefix = "bot" + botNumber;
 
 // set the face model fst using the bot number
 // there is no need to change the body model - we're using the default
-Avatar.faceModelURL = HIFI_PUBLIC_BUCKET + "meshes/" + newFaceFilePrefix + ".fst";
-Avatar.skeletonModelURL = HIFI_PUBLIC_BUCKET + "meshes/" + newBodyFilePrefix + ".fst";
-Avatar.billboardURL = HIFI_PUBLIC_BUCKET + "meshes/billboards/bot" + botNumber + ".png";
+Avatar.faceModelURL = Script.getExternalPath(Script.ExternalPaths.Assets, "meshes/" + newFaceFilePrefix + ".fst");
+Avatar.skeletonModelURL = Script.getExternalPath(Script.ExternalPaths.Assets, "meshes/" + newBodyFilePrefix + ".fst");
+Avatar.billboardURL = Script.getExternalPath(Script.ExternalPaths.Assets, "meshes/billboards/bot" + botNumber + ".png");
 
 Agent.isAvatar = true;
 Agent.isListeningToAudioStream = true;

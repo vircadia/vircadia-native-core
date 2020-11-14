@@ -19,7 +19,7 @@
   </dl>
 </div>
 
-<div class="wizard-step col-md-8 col-centered" style="display: none;">
+<!-- <div class="wizard-step col-md-8 col-centered" style="display: none;">
   <h4 class="step-title"></h4>
   <div class="row">
     <div class="col-md-12">
@@ -51,12 +51,12 @@
       <button type="button" class="btn btn-md btn-block btn-primary next-button">Next</button>
     </dd>
   </dl>
-</div>
+</div> -->
 
 <div class="wizard-step col-md-9 col-centered" style="display: none;">
   <h4 class="step-title"></h4>
   <div class="row">
-    <p id="permissions-description" class="col-md-12 step-info"><b>Localhost</b> has been granted administrator privileges to this domain. (Localhost is any</br>user on the same machine as the Vircadia Server)</p>
+    <p id="permissions-description" class="col-md-12 step-info"><b>Localhost</b> has been granted administrator privileges to this domain. (Localhost is any</br>user on the same machine as the Vircadia server)</p>
   </div>
   <div id="admin-row" class="row">
     <p class="col-md-6">
@@ -186,7 +186,37 @@
       <button type="button" class="btn btn-md btn-block btn-default back-button">Back</button>
     </dd>
     <dd class="col-md-3 col-md-offset-6">
-      <button id="save-username-password" type="button" class="btn btn-md btn-block btn-primary">Finish</button>
+      <button id="save-username-password" type="button" class="btn btn-md btn-block btn-primary next-button">Next</button>
+    </dd>
+  </dl>
+</div>
+
+<div class="wizard-step col-md-8 col-centered" style="display: none;">
+  <h4 class="step-title"></h4>
+  <div class="row">
+    <div class="col-md-12">
+      <span class='step-description'>
+        Would you like use automatic threading for your server's avatars and audio? 
+        If you are hosting this server on your local computer and it is not very powerful, then consider leaving this off because the server will use more resources if it is being utilized extensively, thereby slowing down your computer. 
+        If you are running this server on a powerful system and intend to have a large audience, then turn this setting on.
+      </span>
+    </div>
+  </div>
+  <br />
+  <div id="automatic-threading-options-row" class="row">
+    <p class="col-md-2">
+      <label>
+        <input id="enable-automatic-threading" name="threading-checkbox" type="checkbox" value="true"> Enable Automatic Threading
+      </label>
+    </p>
+  </div>
+
+  <dl class="row">
+    <dd class="col-md-3">
+      <button type="button" class="btn btn-md btn-block btn-default back-button">Back</button>
+    </dd>
+    <dd class="col-md-3 col-md-offset-6">
+      <button id="save-threading-settings" type="button" class="btn btn-md btn-block btn-primary">Finish</button>
     </dd>
   </dl>
 </div>
@@ -201,7 +231,7 @@
 
   <div class="row">
     <div class="col-xs-10 col-xs-offset-1">
-      <p id="main-description" class="step-info">You have successfully setup and configured your cloud hosted domain.</p>
+      <p id="main-description" class="step-info">You have successfully setup and configured your Vircadia domain.</p>
     </div>
   </div>
 
