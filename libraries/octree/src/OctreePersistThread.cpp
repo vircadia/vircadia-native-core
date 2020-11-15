@@ -64,7 +64,8 @@ void OctreePersistThread::start() {
     cleanupOldReplacementBackups();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::OctreeDataFileReply, this, "handleOctreeDataFileReply");
+    packetReceiver.registerListener(PacketType::OctreeDataFileReply,
+        PacketReceiver::makeUnsourcedListenerReference<OctreePersistThread>(this, &OctreePersistThread::handleOctreeDataFileReply));
 
     auto nodeList = DependencyManager::get<NodeList>();
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
