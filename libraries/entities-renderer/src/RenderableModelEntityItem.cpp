@@ -1252,7 +1252,6 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
                 entity->_originalTexturesRead = false;
                 entity->_needsJointSimulation = true;
                 entity->_needsToRescaleModel = true;
-                entity->updateModelBounds();
                 emit requestRenderUpdate();
             });
             scene->enqueueTransaction(transaction);
@@ -1271,7 +1270,6 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
 
     // Nothing else to do unless the model is loaded
     if (!model->isLoaded()) {
-        emit requestRenderUpdate();
         return;
     }
 
@@ -1295,10 +1293,11 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         entity->_originalTexturesRead = true;
     }
 
-    if (_textures != entity->getTextures()) {
+    auto textures = entity->getTextures();
+    if (_textures != textures) {
         QVariantMap newTextures;
         _texturesLoaded = false;
-        _textures = entity->getTextures();
+        _textures = textures;
         newTextures = parseTexturesToMap(_textures, entity->_originalTextures);
         model->setTextures(newTextures);
     }
