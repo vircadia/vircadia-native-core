@@ -1714,9 +1714,9 @@ function loaded() {
                                 let currentColumnIndex = originalColumnIDs.indexOf(data.columnsData[columnIndex].columnID);
                                 if (currentColumnIndex !== -1 && columnIndex !== currentColumnIndex) {
                                     for (var i = currentColumnIndex; i > columnIndex; i--) {
-                                        swapColumns(i-1, i);
-                                        var swappedContent = originalColumnIDs[i-1];  
-                                        originalColumnIDs[i-1] = originalColumnIDs[i];  
+                                        swapColumns(i - 1, i);
+                                        var swappedContent = originalColumnIDs[i - 1];  
+                                        originalColumnIDs[i - 1] = originalColumnIDs[i];  
                                         originalColumnIDs[i] = swappedContent;                                        
                                     }
                                 }
