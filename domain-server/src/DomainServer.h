@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 9/26/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -140,6 +141,7 @@ private slots:
     void updateDownstreamNodes();
     void updateUpstreamNodes();
     void initializeExporter();
+    void initializeMetadataExporter();
 
     void tokenGrantFinished();
     void profileRequestFinished();
@@ -240,6 +242,8 @@ private:
 
     HTTPManager _httpManager;
     HTTPManager* _httpExporterManager { nullptr };
+    HTTPManager* _httpMetadataExporterManager { nullptr };
+    
     std::unique_ptr<HTTPSManager> _httpsManager;
 
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;

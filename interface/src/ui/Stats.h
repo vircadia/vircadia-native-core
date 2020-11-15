@@ -248,6 +248,10 @@ private: \
  *     <em>Read-only.</em>
  * @property {string} lodStatus - Description of the current LOD.
  *     <em>Read-only.</em>
+ * @property {string} numEntityUpdates - The number of entity updates that happened last frame.
+ *     <em>Read-only.</em>
+ * @property {string} numNeededEntityUpdates - The total number of entity updates scheduled for last frame.
+ *     <em>Read-only.</em>
  * @property {string} timingStats - Details of the average time (ms) spent in and number of calls made to different parts of 
  *     the code. Provided only if <code>timingExpanded</code> is <code>true</code>. Only the top 10 items are provided if 
  *     Developer &gt; Timing &gt; Performance Timer &gt; Only Display Top 10 is enabled.
@@ -270,7 +274,7 @@ private: \
  *     of 2 if smaller than 128 pixels, or a multiple of 128 if greater than 128 pixels.
  *     <em>Read-only.</em>
  * @property {number} decimatedTextureCount - The number of textures that have been reduced in size because they were over the 
- *     maximum allowed dimensions of 4096 pixels on desktop or 2048 pixels on mobile.
+ *     maximum allowed dimensions of 8192 pixels on desktop or 2048 pixels on mobile.
  *     <em>Read-only.</em>
  * @property {number} gpuBuffers - The number of OpenGL buffer objects managed by the GPU back-end.
  *     <em>Read-only.</em>
@@ -543,6 +547,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, lodAngle, 0)
     STATS_PROPERTY(int, lodTargetFramerate, 0)
     STATS_PROPERTY(QString, lodStatus, QString())
+    STATS_PROPERTY(int, numEntityUpdates, 0)
+    STATS_PROPERTY(int, numNeededEntityUpdates, 0)
     STATS_PROPERTY(QString, timingStats, QString())
     STATS_PROPERTY(QString, gameUpdateStats, QString())
     STATS_PROPERTY(int, serverElements, 0)
@@ -1210,6 +1216,20 @@ signals:
      * @returns {Signal}
      */
     void lodStatusChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>numEntityUpdates</code> property changes.
+     * @function Stats.numEntityUpdatesChanged
+     * @returns {Signal}
+     */
+    void numEntityUpdatesChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>numNeededEntityUpdates</code> property changes.
+     * @function Stats.numNeededEntityUpdatesChanged
+     * @returns {Signal}
+     */
+    void numNeededEntityUpdatesChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>timingStats</code> property changes.

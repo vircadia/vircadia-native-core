@@ -23,6 +23,7 @@ var CONTROL_KEY = 67108864;
 var SHIFT_KEY = 33554432;
 var FLOOF_CHAT_CHANNEL = "Chat";
 var FLOOF_NOTIFICATION_CHANNEL = "Floof-Notif";
+var SYSTEM_NOTIFICATION_CHANNEL = "System-Notifications";
 
 var MAIN_CHAT_WINDOW_HEIGHT = 450;
 var MAIN_CHAT_WINDOW_WIDTH = 750;
@@ -79,6 +80,7 @@ init();
 
 function init() {
     Messages.subscribe(FLOOF_CHAT_CHANNEL);
+    Messages.subscribe(SYSTEM_NOTIFICATION_CHANNEL);
     historyLog = [];
     try {
         historyLog = JSON.parse(Settings.getValue(settingsRoot + "/HistoryLog", "[]"));
@@ -320,13 +322,7 @@ function onWebEventReceived(event) {
             gotoConfirm(event.url);
         }
         if (event.cmd === "URL") {
-            new OverlayWebWindow({
-                title: 'Web',
-                source: event.url,
-                width: 900,
-                height: 700,
-                visible: true
-            });
+            Window.openWebBrowser(event.url);
         }
         if (event.cmd === "EXTERNALURL") {
             Window.openUrl(event.url);
@@ -435,8 +431,8 @@ function replaceFormatting(text) {
     }
 }
 
-function messageReceived(channel, message) {
-    if (channel === "Chat") {
+function messageReceived(channel, message, sender) {
+    if (channel === FLOOF_CHAT_CHANNEL) {
         var cmd = {FAILED: true};
         try {
             cmd = JSON.parse(message);
@@ -518,6 +514,26 @@ function messageReceived(channel, message) {
             }
         }
     }
+    
+    if (channel === SYSTEM_NOTIFICATION_CHANNEL && sender == MyAvatar.sessionUUID) {
+        var cmd = {FAILED: true};
+        try {
+            cmd = JSON.parse(message);
+        } catch (e) {
+            //
+        }
+        if (!cmd.FAILED) {
+            if (cmd.type === "Update-Notification") {
+                addToLog(cmd.message, cmd.category, cmd.colour, cmd.channel);
+                
+                Messages.sendLocalMessage(FLOOF_NOTIFICATION_CHANNEL, JSON.stringify({
+                    sender: "(" + cmd.category + ")",
+                    text: replaceFormatting(cmd.message),
+                    colour: {text: cmd.colour}
+                }));
+            }
+        }
+    }
 }
 
 function time() {
@@ -569,7 +585,9 @@ function fromQml(message) {
                     cmd = processChat(cmd);
                     if (cmd.message === "") return;
                     Messages.sendMessage(FLOOF_CHAT_CHANNEL, JSON.stringify({
-                        type: "TransmitChatMessage", channel: "Domain", colour: chatColour("Domain"),
+                        type: "TransmitChatMessage", 
+                        channel: "Domain", 
+                        colour: chatColour("Domain"),
                         message: cmd.message,
                         displayName: cmd.avatarName
                     }));

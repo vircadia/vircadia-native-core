@@ -118,6 +118,9 @@ public:
     bool isCauterized() const { return _cauterized; }
     void setCauterized(bool value, const render::ScenePointer& scene);
 
+    void setPrimitiveMode(PrimitiveMode primitiveMode);
+    PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
+
     void setCullWithParent(bool value);
 
     void setRenderWithZones(const QVector<QUuid>& renderWithZones);
@@ -159,9 +162,6 @@ public:
 
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isHFMModelLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
-
-    void setPrimitiveMode(PrimitiveMode primitiveMode);
-    PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
 
     void reset();
 

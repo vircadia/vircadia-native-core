@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/14/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,6 +21,8 @@
 #include <QtCore/QSet>
 #include <QtCore/QWaitCondition>
 #include <QtCore/QStringList>
+#include <QMap>
+#include <QMetaEnum>
 
 #include <QtScript/QScriptEngine>
 
@@ -37,6 +40,7 @@
 #include "AssetScriptingInterface.h"
 #include "AudioScriptingInterface.h"
 #include "BaseScriptEngine.h"
+#include "ExternalResource.h"
 #include "Quat.h"
 #include "Mat4.h"
 #include "ScriptCache.h"
@@ -118,6 +122,18 @@ public:
  *       <li><code>"agent"</code>: An assignment client script.</li>
  *     </ul>
  *     <em>Read-only.</em>
+ * @property {string} type - The type of script that is running:
+ *     <ul>
+ *       <li><code>"client"</code>: An Interface script.</li>
+ *       <li><code>"entity_client"</code>: A client entity script.</li>
+ *       <li><code>"avatar"</code>: An avatar script.</li>
+ *       <li><code>"entity_server"</code>: A server entity script.</li>
+ *       <li><code>"agent"</code>: An assignment client script.</li>
+ *     </ul>
+ *     <em>Read-only.</em>
+ * @property {string} filename - The filename of the script file.
+ *     <em>Read-only.</em>
+ * @property {Script.ResourceBuckets} ExternalPaths - External resource buckets.
  */
 class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
     Q_OBJECT
@@ -229,6 +245,17 @@ public:
     /// register a function as a method on a previously registered global object
     Q_INVOKABLE void registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature fun,
                                       int numArguments = -1);
+
+    /**jsdoc
+     * @function Script.registerEnum
+     * @param {string} name - Name.
+     * @param {object} enum - Enum.
+     * @deprecated This function is deprecated and will be removed.
+     */
+    // WARNING: This function must be called after a registerGlobalObject that creates the namespace this enum is located in, or
+    // the globalObject won't function. E.g., if you have a Foo object and a Foo.FooType enum, Foo must be registered first.
+    /// registers a global enum
+    Q_INVOKABLE void registerEnum(const QString& enumName, QMetaEnum newEnum);
 
     /**jsdoc
      * @function Script.registerValue
@@ -669,6 +696,23 @@ public:
     bool hasEntityScriptDetails(const EntityItemID& entityID) const;
 
     void setScriptEngines(QSharedPointer<ScriptEngines>& scriptEngines) { _scriptEngines = scriptEngines; }
+
+    /**jsdoc
+     * Gets the URL for an asset in an external resource bucket. (The location where the bucket is hosted may change over time
+     * but this method will return the asset's current URL.)
+     * @function Script.getExternalPath
+     * @param {Script.ResourceBucket} bucket - The external resource bucket that the asset is in.
+     * @param {string} path - The path within the external resource bucket where the asset is located. 
+     *     <p>Normally, this should start with a path or filename to be appended to the bucket URL.
+     *     Alternatively, it can be a relative path starting with <code>./</code> or <code>../</code>, to navigate within the 
+     *     resource bucket's URL.</p>
+     * @Returns {string} The URL of an external asset.
+     * @example <caption>Report the URL of a default particle.</caption>
+     * print(Script.getExternalPath(Script.ExternalPaths.Assets, "Bazaar/Assets/Textures/Defaults/Interface/default_particle.png"));
+     * @example <caption>Report the root directory where the Vircadia assets are located.</caption>
+     * print(Script.getExternalPath(Script.ExternalPaths.Assets, "."));
+     */
+    Q_INVOKABLE QString getExternalPath(ExternalResource::Bucket bucket, const QString& path);
 
 public slots:
 

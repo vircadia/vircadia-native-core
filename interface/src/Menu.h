@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 8/12/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -54,6 +55,7 @@ namespace MenuOption {
     const QString BookmarkAvatarEntities = "Bookmark Avatar Entities";
     const QString BookmarkLocation = "Bookmark Location";
     const QString CalibrateCamera = "Calibrate Camera";
+    const QString CachebustRequire = "Enable Cachebusting of Script.require";
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
     const QString ClearDiskCaches = "Clear Disk Caches (requires restart)";
@@ -77,6 +79,8 @@ namespace MenuOption {
     const QString CrashOutOfBoundsVectorAccessThreaded = "Out of Bounds Vector Access (threaded)";
     const QString CrashNewFault = "New Fault";
     const QString CrashNewFaultThreaded = "New Fault (threaded)";
+    const QString CrashThrownException = "Thrown C++ exception";
+    const QString CrashThrownExceptionThreaded = "Thrown C++ exception (threaded)";
     const QString CreateEntitiesGrabbable = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
     const QString DeadlockInterface = "Deadlock Interface";
     const QString UnresponsiveInterface = "Unresponsive Interface";

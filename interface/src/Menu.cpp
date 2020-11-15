@@ -4,14 +4,14 @@
 //
 //  Created by Stephen Birarda on 8/12/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
-// For happ(ier) development of QML, use these two things:
-// This forces QML files to be pulled from the source as you edit it: set environment variable HIFI_USE_SOURCE_TREE_RESOURCES=1
-// Use this to live reload: DependencyManager::get<OffscreenUi>()->clearCache();
+//  For happ(ier) development of QML, use these two things:
+//  This forces QML files to be pulled from the source as you edit it: set environment variable HIFI_USE_SOURCE_TREE_RESOURCES=1
+//  Use this to live reload: DependencyManager::get<OffscreenUi>()->clearCache();
 
 #include "Menu.h"
 #include <QDesktopServices>
@@ -43,6 +43,7 @@
 #include "avatar/AvatarManager.h"
 #include "avatar/AvatarPackager.h"
 #include "AvatarBookmarks.h"
+#include "DomainAccountManager.h"
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -73,6 +74,7 @@ const char* EXCLUSION_GROUP_KEY = "exclusionGroup";
 Menu::Menu() {
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     auto accountManager = DependencyManager::get<AccountManager>();
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
 
     // File/Application menu ----------------------------------
     MenuWrapper* fileMenu = addMenu("File");
@@ -89,10 +91,14 @@ Menu::Menu() {
     }
 
     auto domainLogin = addActionToQMenuAndActionHash(fileMenu, "Domain: Log In");
+    domainLogin->setVisible(false);
     connect(domainLogin, &QAction::triggered, [] {
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         dialogsManager->setDomainLoginState();
         dialogsManager->showDomainLoginDialog();
+    });
+    connect(domainAccountManager.data(), &DomainAccountManager::hasLogInChanged, [domainLogin](bool hasLogIn) {
+        domainLogin->setVisible(hasLogIn);
     });
 
     // File > Quit
@@ -232,11 +238,11 @@ Menu::Menu() {
 
     // Navigate > Start-up Location
     MenuWrapper* startupLocationMenu = navigateMenu->addMenu(MenuOption::StartUpLocation);
-    QActionGroup* startupLocatiopnGroup = new QActionGroup(startupLocationMenu);
-    startupLocatiopnGroup->setExclusive(true);
-    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0,
+    QActionGroup* startupLocationGroup = new QActionGroup(startupLocationMenu);
+    startupLocationGroup->setExclusive(true);
+    startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0,
         false));
-    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0,
+    startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0,
         true));
 
     // Settings menu ----------------------------------
@@ -359,6 +365,10 @@ Menu::Menu() {
     // Developer > Scripting > Verbose Logging
     addCheckableActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::VerboseLogging, 0, false,
                                            qApp, SLOT(updateVerboseLogging()));
+                                           
+   // Developer > Scripting > Enable Cachebusting of Script.require
+   addCheckableActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::CachebustRequire, 0, false,
+                                          qApp, SLOT(setCachebustRequire()));
 
     // Developer > Scripting > Enable Speech Control API
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -716,7 +726,7 @@ Menu::Menu() {
     // Developer > Crash >>>
     bool result = false;
     const QString HIFI_SHOW_DEVELOPER_CRASH_MENU("HIFI_SHOW_DEVELOPER_CRASH_MENU");
-    result = QProcessEnvironment::systemEnvironment().contains(HIFI_SHOW_DEVELOPER_CRASH_MENU);
+    result = true;//QProcessEnvironment::systemEnvironment().contains(HIFI_SHOW_DEVELOPER_CRASH_MENU);
     if (result) {
         MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
 
@@ -755,6 +765,11 @@ Menu::Menu() {
         connect(action, &QAction::triggered, qApp, []() { crash::newFault(); });
         action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNewFaultThreaded);
         connect(action, &QAction::triggered, qApp, []() { std::thread(crash::newFault).join(); });
+
+        action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashThrownException);
+        connect(action, &QAction::triggered, qApp, []() { crash::throwException(); });
+        action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashThrownExceptionThreaded);
+        connect(action, &QAction::triggered, qApp, []() { std::thread(crash::throwException).join(); });
 
         addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashOnShutdown, 0, qApp, SLOT(crashOnShutdown()));
     }

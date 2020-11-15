@@ -73,7 +73,14 @@ const quint16 DOMAIN_SERVER_EXPORTER_PORT =
             .value("VIRCADIA_DOMAIN_SERVER_EXPORTER_PORT")
             .toUInt()
         : 9703;
-
+        
+const quint16 DOMAIN_SERVER_METADATA_EXPORTER_PORT =
+    QProcessEnvironment::systemEnvironment()
+    .contains("VIRCADIA_DOMAIN_SERVER_METADATA_EXPORTER_PORT")
+        ? QProcessEnvironment::systemEnvironment()
+            .value("VIRCADIA_DOMAIN_SERVER_METADATA_EXPORTER_PORT")
+            .toUInt()
+        : 9704;
 
 const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 

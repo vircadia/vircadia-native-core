@@ -7,7 +7,7 @@
     var _this;
     BatonSoundEntity = function() {
         _this = this;
-        _this.drumSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Drums/deepdrum1.wav");
+        _this.drumSound = SoundCache.getSound(Script.getExternalPath(Script.ExternalPaths.HF_Public, "/sounds/Drums/deepdrum1.wav"));
         _this.injectorOptions = {position: MyAvatar.position, loop: false, volume: 1};
         _this.soundIntervalConnected = false;
         _this.batonDebugModel = Entities.addEntity({

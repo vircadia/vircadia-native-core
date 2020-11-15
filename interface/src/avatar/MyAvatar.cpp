@@ -4,6 +4,7 @@
 //
 //  Created by Mark Peng on 8/16/13.
 //  Copyright 2012 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -25,31 +26,33 @@
 #include <scripting/HMDScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <AnimDebugDraw.h>
+#include <AnimClip.h>
+#include <AnimInverseKinematics.h>
 #include <AudioClient.h>
 #include <ClientTraitsHandler.h>
+#include <recording/Clip.h>
+#include <recording/Deck.h>
 #include <display-plugins/DisplayPlugin.h>
+#include <recording/Frame.h>
 #include <FSTReader.h>
 #include <GeometryUtil.h>
+#include <GLMHelpers.h>
 #include <NodeList.h>
+#include <NetworkingConstants.h>
 #include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
 #include <SoundCache.h>
 #include <ModelEntityItem.h>
-#include <GLMHelpers.h>
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
-#include <AnimDebugDraw.h>
-#include <AnimClip.h>
-#include <AnimInverseKinematics.h>
-#include <recording/Deck.h>
 #include <recording/Recorder.h>
-#include <recording/Clip.h>
-#include <recording/Frame.h>
 #include <RecordingScriptingInterface.h>
 #include <RenderableModelEntityItem.h>
 #include <VariantMapToScriptValue.h>
+#include <NetworkingConstants.h>
 
 #include "MyHead.h"
 #include "MySkeletonModel.h"
@@ -82,7 +85,7 @@ const int SCRIPTED_MOTOR_AVATAR_FRAME = 1;
 const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
 const int SCRIPTED_MOTOR_SIMPLE_MODE = 0;
 const int SCRIPTED_MOTOR_DYNAMIC_MODE = 1;
-const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/Body_Hits_Impact.wav";
+const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = NetworkingConstants::HF_PUBLIC_CDN_URL + "sounds/Collisions-otherorganic/Body_Hits_Impact.wav";
 
 const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;

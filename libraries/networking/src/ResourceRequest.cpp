@@ -15,8 +15,14 @@
 #include <DependencyManager.h>
 #include <StatTracker.h>
 
+#include <QtCore/QDateTime>
 #include <QtCore/QThread>
 
+QString ResourceRequest::toHttpDateString(uint64_t msecsSinceEpoch) {
+    return QDateTime::fromMSecsSinceEpoch(msecsSinceEpoch)
+        .toString("ddd, dd MMM yyyy hh:mm:ss 'GMT'")
+        .toLatin1();
+}
 
 void ResourceRequest::send() {
     if (QThread::currentThread() != thread()) {

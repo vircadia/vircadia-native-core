@@ -24,7 +24,7 @@ var ACTION_DISTANCE = 0.35;
 var ACTION_TIMESCALE = 0.035;
 var MAX_DISTANCE_MULTIPLIER = 4;
 var STICK_SCRIPT_URL = Script.resolvePath("./entity_scripts/tetherballStick.js");
-var STICK_MODEL_URL = "http://hifi-content.s3.amazonaws.com/caitlyn/production/raveStick/newRaveStick2.fbx";
+var STICK_MODEL_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/caitlyn/production/raveStick/newRaveStick2.fbx");
 var COLLISION_SOUND_URL = "http://public.highfidelity.io/sounds/Footsteps/FootstepW3Left-12db.wav";
 
 var avatarOrientation = MyAvatar.orientation;
@@ -37,7 +37,7 @@ var ballStartPosition = Vec3.sum(stickStartPosition, Vec3.multiply(0.36, front))
 
 var ballID = Entities.addEntity({
     type: "Model",
-    modelURL: "http://hifi-content.s3.amazonaws.com/Examples%20Content/production/marblecollection/Star.fbx",
+    modelURL: Script.getExternalPath(Script.ExternalPaths.HF_Content, "/Examples%20Content/production/marblecollection/Star.fbx"),
     name: "TetherballStick Ball",
     shapeType: "Sphere",
     position: ballStartPosition,
@@ -70,7 +70,7 @@ var lineID = Entities.addEntity({
         green: 120,
         blue: 250
     },
-    textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+    textures: Script.getExternalPath(Script.ExternalPaths.HF_Public, "/alan/Particles/Particle-Sprite-Smoke-1.png"),
     position: ballStartPosition,
     dimensions: {
         x: 10,

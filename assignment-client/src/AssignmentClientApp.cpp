@@ -183,7 +183,7 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     }
 
     QString assignmentServerHostname;
-    if (argumentVariantMap.contains(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION)) {
+    if (argumentVariantMap.contains(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION)) {
         assignmentServerHostname = argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION).toString();
     }
     if (parser.isSet(assignmentServerHostnameOption)) {
@@ -192,7 +192,7 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 
     // check for an overriden assignment server port
     quint16 assignmentServerPort = DEFAULT_DOMAIN_SERVER_PORT;
-    if (argumentVariantMap.contains(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION)) {
+    if (argumentVariantMap.contains(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION)) {
         assignmentServerPort = argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION).toUInt();
     }
 

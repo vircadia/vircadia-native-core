@@ -21,7 +21,6 @@
 #include <QtCore/qpair.h>
 #include <QtCore/qlist.h>
 
-
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 
@@ -986,6 +985,8 @@ void GLTFFile::normalizeNodeTransforms() {
 }
 
 bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& mapping, const hifi::URL& url) {
+    hfmModel.originalURL = url.toString();
+
     int numNodes = _file.nodes.size();
     
     // Build joints
@@ -1450,62 +1451,67 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
             // populate the texture coordinates if they don't exist
             if (mesh.texCoords.size() == 0 && !hfmModel.hasSkeletonJoints) {
-                for (int i = 0; i < part.triangleIndices.size(); ++i) { mesh.texCoords.push_back(glm::vec2(0.0, 1.0)); }
+                for (int i = 0; i < part.triangleIndices.size(); ++i) {
+                    mesh.texCoords.push_back(glm::vec2(0.0, 1.0));
+                }
             }
 
             // Build morph targets (blend shapes)
             if (!primitive.targets.isEmpty()) {
 
-                // Build list of blendshapes from FST
+                // Build list of blendshapes from FST and model.
                 typedef QPair<int, float> WeightedIndex;
                 hifi::VariantHash blendshapeMappings = mapping.value("bs").toHash();
                 QMultiHash<QString, WeightedIndex> blendshapeIndices;
 
                 for (int i = 0;; ++i) {
-                    hifi::ByteArray blendshapeName = FACESHIFT_BLENDSHAPES[i];
+                    auto blendshapeName = QString(BLENDSHAPE_NAMES[i]);
                     if (blendshapeName.isEmpty()) {
                         break;
                     }
-                    QList<QVariant> mappings = blendshapeMappings.values(blendshapeName);
-                    foreach (const QVariant& mapping, mappings) {
-                        QVariantList blendshapeMapping = mapping.toList();
-                        blendshapeIndices.insert(blendshapeMapping.at(0).toByteArray(), WeightedIndex(i, blendshapeMapping.at(1).toFloat()));
+                    auto mappings = blendshapeMappings.values(blendshapeName);
+                    if (mappings.count() > 0) {
+                            // Use blendshape from mapping.
+                            foreach(const QVariant& mapping, mappings) {
+                                auto blendshapeMapping = mapping.toList();
+                                blendshapeIndices.insert(blendshapeMapping.at(0).toString(), 
+                                    WeightedIndex(i, blendshapeMapping.at(1).toFloat()));
+                            }
+                    } else {
+                        // Use blendshape from model.
+                        if (gltfMesh.extras.targetNames.contains(blendshapeName)) {
+                            blendshapeIndices.insert(blendshapeName, WeightedIndex(i, 1.0f));
+                        }
                     }
                 }
 
-                // glTF morph targets may or may not have names. if they are labeled, add them based on
-                // the corresponding names from the FST. otherwise, just add them in the order they are given
-                mesh.blendshapes.resize(blendshapeMappings.size());
-                auto values = blendshapeIndices.values();
+                // Create blendshapes.
+                if (!blendshapeIndices.isEmpty()) {
+                    mesh.blendshapes.resize((int)Blendshapes::BlendshapeCount);
+                }
+
                 auto keys = blendshapeIndices.keys();
+                auto values = blendshapeIndices.values();
                 auto names = gltfMesh.extras.targetNames;
                 QVector<double> weights = gltfMesh.weights;
 
-                for (int weightedIndex = 0; weightedIndex < values.size(); ++weightedIndex) {
-                    float weight = 0.1f;
+                for (int weightedIndex = 0; weightedIndex < keys.size(); ++weightedIndex) {
+                    float weight = 1.0f;
                     int indexFromMapping = weightedIndex;
                     int targetIndex = weightedIndex;
                     hfmModel.blendshapeChannelNames.push_back("target_" + QString::number(weightedIndex));
 
-                    if (!names.isEmpty()) {
+                    if (!names.isEmpty() && names.contains(keys[weightedIndex])) {
                         targetIndex = names.indexOf(keys[weightedIndex]);
                         indexFromMapping = values[weightedIndex].first;
-                        weight = weight * values[weightedIndex].second;
+                        weight = values[weightedIndex].second;
                         hfmModel.blendshapeChannelNames[weightedIndex] = keys[weightedIndex];
                     }
                     HFMBlendshape& blendshape = mesh.blendshapes[indexFromMapping];
-                    blendshape.indices = part.triangleIndices;
                     auto target = primitive.targets[targetIndex];
 
                     QVector<glm::vec3> normals;
                     QVector<glm::vec3> vertices;
-
-                    if (weights.size() == primitive.targets.size()) {
-                        int targetWeight = weights[targetIndex];
-                        if (targetWeight != 0) {
-                            weight = weight * targetWeight;
-                        }
-                    }
 
                     if (target.values.contains((QString) "NORMAL")) {
                         generateTargetData(target.values.value((QString) "NORMAL"), weight, normals);
@@ -1513,23 +1519,21 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     if (target.values.contains((QString) "POSITION")) {
                         generateTargetData(target.values.value((QString) "POSITION"), weight, vertices);
                     }
-                    bool isNewBlendshape = blendshape.vertices.size() < vertices.size();
-                    int count = 0;
-                    for (int i : blendshape.indices) {
-                        if (isNewBlendshape) {
-                            blendshape.vertices.push_back(vertices[i]);
-                            blendshape.normals.push_back(normals[i]);
-                        } else {
-                            blendshape.vertices[count] = blendshape.vertices[count] + vertices[i];
-                            blendshape.normals[count] = blendshape.normals[count] + normals[i];
-                            ++count;
-                        }
+                    if (blendshape.indices.size() < prevMeshVerticesCount + vertices.size()) {
+                        auto targetSize = prevMeshVerticesCount + vertices.size();
+                        blendshape.indices.resize(targetSize);
+                        blendshape.vertices.resize(targetSize);
+                        blendshape.normals.resize(targetSize);
+                    }
+                    for (int i = 0; i < vertices.size(); i++) {
+                        blendshape.indices[prevMeshVerticesCount + i] = prevMeshVerticesCount + i;
+                        blendshape.vertices[prevMeshVerticesCount + i] += vertices.value(i);
+                        blendshape.normals[prevMeshVerticesCount + i] += normals.value(i);
                     }
                 }
             }         
         }
     }
-
 
     // Create the instance shapes for each transform node
     for (int nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex) {
@@ -1607,7 +1611,9 @@ HFMModel::Pointer GLTFSerializer::read(const hifi::ByteArray& data, const hifi::
         HFMModel& hfmModel = *hfmModelPtr;
         buildGeometry(hfmModel, mapping, _url);
 
-        //hfmDebugDump(data);
+        //hfmModel.debugDump();
+        //glTFDebugDump();
+
         return hfmModelPtr;
     } else {
         qCDebug(modelformat) << "Error parsing GLTF file.";
@@ -2065,42 +2071,28 @@ void GLTFSerializer::retriangulate(const QVector<int>& inIndices,
 }
 
 void GLTFSerializer::glTFDebugDump() {
+    qCDebug(modelformat) << "\n";
+    qCDebug(modelformat) << "---------------- GLTF Model ----------------";
+
     qCDebug(modelformat) << "---------------- Nodes ----------------";
     for (GLTFNode node : _file.nodes) {
         if (node.defined["mesh"]) {
-            qCDebug(modelformat) << "\n";
             qCDebug(modelformat) << "    node_transform" << node.transform;
-            qCDebug(modelformat) << "\n";
         }
     }
 
     qCDebug(modelformat) << "---------------- Accessors ----------------";
     for (GLTFAccessor accessor : _file.accessors) {
-        qCDebug(modelformat) << "\n";
         qCDebug(modelformat) << "count: " << accessor.count;
         qCDebug(modelformat) << "byteOffset: " << accessor.byteOffset;
-        qCDebug(modelformat) << "\n";
     }
 
     qCDebug(modelformat) << "---------------- Textures ----------------";
     for (GLTFTexture texture : _file.textures) {
         if (texture.defined["source"]) {
-            qCDebug(modelformat) << "\n";
             QString url = _file.images[texture.source].uri;
             QString fname = hifi::URL(url).fileName();
             qCDebug(modelformat) << "fname: " << fname;
-            qCDebug(modelformat) << "\n";
         }
     }
-
-    qCDebug(modelformat) << "\n";
-}
-
-void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
-    hfmModel.debugDump();
-
-    qCDebug(modelformat) << "---------------- GLTF Model ----------------";
-    glTFDebugDump();
-
-    qCDebug(modelformat) << "\n";
 }

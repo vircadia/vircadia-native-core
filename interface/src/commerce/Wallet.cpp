@@ -288,8 +288,10 @@ Wallet::Wallet() {
     auto& packetReceiver = nodeList->getPacketReceiver();
     _passphrase = new QString("");
 
-    packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
-    packetReceiver.registerListener(PacketType::ChallengeOwnershipRequest, this, "handleChallengeOwnershipPacket");
+    packetReceiver.registerListener(PacketType::ChallengeOwnership,
+        PacketReceiver::makeSourcedListenerReference<Wallet>(this, &Wallet::handleChallengeOwnershipPacket));
+    packetReceiver.registerListener(PacketType::ChallengeOwnershipRequest,
+        PacketReceiver::makeSourcedListenerReference<Wallet>(this, &Wallet::handleChallengeOwnershipPacket));
 
     connect(ledger.data(), &Ledger::accountResult, this, [](QJsonObject result) {
         auto wallet = DependencyManager::get<Wallet>();

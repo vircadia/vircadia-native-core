@@ -12,7 +12,7 @@
 (function () {
  Script.include("../libraries/utils.js");
 
-    this.spraySound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/spray_paint/spray_paint.wav");
+    this.spraySound = SoundCache.getSound("https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/spray_paint/spray_paint.wav");
 
     var TIP_OFFSET_Z = 0.02;
     var TIP_OFFSET_Y = 0.08;
@@ -60,7 +60,7 @@
             name: "streamEffect",
             isEmitting: true,
             position: position,
-            textures: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/spray_paint/smokeparticle.png",
+            textures: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/spray_paint/smokeparticle.png",
             emitSpeed: 3,
             speedSpread: 0.02,
             emitAcceleration: ZERO_VEC,

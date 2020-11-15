@@ -29,8 +29,6 @@ var buttonOnColor = {
   blue: 100
 };
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-
 var userCanPoint = false;
 Script.include(["libraries/toolBars.js"]);
 var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.pointer.toolbar", function (screenSize) {
@@ -39,12 +37,10 @@ var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.pointer.toolba
 var pointerButton = toolBar.addOverlay("image", {
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
-  imageURL: HIFI_PUBLIC_BUCKET + "images/laser.png",
+  imageURL: Script.getExternalPath(Script.ExternalPaths.Assets, "images/laser.png"),
   color: buttonOffColor,
   alpha: 1
 });
-
-
 
 
 function nearLinePoint(targetPosition) {

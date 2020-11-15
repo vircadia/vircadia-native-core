@@ -13,6 +13,7 @@ include_hifi_library_headers(ktx)
 include_hifi_library_headers(render)
 include_hifi_library_headers(procedural)
 
+set(OpenGL_GL_PREFERENCE "LEGACY")
 target_opengl()
 
 GroupSources("src/display-plugins")

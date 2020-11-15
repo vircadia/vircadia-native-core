@@ -1,5 +1,7 @@
 # Creating an Installer
 
+*Last Updated on August 24, 2020*
+
 Follow the [build guide](BUILD.md) to figure out how to build Vircadia for your platform.
 
 During generation, CMake should produce an `install` target and a `package` target.
@@ -12,6 +14,8 @@ This variable is set by the `project(hifi)` command in `CMakeLists.txt` to `C:/P
 To produce an installer, run the `package` target. However you will want to follow the steps specific to your platform below.
 
 #### Windows
+
+##### Prerequisites
 
 To produce an executable installer on Windows, the following are required:
 
@@ -58,6 +62,12 @@ To produce an executable installer on Windows, the following are required:
 
 1. [Node.JS and NPM](<https://www.npmjs.com/get-npm>)
     1.  Install version 10.15.0 LTS
+    
+##### Code Signing (optional)
+
+For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PASSPHRASE` environment variables to be present during CMake runtime and globally as we proceed to package the installer.
+
+##### Creating the Installer
     
 1.  Perform a clean cmake from a new terminal.
 1.  Open the `vircadia.sln` solution with elevated (administrator) permissions on Visual Studio and select the **Release** configuration.

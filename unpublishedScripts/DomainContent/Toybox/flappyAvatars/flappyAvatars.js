@@ -37,7 +37,7 @@
         var yVelocity = 0.0;
         var yAcceleration = -G;
 
-        var airSwipeSound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/Air%20Swipe%2005.wav");
+        var airSwipeSound = SoundCache.getSound("https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flappyAvatars/Air%20Swipe%2005.wav");
         var injector = null;
 
         this.position = function() {
@@ -51,7 +51,7 @@
             type: "Model",
             modelURL: MyAvatar.skeletonModelURL,
             animation: {
-                url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/fly.fbx",
+                url: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flappyAvatars/fly.fbx",
                 running: true,
                 fps: 30,
                 firstFrame: 1.0,
@@ -76,7 +76,7 @@
                 animation: {running: false}
             });
 
-            airSwipeSound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/8bit%20Jump%2003.wav");
+            airSwipeSound = SoundCache.getSound("https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flappyAvatars/8bit%20Jump%2003.wav");
             injector = null;
         }
 
@@ -132,7 +132,7 @@
 
         var id = entityManager.add({
             type: "Model",
-            modelURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/coin.fbx",
+            modelURL: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flappyAvatars/coin.fbx",
             angularVelocity: { x: 0, y: 20, z: 0 },
             position: to3DPosition(this.position()),
             dimensions:dimensions
@@ -172,14 +172,14 @@
 
         var idUp = entityManager.add({
             type: "Model",
-            modelURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/greenPipe.fbx",
+            modelURL: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flappyAvatars/greenPipe.fbx",
             rotation: Quat.fromPitchYawRollDegrees(180, 0, 0),
             position: to3DPosition({ x: xPosition, y: upYPosition }),
             dimensions: { x: width, y: upHeight, z: width }
         });
         var idDown = entityManager.add({
             type: "Model",
-            modelURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/greenPipe.fbx",
+            modelURL: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flappyAvatars/greenPipe.fbx",
             position: to3DPosition({ x: xPosition, y: height / 2.0 }),
             dimensions: { x: width, y: height, z: width }
         });
@@ -217,7 +217,7 @@
         var pipes = new Array();
         var coins = new Array();
 
-        var coinsSound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/Coin.wav");
+        var coinsSound = SoundCache.getSound("https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flappyAvatars/Coin.wav");
         var injector = null;
 
         this.update = function(deltaTime, gameTime, startedPlaying) {
@@ -325,7 +325,7 @@
         var numberDimensions = { x: 0.0660, y: 0.1050, z: 0.0048 };
 
         function numberUrl(number) {
-            return "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/" + number + ".fbx"
+            return "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flappyAvatars/" + number + ".fbx"
         }
         function digitPosition(digit) {
             return Vec3.multiplyQbyV(space.orientation, { x: 0.3778 + digit * (numberDimensions.x + 0.01), y: 0.0, z: 0.0 });
@@ -341,7 +341,7 @@
 
         var bestId = entityManager.add({
             type: "Model",
-            modelURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/best.fbx",
+            modelURL: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flappyAvatars/best.fbx",
             position: topLeft,
             rotation: Quat.multiply(space.orientation, Quat.fromPitchYawRollDegrees(90, 0, 0)),
             dimensions: { x: 0.2781, y: 0.0063, z: 0.1037 }
@@ -359,7 +359,7 @@
 
         var scoreId =  entityManager.add({
             type: "Model",
-            modelURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/score.fbx",
+            modelURL: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flappyAvatars/score.fbx",
             position: bottomLeft,
             rotation: Quat.multiply(space.orientation, Quat.fromPitchYawRollDegrees(90, 0, 0)),
             dimensions: { x: 0.3678, y: 0.0063, z: 0.1037 }
@@ -453,7 +453,7 @@
         var pipes = null;
         var score = null;
 
-        var gameOverSound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/Game%20Over.wav");
+        var gameOverSound = SoundCache.getSound("https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flappyAvatars/Game%20Over.wav");
         var injector = null;
 
         var directions = ["UP", "DOWN", "LEFT", "RIGHT"];
@@ -466,7 +466,7 @@
                 current = 0;
             }
             if (current === sequence.length) {
-                avatar.changeModel("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/mario.fbx");
+                avatar.changeModel("https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flappyAvatars/mario.fbx");
                 current = 0;
             }
         }

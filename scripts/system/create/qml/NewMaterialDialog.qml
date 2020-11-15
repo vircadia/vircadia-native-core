@@ -4,6 +4,7 @@
 //
 //  Created by Sam Gondelman on 1/17/18
 //  Copyright 2018 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -54,7 +55,7 @@ Rectangle {
 
         Text {
             id: text1
-            text: qsTr("Material URL")
+            text: qsTr("Material URL <i>(Optional)</i>")
             color: "#ffffff"
             font.pixelSize: 12
         }
@@ -139,7 +140,7 @@ Rectangle {
 
                     Button {
                         id: button1
-                        text: qsTr("Add")
+                        text: qsTr("Create")
                         z: -1
                         onClicked: {
                             newMaterialDialog.sendToScript({

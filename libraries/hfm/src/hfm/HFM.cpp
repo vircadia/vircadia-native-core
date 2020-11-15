@@ -209,8 +209,10 @@ void HFMModel::computeKdops() {
     }
 }
 
-void hfm::Model::debugDump() const {
+void HFMModel::debugDump() const {
     qCDebug(modelformat) << "---------------- hfmModel ----------------";
+    qCDebug(modelformat) << "  originalURL =" << originalURL;
+
     qCDebug(modelformat) << "  hasSkeletonJoints =" << hasSkeletonJoints;
     qCDebug(modelformat) << "  offset =" << offset;
 
@@ -236,6 +238,7 @@ void hfm::Model::debugDump() const {
     qCDebug(modelformat) << "---------------- Meshes ----------------";
     qCDebug(modelformat) << "  meshes.size() =" << meshes.size();
     qCDebug(modelformat) << "  blendshapeChannelNames = " << blendshapeChannelNames;
+
     for (const HFMMesh& mesh : meshes) {
         qCDebug(modelformat) << "\n";
         qCDebug(modelformat) << "    meshpointer =" << mesh._mesh.get();
@@ -267,22 +270,22 @@ void hfm::Model::debugDump() const {
             qCDebug(modelformat) << "\n";
         }
     }
+
     qCDebug(modelformat) << "---------------- AnimationFrames ----------------";
-    for (HFMAnimationFrame anim : animationFrames) {
+    foreach(HFMAnimationFrame anim, animationFrames) {
         qCDebug(modelformat) << "  anim.translations = " << anim.translations;
         qCDebug(modelformat) << "  anim.rotations = " << anim.rotations;
     }
+
+    qCDebug(modelformat) << "---------------- Mesh model names ----------------";
     QList<int> mitomona_keys = meshIndicesToModelNames.keys();
-    for (int key : mitomona_keys) {
-        qCDebug(modelformat) << "    meshIndicesToModelNames key =" << key
-            << "  val =" << meshIndicesToModelNames[key];
+    foreach(int key, mitomona_keys) {
+        qCDebug(modelformat) << "    meshIndicesToModelNames key =" << key << "  val =" << meshIndicesToModelNames[key];
     }
 
     qCDebug(modelformat) << "---------------- Materials ----------------";
-
-    for (HFMMaterial mat : materials) {
-        qCDebug(modelformat) << "\n";
-        qCDebug(modelformat) << "  mat.materialID =" << mat.materialID;
+    foreach(HFMMaterial mat, materials) {
+        qCDebug(modelformat) << "  materialID =" << mat.materialID;
         qCDebug(modelformat) << "  diffuseColor =" << mat.diffuseColor;
         qCDebug(modelformat) << "  diffuseFactor =" << mat.diffuseFactor;
         qCDebug(modelformat) << "  specularColor =" << mat.specularColor;
@@ -296,7 +299,6 @@ void hfm::Model::debugDump() const {
         qCDebug(modelformat) << "  emissiveIntensity =" << mat.emissiveIntensity;
         qCDebug(modelformat) << "  ambientFactor =" << mat.ambientFactor;
 
-        qCDebug(modelformat) << "  materialID =" << mat.materialID;
         qCDebug(modelformat) << "  name =" << mat.name;
         qCDebug(modelformat) << "  shadingModel =" << mat.shadingModel;
         qCDebug(modelformat) << "  _material =" << mat._material.get();
@@ -320,9 +322,7 @@ void hfm::Model::debugDump() const {
     }
 
     qCDebug(modelformat) << "---------------- Joints ----------------";
-
-    for (const HFMJoint& joint : joints) {
-        qCDebug(modelformat) << "\n";
+    foreach(HFMJoint joint, joints) {
         qCDebug(modelformat) << "    shapeInfo.avgPoint =" << joint.shapeInfo.avgPoint;
         qCDebug(modelformat) << "    shapeInfo.debugLines =" << joint.shapeInfo.debugLines;
         qCDebug(modelformat) << "    shapeInfo.dots =" << joint.shapeInfo.dots;
@@ -334,6 +334,7 @@ void hfm::Model::debugDump() const {
         qCDebug(modelformat) << "    distanceToParent" << joint.distanceToParent;
         qCDebug(modelformat) << "    transform" << joint.transform;
         qCDebug(modelformat) << "    globalTransform" << joint.globalTransform;
+        qCDebug(modelformat) << "    globalTransformForChildren" << joint.globalTransformForChildren;
 
         qCDebug(modelformat) << "    ---";
 
@@ -343,6 +344,7 @@ void hfm::Model::debugDump() const {
         qCDebug(modelformat) << "    rotation" << joint.rotation;
         qCDebug(modelformat) << "    postRotation" << joint.postRotation;
         qCDebug(modelformat) << "    postTransform" << joint.postTransform;
+
         qCDebug(modelformat) << "    rotationMin" << joint.rotationMin;
         qCDebug(modelformat) << "    rotationMax" << joint.rotationMax;
         qCDebug(modelformat) << "    inverseDefaultRotation" << joint.inverseDefaultRotation;
@@ -366,5 +368,4 @@ void hfm::Model::debugDump() const {
             qCDebug(modelformat) << "\n";
         }
     }
-    qCDebug(modelformat) << "\n";
 }

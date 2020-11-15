@@ -17,6 +17,10 @@
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
+#ifdef Q_OS_UNIX
+#include <stdio.h>
+#include <unistd.h>
+#endif
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
@@ -30,6 +34,40 @@ QMutex LogHandler::_mutex(QMutex::Recursive);
 LogHandler& LogHandler::getInstance() {
     static LogHandler staticInstance;
     return staticInstance;
+}
+
+LogHandler::LogHandler() {
+    QString logOptions = qgetenv("VIRCADIA_LOG_OPTIONS").toLower();
+
+#ifdef Q_OS_UNIX
+    // Enable color by default if we're on Unix, and output is a tty (so we're not being piped into something)
+    //
+    // On Windows the situation is more complex, and color is supported or not depending on version and
+    // registry settings, so for now it's off by default and it's up to the user to do what's required.
+    if (isatty(fileno(stdout))) {
+        _useColor = true;
+    }
+#endif
+
+    auto optionList = logOptions.split(",");
+
+    for (auto option : optionList) {
+        option = option.trimmed();
+
+        if (option == "color") {
+            _useColor = true;
+        } else if (option == "nocolor") {
+            _useColor = false;
+        } else if (option == "process_id") {
+            _shouldOutputProcessID = true;
+        } else if (option == "thread_id") {
+            _shouldOutputThreadID = true;
+        } else if (option == "milliseconds") {
+            _shouldDisplayMilliseconds = true;
+        } else if (option != "") {
+            fprintf(stdout, "Unrecognized option in VIRCADIA_LOG_OPTIONS: '%s'\n", option.toUtf8().constData());
+        }
+    }
 }
 
 const char* stringForLogType(LogMsgType msgType) {
@@ -49,6 +87,29 @@ const char* stringForLogType(LogMsgType msgType) {
         default:
             return "UNKNOWN";
     }
+}
+
+const char* colorForLogType(LogMsgType msgType) {
+    switch (msgType) {
+        case LogInfo:
+            return "\u001b[37;1m";  // Bold white
+        case LogDebug:
+            return "";
+        case LogWarning:
+            return "\u001b[35;1m";  // Bright magenta
+        case LogCritical:
+            return "\u001b[31;1m";  // Bright red
+        case LogFatal:
+            return "\u001b[31;1m";  // Bright red
+        case LogSuppressed:
+            return "";
+        default:
+            return "";
+    }
+}
+
+const char* colorReset() {
+    return "\u001b[0m";
 }
 
 // the following will produce 11/18 13:55:36
@@ -133,7 +194,15 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
 
     QString logMessage = QString("%1 %2\n").arg(prefixString, message.split('\n').join('\n' + prefixString + " "));
 
-    fprintf(stdout, "%s", qPrintable(logMessage));
+    const char* color = "";
+    const char* resetColor = "";
+
+    if (_useColor) {
+        color = colorForLogType(type);
+        resetColor = colorReset();
+    }
+
+    fprintf(stdout, "%s%s%s", color, qPrintable(logMessage), resetColor);
 #ifdef Q_OS_WIN
     // On windows, this will output log lines into the Visual Studio "output" tab
     OutputDebugStringA(qPrintable(logMessage));

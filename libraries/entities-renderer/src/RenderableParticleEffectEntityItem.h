@@ -25,6 +25,7 @@ public:
     ParticleEffectEntityRenderer(const EntityItemPointer& entity);
 
 protected:
+    virtual bool needsRenderUpdate() const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
@@ -111,6 +112,7 @@ private:
     ModelResource::Pointer _geometryResource;
 
     NetworkTexturePointer _networkTexture;
+    bool _textureLoaded { false };
     ScenePointer _scene;
 };
 

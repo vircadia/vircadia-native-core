@@ -183,7 +183,7 @@ Controller.mousePressEvent.connect(function (event) {
         for (var i = 0; i < notificationList.length; i++) {
             if (overlay === notificationList[i].id) {
                 Overlays.deleteOverlay(notificationList[i].id)
-                Messages.sendMessage(MAIN_CHAT_APP_CHANNEL, JSON.stringify({
+                Messages.sendLocalMessage(MAIN_CHAT_APP_CHANNEL, JSON.stringify({
                     type: "ShowChatWindow",
                 }));
             }

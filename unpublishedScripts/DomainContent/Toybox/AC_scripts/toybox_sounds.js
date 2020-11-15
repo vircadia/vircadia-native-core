@@ -10,7 +10,7 @@
 
 var soundMap = [{
     name: 'river water',
-    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/Water_Lap_River_Edge_Gentle.L.wav",
+    url: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/sounds/Water_Lap_River_Edge_Gentle.L.wav",
     audioOptions: {
         position: {
             x: 580,
@@ -22,7 +22,7 @@ var soundMap = [{
     }
 }, {
     name: 'windmill',
-    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/WINDMILL_Mono.wav",
+    url: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/sounds/WINDMILL_Mono.wav",
     audioOptions: {
         position: {
             x: 530,
@@ -34,7 +34,7 @@ var soundMap = [{
     }
 }, {
     name: 'insects',
-    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/insects3.wav",
+    url: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/sounds/insects3.wav",
     audioOptions: {
         position: {
             x: 560,
@@ -46,7 +46,7 @@ var soundMap = [{
     }
 }, {
     name: 'fireplace',
-    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/0619_Fireplace__Tree_B.L.wav",
+    url: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/sounds/0619_Fireplace__Tree_B.L.wav",
     audioOptions: {
         position: {
             x: 551.61,
@@ -58,7 +58,7 @@ var soundMap = [{
     }
 }, {
     name: 'cat purring',
-    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/Cat_Purring_Deep_Low_Snor.wav",
+    url: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/sounds/Cat_Purring_Deep_Low_Snor.wav",
     audioOptions: {
         position: {
             x: 551.48,
@@ -70,7 +70,7 @@ var soundMap = [{
     }
 }, {
     name: 'dogs barking',
-    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/dogs_barking_1.L.wav",
+    url: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/sounds/dogs_barking_1.L.wav",
     audioOptions: {
         position: {
             x: 523,
@@ -83,7 +83,7 @@ var soundMap = [{
     playAtInterval: 60 * 1000
 }, {
     name: 'arcade game',
-    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/ARCADE_GAMES_VID.L.L.wav",
+    url: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/sounds/ARCADE_GAMES_VID.L.L.wav",
     audioOptions: {
         position: {
             x: 543.77,

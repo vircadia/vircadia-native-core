@@ -12,7 +12,10 @@
 #ifndef hifi_AudioMixerSlave_h
 #define hifi_AudioMixerSlave_h
 
+#if !defined(Q_MOC_RUN)
+// Work around https://bugreports.qt.io/browse/QTBUG-80990
 #include <tbb/concurrent_vector.h>
+#endif
 
 #include <AABox.h>
 #include <AudioHRTF.h>
