@@ -211,7 +211,7 @@ TabBar {
                         color: hifi.buttons.black
                         colorScheme: hifi.colorSchemes.dark
                         anchors.right: parent.horizontalCenter
-                        anchors.rightMargin: 10                        
+                        anchors.rightMargin: 10
                         anchors.left: parent.left
                         anchors.leftMargin: 55
                         anchors.top: assetServerButton.bottom
@@ -241,7 +241,7 @@ TabBar {
                                 params: { buttonName: "importEntitiesFromUrlButton" }
                             });
                         }
-                    }                   
+                    }
                 }
             } // Flickable
         }
