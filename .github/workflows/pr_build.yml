@@ -49,32 +49,32 @@ jobs:
       shell: bash
       id: buildenv1
       run: |
-        echo "GIT_COMMIT_SHORT=`echo $GIT_COMMIT | cut -c1-7`" >> $GITHUB_ENV
-        echo "JOB_NAME=`build (${{matrix.os}}, ${{matrix.build_type}})`" >> $GITHUB_ENV
+        echo "GIT_COMMIT_SHORT=echo $GIT_COMMIT | cut -c1-7" >> $GITHUB_ENV
+        echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
 
         # Linux build variables
         if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
           echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
           echo "INSTALLER_EXT=*" >> $GITHUB_ENV
-          echo "CMAKE_BUILD_EXTRA=`-- -j3`" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=`-DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)`" >> $GITHUB_ENV
+          echo "CMAKE_BUILD_EXTRA=-- -j3" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
         fi
         # Mac build variables
         if [ "${{ matrix.os }}" = "macOS-latest" ]; then
           echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
           echo "INSTALLER_EXT=dmg" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=`-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode`" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
         fi
         # Windows build variables
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
           echo "PYTHON_EXEC=python" >> $GITHUB_ENV
           echo "INSTALLER_EXT=exe" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=`-A x64`" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-A x64" >> $GITHUB_ENV
         fi
         # Android + Quest build variables
         if [[ "${{ matrix.build_type }}" == "android" ]]; then
           HIFI_ANDROID_PRECOMPILED="${{runner.workspace}}/dependencies"
-          echo "HIFI_ANDROID_PRECOMPILED=`$HIFI_ANDROID_PRECOMPILED`" >> $GITHUB_ENV
+          echo "HIFI_ANDROID_PRECOMPILED=$HIFI_ANDROID_PRECOMPILED" >> $GITHUB_ENV
           mkdir $HIFI_ANDROID_PRECOMPILED
           echo "INSTALLER_EXT=apk" >> $GITHUB_ENV
         fi

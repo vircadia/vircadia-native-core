@@ -49,14 +49,14 @@ jobs:
       id: buildenv1
       run: |
         echo "UPLOAD_PREFIX=master" >> $GITHUB_ENV
-        echo "GIT_COMMIT_SHORT=`echo $GIT_COMMIT | cut -c1-7`" >> $GITHUB_ENV
-        echo "JOB_NAME=`build (${{matrix.os}}, ${{matrix.build_type}})`" >> $GITHUB_ENV
+        echo "GIT_COMMIT_SHORT=echo $GIT_COMMIT | cut -c1-7" >> $GITHUB_ENV
+        echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
         # Linux build variables
         if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
           echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
           echo "INSTALLER_EXT=tgz" >> $GITHUB_ENV
-          echo "CMAKE_BUILD_EXTRA=`-- -j3`" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=`-DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)`" >> $GITHUB_ENV
+          echo "CMAKE_BUILD_EXTRA=-- -j3" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
         fi
         # Mac build variables
         if [ "${{ matrix.os }}" = "macOS-latest" ]; then
@@ -64,7 +64,7 @@ jobs:
           echo "ZIP_COMMAND=zip" >> $GITHUB_ENV
           echo "ZIP_ARGS=-r" >> $GITHUB_ENV
           echo "INSTALLER_EXT=dmg" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=`-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode`" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
           echo "::set-output name=symbols_archive::${BUILD_NUMBER}-${{ matrix.build_type }}-mac-symbols.zip"
         fi
         # Windows build variables
@@ -73,7 +73,7 @@ jobs:
           echo "ZIP_COMMAND=7z" >> $GITHUB_ENV
           echo "ZIP_ARGS=a" >> $GITHUB_ENV
           echo "INSTALLER_EXT=exe" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=`-A x64`" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-A x64" >> $GITHUB_ENV
           echo "SYMBOL_REGEX=\(exe\|dll\|pdb\)" >> $GITHUB_ENV
           echo "symbols_archive=${BUILD_NUMBER}-${{ matrix.build_type }}-win-symbols.zip" >> $GITHUB_ENV
           # echo "HF_PFX_PASSPHRASE=${{secrets.pfx_key}}" >> $GITHUB_ENV
