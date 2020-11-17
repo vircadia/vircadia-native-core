@@ -167,6 +167,13 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->setEntitiesScriptEngine(entitiesScriptEngineProvider);
 
+    connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptPreloadFinished, [&](const EntityItemID& entityID) {
+        EntityItemPointer entity = getTree()->findEntityByID(entityID);
+        if (entity) {
+            entity->setScriptHasFinishedPreload(true);
+        }
+    });
+
     // Connect mouse events to entity script callbacks
     if (!_mouseAndPreloadSignalHandlersConnected) {
     
@@ -203,13 +210,6 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
         });
         connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
             _entitiesScriptEngine->callEntityScriptMethod(entityID, "hoverLeaveEntity", event);
-        });
-
-        connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptPreloadFinished, [&](const EntityItemID& entityID) {
-            EntityItemPointer entity = getTree()->findEntityByID(entityID);
-            if (entity) {
-                entity->setScriptHasFinishedPreload(true);
-            }
         });
 
         _mouseAndPreloadSignalHandlersConnected = true;

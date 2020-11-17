@@ -1941,9 +1941,12 @@ QScriptValue ScriptEngine::require(const QString& moduleId) {
     // modules get cached in `Script.require.cache` and (similar to Node.js) users can access it
     // to inspect particular entries and invalidate them by deleting the key:
     //   `delete Script.require.cache[Script.require.resolve(moduleId)];`
+    
+    // Check to see if we should invalidate the cache based on a user setting.
+    Setting::Handle<bool> getCachebustSetting {"cachebustScriptRequire", false };
 
     // cacheMeta is just used right now to tell deleted keys apart from undefined ones
-    bool invalidateCache = module.isUndefined() && cacheMeta.property(moduleId).isValid();
+    bool invalidateCache = getCachebustSetting.get() || (module.isUndefined() && cacheMeta.property(moduleId).isValid());
 
     // reset the cacheMeta record so invalidation won't apply next time, even if the module fails to load
     cacheMeta.setProperty(modulePath, QScriptValue());

@@ -109,7 +109,6 @@ table {
 thead {
     font-family: Raleway-Regular;
     font-size: 12px;
-    text-transform: uppercase;
     background-color: #1c1c1c;
     padding: 1px 0;
     border-bottom: 1px solid #575757;
@@ -181,6 +180,15 @@ tr.selected {
 }
 
 tr.selected + tr.selected {
+    border-top: 1px solid #2e2e2e;
+}
+
+tr.last-selected {
+    color: #000000;
+    background-color: #0064ef;
+}
+
+tr.last-selected + tr.last-selected {
     border-top: 1px solid #2e2e2e;
 }
 
