@@ -470,9 +470,7 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
     scriptEngines->runScriptInitializers(newEngine);
     newEngine->runInThread();
     auto newEngineSP = qSharedPointerCast<EntitiesScriptEngineProvider>(newEngine);
-    // On the entity script server, these are the same
-    DependencyManager::get<EntityScriptingInterface>()->setPersistentEntitiesScriptEngine(newEngineSP);
-    DependencyManager::get<EntityScriptingInterface>()->setNonPersistentEntitiesScriptEngine(newEngineSP);
+    DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(newEngineSP);
 
     if (_entitiesScriptEngine) {
         disconnect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated,

@@ -1046,26 +1046,18 @@ QSizeF EntityScriptingInterface::textSize(const QUuid& id, const QString& text) 
     return EntityTree::textSize(id, text);
 }
 
-void EntityScriptingInterface::setPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine) {
+void EntityScriptingInterface::setEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine) {
     std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
-    _persistentEntitiesScriptEngine = engine;
-}
-
-void EntityScriptingInterface::setNonPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine) {
-    std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
-    _nonPersistentEntitiesScriptEngine = engine;
+    _entitiesScriptEngine = engine;
 }
 
 void EntityScriptingInterface::callEntityMethod(const QUuid& id, const QString& method, const QStringList& params) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
-    
-    auto entity = getEntityTree()->findEntityByEntityItemID(id);
-    if (entity) {
-        std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
-        auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
-        if (scriptEngine) {
-            scriptEngine->callEntityScriptMethod(id, method, params);
-        }
+
+    std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+    if (_entitiesScriptEngine) {
+        EntityItemID entityID{ id };
+        _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params);
     }
 }
 
@@ -1107,13 +1099,9 @@ void EntityScriptingInterface::handleEntityScriptCallMethodPacket(QSharedPointer
             params << paramString;
         }
 
-        auto entity = getEntityTree()->findEntityByEntityItemID(entityID);
-        if (entity) {
-            std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
-            auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
-            if (scriptEngine) {
-                scriptEngine->callEntityScriptMethod(entityID, method, params, senderNode->getUUID());
-            }
+        std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params, senderNode->getUUID());
         }
     }
 }
@@ -1344,7 +1332,7 @@ bool EntityPropertyMetadataRequest::script(EntityItemID entityID, QScriptValue h
         if (entitiesScriptEngine) {
             request->setFuture(entitiesScriptEngine->getLocalEntityScriptDetails(entityID));
         }
-    }, entityID);
+    });
     if (!request->isStarted()) {
         request->deleteLater();
         callScopedHandlerObject(handler, _engine->makeError("Entities Scripting Provider unavailable", "InternalError"), QScriptValue());
