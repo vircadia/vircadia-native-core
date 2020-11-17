@@ -98,6 +98,14 @@ function toggleEntityMenu(pressedEntityID) {
     }
 }
 
+function toggleParent() {
+    if (MyAvatar.getParentID() === null || MyAvatar.getParentID() === Uuid.NULL) {
+        MyAvatar.setParentID(lastTriggeredEntityInfo.id);
+    } else {
+        MyAvatar.setParentID(Uuid.NULL);
+    }
+}
+
 ///////////////// ENTITY MENU OVERLAY ---> IN-WORLD ENTITY MENU
 
 function bootstrapEntityMenu() {
@@ -174,6 +182,10 @@ function onOverlayWebEventReceived(event) {
     
     if (eventJSON.command === 'sit-on-entity-triggered') {
         NyxSit.toggleSit();
+    }
+    
+    if (eventJSON.command === 'parent-to-entity-triggered') {
+        toggleParent();
     }
     
     if (eventJSON.command === 'close-entity-menu') {

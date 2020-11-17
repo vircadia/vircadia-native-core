@@ -43,6 +43,15 @@
                             small
                             fab
                             color="primary"
+                            @click="triggerParentToEntity();"
+                            class="mr-3"
+                        >
+                            <v-icon>mdi-account-child</v-icon>
+                        </v-btn>
+                        <v-btn
+                            small
+                            fab
+                            color="primary"
                             @click="triggerSitOnEntity();"
                             class="mr-3"
                         >
@@ -434,12 +443,10 @@ export default {
             this.sendFrameworkMessage('menu-item-triggered', dataToSend);
         },
         triggerSitOnEntity: function () {
-            var dataToSend = {
-                'triggeredEntityID': this.triggeredEntity.id,
-                'sit': true
-            }
-
-            this.sendFrameworkMessage('sit-on-entity-triggered', dataToSend);
+            this.sendFrameworkMessage('sit-on-entity-triggered', {});
+        },
+        triggerParentToEntity: function () {
+            this.sendFrameworkMessage('parent-to-entity-triggered', {});
         },
         colorPickerUpdated: function (colorPicker, colorEvent) {
             var dataToSend = {
