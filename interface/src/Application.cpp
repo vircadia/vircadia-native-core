@@ -30,6 +30,7 @@
 #include <QtCore/QMimeData>
 #include <QtCore/QThreadPool>
 #include <QtCore/QFileSelector>
+#include <QtCore/QSaveFile>
 #include <QtConcurrent/QtConcurrentRun>
 
 #include <QtGui/QClipboard>
