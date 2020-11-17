@@ -1238,7 +1238,7 @@ void DomainGatekeeper::requestDomainUser(const QString& username, const QString&
 
     // Get data pertaining to "me", the user who generated the access token.
     const QString WORDPRESS_USER_ROUTE = "wp/v2/users/me";
-    const QString WORDPRESS_USER_QUERY = "_fields=username,roles";
+    const QString WORDPRESS_USER_QUERY = "_fields=username,email,roles";
     QUrl domainUserURL = apiBase + WORDPRESS_USER_ROUTE + (apiBase.contains("?") ? "&" : "?") + WORDPRESS_USER_QUERY;
 
     QNetworkRequest request;
@@ -1270,8 +1270,13 @@ void DomainGatekeeper::requestDomainUserFinished() {
     if (200 <= httpStatus && httpStatus < 300) {
 
         QString username = rootObject.value("username").toString().toLower();
-        if (_inFlightDomainUserIdentityRequests.contains(username)) {
+        QString email = rootObject.value("email").toString().toLower();
+
+        if (_inFlightDomainUserIdentityRequests.contains(username) || _inFlightDomainUserIdentityRequests.contains(email)) {
             // Success! Verified user.
+            if (!_inFlightDomainUserIdentityRequests.contains(username)) {
+                username = email;
+            }
             _verifiedDomainUserIdentities.insert(username, _inFlightDomainUserIdentityRequests.value(username));
             _inFlightDomainUserIdentityRequests.remove(username);
 
