@@ -44,7 +44,6 @@ jobs:
       id: buildenv1
       run: |
         echo ::set-output name=github_sha_short::`echo $GIT_COMMIT | cut -c1-7`
-        echo "GIT_COMMIT_SHORT=${{github_sha_short}}" >> $GITHUB_ENV
         echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
 
         # Linux build variables
@@ -73,7 +72,8 @@ jobs:
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
         echo "ARTIFACT_PATTERN=Vircadia-Alpha-PR${{ github.event.number }}-*.$INSTALLER_EXT" >> $GITHUB_ENV
         # Build type variables
-        echo "INSTALLER=Vircadia-Alpha-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
+        echo "GIT_COMMIT_SHORT=${{github_sha_short}}" >> $GITHUB_ENV
+        echo "INSTALLER=Vircadia-Alpha-$RELEASE_NUMBER-${{ github_sha_short }}.$INSTALLER_EXT" >> $GITHUB_ENV
     - name: Clear Working Directory
       if: startsWith(matrix.os, 'windows')
       shell: bash
