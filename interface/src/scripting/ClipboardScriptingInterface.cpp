@@ -30,7 +30,7 @@ bool ClipboardScriptingInterface::exportData(const QString& filename, const QStr
     bool retVal;
     BLOCKING_INVOKE_METHOD(qApp, "exportData",
                               Q_RETURN_ARG(bool, retVal),
-                              Q_ARG(const QString&, filename),
+                              Q_ARG(const char*, filename.toLocal8Bit().constData()),
                               Q_ARG(const QString&, dataString));
     return retVal;
 }

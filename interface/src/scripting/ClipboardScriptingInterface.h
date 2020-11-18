@@ -116,7 +116,7 @@ public:
     
     /**jsdoc
     * Export a string of data to a text file.
-    * @function Clipboard.exportString
+    * @function Clipboard.exportData
     * @variation 0
     * @param {string} filename - Path and name of the file to export the data to. Should have the extension ".txt".
     * @param {string} data - The string of data to export. (If exporting JSON, use JSON.stringify() first.)

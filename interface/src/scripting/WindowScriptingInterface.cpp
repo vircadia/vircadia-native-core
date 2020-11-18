@@ -174,6 +174,10 @@ QString fixupPathForMac(const QString& directory) {
     return path;
 }
 
+QString WindowScriptingInterface::getDataPath() const {
+    return dataPath;
+}
+
 QString WindowScriptingInterface::getPreviousBrowseLocation() const {
     return Setting::Handle<QString>(LAST_BROWSE_LOCATION_SETTING, DESKTOP_LOCATION).get();
 }
@@ -323,6 +327,19 @@ QScriptValue WindowScriptingInterface::save(const QString& title, const QString&
         setPreviousBrowseLocation(QFileInfo(result).absolutePath());
     }
     return result.isEmpty() ? QScriptValue::NullValue : QScriptValue(result);
+}
+
+/// Display a save file dialog.  If `directory` is an invalid file or directory the browser will start at the current
+/// working directory.
+/// \param const QString& title title of the window
+/// \param const QString& directory directory to start the file browser at
+/// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
+/// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
+QScriptValue WindowScriptingInterface::setDataPath(const QString& title, const QString& directory, const QString& nameFilter) {
+    QScriptValue result = WindowScriptingInterface::save(title, directory, nameFilter);
+    QString resultString = result.toString();
+    dataPath = resultString;
+    return resultString.isEmpty() ? QScriptValue::NullValue : QScriptValue(resultString);
 }
 
 /// Display a save file dialog.  If `directory` is an invalid file or directory the browser will start at the current

@@ -52,7 +52,7 @@
 #include <QFontDatabase>
 #include <QProcessEnvironment>
 #include <QTemporaryDir>
-
+#include <QTextStream>
 
 #include <gl/QOpenGLContextWrapper.h>
 #include <gl/GLWindow.h>
@@ -5389,32 +5389,34 @@ ivec2 Application::getMouse() const {
     return getApplicationCompositor().getReticlePosition();
 }
 
-bool Application::exportData(const QString& filename,
+bool Application::exportData(const char* filename,
                              const QString& dataString) {
     
-     qCDebug(interfaceapp, "Saving data to file %s...", filename);
- 
-     QSaveFile persistFile(filename);
-     bool success = false;
-     if (persistFile.open(QIODevice::WriteOnly)) {
-         if (persistFile.write(dataString.toUtf8()) != -1) {
-             success = persistFile.commit();
-             if (!success) {
-                 qCritical() << "Failed to commit to text save file:" << persistFile.errorString();
-             }
-         } else {
-             qCritical("Failed to write to text file.");
-         }
-     } else {
-         qCritical("Failed to open text file for writing.");
-     }
+    qCDebug(interfaceapp, "Saving data to file %s...", filename);
+    QString test = DependencyManager::get<WindowScriptingInterface>()->getDataPath();
+    qCDebug(interfaceapp, test);
+
+    QSaveFile persistFile(filename);
+    bool success = false;
+    if (persistFile.open(QIODevice::WriteOnly)) {
+        if (persistFile.write(dataString.toUtf8()) != -1) {
+            success = persistFile.commit();
+            if (!success) {
+                qCritical() << "Failed to commit to text save file:" << persistFile.errorString();
+            }
+        } else {
+            qCritical("Failed to write to text file.");
+        }
+    } else {
+        qCritical("Failed to open text file for writing.");
+    }
      
-     if (success) {
-         // restore the main window's active state
-         _window->activateWindow();
-     }
+    if (success) {
+        // restore the main window's active state
+        _window->activateWindow();
+    }
                                  
-     return success;
+    return success;
 }
 
 bool Application::exportEntities(const QString& filename,
