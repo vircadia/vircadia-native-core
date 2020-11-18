@@ -43,7 +43,8 @@ jobs:
       shell: bash
       id: buildenv1
       run: |
-        echo "GIT_COMMIT_SHORT=echo $GIT_COMMIT | cut -c1-7" >> $GITHUB_ENV
+        echo ::set-output name=github_sha_short::`echo $GIT_COMMIT | cut -c1-7`
+        echo "GIT_COMMIT_SHORT={{github_sha_sort}}" >> $GITHUB_ENV
         echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
 
         # Linux build variables
