@@ -49,8 +49,7 @@ jobs:
       id: buildenv1
       run: |
         echo "UPLOAD_PREFIX=master" >> $GITHUB_ENV
-        GIT_COMMIT_SHORT=echo $GIT_COMMIT | cut -c1-7
-        echo "GIT_COMMIT_SHORT=$GIT_COMMIT_SHORT" >> $GITHUB_ENV
+        echo ::set-output name=github_sha_short::`echo $GIT_COMMIT | cut -c1-7`
         echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
         # Linux build variables
         if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
@@ -87,6 +86,7 @@ jobs:
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
         echo "ARTIFACT_PATTERN=Vircadia-Alpha-*.$INSTALLER_EXT" >> $GITHUB_ENV
         # Build type variables
+        echo "GIT_COMMIT_SHORT=${{ steps.buildenv1.outputs.github_sha_short }}" >> $GITHUB_ENV
         if [ "${{ matrix.build_type }}" = "full" ]; then
           echo "CLIENT_ONLY=FALSE" >> $GITHUB_ENV
           echo "INSTALLER=Vircadia-Alpha-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
