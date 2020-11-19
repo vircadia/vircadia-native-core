@@ -2908,7 +2908,7 @@ function zoneSortOrder(a, b) {
 function getParentState(id) {
     var state = "NONE";
     var properties = Entities.getEntityProperties(id, ["parentID"]);
-    var children = Entities.getChildrenIDs(id);
+    var children = getDomainOnlyChildrenIDs(id);
     if (properties.parentID !== Uuid.NULL) {
         if (children.length > 0) {
             state = "PARENT_CHILDREN";
@@ -2921,6 +2921,19 @@ function getParentState(id) {
         }
     }
     return state;
+}
+
+function getDomainOnlyChildrenIDs(id) {
+    var allChildren = Entities.getChildrenIDs(id);
+    var domainOnlyChildren = [];
+    var properties;
+    for (var i = 0; i < allChildren.length; i++) {
+        properties = Entities.getEntityProperties(allChildren[i], ["entityHostType"]);
+        if (properties.entityHostType == "domain") {
+            domainOnlyChildren.push(allChildren[i]);
+        }
+    }
+    return domainOnlyChildren;
 }
 
 }()); // END LOCAL_SCOPE
