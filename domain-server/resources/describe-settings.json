@@ -2014,6 +2014,23 @@
       ]
     },
     {
+      "name": "domain_server",
+      "label": "Setup Domain Server",
+      "restart": false,
+      "hidden": true,
+      "settings": [
+        {
+          "name": "network_address",
+          "default": ""
+        },
+        {
+          "name": "port",
+          "type": "int",
+          "default": 0
+        }
+      ]
+    },
+    {
       "name": "installed_content",
       "label": "Installed Content",
       "hidden": true,

@@ -1507,10 +1507,23 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
 const QString DOMAIN_UPDATE_AUTOMATIC_NETWORKING_KEY = "automatic_networking";
 
 void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr) {
-    sendHeartbeatToMetaverse(newPublicSockAddr.getAddress().toString());
+    static const QString PUBLIC_SOCKET_ADDRESS_KEY = "network_address";
+    static const QString PUBLIC_SOCKET_PORT_KEY = "port";
+    const QString& publicSocketAddress = newPublicSockAddr.getAddress().toString();
+    const int publicSocketPort = newPublicSockAddr.getPort();
+
+    sendHeartbeatToMetaverse(publicSocketAddress, publicSocketPort);
+
+    QString newSettingsJSON = QString("{\"domain_server\": { \"%1\": \"%2\", \"%3\": %4}}")
+            .arg(PUBLIC_SOCKET_ADDRESS_KEY)
+            .arg(publicSocketAddress)
+            .arg(PUBLIC_SOCKET_PORT_KEY)
+            .arg(publicSocketPort);
+    auto settingsDocument = QJsonDocument::fromJson(newSettingsJSON.toUtf8());
+    _settingsManager.recurseJSONObjectAndOverwriteSettings(settingsDocument.object(), DomainSettings);
 }
 
-void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
+void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress, const int port) {
     // Setup the domain object to send to the data server
     QJsonObject domainObject;
 
@@ -1520,10 +1533,23 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     static const QString PROTOCOL_VERSION_KEY = "protocol";
     domainObject[PROTOCOL_VERSION_KEY] = protocolVersionsSignatureBase64();
 
-    // add networking
+    static const QString PUBLIC_SOCKET_ADDRESS_KEY = "network_address";
+    static const QString PUBLIC_SOCKET_PORT_KEY = "port";
+
+    static const QString NETWORK_ADDRESS_SETTINGS_KEY = "domain_server." + PUBLIC_SOCKET_ADDRESS_KEY;
+    const QString networkAddressFromSettings = _settingsManager.valueForKeyPath(NETWORK_ADDRESS_SETTINGS_KEY).toString();
     if (!networkAddress.isEmpty()) {
-        static const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
-        domainObject[PUBLIC_NETWORK_ADDRESS_KEY] = networkAddress;
+        domainObject[PUBLIC_SOCKET_ADDRESS_KEY] = networkAddress;
+    } else if (!networkAddressFromSettings.isEmpty()) {
+        domainObject[PUBLIC_SOCKET_ADDRESS_KEY] = networkAddressFromSettings;
+    }
+
+    static const QString PORT_SETTINGS_KEY = "domain_server." + PUBLIC_SOCKET_PORT_KEY;
+    const int portFromSettings = _settingsManager.valueForKeyPath(PORT_SETTINGS_KEY).toInt();
+    if (port != NULL) {
+        domainObject[PUBLIC_SOCKET_PORT_KEY] = port;
+    } else if (portFromSettings != NULL) {
+        domainObject[PUBLIC_SOCKET_PORT_KEY] = portFromSettings;
     }
 
     static const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
