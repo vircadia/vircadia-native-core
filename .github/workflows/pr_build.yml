@@ -14,6 +14,7 @@ env:
   RELEASE_TYPE: PR
   RELEASE_NUMBER: ${{ github.event.number }}
   VERSION_CODE: ${{ github.event.number }}
+  # Sentry Crash Reporting
   CMAKE_BACKTRACE_URL: https://sentry.vircadia.dev/api/2/minidump/?sentry_key=dbf6000201a442e0b5462b63e18ee6b1
   CMAKE_BACKTRACE_TOKEN: PR_${{ github.event.number }}_${{ github.sha }}
 
