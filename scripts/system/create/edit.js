@@ -2931,7 +2931,7 @@ function getDomainOnlyChildrenIDs(id) {
     var properties;
     for (var i = 0; i < allChildren.length; i++) {
         properties = Entities.getEntityProperties(allChildren[i], ["name"]);
-        if (properties.name !== entityShapeVisualizerSessionName && properties.name !== undefined) {
+        if (properties.name !== undefined && properties.name !== entityShapeVisualizerSessionName) {
             realChildren.push(allChildren[i]);
         }
     }
