@@ -114,7 +114,7 @@ Item {
         displayNameField.placeholderText = "Display Name (optional)";
         var savedDisplayName = Settings.getValue("Avatar/displayName", "");
         displayNameField.text = savedDisplayName;
-        emailField.placeholderText = (!isLoggingInToDomain) ? "Username or Email" : "Username";
+        emailField.placeholderText = "Username or Email";
         if (!isLoggingInToDomain) {
             var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
             emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
