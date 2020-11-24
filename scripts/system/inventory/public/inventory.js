@@ -97,12 +97,12 @@ Tablet Vec3 Window */
             if (messageJSON.command === "share-item" 
                 && messageJSON.recipient === MyAvatar.sessionUUID) { // We are receiving an item.
                 // Window.alert("Passed 1 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);
-                pushReceivedItemToQueue(sender, messageJSON.type, messageJSON.name, messageJSON.url, messageJSON.tags, messageJSON.metadata);
+                pushReceivedItemToQueue(sender, messageJSON.type, messageJSON.name, messageJSON.url, messageJSON.tags, messageJSON.metadata, messageJSON.version);
             }
             // Window.alert("Passed 0 " + sender + " vs " + MyAvatar.sessionUUID);
             if (messageJSON.command === "append-item" 
                 && sender === MyAvatar.sessionUUID) { // We are appending an item from another of our own apps.
-                appendReceivedItemToInventory(messageJSON.type, messageJSON.name, messageJSON.url, messageJSON.tags, messageJSON.metadata);
+                appendReceivedItemToInventory(messageJSON.type, messageJSON.name, messageJSON.url, messageJSON.tags, messageJSON.metadata, messageJSON.version);
             }
         }
         // print("Message received:");
@@ -145,13 +145,14 @@ Tablet Vec3 Window */
     // END SEND AND RECEIVE SETTINGS STATE
     
     // This function bypasses the receiving item queue and goes straight into the inventory as is.
-    function appendReceivedItemToInventory (type, name, url, tags, metadata) {
+    function appendReceivedItemToInventory (type, name, url, tags, metadata, version) {
         var itemData = {
             "type": type,
             "name": name,
             "url": url,
             "tags": tags,
-            "metadata": metadata
+            "metadata": metadata,
+            "version": version
         }
         
         if (isInventoryOpen) {
@@ -181,7 +182,7 @@ Tablet Vec3 Window */
         inventorySettings = Settings.getValue(inventorySettingsString);
     }
 
-    function pushReceivedItemToQueue(senderUUID, type, name, url, tags, metadata) {
+    function pushReceivedItemToQueue(senderUUID, type, name, url, tags, metadata, version) {
         console.info("Receiving an item:", name, "from:", senderUUID);
         var getAvatarData = AvatarList.getAvatar(senderUUID);
         var senderName = getAvatarData.sessionDisplayName;
@@ -196,7 +197,8 @@ Tablet Vec3 Window */
                 "name": name,
                 "url": url,
                 "tags": tags,
-                "metadata": metadata
+                "metadata": metadata,
+                "version": version
             }
         };
         

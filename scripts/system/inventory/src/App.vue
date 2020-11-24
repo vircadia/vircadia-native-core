@@ -336,6 +336,14 @@
                         required
                     ></v-text-field>
                     
+                    <v-text-field
+                        class="px-2"
+                        label="Version"
+                        v-model="editDialogStore.data.version"
+                        :rules="[v => !!v || 'Version is required.']"
+                        required
+                    ></v-text-field>
+                    
                     <v-combobox
                         class="px-2"
                         label="Tags"
@@ -550,6 +558,14 @@
                         label="URL"
                         v-model="addDialogStore.data.url"
                         :rules="[v => !!v || 'URL is required.']"
+                        required
+                    ></v-text-field>
+                    
+                    <v-text-field
+                        class="px-2"
+                        label="Version"
+                        v-model="addDialogStore.data.version"
+                        :rules="[v => !!v || 'Version is required.']"
                         required
                     ></v-text-field>
 
@@ -767,6 +783,14 @@
                         label="URL"
                         :rules="[v => !!v || 'URL is required.']"
                         v-model="receiveDialogStore.data.url"
+                        required
+                    ></v-text-field>
+                    
+                    <v-text-field
+                        class="px-2"
+                        label="Version"
+                        v-model="receiveDialogStore.data.version"
+                        :rules="[v => !!v || 'Version is required.']"
                         required
                     ></v-text-field>
 
@@ -1038,7 +1062,7 @@ export default {
             var uuid = s.join("");
             return uuid;
         },
-        pushToItems: function(type, name, folder, url, tags, metadata, uuid) {
+        pushToItems: function(type, name, folder, url, tags, metadata, version, uuid) {
             var uuidToUse;
 
             if (uuid != null) {
@@ -1054,6 +1078,7 @@ export default {
                 "url": url,
                 "tags": tags,
                 "metadata": metadata,
+                "version": version,
                 "uuid": uuidToUse
             });
             
@@ -1167,6 +1192,7 @@ export default {
             var url = this.$store.state.addDialog.data.url;
             var tags = this.$store.state.addDialog.data.tags;
             var metadata = this.$store.state.addDialog.data.metadata;
+            var version = this.$store.state.addDialog.data.version;
             
             var detectedFileType = this.detectFileType(url);
             var itemType;
@@ -1177,7 +1203,7 @@ export default {
                 itemType = this.checkFileType(detectedFileType[0]);
             }
 
-            this.pushToItems(itemType, name, folder, url, tags, metadata, null);
+            this.pushToItems(itemType, name, folder, url, tags, metadata, version, null);
             
             this.addDialogStore.data.name = null;
             this.addDialogStore.data.folder = null;
@@ -1200,6 +1226,7 @@ export default {
             findItem.returnedItem.url = this.$store.state.editDialog.data.url;
             findItem.returnedItem.tags = this.$store.state.editDialog.data.tags;
             findItem.returnedItem.metadata = this.$store.state.editDialog.data.metadata;
+            findItem.returnedItem.version = this.$store.state.editDialog.data.version;
             
             var folderName;
             
@@ -1228,6 +1255,7 @@ export default {
             this.receiveDialogStore.data.url = data.data.url;
             this.receiveDialogStore.data.tags = data.data.tags;
             this.receiveDialogStore.data.metadata = data.data.metadata;
+            this.receiveDialogStore.data.version = data.data.version;
             
             this.getFolderList("add");
                             
@@ -1248,7 +1276,7 @@ export default {
             this.receivingItemsDialog.data.receivingItemQueue = data;
         },
         receiveAppendItem: function (data) {
-            this.pushToItems(data.type, data.name, "No Folder", data.url, data.tags, data.metadata, null);
+            this.pushToItems(data.type, data.name, "No Folder", data.url, data.tags, data.metadata, data.version, null);
         },
         shareItem: function (uuid) {        
             var findItem = this.searchForItem(uuid);
@@ -1256,6 +1284,7 @@ export default {
             var typeToShare = findItem.returnedItem.type;
             var tagsToShare = findItem.returnedItem.tags;
             var metadataToShare = findItem.returnedItem.metadata;
+            var versionToShare = findItem.returnedItem.version;
             
             // alert("type" + typeToShare + "name" + nameToShare);
             this.sendAppMessage("share-item", {
@@ -1263,6 +1292,7 @@ export default {
                 "name": nameToShare,
                 "tags": tagsToShare,
                 "metadata": metadataToShare,
+                "version": versionToShare,
                 "url": this.$store.state.shareDialog.data.url,
                 "recipient": this.$store.state.shareDialog.data.recipient,
             });
@@ -1275,6 +1305,7 @@ export default {
                 this.$store.state.receiveDialog.data.url,
                 this.$store.state.receiveDialog.data.tags,
                 this.$store.state.receiveDialog.data.metadata,
+                this.$store.state.receiveDialog.data.version,
                 null
             );
         },
@@ -1490,10 +1521,11 @@ export default {
                 "website": this.$store.state.bizCardDialog.data.website,
                 "details": this.$store.state.bizCardDialog.data.details
             });
+            var version = '0.0.1';
 
             var itemType = "OTHER";
 
-            this.pushToItems(itemType, name, folder, url, tags, metadata, null);
+            this.pushToItems(itemType, name, folder, url, tags, metadata, version, null);
             
             this.bizCardDialogStore.data.name = null;
             this.bizCardDialogStore.data.folder = null;

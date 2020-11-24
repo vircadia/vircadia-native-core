@@ -300,6 +300,7 @@ export default {
             this.editDialogStore.data.url = item.url;
             this.editDialogStore.data.tags = item.tags;
             this.editDialogStore.data.metadata = item.metadata;
+            this.editDialogStore.data.version = item.version;
         },
         sendEvent: function(command, data) {
             EventBus.$emit(command, data);
