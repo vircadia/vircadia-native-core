@@ -96,7 +96,7 @@ void gl::initModuleGl() {
         wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)getGlProcessAddress("wglCreateContextAttribsARB");
 #endif
 
-#if defined(Q_OS_LINUX)
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
         QueryCurrentRendererIntegerMESA = (PFNGLXQUERYCURRENTRENDERERINTEGERMESAPROC)getGlProcessAddress("glXQueryCurrentRendererIntegerMESA");
 #endif
 
@@ -134,7 +134,7 @@ void gl::setSwapInterval(int interval) {
 }
 
 bool gl::queryCurrentRendererIntegerMESA(int attr, unsigned int *value) {
-    #if defined(Q_OS_LINUX)
+    #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
     if (QueryCurrentRendererIntegerMESA) {
         return QueryCurrentRendererIntegerMESA(attr, value);
     }
