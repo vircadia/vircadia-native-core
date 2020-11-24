@@ -158,79 +158,98 @@ render::ItemID EntityTreeRenderer::renderableIdForEntityId(const EntityItemID& i
 
 int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
 
-void EntityTreeRenderer::resetEntitiesScriptEngine() {
-    _entitiesScriptEngine = scriptEngineFactory(ScriptEngine::ENTITY_CLIENT_SCRIPT, NO_SCRIPT,
-                                                QString("about:Entities %1").arg(++_entitiesScriptEngineCount));
-    DependencyManager::get<ScriptEngines>()->runScriptInitializers(_entitiesScriptEngine);
-    _entitiesScriptEngine->runInThread();
-    auto entitiesScriptEngineProvider = qSharedPointerCast<EntitiesScriptEngineProvider>(_entitiesScriptEngine);
+void EntityTreeRenderer::setupEntityScriptEngineSignals(const ScriptEnginePointer& scriptEngine) {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    entityScriptingInterface->setEntitiesScriptEngine(entitiesScriptEngineProvider);
 
-    connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptPreloadFinished, [&](const EntityItemID& entityID) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity, scriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+        scriptEngine->callEntityScriptMethod(entityID, "mousePressOnEntity", event);
+    });
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseDoublePressOnEntity, scriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+        scriptEngine->callEntityScriptMethod(entityID, "mouseDoublePressOnEntity", event);
+    });
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity, scriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+        scriptEngine->callEntityScriptMethod(entityID, "mouseMoveOnEntity", event);
+        // FIXME: this is a duplicate of mouseMoveOnEntity, but it seems like some scripts might use this naming
+        scriptEngine->callEntityScriptMethod(entityID, "mouseMoveEvent", event);
+    });
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity, scriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+        scriptEngine->callEntityScriptMethod(entityID, "mouseReleaseOnEntity", event);
+    });
+
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity, scriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+        scriptEngine->callEntityScriptMethod(entityID, "clickDownOnEntity", event);
+    });
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::holdingClickOnEntity, scriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+        scriptEngine->callEntityScriptMethod(entityID, "holdingClickOnEntity", event);
+    });
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickReleaseOnEntity, scriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+        scriptEngine->callEntityScriptMethod(entityID, "clickReleaseOnEntity", event);
+    });
+
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, scriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+        scriptEngine->callEntityScriptMethod(entityID, "hoverEnterEntity", event);
+    });
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity, scriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+        scriptEngine->callEntityScriptMethod(entityID, "hoverOverEntity", event);
+    });
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, scriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+        scriptEngine->callEntityScriptMethod(entityID, "hoverLeaveEntity", event);
+    });
+
+    connect(scriptEngine.data(), &ScriptEngine::entityScriptPreloadFinished, [&](const EntityItemID& entityID) {
         EntityItemPointer entity = getTree()->findEntityByID(entityID);
         if (entity) {
             entity->setScriptHasFinishedPreload(true);
         }
     });
+}
 
-    // Connect mouse events to entity script callbacks
-    if (!_mouseAndPreloadSignalHandlersConnected) {
-    
-        connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, "mousePressOnEntity", event);
-        });
-        connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseDoublePressOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseDoublePressOnEntity", event);
-        });
-        connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseMoveOnEntity", event);
-            // FIXME: this is a duplicate of mouseMoveOnEntity, but it seems like some scripts might use this naming
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseMoveEvent", event);
-        });
-        connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseReleaseOnEntity", event);
-        });
-
-        connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, "clickDownOnEntity", event);
-        });
-        connect(entityScriptingInterface.data(), &EntityScriptingInterface::holdingClickOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, "holdingClickOnEntity", event);
-        });
-        connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickReleaseOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, "clickReleaseOnEntity", event);
-        });
-
-        connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, "hoverEnterEntity", event);
-        });
-        connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, "hoverOverEntity", event);
-        });
-        connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, "hoverLeaveEntity", event);
-        });
-
-        _mouseAndPreloadSignalHandlersConnected = true;
+void EntityTreeRenderer::resetPersistentEntitiesScriptEngine() {
+    if (_persistentEntitiesScriptEngine) {
+        _persistentEntitiesScriptEngine->unloadAllEntityScripts(true);
+        _persistentEntitiesScriptEngine->stop();
+        _persistentEntitiesScriptEngine->waitTillDoneRunning();
+        _persistentEntitiesScriptEngine->disconnectNonEssentialSignals();
     }
+    _persistentEntitiesScriptEngine = scriptEngineFactory(ScriptEngine::ENTITY_CLIENT_SCRIPT, NO_SCRIPT,
+                                                QString("about:Entities %1").arg(++_entitiesScriptEngineCount));
+    DependencyManager::get<ScriptEngines>()->runScriptInitializers(_persistentEntitiesScriptEngine);
+    _persistentEntitiesScriptEngine->runInThread();
+    auto entitiesScriptEngineProvider = qSharedPointerCast<EntitiesScriptEngineProvider>(_persistentEntitiesScriptEngine);
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    entityScriptingInterface->setPersistentEntitiesScriptEngine(entitiesScriptEngineProvider);
+
+    setupEntityScriptEngineSignals(_persistentEntitiesScriptEngine);
+}
+
+void EntityTreeRenderer::resetNonPersistentEntitiesScriptEngine() {
+    if (_nonPersistentEntitiesScriptEngine) {
+        _nonPersistentEntitiesScriptEngine->unloadAllEntityScripts(true);
+        _nonPersistentEntitiesScriptEngine->stop();
+        _nonPersistentEntitiesScriptEngine->waitTillDoneRunning();
+        _nonPersistentEntitiesScriptEngine->disconnectNonEssentialSignals();
+    }
+    _nonPersistentEntitiesScriptEngine = scriptEngineFactory(ScriptEngine::ENTITY_CLIENT_SCRIPT, NO_SCRIPT,
+                                                QString("about:Entities %1").arg(++_entitiesScriptEngineCount));
+    DependencyManager::get<ScriptEngines>()->runScriptInitializers(_nonPersistentEntitiesScriptEngine);
+    _nonPersistentEntitiesScriptEngine->runInThread();
+    auto entitiesScriptEngineProvider = qSharedPointerCast<EntitiesScriptEngineProvider>(_nonPersistentEntitiesScriptEngine);
+    DependencyManager::get<EntityScriptingInterface>()->setNonPersistentEntitiesScriptEngine(entitiesScriptEngineProvider);
+
+    setupEntityScriptEngineSignals(_nonPersistentEntitiesScriptEngine);
 }
 
 void EntityTreeRenderer::stopDomainAndNonOwnedEntities() {
     leaveDomainAndNonOwnedEntities();
     // unload and stop the engine
-    if (_entitiesScriptEngine) {
-        QList<EntityItemID> entitiesWithEntityScripts = _entitiesScriptEngine->getListOfEntityScriptIDs();
+    if (_nonPersistentEntitiesScriptEngine) {
+        QList<EntityItemID> entitiesWithEntityScripts = _nonPersistentEntitiesScriptEngine->getListOfEntityScriptIDs();
 
-        foreach (const EntityItemID& entityID,  entitiesWithEntityScripts) {
+        foreach (const EntityItemID& entityID, entitiesWithEntityScripts) {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
-
             if (entityItem && !entityItem->getScript().isEmpty()) {
                 if (!(entityItem->isLocalEntity() || entityItem->isMyAvatarEntity())) {
-                    if (_currentEntitiesInside.contains(entityID)) {
-                        _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
-                    }
-                    _entitiesScriptEngine->unloadEntityScript(entityID, true);
+                    _nonPersistentEntitiesScriptEngine->unloadEntityScript(entityID, true);
                 }
             }
         }
@@ -239,6 +258,10 @@ void EntityTreeRenderer::stopDomainAndNonOwnedEntities() {
 
 void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
     stopDomainAndNonOwnedEntities();
+
+    if (!_shuttingDown && _wantScripts) {
+        resetNonPersistentEntitiesScriptEngine();
+    }
 
     std::unordered_map<EntityItemID, EntityRendererPointer> savedEntities;
     std::unordered_set<EntityRendererPointer> savedRenderables;
@@ -269,16 +292,22 @@ void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
 
 void EntityTreeRenderer::clear() {
     leaveAllEntities();
-    // unload and stop the engine
-    if (_entitiesScriptEngine) {
-        // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
-        _entitiesScriptEngine->unloadAllEntityScripts(true);
-        _entitiesScriptEngine->stop();
-    }
 
     // reset the engine
     auto scene = _viewState->getMain3DScene();
     if (_shuttingDown) {
+        // unload and stop the engines
+        if (_nonPersistentEntitiesScriptEngine) {
+            // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
+            _nonPersistentEntitiesScriptEngine->unloadAllEntityScripts(true);
+            _nonPersistentEntitiesScriptEngine->stop();
+        }
+        if (_persistentEntitiesScriptEngine) {
+            // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
+            _persistentEntitiesScriptEngine->unloadAllEntityScripts(true);
+            _persistentEntitiesScriptEngine->stop();
+        }
+
         if (scene) {
             render::Transaction transaction;
             for (const auto& entry :  _entitiesInScene) {
@@ -289,7 +318,8 @@ void EntityTreeRenderer::clear() {
         }
     } else {
         if (_wantScripts) {
-            resetEntitiesScriptEngine();
+            resetPersistentEntitiesScriptEngine();
+            resetNonPersistentEntitiesScriptEngine();
         }
         if (scene) {
             for (const auto& entry :  _entitiesInScene) {
@@ -313,13 +343,17 @@ void EntityTreeRenderer::clear() {
 }
 
 void EntityTreeRenderer::reloadEntityScripts() {
-    _entitiesScriptEngine->unloadAllEntityScripts();
-    _entitiesScriptEngine->resetModuleCache();
+    _persistentEntitiesScriptEngine->unloadAllEntityScripts();
+    _persistentEntitiesScriptEngine->resetModuleCache();
+    _nonPersistentEntitiesScriptEngine->unloadAllEntityScripts();
+    _nonPersistentEntitiesScriptEngine->resetModuleCache();
+
     for (const auto& entry : _entitiesInScene) {
         const auto& renderer = entry.second;
         const auto& entity = renderer->getEntity();
-        if (!entity->getScript().isEmpty()) {
-            _entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), resolveScriptURL(entity->getScript()), true);
+        if (entity && !entity->getScript().isEmpty()) {
+            auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+            scriptEngine->loadEntityScript(entity->getEntityItemID(), resolveScriptURL(entity->getScript()), true);
         }
     }
 }
@@ -329,7 +363,8 @@ void EntityTreeRenderer::init() {
     EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
 
     if (_wantScripts) {
-        resetEntitiesScriptEngine();
+        resetPersistentEntitiesScriptEngine();
+        resetNonPersistentEntitiesScriptEngine();
     }
 
     forceRecheckEntities(); // setup our state to force checking our inside/outsideness of entities
@@ -341,8 +376,11 @@ void EntityTreeRenderer::init() {
 }
 
 void EntityTreeRenderer::shutdown() {
-    if (_entitiesScriptEngine) {
-        _entitiesScriptEngine->disconnectNonEssentialSignals(); // disconnect all slots/signals from the script engine, except essential
+    if (_persistentEntitiesScriptEngine) {
+        _persistentEntitiesScriptEngine->disconnectNonEssentialSignals(); // disconnect all slots/signals from the script engine, except essential
+    }
+    if (_nonPersistentEntitiesScriptEngine) {
+        _nonPersistentEntitiesScriptEngine->disconnectNonEssentialSignals(); // disconnect all slots/signals from the script engine, except essential
     }
     _shuttingDown = true;
 
@@ -658,12 +696,16 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             // EntityItemIDs from here. The callEntityScriptMethod() method is robust against attempting to call scripts
             // for entity IDs that no longer exist.
 
-            if (_entitiesScriptEngine) {
+            if (_persistentEntitiesScriptEngine && _nonPersistentEntitiesScriptEngine) {
                 // for all of our previous containing entities, if they are no longer containing then send them a leave event
                 foreach(const EntityItemID& entityID, _currentEntitiesInside) {
                     if (!entitiesContainingAvatar.contains(entityID)) {
                         emit leaveEntity(entityID);
-                        _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+                        auto entity = getTree()->findEntityByEntityItemID(entityID);
+                        if (entity) {
+                            auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+                            scriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+                        }
                     }
                 }
 
@@ -671,7 +713,11 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
                 foreach(const EntityItemID& entityID, entitiesContainingAvatar) {
                     if (!_currentEntitiesInside.contains(entityID)) {
                         emit enterEntity(entityID);
-                        _entitiesScriptEngine->callEntityScriptMethod(entityID, "enterEntity");
+                        auto entity = getTree()->findEntityByEntityItemID(entityID);
+                        if (entity) {
+                            auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+                            scriptEngine->callEntityScriptMethod(entityID, "enterEntity");
+                        }
                     }
                 }
                 _currentEntitiesInside = entitiesContainingAvatar;
@@ -687,8 +733,8 @@ void EntityTreeRenderer::leaveDomainAndNonOwnedEntities() {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
             if (entityItem && !(entityItem->isLocalEntity() || entityItem->isMyAvatarEntity())) {
                 emit leaveEntity(entityID);
-                if (_entitiesScriptEngine) {
-                    _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+                if (_nonPersistentEntitiesScriptEngine) {
+                    _nonPersistentEntitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
                 }
             } else {
                 currentEntitiesInsideToSave.insert(entityID);
@@ -706,8 +752,12 @@ void EntityTreeRenderer::leaveAllEntities() {
         // for all of our previous containing entities, if they are no longer containing then send them a leave event
         foreach(const EntityItemID& entityID, _currentEntitiesInside) {
             emit leaveEntity(entityID);
-            if (_entitiesScriptEngine) {
-                _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+            EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
+            if (entityItem) {
+                auto& scriptEngine = (entityItem->isLocalEntity() || entityItem->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+                if (scriptEngine) {
+                    scriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+                }
             }
         }
         _currentEntitiesInside.clear();
@@ -1003,11 +1053,12 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         return;
     }
 
-    if (_tree && !_shuttingDown && _entitiesScriptEngine && !itr->second->getEntity()->getScript().isEmpty()) {
+    auto& scriptEngine = (itr->second->getEntity()->isLocalEntity() || itr->second->getEntity()->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+    if (_tree && !_shuttingDown && scriptEngine && !itr->second->getEntity()->getScript().isEmpty()) {
         if (_currentEntitiesInside.contains(entityID)) {
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+            scriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
         }
-        _entitiesScriptEngine->unloadEntityScript(entityID, true);
+        scriptEngine->unloadEntityScript(entityID, true);
     }
 
     auto scene = _viewState->getMain3DScene();
@@ -1052,20 +1103,21 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
         if (!entity) {
             return;
         }
-        bool shouldLoad = entity->shouldPreloadScript() && _entitiesScriptEngine;
+        auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+        bool shouldLoad = entity->shouldPreloadScript() && scriptEngine;
         QString scriptUrl = entity->getScript();
         if ((shouldLoad && unloadFirst) || scriptUrl.isEmpty()) {
-            if (_entitiesScriptEngine) {
+            if (scriptEngine) {
                 if (_currentEntitiesInside.contains(entityID)) {
-                    _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+                    scriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
                 }
-                _entitiesScriptEngine->unloadEntityScript(entityID);
+                scriptEngine->unloadEntityScript(entityID);
             }
             entity->scriptHasUnloaded();
         }
         if (shouldLoad) {
             entity->setScriptHasFinishedPreload(false);
-            _entitiesScriptEngine->loadEntityScript(entityID, resolveScriptURL(scriptUrl), reload);
+            scriptEngine->loadEntityScript(entityID, resolveScriptURL(scriptUrl), reload);
             entity->scriptHasPreloaded();
         }
     }
@@ -1172,8 +1224,9 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         if ((myNodeID == entityASimulatorID && entityAIsDynamic) || (myNodeID == entityBSimulatorID && (!entityAIsDynamic || entityASimulatorID.isNull()))) {
             playEntityCollisionSound(entityA, collision);
             emit collisionWithEntity(idA, idB, collision);
-            if (_entitiesScriptEngine) {
-                _entitiesScriptEngine->callEntityScriptMethod(idA, "collisionWithEntity", idB, collision);
+            auto& scriptEngine = (entityA->isLocalEntity() || entityA->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+            if (scriptEngine) {
+                scriptEngine->callEntityScriptMethod(idA, "collisionWithEntity", idB, collision);
             }
         }
 
@@ -1183,8 +1236,9 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
             Collision invertedCollision(collision);
             invertedCollision.invert();
             emit collisionWithEntity(idB, idA, invertedCollision);
-            if (_entitiesScriptEngine) {
-                _entitiesScriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, invertedCollision);
+            auto& scriptEngine = (entityB->isLocalEntity() || entityB->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+            if (scriptEngine) {
+                scriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, invertedCollision);
             }
         }
     }
