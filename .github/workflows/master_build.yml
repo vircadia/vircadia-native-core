@@ -3,8 +3,7 @@ name: Master CI Build
 on: 
   push:
     branches:
-      - gha-master-ci
-# FIXME: Change target branch to "master" before merging into "master" branch.
+      - master
 
 env:
   APP_NAME: interface
