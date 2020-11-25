@@ -17,11 +17,10 @@
 <template>
     <v-app>
         
-        <!-- ### DIALOGS ### -->
+        <!-- ### MENU / NAVIGATION ### -->
 
         <v-app-bar
             app
-            v-if="settings.currentView === 'Inventory'"
         >
 
             <v-app-bar-nav-icon 
@@ -29,7 +28,7 @@
             ></v-app-bar-nav-icon>
 
             <v-toolbar-title>
-                Inventory
+                {{ settings.currentView }}
             </v-toolbar-title>
             
             <v-spacer></v-spacer>
@@ -41,6 +40,7 @@
                 :content="receivingItemQueueLength"
                 overlap
                 class="mx-5"
+                v-show="settings.currentView === 'Inventory'"
             >
                 <v-btn
                     small 
@@ -54,12 +54,16 @@
                 </v-btn>
             </v-badge>
             
-            <v-menu bottom left>
+            <v-menu 
+                bottom 
+                left 
+            >
                 <template v-slot:activator="{ on }">
                     <v-btn 
                         large
                         color="primary"
                         v-on="on"
+                        v-show="settings.currentView === 'Inventory'"
                     >
                         <h4>Sort</h4>
                     </v-btn>
@@ -88,7 +92,6 @@
         </v-app-bar>
 
         <v-navigation-drawer
-            v-if="settings.currentView === 'Inventory'"
             v-model="drawer"
             fixed
             temporary
@@ -97,6 +100,24 @@
                 nav
                 class="pt-5"
             >
+            
+                <v-list-item 
+                    @click="settings.currentView = 'Inventory'; drawer = false;"
+                >
+                    <v-list-item-icon>
+                        <v-icon>mdi-briefcase-outline</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-title>Inventory</v-list-item-title>
+                </v-list-item>
+            
+                <v-list-item 
+                    @click="settings.currentView = 'Bazaar'; drawer = false;"
+                >
+                    <v-list-item-icon>
+                        <v-icon>mdi-basket-outline</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-title>Bazaar</v-list-item-title>
+                </v-list-item>
 
                 <v-slider
                     v-model="settings.displayDensity.size"
@@ -108,7 +129,10 @@
                     class="mb-4"
                 ></v-slider>
 
-                <v-list-item @click="addDialogStore.show = true; getFolderList('add');">
+                <v-list-item 
+                    @click="addDialogStore.show = true; getFolderList('add');"
+                    v-show="settings.currentView === 'Inventory'"
+                >
                     <v-list-item-icon>
                         <v-icon>mdi-plus</v-icon>
                     </v-list-item-icon>
@@ -116,14 +140,20 @@
                 </v-list-item>
                 
                 <!-- This is an example on how to make a custom add function. -->
-                <v-list-item v-show="false" @click="bizCardDialogStore.show = true; getFolderList('add');">
+                <v-list-item 
+                    @click="bizCardDialogStore.show = true; getFolderList('add');"
+                    v-show="false" 
+                >
                     <v-list-item-icon>
                         <v-icon>mdi-plus</v-icon>
                     </v-list-item-icon>
                     <v-list-item-title>Create Business Card</v-list-item-title>
                 </v-list-item>
 
-                <v-list-item @click="createFolderDialogStore.show = true">
+                <v-list-item 
+                    @click="createFolderDialogStore.show = true"
+                    v-show="settings.currentView === 'Inventory'"
+                >
                     <v-list-item-icon>
                         <v-icon>mdi-folder-plus</v-icon>
                     </v-list-item-icon>
@@ -133,7 +163,6 @@
                 <p class="app-version">Version {{appVersion}}</p>
 
             </v-list>
-
         </v-navigation-drawer>
 
         <v-content
@@ -150,6 +179,7 @@
                 </v-col>
             </v-container>
         </v-content>
+
         <v-content
             v-show="settings.currentView === 'Bazaar'"
         >
@@ -1027,7 +1057,7 @@ export default {
         sortBy: "alphabetical",
         settings: {
             currentView: 'Inventory',
-            "displayDensity": {
+            displayDensity: {
                 "size": 0,
                 "labels": [
                     "List",

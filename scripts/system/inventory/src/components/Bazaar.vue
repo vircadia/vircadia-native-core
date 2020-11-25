@@ -8,6 +8,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 -->
 
+<template>
+    <h1>TEST</h1>
+</template>
+
 <script>
 import { EventBus } from '../plugins/event-bus.js';
 
