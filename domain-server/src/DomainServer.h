@@ -112,7 +112,7 @@ private slots:
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
 
-    void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
+    void performIPAddressPortUpdate(const HifiSockAddr& newPublicSockAddr);
     void sendHeartbeatToMetaverse() { sendHeartbeatToMetaverse(QString(), int()); }
     void sendHeartbeatToIceServer();
     void nodePingMonitor();

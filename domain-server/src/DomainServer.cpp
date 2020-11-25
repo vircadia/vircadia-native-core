@@ -901,14 +901,13 @@ void DomainServer::setupAutomaticNetworking() {
                 qDebug() << "domain-server" << _automaticNetworkingSetting << "automatic networking enabled for ID"
                     << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
 
+                auto nodeList = DependencyManager::get<LimitedNodeList>();
+
+                // send any public socket changes to the data server so nodes can find us at our new IP
+                connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged, this,
+                        &DomainServer::performIPAddressPortUpdate);
+
                 if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
-
-                    auto nodeList = DependencyManager::get<LimitedNodeList>();
-
-                    // send any public socket changes to the data server so nodes can find us at our new IP
-                    connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged,
-                            this, &DomainServer::performIPAddressUpdate);
-
                     // have the LNL enable public socket updating via STUN
                     nodeList->startSTUNPublicSocketUpdate();
                 }
@@ -1506,7 +1505,7 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
 
 const QString DOMAIN_UPDATE_AUTOMATIC_NETWORKING_KEY = "automatic_networking";
 
-void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr) {
+void DomainServer::performIPAddressPortUpdate(const HifiSockAddr& newPublicSockAddr) {
     static const QString PUBLIC_SOCKET_ADDRESS_KEY = "network_address";
     static const QString PUBLIC_SOCKET_PORT_KEY = "port";
     const QString& publicSocketAddress = newPublicSockAddr.getAddress().toString();
