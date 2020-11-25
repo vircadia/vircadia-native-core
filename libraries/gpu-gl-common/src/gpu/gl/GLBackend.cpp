@@ -153,9 +153,11 @@ void GLBackend::init() {
 
         if (vendor.contains("NVIDIA") ) {
             qCDebug(gpugllogging) << "NVIDIA card detected";
+#if !defined(Q_OS_ANDROID)
             GL_GET_INTEGER(GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX);
             GL_GET_INTEGER(GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX);
             GL_GET_INTEGER(GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX);
+#endif
 
             qCDebug(gpugllogging) << "GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX: " << GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX;
             qCDebug(gpugllogging) << "GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX: " << GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX;
@@ -168,7 +170,9 @@ void GLBackend::init() {
 
         } else if (vendor.contains("ATI")) {
             qCDebug(gpugllogging) << "ATI card detected";
+#if !defined(Q_OS_ANDROID)
             GL_GET_INTEGER(TEXTURE_FREE_MEMORY_ATI);
+#endif
 
             _totalMemory = TEXTURE_FREE_MEMORY_ATI * BYTES_PER_KIB;
             _dedicatedMemory = _totalMemory;
@@ -219,10 +223,14 @@ size_t GLBackend::getAvailableMemory() {
 
     switch( _videoCard ) {
         case NVIDIA:
+#if !defined(Q_OS_ANDROID)
             glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &mem);
+#endif
             return mem * BYTES_PER_KIB;
         case ATI:
+#if !defined(Q_OS_ANDROID)
             glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &mem);
+#endif
             return mem * BYTES_PER_KIB;
         case MESA:
             return 0; // Don't know the current value

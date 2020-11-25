@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/14/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -196,7 +197,7 @@ public:
     Q_INVOKABLE void stop(bool marshal = false);
 
     // Stop any evaluating scripts and wait for the scripting thread to finish.
-    void waitTillDoneRunning();
+    void waitTillDoneRunning(bool shutdown = false);
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can

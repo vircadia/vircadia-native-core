@@ -20,7 +20,7 @@ const EMPTY_ENTITY_ID = "0";
 const MAX_LENGTH_RADIUS = 9;
 const MINIMUM_COLUMN_WIDTH = 24;
 const SCROLLBAR_WIDTH = 20;
-const RESIZER_WIDTH = 10;
+const RESIZER_WIDTH = 13; //Must be the number of COLUMNS - 1.
 const DELTA_X_MOVE_COLUMNS_THRESHOLD = 2;
 const DELTA_X_COLUMN_SWAP_POSITION = 5;
 const CERTIFIED_PLACEHOLDER = "** Certified **";
@@ -188,6 +188,8 @@ let selectedEntities = [];
 let entityList = null; // The ListView
 
 let hmdMultiSelectMode = false; 
+
+let lastSelectedEntity;
 /**
  * @type EntityListContextMenu
  */
@@ -283,6 +285,9 @@ const PROFILE = !ENABLE_PROFILING ? PROFILE_NOOP : function(name, fn, args) {
 
 function loaded() {    
     openEventBridge(function() {
+
+        var isColumnsSettingLoaded = false;
+        
         elEntityTable = document.getElementById("entity-table");
         elEntityTableHeader = document.getElementById("entity-table-header");
         elEntityTableBody = document.getElementById("entity-table-body");
@@ -331,7 +336,7 @@ function loaded() {
         elColumnsMultiselectBox = document.getElementById("entity-table-columns-multiselect-box");
         elColumnsOptions = document.getElementById("entity-table-columns-options");
         elToggleSpaceMode = document.getElementById('toggle-space-mode');
-        
+
         document.body.onclick = onBodyClick;
         elToggleLocked.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleLocked' }));
@@ -618,9 +623,9 @@ function loaded() {
             
             ++columnIndex;
         }
-        
+
         elEntityTableHeaderRow = document.querySelectorAll("#entity-table thead th");
-        
+
         entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow, createRow, updateRow,
                                   clearRow, preRefresh, postRefresh, preRefresh, WINDOW_NONVARIABLE_HEIGHT);
 
@@ -765,10 +770,10 @@ function loaded() {
                 let selectedIndex = selectedEntities.indexOf(entityID);
                 if (selectedIndex >= 0) {
                     selection = [];
-                    selection = selection.concat(selectedEntities);
+                    selection = selectedEntities.concat(selection);
                     selection.splice(selectedIndex, 1);
                 } else {
-                    selection = selection.concat(selectedEntities);
+                    selection = selectedEntities.concat(selection);
                 }
             } else if (clickEvent.shiftKey && selectedEntities.length > 0) {
                 let previousItemFound = -1;
@@ -1044,6 +1049,8 @@ function loaded() {
         function updateSelectedEntities(selectedIDs, autoScroll) {
             let notFound = false;
 
+            lastSelectedEntity = selectedIDs[selectedIDs.length - 1];
+
             // reset all currently selected entities and their rows first
             selectedEntities.forEach(function(id) {
                 let entity = entitiesByID[id];
@@ -1063,7 +1070,11 @@ function loaded() {
                 if (entity !== undefined) {
                     entity.selected = true;
                     if (entity.elRow) {
-                        entity.elRow.className = 'selected';
+                        if (id === lastSelectedEntity) {
+                            entity.elRow.className = 'last-selected';
+                        } else {
+                            entity.elRow.className = 'selected';
+                        }
                     }
                 } else {
                     notFound = true;
@@ -1132,7 +1143,11 @@ function loaded() {
 
             // if this entity was previously selected flag it's row as selected
             if (itemData.selected) {
-                elRow.className = 'selected';
+                if (itemData.id === lastSelectedEntity) {
+                    elRow.className = 'last-selected';
+                } else {
+                    elRow.className = 'selected';
+                }
             } else {
                 elRow.className = '';
             }
@@ -1409,6 +1424,10 @@ function loaded() {
                 column.elResizer.style.visibility = columnVisible && visibleColumns > 0 ? "visible" : "hidden";
             }
             
+            if (isColumnsSettingLoaded) {
+                EventBridge.emitWebEvent(JSON.stringify({ type: 'saveColumnsConfigSetting', columnsData: columns }));
+            }
+            
             entityList.refresh();
         }
         
@@ -1660,14 +1679,63 @@ function loaded() {
                     } else {
                         document.getElementById("hmdmultiselect").style.display = "none";                      
                     }
+                } else if (data.type === "loadedConfigSetting") {
+                    if (typeof(data.defaultRadius) === "number") {
+                        elFilterRadius.value = data.defaultRadius;
+                        onRadiusChange();
+                    }
+                    if (data.columnsData !== "NO_DATA" && typeof(data.columnsData) === "object") {
+                        var isValid = true;
+                        var originalColumnIDs = [];
+                        for (let originalColumnID in COLUMNS) {
+                            originalColumnIDs.push(originalColumnID);
+                        }                        
+                        for (let columnSetupIndex in data.columnsData) {
+                            var checkPresence = originalColumnIDs.indexOf(data.columnsData[columnSetupIndex].columnID);
+                            if (checkPresence === -1) {
+                                isValid = false;
+                                break;
+                            }
+                        }
+                        if (isValid) {
+                            for (var columnIndex = 0; columnIndex < data.columnsData.length; columnIndex++) {
+                                if (data.columnsData[columnIndex].data.alwaysShown !== true) {
+                                    var columnDropdownID = "entity-table-column-" + data.columnsData[columnIndex].columnID;
+                                    if (data.columnsData[columnIndex].width !== 0) {
+                                        document.getElementById(columnDropdownID).checked = false;
+                                        document.getElementById(columnDropdownID).click();
+                                    } else {
+                                        document.getElementById(columnDropdownID).checked = true;
+                                        document.getElementById(columnDropdownID).click();
+                                    }
+                                }
+                            }
+                            for (columnIndex = 0; columnIndex < data.columnsData.length; columnIndex++) {
+                                let currentColumnIndex = originalColumnIDs.indexOf(data.columnsData[columnIndex].columnID);
+                                if (currentColumnIndex !== -1 && columnIndex !== currentColumnIndex) {
+                                    for (var i = currentColumnIndex; i > columnIndex; i--) {
+                                        swapColumns(i - 1, i);
+                                        var swappedContent = originalColumnIDs[i - 1];  
+                                        originalColumnIDs[i - 1] = originalColumnIDs[i];  
+                                        originalColumnIDs[i] = swappedContent;                                        
+                                    }
+                                }
+                            }
+                        } else {
+                            EventBridge.emitWebEvent(JSON.stringify({ type: 'saveColumnsConfigSetting', columnsData: "" }));
+                        }
+                    }
+                    isColumnsSettingLoaded = true;
                 }
             });
         }
-        
+
         refreshSortOrder();
         refreshEntities();
         
         window.addEventListener("resize", updateColumnWidths);
+        
+        EventBridge.emitWebEvent(JSON.stringify({ type: 'loadConfigSetting' }));
     });
     
     augmentSpinButtons();
@@ -1683,6 +1751,7 @@ function loaded() {
     // close context menu when switching focus to another window
     $(window).blur(function() {
         entityListContextMenu.close();
+        closeAllEntityListMenu();
     });
     
     function closeAllEntityListMenu() {

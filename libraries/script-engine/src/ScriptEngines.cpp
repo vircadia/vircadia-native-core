@@ -182,7 +182,7 @@ void ScriptEngines::shutdownScripting() {
             // want any of the scripts final "scriptEnding()" or pending "update()" methods from accessing
             // any application state after we leave this stopAllScripts() method
             qCDebug(scriptengine) << "waiting on script:" << scriptName;
-            scriptEngine->waitTillDoneRunning();
+            scriptEngine->waitTillDoneRunning(true);
             qCDebug(scriptengine) << "done waiting on script:" << scriptName;
         }
         // Once the script is stopped, we can remove it from our set
