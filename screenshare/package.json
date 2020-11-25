@@ -1,7 +1,7 @@
 {
-  "name": "highfidelity_screenshare",
+  "name": "vircadia_screenshare",
   "version": "1.0.0",
-  "description": "High Fidelity Screenshare",
+  "description": "Vircadia Screenshare",
   "main": "src/screenshareMainProcess.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -9,19 +9,20 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/highfidelity/hifi.git"
+    "url": "git+https://github.com/kasenvr/project-athena.git"
   },
-  "author": "High Fidelity",
+  "author": "Vircadia",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/highfidelity/hifi/issues"
+    "url": "https://github.com/kasenvr/project-athena/issues"
   },
-  "homepage": "https://github.com/highfidelity/hifi#readme",
+  "homepage": "https://github.com/kasenvr/project-athena#readme",
   "devDependencies": {
     "electron": "^6.0.12",
     "electron-packager": "^14.0.6"
   },
   "dependencies": {
+    "ffmpeg-static": "^4.2.7",
     "yargs": "^14.2.0"
   }
 }
